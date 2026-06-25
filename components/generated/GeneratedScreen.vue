@@ -106,8 +106,24 @@
         </label>
         <label v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
           <span class="text-xs text-muted-color">{{ field.label || field.id }}</span>
+          <div
+            v-if="field.type === 'cassetteParameters'"
+            class="grid grid-cols-2 gap-2"
+          >
+            <label
+              v-for="parameter in cassetteParameterFields(field)"
+              :key="parameter.name"
+              class="flex flex-col gap-1"
+            >
+              <span class="text-xs text-muted-color">{{ parameter.name }}</span>
+              <InputText
+                v-model="promptValues[field.id][parameter.name]"
+                type="number"
+              />
+            </label>
+          </div>
           <Textarea
-            v-if="field.type === 'object'"
+            v-else-if="field.type === 'object'"
             v-model="promptValues[field.id]"
             rows="3"
             auto-resize
@@ -140,7 +156,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, toRef } from 'vue';
+import { computed, reactive, ref, toRef, watch } from 'vue';
 import InputText from 'primevue/inputtext';
 import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
@@ -157,6 +173,7 @@ import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
 import { generatedActionLabel, generatedEntityLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
+import { occsQueueParameters } from '~/utils/occs/parameters.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -232,6 +249,7 @@ async function openInputDialog(action, entity = null, context = {}) {
     promptValues[parentSelectionFieldId] = options[0]?.value || '';
   }
   await loadPromptOptions(promptedFields(action));
+  syncCassetteParameterValues(promptedFields(action));
   inputDialogVisible.value = true;
 }
 
@@ -281,9 +299,9 @@ function actionEntities(action = {}, entity = null, context = {}) {
   const resolvedContext = context?.value || context || {};
   const entities = {};
   const entityId = entity?._id || entity?.identity?.uid || '';
-  const entityType = entity?.origin?.type || entity?.type || resolvedContext?.entityType || '';
-  if (entityId && entityType) entities[entityType] = entityId;
   const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
+  const entityType = entity?.origin?.type || entity?.type || resolvedContext?.entityType || parentType || '';
+  if (entityId && entityType) entities[entityType] = entityId;
   const contextParentId = parentType && resolvedContext.parentEntityType === parentType
     ? entityIdentifier(resolvedContext.parentEntity)
     : '';
@@ -292,6 +310,49 @@ function actionEntities(action = {}, entity = null, context = {}) {
     : '';
   if (parentType && parentId) entities[parentType] = parentId;
   return entities;
+}
+
+function selectedTemplateIdForField(field = {}) {
+  const templateFieldId = field.templateFieldId || 'templateId';
+  return promptValues[templateFieldId] || promptValues[parentSelectionFieldId] || '';
+}
+
+function selectedTemplateForField(field = {}) {
+  const templateId = selectedTemplateIdForField(field);
+  const pending = pendingEntity.value?.entity;
+  if (pending && (pending.origin?.type === 'cassette' || pendingEntity.value?.context?.entityType === 'cassette')) {
+    const pendingId = entityIdentifier(pending);
+    if (!templateId || pendingId?.toString() === templateId?.toString()) return pending;
+  }
+  if (!templateId) return null;
+  const templateOptions = [
+    ...(promptOptions[field.templateFieldId || 'templateId'] || []),
+    ...(promptOptions[parentSelectionFieldId] || [])
+  ];
+  return templateOptions.find(option => option.value?.toString() === templateId?.toString())?.entity || null;
+}
+
+function cassetteParameterFields(field = {}) {
+  const parameters = occsQueueParameters(cassetteParameterDefinition(selectedTemplateForField(field)));
+  return Object.entries(parameters).map(([name]) => ({ name }));
+}
+
+function cassetteParameterDefinition(template = {}) {
+  return template?.data?.definition || template?.data?.parameters || {};
+}
+
+function syncCassetteParameterValues(fields = promptedFields(pendingAction.value)) {
+  for (const field of fields.filter(item => item.type === 'cassetteParameters')) {
+    const parameters = occsQueueParameters(cassetteParameterDefinition(selectedTemplateForField(field)));
+    const current = promptValues[field.id] && typeof promptValues[field.id] === 'object' && !Array.isArray(promptValues[field.id])
+      ? promptValues[field.id]
+      : {};
+    const next = {};
+    for (const [name, value] of Object.entries(parameters)) {
+      next[name] = current[name] ?? value;
+    }
+    promptValues[field.id] = next;
+  }
 }
 
 function requiredParentType(action = {}, entity = null, context = {}) {
@@ -337,6 +398,7 @@ function resolveParentIdFromFilters(parentType = '', filters = {}) {
 
 function initialPromptValue(field = {}) {
   if (field.type === 'entityList') return Array.isArray(field.default) ? field.default : [];
+  if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
   const value = field.default ?? '';
   if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);
   return value;
@@ -355,6 +417,15 @@ async function loadPromptOptions(fields = []) {
         promptValues[field.id] = options[0].value;
       }
     }));
+}
+
+function promptFieldHidden(field = {}, action = pendingAction.value) {
+  if (!field) return false;
+  const parentType = action?.parentEntityType || action?.inputs?.find(input => input.id === 'parent')?.entityType || '';
+  return action?.actionKind === 'createEntity'
+    && action?.entityType === 'cassette_design'
+    && parentType === 'cassette'
+    && field.id === 'templateId';
 }
 
 async function entityOptions(entityType) {
@@ -409,7 +480,9 @@ function collectActionInputFields(action = {}) {
 }
 
 function promptedFields(action = {}) {
-  return collectActionInputFields(action).filter(field => field?.prompt || field?.required);
+  return collectActionInputFields(action)
+    .filter(field => !promptFieldHidden(field, action))
+    .filter(field => field?.prompt || field?.required);
 }
 
 function promptData(fields = [], values = {}) {
@@ -425,6 +498,7 @@ function promptData(fields = [], values = {}) {
 function normalizePromptValue(field = {}, value) {
   if (field.type === 'number') return value === '' ? undefined : Number(value);
   if (field.type === 'entityList') return normalizeEntityListValue(field, value);
+  if (field.type === 'cassetteParameters') return normalizeCassetteParameters(value);
   if (field.type === 'object') {
     if (!value) return {};
     try {
@@ -435,6 +509,24 @@ function normalizePromptValue(field = {}, value) {
   }
   return value;
 }
+
+function normalizeCassetteParameters(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value)
+    .filter(([, item]) => item !== '' && item !== null && item !== undefined)
+    .map(([key, item]) => {
+      const numeric = Number(item);
+      return [key, Number.isFinite(numeric) ? numeric : item];
+    }));
+}
+
+watch(
+  () => [promptValues.templateId, promptValues[parentSelectionFieldId], pendingAction.value?.actionId || pendingAction.value?.id || ''],
+  () => {
+    if (!inputDialogVisible.value) return;
+    syncCassetteParameterValues();
+  }
+);
 
 function normalizeEntityListValue(field = {}, value = []) {
   const ids = Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean);

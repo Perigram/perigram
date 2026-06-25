@@ -85,6 +85,7 @@ const domain = {
       modes: ['genericCreate'],
       defaultMode: 'genericCreate',
       inputs: [
+        { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
         { id: 'jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: false },
         { id: 'materialPool', path: 'job.materialPool', type: 'entityList', accepts: ['material_pile', 'sheet', 'remnant'], required: false }
       ]
@@ -102,7 +103,8 @@ const domain = {
       derived: true,
       inputs: [
         { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
-        { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
+        { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true },
+        { id: 'parameters', path: 'parameters', type: 'cassetteParameters', templateFieldId: 'templateId', required: false, prompt: true }
       ]
     }
   }
@@ -1157,12 +1159,14 @@ describe('@cutkit/processes compiler', () => {
       mode: 'bakeCassetteDesignFromTemplate',
       inputs: expect.arrayContaining([
         expect.objectContaining({ id: 'name', prompt: true, required: true }),
-        expect.objectContaining({ id: 'templateId', prompt: true, required: true })
+        expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
+        expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
       ])
     });
     expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'name', prompt: true, required: true }),
-      expect.objectContaining({ id: 'templateId', prompt: true, required: true })
+      expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
+      expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
     ]));
   });
 
@@ -1207,6 +1211,7 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.create_queue.construction.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'name', required: true, prompt: true }),
       expect.objectContaining({ id: 'jobItems', required: false }),
       expect.objectContaining({ id: 'materialPool', required: false })
     ]));
@@ -1222,7 +1227,11 @@ describe('@cutkit/processes compiler', () => {
       expect.objectContaining({ id: 'data:jobItems', required: false })
     ]));
     expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'name', required: true, prompt: true }),
       expect.objectContaining({ id: 'jobItems', required: false })
+    ]));
+    expect(exposedQueueAction.inputPolicy.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'name', required: true, prompt: true })
     ]));
     expect(exposedQueueAction.inputPolicy.fields).not.toContainEqual(expect.objectContaining({ id: 'jobItems' }));
   });

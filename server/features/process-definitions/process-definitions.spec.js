@@ -377,6 +377,7 @@ describe('process definitions access fallback', () => {
 
   it('executes run-command actions with action-scoped command access', async () => {
     executeCommand.mockResolvedValueOnce({
+      entities: [{ type: 'nesting_run', id: 'nesting-run-1' }],
       data: { runId: 'nesting-run-1' }
     });
     getAppRegistry.mockReturnValueOnce({
@@ -395,6 +396,25 @@ describe('process definitions access fallback', () => {
       lineage: { organizationId: 'org-1' },
       status: { state: 'ACTIVE' },
       data: {
+        actions: {
+          run_nesting: {
+            id: 'run_nesting',
+            actionKind: 'runCommand',
+            commandId: 'solveNesting'
+          },
+          mark_cut: {
+            id: 'mark_cut',
+            actionKind: 'changeStatus',
+            inputs: [{ id: 'entity', entityType: 'nesting_run' }],
+            status: { to: 'CUT' }
+          }
+        },
+        graph: {
+          nodes: [],
+          edges: [
+            { source: 'run_nesting', target: 'mark_cut', sourceHandle: 'output:nesting_run', targetHandle: 'input:entity' }
+          ]
+        },
         compiled: {
           actions: {
             run_nesting: {
@@ -446,6 +466,14 @@ describe('process definitions access fallback', () => {
           ])
         })
       })
+    );
+    expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
+      'nesting_run',
+      'nesting-run-1',
+      'CUT',
+      'org-1',
+      'user-1',
+      expect.any(Object)
     );
   });
 
@@ -525,6 +553,62 @@ describe('process definitions access fallback', () => {
       expect.any(Object)
     );
     expect(result.status.state.primary).toBe('REVIEW');
+  });
+
+  it('executes cassette design construction from the selected parent cassette', async () => {
+    cassetteService.createDesignFromTemplate.mockResolvedValueOnce({
+      _id: 'design-from-parent',
+      identity: { uid: 'design-from-parent', name: 'Parent based' },
+      lineage: { organizationId: 'org-1', templateId: 'cassette-parent-1' },
+      status: { state: { primary: 'DRAFT' } },
+      data: { geometry: { dxfId: 'dxf-1' } }
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {},
+        compiled: {
+          actions: {
+            create_design: {
+              id: 'create_design',
+              actionKind: 'createEntity',
+              entityType: 'cassette_design',
+              construction: { mode: 'bakeCassetteDesignFromTemplate' },
+              status: {},
+              access: { level: 'admin', roleIds: ['role_designer'] }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({
+      actionId: 'create_design',
+      entities: { cassette: 'cassette-parent-1' },
+      data: {
+        name: 'Parent based',
+        parameters: { A: 500 }
+      }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: {
+        actions: [{ actionId: 'create_design' }]
+      }
+    });
+
+    expect(cassetteService.createDesignFromTemplate).toHaveBeenCalledWith(
+      'cassette-parent-1',
+      { A: 500 },
+      'user-1',
+      'org-1',
+      undefined,
+      expect.any(Object),
+      { name: 'Parent based' }
+    );
   });
 
   it('uses the default constructable cassette template when process input omits template id', async () => {

@@ -257,7 +257,9 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
 
   if (action.actionKind === 'runCommand') {
     if (!action.commandId) throw createError({ statusCode: 400, message: `Action ${actionId} has no command` });
-    return await executeCommand(action.commandId, { entities, parameters }, createActionExecutionAuth(auth, action));
+    const result = await executeCommand(action.commandId, { entities, parameters }, createActionExecutionAuth(auth, action));
+    await applyProcessOutputStatuses({ actionId, result, processData: process.data, organizationId, auth });
+    return result;
   }
 
   if (action.actionKind === 'changeStatus') {
@@ -285,7 +287,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   if (action.actionKind === 'createEntity') {
     const entityType = resolveActionEntityType(action);
     if (entityType === 'cassette_design' && action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-      return await executeBakeCassetteDesign(action, data, organizationId, auth, process.data);
+      return await executeBakeCassetteDesign(action, data, organizationId, auth, process.data, entities);
     }
     if (entityType === 'cassette' && action.construction?.mode === 'createDefaultOccsTemplate') {
       return await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth, process.data);
@@ -351,8 +353,56 @@ function camelCase(value = '') {
   return String(value).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
 }
 
-async function executeBakeCassetteDesign(action = {}, data = {}, organizationId, auth = {}, processData = {}) {
+async function applyProcessOutputStatuses({ actionId, result = {}, processData = {}, organizationId, auth = {} } = {}) {
+  const statusByEntityType = commandOutputStatusMap(actionId, processData);
+  if (!statusByEntityType.size) return;
+  for (const entityRef of result.entities || []) {
+    const entityType = normalizeEntityType(entityRef.type || entityRef.entityType || '');
+    const targetState = statusByEntityType.get(entityType);
+    const targetId = entityRef.id || entityRef._id;
+    if (!entityType || !targetState || !targetId) continue;
+    await statusService.setInitialStateForOrganization(
+      entityType,
+      targetId,
+      targetState,
+      organizationId,
+      auth.userId,
+      processStatusMetadata({ entityType, status: { to: targetState } }, `Created by process command action ${actionId}`, processData)
+    );
+  }
+}
+
+function commandOutputStatusMap(actionId, processData = {}) {
+  const sourceNodeIds = new Set([String(actionId)]);
+  const actionIdByNodeId = new Map();
+  for (const node of processData.graph?.nodes || []) {
+    if (node.type && node.type !== 'action') continue;
+    const nodeActionId = String(node.data?.refId || node.id || '');
+    const nodeId = String(node.id || '');
+    if (!nodeActionId || !nodeId) continue;
+    actionIdByNodeId.set(nodeId, nodeActionId);
+    if (nodeActionId === String(actionId)) sourceNodeIds.add(nodeId);
+  }
+  const map = new Map();
+  for (const edge of processData.graph?.edges || []) {
+    if (!sourceNodeIds.has(String(edge.source))) continue;
+    const targetActionId = actionIdByNodeId.get(String(edge.target)) || String(edge.target);
+    const targetAction = targetActionId ? processData.actions?.[targetActionId] : null;
+    if (targetAction?.actionKind !== 'changeStatus') continue;
+    const entityType = normalizeEntityType(
+      targetAction.entityType
+      || targetAction.inputs?.find(input => input.entityType)?.entityType
+      || String(edge.sourceHandle || '').replace(/^output:/, '')
+    );
+    const targetState = targetAction.status?.to || targetAction.access?.statusTo;
+    if (entityType && targetState) map.set(entityType, targetState);
+  }
+  return map;
+}
+
+async function executeBakeCassetteDesign(action = {}, data = {}, organizationId, auth = {}, processData = {}, entities = {}) {
   const templateId = data.templateId || data.cassetteId || data.data?.derivedFrom?.templateId
+    || entities.cassette
     || await defaultCassetteTemplateId(auth, organizationId, action);
   if (!templateId) throw createError({ statusCode: 400, message: 'Cassette template is required' });
   const created = await cassetteService.createDesignFromTemplate(
