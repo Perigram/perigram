@@ -59,6 +59,7 @@ const error = ref(null);
 const drawing = ref(null);
 const visibleLayers = ref([]);
 const svgElement = ref(null);
+const svgViewport = ref({ width: 0, height: 0 });
 const viewBox = ref({ x: 0, y: 0, width: 100, height: 100 });
 const isPanning = ref(false);
 const panStart = ref({ x: 0, y: 0 });
@@ -67,6 +68,7 @@ const hoveredFoldEdge = ref(null);
 const hoveredFaceId = ref(null);
 const activeSectionDrag = ref(null);
 let faceHoverClearTimer = null;
+let svgResizeObserver = null;
 
 const isDesigner = computed(() => props.mode === 'designer');
 const isViewer = computed(() => props.mode === 'viewer' || isDesigner.value);
@@ -142,6 +144,23 @@ const displayStrokeWidth = (weight, fallback = 1.5) => {
   const numericWeight = Number(weight);
   if (!Number.isFinite(numericWeight) || numericWeight <= 0) return fallback;
   return Math.max(1, Math.min(numericWeight * 2, 4));
+};
+
+const updateSvgViewport = () => {
+  svgViewport.value = {
+    width: svgElement.value?.clientWidth || 0,
+    height: svgElement.value?.clientHeight || 0
+  };
+};
+
+const bindSvgResizeObserver = () => {
+  if (!process.client || typeof ResizeObserver === 'undefined') return;
+  svgResizeObserver?.disconnect?.();
+  svgResizeObserver = null;
+  if (!svgElement.value) return;
+  svgResizeObserver = new ResizeObserver(() => updateSvgViewport());
+  svgResizeObserver.observe(svgElement.value);
+  updateSvgViewport();
 };
 
 const parseViewBox = (value) => {
@@ -286,6 +305,11 @@ watch(
   { immediate: true, deep: true }
 );
 
+watch(svgElement, async () => {
+  await nextTick();
+  bindSvgResizeObserver();
+});
+
 watch(visibleLayers, (layers) => {
   emit('layer-toggle', layers);
 });
@@ -319,14 +343,24 @@ const isDimensionLayer = (layer = {}) => (
   layer.role === 'dimension'
 );
 const previewDimensionFontSize = computed(() => {
-  const minSide = Math.min(viewBox.value.width || 0, viewBox.value.height || 0);
-  return Math.max(18, Math.min(36, minSide * 0.055));
+  const targetScreenPixels = 16;
+  const viewportWidth = svgViewport.value.width || 0;
+  const viewportHeight = svgViewport.value.height || 0;
+  if (!viewportWidth || !viewportHeight) {
+    const minSide = Math.min(viewBox.value.width || 0, viewBox.value.height || 0);
+    return Math.max(18, Math.min(36, minSide * 0.055));
+  }
+  const userUnitsPerPixel = Math.max(
+    (viewBox.value.width || 1) / viewportWidth,
+    (viewBox.value.height || 1) / viewportHeight
+  );
+  return userUnitsPerPixel * targetScreenPixels;
 });
 const textFontSize = (path, layer) => {
   const base = Number(path?.fontSize) || 12;
   if (!['thumbnail', 'card'].includes(props.mode)) return base;
   if (!isDimensionLayer(layer)) return base;
-  return Math.max(base * 1.6, previewDimensionFontSize.value);
+  return previewDimensionFontSize.value;
 };
 const designerControlForPath = (path) => (
   typeof path === 'object' && path?.designerControl ? path.designerControl : null
@@ -646,11 +680,14 @@ onMounted(() => {
   if (!process.client) return;
   window.document.addEventListener('mousemove', handleDocumentMouseMove);
   window.document.addEventListener('mouseup', handleDocumentMouseUp);
+  nextTick(() => bindSvgResizeObserver());
 });
 
 onBeforeUnmount(() => {
   resolveToken += 1;
   if (faceHoverClearTimer) window.clearTimeout(faceHoverClearTimer);
+  svgResizeObserver?.disconnect?.();
+  svgResizeObserver = null;
   if (!process.client) return;
   window.document.removeEventListener('mousemove', handleDocumentMouseMove);
   window.document.removeEventListener('mouseup', handleDocumentMouseUp);
