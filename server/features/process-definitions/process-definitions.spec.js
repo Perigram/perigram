@@ -5,6 +5,7 @@ import * as organizationsRepository from '~/server/features/organizations/reposi
 import * as cassetteService from '~/server/features/cassettes/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { statusService } from '~/server/core/machines/service.js';
+import { executeCommand } from '~/server/core/commands/service.js';
 
 vi.mock('./repository.js', () => ({
   find: vi.fn(),
@@ -37,6 +38,10 @@ vi.mock('~/server/core/machines/service.js', () => ({
     setInitialStateForOrganization: vi.fn(),
     transitionWithResult: vi.fn()
   }
+}));
+
+vi.mock('~/server/core/commands/service.js', () => ({
+  executeCommand: vi.fn()
 }));
 
 describe('process definitions access fallback', () => {
@@ -368,6 +373,64 @@ describe('process definitions access fallback', () => {
         }
       }
     }));
+  });
+
+  it('executes run-command actions with action-scoped command access', async () => {
+    executeCommand.mockResolvedValueOnce({
+      data: { runId: 'nesting-run-1' }
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        compiled: {
+          actions: {
+            run_nesting: {
+              id: 'run_nesting',
+              actionKind: 'runCommand',
+              commandId: 'solveNesting',
+              entityType: 'queue',
+              access: { level: 'write', roleIds: ['role_operator'] }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({
+      actionId: 'run_nesting',
+      entities: { queue: 'queue-1' },
+      parameters: { materialMode: 'VIRTUAL', virtualWidth: 3000 }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      effectivePermissions: {
+        queues: [{
+          level: 'read',
+          rule: { fact: 'primaryStatus', equals: 'SENT' }
+        }]
+      },
+      roleAssignments: {
+        actions: [{ actionId: 'run_nesting' }]
+      }
+    });
+
+    expect(executeCommand).toHaveBeenCalledWith(
+      'solveNesting',
+      {
+        entities: { queue: 'queue-1' },
+        parameters: { materialMode: 'VIRTUAL', virtualWidth: 3000 }
+      },
+      expect.objectContaining({
+        effectivePermissions: expect.objectContaining({
+          queues: expect.arrayContaining([
+            expect.objectContaining({ level: 'write', actions: { run: true } })
+          ])
+        })
+      })
+    );
   });
 
   it('executes typed cassette design construction with canonical identity payloads', async () => {

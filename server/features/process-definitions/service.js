@@ -257,7 +257,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
 
   if (action.actionKind === 'runCommand') {
     if (!action.commandId) throw createError({ statusCode: 400, message: `Action ${actionId} has no command` });
-    return await executeCommand(action.commandId, { entities, parameters }, auth);
+    return await executeCommand(action.commandId, { entities, parameters }, createActionExecutionAuth(auth, action));
   }
 
   if (action.actionKind === 'changeStatus') {
@@ -515,7 +515,7 @@ function createActionExecutionAuth(auth = {}, action = {}) {
   };
   appendExecutionGrant(permissions, feature, {
     level: action.access?.level || 'write',
-    actions: { create: true }
+    actions: executionActionsForAction(action)
   });
   for (const source of constructionSourceGrants(action)) {
     appendExecutionGrant(permissions, source.feature, {
@@ -527,6 +527,13 @@ function createActionExecutionAuth(auth = {}, action = {}) {
     ...auth,
     effectivePermissions: permissions
   };
+}
+
+function executionActionsForAction(action = {}) {
+  if (action.actionKind === 'runCommand') return { run: true };
+  if (action.actionKind === 'updateEntity') return { update: true, edit: true };
+  if (action.actionKind === 'changeStatus') return { update: true };
+  return { create: true };
 }
 
 function appendExecutionGrant(permissions, feature, grant) {

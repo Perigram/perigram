@@ -9,6 +9,7 @@
       v-if="entityType === 'queue'"
       :queue="entity"
       :screen-key="screenKey"
+      :actions="candidateActionIds"
       @refresh="$emit('refresh')"
     />
     <EntitySurfaceContent v-else :entity="entity" :entity-type="entityType" :surface="surface" />

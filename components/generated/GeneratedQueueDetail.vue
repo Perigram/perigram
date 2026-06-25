@@ -4,6 +4,7 @@
     :queues="[queue]"
     :project-slug="projectId"
     :show-queue-navigation="false"
+    :actions="actions"
     edit-mode="process"
     @updated="$emit('refresh')"
     @select-queue="openQueue"
@@ -20,7 +21,8 @@ import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
   queue: { type: Object, required: true },
-  screenKey: { type: String, default: '' }
+  screenKey: { type: String, default: '' },
+  actions: { type: Array, default: () => [] }
 });
 
 defineEmits(['refresh']);

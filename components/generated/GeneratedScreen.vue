@@ -266,7 +266,8 @@ async function postAction(action, entity = null, data = {}, context = {}) {
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
         entities: actionEntities(action, entity, context),
-        data
+        data,
+        parameters: context?.parameters || data?.parameters || {}
       }
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });

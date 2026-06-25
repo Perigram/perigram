@@ -71,6 +71,7 @@
                                 :aria-label="$t('nesting.materialSourcing')"
                                 size="small"
                                 class="min-w-0"
+                                :disabled="!canRunNesting"
                             />
                             <Select
                                 v-model="nestingOptions.toolProfileId"
@@ -80,12 +81,13 @@
                                 :placeholder="$t('nesting.selectTool')"
                                 class="min-w-48 flex-1"
                                 size="small"
+                                :disabled="!canRunNesting"
                             />
                         </div>
                     </template>
                     <template #actions>
                         <Button
-                            v-if="canEditQueue"
+                            v-if="canRunNesting"
                             :label="$t('nesting.calculateLayout')"
                             icon="pi pi-play"
                             size="small"
@@ -94,7 +96,7 @@
                             :disabled="!isNestingReady"
                         />
                     </template>
-                    <div class="flex flex-col gap-6" v-if="canEditQueue">
+                    <div class="flex flex-col gap-6" v-if="canRunNesting">
                         <div class="flex flex-col gap-4">
                             <!-- Virtual Mode -->
                             <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="flex flex-col gap-3">
@@ -134,6 +136,7 @@
                                         </template>
                                     </Select>
                                     <FileUpload
+                                        v-if="canEditQueue"
                                         mode="basic"
                                         name="file"
                                         url="/api/files/upload"
@@ -357,7 +360,8 @@ const props = defineProps({
     queues: { type: Array, default: () => [] },
     projectSlug: { type: String, required: true },
     showQueueNavigation: { type: Boolean, default: true },
-    editMode: { type: String, default: 'workflow' }
+    editMode: { type: String, default: 'workflow' },
+    actions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted']);
@@ -406,6 +410,13 @@ const canEditQueue = computed(() => {
         entityType: 'queue'
     });
 });
+const processRunNestingAction = computed(() => {
+    if (props.editMode !== 'process') return null;
+    return props.actions
+        .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+        .find(action => action?.actionKind === 'runCommand' && action.commandId === 'solveNesting') || null;
+});
+const canRunNesting = computed(() => canEditQueue.value || Boolean(processRunNestingAction.value));
 const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();
 const materialSourceOptions = computed(() => [
     { label: t('nesting.virtualMode'), value: 'VIRTUAL' },
@@ -518,6 +529,15 @@ const selectedMaterialPool = computed(() => (
             available: item.availableCount ?? 1
         }))
 ));
+const nestingCommandParameters = computed(() => ({
+    materialMode: nestingOptions.value.materialMode,
+    virtualWidth: nestingOptions.value.virtualWidth,
+    virtualLength: nestingOptions.value.virtualLength,
+    spacing: nestingOptions.value.spacing,
+    inventoryItems: nestingOptions.value.inventoryItems,
+    materialPool: selectedMaterialPool.value,
+    toolProfileId: nestingOptions.value.toolProfileId
+}));
 const selectedStockSizeKeys = computed(() => Array.from(new Set(selectedMaterialPool.value.map(stockSizeKey).filter(Boolean))));
 const selectedStockSizeConflict = computed(() => selectedStockSizeKeys.value.length > 1);
 const selectedInventory = computed(() => nestingOptions.value.inventoryItems
@@ -962,8 +982,21 @@ const saveQueue = async () => {
 const runNesting = async () => {
     nestingInProgress.value = true;
     try {
-        await saveQueue();
-        await queuesStore.startNesting(props.queue._id);
+        if (processRunNestingAction.value) {
+            if (canEditQueue.value) await saveQueue();
+            await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(processRunNestingAction.value.actionId)}/execute`, {
+                method: 'POST',
+                body: {
+                    entityId: props.queue._id || props.queue.identity?.uid,
+                    entities: { queue: props.queue._id || props.queue.identity?.uid },
+                    parameters: nestingCommandParameters.value
+                }
+            });
+            emit('updated');
+        } else {
+            await saveQueue();
+            await queuesStore.startNesting(props.queue._id);
+        }
         await loadSheetDesigns();
         toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
     } catch (e) { toast.add({ severity: 'error', summary: t('queues.nestingFailed'), detail: e.message, life: 3000 }); }
