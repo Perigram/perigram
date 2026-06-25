@@ -46,7 +46,12 @@ export async function resolveActiveWorkflow({ entityType, organizationId }) {
     entityType: normalizedEntityType,
     fallbackWorkflow: null
   });
-  if (processWorkflow) return normalizeWorkflowPayload(processWorkflow);
+  if (processWorkflow) {
+    return mergeSystemWorkflowTransitions({
+      processWorkflow: normalizeWorkflowPayload(processWorkflow),
+      defaultWorkflow
+    });
+  }
 
   const override = await repository.findActiveByEntity({ organizationId, entityType: normalizedEntityType });
   return override?.workflow ? normalizeWorkflowPayload(override.workflow) : defaultWorkflow;
@@ -67,6 +72,44 @@ function normalizeWorkflowPayload(workflow) {
   } catch (error) {
     throw createError({ statusCode: 400, message: `Invalid workflow definition: ${error.message}` });
   }
+}
+
+function mergeSystemWorkflowTransitions({ processWorkflow, defaultWorkflow }) {
+  if (!processWorkflow || !defaultWorkflow) return processWorkflow || defaultWorkflow;
+
+  const merged = normalizeWorkflowPayload(processWorkflow);
+  const systemWorkflow = normalizeWorkflowPayload(defaultWorkflow);
+  const primaryRegionId = merged.primaryRegion || 'main';
+
+  for (const [regionId, systemRegion] of Object.entries(systemWorkflow.regions || {})) {
+    const targetRegionId = merged.regions?.[regionId] ? regionId : primaryRegionId;
+    const targetRegion = merged.regions?.[targetRegionId];
+    if (!targetRegion) continue;
+
+    for (const [stateId, state] of Object.entries(systemRegion.states || {})) {
+      if (!targetRegion.states[stateId]) {
+        targetRegion.states[stateId] = { ...state };
+      }
+    }
+
+    for (const transition of systemRegion.transitions || []) {
+      if (!isSystemTransition(transition)) continue;
+      const exists = targetRegion.transitions.some(item => (
+        item.from === transition.from &&
+        item.to === transition.to &&
+        (item.intent || '') === (transition.intent || '')
+      ));
+      if (!exists) {
+        targetRegion.transitions.push({ ...transition, region: targetRegionId });
+      }
+    }
+  }
+
+  return normalizeWorkflowPayload(merged);
+}
+
+function isSystemTransition(transition = {}) {
+  return Boolean(transition.intent && transition.access?.system);
 }
 
 function assertKnownEntityType(entityType) {

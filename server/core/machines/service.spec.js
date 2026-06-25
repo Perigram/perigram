@@ -44,6 +44,8 @@ describe('status service lifecycle payloads', () => {
   beforeEach(async () => {
     await db.collection('cassette_instances').deleteMany({});
     await db.collection('cassettes').deleteMany({});
+    await db.collection('nesting_runs').deleteMany({});
+    await db.collection('process_definitions').deleteMany({});
     await db.collection('projects').deleteMany({});
     await db.collection('queues').deleteMany({});
     await db.collection('status_events').deleteMany({});
@@ -150,6 +152,70 @@ describe('status service lifecycle payloads', () => {
         label: 'Move project OLD'
       })
     ]));
+  });
+
+  it('keeps domain system intents available when an active process defines custom statuses', async () => {
+    await db.collection('process_definitions').insertOne({
+      _id: 'process-active-system-intents',
+      identity: { uid: 'process-active-system-intents', name: 'Process' },
+      lineage: { organizationId: 'org-1' },
+      status: {
+        state: {
+          schemaVersion: 2,
+          primary: 'ACTIVE',
+          active: { main: 'ACTIVE' },
+          regions: { main: { state: 'ACTIVE', path: ['ACTIVE'] } }
+        }
+      },
+      data: {
+        compiled: {
+          workflows: {
+            nesting_run: {
+              schemaVersion: 2,
+              primaryRegion: 'main',
+              regions: {
+                main: {
+                  initial: 'CUT',
+                  states: {
+                    CUT: { canUpdateMeta: true },
+                    SENT: { canUpdateMeta: true }
+                  },
+                  transitions: [
+                    { from: 'CUT', to: 'SENT' }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-process-system-intents',
+      identity: { uid: 'run-process-system-intents', name: 'Run 1' },
+      lineage: { organizationId: 'org-1', queueId: 'queue-1' },
+      status: {
+        state: {
+          schemaVersion: 2,
+          primary: 'NESTING',
+          active: { main: 'NESTING' },
+          regions: { main: { state: 'NESTING', path: ['NESTING'] } }
+        },
+        userId: 'SYSTEM',
+        timestamp: new Date(),
+        metadata: {}
+      }
+    });
+
+    await statusService.applyIntent(
+      'nesting_run',
+      'run-process-system-intents',
+      'nestingSolveCompleted',
+      { userId: 'SYSTEM', role: 'SYSTEM', system: true }
+    );
+
+    const run = await db.collection('nesting_runs').findOne({ _id: 'run-process-system-intents' });
+    expect(run.status.state.primary).toBe('COMPLETE');
   });
 
   it('returns no actions for entity types without workflows', async () => {
