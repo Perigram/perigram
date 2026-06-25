@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Remove generated card trace/title overrides
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedHomeScreen.vue,
+      components/shared/README.md, TODO.org
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Generated card surfaces no longer inject `TraceChain` or column
+      title layouts through custom `#title` slots. Generated identity links now
+      preserve the shared one-row identity/status layout and respect hidden
+      default card trace chrome.
+
+*** Agent Notes
     [2026-06-25] Tighten default card chrome and geometry-first preview ownership
     Files changed: components/CassetteThumbnail.vue,
       components/shared/DrawingCanvas.vue,

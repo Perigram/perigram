@@ -346,6 +346,10 @@ components should render one `EntityCard :variant="variant"` and pass their
 canonical body once through the default slot. `EntityCard` reuses that same
 body for full card content and for inline/compact expansion; do not duplicate
 card-only bodies into per-variant `expanded` slots.
+Generated card surfaces that override `#title` must not reintroduce
+`TraceChain` or a stacked identity/status column. Keep those overrides limited
+to clickable identity wrappers while preserving the shared one-row
+identity/status layout.
 Entity-specific bodies own their own internal separators; inline/compact
 popovers do not inject an extra divider before the reused body.
 The entity popover shows status as the normal inline status control only;
