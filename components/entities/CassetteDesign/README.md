@@ -19,10 +19,8 @@ parametric/OCCS definitions.
   rendering fetches the full `cassette_design` DTO when needed and prefers the
   design's own baked layer/preview geometry over both parent-template fallback
   sources and stored DXF files. Baked dimension labels therefore render from
-  the design geometry itself with measured numeric values. In preview mode the
-  thumbnail ignores persisted `dimension.cassette` layer entities and derives a
-  single measured label set from the baked outer boundary so template and
-  design cards do not stack incompatible dimension sources.
+  the design geometry itself with measured numeric values using the persisted
+  `dimension.cassette` geometry authored for that design.
 - Shared constructor previews (`EntityPreview`) apply the same
   `preferGeometry` rule for `cassette_design`, so generated list/detail screens
   do not fall back to parent-template geometry when the design DTO in screen

@@ -24,17 +24,16 @@
       (74 scanned, 74 recompiled), giving the active process `sheet_designs`
       output grants for `solveNesting`.
 
-    [2026-06-25] Unify cassette-design preview dimensions onto baked boundary labels
+    [2026-06-25] Drop synthetic cassette-design preview boundary dimensions
     Files changed: components/CassetteThumbnail.vue, utils/drawingPreview.js,
       utils/drawingPreview.spec.js,
       components/entities/CassetteDesign/README.md,
       components/shared/README.md, TODO.org
     Docs updated: components/entities/CassetteDesign/README.md,
       components/shared/README.md, TODO.org
-    Notes: Geometry-first cassette-design previews now ignore persisted
-      `dimension.cassette` entities and synthesize one measured label set from
-      the baked outer boundary, removing duplicate/stale preview dimensions
-      from mixed template-plus-design payloads.
+    Notes: Geometry-first cassette-design previews no longer synthesize
+      boundary labels. The preview now uses the persisted baked
+      `dimension.cassette` geometry as the single dimension source again.
 
 *** Agent Notes
     [2026-06-25] Fix baked cassette preview dimension placement
