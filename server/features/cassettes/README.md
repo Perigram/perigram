@@ -89,6 +89,13 @@ exports use evaluated `layerData` when available, so folds, marks, dimensions,
 and cut layers are preserved instead of emitting only the nestable contour. For
 saved design assets, use the cassette-design export endpoint.
 
+`GET /api/cassettes` is the generated-screen list boundary for cassette
+templates. It must forward lineage filters such as `libraryId` to
+`cassetteService.list()`; the service normalizes them to `lineage.*` repository
+filters and then applies per-entity access pruning. A library detail child
+region therefore requests `/api/cassettes?libraryId=<library-id>` and receives
+only templates whose `lineage.libraryId` matches that opened library.
+
 ### DXF Upload
 `upload()` requires one mapped DXF layer to resolve to `cut.outer`. The service
 extracts closed polygons from that layer into the created cassette design

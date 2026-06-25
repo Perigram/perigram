@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Forward cassette lineage filters from API route
+    Files changed: server/api/cassettes/index.get.js,
+      server/api/cassettes/index.get.spec.js
+    Docs updated: server/api/README.md, server/features/cassettes/README.md,
+      TODO.org
+    Notes: The cassette collection API now forwards generated-screen lineage
+      query filters such as `libraryId` into the cassette service instead of
+      dropping everything except status pagination. Library detail child
+      regions now receive only cassettes whose `lineage.libraryId` matches the
+      opened library.
+
+*** Agent Notes
     [2026-06-25] Enforce library-owned cassette creation and summary sync
     Files changed: server/features/process-definitions/service.js,
       server/features/process-definitions/process-definitions.spec.js,

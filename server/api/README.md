@@ -7,7 +7,9 @@ Routes are grouped into sub-directories corresponding to features:
 - `artifacts/`: Metadata, deletion, and streaming for generated files.
 - `batch/`: Detailed batch operations.
 - `cassette-instances/`: Authenticated cassette instance listing, detail, and status routes.
-- `cassettes/`: Upload and management of templates.
+- `cassettes/`: Upload and management of templates. The collection route
+  forwards generated-screen lineage filters such as `libraryId` to the feature
+  service so parent detail pages only list their own child templates.
 - `commands/`: Authenticated execution route for declared domain commands such
   as `saveCassetteTemplate` and `generateAttachment`.
 - `tasks/`: Worker task queue protocol for claim, heartbeat, complete,
