@@ -1,5 +1,5 @@
 <template>
-  <StandardPage :title="screenTitle">
+  <StandardPage :title="pageTitle">
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="error" state="error" :message="errorMessage" />
     <StateBlock v-else-if="actionError" state="error" :message="actionError" />
@@ -216,6 +216,7 @@ const parentSelectionRequired = computed(() => Boolean(parentSelectionType.value
 const parentSelectionLabel = computed(() => parentSelectionType.value ? generatedEntityLabel(parentSelectionType.value, { t, te }) : '');
 const parentSelectionOptions = computed(() => promptOptions[parentSelectionFieldId] || pendingEntity.value?.context?.parentOptions || []);
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
+const pageTitle = computed(() => screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
 
 async function executeAction(action, entity = null, context = {}) {
   actionError.value = '';

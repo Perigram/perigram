@@ -7,26 +7,32 @@ import IdentityBlock from './blocks/IdentityBlock.vue';
 import EntityStatus from './status/EntityStatus.vue';
 import TraceChain from './links/TraceChain.vue';
 import Divider from 'primevue/divider';
+import { computed } from 'vue';
 
 const props = defineProps({
   entity: { type: Object, required: true },
   entityType: { type: String, required: true },
   title: { type: String, default: null },
   loading: { type: Boolean, default: false },
+  showTrace: { type: Boolean, default: false },
   showStatus: { type: Boolean, default: true },
   statusActions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['refresh']);
+const effectiveTitle = computed(() => props.title || '');
 </script>
 
 <template>
   <div class="entity-page flex flex-col gap-6">
     <div class="flex flex-col gap-4">
-      <TraceChain :entity="entity" />
+      <TraceChain v-if="showTrace" :entity="entity" />
 
       <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div class="flex min-w-0 flex-col gap-2">
+          <div v-if="effectiveTitle" class="text-sm text-muted-color">
+            {{ effectiveTitle }}
+          </div>
           <IdentityBlock :entity="entity" variant="header" />
           <div v-if="$slots.info" class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-color">
             <slot name="info"></slot>
