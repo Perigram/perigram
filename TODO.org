@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-26] Route active process users to generated home
+    Files changed: pages/index.vue, utils/process-navigation.js,
+      utils/process-navigation.spec.js
+    Docs updated: pages/README.md, TODO.org
+    Notes: The public entry route now refreshes auth before redirecting and
+      resolves active-process users through the generated process entry route:
+      home screen first, then hub/list screens. Static `/projects` is only used
+      when no active process is present, so organizations without project
+      screens do not land on an unavailable projects page.
+
+*** Agent Notes
     [2026-06-25] Deduplicate generated screen breadcrumbs
     Files changed: stores/auth.js, stores/navigation.js,
       utils/process-navigation.js, utils/process-navigation.spec.js
