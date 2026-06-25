@@ -259,9 +259,9 @@
                     </ResponsiveGrid>
                 </ScrollablePanel>
             </div>
-            <template #[supportSlot]>
-                <Panel :header="`${$t('queue.runs')} (${queueRuns.length})`">
-                    <div v-if="queueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
+            <template v-if="showNestingRunRegion" #[supportSlot]>
+                <Panel :header="`${$t('queue.runs')} (${readableQueueRuns.length})`">
+                    <div v-if="readableQueueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
                         <Select
                             :model-value="selectedRunId"
                             :options="runOptions"
@@ -286,7 +286,7 @@
                             @convert-to-physical="handleConvertToPhysical"
                         />
                     </div>
-                    <StateBlock v-else :message="$t('queue.nestingRuns')" icon="pi pi-list-check" />
+                    <StateBlock v-else-if="canRunNesting" :message="$t('queue.nestingRuns')" icon="pi pi-list-check" />
                 </Panel>
             </template>
         </component>
@@ -700,12 +700,21 @@ const queueNestingSettings = (queue = {}) => {
 const nestingOptions = ref(queueNestingSettings(props.queue));
 
 const queueRuns = computed(() => runs.value[props.queue._id] || []);
-const runOptions = computed(() => queueRuns.value.map(run => ({
+const canReadNestingRun = (run = {}) => hasPermissionGrant({
+    permissions: authStore.activePermissions,
+    feature: 'nesting_runs',
+    level: 'read',
+    entity: run,
+    entityType: 'nesting_run'
+});
+const readableQueueRuns = computed(() => isProcessMode.value ? queueRuns.value.filter(canReadNestingRun) : queueRuns.value);
+const showNestingRunRegion = computed(() => !isProcessMode.value || canRunNesting.value || readableQueueRuns.value.length > 0);
+const runOptions = computed(() => readableQueueRuns.value.map(run => ({
     ...run,
     id: run._id?.toString(),
     name: entitySelectLabel(run, t('entities.nestingRun'))
 })));
-const activeRun = computed(() => queueRuns.value.find(run => run._id?.toString() === selectedRunId.value?.toString()) || queueRuns.value[0] || null);
+const activeRun = computed(() => readableQueueRuns.value.find(run => run._id?.toString() === selectedRunId.value?.toString()) || readableQueueRuns.value[0] || null);
 const hasPhysicalOutputs = computed(() => Boolean(props.queue.data?.physicalOutputs?.cassetteInstanceIds?.length));
 const warehouseShortage = computed(() => {
     if (nestingOptions.value.materialMode !== 'WAREHOUSE') return null;
@@ -895,7 +904,7 @@ watch(nestingCompleted, async (event) => {
     }
 });
 
-watch(queueRuns, (runsForQueue) => {
+watch(readableQueueRuns, (runsForQueue) => {
     if (!runsForQueue.length) {
         selectedRunId.value = null;
         return;

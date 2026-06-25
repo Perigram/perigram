@@ -18,6 +18,7 @@ import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
   run: { type: Object, required: true },
@@ -36,7 +37,13 @@ const route = useRoute();
 const router = useRouter();
 const entityContext = inject('entityContext', null);
 
-const canManage = computed(() => authStore.can('queues', 'edit'));
+const canDeleteRun = computed(() => hasPermissionGrant({
+    permissions: authStore.activePermissions,
+    feature: 'nesting_runs',
+    action: 'delete',
+    entity: props.run,
+    entityType: 'nesting_run'
+}));
 const state = computed(() => getPrimaryState(props.run.status, 'UNKNOWN'));
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
 const results = computed(() => props.run.data?.results || {});
@@ -187,7 +194,7 @@ function openSheetDesign(design) {
       <template #footer v-if="variant === 'card'">
         <div class="flex justify-end gap-2" @click.stop>
           <Button
-            v-if="canManage"
+            v-if="canDeleteRun"
             icon="pi pi-trash"
             text
             rounded

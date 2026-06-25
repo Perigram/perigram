@@ -401,12 +401,19 @@ describe('Design system manifest', () => {
   it('keeps nesting runs focused on sheet design outputs', () => {
     const nestingRunCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/NestingRun/NestingRunCard.vue'), 'utf8');
     const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
+    const nestingRunService = fs.readFileSync(path.join(REPO_ROOT, 'server/features/nesting-runs/service.js'), 'utf8');
 
     expect(nestingRunCard).toContain('SheetDesignCard');
     expect(nestingRunCard).not.toContain('ArtifactCard');
     expect(nestingRunCard).not.toContain('relatedArtifacts');
+    expect(nestingRunCard).toContain("feature: 'nesting_runs'");
+    expect(nestingRunCard).not.toContain("authStore.can('queues', 'edit')");
+    expect(queueEditor).toContain('readableQueueRuns');
+    expect(queueEditor).toContain("feature: 'nesting_runs'");
     expect(queueEditor).not.toContain('getRunArtifacts');
     expect(queueEditor).not.toContain('@artifact-click');
+    expect(nestingRunService).toContain("run, 'nesting_runs', 'read'");
+    expect(nestingRunService).not.toContain("run.lineage, 'queues', 'read'");
   });
 
   it('keeps generated home cards as horizontal carousel items', () => {
