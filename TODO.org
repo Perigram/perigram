@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Fix baked cassette preview dimension placement
+    Files changed: utils/drawingPreview.js, utils/drawingPreview.spec.js,
+      components/shared/README.md, TODO.org
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Shared geometry preview normalization now renders baked dimension
+      entries with extension lines, a perpendicular offset dimension line, and
+      off-line text placement so cassette-design previews no longer pin labels
+      to the measured segment midpoint.
+
+*** Agent Notes
     [2026-06-25] Separate process transition authority from target-status grants
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js, server/core/access/service.js,
