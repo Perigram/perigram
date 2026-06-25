@@ -313,6 +313,21 @@ const pathFillRule = (path) => {
   if (typeof path === 'string') return null;
   return path.fillRule || path.fillrule || null;
 };
+const isDimensionLayer = (layer = {}) => (
+  layer.standardCode === 'dimension.cassette' ||
+  layer.name === 'dimension.cassette' ||
+  layer.role === 'dimension'
+);
+const previewDimensionFontSize = computed(() => {
+  const minSide = Math.min(viewBox.value.width || 0, viewBox.value.height || 0);
+  return Math.max(18, Math.min(36, minSide * 0.055));
+});
+const textFontSize = (path, layer) => {
+  const base = Number(path?.fontSize) || 12;
+  if (!['thumbnail', 'card'].includes(props.mode)) return base;
+  if (!isDimensionLayer(layer)) return base;
+  return Math.max(base * 1.6, previewDimensionFontSize.value);
+};
 const designerControlForPath = (path) => (
   typeof path === 'object' && path?.designerControl ? path.designerControl : null
 );
@@ -762,7 +777,7 @@ onBeforeUnmount(() => {
                 :x="path.x ?? 0"
                 :y="path.y ?? 0"
                 :fill="pathFill(path, layer)"
-                :font-size="path.fontSize || 12"
+                :font-size="textFontSize(path, layer)"
                 :text-anchor="path.textAnchor || 'middle'"
                 :dominant-baseline="path.dominantBaseline || 'middle'"
                 :transform="path.transform || null"

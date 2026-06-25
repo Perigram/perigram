@@ -6,7 +6,7 @@
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
-        <CassetteThumbnail :cassette="design" />
+        <CassetteThumbnail :cassette="design" prefer-geometry />
         <div v-if="template" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.cassetteTemplate') }}</small>
           <EntityInlineRef type="cassetteTemplate" :entity="template" />

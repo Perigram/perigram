@@ -19,9 +19,17 @@ describe('drawing preview contract', () => {
   it('normalizes parametric cassette geometry without injecting production layer standards', () => {
     const drawing = normalizeCassetteDrawing(cassetteResult, { params: { A: 100 } });
 
-    expect(drawing.layers).toHaveLength(1);
+    expect(drawing.layers).toHaveLength(2);
     expect(drawing.layers[0].name).toBe('geometry');
     expect(drawing.layers[0].standardCode).toBeUndefined();
+    expect(drawing.layers[1]).toMatchObject({
+      name: 'dimension.cassette',
+      standardCode: 'dimension.cassette'
+    });
+    expect(drawing.layers[1].paths[0]).toMatchObject({
+      kind: 'text',
+      text: 'A'
+    });
     expect(JSON.stringify(drawing)).not.toContain('1_1_FACE');
     expect(JSON.stringify(drawing)).not.toContain('1_3_UNFOLD_BOUNDARY');
   });
@@ -35,8 +43,8 @@ describe('drawing preview contract', () => {
       }
     });
 
-    expect(drawing.layers.map(layer => layer.name)).toEqual(['face-layer', 'boundary-layer']);
-    expect(drawing.layers.map(layer => layer.standardCode)).toEqual(['FACE_STD', 'BOUNDARY_STD']);
+    expect(drawing.layers.map(layer => layer.name)).toEqual(['face-layer', 'boundary-layer', 'dimension.cassette']);
+    expect(drawing.layers.map(layer => layer.standardCode)).toEqual(['FACE_STD', 'BOUNDARY_STD', 'dimension.cassette']);
   });
 
   it('preserves designer overlays from layered geometry previews', () => {
@@ -113,6 +121,37 @@ describe('drawing preview contract', () => {
       text: 'T-1',
       x: 12,
       y: 12
+    });
+  });
+
+  it('includes baked dimension text points in the preview viewBox', () => {
+    const drawing = normalizeGeometryDrawing({
+      data: {
+        layerData: [
+          {
+            layer: 'cut.outer',
+            coordinates: [[0, 0, 0], [100, 0, 0], [100, 50, 0], [0, 50, 0], [0, 0, 0]]
+          },
+          {
+            layer: 'dimension.cassette',
+            geometry: {
+              type: 'dimension',
+              from: [0, 0, 0],
+              to: [100, 0, 0],
+              text: '100',
+              offset: 60
+            }
+          }
+        ]
+      }
+    });
+
+    expect(drawing.viewBox).toBe('-4 -4 108 68');
+    expect(drawing.layers[1].paths[1]).toMatchObject({
+      kind: 'text',
+      text: '100',
+      x: 50,
+      y: 60
     });
   });
 

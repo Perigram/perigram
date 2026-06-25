@@ -26,6 +26,10 @@ const props = defineProps({
     type: Object,
     default: null
   },
+  preferGeometry: {
+    type: Boolean,
+    default: false
+  },
   dimensions: {
     type: Object,
     default: null
@@ -45,6 +49,16 @@ const cassetteType = (cassette) => cassette?.data?.type || '';
 const cassetteDefinition = (cassette) => cassette?.data?.definition || {};
 const isOccsCassetteDefinition = (definition) => Boolean(definition?.occs && definition?.documentType);
 const cassetteMapping = (cassette) => cassetteDefinition(cassette)?.mapping || {};
+const hasRenderableGeometry = (cassette) => Boolean(
+  cassette?.data?.geometry?.dxfId ||
+  cassette?.data?.geometry?.preview ||
+  cassette?.data?.geometry?.data ||
+  cassette?.data?.geometry?.points ||
+  cassette?.data?.layerData?.length ||
+  cassette?.data?.polygonParts?.length ||
+  cassette?.data?.geometry?.data?.layerData?.length ||
+  cassette?.data?.geometry?.data?.polygonParts?.length
+);
 const cassetteGraph = (cassette) => {
   const definition = cassetteDefinition(cassette);
   return {
@@ -92,6 +106,12 @@ const setOccsSource = (definition) => {
   canvasLayerMapping.value = {};
 };
 
+const loadPreferredGeometryCassette = async (cassette) => {
+  if (!props.preferGeometry) return cassette;
+  if (!cassette?._id || hasRenderableGeometry(cassette)) return cassette;
+  return await $fetch(`/api/cassette-designs/${encodeURIComponent(cassette._id)}`).catch(() => cassette);
+};
+
 const updateThumbnail = async () => {
   if (!isVisible.value) return;
 
@@ -114,7 +134,8 @@ const updateThumbnail = async () => {
   canvasSource.value = null;
 
   try {
-    const cassette = await loadCassette();
+    const baseCassette = await loadCassette();
+    const cassette = await loadPreferredGeometryCassette(baseCassette);
     if (!cassette) return;
 
     if (cassette.data?.geometry?.dxfId) {
@@ -148,7 +169,7 @@ const updateThumbnail = async () => {
       return;
     }
 
-    if (type === 'STANDARD') {
+    if (!props.preferGeometry && type === 'STANDARD') {
       const design = await $fetch(`/api/cassette-designs/by-template/${cassette._id}`).catch(() => null);
       if (design?.data?.geometry?.dxfId) {
         setDxfSource(design.data.geometry.dxfId, cassetteMapping(cassette));

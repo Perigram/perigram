@@ -212,6 +212,12 @@ const dimensionTextPath = (geometry = {}) => {
   };
 };
 
+const dimensionTextPoint = (geometry = {}) => {
+  const text = dimensionTextPath(geometry);
+  if (!text) return null;
+  return [text.x, text.y];
+};
+
 const layerDataEntryPaths = (entry = {}) => {
   const geometry = entry.geometry || {};
   if (geometry.type === 'text') {
@@ -268,6 +274,8 @@ const normalizeLayerDataDrawing = (source, options = {}) => {
     if (entry.geometry?.point) boundsPoints.push(entry.geometry.point);
     if (entry.geometry?.from) boundsPoints.push(entry.geometry.from);
     if (entry.geometry?.to) boundsPoints.push(entry.geometry.to);
+    const textPoint = entry.geometry?.type === 'dimension' ? dimensionTextPoint(entry.geometry) : null;
+    if (textPoint) boundsPoints.push(textPoint);
   }
 
   if (!layers.length && polygonParts.length) {
@@ -395,6 +403,7 @@ export const normalizeCassetteDrawing = (result, params = {}) => {
   const options = params.params || params.layers ? params : { params };
   const layerDescriptors = options.layers || {};
   const edgeParams = options.params || {};
+  const designerEdges = extractDesignerEdges(result.vertices || [], edgeParams);
 
   const extrusionPaths = (result.allCurves || [])
     .map((curve, index) => ({ curve, index }))
@@ -413,15 +422,32 @@ export const normalizeCassetteDrawing = (result, params = {}) => {
     fill: 'none',
     stroke: 'layer'
   }] : [];
+  const dimensionPaths = designerEdges
+    .filter(edge => edge.label)
+    .map(edge => ({
+      kind: 'text',
+      x: edge.midX,
+      y: edge.midY,
+      text: String(edge.label).includes(':') ? String(edge.label).split(':')[0].trim() : String(edge.label),
+      fill: 'layer',
+      fontSize: 12,
+      textAnchor: 'middle',
+      dominantBaseline: 'middle'
+    }));
 
   const layers = [];
   mergeLayerPaths(layers, normalizeLayerDescriptor(layerDescriptors.face), extrusionPaths);
   mergeLayerPaths(layers, normalizeLayerDescriptor(layerDescriptors.boundary), boundaryPaths);
+  mergeLayerPaths(layers, normalizeLayerDescriptor({
+    name: 'dimension.cassette',
+    standardCode: 'dimension.cassette',
+    role: 'dimension'
+  }), dimensionPaths);
 
   return {
     viewBox: result.viewBox || '0 0 100 100',
     layers,
     vertices: result.vertices || [],
-    designerEdges: extractDesignerEdges(result.vertices || [], edgeParams)
+    designerEdges
   };
 };
