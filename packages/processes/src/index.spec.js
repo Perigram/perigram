@@ -1366,6 +1366,37 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.services.service_nesting.roles).toBeUndefined();
   });
 
+  it('preserves command ids on manual command action manifests', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator', label: 'Operator' }
+      },
+      actions: {
+        solve_queue: {
+          id: 'solve_queue',
+          actionKind: 'runCommand',
+          commandId: 'solveNesting',
+          entityType: 'queue',
+          trigger: { mode: 'manual' },
+          access: { grants: [{ roleId: 'role_operator', level: 'write' }] },
+          inputs: [{ id: 'queue', entityType: 'queue' }]
+        }
+      },
+      assignments: {
+        user_operator: { userId: 'user_operator', roleIds: ['role_operator'], status: 'active' }
+      }
+    }, domain);
+
+    expect(compiled.userAccess.user_operator.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        actionId: 'solve_queue',
+        actionKind: 'runCommand',
+        commandId: 'solveNesting',
+        entityType: 'queue'
+      })
+    ]));
+  });
+
   it('projects semantic process records to canvas nodes and round-trips them', () => {
     const definition = {
       roles: {

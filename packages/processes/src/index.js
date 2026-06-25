@@ -563,6 +563,7 @@ function compileRoles(process = {}, domain = {}) {
         label: displayActionLabel(action, actionId, process),
         level: 'run',
         actionKind: action.actionKind || 'createEntity',
+        commandId: action.commandId || null,
         feature,
         entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || null,
         parentEntityType: parentEntityType || null,
