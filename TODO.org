@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Deduplicate generated screen breadcrumbs
+    Files changed: stores/auth.js, stores/navigation.js,
+      utils/process-navigation.js, utils/process-navigation.spec.js
+    Docs updated: components/README.md, composables/README.md, TODO.org
+    Notes: Frontend auth state now exposes a composed effective screen
+      manifest, matching the process compiler's multi-role contract.
+      Breadcrumb and hub navigation consume canonical list/hub generated
+      screens only, so paired detail screens no longer appear as duplicated
+      cassette/queue sibling entries.
+
+*** Agent Notes
     [2026-06-25] Merge generated screens across assigned roles
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js

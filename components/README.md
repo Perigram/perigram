@@ -131,7 +131,13 @@ role-derived screens into one route with combined source requirements and
 combined runnable actions. Generated components should render the supplied
 screen contract directly and must not reintroduce role-level duplicate routes.
 Role-prefixed compiled screens remain process/designer records, not separate
-operational navigation entries for a multi-role user. Generated
+operational navigation entries for a multi-role user. The auth store exposes
+that same effective screen manifest to frontend consumers, so stale
+role-prefixed generated records are canonicalized before menu, breadcrumb, or
+screen rendering code sees them. Breadcrumb screen switchers list generated
+hub/list screens only; paired entity-detail screens are reached from their
+list screen and must not appear as duplicate sibling entries with the same
+entity label. Generated
 action buttons post to the active process action endpoint and then refresh the
 screen's entity sources; they do not call arbitrary entity URLs from the
 browser. Collection-level and detail-level generated actions are limited to the

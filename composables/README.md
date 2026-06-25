@@ -178,6 +178,11 @@ generated renderer.
 
 Generated screens are UI composition only. They decide which regions, sources,
 and action buttons are visible, while API routes still enforce real access.
+`stores/auth.js` exposes generated screen manifests as effective user views:
+auto-generated role/entity screens are merged by entity, template, and scope
+before generated pages, menus, and breadcrumbs consume them. Breadcrumb sibling
+menus use only generated hub/list screens; detail screens stay paired with
+their list screen instead of appearing as duplicate top-level destinations.
 Manual generated-screen actions post to the active process action endpoint,
 which verifies the compiled action manifest before delegating to the relevant
 entity, status, socket, or command runtime.
