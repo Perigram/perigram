@@ -102,9 +102,7 @@ const setDxfSource = (dxfId, mapping = {}) => {
 };
 
 const setGeometrySource = (cassette) => {
-  canvasSource.value = props.preferGeometry
-    ? { ...cassette, __cutkitDimensionStrategy: 'boundary' }
-    : cassette;
+  canvasSource.value = cassette;
   canvasSourceType.value = 'geometry-preview';
   canvasLayerMapping.value = {};
 };

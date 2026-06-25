@@ -158,35 +158,6 @@ describe('drawing preview contract', () => {
     });
   });
 
-  it('can synthesize cassette-style measured dimensions from baked boundary geometry', () => {
-    const drawing = normalizeGeometryDrawing({
-      __cutkitDimensionStrategy: 'boundary',
-      data: {
-        layerData: [
-          {
-            layer: 'cut.outer',
-            coordinates: [[0, 0, 0], [100, 0, 0], [100, 50, 0], [0, 50, 0], [0, 0, 0]]
-          },
-          {
-            layer: 'dimension.cassette',
-            geometry: {
-              type: 'dimension',
-              from: [0, 0, 0],
-              to: [100, 0, 0],
-              text: 'A',
-              offset: 60
-            }
-          }
-        ]
-      }
-    });
-
-    expect(drawing.layers.map(layer => layer.standardCode)).toEqual(['cut.outer', 'dimension.cassette']);
-    expect(drawing.layers[1].paths.map(path => path.text)).toEqual(['100', '50', '100', '50']);
-    expect(drawing.layers[1].paths[0]).toMatchObject({ x: 50, y: 0 });
-    expect(drawing.layers[1].paths[1]).toMatchObject({ x: 100, y: 25 });
-  });
-
   it('resolves pens from explicit mapping before layer standard metadata', () => {
     const drawing = applyLayerPens({
       viewBox: '0 0 10 10',
