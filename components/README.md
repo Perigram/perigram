@@ -125,6 +125,13 @@ entity primitives (`EntityCard`, `EntityPage`, `EntitySurfaceContent`,
 `ResponsiveGrid`, `WorkspaceLanes`, and `TableFrame`). Process data may select
 registered templates, sources, regions, surfaces, and action ids; it must not
 select arbitrary Vue component names or inject page-local markup. Generated
+user manifests are effective access views: when a user has several process
+roles that touch the same entity screen, the process compiler merges those
+role-derived screens into one route with combined source requirements and
+combined runnable actions. Generated components should render the supplied
+screen contract directly and must not reintroduce role-level duplicate routes.
+Role-prefixed compiled screens remain process/designer records, not separate
+operational navigation entries for a multi-role user. Generated
 action buttons post to the active process action endpoint and then refresh the
 screen's entity sources; they do not call arbitrary entity URLs from the
 browser. Collection-level and detail-level generated actions are limited to the

@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Merge generated screens across assigned roles
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md, components/README.md, TODO.org
+    Notes: User-specific generated screen manifests now compose all assigned
+      role access into canonical entity/template routes such as `auto_cassette`
+      and `auto_cassette_detail`. Source requirements merge status windows and
+      actions merge only runnable action ids, removing duplicated role-specific
+      screens from operational navigation. Active dev process definitions were
+      recompiled with `server/scripts/migrate-process-compiled-runtime.js`
+      (78 scanned, 78 recompiled).
+
+*** Agent Notes
     [2026-06-25] Compile readable child regions on parent detail screens
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js

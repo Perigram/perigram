@@ -284,16 +284,22 @@ listed as cassette lineage children.
 Navigation is compiled from the screen manifest. When a role has access grants
 but no authored screen for that entity feature, the compiler creates a generated
 entity-list screen for that role/feature so process-active users do not fall
-back to static app routes. If that role has multiple grants for the same entity
-feature, for example access to `project` in both `CREATED` and `NEW`, the
-inferred screen aggregates them into one feature-level read source instead of
-pinning the source to the first status rule or lifting the whole screen to the
-maximum grant level. The generated source keeps the role-local grant rules as
-`rule.any`; frontend loading turns those rules into `primaryStatuses` filters
-so a multi-role user does not see another role's states inside this role's
-screen. The entity API still enforces the individual status-scoped grants when
-it filters returned records, while edit/admin affordances come from action and
-field grants rather than the route-level screen requirement.
+back to static app routes. Role-level compiled screens keep role-prefixed ids
+for audit and designer previews, but user-specific screen manifests merge
+generated screens by entity/template/scope into one effective screen such as
+`auto_cassette` or `auto_cassette_detail`. If one assigned role grants read
+access to cassettes and another grants admin/create access to the same
+cassettes, the user sees one cassette list/detail route with merged status
+windows and merged runnable actions, not duplicated role-specific cassette
+routes. If a role has multiple grants for the same entity feature, for example
+access to `project` in both `CREATED` and `NEW`, the inferred screen aggregates
+them into one feature-level read source instead of pinning the source to the
+first status rule or lifting the whole screen to the maximum grant level. The
+generated source keeps applicable grant rules as `rule.any`; frontend loading
+turns those rules into `primaryStatuses` filters. The entity API still enforces
+the individual status-scoped grants when it filters returned records, while
+edit/admin affordances come from action and field grants rather than the
+route-level screen requirement.
 
 Compiled field policies replace the base domain field set for an organization
 when present. `read` fields are public display fields, `write` fields require
