@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Tighten cassette preview layers and cassette-design geometry preference
+    Files changed: components/CassetteThumbnail.vue,
+      components/shared/EntityPreview.vue,
+      components/entities/CassetteDesign/README.md,
+      components/shared/README.md, TODO.org
+    Docs updated: components/entities/CassetteDesign/README.md,
+      components/shared/README.md, TODO.org
+    Notes: Cassette previews now keep only production-relevant layers when
+      present, and generic cassette-design previews opt into geometry-first
+      loading so baked numeric dimensions show outside the dedicated design
+      card too.
+
+*** Agent Notes
     [2026-06-25] Preserve queue item source identity for process queue pages
     Files changed: server/features/queues/service.js,
       server/features/queues/queues.spec.js,

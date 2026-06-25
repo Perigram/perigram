@@ -20,6 +20,10 @@ parametric/OCCS definitions.
   design's own baked geometry over parent-template fallback sources. Baked
   dimension labels therefore render from the design geometry itself with
   measured numeric values.
+- Shared constructor previews (`EntityPreview`) apply the same
+  `preferGeometry` rule for `cassette_design`, so generated list/detail screens
+  do not fall back to parent-template geometry when the design DTO in screen
+  data is partial.
 - Raw parametric values such as `data.parameters.A` / `data.parameters.C` are
   not displayed as card facts; the thumbnail is the geometry signal.
 - Parent template context is loaded silently from `lineage.templateId` and
