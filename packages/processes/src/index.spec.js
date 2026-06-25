@@ -24,6 +24,7 @@ const domain = {
     { type: 'sheet_design', collection: 'sheet_designs' },
     { type: 'cassette' },
     { type: 'cassette_design', collection: 'cassette_designs' },
+    { type: 'library', feature: 'libraries', collection: 'libraries' },
     { type: 'catalog' },
     { type: 'warehouse' },
     { type: 'requisition' },
@@ -39,7 +40,8 @@ const domain = {
   summaries: [
     { entityType: 'queue', parentType: 'project', parentIdKey: 'projectId' },
     { entityType: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId' },
-    { entityType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId' }
+    { entityType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId' },
+    { entityType: 'cassette', parentType: 'library', parentIdKey: 'libraryId' }
   ],
   workflows: {
     project: {
@@ -76,6 +78,12 @@ const domain = {
     catalog: {
       feature: 'catalogs',
       read: ['identity.*', 'status.*', 'lineage.*', 'data.material', 'data.options'],
+      write: ['data.*'],
+      admin: ['attachments.*']
+    },
+    library: {
+      feature: 'libraries',
+      read: ['identity.*', 'status.*', 'lineage.*', 'data.material'],
       write: ['data.*'],
       admin: ['attachments.*']
     }
@@ -901,6 +909,70 @@ describe('@cutkit/processes compiler', () => {
       })
     ]));
     expect(compiled.screens.auto_role_admin_queue.actions).toContain('create_queue');
+  });
+
+  it('uses graph parent input edges over stale create parent metadata', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
+      actions: {
+        create_library: {
+          id: 'create_library',
+          actionKind: 'createEntity',
+          entityType: 'library',
+          status: { to: SOURCE_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'admin', roleIds: ['role_admin'] },
+          outputs: [{ id: 'created', entityType: 'library', status: SOURCE_STATE }]
+        },
+        create_cassette: {
+          id: 'create_cassette',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          parentEntityType: 'cassette',
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_admin'] },
+          inputs: [{ id: 'parent', entityType: 'cassette' }],
+          outputs: [{ id: 'created', entityType: 'cassette', status: INITIAL_STATE }]
+        }
+      },
+      graph: {
+        nodes: [
+          { id: 'create_library', type: 'action', data: { refId: 'create_library' } },
+          { id: 'create_cassette', type: 'action', data: { refId: 'create_cassette' } }
+        ],
+        edges: [
+          {
+            id: 'library-to-cassette-parent',
+            source: 'create_library',
+            target: 'create_cassette',
+            sourceHandle: 'output',
+            targetHandle: 'input:parent'
+          }
+        ]
+      },
+      assignments: {
+        user_admin: { userId: 'user_admin', roleIds: ['role_admin'], status: 'active' }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_cassette.parentEntityType).toBe('library');
+    expect(compiled.actions.create_cassette.inputs[0]).toMatchObject({ id: 'parent', entityType: 'library', required: true });
+    expect(compiled.screens.auto_role_admin_library_detail.sources).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'cassette_children',
+        entityType: 'cassette',
+        filters: { libraryId: '$screen.scope.entityId' }
+      })
+    ]));
+    expect(compiled.screens.auto_role_admin_library_detail.regions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sourceId: 'cassette_children',
+        actions: ['create_cassette']
+      })
+    ]));
   });
 
   it('does not infer child regions without a domain parent relation', () => {

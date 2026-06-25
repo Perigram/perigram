@@ -511,6 +511,7 @@ function isChildEntitySuppressed(entityType = '', listEntityTypes = new Set(), d
 }
 
 function compileRoles(process = {}, domain = {}) {
+  const graphContext = buildActionGraphContext(process);
   const roles = Object.fromEntries(Object.entries(process.roles || {}).map(([roleId, role]) => [roleId, {
     id: role.id || roleId,
     label: role.label || role.id || roleId,
@@ -551,7 +552,7 @@ function compileRoles(process = {}, domain = {}) {
     for (const roleId of exposedRoleIds) {
       if (!roles[roleId]) continue;
       const feature = exposedActionFeature(action, actionWindow, access, domain);
-      const parentEntityType = effectiveActionParentEntityType(action, domain);
+      const parentEntityType = effectiveActionParentEntityType(action, domain, graphContext.parentIncomingByActionId.get(actionId));
       roles[roleId].actions.push({
         actionId: action.id || actionId,
         label: displayActionLabel(action, actionId, process),
@@ -711,6 +712,7 @@ function buildActionGraphContext(process = {}) {
   }
 
   const incomingByActionId = new Map();
+  const parentIncomingByActionId = new Map();
   for (const edge of process.graph?.edges || []) {
     const targetActionId = actionIdByNodeId.get(String(edge.target));
     const sourceActionId = actionIdByNodeId.get(String(edge.source));
@@ -722,9 +724,35 @@ function buildActionGraphContext(process = {}) {
       targetHandle: edge.targetHandle || null
     });
     incomingByActionId.set(targetActionId, incoming);
+    if (isParentTargetHandle(edge.targetHandle)) {
+      const parentOutput = actionOutputForHandle(process.actions?.[sourceActionId], edge.sourceHandle);
+      if (parentOutput?.entityType) {
+        parentIncomingByActionId.set(targetActionId, {
+          entityType: parentOutput.entityType,
+          status: parentOutput.status || '',
+          parentInput: true
+        });
+      }
+    }
   }
 
-  return { actionNodeById, actionIdByNodeId, incomingByActionId };
+  return { actionNodeById, actionIdByNodeId, incomingByActionId, parentIncomingByActionId };
+}
+
+function isParentTargetHandle(targetHandle = '') {
+  const handle = String(targetHandle || '');
+  return handle === 'parent' || handle === 'input:parent' || handle.endsWith(':parent');
+}
+
+function actionOutputForHandle(action = {}, sourceHandle = '') {
+  const outputs = action?.outputs || [];
+  if (!outputs.length) return null;
+  if (!sourceHandle || sourceHandle === 'output') return outputs.find(output => output.entityType) || outputs[0] || null;
+  const id = String(sourceHandle).replace(/^output:/, '');
+  return outputs.find(output => output.id === id || output.handleId === sourceHandle)
+    || outputs.find(output => output.entityType)
+    || outputs[0]
+    || null;
 }
 
 function incomingWindowForAction(actionId, action = {}, graphContext, windows) {
@@ -858,7 +886,8 @@ function outputHandleId(action = {}, kind = '') {
 }
 
 function rawActionParentEntityType(action = {}, incoming = null) {
-  return action.parentEntityType
+  return (incoming?.parentInput ? incoming.entityType : '')
+    || action.parentEntityType
     || action.inputs?.find(input => input.id === 'parent' && input.entityType)?.entityType
     || incoming?.entityType
     || '';
@@ -1049,7 +1078,8 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
     roles: compiledRoles,
     domain,
     entityProfiles: processOrScreens.entityProfiles || {},
-    actions: processOrScreens.actions || {}
+    actions: processOrScreens.actions || {},
+    graph: processOrScreens.graph || {}
   });
   return Object.fromEntries(Object.entries({ ...screens, ...inferredScreens }).map(([id, screen]) => {
     const normalized = normalizeScreenContract(screen);
@@ -1073,8 +1103,9 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
   }));
 }
 
-function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {} } = {}) {
+function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {}, graph = {} } = {}) {
   const inferred = {};
+  const graphContext = buildActionGraphContext({ actions, graph });
   const existingKeys = new Set(Object.values(screens).flatMap(screen => {
     const roleIds = screen.roleIds?.length ? screen.roleIds : Object.keys(roles);
     const feature = screen.required?.feature || featureFromEntityType(domain, screen.entityType);
@@ -1096,9 +1127,10 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
         role,
         parentEntityType: entityType,
         domain,
-        actions
+        actions,
+        graphContext
       });
-      const contextualActions = contextualParentActions(role.actions || [], entityType, domain, actions);
+      const contextualActions = contextualParentActions(role.actions || [], entityType, domain, actions, graphContext);
       inferred[id] = {
         id,
         label: `${role.label || roleId} ${entityType}`,
@@ -1155,12 +1187,14 @@ function inferredDetailScreenActions(roleActions = [], feature) {
     .map(action => action.actionId);
 }
 
-function contextualParentActions(roleActions = [], parentEntityType = '', domain = {}, processActions = {}) {
+function contextualParentActions(roleActions = [], parentEntityType = '', domain = {}, processActions = {}, graphContext = buildActionGraphContext({ actions: processActions })) {
   return roleActions
     .filter((roleAction) => {
-      const processAction = processActions[roleAction.actionId || roleAction.id] || {};
-      if (!isParentBoundCreateAction(roleAction, processAction, domain)) return false;
-      const actionParent = effectiveActionParentEntityType({ ...processAction, ...roleAction }, domain);
+      const actionId = roleAction.actionId || roleAction.id;
+      const processAction = processActions[actionId] || {};
+      const parentIncoming = graphContext.parentIncomingByActionId.get(actionId);
+      if (!isParentBoundCreateAction(roleAction, processAction, domain, parentIncoming)) return false;
+      const actionParent = effectiveActionParentEntityType({ ...processAction, ...roleAction }, domain, parentIncoming);
       if (actionParent !== parentEntityType) return false;
       const childEntityType = roleAction.entityType || processAction.entityType || '';
       return !parentRelationForChild(domain, childEntityType, parentEntityType);
@@ -1168,13 +1202,13 @@ function contextualParentActions(roleActions = [], parentEntityType = '', domain
     .map(action => action.actionId);
 }
 
-function isParentBoundCreateAction(roleAction = {}, processAction = {}, domain = {}) {
+function isParentBoundCreateAction(roleAction = {}, processAction = {}, domain = {}, parentIncoming = null) {
   const kind = roleAction.actionKind || processAction.actionKind || 'createEntity';
-  const parentEntityType = effectiveActionParentEntityType({ ...processAction, ...roleAction }, domain);
+  const parentEntityType = effectiveActionParentEntityType({ ...processAction, ...roleAction }, domain, parentIncoming);
   return kind === 'createEntity' && Boolean(parentEntityType);
 }
 
-function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain = {}, actions = {} } = {}) {
+function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain = {}, actions = {}, graphContext = buildActionGraphContext({ actions }) } = {}) {
   const sourcesByEntity = new Map();
   const regions = [];
   const actionIds = [];
@@ -1182,7 +1216,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
     const actionId = action.actionId || action.id;
     const processAction = actions[actionId] || {};
     const kind = action.actionKind || processAction.actionKind || 'createEntity';
-    const actionParent = effectiveActionParentEntityType({ ...processAction, ...action }, domain);
+    const actionParent = effectiveActionParentEntityType({ ...processAction, ...action }, domain, graphContext.parentIncomingByActionId.get(actionId));
     if (kind !== 'createEntity' || actionParent !== parentEntityType) continue;
     const childEntityType = action.entityType || processAction.entityType || '';
     if (!childEntityType) continue;
@@ -1405,8 +1439,9 @@ function initialSocketStatus(socket = {}) {
 }
 
 function compileActions(actions = {}, process = {}, domain = {}) {
+  const graphContext = buildActionGraphContext(process);
   return Object.fromEntries(Object.entries(actions).map(([id, action]) => {
-    const parentEntityType = effectiveActionParentEntityType(action, domain);
+    const parentEntityType = effectiveActionParentEntityType(action, domain, graphContext.parentIncomingByActionId.get(id));
     return [id, {
       id: action.id || id,
       label: displayActionLabel(action, id, process),
