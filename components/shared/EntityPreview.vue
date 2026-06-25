@@ -4,6 +4,7 @@
       v-if="isCassetteLike"
       :cassette="entity"
       :cassette-id="cassetteId"
+      :prefer-geometry="entityType === 'cassette_design'"
     />
     <img
       v-else-if="mode === 'thumbnail' && thumbnailUrl"

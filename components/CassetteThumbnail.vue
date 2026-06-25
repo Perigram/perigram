@@ -5,7 +5,9 @@
       :source="canvasSource"
       :source-type="canvasSourceType"
       :layer-mapping="canvasLayerMapping"
+      :visible-layer-names="previewVisibleLayerNames"
       mode="thumbnail"
+      @ready="handleDrawingReady"
     />
     <div v-else class="flex aspect-[5/3] w-full items-center justify-center rounded-ui border border-content-border bg-subtle text-muted-color">
       <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-image'" />
@@ -14,7 +16,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 
 const props = defineProps({
@@ -44,6 +46,14 @@ const canvasSourceType = ref('geometry-preview');
 const canvasLayerMapping = ref({});
 
 let lastRenderKey = '';
+const PREVIEW_LAYER_PRIORITY = [
+  'cut.outer',
+  'fold.route',
+  'cut.inner',
+  'cut.hole',
+  'dimension.cassette'
+];
+const resolvedPreviewLayerNames = ref(null);
 
 const cassetteType = (cassette) => cassette?.data?.type || '';
 const cassetteDefinition = (cassette) => cassette?.data?.definition || {};
@@ -106,6 +116,16 @@ const setOccsSource = (definition) => {
   canvasLayerMapping.value = {};
 };
 
+const previewVisibleLayerNames = computed(() => resolvedPreviewLayerNames.value);
+
+const handleDrawingReady = (drawing) => {
+  const layerNames = Array.isArray(drawing?.layers)
+    ? drawing.layers.map(layer => layer.name).filter(Boolean)
+    : [];
+  const allowed = PREVIEW_LAYER_PRIORITY.filter(name => layerNames.includes(name));
+  resolvedPreviewLayerNames.value = allowed.length ? allowed : null;
+};
+
 const loadPreferredGeometryCassette = async (cassette) => {
   if (!props.preferGeometry) return cassette;
   if (!cassette?._id || hasRenderableGeometry(cassette)) return cassette;
@@ -132,6 +152,7 @@ const updateThumbnail = async () => {
 
   loading.value = true;
   canvasSource.value = null;
+  resolvedPreviewLayerNames.value = null;
 
   try {
     const baseCassette = await loadCassette();
