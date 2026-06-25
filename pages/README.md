@@ -9,8 +9,10 @@ redirect gate for authenticated users.
 
 - On mount, it calls `authStore.setUser()` to hydrate an existing session.
 - Authenticated users with an active process go to their first compiled process
-  screen. Authenticated users without an active process use the static projects
-  workspace.
+  screen. The process compiler prepends a generated `home` screen when the user
+  has process-derived entity lists, so the default app entry becomes that
+  access-composed start screen. Authenticated users without an active process
+  use the static projects workspace.
 - Anonymous visitors stay on the landing page, which embeds
   `CassetteMarketingAnimation` as the first-viewport visual and links to login
   and registration.
@@ -23,11 +25,12 @@ Authenticated route groups continue to use `layout: 'app'` and `middleware:
 `pages/screens/[screenKey].vue` is the generated operational screen route for
 active organization processes. It looks up the current user's compiled screen
 manifest from the auth store and renders it through the fixed generated screen
-runtime. Process navigation points to `/screens/:screenKey`; the route does not
-load arbitrary Vue components from process data. On mount and screen-key changes
-it refreshes `/api/auth/me` before rendering, so generated screens use the
-current active process screen/action manifest instead of stale client-side
-process assignments.
+runtime, including the compiler-synthesized `home` template. Process navigation
+points to `/screens/:screenKey`; the route does not load arbitrary Vue
+components from process data. On mount and screen-key changes it refreshes
+`/api/auth/me` before rendering, so generated screens use the current active
+process screen/action manifest instead of stale client-side process
+assignments.
 
 Operational pages use shared UI shell primitives:
 

@@ -136,6 +136,14 @@ actions do not have an existing entity row. Parent-bound collection actions also
 emit the source and region context so the generated screen can pass the active
 parent id from screen scope to the process action endpoint, or open a parent
 selector when the target entity list is not already scoped to that parent.
+The generated `home` template is the user's process start screen. It renders
+compiler-selected top-level entity-list sources as horizontal card sections and
+uses the region's compiled action ids for section-level create buttons and
+entity-card action footers. Entity-card actions use the same status/entity
+filters as collection screens. The home template must reuse the same entity
+primitives and generated action execution path as collection screens; it must
+not invent static dashboard widgets, hardcoded domain routes, or per-card
+create buttons.
 Entity-detail templates render child collection regions inside the `EntityPage`
 body so parent-child graph flows, such as project-to-queue creation, stay in the
 opened parent context.

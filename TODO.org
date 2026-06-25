@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Generate process home screens
+    Files changed: packages/processes/src/screen-contract.js,
+      packages/processes/src/index.js, packages/processes/src/index.spec.js,
+      components/generated/GeneratedHomeScreen.vue,
+      components/generated/GeneratedScreen.vue
+    Docs updated: components/README.md, pages/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Process compilation now prepends a user-specific `home` screen to
+      each assignment when the user has generated list screens. The screen
+      contains top-level entity sections, suppresses child lists when a parent
+      list is also available, preserves each section's target route, and
+      exposes the list-level process action ids through generated action
+      buttons. Active process definitions were recompiled so current users land
+      on these home screens.
+
     [2026-06-24] Support organization-root queue creation from process actions
     Files changed: server/features/queues/service.js,
       server/features/queues/repository.js,

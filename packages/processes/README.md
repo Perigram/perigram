@@ -204,7 +204,7 @@ active definitions from their canonical process data.
 Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. They compile into generated screen
 manifests, not arbitrary Vue component names. A screen declares a fixed
-template (`entityList`, `entityDetail`, `workspaceLanes`, `table`, or
+template (`home`, `entityList`, `entityDetail`, `workspaceLanes`, `table`, or
 `formAction`), typed entity sources, template regions, required access, and
 manual process action ids. A source describes an entity type plus list/single
 loading mode; a region binds a template slot to one source and a domain display
@@ -217,6 +217,17 @@ routes under `/screens/:screenKey`; the original semantic route is preserved as
 `sourceRoute` for audit/debug context. Manual screen actions execute through the
 active process action runtime, which verifies the user's compiled action
 manifest before delegating to entity, status, socket, or command services.
+Each user assignment also receives a compiler-synthesized `home` screen when
+that user has generated list screens. The home screen is prepended to the
+user's screen and navigation manifests so it becomes the process start screen.
+It is not an editable semantic screen record: it is a projection of the user's
+effective access. Home sources are top-level entity-list sources only. If the
+domain summary registry says one accessible list is a child of another
+accessible list, the child list is suppressed from the home screen and remains
+reachable through its own generated route or parent detail context. The home
+regions keep the target list route and the list-level manual action ids for
+that entity, so generated UI can show one horizontal section per top-level
+entity with its matching process action buttons.
 When a create action is wired from a parent entity input, the inferred parent
 detail screen receives a child collection source and region only when the
 domain summary registry declares that created entity as a child of the parent
