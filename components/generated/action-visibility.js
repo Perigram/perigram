@@ -14,6 +14,21 @@ export function actionAppliesToEntity(action = {}, entity = {}, entityType = '')
   return true;
 }
 
+export function resolveGeneratedEntityActions({
+  actionIds = [],
+  actionManifest = [],
+  entity = {},
+  entityType = '',
+  excludedActionIds = []
+} = {}) {
+  const excluded = new Set(excludedActionIds);
+  return actionIds
+    .filter(actionId => !excluded.has(actionId))
+    .map(actionId => actionManifest.find(action => action.actionId === actionId))
+    .filter(Boolean)
+    .filter(action => actionAppliesToEntity(action, entity, entityType));
+}
+
 export function parentBoundCreateAppliesToEntityType(action = {}, entityType = '') {
   if (!action || action.actionKind !== 'createEntity' || !entityType) return false;
   const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';

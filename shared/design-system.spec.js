@@ -417,6 +417,18 @@ describe('Design system manifest', () => {
     expect(generatedHome).not.toContain('min-w-64 max-w-72');
   });
 
+  it('keeps queue entity controls scoped to the concrete queue', () => {
+    const queueCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Queue/QueueCard.vue'), 'utf8');
+    const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
+
+    expect(queueCard).toContain('hasPermissionGrant');
+    expect(queueCard).not.toContain("authStore.can('queues', 'edit')");
+    expect(queueCard).not.toContain("authStore.can('queues', 'delete')");
+    expect(queueEditor).toContain('props.processActions');
+    expect(queueEditor).toContain("isProcessMode.value ? Boolean(processRunNestingAction.value) : canEditQueue.value");
+    expect(queueEditor).not.toContain('canEditQueue.value || Boolean(processRunNestingAction.value)');
+  });
+
   it('keeps manual workbench forms explicit about type and lineage choices', () => {
     const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
     const manualEntities = fs.readFileSync(path.join(REPO_ROOT, 'test-data/workbench-manual-entities.js'), 'utf8');

@@ -12,6 +12,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
   queue: { type: Object, required: true },
@@ -44,9 +45,23 @@ const handleCardClick = (event) => {
 
 const jobItems = computed(() => props.queue.data?.job?.items || []);
 const totalQuantity = computed(() => jobItems.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0));
+const canEditQueue = computed(() => hasPermissionGrant({
+    permissions: authStore.activePermissions,
+    feature: 'queues',
+    level: 'write',
+    entity: props.queue,
+    entityType: 'queue'
+}));
+const canDeleteQueue = computed(() => hasPermissionGrant({
+    permissions: authStore.activePermissions,
+    feature: 'queues',
+    action: 'delete',
+    entity: props.queue,
+    entityType: 'queue'
+}));
 const commandActions = computed(() => [
     ...props.commandActions,
-    ...(props.showDelete && authStore.can('queues', 'delete') ? [{
+    ...(props.showDelete && canDeleteQueue.value ? [{
         label: t('common.delete'),
         icon: 'pi pi-trash',
         severity: 'danger',
@@ -110,7 +125,7 @@ const commandActions = computed(() => [
                     text
                     @click.stop="action.command?.()"
                 />
-                <Button v-if="authStore.can('queues', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', queue)" />
+                <Button v-if="canEditQueue" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', queue)" />
             </div>
         </template>
     </EntityCard>

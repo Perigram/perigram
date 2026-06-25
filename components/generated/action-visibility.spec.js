@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType } from './action-visibility.js';
+import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType, resolveGeneratedEntityActions } from './action-visibility.js';
 
 describe('generated action visibility', () => {
   it('shows status actions only on entities in the source status', () => {
@@ -45,5 +45,31 @@ describe('generated action visibility', () => {
 
   it('hides entity actions from other entity lists', () => {
     expect(actionAppliesToEntity({ actionKind: 'updateEntity', entityType: 'project' }, {}, 'cassette')).toBe(false);
+  });
+
+  it('resolves generated entity actions from region ids and user action manifest', () => {
+    const entity = { status: { state: { primary: 'READY' } } };
+    const actions = resolveGeneratedEntityActions({
+      actionIds: ['solve', 'delete', 'missing'],
+      actionManifest: [
+        {
+          actionId: 'solve',
+          actionKind: 'runCommand',
+          commandId: 'solveNesting',
+          entityType: 'queue',
+          status: { from: 'READY' }
+        },
+        {
+          actionId: 'delete',
+          actionKind: 'changeStatus',
+          entityType: 'queue',
+          status: { from: 'ARCHIVED', to: 'DELETED' }
+        }
+      ],
+      entity,
+      entityType: 'queue'
+    });
+
+    expect(actions.map(action => action.actionId)).toEqual(['solve']);
   });
 });

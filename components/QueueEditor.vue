@@ -361,7 +361,7 @@ const props = defineProps({
     projectSlug: { type: String, required: true },
     showQueueNavigation: { type: Boolean, default: true },
     editMode: { type: String, default: 'workflow' },
-    actions: { type: Array, default: () => [] }
+    processActions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted']);
@@ -372,6 +372,7 @@ const authStore = useAuthStore();
 
 const queueState = computed(() => getPrimaryState(props.queue.status, 'UNKNOWN'));
 const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || t('common.unnamed'));
+const isProcessMode = computed(() => props.editMode === 'process');
 const showQueueNavigation = computed(() => props.showQueueNavigation);
 const workspaceComponent = computed(() => showQueueNavigation.value ? WorkspaceLanes : EntityWorkspace);
 const supportSlot = computed(() => showQueueNavigation.value ? 'right' : 'support');
@@ -401,7 +402,7 @@ const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unn
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
 const canCreateQueue = computed(() => authStore.can('queues', 'create'));
 const canEditQueue = computed(() => {
-    if (props.editMode !== 'process') return queueState.value === 'DRAFT';
+    if (!isProcessMode.value) return queueState.value === 'DRAFT';
     return hasPermissionGrant({
         permissions: authStore.activePermissions,
         feature: 'queues',
@@ -411,12 +412,11 @@ const canEditQueue = computed(() => {
     });
 });
 const processRunNestingAction = computed(() => {
-    if (props.editMode !== 'process') return null;
-    return props.actions
-        .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+    if (!isProcessMode.value) return null;
+    return props.processActions
         .find(action => action?.actionKind === 'runCommand' && action.commandId === 'solveNesting') || null;
 });
-const canRunNesting = computed(() => canEditQueue.value || Boolean(processRunNestingAction.value));
+const canRunNesting = computed(() => isProcessMode.value ? Boolean(processRunNestingAction.value) : canEditQueue.value);
 const requestErrorMessage = (error) => error?.data?.message || error?.response?._data?.message || error?.message || t('common.error');
 const optionalList = async (loader) => {
     try {
@@ -946,11 +946,13 @@ const syncEntryWithCassette = (entry) => {
 };
 
 const updateEntryQuantity = async (entry, quantity) => {
+    if (!canEditQueue.value) return;
     entry.quantity = quantity;
     await saveQueue();
 };
 
 const updateEntryDimension = async (entry, param, value) => {
+    if (!canEditQueue.value) return;
     entry.dimensions = {
         ...(entry.dimensions || {}),
         [param]: value
@@ -959,6 +961,7 @@ const updateEntryDimension = async (entry, param, value) => {
 };
 
 const addEntry = async (item = null) => {
+    if (!canEditQueue.value) return;
     const data = item || getCassetteData(newEntry.value.cassetteTemplateId);
     if (!data) return;
 
@@ -985,6 +988,7 @@ const addEntry = async (item = null) => {
 };
 
 const saveQueue = async () => {
+    if (!canEditQueue.value) return false;
     try {
         entries.value.forEach(syncEntryWithCassette);
         await queuesStore.updateQueue(
@@ -1004,6 +1008,7 @@ const saveQueue = async () => {
             }
         );
         emit('updated');
+        return true;
     } catch (e) {
         console.error(e);
         throw e;
