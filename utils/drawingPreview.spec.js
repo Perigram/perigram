@@ -146,12 +146,15 @@ describe('drawing preview contract', () => {
       }
     });
 
-    expect(drawing.viewBox).toBe('-4 -4 108 68');
+    expect(drawing.viewBox).toBe('-4 -4 108 79');
+    expect(drawing.layers[1].paths[0]).toMatchObject({
+      d: 'M 0 0 L 0 60 M 100 0 L 100 60 M 0 60 L 100 60'
+    });
     expect(drawing.layers[1].paths[1]).toMatchObject({
       kind: 'text',
       text: '100',
       x: 50,
-      y: 60
+      y: 71
     });
   });
 

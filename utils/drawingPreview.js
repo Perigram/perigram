@@ -185,30 +185,78 @@ const layerDataPoint = (point = []) => (
 
 const dimensionPoint = (point = []) => layerDataPoint(point);
 
-const dimensionPath = (geometry = {}) => {
+const dimensionVector = (geometry = {}) => {
   const from = dimensionPoint(geometry.from);
   const to = dimensionPoint(geometry.to);
   if (!from || !to) return null;
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const length = Math.hypot(dx, dy);
+  if (length <= 0.001) return null;
   return {
-    d: polylinePath([from, to]),
+    from,
+    to,
+    dx,
+    dy,
+    length,
+    unit: [dx / length, dy / length],
+    normal: [-dy / length, dx / length]
+  };
+};
+
+const dimensionOffsetNumber = (geometry = {}, fallback = 0) => {
+  const numeric = Number(geometry.offset);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const dimensionTextGap = (geometry = {}) => {
+  const numeric = Number(geometry.textGap);
+  return Number.isFinite(numeric) ? numeric : 11;
+};
+
+const dimensionTextScreenGap = (geometry = {}) => {
+  const numeric = Number(geometry.textOffset);
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const dimensionPath = (geometry = {}) => {
+  const vector = dimensionVector(geometry);
+  if (!vector) return null;
+  const { from, to, normal } = vector;
+  const offset = dimensionOffsetNumber(geometry);
+  const dimFrom = [from[0] + normal[0] * offset, from[1] + normal[1] * offset];
+  const dimTo = [to[0] + normal[0] * offset, to[1] + normal[1] * offset];
+  return {
+    d: [
+      polylinePath([from, dimFrom]),
+      polylinePath([to, dimTo]),
+      polylinePath([dimFrom, dimTo])
+    ].filter(Boolean).join(' '),
     stroke: 'layer',
     fill: 'none'
   };
 };
 
 const dimensionTextPath = (geometry = {}) => {
-  const from = dimensionPoint(geometry.from);
-  const to = dimensionPoint(geometry.to);
-  if (!from || !to || !geometry.text) return null;
-  const x = (from[0] + to[0]) / 2;
-  const y = (from[1] + to[1]) / 2 + Number(geometry.offset || 0);
+  const vector = dimensionVector(geometry);
+  if (!vector || !geometry.text) return null;
+  const { from, to, normal } = vector;
+  const offset = dimensionOffsetNumber(geometry);
+  const textGap = dimensionTextGap(geometry);
+  const textOffset = dimensionTextScreenGap(geometry);
+  const midX = (from[0] + to[0]) / 2;
+  const midY = (from[1] + to[1]) / 2;
+  const x = midX + normal[0] * (offset + textGap) + textOffset;
+  const y = midY + normal[1] * (offset + textGap);
   return {
     kind: 'text',
     x,
     y,
     text: String(geometry.text),
     fill: 'layer',
-    fontSize: 12
+    fontSize: geometry.fontSize || 12,
+    textAnchor: geometry.textAnchor || 'middle',
+    dominantBaseline: geometry.dominantBaseline || 'middle'
   };
 };
 
