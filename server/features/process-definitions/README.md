@@ -102,9 +102,13 @@ the compiled role grants.
 Run-command actions use the same action-scoped execution model. The action must
 be present in the user's compiled action manifest, then the command executes
 with a temporary grant on the action's input entity feature so the command
-runtime can enforce its normal domain access contract. For example, a manual
-`solveNesting` action on a queue can run from a generated queue detail even when
-the user's current queue status window is read-only; queue job edits still
+runtime can enforce its normal domain access contract. Domain command
+definitions may also declare `access.executionGrants` for records the handler
+must read while executing the command but that should not become ordinary user
+list/detail access. For example, a manual `solveNesting` action on a queue can
+run from a generated queue detail even when the user's current queue status
+window is read-only; the action gets transient read access to the cassette
+templates/designs referenced by the saved queue job, while queue job edits still
 require the separate `queues:write` entity grant.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type

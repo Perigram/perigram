@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Add process command dependency grants and generated navigation fixes
+    Files changed: packages/domain-cnc/src/commands.js,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js,
+      server/features/nesting/operations.spec.js, components/QueueEditor.vue,
+      components/generated/GeneratedHomeScreen.vue, stores/navigation.js,
+      Dockerfile.dev, docker-compose.dev.yml
+    Docs updated: components/README.md,
+      server/features/process-definitions/README.md,
+      server/features/nesting/README.md, stores/README.md, README.md,
+      TODO.org
+    Notes: `solveNesting` now declares transient read execution grants for
+      cassette templates/designs consumed from saved queue jobs. Process
+      run-command execution applies command-declared dependency grants only for
+      the request, generated home sections resolve list routes from the compiled
+      manifest, generated screen breadcrumbs use exact screen matching, and the
+      Docker dev server binds Nuxt to `0.0.0.0`.
+
     [2026-06-25] Preserve command ids in process action manifests
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js

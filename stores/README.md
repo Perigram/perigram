@@ -33,11 +33,14 @@ Pinia stores for client state and API orchestration.
   a user's app menu follows their compiled process assignment and scoped
   bindings. Generated `/screens/:screenKey` breadcrumbs use
   `utils/generated-labels.js` so raw process labels and entity ids are translated
-  the same way as generated screen headers. Static hub/tab lists are used only
-  when no active process is present. Organization management breadcrumbs are not
-  generated operational screens; they use `hasTenantPermission()` so admins can
-  still reach team management and process design while ordinary process roles
-  only see their compiled screens.
+  the same way as generated screen headers. Generated breadcrumb hub matching is
+  exact for `/screens/:screenKey` routes, so a home screen does not duplicate
+  itself as both hub and current screen and detail screens do not match a hub by
+  string prefix. Static hub/tab lists are used only when no active process is
+  present. Organization management breadcrumbs are not generated operational
+  screens; they use `hasTenantPermission()` so admins can still reach team
+  management and process design while ordinary process roles only see their
+  compiled screens.
   Project routes include a store-resolved section breadcrumb for queues, sheet
   designs, data, artifacts, and details.
   Admin pages use a store-owned sibling list that includes workbench,

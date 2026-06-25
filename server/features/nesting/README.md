@@ -56,6 +56,11 @@ bake it with the entry `parameters`, and pass the baked cassette ID plus baked
 `polygonParts` into `buildNestingWorkerRequest()`. The fetched cassette entity
 is the source of truth for whether an item is parametric; a stale queue item
 `type` must not make an OCCS template skip baking and fall back to a rectangle.
+Because `solveNesting` consumes saved queue item references, the command
+contract declares transient read execution grants for cassette templates and
+cassette designs. Process action execution applies those grants only for the
+command run, so generated queue users can run nesting without receiving
+standalone cassette-design list/detail access.
 For OCCS templates with multiple `sheet` workpieces, baking stores one
 `polygonPart` per sheet workpiece. The FastAPI worker receives these as separate
 items with the same baked cassette ID, preserving the single template reference

@@ -143,7 +143,9 @@ entity-card action footers. Entity-card actions use the same status/entity
 filters as collection screens. The home template must reuse the same entity
 primitives and generated action execution path as collection screens; it must
 not invent static dashboard widgets, hardcoded domain routes, or per-card
-create buttons.
+create buttons. Each home section resolves its open-list button from the
+compiled region route or the matching compiled entity-list screen in the
+current screen manifest; it must not construct list routes from entity names.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,

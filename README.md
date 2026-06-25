@@ -97,6 +97,8 @@ E2E_BASE_URL=http://localhost:3000 npm run test:e2e
 Do not run `npm run build` or start dev servers from coding-agent tasks unless a
 human explicitly asks. Worker endpoints require matching `WORKER_TOKEN` on app
 and workers; compose files use `cutkit-dev-worker` for local development.
+Docker dev starts Nuxt with `--host 0.0.0.0` so the app binds to the container
+interface and is reachable through the compose `3000:3000` port mapping.
 The E2E command assumes the app stack is already running and uses Playwright
 against the configured `E2E_BASE_URL`.
 
