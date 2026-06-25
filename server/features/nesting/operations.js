@@ -10,6 +10,7 @@ import * as nestingRunsService from '../nesting-runs/service.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
 import * as nestingJobs from './jobs.js';
 import { createTaskRun, getTaskRunById } from '../../core/tasks/service.js';
+import { statusService } from '../../core/machines/service.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 
@@ -84,6 +85,8 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
       ownerId: auth.userId
     });
 
+    const queueNestingEvent = await queueNestingRequestedEvent(queue, settings, taskRun, runId, auth);
+
     return {
       entities: [
         { type: 'nesting_run', id: runId.toString() }
@@ -92,18 +95,7 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
         { type: 'task_run', id: taskRun._id.toString() },
         { type: 'nesting_job', id: job._id.toString(), compatibility: true }
       ],
-      events: [
-        {
-          type: 'queue.nestingRequested',
-          source: { type: 'queue', id: queue._id?.toString() || queue._id },
-          entities: [{ type: 'nesting_run', id: runId.toString() }],
-          data: {
-            materialMode: settings.materialMode || 'VIRTUAL',
-            taskRunId: taskRun._id.toString(),
-            runId: runId.toString()
-          }
-        }
-      ],
+      events: queueNestingEvent ? [queueNestingEvent] : [],
       data: {
         nestingSlug,
         status: 'NESTING',
@@ -114,6 +106,22 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
   } finally {
     activeQueueNestLocks.delete(queueId);
   }
+}
+
+async function queueNestingRequestedEvent(queue, settings, taskRun, runId, auth) {
+  const actions = await statusService.getActions('queue', queue._id, auth).catch(() => ({ actions: [] }));
+  const canRequestNesting = actions.actions?.some(action => action.intent === 'requestNesting');
+  if (!canRequestNesting) return null;
+  return {
+    type: 'queue.nestingRequested',
+    source: { type: 'queue', id: queue._id?.toString() || queue._id },
+    entities: [{ type: 'nesting_run', id: runId.toString() }],
+    data: {
+      materialMode: settings.materialMode || 'VIRTUAL',
+      taskRunId: taskRun._id.toString(),
+      runId: runId.toString()
+    }
+  };
 }
 
 export async function buildJobFiles(queue, auth) {

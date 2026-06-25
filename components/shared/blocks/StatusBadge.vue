@@ -5,6 +5,7 @@
  */
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { STATUS_MAPPINGS } from '~/utils/status-engine';
 
 const props = defineProps({
@@ -12,6 +13,8 @@ const props = defineProps({
   iconOnly: { type: Boolean, default: false },
   display: { type: Object, default: null }
 });
+
+const { t, te } = useI18n();
 
 const config = computed(() => {
     const s = props.state?.toUpperCase() || 'UNKNOWN';
@@ -28,6 +31,11 @@ const config = computed(() => {
         icon: display.icon || mapped.icon
     };
 });
+
+const label = computed(() => {
+    const value = config.value.label;
+    return te(value) ? t(value) : value;
+});
 </script>
 
 <template>
@@ -37,7 +45,7 @@ const config = computed(() => {
     :icon="config.icon"
   >
     <template v-if="!iconOnly">
-        <span class="min-w-0 truncate">{{ $t(config.label) || config.label }}</span>
+        <span class="min-w-0 truncate">{{ label }}</span>
     </template>
   </Tag>
 </template>
