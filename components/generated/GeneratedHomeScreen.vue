@@ -3,7 +3,7 @@
     <section v-for="section in sections" :key="section.region.id" class="flex min-w-0 flex-col gap-3">
       <div class="flex min-w-0 items-center justify-between gap-3">
         <h2 class="m-0 min-w-0 truncate text-base font-semibold">
-          {{ section.region.label || section.source.label || section.source.entityType }}
+          {{ sectionLabel(section) }}
         </h2>
         <div class="flex shrink-0 items-center gap-2">
           <GeneratedActionButton
@@ -18,7 +18,7 @@
             text
             rounded
             size="small"
-            :aria-label="section.region.label || section.source.label || section.source.entityType"
+            :aria-label="sectionLabel(section)"
             @click="navigateTo(section.region.route)"
           />
         </div>
@@ -74,6 +74,7 @@
 <script setup>
 import { computed } from 'vue';
 import Button from 'primevue/button';
+import { useI18n } from 'vue-i18n';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
@@ -83,6 +84,7 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import { useAuthStore } from '~/stores/auth';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
+import { generatedRegionLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
   screen: { type: Object, required: true },
@@ -92,6 +94,7 @@ const props = defineProps({
 defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
+const { t, te } = useI18n();
 
 const sections = computed(() => props.screen.regions
   .map(region => {
@@ -135,6 +138,10 @@ function actionContext(section = {}) {
       entity
     }))
   };
+}
+
+function sectionLabel(section = {}) {
+  return generatedRegionLabel(section.region, section.source, { t, te });
 }
 
 function openEntity(section, entity) {

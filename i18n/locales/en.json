@@ -2289,6 +2289,12 @@
     "validationOk": "Process definition is valid"
   },
   "generatedScreen": {
+    "home": "Home",
+    "actions": {
+      "change": "Change",
+      "run": "Run",
+      "send": "Send"
+    },
     "loadFailed": "Screen failed to load",
     "notFound": "Screen is not available",
     "noScreens": "No process screens are available",

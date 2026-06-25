@@ -5,11 +5,12 @@ import { useGlobalStore } from './global';
 import { useI18n } from 'vue-i18n';
 import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
 import { resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
+import { generatedScreenLabel } from '~/utils/generated-labels.js';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
     const globalStore = useGlobalStore();
-    const { t } = useI18n();
+    const { t, te } = useI18n();
 
     // Store-managed state for project context
     const currentProject = ref(null);
@@ -68,7 +69,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     const routeMatches = (candidate, route) => Boolean(candidate && route)
         && (candidate === route || candidate.startsWith(`${route}/`) || route.startsWith(`${candidate}/`));
 
-    const screenName = (screen) => screen.labelKey ? t(screen.labelKey) : (screen.label || screen.id);
+    const screenName = (screen) => generatedScreenLabel(screen, { t, te });
 
     const routeIcon = (route) => hubConfigs.find(config => routeMatches(config.to, route))?.icon || 'pi pi-th-large';
 
@@ -146,6 +147,18 @@ export const useNavigationStore = defineStore('navigation', () => {
                 to: currentHub.to,
                 siblings: hubs.value.map((s) => siblingOption(s.name, s.to)),
             });
+        }
+
+        if (parts[0] === 'screens' && parts[1]) {
+            const currentScreen = visibleProcessScreens.value.find(screen => (screen.screenKey || screen.id) === parts[1]);
+            if (currentScreen) {
+                const siblings = visibleProcessScreens.value.map(screen => siblingOption(screenName(screen), screen.route));
+                nav.push({
+                    name: screenName(currentScreen),
+                    to: currentScreen.route,
+                    siblings
+                });
+            }
         }
 
         // --- Level 2: Project Context ---

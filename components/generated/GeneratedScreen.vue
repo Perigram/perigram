@@ -1,5 +1,5 @@
 <template>
-  <StandardPage :title="screen.labelKey ? $t(screen.labelKey) : screen.label">
+  <StandardPage :title="screenTitle">
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="error" state="error" :message="errorMessage" />
     <StateBlock v-else-if="actionError" state="error" :message="actionError" />
@@ -156,13 +156,14 @@ import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
+import { generatedActionLabel, generatedEntityLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
 });
 
 const toast = useToast();
-const { t } = useI18n();
+const { t, te } = useI18n();
 const domainUi = useCutkitDomainUi();
 const screenRef = toRef(props, 'screen');
 const { screen, loading, error, load, sourceState } = useGeneratedScreen(screenRef);
@@ -189,14 +190,15 @@ const detailActionContext = computed(() => {
 });
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 const promptFields = computed(() => promptedFields(pendingAction.value));
-const pendingActionLabel = computed(() => pendingAction.value?.label || t('common.create'));
-const dialogSaveLabel = computed(() => pendingAction.value?.actionKind === 'createEntity' ? t('common.create') : t('common.save'));
+const pendingActionLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.confirm'));
+const dialogSaveLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
 const parentSelectionFieldId = '__parentEntityId';
 const parentSelectionType = computed(() => requiredParentType(pendingAction.value, pendingEntity.value?.entity, pendingEntity.value?.context));
 const parentSelectionRequired = computed(() => Boolean(parentSelectionType.value));
-const parentSelectionLabel = computed(() => parentSelectionType.value ? parentSelectionType.value.replace(/_/g, ' ') : '');
+const parentSelectionLabel = computed(() => parentSelectionType.value ? generatedEntityLabel(parentSelectionType.value, { t, te }) : '');
 const parentSelectionOptions = computed(() => promptOptions[parentSelectionFieldId] || pendingEntity.value?.context?.parentOptions || []);
+const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
 
 async function executeAction(action, entity = null, context = {}) {
   actionError.value = '';
