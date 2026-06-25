@@ -1,16 +1,18 @@
 <template>
   <div ref="container" class="w-full" data-entity-card-interactive="true" @click.stop>
-    <DrawingCanvas
-      v-if="canvasSource"
-      :source="canvasSource"
-      :source-type="canvasSourceType"
-      :layer-mapping="canvasLayerMapping"
-      :visible-layer-names="previewVisibleLayerNames"
-      mode="thumbnail"
-      @ready="handleDrawingReady"
-    />
-    <div v-else class="flex aspect-[5/3] w-full items-center justify-center rounded-ui border border-content-border bg-subtle text-muted-color">
-      <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-image'" />
+    <div class="rounded-ui border border-content-border bg-subtle p-3">
+      <DrawingCanvas
+        v-if="canvasSource"
+        :source="canvasSource"
+        :source-type="canvasSourceType"
+        :layer-mapping="canvasLayerMapping"
+        :visible-layer-names="previewVisibleLayerNames"
+        mode="thumbnail"
+        @ready="handleDrawingReady"
+      />
+      <div v-else class="flex aspect-[5/3] w-full items-center justify-center text-muted-color">
+        <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-image'" />
+      </div>
     </div>
   </div>
 </template>
@@ -60,7 +62,15 @@ const cassetteDefinition = (cassette) => cassette?.data?.definition || {};
 const isOccsCassetteDefinition = (definition) => Boolean(definition?.occs && definition?.documentType);
 const cassetteMapping = (cassette) => cassetteDefinition(cassette)?.mapping || {};
 const hasRenderableGeometry = (cassette) => Boolean(
-  cassette?.data?.geometry?.dxfId ||
+  cassette?.data?.geometry?.preview ||
+  cassette?.data?.geometry?.data ||
+  cassette?.data?.geometry?.points ||
+  cassette?.data?.layerData?.length ||
+  cassette?.data?.polygonParts?.length ||
+  cassette?.data?.geometry?.data?.layerData?.length ||
+  cassette?.data?.geometry?.data?.polygonParts?.length
+);
+const hasBakedPreviewGeometry = (cassette) => Boolean(
   cassette?.data?.geometry?.preview ||
   cassette?.data?.geometry?.data ||
   cassette?.data?.geometry?.points ||
@@ -159,21 +169,13 @@ const updateThumbnail = async () => {
     const cassette = await loadPreferredGeometryCassette(baseCassette);
     if (!cassette) return;
 
-    if (cassette.data?.geometry?.dxfId) {
-      setDxfSource(cassette.data.geometry.dxfId, cassetteMapping(cassette));
+    if (hasBakedPreviewGeometry(cassette)) {
+      setGeometrySource(cassette);
       return;
     }
 
-    if (
-      cassette.data?.geometry?.preview ||
-      cassette.data?.geometry?.data ||
-      cassette.data?.geometry?.points ||
-      cassette.data?.layerData?.length ||
-      cassette.data?.polygonParts?.length ||
-      cassette.data?.geometry?.data?.layerData?.length ||
-      cassette.data?.geometry?.data?.polygonParts?.length
-    ) {
-      setGeometrySource(cassette);
+    if (cassette.data?.geometry?.dxfId) {
+      setDxfSource(cassette.data.geometry.dxfId, cassetteMapping(cassette));
       return;
     }
 
