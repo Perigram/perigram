@@ -7,8 +7,11 @@ Command handler and compatibility job metadata for queue nesting.
 - `operations.js` implements the `solveNesting` command.
 - The handler validates queue state, creates a `nesting_run`, enqueues
   `nesting.solve`, writes a linked compatibility `nesting_jobs` record, and
-  returns a queue `requestNesting` effect instead of mutating queue status
-  directly.
+  returns a queue `requestNesting` effect only when the active queue workflow
+  exposes that intent for the queue's current state. Process-authored queue
+  lifecycles may use custom statuses without a `requestNesting` transition; in
+  that case the `nesting_job` lock plus linked `nesting_run`/task own execution
+  state and the command must not fail after successfully scheduling the worker.
 - Command output is initially the `nesting_run` plus task/job references.
   `sheet_design` entities are created only after the worker returns, one entity
   per physical sheet layout in `solution.layouts[]`. Generated files are
@@ -65,6 +68,11 @@ contract declares transient read execution grants for cassette templates and
 cassette designs. Process action execution applies those grants only for the
 command run, so generated queue users can run nesting without receiving
 standalone cassette-design list/detail access.
+The command's queue lifecycle event is optional by workflow capability, not a
+legacy fallback. Domain queues in `DRAFT` still emit `queue.nestingRequested`
+through the status API, while process queues whose active status machine does
+not allow `requestNesting` skip that event and rely on the generated
+`nesting_run` lifecycle for visible solver progress/result state.
 For OCCS templates with multiple `sheet` workpieces, baking stores one
 `polygonPart` per sheet workpiece. The FastAPI worker receives these as separate
 items with the same baked cassette ID, preserving the single template reference

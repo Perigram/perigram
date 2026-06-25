@@ -18,12 +18,16 @@ Defines a specific nesting job, bridging the digital production intent with phys
    Queue edits persist these selections as `data.job.materialPool` with source
    ids, labels, dimensions, and available counts.
 3. **Transition to Nesting**: Handing off the job to the Nesting Worker now
-   uses the `requestNesting` intent to move a draft queue to `NESTING`. When
-   the async solver task completes, the generated `nesting_run` becomes
-   `COMPLETE` and the queue stays `NESTING` until an operator chooses a
-   completed run for production. Final solver failure transitions both the
-   nesting run and queue to `ERROR` through declared effects. In warehouse mode,
-   selected stock
+   uses the `requestNesting` intent to move a domain draft queue to `NESTING`
+   when the active queue workflow exposes that intent. Process-authored queue
+   workflows may keep the queue in a custom status while the generated
+   `nesting_run`, task run, and compatibility `nesting_job` represent solver
+   progress. When the async solver task completes, the generated `nesting_run`
+   becomes `COMPLETE`; domain queues that entered `NESTING` stay there until an
+   operator chooses a completed run for production. Final solver failure
+   transitions the nesting run through declared effects, and only transitions
+   the queue when the active queue workflow has the matching effect path. In
+   warehouse mode, selected stock
    dimensions/counts define the worker sheet size and sheet count; mixed sheet
    sizes are rejected for the current one-bin worker contract.
    The queue nesting API derives command parameters from saved

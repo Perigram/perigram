@@ -112,6 +112,10 @@ navigation, center work area, and right rail still use `WorkspaceLanes`.
 
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.
+Status labels may be either i18n keys from shared mappings or process-authored
+display labels stored on `status.metadata.display`. The badge checks whether a
+label is translatable before calling i18n; custom labels such as organization
+status names render as data, not as missing translation keys.
 
 ---
 

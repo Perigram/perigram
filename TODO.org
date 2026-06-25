@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Make queue nesting event emission workflow-aware
+    Files changed: server/features/nesting/operations.js,
+      server/features/nesting/operations.spec.js,
+      components/shared/blocks/StatusBadge.vue
+    Docs updated: server/features/nesting/README.md,
+      server/features/queues/README.md, components/shared/README.md, TODO.org
+    Notes: `solveNesting` now creates the nesting run/task/job without forcing
+      a queue `requestNesting` event when the active process queue workflow
+      does not expose that intent from the current status. Domain queues still
+      emit the event when the status API reports `requestNesting` as available.
+      `StatusBadge` now renders process-authored status labels directly instead
+      of sending raw labels like `Отправлено` or `UNKNOWN` through i18n.
+
     [2026-06-25] Preserve nesting solver system intents in process workflows
     Files changed: server/features/workflow-overrides/service.js,
       server/core/machines/service.spec.js,
