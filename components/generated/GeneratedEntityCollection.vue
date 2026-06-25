@@ -99,7 +99,7 @@ import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
-import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 
@@ -144,6 +144,7 @@ const tableFields = computed(() => resolveEntityDisplayContract({
 
 function entityActionsFor(entity) {
   return resolvedActions.value.filter(action => (
+    isGeneratedSurfaceAction(action) &&
     !parentBoundCreateAppliesToEntityType(action, props.entityType)
     && actionAppliesToEntity(action, entity, props.entityType)
   ));

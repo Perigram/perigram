@@ -93,7 +93,7 @@ import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
-import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
 
@@ -126,6 +126,7 @@ function collectionActions(region = {}) {
 
 function entityActionsFor(section = {}, entity = {}) {
   return resolvedRegionActions(section.region).filter(action => (
+    isGeneratedSurfaceAction(action) &&
     !parentBoundCreateAppliesToEntityType(action, section.source.entityType)
     && actionAppliesToEntity(action, entity, section.source.entityType)
   ));

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { actionAppliesToEntity, parentBoundCreateAppliesToEntityType, resolveGeneratedEntityActions } from './action-visibility.js';
+import {
+  actionAppliesToEntity,
+  isGeneratedSurfaceAction,
+  parentBoundCreateAppliesToEntityType,
+  resolveGeneratedEntityActions
+} from './action-visibility.js';
 
 describe('generated action visibility', () => {
   it('shows status actions only on entities in the source status', () => {
@@ -71,5 +76,11 @@ describe('generated action visibility', () => {
     });
 
     expect(actions.map(action => action.actionId)).toEqual(['solve']);
+  });
+
+  it('keeps lifecycle transitions out of generic action surfaces', () => {
+    expect(isGeneratedSurfaceAction({ actionKind: 'changeStatus' })).toBe(false);
+    expect(isGeneratedSurfaceAction({ actionKind: 'runCommand' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'updateEntity' })).toBe(true);
   });
 });

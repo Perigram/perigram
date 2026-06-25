@@ -29,6 +29,10 @@ export function resolveGeneratedEntityActions({
     .filter(action => actionAppliesToEntity(action, entity, entityType));
 }
 
+export function isGeneratedSurfaceAction(action = {}) {
+  return action?.actionKind !== 'changeStatus';
+}
+
 export function parentBoundCreateAppliesToEntityType(action = {}, entityType = '') {
   if (!action || action.actionKind !== 'createEntity' || !entityType) return false;
   const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
