@@ -39,12 +39,12 @@
       :entity-type="entityType"
       :surface="surface"
       variant="card"
+      :show-trace="false"
       @refresh="$emit('refresh')"
     >
       <template v-if="detailRouteFor(entity)" #title>
-        <TraceChain :entity="entity" class="mb-2" />
-        <div class="flex flex-col gap-3 min-w-0 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-          <div class="flex min-w-0 flex-1 items-start">
+        <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div class="flex min-w-0 flex-1 items-center">
             <button
               type="button"
               class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
@@ -53,7 +53,7 @@
               <IdentityBlock :entity="entity" />
             </button>
           </div>
-          <div v-if="entity.status" class="min-w-0 max-w-full shrink self-start sm:max-w-56" @click.stop>
+          <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
             <EntityStatus
               :entity="entity"
               :entity-type="entityType"
@@ -94,7 +94,6 @@ import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';

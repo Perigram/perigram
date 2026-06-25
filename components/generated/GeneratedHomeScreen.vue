@@ -35,14 +35,14 @@
             :entity-type="section.source.entityType"
             :surface="section.region.surface || 'card'"
             variant="card"
+            :show-trace="false"
             @refresh="$emit('refresh')"
           >
             <template v-if="detailRouteFor(section, entity)" #title>
-              <TraceChain :entity="entity" class="mb-2" />
-              <div class="flex min-w-0 flex-col gap-3">
+              <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
-                  class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
+                  class="min-w-0 max-w-full flex-1 text-left text-primary underline-offset-4 hover:underline"
                   @click.stop="openEntity(section, entity)"
                 >
                   <IdentityBlock :entity="entity" />
@@ -88,7 +88,6 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
