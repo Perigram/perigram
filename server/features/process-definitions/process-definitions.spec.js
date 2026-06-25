@@ -766,6 +766,7 @@ describe('process definitions access fallback', () => {
               id: 'create_template',
               actionKind: 'createEntity',
               entityType: 'cassette',
+              parentEntityType: 'library',
               construction: { mode: 'createDefaultOccsTemplate' },
               status: { to: 'ACTIVE' },
               access: { level: 'admin', roleIds: ['role_designer'] }
@@ -777,7 +778,8 @@ describe('process definitions access fallback', () => {
 
     const result = await executeActiveProcessAction({
       actionId: 'create_template',
-      data: { name: 'Facade Template' }
+      data: { name: 'Facade Template' },
+      entities: { library: 'library-1' }
     }, {
       userId: 'user-1',
       organizationId: 'org-1',
@@ -787,7 +789,7 @@ describe('process definitions access fallback', () => {
     });
 
     expect(cassetteService.createDefaultOccsTemplate).toHaveBeenCalledWith(
-      { name: 'Facade Template' },
+      { name: 'Facade Template', libraryId: 'library-1' },
       'user-1',
       'org-1',
       undefined,

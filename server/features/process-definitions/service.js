@@ -292,7 +292,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       return await executeBakeCassetteDesign(action, data, organizationId, auth, process.data, entities);
     }
     if (entityType === 'cassette' && action.construction?.mode === 'createDefaultOccsTemplate') {
-      return await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth, process.data);
+      return await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth, process.data, entities);
     }
     if (entityType === 'cassette_design') {
       throw createError({ statusCode: 400, message: 'cassette_design requires typed construction' });
@@ -436,9 +436,9 @@ async function executeBakeCassetteDesign(action = {}, data = {}, organizationId,
   return { ...created, status };
 }
 
-async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, organizationId, auth = {}, processData = {}) {
+async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, organizationId, auth = {}, processData = {}, entities = {}) {
   const created = await cassetteService.createDefaultOccsTemplate(
-    createActionPayload(action, data, {}),
+    createActionPayload(action, data, entities),
     auth.userId,
     organizationId,
     auth.role,

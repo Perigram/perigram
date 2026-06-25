@@ -83,8 +83,9 @@ describe('Cassette Management & Ownership', () => {
   });
 
   it('creates a named default OCCS cassette template for process construction', async () => {
+    const libraryId = new ObjectId();
     const result = await cassetteService.createDefaultOccsTemplate(
-      { name: 'Generated Template' },
+      { name: 'Generated Template', libraryId },
       user1.userId,
       user1.organizationId,
       null,
@@ -98,6 +99,7 @@ describe('Cassette Management & Ownership', () => {
       operation: 'face.trapezoid'
     });
     expect(result.data.parameters).toEqual(['A', 'B', 'R']);
+    expect(result.lineage.libraryId.toString()).toBe(libraryId.toString());
   });
 
   it('should update an OCCS cassette definition under the canonical definition field', async () => {

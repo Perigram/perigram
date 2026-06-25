@@ -1,4 +1,5 @@
 export const cncSummaries = [
+  { entityType: 'cassette', parentType: 'library', parentIdKey: 'libraryId', countField: 'cassetteCount' },
   { entityType: 'queue', parentType: 'project', parentIdKey: 'projectId', countField: 'queueCount' },
   { entityType: 'cassette_instance', parentType: 'project', parentIdKey: 'projectId', countField: 'instanceCount' },
   { entityType: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId', countField: 'runCount' },
@@ -16,6 +17,7 @@ export const cncFrontendEntities = [
   { type: 'pile', collection: 'material-piles', routes: { single: '/api/material-piles/:id', list: '/api/material-piles' } },
   { type: 'sheet', collection: 'sheets', routes: { single: '/api/sheets/:id', list: '/api/sheets' } },
   { type: 'remnant', collection: 'remnants', routes: { single: '/api/remnants/:id', list: '/api/remnants' } },
+  { type: 'library', collection: 'libraries', routes: { single: '/api/libraries/:id', list: '/api/libraries' } },
   { type: 'cassette', collection: 'cassettes', routes: { single: '/api/cassettes/:id', list: '/api/cassettes' } },
   { type: 'cassetteTemplate', collection: 'cassettes', routes: { single: '/api/cassettes/:id', list: '/api/cassettes' } },
   { type: 'cassetteInstance', collection: 'cassette-instances', routes: { single: '/api/cassette-instances/:id', list: '/api/cassette-instances' } },

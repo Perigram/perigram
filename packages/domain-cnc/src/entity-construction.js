@@ -23,6 +23,14 @@ export const cncEntityConstruction = {
       { id: 'name', label: 'Template name', path: 'name', type: 'string', required: true, prompt: true }
     ]
   },
+  library: {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: [
+      { id: 'name', label: 'Library name', path: 'name', type: 'string', required: true, prompt: true },
+      { id: 'material', label: 'Material', path: 'data.material', type: 'object', required: false }
+    ]
+  },
   cassette_design: {
     modes: ['bakeCassetteDesignFromTemplate'],
     defaultMode: 'bakeCassetteDesignFromTemplate',

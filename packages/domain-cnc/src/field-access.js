@@ -38,6 +38,12 @@ export const cncEntityFieldAccess = {
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
+  library: {
+    feature: 'libraries',
+    read: [...COMMON_READ_FIELDS, 'data.material', 'data.description'],
+    write: ['data.material', 'data.description'],
+    admin: ['data.*', 'attachments.*']
+  },
   cassetteTemplate: {
     feature: 'cassettes',
     read: [...COMMON_READ_FIELDS, 'data.type', 'data.parameters', 'data.definition', 'data.revisions', 'data.geometry.*', 'data.layerData', 'data.polygonParts'],

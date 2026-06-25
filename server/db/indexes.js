@@ -30,7 +30,14 @@ const INDEXES = {
   // Cassettes Collection
   cassettes: [
     { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } },
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } }
+    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
+    { keys: { 'lineage.libraryId': 1 }, options: { name: 'lineage_library_idx' } }
+  ],
+
+  // Libraries Collection
+  libraries: [
+    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
+    { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Projects Collection

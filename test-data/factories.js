@@ -68,6 +68,7 @@ export const MOCK_IDS = {
   projectId: 'project-demo-downtown',
   queueId: 'queue-demo-morning',
   runId: 'run-demo-001',
+  libraryId: 'library-demo-acm',
   catalogId: 'catalog-demo-acm',
   sheetDesignId: 'sheet-design-demo-001',
   cassetteTemplateId: 'cassette-template-demo-001',
@@ -341,6 +342,24 @@ export function createMockMaterial(overrides = {}) {
         code: 'ACP',
         description: 'Aluminum composite panel material'
       }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockLibrary(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: MOCK_IDS.libraryId,
+      name: 'ACP Cassette Library',
+      slug: 'acp-cassette-library',
+      state: 'ACTIVE',
+      lineage: { organizationId: MOCK_IDS.organizationId },
+      data: {
+        material: { code: 'ACP', name: 'Aluminum Composite Panel' },
+        description: 'Reusable cassette templates for aluminum composite panels'
+      },
+      summary: { cassetteCount: 4 }
     }),
     ...overrides
   };

@@ -158,6 +158,8 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Lineage: Templates belong to the organization
   const targetOrgId = userOrg || userId;
   const lineage = { organizationId: toFlexibleId(targetOrgId) };
+  const libraryId = data.libraryId || data.data?.libraryId;
+  if (libraryId) lineage.libraryId = toFlexibleId(libraryId);
 
   if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
@@ -189,6 +191,7 @@ export async function createDefaultOccsTemplate(data = {}, userId, userOrg, user
   const definition = createDefaultOccsCassetteTemplateDefinition();
   return await create({
     name,
+    libraryId: data.libraryId || data.data?.libraryId,
     type: 'PARAMETRIC',
     definition,
     parameters: Object.keys(definition.parameters || {})
@@ -290,7 +293,7 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
 
 function normalizeLineageQuery(query = {}) {
   const normalized = { ...query };
-  for (const key of ['projectId', 'queueId', 'warehouseId', 'cassetteId']) {
+  for (const key of ['projectId', 'queueId', 'warehouseId', 'cassetteId', 'libraryId']) {
     if (normalized[key] !== undefined) {
       normalized[`lineage.${key}`] = toFlexibleId(normalized[key]);
       delete normalized[key];

@@ -1782,6 +1782,7 @@
     "nestingRun": "Nesting Run",
     "sheetDesign": "Sheet Design",
     "cassette": "Cassette",
+    "library": "Library",
     "cassetteDesign": "Cassette Design",
     "cassetteTemplate": "Cassette Template",
     "cassetteInstance": "Cassette Instance",

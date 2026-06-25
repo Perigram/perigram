@@ -21,6 +21,7 @@ import WarehouseCard from '~/components/entities/Warehouse/WarehouseCard.vue';
 import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
+import LibraryCard from '~/components/entities/Library/LibraryCard.vue';
 import UserCard from '~/components/entities/User/UserCard.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
@@ -58,6 +59,7 @@ const components = {
   toolProfile: ToolProfileCard,
   penTemplate: PenTemplateCard,
   layerStandard: LayerStandardCard,
+  library: LibraryCard,
   user: UserCard,
   organization: OrganizationCard,
   artifact: ArtifactCard

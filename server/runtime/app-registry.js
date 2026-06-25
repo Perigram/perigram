@@ -11,6 +11,7 @@ import * as colorsService from '~/server/features/colors/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import * as geometryCapturesService from '~/server/features/geometry-captures/service.js';
 import * as layerStandardsService from '~/server/features/layer-standards/service.js';
+import * as librariesService from '~/server/features/libraries/service.js';
 import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
 import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
@@ -83,6 +84,7 @@ const entityServices = {
   entity_revision: entityRevisionsService,
   geometry_capture: geometryCapturesService,
   layer_standard: layerStandardsService,
+  library: librariesService,
   material: materialsService,
   material_pile: materialPilesService,
   nesting_run: nestingRunsService,
