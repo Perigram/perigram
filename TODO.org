@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Preserve command ids in process action manifests
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Manual `runCommand` actions now keep `commandId` in compiled user
+      action manifests. Generated queue detail can recognize the compiled
+      `solveNesting` action and unlock the nesting command panel. Active
+      process definitions were recompiled after the compiler change.
+
     [2026-06-25] Separate generated queue nesting action access
     Files changed: components/QueueEditor.vue,
       components/generated/GeneratedEntityDetail.vue,

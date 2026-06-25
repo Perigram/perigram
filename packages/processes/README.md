@@ -195,6 +195,10 @@ compiler carries lineage scope through that parent relation; for example,
 `solveNesting` outputs `nesting_run` and `sheet_design` records under the
 source queue, so those results receive the same role window as the queue unless
 a later graph node changes it.
+Manual command actions preserve `commandId` in each compiled user action
+manifest entry. Generated entity tools use that id to place domain-specific
+command panels, such as the queue nesting panel, while execution still goes
+through the active process action endpoint.
 Stored active process definitions keep compiled runtime contracts in MongoDB.
 After compiler changes that alter generated screens, action exposure, workflow
 output, or grants, run
