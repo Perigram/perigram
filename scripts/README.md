@@ -46,6 +46,9 @@ from `shared/` and non-spec `test-data/` modules. Cross-root portable imports
 should use the package imports declared in `package.json` (`#shared/...`,
 `#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
 resolve the same graph.
+Entity feature directories are derived from domain entity metadata. Use an
+explicit `feature` field on a domain entity when English pluralization is
+irregular, such as `library -> libraries`; do not add script-local exceptions.
 
 The checker also blocks live entity UI that passes local `:status-actions`
 instead of relying on server-provided `EntityStatus` workflow actions. It prints

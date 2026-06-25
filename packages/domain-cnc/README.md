@@ -40,6 +40,10 @@ because nesting output access, generated queue detail regions, and aggregate
 summary sync all use the same lineage relation contract. Services that create
 those outputs must persist `lineage.queueId` and, when available,
 `lineage.projectId`.
+It also declares `cassette` as a `library` child through
+`lineage.libraryId`. Libraries are organization-scoped containers for cassette
+templates that share `data.material`; summary sync writes
+`summary.cassetteCount` on the parent library.
 `field-access.js` keeps `sheetDesign` on the `sheet_designs` access feature.
 Queue lineage scopes can restrict which layouts a user sees, but queue grants
 do not replace explicit sheet-design output grants from the active process.
@@ -96,6 +100,9 @@ runtime can call the correct construction service and preserve editor
 contracts. `cassette` templates also use a typed constructor,
 `createDefaultOccsTemplate`, which requires a prompted name and creates a full
 default OCCS template document instead of an empty generic row.
+When a `cassette` create action is connected to a `library` parent, the process
+runtime sends `libraryId` to that typed constructor so the resulting template
+is stored as a child of the library.
 Queue creation is intentionally a shell creation contract: `jobItems`,
 `materialPool`, and nesting parameters are optional construction inputs because
 queue composition belongs to the queue editor and nesting command readiness

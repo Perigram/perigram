@@ -12,7 +12,7 @@ Manages cassette templates (Standard and Parametric) using standardized v24 arch
 - **`identity`**: `{ slug, name, serial, reference }`
 - **`status`**: Current snapshot [StatusBlock].
 - **`origin`**: Creation snapshot [StatusBlock].
-- **`lineage`**: `{ organizationId }`
+- **`lineage`**: `{ organizationId, libraryId? }`
 - **`data.type`**: `PARAMETRIC` | `STANDARD`
 - **`data.definition`**:
     - Parametric templates store either the legacy designer graph
@@ -75,6 +75,9 @@ stores the default OCCS v2 graph-tree document from `utils/occs/templates.js`,
 including the standard parameter list and geometry revision pointer. A
 process-created template therefore opens in `CassetteDesignerV2` with an
 editable OCCS document instead of `data.definition: null`.
+If the graph action has a `library` parent input, process execution passes
+`libraryId` into the typed constructor and the cassette service persists it
+under `lineage.libraryId`.
 
 `GET /api/cassettes/:id/export` remains a template-level DXF export. Parametric
 exports use evaluated `layerData` when available, so folds, marks, dimensions,
@@ -117,8 +120,9 @@ filter and then prunes results through the same read check used by
 detail page would return 403. Single-template reads must also pass the full
 cassette entity to the access evaluator; passing only `cassette.lineage` drops
 status data and breaks process grants scoped to statuses such as `CREATED2`.
-Lineage query aliases such as `projectId`, `queueId`, `warehouseId`, and
-`cassetteId` are normalized to `lineage.*` filters before repository access.
+Lineage query aliases such as `projectId`, `queueId`, `warehouseId`,
+`libraryId`, and `cassetteId` are normalized to `lineage.*` filters before
+repository access.
 This keeps generated or authored screen filters scoped to actual lineage
 fields instead of accidentally matching root-level compatibility fields.
 Mutation paths such as template update, layer mapping, parameter update, and

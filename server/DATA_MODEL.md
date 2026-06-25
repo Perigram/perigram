@@ -180,6 +180,19 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.purpose` | String | purpose field |
 | `data.source` | String | source field |
 
+### libraries
+*Libraries - manages libraries*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.description` | String | description field |
+| `data.material` | String | material field |
+
 ### material_options
 *Material-options - manages material options*
 

@@ -4,6 +4,31 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Add cassette library entity
+    Files changed: packages/domain-cnc/src/entities.js,
+      packages/domain-cnc/src/entity-construction.js,
+      packages/domain-cnc/src/field-access.js,
+      packages/domain-cnc/src/summaries.js,
+      packages/domain-cnc/src/ui-fields.js, packages/domain-cnc/src/ui.js,
+      server/features/libraries/*, server/api/libraries/*,
+      server/features/cassettes/service.js,
+      server/features/process-definitions/service.js,
+      server/runtime/app-registry.js, server/db/indexes.js,
+      scripts/check-arch.js,
+      components/entities/Library/*, utils/design-system.js,
+      test-data/factories.js, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: packages/domain-cnc/README.md,
+      server/features/libraries/README.md, server/features/README.md,
+      server/features/cassettes/README.md, server/api/README.md,
+      components/entities/Library/README.md, components/entities/README.md,
+      scripts/README.md, server/DATA_MODEL.md, TODO.org
+    Notes: Added `library` as a persisted organization-scoped entity with
+      `data.material`, `summary.cassetteCount`, `/api/libraries`, and runtime
+      service registration. Cassette template creation now preserves
+      `libraryId` from process parent bindings as `lineage.libraryId`.
+
+*** Agent Notes
     [2026-06-25] Keep generated lifecycle actions inside EntityStatus
     Files changed: components/generated/action-visibility.js,
       components/generated/action-visibility.spec.js,

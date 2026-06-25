@@ -27,7 +27,7 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
+| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
 | Capability modules | `config-bot`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
 
 ---
@@ -88,6 +88,7 @@ services must not self-register through hidden globals.
 | `entity-revisions` | Immutable scoped content snapshots | mirrors source lineage plus source entity id |
 | `geometry-captures` | Photo-derived draft geometry captures | `organizationId`, plus `warehouseId` for remnants or `projectId` for facades |
 | `layer-standards` | Drawing layer contract | `organizationId` when overridden or scoped |
+| `libraries` | Material-scoped cassette template library | `organizationId` |
 | `cassette-designs` | Master CAD template | `organizationId` |
 | `cassette-instances` | Manufactured part (digital twin) | `organizationId`, `projectId`, `queueId`, `cassetteDesignId` |
 | `nesting-runs` | Nesting engine output | `organizationId`, `projectId`, `queueId` |

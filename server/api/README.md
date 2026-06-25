@@ -19,6 +19,9 @@ Routes are grouped into sub-directories corresponding to features:
 - `geometry-captures/`: Authenticated photo-to-polygon capture CRUD,
   preset-based recalculation, revision activation, review confirmation, and
   worker-result callback.
+- `libraries/`: Authenticated cassette library CRUD. Libraries are
+  organization-scoped containers with material data; cassettes created under a
+  library persist `lineage.libraryId`.
 - `admin/config-bot/`: Admin knowledge reindex route for ConfigBot.
 - `admin/tasks/`: Authenticated task definition and run listing for
   `task_runs`.

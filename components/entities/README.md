@@ -11,6 +11,8 @@ Most cards are registered through the design-system manifest in
 `EntityRevision` is a read-only system entity surface used by provenance rows
 such as cassette template geometry versions and cassette design source
 revisions.
+`Library` is the material-scoped cassette-template container surface; it shows
+material data and cassette child counts from the domain field groups.
 
 ## Card Contract
 
