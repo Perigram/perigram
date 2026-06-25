@@ -451,6 +451,9 @@ export async function generateAndStoreDxf(id, userId, userOrg, userRole, userPer
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter(userPermissions);
   const queryFilter = mapLineageQuery(filter);
+  const runIds = normalizeQueryList(queryFilter.runIds || queryFilter.runId);
+  delete queryFilter.runIds;
+  delete queryFilter.runId;
   if (queryFilter.queueId) {
     queryFilter['lineage.queueId'] = toFlexibleId(queryFilter.queueId);
     delete queryFilter.queueId;
@@ -459,9 +462,18 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     queryFilter['lineage.projectId'] = toFlexibleId(queryFilter.projectId);
     delete queryFilter.projectId;
   }
+  if (runIds.length) {
+    queryFilter['lineage.runId'] = { $in: runIds.flatMap(id => [id, toFlexibleId(id)]) };
+  }
   const finalFilter = { ...queryFilter, ...lineageFilter };
   const designs = await repository.find(finalFilter);
   return serializeManyForAccess('sheetDesign', designs.map(design => new SheetDesign(design)), userPermissions);
+}
+
+function normalizeQueryList(value) {
+  if (Array.isArray(value)) return value.flatMap(normalizeQueryList);
+  if (value === undefined || value === null || value === '') return [];
+  return String(value).split(',').map(item => item.trim()).filter(Boolean);
 }
 
 export async function listForRunOutput(queueId, runId, sheetDesignIds = []) {

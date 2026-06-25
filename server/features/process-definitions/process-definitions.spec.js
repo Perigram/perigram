@@ -375,7 +375,7 @@ describe('process definitions access fallback', () => {
     }));
   });
 
-  it('executes run-command actions with action-scoped command access', async () => {
+  it('executes synchronous run-command actions with action-scoped command access and output status projection', async () => {
     executeCommand.mockResolvedValueOnce({
       entities: [{ type: 'nesting_run', id: 'nesting-run-1' }],
       data: { runId: 'nesting-run-1' }
@@ -475,6 +475,68 @@ describe('process definitions access fallback', () => {
       'user-1',
       expect.any(Object)
     );
+  });
+
+  it('does not project process output status before async command tasks finish', async () => {
+    executeCommand.mockResolvedValueOnce({
+      entities: [{ type: 'nesting_run', id: 'nesting-run-1' }],
+      jobs: [{ type: 'task_run', id: 'task-1' }],
+      data: { runId: 'nesting-run-1', taskRunId: 'task-1' }
+    });
+    getAppRegistry.mockReturnValueOnce({
+      getCommandDefinition: () => ({ access: { executionGrants: [] } })
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {
+          run_nesting: {
+            id: 'run_nesting',
+            actionKind: 'runCommand',
+            commandId: 'solveNesting'
+          },
+          mark_cut: {
+            id: 'mark_cut',
+            actionKind: 'changeStatus',
+            inputs: [{ id: 'entity', entityType: 'nesting_run' }],
+            status: { to: 'CUT' }
+          }
+        },
+        graph: {
+          nodes: [],
+          edges: [
+            { source: 'run_nesting', target: 'mark_cut', sourceHandle: 'output:nesting_run', targetHandle: 'input:entity' }
+          ]
+        },
+        compiled: {
+          actions: {
+            run_nesting: {
+              id: 'run_nesting',
+              actionKind: 'runCommand',
+              commandId: 'solveNesting',
+              entityType: 'queue',
+              access: { level: 'write', roleIds: ['role_operator'] }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({
+      actionId: 'run_nesting',
+      entities: { queue: 'queue-1' }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: {
+        actions: [{ actionId: 'run_nesting' }]
+      }
+    });
+
+    expect(statusService.setInitialStateForOrganization).not.toHaveBeenCalled();
   });
 
   it('executes typed cassette design construction with canonical identity payloads', async () => {

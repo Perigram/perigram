@@ -827,7 +827,12 @@ const loadQueueData = async () => {
 
 const loadSheetDesigns = async () => {
     try {
-        sheetDesigns.value = await $fetch('/api/sheet-designs', { query: { queueId: props.queue._id } });
+        const runIds = readableQueueRuns.value.map(run => run._id?.toString()).filter(Boolean);
+        sheetDesigns.value = await $fetch('/api/sheet-designs', {
+            query: runIds.length
+                ? { queueId: props.queue._id, runIds: runIds.join(',') }
+                : { queueId: props.queue._id }
+        });
     } catch (e) {
         console.error('Failed to load sheet designs:', e);
         sheetDesigns.value = [];

@@ -23,54 +23,58 @@
           />
         </div>
       </div>
-      <div class="flex min-w-0 gap-3 overflow-x-auto pb-2">
-        <EntityCard
+      <div class="flex w-full max-w-full min-w-0 flex-nowrap gap-3 overflow-x-auto pb-2">
+        <div
           v-for="entity in section.items.slice(0, 12)"
           :key="entity._id || entity.id || entity.identity?.uid"
-          class="w-[18rem] min-w-[18rem] shrink-0"
-          :entity="entity"
-          :entity-type="section.source.entityType"
-          :surface="section.region.surface || 'card'"
-          variant="card"
-          @refresh="$emit('refresh')"
+          class="w-[18rem] min-w-[18rem] flex-none"
         >
-          <template v-if="detailRouteFor(section, entity)" #title>
-            <TraceChain :entity="entity" class="mb-2" />
-            <div class="flex min-w-0 flex-col gap-3">
-              <button
-                type="button"
-                class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
-                @click.stop="openEntity(section, entity)"
-              >
-                <IdentityBlock :entity="entity" />
-              </button>
-              <EntityStatus
-                v-if="entity.status"
-                :entity="entity"
-                :entity-type="section.source.entityType"
-                variant="inline"
-                @refresh="$emit('refresh')"
-                @transitioned="$emit('refresh')"
-              />
-            </div>
-          </template>
-          <EntitySurfaceContent :entity="entity" :entity-type="section.source.entityType" :surface="section.region.surface || 'card'" />
-          <template v-if="entityActionsFor(section, entity).length || entityCanDelete(section, entity)" #footer>
-            <div class="flex flex-wrap justify-end gap-2">
-              <GeneratedActionButton
-                v-for="action in entityActionsFor(section, entity)"
-                :key="action.actionId"
-                :action-id="action.actionId"
-                @execute="selectedAction => $emit('execute-action', selectedAction, entity)"
-              />
-              <GeneratedDeleteButton
-                :entity="entity"
-                :entity-type="section.source.entityType"
-                @deleted="$emit('refresh')"
-              />
-            </div>
-          </template>
-        </EntityCard>
+          <EntityCard
+            class="h-full"
+            :entity="entity"
+            :entity-type="section.source.entityType"
+            :surface="section.region.surface || 'card'"
+            variant="card"
+            @refresh="$emit('refresh')"
+          >
+            <template v-if="detailRouteFor(section, entity)" #title>
+              <TraceChain :entity="entity" class="mb-2" />
+              <div class="flex min-w-0 flex-col gap-3">
+                <button
+                  type="button"
+                  class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
+                  @click.stop="openEntity(section, entity)"
+                >
+                  <IdentityBlock :entity="entity" />
+                </button>
+                <EntityStatus
+                  v-if="entity.status"
+                  :entity="entity"
+                  :entity-type="section.source.entityType"
+                  variant="inline"
+                  @refresh="$emit('refresh')"
+                  @transitioned="$emit('refresh')"
+                />
+              </div>
+            </template>
+            <EntitySurfaceContent :entity="entity" :entity-type="section.source.entityType" :surface="section.region.surface || 'card'" />
+            <template v-if="entityActionsFor(section, entity).length || entityCanDelete(section, entity)" #footer>
+              <div class="flex flex-wrap justify-end gap-2">
+                <GeneratedActionButton
+                  v-for="action in entityActionsFor(section, entity)"
+                  :key="action.actionId"
+                  :action-id="action.actionId"
+                  @execute="selectedAction => $emit('execute-action', selectedAction, entity)"
+                />
+                <GeneratedDeleteButton
+                  :entity="entity"
+                  :entity-type="section.source.entityType"
+                  @deleted="$emit('refresh')"
+                />
+              </div>
+            </template>
+          </EntityCard>
+        </div>
       </div>
     </section>
   </div>

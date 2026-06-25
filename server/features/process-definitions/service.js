@@ -258,7 +258,9 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   if (action.actionKind === 'runCommand') {
     if (!action.commandId) throw createError({ statusCode: 400, message: `Action ${actionId} has no command` });
     const result = await executeCommand(action.commandId, { entities, parameters }, createActionExecutionAuth(auth, action));
-    await applyProcessOutputStatuses({ actionId, result, processData: process.data, organizationId, auth });
+    if (!hasAsyncOutputBoundary(result)) {
+      await applyProcessOutputStatuses({ actionId, result, processData: process.data, organizationId, auth });
+    }
     return result;
   }
 
@@ -370,6 +372,11 @@ async function applyProcessOutputStatuses({ actionId, result = {}, processData =
       processStatusMetadata({ entityType, status: { to: targetState } }, `Created by process command action ${actionId}`, processData)
     );
   }
+}
+
+function hasAsyncOutputBoundary(result = {}) {
+  return (result.tasks || []).length > 0
+    || (result.jobs || []).some(job => ['task_run', 'task'].includes(job?.type));
 }
 
 function commandOutputStatusMap(actionId, processData = {}) {
