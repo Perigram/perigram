@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Unify cassette-design preview dimensions onto baked boundary labels
+    Files changed: components/CassetteThumbnail.vue, utils/drawingPreview.js,
+      utils/drawingPreview.spec.js,
+      components/entities/CassetteDesign/README.md,
+      components/shared/README.md, TODO.org
+    Docs updated: components/entities/CassetteDesign/README.md,
+      components/shared/README.md, TODO.org
+    Notes: Geometry-first cassette-design previews now ignore persisted
+      `dimension.cassette` entities and synthesize one measured label set from
+      the baked outer boundary, removing duplicate/stale preview dimensions
+      from mixed template-plus-design payloads.
+
+*** Agent Notes
     [2026-06-25] Fix baked cassette preview dimension placement
     Files changed: utils/drawingPreview.js, utils/drawingPreview.spec.js,
       components/shared/README.md, TODO.org
