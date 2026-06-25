@@ -168,7 +168,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
   const userAccess = {};
   for (const [userId, assignment] of Object.entries(process.assignments)) {
     if (assignment.status && assignment.status !== 'active') continue;
-    userAccess[userId] = compileAssignmentAccess({ assignment, roles: compiledRoles, screens: compiledScreens });
+    userAccess[userId] = compileAssignmentAccess({ assignment, roles: compiledRoles, screens: compiledScreens, domain });
   }
 
   return {
@@ -399,7 +399,7 @@ function actionEntityType(action = {}) {
     || '';
 }
 
-function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } = {}) {
+function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {}, domain = {} } = {}) {
   const permissions = {};
   const screenMap = new Map();
   const actionMap = new Map();
@@ -436,15 +436,84 @@ function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {} } =
     }
   }
   const screensList = [...screenMap.values()];
-  const screenNavigation = screensList.map(screenToNavigation);
+  const homeScreen = compileHomeScreenForAssignment({ assignment, screens: screensList, domain });
+  const userScreens = homeScreen ? [homeScreen, ...screensList] : screensList;
+  const screenNavigation = userScreens.map(screenToNavigation);
   return {
     roleIds,
     permissions,
     navigation: dedupeNavigation(screenNavigation),
-    screens: screensList,
+    screens: userScreens,
     actions: [...actionMap.values()],
     incompleteBindings
   };
+}
+
+function compileHomeScreenForAssignment({ assignment = {}, screens = [], domain = {} } = {}) {
+  const sections = topLevelHomeSections(screens, domain);
+  if (!sections.length) return null;
+  const screenKey = `home_${assignment.userId || assignment.id || 'user'}`;
+  return {
+    id: screenKey,
+    screenKey,
+    label: 'Home',
+    kind: 'home',
+    template: 'home',
+    placement: 'home',
+    route: generatedScreenRoute(screenKey),
+    sourceRoute: generatedScreenRoute(screenKey),
+    roleIds: assignment.roleIds || [],
+    sources: sections.map(section => ({
+      id: section.sourceId,
+      label: section.label,
+      entityType: section.entityType,
+      mode: 'list',
+      required: section.required || null,
+      filters: section.filters || {}
+    })),
+    regions: sections.map(section => ({
+      id: `${section.sourceId}_section`,
+      label: section.label,
+      slot: 'main',
+      sourceId: section.sourceId,
+      surface: 'card',
+      actions: section.actions || [],
+      screenKey: section.screenKey,
+      route: section.route
+    })),
+    actions: [...new Set(sections.flatMap(section => section.actions || []))]
+  };
+}
+
+function topLevelHomeSections(screens = [], domain = {}) {
+  const listScreens = screens.filter(screen => screen.template === 'entityList' && screen.entityType && screen.sources?.some(source => source.mode === 'list'));
+  const listEntityTypes = new Set(listScreens.map(screen => screen.entityType));
+  const sectionsByEntity = new Map();
+  for (const screen of listScreens) {
+    if (isChildEntitySuppressed(screen.entityType, listEntityTypes, domain)) continue;
+    if (sectionsByEntity.has(screen.entityType)) {
+      const existing = sectionsByEntity.get(screen.entityType);
+      existing.actions = [...new Set([...(existing.actions || []), ...(screen.actions || [])])];
+      continue;
+    }
+    const source = screen.sources.find(item => item.mode === 'list') || {};
+    sectionsByEntity.set(screen.entityType, {
+      entityType: screen.entityType,
+      sourceId: `home_${screen.entityType}`,
+      label: screen.label || screen.entityType,
+      required: source.required || screen.required || null,
+      filters: source.filters || {},
+      actions: screen.actions || [],
+      screenKey: screen.screenKey,
+      route: screen.route
+    });
+  }
+  return [...sectionsByEntity.values()];
+}
+
+function isChildEntitySuppressed(entityType = '', listEntityTypes = new Set(), domain = {}) {
+  const relation = parentRelationForChild(domain, entityType);
+  return Boolean(relation?.parentType && listEntityTypes.has(relation.parentType));
 }
 
 function compileRoles(process = {}, domain = {}) {

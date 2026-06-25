@@ -250,15 +250,21 @@ describe('@cutkit/processes compiler', () => {
       })],
       actions: ['action_accept']
     });
-    expect(compiled.userAccess.user_a.screens[0]).toMatchObject({
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.screenKey === 'auto_role_operator_queue')).toMatchObject({
       screenKey: 'auto_role_operator_queue',
       route: '/screens/auto_role_operator_queue',
       entityType: 'queue',
       actions: ['action_accept']
     });
     expect(compiled.userAccess.user_a.navigation[0]).toMatchObject({
-      route: '/screens/auto_role_operator_queue',
-      screenKey: 'auto_role_operator_queue'
+      route: '/screens/home_user_a',
+      screenKey: 'home_user_a'
+    });
+    expect(compiled.userAccess.user_a.screens[0]).toMatchObject({
+      screenKey: 'home_user_a',
+      template: 'home',
+      sources: [expect.objectContaining({ entityType: 'queue', mode: 'list' })],
+      regions: [expect.objectContaining({ sourceId: 'home_queue', actions: ['action_accept'] })]
     });
   });
 
@@ -291,11 +297,14 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(resolveScreens({ compiled, userId: 'user_a' }).map(screen => screen.screenKey).sort()).toEqual([
+      'home_user_a',
       'auto_role_project_project_detail',
       'auto_role_project_project',
       'auto_role_queue_queue_detail',
       'auto_role_queue_queue'
     ].sort());
+    const home = compiled.userAccess.user_a.screens.find(screen => screen.template === 'home');
+    expect(home.sources.map(source => source.entityType)).toEqual(['project']);
     expect(compiled.userAccess.user_a.permissions).toMatchObject({
       projects: [{ level: 'read' }],
       queues: [{ level: 'read' }]
@@ -343,7 +352,7 @@ describe('@cutkit/processes compiler', () => {
         ]
       }
     });
-    expect(compiled.userAccess.user_a.screens[0]).toMatchObject({
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.screenKey === 'auto_role_project_project')).toMatchObject({
       screenKey: 'auto_role_project_project',
       entityType: 'project',
       required: {
@@ -755,7 +764,8 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    const [screen] = resolveScreens({ compiled, userId: 'user_a' });
+    const screen = resolveScreens({ compiled, userId: 'user_a' })
+      .find(item => item.screenKey === 'projects:project-123');
     expect(screen).toMatchObject({
       template: 'entityList',
       route: '/screens/projects%3Aproject-123',

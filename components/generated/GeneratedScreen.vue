@@ -3,6 +3,13 @@
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="error" state="error" :message="errorMessage" />
     <StateBlock v-else-if="actionError" state="error" :message="actionError" />
+    <GeneratedHomeScreen
+      v-else-if="screen.template === 'home'"
+      :screen="screen"
+      :source-state="sourceState"
+      @refresh="load"
+      @execute-action="executeAction"
+    />
     <WorkspaceLanes v-else-if="screen.template === 'workspaceLanes'" class="min-h-[32rem]">
       <template v-if="regionBySlot.left" #left>
         <GeneratedRegion
@@ -144,6 +151,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
+import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';

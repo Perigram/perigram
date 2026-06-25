@@ -1,4 +1,4 @@
-export const SCREEN_TEMPLATES = ['entityList', 'entityDetail', 'workspaceLanes', 'table', 'formAction'];
+export const SCREEN_TEMPLATES = ['entityList', 'entityDetail', 'workspaceLanes', 'table', 'formAction', 'home'];
 export const SCREEN_SOURCE_MODES = ['list', 'single'];
 export const SCREEN_REGION_SLOTS = ['main', 'left', 'center', 'right'];
 export const GENERATED_SCREEN_ROUTE_PREFIX = '/screens';
@@ -60,6 +60,7 @@ export function validateScreenContract(screen = {}, { screenId = screen.id, enti
 }
 
 function defaultSourcesForScreen(screen = {}, template = 'entityList') {
+  if (template === 'home') return [];
   if (!screen.entityType) return [];
   const sourceId = screen.sourceId || screen.entityType;
   const mode = TEMPLATE_DEFAULT_MODE[template] || 'list';
@@ -114,6 +115,7 @@ function defaultRegionsForScreen(sources = [], template = 'entityList') {
 function normalizeRegions(regions = []) {
   return regions.map((region, index) => ({
     id: region.id || `region_${index + 1}`,
+    label: region.label || '',
     slot: SCREEN_REGION_SLOTS.includes(region.slot) ? region.slot : 'main',
     sourceId: region.sourceId || '',
     surface: region.surface || 'card',
