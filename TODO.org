@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Make cassette previews geometry-driven and readable
+    Files changed: components/CassetteThumbnail.vue,
+      components/entities/CassetteDesign/CassetteDesignCard.vue,
+      components/shared/DrawingCanvas.vue, utils/drawingPreview.js,
+      utils/drawingPreview.spec.js,
+      components/entities/CassetteDesign/README.md,
+      components/shared/README.md, TODO.org
+    Docs updated: components/entities/CassetteDesign/README.md,
+      components/shared/README.md, TODO.org
+    Notes: Cassette thumbnails now expose preview dimension labels for
+      parametric geometry, enlarge `dimension.cassette` text in thumbnail/card
+      mode, include dimension text extents in geometry-preview view boxes, and
+      let cassette designs prefer their own baked geometry over template
+      fallback sources.
+
     [2026-06-25] Add process command dependency grants and generated navigation fixes
     Files changed: packages/domain-cnc/src/commands.js,
       server/features/process-definitions/service.js,

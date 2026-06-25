@@ -15,6 +15,11 @@ parametric/OCCS definitions.
 - Geometry is rendered by `CassetteThumbnail`, which resolves stored DXF,
   baked cassette `data.layerData` / `data.polygonParts`, geometry previews,
   OCCS definitions, or parametric definitions.
+- The design card passes `preferGeometry` to `CassetteThumbnail`, so preview
+  rendering fetches the full `cassette_design` DTO when needed and prefers the
+  design's own baked geometry over parent-template fallback sources. Baked
+  dimension labels therefore render from the design geometry itself with
+  measured numeric values.
 - Raw parametric values such as `data.parameters.A` / `data.parameters.C` are
   not displayed as card facts; the thumbnail is the geometry signal.
 - Parent template context is loaded silently from `lineage.templateId` and
