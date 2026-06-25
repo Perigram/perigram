@@ -23,6 +23,7 @@ node server/scripts/migrate-process-role-memberships.js # Clear preset permissio
 node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
 node server/scripts/migrate-process-command-output-statuses.js # Apply graph-derived process statuses to existing command output entities
+node server/scripts/migrate-process-transition-role-access.js # Remove stale transition permission checks from process-role workflow transitions
 node server/scripts/migrate-queue-job-item-entity-types.js # Backfill queue job item entityType/id contract
 node server/scripts/repair-nesting-run-completions.js # Complete runs that already have solver results but were blocked by missing process system intents
 ```
@@ -174,6 +175,13 @@ edges, builds v2 status snapshots from the compiled workflow, and updates
 existing command output entities whose current status is outside the active
 process state window. It supports `--dry-run` and must remain graph-derived,
 not status-name-specific.
+
+Use `server/scripts/migrate-process-transition-role-access.js` after separating
+process-role transition authority from target-status access grants. It removes
+compiled workflow `access.permissions` from transitions that already have
+`processRoleIds`, including both v2 region transitions and root transition
+mirrors. It does not alter semantic action grants, user assignments, or
+status-scoped entity access windows.
 
 Use `server/scripts/repair-nesting-run-completions.js` after fixing process
 workflow resolution for domain system intents. It finds `nesting_run` records

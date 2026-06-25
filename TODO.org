@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Separate process transition authority from target-status grants
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js, server/core/access/service.js,
+      server/core/machines/service.spec.js,
+      server/scripts/migrate-process-transition-role-access.js
+    Docs updated: packages/processes/README.md,
+      server/core/machines/README.md, scripts/README.md,
+      server/scripts/README.md, TODO.org
+    Notes: Process-authored workflow transitions now use `processRoleIds` as
+      the transition authority. Status-scoped entity grants remain access
+      windows after the target status is reached, so a target-state grant no
+      longer blocks the source-state transition through `/api/status/transition`.
+      The process compiler no longer emits workflow `access.permissions` for
+      process-role transitions. Existing compiled process definitions in the
+      local dev database were migrated with
+      `server/scripts/migrate-process-transition-role-access.js` (71 scanned,
+      63 updated).
+
     [2026-06-25] Make cassette preview dimension labels screen-relative
     Files changed: components/shared/DrawingCanvas.vue,
       components/shared/README.md, TODO.org

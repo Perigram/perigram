@@ -22,6 +22,10 @@ The system consists of three main parts: the transition engine, the dynamic hook
   such as `nesting_run` solver completion still need their hidden
   `NESTING -> COMPLETE` / `NESTING -> ERROR` intents even when the user-facing
   process adds custom statuses.
+  Process-authored user transitions are authorized by their compiled
+  `processRoleIds`. Status-scoped entity grants produced by the target status
+  node describe access after the transition and must not be required on the
+  source-state entity before the transition can run.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
   resolves collections through the runtime/domain entity registry.
 

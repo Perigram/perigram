@@ -68,11 +68,12 @@ created state. For status-change actions, run availability is derived from the
 incoming entity window: roles with write/admin access to the current state can
 execute the transition, while the action's grant rows define access after the
 target state is reached. The compiled workflow transition uses those same
-incoming run roles in `processRoleIds` and requires write access on the source
-entity, so generated process actions and the status engine enforce the same
-rule. It must not use the target-state grant level as the execution
-permission: a status node can grant admin access after the transition without
-requiring admin access before it. Designers select from process roles directly when authoring
+incoming run roles in `processRoleIds`; the status engine treats that process
+role match as the transition authority. The target-state entity grant is not
+also written into the workflow transition, because that grant describes access
+after the transition has happened. It must not use the target-state grant level
+as the execution permission: a status node can grant admin access after the
+transition without requiring admin access before it. Designers select from process roles directly when authoring
 action grants; pre-existing
 entity-profile grants are an independent grant source, not a filter for action
 grant creation. Entity creation exposes an
@@ -169,8 +170,7 @@ socket, carries the type to the output socket, and stores
 `action.access.statusFrom` / `action.access.statusTo` from that graph context
 and target status input. Compilation emits transition metadata plus a
 `primaryStatus = statusTo` rule on that concrete entity feature, and the same
-transition is written into the compiled workflow with `processRoleIds` and
-`access.permissions`. Manual execution remains controlled by the action
+transition is written into the compiled workflow with `processRoleIds`. Manual execution remains controlled by the action
 availability contract; the access grant itself describes which entity type the
 role may access after the status change. Create-action access grants are
 conditioned by the created status in the same way, so `admin` on "create project
@@ -212,6 +212,11 @@ After runtime changes that introduce command-output status projection, run
 `server/scripts/migrate-process-command-output-statuses.js` so existing command
 outputs are moved into the active process status windows derived from the
 current graph.
+After compiler/runtime changes that separate process-role transition authority
+from target-state entity grants, run
+`server/scripts/migrate-process-transition-role-access.js` to remove stale
+compiled workflow `access.permissions` from process-role transitions in stored
+process definitions.
 
 Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. They compile into generated screen

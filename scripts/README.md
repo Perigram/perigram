@@ -26,6 +26,11 @@ script explicitly installs its own resolver.
   status snapshots from the compiled workflow, inserts status events, and
   updates existing output entities that are outside the active process status
   window. Supports `--dry-run`.
+- `server/scripts/migrate-process-transition-role-access.js`: Compiled-process
+  cleanup for status transitions. It removes stale workflow
+  `access.permissions` from transitions that already have `processRoleIds`, so
+  process role assignment remains the transition authority and target-status
+  grants remain post-transition entity access windows. Supports `--dry-run`.
 - `seed-*.js`: Local seed helpers for layer standards and tool profiles.
 - `test-*.js`, `debug_*.js`, `check-data.js`, `check-jobs.js`: Manual
   diagnostics for local database, auth, jobs, and data shape investigations.
