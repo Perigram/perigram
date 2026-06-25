@@ -144,6 +144,14 @@ filters as collection screens. The home template must reuse the same entity
 primitives and generated action execution path as collection screens; it must
 not invent static dashboard widgets, hardcoded domain routes, or per-card
 create buttons.
+Generated screen titles, home section headers, generated breadcrumbs, and
+generated action buttons resolve labels through `utils/generated-labels.js`.
+That resolver prefers screen/region `labelKey`, then domain entity label keys,
+and only humanizes ids as a last fallback. Generic process action labels must
+not display English verbs such as `Create` or raw target statuses such as
+`DELETED`; create actions show the localized entity name beside the plus icon,
+and status-change actions show a localized operation label without exposing the
+state id in the button text.
 Entity-detail templates render child collection regions inside the `EntityPage`
 body so parent-child graph flows, such as project-to-queue creation, stay in the
 opened parent context.

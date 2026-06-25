@@ -34,6 +34,11 @@ Shared frontend utility modules used by Vue pages/components.
   screen requirements are matched against scoped grants structurally because
   generated screen visibility is decided before a concrete entity DTO has been
   loaded; entity API access remains the backend enforcement boundary.
+- `generated-labels.js`: Pure label resolver for process-generated UI. It maps
+  generated screen titles, home section headers, breadcrumbs, and process
+  action buttons to i18n/domain entity labels while treating raw process ids,
+  role-prefixed labels, generic action words, and status ids as fallback data
+  rather than primary visible copy.
 - `drawingPreview.js`: Pure drawing preview helpers for `DrawingCanvas`. It normalizes entity geometry previews, baked cassette `data.layerData` / `data.polygonParts` (including migration fallback under `data.geometry.data`), polygon-only remnant geometry, and cassette render results into the shared `{ viewBox, layers }` drawing contract, extracts designer edge overlays, and resolves layer pens by explicit source mapping, caller-provided `standardCode`, layer-name standard fallback, source layer styling, then default pen. If a matched layer standard points to a pen that is not loaded or no longer exists, normalization preserves the source layer `color` and `weight` before falling back to the default pen. It must not hardcode production layer standard codes; source/caller data owns layer semantics.
 - `occs/`: Canonical OCCS helpers for semantic layer ids, parameter
   extraction, arithmetic expression evaluation, Clipper-backed production

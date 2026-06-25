@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Translate generated process labels
+    Files changed: components/generated/GeneratedActionButton.vue,
+      components/generated/GeneratedHomeScreen.vue,
+      components/generated/GeneratedScreen.vue, stores/navigation.js,
+      utils/generated-labels.js, utils/generated-labels.spec.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/README.md, stores/README.md, utils/README.md,
+      i18n/README.md, TODO.org
+    Notes: Generated titles, home section headers, screen breadcrumbs, and
+      process action buttons now resolve through one i18n/domain label helper.
+      Generic create buttons show the localized entity label rather than
+      "Create"; status-change buttons show a localized operation label without
+      raw status ids.
+
     [2026-06-25] Generate process home screens
     Files changed: packages/processes/src/screen-contract.js,
       packages/processes/src/index.js, packages/processes/src/index.spec.js,
