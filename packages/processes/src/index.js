@@ -1212,6 +1212,24 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
   const sourcesByEntity = new Map();
   const regions = [];
   const actionIds = [];
+  const grantsByFeature = groupGrantsByFeature(role.grants || []);
+
+  for (const relation of domain.summaries || []) {
+    if (relation.parentType !== parentEntityType || !relation.entityType || !relation.parentIdKey) continue;
+    const childFeature = featureFromEntityType(domain, relation.entityType);
+    if (!childFeature) continue;
+    const childGrants = grantsByFeature.get(childFeature) || [];
+    if (!childGrants.length) continue;
+    ensureChildRegion({
+      sourcesByEntity,
+      regions,
+      childEntityType: relation.entityType,
+      childFeature,
+      childGrants,
+      parentIdKey: relation.parentIdKey
+    });
+  }
+
   for (const action of role.actions || []) {
     const actionId = action.actionId || action.id;
     const processAction = actions[actionId] || {};
@@ -1224,29 +1242,15 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
     if (!parentRelation) continue;
     const childFeature = featureFromEntityType(domain, childEntityType);
     if (!childFeature) continue;
-    const childGrants = (role.grants || []).filter(grant => grant.feature === childFeature);
-    const sourceId = `${childEntityType}_children`;
-    if (!sourcesByEntity.has(sourceId)) {
-      sourcesByEntity.set(sourceId, {
-        id: sourceId,
-        label: childEntityType,
-        entityType: childEntityType,
-        mode: 'list',
-        required: aggregateScreenRequirement(childFeature, childGrants),
-        filters: { [parentRelation.parentIdKey]: '$screen.scope.entityId' }
-      });
-    }
-    let region = regions.find(item => item.sourceId === sourceId);
-    if (!region) {
-      region = {
-        id: `${sourceId}_region`,
-        slot: 'main',
-        sourceId,
-        surface: 'card',
-        actions: []
-      };
-      regions.push(region);
-    }
+    const childGrants = grantsByFeature.get(childFeature) || [];
+    const region = ensureChildRegion({
+      sourcesByEntity,
+      regions,
+      childEntityType,
+      childFeature,
+      childGrants,
+      parentIdKey: parentRelation.parentIdKey
+    });
     if (actionId && !region.actions.includes(actionId)) region.actions.push(actionId);
     if (actionId) actionIds.push(actionId);
   }
@@ -1255,6 +1259,32 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
     regions,
     actionIds
   };
+}
+
+function ensureChildRegion({ sourcesByEntity, regions, childEntityType, childFeature, childGrants = [], parentIdKey } = {}) {
+  const sourceId = `${childEntityType}_children`;
+  if (!sourcesByEntity.has(sourceId)) {
+    sourcesByEntity.set(sourceId, {
+      id: sourceId,
+      label: childEntityType,
+      entityType: childEntityType,
+      mode: 'list',
+      required: aggregateScreenRequirement(childFeature, childGrants),
+      filters: { [parentIdKey]: '$screen.scope.entityId' }
+    });
+  }
+  let region = regions.find(item => item.sourceId === sourceId);
+  if (!region) {
+    region = {
+      id: `${sourceId}_region`,
+      slot: 'main',
+      sourceId,
+      surface: 'card',
+      actions: []
+    };
+    regions.push(region);
+  }
+  return region;
 }
 
 function parentRelationForChild(domain = {}, childEntityType = '', parentEntityType = '') {

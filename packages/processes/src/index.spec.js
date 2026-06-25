@@ -975,6 +975,60 @@ describe('@cutkit/processes compiler', () => {
     ]));
   });
 
+  it('places readable domain children on parent detail screens without requiring create access', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_reader: { id: 'role_reader', label: 'Reader' }
+      },
+      actions: {
+        create_library: {
+          id: 'create_library',
+          actionKind: 'createEntity',
+          entityType: 'library',
+          status: { to: SOURCE_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'read', roleIds: ['role_reader'] },
+          outputs: [{ id: 'created', entityType: 'library', status: SOURCE_STATE }]
+        },
+        create_cassette: {
+          id: 'create_cassette',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          parentEntityType: 'library',
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'read', roleIds: ['role_reader'] },
+          inputs: [{ id: 'parent', entityType: 'library' }],
+          outputs: [{ id: 'created', entityType: 'cassette', status: INITIAL_STATE }]
+        }
+      },
+      assignments: {
+        user_reader: { userId: 'user_reader', roleIds: ['role_reader'], status: 'active' }
+      }
+    }, domain);
+
+    const libraryDetail = compiled.screens.auto_role_reader_library_detail;
+    expect(libraryDetail.sources).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'cassette_children',
+        entityType: 'cassette',
+        mode: 'list',
+        filters: { libraryId: '$screen.scope.entityId' },
+        required: expect.objectContaining({
+          feature: 'cassette',
+          level: 'read'
+        })
+      })
+    ]));
+    expect(libraryDetail.regions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sourceId: 'cassette_children',
+        actions: []
+      })
+    ]));
+    expect(libraryDetail.actions).not.toContain('create_cassette');
+  });
+
   it('does not infer child regions without a domain parent relation', () => {
     const compiled = compileProcessDefinition({
       roles: {
