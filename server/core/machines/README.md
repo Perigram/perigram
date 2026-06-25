@@ -26,6 +26,9 @@ The system consists of three main parts: the transition engine, the dynamic hook
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the
   source-state entity before the transition can run.
+  Process actions that target the entity's current primary state are not
+  returned from the status action API; no-op current-state buttons belong in
+  neither generated process actions nor `EntityStatus`.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
   resolves collections through the runtime/domain entity registry.
 

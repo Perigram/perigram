@@ -195,6 +195,11 @@ compiler carries lineage scope through that parent relation; for example,
 `solveNesting` outputs `nesting_run` and `sheet_design` records under the
 source queue, so those results receive the same role window as the queue unless
 a later graph node changes it.
+Action graph compilation preserves all incoming edges for a node and uses the
+first already-resolved upstream output window. This matters for lifecycle loops:
+a queue status node can have both a create input and a later reject/retry input,
+and the compiler must not let the loop edge overwrite the resolvable source
+edge that feeds downstream command output grants.
 At runtime, a command output wired into a downstream change-status node receives
 that process-authored target state after the command returns its entity refs.
 The state projection is derived from graph edges and typed output handles such

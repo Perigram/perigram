@@ -4,6 +4,26 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Fix nesting-run sheet output access and no-op status actions
+    Files changed: packages/domain-cnc/src/field-access.js,
+      packages/processes/src/index.js, packages/processes/src/index.spec.js,
+      server/core/machines/service.js, server/core/machines/service.spec.js,
+      server/features/sheet-designs/service.js,
+      server/features/sheet-designs/service.spec.js
+    Docs updated: packages/domain-cnc/README.md,
+      packages/processes/README.md, server/core/machines/README.md,
+      server/features/sheet-designs/README.md, TODO.org
+    Notes: Process graph compilation now keeps all incoming action edges and
+      resolves the first available upstream output window, so lifecycle loops
+      cannot overwrite the edge that feeds command output grants. Sheet-design
+      field and service access now use `sheet_designs` grants consistently for
+      list/detail visibility. Status actions targeting the current primary
+      state are suppressed, removing no-op buttons such as an already-current
+      process status. Existing local compiled process definitions were
+      recompiled with `server/scripts/migrate-process-compiled-runtime.js`
+      (74 scanned, 74 recompiled), giving the active process `sheet_designs`
+      output grants for `solveNesting`.
+
     [2026-06-25] Unify cassette-design preview dimensions onto baked boundary labels
     Files changed: components/CassetteThumbnail.vue, utils/drawingPreview.js,
       utils/drawingPreview.spec.js,

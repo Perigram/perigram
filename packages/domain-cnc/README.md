@@ -40,6 +40,9 @@ because nesting output access, generated queue detail regions, and aggregate
 summary sync all use the same lineage relation contract. Services that create
 those outputs must persist `lineage.queueId` and, when available,
 `lineage.projectId`.
+`field-access.js` keeps `sheetDesign` on the `sheet_designs` access feature.
+Queue lineage scopes can restrict which layouts a user sees, but queue grants
+do not replace explicit sheet-design output grants from the active process.
 Queue workflow UI actions start with `DRAFT -> NESTING`; any system-only
 `DRAFT -> READY` recovery transition is marked `display: 'hidden'` so operators
 cannot skip nesting from status controls. Queues can be moved to `ARCHIVED`

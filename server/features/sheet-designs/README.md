@@ -81,6 +81,10 @@ and `runId`/`runIds` query parameters are mapped to `lineage.queueId`,
 server-derived access filter. Queue detail workspaces use the run-id query for
 sheet layouts that belong to the concrete `nesting_run` records already
 visible in that queue, instead of relying on a broad sheet-design list screen.
+List and detail access both evaluate the loaded sheet design through
+`sheet_designs` grants. Queue access does not imply sheet-design visibility;
+process command output grants from `solveNesting` are what expose generated
+layouts to generated queue/run screens.
 
 `listForRunOutput(queueId, runId, sheetDesignIds)` is an internal service
 lookup used by queue production output creation. It returns full sheet-design
