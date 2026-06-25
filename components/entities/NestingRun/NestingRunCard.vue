@@ -47,6 +47,7 @@ const canDeleteRun = computed(() => hasPermissionGrant({
 const state = computed(() => getPrimaryState(props.run.status, 'UNKNOWN'));
 const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
 const results = computed(() => props.run.data?.results || {});
+const hasResultData = computed(() => Object.values(results.value || {}).some(value => Number(value) > 0));
 const runId = computed(() => props.run._id?.toString());
 const materialSources = computed(() => (props.run.data?.materialPool || [])
     .map(source => ({
@@ -61,6 +62,7 @@ const relatedSheetDesigns = computed(() => uniqueById([
     ...props.sheetDesigns.filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value)),
     ...contextEntities('sheet_design').filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value))
 ]));
+const hasCompletedOutput = computed(() => isComplete.value || hasResultData.value || relatedSheetDesigns.value.length > 0);
 const RUN_FIELDS = resolveEntityDisplayFields({ entityType: 'nestingRun', surface: 'card' })
     .filter(field => field.display !== 'entityRefList');
 
@@ -124,7 +126,7 @@ function openSheetDesign(design) {
       </template>
       <Divider />
       <div class="flex flex-col gap-4">
-        <div v-if="isComplete" class="flex flex-col gap-2">
+        <div v-if="hasCompletedOutput" class="flex flex-col gap-2">
           <DataBlock entity-type="nestingRun" :entity="run" :fields="RUN_FIELDS" />
         </div>
         <div v-if="materialSources.length" class="flex flex-col gap-2">
@@ -140,7 +142,7 @@ function openSheetDesign(design) {
             </div>
           </div>
         </div>
-        <div v-if="isComplete && relatedSheetDesigns.length" class="flex flex-col gap-2">
+        <div v-if="hasCompletedOutput && relatedSheetDesigns.length" class="flex flex-col gap-2">
           <small class="text-muted-color">{{ $t('nestingRun.sheetDesigns') }}</small>
           <div
             v-if="showSheetDesignPreviews"

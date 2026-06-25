@@ -60,7 +60,7 @@
                     />
                 </div>
 
-                <ScrollablePanel class="shrink-0" :scroll-content="false">
+                <ScrollablePanel v-if="showNestingCommandRegion" class="shrink-0" :scroll-content="false">
                     <template #header>
                         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                             <SelectButton
@@ -417,6 +417,7 @@ const processRunNestingAction = computed(() => {
         .find(action => action?.actionKind === 'runCommand' && action.commandId === 'solveNesting') || null;
 });
 const canRunNesting = computed(() => isProcessMode.value ? Boolean(processRunNestingAction.value) : canEditQueue.value);
+const showNestingCommandRegion = computed(() => !isProcessMode.value || canRunNesting.value);
 const requestErrorMessage = (error) => error?.data?.message || error?.response?._data?.message || error?.message || t('common.error');
 const optionalList = async (loader) => {
     try {
@@ -708,7 +709,7 @@ const canReadNestingRun = (run = {}) => hasPermissionGrant({
     entityType: 'nesting_run'
 });
 const readableQueueRuns = computed(() => isProcessMode.value ? queueRuns.value.filter(canReadNestingRun) : queueRuns.value);
-const showNestingRunRegion = computed(() => !isProcessMode.value || canRunNesting.value || readableQueueRuns.value.length > 0);
+const showNestingRunRegion = computed(() => !isProcessMode.value || readableQueueRuns.value.length > 0 || canRunNesting.value);
 const runOptions = computed(() => readableQueueRuns.value.map(run => ({
     ...run,
     id: run._id?.toString(),

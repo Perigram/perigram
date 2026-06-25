@@ -19,7 +19,16 @@ export const useQueuesStore = defineStore('queues', () => {
     }
 
     function hasActiveNestingRun(queueRuns = []) {
-        return queueRuns.some(run => getPrimaryState(run.status) === 'NESTING');
+        const latest = sortQueueRuns(queueRuns).at(-1);
+        if (!latest) return false;
+        const state = getPrimaryState(latest.status);
+        if (state === 'NESTING') return true;
+        if (['COMPLETE', 'CHOSEN', 'ERROR'].includes(state)) return false;
+        return !hasNestingResults(latest);
+    }
+
+    function hasNestingResults(run = {}) {
+        return Boolean(run.data?.results) || Boolean(run.data?.sheetDesignIds?.length);
     }
 
     function sortQueueRuns(queueRuns = []) {
