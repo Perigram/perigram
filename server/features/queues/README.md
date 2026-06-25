@@ -28,7 +28,11 @@ Defines a specific nesting job, bridging the digital production intent with phys
    sizes are rejected for the current one-bin worker contract.
    The queue nesting API derives command parameters from saved
    `data.nestingSettings` plus `data.job.materialPool`; callers only send
-   optional setting updates or attachment requests.
+   optional setting updates or attachment requests. Generated process queue
+   details may also start nesting through a manual `solveNesting` process
+   action. In that path, transient material/tool parameters are sent directly to
+   the command action while queue job/settings persistence remains guarded by
+   `queues:write`.
 4. **Run Acceptance / Production Output**: When a completed nesting run is
    transitioned to `CHOSEN`, the parent queue must be awaiting selection
    (`NESTING`) or already `READY` for an idempotent same-run response, and it

@@ -99,6 +99,13 @@ the constructor can read the selected template and refresh its geometry
 revision pointer before creating the design. These execution grants do not
 become role permissions after the request; ordinary list/detail APIs still use
 the compiled role grants.
+Run-command actions use the same action-scoped execution model. The action must
+be present in the user's compiled action manifest, then the command executes
+with a temporary grant on the action's input entity feature so the command
+runtime can enforce its normal domain access contract. For example, a manual
+`solveNesting` action on a queue can run from a generated queue detail even when
+the user's current queue status window is read-only; queue job edits still
+require the separate `queues:write` entity grant.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.

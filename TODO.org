@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Separate generated queue nesting action access
+    Files changed: components/QueueEditor.vue,
+      components/generated/GeneratedEntityDetail.vue,
+      components/generated/GeneratedQueueDetail.vue,
+      components/generated/GeneratedScreen.vue,
+      server/features/process-definitions/service.js,
+      server/features/process-definitions/process-definitions.spec.js
+    Docs updated: components/README.md,
+      server/features/process-definitions/README.md,
+      server/features/queues/README.md, TODO.org
+    Notes: Generated queue details now distinguish queue editing from running
+      the nesting command. `queues:write` still controls persisted job/settings
+      edits, while a compiled manual `solveNesting` process action can run the
+      nesting panel with transient parameters. The process action runtime now
+      gives run-command execution a temporary action-scoped grant so the command
+      service can enforce its normal domain access boundary without requiring a
+      target-status write grant on the queue.
+
     [2026-06-25] Translate generated process labels
     Files changed: components/generated/GeneratedActionButton.vue,
       components/generated/GeneratedHomeScreen.vue,
