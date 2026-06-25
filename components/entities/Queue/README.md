@@ -36,6 +36,11 @@ Production queue card and detail surface.
   and parameter updates while `QueueEditor` remains the owner of persistence and
   `_key`-based row deletion. These rows keep natural panel height inside the
   center lane grid; the workspace lane owns scrolling.
+- Queue job item relation rows read `item.entityType` to distinguish
+  `cassette_design` from `cassette` template ids. When a process role can read
+  the queue but not the related design/template directly, `QueueEntryCard`
+  renders a typed id chip and skips protected relation fetches instead of
+  calling the wrong endpoint.
 - Queue editor selected warehouse sources use compact `QueueSourceCard` tiles
   instead of embedding pile/sheet/remnant cards. It draws remnant polygons when
   present and rectangular sheet previews for stock sources without stored

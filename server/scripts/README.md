@@ -22,6 +22,7 @@ node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize store
 node server/scripts/migrate-process-role-memberships.js # Clear preset permissions from process-role memberships and recover tenant admins
 node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
+node server/scripts/migrate-queue-job-item-entity-types.js # Backfill queue job item entityType/id contract
 ```
 
 ## What Gets Created
@@ -158,6 +159,11 @@ modes to the current entity-type default, and rewrites every stored semantic
 process action, including drafts. Definitions that already have a compiled
 runtime contract are recompiled, so existing active processes pick up compiler
 fixes without editing their semantic graph records.
+
+Use `server/scripts/migrate-queue-job-item-entity-types.js` after adopting the
+canonical queue job item source contract. It inspects existing queue item ids
+against `cassette_designs` and `cassettes`, writes `entityType` plus canonical
+`id`, and preserves the nesting `type`, quantity, and parameters.
 
 ## Entity Revision Migration
 

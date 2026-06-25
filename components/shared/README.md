@@ -257,6 +257,10 @@ domain UI adapter for compatibility, but they should not appear in new entity
 component templates.
 Inline reference fetches are silent by default: stale or deleted relation ids
 fall back to an id chip without flooding the browser console.
+Callers can pass `:fetch="false"` when the parent surface intentionally has
+only a scoped relation id and should not probe a protected entity endpoint. In
+that mode `EntityInlineRef` renders the typed id chip unless an `entity` prop or
+`entityContext` match is available.
 When an `entityContext` provider is present, `EntityInlineRef` resolves the
 entity from that context before calling the API. This keeps workbench fixture
 and project-local previews from requesting protected entities already loaded in

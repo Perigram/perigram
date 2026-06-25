@@ -67,6 +67,13 @@ Defines a specific nesting job, bridging the digital production intent with phys
   the queue is created under organization lineage only, which lets
   process-authored organizations use queues without introducing a project
   entity into the process graph.
+- `create(data, ...)` and `update(id, { job })` normalize
+  `data.job.items[]` at the service boundary. Each persisted queue item keeps
+  `id` as the source entity id, `entityType` as `cassette_design` or
+  `cassette`, `type` as the nesting behavior (`STATIC`/`PARAMETRIC`),
+  `quantity`, and `parameters`. Producers must submit the canonical
+  `id + entityType` pair; ambiguous cassette/design aliases belong only in
+  one-time data migrations.
 - `listPreviewByProjects(projectIds, ..., { limit })` returns access-redacted,
   summary-oriented queue previews keyed by parent project id. `/api/project`
   uses this to attach `summary.queuePreview` for the `/projects` route without
@@ -82,7 +89,7 @@ Defines a specific nesting job, bridging the digital production intent with phys
   status: StatusBlock,
   lineage: { organizationId, projectId? },
   job: {
-    items: Array<{ designId, quantity, parameters }>,
+    items: Array<{ id, entityType: 'cassette_design' | 'cassette', type, quantity, parameters }>,
     materialPool: Array<{ type, id, label, specs, dimensions, available, sheetPolygon? }>
   },
   nestingSettings: {

@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Preserve queue item source identity for process queue pages
+    Files changed: server/features/queues/service.js,
+      server/features/queues/queues.spec.js,
+      server/scripts/migrate-queue-job-item-entity-types.js,
+      components/QueueEditor.vue,
+      components/entities/Queue/QueueEntryCard.vue,
+      components/generated/GeneratedScreen.vue,
+      components/shared/EntityInlineRef.vue
+    Docs updated: components/README.md, components/entities/Queue/README.md,
+      components/shared/README.md, server/features/queues/README.md,
+      server/scripts/README.md, TODO.org
+    Notes: Queue job items now persist canonical `id` plus `entityType` so
+      cassette-design ids are not guessed as cassette template ids. Queue
+      relation rows render scoped typed references without probing protected
+      relation endpoints when the queue DTO does not include the related
+      cassette/template DTO. Existing queue job items were migrated in the dev
+      database.
+
     [2026-06-25] Make cassette previews geometry-driven and readable
     Files changed: components/CassetteThumbnail.vue,
       components/entities/CassetteDesign/CassetteDesignCard.vue,

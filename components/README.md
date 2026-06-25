@@ -350,8 +350,11 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 - For cassette templates and queue entries, derive parametric vs static display from the cassette DTO itself, not only from saved queue item flags. Prefer `data.parameters` when present and fall back to OCCS `data.definition.parameters` so updated OCCS templates do not appear static in queues.
 - `QueueEditor` keeps a UI-only `_key` for queue rows because persisted
   `queue.data.job.items[]` entries intentionally store only the cassette/design
-  id, type, quantity, and parameters. Delete actions must use `_key`; nesting
-  payload saves must persist `id` without leaking the UI key.
+  `id`, source `entityType`, nesting `type`, quantity, and parameters. Delete
+  actions must use `_key`; nesting payload saves must persist `id` and
+  `entityType` without leaking the UI key. Queue relation rows must not fetch a
+  protected cassette/design endpoint when the surrounding queue DTO did not
+  include that related DTO; render the typed id chip instead.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
   lane rendered newest-first as compact queue entity rows, a center lane for nesting settings and wide
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
