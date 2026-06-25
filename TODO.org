@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Make cassette preview dimension labels screen-relative
+    Files changed: components/shared/DrawingCanvas.vue,
+      components/shared/README.md, TODO.org
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Preview-mode `dimension.cassette` labels now derive font size from
+      the rendered SVG viewport through a resize observer instead of scaling
+      only from geometry extents, keeping cassette and cassette-design preview
+      labels visually consistent on screen.
+
+*** Agent Notes
     [2026-06-25] Prefer baked cassette-design preview geometry over DXF
     Files changed: components/CassetteThumbnail.vue,
       components/entities/CassetteDesign/README.md,
