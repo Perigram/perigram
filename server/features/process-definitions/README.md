@@ -106,10 +106,12 @@ runtime can enforce its normal domain access contract. Domain command
 definitions may also declare `access.executionGrants` for records the handler
 must read while executing the command but that should not become ordinary user
 list/detail access. For example, a manual `solveNesting` action on a queue can
-run from a generated queue detail even when the user's current queue status
-window is read-only; the action gets transient read access to the cassette
-templates/designs referenced by the saved queue job, while queue job edits still
-require the separate `queues:write` entity grant.
+run from a generated queue detail only when that action id is present in the
+user's compiled action manifest for the opened queue entity. The action gets
+transient read access to the cassette templates/designs referenced by the saved
+queue job, while queue job edits still require the separate `queues:write`
+entity grant. A queue write grant alone does not expose the command action, and
+a command action grant does not expose queue mutation controls.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.

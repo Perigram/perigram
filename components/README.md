@@ -168,10 +168,14 @@ hidden, the editor renders through `EntityWorkspace` instead of the route-level
 three-lane workspace, and editability comes from the active process
 `queues:write` grant on the current queue rather than hardcoded workflow states
 such as `DRAFT`. Queue-local command panels are separate from queue editing:
-when the generated detail screen includes a manual `runCommand` action for
-`solveNesting`, the nesting controls can run through that process action even
-if the current queue status only grants read access. Entity-local operational
-editors should use the canonical main/supporting proportions from
+generated detail resolves region action ids through the user's compiled action
+manifest and the current entity type/status before passing executable actions
+to the editor. The nesting controls render only from a resolved manual
+`runCommand` action for `solveNesting`; `queues:write` may enable queue
+job/settings mutation but must not invent a command panel. Actions consumed by
+registered entity workspaces are not duplicated as generic detail-header
+buttons. Entity-local operational editors should use the canonical
+main/supporting proportions from
 `EntityWorkspace` rather than inventing local stacked or sidebar grids.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page.

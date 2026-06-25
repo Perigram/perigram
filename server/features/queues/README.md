@@ -34,9 +34,10 @@ Defines a specific nesting job, bridging the digital production intent with phys
    `data.nestingSettings` plus `data.job.materialPool`; callers only send
    optional setting updates or attachment requests. Generated process queue
    details may also start nesting through a manual `solveNesting` process
-   action. In that path, transient material/tool parameters are sent directly to
-   the command action while queue job/settings persistence remains guarded by
-   `queues:write`.
+   action, but only when the generated screen resolver finds that action in the
+   current user's compiled action manifest for the opened queue. In that path,
+   transient material/tool parameters are sent directly to the command action
+   while queue job/settings persistence remains guarded by `queues:write`.
 4. **Run Acceptance / Production Output**: When a completed nesting run is
    transitioned to `CHOSEN`, the parent queue must be awaiting selection
    (`NESTING`) or already `READY` for an idempotent same-run response, and it
