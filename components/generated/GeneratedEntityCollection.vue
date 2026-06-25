@@ -100,6 +100,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
+import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 
@@ -125,17 +126,12 @@ const resolvedActions = computed(() => props.actions
 const collectionActions = computed(() => dedupeActions([
   ...resolvedActions.value.filter(action => action.actionKind === 'createEntity')
 ]));
-const actionContext = computed(() => ({
-  ...(props.actionContext || {}),
+const actionContext = computed(() => mergeCollectionActionContext({
+  incoming: props.actionContext || {},
   region: props.region,
   source: props.source,
   entityType: props.entityType,
-  parentEntityType: props.entityType,
-  parentOptions: props.items.map(entity => ({
-    label: entity.identity?.name || entity.identity?.uid || entity._id,
-    value: entity._id || entity.identity?.uid,
-    entity
-  }))
+  items: props.items
 }));
 const tableFields = computed(() => resolveEntityDisplayContract({
   entityType: props.entityType,

@@ -169,6 +169,7 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
+import { entityIdentifier, generatedActionRequiresParent, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
@@ -297,20 +298,7 @@ async function postAction(action, entity = null, data = {}, context = {}) {
 }
 
 function actionEntities(action = {}, entity = null, context = {}) {
-  const resolvedContext = context?.value || context || {};
-  const entities = {};
-  const entityId = entity?._id || entity?.identity?.uid || '';
-  const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
-  const entityType = entity?.origin?.type || entity?.type || resolvedContext?.entityType || parentType || '';
-  if (entityId && entityType) entities[entityType] = entityId;
-  const contextParentId = parentType && resolvedContext.parentEntityType === parentType
-    ? entityIdentifier(resolvedContext.parentEntity)
-    : '';
-  const parentId = parentType
-    ? contextParentId || resolvedContext.parentEntityId || screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters)
-    : '';
-  if (parentType && parentId) entities[parentType] = parentId;
-  return entities;
+  return resolveGeneratedActionEntities({ action, entity, context, screen: screen.value });
 }
 
 function selectedTemplateIdForField(field = {}) {
@@ -357,13 +345,7 @@ function syncCassetteParameterValues(fields = promptedFields(pendingAction.value
 }
 
 function requiredParentType(action = {}, entity = null, context = {}) {
-  const parentType = action?.parentEntityType || action?.inputs?.find(input => input.id === 'parent')?.entityType || '';
-  if (!parentType) return '';
-  if (entityIdentifier(entity)) return '';
-  const resolvedContext = context?.value || context || {};
-  if (resolvedContext.parentEntityType === parentType && (entityIdentifier(resolvedContext.parentEntity) || resolvedContext.parentEntityId)) return '';
-  if (screen.value.scope?.[`${parentType}Id`] || screen.value.scope?.entityId || resolveParentIdFromFilters(parentType, resolvedContext?.source?.filters)) return '';
-  return parentType;
+  return generatedActionRequiresParent({ action, entity, context, screen: screen.value });
 }
 
 async function loadParentSelectionOptions(parentType = '', context = {}, action = {}) {
@@ -383,18 +365,6 @@ function contextWithSelectedParent(context = {}) {
     parentEntityId: parentId,
     parentEntity: selected?.entity || null
   };
-}
-
-function entityIdentifier(entity = null) {
-  return entity?._id || entity?.identity?.uid || entity?.id || '';
-}
-
-function resolveParentIdFromFilters(parentType = '', filters = {}) {
-  const value = filters?.[`${parentType}Id`];
-  if (typeof value === 'string' && value.startsWith('$screen.')) {
-    return String(value).slice('$screen.'.length).split('.').filter(Boolean).reduce((item, key) => item?.[key], screen.value);
-  }
-  return value || '';
 }
 
 function initialPromptValue(field = {}) {
