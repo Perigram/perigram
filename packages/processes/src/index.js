@@ -1384,13 +1384,105 @@ function makeScreenKey(screen = {}) {
 }
 
 function mergeCompiledScreen(screenMap, screen) {
-  const existing = screenMap.get(screen.screenKey);
+  const mergeKey = screenMergeKey(screen);
+  screen.screenKey = mergeKey;
+  screen.route = generatedScreenRoute(mergeKey);
+  const existing = screenMap.get(mergeKey);
   if (!existing) {
-    screenMap.set(screen.screenKey, screen);
+    screenMap.set(mergeKey, screen);
     return;
   }
+  existing.required = mergeRequirements(existing.required, screen.required);
   existing.actions = [...new Set([...(existing.actions || []), ...(screen.actions || [])])];
   existing.sourceRoleIds = [...new Set([...(existing.sourceRoleIds || []), ...(screen.sourceRoleIds || [])])];
+  existing.roleIds = [...new Set([...(existing.roleIds || []), ...(screen.roleIds || [])])];
+  existing.sources = mergeScreenSources(existing.sources || [], screen.sources || []);
+  existing.regions = mergeScreenRegions(existing.regions || [], screen.regions || []);
+}
+
+function screenMergeKey(screen = {}) {
+  if (screen.template === 'home') return screen.screenKey || screen.id;
+  if (!String(screen.id || '').startsWith('auto_') || !screen.entityType) return screen.screenKey || screen.id;
+  const suffix = screen.template === 'entityDetail' ? '_detail' : '';
+  const scopeValues = Object.values(screen.scope || {}).filter(value => value !== undefined && value !== null && value !== '');
+  return [`auto_${screen.entityType}${suffix}`, ...scopeValues].filter(Boolean).map(String).join(':');
+}
+
+function mergeScreenSources(existing = [], next = []) {
+  const byKey = new Map(existing.map(source => [sourceMergeKey(source), { ...source }]));
+  for (const source of next) {
+    const key = sourceMergeKey(source);
+    const current = byKey.get(key);
+    if (!current) {
+      byKey.set(key, { ...source });
+      continue;
+    }
+    current.required = mergeRequirements(current.required, source.required);
+    current.filters = { ...(current.filters || {}), ...(source.filters || {}) };
+  }
+  return [...byKey.values()];
+}
+
+function sourceMergeKey(source = {}) {
+  return [
+    source.entityType || source.id,
+    source.mode || '',
+    JSON.stringify(source.filters || {}),
+    source.identifier || ''
+  ].join(':');
+}
+
+function mergeScreenRegions(existing = [], next = []) {
+  const byKey = new Map(existing.map(region => [regionMergeKey(region), { ...region, actions: [...(region.actions || [])] }]));
+  for (const region of next) {
+    const key = regionMergeKey(region);
+    const current = byKey.get(key);
+    if (!current) {
+      byKey.set(key, { ...region, actions: [...(region.actions || [])] });
+      continue;
+    }
+    current.actions = [...new Set([...(current.actions || []), ...(region.actions || [])])];
+  }
+  return [...byKey.values()];
+}
+
+function regionMergeKey(region = {}) {
+  return [region.sourceId || region.id, region.slot || '', region.surface || ''].join(':');
+}
+
+function mergeRequirements(left = null, right = null) {
+  if (!left) return right || null;
+  if (!right) return left || null;
+  if (left.feature !== right.feature) return left;
+  const rules = [left.rule, right.rule].flatMap(flattenRequirementRules).filter(Boolean);
+  const scopes = [left.scope, right.scope].filter(Boolean);
+  const transitions = [left.transitions, right.transitions].flatMap(item => Array.isArray(item) ? item : [item]).filter(Boolean);
+  return {
+    feature: left.feature,
+    level: 'read',
+    ...(rules.length === 1 ? { rule: rules[0] } : {}),
+    ...(rules.length > 1 ? { rule: { any: dedupeObjects(rules) } } : {}),
+    ...(scopes.length === 1 ? { scope: scopes[0] } : {}),
+    ...(transitions.length ? { transitions: dedupeObjects(transitions) } : {})
+  };
+}
+
+function flattenRequirementRules(rule) {
+  if (!rule) return [];
+  if (Array.isArray(rule.any)) return rule.any.flatMap(flattenRequirementRules);
+  return [rule];
+}
+
+function dedupeObjects(items = []) {
+  const seen = new Set();
+  const result = [];
+  for (const item of items) {
+    const key = JSON.stringify(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+  return result;
 }
 
 function screenToNavigation(screen = {}) {

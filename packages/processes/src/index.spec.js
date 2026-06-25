@@ -260,9 +260,9 @@ describe('@cutkit/processes compiler', () => {
       })],
       actions: ['action_accept']
     });
-    expect(compiled.userAccess.user_a.screens.find(screen => screen.screenKey === 'auto_role_operator_queue')).toMatchObject({
-      screenKey: 'auto_role_operator_queue',
-      route: '/screens/auto_role_operator_queue',
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.screenKey === 'auto_queue')).toMatchObject({
+      screenKey: 'auto_queue',
+      route: '/screens/auto_queue',
       entityType: 'queue',
       actions: ['action_accept']
     });
@@ -308,10 +308,10 @@ describe('@cutkit/processes compiler', () => {
 
     expect(resolveScreens({ compiled, userId: 'user_a' }).map(screen => screen.screenKey).sort()).toEqual([
       'home_user_a',
-      'auto_role_project_project_detail',
-      'auto_role_project_project',
-      'auto_role_queue_queue_detail',
-      'auto_role_queue_queue'
+      'auto_project_detail',
+      'auto_project',
+      'auto_queue_detail',
+      'auto_queue'
     ].sort());
     const home = compiled.userAccess.user_a.screens.find(screen => screen.template === 'home');
     expect(home.sources.map(source => source.entityType)).toEqual(['project']);
@@ -362,8 +362,8 @@ describe('@cutkit/processes compiler', () => {
         ]
       }
     });
-    expect(compiled.userAccess.user_a.screens.find(screen => screen.screenKey === 'auto_role_project_project')).toMatchObject({
-      screenKey: 'auto_role_project_project',
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.screenKey === 'auto_project')).toMatchObject({
+      screenKey: 'auto_project',
       entityType: 'project',
       required: {
         feature: 'projects',
@@ -377,6 +377,71 @@ describe('@cutkit/processes compiler', () => {
       },
       actions: ['create_project_created', 'create_project_new']
     });
+  });
+
+  it('merges same-entity generated screens across assigned roles', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_reader: { id: 'role_reader', label: 'Reader' },
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
+      actions: {
+        create_project_created: {
+          id: 'create_project_created',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: 'CREATED' },
+          access: { level: 'read', roleIds: ['role_reader'] }
+        },
+        create_project_active: {
+          id: 'create_project_active',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: 'ACTIVE' },
+          access: { level: 'admin', roleIds: ['role_admin'] }
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_reader', 'role_admin'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    const projectScreens = compiled.userAccess.user_a.screens.filter(screen => screen.entityType === 'project' && screen.template === 'entityList');
+    expect(projectScreens).toHaveLength(1);
+    expect(projectScreens[0]).toMatchObject({
+      screenKey: 'auto_project',
+      route: '/screens/auto_project',
+      sourceRoleIds: ['role_reader', 'role_admin'],
+      actions: ['create_project_active'],
+      required: {
+        feature: 'projects',
+        level: 'read',
+        rule: {
+          any: [
+            { fact: 'primaryStatus', equals: 'CREATED' },
+            { fact: 'primaryStatus', equals: 'ACTIVE' }
+          ]
+        }
+      },
+      sources: [expect.objectContaining({
+        required: {
+          feature: 'projects',
+          level: 'read',
+          rule: {
+            any: [
+              { fact: 'primaryStatus', equals: 'CREATED' },
+              { fact: 'primaryStatus', equals: 'ACTIVE' }
+            ]
+          }
+        }
+      })]
+    });
+    expect(compiled.userAccess.user_a.navigation.filter(item => item.screenKey === 'auto_project')).toHaveLength(1);
   });
 
   it('treats stale same-entity create parent inputs as root create actions', () => {
@@ -1099,7 +1164,7 @@ describe('@cutkit/processes compiler', () => {
     const detail = compiled.screens.auto_role_admin_cassette_detail;
     expect(detail.sources.map(source => source.entityType)).toEqual(['cassette']);
     expect(detail.regions.find(region => region.id === 'main').actions).toContain('create_design');
-    expect(compiled.userAccess.user_admin.screens.find(screen => screen.screenKey === 'auto_role_admin_cassette_detail').actions).toContain('create_design');
+    expect(compiled.userAccess.user_admin.screens.find(screen => screen.screenKey === 'auto_cassette_detail').actions).toContain('create_design');
     expect(compiled.screens.auto_role_admin_cassette_design.actions).toContain('create_design');
     expect(compiled.screens.auto_role_admin_cassette_design_detail.actions).not.toContain('create_design');
   });
