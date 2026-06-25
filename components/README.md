@@ -194,6 +194,11 @@ sheet-design context exists. Queue details load sheet designs by the concrete
 readable run ids as well as queue lineage, so a run output card can display the
 layouts it owns without requiring a broad sheet-design list screen. Run cards
 must not treat only domain `COMPLETE/CHOSEN` as displayable output.
+Generated queue detail receives command actions from the compiled screen
+manifest. A queue command such as `solveNesting` must be present on that
+queue-detail screen because it is executed against the queue input; output
+entity grants for `nesting_runs` or `sheet_designs` must not be used to decide
+where the command panel renders.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page.
 Entity-bound generated actions are filtered before

@@ -4,6 +4,19 @@
   :END:
 
 *** Agent Notes
+    [2026-06-25] Place process command panels on input entity screens
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js,
+      components/shared/EntityPage.vue, components/README.md,
+      components/shared/README.md, packages/processes/README.md, TODO.org
+    Docs updated: components/README.md, components/shared/README.md,
+      packages/processes/README.md, TODO.org
+    Notes: Manual run-command actions now expose their input entity feature for
+      generated screen placement, so `solveNesting` appears on queue detail
+      screens while produced `nesting_run` and `sheet_design` grants still come
+      from command output windows. Entity detail headers no longer suppress the
+      shared compact status history popover.
+
     [2026-06-25] Hide default entity-detail trace and generated page titles
     Files changed: components/shared/EntityPage.vue,
       components/generated/GeneratedScreen.vue,

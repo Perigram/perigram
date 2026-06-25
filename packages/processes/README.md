@@ -208,6 +208,11 @@ Manual command actions preserve `commandId` in each compiled user action
 manifest entry. Generated entity tools use that id to place domain-specific
 command panels, such as the queue nesting panel, while execution still goes
 through the active process action endpoint.
+Manual command actions are placed on generated screens by their input entity
+feature, not by the command output feature. A `solveNesting` button belongs on
+the queue detail because the user executes it against a queue, while the same
+graph window still grants access to produced `nesting_run` and `sheet_design`
+records through command output windows.
 Stored active process definitions keep compiled runtime contracts in MongoDB.
 After compiler changes that alter generated screens, action exposure, workflow
 output, or grants, run
