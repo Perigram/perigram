@@ -259,16 +259,19 @@ reachable through its own generated route or parent detail context. The home
 regions keep the target list route and the list-level manual action ids for
 that entity, so generated UI can show one horizontal section per top-level
 entity with its matching process action buttons.
-When a create action is wired from a parent entity input, the inferred parent
-detail screen receives a child collection source and region only when the
-domain summary registry declares that created entity as a child of the parent
-entity. The graph input alone is not enough to create a child collection: it
-may be construction context, not lineage. For example, a
+When a role can read both a parent entity and a child entity, inferred parent
+detail screens receive child collection sources for relations declared in the
+domain summary registry. Create-action ownership is not required to see the
+child region; parent-bound create actions are attached to that region only when
+the same role can execute them. The graph input alone is not enough to create a
+child collection: it may be construction context, not lineage. For example, a
 project-to-create-queue graph compiles the project detail screen with a queue
 source filtered by the domain relation key
 `projectId: '$screen.scope.entityId'`, and the create-queue action is attached
-to that child region instead of the unscoped queue list screen. A
-project-to-create-cassette graph does not create a cassette child collection
+to that child region instead of the unscoped queue list screen. A role with
+only read access to libraries and cassettes still receives a library detail
+cassette child region filtered by `libraryId`, but no cassette create action.
+A project-to-create-cassette graph does not create a cassette child collection
 unless the domain summary registry explicitly declares cassette as a project
 child.
 Parent-bound create actions that do not have a domain child relation but do
