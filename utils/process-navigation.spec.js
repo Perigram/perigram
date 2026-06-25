@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeEffectiveScreens, resolveVisibleScreens } from './process-navigation.js';
+import { composeEffectiveScreens, resolveProcessEntryRoute, resolveVisibleScreens } from './process-navigation.js';
 
 describe('process navigation', () => {
   it('keeps assignment-scoped screens visible when the matching scoped grant exists', () => {
@@ -118,5 +118,49 @@ describe('process navigation', () => {
       { fact: 'primaryStatus', equals: 'READY' },
       { fact: 'primaryStatus', equals: 'ACTIVE' }
     ]);
+  });
+
+  it('uses generated process home as the authenticated entry route', () => {
+    expect(resolveProcessEntryRoute({
+      processActive: true,
+      screens: [{
+        id: 'home_user',
+        screenKey: 'home_user',
+        route: '/screens/home_user',
+        template: 'home',
+        placement: 'home'
+      }, {
+        id: 'auto_cassette',
+        screenKey: 'auto_cassette',
+        route: '/screens/auto_cassette',
+        template: 'entityList',
+        placement: 'hub',
+        entityType: 'cassette'
+      }]
+    })).toBe('/screens/home_user');
+  });
+
+  it('does not use legacy project route for active processes without project screens', () => {
+    expect(resolveProcessEntryRoute({
+      processActive: true,
+      screens: [{
+        id: 'auto_queue',
+        screenKey: 'auto_queue',
+        route: '/screens/auto_queue',
+        template: 'entityList',
+        placement: 'hub',
+        entityType: 'queue'
+      }]
+    })).toBe('/screens/auto_queue');
+  });
+
+  it('returns no process route when there is no active process', () => {
+    expect(resolveProcessEntryRoute({
+      processActive: false,
+      screens: [{
+        route: '/screens/home_user',
+        template: 'home'
+      }]
+    })).toBeNull();
   });
 });

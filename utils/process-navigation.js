@@ -18,6 +18,19 @@ export function resolveVisibleScreens(screens = [], permissions = {}) {
   });
 }
 
+export function resolveProcessEntryRoute({ processActive = false, screens = [], navigation = [] } = {}) {
+  if (!processActive) return null;
+  const effectiveScreens = composeEffectiveScreens(screens);
+  const home = effectiveScreens.find(screen => screen.template === 'home' && screen.route);
+  if (home) return home.route;
+  const hub = effectiveScreens.find(screen => screen.route && screen.template !== 'entityDetail' && (screen.placement || 'hub') === 'hub');
+  if (hub) return hub.route;
+  const navigable = effectiveScreens.find(screen => screen.route && screen.template !== 'entityDetail');
+  if (navigable) return navigable.route;
+  const navItem = (navigation || []).find(item => item?.route?.startsWith('/screens/'));
+  return navItem?.route || '/screens';
+}
+
 export function composeEffectiveScreens(screens = []) {
   const byKey = new Map();
   for (const screen of screens || []) {

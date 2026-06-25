@@ -47,6 +47,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
+import { resolveProcessEntryRoute } from '~/utils/process-navigation';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import ProgressSpinner from 'primevue/progressspinner';
@@ -75,15 +76,15 @@ const valueProps = computed(() => [
 ]);
 
 onMounted(async () => {
-  if (!authStore.userIsSet) {
-    await authStore.setUser();
-  }
+  await authStore.setUser();
 
   if (authStore.userIsSet) {
     if (authStore.processActive) {
-      const processRoute = authStore.screenManifest[0]?.route
-        || authStore.navigationManifest[0]?.route
-        || '/screens';
+      const processRoute = resolveProcessEntryRoute({
+        processActive: authStore.processActive,
+        screens: authStore.screenManifest,
+        navigation: authStore.navigationManifest
+      });
       await navigateTo(processRoute);
       return;
     }
