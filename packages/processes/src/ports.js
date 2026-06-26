@@ -119,10 +119,12 @@ function inputPortsForRecord(type, record = {}) {
       normalizePortSpec({ id: 'status', kind: 'status' })
     ];
   }
+  if (type === 'processNode') return processNodeInputPorts(record);
   return [];
 }
 
 function outputPortsForRecord(type, record = {}) {
+  if (type === 'processNode') return processNodeOutputPorts(record);
   if (type === 'action') {
     return [
       ...(record.outputs || []).map(port => normalizePortSpec(port)),
@@ -142,6 +144,60 @@ function outputPortsForRecord(type, record = {}) {
   }
   if (type === 'socket') {
     return [normalizePortSpec({ id: 'projection', kind: 'projection', entityType: record.entityType || '', projection: true })];
+  }
+  return [];
+}
+
+function processNodeInputPorts(record = {}) {
+  if (Array.isArray(record.inputs) && record.inputs.length) return record.inputs.map(port => normalizePortSpec(port));
+  if (record.kind === 'entityRef' && ['parent', 'children', 'related'].includes(record.mode)) {
+    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
+  }
+  if (record.kind === 'fieldRead') {
+    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
+  }
+  if (record.kind === 'stringOp') {
+    return [normalizePortSpec({ id: 'value', label: 'value', kind: 'data' })];
+  }
+  if (record.kind === 'compare') {
+    return [
+      normalizePortSpec({ id: 'left', label: 'left', kind: 'data' }),
+      normalizePortSpec({ id: 'right', label: 'right', kind: 'data', optional: true })
+    ];
+  }
+  if (record.kind === 'logic') {
+    return [
+      normalizePortSpec({ id: 'left', label: 'left', kind: 'data' }),
+      normalizePortSpec({ id: 'right', label: 'right', kind: 'data', optional: record.operation === 'not' })
+    ];
+  }
+  if (record.kind === 'collection') {
+    return [normalizePortSpec({ id: 'items', label: record.entityType || 'items', kind: 'entity_list', entityType: record.entityType || '' })];
+  }
+  return [];
+}
+
+function processNodeOutputPorts(record = {}) {
+  if (Array.isArray(record.outputs) && record.outputs.length) return record.outputs.map(port => normalizePortSpec(port));
+  if (record.kind === 'entityRef') {
+    const outputType = record.mode === 'children' || record.mode === 'related' ? 'entity_list' : 'entity';
+    const entityType = record.relationEntityType || record.entityType || '';
+    return [normalizePortSpec({ id: 'entity', label: entityType || outputType, kind: outputType, entityType })];
+  }
+  if (record.kind === 'fieldRead') {
+    return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: record.valueType || 'data', dataPath: record.path || '' })];
+  }
+  if (record.kind === 'collection' && record.operation === 'first') {
+    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
+  }
+  if (record.kind === 'collection' && record.operation === 'count') {
+    return [normalizePortSpec({ id: 'count', label: 'count', kind: 'number' })];
+  }
+  if (record.kind === 'compare' || record.kind === 'logic') {
+    return [normalizePortSpec({ id: 'result', label: 'result', kind: 'boolean' })];
+  }
+  if (record.kind === 'stringOp') {
+    return [normalizePortSpec({ id: 'value', label: 'value', kind: 'string' })];
   }
   return [];
 }
@@ -174,7 +230,8 @@ function recordForNode(process = {}, node = {}) {
     service: 'services',
     socket: 'sockets',
     statusDefinition: 'statusDefinitions',
-    valueInput: 'valueInputs'
+    valueInput: 'valueInputs',
+    processNode: 'processNodes'
   }[node.type];
   return key ? process[key]?.[refId] : null;
 }

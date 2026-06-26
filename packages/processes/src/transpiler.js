@@ -4,14 +4,15 @@ const CANVAS_RECORD_KEYS = {
   service: 'services',
   socket: 'sockets',
   statusDefinition: 'statusDefinitions',
-  valueInput: 'valueInputs'
+  valueInput: 'valueInputs',
+  processNode: 'processNodes'
 };
 
 const RECORD_NODE_TYPES = Object.keys(CANVAS_RECORD_KEYS);
 
 export function hasCanonicalProcessSource(definition = {}) {
   const data = definition.data || definition;
-  return ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'screens', 'assignments']
+  return ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'assignments']
     .some(key => data[key] && typeof data[key] === 'object' && Object.keys(data[key]).length > 0);
 }
 
@@ -123,6 +124,7 @@ function normalizeProcessLike(definition = {}) {
     sockets: normalizeRecord(data.sockets),
     statusDefinitions: normalizeRecord(data.statusDefinitions),
     valueInputs: normalizeRecord(data.valueInputs),
+    processNodes: normalizeRecord(data.processNodes),
     screens: normalizeRecord(data.screens),
     assignments: normalizeRecord(data.assignments),
     compiled: data.compiled || null
@@ -136,7 +138,8 @@ function projectRecordNodes(process) {
     ...projectRecords(process.services, 'service', 860),
     ...projectRecords(process.sockets, 'socket', 1160),
     ...projectRecords(process.statusDefinitions, 'statusDefinition', 560),
-    ...projectRecords(process.valueInputs, 'valueInput', 260)
+    ...projectRecords(process.valueInputs, 'valueInput', 260),
+    ...projectRecords(process.processNodes, 'processNode', 420)
   ];
 }
 
@@ -182,7 +185,7 @@ function collectCanvasRefs(nodes = []) {
 
 function compareSemanticRecords(source, next) {
   const errors = [];
-  for (const key of ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'screens', 'assignments']) {
+  for (const key of ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'assignments']) {
     const sourceJson = JSON.stringify(sortObject(source[key] || {}));
     const nextJson = JSON.stringify(sortObject(next[key] || {}));
     if (sourceJson !== nextJson) errors.push(`Round-trip changed ${key}`);

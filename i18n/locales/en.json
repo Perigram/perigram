@@ -2206,6 +2206,8 @@
     "defaultCreated": "Created only",
     "label": "Label",
     "entityType": "Entity type",
+    "relatedEntity": "Related entity",
+    "operation": "Operation",
     "parentEntity": "Parent entity",
     "lifecycleMode": "Lifecycle mode",
     "statusMachine": "Status machine",

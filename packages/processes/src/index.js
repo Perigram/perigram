@@ -61,6 +61,7 @@ export function normalizeProcessDefinition(definition = {}) {
     sockets: normalizeRecord(data.sockets),
     statusDefinitions: normalizeRecord(data.statusDefinitions),
     valueInputs: normalizeRecord(data.valueInputs),
+    processNodes: normalizeRecord(data.processNodes),
     screens: normalizeRecord(data.screens),
     assignments: normalizeRecord(data.assignments),
     compiled: data.compiled || null
@@ -91,6 +92,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     if (node.type === 'socket' && !process.sockets[refId]) errors.push(`Socket node ${node.id} references missing socket ${refId}`);
     if (node.type === 'statusDefinition' && !process.statusDefinitions[refId]) errors.push(`Status node ${node.id} references missing status definition ${refId}`);
     if (node.type === 'valueInput' && !process.valueInputs[refId]) errors.push(`Value node ${node.id} references missing value input ${refId}`);
+    if (node.type === 'processNode' && !process.processNodes[refId]) errors.push(`Process node ${node.id} references missing process node ${refId}`);
     if (node.type === 'user' && !process.assignments[refId]) errors.push(`User node ${node.id} references missing assignment ${refId}`);
   }
 
@@ -121,6 +123,10 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
 
   for (const [actionId, action] of Object.entries(process.actions)) {
     validateAction(actionId, action, { entities, commands, roles: process.roles, domain, errors, statusDefinitions: process.statusDefinitions });
+  }
+
+  for (const [nodeId, node] of Object.entries(process.processNodes)) {
+    validateProcessNode(nodeId, node, { entities, domain, errors });
   }
 
   for (const [statusId, status] of Object.entries(process.statusDefinitions)) {
@@ -191,6 +197,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
     actions: compileActions(process.actions, process, domain),
     statusDefinitions: compileStatusDefinitions(process.statusDefinitions),
     valueInputs: compileValueInputs(process.valueInputs),
+    processNodes: compileProcessNodes(process.processNodes),
     services: compileServices(process.services),
     sockets: compileSockets(process.sockets),
     screens: compiledScreens,
@@ -1708,6 +1715,22 @@ function compileValueInputs(valueInputs = {}) {
   }]));
 }
 
+function compileProcessNodes(processNodes = {}) {
+  return Object.fromEntries(Object.entries(processNodes).map(([id, node]) => [id, {
+    id: node.id || id,
+    label: node.label || node.kind || id,
+    kind: node.kind || 'fieldRead',
+    mode: node.mode || '',
+    entityType: node.entityType || '',
+    relationEntityType: node.relationEntityType || '',
+    path: node.path || '',
+    valueType: node.valueType || '',
+    operation: node.operation || '',
+    inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
+    outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : []
+  }]));
+}
+
 function blockForValueInput(path = '') {
   const root = String(path || '').split('.')[0];
   if (['identity', 'data', 'specs', 'summary', 'attachments'].includes(root)) return root;
@@ -1904,6 +1927,23 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   }
   if (action.statusRef && !statusDefinitions[action.statusRef]) {
     errors.push(`Action ${actionId} references missing status definition ${action.statusRef}`);
+  }
+}
+
+function validateProcessNode(nodeId, node = {}, { entities, errors }) {
+  const kind = node.kind || 'fieldRead';
+  if (!['entityRef', 'fieldRead', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
+    errors.push(`Process node ${nodeId} uses unknown node kind ${kind}`);
+    return;
+  }
+  for (const key of ['entityType', 'relationEntityType']) {
+    if (node[key] && !entities.has(node[key])) {
+      errors.push(`Process node ${nodeId} uses unknown ${key} ${node[key]}`);
+    }
+  }
+  if (kind === 'fieldRead' && !node.path) errors.push(`Process node ${nodeId} must define a field path`);
+  if (['stringOp', 'compare', 'logic', 'collection'].includes(kind) && !node.operation) {
+    errors.push(`Process node ${nodeId} must define an operation`);
   }
 }
 

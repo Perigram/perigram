@@ -432,6 +432,57 @@ describe('@cutkit/processes compiler', () => {
     expect(portErrors).toEqual([]);
   });
 
+  it('round-trips typed process algebra nodes as semantic records', () => {
+    const definition = {
+      graph: {
+        nodes: [
+          { id: 'queue_profile', type: 'entity', position: {}, data: { refId: 'queue_profile' } },
+          { id: 'read_name', type: 'processNode', position: {}, data: { refId: 'read_name' } },
+          { id: 'name_exists', type: 'processNode', position: {}, data: { refId: 'name_exists' } }
+        ],
+        edges: [
+          { id: 'queue-read', source: 'queue_profile', target: 'read_name', sourceHandle: 'output', targetHandle: 'input:entity' },
+          { id: 'read-compare', source: 'read_name', target: 'name_exists', sourceHandle: 'output', targetHandle: 'input:left' }
+        ]
+      },
+      entityProfiles: {
+        queue_profile: {
+          id: 'queue_profile',
+          entityType: 'queue',
+          lifecycle: { mode: 'defaultCreated' },
+          fields: { read: ['identity.*'], write: [], private: [] },
+          outputs: [{ id: 'entity', entityType: 'queue' }]
+        }
+      },
+      processNodes: {
+        read_name: {
+          id: 'read_name',
+          kind: 'fieldRead',
+          entityType: 'queue',
+          path: 'identity.name',
+          valueType: 'string',
+          inputs: [{ id: 'entity', kind: 'entity', entityType: 'queue' }],
+          outputs: [{ id: 'value', kind: 'string', dataPath: 'identity.name' }]
+        },
+        name_exists: {
+          id: 'name_exists',
+          kind: 'compare',
+          operation: 'exists',
+          inputs: [{ id: 'left', kind: 'data' }],
+          outputs: [{ id: 'result', kind: 'boolean' }]
+        }
+      }
+    };
+
+    const canvas = definitionToCanvas(definition);
+    const roundTripped = canvasToDefinition(canvas, definition);
+    const validation = validateProcessDefinition(roundTripped, domain);
+
+    expect(Object.keys(roundTripped.processNodes)).toEqual(['read_name', 'name_exists']);
+    expect(validation.errors.filter(error => error.includes('connects incompatible ports'))).toEqual([]);
+    expect(validation.errors.join('\n')).not.toContain('Process node');
+  });
+
   it('rejects fields outside the domain field policy', () => {
     const validation = validateProcessDefinition({
       entityProfiles: {

@@ -2206,6 +2206,8 @@
     "defaultCreated": "Только создано",
     "label": "Название",
     "entityType": "Тип сущности",
+    "relatedEntity": "Связанная сущность",
+    "operation": "Операция",
     "parentEntity": "Родительская сущность",
     "lifecycleMode": "Режим жизненного цикла",
     "statusMachine": "Машина статусов",
