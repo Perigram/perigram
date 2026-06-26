@@ -204,6 +204,11 @@ first already-resolved upstream output window. This matters for lifecycle loops:
 a queue status node can have both a create input and a later reject/retry input,
 and the compiler must not let the loop edge overwrite the resolvable source
 edge that feeds downstream command output grants.
+Workflow synthesis also preserves those repeated incoming entity edges. If a
+single change-status action is reused from several source states, such as
+`Создано -> Отправлено` and `Отклонено -> Отправлено`, the compiled workflow
+emits one transition per source state while keeping the same target status
+definition and using the executable role window from each source edge.
 At runtime, a command output wired into a downstream change-status node receives
 that process-authored target state after the command returns its entity refs.
 The state projection is derived from graph edges and typed output handles such

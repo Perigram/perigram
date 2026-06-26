@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-26] Compile repeated status-action loop transitions
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Process workflow synthesis now reads all incoming graph entity
+      edges for a reused change-status action, so loops such as queue
+      `Создано -> Отправлено -> Отклонено -> Отправлено` compile one runtime
+      transition per source state. Recompiled local active process definitions
+      with `server/scripts/migrate-process-compiled-runtime.js` (81 scanned,
+      81 recompiled).
+
     [2026-06-26] Preserve process status display metadata in history badges
     Files changed: components/shared/status/StatusHistory.vue,
       shared/design-system.spec.js
