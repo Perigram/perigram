@@ -52,4 +52,21 @@ describe('generated entity detail routing', () => {
 
     expect(route.path).toBe('/screens/auto_installer_project_detail');
   });
+
+  it('does not create a detail route without an accessible entity screen', () => {
+    const route = detailRouteForEntity({
+      entity: { _id: 'library-1' },
+      entityType: 'library',
+      manifest: [
+        {
+          screenKey: 'auto_installer_cassette',
+          template: 'collection',
+          route: '/screens/auto_installer_cassette',
+          sources: [{ entityType: 'cassette', mode: 'list' }]
+        }
+      ]
+    });
+
+    expect(route).toBeNull();
+  });
 });

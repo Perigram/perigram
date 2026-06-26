@@ -28,6 +28,8 @@
                     :id="item.id"
                     :label="labels[labelKey(item)] || item.label || ''"
                     :fallback-label="fallbackLabel(item)"
+                    :to="routeForItem(item)"
+                    :disabled="!routeForItem(item)"
                     :slug="item.slug"
                     class="max-w-[14rem]"
                 />
@@ -46,8 +48,11 @@
 import { ref, computed, inject, toRef, unref, watchEffect } from 'vue';
 import TraceLink from './TraceLink.vue';
 import Button from 'primevue/button';
+import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useLineage } from '~/composables/useBlocks';
+import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities';
+import { ENTITY_UI } from '~/utils/status-engine';
 
 const props = defineProps({
     entity: { type: Object, default: null },
@@ -57,10 +62,12 @@ const props = defineProps({
 });
 
 const entityStore = useEntityStore();
+const authStore = useAuthStore();
 const entityContext = inject('entityContext', null);
 const isExpanded = ref(!props.expandable);
 const { lineage: entityLineage } = useLineage(toRef(props, 'entity'));
 const labels = ref({});
+const resolvedEntities = ref({});
 
 const FALLBACK_LABELS = {
     organization: 'Organization',
@@ -127,6 +134,26 @@ const entityLabel = (entity) => {
         || '';
 };
 
+const routeForItem = (item) => {
+    if (!item?.type || !item?.id) return null;
+    if (authStore.processActive) {
+        return detailRouteForEntity({
+            entity: resolvedEntities.value[labelKey(item)] || { _id: item.id },
+            entityType: generatedEntityType(item.type),
+            manifest: authStore.screenManifest
+        });
+    }
+    const config = ENTITY_UI[item.type];
+    return typeof config?.route === 'function' ? config.route(item.id, item.slug) : null;
+};
+
+const generatedEntityType = (type) => {
+    const aliases = {
+        cassetteTemplate: 'cassette'
+    };
+    return aliases[type] || type;
+};
+
 // Resolve entity names for all lineage items, using the injected context first.
 watchEffect(async () => {
     for (const item of items.value) {
@@ -135,6 +162,9 @@ watchEffect(async () => {
         const contextEntity = findContextEntity(item.type, item.id);
         const entity = contextEntity || await entityStore.fetchEntity(item.type, item.id, false, { silent: true });
         const label = entityLabel(entity);
+        if (entity) {
+            resolvedEntities.value[key] = entity;
+        }
         if (label) {
             labels.value[key] = label;
         }
