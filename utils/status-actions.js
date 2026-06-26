@@ -17,7 +17,12 @@ export function getWorkflowStatusActions({
   return Object.entries(getWorkflowRegions(normalized))
     .flatMap(([regionId, region]) => (region.transitions || [])
       .filter(transition => transition.from === resolveRegionState(state, regionId, currentPrimary, region.initial))
-      .map(transition => ({ ...transition, region: regionId, path: region.states?.[transition.to]?.path || [transition.to] })))
+      .map(transition => ({
+        ...transition,
+        region: regionId,
+        path: region.states?.[transition.to]?.path || [transition.to],
+        lifecycle: transition.lifecycle || region.states?.[transition.to]?.lifecycle || null
+      })))
     .filter(transition => resolveActionDisplay(transition) !== 'hidden')
     .map(transition => createStatusAction(transition, mappings, t));
 }
@@ -44,7 +49,8 @@ export function createStatusAction(transition = {}, mappings = STATUS_MAPPINGS, 
     intent: transition.intent || null,
     severity: mapping.severity || 'secondary',
     icon: mapping.icon || 'pi pi-arrow-right',
-    display: resolveActionDisplay(transition)
+    display: resolveActionDisplay(transition),
+    lifecycle: transition.lifecycle || null
   };
 }
 

@@ -70,6 +70,20 @@ const eventDisplay = (event) => event.status?.metadata?.display || event.metadat
 
 const eventNote = (event) => event.status?.metadata?.note || event.metadata?.note || '';
 
+const eventAttachments = (event) => Object.entries(event.status?.lifecycle?.attachments || {})
+  .flatMap(([slot, value]) => (Array.isArray(value) ? value : [value]).filter(Boolean).map(item => ({
+    slot,
+    label: item.name || item.fileId || slot,
+    url: item.url || (item.fileId ? `/api/files/download/${item.fileId}?bucket=${item.bucketName || 'uploads'}` : '')
+  })));
+
+const eventSnapshots = (event) => Object.entries(event.status?.lifecycle?.data?.snapshots || {})
+  .map(([key, value]) => ({
+    key,
+    label: value?.label || key,
+    count: value?.count ?? value?.refs?.length ?? 0
+  }));
+
 const actorName = (event) => {
   const userId = event.status?.userId || event.userId;
   if (userId === 'SYSTEM') return t('status.systemActor');
@@ -132,6 +146,31 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
           <p v-if="eventNote(event)" class="m-0 mt-2 min-w-0 break-words text-sm italic">
             {{ eventNote(event) }}
           </p>
+
+          <div v-if="eventAttachments(event).length" class="mt-2 flex min-w-0 flex-wrap gap-2">
+            <a
+              v-for="attachment in eventAttachments(event)"
+              :key="`${eventKey(event, index)}-${attachment.slot}-${attachment.label}`"
+              :href="attachment.url"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex min-w-0 items-center gap-1 text-sm text-primary no-underline"
+            >
+              <i class="pi pi-paperclip shrink-0"></i>
+              <span class="truncate">{{ attachment.label }}</span>
+            </a>
+          </div>
+
+          <div v-if="eventSnapshots(event).length" class="mt-2 flex min-w-0 flex-wrap gap-2">
+            <small
+              v-for="snapshot in eventSnapshots(event)"
+              :key="`${eventKey(event, index)}-${snapshot.key}`"
+              class="inline-flex min-w-0 items-center gap-1 text-muted-color"
+            >
+              <i class="pi pi-camera shrink-0"></i>
+              <span class="truncate">{{ snapshot.label }}: {{ snapshot.count }}</span>
+            </small>
+          </div>
         </div>
       </li>
     </ol>

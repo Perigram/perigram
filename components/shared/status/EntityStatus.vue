@@ -13,6 +13,7 @@ import { useToast } from 'primevue/usetoast';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import StatusLocation from '~/components/shared/status/StatusLocation.vue';
+import StatusTransitionDialog from '~/components/shared/status/StatusTransitionDialog.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useStatusController } from '~/composables/useStatusController';
 import { createStatusAction, getWorkflowStatusActions, hasWorkflow } from '~/utils/status-actions.js';
@@ -37,6 +38,8 @@ const toast = useToast();
 const { state, regions, metadata } = useStatus(toRef(props, 'entity'));
 const { transition, fetchActions, isTransitioning } = useStatusController();
 const op = ref();
+const evidenceAction = ref(null);
+const evidenceDialogVisible = ref(false);
 const serverActions = ref([]);
 const providedWorkflows = inject('statusWorkflows', null);
 const localTransitionHandler = inject('statusTransitionHandler', null);
@@ -52,7 +55,7 @@ const useServerActions = computed(() => props.showActions && !localWorkflows.val
 const useLocalTransition = computed(() => Boolean(localWorkflows.value && localTransitionHandler));
 
 // Available transitions (to be fetched or derived from a machine registry if available)
-const handleTransition = async (targetState, action = {}) => {
+const handleTransition = async (targetState, action = {}, evidence = {}) => {
     try {
         const result = useLocalTransition.value
             ? await localTransitionHandler({
@@ -62,9 +65,11 @@ const handleTransition = async (targetState, action = {}) => {
                 intent: action.intent || null,
                 region: action.region || 'main',
                 path: action.path || null,
-                entity: props.entity
+                entity: props.entity,
+                ...evidence
             })
             : await transition(props.entityType, entityId.value, targetState, {
+                ...evidence,
                 ...(action.intent ? { intent: action.intent } : {}),
                 region: action.region || 'main',
                 path: action.path || null
@@ -181,6 +186,11 @@ const runAction = async (action) => {
     if (!action) return;
 
     if (action.to) {
+        if (actionRequiresEvidence(action)) {
+            evidenceAction.value = action;
+            evidenceDialogVisible.value = true;
+            return;
+        }
         await handleTransition(action.to, action);
         return;
     }
@@ -190,6 +200,14 @@ const runAction = async (action) => {
         emit('transitioned', action.label || null);
         op.value?.hide?.();
     }
+};
+
+const submitEvidenceTransition = async (evidence = {}) => {
+    const action = evidenceAction.value;
+    if (!action?.to) return;
+    await handleTransition(action.to, action, evidence);
+    evidenceDialogVisible.value = false;
+    evidenceAction.value = null;
 };
 
 function normalizeCustomAction(action = {}) {
@@ -209,6 +227,15 @@ function actionKey(action = {}) {
         action.to || '',
         normalizeLabel(action.label || '')
     ].join(':');
+}
+
+function actionRequiresEvidence(action = {}) {
+    const lifecycle = action.lifecycle || {};
+    return Boolean(
+        lifecycle.description ||
+        Object.keys(lifecycle.attachments || {}).length > 0 ||
+        Object.keys(lifecycle.snapshots || {}).length > 0
+    );
 }
 
 const secondaryRegions = computed(() => regions.value.filter(region => region.id !== 'main'));
@@ -371,5 +398,12 @@ function normalizeEventType(type) {
             <slot name="extra"></slot>
         </div>
     </template>
+
+    <StatusTransitionDialog
+      v-model:visible="evidenceDialogVisible"
+      :action="evidenceAction"
+      :loading="isTransitioning"
+      @submit="submitEvidenceTransition"
+    />
   </div>
 </template>

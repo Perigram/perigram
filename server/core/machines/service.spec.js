@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, afterAll, beforeAll, vi } from 'vitest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, ObjectId } from 'mongodb';
 
@@ -42,6 +42,8 @@ describe('status service lifecycle payloads', () => {
   });
 
   beforeEach(async () => {
+    vi.restoreAllMocks();
+    mockedConnectDB.mockReturnValue(db);
     await db.collection('cassette_instances').deleteMany({});
     await db.collection('cassettes').deleteMany({});
     await db.collection('nesting_runs').deleteMany({});
@@ -49,6 +51,10 @@ describe('status service lifecycle payloads', () => {
     await db.collection('projects').deleteMany({});
     await db.collection('queues').deleteMany({});
     await db.collection('status_events').deleteMany({});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('uses full auth context and registry collection metadata for cassette transitions', async () => {
@@ -452,6 +458,90 @@ describe('status service lifecycle payloads', () => {
       severity: 'danger',
       icon: 'pi pi-trash'
     });
+    workflowSpy.mockRestore();
+  });
+
+  it('captures status evidence attachments and declared relation snapshots', async () => {
+    const queueId = 'queue-evidence';
+    const fileId = new ObjectId().toString();
+    const workflowSpy = vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      schemaVersion: 2,
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'DRAFT',
+          states: {
+            DRAFT: { canUpdateMeta: true },
+            SENT: {
+              canUpdateLifecycle: true,
+              lifecycle: {
+                description: { required: true },
+                attachments: {
+                  proof: { required: true, multiple: false, kind: 'mounting-proof' }
+                },
+                snapshots: {
+                  designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+                }
+              }
+            }
+          },
+          transitions: [{ from: 'DRAFT', to: 'SENT', processRoleIds: ['role_operator'] }]
+        }
+      }
+    });
+
+    await db.collection('queues').insertOne({
+      _id: queueId,
+      identity: { uid: queueId, name: 'Evidence Queue' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} }
+    });
+    await db.collection('cassette_designs').insertOne({
+      _id: 'design-1',
+      identity: { uid: 'design-1', name: 'Design 1' },
+      lineage: { organizationId: 'org-1', queueId },
+      status: { state: 'READY', userId: 'creator', timestamp: new Date(), metadata: {} }
+    });
+
+    const auth = {
+      userId: 'operator-1',
+      roleAssignments: { roleIds: ['role_operator'] },
+      memberships: [{
+        organizationId: 'org-1',
+        permissions: { queues: 'write', cassette_designs: 'read' }
+      }]
+    };
+
+    const actions = await statusService.getActions('queue', queueId, auth);
+    expect(actions.actions[0].lifecycle.attachments.proof.required).toBe(true);
+
+    await expect(statusService.transition('queue', queueId, 'SENT', 'operator-1', auth, {
+      lifecycle: { attachments: { proof: { fileId, name: 'proof.jpg' } } }
+    })).rejects.toThrow(/Status description is required/);
+
+    await statusService.transition('queue', queueId, 'SENT', 'operator-1', auth, {
+      metadata: { note: 'Mounted with photo proof' },
+      lifecycle: {
+        attachments: { proof: { fileId, name: 'proof.jpg', bucketName: 'uploads' } }
+      }
+    });
+
+    const entity = await db.collection('queues').findOne({ _id: queueId });
+    const proof = entity.status.lifecycle.attachments.proof;
+    expect(proof.fileId).toBe(fileId);
+    expect(proof.attachmentKey).toMatch(/^status_proof_/);
+    expect(entity.attachments[proof.attachmentKey].kind).toBe('mounting-proof');
+    expect(entity.status.lifecycle.data.snapshots.designs).toMatchObject({
+      entityType: 'cassette_design',
+      lineageKey: 'queueId',
+      count: 1,
+      refs: [{ id: 'design-1', label: 'Design 1', status: 'READY' }]
+    });
+
+    const event = await db.collection('status_events').findOne({ targetId: queueId });
+    expect(event.status.lifecycle.attachments.proof.attachmentKey).toBe(proof.attachmentKey);
+    expect(event.status.lifecycle.data.snapshots.designs.count).toBe(1);
+
     workflowSpy.mockRestore();
   });
 

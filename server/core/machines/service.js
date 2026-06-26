@@ -14,9 +14,9 @@ import {
   normalizeWorkflow,
   validateTransition
 } from '~/packages/workflows/src/index.js';
-import { assertTransitionAccess } from '../access/service.js';
+import { assertTransitionAccess, hasEntityAccess } from '../access/service.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
-import { getEntityCollection, normalizeEntityType } from '~/server/runtime/entities.js';
+import { getEntityCollection, getEntityDefinition, normalizeEntityType } from '~/server/runtime/entities.js';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
@@ -181,7 +181,8 @@ export const statusService = {
         role: auth.role,
         actorId: auth.userId,
         currentStatus: entity.status,
-        lifecycle
+        lifecycle,
+        requireLifecyclePayload: false
       });
 
       if (!validation.ok) continue;
@@ -208,7 +209,8 @@ export const statusService = {
         to: transition.to,
         intent: transition.intent || null,
         display: transition.display,
-        displayBtn: transition.displayBtn
+        displayBtn: transition.displayBtn,
+        lifecycle: region.states?.[transition.to]?.lifecycle || null
       });
       }
     }
@@ -273,11 +275,23 @@ async function performTransition(entityType, targetId, targetState, userId, user
     const currentState = getRegionState(entity.status, regionId, workflowRegion?.initial);
     const targetStateDefinition = workflowRegion?.states?.[targetState] || {};
     const transitionMetadata = mergeStatusDisplayMetadata(transitionContext.metadata, targetStateDefinition);
-    const targetLifecycleSchema = workflowRegion?.states?.[targetState]?.lifecycle;
-    const lifecycleForValidation = targetLifecycleSchema
+    const targetLifecycleSchema = targetStateDefinition.lifecycle;
+    let lifecycleForValidation = targetLifecycleSchema
       ? mergeLifecycle(entity.status?.lifecycle, transitionContext.lifecycle)
       : transitionContext.lifecycle;
+    const eventId = new ObjectId();
+    const evidence = await prepareStatusEvidence({
+      db,
+      entity,
+      entityType: normalizedEntityType,
+      auth,
+      eventId,
+      lifecycle: targetLifecycleSchema ? lifecycleForValidation : normalizeLifecycle(),
+      schema: targetLifecycleSchema
+    });
+    lifecycleForValidation = evidence.lifecycle;
     const lifecycleForStatus = targetLifecycleSchema ? lifecycleForValidation : normalizeLifecycle();
+    validateStatusMetadataPayload(transitionMetadata, targetLifecycleSchema);
     
     // 1. Validate Transition
     const validation = validateTransition({
@@ -332,7 +346,6 @@ async function performTransition(entityType, targetId, targetState, userId, user
     await runTransitionHooks(transition, 'before', hookContext);
     
     // 3. Create Event Record
-    const eventId = new ObjectId();
     const nextState = applyWorkflowTransitionState(
       entity.status?.state || createWorkflowState(normalizedMachine),
       normalizedMachine,
@@ -362,7 +375,7 @@ async function performTransition(entityType, targetId, targetState, userId, user
     // 4. Update Entity Snapshot
     await db.collection(collection).updateOne(
       { _id: flexId },
-      { $set: { status: statusData } }
+      { $set: { status: statusData, ...evidence.entityAttachmentSet } }
     );
 
     const afterEffects = await runTransitionHooks(
@@ -466,6 +479,166 @@ function normalizeAuthContext(userId, userRole, metadata = {}) {
   if (userRole && typeof userRole === 'object') return createTransitionAuth(userId, userRole, metadata);
   if (metadata.auth && typeof metadata.auth === 'object') return createTransitionAuth(userId, metadata.auth, metadata);
   return createTransitionAuth(userId, userRole, metadata);
+}
+
+async function prepareStatusEvidence({ db, entity, entityType, auth, eventId, lifecycle = {}, schema = null }) {
+  const normalized = normalizeLifecycle(lifecycle);
+  if (!schema) return { lifecycle: normalized, entityAttachmentSet: {} };
+
+  const attachments = normalizeLifecycleAttachmentRefs({
+    lifecycleAttachments: normalized.attachments,
+    schemaAttachments: schema.attachments || {},
+    eventId
+  });
+  const snapshots = await captureLifecycleSnapshots({
+    db,
+    entity,
+    entityType,
+    auth,
+    snapshotSchema: schema.snapshots || {}
+  });
+  const data = {
+    ...normalized.data,
+    ...(Object.keys(snapshots).length
+      ? { snapshots: { ...(normalized.data.snapshots || {}), ...snapshots } }
+      : {})
+  };
+
+  return {
+    lifecycle: {
+      ...normalized,
+      attachments: attachments.lifecycleAttachments,
+      data
+    },
+    entityAttachmentSet: attachments.entityAttachmentSet
+  };
+}
+
+function validateStatusMetadataPayload(metadata = {}, lifecycleSchema = null) {
+  const description = lifecycleSchema?.description;
+  if (!description?.required) return;
+  const note = metadata?.note || metadata?.description;
+  if (!String(note || '').trim()) {
+    throw createError({
+      statusCode: 400,
+      message: 'Status description is required for this transition'
+    });
+  }
+}
+
+function normalizeLifecycleAttachmentRefs({ lifecycleAttachments = {}, schemaAttachments = {}, eventId }) {
+  const entityAttachmentSet = {};
+  const nextAttachments = {};
+
+  for (const [slot, value] of Object.entries(lifecycleAttachments || {})) {
+    const slotSchema = schemaAttachments[slot] || {};
+    if (Array.isArray(value)) {
+      nextAttachments[slot] = value.map((item, index) => normalizeLifecycleAttachmentRef({
+        slot,
+        slotSchema,
+        item,
+        eventId,
+        index,
+        entityAttachmentSet
+      })).filter(Boolean);
+      continue;
+    }
+
+    const normalized = normalizeLifecycleAttachmentRef({
+      slot,
+      slotSchema,
+      item: value,
+      eventId,
+      index: null,
+      entityAttachmentSet
+    });
+    if (normalized) nextAttachments[slot] = normalized;
+  }
+
+  return { lifecycleAttachments: nextAttachments, entityAttachmentSet };
+}
+
+function normalizeLifecycleAttachmentRef({ slot, slotSchema = {}, item = {}, eventId, index = null, entityAttachmentSet }) {
+  if (!item || typeof item !== 'object') return null;
+  const fileId = item.fileId || item.id;
+  if (!fileId) return item;
+  const attachmentKey = item.attachmentKey || ['status', slot, eventId?.toString(), index]
+    .filter(value => value !== null && value !== undefined)
+    .map(mongoSafeAttachmentKeyPart)
+    .join('_');
+  const bucketName = item.bucketName || item.bucket || 'uploads';
+  const name = item.name || item.filename || '';
+  const kind = item.kind || slotSchema.kind || slot;
+  entityAttachmentSet[`attachments.${attachmentKey}`] = {
+    kind,
+    fileId: toFlexibleId(fileId),
+    name,
+    metadata: {
+      ...(item.metadata || {}),
+      bucketName,
+      statusEventId: eventId?.toString(),
+      slot
+    },
+    timestamp: new Date(),
+    bucketName,
+    url: item.url || `/api/files/download/${fileId}?bucket=${bucketName}`
+  };
+
+  return {
+    attachmentKey,
+    fileId: fileId?.toString?.() || fileId,
+    bucketName,
+    kind,
+    name,
+    url: item.url || `/api/files/download/${fileId}?bucket=${bucketName}`
+  };
+}
+
+function mongoSafeAttachmentKeyPart(value) {
+  return String(value || '').replace(/[^a-zA-Z0-9_-]+/g, '_');
+}
+
+async function captureLifecycleSnapshots({ db, entity, entityType, auth, snapshotSchema = {} }) {
+  const snapshots = {};
+  for (const [key, definition] of Object.entries(snapshotSchema || {})) {
+    if (!definition?.entityType) continue;
+    const targetEntityType = normalizeEntityType(definition.entityType);
+    const collection = getEntityCollection(targetEntityType);
+    if (!collection) continue;
+    const lineageKey = definition.lineageKey || `${entityType}Id`;
+    const entityId = entity?._id || entity?.identity?.uid;
+    const candidates = [entityId, entityId?.toString?.()].filter(Boolean);
+    const filter = {
+      [`lineage.${lineageKey}`]: candidates.length > 1 ? { $in: candidates } : candidates[0]
+    };
+    const limit = Math.max(1, Math.min(Number(definition.limit || 50), 100));
+    const docs = await db.collection(collection).find(filter).limit(limit).toArray();
+    const entityDefinition = getEntityDefinition(targetEntityType);
+    const feature = entityDefinition?.feature || entityDefinition?.collection || targetEntityType;
+    const readable = docs.filter(doc => hasEntityAccess({
+      entity: doc,
+      feature,
+      level: 'read',
+      auth,
+      entityType: targetEntityType
+    }));
+    snapshots[key] = {
+      capturedAt: new Date(),
+      entityType: targetEntityType,
+      lineageKey,
+      count: readable.length,
+      refs: readable.map(snapshotEntityRef)
+    };
+  }
+  return snapshots;
+}
+
+function snapshotEntityRef(entity = {}) {
+  return {
+    id: entity._id?.toString?.() || entity._id || entity.identity?.uid || '',
+    label: entity.identity?.name || entity.identity?.slug || entity.identity?.uid || entity._id?.toString?.() || '',
+    status: getPrimaryState(entity.status)
+  };
 }
 
 function mergeLifecycle(current = {}, next = {}) {

@@ -166,6 +166,33 @@ describe('Design system manifest', () => {
     expect(actions.map(action => action.to)).toEqual(['READY_FOR_TEST']);
   });
 
+  it('passes target lifecycle evidence schema through status actions', () => {
+    const actions = getWorkflowStatusActions({
+      entityType: 'queue',
+      state: 'DRAFT',
+      workflows: {
+        queue: {
+          initial: 'DRAFT',
+          states: {
+            DRAFT: {},
+            SENT: {
+              lifecycle: {
+                description: { required: true },
+                attachments: { proof: { required: true } }
+              }
+            }
+          },
+          transitions: [{ from: 'DRAFT', to: 'SENT' }]
+        }
+      }
+    });
+
+    expect(actions[0].lifecycle).toEqual({
+      description: { required: true },
+      attachments: { proof: { required: true } }
+    });
+  });
+
   it('keeps local workflow preview transitions out of the server status API', () => {
     const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
     const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');

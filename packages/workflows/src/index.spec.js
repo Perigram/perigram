@@ -82,6 +82,74 @@ describe('workflow transition validation', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('requires lifecycle attachment slots declared as required', () => {
+    const result = validateTransition({
+      workflow: {
+        ...workflow,
+        regions: {
+          ...workflow.regions,
+          main: {
+            ...workflow.regions.main,
+            states: {
+              ...workflow.regions.main.states,
+              REVIEW: {
+                lifecycle: {
+                  attachments: { proof: { multiple: false, required: true } }
+                }
+              }
+            }
+          }
+        }
+      },
+      currentState: 'DRAFT',
+      targetState: 'REVIEW',
+      role: 'EDITOR',
+      lifecycle: { attachments: {} }
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('lifecycle_attachment_required');
+  });
+
+  it('accepts declared lifecycle snapshots without allowing arbitrary data', () => {
+    const snapshotWorkflow = {
+      ...workflow,
+      regions: {
+        ...workflow.regions,
+        main: {
+          ...workflow.regions.main,
+          states: {
+            ...workflow.regions.main.states,
+            REVIEW: {
+              lifecycle: {
+                snapshots: { children: { entityType: 'child', required: true } }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    expect(validateTransition({
+      workflow: snapshotWorkflow,
+      currentState: 'DRAFT',
+      targetState: 'REVIEW',
+      role: 'EDITOR',
+      lifecycle: { data: { snapshots: { children: { count: 1 } } } }
+    }).ok).toBe(true);
+
+    const arbitraryData = validateTransition({
+      workflow: snapshotWorkflow,
+      currentState: 'DRAFT',
+      targetState: 'REVIEW',
+      role: 'EDITOR',
+      lifecycle: { data: { measurements: { width: 10 } } }
+    });
+
+    expect(arbitraryData.ok).toBe(false);
+    expect(arbitraryData.reason).toBe('lifecycle_data_not_allowed');
+  });
+
   it('requires declared transition capability when present', () => {
     const result = validateTransition({
       workflow,

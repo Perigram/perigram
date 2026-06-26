@@ -99,7 +99,7 @@ export function applyWorkflowTransitionState(currentState, workflow = {}, transi
   return { schemaVersion: 2, primary, active, regions };
 }
 
-export function validateTransition({ workflow, currentState, currentStatus = null, targetState, region = null, path = null, role, actorId = null, lifecycle = {} }) {
+export function validateTransition({ workflow, currentState, currentStatus = null, targetState, region = null, path = null, role, actorId = null, lifecycle = {}, requireLifecyclePayload = true }) {
   if (!workflow) return { ok: false, reason: 'workflow_missing' };
   const normalized = normalizeWorkflow(workflow);
   const regionId = region || normalized.primaryRegion || 'main';
@@ -115,7 +115,7 @@ export function validateTransition({ workflow, currentState, currentStatus = nul
   );
 
   if (!transition && !selfLoop) return { ok: false, reason: 'invalid_transition', from, to: targetState, region: regionId };
-  const lifecycleValidation = validateLifecyclePayload(stateDefinition.lifecycle, lifecycle);
+  const lifecycleValidation = validateLifecyclePayload(stateDefinition.lifecycle, lifecycle, { requireRequired: requireLifecyclePayload });
   if (!lifecycleValidation.ok) return { ...lifecycleValidation, from, to: targetState, region: regionId };
 
   const actorValidation = validateActorGuard({
@@ -146,10 +146,11 @@ export function hasLifecyclePayload(lifecycle = {}) {
     Object.keys(normalized.data).length > 0;
 }
 
-export function validateLifecyclePayload(schema, lifecycle = {}) {
+export function validateLifecyclePayload(schema, lifecycle = {}, options = {}) {
+  const { requireRequired = true } = options;
   const normalized = normalizeLifecycle(lifecycle);
-  if (!hasLifecyclePayload(normalized)) return { ok: true };
-  if (!schema) return { ok: false, reason: 'lifecycle_not_allowed' };
+  const hasPayload = hasLifecyclePayload(normalized);
+  if (!schema) return hasPayload ? { ok: false, reason: 'lifecycle_not_allowed' } : { ok: true };
 
   const allowedActors = Array.isArray(schema.actors) ? schema.actors : [];
   for (const actor of normalized.actors) {
@@ -160,6 +161,14 @@ export function validateLifecyclePayload(schema, lifecycle = {}) {
   }
 
   const attachmentSchema = schema.attachments || {};
+  for (const [slot, slotSchema] of Object.entries(attachmentSchema)) {
+    if (!requireRequired || !slotSchema?.required) continue;
+    const value = normalized.attachments[slot];
+    if (value === undefined || value === null || (Array.isArray(value) && value.length === 0)) {
+      return { ok: false, reason: 'lifecycle_attachment_required', slot };
+    }
+  }
+  if (!hasPayload) return { ok: true };
   for (const [slot, value] of Object.entries(normalized.attachments)) {
     const slotSchema = attachmentSchema[slot];
     if (!slotSchema) return { ok: false, reason: 'lifecycle_attachment_not_allowed', slot };
@@ -171,8 +180,23 @@ export function validateLifecyclePayload(schema, lifecycle = {}) {
     }
   }
 
-  if (Object.keys(normalized.data).length > 0 && schema.data !== true) {
+  const dataKeys = Object.keys(normalized.data);
+  const hasOnlyDeclaredSnapshotData = dataKeys.length === 1 && dataKeys[0] === 'snapshots' && schema.snapshots;
+  if (dataKeys.length > 0 && schema.data !== true && !hasOnlyDeclaredSnapshotData) {
     return { ok: false, reason: 'lifecycle_data_not_allowed' };
+  }
+
+  const snapshotSchema = schema.snapshots || {};
+  const snapshots = normalized.data?.snapshots && typeof normalized.data.snapshots === 'object'
+    ? normalized.data.snapshots
+    : {};
+  for (const [key, snapshot] of Object.entries(snapshotSchema)) {
+    if (requireRequired && snapshot?.required && !snapshots[key]) {
+      return { ok: false, reason: 'lifecycle_snapshot_required', snapshot: key };
+    }
+  }
+  for (const key of Object.keys(snapshots)) {
+    if (!snapshotSchema[key]) return { ok: false, reason: 'lifecycle_snapshot_not_allowed', snapshot: key };
   }
 
   return { ok: true };
