@@ -80,7 +80,9 @@ The inspector edits compiler-owned fields directly:
 - the screens tab owns screen id, label, generated UI template, source entity/mode rows, display region rows, route, placement, required access, role ids, assignment binding, and screen action ids;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket;
-- process algebra nodes own kind, operation/mode, entity contracts, field path, scalar value type, and typed input/output sockets;
+- process algebra nodes own a use-case selector plus the contextual entity,
+  field, or output-value settings needed for that use case; the route derives
+  kind, operation/mode, and typed input/output sockets from that selection;
 - service nodes own command selection, run/view service identities, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 

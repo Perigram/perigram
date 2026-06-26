@@ -77,6 +77,17 @@
       source/transform records only; action nodes remain the effect boundary for
       persistent mutations and external work.
 
+    [2026-06-26] Make process algebra node settings use-case oriented
+    Files changed: pages/organization/process.vue, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, TODO.org
+    Notes: The process-node inspector now exposes concrete use cases such as
+      parent traversal, field reads, comparisons, boolean composition, and
+      collection counts instead of raw kind/operation fields. Contextual
+      settings hide irrelevant entity/path/value controls while preserving the
+      same canonical `processNodes` record contract.
+
     [2026-06-26] Keep cassette-design construction template-backed, not queue-parented.
     Files changed: packages/processes/src/index.js, packages/processes/src/index.spec.js, packages/domain-cnc/src/ui-fields.js, shared/design-system.spec.js, shared/framework-packages.spec.js, framework.manifest.json, components/generated/GeneratedEntityCollection.vue, components/generated/action-context.js, components/generated/action-context.spec.js
     Docs updated: components/README.md, components/process-designer/README.md, components/entities/CassetteDesign/README.md, packages/processes/README.md, server/features/process-definitions/README.md, server/features/queues/README.md, TODO.org
