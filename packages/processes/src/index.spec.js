@@ -341,16 +341,12 @@ describe('@cutkit/processes compiler', () => {
           {
             id: 'action_1782325272900-output-action_1782325155992-input:parent-1782325499401',
             source: 'create_queue',
-            target: 'create_cassette',
-            sourceHandle: 'output',
-            targetHandle: 'input:parent'
+            target: 'create_cassette'
           },
           {
             id: 'action_1782406722872-output-action_1782326891750-input:parent-1782407146418',
             source: 'library_profile',
-            target: 'create_cassette',
-            sourceHandle: 'output',
-            targetHandle: 'input:parent'
+            target: 'create_cassette'
           }
         ]
       },
@@ -398,16 +394,12 @@ describe('@cutkit/processes compiler', () => {
           {
             id: 'action_1782325683073-output:nesting_run-action_1782325734315-input:entity-1782325754528',
             source: 'solve_nesting',
-            target: 'mark_run_cut',
-            sourceHandle: 'output:nesting_run',
-            targetHandle: 'input:entity'
+            target: 'mark_run_cut'
           },
           {
             id: 'action_1782325683073-output:sheet_design-action_1782402888990-input:entity-1782402899087',
             source: 'solve_nesting',
-            target: 'mark_sheet_cut',
-            sourceHandle: 'output:sheet_design',
-            targetHandle: 'input:entity'
+            target: 'mark_sheet_cut'
           }
         ]
       },

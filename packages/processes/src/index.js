@@ -249,15 +249,28 @@ function normalizeNode(node = {}) {
 }
 
 function normalizeEdge(edge = {}) {
+  const sourceHandle = edge.sourceHandle || inferEdgeHandle(edge, 'source');
+  const targetHandle = edge.targetHandle || inferEdgeHandle(edge, 'target');
   return {
     id: String(edge.id || `${edge.source || ''}-${edge.target || ''}`),
     source: String(edge.source || ''),
     target: String(edge.target || ''),
-    sourceHandle: edge.sourceHandle || null,
-    targetHandle: edge.targetHandle || null,
+    sourceHandle,
+    targetHandle,
     type: edge.type || 'default',
     data: edge.data && typeof edge.data === 'object' ? edge.data : {}
   };
+}
+
+function inferEdgeHandle(edge = {}, side = 'source') {
+  const dataKey = side === 'source' ? 'sourceHandle' : 'targetHandle';
+  if (edge.data?.[dataKey]) return edge.data[dataKey];
+  const id = String(edge.id || '');
+  const pattern = side === 'source'
+    ? /(?:^|[-])((?:output)(?::[A-Za-z0-9_.:]+)?)(?=[-]|$)/
+    : /(?:^|[-])((?:input|data)(?::[A-Za-z0-9_.:]+)?)(?=[-]|$)/;
+  const match = id.match(pattern);
+  return match?.[1] || null;
 }
 
 function normalizeRecord(value) {
