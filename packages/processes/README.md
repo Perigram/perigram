@@ -93,6 +93,12 @@ entities, entity lists, canonical blocks, data values, statuses, events,
 organization projections, attachments, and task outputs. It prevents clear
 kind/entity mismatches while keeping generic authoring sockets, such as
 create-action parent inputs, available for later compiler lineage validation.
+The resolver treats the `input:parent` handle as a generic parent socket even
+when a saved action record still contains stale concrete parent metadata, so old
+`label: cassette` or `parentEntityType: cassette` values do not make every
+parent wire validate as cassette-only. Command outputs that produce an entity
+collection may feed same-entity row actions through `input:entity`; the entity
+type still has to match.
 When a graph edge connects an action output to another action's `parent` input,
 that edge is authoritative over stale stored `parentEntityType` or parent input
 metadata. This keeps detail-screen child regions aligned with the visual graph

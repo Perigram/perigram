@@ -154,7 +154,10 @@ Wires are checked against the process package's typed port contract before they
 are persisted. Clear type mismatches, such as event-to-entity, status-to-data,
 or different concrete entity types, are rejected with a localized toast. Generic
 authoring sockets such as create-action parent inputs stay connectable so the
-compiler can apply domain lineage validation afterward.
+compiler can apply domain lineage validation afterward. Stale labels or saved
+parent entity metadata on a create action do not narrow the visual `parent`
+handle during edge validation. Command outputs that return collections can feed
+same-entity row actions through the standard `entity` input.
 
 Command sockets should expose abstract domain contracts when a command is
 polymorphic. For example, `generateAttachment` presents one `Attachment source`

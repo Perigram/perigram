@@ -130,7 +130,11 @@ toast and are also reported by process compiler validation when stale persisted
 graphs contain them. Generic parent sockets remain connectable; the compiler
 continues to decide whether the connected entity is a valid domain lineage
 parent. Entity-typed construction inputs are separate data sockets, not create
-parent sockets.
+parent sockets. Saved create-action parent labels are not used as the edge
+contract, so an old `cassette` label on the parent input does not make the
+canvas reject queue or library parent wires before compiler lineage checks run.
+Command collection outputs can connect to same-entity row actions through the
+standard entity handle.
 The canvas keeps data and event contracts visually separate. Left and right data
 handles are not headed with literal "inputs" or "outputs"; the socket label
 itself is the contract. Event-triggered actions receive the event on the left
