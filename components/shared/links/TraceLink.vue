@@ -7,7 +7,7 @@
     >
         <i :class="config.icon" class="shrink-0"></i>
         <span class="truncate">
-            {{ label || id }}
+            {{ label || fallbackLabel || id }}
         </span>
     </NuxtLink>
 </template>
@@ -26,6 +26,10 @@ const props = defineProps({
         required: true
     },
     label: {
+        type: String,
+        default: ''
+    },
+    fallbackLabel: {
         type: String,
         default: ''
     },

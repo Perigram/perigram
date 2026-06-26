@@ -22,7 +22,8 @@ export const useEntityStore = defineStore('entities', () => {
         batchPile: {},
         sheet: {},
         remnant: {},
-        cassetteTemplate: {}
+        cassetteTemplate: {},
+        library: {}
     });
 
     const loading = ref(false);
@@ -64,6 +65,7 @@ export const useEntityStore = defineStore('entities', () => {
      */
     async function fetchEntity(type, id, force = false, options = {}) {
         if (!type || !id) return null;
+        registry.value[type] ||= {};
         if (!force && registry.value[type][id]) return registry.value[type][id];
 
         loading.value = true;
@@ -76,6 +78,10 @@ export const useEntityStore = defineStore('entities', () => {
                 requisition: `/api/requisitions/${id}`,
                 batch: `/api/material-piles/${id}`,
                 cassetteInstance: `/api/cassette-instances/${id}`,
+                cassetteTemplate: `/api/cassettes/${id}`,
+                cassetteDesign: `/api/cassette-designs/${id}`,
+                sheetDesign: `/api/sheet-designs/${id}`,
+                library: `/api/libraries/${id}`,
                 // ... others as endpoints are implemented
             };
 

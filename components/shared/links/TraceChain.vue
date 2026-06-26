@@ -26,7 +26,8 @@
                     v-else
                     :type="item.type"
                     :id="item.id"
-                    :label="labels[item.id] || item.id"
+                    :label="labels[labelKey(item)] || item.label || ''"
+                    :fallback-label="fallbackLabel(item)"
                     :slug="item.slug"
                     class="max-w-[14rem]"
                 />
@@ -61,6 +62,15 @@ const isExpanded = ref(!props.expandable);
 const { lineage: entityLineage } = useLineage(toRef(props, 'entity'));
 const labels = ref({});
 
+const FALLBACK_LABELS = {
+    organization: 'Organization',
+    library: 'Library',
+    cassetteTemplate: 'Cassette',
+    warehouse: 'Warehouse',
+    project: 'Project',
+    queue: 'Queue'
+};
+
 const activeLineage = computed(() => props.lineage || entityLineage.value);
 
 const items = computed(() => {
@@ -82,20 +92,51 @@ const findContextEntity = (type, id) => {
     const context = unref(entityContext);
     if (!context?.entities || !type || !id) return null;
     const key = id.toString();
-    const byType = context.entities[type];
-    if (byType?.[key]) return byType[key];
-    if (Array.isArray(byType)) return byType.find(entity => entity?._id?.toString() === key) || null;
-    return Object.values(byType || {}).find(entity => entity?._id?.toString() === key) || null;
+    for (const candidate of contextTypeCandidates(type)) {
+        const byType = context.entities[candidate];
+        if (byType?.[key]) return byType[key];
+        if (Array.isArray(byType)) {
+            const match = byType.find(entity => entity?._id?.toString() === key) || null;
+            if (match) return match;
+            continue;
+        }
+        const match = Object.values(byType || {}).find(entity => entity?._id?.toString() === key) || null;
+        if (match) return match;
+    }
+    return null;
+};
+
+const contextTypeCandidates = (type) => {
+    const aliases = {
+        cassetteTemplate: 'cassette',
+        sheetDesign: 'sheet_design'
+    };
+    return Array.from(new Set([type, aliases[type]].filter(Boolean)));
+};
+
+const labelKey = (item) => `${item.type}:${item.id}`;
+
+const fallbackLabel = (item) => item?.label || FALLBACK_LABELS[item?.type] || '';
+
+const entityLabel = (entity) => {
+    return entity?.identity?.name
+        || entity?.name
+        || entity?.title
+        || entity?.data?.name
+        || entity?.data?.title
+        || '';
 };
 
 // Resolve entity names for all lineage items, using the injected context first.
 watchEffect(async () => {
     for (const item of items.value) {
-        if (labels.value[item.id]) continue;
+        const key = labelKey(item);
+        if (labels.value[key]) continue;
         const contextEntity = findContextEntity(item.type, item.id);
         const entity = contextEntity || await entityStore.fetchEntity(item.type, item.id, false, { silent: true });
-        if (entity?.identity?.name) {
-            labels.value[item.id] = entity.identity.name;
+        const label = entityLabel(entity);
+        if (label) {
+            labels.value[key] = label;
         }
     }
 });
