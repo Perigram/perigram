@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-26] Add typed process designer port compatibility
+    Files changed: packages/processes/src/ports.js,
+      packages/processes/src/index.js, packages/processes/src/index.spec.js,
+      pages/organization/process.vue, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md, TODO.org
+    Notes: Process edges now resolve typed source/target port contracts before
+      persistence and during compiler validation. Clear event/status/entity/data
+      mismatches are rejected, while generic parent sockets remain connectable
+      so domain lineage checks stay compiler-owned.
+
     [2026-06-26] Add process status evidence authoring
     Files changed: pages/organization/process.vue,
       packages/processes/src/index.js, packages/processes/src/index.spec.js,
