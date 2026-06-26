@@ -43,9 +43,6 @@ export const cncEntityFieldGroups = {
     ]
   },
   cassette: {
-    summary: [
-      { path: 'data.parameters.length', i18n: 'cassette.parametersTitle', display: 'count', priority: 10 }
-    ],
     relations: [
       { path: 'lineage.libraryId', i18n: 'entities.library', display: 'entityRef', entityType: 'library', priority: 5 }
     ],
@@ -57,9 +54,6 @@ export const cncEntityFieldGroups = {
     ]
   },
   cassetteTemplate: {
-    summary: [
-      { path: 'data.parameters.length', i18n: 'cassette.parametersTitle', display: 'count', priority: 10 }
-    ],
     geometry: [
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
     ],
@@ -69,7 +63,13 @@ export const cncEntityFieldGroups = {
   },
   cassetteDesign: {
     summary: [
-      { path: 'data.parameters', i18n: 'cassette.parametersTitle', display: 'objectSummary', priority: 10 }
+      {
+        path: 'data.parameters',
+        fallbackPaths: ['data.derivedFrom.parameters'],
+        i18n: 'cassette.parametersTitle',
+        display: 'parameterMap',
+        priority: 10
+      }
     ],
     geometry: [
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }

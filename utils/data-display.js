@@ -6,6 +6,10 @@ export function resolveDataPath(obj, path) {
 export function formatDataValue(raw, field = {}) {
   if (raw == null || raw === '') return null;
 
+  if (field.display === 'parameterMap') {
+    return formatParameterMap(raw);
+  }
+
   if (typeof raw === 'boolean') {
     return raw ? (field.trueLabel || 'Yes') : (field.falseLabel || 'No');
   }
@@ -32,6 +36,14 @@ export function formatDataValue(raw, field = {}) {
   }
 
   return String(raw);
+}
+
+export function formatParameterMap(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const parts = Object.entries(raw)
+    .filter(([key, value]) => key && isScalar(value) && value !== '')
+    .map(([key, value]) => `${key}=${String(value)}`);
+  return parts.length ? parts.join(', ') : null;
 }
 
 export function decorateDataValue(raw, field = {}) {

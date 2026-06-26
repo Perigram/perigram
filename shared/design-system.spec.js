@@ -122,6 +122,12 @@ describe('Design system manifest', () => {
     expect(template).not.toHaveProperty('parameters');
   });
 
+  it('formats cassette design parameter maps as exact named values', () => {
+    const design = factories.createMockCassetteDesign();
+
+    expect(decorateDataValue(design.data.parameters, { display: 'parameterMap' })).toBe('A=1200, B=400, C=35');
+  });
+
   it('keeps material pile and batch pile demo DTOs distinct', () => {
     const material = factories.createMockMaterial();
     const materialPile = factories.createMockPile();
@@ -226,12 +232,15 @@ describe('Design system manifest', () => {
   it('keeps framework manifest UI fields tied to canonical DTO paths', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'framework.manifest.json'), 'utf8'));
     const cassette = manifest.designSystem.components.find(component => component.key === 'cassette');
+    const cassetteDesign = manifest.designSystem.components.find(component => component.key === 'cassetteDesign');
     const cassetteTemplate = manifest.designSystem.components.find(component => component.key === 'cassetteTemplate');
 
     expect(manifest.validations).toEqual({ ok: true, issues: [] });
-    expect(cassette.fieldPaths).toEqual(['data.parameters.length']);
+    expect(cassette.fieldPaths).toEqual([]);
     expect(cassette.fieldPaths).not.toContain('data.type');
-    expect(cassetteTemplate.fieldPaths).toEqual(['data.parameters.length']);
+    expect(cassetteDesign.fieldPaths).toEqual(['data.parameters']);
+    expect(DESIGN_SYSTEM_FIELD_GROUPS.cassetteDesign.summary[0].fallbackPaths).toEqual(['data.derivedFrom.parameters']);
+    expect(cassetteTemplate.fieldPaths).toEqual([]);
     expect(cassetteTemplate.fieldPaths).not.toContain('type');
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
   });

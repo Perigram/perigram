@@ -266,8 +266,9 @@ describe('Framework package contracts', () => {
     const committed = JSON.parse(readFileSync('framework.manifest.json', 'utf8'));
     expect(committed).toEqual(generated);
     expect(committed.validations).toEqual({ ok: true, issues: [] });
-    expect(committed.designSystem.components.find(component => component.key === 'cassetteTemplate')?.fieldPaths).toEqual([
-      'data.parameters.length'
+    expect(committed.designSystem.components.find(component => component.key === 'cassetteTemplate')?.fieldPaths).toEqual([]);
+    expect(committed.designSystem.components.find(component => component.key === 'cassetteDesign')?.fieldPaths).toEqual([
+      'data.parameters'
     ]);
     expect(committed.designSystem.primitives).toContainEqual(expect.objectContaining({
       key: 'EntityPage',
