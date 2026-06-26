@@ -99,6 +99,11 @@ when a saved action record still contains stale concrete parent metadata, so old
 parent wire validate as cassette-only. Command outputs that produce an entity
 collection may feed same-entity row actions through `input:entity`; the entity
 type still has to match.
+Legacy saved edges that embedded handles only in the generated edge id are
+normalized back to explicit `sourceHandle` and `targetHandle` fields before
+validation or compilation. This preserves old wires such as
+`...-output:nesting_run-...-input:entity-...` and prevents them from falling
+back to stale generic record ports.
 When a graph edge connects an action output to another action's `parent` input,
 that edge is authoritative over stale stored `parentEntityType` or parent input
 metadata. This keeps detail-screen child regions aligned with the visual graph

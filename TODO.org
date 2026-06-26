@@ -53,6 +53,16 @@
       collection outputs remain valid sources for row-scoped status/update
       actions through `input:entity`.
 
+    [2026-06-26] Recover stale process edge handles from edge ids
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/transpiler.js, packages/processes/src/index.spec.js
+    Docs updated: packages/processes/README.md, TODO.org
+    Notes: Process edge normalization now restores missing `sourceHandle` and
+      `targetHandle` fields from legacy generated edge ids before validation,
+      compilation, or canvas round-tripping. This fixes saved graphs whose ids
+      contained handles such as `output:nesting_run` or `input:parent` while
+      the explicit handle fields were null.
+
     [2026-06-26] Keep cassette-design construction template-backed, not queue-parented.
     Files changed: packages/processes/src/index.js, packages/processes/src/index.spec.js, packages/domain-cnc/src/ui-fields.js, shared/design-system.spec.js, shared/framework-packages.spec.js, framework.manifest.json, components/generated/GeneratedEntityCollection.vue, components/generated/action-context.js, components/generated/action-context.spec.js
     Docs updated: components/README.md, components/process-designer/README.md, components/entities/CassetteDesign/README.md, packages/processes/README.md, server/features/process-definitions/README.md, server/features/queues/README.md, TODO.org
