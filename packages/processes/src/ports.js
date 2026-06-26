@@ -71,11 +71,19 @@ export function validateProcessEdges(process = {}) {
 export function resolveNodePort(process = {}, node = {}, handle = '', direction = 'output') {
   const record = recordForNode(process, node);
   if (!record) return null;
-  if (node.type === 'action' && direction === 'input' && normalizeHandleId(handle, direction) === 'trigger') {
+  const handleId = normalizeHandleId(handle, direction);
+  if (node.type === 'action' && direction === 'input' && handleId === 'trigger') {
     return normalizePortSpec({ id: 'trigger', label: 'event', kind: 'event' });
   }
-  if (node.type === 'action' && direction === 'output' && normalizeHandleId(handle, direction) === 'event') {
+  if (node.type === 'action' && direction === 'output' && handleId === 'event') {
     return normalizePortSpec({ id: 'event', label: 'event', kind: 'event' });
+  }
+  if (node.type === 'action' && direction === 'input' && record.actionKind === 'createEntity' && handleId === 'parent') {
+    return normalizePortSpec({ id: 'parent', label: 'Parent entity', kind: 'entity', optional: true });
+  }
+  if (node.type === 'action' && direction === 'input' && ['changeStatus', 'updateEntity'].includes(record.actionKind) && handleId === 'entity') {
+    const entityInput = (record.inputs || []).find(port => port.id === 'entity' || port.entityType);
+    return normalizePortSpec(entityInput || { id: 'entity', kind: 'entity' });
   }
   if (node.type === 'statusDefinition' && direction === 'output') {
     return normalizePortSpec({ id: 'status', label: record.label || record.statusId || 'status', kind: 'status' });

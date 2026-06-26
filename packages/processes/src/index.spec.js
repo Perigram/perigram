@@ -326,6 +326,120 @@ describe('@cutkit/processes compiler', () => {
     expect(validation.errors.join('\n')).not.toContain('incompatible ports');
   });
 
+  it('keeps stale create parent metadata generic during edge validation', () => {
+    const validation = validateProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator', label: 'Operator' }
+      },
+      graph: {
+        nodes: [
+          { id: 'create_queue', type: 'action', position: {}, data: { refId: 'create_queue' } },
+          { id: 'create_cassette', type: 'action', position: {}, data: { refId: 'create_cassette' } },
+          { id: 'library_profile', type: 'entity', position: {}, data: { refId: 'library_profile' } }
+        ],
+        edges: [
+          {
+            id: 'action_1782325272900-output-action_1782325155992-input:parent-1782325499401',
+            source: 'create_queue',
+            target: 'create_cassette',
+            sourceHandle: 'output',
+            targetHandle: 'input:parent'
+          },
+          {
+            id: 'action_1782406722872-output-action_1782326891750-input:parent-1782407146418',
+            source: 'library_profile',
+            target: 'create_cassette',
+            sourceHandle: 'output',
+            targetHandle: 'input:parent'
+          }
+        ]
+      },
+      entityProfiles: {
+        library_profile: {
+          id: 'library_profile',
+          entityType: 'library',
+          outputs: [{ id: 'entity', entityType: 'library' }]
+        }
+      },
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          outputs: [{ id: 'created', entityType: 'queue' }]
+        },
+        create_cassette: {
+          id: 'create_cassette',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          parentEntityType: 'cassette',
+          inputs: [{ id: 'parent', label: 'cassette', entityType: 'cassette', required: false }],
+          outputs: [{ id: 'created', entityType: 'cassette' }]
+        }
+      }
+    }, domain);
+
+    const portErrors = validation.errors.filter(error => error.includes('connects incompatible ports'));
+    expect(portErrors).toEqual([]);
+  });
+
+  it('accepts same-entity command collection outputs into row entity inputs', () => {
+    const validation = validateProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator', label: 'Operator' }
+      },
+      graph: {
+        nodes: [
+          { id: 'solve_nesting', type: 'action', position: {}, data: { refId: 'solve_nesting' } },
+          { id: 'mark_run_cut', type: 'action', position: {}, data: { refId: 'mark_run_cut' } },
+          { id: 'mark_sheet_cut', type: 'action', position: {}, data: { refId: 'mark_sheet_cut' } }
+        ],
+        edges: [
+          {
+            id: 'action_1782325683073-output:nesting_run-action_1782325734315-input:entity-1782325754528',
+            source: 'solve_nesting',
+            target: 'mark_run_cut',
+            sourceHandle: 'output:nesting_run',
+            targetHandle: 'input:entity'
+          },
+          {
+            id: 'action_1782325683073-output:sheet_design-action_1782402888990-input:entity-1782402899087',
+            source: 'solve_nesting',
+            target: 'mark_sheet_cut',
+            sourceHandle: 'output:sheet_design',
+            targetHandle: 'input:entity'
+          }
+        ]
+      },
+      actions: {
+        solve_nesting: {
+          id: 'solve_nesting',
+          actionKind: 'runCommand',
+          commandId: 'solveNesting',
+          outputs: [
+            { id: 'nesting_run', label: 'nesting_run', entityType: 'nesting_run', multiple: true },
+            { id: 'sheet_design', label: 'sheet_design', entityType: 'sheet_design', multiple: true }
+          ]
+        },
+        mark_run_cut: {
+          id: 'mark_run_cut',
+          actionKind: 'changeStatus',
+          inputs: [{ id: 'entity', label: 'nesting_run', entityType: 'nesting_run', multiple: true }],
+          outputs: [{ id: 'entity', entityType: 'nesting_run' }]
+        },
+        mark_sheet_cut: {
+          id: 'mark_sheet_cut',
+          actionKind: 'changeStatus',
+          inputs: [{ id: 'entity', label: 'sheet_design', entityType: 'sheet_design', multiple: true }],
+          outputs: [{ id: 'entity', entityType: 'sheet_design' }]
+        }
+      }
+    }, domain);
+
+    const portErrors = validation.errors.filter(error => error.includes('connects incompatible ports'));
+    expect(portErrors).toEqual([]);
+  });
+
   it('rejects fields outside the domain field policy', () => {
     const validation = validateProcessDefinition({
       entityProfiles: {
