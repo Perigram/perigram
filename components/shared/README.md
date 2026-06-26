@@ -302,6 +302,9 @@ relationship.
   `warehouseId`, `projectId`, and `queueId`.
   Trace labels must resolve to entity display names from context or the entity
   store; raw lineage ids are link targets only and must not be shown as labels.
+  Entity card bodies must not duplicate these supported lineage parents as
+  `EntityInlineRef` rows or generated `entityRef` fields; keep body relation
+  rows for non-lineage provenance and relations that TraceChain does not own.
   Development surfaces can provide `entityContext`; `TraceChain` prefers those
   in-memory entities for labels before calling authenticated APIs, so fixture
   lineage does not create protected API errors.

@@ -19,11 +19,12 @@ or other sheet processing.
   `data.layerData` / `data.polygonParts` before any DXF attachment is loaded.
   The thumbnail stays mounted while the source design DTO is loading and then
   reuses the fetched DTO.
-- Source design, parent template, queue, sheet, pile, and warehouse context
-  render as compact clickable `EntityInlineRef` rows instead of raw trace
-  links or duplicated relation statuses. These relation lookups are silent and
-  tolerate stale ids by omitting the resolved row/falling back through shared
-  inline-ref behavior.
+- Source design and parent template context render as compact clickable
+  `EntityInlineRef` rows because they are source/provenance relations. Queue
+  ancestry stays in shared trace chrome through `lineage.queueId` and is not
+  duplicated in the card body. Relation lookups are silent and tolerate stale
+  ids by omitting the resolved row/falling back through shared inline-ref
+  behavior.
 - Queue-cut instances are displayed as `CUT`; lifecycle actions are provided by
   the workflow/status system, not by local component state.
 

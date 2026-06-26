@@ -4,6 +4,22 @@
   :END:
 
 *** Agent Notes
+    [2026-06-26] Remove card rows replaced by lineage trace
+    Files changed: components/entities/Artifact/ArtifactCard.vue,
+      components/entities/CassetteInstance/CassetteInstanceCard.vue,
+      components/entities/GeometryCapture/GeometryCaptureCard.vue,
+      components/entities/Requisition/RequisitionCard.vue,
+      packages/domain-cnc/src/ui-fields.js
+    Docs updated: components/shared/README.md,
+      components/entities/Artifact/README.md,
+      components/entities/CassetteInstance/README.md,
+      components/entities/GeometryCapture/README.md,
+      components/entities/Requisition/README.md, TODO.org
+    Notes: Removed card-body relation rows and generated entityRef fields for
+      lineage parents already owned by compact TraceChain: queue, project,
+      warehouse, and library. Kept non-trace relation rows such as source
+      design/template, manufacturer, run, and revision provenance.
+
     [2026-06-26] Resolve lineage trace labels and links on entity cards
     Files changed: components/shared/links/TraceChain.vue,
       components/shared/links/TraceLink.vue, stores/entities.js,

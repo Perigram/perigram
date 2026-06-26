@@ -6,14 +6,16 @@ Purchasing/requisition card and detail surfaces.
 
 | File | Purpose |
 |---|---|
-| `RequisitionCard.vue` | Entity card wrapper for item counts, quantity, total, and manufacturer/project relations. |
+| `RequisitionCard.vue` | Entity card wrapper for item counts, quantity, total, and manufacturer relation. |
 | `RequisitionDetail.vue` | Detail page body for order composition, notes, and lifecycle timeline. |
 
 ## Contract
 
 - Expects a `requisition` DTO with workflow status, `data.items`,
   `data.totalPrice`, and lineage to manufacturer/project where available.
-- Related manufacturer and project context uses `EntityInlineRef`.
+- Related manufacturer context uses `EntityInlineRef`. Project ancestry stays
+  in shared trace chrome through `lineage.projectId` and is not duplicated in
+  the card body.
 - Lifecycle transitions are rendered by `EntityCard`/`EntityPage` through
   `EntityStatus` using the workflow/status API. Non-status commands such as
   delete live in the card footer or page actions.

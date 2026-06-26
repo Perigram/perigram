@@ -6,7 +6,7 @@ Entity card and detail surfaces for `geometry_capture` records.
 
 | File | Purpose |
 |---|---|
-| `GeometryCaptureCard.vue` | Entity-card wrapper for photo-derived capture drafts, extraction confidence, dimensions, and lineage context. |
+| `GeometryCaptureCard.vue` | Entity-card wrapper for photo-derived capture drafts, extraction confidence, dimensions, and compact trace context. |
 | `GeometryCaptureDetail.vue` | Review surface for extracted polygons, detector presets, revisions, diagnostics, traceability, and confirmation action. |
 | `PhotoGeometryOverlay.vue` | Stored-photo overlay for drawing pre-extraction prompts and selecting detected vertices during review. |
 
@@ -16,6 +16,8 @@ Entity card and detail surfaces for `geometry_capture` records.
   `EntityInlineRef`, and `StatusHistory`.
 - Expects `data.geometry.preview` and `data.geometry.polygon.outer/inner` from
   the backend extraction workflow.
+- Warehouse/project ancestry is rendered by shared trace chrome from lineage;
+  card bodies do not duplicate those parents as inline relation rows.
 - Expects `attachments.primary` to point at the immutable capture photo. The
   detail surface renders it under the active geometry when calibration scale
   metadata is present. When the worker returns homography transform metadata,

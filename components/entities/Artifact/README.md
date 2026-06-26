@@ -7,7 +7,7 @@ reports.
 
 | File | Purpose |
 |---|---|
-| `ArtifactCard.vue` | Entity card wrapper with preview/select click behavior and source queue/run relations. |
+| `ArtifactCard.vue` | Entity card wrapper with preview/select click behavior and source run relation. |
 
 ## Contract
 
@@ -15,8 +15,9 @@ reports.
   `data.type`.
 - Uses `EntityCard` with status hidden because file lifecycle is not exposed as
   an operator workflow here.
-- Queue and nesting-run context renders through `EntityInlineRef`; those rows
-  are relation summaries, not raw route links.
+- Queue ancestry stays in shared trace chrome through `lineage.queueId`.
+  Nesting-run context still renders through `EntityInlineRef` because it is not
+  currently part of the compact trace contract.
 - The card may own a custom preview click action and disables `EntityCard`
   expansion for that action.
 
