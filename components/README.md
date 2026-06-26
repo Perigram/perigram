@@ -115,6 +115,11 @@ typed Vue Flow handles that match the process compiler contract: role access,
 service input/output, and socket projection/transfer. Do not reduce these nodes
 to generic cards; their surface should expose the entity/service/socket
 semantics that the active process runtime consumes.
+The process designer also exposes non-effect process algebra nodes for typed
+source/transform work: entity references, field reads, string operations,
+comparisons, logic, and collection transforms. These nodes are semantic
+`processNodes` records and must not perform mutations; persistent state changes
+remain action-node responsibilities.
 The designer's screens tab renders a structural preview of the compiled screen
 manifest grouped by process role. That preview shows templates, regions,
 sources, filters, and action buttons from normalized screen contracts without

@@ -37,7 +37,10 @@ authenticated app layout with a full canvas workspace and compact floating
 controls over it. The graph palette is a one-line icon button set that creates
 action nodes for entity creation, entity data updates, status changes, command
 runs, sending projected entity data to another organization, and inbound or
-outbound organization socket nodes.
+outbound organization socket nodes. It also creates non-effect process algebra
+nodes for entity references, field reads, string operations, comparisons,
+logic, and basic collection transforms; those nodes are typed source/transform
+records and do not execute mutations.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
 moving the canvas.
@@ -77,6 +80,7 @@ The inspector edits compiler-owned fields directly:
 - the screens tab owns screen id, label, generated UI template, source entity/mode rows, display region rows, route, placement, required access, role ids, assignment binding, and screen action ids;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket;
+- process algebra nodes own kind, operation/mode, entity contracts, field path, scalar value type, and typed input/output sockets;
 - service nodes own command selection, run/view service identities, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 

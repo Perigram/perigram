@@ -76,6 +76,11 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   block path as a concrete mutation field. Empty update actions expose a generic
   field socket until the first block is connected; after that the node displays
   exact mutation sockets using domain field labels.
+- `ProcessNode.vue` represents non-effect process algebra records. The first
+  supported kinds are entity references, field reads, string operations,
+  comparisons, logic nodes, and collection transforms. These nodes produce and
+  consume typed values but never mutate persistent state; mutations and external
+  work stay on action nodes.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
@@ -175,7 +180,8 @@ wired to a named construction socket uses that socket's contract path (`name`,
 typed constructors such as cassette-design baking receive the domain payload
 they require. They should not create unnamed records unless the entity contract
 explicitly allows it.
-Generic process-algebra nodes such as entity relation readers, field readers,
-compare/logic/collection transforms, guards, and switches are intentionally not
-palette nodes yet. Add them only after `@cutkit/processes` owns canonical
-semantic records and executable runtime behavior for those graph values.
+Generic process-algebra nodes now exist for the semantic records that
+`@cutkit/processes` can round-trip and type-check: entity references, field
+reads, string operations, comparisons, logic, and basic collection transforms.
+Guard and switch nodes are still not palette nodes because they need explicit
+runtime control-flow semantics rather than only value ports.

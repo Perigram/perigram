@@ -63,6 +63,20 @@
       contained handles such as `output:nesting_run` or `input:parent` while
       the explicit handle fields were null.
 
+    [2026-06-26] Add first process algebra source and transform nodes
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/transpiler.js, packages/processes/src/ports.js,
+      packages/processes/src/index.spec.js, pages/organization/process.vue,
+      components/process-designer/ProcessNode.vue, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: components/README.md, components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md, TODO.org
+    Notes: Process definitions now preserve canonical `processNodes` records
+      for entity references, field reads, string operations, comparisons,
+      logic, and basic collection transforms. These nodes are typed
+      source/transform records only; action nodes remain the effect boundary for
+      persistent mutations and external work.
+
     [2026-06-26] Keep cassette-design construction template-backed, not queue-parented.
     Files changed: packages/processes/src/index.js, packages/processes/src/index.spec.js, packages/domain-cnc/src/ui-fields.js, shared/design-system.spec.js, shared/framework-packages.spec.js, framework.manifest.json, components/generated/GeneratedEntityCollection.vue, components/generated/action-context.js, components/generated/action-context.spec.js
     Docs updated: components/README.md, components/process-designer/README.md, components/entities/CassetteDesign/README.md, packages/processes/README.md, server/features/process-definitions/README.md, server/features/queues/README.md, TODO.org

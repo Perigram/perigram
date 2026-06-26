@@ -170,6 +170,15 @@ runtime receives domain payload keys such as `name`, `templateId`, and
 `parameters`. When a value input is connected to an update action, its block
 path becomes a mutation field and a non-prompt `inputPolicy` field, so generated
 screens submit the graph-provided default without adding useless dialog chrome.
+Process algebra nodes are canonical non-effect records under `processNodes`.
+They cover the first source/transform layer from the process algebra note:
+`entityRef`, `fieldRead`, `stringOp`, `compare`, `logic`, and `collection`.
+These records preserve kind, operation/mode, entity contracts, field paths,
+inputs, and outputs through `definitionToCanvas()`, `canvasToDefinition()`,
+validation, and compilation. They do not mutate persistent state and they do
+not replace effect actions; create/update/status/command/send behavior remains
+owned by action records. Runtime action execution may consume their typed edges
+only after an effect node declares the corresponding input contract.
 Change-status actions consume their entity from the incoming data socket and
 only require a target status; they do not need a separate entity-type selector.
 The target may be a literal `action.status.to` or a `statusRef` produced by a
