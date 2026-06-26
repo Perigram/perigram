@@ -17,7 +17,6 @@ const props = defineProps({
 const emit = defineEmits(['click']);
 
 const artifactType = computed(() => props.artifact.data?.type || '');
-const queueId = computed(() => props.artifact.lineage?.queueId || null);
 const runId = computed(() => props.artifact.lineage?.runId || null);
 
 const icon = computed(() => {
@@ -61,17 +60,13 @@ const onPreviewKeydown = (event) => {
     @click.stop="emitPreview"
     @keydown="onPreviewKeydown"
   >
-    <EntityCard :entity="artifact" entity-type="artifact" :variant="variant" :show-trace="false" :show-status="false" :expandable="false">
+    <EntityCard :entity="artifact" entity-type="artifact" :variant="variant" :show-status="false" :expandable="false">
       <template #before-identity>
         <i :class="['pi', icon]"></i>
       </template>
       <Divider />
       <div class="flex flex-col gap-3">
         <DataBlock entity-type="artifact" :entity="artifact" :fields="ARTIFACT_FIELDS" />
-        <div v-if="queueId" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('entities.queue') }}</small>
-          <EntityInlineRef type="queue" :id="queueId" />
-        </div>
         <div v-if="runId" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
           <EntityInlineRef type="nestingRun" :id="runId" />

@@ -43,9 +43,6 @@ export const cncEntityFieldGroups = {
     ]
   },
   cassette: {
-    relations: [
-      { path: 'lineage.libraryId', i18n: 'entities.library', display: 'entityRef', entityType: 'library', priority: 5 }
-    ],
     geometry: [
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
     ],
@@ -244,7 +241,6 @@ export const cncEntityFieldGroups = {
       { path: 'attachments.primary.name', fallbackPaths: ['data.filename'], i18n: 'file.name', display: 'text', priority: 20 }
     ],
     relations: [
-      { path: 'lineage.queueId', i18n: 'entities.queue', display: 'entityRef', entityType: 'queue', priority: 30 },
       { path: 'lineage.nestingRunId', i18n: 'entities.nestingRun', display: 'entityRef', entityType: 'nestingRun', priority: 40 }
     ]
   }

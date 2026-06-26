@@ -5,7 +5,6 @@ import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
@@ -17,8 +16,6 @@ defineEmits(['click']);
 
 const mode = computed(() => props.capture.data?.mode || 'REMNANT');
 const hasGeometry = computed(() => Boolean(props.capture.data?.geometry?.polygon?.outer?.length));
-const warehouseId = computed(() => props.capture.lineage?.warehouseId || null);
-const projectId = computed(() => props.capture.lineage?.projectId || null);
 
 const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surface: 'card' })
   .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
@@ -49,14 +46,6 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
         </div>
         <Divider />
         <DataBlock entity-type="geometryCapture" :entity="capture" :fields="FIELDS" />
-        <div v-if="warehouseId" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
-          <EntityInlineRef type="warehouse" :id="warehouseId" />
-        </div>
-        <div v-if="projectId" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('entities.project') }}</small>
-          <EntityInlineRef type="project" :id="projectId" />
-        </div>
       </div>
     </EntityCard>
   </div>

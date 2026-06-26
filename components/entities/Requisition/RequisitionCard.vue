@@ -35,7 +35,6 @@ const items = computed(() => props.requisition.data?.items || []);
 const totalQuantity = computed(() => items.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0));
 const currency = computed(() => props.requisition.data?.currency || '');
 const manufacturerId = computed(() => props.requisition.lineage?.manufacturerId || props.requisition.data?.manufacturerId || null);
-const projectId = computed(() => props.requisition.lineage?.projectId || null);
 
 </script>
 
@@ -58,10 +57,6 @@ const projectId = computed(() => props.requisition.lineage?.projectId || null);
         <div v-if="manufacturerId" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
           <EntityInlineRef type="organization" :id="manufacturerId" />
-        </div>
-        <div v-if="projectId" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('common.project') }}</small>
-          <EntityInlineRef type="project" :id="projectId" />
         </div>
       </div>
       <template #footer v-if="variant === 'card'">

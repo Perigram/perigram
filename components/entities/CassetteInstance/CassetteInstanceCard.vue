@@ -1,16 +1,15 @@
 <template>
   <div>
-    <EntityCard :entity="instance" entity-type="cassette_instance" :variant="variant" :show-trace="false">
+    <EntityCard :entity="instance" entity-type="cassette_instance" :variant="variant">
       <template #before-identity>
         <i class="pi pi-qrcode"></i>
       </template>
       <template #compact-content>
         <div class="mt-3 flex flex-col gap-3">
           <CassetteThumbnail v-if="designIdValue" :cassette="design" :cassette-id="designIdValue" />
-          <div v-if="design || template || queueId" class="flex flex-wrap gap-2 text-sm">
+          <div v-if="design || template" class="flex flex-wrap gap-2 text-sm">
             <EntityInlineRef v-if="design" type="cassetteDesign" :entity="design" />
             <EntityInlineRef v-if="template" type="cassetteTemplate" :entity="template" />
-            <EntityInlineRef v-if="queue" type="queue" :entity="queue" />
           </div>
         </div>
       </template>
@@ -25,10 +24,6 @@
         <div v-if="template" class="flex justify-between items-center gap-4">
           <small>{{ $t('entities.cassetteTemplate') }}</small>
           <EntityInlineRef type="cassetteTemplate" :entity="template" />
-        </div>
-        <div v-if="queue" class="flex justify-between items-center gap-4">
-          <small>{{ $t('entities.queue') }}</small>
-          <EntityInlineRef type="queue" :entity="queue" />
         </div>
       </div>
     </EntityCard>
@@ -55,13 +50,10 @@ const props = defineProps({
 
 const designId = computed(() => props.instance.lineage?.cassetteDesignId || props.instance.lineage?.designId || null);
 const designIdValue = computed(() => designId.value?.toString?.() || designId.value || '');
-const queueId = computed(() => props.instance.lineage?.queueId || null);
 const design = ref(null);
 const template = ref(null);
-const queue = ref(null);
 const designEntity = useEntity('cassetteDesign');
 const templateEntity = useEntity('cassetteTemplate');
-const queueEntity = useEntity('queue');
 
 watch(designId, async (id) => {
   design.value = null;
@@ -75,13 +67,6 @@ watch(designId, async (id) => {
   if (normalizedTemplateId) {
     template.value = await templateEntity.fetch(normalizedTemplateId, { silent: true }).catch(() => null);
   }
-}, { immediate: true });
-
-watch(queueId, async (id) => {
-  queue.value = null;
-  const normalizedId = id?.toString?.() || id;
-  if (!normalizedId) return;
-  queue.value = await queueEntity.fetch(normalizedId, { silent: true }).catch(() => null);
 }, { immediate: true });
 
 const INSTANCE_FIELDS = resolveEntityDisplayFields({ entityType: 'cassetteInstance', surface: 'card' })
