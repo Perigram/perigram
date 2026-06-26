@@ -5,8 +5,9 @@ Cards for base `cassette` DTOs from the `cassettes` collection.
 ## Components
 
 - `CassetteCard.vue` renders inline, compact, and card variants through shared
-  `EntityCard` chrome. It shows cassette identity/status, a data-type-aware
-  cassette thumbnail, and parameter count from canonical DTO fields.
+  `EntityCard` chrome. It shows cassette identity/status and a data-type-aware
+  cassette thumbnail; exact parameter values belong to baked cassette designs,
+  not template/source cassette cards.
 
 ## Contract
 
@@ -15,6 +16,9 @@ Cards for base `cassette` DTOs from the `cassettes` collection.
 - Uses `data.parameters`, `data.geometry`, and `data.definition`. `CassetteThumbnail`
   resolves the visual source in order: DXF geometry, stored geometry preview,
   OCCS definition, then legacy parametric definition.
+- Template parameter names and defaults remain part of the cassette definition
+  and constructor flow. Cards do not summarize them as a count because a source
+  cassette does not represent one exact materialized size.
 - Shows `data.revisions.geometry.currentId` as the current geometry revision via
   `EntityInlineRef` when the backend revision pointer is present.
 - `cassette` is distinct from `cassette_template`, `cassette_design`, and

@@ -61,6 +61,10 @@ Designs are created by "baking" a `cassette_template` with concrete parameters. 
    geometry revision used.
 The stored semantic layers are the export source of truth; the GridFS file is a
 download fallback when semantic geometry is not present on older records.
+Generated entity surfaces display this concrete parameter snapshot as exact
+named values such as `A=1200, B=400`. Source cassette/template cards do not
+show parameter counts because they represent symbolic constructors, not one
+materialized design.
 
 Standard DXF uploads also create an initial design. The upload service extracts
 the mapped `cut.outer` layer as `polygonParts`; queues should nest this design

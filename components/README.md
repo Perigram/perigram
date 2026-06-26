@@ -411,7 +411,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `TraceLink` for relation summaries inside cards/details; reserve it for rows
   whose explicit purpose is route navigation.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.
-- For cassette templates and queue entries, derive parametric vs static display from the cassette DTO itself, not only from saved queue item flags. Prefer `data.parameters` when present and fall back to OCCS `data.definition.parameters` so updated OCCS templates do not appear static in queues.
+- For cassette templates and queue entries, derive parametric vs static display from the cassette DTO itself, not only from saved queue item flags. Prefer `data.parameters` when present and fall back to OCCS `data.definition.parameters` so updated OCCS templates do not appear static in queues. Template/source cassette cards must not render parameter counts; generated cassette-design surfaces render exact materialized values from `data.parameters` with `data.derivedFrom.parameters` only as a display fallback.
 - `QueueEditor` keeps a UI-only `_key` for queue rows because persisted
   `queue.data.job.items[]` entries intentionally store only the cassette/design
   `id`, source `entityType`, nesting `type`, quantity, and parameters. Delete

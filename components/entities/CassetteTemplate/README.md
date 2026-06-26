@@ -7,7 +7,7 @@ and rendered through the `cassetteTemplate` design-system contract.
 
 | File | Purpose |
 |---|---|
-| `CassetteTemplateCard.vue` | EntityCard wrapper for template identity, thumbnail, parameter count, actions, and current geometry revision. |
+| `CassetteTemplateCard.vue` | EntityCard wrapper for template identity, thumbnail, actions, and current geometry revision. |
 
 ## Contract
 
@@ -15,6 +15,9 @@ and rendered through the `cassetteTemplate` design-system contract.
   `data`.
 - Renders geometry through `CassetteThumbnail`, using the same template sources
   as cassette cards.
+- Does not render a parameter count. Template parameters are symbolic
+  constructor inputs; exact values such as `A=600` belong to the derived
+  cassette design card and generated design surfaces.
 - Shows `data.revisions.geometry.currentId` through `EntityInlineRef` when the
   backend current-geometry revision pointer exists.
 - Create/download actions remain footer actions and do not replace entity

@@ -25,8 +25,11 @@ parametric/OCCS definitions.
   `preferGeometry` rule for `cassette_design`, so generated list/detail screens
   do not fall back to parent-template geometry when the design DTO in screen
   data is partial.
-- Raw parametric values such as `data.parameters.A` / `data.parameters.C` are
-  not displayed as card facts; the thumbnail is the geometry signal.
+- Generated entity surfaces display exact design parameters from
+  `data.parameters` as named values such as `A=1200, B=400`. If an older DTO
+  lacks that top-level snapshot, the display contract may fall back to
+  `data.derivedFrom.parameters`; template parameter counts are not shown on
+  design cards.
 - Parent template context is loaded silently from `lineage.templateId` and
   rendered as a compact `EntityInlineRef`; stale template ids should not flood
   the browser console.
