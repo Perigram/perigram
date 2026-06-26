@@ -365,7 +365,8 @@ function applyStatusDefinitionMetadata(builder, entityType, statusDefinitions = 
       label: definition.label || statusId,
       color: definition.color || definition.severity || '',
       severity: definition.severity || definition.color || '',
-      icon: definition.icon || ''
+      icon: definition.icon || '',
+      ...(definition.lifecycle ? { lifecycle: clonePlain(definition.lifecycle) } : {})
     };
   }
 }
@@ -1670,7 +1671,8 @@ function compileStatusDefinitions(statusDefinitions = {}) {
     label: definition.label || definition.statusId || id,
     color: definition.color || '',
     severity: definition.severity || definition.color || '',
-    icon: definition.icon || ''
+    icon: definition.icon || '',
+    ...(definition.lifecycle ? { lifecycle: clonePlain(definition.lifecycle) } : {})
   }]));
 }
 
@@ -1937,4 +1939,8 @@ function getFieldPolicy(fieldAccess, entityType) {
 
 function getByPath(source, path) {
   return String(path).split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
+}
+
+function clonePlain(value) {
+  return JSON.parse(JSON.stringify(value));
 }

@@ -1181,7 +1181,16 @@ describe('@cutkit/processes compiler', () => {
           label: 'Review',
           severity: 'warn',
           color: 'warn',
-          icon: 'pi pi-eye'
+          icon: 'pi pi-eye',
+          lifecycle: {
+            description: { required: true },
+            attachments: {
+              proof: { kind: 'photo', required: true }
+            },
+            snapshots: {
+              designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+            }
+          }
         }
       },
       valueInputs: {
@@ -1229,7 +1238,20 @@ describe('@cutkit/processes compiler', () => {
       icon: 'pi pi-eye'
     });
     expect(compiled.actions.create_design.construction.mode).toBe('bakeCassetteDesignFromTemplate');
-    expect(compiled.statusDefinitions.status_review).toMatchObject({ statusId: 'REVIEW', severity: 'warn', color: 'warn' });
+    expect(compiled.statusDefinitions.status_review).toMatchObject({
+      statusId: 'REVIEW',
+      severity: 'warn',
+      color: 'warn',
+      lifecycle: {
+        description: { required: true },
+        attachments: {
+          proof: { kind: 'photo', required: true }
+        },
+        snapshots: {
+          designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+        }
+      }
+    });
     expect(compiled.valueInputs.design_name).toMatchObject({
       block: 'identity',
       path: 'identity.name',
@@ -1240,7 +1262,16 @@ describe('@cutkit/processes compiler', () => {
       label: 'Review',
       color: 'warn',
       severity: 'warn',
-      icon: 'pi pi-eye'
+      icon: 'pi pi-eye',
+      lifecycle: {
+        description: { required: true },
+        attachments: {
+          proof: { kind: 'photo', required: true }
+        },
+        snapshots: {
+          designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+        }
+      }
     });
   });
 

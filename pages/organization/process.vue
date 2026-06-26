@@ -200,36 +200,77 @@
                 </template>
 
                 <template v-else-if="selectedNode.type === 'statusDefinition'">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.stateId') }}</label>
-                      <InputText v-model="selectedStatusDefinition.statusId" />
+                  <div class="flex flex-col gap-4">
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.stateId') }}</label>
+                        <InputText v-model="selectedStatusDefinition.statusId" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('common.label') }}</label>
+                        <InputText v-model="selectedStatusDefinition.label" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.severity') }}</label>
+                        <Select v-model="selectedStatusDefinition.severity" :options="statusSeverityOptions" option-label="label" option-value="value" />
+                      </div>
+                      <div class="col-span-2 flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.icon') }}</label>
+                        <Select v-model="selectedStatusDefinition.icon" :options="statusIconOptions" option-label="label" option-value="value">
+                          <template #option="{ option }">
+                            <div class="flex items-center gap-2">
+                              <i :class="option.value"></i>
+                              <span>{{ option.label }}</span>
+                            </div>
+                          </template>
+                          <template #value="{ value }">
+                            <div class="flex items-center gap-2">
+                              <i :class="value || selectedStatusDefinition.icon"></i>
+                              <span>{{ iconLabel(value || selectedStatusDefinition.icon) }}</span>
+                            </div>
+                          </template>
+                        </Select>
+                      </div>
                     </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('common.label') }}</label>
-                      <InputText v-model="selectedStatusDefinition.label" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.severity') }}</label>
-                      <Select v-model="selectedStatusDefinition.severity" :options="statusSeverityOptions" option-label="label" option-value="value" />
-                    </div>
-                    <div class="col-span-2 flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.icon') }}</label>
-                      <Select v-model="selectedStatusDefinition.icon" :options="statusIconOptions" option-label="label" option-value="value">
-                        <template #option="{ option }">
+
+                    <Panel :header="$t('processDesigner.evidence')">
+                      <div class="flex flex-col gap-3">
+                        <div class="flex items-center gap-2">
+                          <Checkbox
+                            :model-value="Boolean(selectedStatusDefinition.lifecycle?.description?.required)"
+                            binary
+                            input-id="status-description-required"
+                            @update:model-value="updateStatusDescriptionRequired"
+                          />
+                          <label for="status-description-required">{{ $t('processDesigner.requireDescription') }}</label>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="font-medium">{{ $t('processDesigner.attachments') }}</span>
+                          <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addAttachment')" size="small" text @click="addStatusAttachment" />
+                        </div>
+                        <div v-for="entry in selectedStatusAttachmentEntries" :key="entry.key" class="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-2">
+                          <InputText :model-value="entry.key" size="small" @update:model-value="value => renameStatusAttachment(entry.key, value)" />
+                          <InputText v-model="entry.schema.kind" size="small" :placeholder="$t('processDesigner.attachmentKind')" />
                           <div class="flex items-center gap-2">
-                            <i :class="option.value"></i>
-                            <span>{{ option.label }}</span>
+                            <Checkbox v-model="entry.schema.required" binary />
+                            <span>{{ $t('processDesigner.required') }}</span>
                           </div>
-                        </template>
-                        <template #value="{ value }">
-                          <div class="flex items-center gap-2">
-                            <i :class="value || selectedStatusDefinition.icon"></i>
-                            <span>{{ iconLabel(value || selectedStatusDefinition.icon) }}</span>
-                          </div>
-                        </template>
-                      </Select>
-                    </div>
+                          <Button icon="pi pi-trash" :aria-label="$t('common.delete')" size="small" text severity="danger" @click="removeStatusAttachment(entry.key)" />
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="font-medium">{{ $t('processDesigner.snapshots') }}</span>
+                          <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addSnapshot')" size="small" text @click="addStatusSnapshot" />
+                        </div>
+                        <div v-for="entry in selectedStatusSnapshotEntries" :key="entry.key" class="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2">
+                          <InputText :model-value="entry.key" size="small" @update:model-value="value => renameStatusSnapshot(entry.key, value)" />
+                          <Select v-model="entry.schema.entityType" :options="entityTypeOptions" option-label="label" option-value="value" size="small" />
+                          <InputText v-model="entry.schema.lineageKey" size="small" :placeholder="$t('processDesigner.lineageKey')" />
+                          <Button icon="pi pi-trash" :aria-label="$t('common.delete')" size="small" text severity="danger" @click="removeStatusSnapshot(entry.key)" />
+                        </div>
+                      </div>
+                    </Panel>
                   </div>
                 </template>
 
@@ -416,6 +457,7 @@ import { VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
+import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import MultiSelect from 'primevue/multiselect';
@@ -569,6 +611,10 @@ const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? en
 const selectedStatusDefinition = computed(() => selectedNode.value?.type === 'statusDefinition' ? ensureRecord('statusDefinitions', selectedNode.value, createStatusDefinition) : {});
 const selectedValueInput = computed(() => selectedNode.value?.type === 'valueInput' ? ensureRecord('valueInputs', selectedNode.value, createValueInput) : {});
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
+const selectedStatusAttachmentEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.attachments || {})
+  .map(([key, schema]) => ({ key, schema })));
+const selectedStatusSnapshotEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.snapshots || {})
+  .map(([key, schema]) => ({ key, schema })));
 
 const roles = computed(() => draft.value?.data?.roles || {});
 const servicePrincipals = computed(() => draft.value?.data?.servicePrincipals || {});
@@ -1531,11 +1577,86 @@ function syncStatusDefinition(status = {}) {
   status.severity ||= status.color || 'info';
   status.color = status.severity;
   status.icon ||= 'pi pi-circle-fill';
+  pruneStatusLifecycle(status);
 }
 
 function isLegacyStatusNodeLabel(label = '') {
   const value = String(label || '').trim();
   return (cncDomain.entities || []).some(entity => entity.type === value);
+}
+
+function ensureStatusLifecycle() {
+  selectedStatusDefinition.value.lifecycle ||= {};
+  return selectedStatusDefinition.value.lifecycle;
+}
+
+function pruneStatusLifecycle(status = selectedStatusDefinition.value) {
+  const lifecycle = status.lifecycle;
+  if (!lifecycle) return;
+  if (!lifecycle.description?.required) delete lifecycle.description;
+  if (!lifecycle.attachments || Object.keys(lifecycle.attachments).length === 0) delete lifecycle.attachments;
+  if (!lifecycle.snapshots || Object.keys(lifecycle.snapshots).length === 0) delete lifecycle.snapshots;
+  if (Object.keys(lifecycle).length === 0) delete status.lifecycle;
+}
+
+function updateStatusDescriptionRequired(value) {
+  if (value) ensureStatusLifecycle().description = { required: true };
+  else if (selectedStatusDefinition.value.lifecycle) delete selectedStatusDefinition.value.lifecycle.description;
+  pruneStatusLifecycle();
+}
+
+function ensureStatusAttachments() {
+  const lifecycle = ensureStatusLifecycle();
+  lifecycle.attachments ||= {};
+  return lifecycle.attachments;
+}
+
+function addStatusAttachment() {
+  const attachments = ensureStatusAttachments();
+  const key = uniqueName('proof', Object.keys(attachments));
+  attachments[key] = { kind: 'photo', required: true };
+}
+
+function renameStatusAttachment(previous, value) {
+  const next = String(value || '').trim();
+  const attachments = selectedStatusDefinition.value.lifecycle?.attachments;
+  if (!attachments || !next || next === previous || attachments[next]) return;
+  attachments[next] = attachments[previous];
+  delete attachments[previous];
+}
+
+function removeStatusAttachment(key) {
+  const attachments = selectedStatusDefinition.value.lifecycle?.attachments;
+  if (!attachments) return;
+  delete attachments[key];
+  pruneStatusLifecycle();
+}
+
+function ensureStatusSnapshots() {
+  const lifecycle = ensureStatusLifecycle();
+  lifecycle.snapshots ||= {};
+  return lifecycle.snapshots;
+}
+
+function addStatusSnapshot() {
+  const snapshots = ensureStatusSnapshots();
+  const key = uniqueName('snapshot', Object.keys(snapshots));
+  snapshots[key] = { entityType: defaultEntityType(), lineageKey: '', required: true };
+}
+
+function renameStatusSnapshot(previous, value) {
+  const next = String(value || '').trim();
+  const snapshots = selectedStatusDefinition.value.lifecycle?.snapshots;
+  if (!snapshots || !next || next === previous || snapshots[next]) return;
+  snapshots[next] = snapshots[previous];
+  delete snapshots[previous];
+}
+
+function removeStatusSnapshot(key) {
+  const snapshots = selectedStatusDefinition.value.lifecycle?.snapshots;
+  if (!snapshots) return;
+  delete snapshots[key];
+  pruneStatusLifecycle();
 }
 
 function syncValueInput(input = {}) {
