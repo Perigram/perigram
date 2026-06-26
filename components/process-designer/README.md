@@ -39,6 +39,10 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   promptable constructor inputs become generated-screen dialog fields, and
   typed derived entities such as `cassette_design` keep their construction mode
   on the action record instead of pretending they are generic inserts.
+  A parent wire is accepted as a canvas authoring socket, but the compiler only
+  treats it as semantic when the connected entity is a valid domain lineage
+  parent. Constructor entity inputs such as a cassette-design `templateId`
+  remain data/constructor sockets, not create-action parents.
   Update actions derive promptable editor fields from selected domain field
   policy entries, so a manual modify action collects values for concrete fields
   instead of free-form paths before it calls the active process action runtime.
@@ -146,6 +150,11 @@ selected node or selected wire, and runtime edge selection styling is stripped
 before process serialization. Palette-created nodes are positioned at the
 center of the active viewport so adding a node while zoomed or panned does not
 drop it back near the original canvas origin.
+Wires are checked against the process package's typed port contract before they
+are persisted. Clear type mismatches, such as event-to-entity, status-to-data,
+or different concrete entity types, are rejected with a localized toast. Generic
+authoring sockets such as create-action parent inputs stay connectable so the
+compiler can apply domain lineage validation afterward.
 
 Command sockets should expose abstract domain contracts when a command is
 polymorphic. For example, `generateAttachment` presents one `Attachment source`
@@ -163,3 +172,7 @@ wired to a named construction socket uses that socket's contract path (`name`,
 typed constructors such as cassette-design baking receive the domain payload
 they require. They should not create unnamed records unless the entity contract
 explicitly allows it.
+Generic process-algebra nodes such as entity relation readers, field readers,
+compare/logic/collection transforms, guards, and switches are intentionally not
+palette nodes yet. Add them only after `@cutkit/processes` owns canonical
+semantic records and executable runtime behavior for those graph values.

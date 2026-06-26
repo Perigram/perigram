@@ -124,6 +124,13 @@ projection, attachment, and task ports, and the canvas keeps only the contract
 label visible so path/required metadata does not duplicate the socket name. New
 palette nodes are placed at the center of the current viewport, and wires use
 curved Vue Flow edges rather than orthogonal step routing.
+The designer resolves the source and target handle contracts before saving a
+wire. Incompatible concrete ports are rejected immediately with a localized
+toast and are also reported by process compiler validation when stale persisted
+graphs contain them. Generic parent sockets remain connectable; the compiler
+continues to decide whether the connected entity is a valid domain lineage
+parent. Entity-typed construction inputs are separate data sockets, not create
+parent sockets.
 The canvas keeps data and event contracts visually separate. Left and right data
 handles are not headed with literal "inputs" or "outputs"; the socket label
 itself is the contract. Event-triggered actions receive the event on the left

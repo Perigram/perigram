@@ -86,6 +86,13 @@ construction modes. For example, `cassette_design` creation compiles as
 `bakeCassetteDesignFromTemplate` and runtime execution delegates to the
 cassette template construction service, preserving baked geometry and editor
 contracts instead of creating a generic row.
+Graph edges are validated through exported typed port helpers:
+`normalizePortSpec()`, `portSpecsCompatible()`, `resolveNodePort()`, and
+`validateProcessEdges()`. The v1 contract covers existing process values only:
+entities, entity lists, canonical blocks, data values, statuses, events,
+organization projections, attachments, and task outputs. It prevents clear
+kind/entity mismatches while keeping generic authoring sockets, such as
+create-action parent inputs, available for later compiler lineage validation.
 When a graph edge connects an action output to another action's `parent` input,
 that edge is authoritative over stale stored `parentEntityType` or parent input
 metadata. This keeps detail-screen child regions aligned with the visual graph
@@ -96,17 +103,18 @@ a real parent entity type. Stale same-entity parent values from older graphs are
 stripped unless the domain summary registry declares that entity as its own
 parent relation, so a root create action remains a list-level action instead of
 being hidden on entity detail screens.
-Parent contracts are valid only when the domain declares either a child lineage
-relation for the created entity or a direct construction entity input for that
-parent type. Stale unrelated parent values are stripped during compilation; for
-example, `cassette -> queue` is not valid when the domain declares queues under
-projects. A create action is always compiled onto its target entity screen so
-users can create the target from that list with a parent selector when needed.
-The parent entity detail screen may also receive the action as contextual
-chrome when the parent contract is valid. Entity detail screens do not inherit
-root create actions for their own entity type; detail actions are for the
-opened entity, such as status/update transitions, plus valid contextual
-parent-child creation.
+Parent contracts are valid only when the domain declares a child lineage
+relation for the created entity. Entity-typed construction inputs are not
+parents: for example, cassette-design `templateId` stays a constructor data
+input rather than a cassette parent socket. Stale unrelated parent values are
+stripped during compilation; for example, `cassette -> queue` is not valid when
+the domain declares queues under projects. A create action is always compiled
+onto its target entity screen so users can create the target from that list with
+a parent selector when needed. The parent entity detail screen may also receive
+the action as contextual chrome when the parent contract is a valid lineage
+relation. Entity detail screens do not inherit root create actions for their own
+entity type; detail actions are for the opened entity, such as status/update
+transitions, plus valid contextual parent-child creation.
 If a create action targets an entity that can have a domain lineage parent but
 the graph contains no valid parent, compilation strips the stale parent and
 exposes a root create action. The runtime entity service decides whether
@@ -283,13 +291,17 @@ cassette child region filtered by `libraryId`, but no cassette create action.
 A project-to-create-cassette graph does not create a cassette child collection
 unless the domain summary registry explicitly declares cassette as a project
 child.
-Parent-bound create actions that do not have a domain child relation but do
-have a direct construction parent input are still valid parent-context actions.
-The compiler attaches them to the parent `entityDetail` main region instead of
-dropping them or inventing a child list. For example, a
-cassette-to-create-cassette-design action can render on the cassette detail
-page even though cassette designs are constructed from a template rather than
-listed as cassette lineage children.
+Entity-typed construction inputs do not create parent-context actions. The
+compiler keeps those fields in the create dialog or wired data sockets, and
+does not attach them to unrelated parent `entityDetail` screens. For example, a
+cassette-to-create-cassette-design graph compiles cassette design creation as a
+target-list action with a `templateId` constructor input, not as a cassette
+detail action.
+Incoming graph parent edges are validated against lineage contracts. If an edge
+connects an unsupported parent, such as `queue -> create cassette_design`, the
+compiler ignores that parent edge and compiles the action as an unparented
+target-list create. Queues link to baked designs as consumers through
+`queue.data.job.items[]`, not by parenting the design creation action.
 Navigation is compiled from the screen manifest. When a role has access grants
 but no authored screen for that entity feature, the compiler creates a generated
 entity-list screen for that role/feature so process-active users do not fall
