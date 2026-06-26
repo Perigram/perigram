@@ -4,6 +4,22 @@
   :END:
 
 *** Agent Notes
+    [2026-06-26] Add status transition evidence capture
+    Files changed: packages/workflows/src/index.js,
+      server/core/machines/service.js, components/shared/status/EntityStatus.vue,
+      components/shared/status/StatusTransitionDialog.vue,
+      components/shared/status/StatusHistory.vue, utils/status-actions.js,
+      i18n/locales/en.json, i18n/locales/ru.json,
+      packages/workflows/src/index.spec.js,
+      server/core/machines/service.spec.js, shared/design-system.spec.js
+    Docs updated: packages/workflows/README.md,
+      server/core/machines/README.md, components/shared/README.md,
+      docs/DESIGN_SYSTEM.md, TODO.org
+    Notes: Status actions now expose target lifecycle evidence schemas, open a
+      schema-driven transition dialog for descriptions and proof uploads, store
+      uploaded proof files on entity attachments with status lifecycle refs,
+      and capture declared relation snapshots server-side into status history.
+
     [2026-06-26] Compile repeated status-action loop transitions
     Files changed: packages/processes/src/index.js,
       packages/processes/src/index.spec.js

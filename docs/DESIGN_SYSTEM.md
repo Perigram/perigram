@@ -67,6 +67,11 @@ timestamps are part of the status timeline; when persisted events are not
 available, `StatusHistory` renders the entity's current `status`/`origin` as the
 first event. Status rows wrap deliberately in tight cards, while badges keep
 stable minimum width.
+When the target state declares lifecycle evidence requirements, `EntityStatus`
+opens a compact `StatusTransitionDialog` to collect the operator description
+and proof attachments before submitting the transition. The dialog stays
+schema-driven; relation snapshots are captured by the status API from declared
+lifecycle snapshot sources instead of reading arbitrary page state.
 
 Shared ownership:
 

@@ -67,13 +67,22 @@ schema:
 status.lifecycle = {
   actors: [{ userId, capability, states }],
   attachments: { geometry, photos },
-  data: {}
+  data: { snapshots: {} }
 }
 ```
 
 When a target state declares a lifecycle schema, existing lifecycle facts carry
 forward and incoming lifecycle fields patch over them. States without a
 lifecycle schema do not retain lifecycle facts.
+Lifecycle schemas may require transition descriptions, proof attachment slots,
+and named relation snapshots. Descriptions are stored in `status.metadata.note`.
+Uploaded proof files are persisted on the entity `attachments` block and
+referenced from `status.lifecycle.attachments`, so the current entity owns file
+metadata while `status_events.status.lifecycle` preserves which file proved the
+transition. Snapshot declarations are generic: a state can name a target entity
+type and lineage key, such as `cassette_design` by `queueId`; the status
+runtime captures readable entity refs/counts into
+`status.lifecycle.data.snapshots` during the transition.
 
 ### 2. Dynamic Hook Registry (`hooks.js` & App Registry)
 Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks, manufacturing-specific logic is NOT implemented in the core engine.
@@ -107,7 +116,7 @@ Interactive UI status changes use the canonical status endpoints:
 | Endpoint | Responsibility |
 |---|---|
 | `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. It also includes compiled manual process `changeStatus` actions from the current role assignment when their entity type and source status match the target entity. |
-| `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. Optional `statusMeta.region` / `statusMeta.path` scopes a transition to a non-primary region. |
+| `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. Optional `statusMeta.region` / `statusMeta.path` scopes a transition to a non-primary region. `statusMeta.metadata.note` carries the operator description, and `statusMeta.lifecycle.attachments` carries uploaded proof refs for schema-declared slots. |
 
 Entity-specific PATCH routes must not be the primary status API for standard
 workflow transitions. Runtime callers that know the business meaning of a

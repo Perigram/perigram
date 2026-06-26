@@ -70,8 +70,12 @@ states: {
     lifecycle: {
       actors: ['operator', 'mounting'],
       attachments: {
-        geometry: { multiple: false },
+        geometry: { multiple: false, required: true, kind: 'geometry-proof' },
         photos: { multiple: true }
+      },
+      description: { required: true },
+      snapshots: {
+        cassetteDesigns: { entityType: 'cassette_design', lineageKey: 'queueId' }
       },
       data: true
     }
@@ -79,9 +83,12 @@ states: {
 }
 ```
 
-`validateTransition()` checks declared attachment slots,
-actor capability names, optional transition `capabilities`, and current
-`status.lifecycle.actors` assignments that apply to the target state.
+`validateTransition()` checks declared attachment slots, required lifecycle
+attachments, declared snapshot keys, actor capability names, optional transition
+`capabilities`, and current `status.lifecycle.actors` assignments that apply to
+the target state. Runtime adapters may pass `requireLifecyclePayload: false`
+when listing available actions so required evidence can be collected by the UI
+before the transition is submitted.
 Application role names are not workflow policy. Runtime adapters evaluate
 transition `access.permissions` through their access layer.
 

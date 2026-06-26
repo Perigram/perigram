@@ -169,6 +169,12 @@ Development surfaces that provide local workflows can also provide
 `statusTransitionHandler`; when present, `EntityStatus` applies transitions
 through that handler instead of posting in-memory fixture ids to the server
 status API.
+When a target state lifecycle schema declares a description, attachment slots,
+or snapshots, `EntityStatus` opens `StatusTransitionDialog` before running the
+transition. The dialog uploads proof files through `/api/files/upload` and
+submits `statusMeta.metadata.note` plus `statusMeta.lifecycle.attachments` to
+the status API. Generic snapshots are captured server-side from the state
+schema, not from page-local loaded data.
 
 ### `StatusHistory.vue`
 Fetches and displays the audit log (`status_events`) for any entity.
@@ -192,6 +198,8 @@ When an event snapshot carries process-authored display metadata under
 historical badges retain the authored label, severity/color, and icon. The
 event's raw `toStatePrimary` remains the state identifier, not the display
 contract.
+History rows render lifecycle proof attachment refs as download links and
+snapshot entries as compact count chips from the persisted event snapshot.
 
 ### `StatusLocation.vue`
 Renders the current mutable lifecycle location from `status.lifecycle.data.location`.
