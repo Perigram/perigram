@@ -104,6 +104,10 @@ authenticated entity APIs.
 Asset management routes under `pages/assets/` consume canonical v24 DTOs. Pen
 template screens must read `identity.name` for labels and `data.stroke` for
 rendered style; legacy flat `name` / `stroke` fields are compatibility only.
+Library lineage links in process mode resolve through generated entity-detail
+screens, not through a static asset route. Do not route library trace links to
+the cassette manager; cassettes are children of the library, not the library
+entity surface itself.
 
 Organization routes are first-class app areas. `/organization` is the
 workspace hub linked from the user menu and profile organization cards;

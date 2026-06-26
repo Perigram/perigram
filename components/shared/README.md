@@ -302,6 +302,12 @@ relationship.
   `warehouseId`, `projectId`, and `queueId`.
   Trace labels must resolve to entity display names from context or the entity
   store; raw lineage ids are link targets only and must not be shown as labels.
+  Trace links must route through the represented entity surface. In active
+  process mode they resolve through the user's effective generated screen
+  manifest and use the same `/screens/:screenKey?entityId=...` detail contract
+  as generated collection rows; if the user has no matching detail screen, the
+  breadcrumb renders as non-clickable text. Static routes are used only outside
+  process mode and only for entities with real static surfaces.
   Entity card bodies must not duplicate these supported lineage parents as
   `EntityInlineRef` rows or generated `entityRef` fields; keep body relation
   rows for non-lineage provenance and relations that TraceChain does not own.

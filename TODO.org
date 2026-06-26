@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-26] Route trace links through generated detail access
+    Files changed: components/shared/links/TraceChain.vue,
+      components/shared/links/TraceLink.vue, utils/status-engine.js
+    Docs updated: pages/README.md, components/shared/README.md,
+      components/entities/Library/README.md, TODO.org
+    Notes: Process-mode trace links now use the effective generated screen
+      manifest and the shared entity-detail route contract; inaccessible
+      lineage parents render as text instead of links. Library trace links no
+      longer route to `/assets/cassettes`.
+
     [2026-06-26] Remove card rows replaced by lineage trace
     Files changed: components/entities/Artifact/ArtifactCard.vue,
       components/entities/CassetteInstance/CassetteInstanceCard.vue,
