@@ -494,6 +494,8 @@ describe('Design system manifest', () => {
     expect(statusHistory).not.toContain("status.noHistory");
     expect(statusHistory).toContain('fallbackEvents');
     expect(statusHistory).toContain('displayEvents');
+    expect(statusHistory).toContain('eventDisplay');
+    expect(statusHistory).toContain(':display="eventDisplay(event)"');
   });
 
   it('normalizes typed status lifecycle locations for status surfaces', async () => {

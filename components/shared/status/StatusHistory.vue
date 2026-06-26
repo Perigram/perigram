@@ -66,6 +66,8 @@ const dateTimeAttribute = (ts) => {
 
 const eventState = (event) => event.toStatePrimary || event.toState || getPrimaryState(event.status || event.state);
 
+const eventDisplay = (event) => event.status?.metadata?.display || event.metadata?.display || null;
+
 const eventNote = (event) => event.status?.metadata?.note || event.metadata?.note || '';
 
 const actorName = (event) => {
@@ -110,7 +112,7 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
 
         <div class="min-w-0 pb-2">
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <StatusBadge :state="eventState(event)" />
+            <StatusBadge :state="eventState(event)" :display="eventDisplay(event)" />
             <small
               v-if="actorName(event)"
               class="min-w-0 truncate text-muted-color"
