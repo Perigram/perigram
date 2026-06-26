@@ -38,9 +38,9 @@ controls over it. The graph palette is a one-line icon button set that creates
 action nodes for entity creation, entity data updates, status changes, command
 runs, sending projected entity data to another organization, and inbound or
 outbound organization socket nodes. It also creates non-effect process algebra
-nodes for entity references, field reads, string operations, comparisons,
-logic, and basic collection transforms; those nodes are typed source/transform
-records and do not execute mutations.
+nodes for entity references, entity block decomposition, block field reads,
+string operations, comparisons, logic, and basic collection transforms; those
+nodes are typed source/transform records and do not execute mutations.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
 moving the canvas.
@@ -81,10 +81,12 @@ The inspector edits compiler-owned fields directly:
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket;
 - process algebra nodes own task-specific controls for their palette type:
-  traversal for entity references, source/path/output type for field reads,
-  text transform, comparison condition, boolean composition, or collection
-  result; the route derives kind, operation/mode, and typed sockets from those
-  controls;
+  traversal for entity references, entity-to-block decomposition, block/path
+  output selection, text transform, comparison condition, boolean composition,
+  or collection result; the route derives kind, operation/mode, and typed
+  sockets from those controls. Entity and block settings are recalculated from
+  incoming wires during graph sync, so process nodes that read entities or
+  blocks follow the connected source contract in real time;
 - service nodes own command selection, run/view service identities, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 

@@ -76,15 +76,15 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   block path as a concrete mutation field. Empty update actions expose a generic
   field socket until the first block is connected; after that the node displays
   exact mutation sockets using domain field labels.
-- `ProcessNode.vue` represents non-effect process algebra records. The first
-  supported kinds are entity references, field reads, string operations,
-  comparisons, logic nodes, and collection transforms. These nodes produce and
-  consume typed values but never mutate persistent state; mutations and external
-  work stay on action nodes. Each palette node opens task-specific controls:
-  entity nodes choose traversal, field nodes choose source/path/output type,
-  text nodes choose a text transform, comparison nodes choose a condition,
-  logic nodes choose boolean composition, and collection nodes choose an
-  aggregate/result. Raw kind fields are not exposed as ordinary UX.
+- `ProcessNode.vue` represents non-effect process algebra records. Entity
+  reference nodes traverse entity relations. Blocks nodes decompose an incoming
+  entity into canonical DTO block sockets (`identity`, `status`, `lineage`,
+  `data`, `specs`, `summary`, and `attachments`). Field nodes read a scalar or
+  JSON value from one incoming block. Text, comparison, logic, and collection
+  nodes transform typed values without mutating persistent state; mutations and
+  external work stay on action nodes. Each node keeps the palette icon on the
+  canvas, while socket handle colors come from the socket data type rather than
+  the node kind.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same

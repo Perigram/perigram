@@ -98,6 +98,20 @@
       irrelevant entity/path/value controls while preserving the same canonical
       `processNodes` record contract.
 
+    [2026-06-26] Split entity and block decomposition nodes
+    Files changed: packages/processes/src/index.js,
+      packages/processes/src/ports.js, packages/processes/src/index.spec.js,
+      pages/organization/process.vue,
+      components/process-designer/ProcessNode.vue,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md, TODO.org
+    Notes: Entity field reads now decompose an incoming entity into canonical
+      DTO block sockets, and the new block-read process node reads scalar/json
+      fields from a selected block. Process-node icons are persisted from the
+      palette, socket handle colors now follow socket data types, and
+      entity/block inputs are inferred from incoming graph wires during sync.
+
     [2026-06-26] Keep cassette-design construction template-backed, not queue-parented.
     Files changed: packages/processes/src/index.js, packages/processes/src/index.spec.js, packages/domain-cnc/src/ui-fields.js, shared/design-system.spec.js, shared/framework-packages.spec.js, framework.manifest.json, components/generated/GeneratedEntityCollection.vue, components/generated/action-context.js, components/generated/action-context.spec.js
     Docs updated: components/README.md, components/process-designer/README.md, components/entities/CassetteDesign/README.md, packages/processes/README.md, server/features/process-definitions/README.md, server/features/queues/README.md, TODO.org
