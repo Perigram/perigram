@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-06-26] Preserve process status display metadata in history badges
+    Files changed: components/shared/status/StatusHistory.vue,
+      shared/design-system.spec.js
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Status history now passes each event snapshot's
+      `status.metadata.display` payload into `StatusBadge`, so process-authored
+      labels, severity/color, and icons render consistently in the timeline as
+      well as on the current status badge. The history state id remains
+      `toStatePrimary`.
+
     [2026-06-26] Route active process users to generated home
     Files changed: pages/index.vue, utils/process-navigation.js,
       utils/process-navigation.spec.js

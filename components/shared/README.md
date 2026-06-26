@@ -187,6 +187,11 @@ Persisted events may include response-only `actor` data from the status API.
 only when no actor name is available.
 Structured v2 events prefer `toStatePrimary` for the visible badge and keep
 `region` available for grouped status surfaces.
+When an event snapshot carries process-authored display metadata under
+`status.metadata.display`, `StatusHistory` passes it to `StatusBadge` so
+historical badges retain the authored label, severity/color, and icon. The
+event's raw `toStatePrimary` remains the state identifier, not the display
+contract.
 
 ### `StatusLocation.vue`
 Renders the current mutable lifecycle location from `status.lifecycle.data.location`.
