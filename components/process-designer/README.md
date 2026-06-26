@@ -80,11 +80,11 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   supported kinds are entity references, field reads, string operations,
   comparisons, logic nodes, and collection transforms. These nodes produce and
   consume typed values but never mutate persistent state; mutations and external
-  work stay on action nodes. The inspector is use-case first: designers choose
-  tasks such as getting a parent entity, reading a field, checking whether a
-  value exists, combining conditions, or counting a collection. Raw kind,
-  operation, and value-type fields are not shown unless they are meaningful for
-  that task.
+  work stay on action nodes. Each palette node opens task-specific controls:
+  entity nodes choose traversal, field nodes choose source/path/output type,
+  text nodes choose a text transform, comparison nodes choose a condition,
+  logic nodes choose boolean composition, and collection nodes choose an
+  aggregate/result. Raw kind fields are not exposed as ordinary UX.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
