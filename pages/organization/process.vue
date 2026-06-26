@@ -299,17 +299,15 @@
 
                 <template v-else-if="selectedNode.type === 'processNode'">
                   <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-2 flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.useCase') }}</label>
-                      <Select
-                        :model-value="processNodeUseCase(selectedProcessNode)"
-                        :options="processNodeUseCaseOptions"
-                        option-label="label"
-                        option-value="value"
-                        @update:model-value="setSelectedProcessNodeUseCase"
-                      />
+                    <div v-if="selectedProcessNode.kind === 'entityRef'" class="col-span-2 flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.traversal') }}</label>
+                      <Select v-model="selectedProcessNode.mode" :options="processNodeOperationOptions('entityRef')" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
                     </div>
-                    <div v-if="processNodeNeedsSourceEntity(selectedProcessNode)" class="flex flex-col gap-1">
+                    <div v-if="['stringOp', 'compare', 'logic', 'collection'].includes(selectedProcessNode.kind)" class="col-span-2 flex flex-col gap-1">
+                      <label>{{ processNodeOperationLabel(selectedProcessNode.kind) }}</label>
+                      <Select v-model="selectedProcessNode.operation" :options="processNodeOperationOptions(selectedProcessNode.kind)" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
+                    </div>
+                    <div v-if="processNodeNeedsSourceEntity(selectedProcessNode)" :class="selectedProcessNode.kind === 'fieldRead' ? 'flex flex-col gap-1' : 'col-span-2 flex flex-col gap-1'">
                       <label>{{ processNodeSourceEntityLabel(selectedProcessNode) }}</label>
                       <Select v-model="selectedProcessNode.entityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
                     </div>
@@ -555,6 +553,7 @@ const palette = [
   { type: 'valueInput', icon: 'pi pi-id-card', label: 'block' },
   { type: 'processNode', kind: 'entityRef', icon: 'pi pi-share-alt', label: 'entity' },
   { type: 'processNode', kind: 'fieldRead', icon: 'pi pi-search', label: 'field' },
+  { type: 'processNode', kind: 'stringOp', icon: 'pi pi-align-left', label: 'text' },
   { type: 'processNode', kind: 'compare', icon: 'pi pi-equals', label: 'compare' },
   { type: 'processNode', kind: 'logic', icon: 'pi pi-code-branch', label: 'logic' },
   { type: 'processNode', kind: 'collection', icon: 'pi pi-list', label: 'list' },
@@ -600,33 +599,35 @@ const valueTypeOptions = ['string', 'number', 'object', 'entity'].map(value => (
 const processValueTypeOptions = ['string', 'number', 'boolean', 'json'].map(value => ({ label: value, value }));
 const processNodeOperations = {
   entityRef: ['current', 'parent', 'children', 'related'],
-  fieldRead: ['read'],
   stringOp: ['concat', 'template', 'replace', 'lower', 'upper', 'trim'],
   compare: ['eq', 'neq', 'gt', 'lt', 'contains', 'exists'],
   logic: ['and', 'or', 'not', 'coalesce'],
   collection: ['first', 'count']
 };
-const processNodeUseCaseDefinitions = [
-  { value: 'entity.current', label: t('processDesigner.useCurrentEntity'), kind: 'entityRef', operation: 'current', mode: 'current' },
-  { value: 'entity.parent', label: t('processDesigner.useParentEntity'), kind: 'entityRef', operation: 'parent', mode: 'parent' },
-  { value: 'entity.children', label: t('processDesigner.useChildEntities'), kind: 'entityRef', operation: 'children', mode: 'children' },
-  { value: 'entity.related', label: t('processDesigner.useRelatedEntities'), kind: 'entityRef', operation: 'related', mode: 'related' },
-  { value: 'field.read', label: t('processDesigner.useReadField'), kind: 'fieldRead', operation: 'read' },
-  { value: 'text.template', label: t('processDesigner.useBuildText'), kind: 'stringOp', operation: 'template' },
-  { value: 'text.lower', label: t('processDesigner.useLowerText'), kind: 'stringOp', operation: 'lower' },
-  { value: 'text.upper', label: t('processDesigner.useUpperText'), kind: 'stringOp', operation: 'upper' },
-  { value: 'text.trim', label: t('processDesigner.useTrimText'), kind: 'stringOp', operation: 'trim' },
-  { value: 'compare.eq', label: t('processDesigner.useEquals'), kind: 'compare', operation: 'eq' },
-  { value: 'compare.exists', label: t('processDesigner.useExists'), kind: 'compare', operation: 'exists' },
-  { value: 'compare.gt', label: t('processDesigner.useGreaterThan'), kind: 'compare', operation: 'gt' },
-  { value: 'compare.contains', label: t('processDesigner.useContains'), kind: 'compare', operation: 'contains' },
-  { value: 'logic.and', label: t('processDesigner.useAllConditions'), kind: 'logic', operation: 'and' },
-  { value: 'logic.or', label: t('processDesigner.useAnyCondition'), kind: 'logic', operation: 'or' },
-  { value: 'logic.not', label: t('processDesigner.useInvertCondition'), kind: 'logic', operation: 'not' },
-  { value: 'collection.first', label: t('processDesigner.useFirstItem'), kind: 'collection', operation: 'first' },
-  { value: 'collection.count', label: t('processDesigner.useCountItems'), kind: 'collection', operation: 'count' }
-];
-const processNodeUseCaseOptions = processNodeUseCaseDefinitions.map(({ value, label }) => ({ value, label }));
+const processNodeOperationLabels = {
+  current: t('processDesigner.useCurrentEntity'),
+  parent: t('processDesigner.useParentEntity'),
+  children: t('processDesigner.useChildEntities'),
+  related: t('processDesigner.useRelatedEntities'),
+  concat: t('processDesigner.useJoinText'),
+  template: t('processDesigner.useBuildText'),
+  replace: t('processDesigner.useReplaceText'),
+  lower: t('processDesigner.useLowerText'),
+  upper: t('processDesigner.useUpperText'),
+  trim: t('processDesigner.useTrimText'),
+  eq: t('processDesigner.useEquals'),
+  neq: t('processDesigner.useNotEquals'),
+  gt: t('processDesigner.useGreaterThan'),
+  lt: t('processDesigner.useLessThan'),
+  contains: t('processDesigner.useContains'),
+  exists: t('processDesigner.useExists'),
+  and: t('processDesigner.useAllConditions'),
+  or: t('processDesigner.useAnyCondition'),
+  not: t('processDesigner.useInvertCondition'),
+  coalesce: t('processDesigner.useFirstPresentCondition'),
+  first: t('processDesigner.useFirstItem'),
+  count: t('processDesigner.useCountItems')
+};
 const blockOptions = [
   { label: 'identity', value: 'identity' },
   { label: 'data', value: 'data' },
@@ -1086,7 +1087,7 @@ function syncNodeData() {
     node.data.block = record.block;
     node.data.path = record.path;
     node.data.kind = record.kind;
-    node.data.kindLabel = node.type === 'processNode' ? processNodeUseCaseLabel(record) : record.kind;
+    node.data.kindLabel = node.type === 'processNode' ? processNodeDisplayLabel(record) : record.kind;
     node.data.summary = processNodeSummary(record);
   }
 }
@@ -1779,7 +1780,7 @@ function syncProcessNode(node = {}) {
   if (node.kind !== 'entityRef') node.mode = '';
   else node.mode ||= node.operation || 'current';
   if (node.kind === 'entityRef') node.operation = node.mode;
-  node.label = processNodeUseCaseLabel(node);
+  node.label = processNodeDisplayLabel(node);
   node.inputs = processNodeInputs(node);
   node.outputs = processNodeOutputs(node);
 }
@@ -1787,30 +1788,6 @@ function syncProcessNode(node = {}) {
 function syncSelectedProcessNode() {
   syncProcessNode(selectedProcessNode.value);
   syncNodeData();
-}
-
-function processNodeUseCase(node = {}) {
-  if (node.kind === 'entityRef') return `entity.${node.mode || node.operation || 'current'}`;
-  if (node.kind === 'fieldRead') return 'field.read';
-  if (node.kind === 'stringOp') return `text.${node.operation || 'template'}`;
-  if (node.kind === 'compare') return `compare.${node.operation || 'eq'}`;
-  if (node.kind === 'logic') return `logic.${node.operation || 'and'}`;
-  if (node.kind === 'collection') return `collection.${node.operation || 'first'}`;
-  return 'field.read';
-}
-
-function setSelectedProcessNodeUseCase(value) {
-  const definition = processNodeUseCaseDefinitions.find(item => item.value === value);
-  if (!definition) return;
-  const node = selectedProcessNode.value;
-  node.kind = definition.kind;
-  node.operation = definition.operation;
-  node.mode = definition.mode || '';
-  if (node.kind !== 'fieldRead') node.path = '';
-  if (node.kind === 'fieldRead' && !node.path) node.path = 'identity.name';
-  node.valueType = defaultProcessNodeValueType(node.kind);
-  node.label = definition.label;
-  syncSelectedProcessNode();
 }
 
 function processNodeNeedsSourceEntity(node = {}) {
@@ -1834,6 +1811,14 @@ function processNodeResultEntityLabel(node = {}) {
   return t('processDesigner.relatedEntity');
 }
 
+function processNodeOperationLabel(kind = '') {
+  if (kind === 'stringOp') return t('processDesigner.textTransform');
+  if (kind === 'compare') return t('processDesigner.condition');
+  if (kind === 'logic') return t('processDesigner.booleanRule');
+  if (kind === 'collection') return t('processDesigner.collectionResult');
+  return t('processDesigner.operation');
+}
+
 function defaultProcessNodeValueType(kind = '') {
   if (kind === 'compare' || kind === 'logic') return 'boolean';
   if (kind === 'collection') return 'number';
@@ -1845,7 +1830,7 @@ function defaultProcessNodeOperation(kind = '') {
 }
 
 function processNodeOperationOptions(kind = '') {
-  return (processNodeOperations[kind] || []).map(value => ({ label: value, value }));
+  return (processNodeOperations[kind] || []).map(value => ({ label: processNodeOperationLabels[value] || value, value }));
 }
 
 function processNodeInputs(node = {}) {
@@ -1880,9 +1865,9 @@ function processNodeSummary(node = {}) {
   return [node.relationEntityType || node.entityType, node.path].filter(Boolean).join(' · ');
 }
 
-function processNodeUseCaseLabel(node = {}) {
-  const useCase = processNodeUseCase(node);
-  return processNodeUseCaseDefinitions.find(item => item.value === useCase)?.label || node.kind || '';
+function processNodeDisplayLabel(node = {}) {
+  if (node.kind === 'fieldRead') return t('processDesigner.useReadField');
+  return processNodeOperationLabels[node.kind === 'entityRef' ? (node.mode || node.operation || 'current') : node.operation] || node.kind || '';
 }
 
 function fieldLabel(entityType = '', path = '') {
@@ -2254,7 +2239,7 @@ function enrichNodeData(node) {
       block: record.block,
       path: record.path,
       kind: record.kind,
-      kindLabel: node.type === 'processNode' ? processNodeUseCaseLabel(record) : record.kind,
+      kindLabel: node.type === 'processNode' ? processNodeDisplayLabel(record) : record.kind,
       summary: processNodeSummary(record)
     }
   };
