@@ -470,10 +470,11 @@ import TabPanels from 'primevue/tabpanels';
 import Tabs from 'primevue/tabs';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
+import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { canvasToDefinition, compileProcessDefinition, definitionToCanvas } from '~/packages/processes/src/index.js';
+import { canvasToDefinition, compileProcessDefinition, definitionToCanvas, portSpecsCompatible, resolveNodePort } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncEntityConstruction, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
@@ -486,6 +487,7 @@ import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessSt
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
 
 const { t } = useI18n();
+const toast = useToast();
 definePageMeta({
   layout: 'app',
   middleware: 'auth'
@@ -2184,6 +2186,20 @@ function roleAccessSummary(roleId) {
 }
 
 function onConnect(connection) {
+  syncNodeData();
+  const compatibility = connectionCompatibility(connection);
+  if (!compatibility.ok) {
+    toast.add({
+      severity: 'warn',
+      summary: t('processDesigner.incompatiblePorts'),
+      detail: t('processDesigner.incompatiblePortsDetail', {
+        source: compatibility.source?.label || compatibility.source?.id || t('processDesigner.source'),
+        target: compatibility.target?.label || compatibility.target?.id || t('processDesigner.target')
+      }),
+      life: 3000
+    });
+    return;
+  }
   selectedEdgeId.value = null;
   edges.value.push(decorateEdge({
     ...connection,
@@ -2194,6 +2210,21 @@ function onConnect(connection) {
   applySemanticConnection(connection);
   syncEdgeSelection();
   syncInferredActionInputs();
+}
+
+function connectionCompatibility(connection = {}) {
+  const source = nodes.value.find(item => item.id === connection.source);
+  const target = nodes.value.find(item => item.id === connection.target);
+  if (!source || !target) return { ok: true };
+  const process = processDefinitionSnapshot();
+  const sourcePort = resolveNodePort(process, source, connection.sourceHandle, 'output');
+  const targetPort = resolveNodePort(process, target, connection.targetHandle, 'input');
+  if (!sourcePort || !targetPort) return { ok: true };
+  return {
+    ...portSpecsCompatible(sourcePort, targetPort),
+    source: sourcePort,
+    target: targetPort
+  };
 }
 
 function applySemanticConnection(connection = {}) {

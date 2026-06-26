@@ -4,6 +4,7 @@ import {
   normalizeScreenContract,
   validateScreenContract
 } from './screen-contract.js';
+import { validateProcessEdges } from './ports.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -22,6 +23,13 @@ export {
   getProcessTemplate,
   legacyTypeToTemplateId
 } from './templates.js';
+
+export {
+  normalizePortSpec,
+  portSpecsCompatible,
+  resolveNodePort,
+  validateProcessEdges
+} from './ports.js';
 
 export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
   return normalizeWorkflow({
@@ -71,6 +79,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     if (!nodeIds.has(edge.source)) errors.push(`Edge ${edge.id} references missing source node ${edge.source}`);
     if (!nodeIds.has(edge.target)) errors.push(`Edge ${edge.id} references missing target node ${edge.target}`);
   }
+  errors.push(...validateProcessEdges(process));
 
   for (const node of process.graph.nodes) {
     const refId = node.data?.refId;

@@ -6,6 +6,7 @@ import {
   createDefaultCreatedWorkflow,
   definitionToCanvas,
   legacyTypeToTemplateId,
+  portSpecsCompatible,
   resolveScreens,
   validateProcessDefinition,
   validateRoundTrip
@@ -163,6 +164,82 @@ describe('@cutkit/processes compiler', () => {
 
     expect(validation.ok).toBe(false);
     expect(validation.errors.join('\n')).toContain('missing entity profile');
+  });
+
+  it('checks typed port compatibility for core process values', () => {
+    expect(portSpecsCompatible(
+      { id: 'created', kind: 'entity', entityType: 'project' },
+      { id: 'entity', kind: 'entity', entityType: 'project' }
+    ).ok).toBe(true);
+    expect(portSpecsCompatible(
+      { id: 'created', kind: 'entity', entityType: 'project' },
+      { id: 'entity', kind: 'entity', entityType: 'queue' }
+    ).ok).toBe(false);
+    expect(portSpecsCompatible(
+      { id: 'created', kind: 'entity', entityType: 'project' },
+      { id: 'items', kind: 'entity_list', entityType: 'project' }
+    ).ok).toBe(false);
+    expect(portSpecsCompatible(
+      { id: 'completed', kind: 'event' },
+      { id: 'trigger', kind: 'event' }
+    ).ok).toBe(true);
+    expect(portSpecsCompatible(
+      { id: 'completed', kind: 'event' },
+      { id: 'entity', kind: 'entity', entityType: 'project' }
+    ).ok).toBe(false);
+    expect(portSpecsCompatible(
+      { id: 'status', kind: 'status' },
+      { id: 'status', kind: 'status' }
+    ).ok).toBe(true);
+    expect(portSpecsCompatible(
+      { id: 'name', kind: 'block', block: 'identity', dataPath: 'identity.name' },
+      { id: 'name', kind: 'data', dataPath: 'name' }
+    ).ok).toBe(true);
+  });
+
+  it('rejects persisted edges between incompatible concrete ports', () => {
+    const validation = validateProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
+      graph: {
+        nodes: [
+          { id: 'create_project', type: 'action', position: {}, data: { refId: 'create_project' } },
+          { id: 'update_queue', type: 'action', position: {}, data: { refId: 'update_queue' } }
+        ],
+        edges: [
+          {
+            id: 'project-to-queue',
+            source: 'create_project',
+            target: 'update_queue',
+            sourceHandle: 'output',
+            targetHandle: 'input:entity'
+          }
+        ]
+      },
+      actions: {
+        create_project: {
+          id: 'create_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          status: { to: SOURCE_STATE },
+          access: { roleIds: ['role_admin'], level: 'write' },
+          inputs: [{ id: 'status', kind: 'status' }],
+          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+        },
+        update_queue: {
+          id: 'update_queue',
+          actionKind: 'updateEntity',
+          access: { roleIds: ['role_admin'], level: 'write' },
+          inputs: [{ id: 'entity', entityType: 'queue' }],
+          outputs: [{ id: 'entity', entityType: 'queue' }],
+          mutation: { fields: [] }
+        }
+      }
+    }, domain);
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join('\n')).toContain('incompatible ports');
   });
 
   it('rejects fields outside the domain field policy', () => {
