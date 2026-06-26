@@ -48,17 +48,22 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   the canvas reads as the actual transition being authored.
 - `ProcessStatusDefinitionNode.vue` represents an entity-agnostic reusable
   status value for the same canvas. The node renders the same PrimeVue status
-  tag shape that the resulting status uses, and its inspector edits only status
-  id, optional label, severity, and icon. New status nodes start from a neutral
-  `STATUS` id and no label rather than inventing a domain state such as
-  `Created`. Connecting it to an entity node adds the state to that entity
-  lifecycle; connecting it to a create or status-change action writes the action
-  target state and lets the compiler apply status label/color/severity/icon
-  metadata to the generated workflow, compiled action status, and runtime
-  `status.metadata.display` payload used by generated screens. The inspector
-  does not render the generic node label for status-definition nodes; the
-  explicit status label field is the only display label, and the node itself
-  renders a single badge with no separate socket text.
+  tag shape that the resulting status uses, and its inspector edits status id,
+  optional label, severity, icon, and lifecycle evidence requirements. New
+  status nodes start from a neutral `STATUS` id and no label rather than
+  inventing a domain state such as `Created`. Connecting it to an entity node
+  adds the state to that entity lifecycle; connecting it to a create or
+  status-change action writes the action target state and lets the compiler
+  apply status label/color/severity/icon metadata plus lifecycle evidence schema
+  to the generated workflow, compiled action status, and runtime
+  `status.metadata.display` payload used by generated screens. Evidence
+  requirements are stored on the status definition as `lifecycle.description`,
+  `lifecycle.attachments`, and `lifecycle.snapshots`; runtime status actions
+  collect descriptions/proof files and capture declared snapshots when entering
+  that state. The inspector does not render the generic node label for
+  status-definition nodes; the explicit status label field is the only display
+  label, and the node itself renders a single badge with no separate socket
+  text.
 - `ProcessValueInputNode.vue` represents a canonical block value
   (`identity`, `data`, `specs`, `summary`, `attachments`, or status metadata).
   Wiring it into an entity node adds that canonical path to the entity field

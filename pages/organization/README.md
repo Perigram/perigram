@@ -137,10 +137,15 @@ selectors. Change-status action grants also store the status transition
 condition under `action.access.statusFrom/statusTo`, derived from the incoming
 entity socket and target status.
 Status-definition nodes are entity agnostic. They render the final status tag
-directly on the node, edit only status id, label, severity, and icon, and apply
-to whichever entity lifecycle or action target they are wired into. New status
-nodes start from a neutral `STATUS` id with no label, so lifecycle meaning is
-authored by the process designer rather than guessed by the palette.
+directly on the node, edit status id, label, severity, icon, and lifecycle
+evidence requirements, and apply to whichever entity lifecycle or action target
+they are wired into. Evidence requirements are stored on the status definition
+as `lifecycle.description`, `lifecycle.attachments`, and
+`lifecycle.snapshots`; the process compiler copies them to the generated
+workflow state so runtime status actions can collect descriptions/proof files
+and capture relation snapshots when that state is entered. New status nodes
+start from a neutral `STATUS` id with no label, so lifecycle meaning is authored
+by the process designer rather than guessed by the palette.
 When normalizing stale status-node labels, the designer only compares against
 entity types from the active domain registry. It does not keep a baked list of
 domain names in the Vue surface.

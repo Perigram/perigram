@@ -157,10 +157,14 @@ The target may be a literal `action.status.to` or a `statusRef` produced by a
 status-definition node. Status definitions compile into workflow state metadata
 (`label`, `color`, `severity`, `icon`) and into the compiled action target
 state, so runtime execution and UI status rendering use the same value and
-visual metadata. Status definitions are entity agnostic by default: when a
-referenced action creates or transitions a concrete entity type, the compiler
-adds that target state to the entity workflow and applies the referenced
-severity/icon/color/label there.
+visual metadata. They also carry lifecycle evidence schema
+(`description`, `attachments`, and `snapshots`) onto the generated workflow
+state. Runtime status actions use that state schema to require operator notes,
+store proof files as entity attachments, and capture declared relation
+snapshots when the transition enters the state. Status definitions are entity
+agnostic by default: when a referenced action creates or transitions a concrete
+entity type, the compiler adds that target state to the entity workflow and
+applies the referenced severity/icon/color/label and lifecycle schema there.
 The same display metadata is preserved on each compiled role action manifest
 entry, because generated screens read `role.actions[].status` when filtering
 and rendering process action buttons.

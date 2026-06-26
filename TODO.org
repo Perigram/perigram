@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-26] Add process status evidence authoring
+    Files changed: pages/organization/process.vue,
+      packages/processes/src/index.js, packages/processes/src/index.spec.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/process-designer/README.md,
+      pages/organization/README.md, packages/processes/README.md, TODO.org
+    Notes: Status-definition nodes now edit lifecycle evidence requirements
+      for descriptions, attachment proof slots, and relation snapshots. The
+      compiler carries that status definition lifecycle schema onto generated
+      workflow states so the runtime status action dialog and history capture
+      use the same process-authored contract.
+
     [2026-06-26] Add status transition evidence capture
     Files changed: packages/workflows/src/index.js,
       server/core/machines/service.js, components/shared/status/EntityStatus.vue,
