@@ -119,7 +119,7 @@
                     <slot name="title" />
                 </template>
                 <template v-else>
-                    <TraceChain v-if="effectiveShowTrace" :entity="entity" class="mb-2" />
+                    <TraceChain v-if="effectiveShowTrace" :entity="entity" variant="compact" expandable class="mb-2" />
                     <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />

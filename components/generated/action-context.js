@@ -30,7 +30,12 @@ export function resolveGeneratedActionEntities({ action = {}, entity = null, con
   const entities = {};
   const entityId = entityIdentifier(entity);
   const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
-  const entityType = entity?.origin?.type || entity?.type || resolvedContext?.entityType || parentType || '';
+  const entityType = actionInputEntityType(action)
+    || entity?.origin?.type
+    || entity?.type
+    || resolvedContext?.entityType
+    || parentType
+    || '';
   if (entityId && entityType) entities[entityType] = entityId;
 
   const contextParentId = parentType && resolvedContext.parentEntityType === parentType
@@ -55,6 +60,11 @@ export function generatedActionRequiresParent({ action = {}, entity = null, cont
 
 export function entityIdentifier(entity = null) {
   return entity?._id || entity?.identity?.uid || entity?.id || '';
+}
+
+function actionInputEntityType(action = {}) {
+  if (action.actionKind === 'createEntity') return '';
+  return action.entityType || action.inputs?.find(input => input.entityType)?.entityType || '';
 }
 
 function scopedParentId(parentType = '', screen = {}) {

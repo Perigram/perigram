@@ -12,6 +12,16 @@
                     class="h-6 w-6 shrink-0 p-0"
                     @click="isExpanded = true"
                 />
+                <Button
+                    v-else-if="item.type === 'expand'"
+                    icon="pi pi-ellipsis-h"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('common.more')"
+                    class="h-6 w-6 shrink-0 p-0"
+                    @click="isExpanded = true"
+                />
                 <TraceLink
                     v-else
                     :type="item.type"
@@ -41,7 +51,8 @@ import { useEntityStore } from '~/stores/entities';
 const props = defineProps({
     entity: { type: Object, default: null },
     lineage: { type: Object, default: null },
-    expandable: { type: Boolean, default: false }
+    expandable: { type: Boolean, default: false },
+    variant: { type: String, default: 'full' }
 });
 
 const entityStore = useEntityStore();
@@ -58,6 +69,8 @@ const items = computed(() => {
     if (!lin) return [];
 
     if (lin.organizationId) list.push({ type: 'organization', id: lin.organizationId });
+    if (lin.libraryId) list.push({ type: 'library', id: lin.libraryId });
+    if (lin.templateId) list.push({ type: 'cassetteTemplate', id: lin.templateId });
     if (lin.warehouseId) list.push({ type: 'warehouse', id: lin.warehouseId });
     if (lin.projectId) list.push({ type: 'project', id: lin.projectId });
     if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, slug: lin.projectId });
@@ -88,6 +101,13 @@ watchEffect(async () => {
 });
 
 const visibleItems = computed(() => {
+    if (props.variant === 'compact' && !isExpanded.value) {
+        const last = items.value[items.value.length - 1];
+        if (!last) return [];
+        return items.value.length > 1 && props.expandable
+            ? [{ type: 'expand', id: 'lineage-expand' }, last]
+            : [last];
+    }
     if (isExpanded.value || items.value.length <= 3) return items.value;
     return [items.value[0], { type: 'separator' }, ...items.value.slice(-2)];
 });

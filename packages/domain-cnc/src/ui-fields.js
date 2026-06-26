@@ -75,7 +75,6 @@ export const cncEntityFieldGroups = {
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
     ],
     provenance: [
-      { path: 'data.derivedFrom.templateId', i18n: 'entities.cassetteTemplate', display: 'entityRef', entityType: 'cassetteTemplate', priority: 30 },
       { path: 'data.sourceRevisionId', i18n: 'revision.sourceRevision', display: 'entityRef', entityType: 'entityRevision', priority: 40 }
     ]
   },

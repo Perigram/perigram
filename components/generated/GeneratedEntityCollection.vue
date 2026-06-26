@@ -39,28 +39,30 @@
       :entity-type="entityType"
       :surface="surface"
       variant="card"
-      :show-trace="false"
       @refresh="$emit('refresh')"
     >
       <template v-if="detailRouteFor(entity)" #title>
-        <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
-          <div class="flex min-w-0 flex-1 items-center">
-            <button
-              type="button"
-              class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
-              @click.stop="openEntity(entity)"
-            >
-              <IdentityBlock :entity="entity" />
-            </button>
-          </div>
-          <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
-            <EntityStatus
-              :entity="entity"
-              :entity-type="entityType"
-              variant="inline"
-              @refresh="$emit('refresh')"
-              @transitioned="$emit('refresh')"
-            />
+        <div class="flex min-w-0 flex-col gap-2">
+          <TraceChain :entity="entity" variant="compact" expandable />
+          <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+            <div class="flex min-w-0 flex-1 items-center">
+              <button
+                type="button"
+                class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
+                @click.stop="openEntity(entity)"
+              >
+                <IdentityBlock :entity="entity" />
+              </button>
+            </div>
+            <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
+              <EntityStatus
+                :entity="entity"
+                :entity-type="entityType"
+                variant="inline"
+                @refresh="$emit('refresh')"
+                @transitioned="$emit('refresh')"
+              />
+            </div>
           </div>
         </div>
       </template>
@@ -71,7 +73,7 @@
             v-for="action in entityActionsFor(entity)"
             :key="action.actionId"
             :action-id="action.actionId"
-            @execute="action => $emit('execute-action', action, entity)"
+            @execute="action => $emit('execute-action', action, entity, actionContext)"
           />
           <GeneratedDeleteButton
             :entity="entity"
@@ -92,6 +94,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';

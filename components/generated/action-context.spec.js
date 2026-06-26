@@ -40,4 +40,18 @@ describe('generated action context', () => {
       screen: { entityType: 'project', scope: { entityId: 'project-1' } }
     })).toBe('library');
   });
+
+  it('uses the action input entity type for row-bound run commands', () => {
+    const entities = resolveGeneratedActionEntities({
+      action: {
+        actionKind: 'runCommand',
+        commandId: 'solveNesting',
+        inputs: [{ id: 'queue', entityType: 'queue' }]
+      },
+      entity: { _id: 'queue-1', identity: { name: 'Queue 1' } },
+      context: { entityType: 'queue' }
+    });
+
+    expect(entities).toEqual({ queue: 'queue-1' });
+  });
 });
