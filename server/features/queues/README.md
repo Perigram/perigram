@@ -79,6 +79,10 @@ Defines a specific nesting job, bridging the digital production intent with phys
   `quantity`, and `parameters`. Producers must submit the canonical
   `id + entityType` pair; ambiguous cassette/design aliases belong only in
   one-time data migrations.
+  A queue is a consumer of baked cassette designs, not the parent/source for
+  creating them. Process graphs should first create a `cassette_design` from a
+  cassette template, then add that design id to `data.job.items[]` through a
+  queue update/action.
 - `listPreviewByProjects(projectIds, ..., { limit })` returns access-redacted,
   summary-oriented queue previews keyed by parent project id. `/api/project`
   uses this to attach `summary.queuePreview` for the `/projects` route without

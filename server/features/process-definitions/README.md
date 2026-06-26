@@ -95,6 +95,11 @@ named OCCS `cassette` template with the default graph-tree document;
 template id or resolves the default construction-ready template visible to the
 caller, accepts concrete parameters and a name, creates a real `cassette_design`
 with geometry/editor provenance, then applies the process target status.
+The typed cassette-design constructor is sourced from a cassette template, not
+from a queue. A queue consumes existing baked designs through its
+`data.job.items[]` contract; process graphs should model that as a queue update
+or queue-specific action after the design exists, not as a queue parent edge
+into `bakeCassetteDesignFromTemplate`.
 Typed construction actions receive action-scoped grants for the target entity
 they create and for the source entities declared by the construction contract.
 For cassette-design baking this includes a temporary `cassettes:write` grant so

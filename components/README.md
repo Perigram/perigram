@@ -245,6 +245,10 @@ numeric control per OCCS parameter discovered from that cassette definition.
 When the action is already scoped to a cassette parent, the template selector
 is hidden and the current parent cassette supplies both the construction
 template id and the parameter set.
+Generated cassette-design creation must be scoped to a cassette template. A
+queue is linked after creation by adding the baked design id to
+`queue.data.job.items[]`; generated screens must not treat a queue as the
+parent/source for `bakeCassetteDesignFromTemplate`.
 Generated collections may turn `identity.name` into a link only through the
 screen manifest: the collection looks for an `entityDetail` screen with a
 single source for the same entity type, preferring the detail screen paired
@@ -259,6 +263,10 @@ clickable; generated cards must keep the standard identity/status row.
 Generated collection cards render visible process actions as generated buttons
 in the card footer. The action must be present in the user's compiled action
 manifest and match the current entity status before the footer renders it.
+Row-bound generated actions pass the concrete row entity plus collection context
+to the action runtime; command actions resolve the entity key from the action
+input contract, so a `solveNesting` button on a queue card submits
+`entities.queue` for that exact queue.
 Generated collection, home, and detail surfaces also render the standard
 generated delete icon when the active process grants `delete`/admin access for
 the exact entity and the domain UI endpoint has a canonical single-entity route.

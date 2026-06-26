@@ -30,9 +30,10 @@ parametric/OCCS definitions.
   lacks that top-level snapshot, the display contract may fall back to
   `data.derivedFrom.parameters`; template parameter counts are not shown on
   design cards.
-- Parent template context is loaded silently from `lineage.templateId` and
-  rendered as a compact `EntityInlineRef`; stale template ids should not flood
-  the browser console.
+- Parent template context belongs in `lineage.templateId` and is rendered by
+  the shared trace chrome as the nearest parent, matching how cassette cards
+  render their `lineage.libraryId` parent. The card body does not duplicate that
+  parent as a separate relation row.
 - Exact source geometry revision is loaded from `data.derivedFrom.revisionId`
   and rendered as a compact `EntityInlineRef` when present.
 - The footer DXF action downloads from

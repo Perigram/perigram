@@ -295,6 +295,13 @@ relationship.
   entity relation summaries inside cards/details; use `EntityInlineRef` so the
   relation resolves through `useEntity` and the registered entity card.
 - **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` — never pass raw ancestry arrays. Resolves names async via `useEntityStore`; cached per session.
+  Card title chrome uses compact trace mode: it shows the nearest parent
+  lineage item and an ellipsis expander when more ancestry exists. Expanded
+  popovers and detail pages render the full lineage breadcrumb chain. Supported
+  lineage parents include `organizationId`, `libraryId`, `templateId`,
+  `warehouseId`, `projectId`, and `queueId`.
+  Trace labels must resolve to entity display names from context or the entity
+  store; raw lineage ids are link targets only and must not be shown as labels.
   Development surfaces can provide `entityContext`; `TraceChain` prefers those
   in-memory entities for labels before calling authenticated APIs, so fixture
   lineage does not create protected API errors.
