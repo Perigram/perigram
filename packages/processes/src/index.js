@@ -270,6 +270,7 @@ function compileLifecycle(profile = {}, domain = {}) {
 function compileWorkflows(process = {}, domain = {}) {
   const workflows = {};
   const actionWindows = compileActionAccessWindows(process, domain);
+  const graphContext = buildActionGraphContext(process);
   for (const profile of Object.values(process.entityProfiles || {})) {
     workflows[profile.entityType] = compileLifecycle(profile, domain);
   }
@@ -292,19 +293,21 @@ function compileWorkflows(process = {}, domain = {}) {
       continue;
     }
 
-    const from = action.status?.from || action.access?.statusFrom || action.inputs?.find(input => input.status)?.status || '';
     const to = actionTargetState(action, process);
-    if (!from || !to) continue;
-    addWorkflowState(builder, from);
-    addWorkflowState(builder, to);
     const access = normalizeActionAccess(action.access);
-    const executableRoleIds = actionExposureRoleIds(action, access, actionWindows.get(actionId));
-    const transition = {
-      from,
-      to,
-      processRoleIds: executableRoleIds
-    };
-    upsertWorkflowTransition(builder, transition);
+    if (!to) continue;
+
+    for (const source of workflowTransitionSources(actionId, action, entityType, graphContext, actionWindows)) {
+      const from = source.status;
+      if (!from) continue;
+      addWorkflowState(builder, from);
+      addWorkflowState(builder, to);
+      upsertWorkflowTransition(builder, {
+        from,
+        to,
+        processRoleIds: actionExposureRoleIdsForInput(action, access, source.window)
+      });
+    }
   }
 
   for (const [entityType, builder] of builders) {
@@ -324,6 +327,32 @@ function compileWorkflows(process = {}, domain = {}) {
   }
 
   return workflows;
+}
+
+function workflowTransitionSources(actionId, action = {}, entityType = '', graphContext, actionWindows) {
+  const sources = [];
+  const edges = graphContext.incomingByActionId.get(actionId) || [];
+
+  for (const edge of edges) {
+    if (!isEntityTargetHandle(edge.targetHandle)) continue;
+    const sourceWindow = outputWindowForHandle(actionWindows.get(edge.sourceActionId), edge.sourceHandle);
+    if (!sourceWindow?.status) continue;
+    if (entityType && sourceWindow.entityType && sourceWindow.entityType !== entityType) continue;
+    sources.push({ status: sourceWindow.status, window: sourceWindow });
+  }
+
+  const fallbackStatus = action.status?.from
+    || action.access?.statusFrom
+    || action.inputs?.find(input => input.status)?.status
+    || '';
+  if (fallbackStatus) sources.push({ status: fallbackStatus, window: actionWindows.get(actionId)?.input || null });
+
+  const seen = new Set();
+  return sources.filter(source => {
+    if (!source.status || seen.has(source.status)) return false;
+    seen.add(source.status);
+    return true;
+  });
 }
 
 function applyStatusDefinitionMetadata(builder, entityType, statusDefinitions = {}) {
@@ -583,12 +612,7 @@ function exposedActionFeature(action = {}, actionWindow = null, access = {}, dom
 function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
   const kind = action.actionKind || 'createEntity';
   if (kind === 'changeStatus') {
-    const incoming = actionWindow?.input;
-    const incomingRoleGrants = incoming?.roleGrants || grantsFromRoleIds(incoming?.roleIds || [], incoming?.level || access.level);
-    const executable = incomingRoleGrants
-      .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
-      .map(grant => grant.roleId)
-      .filter(Boolean);
+    const executable = executableRoleIdsForWindow(actionWindow?.input, access);
     if (executable.length) return [...new Set(executable)];
   }
   const explicitGrants = access.grants?.length ? access.grants : grantsFromRoleIds(access.roleIds || [], access.level);
@@ -603,6 +627,21 @@ function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
       .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
       .map(grant => grant.roleId);
   }))];
+}
+
+function actionExposureRoleIdsForInput(action = {}, access = {}, inputWindow = null) {
+  if ((action.actionKind || 'createEntity') !== 'changeStatus') return actionExposureRoleIds(action, access, null);
+  const executable = executableRoleIdsForWindow(inputWindow, access);
+  if (executable.length) return [...new Set(executable)];
+  return actionExposureRoleIds(action, access, null);
+}
+
+function executableRoleIdsForWindow(window = null, access = {}) {
+  const incomingRoleGrants = window?.roleGrants || grantsFromRoleIds(window?.roleIds || [], window?.level || access.level);
+  return incomingRoleGrants
+    .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
+    .map(grant => grant.roleId)
+    .filter(Boolean);
 }
 
 function actionStatusForExposure(action = {}, actionWindow = null, access = {}, process = {}) {
@@ -742,6 +781,11 @@ function buildActionGraphContext(process = {}) {
 function isParentTargetHandle(targetHandle = '') {
   const handle = String(targetHandle || '');
   return handle === 'parent' || handle === 'input:parent' || handle.endsWith(':parent');
+}
+
+function isEntityTargetHandle(targetHandle = '') {
+  const handle = String(targetHandle || '');
+  return !handle || handle === 'input' || handle === 'entity' || handle === 'input:entity' || handle.endsWith(':entity');
 }
 
 function actionOutputForHandle(action = {}, sourceHandle = '') {

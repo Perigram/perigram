@@ -2172,6 +2172,82 @@ describe('@cutkit/processes compiler', () => {
     expect(workflow.regions.main.transitions[0].access).toBeUndefined();
   });
 
+  it('synthesizes repeated status-action transitions from all graph entity inputs', () => {
+    const compiled = compileProcessDefinition({
+      graph: {
+        nodes: [
+          { id: 'create_queue', type: 'action', position: {}, data: { refId: 'create_queue' } },
+          { id: 'send_queue', type: 'action', position: {}, data: { refId: 'send_queue' } },
+          { id: 'reject_queue', type: 'action', position: {}, data: { refId: 'reject_queue' } }
+        ],
+        edges: [
+          {
+            id: 'create_queue-send_queue',
+            source: 'create_queue',
+            target: 'send_queue',
+            sourceHandle: 'output',
+            targetHandle: 'input:entity'
+          },
+          {
+            id: 'send_queue-reject_queue',
+            source: 'send_queue',
+            target: 'reject_queue',
+            sourceHandle: 'output',
+            targetHandle: 'input:entity'
+          },
+          {
+            id: 'reject_queue-send_queue',
+            source: 'reject_queue',
+            target: 'send_queue',
+            sourceHandle: 'output',
+            targetHandle: 'input:entity'
+          }
+        ]
+      },
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          status: { to: INITIAL_STATE },
+          access: { level: 'write', roleIds: ['role_operator'] },
+          outputs: [{ id: 'created', entityType: 'queue', status: INITIAL_STATE }]
+        },
+        send_queue: {
+          id: 'send_queue',
+          actionKind: 'changeStatus',
+          status: { from: INITIAL_STATE, to: TARGET_STATE },
+          access: { level: 'write', roleIds: ['role_operator'], statusFrom: INITIAL_STATE, statusTo: TARGET_STATE },
+          inputs: [{ id: 'entity', entityType: 'queue', status: INITIAL_STATE }],
+          outputs: [{ id: 'entity', entityType: 'queue', status: TARGET_STATE }]
+        },
+        reject_queue: {
+          id: 'reject_queue',
+          actionKind: 'changeStatus',
+          status: { from: TARGET_STATE, to: NEXT_STATE },
+          access: { level: 'write', roleIds: ['role_operator'], statusFrom: TARGET_STATE, statusTo: NEXT_STATE },
+          inputs: [{ id: 'entity', entityType: 'queue', status: TARGET_STATE }],
+          outputs: [{ id: 'entity', entityType: 'queue', status: NEXT_STATE }]
+        }
+      }
+    }, domain);
+
+    const transitions = compiled.workflows.queue.regions.main.transitions.map(({ from, to, processRoleIds }) => ({
+      from,
+      to,
+      processRoleIds
+    }));
+
+    expect(transitions).toEqual(expect.arrayContaining([
+      { from: INITIAL_STATE, to: TARGET_STATE, processRoleIds: ['role_operator'] },
+      { from: NEXT_STATE, to: TARGET_STATE, processRoleIds: ['role_operator'] },
+      { from: TARGET_STATE, to: NEXT_STATE, processRoleIds: ['role_operator'] }
+    ]));
+  });
+
   it('creates compilable starter process definitions from legacy organization types', () => {
     const process = createProcessFromTemplate({
       templateId: legacyTypeToTemplateId('Manufacturer'),
