@@ -939,28 +939,26 @@ function outputHandleId(action = {}, kind = '') {
   return `output:${id || Math.max(index, 0)}`;
 }
 
-function rawActionParentEntityType(action = {}, incoming = null) {
-  return (incoming?.parentInput ? incoming.entityType : '')
-    || action.parentEntityType
-    || action.inputs?.find(input => input.id === 'parent' && input.entityType)?.entityType
-    || incoming?.entityType
-    || '';
-}
-
 function effectiveActionParentEntityType(action = {}, domain = {}, incoming = null) {
-  const parentType = rawActionParentEntityType(action, incoming);
   const entityType = action.entityType || action.outputs?.find(output => output.entityType)?.entityType || '';
-  if (!parentType) return '';
-  if (parentType === entityType && !incoming && !parentRelationForChild(domain, entityType, parentType)) return '';
-  if (!incoming && !parentSupportedByDomain(domain, entityType, parentType)) return '';
-  return parentType;
+  const candidates = [
+    incoming?.parentInput ? incoming.entityType : '',
+    action.parentEntityType,
+    action.inputs?.find(input => input.id === 'parent' && input.entityType)?.entityType,
+    !incoming?.parentInput ? incoming?.entityType : ''
+  ].filter(Boolean);
+
+  for (const parentType of candidates) {
+    if (parentType === entityType && !parentRelationForChild(domain, entityType, parentType)) continue;
+    if (!parentSupportedByDomain(domain, entityType, parentType)) continue;
+    return parentType;
+  }
+  return '';
 }
 
 function parentSupportedByDomain(domain = {}, entityType = '', parentType = '') {
   if (!entityType || !parentType) return false;
-  if (parentRelationForChild(domain, entityType, parentType)) return true;
-  const inputs = constructionContract(domain, entityType).inputs || [];
-  return inputs.some(input => input.type === 'entity' && input.entityType === parentType);
+  return Boolean(parentRelationForChild(domain, entityType, parentType));
 }
 
 function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}) {

@@ -242,6 +242,90 @@ describe('@cutkit/processes compiler', () => {
     expect(validation.errors.join('\n')).toContain('incompatible ports');
   });
 
+  it('accepts compatible generic entity, parent, and command-output ports', () => {
+    const validation = validateProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator', label: 'Operator' }
+      },
+      entityProfiles: {
+        library_profile: {
+          id: 'library_profile',
+          entityType: 'library',
+          lifecycle: { mode: 'defaultCreated' },
+          fields: { read: ['identity.*'], write: [], private: [] },
+          allowedRoles: { read: ['role_operator'] },
+          outputs: [{ id: 'entity', entityType: 'library' }]
+        }
+      },
+      graph: {
+        nodes: [
+          { id: 'create_queue', type: 'action', position: {}, data: { refId: 'create_queue' } },
+          { id: 'create_cassette', type: 'action', position: {}, data: { refId: 'create_cassette' } },
+          { id: 'solve_nesting', type: 'action', position: {}, data: { refId: 'solve_nesting' } },
+          { id: 'mark_run_cut', type: 'action', position: {}, data: { refId: 'mark_run_cut' } },
+          { id: 'mark_sheet_cut', type: 'action', position: {}, data: { refId: 'mark_sheet_cut' } },
+          { id: 'library_profile', type: 'entity', position: {}, data: { refId: 'library_profile' } }
+        ],
+        edges: [
+          { id: 'queue-cassette-parent', source: 'create_queue', target: 'create_cassette', sourceHandle: 'output', targetHandle: 'input:parent' },
+          { id: 'run-cut', source: 'solve_nesting', target: 'mark_run_cut', sourceHandle: 'output:nesting_run', targetHandle: 'input:entity' },
+          { id: 'sheet-cut', source: 'solve_nesting', target: 'mark_sheet_cut', sourceHandle: 'output:sheet_design', targetHandle: 'input:entity' },
+          { id: 'library-cassette-parent', source: 'library_profile', target: 'create_cassette', sourceHandle: 'output', targetHandle: 'input:parent' }
+        ]
+      },
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          status: { to: SOURCE_STATE },
+          access: { roleIds: ['role_operator'], level: 'write' },
+          outputs: [{ id: 'created', entityType: 'queue' }]
+        },
+        create_cassette: {
+          id: 'create_cassette',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          parentEntityType: 'library',
+          status: { to: SOURCE_STATE },
+          access: { roleIds: ['role_operator'], level: 'write' },
+          inputs: [{ id: 'parent', entityType: 'library' }],
+          outputs: [{ id: 'created', entityType: 'cassette' }]
+        },
+        solve_nesting: {
+          id: 'solve_nesting',
+          actionKind: 'runCommand',
+          commandId: 'solveNesting',
+          access: { roleIds: ['role_operator'], level: 'write' },
+          inputs: [{ id: 'queue', entityType: 'queue' }],
+          outputs: [
+            { id: 'nesting_run', entityType: 'nesting_run', multiple: true },
+            { id: 'sheet_design', entityType: 'sheet_design', multiple: true }
+          ]
+        },
+        mark_run_cut: {
+          id: 'mark_run_cut',
+          actionKind: 'changeStatus',
+          status: { to: 'CUT' },
+          access: { roleIds: ['role_operator'], level: 'write' },
+          inputs: [{ id: 'entity', entityType: 'nesting_run' }],
+          outputs: [{ id: 'entity', entityType: 'nesting_run' }]
+        },
+        mark_sheet_cut: {
+          id: 'mark_sheet_cut',
+          actionKind: 'changeStatus',
+          status: { to: 'CUT' },
+          access: { roleIds: ['role_operator'], level: 'write' },
+          inputs: [{ id: 'entity', entityType: 'sheet_design' }],
+          outputs: [{ id: 'entity', entityType: 'sheet_design' }]
+        }
+      }
+    }, domain);
+
+    expect(validation.ok).toBe(true);
+    expect(validation.errors.join('\n')).not.toContain('incompatible ports');
+  });
+
   it('rejects fields outside the domain field policy', () => {
     const validation = validateProcessDefinition({
       entityProfiles: {
@@ -1206,7 +1290,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.screens.auto_role_admin_project_detail.sources.map(source => source.entityType)).not.toContain('cassette');
   });
 
-  it('places non-child parent-bound create actions on the parent detail region', () => {
+  it('does not treat construction entity inputs as parent-bound create actions', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_admin: { id: 'role_admin', label: 'Admin' }
@@ -1238,12 +1322,83 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
+    expect(compiled.actions.create_design.parentEntityType).toBeNull();
+    expect(compiled.actions.create_design.inputs[0]).toMatchObject({
+      id: 'parent',
+      entityType: '',
+      required: false
+    });
     const detail = compiled.screens.auto_role_admin_cassette_detail;
-    expect(detail.sources.map(source => source.entityType)).toEqual(['cassette']);
-    expect(detail.regions.find(region => region.id === 'main').actions).toContain('create_design');
-    expect(compiled.userAccess.user_admin.screens.find(screen => screen.screenKey === 'auto_cassette_detail').actions).toContain('create_design');
+    expect(detail.regions.find(region => region.id === 'main').actions).not.toContain('create_design');
+    expect(compiled.userAccess.user_admin.screens.find(screen => screen.screenKey === 'auto_cassette_detail').actions).not.toContain('create_design');
     expect(compiled.screens.auto_role_admin_cassette_design.actions).toContain('create_design');
     expect(compiled.screens.auto_role_admin_cassette_design_detail.actions).not.toContain('create_design');
+  });
+
+  it('does not use queue outputs as cassette design construction parents', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_installer: { id: 'role_installer', label: 'Installer' }
+      },
+      entityProfiles: {
+        cassette_profile: {
+          id: 'cassette_profile',
+          entityType: 'cassette',
+          allowedRoles: { read: ['role_installer'] }
+        }
+      },
+      graph: {
+        nodes: [
+          { id: 'create_queue', type: 'action', data: { refId: 'create_queue' } },
+          { id: 'create_design', type: 'action', data: { refId: 'create_design' } }
+        ],
+        edges: [
+          {
+            id: 'queue-to-design-parent',
+            source: 'create_queue',
+            target: 'create_design',
+            sourceHandle: 'output',
+            targetHandle: 'input:parent'
+          }
+        ]
+      },
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          status: { to: SOURCE_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_installer'] },
+          outputs: [{ id: 'created', entityType: 'queue', status: SOURCE_STATE }]
+        },
+        create_design: {
+          id: 'create_design',
+          actionKind: 'createEntity',
+          entityType: 'cassette_design',
+          parentEntityType: 'cassette',
+          status: { to: TARGET_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'admin', roleIds: ['role_installer'] },
+          inputs: [{ id: 'parent', entityType: 'cassette' }],
+          outputs: [{ id: 'created', entityType: 'cassette_design', status: TARGET_STATE }]
+        }
+      },
+      assignments: {
+        user_installer: { userId: 'user_installer', roleIds: ['role_installer'], status: 'active' }
+      }
+    }, domain);
+
+    expect(compiled.actions.create_design.parentEntityType).toBeNull();
+    expect(compiled.actions.create_design.inputs[0]).toMatchObject({
+      id: 'parent',
+      entityType: '',
+      required: false
+    });
+    expect(compiled.userAccess.user_installer.actions.find(action => action.actionId === 'create_design')).toMatchObject({
+      parentEntityType: null
+    });
+    expect(compiled.screens.auto_role_installer_queue_detail?.actions || []).not.toContain('create_design');
   });
 
   it('compiles typed construction and status definitions into actions and workflows', () => {

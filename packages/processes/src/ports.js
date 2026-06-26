@@ -142,6 +142,9 @@ function findPortForHandle(ports = [], handle = '', direction = 'output') {
   if (ports.length === 1 && (!handle || handle === direction)) return ports[0];
   const id = normalizeHandleId(handle, direction);
   if (!id && ports.length === 1) return ports[0];
+  if (id === 'entity') {
+    return ports.find(port => ['entity', 'entity_list'].includes(port.kind)) || null;
+  }
   return ports.find(port => port.id === id || port.dataPath === id || port.block === id)
     || (ports.length === 1 && !id ? ports[0] : null);
 }
@@ -199,8 +202,15 @@ function blockCompatible(source, target) {
 }
 
 function entityLikeCompatible(source, target) {
-  if (source.kind !== target.kind) return incompatible(source, target);
   if (target.id === 'parent') return { ok: true };
+  if (source.kind === 'entity_list' && target.kind === 'entity') {
+    return entityTypeCompatible(source, target);
+  }
+  if (source.kind !== target.kind) return incompatible(source, target);
+  return entityTypeCompatible(source, target);
+}
+
+function entityTypeCompatible(source, target) {
   if (target.accepts.length) {
     if (!source.entityType || target.accepts.includes(source.entityType) || target.accepts.includes(source.capability)) return { ok: true };
     return incompatible(source, target);
