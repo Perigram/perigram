@@ -437,11 +437,13 @@ describe('@cutkit/processes compiler', () => {
       graph: {
         nodes: [
           { id: 'queue_profile', type: 'entity', position: {}, data: { refId: 'queue_profile' } },
+          { id: 'decompose_queue', type: 'processNode', position: {}, data: { refId: 'decompose_queue' } },
           { id: 'read_name', type: 'processNode', position: {}, data: { refId: 'read_name' } },
           { id: 'name_exists', type: 'processNode', position: {}, data: { refId: 'name_exists' } }
         ],
         edges: [
-          { id: 'queue-read', source: 'queue_profile', target: 'read_name', sourceHandle: 'output', targetHandle: 'input:entity' },
+          { id: 'queue-decompose', source: 'queue_profile', target: 'decompose_queue', sourceHandle: 'output', targetHandle: 'input:entity' },
+          { id: 'decompose-read', source: 'decompose_queue', target: 'read_name', sourceHandle: 'output:identity', targetHandle: 'input:block' },
           { id: 'read-compare', source: 'read_name', target: 'name_exists', sourceHandle: 'output', targetHandle: 'input:left' }
         ]
       },
@@ -455,14 +457,21 @@ describe('@cutkit/processes compiler', () => {
         }
       },
       processNodes: {
-        read_name: {
-          id: 'read_name',
+        decompose_queue: {
+          id: 'decompose_queue',
           kind: 'fieldRead',
           entityType: 'queue',
-          path: 'identity.name',
-          valueType: 'string',
           inputs: [{ id: 'entity', kind: 'entity', entityType: 'queue' }],
-          outputs: [{ id: 'value', kind: 'string', dataPath: 'identity.name' }]
+          outputs: [{ id: 'identity', kind: 'block', block: 'identity' }]
+        },
+        read_name: {
+          id: 'read_name',
+          kind: 'blockRead',
+          block: 'identity',
+          path: 'name',
+          valueType: 'string',
+          inputs: [{ id: 'block', kind: 'block', block: 'identity' }],
+          outputs: [{ id: 'value', kind: 'string', block: 'identity', dataPath: 'name' }]
         },
         name_exists: {
           id: 'name_exists',
@@ -478,7 +487,7 @@ describe('@cutkit/processes compiler', () => {
     const roundTripped = canvasToDefinition(canvas, definition);
     const validation = validateProcessDefinition(roundTripped, domain);
 
-    expect(Object.keys(roundTripped.processNodes)).toEqual(['read_name', 'name_exists']);
+    expect(Object.keys(roundTripped.processNodes)).toEqual(['decompose_queue', 'read_name', 'name_exists']);
     expect(validation.errors.filter(error => error.includes('connects incompatible ports'))).toEqual([]);
     expect(validation.errors.join('\n')).not.toContain('Process node');
   });

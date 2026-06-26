@@ -307,7 +307,7 @@
                       <label>{{ processNodeOperationLabel(selectedProcessNode.kind) }}</label>
                       <Select v-model="selectedProcessNode.operation" :options="processNodeOperationOptions(selectedProcessNode.kind)" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
                     </div>
-                    <div v-if="processNodeNeedsSourceEntity(selectedProcessNode)" :class="selectedProcessNode.kind === 'fieldRead' ? 'flex flex-col gap-1' : 'col-span-2 flex flex-col gap-1'">
+                    <div v-if="processNodeNeedsSourceEntity(selectedProcessNode)" class="col-span-2 flex flex-col gap-1">
                       <label>{{ processNodeSourceEntityLabel(selectedProcessNode) }}</label>
                       <Select v-model="selectedProcessNode.entityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
                     </div>
@@ -315,11 +315,15 @@
                       <label>{{ processNodeResultEntityLabel(selectedProcessNode) }}</label>
                       <Select v-model="selectedProcessNode.relationEntityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
                     </div>
-                    <div v-if="selectedProcessNode.kind === 'fieldRead'" class="flex flex-col gap-1">
+                    <div v-if="selectedProcessNode.kind === 'blockRead'" class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.block') }}</label>
+                      <Select v-model="selectedProcessNode.block" :options="processBlockOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
+                    </div>
+                    <div v-if="selectedProcessNode.kind === 'blockRead'" class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.path') }}</label>
                       <InputText v-model="selectedProcessNode.path" @update:model-value="syncSelectedProcessNode" />
                     </div>
-                    <div v-if="selectedProcessNode.kind === 'fieldRead'" class="flex flex-col gap-1">
+                    <div v-if="selectedProcessNode.kind === 'blockRead'" class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.outputValue') }}</label>
                       <Select v-model="selectedProcessNode.valueType" :options="processValueTypeOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
                     </div>
@@ -552,7 +556,8 @@ const palette = [
   { type: 'statusDefinition', icon: 'pi pi-circle-fill', label: 'status' },
   { type: 'valueInput', icon: 'pi pi-id-card', label: 'block' },
   { type: 'processNode', kind: 'entityRef', icon: 'pi pi-share-alt', label: 'entity' },
-  { type: 'processNode', kind: 'fieldRead', icon: 'pi pi-search', label: 'field' },
+  { type: 'processNode', kind: 'fieldRead', icon: 'pi pi-box', label: 'blocks' },
+  { type: 'processNode', kind: 'blockRead', icon: 'pi pi-search', label: 'field' },
   { type: 'processNode', kind: 'stringOp', icon: 'pi pi-align-left', label: 'text' },
   { type: 'processNode', kind: 'compare', icon: 'pi pi-equals', label: 'compare' },
   { type: 'processNode', kind: 'logic', icon: 'pi pi-code-branch', label: 'logic' },
@@ -597,6 +602,8 @@ const accessLevelOptions = [
 ];
 const valueTypeOptions = ['string', 'number', 'object', 'entity'].map(value => ({ label: value, value }));
 const processValueTypeOptions = ['string', 'number', 'boolean', 'json'].map(value => ({ label: value, value }));
+const processBlockOptions = ['identity', 'status', 'lineage', 'data', 'specs', 'summary', 'attachments']
+  .map(value => ({ label: value, value }));
 const processNodeOperations = {
   entityRef: ['current', 'parent', 'children', 'related'],
   stringOp: ['concat', 'template', 'replace', 'lower', 'upper', 'trim'],
@@ -1040,7 +1047,10 @@ function syncNodeData() {
     if (node.type === 'socket') syncSocketIo(record);
     if (node.type === 'statusDefinition') syncStatusDefinition(record);
     if (node.type === 'valueInput') syncValueInput(record);
-    if (node.type === 'processNode') syncProcessNode(record);
+    if (node.type === 'processNode') {
+      applyInferredProcessNodeInputs(record, node);
+      syncProcessNode(record);
+    }
     node.data.label = nodeDisplayLabel(record, node);
     node.data.actionKind = record.actionKind;
     node.data.entityType = record.entityType;
@@ -1196,9 +1206,11 @@ function createProcessNode(id, kind = 'fieldRead') {
     mode: kind === 'entityRef' ? 'current' : '',
     entityType: '',
     relationEntityType: '',
-    path: kind === 'fieldRead' ? 'identity.name' : '',
+    block: kind === 'blockRead' ? 'identity' : '',
+    path: kind === 'blockRead' ? 'name' : '',
     valueType: kind === 'compare' || kind === 'logic' ? 'boolean' : 'string',
     operation: defaultProcessNodeOperation(kind),
+    icon: iconForProcessNode(kind),
     inputs: [],
     outputs: []
   };
@@ -1777,9 +1789,12 @@ function syncProcessNode(node = {}) {
   node.kind ||= 'fieldRead';
   node.operation ||= defaultProcessNodeOperation(node.kind);
   node.valueType ||= defaultProcessNodeValueType(node.kind);
+  node.icon = iconForProcessNode(node.kind);
   if (node.kind !== 'entityRef') node.mode = '';
   else node.mode ||= node.operation || 'current';
   if (node.kind === 'entityRef') node.operation = node.mode;
+  if (node.kind !== 'blockRead') node.block = '';
+  else node.block ||= 'identity';
   node.label = processNodeDisplayLabel(node);
   node.inputs = processNodeInputs(node);
   node.outputs = processNodeOutputs(node);
@@ -1788,6 +1803,20 @@ function syncProcessNode(node = {}) {
 function syncSelectedProcessNode() {
   syncProcessNode(selectedProcessNode.value);
   syncNodeData();
+}
+
+function applyInferredProcessNodeInputs(record = {}, node = {}) {
+  const incoming = inferIncomingPortContract(node.id);
+  if (!incoming) return;
+  if (['entityRef', 'fieldRead'].includes(record.kind) && incoming.entityType) {
+    record.entityType = incoming.entityType;
+  }
+  if (record.kind === 'collection' && incoming.entityType) {
+    record.entityType = incoming.entityType;
+  }
+  if (record.kind === 'blockRead' && incoming.block) {
+    record.block = incoming.block;
+  }
 }
 
 function processNodeNeedsSourceEntity(node = {}) {
@@ -1800,6 +1829,7 @@ function processNodeNeedsResultEntity(node = {}) {
 
 function processNodeSourceEntityLabel(node = {}) {
   if (node.kind === 'collection') return t('processDesigner.collectionEntity');
+  if (node.kind === 'fieldRead') return t('processDesigner.entityToDecompose');
   if (node.kind === 'entityRef' && node.mode === 'children') return t('processDesigner.parentEntity');
   if (node.kind === 'entityRef' && node.mode === 'parent') return t('processDesigner.childEntity');
   return t('processDesigner.sourceEntity');
@@ -1840,6 +1870,9 @@ function processNodeInputs(node = {}) {
   if (node.kind === 'fieldRead') {
     return [{ id: 'entity', label: node.entityType || t('processDesigner.incomingEntity'), kind: 'entity', entityType: node.entityType || '' }];
   }
+  if (node.kind === 'blockRead') {
+    return [{ id: 'block', label: node.block || 'block', kind: 'block', block: node.block || '' }];
+  }
   if (node.kind === 'stringOp') return [{ id: 'value', label: 'value', kind: 'data' }];
   if (node.kind === 'compare') return [{ id: 'left', label: 'left', kind: 'data' }, { id: 'right', label: 'right', kind: 'data', required: false }];
   if (node.kind === 'logic') return [{ id: 'left', label: 'left', kind: 'data' }, { id: 'right', label: 'right', kind: 'data', required: node.operation !== 'not' }];
@@ -1853,7 +1886,8 @@ function processNodeOutputs(node = {}) {
     const multiple = ['children', 'related'].includes(node.mode);
     return [{ id: 'entity', label: entityType || (multiple ? 'entities' : 'entity'), kind: multiple ? 'entity_list' : 'entity', entityType, multiple }];
   }
-  if (node.kind === 'fieldRead') return [{ id: 'value', label: node.path || 'value', kind: node.valueType || 'data', dataPath: node.path || '' }];
+  if (node.kind === 'fieldRead') return processBlockOptions.map(option => ({ id: option.value, label: option.label, kind: 'block', block: option.value }));
+  if (node.kind === 'blockRead') return [{ id: 'value', label: node.path || 'value', kind: node.valueType || 'data', block: node.block || '', dataPath: node.path || '' }];
   if (node.kind === 'collection' && node.operation === 'first') return [{ id: 'entity', label: node.entityType || 'entity', kind: 'entity', entityType: node.entityType || '' }];
   if (node.kind === 'collection' && node.operation === 'count') return [{ id: 'count', label: 'count', kind: 'number' }];
   if (node.kind === 'compare' || node.kind === 'logic') return [{ id: 'result', label: 'result', kind: 'boolean' }];
@@ -1862,12 +1896,25 @@ function processNodeOutputs(node = {}) {
 }
 
 function processNodeSummary(node = {}) {
-  return [node.relationEntityType || node.entityType, node.path].filter(Boolean).join(' · ');
+  return [node.relationEntityType || node.entityType, node.block, node.path].filter(Boolean).join(' · ');
 }
 
 function processNodeDisplayLabel(node = {}) {
-  if (node.kind === 'fieldRead') return t('processDesigner.useReadField');
+  if (node.kind === 'fieldRead') return t('processDesigner.useDecomposeEntity');
+  if (node.kind === 'blockRead') return t('processDesigner.useReadField');
   return processNodeOperationLabels[node.kind === 'entityRef' ? (node.mode || node.operation || 'current') : node.operation] || node.kind || '';
+}
+
+function iconForProcessNode(kind = '') {
+  return ({
+    entityRef: 'pi pi-share-alt',
+    fieldRead: 'pi pi-box',
+    blockRead: 'pi pi-search',
+    stringOp: 'pi pi-align-left',
+    compare: 'pi pi-equals',
+    logic: 'pi pi-code-branch',
+    collection: 'pi pi-list'
+  })[kind] || 'pi pi-sitemap';
 }
 
 function fieldLabel(entityType = '', path = '') {
@@ -2058,7 +2105,9 @@ function ioSpec(io = {}) {
 function socketKind(io = {}) {
   if (io.kind === 'event') return 'event';
   if (io.kind === 'status') return 'status';
-  if (['string', 'number', 'object'].includes(io.kind)) return 'data';
+  if (['string', 'number', 'boolean', 'json'].includes(io.kind)) return io.kind;
+  if (io.kind === 'object') return 'json';
+  if (io.kind === 'entity_list') return 'entity_list';
   if (io.projection) return 'projection';
   if (io.block) return 'block';
   if (io.entityType) return 'entity';
@@ -2191,6 +2240,7 @@ function enrichNodeData(node) {
   if (node.type === 'socket') syncSocketIo(record);
   if (node.type === 'statusDefinition') syncStatusDefinition(record);
   if (node.type === 'valueInput') syncValueInput(record);
+  if (node.type === 'processNode') applyInferredProcessNodeInputs(record, node);
   if (node.type === 'processNode') syncProcessNode(record);
   return {
     ...node,
@@ -2633,6 +2683,18 @@ function inferIncomingEntityContract(nodeId) {
       grants: normalizeDesignerAccess(sourceRecord.access).grants.map(grant => ({ ...grant }))
     } : null
   };
+}
+
+function inferIncomingPortContract(nodeId) {
+  const edge = edges.value.find(item => item.target === nodeId && String(item.targetHandle || '').startsWith('input'));
+  if (!edge) return null;
+  const source = nodes.value.find(item => item.id === edge.source);
+  const sourceRecord = source?.data?.refId ? draft.value?.data?.[recordKeyForType(source.type)]?.[source.data.refId] : null;
+  const sourceOutputs = sourceRecord?.outputs || [];
+  const handleId = String(edge.sourceHandle || '');
+  const match = sourceOutputs.find((output, index) => socketHandleIdForRecord('output', output, index, sourceOutputs) === handleId)
+    || sourceOutputs.find(output => output.entityType || output.block);
+  return match || null;
 }
 
 function socketHandleIdForRecord(kind, item, index, items) {

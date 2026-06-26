@@ -1723,6 +1723,7 @@ function compileProcessNodes(processNodes = {}) {
     mode: node.mode || '',
     entityType: node.entityType || '',
     relationEntityType: node.relationEntityType || '',
+    block: node.block || '',
     path: node.path || '',
     valueType: node.valueType || '',
     operation: node.operation || '',
@@ -1932,7 +1933,7 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
 
 function validateProcessNode(nodeId, node = {}, { entities, errors }) {
   const kind = node.kind || 'fieldRead';
-  if (!['entityRef', 'fieldRead', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
+  if (!['entityRef', 'fieldRead', 'blockRead', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
     errors.push(`Process node ${nodeId} uses unknown node kind ${kind}`);
     return;
   }
@@ -1941,7 +1942,7 @@ function validateProcessNode(nodeId, node = {}, { entities, errors }) {
       errors.push(`Process node ${nodeId} uses unknown ${key} ${node[key]}`);
     }
   }
-  if (kind === 'fieldRead' && !node.path) errors.push(`Process node ${nodeId} must define a field path`);
+  if (kind === 'blockRead' && !node.path) errors.push(`Process node ${nodeId} must define a field path`);
   if (['stringOp', 'compare', 'logic', 'collection'].includes(kind) && !node.operation) {
     errors.push(`Process node ${nodeId} must define an operation`);
   }
