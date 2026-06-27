@@ -291,10 +291,12 @@ popover card body. The collapsed inline ref remains a real text-inline chip: it
 stays on one line inside prose, truncates with ellipsis, and keeps the same
 semantic color treatment without inflating surrounding line height.
 `variant="compact"` renders a horizontal micro card instead of a chip. That
-compact ref uses the compact surface contract directly: preview on the left,
-identity plus compact facts on the right, and the same expanded popover for
-trace/type/detail context. Generated card relation galleries use this compact
-variant so child previews stay scannable without bloating the parent card.
+compact ref uses the compact surface contract directly: a real preview on the
+left when the entity has one, the same semantic inline chip for identity on the
+right, compact facts below, and the same expanded popover for trace/type/detail
+context. Icons stay with the identity chip and are not used as fake preview
+images. Generated card relation galleries use fixed-width compact refs so
+child previews stay scannable without spacing changing per item.
 Use canonical design-system surface keys for new references, for example
 `materialPile`, `nestingRun`, `cassetteDesign`, `cassetteTemplate`, and
 `entityRevision`. Backend snake-case aliases continue to resolve through the
@@ -314,7 +316,9 @@ When the active generated screen manifest exposes a detail route for the
 reference type, `EntityInlineRef` provides that route to the expanded inline
 entity-card popover. The popover footer renders an icon-only open action that
 navigates through generated `/screens/:screenKey` detail routing, not legacy
-feature routes. Inline-ref popovers also force the shared `TraceChain` even
+feature routes. Cassette and cassette-design compact refs suppress the
+`dimension.cassette` layer in their micro preview so annotation text does not
+overpower the gallery thumbnail. Inline-ref popovers also force the shared `TraceChain` even
 when the base card surface normally hides trace in compact contexts, and show a
 small localized entity-type label above the identity row so the operator can
 see both lineage context and exact entity kind without adding extra chrome to

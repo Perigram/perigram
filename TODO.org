@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Correct compact relation gallery visuals after inline ref rework
+    Files changed: assets/css/main.css,
+      components/CassetteThumbnail.vue,
+      components/shared/EntityInlineRef.vue,
+      components/shared/EntityPreview.vue,
+      shared/design-system.spec.js
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Compact relation refs now keep stable fixed-cell sizing, use the
+      semantic inline identity chip for color and icon treatment, avoid icon
+      placeholders as fake previews, and hide cassette dimension annotation
+      layers in micro thumbnails.
+
     [2026-06-27] Make inline refs text-inline, switch generated child galleries to compact micro cards, and expose cassette designer on generated cards
     Files changed: assets/css/main.css,
       components/generated/GeneratedEntityCollection.vue,
