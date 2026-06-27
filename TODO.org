@@ -154,6 +154,29 @@
       tokens rendered by `EntityInlineRef`, and status-history user actors now
       render through the user inline entity surface with an icon chat action.
 
+    [2026-06-27] Fix chat nesting-run attachment status filters
+    Files changed: server/features/nesting-runs/service.js,
+      server/features/nesting-runs/nesting-runs.spec.js,
+      server/features/support/service.js,
+      server/features/support/support.spec.js,
+      server/api/support/entity-types.get.js
+    Docs updated: server/features/nesting-runs/README.md,
+      server/features/support/README.md, TODO.org
+    Notes: `nesting_run` list queries now translate generated-screen
+      `primaryStatus` and `primaryStatuses` filters into the canonical
+      `status.state.primary` repository field, so status-gated chat attachment
+      pickers return the same readable runs that generated process screens
+      expose and sent refs no longer disappear during send-time normalization.
+      Support attachment source discovery now ignores generated `single` detail
+      sources, so entity pickers stay aligned with generated list windows
+      instead of widening through detail routes. Entity type and option
+      endpoints now resolve sender process auth before deriving generated chat
+      scopes, so the live API matches the current process manifest instead of
+      falling back to raw session auth. `entity-options` now follows the same
+      first readable generated source that `entity-types` exposes for each
+      entity type, preventing hidden multi-source unions and duplicate option
+      rows behind a single picker label.
+
     [2026-06-26] Route trace links through generated detail access
     Files changed: components/shared/links/TraceChain.vue,
       components/shared/links/TraceLink.vue, utils/status-engine.js

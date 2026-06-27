@@ -52,14 +52,24 @@ message body.
 Entity ref types come from readable generated screen sources in the current
 `auth.screens` process manifest. `GET /api/support/entity-types` is therefore a
 generated-scope endpoint, not a hardcoded chat allowlist, and includes any
-source whose requirement is satisfied at read level or stronger. Concrete
-picker options are resolved separately through `GET /api/support/entity-options`
-using feature list services for entity types that expose a scoped list API. Chat
-option lists use those generated source filters when they are concrete. For
-detail-child sources that still depend on `$screen.entityId` /
+non-`single` source whose requirement is satisfied at read level or stronger.
+The support service resolves the sender through the active process runtime
+before deriving those sources, so chat attachment pickers use the same
+generated auth window as the rest of the app instead of the raw session auth.
+Concrete picker options are resolved separately through
+`GET /api/support/entity-options` using feature list services for entity types
+that expose a scoped list API. Chat option lists use those generated source
+filters when they are concrete. Because the current endpoint is keyed by
+`type` rather than `sourceId`, each attachment type uses the first readable
+generated source exposed by `entity-types`; support does not union multiple
+generated sources of the same entity type behind one picker row. For
+detail-child list sources that still depend
+on `$screen.entityId` /
 `$screen.scope.entityId`, the support service expands the child query across the
 sender's readable parent entities for that screen instead of falling back to an
-unbounded organization-wide list.
+unbounded organization-wide list. Generated detail `single` sources are not
+used as attachment-option loaders, so a detail route cannot widen a picker past
+the process list windows that actually expose that entity type.
 
 For direct chats, the entity-options endpoint also evaluates the recipient's
 resolved process auth and marks options that the recipient cannot read through
