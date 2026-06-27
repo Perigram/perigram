@@ -285,6 +285,9 @@ When an `entityContext` provider is present, `EntityInlineRef` resolves the
 entity from that context before calling the API. This keeps workbench fixture
 and project-local previews from requesting protected entities already loaded in
 the surrounding surface.
+When the domain UI route registry exposes a route for the reference type,
+`EntityInlineRef` renders an icon-only open action that navigates to the
+entity's detail/list route from the expanded inline reference surface.
 Revision/provenance rows should use this component with `type="entityRevision"`
 so the shared entity popover shows the immutable revision summary and source
 relationship.
@@ -294,8 +297,8 @@ Renders support-chat message bodies. Plain text remains text, while
 `{{entity:type:id}}` tokens render as inline `EntityInlineRef` chips. The
 component also renders structured `message.entityRefs[]` entries that were not
 embedded as tokens, so API-authored references remain visible. Chat composers
-must source those refs from the support entity-options endpoint instead of
-manual ids.
+must source supported ref types from the support entity-types endpoint and
+concrete refs from the support entity-options endpoint instead of manual ids.
 
 ---
 

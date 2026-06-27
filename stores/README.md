@@ -12,11 +12,11 @@ Pinia stores for client state and API orchestration.
   `pen.data.stroke`.
 - `batches.js`: Batch list/current batch, nesting actions, status polling.
 - `artifacts.js`: Batch artifacts fetching and cache.
-- `supportChat.js`: Chats drawer conversation SSE state, unread totals, and
-  read acknowledgement for the app-shell chat badge and drawer inbox. The
-  conversation stream opens only after `auth.userIsSet` is true; failed SSE
-  connections close and clear their handle so login/auth hydration can retry
-  instead of leaving the drawer with only its synthetic support row.
+- `supportChat.js`: Chats drawer conversation snapshot state, unread totals,
+  and read acknowledgement for the app-shell chat badge and drawer inbox. The
+  store loads `/api/support/conversations` only after `auth.userIsSet` is true
+  and refreshes it on a short interval so login/auth hydration cannot leave the
+  drawer with only its synthetic support row.
 - `cassettes.js`, `toolProfiles.js`, etc.: Related feature stores.
 
 ## Conventions

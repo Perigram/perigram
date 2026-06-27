@@ -27,9 +27,11 @@ threads.
 Conversation read state is stored in `supportConversationReads` as
 `{ conversationKey, userId, lastReadAt, updatedAt }`. Conversation lists compute
 unread counts from messages sent after `lastReadAt` by another sender.
-The user-facing conversation stream also merges reachable same-organization
+The user-facing conversation list also merges reachable same-organization
 users as empty direct conversations, so the Chats drawer can start a direct
 thread before any message exists.
+Conversation summaries include the last message's `entityRefs` so the inbox can
+render entity chips in message previews.
 The app-shell badge owns unread notification counts; individual drawer rows do
 not show message/unread counts.
 
@@ -44,7 +46,8 @@ Chat messages can carry structured `entityRefs`:
 The frontend inserts matching text tokens in the message body using
 `{{entity:type:id}}`. `SupportMessageContent.vue` renders those tokens as
 `EntityInlineRef` chips and also renders any structured refs that are not
-present in the text. Entity refs must be selected from
+present in the text. Entity ref types come from
+`GET /api/support/entity-types`, and concrete refs must be selected from
 `GET /api/support/entity-options`; message writes drop unsupported or unreadable
 refs instead of accepting arbitrary ids.
 
@@ -52,8 +55,9 @@ refs instead of accepting arbitrary ids.
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/support/conversations` | SSE stream of the current user's support/direct conversation list with unread counts. |
+| `GET /api/support/conversations` | Snapshot of the current user's support/direct conversation list with unread counts. |
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
+| `GET /api/support/entity-types` | Returns the entity ref types supported by chat attachment pickers. |
 | `GET /api/support/entity-options?type=<type>&q=<query>` | Returns readable entity options for chat attachment refs. |
 | `GET /api/support/messages` | SSE stream for the current user's support conversation. |
 | `GET /api/support/messages?recipientUserId=<id>` | SSE stream for a direct user conversation. |

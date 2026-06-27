@@ -407,6 +407,11 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `StandardDialog` for the profile sketch popup, `ProfileSketchEditor` for
   reusable `profile_template` sketches, and renderer helpers for inserting
   profile workpieces as cassette-local snapshots with library references.
+  `ProfileSketchEditor` is a compact CAD-style direct editor: users draw
+  point-by-point polylines with endpoint snaps, typed distance from the
+  previous point, optional ortho projection, circle holes, DXF import, and
+  per-corner fillet radii. It does not own a general parametric constraint
+  solver.
 - `RemnantCard` and `RemnantDetail` render saved leftover material geometry
   through `GeometryPreview`, including polygon-with-holes queue-cut remnants.
   Source sheet, warehouse, and material pile context should be compact
@@ -630,12 +635,15 @@ Support chat uses direct `$fetch`/SSE routes and the shared
 specific user selected from status history actor rows, and inline entity
 references must render through `EntityInlineRef` rather than local chips. The
 floating Chats drawer opens to an inbox backed by `/api/support/conversations`;
-that inbox includes readable users even before a first direct message exists,
-uses a full-screen layout on mobile, and the app-shell chat badge shows the
-total unread count from the support chat store. Drawer rows show participant
-and latest-message context only, without per-row message-count badges. The
-conversation SSE is auth-gated by the store so direct user candidates are not
-lost behind a failed pre-auth connection.
+that inbox includes readable users even before a first direct message exists and
+offers a header user picker for same-organization users not currently visible
+as conversation rows. Drawer rows show participant context and render latest
+message entity tokens through `SupportMessageContent`, without per-row
+message-count badges. The composer loads supported attachment types from
+`/api/support/entity-types`, resolves concrete refs through
+`/api/support/entity-options`, and renders a draft entity-token preview before
+send. The conversation snapshot is auth-gated by the store so direct user
+candidates are not lost behind a failed pre-auth request.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data

@@ -61,8 +61,8 @@ Routes are grouped into sub-directories corresponding to features:
   selected by `recipientUserId`; admin routes remain scoped to customer support
   conversations. Conversation-list routes return unread counts from
   `supportConversationReads`. Messages may include structured inline
-  `entityRefs` selected from readable entity options and rendered by the shared
-  chat message component.
+  `entityRefs` selected from supported entity types and readable entity options
+  and rendered by the shared chat message component.
 - `workflow-overrides/`: Authenticated organization-owned lifecycle override
   read and replace endpoints for entity status machines.
 - `user/`: Profile and credit management.

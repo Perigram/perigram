@@ -4,14 +4,31 @@
   :END:
 
 *** Agent Notes
-    [2026-06-27] Fix chats drawer pre-auth SSE connection
+    [2026-06-27] Add chat entity previews and new chat picker
+    Files changed: components/ChatSupport.vue,
+      components/shared/EntityInlineRef.vue, server/features/support/service.js,
+      server/features/support/support.spec.js,
+      server/api/support/entity-types.get.js
+    Docs updated: server/features/support/README.md, server/api/README.md,
+      components/README.md, components/shared/README.md, TODO.org
+    Notes: Chat attachment type choices now come from the support service via
+      `/api/support/entity-types`; concrete attachment refs still come from
+      readable entity options. The drawer renders entity refs in latest-message
+      previews and composer draft previews, and the inbox header can start a
+      direct chat with same-organization users not already present in the list.
+      Inline entity references now expose an open-detail action when the domain
+      route registry has a route for that entity type.
+
+    [2026-06-27] Fix chats drawer conversation list snapshot
     Files changed: stores/supportChat.js, stores/supportChat.spec.js,
-      components/ChatSupport.vue
-    Docs updated: stores/README.md, components/README.md, TODO.org
-    Notes: The chats drawer no longer opens `/api/support/conversations` before
-      auth hydration. Failed conversation SSE connections now close and clear
-      the store handle so later authenticated reconnects can load the real
-      conversation list instead of leaving only the synthetic support row.
+      server/api/support/conversations.get.js, components/ChatSupport.vue
+    Docs updated: server/features/support/README.md, stores/README.md,
+      components/README.md, TODO.org
+    Notes: `/api/support/conversations` is now a JSON snapshot endpoint because
+      the inbox SSE route did not emit its initial payload in the live app. The
+      store loads the snapshot only after auth hydration and refreshes it on a
+      short interval, so the drawer receives reachable direct-user candidates
+      instead of rendering only its synthetic support row.
 
     [2026-06-27] Fix chats drawer user candidates and row counts
     Files changed: server/features/users/service.js,
@@ -2115,6 +2132,23 @@
        linked it from the user menu and profile organization cards, exposed
        team management and process designer actions, and added organization
        breadcrumb siblings for overview/team/process routes.
+
+     [2026-06-27] Improve profile sketch drawing UX
+     Files changed: components/ProfileSketchEditor.vue,
+       utils/occs/profiles.js, utils/occs/profiles.spec.js,
+       server/scripts/migrate-profile-template-fillets.js,
+       server/scripts/migrate-profile-template-fillets.spec.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: docs/specs/Cassette spec/SPEC.md,
+       utils/occs/README.md,
+       server/features/profile-templates/README.md,
+       components/README.md, scripts/README.md, TODO.org
+     Notes: Profile sketches now support point-by-point polyline drawing with
+       endpoint snaps, typed segment distance from the previous point, optional
+       ortho projection, live preview segments, and per-corner fillet radii.
+       Fillet modifiers are normalized to `{ type: 'fillet', vertexId,
+       radius }`, with a dry-run migration script for existing profile
+       templates and normalized OCCS snapshots.
 
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
