@@ -4,6 +4,30 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Add direct support chat and inline entity references
+    Files changed: server/features/support/service.js,
+      server/features/support/repository.js,
+      server/api/support/messages/index.get.js,
+      server/api/support/messages/index.post.js,
+      server/api/support/admin/[user_id]/index.get.js,
+      server/api/support/admin/[user_id]/index.post.js,
+      server/api/support/admin/chatlist.get.js,
+      server/api/users/[id].get.js, components/ChatSupport.vue,
+      components/AdminSupportChat.vue,
+      components/shared/SupportMessageContent.vue,
+      components/shared/status/StatusHistory.vue,
+      components/entities/User/UserCard.vue, composables/useModalState.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: server/features/support/README.md, server/api/README.md,
+      components/README.md, components/shared/README.md,
+      components/entities/User/README.md, server/features/users/README.md,
+      TODO.org
+    Notes: Support messages now use deterministic support/direct conversation
+      keys, direct user chats are scoped to admins or shared organization
+      membership, chat messages can embed entity refs as `{{entity:type:id}}`
+      tokens rendered by `EntityInlineRef`, and status-history user actors now
+      render through the user inline entity surface with an icon chat action.
+
     [2026-06-26] Route trace links through generated detail access
     Files changed: components/shared/links/TraceChain.vue,
       components/shared/links/TraceLink.vue, utils/status-engine.js

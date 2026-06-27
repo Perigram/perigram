@@ -56,9 +56,16 @@ Routes are grouped into sub-directories corresponding to features:
 - `status/`: Authenticated status action and history endpoints. History
   handlers delegate to the statuses feature and return response-only actor
   display data for audit rows.
+- `support/`: Authenticated support chat endpoints. User routes stream the
+  current user's support conversation or a direct user-to-user conversation
+  selected by `recipientUserId`; admin routes remain scoped to customer support
+  conversations. Messages may include structured inline `entityRefs` rendered
+  by the shared chat message component.
 - `workflow-overrides/`: Authenticated organization-owned lifecycle override
   read and replace endpoints for entity status machines.
 - `user/`: Profile and credit management.
+- `users/`: Organization user listing, mutation, and single-user detail
+  endpoints used by inline user references.
 
 ## Conventions
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).

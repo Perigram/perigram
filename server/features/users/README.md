@@ -53,6 +53,10 @@ attach the first organization.
 - Existing users without `data.passwordHash` cannot log in until their password is reset or the account is recreated.
 - `repository.findByIds()` is the batch lookup used by status history actor
   enrichment. It accepts the same flexible string/ObjectId ids as `findById()`.
+- `GET /api/users/:id` returns a redacted user DTO for inline references such
+  as status-history actors and chat message entity tokens. The route grants
+  full user-field visibility only for the same user or callers that can manage
+  users in the active organization.
 
 ## Permission System
 - Organization context via `user.lineage.organizationId`

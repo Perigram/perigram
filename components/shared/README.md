@@ -191,6 +191,9 @@ as a separate status section.
 Persisted events may include response-only `actor` data from the status API.
 `StatusHistory` prefers `actor.name` for display and falls back to `status.userId`
 only when no actor name is available.
+User actors render through `EntityInlineRef type="user"` and include an
+icon-only chat action that opens the support chat in direct user conversation
+mode for that actor.
 Structured v2 events prefer `toStatePrimary` for the visible badge and keep
 `region` available for grouped status surfaces.
 When an event snapshot carries process-authored display metadata under
@@ -285,6 +288,12 @@ the surrounding surface.
 Revision/provenance rows should use this component with `type="entityRevision"`
 so the shared entity popover shows the immutable revision summary and source
 relationship.
+
+### `SupportMessageContent.vue`
+Renders support-chat message bodies. Plain text remains text, while
+`{{entity:type:id}}` tokens render as inline `EntityInlineRef` chips. The
+component also renders structured `message.entityRefs[]` entries that were not
+embedded as tokens, so API-authored references remain visible.
 
 ---
 

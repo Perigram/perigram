@@ -625,6 +625,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `cassette_design` so the queued card has baked polygon geometry.
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
 - Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: declared domain operations, uploads/downloads, invitations, permissions, support chat, payments, debug endpoints, and project-scoped subresources.
+Support chat uses direct `$fetch`/SSE routes and the shared
+`SupportMessageContent` renderer. Messages may target the support channel or a
+specific user selected from status history actor rows, and inline entity
+references must render through `EntityInlineRef` rather than local chips.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data
