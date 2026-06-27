@@ -4,6 +4,28 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Add support chat inbox, unread notifications, and entity picker
+    Files changed: server/features/support/service.js,
+      server/features/support/repository.js,
+      server/features/support/support.spec.js,
+      server/api/support/conversations.get.js,
+      server/api/support/read.post.js,
+      server/api/support/entity-options.get.js,
+      server/api/support/messages/index.get.js,
+      server/api/support/admin/[user_id]/index.get.js,
+      server/api/support/admin/chatlist.get.js, stores/supportChat.js,
+      layouts/app.vue, components/ChatSupport.vue,
+      components/AdminSupportChatList.vue, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: server/features/support/README.md, server/api/README.md,
+      components/README.md, components/shared/README.md, stores/README.md,
+      TODO.org
+    Notes: Moved chat-list aggregation behind the support service/repository
+      boundary, added support/direct conversation inbox SSE, read cursors in
+      `supportConversationReads`, app-shell unread badge state, and replaced
+      manual chat entity ids with readable entity options for project, queue,
+      sheet, material, and user refs.
+
     [2026-06-27] Add direct support chat and inline entity references
     Files changed: server/features/support/service.js,
       server/features/support/repository.js,

@@ -293,7 +293,9 @@ relationship.
 Renders support-chat message bodies. Plain text remains text, while
 `{{entity:type:id}}` tokens render as inline `EntityInlineRef` chips. The
 component also renders structured `message.entityRefs[]` entries that were not
-embedded as tokens, so API-authored references remain visible.
+embedded as tokens, so API-authored references remain visible. Chat composers
+must source those refs from the support entity-options endpoint instead of
+manual ids.
 
 ---
 

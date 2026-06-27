@@ -59,8 +59,10 @@ Routes are grouped into sub-directories corresponding to features:
 - `support/`: Authenticated support chat endpoints. User routes stream the
   current user's support conversation or a direct user-to-user conversation
   selected by `recipientUserId`; admin routes remain scoped to customer support
-  conversations. Messages may include structured inline `entityRefs` rendered
-  by the shared chat message component.
+  conversations. Conversation-list routes return unread counts from
+  `supportConversationReads`. Messages may include structured inline
+  `entityRefs` selected from readable entity options and rendered by the shared
+  chat message component.
 - `workflow-overrides/`: Authenticated organization-owned lifecycle override
   read and replace endpoints for entity status machines.
 - `user/`: Profile and credit management.
