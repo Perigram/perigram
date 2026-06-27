@@ -42,7 +42,9 @@
                             <Panel 
                                 :class="message.sender === 'support' ? 'card-active' : ''"
                             >
-                                <p class="m-0 break-words">{{ message.message }}</p>
+                                <p class="m-0 break-words">
+                                    <SupportMessageContent :message="message" />
+                                </p>
                             </Panel>
                             <small>{{ formatTime(message.timestamp) }}</small>
                         </div>
@@ -52,7 +54,41 @@
 
             <template #footer>
                 <Divider />
+                <div v-if="entityComposerVisible" class="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)_auto] gap-2 p-2">
+                    <Select
+                        v-model="entityDraft.type"
+                        :options="entityTypeOptions"
+                        option-label="label"
+                        option-value="value"
+                        size="small"
+                        class="min-w-0"
+                        :aria-label="$t('support.entityType')"
+                    />
+                    <InputText
+                        v-model="entityDraft.id"
+                        size="small"
+                        :placeholder="$t('support.entityId')"
+                        class="min-w-0"
+                        @keydown.enter.prevent="insertEntityRef"
+                    />
+                    <Button
+                        icon="pi pi-plus"
+                        size="small"
+                        :aria-label="$t('support.addEntity')"
+                        :disabled="!entityDraft.type || !entityDraft.id.trim()"
+                        @click="insertEntityRef"
+                    />
+                </div>
                 <div class="flex items-end gap-2 p-2">
+                    <Button
+                        icon="pi pi-link"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('support.addEntity')"
+                        @click="entityComposerVisible = !entityComposerVisible"
+                    />
                     <Textarea 
                         :placeholder="$t('admin.typeMessage')" 
                         class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 py-1" 
@@ -84,9 +120,12 @@ import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
+import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Message from 'primevue/message';
 import ProgressSpinner from 'primevue/progressspinner';
+import Select from 'primevue/select';
+import SupportMessageContent from '~/components/shared/SupportMessageContent.vue';
 
 const { t } = useI18n();
 const props = defineProps({
@@ -102,7 +141,17 @@ const loading = ref(true)
 const error = ref(null)
 const isConnected = ref(false)
 const messagesContainer = ref(null)
+const entityComposerVisible = ref(false)
+const entityDraft = ref({ type: 'project', id: '' })
+const entityRefs = ref([])
 let eventSource = null
+const entityTypeOptions = computed(() => [
+    { label: t('common.project'), value: 'project' },
+    { label: t('queue.title'), value: 'queue' },
+    { label: t('support.entityTypes.sheet'), value: 'sheet' },
+    { label: t('support.entityTypes.material'), value: 'material' },
+    { label: t('common.user'), value: 'user' }
+])
 const handleKeyDown = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault()
@@ -186,6 +235,7 @@ const sendMessage = async () => {
     try {
         const messageData = {
             message: newMessage.value,
+            entityRefs: entityRefs.value,
         }
 
         await $fetch(`/api/support/admin/${props.userId}`, {
@@ -194,6 +244,7 @@ const sendMessage = async () => {
         })
 
         newMessage.value = ''
+        entityRefs.value = []
 
         await nextTick()
         scrollToBottom()
@@ -201,6 +252,18 @@ const sendMessage = async () => {
         console.error('Error sending message:', error)
         error.value = t('admin.failedToSend')
     }
+}
+
+const insertEntityRef = () => {
+    const id = entityDraft.value.id.trim()
+    const type = entityDraft.value.type
+    if (!id || !type) return
+    const token = `{{entity:${type}:${id}}}`
+    newMessage.value = newMessage.value ? `${newMessage.value} ${token}` : token
+    if (!entityRefs.value.some(ref => ref.type === type && ref.id === id)) {
+        entityRefs.value.push({ type, id })
+    }
+    entityDraft.value.id = ''
 }
 
 const scrollToBottom = async () => {

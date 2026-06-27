@@ -4,10 +4,13 @@
  * Fetches and displays the audit log (status_events) for an entity.
  */
 import ProgressSpinner from 'primevue/progressspinner';
+import Button from 'primevue/button';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStatusHistory } from '~/composables/useStatusHistory';
+import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
@@ -24,6 +27,8 @@ const resolvedTargetId = computed(
 
 const { t } = useI18n();
 const { events, isLoading, fetchHistory } = useStatusHistory(props.entityType, resolvedTargetId.value);
+const supportDialog = useSupportDialog();
+const supportChatTarget = useSupportChatTarget();
 const displayEvents = computed(() => {
   if (events.value.length) return events.value;
   return fallbackEvents.value;
@@ -104,6 +109,21 @@ const actorTitle = (event) => {
   return userId && name && userId !== name ? userId : name;
 };
 
+const actorUserId = (event) => {
+  const userId = event.actor?.userId || event.status?.userId || event.userId;
+  return userId && userId !== 'SYSTEM' ? userId : '';
+};
+
+const openActorChat = (event) => {
+  const userId = actorUserId(event);
+  if (!userId) return;
+  supportChatTarget.value = {
+    userId,
+    name: actorName(event)
+  };
+  supportDialog.value = true;
+};
+
 const eventKey = (event, index) => event._id || `${eventState(event)}-${event.timestamp}-${index}`;
 </script>
 
@@ -127,11 +147,18 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
         <div class="min-w-0 pb-2">
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <StatusBadge :state="eventState(event)" :display="eventDisplay(event)" />
-            <small
-              v-if="actorName(event)"
-              class="min-w-0 truncate text-muted-color"
-              :title="actorTitle(event)"
-            >
+            <span v-if="actorUserId(event)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
+              <EntityInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
+              <Button
+                icon="pi pi-comments"
+                text
+                rounded
+                size="small"
+                :aria-label="$t('support.openChat')"
+                @click="openActorChat(event)"
+              />
+            </span>
+            <small v-else-if="actorName(event)" class="min-w-0 truncate text-muted-color" :title="actorTitle(event)">
               <i class="pi pi-user mr-1"></i>{{ actorName(event) }}
             </small>
             <time

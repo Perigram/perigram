@@ -10,6 +10,9 @@ export async function sendWelcomeMessage(userId) {
 
     db.collection('supportMessages').insertOne({
         userId: userId,
+        conversationKey: `support:${userId}`,
+        conversationKind: 'support',
+        participants: [userId],
         sender: MESSAGE_SENDER.WELCOME,
         message: 'Welcome to the support channel! We will do our best to help you with your questions and issues.',
         timestamp: new Date()
@@ -19,6 +22,9 @@ export async function sendWelcomeMessage(userId) {
 
     db.collection('supportMessages').insertOne({
         userId: userId,
+        conversationKey: `support:${userId}`,
+        conversationKind: 'support',
+        participants: [userId],
         sender: MESSAGE_SENDER.WELCOME,
         message: 'If you have any questions or issues, please feel free to ask.',
         timestamp: new Date()

@@ -1632,7 +1632,15 @@
     "button": "Support",
     "email": "Email",
     "typeMessage": "Type your message...",
-    "send": "Send"
+    "send": "Send",
+    "entityType": "Entity type",
+    "entityId": "Entity ID",
+    "addEntity": "Add entity",
+    "openChat": "Open chat",
+    "entityTypes": {
+      "sheet": "Sheet",
+      "material": "Material"
+    }
   },
   "batch": {
     "name": "Batch Name"

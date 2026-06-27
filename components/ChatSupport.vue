@@ -10,7 +10,7 @@
                     <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-contrast">
                         <i class="pi pi-comment text-sm"></i>
                     </div>
-                    <h2 class="m-0 text-base font-bold">{{ $t('support.chatTitle') }}</h2>
+                    <h2 class="m-0 text-base font-bold">{{ chatTitle }}</h2>
                 </div>
                 <Button
                     icon="pi pi-times"
@@ -18,7 +18,7 @@
                     text
                     rounded
                     size="small"
-                    @click="supportDialog = false"
+                    @click="closeChat"
                 />
             </div>
 
@@ -40,15 +40,17 @@
                     <!-- Message Bubble -->
                     <div 
                         class="max-w-[var(--ck-support-chat-message-max)] flex flex-col gap-1"
-                        :class="message.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'"
+                        :class="isOwnMessage(message) ? 'ml-auto items-end' : 'mr-auto items-start'"
                     >
                         <div 
                             class="px-4 py-2 rounded-ui text-sm shadow-sm"
-                            :class="message.sender === 'user' 
+                            :class="isOwnMessage(message)
                                 ? 'bg-primary text-primary-contrast rounded-tr-none' 
                                 : 'bg-content border border-content-border rounded-tl-none'"
                         >
-                            <p class="m-0 leading-relaxed break-words">{{ message.message }}</p>
+                            <p class="m-0 leading-relaxed break-words">
+                                <SupportMessageContent :message="message" />
+                            </p>
                         </div>
                         <span class="text-[10px] text-text-muted px-1">{{ formatTime(message.timestamp) }}</span>
                     </div>
@@ -57,7 +59,41 @@
 
             <!-- Input Area -->
             <div class="p-4 border-t border-content-border bg-content">
+                <div v-if="entityComposerVisible" class="mb-2 grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)_auto] gap-2">
+                    <Select
+                        v-model="entityDraft.type"
+                        :options="entityTypeOptions"
+                        option-label="label"
+                        option-value="value"
+                        size="small"
+                        class="min-w-0"
+                        :aria-label="$t('support.entityType')"
+                    />
+                    <InputText
+                        v-model="entityDraft.id"
+                        size="small"
+                        :placeholder="$t('support.entityId')"
+                        class="min-w-0"
+                        @keydown.enter.prevent="insertEntityRef"
+                    />
+                    <Button
+                        icon="pi pi-plus"
+                        size="small"
+                        :aria-label="$t('support.addEntity')"
+                        :disabled="!entityDraft.type || !entityDraft.id.trim()"
+                        @click="insertEntityRef"
+                    />
+                </div>
                 <div class="flex items-end gap-2 bg-content p-2 rounded-ui border border-content-border focus-within:border-primary transition-colors">
+                    <Button
+                        icon="pi pi-link"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('support.addEntity')"
+                        @click="entityComposerVisible = !entityComposerVisible"
+                    />
                     <Textarea
                         :placeholder="$t('support.typeMessage')"
                         class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 text-sm py-1 custom-scrollbar"
@@ -81,18 +117,40 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, unref, computed, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, unref, computed, nextTick, watch } from 'vue'
 import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
-import { useSupportDialog } from '~/composables/useModalState'
+import { useI18n } from 'vue-i18n'
+import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
+import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 
+const { t } = useI18n()
 const supportDialog = useSupportDialog()
+const chatTarget = useSupportChatTarget()
 
 const message = ref('')
 const messages = ref([])
 const isLoading = ref(false)
 const eventSource = ref(null)
 const messagesContainer = ref(null)
+const currentUserId = ref(null)
+const entityComposerVisible = ref(false)
+const entityDraft = ref({ type: 'project', id: '' })
+const entityRefs = ref([])
+
+const entityTypeOptions = computed(() => [
+    { label: t('common.project'), value: 'project' },
+    { label: t('queue.title'), value: 'queue' },
+    { label: t('support.entityTypes.sheet'), value: 'sheet' },
+    { label: t('support.entityTypes.material'), value: 'material' },
+    { label: t('common.user'), value: 'user' }
+])
+
+const chatTitle = computed(() => chatTarget.value?.name
+    ? chatTarget.value.name
+    : (chatTarget.value?.userId ? chatTarget.value.userId : t('support.chatTitle')))
 
 const handleKeyDown = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -109,9 +167,14 @@ const sendMessage = async () => {
     try {
         await $fetch('/api/support/messages', {
             method: 'POST',
-            body: { message: message.value }
+            body: {
+                message: message.value,
+                recipientUserId: chatTarget.value?.userId || null,
+                entityRefs: entityRefs.value
+            }
         })
         message.value = ''
+        entityRefs.value = []
     } catch (error) {
         console.error('Failed to send message:', error)
     } finally {
@@ -119,14 +182,22 @@ const sendMessage = async () => {
     }
 }
 
-onMounted(() => {
-    eventSource.value = new EventSource('/api/support/messages')
+const connect = () => {
+    if (unref(eventSource)) {
+        unref(eventSource).close()
+    }
+    messages.value = []
+    const params = new URLSearchParams()
+    if (chatTarget.value?.userId) params.set('recipientUserId', chatTarget.value.userId)
+    const url = params.toString() ? `/api/support/messages?${params.toString()}` : '/api/support/messages'
+    eventSource.value = new EventSource(url)
 
     unref(eventSource).onmessage = async (event) => {
         try {
             const parsed = JSON.parse(event.data)
             if (parsed.type === 'initial') {
                 messages.value = parsed.data
+                currentUserId.value = parsed.currentUserId || currentUserId.value
             } else if (parsed.type === 'newMessages') {
                 messages.value.push(...parsed.data)
             }
@@ -141,11 +212,23 @@ onMounted(() => {
     unref(eventSource).onerror = (err) => {
         console.error('SSE connection error:', err)
     }
+}
+
+onMounted(() => {
+    connect()
 })
 onBeforeUnmount(() => {
     if (unref(eventSource)) {
         unref(eventSource).close()
     }
+})
+
+watch(chatTarget, () => {
+    if (supportDialog.value) connect()
+}, { deep: true })
+
+watch(supportDialog, (isOpen) => {
+    if (isOpen) connect()
 })
 
 const formatTime = (timestamp, withoutTime) => {
@@ -181,6 +264,30 @@ const scrollToBottom = async () => {
             behavior: 'smooth'
         })
     }
+}
+
+const insertEntityRef = () => {
+    const id = entityDraft.value.id.trim()
+    const type = entityDraft.value.type
+    if (!id || !type) return
+    const token = `{{entity:${type}:${id}}}`
+    message.value = message.value ? `${message.value} ${token}` : token
+    if (!entityRefs.value.some(ref => ref.type === type && ref.id === id)) {
+        entityRefs.value.push({ type, id })
+    }
+    entityDraft.value.id = ''
+}
+
+const isOwnMessage = (chatMessage) => {
+    if (chatMessage.senderUserId && currentUserId.value) {
+        return chatMessage.senderUserId === currentUserId.value
+    }
+    return chatMessage.sender === 'user'
+}
+
+const closeChat = () => {
+    supportDialog.value = false
+    chatTarget.value = null
 }
 </script>
 

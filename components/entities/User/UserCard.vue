@@ -2,7 +2,7 @@
   <div v-if="user" :class="[`variant-${variant}`]" class="cursor-pointer" @click="handleCardClick">
     <EntityCard :entity="user" entity-type="user" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
-        <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" size="xlarge" />
+        <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" :size="avatarSize" />
       </template>
       <template #subtitle v-if="variant !== 'card'">
         <div class="flex flex-wrap gap-2">
@@ -53,6 +53,7 @@ const avatarLabel = computed(() => (props.user.identity?.name || '?').charAt(0))
 const email = computed(() => props.user.data?.email || props.user.identity?.reference || '');
 const role = computed(() => props.user.data?.role || '');
 const organizationCount = computed(() => props.user.data?.memberships?.length || 0);
+const avatarSize = computed(() => props.variant === 'inline' ? 'normal' : 'xlarge');
 
 const USER_FIELDS = resolveEntityDisplayFields({ entityType: 'user', surface: 'card' });
 

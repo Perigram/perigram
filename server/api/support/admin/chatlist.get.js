@@ -16,6 +16,9 @@ export default defineEventHandler(async (event) => {
             $match: {
                 sender: {
                     $ne: "welcome"
+                },
+                conversationKind: {
+                    $ne: "direct"
                 }
             }
         },
@@ -27,9 +30,13 @@ export default defineEventHandler(async (event) => {
         },
         {
             $group: {
-                _id: "$userId",
+                _id: {
+                    $ifNull: ["$userId", { $arrayElemAt: ["$participants", 0] }]
+                },
                 userId: {
-                    $first: "$userId"
+                    $first: {
+                        $ifNull: ["$userId", { $arrayElemAt: ["$participants", 0] }]
+                    }
                 },
                 lastMessage: {
                     $first: "$message"
