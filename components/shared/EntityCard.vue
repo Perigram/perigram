@@ -17,7 +17,10 @@
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
-            <TraceChain v-if="effectiveShowTrace" :entity="entity" />
+            <TraceChain v-if="effectivePopupShowTrace" :entity="entity" />
+                    <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
+                        {{ inlineTypeLabel }}
+                    </small>
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <IdentityBlock :entity="entity" />
                         <EntityStatus
@@ -96,7 +99,10 @@
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
-                    <TraceChain v-if="effectiveShowTrace" :entity="entity" />
+                    <TraceChain v-if="effectivePopupShowTrace" :entity="entity" />
+                    <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
+                        {{ inlineTypeLabel }}
+                    </small>
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <IdentityBlock :entity="entity" />
                         <EntityStatus
@@ -217,6 +223,8 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 const inlineDetailRouteRef = inject('entityInlineDetailRoute', null);
+const inlineForceTraceRef = inject('entityInlineForceTrace', false);
+const inlineTypeLabelRef = inject('entityInlineTypeLabel', '');
 
 const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi pi-box' });
 const displayPlan = computed(() => resolveEntityDisplayContract({
@@ -235,11 +243,13 @@ const effectiveShowTrace = computed(() => {
     if (props.showTrace !== null) return props.showTrace;
     return displayPlan.value.surfaceContract.trace !== 'hidden';
 });
+const effectivePopupShowTrace = computed(() => effectiveShowTrace.value || Boolean(unref(inlineForceTraceRef)));
 const compactDensityClass = computed(() => props.density === 'dense'
     ? '[&_.p-card-body]:!p-3 [&_.p-card-content]:!p-0'
     : ''
 );
 const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
+const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 
 function openInlineDetail(event) {
     event.stopPropagation();

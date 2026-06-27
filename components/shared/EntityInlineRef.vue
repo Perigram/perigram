@@ -1,5 +1,6 @@
 <script setup>
 import { computed, defineAsyncComponent, inject, provide, ref, unref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
@@ -47,6 +48,7 @@ const props = defineProps({
 const loaded = ref(null);
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
+const { t } = useI18n();
 const entityApi = useEntity(props.type);
 const entityContext = inject('entityContext', null);
 const normalizedId = computed(() => props.id?.toString?.() || props.id || '');
@@ -79,6 +81,8 @@ const detailRoute = computed(() => {
   });
 });
 provide('entityInlineDetailRoute', detailRoute);
+provide('entityInlineForceTrace', true);
+provide('entityInlineTypeLabel', computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type));
 const toneStyle = computed(() => entityToneStyle(props.type));
 
 watch(
