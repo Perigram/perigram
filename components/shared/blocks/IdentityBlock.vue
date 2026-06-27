@@ -3,7 +3,6 @@
  * IdentityBlock - v24 Standardized
  * Displays Name and ID/Slug/Serial
  */
-import Chip from 'primevue/chip';
 import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useIdentity } from '~/composables/useBlocks';
@@ -52,14 +51,15 @@ const identityMetaText = computed(() => identityMeta.value.map((item) => `${item
       <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
     </div>
 
-    <!-- Inline Variant — Chip pill with optional icon -->
-    <Chip
+    <!-- Inline Variant — text-inline pill with optional icon -->
+    <span
       v-else-if="variant === 'inline'"
       class="entity-inline-chip max-w-full"
-      :label="primary"
-      :icon="icon || undefined"
       :title="identityMetaText || primary"
-    />
+    >
+      <i v-if="icon" :class="['entity-inline-chip-icon', icon]" aria-hidden="true"></i>
+      <span class="entity-inline-chip-label">{{ primary }}</span>
+    </span>
 
     <!-- Default (Card title area) -->
     <div v-else class="flex flex-col gap-0.5 min-w-0">

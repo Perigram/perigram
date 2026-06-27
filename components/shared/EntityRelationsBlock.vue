@@ -11,10 +11,11 @@
           <EntityInlineRef
             v-for="item in relation.previewItems"
             :key="`${relation.path}:${item.entityType}:${item.id}`"
-            class="max-w-[12rem] shrink-0"
+            :class="itemClass"
             :type="item.entityType"
             :id="item.id"
             :entity="item.entity || null"
+            :variant="itemVariant"
           />
         </div>
         <Tag
@@ -38,11 +39,16 @@ import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  fields: { type: Array, default: () => [] }
+  fields: { type: Array, default: () => [] },
+  itemVariant: { type: String, default: 'inline' }
 });
 
 const { t } = useI18n();
 const PREVIEW_LIMIT = 4;
+const itemClass = computed(() => props.itemVariant === 'compact'
+  ? 'w-[15rem] min-w-[15rem] flex-none'
+  : 'max-w-[12rem] shrink-0'
+);
 
 const visibleRelations = computed(() => props.fields
   .filter(field => field.display === 'entityRef' || field.display === 'entityRefList')

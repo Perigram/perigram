@@ -7,6 +7,8 @@ import { Color } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '~/server/utils/objectid.js';
+import { serializeForAccess } from '~/server/utils/entity-redaction.js';
 
 /**
  * Colors Service - v24 Absolute Final
@@ -59,6 +61,32 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   return raws.map(raw => new Color(raw));
 }
 
+export async function listPreviewByCatalogs(catalogIds = [], userId, userOrg, userRole, userPermissions, options = {}) {
+  const ids = Array.from(new Set(catalogIds.flatMap(id => flexibleLookupValues(id)).filter(Boolean)));
+  if (!ids.length) return {};
+
+  const limit = Math.max(Number(options.limit || 4), 1);
+  const raws = await repository.find(mapLineageQuery({
+    ...getLineageFilter(userPermissions),
+    catalogId: { $in: ids }
+  }));
+  const previews = {};
+  const colors = raws
+    .map(raw => new Color(raw).toJSON())
+    .filter(color => hasLineagePermission(userPermissions, color, 'catalogs', 'read'))
+    .sort(sortByStatusTimestampDesc);
+
+  for (const color of colors) {
+    const catalogId = color.lineage?.catalogId?.toString?.() || color.lineage?.catalogId;
+    if (!catalogId) continue;
+    previews[catalogId] ||= [];
+    if (previews[catalogId].length >= limit) continue;
+    previews[catalogId].push(colorPreview(color, userPermissions));
+  }
+
+  return previews;
+}
+
 export async function update(uid, updates, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(uid);
   if (!raw) throw createError({ statusCode: 404, message: 'Color not found' });
@@ -83,4 +111,43 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return await repository.deleteById(uid);
+}
+
+function flexibleLookupValues(id) {
+  if (id === null || id === undefined) return [];
+  const stringId = id?.toString?.() || id;
+  const flexibleId = toFlexibleId(id);
+  return [flexibleId, stringId].filter((value, index, values) => (
+    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
+  ));
+}
+
+function sortByStatusTimestampDesc(left = {}, right = {}) {
+  return statusTimestamp(right) - statusTimestamp(left);
+}
+
+function statusTimestamp(entity = {}) {
+  const value = entity.status?.timestamp || entity.origin?.timestamp || entity.updatedAt || entity.createdAt;
+  const timestamp = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function colorPreview(color = {}, userPermissions = null) {
+  const preview = {
+    _id: color._id?.toString?.() || color._id,
+    entityType: 'color',
+    identity: {
+      ...(color.identity || {}),
+      name: color.identity?.name || color.data?.code || color.identity?.uid || 'Color'
+    },
+    origin: color.origin || null,
+    status: color.status || null,
+    lineage: color.lineage || {},
+    data: {
+      code: color.data?.code || '',
+      visuals: color.data?.visuals || {}
+    },
+    summary: {}
+  };
+  return serializeForAccess('color', preview, userPermissions);
 }

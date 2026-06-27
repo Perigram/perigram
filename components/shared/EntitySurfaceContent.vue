@@ -18,17 +18,19 @@
       v-if="relationFields.length"
       :entity="entity"
       :fields="relationFields"
+      :item-variant="relationVariant"
     />
   </div>
 </template>
 
 <script setup>
-import { computed, inject, unref } from 'vue';
-import { cncSummaries } from '@cutkit/domain-cnc';
+import { computed } from 'vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityPreview from '~/components/shared/EntityPreview.vue';
 import EntityRelationsBlock from '~/components/shared/EntityRelationsBlock.vue';
-import { entityKeyForDisplay, resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { resolveDataPath } from '~/utils/data-display.js';
+import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
+import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -36,11 +38,10 @@ const props = defineProps({
   surface: { type: String, default: 'card' },
   accessEntity: { type: Object, default: null },
   suppressChildCounts: { type: Boolean, default: false },
+  relationVariant: { type: String, default: 'inline' },
   displayExtensions: { type: Object, default: null },
   displayOverrides: { type: Object, default: null }
 });
-
-const entityContext = inject('entityContext', null);
 
 const display = computed(() => resolveEntityDisplayContract({
   entityType: props.entityType,
@@ -53,54 +54,22 @@ const renderableFields = computed(() => display.value.fields.filter(field => fie
 const dataFields = computed(() => renderableFields.value.filter(field =>
   field.display !== 'entityRef'
   && field.display !== 'entityRefList'
-  && !(props.suppressChildCounts && field.role === 'childCount' && derivedChildRelationPaths.value.has(field.path))
+  && !(props.suppressChildCounts && suppressedChildCountPaths.value.has(field.path))
 ));
-const relationFields = computed(() => [
-  ...renderableFields.value.filter(field => field.display === 'entityRef' || field.display === 'entityRefList'),
-  ...derivedChildRelationFields.value
-]);
+const relationFields = computed(() => renderableFields.value.filter(field =>
+  field.display === 'entityRef' || field.display === 'entityRefList'
+));
 const showPreview = computed(() => display.value.surfaceContract.preview !== 'none');
 const dataVariant = computed(() =>
   display.value.surfaceContract.dataDisplay === 'compact' || display.value.surfaceContract.dataDisplay === 'inline'
     ? 'compact'
     : 'default'
 );
-
-const derivedChildRelationFields = computed(() => {
-  if (!props.suppressChildCounts) return [];
-
-  const context = unref(entityContext);
-  const lists = context?.lists || {};
-  const entityId = props.entity?._id?.toString?.() || props.entity?.id?.toString?.() || '';
-  if (!entityId) return [];
-
-  return renderableFields.value
-    .filter(field => field.role === 'childCount')
-    .map(field => {
-      const summary = cncSummaries.find(entry =>
-        entityKeyForDisplay(entry.parentType) === display.value.key
-        && `summary.${entry.countField}` === field.path
-      );
-      if (!summary) return null;
-
-      const childType = entityKeyForDisplay(summary.entityType);
-      const candidates = lists[childType] || lists[summary.entityType] || [];
-      const items = candidates.filter(item => item?.lineage?.[summary.parentIdKey]?.toString?.() === entityId);
-      if (!items.length) return null;
-
-      return {
-        path: field.path,
-        i18n: field.i18n,
-        display: 'entityRefList',
-        entityType: childType,
-        items: items.map(item => ({
-          entityType: childType,
-          id: item?._id?.toString?.() || item?.id?.toString?.() || item?.identity?.uid,
-          entity: item
-        })).filter(item => item.id)
-      };
-    })
-    .filter(Boolean);
+const suppressedChildCountPaths = computed(() => {
+  if (!props.suppressChildCounts) return new Set();
+  return new Set(relationFields.value
+    .filter(field => field.replacesCountPath)
+    .filter(field => resolveEntityRelationRefs(resolveDataPath(props.entity, field.path), field).length)
+    .map(field => field.replacesCountPath));
 });
-const derivedChildRelationPaths = computed(() => new Set(derivedChildRelationFields.value.map(field => field.path)));
 </script>

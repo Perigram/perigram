@@ -355,18 +355,41 @@ function nonNegativeNumber(value, fallback) {
 function queuePreview(queue = {}) {
   const items = queue.data?.job?.items || [];
   const materialPool = queue.data?.job?.materialPool || [];
-  return {
+  const preview = {
     _id: queue._id?.toString?.() || queue._id,
-    name: queue.identity?.name || queue.identity?.slug || '',
-    queueNumber: queue.data?.queueNumber || null,
+    entityType: 'queue',
+    identity: {
+      ...(queue.identity || {}),
+      name: queue.identity?.name || queue.identity?.slug || queue.identity?.uid || 'Queue'
+    },
+    origin: queue.origin || null,
+    status: queue.status || null,
+    lineage: queue.lineage || {},
+    data: {
+      queueNumber: queue.data?.queueNumber || null
+    },
+    summary: {
+      jobItemCount: items.length,
+      totalQuantity: items.reduce((sum, item) => sum + Number(item.quantity || item.count || 1), 0),
+      runCount: Number(queue.summary?.runCount || 0),
+      sheetCount: Number(queue.summary?.sheetCount || 0),
+      totalArea: Number(queue.summary?.totalArea || 0),
+      materialSourceCount: materialPool.length,
+      materialSheetCount: materialPool.reduce((sum, item) => sum + Number(item.available || item.availableCount || item.quantity || item.count || 1), 0)
+    }
+  };
+  return {
+    ...preview,
+    name: preview.identity.name,
+    queueNumber: preview.data.queueNumber,
     state: getPrimaryState(queue.status, 'DRAFT'),
-    jobItemCount: items.length,
-    totalQuantity: items.reduce((sum, item) => sum + Number(item.quantity || item.count || 1), 0),
-    runCount: Number(queue.summary?.runCount || 0),
-    sheetCount: Number(queue.summary?.sheetCount || 0),
-    totalArea: Number(queue.summary?.totalArea || 0),
-    materialSourceCount: materialPool.length,
-    materialSheetCount: materialPool.reduce((sum, item) => sum + Number(item.available || item.availableCount || item.quantity || item.count || 1), 0)
+    jobItemCount: preview.summary.jobItemCount,
+    totalQuantity: preview.summary.totalQuantity,
+    runCount: preview.summary.runCount,
+    sheetCount: preview.summary.sheetCount,
+    totalArea: preview.summary.totalArea,
+    materialSourceCount: preview.summary.materialSourceCount,
+    materialSheetCount: preview.summary.materialSheetCount
   };
 }
 

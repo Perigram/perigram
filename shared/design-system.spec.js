@@ -478,24 +478,31 @@ describe('Design system manifest', () => {
   it('keeps generated home cards as horizontal carousel items', () => {
     const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
     const generatedCollection = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedEntityCollection.vue'), 'utf8');
-    const generatedScreen = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedScreen.vue'), 'utf8');
     const relationsBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityRelationsBlock.vue'), 'utf8');
     const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntitySurfaceContent.vue'), 'utf8');
     const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
+    const identityBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/IdentityBlock.vue'), 'utf8');
 
     expect(generatedHome).toContain('overflow-x-auto');
     expect(generatedHome).toContain('shrink-0');
     expect(generatedHome).toContain('suppress-child-counts');
+    expect(generatedHome).toContain('relation-variant="compact"');
+    expect(generatedHome).toContain('GeneratedCassetteDesignerAction');
     expect(generatedCollection).toContain('suppress-child-counts');
-    expect(generatedScreen).toContain("provide('entityContext'");
+    expect(generatedCollection).toContain('relation-variant="compact"');
+    expect(generatedCollection).toContain('GeneratedCassetteDesignerAction');
     expect(generatedHome).toContain('pi pi-external-link');
     expect(generatedCollection).toContain('pi pi-external-link');
     expect(relationsBlock).toContain('overflow-x-auto');
+    expect(relationsBlock).toContain('itemVariant');
     expect(relationsBlock).toContain("field.display === 'entityRefList'");
-    expect(surfaceContent).toContain('cncSummaries');
-    expect(surfaceContent).toContain("field.role === 'childCount'");
+    expect(surfaceContent).toContain('replacesCountPath');
+    expect(surfaceContent).toContain('resolveEntityRelationRefs');
+    expect(surfaceContent).toContain('relationVariant');
     expect(inlineRef).toContain('entityToneStyle');
     expect(inlineRef).toContain('color-mix');
+    expect(inlineRef).toContain("variant === 'compact'");
+    expect(identityBlock).toContain('entity-inline-chip');
     expect(generatedHome).not.toContain('min-w-64 max-w-72');
   });
 

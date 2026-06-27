@@ -7,6 +7,8 @@ import { Sheet } from './model.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
 import { mapLineageQuery } from '~/server/utils/query';
+import { toFlexibleId } from '~/server/utils/objectid.js';
+import { serializeForAccess } from '~/server/utils/entity-redaction.js';
 
 /**
  * Sheets Service - v24 Absolute Final
@@ -95,6 +97,32 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   return raws.map(raw => new Sheet(raw));
 }
 
+export async function listPreviewByQueues(queueIds = [], userId, userOrg, userRole, userPermissions, options = {}) {
+  const ids = Array.from(new Set(queueIds.flatMap(id => flexibleLookupValues(id)).filter(Boolean)));
+  if (!ids.length) return {};
+
+  const limit = Math.max(Number(options.limit || 4), 1);
+  const raws = await repository.find({
+    ...getLineageFilter(userPermissions),
+    'lineage.queueId': { $in: ids }
+  });
+  const previews = {};
+  const sheets = raws
+    .map(raw => new Sheet(raw).toJSON())
+    .filter(sheet => hasLineagePermission(userPermissions, sheet, 'materials', 'read'))
+    .sort(sortByStatusTimestampDesc);
+
+  for (const sheet of sheets) {
+    const queueId = sheet.lineage?.queueId?.toString?.() || sheet.lineage?.queueId;
+    if (!queueId) continue;
+    previews[queueId] ||= [];
+    if (previews[queueId].length >= limit) continue;
+    previews[queueId].push(sheetPreview(sheet, userPermissions));
+  }
+
+  return previews;
+}
+
 export async function getById(uid) {
   const raw = await repository.findById(uid);
   if (!raw) return null;
@@ -172,4 +200,43 @@ export async function finishMilling(uid, cassetteInstanceIds = [], remnantIds = 
   }
 
   return await getById(uid);
+}
+
+function flexibleLookupValues(id) {
+  if (id === null || id === undefined) return [];
+  const stringId = id?.toString?.() || id;
+  const flexibleId = toFlexibleId(id);
+  return [flexibleId, stringId].filter((value, index, values) => (
+    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
+  ));
+}
+
+function sortByStatusTimestampDesc(left = {}, right = {}) {
+  return statusTimestamp(right) - statusTimestamp(left);
+}
+
+function statusTimestamp(entity = {}) {
+  const value = entity.status?.timestamp || entity.origin?.timestamp || entity.updatedAt || entity.createdAt;
+  const timestamp = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function sheetPreview(sheet = {}, userPermissions = null) {
+  const preview = {
+    _id: sheet._id?.toString?.() || sheet._id,
+    entityType: 'sheet',
+    identity: {
+      ...(sheet.identity || {}),
+      name: sheet.identity?.name || sheet.identity?.serial || sheet.identity?.uid || 'Sheet'
+    },
+    origin: sheet.origin || null,
+    status: sheet.status || null,
+    lineage: sheet.lineage || {},
+    specs: sheet.specs || sheet.data?.specs || {},
+    data: {
+      serial: sheet.data?.serial || sheet.identity?.serial || ''
+    },
+    summary: {}
+  };
+  return serializeForAccess('sheet', preview, userPermissions);
 }

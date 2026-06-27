@@ -1,8 +1,8 @@
 <template>
     <!-- Inline: pill chip with popup -->
     <template v-if="variant === 'inline'">
-        <div
-            class="inline-flex items-center gap-2"
+        <span
+            class="inline-flex min-w-0 max-w-full items-center gap-2 align-middle"
             :class="{ 'cursor-pointer': expandable }"
             :role="expandable ? 'button' : undefined"
             :tabindex="expandable ? 0 : undefined"
@@ -12,7 +12,7 @@
         >
             <IdentityBlock :entity="entity" variant="inline" :icon="entityConfig.icon" />
             <slot name="inline-extra" />
-        </div>
+        </span>
         
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="w-[min(34rem,calc(100vw-3rem))]">

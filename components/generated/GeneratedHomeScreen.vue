@@ -62,8 +62,9 @@
               :entity-type="section.source.entityType"
               :surface="section.region.surface || 'card'"
               suppress-child-counts
+              relation-variant="compact"
             />
-            <template v-if="entityActionsFor(section, entity).length || entityCanDelete(section, entity) || detailRouteFor(section, entity)" #footer>
+            <template v-if="section.source.entityType === 'cassette' || entityActionsFor(section, entity).length || entityCanDelete(section, entity) || detailRouteFor(section, entity)" #footer>
               <div class="flex flex-wrap justify-end gap-2">
                 <Button
                   v-if="detailRouteFor(section, entity)"
@@ -73,6 +74,11 @@
                   size="small"
                   :aria-label="$t('common.open')"
                   @click.stop="openEntity(section, entity)"
+                />
+                <GeneratedCassetteDesignerAction
+                  v-if="section.source.entityType === 'cassette'"
+                  :entity="entity"
+                  @refresh="$emit('refresh')"
                 />
                 <GeneratedActionButton
                   v-for="action in entityActionsFor(section, entity)"
@@ -103,6 +109,7 @@ import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';

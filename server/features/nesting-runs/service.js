@@ -8,6 +8,7 @@ import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.
 import { toFlexibleId } from '../../utils/objectid.js';
 import { NestingRun } from './model.js';
 import * as queuesService from '../queues/service.js';
+import { serializeForAccess } from '../../utils/entity-redaction.js';
 
 /**
  * Nesting Runs Service - v24 Standardized
@@ -111,6 +112,32 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     .map(raw => new NestingRun(raw))
     .filter(run => hasLineagePermission(userPermissions, run, 'nesting_runs', 'read'))
     .map(run => run.toJSON());
+}
+
+export async function listPreviewByQueues(queueIds = [], userId, userOrg, userRole, userPermissions, options = {}) {
+  const ids = Array.from(new Set(queueIds.flatMap(id => flexibleLookupValues(id)).filter(Boolean)));
+  if (!ids.length) return {};
+
+  const limit = Math.max(Number(options.limit || 4), 1);
+  const raws = await repository.find({
+    ...getLineageFilter(userPermissions),
+    'lineage.queueId': { $in: ids }
+  });
+  const previews = {};
+  const runs = raws
+    .map(raw => new NestingRun(raw).toJSON())
+    .filter(run => hasLineagePermission(userPermissions, run, 'nesting_runs', 'read'))
+    .sort(sortByStatusTimestampDesc);
+
+  for (const run of runs) {
+    const queueId = run.lineage?.queueId?.toString?.() || run.lineage?.queueId;
+    if (!queueId) continue;
+    previews[queueId] ||= [];
+    if (previews[queueId].length >= limit) continue;
+    previews[queueId].push(nestingRunPreview(run, userPermissions));
+  }
+
+  return previews;
 }
 
 export async function getNextRunNumber(queueId) {
@@ -221,4 +248,42 @@ function normalizePrimaryStatuses(value) {
   if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
   if (typeof value !== 'string') return [];
   return value.split(',').map(item => item.trim()).filter(Boolean);
+}
+
+function flexibleLookupValues(id) {
+  if (id === null || id === undefined) return [];
+  const stringId = id?.toString?.() || id;
+  const flexibleId = toFlexibleId(id);
+  return [flexibleId, stringId].filter((value, index, values) => (
+    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
+  ));
+}
+
+function sortByStatusTimestampDesc(left = {}, right = {}) {
+  return statusTimestamp(right) - statusTimestamp(left);
+}
+
+function statusTimestamp(entity = {}) {
+  const value = entity.status?.timestamp || entity.origin?.timestamp || entity.updatedAt || entity.createdAt;
+  const timestamp = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function nestingRunPreview(run = {}, userPermissions = null) {
+  const preview = {
+    _id: run._id?.toString?.() || run._id,
+    entityType: 'nestingRun',
+    identity: {
+      ...(run.identity || {}),
+      name: run.identity?.name || run.identity?.uid || `Run ${String(run._id || '').slice(-6)}`
+    },
+    origin: run.origin || null,
+    status: run.status || null,
+    lineage: run.lineage || {},
+    data: {
+      results: run.data?.results || {}
+    },
+    summary: {}
+  };
+  return serializeForAccess('nestingRun', preview, userPermissions);
 }

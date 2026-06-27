@@ -60,32 +60,70 @@ body {
     overflow: hidden;
 }
 
-.entity-inline-tone .p-chip {
+.entity-inline-chip {
     display: inline-flex;
     align-items: center;
     max-width: 100%;
+    min-width: 0;
+    vertical-align: baseline;
     border: 1px solid var(--ck-inline-ref-border, var(--p-content-border-color));
     background: var(--ck-inline-ref-bg, var(--p-surface-100));
     color: var(--ck-inline-ref-fg, var(--p-text-color));
     box-shadow: var(--ck-inline-ref-shadow, none);
     font-weight: var(--ck-inline-ref-font-weight, 500);
     white-space: nowrap;
+    line-height: 1.15;
+    font-size: 0.92em;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
 }
 
-.entity-inline-tone .p-chip .p-chip-label,
-.entity-inline-chip .p-chip-label {
+.entity-inline-chip-icon {
+    flex: 0 0 auto;
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-right: 0.35rem;
+}
+
+.entity-inline-chip-label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.entity-inline-chip.p-chip {
-    max-width: 100%;
+.entity-inline-tone {
+    vertical-align: baseline;
 }
 
-.entity-inline-tone .p-chip .p-chip-icon {
-    color: inherit;
-    opacity: 0.9;
+.entity-inline-compact {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-width: 0;
+    gap: 0.75rem;
+    border: 1px solid var(--p-content-border-color);
+    background: var(--p-content-background);
+    border-radius: var(--ck-radius-ui);
+    box-shadow: var(--ck-shadow-card);
+    padding: 0.5rem 0.625rem;
+}
+
+.entity-inline-compact-preview,
+.entity-inline-compact-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 auto;
+    overflow: hidden;
+    border-radius: calc(var(--ck-radius-ui) - 0.125rem);
+    background: var(--ck-subtle-background);
+    border: 1px solid var(--p-content-border-color);
+}
+
+.entity-inline-compact :where(.p-card, .p-panel) {
+    box-shadow: none;
 }
 
 /* Minimal layout helpers only */

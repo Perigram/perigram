@@ -71,8 +71,9 @@
         :entity-type="entityType"
         :surface="surface"
         suppress-child-counts
+        relation-variant="compact"
       />
-      <template v-if="entityActionsFor(entity).length || entityCanDelete(entity) || detailRouteFor(entity)" #footer>
+      <template v-if="entityType === 'cassette' || entityActionsFor(entity).length || entityCanDelete(entity) || detailRouteFor(entity)" #footer>
         <div class="flex flex-wrap justify-end gap-2">
           <Button
             v-if="detailRouteFor(entity)"
@@ -82,6 +83,11 @@
             size="small"
             :aria-label="$t('common.open')"
             @click.stop="openEntity(entity)"
+          />
+          <GeneratedCassetteDesignerAction
+            v-if="entityType === 'cassette'"
+            :entity="entity"
+            @refresh="$emit('refresh')"
           />
           <GeneratedActionButton
             v-for="action in entityActionsFor(entity)"
@@ -113,6 +119,7 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';

@@ -1,12 +1,21 @@
 <script setup>
 import { computed, defineAsyncComponent, inject, provide, ref, unref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Button from 'primevue/button';
+import Popover from 'primevue/popover';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import EntityPreview from '~/components/shared/EntityPreview.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
+import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
+import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 
 const CARD_COMPONENTS = {
   project: defineAsyncComponent(() => import('~/components/entities/Project/ProjectCard.vue')),
@@ -42,10 +51,12 @@ const props = defineProps({
   entity: { type: Object, default: null },
   fetch: { type: Boolean, default: true },
   fields: { type: Array, default: () => ['serial'] },
-  allowDetailRoute: { type: Boolean, default: true }
+  allowDetailRoute: { type: Boolean, default: true },
+  variant: { type: String, default: 'inline' }
 });
 
 const loaded = ref(null);
+const compactOp = ref();
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const { t } = useI18n();
@@ -63,6 +74,12 @@ const contextEntity = computed(() => {
   return null;
 });
 const resolved = computed(() => props.entity || contextEntity.value || loaded.value);
+const resolvedId = computed(() => normalizedId.value
+  || resolved.value?._id?.toString?.()
+  || resolved.value?.id?.toString?.()
+  || resolved.value?.identity?.uid
+  || ''
+);
 const icon = computed(() => domainUi.getIcon?.(props.type) || 'pi pi-box');
 const contract = computed(() =>
   DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.key === props.type || entry.entityType === props.type) || null
@@ -73,9 +90,9 @@ const cardProps = computed(() => ({
   variant: 'inline'
 }));
 const detailRoute = computed(() => {
-  if (!props.allowDetailRoute || !authStore.processActive || !normalizedId.value) return null;
+  if (!props.allowDetailRoute || !authStore.processActive || !resolvedId.value) return null;
   return detailRouteForEntity({
-    entity: resolved.value || { _id: normalizedId.value },
+    entity: resolved.value || { _id: resolvedId.value },
     entityType: generatedEntityType.value,
     manifest: authStore.screenManifest
   });
@@ -84,6 +101,17 @@ provide('entityInlineDetailRoute', detailRoute);
 provide('entityInlineForceTrace', true);
 provide('entityInlineTypeLabel', computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type));
 const toneStyle = computed(() => entityToneStyle(props.type));
+const compactDisplay = computed(() => resolveEntityDisplayContract({
+  entityType: generatedEntityType.value,
+  surface: 'compact'
+}));
+const compactDataFields = computed(() => compactDisplay.value.fields.filter(field =>
+  field.display !== 'entityRef'
+  && field.display !== 'entityRefList'
+  && field.role !== 'previewSource'
+));
+const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
+const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type);
 
 watch(
   () => [props.entity, normalizedId.value, props.type, contextEntity.value?._id],
@@ -131,6 +159,23 @@ function generatedEntityTypeFor(type) {
     layerStandard: 'layer_standard'
   };
   return aliases[type] || type;
+}
+
+function toggleCompactPopup(event) {
+  if (isInteractiveEventTarget(event)) return;
+  compactOp.value?.toggle(event);
+}
+
+function onCompactKeydown(event) {
+  if (isInteractiveEventTarget(event)) return;
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  toggleCompactPopup(event);
+}
+
+function openDetail(event) {
+  event?.stopPropagation?.();
+  if (detailRoute.value) navigateTo(detailRoute.value);
 }
 
 function entityToneStyle(type) {
@@ -206,7 +251,95 @@ function tonePalette(role) {
 </script>
 
 <template>
-  <span class="entity-inline-tone inline-flex min-w-0 items-center" :style="toneStyle">
+  <span
+    v-if="variant === 'compact'"
+    class="inline-flex min-w-0 max-w-full"
+  >
+    <span
+      class="entity-inline-compact min-w-0 max-w-full"
+      :class="{ 'cursor-pointer': Boolean(resolved) }"
+      :role="resolved ? 'button' : undefined"
+      :tabindex="resolved ? 0 : undefined"
+      data-entity-card-interactive="true"
+      @click="resolved ? toggleCompactPopup($event) : undefined"
+      @keydown="resolved ? onCompactKeydown($event) : undefined"
+    >
+      <span
+        v-if="resolved && compactHasPreview"
+        class="entity-inline-compact-preview"
+        data-entity-card-interactive="true"
+      >
+        <EntityPreview
+          :entity="resolved"
+          :entity-type="generatedEntityType"
+          :mode="compactDisplay.surfaceContract.preview"
+        />
+      </span>
+      <span v-else class="entity-inline-compact-fallback" data-entity-card-interactive="true">
+        <i :class="icon" class="text-sm" aria-hidden="true"></i>
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="flex min-w-0 flex-col gap-1">
+          <span class="flex min-w-0 items-center gap-2">
+            <IdentityBlock
+              v-if="resolved"
+              :entity="resolved"
+              variant="compact"
+              :fields="fields"
+            />
+            <span v-else class="truncate font-medium text-sm">
+              {{ normalizedId || $t('common.notAvailable') }}
+            </span>
+          </span>
+          <DataBlock
+            v-if="resolved && compactDataFields.length"
+            :entity-type="generatedEntityType"
+            :entity="resolved"
+            :fields="compactDataFields"
+            variant="compact"
+          />
+        </span>
+      </span>
+    </span>
+
+    <Popover ref="compactOp" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+      <div class="w-[min(34rem,calc(100vw-3rem))]">
+        <div class="flex flex-col gap-4 p-4">
+          <TraceChain v-if="resolved" :entity="resolved" />
+          <small class="text-xs uppercase tracking-[0.08em] text-muted-color">
+            {{ compactTypeLabel }}
+          </small>
+          <div v-if="resolved" class="flex flex-wrap items-start justify-between gap-3">
+            <IdentityBlock :entity="resolved" />
+            <EntityStatus
+              v-if="resolved.status"
+              :entity="resolved"
+              :entity-type="generatedEntityType"
+              variant="inline"
+            />
+          </div>
+          <EntitySurfaceContent
+            v-if="resolved"
+            :entity="resolved"
+            :entity-type="generatedEntityType"
+            surface="card"
+          />
+          <div v-if="detailRoute" class="flex justify-end" @click.stop>
+            <Button
+              icon="pi pi-external-link"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('common.open')"
+              @click="openDetail"
+            />
+          </div>
+        </div>
+      </div>
+    </Popover>
+  </span>
+
+  <span v-else class="entity-inline-tone inline-flex min-w-0 max-w-full items-center align-middle" :style="toneStyle">
     <component
       v-if="resolved && cardComponent"
       :is="cardComponent"
@@ -223,7 +356,7 @@ function tonePalette(role) {
     />
     <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted-color" data-entity-card-interactive="true">
       <i :class="icon" class="shrink-0"></i>
-      <span class="truncate">{{ normalizedId || $t('common.notAvailable') }}</span>
+      <span class="truncate">{{ resolvedId || $t('common.notAvailable') }}</span>
     </span>
   </span>
 </template>
