@@ -186,6 +186,27 @@ describe('User Management & Auth', () => {
     }, orgId)).toBe(false);
   });
 
+  it('lists active-organization users when auth memberships are not populated', async () => {
+    const orgId = new ObjectId();
+    await db.collection('users').insertMany([{
+      _id: new ObjectId(),
+      identity: { uid: 'user-one', name: 'User One' },
+      data: {
+        memberships: [{ organizationId: orgId, role: 'operator', permissions: {}, status: 'active' }]
+      }
+    }, {
+      _id: new ObjectId(),
+      identity: { uid: 'user-two', name: 'User Two' },
+      data: {
+        memberships: [{ organizationId: orgId.toString(), role: 'operator', permissions: {}, status: 'active' }]
+      }
+    }]);
+
+    const users = await userService.list('user-one', orgId.toString(), null, { organizationId: orgId.toString(), memberships: [] });
+
+    expect(users.map(user => user.toJSON().identity.name).sort()).toEqual(['User One', 'User Two']);
+  });
+
   it('allows stored membership user-admin grants to recover user management when process grants are missing', async () => {
     const orgId = new ObjectId();
     const userId = new ObjectId();

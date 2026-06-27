@@ -50,12 +50,6 @@
                         <div class="min-w-0 flex-1">
                             <div class="flex min-w-0 items-center gap-2">
                                 <span class="truncate font-medium">{{ conversationLabel(conversation) }}</span>
-                                <Badge
-                                    v-if="conversation.unreadCount"
-                                    :value="conversation.unreadCount"
-                                    severity="danger"
-                                    size="small"
-                                />
                             </div>
                             <small class="block truncate text-muted-color">{{ conversation.lastMessage || $t('support.noMessages') }}</small>
                         </div>

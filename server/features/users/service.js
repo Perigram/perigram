@@ -202,9 +202,10 @@ export async function updatePermissions(userId, newPermissions, updaterAuth = {}
 
 export async function list(userId, userOrg, userRole, userPermissions) {
   const auth = normalizeAuthFromArgs(userId, userOrg, userRole, userPermissions);
-  const orgIds = (auth.memberships || [])
-    .map(membership => membership.organizationId ? toFlexibleId(membership.organizationId) : null)
-    .filter(Boolean);
+  const orgIds = uniqueIdValues([
+    ...(auth.memberships || []).flatMap(membership => lookupIdValues(membership.organizationId)),
+    ...lookupIdValues(auth.organizationId)
+  ]);
   const filter = { "data.memberships.organizationId": { $in: orgIds } };
   const raws = await usersRepository.find(filter);
   return raws.map(raw => new User(raw));
@@ -246,6 +247,23 @@ export async function remove(uid, deleterAuth = {}) {
 
 function getActiveOrganizationId(auth = {}) {
   return auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+}
+
+function lookupIdValues(value) {
+  if (!value) return [];
+  const flexible = toFlexibleId(value);
+  const stringValue = value?.toString?.() || value;
+  return [flexible, stringValue].filter(Boolean);
+}
+
+function uniqueIdValues(values) {
+  const seen = new Set();
+  return values.filter(value => {
+    const key = `${value?.constructor?.name || typeof value}:${value?.toString?.() || value}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export async function canManageUsersInOrganization(auth = {}, organizationId) {
