@@ -5,6 +5,10 @@ and local debugging. These scripts run outside Nuxt page/component resolution,
 so imports should be direct package names or filesystem-relative paths unless a
 script explicitly installs its own resolver.
 
+Vitest uses the shared alias map from `vitest.config.js` and loads
+`@vitejs/plugin-vue`, so focused specs may import Vue SFCs directly when they
+stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
+
 ## Core Files
 
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
