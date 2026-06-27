@@ -1,8 +1,8 @@
 <template>
-    <div class="fixed bottom-0 right-0 z-[1000] flex justify-end items-end p-4 md:p-6 pointer-events-none">
+    <div class="fixed inset-0 z-[1000] flex items-stretch justify-stretch p-0 pointer-events-none md:inset-auto md:bottom-0 md:right-0 md:items-end md:justify-end md:p-6">
         <div
             v-if="supportDialog"
-            class="w-full sm:w-[var(--ck-support-chat-width)] h-support-chat max-h-[80vh] bg-content border border-content-border rounded-ui shadow-lg flex flex-col overflow-hidden pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal"
+            class="flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content shadow-lg pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border"
         >
             <div class="flex items-center justify-between p-4 border-b border-content-border bg-content">
                 <div class="flex min-w-0 items-center gap-2">
@@ -32,13 +32,13 @@
                 />
             </div>
 
-            <div v-if="!activeConversation" class="flex-1 overflow-y-auto p-3">
+            <div v-if="!activeConversation" class="flex-1 overflow-y-auto p-2 md:p-3">
                 <div class="flex flex-col gap-2">
                     <button
                         v-for="conversation in displayConversations"
                         :key="conversation.conversationKey"
                         type="button"
-                        class="flex min-w-0 items-center gap-3 rounded-ui border border-content-border bg-content p-3 text-left transition-colors hover:border-primary"
+                        class="flex min-w-0 items-center gap-2 rounded-ui border border-content-border bg-content p-3 text-left transition-colors hover:border-primary md:gap-3"
                         @click="openConversation(conversation)"
                     >
                         <Avatar
@@ -65,7 +65,7 @@
             </div>
 
             <template v-else>
-                <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-content custom-scrollbar">
+                <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-content custom-scrollbar md:p-4 md:gap-4">
                     <template
                         v-for="messageItem in messagesList"
                         :key="messageItem._id"
@@ -97,15 +97,15 @@
                     </template>
                 </div>
 
-                <div class="p-4 border-t border-content-border bg-content">
-                    <div v-if="entityComposerVisible" class="mb-2 grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)_auto] gap-2">
+                <div class="p-3 border-t border-content-border bg-content md:p-4">
+                    <div v-if="entityComposerVisible" class="mb-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2 md:grid-cols-[minmax(0,8rem)_minmax(0,1fr)_auto]">
                         <Select
                             v-model="entityDraft.type"
                             :options="entityTypeOptions"
                             option-label="label"
                             option-value="value"
                             size="small"
-                            class="min-w-0"
+                            class="col-span-2 min-w-0 md:col-span-1"
                             :aria-label="$t('support.entityType')"
                             @update:model-value="loadEntityOptions"
                         />

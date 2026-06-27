@@ -94,6 +94,11 @@ describe('support communication service', () => {
     mocks.usersService.getById.mockResolvedValue({
       toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
     });
+    mocks.usersService.list.mockResolvedValue([
+      { toJSON: () => ({ _id: 'user-a', identity: { name: 'User A' }, data: {} }) },
+      { toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} }) },
+      { toJSON: () => ({ _id: 'user-c', identity: { name: 'User C' }, data: {} }) }
+    ]);
 
     const conversations = await supportService.listUserConversations(auth);
 
@@ -104,6 +109,11 @@ describe('support communication service', () => {
     });
     expect(conversations.find(item => item.conversationKey === 'support:user-a')).toMatchObject({
       unreadCount: 0
+    });
+    expect(conversations.find(item => item.conversationKey === 'direct:user-a:user-c')).toMatchObject({
+      lastMessage: '',
+      unreadCount: 0,
+      participant: { _id: 'user-c' }
     });
   });
 

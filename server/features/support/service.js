@@ -62,7 +62,8 @@ export async function listUserConversations(auth) {
     const userId = auth?.userId;
     if (!userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
     const messages = await repository.findConversationMessages(userConversationsMatch(userId), messageProjection());
-    return await buildConversationSummaries(messages, auth);
+    const conversations = await buildConversationSummaries(messages, auth);
+    return await addReachableUserConversations(conversations, auth);
 }
 
 export async function listAdminSupportConversations(auth) {
@@ -201,6 +202,34 @@ async function buildConversationSummaries(messages, auth, options = {}) {
     return enriched.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
 }
 
+async function addReachableUserConversations(conversations, auth) {
+    const byKey = new Map(conversations.map(conversation => [conversation.conversationKey, conversation]));
+    const users = await usersService.list(auth.userId, auth.organizationId, auth.role, auth).catch(() => []);
+    for (const user of users) {
+        const dto = user?.toJSON ? user.toJSON() : user;
+        const userId = dto?._id?.toString?.() || dto?._id || dto?.id;
+        if (!userId || userId === auth.userId) continue;
+        const conversationKey = directConversationKey(auth.userId, userId);
+        if (byKey.has(conversationKey)) continue;
+        byKey.set(conversationKey, {
+            conversationKey,
+            conversationKind: 'direct',
+            participants: [auth.userId, userId].sort(),
+            lastMessage: '',
+            timestamp: null,
+            unreadCount: 0,
+            participant: dto
+        });
+    }
+    return Array.from(byKey.values())
+        .sort((left, right) => {
+            if (!left.timestamp && !right.timestamp) return conversationLabel(left).localeCompare(conversationLabel(right));
+            if (!left.timestamp) return 1;
+            if (!right.timestamp) return -1;
+            return new Date(right.timestamp) - new Date(left.timestamp);
+        });
+}
+
 function normalizeParticipants(message) {
     if (Array.isArray(message.participants) && message.participants.length) {
         return message.participants.map(item => item?.toString?.() || item).filter(Boolean);
@@ -307,6 +336,14 @@ function sharesOrganization(auth = {}, recipient) {
 
 function supportConversationKey(userId) {
     return `support:${userId}`;
+}
+
+function directConversationKey(left, right) {
+    return `direct:${[left, right].map(String).sort().join(':')}`;
+}
+
+function conversationLabel(conversation) {
+    return conversation?.participant?.identity?.name || conversation?.participant?.name || conversation?.conversationKey || '';
 }
 
 function legacySupportMatch(userId) {

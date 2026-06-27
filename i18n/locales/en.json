@@ -1626,17 +1626,17 @@
     "confirmDeleteCassette": "Delete this cassette?"
   },
   "support": {
-    "title": "Support",
-    "chatTitle": "Support Chat",
+    "title": "Chats",
+    "chatTitle": "Chats",
     "description": "Need help? Contact us!",
-    "button": "Support",
+    "button": "Chats",
     "email": "Email",
     "typeMessage": "Type your message...",
     "send": "Send",
     "entityType": "Entity type",
     "entityId": "Entity ID",
     "addEntity": "Add entity",
-    "openChat": "Open chat",
+    "openChat": "Open chats",
     "noMessages": "No messages",
     "entityTypes": {
       "sheet": "Sheet",

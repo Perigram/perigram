@@ -1626,17 +1626,17 @@
     "confirmDeleteCassette": "Удалить эту кассету?"
   },
   "support": {
-    "title": "Поддержка",
-    "chatTitle": "Чат поддержки",
+    "title": "Чаты",
+    "chatTitle": "Чаты",
     "description": "Нужна помощь? Свяжитесь с нами!",
-    "button": "Поддержка",
+    "button": "Чаты",
     "email": "Email",
     "typeMessage": "Введите сообщение...",
     "send": "Отправить",
     "entityType": "Тип сущности",
     "entityId": "ID сущности",
     "addEntity": "Добавить сущность",
-    "openChat": "Открыть чат",
+    "openChat": "Открыть чаты",
     "noMessages": "Нет сообщений",
     "entityTypes": {
       "sheet": "Лист",
