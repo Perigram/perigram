@@ -35,6 +35,10 @@ const props = defineProps({
   dimensions: {
     type: Object,
     default: null
+  },
+  hideDimensionLayer: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -132,7 +136,10 @@ const handleDrawingReady = (drawing) => {
   const layerNames = Array.isArray(drawing?.layers)
     ? drawing.layers.map(layer => layer.name).filter(Boolean)
     : [];
-  const allowed = PREVIEW_LAYER_PRIORITY.filter(name => layerNames.includes(name));
+  const previewPriority = props.hideDimensionLayer
+    ? PREVIEW_LAYER_PRIORITY.filter(name => name !== 'dimension.cassette')
+    : PREVIEW_LAYER_PRIORITY;
+  const allowed = previewPriority.filter(name => layerNames.includes(name));
   resolvedPreviewLayerNames.value = allowed.length ? allowed : null;
 };
 

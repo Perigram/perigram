@@ -112,6 +112,9 @@ const compactDataFields = computed(() => compactDisplay.value.fields.filter(fiel
 ));
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
 const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type);
+const compactPreviewHideDimensionLayer = computed(() =>
+  ['cassette', 'cassette_design'].includes(generatedEntityType.value)
+);
 
 watch(
   () => [props.entity, normalizedId.value, props.type, contextEntity.value?._id],
@@ -253,7 +256,8 @@ function tonePalette(role) {
 <template>
   <span
     v-if="variant === 'compact'"
-    class="inline-flex min-w-0 max-w-full"
+    class="inline-flex w-full min-w-0 max-w-full"
+    :style="toneStyle"
   >
     <span
       class="entity-inline-compact min-w-0 max-w-full"
@@ -273,23 +277,20 @@ function tonePalette(role) {
           :entity="resolved"
           :entity-type="generatedEntityType"
           :mode="compactDisplay.surfaceContract.preview"
+          :hide-dimension-layer="compactPreviewHideDimensionLayer"
         />
-      </span>
-      <span v-else class="entity-inline-compact-fallback" data-entity-card-interactive="true">
-        <i :class="icon" class="text-sm" aria-hidden="true"></i>
       </span>
       <span class="min-w-0 flex-1">
         <span class="flex min-w-0 flex-col gap-1">
-          <span class="flex min-w-0 items-center gap-2">
-            <IdentityBlock
-              v-if="resolved"
-              :entity="resolved"
-              variant="compact"
-              :fields="fields"
-            />
-            <span v-else class="truncate font-medium text-sm">
-              {{ normalizedId || $t('common.notAvailable') }}
-            </span>
+          <IdentityBlock
+            v-if="resolved"
+            :entity="resolved"
+            variant="inline"
+            :icon="icon"
+            :fields="fields"
+          />
+          <span v-else class="truncate font-medium text-sm">
+            {{ normalizedId || $t('common.notAvailable') }}
           </span>
           <DataBlock
             v-if="resolved && compactDataFields.length"

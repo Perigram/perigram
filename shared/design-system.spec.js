@@ -482,6 +482,8 @@ describe('Design system manifest', () => {
     const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntitySurfaceContent.vue'), 'utf8');
     const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
     const identityBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/IdentityBlock.vue'), 'utf8');
+    const entityPreview = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityPreview.vue'), 'utf8');
+    const cassetteThumbnail = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteThumbnail.vue'), 'utf8');
 
     expect(generatedHome).toContain('overflow-x-auto');
     expect(generatedHome).toContain('shrink-0');
@@ -502,7 +504,13 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('entityToneStyle');
     expect(inlineRef).toContain('color-mix');
     expect(inlineRef).toContain("variant === 'compact'");
+    expect(inlineRef).toContain('class="inline-flex w-full');
+    expect(inlineRef).toContain('variant="inline"');
+    expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
+    expect(inlineRef).not.toContain('entity-inline-compact-fallback');
     expect(identityBlock).toContain('entity-inline-chip');
+    expect(entityPreview).toContain('hideDimensionLayer');
+    expect(cassetteThumbnail).toContain("name !== 'dimension.cassette'");
     expect(generatedHome).not.toContain('min-w-64 max-w-72');
   });
 
