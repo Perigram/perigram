@@ -417,13 +417,18 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `StandardDialog` for the profile sketch popup, `ProfileSketchEditor` for
   reusable `profile_template` sketches, and renderer helpers for inserting
   profile workpieces as cassette-local snapshots with library references.
-  `ProfileSketchEditor` is a compact CAD-style direct editor: users draw
-  point-by-point polylines with endpoint snaps, typed distance from the
-  previous point, optional ortho projection, circle holes, DXF import, and
-  per-corner fillet radii. It does not own a general parametric constraint
-  solver. `components/ProfileSketchEditor.spec.js` provides the focused Vue
-  smoke coverage for malformed and empty in-progress sketches; helper math
-  remains covered in `utils/occs/profiles.spec.js`.
+  `ProfileSketchEditor` is a compact CAD-style direct editor: new profile
+  sessions start blank, the polyline tool uses a command loop with first point,
+  rubber-band preview, subsequent vertices, explicit Close/Undo/Finish actions,
+  endpoint snaps, typed distance from the previous point, optional ortho
+  projection, circle holes, DXF import, and per-corner fillet radii. It uses
+  thin linework and small square vertex grips, and does not own a general
+  parametric constraint solver. `components/ProfileSketchEditor.spec.js`
+  provides the focused Vue smoke coverage for malformed and empty in-progress
+  sketches; helper math remains covered in `utils/occs/profiles.spec.js`.
+  Profile template selectors must normalize library DTOs through shared
+  select-option helpers so PrimeVue receives string `label` and `value` fields
+  even while template data is loading.
 - `RemnantCard` and `RemnantDetail` render saved leftover material geometry
   through `GeometryPreview`, including polygon-with-holes queue-cut remnants.
   Source sheet, warehouse, and material pile context should be compact
@@ -663,7 +668,10 @@ must not duplicate ordinary textarea text. Status-history actor chat actions
 preseed the current entity into that draft. The composer must not inject
 attachment tokens into the textarea body, and the final send payload must
 collapse draft refs back to minimal `{ type, id, label }` records instead of
-posting hydrated entity snapshots. The conversation snapshot is auth-
+posting hydrated entity snapshots. The type selector should localize generated
+entity type ids for users instead of exposing raw backend strings. Attachment-
+only messages are valid and must stay sendable when the draft has at least one
+selected entity ref. The conversation snapshot is auth-
 gated by the store so direct user candidates are not lost behind a failed
 pre-auth request.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.

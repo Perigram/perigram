@@ -56,6 +56,8 @@ non-`single` source whose requirement is satisfied at read level or stronger.
 The support service resolves the sender through the active process runtime
 before deriving those sources, so chat attachment pickers use the same
 generated auth window as the rest of the app instead of the raw session auth.
+Composer UIs should localize those returned type ids on the client instead of
+showing raw backend values such as `cassette_design` or `nesting_run`.
 Concrete picker options are resolved separately through
 `GET /api/support/entity-options` using feature list services for entity types
 that expose a scoped list API. Chat option lists use those generated source
@@ -84,7 +86,9 @@ Message writes drop unsupported or unreadable refs instead of accepting
 arbitrary ids. Incoming refs normalize common frontend/entity-surface aliases
 such as `cassetteDesign`, `nestingRun`, and `materialPile` to their canonical
 backend snake-case types before that validation step, so status-history drafts
-and other UI-local relation refs do not disappear on send.
+and other UI-local relation refs do not disappear on send. Messages may contain
+only attachments; an empty body is valid as long as at least one entity ref
+survives write-time validation.
 
 ## API
 

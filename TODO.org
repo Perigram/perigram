@@ -206,7 +206,9 @@
       types before checking generated attachment scope, which prevents draft
       refs from disappearing on send. The chat composer also posts only compact
       `{ type, id, label }` refs on send instead of the hydrated entity objects
-      used for draft preview rendering.
+      used for draft preview rendering. Composer type labels are now localized
+      on the client, and attachment-only messages are allowed as long as at
+      least one entity ref survives send-time validation.
 
     [2026-06-26] Route trace links through generated detail access
     Files changed: components/shared/links/TraceChain.vue,
@@ -2269,6 +2271,16 @@
        ProfileSketchEditor array access so transient sketch values cannot crash
        render or mutation paths by reading `.length` from undefined points or
        holes.
+
+     [2026-06-27] Fix profile template selector labels
+     Files changed: components/CassetteDesignerV2.vue,
+       utils/selectOptions.js, utils/selectOptions.spec.js
+     Docs updated: components/README.md, TODO.org
+     Notes: The profile template selector now reads profile-template items
+       through a guaranteed array and normalizes every option to string
+       `label`/`value` fields before passing data to PrimeVue Select. This
+       prevents the profile creation dialog from crashing when the template
+       list is still undefined or contains incomplete DTOs.
 
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
