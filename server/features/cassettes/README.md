@@ -95,6 +95,14 @@ templates. It must forward lineage filters such as `libraryId` to
 filters and then applies per-entity access pruning. A library detail child
 region therefore requests `/api/cassettes?libraryId=<library-id>` and receives
 only templates whose `lineage.libraryId` matches that opened library.
+`listPreviewByLibraries()` is the library-card summary snapshot path used by
+generated screens. Those `summary.cassettePreview[]` entries must include the
+thumbnail-critical cassette fields that `CassetteThumbnail` consumes:
+`data.definition`, baked `data.geometry`, `data.layerData`, and
+`data.polygonParts`, in addition to identity/status metadata. Returning only an
+id plus light summary data breaks inline cassette previews inside library child
+galleries because `EntityInlineRef` intentionally reuses the provided entity
+snapshot before issuing another fetch.
 
 ### DXF Upload
 `upload()` requires one mapped DXF layer to resolve to `cut.outer`. The service
