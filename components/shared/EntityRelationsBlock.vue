@@ -20,9 +20,19 @@
             :entity="item.entity || null"
             :variant="itemVariant"
           />
+          <Button
+            v-if="relation.hiddenCount && isCompactGallery"
+            :label="`+${relation.hiddenCount}`"
+            severity="secondary"
+            size="small"
+            outlined
+            class="entity-relations-overflow-tile"
+            :aria-label="$t('common.more')"
+            @click.stop="openOverflow($event, relation)"
+          />
         </div>
         <Button
-          v-if="relation.hiddenCount"
+          v-if="relation.hiddenCount && !isCompactGallery"
           :label="`+${relation.hiddenCount}`"
           severity="secondary"
           size="small"
@@ -66,12 +76,13 @@ const props = defineProps({
 const { t } = useI18n();
 const overflowPopover = ref();
 const overflowRelation = ref(null);
-const PREVIEW_LIMIT = 4;
-const galleryClass = computed(() => props.itemVariant === 'compact'
+const isCompactGallery = computed(() => props.itemVariant === 'compact');
+const previewLimit = computed(() => isCompactGallery.value ? 2 : 4);
+const galleryClass = computed(() => isCompactGallery.value
   ? 'entity-relations-gallery entity-relations-gallery--compact'
   : 'flex flex-nowrap gap-2 overflow-x-auto pb-1'
 );
-const itemClass = computed(() => props.itemVariant === 'compact'
+const itemClass = computed(() => isCompactGallery.value
   ? 'min-w-0'
   : 'max-w-[12rem] shrink-0'
 );
@@ -85,9 +96,9 @@ const visibleRelations = computed(() => props.fields
   }))
   .map(relation => ({
     ...relation,
-    previewItems: relation.items.slice(-PREVIEW_LIMIT),
-    overflowItems: relation.items.slice(0, Math.max(relation.items.length - PREVIEW_LIMIT, 0)),
-    hiddenCount: Math.max(relation.items.length - PREVIEW_LIMIT, 0)
+    previewItems: relation.items.slice(-previewLimit.value),
+    overflowItems: relation.items.slice(0, Math.max(relation.items.length - previewLimit.value, 0)),
+    hiddenCount: Math.max(relation.items.length - previewLimit.value, 0)
   }))
   .filter(relation => relation.previewItems.length)
 );

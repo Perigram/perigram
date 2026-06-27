@@ -497,6 +497,8 @@ describe('Design system manifest', () => {
     expect(generatedCollection).toContain('pi pi-external-link');
     expect(relationsBlock).toContain('overflow-x-auto');
     expect(relationsBlock).toContain('entity-relations-gallery--compact');
+    expect(relationsBlock).toContain('isCompactGallery.value ? 2 : 4');
+    expect(relationsBlock).toContain('entity-relations-overflow-tile');
     expect(relationsBlock).toContain('openOverflow');
     expect(relationsBlock).toContain('overflowItems');
     expect(relationsBlock).toContain('itemVariant');

@@ -197,6 +197,12 @@ body {
     gap: 0.5rem;
 }
 
+.entity-relations-overflow-tile {
+    min-height: 4.75rem;
+    width: 100%;
+    justify-content: center;
+}
+
 /* Minimal layout helpers only */
 @layer utilities {
     .grid-hub {
