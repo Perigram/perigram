@@ -3,6 +3,7 @@ import {
   createDefaultOccsProfileSketch,
   createEmptyOccsProfileSketch,
   evaluateOccsProfileSketchPreview,
+  isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
   occsProfileFromSketch,
   projectProfileSketchPointFromPrevious,
@@ -25,6 +26,35 @@ describe('OCCS profile helpers', () => {
       holes: [],
       closed: false
     });
+  });
+
+  it('requires a closed boundary with at least three points before profile save', () => {
+    expect(isOccsProfileSketchSavable(createEmptyOccsProfileSketch())).toBe(false);
+    expect(isOccsProfileSketchSavable({
+      points: [
+        { id: 'a', x: 0, y: 0 },
+        { id: 'b', x: 10, y: 0 },
+        { id: 'c', x: 10, y: 10 }
+      ],
+      edges: [
+        { from: 'a', to: 'b' },
+        { from: 'b', to: 'c' }
+      ],
+      closed: false
+    })).toBe(false);
+    expect(isOccsProfileSketchSavable(createDefaultOccsProfileSketch())).toBe(true);
+    expect(isOccsProfileSketchSavable({
+      points: [
+        { id: 'a', x: 0, y: 0 },
+        { id: 'b', x: 10, y: 0 },
+        { id: 'c', x: 10, y: 10 }
+      ],
+      edges: [
+        { from: 'a', to: 'b' },
+        { from: 'b', to: 'c' },
+        { from: 'c', to: 'a' }
+      ]
+    })).toBe(true);
   });
 
   it('exports a sketch as an OCCS profile section with circle holes and fillets', () => {

@@ -526,6 +526,7 @@
         "insert": "Insert into cassette",
         "saved": "Profile template saved",
         "saveFailed": "Failed to save profile template",
+        "invalidSketch": "Close a profile polyline with at least three points before saving.",
         "kind": "Kind",
         "process": "Process",
         "tools": {

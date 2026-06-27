@@ -164,6 +164,11 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
   };
 };
 
+export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {}) => {
+  const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
+  return Boolean(normalized.closed && normalized.points.length >= 3);
+};
+
 export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   const normalized = normalizeOccsProfileSketch(sketch, options.parameters);
   const vertices = [];

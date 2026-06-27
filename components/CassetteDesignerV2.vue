@@ -759,7 +759,7 @@
             :label="$t('cassette.v2.profileEditor.insert')"
             icon="pi pi-plus"
             size="small"
-            :disabled="profileSaving"
+            :disabled="profileSaving || !profileDraftReady"
             @click="insertProfileDraft"
           />
           <div class="flex gap-2">
@@ -775,7 +775,7 @@
               icon="pi pi-save"
               size="small"
               :loading="profileSaving"
-              :disabled="profileSaving"
+              :disabled="profileSaving || !profileDraftReady"
               @click="saveProfileDraft"
             />
           </div>
@@ -837,6 +837,8 @@ import {
   OCCS_PROFILE_PROCESSES,
   createDefaultOccsProfileTemplateData,
   createEmptyOccsProfileSketch,
+  isOccsProfileSketchSavable,
+  normalizeOccsProfileSketch,
   occsProfileFromSketch
 } from '../utils/occs/profiles.js';
 
@@ -906,6 +908,14 @@ const editingProfileWorkpieceId = ref('');
 const profileDraft = ref({
   name: '',
   ...createDefaultOccsProfileTemplateData({ sketch: createEmptyOccsProfileSketch() })
+});
+const profileDraftSketch = computed(() => normalizeOccsProfileSketch(
+  profileDraft.value.sketch || createEmptyOccsProfileSketch(),
+  profileDraft.value.parameters || {}
+));
+const profileDraftReady = computed(() => {
+  const sketch = profileDraftSketch.value;
+  return isOccsProfileSketchSavable(sketch, profileDraft.value.parameters || {});
 });
 
 const templateOptions = computed(() => props.templateOptions || []);
@@ -1920,12 +1930,13 @@ const addHardwareToSelectedWorkpiece = () => {
 };
 
 const profileDraftPayload = () => {
+  const sketch = profileDraftSketch.value;
   const data = {
     kind: profileDraft.value.kind,
     process: profileDraft.value.process,
-    parameters: profileDraft.value.sketch?.parameters || profileDraft.value.parameters || {},
-    sketch: profileDraft.value.sketch,
-    occsProfile: profileDraft.value.occsProfile || occsProfileFromSketch(profileDraft.value.sketch)
+    parameters: sketch.parameters || profileDraft.value.parameters || {},
+    sketch,
+    occsProfile: occsProfileFromSketch(sketch)
   };
   return {
     name: profileDraft.value.name || t('cassette.v2.profileEditor.defaultName'),
@@ -1977,6 +1988,10 @@ const openProfileDialog = async (workpieceId = '') => {
 };
 
 const saveProfileDraft = async () => {
+  if (!profileDraftReady.value) {
+    toast.add({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
+    return null;
+  }
   profileSaving.value = true;
   try {
     const payload = profileDraftPayload();
@@ -1997,7 +2012,8 @@ const saveProfileDraft = async () => {
 };
 
 const insertProfileDraft = async () => {
-  const saved = profileDraft.value._id ? { _id: profileDraft.value._id, identity: { name: profileDraft.value.name }, data: profileDraftPayload() } : await saveProfileDraft();
+  const saved = await saveProfileDraft();
+  if (!saved) return;
   const selectedIsAttachment = Boolean(selectedWorkpiece.value?.family || selectedWorkpiece.value?.hardware?.family || selectedWorkpiece.value?.type === 'profile');
   const parentRelation = selectedIsAttachment
     ? workpieceRelations.value.find(relation => relation.sourceWorkpieceId === selectedWorkpieceId.value)
