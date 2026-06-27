@@ -179,7 +179,9 @@
       rows behind a single picker label. Chat-only recipient refs now avoid
       protected inline refetches when an older message lacks a stored entity
       snapshot, and cassette snapshots keep preview-driving fields so new
-      direct-chat inline previews render without a fallback fetch.
+      direct-chat inline previews render without a fallback fetch. Older
+      non-restricted cassette refs still rehydrate through the normal entity
+      API when their stored snapshot predates that richer preview contract.
 
     [2026-06-26] Route trace links through generated detail access
     Files changed: components/shared/links/TraceChain.vue,

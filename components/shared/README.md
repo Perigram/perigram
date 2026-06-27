@@ -310,6 +310,9 @@ buttons stay hidden for that chat-only recipient view. When an older
 chat-only ref still lacks an embedded snapshot, the message renderer disables
 inline fetches for that recipient view instead of probing the protected entity
 endpoint and throwing a visible `403` in the browser console.
+For non-restricted cassette refs, the renderer may still hydrate an embedded
+snapshot through the normal entity API when that snapshot predates the richer
+chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 
 ---
 
