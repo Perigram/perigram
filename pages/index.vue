@@ -1,9 +1,5 @@
 <template>
-  <div v-if="checkingSession" class="flex min-h-screen items-center justify-center bg-[var(--ck-page-background)]">
-    <ProgressSpinner />
-  </div>
-
-  <main v-else class="min-h-screen bg-[var(--ck-page-background)] text-[var(--p-text-color)]">
+  <main class="min-h-screen bg-[var(--ck-page-background)] text-[var(--p-text-color)]">
     <section class="relative min-h-[88vh] overflow-hidden border-b border-content-border">
 
       <header class="relative z-10 mx-auto flex max-w-[var(--ck-page-max-width)] items-center justify-between gap-4 px-4 py-5 md:px-8">
@@ -44,18 +40,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { resolveProcessEntryRoute } from '~/utils/process-navigation';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
-import ProgressSpinner from 'primevue/progressspinner';
 import Tag from 'primevue/tag';
 
 const authStore = useAuthStore();
 const { t } = useI18n();
-const checkingSession = ref(true);
 
 const valueProps = computed(() => [
   {
@@ -75,9 +69,7 @@ const valueProps = computed(() => [
   }
 ]);
 
-onMounted(async () => {
-  await authStore.setUser();
-
+async function redirectIfAuthenticated() {
   if (authStore.userIsSet) {
     if (authStore.processActive) {
       const processRoute = resolveProcessEntryRoute({
@@ -89,9 +81,19 @@ onMounted(async () => {
       return;
     }
     await navigateTo('/projects');
-    return;
+  }
+}
+
+if (process.server) {
+  await authStore.setUser({ headers: useRequestHeaders(['cookie']) });
+  await redirectIfAuthenticated();
+}
+
+onMounted(async () => {
+  if (!authStore.userIsSet) {
+    await authStore.setUser();
   }
 
-  checkingSession.value = false;
+  await redirectIfAuthenticated();
 });
 </script>
