@@ -298,10 +298,11 @@ relationship.
 Renders support-chat message bodies. Plain text remains text, while
 `{{entity:type:id}}` tokens render as inline `EntityInlineRef` chips. The
 component also renders structured `message.entityRefs[]` entries that were not
-embedded as tokens, so API-authored references remain visible. Chat composers
-must source supported ref types from the support entity-types endpoint, which
-derives choices from generated screen sources, and concrete refs from the
-support entity-options endpoint instead of manual ids.
+embedded as tokens, so structured attachments remain visible without polluting
+the text body. Chat composers must source supported ref types from the support
+entity-types endpoint, which derives choices from readable generated screen
+sources, and concrete refs from the support entity-options endpoint instead of
+manual ids.
 
 ---
 

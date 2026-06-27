@@ -43,15 +43,20 @@ Chat messages can carry structured `entityRefs`:
 [{ "type": "project", "id": "..." }]
 ```
 
-The frontend inserts matching text tokens in the message body using
-`{{entity:type:id}}`. `SupportMessageContent.vue` renders those tokens as
-`EntityInlineRef` chips and also renders any structured refs that are not
-present in the text. Entity ref types come from generated screen sources in the
-current `auth.screens` process manifest, filtered by process permissions and by
-the support option loaders available for those source entity types. The UI reads
-that list through `GET /api/support/entity-types`; concrete refs must be
-selected from `GET /api/support/entity-options`. Message writes drop unsupported
-or unreadable refs instead of accepting arbitrary ids.
+`SupportMessageContent.vue` renders inline `{{entity:type:id}}` tokens as
+`EntityInlineRef` chips for legacy/token-authored text and also renders
+structured refs from `message.entityRefs[]`. The chat composer stores selected
+entities only in `entityRefs`; it does not inject attachment tokens into the
+message body.
+
+Entity ref types come from readable generated screen sources in the current
+`auth.screens` process manifest. `GET /api/support/entity-types` is therefore a
+generated-scope endpoint, not a hardcoded chat allowlist, and includes any
+source whose requirement is satisfied at read level or stronger. Concrete
+picker options are resolved separately through `GET /api/support/entity-options`
+using feature list services for entity types that expose a scoped list API.
+Message writes drop unsupported or unreadable refs instead of accepting
+arbitrary ids.
 
 ## API
 
@@ -59,7 +64,7 @@ or unreadable refs instead of accepting arbitrary ids.
 |---|---|
 | `GET /api/support/conversations` | Snapshot of the current user's support/direct conversation list with unread counts. |
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
-| `GET /api/support/entity-types` | Returns generated-screen entity source types available to the current user and supported by chat attachment pickers. |
+| `GET /api/support/entity-types` | Returns generated-screen entity source types readable by the current user. |
 | `GET /api/support/entity-options?type=<type>&q=<query>` | Returns readable entity options for chat attachment refs. |
 | `GET /api/support/messages` | SSE stream for the current user's support conversation. |
 | `GET /api/support/messages?recipientUserId=<id>` | SSE stream for a direct user conversation. |
@@ -68,8 +73,12 @@ or unreadable refs instead of accepting arbitrary ids.
 | `POST /api/support/admin/:user_id` | Admin reply to a customer support conversation. |
 | `GET /api/support/admin/chatlist` | Admin support-thread list; excludes direct user conversations. |
 
-Supported chat entity option types are `project`, `queue`, `sheet`, `material`,
-and `user`.
+Concrete chat option loaders are registered for current domain list services
+such as projects, queues, cassettes, cassette designs, nesting runs, sheet
+designs, libraries, warehouses, catalogs, material piles, remnants,
+requisitions, sheets, materials, and users. Types without a concrete loader can
+still appear in `entity-types` when generated scope grants read access, but
+their option list is empty until a scoped feature list service exists.
 
 ## Related
 

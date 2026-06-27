@@ -646,10 +646,13 @@ as conversation rows. Drawer rows show participant context and render latest
 message entity tokens through `SupportMessageContent`, without per-row
 message-count badges. The composer loads attachment types from
 `/api/support/entity-types`, which derives them from the user's generated
-screen source manifest rather than a fixed chat list, resolves concrete refs
-through `/api/support/entity-options`, and renders a draft entity-token preview
-before send. The conversation snapshot is auth-gated by the store so direct
-user candidates are not lost behind a failed pre-auth request.
+screen source manifest at read access rather than a fixed chat list. Concrete
+attachment choices resolve through `/api/support/entity-options` when the
+backend has a scoped list service for that entity type. Selected attachments
+stay in structured `entityRefs` and render as a draft preview before send; the
+composer must not inject attachment tokens into the textarea body. The
+conversation snapshot is auth-gated by the store so direct user candidates are
+not lost behind a failed pre-auth request.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data

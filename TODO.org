@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Fix chat attachment scope and composer body
+    Files changed: components/ChatSupport.vue,
+      server/features/support/service.js, server/features/support/support.spec.js
+    Docs updated: server/features/support/README.md, server/api/README.md,
+      components/README.md, components/shared/README.md, TODO.org
+    Notes: Chat attachment type choices now expose every generated screen
+      source readable by the active user instead of intersecting the generated
+      manifest with a small support hardcode. Concrete option loading uses
+      scoped feature list services when they exist, and selected refs remain in
+      structured `entityRefs` without injecting attachment tokens into the
+      composer textarea.
+
     [2026-06-27] Add LAN-visible dev HMR host override
     Files changed: nuxt.config.js, docker-compose.dev.yml
     Docs updated: README.md, TODO.org
