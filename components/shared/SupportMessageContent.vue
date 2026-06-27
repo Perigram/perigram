@@ -41,6 +41,16 @@ const parts = computed(() => {
 
 const trailingRefs = computed(() => (props.message.entityRefs || [])
   .filter(ref => ref?.type && ref?.id && !props.message.message?.includes(`{{entity:${ref.type}:${ref.id}}}`)));
+
+const canFetchRef = (ref = {}) => {
+  const isRestrictedRecipientView = Boolean(
+    props.viewerUserId
+    && props.message.senderUserId
+    && props.message.senderUserId !== props.viewerUserId
+    && ref.chatOnlyForRecipient
+  );
+  return !ref.entity && !isRestrictedRecipientView;
+};
 </script>
 
 <template>
@@ -52,7 +62,7 @@ const trailingRefs = computed(() => (props.message.entityRefs || [])
         :type="part.entityType"
         :id="part.id"
         :entity="part.ref.entity || null"
-        :fetch="!part.ref.entity"
+        :fetch="canFetchRef(part.ref)"
         :allow-detail-route="!(viewerUserId && message.senderUserId && message.senderUserId !== viewerUserId && part.ref.chatOnlyForRecipient)"
         class="max-w-full"
       />
@@ -63,7 +73,7 @@ const trailingRefs = computed(() => (props.message.entityRefs || [])
       :type="ref.type"
       :id="ref.id"
       :entity="ref.entity || null"
-      :fetch="!ref.entity"
+      :fetch="canFetchRef(ref)"
       :allow-detail-route="!(viewerUserId && message.senderUserId && message.senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
       class="max-w-full"
     />

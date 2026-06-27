@@ -603,7 +603,17 @@ function compactEntitySnapshot(type, entity) {
         return snapshot;
     }
 
-    if (type === 'cassette_design' || type === 'cassette' || type === 'sheet_design' || type === 'remnant') {
+    if (type === 'cassette') {
+        snapshot.data = {
+            ...pickDefined(data, ['type', 'definition', 'materialPool', 'parameters', 'description', 'revisions', 'sheetDesignIds', 'results']),
+            ...(data.geometry ? { geometry: compactGeometrySnapshot(data.geometry) } : {}),
+            ...(data.layerData ? { layerData: data.layerData } : {}),
+            ...(data.polygonParts ? { polygonParts: data.polygonParts } : {})
+        };
+        return snapshot;
+    }
+
+    if (type === 'cassette_design' || type === 'sheet_design' || type === 'remnant') {
         snapshot.data = {
             ...pickDefined(data, ['materialPool', 'parameters', 'description', 'revisions', 'sheetDesignIds', 'results']),
             ...(data.geometry ? { geometry: compactGeometrySnapshot(data.geometry) } : {})

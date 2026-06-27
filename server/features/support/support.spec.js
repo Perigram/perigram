@@ -533,4 +533,42 @@ describe('support communication service', () => {
       }
     ]);
   });
+
+  it('keeps cassette preview fields in compact chat entity snapshots', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    mocks.cassettesService.list.mockResolvedValue([
+      {
+        toJSON: () => ({
+          _id: 'cassette-1',
+          identity: { name: 'Iklya 1' },
+          lineage: { organizationId: 'org-1' },
+          data: {
+            type: 'STANDARD',
+            definition: { params: { A: 1 } },
+            revisions: { geometry: null }
+          }
+        })
+      }
+    ]);
+
+    const message = await supportService.sendUserMessage(auth, {
+      message: 'Preview',
+      entityRefs: [{ type: 'cassette', id: 'cassette-1' }]
+    });
+
+    expect(message.entityRefs).toEqual([
+      expect.objectContaining({
+        type: 'cassette',
+        id: 'cassette-1',
+        entity: expect.objectContaining({
+          _id: 'cassette-1',
+          data: expect.objectContaining({
+            type: 'STANDARD',
+            definition: { params: { A: 1 } },
+            revisions: { geometry: null }
+          })
+        })
+      })
+    ]);
+  });
 });
