@@ -1937,6 +1937,7 @@
     "noCassettes": "No cassettes available. Please upload a cassette first.",
     "noEntriesToNest": "Add at least one entry before running nesting",
     "nestingFailed": "Failed to run nesting process",
+    "invalidCassetteEntry": "Queue contains a cassette entry that no longer exists",
     "markCompleteFailed": "Failed to mark queue as complete",
     "sheetUploaded": "Custom sheet uploaded successfully",
     "noPolygonsInSheet": "No valid polygons found in sheet DXF",

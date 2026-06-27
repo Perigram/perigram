@@ -352,6 +352,7 @@ import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
+import { canonicalQueueItem } from '~/utils/queue-items.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
@@ -592,19 +593,20 @@ const entryKeyFor = (item = {}, index = 0) => (
 
 const queueItemEntityType = (item = {}, entity = null) => (
     item.entityType ||
-    (entity?.data?.geometry ? 'cassette_design' : 'cassette')
+    (entity?.data?.geometry || entity?.data?.polygonParts || entity?.data?.layerData ? 'cassette_design' : 'cassette')
 );
 
 const makeQueueEntry = (item = {}, index = 0) => {
-    const id = item.id || '';
+    const canonical = canonicalQueueItem(item, { cassettes: cassettes.value, cassetteDesigns: cassetteDesigns.value }) || item;
+    const id = canonical.id || '';
     return {
-        ...item,
+        ...canonical,
         id,
-        _key: entryKeyFor({ ...item, id }, index),
+        _key: entryKeyFor({ ...canonical, id }, index),
         cassetteTemplateId: id,
-        entityType: queueItemEntityType(item),
-        dimensions: item.parameters || item.dimensions || {},
-        type: item.type || 'STATIC'
+        entityType: queueItemEntityType(canonical),
+        dimensions: canonical.parameters || canonical.dimensions || {},
+        type: canonical.type || 'STATIC'
     };
 };
 
@@ -622,6 +624,7 @@ const getCassetteName = (id) => {
 };
 
 const getCassetteType = (data) => data?.data?.type || '';
+const isCassetteDesignEntity = (data) => Boolean(data?.data?.geometry || data?.data?.polygonParts || data?.data?.layerData);
 const getCassetteParameters = (data) => {
     const explicit = data?.data?.parameters;
     if (Array.isArray(explicit) && explicit.length) return explicit;
@@ -630,13 +633,13 @@ const getCassetteParameters = (data) => {
 const getEntryCassetteData = (entry) => getCassetteData(entry?.cassetteTemplateId || entry?.id);
 const isParametricEntry = (entry) => {
     const data = getEntryCassetteData(entry);
-    if (data) return !data.data?.geometry && getCassetteParameters(data).length > 0;
+    if (data) return !isCassetteDesignEntity(data) && getCassetteParameters(data).length > 0;
     return entry?.type === 'PARAMETRIC';
 };
 
 const getEntryParameters = (e) => {
     const data = getEntryCassetteData(e);
-    if (!data || !!data.data?.geometry) return [];
+    if (!data || isCassetteDesignEntity(data)) return [];
     if (getCassetteType(data) === 'PARAMETRIC') return getCassetteParameters(data);
     return [];
 };
@@ -939,13 +942,15 @@ const onNewCassetteChange = () => {
 };
 
 const syncEntryWithCassette = (entry) => {
+    const canonical = canonicalQueueItem(entry, { cassettes: cassettes.value, cassetteDesigns: cassetteDesigns.value });
+    if (canonical) Object.assign(entry, canonical);
     const data = getEntryCassetteData(entry);
     if (!data) {
         entry.entityType = queueItemEntityType(entry);
         return entry;
     }
 
-    const isDesign = !!data.data?.geometry;
+    const isDesign = isCassetteDesignEntity(data);
     const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
     entry.type = type;
     entry.entityType = queueItemEntityType(entry, data);
@@ -980,7 +985,7 @@ const addEntry = async (item = null) => {
     const data = item || getCassetteData(newEntry.value.cassetteTemplateId);
     if (!data) return;
 
-    const isDesign = !!data.data?.geometry;
+    const isDesign = isCassetteDesignEntity(data);
     const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
 
     const entryData = item ? {
@@ -1006,6 +1011,10 @@ const saveQueue = async () => {
     if (!canEditQueue.value) return false;
     try {
         entries.value.forEach(syncEntryWithCassette);
+        const invalidEntry = entries.value.find(entry => !getEntryCassetteData(entry));
+        if (invalidEntry) {
+            throw new Error(t('queues.invalidCassetteEntry'));
+        }
         await queuesStore.updateQueue(
             props.queue._id,
             {
