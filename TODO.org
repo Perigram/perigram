@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Make inline refs text-inline, switch generated child galleries to compact micro cards, and expose cassette designer on generated cards
+    Files changed: assets/css/main.css,
+      components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedHomeScreen.vue,
+      components/shared/EntityCard.vue,
+      components/shared/EntityInlineRef.vue,
+      components/shared/EntityRelationsBlock.vue,
+      components/shared/EntitySurfaceContent.vue,
+      components/shared/blocks/IdentityBlock.vue,
+      shared/design-system.spec.js
+    Docs updated: components/README.md, components/shared/README.md,
+      docs/DESIGN_SYSTEM.md, packages/domain-cnc/README.md, TODO.org
+    Notes: Inline refs stay semantic colored chips but now sit on a real text
+      baseline with single-line truncation instead of inflating paragraph line
+      height. Generated card relation galleries now request compact ref micro
+      cards, and generated cassette collection/home cards expose the same
+      access-gated designer action that detail pages already had.
+
     [2026-06-27] Add trace and type label to inline entity popovers
     Files changed: components/shared/EntityInlineRef.vue,
       components/shared/EntityCard.vue

@@ -172,14 +172,15 @@ branches and cannot be relied on to receive layout sizing through attribute
 fallthrough.
 Generated card bodies may replace aggregate child-count facts such as
 `summary.queueCount` when those cards are rendered through
-`EntitySurfaceContent`. Prefer a compact horizontal `EntityInlineRef` gallery
-when the DTO already carries relation-backed child refs (`entityRefList`
-fields such as material pools, physical outputs, or sheet design ids) or when
-the current generated screen already has those child entities loaded in another
-visible source. If neither source exists, keep the numeric count row. Generated
-card footers may add an icon-only open-detail action, but detail navigation
-must still route through the compiled generated screen manifest rather than
-hardcoded feature paths.
+`EntitySurfaceContent`. Prefer compact `EntityInlineRef variant="compact"`
+micro cards when the DTO already carries relation-backed child refs, including
+`summary.*Preview` payloads such as queue runs/sheets, library cassettes, or
+catalog colors. If no previewable child refs exist, keep the numeric count row.
+Generated card footers may add an icon-only open-detail action, and generated
+cassette cards also expose the access-gated `CassetteDesignerV2` action in the
+footer so collection/home cards are not detail-only dead ends. Detail
+navigation must still route through the compiled generated screen manifest
+rather than hardcoded feature paths.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,
@@ -232,7 +233,9 @@ queue-detail screen because it is executed against the queue input; output
 entity grants for `nesting_runs` or `sheet_designs` must not be used to decide
 where the command panel renders.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
-action instead of routing users to a static asset page.
+action instead of routing users to a static asset page, and generated cassette
+collection/home cards mirror that same editor action in their footers when the
+user has `cassettes:write` on the concrete cassette.
 Entity-bound generated actions are filtered before
 rendering: the action entity type must match the region source, and
 status-change actions render only when the entity's current primary status

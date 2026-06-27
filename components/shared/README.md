@@ -99,15 +99,17 @@ and renders preview, data facts, and relation rows with the shared primitives.
 `GeometryPreview` and `CassetteThumbnail`, and renders ordinary DTO thumbnails
 from `data.thumbnailUrl` or thumbnail attachment metadata for non-cassette
 entities. `EntityRelationsBlock` renders relation descriptors through
-`EntityInlineRef`. Single refs render as inline chips; relation lists render as
-compact horizontal galleries that show the latest several refs plus a small
-overflow count. Generated card surfaces pass `suppress-child-counts` to
-`EntitySurfaceContent`; when the generated screen already has matching child
-entities loaded in another visible source, `EntitySurfaceContent` converts
-aggregate child-count fields such as `summary.queueCount` into that compact
-gallery. If no loaded child entities are available, the original numeric count
-row stays visible instead of leaving the card empty. Specialized production
-cards may still use custom slots where the workflow needs more than the default
+`EntityInlineRef`. Single refs render as inline chips; relation lists can also
+render compact horizontal micro cards with preview on the left, compact facts
+on the right, and a small overflow count. Generated card surfaces pass
+`suppress-child-counts` plus `relationVariant="compact"` to
+`EntitySurfaceContent`; when the DTO already carries relation-backed child
+previews such as `summary.queuePreview`, `summary.runPreview`,
+`summary.sheetPreview`, `summary.cassettePreview`, or `summary.colorPreview`,
+those refs replace aggregate child-count fields such as `summary.queueCount`.
+If no previewable child refs are available, the original numeric count row
+stays visible instead of leaving the card empty. Specialized production cards
+may still use custom slots where the workflow needs more than the default
 body.
 
 ### `EntityWorkspace.vue`
@@ -285,7 +287,14 @@ comes from the entity role: containers render as the strongest filled chips,
 templates/designs/revisions render as mid-strength definition chips, and
 concrete items/instances render as lighter outlined chips. This keeps inline
 refs visually legible in both light and dark themes without changing the
-popover card body.
+popover card body. The collapsed inline ref remains a real text-inline chip: it
+stays on one line inside prose, truncates with ellipsis, and keeps the same
+semantic color treatment without inflating surrounding line height.
+`variant="compact"` renders a horizontal micro card instead of a chip. That
+compact ref uses the compact surface contract directly: preview on the left,
+identity plus compact facts on the right, and the same expanded popover for
+trace/type/detail context. Generated card relation galleries use this compact
+variant so child previews stay scannable without bloating the parent card.
 Use canonical design-system surface keys for new references, for example
 `materialPile`, `nestingRun`, `cassetteDesign`, `cassetteTemplate`, and
 `entityRevision`. Backend snake-case aliases continue to resolve through the
@@ -309,7 +318,7 @@ feature routes. Inline-ref popovers also force the shared `TraceChain` even
 when the base card surface normally hides trace in compact contexts, and show a
 small localized entity-type label above the identity row so the operator can
 see both lineage context and exact entity kind without adding extra chrome to
-the collapsed chip itself.
+the collapsed chip or compact micro card itself.
 Revision/provenance rows should use this component with `type="entityRevision"`
 so the shared entity popover shows the immutable revision summary and source
 relationship.

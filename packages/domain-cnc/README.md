@@ -135,8 +135,10 @@ Display constructor metadata is split from access policy:
 - `ui-fields.js` declares reusable entity field groups such as summary,
   geometry, stock, production, relations, and provenance.
   Aggregate child-count facts may also mark `role: 'childCount'`; generated
-  cards use that metadata to swap a numeric count for a compact child gallery
-  when the current generated screen already has matching child entities loaded.
+  cards use that metadata together with explicit `summary.*Preview`
+  `entityRefList` fields to swap a numeric count for a compact child gallery.
+  Current preview-backed replacements include project queues, queue runs,
+  queue sheets, library cassettes, and catalog colors.
 - `ui-surfaces.js` declares which groups and display modes belong to surfaces
   such as inline, compact, card, and detail.
 - `field-access.js` remains the hard visibility boundary. A field group path
