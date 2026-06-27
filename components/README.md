@@ -175,7 +175,9 @@ Generated card bodies may replace aggregate child-count facts such as
 `EntitySurfaceContent`. Prefer compact `EntityInlineRef variant="compact"`
 micro cards when the DTO already carries relation-backed child refs, including
 `summary.*Preview` payloads such as queue runs/sheets, library cassettes, or
-catalog colors. If no previewable child refs exist, keep the numeric count row.
+catalog colors. These galleries render as a bounded one-or-two-row grid with a
+small overflow control for hidden refs, not as a nested horizontal scroller. If
+no previewable child refs exist, keep the numeric count row.
 Generated card footers may add an icon-only open-detail action, and generated
 cassette cards also expose the access-gated `CassetteDesignerV2` action in the
 footer so collection/home cards are not detail-only dead ends. Detail

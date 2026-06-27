@@ -100,8 +100,9 @@ and renders preview, data facts, and relation rows with the shared primitives.
 from `data.thumbnailUrl` or thumbnail attachment metadata for non-cassette
 entities. `EntityRelationsBlock` renders relation descriptors through
 `EntityInlineRef`. Single refs render as inline chips; relation lists can also
-render compact horizontal micro cards with preview on the left, compact facts
-on the right, and a small overflow count. Generated card surfaces pass
+render compact micro cards in a bounded responsive grid with preview on the
+left, identity/status/facts on the right, and a small overflow control that
+opens the hidden refs. Generated card surfaces pass
 `suppress-child-counts` plus `relationVariant="compact"` to
 `EntitySurfaceContent`; when the DTO already carries relation-backed child
 previews such as `summary.queuePreview`, `summary.runPreview`,
@@ -293,10 +294,11 @@ semantic color treatment without inflating surrounding line height.
 `variant="compact"` renders a horizontal micro card instead of a chip. That
 compact ref uses the compact surface contract directly: a real preview on the
 left when the entity has one, the same semantic inline chip for identity on the
-right, compact facts below, and the same expanded popover for trace/type/detail
-context. Icons stay with the identity chip and are not used as fake preview
-images. Generated card relation galleries use fixed-width compact refs so
-child previews stay scannable without spacing changing per item.
+right, a read-only status badge beside identity, compact facts below, and the
+same expanded popover for trace/type/detail context. Icons stay with the
+identity chip and are not used as fake preview images. Generated card relation
+galleries use a one-or-two-row responsive grid instead of in-card horizontal
+scrolling, so child previews stay scannable without spacing changing per item.
 Use canonical design-system surface keys for new references, for example
 `materialPile`, `nestingRun`, `cassetteDesign`, `cassetteTemplate`, and
 `entityRevision`. Backend snake-case aliases continue to resolve through the

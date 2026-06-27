@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Bound compact relation galleries and enlarge micro previews
+    Files changed: assets/css/main.css,
+      components/shared/EntityInlineRef.vue,
+      components/shared/EntityRelationsBlock.vue,
+      shared/design-system.spec.js
+    Docs updated: components/README.md, components/shared/README.md,
+      TODO.org
+    Notes: Compact child galleries now render as a one-or-two-row responsive
+      grid with a functional overflow popover instead of an in-card horizontal
+      scroller. Compact relation cards include read-only status, give previews
+      a larger fixed box, and let nested drawing previews fill that box.
+
     [2026-06-27] Correct compact relation gallery visuals after inline ref rework
     Files changed: assets/css/main.css,
       components/CassetteThumbnail.vue,
