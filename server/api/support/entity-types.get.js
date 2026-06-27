@@ -7,5 +7,5 @@ export default defineEventHandler((event) => {
         return
     }
 
-    return supportService.listEntityOptionTypes()
+    return supportService.listEntityOptionTypes(auth)
 })

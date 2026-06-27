@@ -147,13 +147,41 @@ describe('support communication service', () => {
     ]);
   });
 
-  it('exposes supported entity attachment types for the composer', () => {
-    expect(supportService.listEntityOptionTypes()).toEqual([
-      { value: 'project', labelKey: 'common.project' },
-      { value: 'queue', labelKey: 'queue.title' },
-      { value: 'sheet', labelKey: 'support.entityTypes.sheet' },
-      { value: 'material', labelKey: 'support.entityTypes.material' },
-      { value: 'user', labelKey: 'common.user' }
+  it('derives composer attachment types from generated screen sources', () => {
+    const processAuth = {
+      ...auth,
+      process: { active: true },
+      effectivePermissions: {
+        queues: [{ level: 'read' }],
+        projects: [{ level: 'none' }]
+      },
+      screens: [{
+        id: 'queue_screen',
+        screenKey: 'queue_screen',
+        sources: [{
+          id: 'queue',
+          entityType: 'queue',
+          label: 'My Queues',
+          mode: 'list',
+          required: { feature: 'queues', level: 'read' }
+        }, {
+          id: 'project',
+          entityType: 'project',
+          label: 'Blocked Projects',
+          mode: 'list',
+          required: { feature: 'projects', level: 'read' }
+        }, {
+          id: 'cassette_design',
+          entityType: 'cassette_design',
+          label: 'Unsupported Loader',
+          mode: 'list',
+          required: { feature: 'cassette_designs', level: 'read' }
+        }]
+      }]
+    };
+
+    expect(supportService.listEntityOptionTypes(processAuth)).toEqual([
+      { value: 'queue', label: 'My Queues', labelKey: null, sourceId: 'queue', screenKey: 'queue_screen' }
     ]);
   });
 });

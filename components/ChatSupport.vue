@@ -423,7 +423,7 @@ const loadEntityTypes = async () => {
     try {
         const types = await $fetch('/api/support/entity-types')
         entityTypeOptions.value = (types || []).map(type => ({
-            label: t(type.labelKey),
+            label: type.labelKey ? t(type.labelKey) : (type.label || type.value),
             value: type.value
         }))
         if (!entityDraft.value.type && entityTypeOptions.value[0]) {

@@ -4,19 +4,19 @@ import * as projectsService from '~/server/features/projects/service.js';
 import * as queuesService from '~/server/features/queues/service.js';
 import * as sheetsService from '~/server/features/sheets/service.js';
 import * as usersService from '~/server/features/users/service.js';
+import { actionToLevel, levelAtLeast, normalizePermissionGrants } from '#shared/access-control.js';
 import * as repository from './repository.js';
 import { MESSAGE_SENDER } from './const.js';
 
 const ENTITY_REF_LIMIT = 6;
 const ENTITY_OPTION_LIMIT = 20;
-const ENTITY_OPTION_TYPE_DEFS = [
-    { value: 'project', labelKey: 'common.project' },
-    { value: 'queue', labelKey: 'queue.title' },
-    { value: 'sheet', labelKey: 'support.entityTypes.sheet' },
-    { value: 'material', labelKey: 'support.entityTypes.material' },
-    { value: 'user', labelKey: 'common.user' }
-];
-const ENTITY_OPTION_TYPES = new Set(ENTITY_OPTION_TYPE_DEFS.map(type => type.value));
+const ENTITY_OPTION_LOADERS = {
+    project: (auth, filters) => projectsService.list(auth.userId, auth.organizationId, auth.role, auth, filters),
+    queue: (auth, filters) => queuesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+    sheet: (auth, filters) => sheetsService.list(auth.userId, auth.organizationId, auth.role, auth, filters),
+    material: () => materialsService.list(),
+    user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
+};
 
 export async function getUserConversationContext(auth, recipientUserId = null) {
     const userId = auth?.userId;
@@ -88,20 +88,27 @@ export async function markConversationRead(auth, body = {}) {
 
 export async function listEntityOptions(auth, type, query = '') {
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-    if (!ENTITY_OPTION_TYPES.has(type)) {
+    const normalizedType = normalizeEntityOptionType(type);
+    if (!isEntityOptionTypeAllowed(auth, normalizedType)) {
         throw createError({ statusCode: 400, message: 'Unsupported entity type' });
     }
 
     const normalizedQuery = query.toString().trim().toLowerCase();
-    const entities = await loadEntityOptions(auth, type);
+    const entities = await loadEntityOptions(auth, normalizedType);
     return entities
-        .map(entity => normalizeEntityOption(type, entity))
+        .map(entity => normalizeEntityOption(normalizedType, entity))
         .filter(option => option.value && matchesEntityQuery(option, normalizedQuery))
         .slice(0, ENTITY_OPTION_LIMIT);
 }
 
-export function listEntityOptionTypes() {
-    return ENTITY_OPTION_TYPE_DEFS;
+export function listEntityOptionTypes(auth = {}) {
+    return scopedEntityOptionTypes(auth).map(source => ({
+        value: source.entityType,
+        label: source.label || source.entityType,
+        labelKey: source.labelKey || null,
+        sourceId: source.id || null,
+        screenKey: source.screenKey || null
+    }));
 }
 
 export async function sendUserMessage(auth, body = {}) {
@@ -154,9 +161,10 @@ function normalizeMessage(message) {
 
 async function normalizeEntityRefs(entityRefs = [], auth = {}) {
     if (!Array.isArray(entityRefs)) return [];
+    const allowedTypes = new Set(scopedEntityOptionTypes(auth).map(source => source.entityType));
     const normalized = entityRefs
         .map(ref => ({
-            type: typeof ref?.type === 'string' ? ref.type.trim() : '',
+            type: normalizeEntityOptionType(ref?.type),
             id: ref?.id?.toString?.().trim?.() || '',
             label: typeof ref?.label === 'string' ? ref.label.trim() : ''
         }))
@@ -165,7 +173,7 @@ async function normalizeEntityRefs(entityRefs = [], auth = {}) {
 
     const refs = [];
     for (const ref of normalized) {
-        if (!ENTITY_OPTION_TYPES.has(ref.type)) continue;
+        if (!allowedTypes.has(ref.type)) continue;
         const options = await listEntityOptions(auth, ref.type, ref.id);
         const option = options.find(item => item.value?.toString?.() === ref.id || item.value === ref.id);
         if (option) refs.push({ type: ref.type, id: ref.id, label: option.label });
@@ -299,20 +307,21 @@ function adminSupportConversationsMatch() {
 }
 
 async function loadEntityOptions(auth, type) {
-    switch (type) {
-        case 'project':
-            return await projectsService.list(auth.userId, auth.organizationId, auth.role, auth);
-        case 'queue':
-            return await queuesService.list({}, auth.userId, auth.organizationId, auth.role, auth);
-        case 'sheet':
-            return await sheetsService.list(auth.userId, auth.organizationId, auth.role, auth);
-        case 'material':
-            return await materialsService.list();
-        case 'user':
-            return await usersService.list(auth.userId, auth.organizationId, auth.role, auth);
-        default:
-            return [];
+    const loader = ENTITY_OPTION_LOADERS[type];
+    if (!loader) return [];
+
+    if (auth.process?.active && type !== 'user') {
+        const sources = scopedEntityOptionTypes(auth).filter(source => source.entityType === type);
+        const results = [];
+        for (const source of sources) {
+            const filters = sourceFilters(source);
+            if (hasUnresolvedScreenScope(filters)) continue;
+            results.push(...await loader(auth, filters));
+        }
+        return dedupeEntities(results);
     }
+
+    return await loader(auth, {});
 }
 
 function normalizeEntityOption(type, entity) {
@@ -332,6 +341,112 @@ function matchesEntityQuery(option, query) {
     return [option.label, option.value, option.entity?.identity?.uid, option.entity?.identity?.serial]
         .filter(Boolean)
         .some(value => value.toString().toLowerCase().includes(query));
+}
+
+function normalizeEntityOptionType(type) {
+    return typeof type === 'string' ? type.trim() : '';
+}
+
+function isEntityOptionTypeAllowed(auth = {}, type) {
+    if (!type) return false;
+    if (type === 'user') return true;
+    return scopedEntityOptionTypes(auth).some(source => source.entityType === type);
+}
+
+function scopedEntityOptionTypes(auth = {}) {
+    if (auth.process?.active) {
+        const sources = [];
+        for (const screen of auth.screens || []) {
+            for (const source of screen.sources || []) {
+                if (!source?.entityType || !ENTITY_OPTION_LOADERS[source.entityType]) continue;
+                if (!sourceRequirementAllowed(auth, source.required || screen.required || {})) continue;
+                sources.push({
+                    ...source,
+                    screenKey: screen.screenKey || screen.id || null
+                });
+            }
+        }
+        return dedupeSources(sources);
+    }
+
+    return Object.keys(ENTITY_OPTION_LOADERS)
+        .filter(entityType => entityType !== 'user')
+        .map(entityType => ({ entityType, label: entityType }));
+}
+
+function sourceRequirementAllowed(auth = {}, requirement = {}) {
+    if (!requirement.feature) return true;
+    const requiredLevel = requirement.action ? actionToLevel(requirement.action, requirement.level || 'read') : requirement.level || 'read';
+    return normalizePermissionGrants((auth.effectivePermissions || {})[requirement.feature]).some(grant => {
+        if (!levelAtLeast(grant.level, requiredLevel)) return false;
+        if (requirement.action && grant.actions && grant.actions[requirement.action] !== true) return false;
+        return sourceTransitionMatches(requirement, grant);
+    });
+}
+
+function sourceTransitionMatches(requirement = {}, grant = {}) {
+    const required = firstTransition(requirement);
+    if (!required) return true;
+    const allowed = grant.transitions || grant.transition;
+    if (!allowed) return true;
+    const list = Array.isArray(allowed) ? allowed : [allowed];
+    return list.some(item => {
+        if (typeof item === 'string') return item === required.to || item === `${required.from}->${required.to}`;
+        return (!required.from || !item.from || item.from === required.from) && (!required.to || !item.to || item.to === required.to);
+    });
+}
+
+function firstTransition(requirement = {}) {
+    const transition = requirement.transition || requirement.transitions;
+    return Array.isArray(transition) ? transition[0] : transition;
+}
+
+function dedupeSources(sources = []) {
+    const byType = new Map();
+    for (const source of sources) {
+        if (!byType.has(source.entityType)) byType.set(source.entityType, source);
+    }
+    return [...byType.values()];
+}
+
+function sourceFilters(source = {}) {
+    const filters = { ...(source.filters || {}) };
+    const statuses = statusFiltersFromRequirement(source.required || {});
+    if (statuses.length === 1) filters.primaryStatus = statuses[0];
+    else if (statuses.length > 1) filters.primaryStatuses = statuses.join(',');
+    return filters;
+}
+
+function statusFiltersFromRequirement(requirement = {}) {
+    return [...new Set(statusesFromRule(requirement.rule))];
+}
+
+function statusesFromRule(rule) {
+    if (!rule || typeof rule !== 'object') return [];
+    if (Array.isArray(rule)) return rule.flatMap(statusesFromRule);
+    if (Array.isArray(rule.any)) return rule.any.flatMap(statusesFromRule);
+    if (Array.isArray(rule.all)) return rule.all.flatMap(statusesFromRule);
+    if (rule.not) return [];
+    if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && rule.equals) return [String(rule.equals)];
+    if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && Array.isArray(rule.in)) return rule.in.map(String);
+    return [];
+}
+
+function hasUnresolvedScreenScope(value) {
+    if (Array.isArray(value)) return value.some(hasUnresolvedScreenScope);
+    if (value && typeof value === 'object') return Object.values(value).some(hasUnresolvedScreenScope);
+    return typeof value === 'string' && value.startsWith('$screen.');
+}
+
+function dedupeEntities(entities = []) {
+    const byId = new Map();
+    for (const entity of entities) {
+        const dto = entity?.toJSON ? entity.toJSON() : entity;
+        const id = dto?._id?.toString?.() || dto?._id || dto?.id;
+        if (!id || byId.has(id)) continue;
+        byId.set(id, entity);
+    }
+    return [...byId.values()];
 }
 
 function sharesOrganization(auth = {}, recipient) {

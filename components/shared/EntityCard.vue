@@ -34,6 +34,16 @@
                         <slot />
                     </slot>
                     <slot name="footer" />
+                    <div v-if="inlineDetailRoute" class="flex justify-end" @click.stop>
+                        <Button
+                            icon="pi pi-external-link"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('common.open')"
+                            @click="openInlineDetail"
+                        />
+                    </div>
                 </div>
             </div>
         </Popover>
@@ -103,6 +113,16 @@
                         <slot />
                     </slot>
                     <slot name="footer" />
+                    <div v-if="inlineDetailRoute" class="flex justify-end" @click.stop>
+                        <Button
+                            icon="pi pi-external-link"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('common.open')"
+                            @click="openInlineDetail"
+                        />
+                    </div>
                 </div>
             </div>
         </Popover>
@@ -154,7 +174,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, inject, ref, unref } from 'vue';
 /**
  * EntityCard - v24 Standardized
  * Shared entity card chrome: TraceChain + IdentityBlock + EntityStatus.
@@ -174,6 +194,7 @@ import { computed, ref } from 'vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
+import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Popover from 'primevue/popover';
 import { ENTITY_UI } from '~/utils/status-engine';
@@ -195,6 +216,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['refresh']);
+const inlineDetailRouteRef = inject('entityInlineDetailRoute', null);
 
 const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi pi-box' });
 const displayPlan = computed(() => resolveEntityDisplayContract({
@@ -217,6 +239,12 @@ const compactDensityClass = computed(() => props.density === 'dense'
     ? '[&_.p-card-body]:!p-3 [&_.p-card-content]:!p-0'
     : ''
 );
+const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
+
+function openInlineDetail(event) {
+    event.stopPropagation();
+    if (inlineDetailRoute.value) navigateTo(inlineDetailRoute.value);
+}
 
 const op = ref();
 const togglePopup = (event) => {
