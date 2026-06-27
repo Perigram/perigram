@@ -159,9 +159,10 @@
       server/features/nesting-runs/nesting-runs.spec.js,
       server/features/support/service.js,
       server/features/support/support.spec.js,
-      server/api/support/entity-types.get.js
+      server/api/support/entity-types.get.js,
+      components/shared/SupportMessageContent.vue
     Docs updated: server/features/nesting-runs/README.md,
-      server/features/support/README.md, TODO.org
+      server/features/support/README.md, components/shared/README.md, TODO.org
     Notes: `nesting_run` list queries now translate generated-screen
       `primaryStatus` and `primaryStatuses` filters into the canonical
       `status.state.primary` repository field, so status-gated chat attachment
@@ -175,7 +176,10 @@
       falling back to raw session auth. `entity-options` now follows the same
       first readable generated source that `entity-types` exposes for each
       entity type, preventing hidden multi-source unions and duplicate option
-      rows behind a single picker label.
+      rows behind a single picker label. Chat-only recipient refs now avoid
+      protected inline refetches when an older message lacks a stored entity
+      snapshot, and cassette snapshots keep preview-driving fields so new
+      direct-chat inline previews render without a fallback fetch.
 
     [2026-06-26] Route trace links through generated detail access
     Files changed: components/shared/links/TraceChain.vue,

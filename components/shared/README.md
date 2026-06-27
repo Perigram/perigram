@@ -306,7 +306,10 @@ manual ids. Chat message refs may also carry compact entity snapshots plus
 chat-only recipient metadata; `SupportMessageContent` passes those snapshots
 into `EntityInlineRef` so popovers stay usable inside chat even when the
 recipient lacks ordinary entity read access, while generated detail-route
-buttons stay hidden for that chat-only recipient view.
+buttons stay hidden for that chat-only recipient view. When an older
+chat-only ref still lacks an embedded snapshot, the message renderer disables
+inline fetches for that recipient view instead of probing the protected entity
+endpoint and throwing a visible `403` in the browser console.
 
 ---
 
