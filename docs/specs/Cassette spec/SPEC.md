@@ -275,7 +275,12 @@ parametric solving is intentionally outside this draft.
       "vertices": [["0", "0"], ["42", "0"], ["42", "28"], ["0", "28"]],
       "edges": [{ "type": "line" }, { "type": "line" }, { "type": "line" }, { "type": "line" }],
       "holes": [{ "type": "circle", "center": ["21", "14"], "diameter": "6" }],
-      "modifiers": [{ "type": "fillet", "vertices": ["p0", "p1", "p2", "p3"], "radius": "3" }]
+      "modifiers": [
+        { "type": "fillet", "vertexId": "p0", "radius": "3" },
+        { "type": "fillet", "vertexId": "p1", "radius": "3" },
+        { "type": "fillet", "vertexId": "p2", "radius": "3" },
+        { "type": "fillet", "vertexId": "p3", "radius": "3" }
+      ]
     },
     "sweep": { "type": "linear", "length": "120" }
   },
@@ -284,10 +289,11 @@ parametric solving is intentionally outside this draft.
 ```
 
 `profile.section.modifiers` is a CutKit draft extension for non-destructive
-rounding/chamfer intent. Editable sketch source MAY be carried under
-`extensions.cutkit.sketch`; consumers that do not understand it can still use
-the normalized `profile.section`. Sketch import MAY come from DXF closed
-polylines and circles.
+rounding/chamfer intent. Profile fillets are per-corner records keyed by
+`vertexId`, so adjacent corners may carry different radii. Editable sketch
+source MAY be carried under `extensions.cutkit.sketch`; consumers that do not
+understand it can still use the normalized `profile.section`. Sketch import MAY
+come from DXF closed polylines and circles.
 
 ### 7.4 Sheet workpiece
 

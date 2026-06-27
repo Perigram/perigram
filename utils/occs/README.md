@@ -31,10 +31,11 @@ frontend/shared utility layer.
   applying either a `count` or `spacing` rule.
 - `profiles.js` declares the reusable OCCS profile sketch helper used by
   Cassette Designer v2. It keeps profile templates declarative but direct:
-  editable snap points, closed polylines, circle holes, DXF-imported geometry,
-  and fillet-modifier data are normalized into `profile.section` polygon/circle
-  data plus a linear `profile.sweep`. The current editor does not run a
-  parametric constraint solver.
+  editable snap points, point-by-point closed polylines, typed segment-distance
+  projection, ortho projection, circle holes, DXF-imported geometry, and
+  per-corner fillet modifiers are normalized into `profile.section`
+  polygon/circle data plus a linear `profile.sweep`. The current editor does
+  not run a parametric constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.
 - `evaluate.js` resolves OCCS graph-tree templates into production data. It

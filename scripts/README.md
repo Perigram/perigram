@@ -31,6 +31,10 @@ script explicitly installs its own resolver.
   `access.permissions` from transitions that already have `processRoleIds`, so
   process role assignment remains the transition authority and target-status
   grants remain post-transition entity access windows. Supports `--dry-run`.
+- `server/scripts/migrate-profile-template-fillets.js`: Profile-template data
+  migration. Rewrites legacy multi-vertex sketch fillets and normalized OCCS
+  snapshots into per-corner `{ vertexId, radius }` fillet modifiers. Supports
+  `--dry-run`.
 - `seed-*.js`: Local seed helpers for layer standards and tool profiles.
 - `test-*.js`, `debug_*.js`, `check-data.js`, `check-jobs.js`: Manual
   diagnostics for local database, auth, jobs, and data shape investigations.

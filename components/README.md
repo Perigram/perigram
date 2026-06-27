@@ -412,6 +412,11 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   previous point, optional ortho projection, circle holes, DXF import, and
   per-corner fillet radii. It does not own a general parametric constraint
   solver.
+  `ProfileSketchEditor` is a compact CAD-style direct editor: users draw
+  point-by-point polylines with endpoint snaps, typed distance from the
+  previous point, optional ortho projection, circle holes, DXF import, and
+  per-corner fillet radii. It does not own a general parametric constraint
+  solver.
 - `RemnantCard` and `RemnantDetail` render saved leftover material geometry
   through `GeometryPreview`, including polygon-with-holes queue-cut remnants.
   Source sheet, warehouse, and material pile context should be compact

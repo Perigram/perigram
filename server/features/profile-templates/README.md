@@ -20,8 +20,18 @@ Key fields:
 - `data.kind`: `hanger`, `extruded_profile`, or `generic_profile`.
 - `data.process`: `extruded`, `roll_formed`, `brake_formed`, or `machined`.
 - `data.parameters`: simple profile metadata such as sweep length.
-- `data.sketch`: editable numeric point/polyline/circle/modifier graph.
+- `data.sketch`: editable numeric point/polyline/circle graph with endpoint
+  snaps, typed segment-distance drawing helpers, and per-corner fillet
+  modifiers stored as `{ type: 'fillet', vertexId, radius }`.
 - `data.occsProfile`: normalized OCCS `profile.section` and `profile.sweep` snapshot.
+
+## Migrations
+
+- `server/scripts/migrate-profile-template-fillets.js --dry-run` previews the
+  one-shot migration from legacy multi-vertex fillet modifiers to per-corner
+  `vertexId` modifiers. Run without `--dry-run` to rewrite existing
+  `profile_templates` documents and their normalized `data.occsProfile`
+  snapshots.
 
 ## Related
 
