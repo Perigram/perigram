@@ -53,7 +53,13 @@ const identityMetaText = computed(() => identityMeta.value.map((item) => `${item
     </div>
 
     <!-- Inline Variant — Chip pill with optional icon -->
-    <Chip v-else-if="variant === 'inline'" :label="primary" :icon="icon || undefined" :title="identityMetaText || primary" />
+    <Chip
+      v-else-if="variant === 'inline'"
+      class="entity-inline-chip max-w-full"
+      :label="primary"
+      :icon="icon || undefined"
+      :title="identityMetaText || primary"
+    />
 
     <!-- Default (Card title area) -->
     <div v-else class="flex flex-col gap-0.5 min-w-0">

@@ -130,27 +130,73 @@ function generatedEntityTypeFor(type) {
 }
 
 function entityToneStyle(type) {
-  if (['project', 'queue', 'nestingRun', 'sheetDesign'].includes(type)) {
-    return toneVars('var(--p-blue-500)');
-  }
-  if (['cassette', 'cassetteDesign', 'cassetteTemplate', 'cassetteInstance', 'profileTemplate'].includes(type)) {
-    return toneVars('var(--p-orange-500)');
-  }
-  if (['material', 'materialPile', 'batchPile', 'sheet', 'remnant', 'warehouse', 'catalog', 'color'].includes(type)) {
-    return toneVars('var(--p-green-500)');
-  }
-  if (['organization', 'library', 'requisition', 'artifact', 'entityRevision', 'toolProfile', 'penTemplate', 'layerStandard', 'user'].includes(type)) {
-    return toneVars('var(--p-purple-500)');
-  }
-  return toneVars('var(--p-surface-500)');
+  const family = entityFamilyAccent(type);
+  const role = entitySemanticRole(type);
+  return toneVars(family, role);
 }
 
-function toneVars(accent) {
+function entityFamilyAccent(type) {
+  if (['project', 'queue'].includes(type)) return 'var(--p-blue-500)';
+  if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance', 'profileTemplate'].includes(type)) return 'var(--p-orange-500)';
+  if (['sheet', 'sheetDesign', 'remnant', 'nestingRun'].includes(type)) return 'var(--p-teal-500)';
+  if (['material', 'materialPile', 'batchPile', 'warehouse', 'catalog', 'color'].includes(type)) return 'var(--p-green-500)';
+  if (['organization', 'library', 'requisition', 'artifact', 'entityRevision', 'toolProfile', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--p-purple-500)';
+  return 'var(--p-surface-500)';
+}
+
+function entitySemanticRole(type) {
+  if (['project', 'queue', 'library', 'catalog', 'warehouse', 'organization'].includes(type)) return 'container';
+  if (['cassetteTemplate', 'cassetteDesign', 'sheetDesign', 'profileTemplate', 'entityRevision'].includes(type)) return 'definition';
+  if (['artifact', 'toolProfile', 'penTemplate', 'layerStandard', 'user', 'requisition'].includes(type)) return 'meta';
+  return 'item';
+}
+
+function toneVars(accent, role) {
+  const palette = tonePalette(role);
   return {
     '--ck-inline-ref-accent': accent,
-    '--ck-inline-ref-bg': `color-mix(in srgb, ${accent}, var(--p-content-background) 88%)`,
-    '--ck-inline-ref-border': `color-mix(in srgb, ${accent}, var(--p-content-border-color) 60%)`,
-    '--ck-inline-ref-fg': `color-mix(in srgb, ${accent}, var(--p-text-color) 35%)`
+    '--ck-inline-ref-bg': `color-mix(in srgb, ${accent}, var(--p-content-background) ${palette.bgMix}%)`,
+    '--ck-inline-ref-border': `color-mix(in srgb, ${accent}, var(--p-content-border-color) ${palette.borderMix}%)`,
+    '--ck-inline-ref-fg': `color-mix(in srgb, ${accent}, var(--p-text-color) ${palette.fgMix}%)`,
+    '--ck-inline-ref-shadow': palette.shadow,
+    '--ck-inline-ref-font-weight': palette.weight
+  };
+}
+
+function tonePalette(role) {
+  if (role === 'container') {
+    return {
+      bgMix: 68,
+      borderMix: 26,
+      fgMix: 18,
+      shadow: 'inset 0 0 0 999px color-mix(in srgb, var(--ck-inline-ref-accent), transparent 92%)',
+      weight: 600
+    };
+  }
+  if (role === 'definition') {
+    return {
+      bgMix: 84,
+      borderMix: 42,
+      fgMix: 26,
+      shadow: 'inset 0 0 0 999px color-mix(in srgb, var(--ck-inline-ref-accent), transparent 96%)',
+      weight: 550
+    };
+  }
+  if (role === 'meta') {
+    return {
+      bgMix: 92,
+      borderMix: 54,
+      fgMix: 34,
+      shadow: 'none',
+      weight: 500
+    };
+  }
+  return {
+    bgMix: 96,
+    borderMix: 46,
+    fgMix: 30,
+    shadow: 'none',
+    weight: 500
   };
 }
 </script>

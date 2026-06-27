@@ -7,10 +7,11 @@
     >
       <small class="text-muted-color">{{ relation.label }}</small>
       <div class="flex min-w-0 items-start gap-2">
-        <div class="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
+        <div class="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto pb-1">
           <EntityInlineRef
             v-for="item in relation.previewItems"
             :key="`${relation.path}:${item.entityType}:${item.id}`"
+            class="max-w-[12rem] shrink-0"
             :type="item.entityType"
             :id="item.id"
             :entity="item.entity || null"
