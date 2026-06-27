@@ -109,22 +109,23 @@ export async function markConversationRead(auth, body = {}) {
 }
 
 export async function listEntityOptions(auth, type, query = '', recipientUserId = null) {
-    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const scopedAuth = await resolveEntityOptionAuth(auth);
+    if (!scopedAuth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
     const normalizedType = normalizeEntityOptionType(type);
-    if (!isEntityOptionTypeAllowed(auth, normalizedType)) {
+    if (!isEntityOptionTypeAllowed(scopedAuth, normalizedType)) {
         throw createError({ statusCode: 400, message: 'Unsupported entity type' });
     }
 
     const normalizedQuery = query.toString().trim().toLowerCase();
-    const entities = await loadEntityOptions(auth, normalizedType);
+    const entities = await loadEntityOptions(scopedAuth, normalizedType);
     const options = entities
         .map(entity => normalizeEntityOption(normalizedType, entity))
         .filter(option => option.value && matchesEntityQuery(option, normalizedQuery))
         .slice(0, ENTITY_OPTION_LIMIT);
 
-    if (!recipientUserId || recipientUserId === auth.userId || normalizedType === 'user') return options;
+    if (!recipientUserId || recipientUserId === scopedAuth.userId || normalizedType === 'user') return options;
 
-    const recipientAuth = await resolveConversationParticipantAuth(auth, recipientUserId).catch(() => null);
+    const recipientAuth = await resolveConversationParticipantAuth(scopedAuth, recipientUserId).catch(() => null);
     if (!recipientAuth) return options;
 
     const recipientIds = await listReadableEntityIds(recipientAuth, normalizedType);
@@ -134,8 +135,9 @@ export async function listEntityOptions(auth, type, query = '', recipientUserId 
     }));
 }
 
-export function listEntityOptionTypes(auth = {}) {
-    return scopedEntityOptionTypes(auth).map(source => ({
+export async function listEntityOptionTypes(auth = {}) {
+    const scopedAuth = await resolveEntityOptionAuth(auth);
+    return scopedEntityOptionTypes(scopedAuth).map(source => ({
         value: source.entityType,
         label: source.label || source.entityType,
         labelKey: source.labelKey || null,
@@ -195,7 +197,8 @@ function normalizeMessage(message) {
 
 async function normalizeEntityRefs(entityRefs = [], auth = {}, options = {}) {
     if (!Array.isArray(entityRefs)) return [];
-    const allowedTypes = new Set(scopedEntityOptionTypes(auth).map(source => source.entityType));
+    const scopedAuth = await resolveEntityOptionAuth(auth);
+    const allowedTypes = new Set(scopedEntityOptionTypes(scopedAuth).map(source => source.entityType));
     const normalized = entityRefs
         .map(ref => ({
             type: normalizeEntityOptionType(ref?.type),
@@ -208,7 +211,7 @@ async function normalizeEntityRefs(entityRefs = [], auth = {}, options = {}) {
     const refs = [];
     for (const ref of normalized) {
         if (!allowedTypes.has(ref.type)) continue;
-        const readableOptions = await listEntityOptions(auth, ref.type, ref.id, options.recipientUserId || null);
+        const readableOptions = await listEntityOptions(scopedAuth, ref.type, ref.id, options.recipientUserId || null);
         const option = readableOptions.find(item => item.value?.toString?.() === ref.id || item.value === ref.id);
         if (option) {
             refs.push({
@@ -355,17 +358,24 @@ async function loadEntityOptions(auth, type) {
 
     if (auth.process?.active && type !== 'user') {
         const sources = scopedEntityOptionTypes(auth).filter(source => source.entityType === type);
-        const results = [];
-        for (const source of sources) {
-            const resolvedFilters = await resolveSourceFilters(auth, source);
-            for (const filters of resolvedFilters) {
-                results.push(...await loader(auth, filters));
-            }
-        }
-        if (results.length) return dedupeEntities(results);
+        if (sources.length) return await loadEntityOptionsForSources(auth, type, sources);
     }
 
     return dedupeEntities(await loader(auth, {}));
+}
+
+async function loadEntityOptionsForSources(auth, type, sources = []) {
+    const loader = ENTITY_OPTION_LOADERS[type];
+    if (!loader || !sources.length) return [];
+
+    const results = [];
+    for (const source of sources) {
+        const resolvedFilters = await resolveSourceFilters(auth, source);
+        for (const filters of resolvedFilters) {
+            results.push(...await loader(auth, filters));
+        }
+    }
+    return dedupeEntities(results);
 }
 
 function normalizeEntityOption(type, entity) {
@@ -394,15 +404,20 @@ function normalizeEntityOptionType(type) {
 function isEntityOptionTypeAllowed(auth = {}, type) {
     if (!type) return false;
     if (type === 'user') return true;
-    return scopedEntityOptionTypes(auth).some(source => source.entityType === type);
+    return scopedEntityOptionSources(auth).some(source => source.entityType === type);
 }
 
 function scopedEntityOptionTypes(auth = {}) {
+    return dedupeSources(scopedEntityOptionSources(auth));
+}
+
+function scopedEntityOptionSources(auth = {}) {
     if (auth.process?.active) {
         const sources = [];
         for (const screen of auth.screens || []) {
             for (const source of screen.sources || []) {
                 if (!source?.entityType) continue;
+                if (source.mode === 'single') continue;
                 if (!sourceRequirementAllowed(auth, source.required || screen.required || {})) continue;
                 sources.push({
                     ...source,
@@ -412,7 +427,7 @@ function scopedEntityOptionTypes(auth = {}) {
                 });
             }
         }
-        return dedupeSources(sources);
+        return sources;
     }
 
     return Object.keys(ENTITY_OPTION_LOADERS)
@@ -487,11 +502,12 @@ function resolveFilterPlaceholders(value, scope = {}) {
 
 async function expandParentScopedFilters(auth, filters = {}, source = {}) {
     const parentType = source.screenEntityType;
-    const parentLoader = ENTITY_OPTION_LOADERS[parentType];
-    if (!parentType || !parentLoader) return [];
+    if (!parentType) return [];
 
-    const loadedParents = await parentLoader(auth, {}).catch(() => []);
-    const parentEntities = dedupeEntities(loadedParents);
+    const parentSources = scopedEntityOptionSources(auth).filter(item => item.entityType === parentType);
+    if (!parentSources.length) return [];
+
+    const parentEntities = await loadEntityOptionsForSources(auth, parentType, parentSources).catch(() => []);
     const parentIds = parentEntities
         .map(entity => {
             const dto = entity?.toJSON ? entity.toJSON() : entity;
@@ -630,6 +646,14 @@ async function resolveConversationParticipantAuth(requesterAuth = {}, participan
         memberships: recipient.data?.memberships || [],
         restrictedTo: recipient.data?.restrictedTo || recipient.lineage?.restrictedTo || null
     });
+}
+
+async function resolveEntityOptionAuth(auth = {}) {
+    if (!auth?.userId) return auth;
+    if (auth.process?.active || Array.isArray(auth.screens) || auth.effectivePermissions) return auth;
+    const resolved = await resolveProcessAuth(auth);
+    if (resolved?.process?.active || Array.isArray(resolved?.screens) || resolved?.effectivePermissions) return resolved;
+    return auth;
 }
 
 function sharesOrganization(auth = {}, recipient) {

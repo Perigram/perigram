@@ -66,6 +66,7 @@ const auth = {
 describe('support communication service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.processRuntime.resolveProcessAuth.mockImplementation(async (input) => input);
   });
 
   it('resolves deterministic direct conversation context for same-organization users', async () => {
@@ -169,7 +170,7 @@ describe('support communication service', () => {
     ]);
   });
 
-  it('derives composer attachment types from generated screen sources', () => {
+  it('derives composer attachment types from generated screen sources', async () => {
     const processAuth = {
       ...auth,
       process: { active: true },
@@ -202,10 +203,54 @@ describe('support communication service', () => {
       }]
     };
 
-    expect(supportService.listEntityOptionTypes(processAuth)).toEqual([
+    await expect(supportService.listEntityOptionTypes(processAuth)).resolves.toEqual([
       { value: 'queue', label: 'My Queues', labelKey: null, sourceId: 'queue', screenKey: 'queue_screen' },
       { value: 'external_record', label: 'Readable External Records', labelKey: null, sourceId: 'external_record', screenKey: 'queue_screen' }
     ]);
+  });
+
+  it('resolves sender process auth before deriving attachment types and options', async () => {
+    mocks.processRuntime.resolveProcessAuth.mockImplementation(async (input) => ({
+      ...input,
+      process: { active: true },
+      effectivePermissions: {
+        nesting_runs: [{ level: 'read' }]
+      },
+      screens: [{
+        id: 'nesting_run_list',
+        screenKey: 'nesting_run_list',
+        sources: [{
+          id: 'nesting_run',
+          entityType: 'nesting_run',
+          mode: 'list',
+          label: 'Process Runs',
+          required: {
+            feature: 'nesting_runs',
+            level: 'read',
+            rule: { fact: 'primaryStatus', equals: 'CUT' }
+          }
+        }]
+      }]
+    }));
+    mocks.nestingRunsService.list.mockResolvedValue([
+      { _id: 'run-1', identity: { name: 'Run From Process Auth' }, data: {} }
+    ]);
+
+    await expect(supportService.listEntityOptionTypes(auth)).resolves.toEqual([
+      { value: 'nesting_run', label: 'Process Runs', labelKey: null, sourceId: 'nesting_run', screenKey: 'nesting_run_list' }
+    ]);
+
+    await expect(supportService.listEntityOptions(auth, 'nesting_run', 'process')).resolves.toEqual([
+      {
+        type: 'nesting_run',
+        value: 'run-1',
+        label: 'Run From Process Auth',
+        entity: { _id: 'run-1', identity: { name: 'Run From Process Auth' }, data: {} }
+      }
+    ]);
+    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, expect.objectContaining({
+      process: { active: true }
+    }), { primaryStatus: 'CUT' });
   });
 
   it('loads concrete options for generated readable entity sources', async () => {
@@ -256,9 +301,19 @@ describe('support communication service', () => {
       ...auth,
       process: { active: true },
       effectivePermissions: {
+        queues: [{ level: 'read' }],
         nesting_runs: [{ level: 'read' }]
       },
       screens: [{
+        id: 'queue_list',
+        entityType: 'queue',
+        sources: [{
+          id: 'queue',
+          entityType: 'queue',
+          required: { feature: 'queues', level: 'read' },
+          filters: { primaryStatus: 'READY' }
+        }]
+      }, {
         id: 'queue_detail',
         entityType: 'queue',
         sources: [{
@@ -272,7 +327,7 @@ describe('support communication service', () => {
 
     const options = await supportService.listEntityOptions(processAuth, 'nesting_run', 'run');
 
-    expect(mocks.queuesService.list).toHaveBeenCalledWith({}, 'user-a', 'org-1', undefined, processAuth);
+    expect(mocks.queuesService.list).toHaveBeenCalledWith({ primaryStatus: 'READY' }, 'user-a', 'org-1', undefined, processAuth);
     expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-1' });
     expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-2' });
     expect(options).toEqual([
@@ -287,6 +342,123 @@ describe('support communication service', () => {
         value: 'run-2',
         label: 'Run Beta',
         entity: { _id: 'run-2', identity: { name: 'Run Beta' }, data: {} }
+      }
+    ]);
+  });
+
+  it('uses the first generated source exposed for an attachment entity type', async () => {
+    mocks.nestingRunsService.list.mockImplementation(async (userId, userOrg, userRole, userPermissions, filters) => {
+      if (filters?.queueId === 'queue-1') return [{ _id: 'run-1', identity: { name: 'Run From Queue' }, data: {} }];
+      if (filters?.primaryStatus === 'CUT') return [{ _id: 'run-2', identity: { name: 'Run From List' }, data: {} }];
+      return [];
+    });
+    mocks.queuesService.list.mockResolvedValue([
+      { toJSON: () => ({ _id: 'queue-1', identity: { name: 'Queue 1' }, data: {} }) }
+    ]);
+
+    const processAuth = {
+      ...auth,
+      process: { active: true },
+      effectivePermissions: {
+        queues: [{ level: 'read' }],
+        nesting_runs: [{ level: 'read' }]
+      },
+      screens: [{
+        id: 'queue_list',
+        entityType: 'queue',
+        sources: [{
+          id: 'queue',
+          entityType: 'queue',
+          required: { feature: 'queues', level: 'read' }
+        }]
+      }, {
+        id: 'queue_detail',
+        entityType: 'queue',
+        sources: [{
+          id: 'nesting_run_children',
+          entityType: 'nesting_run',
+          required: { feature: 'nesting_runs', level: 'read' },
+          filters: { queueId: '$screen.scope.entityId' }
+        }]
+      }, {
+        id: 'nesting_run_list',
+        entityType: 'nesting_run',
+        sources: [{
+          id: 'nesting_run',
+          entityType: 'nesting_run',
+          required: {
+            feature: 'nesting_runs',
+            level: 'read',
+            rule: { fact: 'primaryStatus', equals: 'CUT' }
+          }
+        }]
+      }]
+    };
+
+    const options = await supportService.listEntityOptions(processAuth, 'nesting_run', 'run');
+
+    expect(options).toEqual([
+      {
+        type: 'nesting_run',
+        value: 'run-1',
+        label: 'Run From Queue',
+        entity: { _id: 'run-1', identity: { name: 'Run From Queue' }, data: {} }
+      }
+    ]);
+    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-1' });
+    expect(mocks.nestingRunsService.list).not.toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { primaryStatus: 'CUT' });
+  });
+
+  it('ignores generated single-entity sources when loading attachment options', async () => {
+    mocks.nestingRunsService.list.mockImplementation(async (userId, userOrg, userRole, userPermissions, filters) => {
+      if (filters?.primaryStatuses === 'CUT,SHIPPED') return [{ _id: 'run-1', identity: { name: 'Run From List' }, data: {} }];
+      if (Object.keys(filters || {}).length === 0) return [{ _id: 'run-2', identity: { name: 'Run From Detail' }, data: {} }];
+      return [];
+    });
+
+    const processAuth = {
+      ...auth,
+      process: { active: true },
+      effectivePermissions: {
+        nesting_runs: [{ level: 'read' }]
+      },
+      screens: [{
+        id: 'nesting_run_list',
+        entityType: 'nesting_run',
+        sources: [{
+          id: 'nesting_run',
+          entityType: 'nesting_run',
+          mode: 'list',
+          required: {
+            feature: 'nesting_runs',
+            level: 'read',
+            rule: { any: [{ fact: 'primaryStatus', equals: 'CUT' }, { fact: 'primaryStatus', equals: 'SHIPPED' }] }
+          }
+        }]
+      }, {
+        id: 'nesting_run_detail',
+        entityType: 'nesting_run',
+        sources: [{
+          id: 'nesting_run',
+          entityType: 'nesting_run',
+          mode: 'single',
+          required: { feature: 'nesting_runs', level: 'read' }
+        }]
+      }]
+    };
+
+    const options = await supportService.listEntityOptions(processAuth, 'nesting_run', 'run');
+
+    expect(mocks.nestingRunsService.list).toHaveBeenCalledTimes(1);
+    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {
+      primaryStatuses: 'CUT,SHIPPED'
+    });
+    expect(options).toEqual([
+      {
+        type: 'nesting_run',
+        value: 'run-1',
+        label: 'Run From List',
+        entity: { _id: 'run-1', identity: { name: 'Run From List' }, data: {} }
       }
     ]);
   });

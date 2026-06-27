@@ -96,6 +96,14 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     processedFilter['lineage.projectId'] = toFlexibleId(processedFilter.projectId);
     delete processedFilter.projectId;
   }
+  const primaryStatuses = normalizePrimaryStatuses(processedFilter.primaryStatuses);
+  if (primaryStatuses.length) processedFilter['status.state.primary'] = { $in: primaryStatuses };
+  else if (processedFilter.status || processedFilter.primaryStatus) {
+    processedFilter['status.state.primary'] = processedFilter.status || processedFilter.primaryStatus;
+  }
+  delete processedFilter.primaryStatuses;
+  delete processedFilter.primaryStatus;
+  delete processedFilter.status;
 
   const finalFilter = { ...lineageFilter, ...processedFilter };
   const raws = await repository.find(finalFilter);
@@ -208,3 +216,9 @@ export const hooks = {
   preflightChosenNestingRun,
   applyChosenNestingRun
 };
+
+function normalizePrimaryStatuses(value) {
+  if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
+  if (typeof value !== 'string') return [];
+  return value.split(',').map(item => item.trim()).filter(Boolean);
+}
