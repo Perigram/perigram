@@ -23,7 +23,9 @@ Shared frontend utility modules used by Vue pages/components.
   entity through this helper so pages/stores can refresh related data without
   coupling every button to a page-specific command. The standardized event
   detail shape is `{ type, id, entity?, change, reason, source }`, and shared
-  caches should subscribe here instead of inventing per-feature buses.
+  caches should subscribe here instead of inventing per-feature buses. Server
+  SSE events from `GET /api/entity-events` are bridged into this same helper,
+  so local and cross-device updates use one frontend consumption contract.
 - `interactive-target.js`: Shared DOM guard for entity cards that have parent
   click/select actions. It detects nested links, buttons, form controls, status
   controls, geometry previews, and nested inline/compact entity cards so parent

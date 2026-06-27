@@ -28,7 +28,7 @@ Support capabilities are documented and classified, but do not need empty
 | Kind | Modules |
 |---|---|
 | Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
-| Capability modules | `config-bot`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
+| Capability modules | `config-bot`, `entity-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
 
 ---
 
@@ -114,6 +114,10 @@ services must not self-register through hidden globals.
 - **toJSON() rules**: spread `super.toJSON()`; do not re-emit `name`, `slug`, `serial`, `reference`
 - **data vs identity**: `serial` and `reference` live in `identity` only; feature-specific state goes in `data`
 - **summary**: computed aggregates (counts, totals) — always a separate field, never mixed into `data`
+- **entity synchronization**: successful mutations that should update other
+  open sessions publish typed invalidation events through
+  `server/features/entity-events`; do not create per-feature polling loops when
+  the shared event bus can feed the browser-local `entity-events.js` contract.
 
 ## Related
 

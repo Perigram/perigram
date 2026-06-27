@@ -57,6 +57,8 @@ resolve the same graph.
 Entity feature directories are derived from domain entity metadata. Use an
 explicit `feature` field on a domain entity when English pluralization is
 irregular, such as `library -> libraries`; do not add script-local exceptions.
+Non-entity capability directories must be added to the explicit capability list
+in `check-arch.js` and documented in `server/features/README.md`.
 
 The checker also blocks live entity UI that passes local `:status-actions`
 instead of relying on server-provided `EntityStatus` workflow actions. It prints

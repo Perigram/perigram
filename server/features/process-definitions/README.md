@@ -132,6 +132,12 @@ records. The migration script
 `server/scripts/migrate-process-command-output-statuses.js` applies the same
 graph-derived status projection to existing active-process command outputs; it
 must not hardcode status names.
+Process create, update, change-status, and command-output status mutations
+publish typed invalidation events through `server/features/entity-events` after
+their canonical mutation succeeds. Generated screens consume those events
+through the shared browser-local entity sync contract and then reload their
+normal sources; process actions do not broadcast DTO replicas or bypass entity
+read access.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.

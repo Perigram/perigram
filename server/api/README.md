@@ -12,6 +12,9 @@ Routes are grouped into sub-directories corresponding to features:
   service so parent detail pages only list their own child templates.
 - `commands/`: Authenticated execution route for declared domain commands such
   as `saveCassetteTemplate` and `generateAttachment`.
+- `entity-events/`: Authenticated entity invalidation stream. `GET` opens the
+  app-wide SSE connection for the current user, and `POST` publishes successful
+  frontend CRUD mutations after their canonical entity API call succeeds.
 - `tasks/`: Worker task queue protocol for claim, heartbeat, complete,
   fail, and cancel.
 - `admin/commands/`: Authenticated command definition and run listing for
@@ -55,7 +58,9 @@ Routes are grouped into sub-directories corresponding to features:
   instead of calling feature-specific browser code.
 - `status/`: Authenticated status action and history endpoints. History
   handlers delegate to the statuses feature and return response-only actor
-  display data for audit rows.
+  display data for audit rows. Successful status transitions publish entity
+  invalidation events through the shared entity event bus so other devices can
+  refresh affected surfaces.
 - `support/`: Authenticated support chat endpoints. User routes stream the
   current user's support conversation or a direct user-to-user conversation
   selected by `recipientUserId`; admin routes remain scoped to customer support

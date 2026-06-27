@@ -16,6 +16,7 @@ Nuxt/Nitro backend for the CutKit modular monolith.
 | Effects | `server/core/effects/` | Declared cross-entity effect execution. |
 | Runtime registry | `server/runtime/` | Explicit app registry binding domain contracts to services/handlers. |
 | Process definitions | `server/features/process-definitions/` | Organization-owned process graph drafts and compiled active runtime contracts. |
+| Entity event bus | `server/features/entity-events/` | Authenticated in-memory SSE invalidation bus for cross-device entity updates. |
 
 ## Golden Path
 
@@ -46,6 +47,22 @@ Workers must use `/api/tasks/*` and must never write `task_runs` directly.
 Server modules that need shared root utilities should import them through
 configured aliases such as `#utils/...`, not relative paths that climb out of
 `server/`. Nitro dev chunks resolve those aliases through `nuxt.config.js`.
+
+## Entity Synchronization
+
+Entity synchronization uses a two-stage contract:
+
+1. Server-side producers publish invalidation events through
+   `server/features/entity-events/service.js`.
+2. Browser clients receive those events from `GET /api/entity-events` and
+   re-emit the shared browser-local event from `utils/entity-events.js`.
+
+Events carry `{ type, id, change, reason, source }` and are intentionally not
+full DTO replication payloads. Consumers refresh through normal entity APIs so
+read access, generated process scopes, and field redaction stay centralized in
+existing feature services. The current runtime bus is process-local; it is for
+live app synchronization, while `status_events` and feature collections remain
+the durable data sources.
 
 ## Access Context
 

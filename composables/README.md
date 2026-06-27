@@ -56,6 +56,10 @@ browser-local entity sync event from `utils/entity-events.js`, using the same
 contract as status transitions. Frontend surfaces that need cache invalidation
 or dependent refreshes should listen to that contract rather than wiring
 page-local callbacks for each CRUD button.
+On the client, those same successful CRUD calls also publish a typed
+invalidation to `POST /api/entity-events`, which fans out to other authenticated
+sessions over SSE. Server events intentionally carry ids and change metadata,
+not full DTOs; receiving surfaces refetch through their normal entity APIs.
 `state` is the primary lifecycle string derived from structured
 `status.state.primary`; `stateObject` and `statusRegions` expose the full v2
 machine state when a surface needs region details.
@@ -180,6 +184,10 @@ requirements against the active permission grants before fetching, and then
 loads entity data through `useEntity()`. It supports list and single-entity
 sources, assignment-bound filters/identifiers, and exposes source states to the
 generated renderer.
+Generated screens listen to the shared browser-local entity sync event and
+reload when an event targets one of their visible source entity types. This is
+the generated-screen side of cross-device entity synchronization; the backend
+still enforces whether the refreshed source can read each changed entity.
 
 Generated screens are UI composition only. They decide which regions, sources,
 and action buttons are visible, while API routes still enforce real access.
