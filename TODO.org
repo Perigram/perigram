@@ -27,13 +27,14 @@
       server/api/support/entity-types.get.js
     Docs updated: server/features/support/README.md, server/api/README.md,
       components/README.md, components/shared/README.md, TODO.org
-    Notes: Chat attachment type choices now come from the support service via
-      `/api/support/entity-types`; concrete attachment refs still come from
-      readable entity options. The drawer renders entity refs in latest-message
-      previews and composer draft previews, and the inbox header can start a
-      direct chat with same-organization users not already present in the list.
-      Inline entity references now expose an open-detail action when the domain
-      route registry has a route for that entity type.
+    Notes: Chat attachment type choices now come from generated screen sources
+      in the current user's process manifest via `/api/support/entity-types`;
+      concrete attachment refs still come from readable entity options. The
+      drawer renders entity refs in latest-message previews and composer draft
+      previews, and the inbox header can start a direct chat with
+      same-organization users not already present in the list. Inline entity
+      references now expose an open-detail action inside the expanded popover
+      footer when generated `/screens/:screenKey` detail routing exists.
 
     [2026-06-27] Fix chats drawer conversation list snapshot
     Files changed: stores/supportChat.js, stores/supportChat.spec.js,

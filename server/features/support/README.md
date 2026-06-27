@@ -46,10 +46,12 @@ Chat messages can carry structured `entityRefs`:
 The frontend inserts matching text tokens in the message body using
 `{{entity:type:id}}`. `SupportMessageContent.vue` renders those tokens as
 `EntityInlineRef` chips and also renders any structured refs that are not
-present in the text. Entity ref types come from
-`GET /api/support/entity-types`, and concrete refs must be selected from
-`GET /api/support/entity-options`; message writes drop unsupported or unreadable
-refs instead of accepting arbitrary ids.
+present in the text. Entity ref types come from generated screen sources in the
+current `auth.screens` process manifest, filtered by process permissions and by
+the support option loaders available for those source entity types. The UI reads
+that list through `GET /api/support/entity-types`; concrete refs must be
+selected from `GET /api/support/entity-options`. Message writes drop unsupported
+or unreadable refs instead of accepting arbitrary ids.
 
 ## API
 
@@ -57,7 +59,7 @@ refs instead of accepting arbitrary ids.
 |---|---|
 | `GET /api/support/conversations` | Snapshot of the current user's support/direct conversation list with unread counts. |
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
-| `GET /api/support/entity-types` | Returns the entity ref types supported by chat attachment pickers. |
+| `GET /api/support/entity-types` | Returns generated-screen entity source types available to the current user and supported by chat attachment pickers. |
 | `GET /api/support/entity-options?type=<type>&q=<query>` | Returns readable entity options for chat attachment refs. |
 | `GET /api/support/messages` | SSE stream for the current user's support conversation. |
 | `GET /api/support/messages?recipientUserId=<id>` | SSE stream for a direct user conversation. |
