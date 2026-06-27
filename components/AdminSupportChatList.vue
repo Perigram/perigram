@@ -15,11 +15,12 @@
                         <template #header>
                             <div class="flex items-center gap-3">
                                 <Avatar 
-                                    :label="getUserName(chat.user)" 
+                                    :label="getUserName(chat.participant)"
                                     shape="circle" 
-                                    :style="{ backgroundColor: letterToBg(getUserName(chat.user)), color: 'var(--p-primary-contrast-color)' }"
+                                    :style="{ backgroundColor: letterToBg(getUserName(chat.participant)), color: 'var(--p-primary-contrast-color)' }"
                                 />
-                                <span class="truncate">{{ chat.user?.name || $t('admin.unknownUser') }}</span>
+                                <span class="truncate">{{ chat.participant?.identity?.name || chat.participant?.name || $t('admin.unknownUser') }}</span>
+                                <Badge v-if="chat.unreadCount" :value="chat.unreadCount" severity="danger" size="small" />
                             </div>
                         </template>
                         <small>{{ $t('common.id') }}: {{ chat.userId.slice(-8) }}</small>
@@ -60,6 +61,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Panel from 'primevue/panel'
 import Avatar from 'primevue/avatar'
+import Badge from 'primevue/badge'
 import Divider from 'primevue/divider'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -127,7 +129,8 @@ onUnmounted(() => {
 })
 
 const getUserName = (user) => {
-    return user?.name?.split(' ').map(word => word.charAt(0).toUpperCase()).join('') || 'U'
+    const name = user?.identity?.name || user?.name || ''
+    return name.split(' ').map(word => word.charAt(0).toUpperCase()).join('') || 'U'
 }
 
 const letterToBg = (letter) => {

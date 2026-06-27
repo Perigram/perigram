@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
     const customerId = event.context.params.user_id
     const context = supportService.getAdminSupportContext(customerId)
     const messages = await supportService.listMessages(context.match)
+    await supportService.markConversationRead(auth, { conversationKey: context.conversationKey })
 
     let lastTimestamp = new Date(0)
     eventStream.push(
@@ -18,7 +19,10 @@ export default defineEventHandler(async (event) => {
             type: 'initial',
             data: messages,
             currentUserId: auth.userId,
-            conversation: { kind: context.kind }
+            conversation: {
+                conversationKey: context.conversationKey,
+                kind: context.kind
+            }
         })
     )
     if (messages.length > 0) {
@@ -28,6 +32,7 @@ export default defineEventHandler(async (event) => {
         const newMessages = await supportService.listMessagesSince(context.match, lastTimestamp)
         if (newMessages.length > 0) {
             lastTimestamp = newMessages[newMessages.length - 1].timestamp
+            await supportService.markConversationRead(auth, { conversationKey: context.conversationKey })
             await eventStream.push(
                 JSON.stringify({
                     type: 'newMessages',

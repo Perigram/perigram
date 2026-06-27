@@ -1637,6 +1637,7 @@
     "entityId": "ID сущности",
     "addEntity": "Добавить сущность",
     "openChat": "Открыть чат",
+    "noMessages": "Нет сообщений",
     "entityTypes": {
       "sheet": "Лист",
       "material": "Материал"

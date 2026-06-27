@@ -56,6 +56,23 @@
                         size="small"
                         :aria-label="$t('common.toggleTheme')"
                     />
+                    <div v-if="authStore.userIsSet" class="relative flex items-center">
+                        <Button
+                            icon="pi pi-comments"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('support.openChat')"
+                            @click="supportDialog = true"
+                        />
+                        <Badge
+                            v-if="supportChatStore.totalUnread"
+                            :value="supportChatStore.totalUnread"
+                            severity="danger"
+                            size="small"
+                            class="absolute -right-1 -top-1"
+                        />
+                    </div>
                     
                     <div class="relative flex items-center" v-if="authStore.userIsSet">
                         <Button 
@@ -103,11 +120,13 @@
     import { useRouter, useRoute } from 'vue-router'
     import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
+    import Badge from 'primevue/badge'
     import Menu from 'primevue/menu'
     import Avatar from 'primevue/avatar'
     import ChatSupport from '~/components/ChatSupport.vue'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
+    import { useSupportChatStore } from '~/stores/supportChat'
     import { useNavigationStore } from '~/stores/navigation'
     import { useGlobalStore } from '~/stores/global'
 
@@ -116,6 +135,7 @@
     const { t } = useI18n()
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
+    const supportChatStore = useSupportChatStore()
     const navStore = useNavigationStore()
     const globalStore = useGlobalStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
@@ -135,6 +155,11 @@
             await globalStore.getProjects()
         }
     })
+
+    watch(() => authStore.userIsSet, (isSet) => {
+        if (isSet) supportChatStore.connect()
+        else supportChatStore.disconnect()
+    }, { immediate: true })
 
     // --- Breadcrumb Navigation ---
     const breadcrumbs = computed(() => {

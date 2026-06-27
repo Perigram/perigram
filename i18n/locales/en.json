@@ -1637,6 +1637,7 @@
     "entityId": "Entity ID",
     "addEntity": "Add entity",
     "openChat": "Open chat",
+    "noMessages": "No messages",
     "entityTypes": {
       "sheet": "Sheet",
       "material": "Material"
