@@ -27,6 +27,9 @@ threads.
 Conversation read state is stored in `supportConversationReads` as
 `{ conversationKey, userId, lastReadAt, updatedAt }`. Conversation lists compute
 unread counts from messages sent after `lastReadAt` by another sender.
+The user-facing conversation stream also merges reachable same-organization
+users as empty direct conversations, so the Chats drawer can start a direct
+thread before any message exists.
 
 ## Inline Entity References
 

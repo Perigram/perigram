@@ -12,8 +12,8 @@ Pinia stores for client state and API orchestration.
   `pen.data.stroke`.
 - `batches.js`: Batch list/current batch, nesting actions, status polling.
 - `artifacts.js`: Batch artifacts fetching and cache.
-- `supportChat.js`: Support/direct chat conversation SSE state, unread totals,
-  and read acknowledgement for the app-shell chat badge and drawer inbox.
+- `supportChat.js`: Chats drawer conversation SSE state, unread totals, and
+  read acknowledgement for the app-shell chat badge and drawer inbox.
 - `cassettes.js`, `toolProfiles.js`, etc.: Related feature stores.
 
 ## Conventions

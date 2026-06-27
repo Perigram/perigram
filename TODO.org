@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Fix chats inbox candidates and mobile drawer naming
+    Files changed: server/features/support/service.js,
+      server/features/support/support.spec.js, components/ChatSupport.vue,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: server/features/support/README.md, components/README.md,
+      stores/README.md, TODO.org
+    Notes: The user-facing drawer is now labeled Chats, fills the mobile
+      viewport, and `/api/support/conversations` merges reachable
+      same-organization users as empty direct conversations so users can start
+      chats before any message exists.
+
     [2026-06-27] Add support chat inbox, unread notifications, and entity picker
     Files changed: server/features/support/service.js,
       server/features/support/repository.js,
