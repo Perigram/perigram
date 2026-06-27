@@ -42,6 +42,15 @@ const parts = computed(() => {
 const trailingRefs = computed(() => (props.message.entityRefs || [])
   .filter(ref => ref?.type && ref?.id && !props.message.message?.includes(`{{entity:${ref.type}:${ref.id}}}`)));
 
+const refNeedsHydration = (ref = {}) => {
+  if (!ref.entity || typeof ref.entity !== 'object') return true;
+  if (ref.type === 'cassette') {
+    const data = ref.entity.data || {};
+    return !data.type && !data.definition && !data.geometry && !data.layerData && !data.polygonParts;
+  }
+  return false;
+};
+
 const canFetchRef = (ref = {}) => {
   const isRestrictedRecipientView = Boolean(
     props.viewerUserId
@@ -49,7 +58,7 @@ const canFetchRef = (ref = {}) => {
     && props.message.senderUserId !== props.viewerUserId
     && ref.chatOnlyForRecipient
   );
-  return !ref.entity && !isRestrictedRecipientView;
+  return !isRestrictedRecipientView && refNeedsHydration(ref);
 };
 </script>
 
