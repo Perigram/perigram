@@ -156,7 +156,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, toRef, watch } from 'vue';
+import { computed, provide, reactive, ref, toRef, watch } from 'vue';
 import InputText from 'primevue/inputtext';
 import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
@@ -174,6 +174,7 @@ import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
 import { generatedActionLabel, generatedEntityLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
+import { entityKeyForDisplay } from '~/utils/entity-display-contract.js';
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
 
 const props = defineProps({
@@ -184,7 +185,7 @@ const toast = useToast();
 const { t, te } = useI18n();
 const domainUi = useCutkitDomainUi();
 const screenRef = toRef(props, 'screen');
-const { screen, loading, error, load, sourceState } = useGeneratedScreen(screenRef);
+const { screen, sourceStates, loading, error, load, sourceState } = useGeneratedScreen(screenRef);
 const inputDialogVisible = ref(false);
 const submittingAction = ref(false);
 const pendingAction = ref(null);
@@ -218,6 +219,33 @@ const parentSelectionLabel = computed(() => parentSelectionType.value ? generate
 const parentSelectionOptions = computed(() => promptOptions[parentSelectionFieldId] || pendingEntity.value?.context?.parentOptions || []);
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
 const pageTitle = computed(() => screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
+const entityContext = computed(() => {
+  const entities = {};
+  const lists = {};
+
+  for (const state of Object.values(sourceStates.value || {})) {
+    const sourceType = state?.source?.entityType;
+    if (!sourceType) continue;
+    const displayType = entityKeyForDisplay(sourceType);
+    const types = Array.from(new Set([sourceType, displayType].filter(Boolean)));
+    const stateItems = state.entity ? [state.entity] : (state.items || []);
+
+    for (const type of types) {
+      entities[type] ||= {};
+      lists[type] ||= [];
+      for (const item of stateItems) {
+        const id = item?._id?.toString?.() || item?.id?.toString?.() || item?.identity?.uid || '';
+        if (!id) continue;
+        entities[type][id] = item;
+        lists[type].push(item);
+      }
+    }
+  }
+
+  return { entities, lists };
+});
+
+provide('entityContext', entityContext);
 
 async function executeAction(action, entity = null, context = {}) {
   actionError.value = '';

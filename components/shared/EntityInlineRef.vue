@@ -79,6 +79,7 @@ const detailRoute = computed(() => {
   });
 });
 provide('entityInlineDetailRoute', detailRoute);
+const toneStyle = computed(() => entityToneStyle(props.type));
 
 watch(
   () => [props.entity, normalizedId.value, props.type, contextEntity.value?._id],
@@ -127,25 +128,52 @@ function generatedEntityTypeFor(type) {
   };
   return aliases[type] || type;
 }
+
+function entityToneStyle(type) {
+  if (['project', 'queue', 'nestingRun', 'sheetDesign'].includes(type)) {
+    return toneVars('var(--p-blue-500)');
+  }
+  if (['cassette', 'cassetteDesign', 'cassetteTemplate', 'cassetteInstance', 'profileTemplate'].includes(type)) {
+    return toneVars('var(--p-orange-500)');
+  }
+  if (['material', 'materialPile', 'batchPile', 'sheet', 'remnant', 'warehouse', 'catalog', 'color'].includes(type)) {
+    return toneVars('var(--p-green-500)');
+  }
+  if (['organization', 'library', 'requisition', 'artifact', 'entityRevision', 'toolProfile', 'penTemplate', 'layerStandard', 'user'].includes(type)) {
+    return toneVars('var(--p-purple-500)');
+  }
+  return toneVars('var(--p-surface-500)');
+}
+
+function toneVars(accent) {
+  return {
+    '--ck-inline-ref-accent': accent,
+    '--ck-inline-ref-bg': `color-mix(in srgb, ${accent}, var(--p-content-background) 88%)`,
+    '--ck-inline-ref-border': `color-mix(in srgb, ${accent}, var(--p-content-border-color) 60%)`,
+    '--ck-inline-ref-fg': `color-mix(in srgb, ${accent}, var(--p-text-color) 35%)`
+  };
+}
 </script>
 
 <template>
-  <component
-    v-if="resolved && cardComponent"
-    :is="cardComponent"
-    v-bind="cardProps"
-    data-entity-card-interactive="true"
-  />
-  <IdentityBlock
-    v-else-if="resolved"
-    :entity="resolved"
-    variant="inline"
-    :icon="icon"
-    :fields="fields"
-    data-entity-card-interactive="true"
-  />
-  <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted-color" data-entity-card-interactive="true">
-    <i :class="icon" class="shrink-0"></i>
-    <span class="truncate">{{ normalizedId || $t('common.notAvailable') }}</span>
+  <span class="entity-inline-tone inline-flex min-w-0 items-center" :style="toneStyle">
+    <component
+      v-if="resolved && cardComponent"
+      :is="cardComponent"
+      v-bind="cardProps"
+      data-entity-card-interactive="true"
+    />
+    <IdentityBlock
+      v-else-if="resolved"
+      :entity="resolved"
+      variant="inline"
+      :icon="icon"
+      :fields="fields"
+      data-entity-card-interactive="true"
+    />
+    <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted-color" data-entity-card-interactive="true">
+      <i :class="icon" class="shrink-0"></i>
+      <span class="truncate">{{ normalizedId || $t('common.notAvailable') }}</span>
+    </span>
   </span>
 </template>

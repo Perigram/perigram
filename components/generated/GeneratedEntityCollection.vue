@@ -66,9 +66,23 @@
           </div>
         </div>
       </template>
-      <EntitySurfaceContent :entity="entity" :entity-type="entityType" :surface="surface" />
-      <template v-if="entityActionsFor(entity).length || entityCanDelete(entity)" #footer>
+      <EntitySurfaceContent
+        :entity="entity"
+        :entity-type="entityType"
+        :surface="surface"
+        suppress-child-counts
+      />
+      <template v-if="entityActionsFor(entity).length || entityCanDelete(entity) || detailRouteFor(entity)" #footer>
         <div class="flex flex-wrap justify-end gap-2">
+          <Button
+            v-if="detailRouteFor(entity)"
+            icon="pi pi-external-link"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('common.open')"
+            @click.stop="openEntity(entity)"
+          />
           <GeneratedActionButton
             v-for="action in entityActionsFor(entity)"
             :key="action.actionId"
@@ -88,6 +102,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import EntityCard from '~/components/shared/EntityCard.vue';

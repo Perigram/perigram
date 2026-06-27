@@ -20,6 +20,7 @@ import {
 import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import { normalizeWorkflow } from '../packages/workflows/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
+import { resolveEntityRelationRefs } from '../utils/entity-relations.js';
 import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 import { getWorkflowStatusActions } from '../utils/status-actions.js';
 
@@ -126,6 +127,28 @@ describe('Design system manifest', () => {
     const design = factories.createMockCassetteDesign();
 
     expect(decorateDataValue(design.data.parameters, { display: 'parameterMap' })).toBe('A=1200, B=400, C=35');
+  });
+
+  it('normalizes relation lists for compact generated card galleries', () => {
+    expect(resolveEntityRelationRefs([
+      { type: 'PILE', id: 'pile-1' },
+      { type: 'SHEET', id: 'sheet-1' },
+      { type: 'REMNANT', id: 'remnant-1' }
+    ])).toEqual([
+      { entityType: 'materialPile', id: 'pile-1', entity: null },
+      { entityType: 'sheet', id: 'sheet-1', entity: null },
+      { entityType: 'remnant', id: 'remnant-1', entity: null }
+    ]);
+
+    expect(resolveEntityRelationRefs({
+      sheetIds: ['sheet-1'],
+      remnantIds: ['remnant-1'],
+      cassetteInstanceIds: ['instance-1']
+    })).toEqual([
+      { entityType: 'sheet', id: 'sheet-1' },
+      { entityType: 'remnant', id: 'remnant-1' },
+      { entityType: 'cassetteInstance', id: 'instance-1' }
+    ]);
   });
 
   it('keeps material pile and batch pile demo DTOs distinct', () => {
@@ -454,9 +477,25 @@ describe('Design system manifest', () => {
 
   it('keeps generated home cards as horizontal carousel items', () => {
     const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
+    const generatedCollection = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedEntityCollection.vue'), 'utf8');
+    const generatedScreen = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedScreen.vue'), 'utf8');
+    const relationsBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityRelationsBlock.vue'), 'utf8');
+    const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntitySurfaceContent.vue'), 'utf8');
+    const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
 
     expect(generatedHome).toContain('overflow-x-auto');
     expect(generatedHome).toContain('shrink-0');
+    expect(generatedHome).toContain('suppress-child-counts');
+    expect(generatedCollection).toContain('suppress-child-counts');
+    expect(generatedScreen).toContain("provide('entityContext'");
+    expect(generatedHome).toContain('pi pi-external-link');
+    expect(generatedCollection).toContain('pi pi-external-link');
+    expect(relationsBlock).toContain('overflow-x-auto');
+    expect(relationsBlock).toContain("field.display === 'entityRefList'");
+    expect(surfaceContent).toContain('cncSummaries');
+    expect(surfaceContent).toContain("field.role === 'childCount'");
+    expect(inlineRef).toContain('entityToneStyle');
+    expect(inlineRef).toContain('color-mix');
     expect(generatedHome).not.toContain('min-w-64 max-w-72');
   });
 

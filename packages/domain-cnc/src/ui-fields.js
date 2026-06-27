@@ -1,7 +1,7 @@
 export const cncEntityFieldGroups = {
   project: {
     summary: [
-      { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', priority: 10 },
+      { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', role: 'childCount', priority: 10 },
       { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²', display: 'area', priority: 20 }
     ]
   },
@@ -11,8 +11,8 @@ export const cncEntityFieldGroups = {
     ],
     summary: [
       { path: 'data.job.items.length', i18n: 'queue.jobItems', display: 'count', priority: 10 },
-      { path: 'summary.runCount', i18n: 'queue.nestingRuns', display: 'count', priority: 20 },
-      { path: 'summary.sheetCount', i18n: 'results.sheets', display: 'count', priority: 30 },
+      { path: 'summary.runCount', i18n: 'queue.nestingRuns', display: 'count', role: 'childCount', priority: 20 },
+      { path: 'summary.sheetCount', i18n: 'results.sheets', display: 'count', role: 'childCount', priority: 30 },
       { path: 'summary.totalArea', i18n: 'common.area', suffix: ' m²', display: 'area', priority: 40 }
     ],
     production: [
@@ -101,7 +101,7 @@ export const cncEntityFieldGroups = {
   },
   library: {
     summary: [
-      { path: 'summary.cassetteCount', i18n: 'entities.cassette', display: 'count', priority: 10 },
+      { path: 'summary.cassetteCount', i18n: 'entities.cassette', display: 'count', role: 'childCount', priority: 10 },
       { path: 'data.material', i18n: 'entities.material', display: 'objectSummary', priority: 20 },
       { path: 'data.description', i18n: 'common.description', display: 'text', priority: 30 }
     ]
@@ -142,7 +142,7 @@ export const cncEntityFieldGroups = {
   },
   catalog: {
     summary: [
-      { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable', display: 'count', priority: 10 },
+      { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable', display: 'count', role: 'childCount', priority: 10 },
       { path: 'data.options.sheetThicknesses', i18n: 'catalog.sheetThicknessOptions', suffix: ' mm', display: 'list', priority: 20 },
       { path: 'data.options.foilThicknesses', i18n: 'catalog.foilThicknessOptions', suffix: ' mm', display: 'list', priority: 30 },
       { path: 'data.pricing.pricePerSqm', i18n: 'catalog.pricePerSqm', prefix: '$', display: 'money', priority: 40 }

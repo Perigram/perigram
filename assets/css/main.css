@@ -60,6 +60,16 @@ body {
     overflow: hidden;
 }
 
+.entity-inline-tone .p-chip {
+    border: 1px solid var(--ck-inline-ref-border, var(--p-content-border-color));
+    background: var(--ck-inline-ref-bg, var(--p-surface-100));
+    color: var(--ck-inline-ref-fg, var(--p-text-color));
+}
+
+.entity-inline-tone .p-chip .p-chip-icon {
+    color: inherit;
+}
+
 /* Minimal layout helpers only */
 @layer utilities {
     .grid-hub {

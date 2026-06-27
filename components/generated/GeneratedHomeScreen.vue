@@ -57,9 +57,23 @@
                 />
               </div>
             </template>
-            <EntitySurfaceContent :entity="entity" :entity-type="section.source.entityType" :surface="section.region.surface || 'card'" />
-            <template v-if="entityActionsFor(section, entity).length || entityCanDelete(section, entity)" #footer>
+            <EntitySurfaceContent
+              :entity="entity"
+              :entity-type="section.source.entityType"
+              :surface="section.region.surface || 'card'"
+              suppress-child-counts
+            />
+            <template v-if="entityActionsFor(section, entity).length || entityCanDelete(section, entity) || detailRouteFor(section, entity)" #footer>
               <div class="flex flex-wrap justify-end gap-2">
+                <Button
+                  v-if="detailRouteFor(section, entity)"
+                  icon="pi pi-external-link"
+                  text
+                  rounded
+                  size="small"
+                  :aria-label="$t('common.open')"
+                  @click.stop="openEntity(section, entity)"
+                />
                 <GeneratedActionButton
                   v-for="action in entityActionsFor(section, entity)"
                   :key="action.actionId"
