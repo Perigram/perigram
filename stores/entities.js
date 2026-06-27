@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { onEntityChanged } from '~/utils/entity-events.js';
+
+let syncListenerAttached = false;
 
 /**
  * Universal Entity Store
@@ -28,6 +31,8 @@ export const useEntityStore = defineStore('entities', () => {
 
     const loading = ref(false);
     const error = ref(null);
+
+    ensureSyncListener();
 
     /**
      * Map of how entities relate to their parents (The Ancestry Tree)
@@ -107,6 +112,23 @@ export const useEntityStore = defineStore('entities', () => {
     function getAncestry(type, data) {
         if (!ancestryMap[type]) return [];
         return ancestryMap[type](data).filter(ref => ref.id);
+    }
+
+    function ensureSyncListener() {
+        if (syncListenerAttached || typeof window === 'undefined') return;
+        syncListenerAttached = true;
+        onEntityChanged(({ type, id, entity, change }) => {
+            const normalizedId = id?.toString?.() || id || entity?._id?.toString?.() || entity?._id;
+            if (!type || !normalizedId) return;
+            registry.value[type] ||= {};
+            if (change === 'deleted') {
+                delete registry.value[type][normalizedId];
+                return;
+            }
+            if (entity) {
+                registry.value[type][normalizedId] = entity;
+            }
+        });
     }
 
     return {

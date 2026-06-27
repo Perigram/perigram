@@ -2,22 +2,47 @@ export const ENTITY_CHANGED_EVENT = 'cutkit:entity-changed';
 
 export function emitEntityChanged(detail = {}) {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent(ENTITY_CHANGED_EVENT, { detail }));
+  window.dispatchEvent(new CustomEvent(ENTITY_CHANGED_EVENT, { detail: normalizeEntityChangeDetail(detail) }));
+}
+
+export function emitEntityMutation({ type, id, entity = null, change = 'updated', reason = change, source = 'local' } = {}) {
+  emitEntityChanged({
+    type,
+    id,
+    entity,
+    change,
+    reason,
+    source
+  });
+}
+
+export function emitEntityCreated({ type, id, entity = null, reason = 'create', source = 'local' } = {}) {
+  emitEntityMutation({ type, id, entity, change: 'created', reason, source });
+}
+
+export function emitEntityUpdated({ type, id, entity = null, reason = 'update', source = 'local' } = {}) {
+  emitEntityMutation({ type, id, entity, change: 'updated', reason, source });
+}
+
+export function emitEntityDeleted({ type, id, entity = null, reason = 'delete', source = 'local' } = {}) {
+  emitEntityMutation({ type, id, entity, change: 'deleted', reason, source });
 }
 
 export function emitStatusTransitionResult({ entityType, targetId, response }) {
-  emitEntityChanged({
+  emitEntityMutation({
     type: entityType,
     id: response?.entity?._id || targetId,
     entity: response?.entity,
+    change: 'updated',
     reason: 'status-transition'
   });
 
   for (const changed of normalizedEffectEntities(response?.effects)) {
-    emitEntityChanged({
+    emitEntityMutation({
       type: changed.type,
       id: changed.id || changed.entity?._id,
       entity: changed.entity,
+      change: 'updated',
       reason: 'status-transition-effect'
     });
   }
@@ -36,4 +61,15 @@ export function onEntityChanged(handler) {
   const listener = event => handler(event.detail || {});
   window.addEventListener(ENTITY_CHANGED_EVENT, listener);
   return () => window.removeEventListener(ENTITY_CHANGED_EVENT, listener);
+}
+
+function normalizeEntityChangeDetail(detail = {}) {
+  const normalizedId = detail.id?.toString?.() || detail.id || detail.entity?._id?.toString?.() || detail.entity?._id || null;
+  return {
+    ...detail,
+    id: normalizedId,
+    change: detail.change || 'updated',
+    reason: detail.reason || detail.change || 'updated',
+    source: detail.source || 'local'
+  };
 }

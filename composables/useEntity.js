@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 import { useStatusController } from './useStatusController';
 import { useCutkitDomainUi } from './useCutkitDomainUi';
+import { emitEntityCreated, emitEntityDeleted, emitEntityUpdated } from '~/utils/entity-events.js';
 
 /**
  * Unified Entity Composable - v24 Standardized
@@ -89,6 +90,7 @@ export const useEntity = (type, identifier = null) => {
         body: updates
       }));
       entity.value = data;
+      emitEntityUpdated({ type, id: data?._id || id, entity: data });
       return data;
     } catch (err) {
       error.value = err.data?.message || `Failed to update ${type}`;
@@ -108,6 +110,7 @@ export const useEntity = (type, identifier = null) => {
       const url = domainUi.getListEndpoint(type);
       const result = await $fetch(url, entityFetchOptions({ method: 'POST', body: data }));
       entity.value = result;
+      emitEntityCreated({ type, id: result?._id, entity: result });
       return result;
     } catch (err) {
       error.value = err.data?.message || `Failed to create ${type}`;
@@ -124,8 +127,11 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
     error.value = null;
     try {
+      const removedId = id || entity.value?._id;
+      const removedEntity = entity.value;
       await $fetch(getSingleEndpoint(id), entityFetchOptions({ method: 'DELETE' }));
       entity.value = null;
+      emitEntityDeleted({ type, id: removedId, entity: removedEntity });
     } catch (err) {
       error.value = err.data?.message || `Failed to delete ${type}`;
       throw err;
