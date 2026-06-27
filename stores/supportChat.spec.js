@@ -3,59 +3,52 @@ import { createPinia, setActivePinia } from 'pinia';
 import { useAuthStore } from './auth.js';
 import { useSupportChatStore } from './supportChat.js';
 
-class MockEventSource {
-    static instances = [];
-
-    constructor(url) {
-        this.url = url;
-        this.closed = false;
-        this.onopen = null;
-        this.onmessage = null;
-        this.onerror = null;
-        MockEventSource.instances.push(this);
-    }
-
-    close() {
-        this.closed = true;
-    }
-}
-
 describe('support chat store connection lifecycle', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
-        MockEventSource.instances = [];
-        globalThis.EventSource = MockEventSource;
+        vi.useFakeTimers();
+        globalThis.$fetch = vi.fn(async () => ({
+            data: [{ conversationKey: 'direct:user-a:user-b', conversationKind: 'direct', unreadCount: 1 }],
+            totalUnread: 1
+        }));
         vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {
+        vi.useRealTimers();
         vi.restoreAllMocks();
-        delete globalThis.EventSource;
+        delete globalThis.$fetch;
     });
 
-    it('waits for auth before connecting and clears failed streams for reconnect', () => {
+    it('waits for auth before loading conversations and retries failed refreshes', async () => {
         const authStore = useAuthStore();
         const supportStore = useSupportChatStore();
 
         supportStore.connect();
 
-        expect(MockEventSource.instances).toHaveLength(0);
+        expect(globalThis.$fetch).not.toHaveBeenCalled();
 
         authStore.user = { id: 'user-a', userId: 'user-a' };
         authStore.isUserSet = true;
         supportStore.connect();
 
-        expect(MockEventSource.instances).toHaveLength(1);
-        expect(MockEventSource.instances[0].url).toBe('/api/support/conversations');
+        await vi.runOnlyPendingTimersAsync();
 
-        MockEventSource.instances[0].onerror?.(new Error('unauthorized'));
+        expect(globalThis.$fetch).toHaveBeenCalledWith('/api/support/conversations');
+        expect(supportStore.conversations).toHaveLength(1);
+        expect(supportStore.totalUnread).toBe(1);
+        expect(supportStore.connected).toBe(true);
 
-        expect(MockEventSource.instances[0].closed).toBe(true);
+        globalThis.$fetch.mockRejectedValueOnce(new Error('network'));
+        await supportStore.refresh();
+
         expect(supportStore.connected).toBe(false);
 
-        supportStore.connect();
+        globalThis.$fetch.mockResolvedValueOnce({ data: [], totalUnread: 0 });
+        await supportStore.refresh();
 
-        expect(MockEventSource.instances).toHaveLength(2);
-        expect(MockEventSource.instances[1].url).toBe('/api/support/conversations');
+        expect(supportStore.connected).toBe(true);
+        expect(supportStore.conversations).toEqual([]);
+        expect(supportStore.totalUnread).toBe(0);
     });
 });

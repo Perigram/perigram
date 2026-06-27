@@ -21,18 +21,52 @@
                     </div>
                     <h2 class="m-0 truncate text-base font-bold">{{ chatTitle }}</h2>
                 </div>
-                <Button
-                    icon="pi pi-times"
-                    severity="secondary"
-                    text
-                    rounded
-                    size="small"
-                    :aria-label="$t('common.close')"
-                    @click="closeChat"
-                />
+                <div class="flex shrink-0 items-center gap-1">
+                    <Button
+                        v-if="!activeConversation"
+                        icon="pi pi-user-plus"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('support.openChat')"
+                        @click="toggleNewChat"
+                    />
+                    <Button
+                        icon="pi pi-times"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('common.close')"
+                        @click="closeChat"
+                    />
+                </div>
             </div>
 
             <div v-if="!activeConversation" class="flex-1 overflow-y-auto p-2 md:p-3">
+                <div v-if="newChatVisible" class="mb-2">
+                    <Select
+                        v-model="newChatUserId"
+                        :options="newChatUserOptions"
+                        option-label="label"
+                        option-value="value"
+                        filter
+                        size="small"
+                        class="w-full"
+                        :loading="newChatUsersLoading"
+                        :placeholder="$t('common.user')"
+                        :aria-label="$t('common.user')"
+                        @update:model-value="openNewChatUser"
+                    >
+                        <template #option="{ option }">
+                            <div class="flex min-w-0 flex-col">
+                                <span class="truncate">{{ option.label }}</span>
+                                <small class="truncate text-muted-color">{{ option.value }}</small>
+                            </div>
+                        </template>
+                    </Select>
+                </div>
                 <div class="flex flex-col gap-2">
                     <button
                         v-for="conversation in displayConversations"
@@ -51,7 +85,13 @@
                             <div class="flex min-w-0 items-center gap-2">
                                 <span class="truncate font-medium">{{ conversationLabel(conversation) }}</span>
                             </div>
-                            <small class="block truncate text-muted-color">{{ conversation.lastMessage || $t('support.noMessages') }}</small>
+                            <small class="block truncate text-muted-color">
+                                <SupportMessageContent
+                                    v-if="conversation.lastMessage"
+                                    :message="conversationPreviewMessage(conversation)"
+                                />
+                                <template v-else>{{ $t('support.noMessages') }}</template>
+                            </small>
                         </div>
                         <small v-if="conversation.timestamp" class="shrink-0 text-muted-color">{{ shortTime(conversation.timestamp) }}</small>
                     </button>
@@ -130,6 +170,12 @@
                             @click="insertEntityRef"
                         />
                     </div>
+                    <div
+                        v-if="messagePreviewVisible"
+                        class="mb-2 rounded-ui border border-content-border bg-content p-2 text-sm text-muted-color"
+                    >
+                        <SupportMessageContent :message="draftPreviewMessage" />
+                    </div>
                     <div class="flex items-end gap-2 bg-content p-2 rounded-ui border border-content-border focus-within:border-primary transition-colors">
                         <Button
                             icon="pi pi-link"
@@ -193,15 +239,25 @@ const entityDraft = ref({ type: 'project', id: '' })
 const entityRefs = ref([])
 const entityOptions = ref([])
 const entityOptionsLoading = ref(false)
+const entityTypeOptions = ref([])
 const activeConversation = ref(null)
+const newChatVisible = ref(false)
+const newChatUserId = ref('')
+const newChatUsers = ref([])
+const newChatUsersLoading = ref(false)
 
-const entityTypeOptions = computed(() => [
-    { label: t('common.project'), value: 'project' },
-    { label: t('queue.title'), value: 'queue' },
-    { label: t('support.entityTypes.sheet'), value: 'sheet' },
-    { label: t('support.entityTypes.material'), value: 'material' },
-    { label: t('common.user'), value: 'user' }
-])
+const messagePreviewVisible = computed(() => Boolean(message.value.trim() && (message.value.includes('{{entity:') || entityRefs.value.length)))
+const draftPreviewMessage = computed(() => ({
+    message: message.value,
+    entityRefs: entityRefs.value
+}))
+
+const listedDirectUserIds = computed(() => new Set(displayConversations.value
+    .filter(conversation => conversation.conversationKind === 'direct')
+    .map(participantUserId)
+    .filter(Boolean)))
+
+const newChatUserOptions = computed(() => newChatUsers.value.filter(option => option.value !== currentUserId.value && !listedDirectUserIds.value.has(option.value)))
 
 const displayConversations = computed(() => {
     const support = supportChatStore.supportConversation || {
@@ -242,6 +298,7 @@ const sendMessage = async () => {
         })
         message.value = ''
         entityRefs.value = []
+        await supportChatStore.refresh()
     } catch (error) {
         console.error('Failed to send message:', error)
     } finally {
@@ -290,6 +347,7 @@ const connect = async () => {
 
 onMounted(() => {
     if (authStore.userIsSet) supportChatStore.connect()
+    loadEntityTypes()
     if (chatTarget.value?.userId) openDirectTarget()
 })
 onBeforeUnmount(() => {
@@ -355,10 +413,30 @@ const scrollToBottom = async () => {
 
 const toggleEntityComposer = async () => {
     entityComposerVisible.value = !entityComposerVisible.value
-    if (entityComposerVisible.value) await loadEntityOptions()
+    if (entityComposerVisible.value) {
+        if (!entityTypeOptions.value.length) await loadEntityTypes()
+        await loadEntityOptions()
+    }
+}
+
+const loadEntityTypes = async () => {
+    try {
+        const types = await $fetch('/api/support/entity-types')
+        entityTypeOptions.value = (types || []).map(type => ({
+            label: t(type.labelKey),
+            value: type.value
+        }))
+        if (!entityDraft.value.type && entityTypeOptions.value[0]) {
+            entityDraft.value.type = entityTypeOptions.value[0].value
+        }
+    } catch (error) {
+        console.error('Failed to load support entity types:', error)
+        entityTypeOptions.value = []
+    }
 }
 
 const loadEntityOptions = async () => {
+    if (!entityDraft.value.type) return
     entityOptionsLoading.value = true
     entityDraft.value.id = ''
     try {
@@ -382,6 +460,44 @@ const insertEntityRef = () => {
         entityRefs.value.push({ type: selected.type, id: selected.value, label: selected.label })
     }
     entityDraft.value.id = ''
+}
+
+const toggleNewChat = async () => {
+    newChatVisible.value = !newChatVisible.value
+    if (newChatVisible.value) await loadNewChatUsers()
+}
+
+const loadNewChatUsers = async () => {
+    newChatUsersLoading.value = true
+    try {
+        newChatUsers.value = await $fetch('/api/support/entity-options', {
+            query: { type: 'user' }
+        })
+    } catch (error) {
+        console.error('Failed to load chat users:', error)
+        newChatUsers.value = []
+    } finally {
+        newChatUsersLoading.value = false
+    }
+}
+
+const openNewChatUser = (userId) => {
+    if (!userId) return
+    const option = newChatUsers.value.find(item => item.value === userId)
+    activeConversation.value = {
+        conversationKey: directConversationKey(currentUserId.value, userId),
+        conversationKind: 'direct',
+        participants: [currentUserId.value, userId].filter(Boolean),
+        lastMessage: '',
+        entityRefs: [],
+        participant: option?.entity || {
+            _id: userId,
+            identity: { name: option?.label || userId },
+            data: {}
+        }
+    }
+    newChatUserId.value = ''
+    newChatVisible.value = false
 }
 
 const isOwnMessage = (chatMessage) => {
@@ -429,6 +545,11 @@ const conversationLabel = (conversation) => {
         || conversation?.participant?.name
         || (conversation?.conversationKind === 'support' ? t('support.chatTitle') : t('common.user'))
 }
+
+const conversationPreviewMessage = (conversation) => ({
+    message: conversation.lastMessage || '',
+    entityRefs: conversation.entityRefs || []
+})
 
 const participantUserId = (conversation) => {
     return conversation?.participant?._id?.toString?.()

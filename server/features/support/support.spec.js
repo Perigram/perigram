@@ -68,6 +68,7 @@ describe('support communication service', () => {
         conversationKind: 'direct',
         participants: ['user-a', 'user-b'],
         message: 'new',
+        entityRefs: [{ type: 'queue', id: 'queue-1', label: 'Queue 1' }],
         senderUserId: 'user-b',
         timestamp: new Date('2026-06-27T10:00:00.000Z')
       },
@@ -104,6 +105,7 @@ describe('support communication service', () => {
 
     expect(conversations.find(item => item.conversationKey === 'direct:user-a:user-b')).toMatchObject({
       lastMessage: 'new',
+      entityRefs: [{ type: 'queue', id: 'queue-1', label: 'Queue 1' }],
       unreadCount: 1,
       participant: { _id: 'user-b' }
     });
@@ -142,6 +144,16 @@ describe('support communication service', () => {
         label: 'Facade Alpha',
         entity: { _id: 'project-1', identity: { name: 'Facade Alpha' }, data: {} }
       }
+    ]);
+  });
+
+  it('exposes supported entity attachment types for the composer', () => {
+    expect(supportService.listEntityOptionTypes()).toEqual([
+      { value: 'project', labelKey: 'common.project' },
+      { value: 'queue', labelKey: 'queue.title' },
+      { value: 'sheet', labelKey: 'support.entityTypes.sheet' },
+      { value: 'material', labelKey: 'support.entityTypes.material' },
+      { value: 'user', labelKey: 'common.user' }
     ]);
   });
 });

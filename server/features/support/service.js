@@ -9,7 +9,14 @@ import { MESSAGE_SENDER } from './const.js';
 
 const ENTITY_REF_LIMIT = 6;
 const ENTITY_OPTION_LIMIT = 20;
-const ENTITY_OPTION_TYPES = new Set(['project', 'queue', 'sheet', 'material', 'user']);
+const ENTITY_OPTION_TYPE_DEFS = [
+    { value: 'project', labelKey: 'common.project' },
+    { value: 'queue', labelKey: 'queue.title' },
+    { value: 'sheet', labelKey: 'support.entityTypes.sheet' },
+    { value: 'material', labelKey: 'support.entityTypes.material' },
+    { value: 'user', labelKey: 'common.user' }
+];
+const ENTITY_OPTION_TYPES = new Set(ENTITY_OPTION_TYPE_DEFS.map(type => type.value));
 
 export async function getUserConversationContext(auth, recipientUserId = null) {
     const userId = auth?.userId;
@@ -93,6 +100,10 @@ export async function listEntityOptions(auth, type, query = '') {
         .slice(0, ENTITY_OPTION_LIMIT);
 }
 
+export function listEntityOptionTypes() {
+    return ENTITY_OPTION_TYPE_DEFS;
+}
+
 export async function sendUserMessage(auth, body = {}) {
     const context = await getUserConversationContext(auth, body.recipientUserId || null);
     return await insertMessage({
@@ -174,6 +185,7 @@ async function buildConversationSummaries(messages, auth, options = {}) {
                 conversationKind: message.conversationKind || 'support',
                 participants: normalizeParticipants(message),
                 lastMessage: message.message,
+                entityRefs: message.entityRefs || [],
                 timestamp: message.timestamp,
                 unreadCount: 0
             });
@@ -216,6 +228,7 @@ async function addReachableUserConversations(conversations, auth) {
             conversationKind: 'direct',
             participants: [auth.userId, userId].sort(),
             lastMessage: '',
+            entityRefs: [],
             timestamp: null,
             unreadCount: 0,
             participant: dto

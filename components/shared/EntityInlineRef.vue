@@ -1,9 +1,12 @@
 <script setup>
 import { computed, defineAsyncComponent, inject, ref, unref, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import Button from 'primevue/button';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { useEntity } from '~/composables/useEntity';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
+import { ENTITY_UI } from '~/utils/status-engine.js';
 
 const CARD_COMPONENTS = {
   project: defineAsyncComponent(() => import('~/components/entities/Project/ProjectCard.vue')),
@@ -41,6 +44,7 @@ const props = defineProps({
 });
 
 const loaded = ref(null);
+const router = useRouter();
 const domainUi = useCutkitDomainUi();
 const entityApi = useEntity(props.type);
 const entityContext = inject('entityContext', null);
@@ -65,6 +69,11 @@ const cardProps = computed(() => ({
   [contract.value?.propName || 'entity']: resolved.value,
   variant: 'inline'
 }));
+const detailRoute = computed(() => {
+  const routeFactory = ENTITY_UI[props.type]?.route;
+  if (!routeFactory || !normalizedId.value) return null;
+  return routeFactory(normalizedId.value, resolved.value?.lineage?.projectId || resolved.value?.lineage?.projectSlug || '');
+});
 
 watch(
   () => [props.entity, normalizedId.value, props.type, contextEntity.value?._id],
@@ -93,25 +102,43 @@ function contextTypeCandidates(type) {
   };
   return Array.from(new Set([type, aliases[type]].filter(Boolean)));
 }
+
+function openDetail(event) {
+  event.stopPropagation();
+  if (detailRoute.value) router.push(detailRoute.value);
+}
 </script>
 
 <template>
-  <component
-    v-if="resolved && cardComponent"
-    :is="cardComponent"
-    v-bind="cardProps"
-    data-entity-card-interactive="true"
-  />
-  <IdentityBlock
-    v-else-if="resolved"
-    :entity="resolved"
-    variant="inline"
-    :icon="icon"
-    :fields="fields"
-    data-entity-card-interactive="true"
-  />
-  <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted-color" data-entity-card-interactive="true">
-    <i :class="icon" class="shrink-0"></i>
-    <span class="truncate">{{ normalizedId || $t('common.notAvailable') }}</span>
+  <span class="inline-flex min-w-0 items-center gap-1 align-middle">
+    <component
+      v-if="resolved && cardComponent"
+      :is="cardComponent"
+      v-bind="cardProps"
+      data-entity-card-interactive="true"
+    />
+    <IdentityBlock
+      v-else-if="resolved"
+      :entity="resolved"
+      variant="inline"
+      :icon="icon"
+      :fields="fields"
+      data-entity-card-interactive="true"
+    />
+    <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted-color" data-entity-card-interactive="true">
+      <i :class="icon" class="shrink-0"></i>
+      <span class="truncate">{{ normalizedId || $t('common.notAvailable') }}</span>
+    </span>
+    <Button
+      v-if="detailRoute"
+      icon="pi pi-external-link"
+      text
+      rounded
+      size="small"
+      class="shrink-0"
+      :aria-label="$t('common.open')"
+      data-entity-card-interactive="true"
+      @click="openDetail"
+    />
   </span>
 </template>
