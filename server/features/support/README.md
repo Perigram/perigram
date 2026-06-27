@@ -54,7 +54,17 @@ Entity ref types come from readable generated screen sources in the current
 generated-scope endpoint, not a hardcoded chat allowlist, and includes any
 source whose requirement is satisfied at read level or stronger. Concrete
 picker options are resolved separately through `GET /api/support/entity-options`
-using feature list services for entity types that expose a scoped list API.
+using feature list services for entity types that expose a scoped list API. Chat
+option lists are not narrowed by generated screen-scope filters such as
+`$screen.entityId`; once a type is allowed, the picker shows all entities the
+sender can read through that feature list service.
+
+For direct chats, the entity-options endpoint also evaluates the recipient's
+resolved process auth and marks options that the recipient cannot read through
+their own access contract. The composer renders those as chat-only warnings.
+When such a ref is sent, the stored `entityRefs[]` entry keeps a compact entity
+snapshot plus `chatOnlyForRecipient=true`, so the recipient can still inspect
+that entity inside chat without gaining generated-screen access.
 Message writes drop unsupported or unreadable refs instead of accepting
 arbitrary ids.
 
@@ -65,7 +75,7 @@ arbitrary ids.
 | `GET /api/support/conversations` | Snapshot of the current user's support/direct conversation list with unread counts. |
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
 | `GET /api/support/entity-types` | Returns generated-screen entity source types readable by the current user. |
-| `GET /api/support/entity-options?type=<type>&q=<query>` | Returns readable entity options for chat attachment refs. |
+| `GET /api/support/entity-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable entity options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
 | `GET /api/support/messages` | SSE stream for the current user's support conversation. |
 | `GET /api/support/messages?recipientUserId=<id>` | SSE stream for a direct user conversation. |
 | `POST /api/support/messages` | Send support or direct user message, depending on `recipientUserId`. |

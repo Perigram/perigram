@@ -302,7 +302,11 @@ embedded as tokens, so structured attachments remain visible without polluting
 the text body. Chat composers must source supported ref types from the support
 entity-types endpoint, which derives choices from readable generated screen
 sources, and concrete refs from the support entity-options endpoint instead of
-manual ids.
+manual ids. Chat message refs may also carry compact entity snapshots plus
+chat-only recipient metadata; `SupportMessageContent` passes those snapshots
+into `EntityInlineRef` so popovers stay usable inside chat even when the
+recipient lacks ordinary entity read access, while generated detail-route
+buttons stay hidden for that chat-only recipient view.
 
 ---
 

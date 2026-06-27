@@ -4,6 +4,25 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Add recipient-aware chat attachments and status-history drafts
+    Files changed: components/ChatSupport.vue,
+      components/shared/EntityInlineRef.vue,
+      components/shared/SupportMessageContent.vue,
+      components/shared/status/StatusHistory.vue,
+      server/api/support/entity-options.get.js,
+      server/features/support/service.js,
+      server/features/support/support.spec.js,
+      i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: server/features/support/README.md, server/api/README.md,
+      components/README.md, components/shared/README.md, TODO.org
+    Notes: Direct-chat attachment options now evaluate recipient access and
+      warn when a ref will be chat-only for that recipient. Sent refs persist a
+      compact entity snapshot for in-chat popovers without expanding generated
+      screen access, chat options no longer disappear behind unresolved
+      `$screen.*` source filters, library inline refs now open the same popup
+      card as other supported entity chips, and status-history chat actions
+      preattach the current entity into the draft.
+
     [2026-06-27] Fix chat attachment draft preview text duplication
     Files changed: components/ChatSupport.vue
     Docs updated: components/README.md, TODO.org

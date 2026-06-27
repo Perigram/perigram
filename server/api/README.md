@@ -62,8 +62,10 @@ Routes are grouped into sub-directories corresponding to features:
   conversations. Conversation-list routes return unread counts from
   `supportConversationReads`. Messages may include structured inline
   `entityRefs` selected from readable generated-screen entity types and
-  concrete readable entity options when a scoped list service exists. The shared
-  chat message component renders both inline tokens and structured refs.
+  concrete readable entity options when a scoped list service exists. The
+  entity-options route also accepts `recipientUserId` for direct-chat warning
+  metadata. The shared chat message component renders both inline tokens and
+  structured refs.
 - `workflow-overrides/`: Authenticated organization-owned lifecycle override
   read and replace endpoints for entity status machines.
 - `user/`: Profile and credit management.
