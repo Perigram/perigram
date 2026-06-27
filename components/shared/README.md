@@ -318,9 +318,9 @@ When the active generated screen manifest exposes a detail route for the
 reference type, `EntityInlineRef` provides that route to the expanded inline
 entity-card popover. The popover footer renders an icon-only open action that
 navigates through generated `/screens/:screenKey` detail routing, not legacy
-feature routes. Cassette and cassette-design compact refs suppress the
-`dimension.cassette` layer in their micro preview so annotation text does not
-overpower the gallery thumbnail. Inline-ref popovers also force the shared `TraceChain` even
+feature routes. Cassette, cassette-design, and sheet-design compact refs
+suppress the `dimension.cassette` layer in their micro preview so annotation
+text does not overpower the gallery thumbnail. Inline-ref popovers also force the shared `TraceChain` even
 when the base card surface normally hides trace in compact contexts, and show a
 small localized entity-type label above the identity row so the operator can
 see both lineage context and exact entity kind without adding extra chrome to

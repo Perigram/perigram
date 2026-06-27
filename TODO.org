@@ -4,6 +4,13 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Hide sheet-design dimension layer in compact previews
+    Files changed: components/shared/EntityInlineRef.vue,
+      shared/design-system.spec.js
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Sheet-design compact relation refs now use the same micro-preview
+      dimension-layer suppression as cassette and cassette-design refs.
+
     [2026-06-27] Uncramp compact relation status badges
     Files changed: assets/css/main.css,
       components/shared/EntityInlineRef.vue,
