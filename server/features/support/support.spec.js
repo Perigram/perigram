@@ -571,4 +571,30 @@ describe('support communication service', () => {
       })
     ]);
   });
+
+  it('normalizes frontend entity type aliases before validating sent refs', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    mocks.cassetteDesignsService.list.mockResolvedValue([
+      {
+        toJSON: () => ({
+          _id: 'design-1',
+          identity: { name: 'Design 1' },
+          data: {}
+        })
+      }
+    ]);
+
+    const message = await supportService.sendUserMessage(auth, {
+      message: 'Alias',
+      entityRefs: [{ type: 'cassetteDesign', id: 'design-1' }]
+    });
+
+    expect(message.entityRefs).toEqual([
+      expect.objectContaining({
+        type: 'cassette_design',
+        id: 'design-1',
+        label: 'Design 1'
+      })
+    ]);
+  });
 });

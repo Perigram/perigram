@@ -398,7 +398,23 @@ function matchesEntityQuery(option, query) {
 }
 
 function normalizeEntityOptionType(type) {
-    return typeof type === 'string' ? type.trim() : '';
+    if (typeof type !== 'string') return '';
+    const value = type.trim();
+    const aliases = {
+        nestingRun: 'nesting_run',
+        sheetDesign: 'sheet_design',
+        cassetteDesign: 'cassette_design',
+        cassetteTemplate: 'cassette',
+        cassetteInstance: 'cassette_instance',
+        materialPile: 'material_pile',
+        batchPile: 'material_pile',
+        entityRevision: 'entity_revision',
+        geometryCapture: 'geometry_capture',
+        toolProfile: 'tool_profile',
+        penTemplate: 'pen_template',
+        layerStandard: 'layer_standard'
+    };
+    return aliases[value] || value;
 }
 
 function isEntityOptionTypeAllowed(auth = {}, type) {
