@@ -7,9 +7,12 @@ Nuxt route components for public, authenticated, and admin surfaces.
 `index.vue` is the public landing page for anonymous visitors and the workspace
 redirect gate for authenticated users.
 
-- On mount, it always calls `authStore.setUser()` before choosing a route, so
-  the entry decision uses the current active process manifest instead of stale
-  client-side user state.
+- The landing shell renders immediately for anonymous visitors. Entry auth is
+  resolved on the server when cookies are present, and client mount re-checks
+  auth only to redirect authenticated sessions. The public first paint must not
+  block on a client-side `/api/auth/me` round trip, because that leaves mobile
+  and constrained-network clients stuck on a spinner even though the landing
+  page itself is public.
 - Authenticated users with an active process go to the generated process entry
   route: the generated `home` screen first, then the first generated hub/list
   screen, then `/screens` only when no navigable generated screen exists. The

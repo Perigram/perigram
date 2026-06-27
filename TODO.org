@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Fail open on public landing auth check
+    Files changed: pages/index.vue
+    Docs updated: pages/README.md, TODO.org
+    Notes: The root route now renders the marketing landing immediately for
+      anonymous visitors and resolves authenticated redirects server-side when
+      cookies are present. Client mount still refreshes auth for redirect
+      decisions, but public first paint no longer depends on `/api/auth/me`.
+
     [2026-06-27] Add chat entity previews and new chat picker
     Files changed: components/ChatSupport.vue,
       components/shared/EntityInlineRef.vue, server/features/support/service.js,
