@@ -177,6 +177,28 @@
                     >
                         <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
                     </div>
+                    <div v-if="entityRefs.length" class="mb-2 flex flex-wrap gap-2">
+                        <div
+                            v-for="ref in entityRefs"
+                            :key="`${ref.type}-${ref.id}`"
+                            class="inline-flex max-w-full items-center gap-1 rounded-ui border border-content-border bg-content px-2 py-1"
+                        >
+                            <EntityInlineRef
+                                :type="ref.type"
+                                :id="ref.id"
+                                :entity="ref.entity || null"
+                                :fetch="!ref.entity"
+                            />
+                            <Button
+                                icon="pi pi-times"
+                                text
+                                rounded
+                                size="small"
+                                :aria-label="$t('common.delete')"
+                                @click="removeEntityRef(ref)"
+                            />
+                        </div>
+                    </div>
                     <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-xs text-amber-700">
                         <small
                             v-for="ref in recipientLimitedRefs"
@@ -230,6 +252,7 @@ import Button from 'primevue/button'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import { useI18n } from 'vue-i18n'
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useAuthStore } from '~/stores/auth'
@@ -259,7 +282,7 @@ const newChatUserId = ref('')
 const newChatUsers = ref([])
 const newChatUsersLoading = ref(false)
 
-const messagePreviewVisible = computed(() => Boolean(message.value.includes('{{entity:') || entityRefs.value.length))
+const messagePreviewVisible = computed(() => Boolean(message.value.includes('{{entity:')))
 const draftPreviewMessage = computed(() => ({
     message: message.value.includes('{{entity:') ? message.value : '',
     entityRefs: entityRefs.value
@@ -508,6 +531,10 @@ const insertEntityRef = () => {
         })
     }
     entityDraft.value.id = ''
+}
+
+const removeEntityRef = (targetRef) => {
+    entityRefs.value = entityRefs.value.filter(ref => !(ref.type === targetRef.type && ref.id === targetRef.id))
 }
 
 const toggleNewChat = async () => {

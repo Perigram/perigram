@@ -242,10 +242,16 @@ describe('support communication service', () => {
     ]);
   });
 
-  it('does not hide chat options behind unresolved generated screen scope filters', async () => {
-    mocks.nestingRunsService.list.mockResolvedValue([
-      { _id: 'run-1', identity: { name: 'Run Alpha' }, data: {} }
+  it('resolves parent-scoped generated filters for chat entity options', async () => {
+    mocks.queuesService.list.mockResolvedValue([
+      { toJSON: () => ({ _id: 'queue-1', identity: { name: 'Queue 1' }, data: {} }) },
+      { toJSON: () => ({ _id: 'queue-2', identity: { name: 'Queue 2' }, data: {} }) }
     ]);
+    mocks.nestingRunsService.list.mockImplementation(async (userId, userOrg, userRole, userPermissions, filters) => {
+      if (filters?.queueId === 'queue-1') return [{ _id: 'run-1', identity: { name: 'Run Alpha' }, data: {} }];
+      if (filters?.queueId === 'queue-2') return [{ _id: 'run-2', identity: { name: 'Run Beta' }, data: {} }];
+      return [];
+    });
     const processAuth = {
       ...auth,
       process: { active: true },
@@ -254,24 +260,33 @@ describe('support communication service', () => {
       },
       screens: [{
         id: 'queue_detail',
+        entityType: 'queue',
         sources: [{
           id: 'nesting_run_children',
           entityType: 'nesting_run',
           required: { feature: 'nesting_runs', level: 'read' },
-          filters: { queueId: '$screen.entityId' }
+          filters: { queueId: '$screen.scope.entityId' }
         }]
       }]
     };
 
-    const options = await supportService.listEntityOptions(processAuth, 'nesting_run', 'alpha');
+    const options = await supportService.listEntityOptions(processAuth, 'nesting_run', 'run');
 
-    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {});
+    expect(mocks.queuesService.list).toHaveBeenCalledWith({}, 'user-a', 'org-1', undefined, processAuth);
+    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-1' });
+    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-2' });
     expect(options).toEqual([
       {
         type: 'nesting_run',
         value: 'run-1',
         label: 'Run Alpha',
         entity: { _id: 'run-1', identity: { name: 'Run Alpha' }, data: {} }
+      },
+      {
+        type: 'nesting_run',
+        value: 'run-2',
+        label: 'Run Beta',
+        entity: { _id: 'run-2', identity: { name: 'Run Beta' }, data: {} }
       }
     ]);
   });

@@ -352,6 +352,19 @@ function adminSupportConversationsMatch() {
 async function loadEntityOptions(auth, type) {
     const loader = ENTITY_OPTION_LOADERS[type];
     if (!loader) return [];
+
+    if (auth.process?.active && type !== 'user') {
+        const sources = scopedEntityOptionTypes(auth).filter(source => source.entityType === type);
+        const results = [];
+        for (const source of sources) {
+            const resolvedFilters = await resolveSourceFilters(auth, source);
+            for (const filters of resolvedFilters) {
+                results.push(...await loader(auth, filters));
+            }
+        }
+        if (results.length) return dedupeEntities(results);
+    }
+
     return dedupeEntities(await loader(auth, {}));
 }
 
@@ -393,7 +406,9 @@ function scopedEntityOptionTypes(auth = {}) {
                 if (!sourceRequirementAllowed(auth, source.required || screen.required || {})) continue;
                 sources.push({
                     ...source,
-                    screenKey: screen.screenKey || screen.id || null
+                    screenKey: screen.screenKey || screen.id || null,
+                    screenEntityType: screen.entityType || null,
+                    screenScope: screen.scope || null
                 });
             }
         }
@@ -446,6 +461,62 @@ function sourceFilters(source = {}) {
     if (statuses.length === 1) filters.primaryStatus = statuses[0];
     else if (statuses.length > 1) filters.primaryStatuses = statuses.join(',');
     return filters;
+}
+
+async function resolveSourceFilters(auth, source = {}) {
+    const filters = sourceFilters(source);
+    if (!hasUnresolvedScreenScope(filters)) return [filters];
+
+    const directResolved = resolveFilterPlaceholders(filters, source.screenScope || {});
+    if (!hasUnresolvedScreenScope(directResolved)) return [directResolved];
+
+    const expanded = await expandParentScopedFilters(auth, directResolved, source);
+    return expanded.filter(item => !hasUnresolvedScreenScope(item));
+}
+
+function resolveFilterPlaceholders(value, scope = {}) {
+    if (Array.isArray(value)) return value.map(item => resolveFilterPlaceholders(item, scope));
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveFilterPlaceholders(item, scope)]));
+    }
+    if (value === '$screen.entityId' || value === '$screen.scope.entityId') {
+        return resolveScopeEntityId(scope) || value;
+    }
+    return value;
+}
+
+async function expandParentScopedFilters(auth, filters = {}, source = {}) {
+    const parentType = source.screenEntityType;
+    const parentLoader = ENTITY_OPTION_LOADERS[parentType];
+    if (!parentType || !parentLoader) return [];
+
+    const loadedParents = await parentLoader(auth, {}).catch(() => []);
+    const parentEntities = dedupeEntities(loadedParents);
+    const parentIds = parentEntities
+        .map(entity => {
+            const dto = entity?.toJSON ? entity.toJSON() : entity;
+            return dto?._id?.toString?.() || dto?._id || dto?.id || null;
+        })
+        .filter(Boolean);
+    if (!parentIds.length) return [];
+
+    const expansions = [];
+    for (const parentId of parentIds) {
+        const resolved = resolveFilterPlaceholders(filters, {
+            ...(source.screenScope || {}),
+            entityId: parentId
+        });
+        if (!hasUnresolvedScreenScope(resolved)) expansions.push(resolved);
+    }
+    return expansions;
+}
+
+function resolveScopeEntityId(scope = {}) {
+    if (scope.entityId) return scope.entityId;
+    for (const [key, value] of Object.entries(scope || {})) {
+        if (key.endsWith('Id') && value) return value;
+    }
+    return null;
 }
 
 function statusFiltersFromRequirement(requirement = {}) {
