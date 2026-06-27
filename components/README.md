@@ -649,10 +649,11 @@ message-count badges. The composer loads attachment types from
 screen source manifest at read access rather than a fixed chat list. Concrete
 attachment choices resolve through `/api/support/entity-options` when the
 backend has a scoped list service for that entity type. Selected attachments
-stay in structured `entityRefs` and render as a draft preview before send; the
-composer must not inject attachment tokens into the textarea body. The
-conversation snapshot is auth-gated by the store so direct user candidates are
-not lost behind a failed pre-auth request.
+stay in structured `entityRefs` and render as a draft attachment preview before
+send; that preview must not duplicate ordinary textarea text. The composer must
+not inject attachment tokens into the textarea body. The conversation snapshot
+is auth-gated by the store so direct user candidates are not lost behind a
+failed pre-auth request.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data

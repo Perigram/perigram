@@ -4,6 +4,13 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Fix chat attachment draft preview text duplication
+    Files changed: components/ChatSupport.vue
+    Docs updated: components/README.md, TODO.org
+    Notes: The composer draft preview now renders structured entity refs
+      without echoing ordinary textarea text; only manually typed inline entity
+      tokens are previewed as rendered message content.
+
     [2026-06-27] Fix chat attachment scope and composer body
     Files changed: components/ChatSupport.vue,
       server/features/support/service.js, server/features/support/support.spec.js
