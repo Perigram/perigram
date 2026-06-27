@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
+import { useAuthStore } from '~/stores/auth';
 
 export const useSupportChatStore = defineStore('supportChat', () => {
+    const authStore = useAuthStore();
     const conversations = ref([]);
     const totalUnread = ref(0);
     const connected = ref(false);
@@ -11,7 +13,7 @@ export const useSupportChatStore = defineStore('supportChat', () => {
     const supportConversation = computed(() => conversations.value.find(item => item.conversationKind === 'support') || null);
 
     function connect() {
-        if (eventSource || process.server) return;
+        if (eventSource || process.server || !authStore.userIsSet) return;
         error.value = null;
         eventSource = new EventSource('/api/support/conversations');
         eventSource.onopen = () => {
@@ -26,6 +28,10 @@ export const useSupportChatStore = defineStore('supportChat', () => {
         };
         eventSource.onerror = (err) => {
             console.error('Support conversations SSE error:', err);
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
             connected.value = false;
             error.value = err;
         };

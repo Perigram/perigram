@@ -167,7 +167,6 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, unref, computed, nextTick, watch } from 'vue'
 import Avatar from 'primevue/avatar'
-import Badge from 'primevue/badge'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
@@ -290,7 +289,7 @@ const connect = async () => {
 }
 
 onMounted(() => {
-    supportChatStore.connect()
+    if (authStore.userIsSet) supportChatStore.connect()
     if (chatTarget.value?.userId) openDirectTarget()
 })
 onBeforeUnmount(() => {
