@@ -20,8 +20,9 @@
       compact entity snapshot for in-chat popovers without expanding generated
       screen access, chat options no longer disappear behind unresolved
       `$screen.*` source filters, library inline refs now open the same popup
-      card as other supported entity chips, and status-history chat actions
-      preattach the current entity into the draft.
+      card as other supported entity chips, status-history chat actions
+      preattach the current entity into the draft, and draft attachment chips
+      are removable before send.
 
     [2026-06-27] Fix chat attachment draft preview text duplication
     Files changed: components/ChatSupport.vue
@@ -2204,6 +2205,16 @@
        Fillet modifiers are normalized to `{ type: 'fillet', vertexId,
        radius }`, with a dry-run migration script for existing profile
        templates and normalized OCCS snapshots.
+
+     [2026-06-27] Add profile sketch component smoke tests
+     Files changed: components/ProfileSketchEditor.vue,
+       components/ProfileSketchEditor.spec.js, vitest.config.js
+     Docs updated: components/README.md, scripts/README.md, TODO.org
+     Notes: Added Vue SFC support to the Vitest config and a focused SSR smoke
+       spec for malformed and empty in-progress profile sketches. Hardened
+       ProfileSketchEditor array access so transient sketch values cannot crash
+       render or mutation paths by reading `.length` from undefined points or
+       holes.
 
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,

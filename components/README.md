@@ -411,12 +411,9 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   point-by-point polylines with endpoint snaps, typed distance from the
   previous point, optional ortho projection, circle holes, DXF import, and
   per-corner fillet radii. It does not own a general parametric constraint
-  solver.
-  `ProfileSketchEditor` is a compact CAD-style direct editor: users draw
-  point-by-point polylines with endpoint snaps, typed distance from the
-  previous point, optional ortho projection, circle holes, DXF import, and
-  per-corner fillet radii. It does not own a general parametric constraint
-  solver.
+  solver. `components/ProfileSketchEditor.spec.js` provides the focused Vue
+  smoke coverage for malformed and empty in-progress sketches; helper math
+  remains covered in `utils/occs/profiles.spec.js`.
 - `RemnantCard` and `RemnantDetail` render saved leftover material geometry
   through `GeometryPreview`, including polygon-with-holes queue-cut remnants.
   Source sheet, warehouse, and material pile context should be compact
@@ -651,11 +648,11 @@ attachment choices resolve through `/api/support/entity-options` when the
 backend has a scoped list service for that entity type, and direct chats also
 receive recipient-access metadata so the draft can warn when an attached entity
 will be visible only inside chat. Selected attachments stay in structured
-`entityRefs` and render as a draft attachment preview before send; that preview
+`entityRefs` and render as removable draft chips before send; any text preview
 must not duplicate ordinary textarea text. Status-history actor chat actions
 preseed the current entity into that draft. The composer must not inject
-attachment tokens into the textarea body. The conversation snapshot is
-auth-gated by the store so direct user candidates are not lost behind a failed
+attachment tokens into the textarea body. The conversation snapshot is auth-
+gated by the store so direct user candidates are not lost behind a failed
 pre-auth request.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
