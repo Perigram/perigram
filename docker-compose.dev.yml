@@ -19,6 +19,9 @@ services:
       - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - NUXT_DEV_HMR_HOST=${NUXT_DEV_HMR_HOST:-}
+      - NUXT_DEV_HMR_PROTOCOL=${NUXT_DEV_HMR_PROTOCOL:-ws}
+      - NUXT_DEV_HMR_CLIENT_PORT=${NUXT_DEV_HMR_CLIENT_PORT:-3000}
       - CONFIG_BOT_CHAT_MODEL=${CONFIG_BOT_CHAT_MODEL:-qwen3:4b}
       - CONFIG_BOT_EMBED_MODEL=${CONFIG_BOT_EMBED_MODEL:-bge-m3}
       - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/opt/cutkit-cortex}

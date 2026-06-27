@@ -3,6 +3,9 @@ import Re_L from './assets/presets/re_l'
 import { fileURLToPath } from 'node:url'
 
 const resolveRoot = (path) => fileURLToPath(new URL(path, import.meta.url))
+const devHmrHost = process.env.NUXT_DEV_HMR_HOST || undefined
+const devHmrProtocol = process.env.NUXT_DEV_HMR_PROTOCOL || 'ws'
+const devHmrClientPort = Number(process.env.NUXT_DEV_HMR_CLIENT_PORT || 3000)
 const cutkitAliases = {
     '@cutkit/core': resolveRoot('./packages/core/src/index.js'),
     '@cutkit/workflows': resolveRoot('./packages/workflows/src/index.js'),
@@ -154,6 +157,14 @@ export default defineNuxtConfig({
             exclude: ['nodi-modular']
         },
         server: {
+            host: '0.0.0.0',
+            strictPort: true,
+            hmr: {
+                protocol: devHmrProtocol,
+                host: devHmrHost,
+                clientPort: devHmrClientPort,
+                path: '/_nuxt/'
+            },
             fs: {
                 allow: ['..']
             }
