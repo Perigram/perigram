@@ -1643,6 +1643,7 @@
     "addEntity": "Add entity",
     "openChat": "Open chats",
     "noMessages": "No messages",
+    "recipientChatOnlyWarning": "{label} is unavailable to the recipient outside this chat",
     "entityTypes": {
       "sheet": "Sheet",
       "material": "Material"

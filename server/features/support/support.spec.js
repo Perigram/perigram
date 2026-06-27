@@ -26,7 +26,8 @@ const mocks = vi.hoisted(() => ({
   sheetDesignsService: { list: vi.fn() },
   sheetsService: { list: vi.fn() },
   materialsService: { list: vi.fn() },
-  warehousesService: { list: vi.fn() }
+  warehousesService: { list: vi.fn() },
+  processRuntime: { resolveProcessAuth: vi.fn(async (auth) => auth) }
 }));
 
 vi.mock('./repository.js', () => mocks.repository);
@@ -45,6 +46,7 @@ vi.mock('~/server/features/sheet-designs/service.js', () => mocks.sheetDesignsSe
 vi.mock('~/server/features/sheets/service.js', () => mocks.sheetsService);
 vi.mock('~/server/features/materials/service.js', () => mocks.materialsService);
 vi.mock('~/server/features/warehouses/service.js', () => mocks.warehousesService);
+vi.mock('~/server/features/process-definitions/runtime.js', () => mocks.processRuntime);
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
     const error = new Error(err.message);
@@ -236,6 +238,111 @@ describe('support communication service', () => {
         value: 'design-1',
         label: 'Design Alpha',
         entity: { _id: 'design-1', identity: { name: 'Design Alpha' }, data: {} }
+      }
+    ]);
+  });
+
+  it('does not hide chat options behind unresolved generated screen scope filters', async () => {
+    mocks.nestingRunsService.list.mockResolvedValue([
+      { _id: 'run-1', identity: { name: 'Run Alpha' }, data: {} }
+    ]);
+    const processAuth = {
+      ...auth,
+      process: { active: true },
+      effectivePermissions: {
+        nesting_runs: [{ level: 'read' }]
+      },
+      screens: [{
+        id: 'queue_detail',
+        sources: [{
+          id: 'nesting_run_children',
+          entityType: 'nesting_run',
+          required: { feature: 'nesting_runs', level: 'read' },
+          filters: { queueId: '$screen.entityId' }
+        }]
+      }]
+    };
+
+    const options = await supportService.listEntityOptions(processAuth, 'nesting_run', 'alpha');
+
+    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {});
+    expect(options).toEqual([
+      {
+        type: 'nesting_run',
+        value: 'run-1',
+        label: 'Run Alpha',
+        entity: { _id: 'run-1', identity: { name: 'Run Alpha' }, data: {} }
+      }
+    ]);
+  });
+
+  it('marks attachment options that the direct recipient can only view in chat', async () => {
+    mocks.projectsService.list.mockImplementation(async (userId) => {
+      if (userId === 'user-b') return [];
+      return [{ toJSON: () => ({ _id: 'project-1', identity: { name: 'Facade Alpha' }, data: {} }) }];
+    });
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({
+        _id: 'user-b',
+        identity: { name: 'User B' },
+        lineage: { organizationId: 'org-1' },
+        data: { role: 'USER', permissions: {}, memberships: [{ organizationId: 'org-1' }] }
+      })
+    });
+
+    const options = await supportService.listEntityOptions(auth, 'project', 'facade', 'user-b');
+
+    expect(options).toEqual([
+      {
+        type: 'project',
+        value: 'project-1',
+        label: 'Facade Alpha',
+        entity: { _id: 'project-1', identity: { name: 'Facade Alpha' }, data: {} },
+        recipientHasAccess: false
+      }
+    ]);
+  });
+
+  it('persists chat-only recipient metadata and entity snapshots on direct message refs', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    mocks.projectsService.list.mockImplementation(async (userId) => {
+      if (userId === 'user-b') return [];
+      return [{ toJSON: () => ({ _id: 'project-1', identity: { name: 'Facade Alpha' }, data: {} }) }];
+    });
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({
+        _id: 'user-b',
+        identity: { name: 'User B' },
+        lineage: { organizationId: 'org-1' },
+        data: { role: 'USER', permissions: {}, memberships: [{ organizationId: 'org-1' }] }
+      })
+    });
+
+    const message = await supportService.sendUserMessage(auth, {
+      recipientUserId: 'user-b',
+      message: 'Please review',
+      entityRefs: [{ type: 'project', id: 'project-1' }]
+    });
+
+    expect(message.entityRefs).toEqual([
+      {
+        type: 'project',
+        id: 'project-1',
+        label: 'Facade Alpha',
+        entity: {
+          _id: 'project-1',
+          identity: { name: 'Facade Alpha' },
+          lineage: {},
+          origin: null,
+          status: null,
+          specs: null,
+          attachments: {},
+          summary: {},
+          data: {}
+        },
+        chatOnlyForRecipient: true
       }
     ]);
   });

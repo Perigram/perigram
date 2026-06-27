@@ -14,6 +14,7 @@ import * as sheetDesignsService from '~/server/features/sheet-designs/service.js
 import * as sheetsService from '~/server/features/sheets/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import * as warehousesService from '~/server/features/warehouses/service.js';
+import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
 import { actionToLevel, levelAtLeast, normalizePermissionGrants } from '#shared/access-control.js';
 import * as repository from './repository.js';
 import { MESSAGE_SENDER } from './const.js';
@@ -107,7 +108,7 @@ export async function markConversationRead(auth, body = {}) {
     return await repository.markRead(context.conversationKey, auth.userId);
 }
 
-export async function listEntityOptions(auth, type, query = '') {
+export async function listEntityOptions(auth, type, query = '', recipientUserId = null) {
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
     const normalizedType = normalizeEntityOptionType(type);
     if (!isEntityOptionTypeAllowed(auth, normalizedType)) {
@@ -116,10 +117,21 @@ export async function listEntityOptions(auth, type, query = '') {
 
     const normalizedQuery = query.toString().trim().toLowerCase();
     const entities = await loadEntityOptions(auth, normalizedType);
-    return entities
+    const options = entities
         .map(entity => normalizeEntityOption(normalizedType, entity))
         .filter(option => option.value && matchesEntityQuery(option, normalizedQuery))
         .slice(0, ENTITY_OPTION_LIMIT);
+
+    if (!recipientUserId || recipientUserId === auth.userId || normalizedType === 'user') return options;
+
+    const recipientAuth = await resolveConversationParticipantAuth(auth, recipientUserId).catch(() => null);
+    if (!recipientAuth) return options;
+
+    const recipientIds = await listReadableEntityIds(recipientAuth, normalizedType);
+    return options.map(option => ({
+        ...option,
+        recipientHasAccess: recipientIds.has(option.value)
+    }));
 }
 
 export function listEntityOptionTypes(auth = {}) {
@@ -140,7 +152,8 @@ export async function sendUserMessage(auth, body = {}) {
         senderUserId: auth.userId,
         message: body.message,
         entityRefs: body.entityRefs,
-        auth
+        auth,
+        recipientUserId: context.kind === 'direct' ? context.participants.find(participant => participant !== auth.userId) : null
     });
 }
 
@@ -158,9 +171,9 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
     });
 }
 
-async function insertMessage({ context, sender, senderUserId, message, entityRefs, auth }) {
+async function insertMessage({ context, sender, senderUserId, message, entityRefs, auth, recipientUserId = null }) {
     const text = normalizeMessage(message);
-    const refs = await normalizeEntityRefs(entityRefs, auth);
+    const refs = await normalizeEntityRefs(entityRefs, auth, { recipientUserId });
     return await repository.insert({
         userId: context.kind === 'support' ? context.participants[0] : null,
         conversationKey: context.conversationKey,
@@ -180,7 +193,7 @@ function normalizeMessage(message) {
     return text;
 }
 
-async function normalizeEntityRefs(entityRefs = [], auth = {}) {
+async function normalizeEntityRefs(entityRefs = [], auth = {}, options = {}) {
     if (!Array.isArray(entityRefs)) return [];
     const allowedTypes = new Set(scopedEntityOptionTypes(auth).map(source => source.entityType));
     const normalized = entityRefs
@@ -195,9 +208,17 @@ async function normalizeEntityRefs(entityRefs = [], auth = {}) {
     const refs = [];
     for (const ref of normalized) {
         if (!allowedTypes.has(ref.type)) continue;
-        const options = await listEntityOptions(auth, ref.type, ref.id);
-        const option = options.find(item => item.value?.toString?.() === ref.id || item.value === ref.id);
-        if (option) refs.push({ type: ref.type, id: ref.id, label: option.label });
+        const readableOptions = await listEntityOptions(auth, ref.type, ref.id, options.recipientUserId || null);
+        const option = readableOptions.find(item => item.value?.toString?.() === ref.id || item.value === ref.id);
+        if (option) {
+            refs.push({
+                type: ref.type,
+                id: ref.id,
+                label: option.label,
+                entity: compactEntitySnapshot(ref.type, option.entity),
+                chatOnlyForRecipient: option.recipientHasAccess === false
+            });
+        }
     }
     return refs;
 }
@@ -215,6 +236,7 @@ async function buildConversationSummaries(messages, auth, options = {}) {
                 participants: normalizeParticipants(message),
                 lastMessage: message.message,
                 entityRefs: message.entityRefs || [],
+                senderUserId: message.senderUserId,
                 timestamp: message.timestamp,
                 unreadCount: 0
             });
@@ -330,19 +352,7 @@ function adminSupportConversationsMatch() {
 async function loadEntityOptions(auth, type) {
     const loader = ENTITY_OPTION_LOADERS[type];
     if (!loader) return [];
-
-    if (auth.process?.active && type !== 'user') {
-        const sources = scopedEntityOptionTypes(auth).filter(source => source.entityType === type);
-        const results = [];
-        for (const source of sources) {
-            const filters = sourceFilters(source);
-            if (hasUnresolvedScreenScope(filters)) continue;
-            results.push(...await loader(auth, filters));
-        }
-        return dedupeEntities(results);
-    }
-
-    return await loader(auth, {});
+    return dedupeEntities(await loader(auth, {}));
 }
 
 function normalizeEntityOption(type, entity) {
@@ -468,6 +478,87 @@ function dedupeEntities(entities = []) {
         byId.set(id, entity);
     }
     return [...byId.values()];
+}
+
+async function listReadableEntityIds(auth, type) {
+    const entities = await loadEntityOptions(auth, type).catch(() => []);
+    return new Set(entities
+        .map(entity => {
+            const dto = entity?.toJSON ? entity.toJSON() : entity;
+            return dto?._id?.toString?.() || dto?._id || dto?.id || null;
+        })
+        .filter(Boolean));
+}
+
+function compactEntitySnapshot(type, entity) {
+    const dto = entity?.toJSON ? entity.toJSON() : entity;
+    if (!dto || typeof dto !== 'object') return null;
+
+    const snapshot = {
+        _id: dto._id,
+        identity: dto.identity || {},
+        lineage: dto.lineage || {},
+        origin: dto.origin || null,
+        status: dto.status || null,
+        specs: dto.specs || null,
+        attachments: dto.attachments || {},
+        summary: dto.summary || {}
+    };
+    const data = { ...(dto.data || {}) };
+
+    if (type === 'nesting_run') {
+        snapshot.data = pickDefined(data, ['results', 'materialPool', 'sheetDesignIds']);
+        return snapshot;
+    }
+
+    if (type === 'library') {
+        snapshot.data = pickDefined(data, ['material', 'description']);
+        return snapshot;
+    }
+
+    if (type === 'cassette_design' || type === 'cassette' || type === 'sheet_design' || type === 'remnant') {
+        snapshot.data = {
+            ...pickDefined(data, ['materialPool', 'parameters', 'description', 'revisions', 'sheetDesignIds', 'results']),
+            ...(data.geometry ? { geometry: compactGeometrySnapshot(data.geometry) } : {})
+        };
+        return snapshot;
+    }
+
+    delete data.layoutData;
+    delete data.layerData;
+    delete data.polygonParts;
+    delete data.artifactIds;
+    if (data.geometry) data.geometry = compactGeometrySnapshot(data.geometry);
+    snapshot.data = data;
+    return snapshot;
+}
+
+function compactGeometrySnapshot(geometry = {}) {
+    const compact = pickDefined(geometry, ['preview', 'dxfId', 'dimensions', 'bounds']);
+    return Object.keys(compact).length ? compact : undefined;
+}
+
+function pickDefined(source = {}, keys = []) {
+    return keys.reduce((acc, key) => {
+        if (source[key] !== undefined) acc[key] = source[key];
+        return acc;
+    }, {});
+}
+
+async function resolveConversationParticipantAuth(requesterAuth = {}, participantUserId = null) {
+    if (!participantUserId || participantUserId === requesterAuth.userId) return requesterAuth;
+    const context = await getUserConversationContext(requesterAuth, participantUserId);
+    const recipient = context.recipient || (await usersService.getById(participantUserId))?.toJSON?.() || null;
+    if (!recipient) throw createError({ statusCode: 404, message: 'User not found' });
+
+    return await resolveProcessAuth({
+        userId: recipient._id?.toString?.() || recipient._id || recipient.id,
+        organizationId: recipient.lineage?.organizationId?.toString?.() || recipient.lineage?.organizationId || recipient.data?.memberships?.[0]?.organizationId || null,
+        role: recipient.data?.role,
+        permissions: recipient.data?.permissions || {},
+        memberships: recipient.data?.memberships || [],
+        restrictedTo: recipient.data?.restrictedTo || recipient.lineage?.restrictedTo || null
+    });
 }
 
 function sharesOrganization(auth = {}, recipient) {

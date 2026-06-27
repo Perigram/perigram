@@ -9,5 +9,10 @@ export default defineEventHandler(async (event) => {
     }
 
     const query = getQuery(event)
-    return await supportService.listEntityOptions(auth, query.type?.toString?.() || '', query.q?.toString?.() || '')
+    return await supportService.listEntityOptions(
+        auth,
+        query.type?.toString?.() || '',
+        query.q?.toString?.() || '',
+        query.recipientUserId?.toString?.() || null
+    )
 })

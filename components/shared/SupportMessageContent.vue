@@ -5,7 +5,8 @@ import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 const TOKEN_PATTERN = /\{\{entity:([^:}]+):([^}]+)\}\}/g;
 
 const props = defineProps({
-  message: { type: Object, required: true }
+  message: { type: Object, required: true },
+  viewerUserId: { type: String, default: '' }
 });
 
 const refsByKey = computed(() => {
@@ -50,6 +51,9 @@ const trailingRefs = computed(() => (props.message.entityRefs || [])
         v-else
         :type="part.entityType"
         :id="part.id"
+        :entity="part.ref.entity || null"
+        :fetch="!part.ref.entity"
+        :allow-detail-route="!(viewerUserId && message.senderUserId && message.senderUserId !== viewerUserId && part.ref.chatOnlyForRecipient)"
         class="max-w-full"
       />
     </template>
@@ -58,6 +62,9 @@ const trailingRefs = computed(() => (props.message.entityRefs || [])
       :key="`${ref.type}-${ref.id}`"
       :type="ref.type"
       :id="ref.id"
+      :entity="ref.entity || null"
+      :fetch="!ref.entity"
+      :allow-detail-route="!(viewerUserId && message.senderUserId && message.senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
       class="max-w-full"
     />
   </span>

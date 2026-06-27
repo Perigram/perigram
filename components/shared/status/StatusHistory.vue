@@ -119,7 +119,15 @@ const openActorChat = (event) => {
   if (!userId) return;
   supportChatTarget.value = {
     userId,
-    name: actorName(event)
+    name: actorName(event),
+    draftEntityRefs: resolvedTargetId.value
+      ? [{
+          type: props.entityType,
+          id: resolvedTargetId.value,
+          label: props.entity?.identity?.name || props.entity?.identity?.serial || resolvedTargetId.value,
+          entity: props.entity || null
+        }]
+      : []
   };
   supportDialog.value = true;
 };

@@ -89,6 +89,7 @@
                                 <SupportMessageContent
                                     v-if="conversation.lastMessage"
                                     :message="conversationPreviewMessage(conversation)"
+                                    :viewer-user-id="currentUserId"
                                 />
                                 <template v-else>{{ $t('support.noMessages') }}</template>
                             </small>
@@ -123,7 +124,7 @@
                                     : 'bg-content border border-content-border rounded-tl-none'"
                             >
                                 <p class="m-0 leading-relaxed break-words">
-                                    <SupportMessageContent :message="messageItem" />
+                                    <SupportMessageContent :message="messageItem" :viewer-user-id="currentUserId" />
                                 </p>
                             </div>
                             <span class="text-[10px] text-text-muted px-1">{{ formatTime(messageItem.timestamp) }}</span>
@@ -174,7 +175,19 @@
                         v-if="messagePreviewVisible"
                         class="mb-2 rounded-ui border border-content-border bg-content p-2 text-sm text-muted-color"
                     >
-                        <SupportMessageContent :message="draftPreviewMessage" />
+                        <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
+                    </div>
+                    <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-xs text-amber-700">
+                        <small
+                            v-for="ref in recipientLimitedRefs"
+                            :key="`${ref.type}-${ref.id}`"
+                            class="inline-flex min-w-0 items-center gap-1"
+                        >
+                            <i class="pi pi-exclamation-triangle shrink-0"></i>
+                            <span class="min-w-0 truncate">
+                                {{ $t('support.recipientChatOnlyWarning', { label: ref.label || ref.id }) }}
+                            </span>
+                        </small>
                     </div>
                     <div class="flex items-end gap-2 bg-content p-2 rounded-ui border border-content-border focus-within:border-primary transition-colors">
                         <Button
@@ -251,6 +264,8 @@ const draftPreviewMessage = computed(() => ({
     message: message.value.includes('{{entity:') ? message.value : '',
     entityRefs: entityRefs.value
 }))
+const activeRecipientUserId = computed(() => activeConversation.value?.conversationKind === 'direct' ? participantUserId(activeConversation.value) : '')
+const recipientLimitedRefs = computed(() => entityRefs.value.filter(ref => ref.recipientHasAccess === false))
 
 const listedDirectUserIds = computed(() => new Set(displayConversations.value
     .filter(conversation => conversation.conversationKind === 'direct')
@@ -440,7 +455,10 @@ const loadEntityOptions = async () => {
     entityDraft.value.id = ''
     try {
         entityOptions.value = await $fetch('/api/support/entity-options', {
-            query: { type: entityDraft.value.type }
+            query: {
+                type: entityDraft.value.type,
+                recipientUserId: activeRecipientUserId.value || undefined
+            }
         })
     } catch (error) {
         console.error('Failed to load entity options:', error)
@@ -450,11 +468,44 @@ const loadEntityOptions = async () => {
     }
 }
 
+const hydrateEntityRefs = async (refs = []) => {
+    const hydrated = []
+    for (const ref of refs) {
+        if (!ref?.type || !ref?.id) continue
+        try {
+            const options = await $fetch('/api/support/entity-options', {
+                query: {
+                    type: ref.type,
+                    q: ref.id,
+                    recipientUserId: activeRecipientUserId.value || undefined
+                }
+            })
+            const option = (options || []).find(item => item.value === ref.id)
+            hydrated.push({
+                ...ref,
+                label: option?.label || ref.label || ref.id,
+                entity: option?.entity || ref.entity || null,
+                recipientHasAccess: option?.recipientHasAccess
+            })
+        } catch (error) {
+            console.error('Failed to hydrate chat entity ref:', error)
+            hydrated.push(ref)
+        }
+    }
+    return hydrated
+}
+
 const insertEntityRef = () => {
     const selected = entityOptions.value.find(option => option.value === entityDraft.value.id)
     if (!selected) return
     if (!entityRefs.value.some(ref => ref.type === selected.type && ref.id === selected.value)) {
-        entityRefs.value.push({ type: selected.type, id: selected.value, label: selected.label })
+        entityRefs.value.push({
+            type: selected.type,
+            id: selected.value,
+            label: selected.label,
+            entity: selected.entity || null,
+            recipientHasAccess: selected.recipientHasAccess
+        })
     }
     entityDraft.value.id = ''
 }
@@ -523,7 +574,7 @@ const closeChat = () => {
     showInbox()
 }
 
-const openDirectTarget = () => {
+const openDirectTarget = async () => {
     if (!chatTarget.value?.userId) return
     activeConversation.value = {
         conversationKey: directConversationKey(currentUserId.value, chatTarget.value.userId),
@@ -535,6 +586,15 @@ const openDirectTarget = () => {
             data: {}
         }
     }
+    const draftRefs = (chatTarget.value.draftEntityRefs || [])
+        .filter(ref => ref?.type && ref?.id)
+        .map(ref => ({
+            type: ref.type,
+            id: ref.id,
+            label: ref.label || ref.id,
+            entity: ref.entity || null
+        }));
+    entityRefs.value = await hydrateEntityRefs(draftRefs);
 }
 
 const conversationLabel = (conversation) => {
@@ -545,7 +605,8 @@ const conversationLabel = (conversation) => {
 
 const conversationPreviewMessage = (conversation) => ({
     message: conversation.lastMessage || '',
-    entityRefs: conversation.entityRefs || []
+    entityRefs: conversation.entityRefs || [],
+    senderUserId: conversation.senderUserId || ''
 })
 
 const participantUserId = (conversation) => {

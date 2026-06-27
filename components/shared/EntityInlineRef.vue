@@ -22,6 +22,7 @@ const CARD_COMPONENTS = {
   batchPile: defineAsyncComponent(() => import('~/components/entities/BatchPile/BatchPileCard.vue')),
   sheet: defineAsyncComponent(() => import('~/components/entities/Sheet/SheetCard.vue')),
   remnant: defineAsyncComponent(() => import('~/components/entities/Remnant/RemnantCard.vue')),
+  library: defineAsyncComponent(() => import('~/components/entities/Library/LibraryCard.vue')),
   catalog: defineAsyncComponent(() => import('~/components/entities/Catalog/CatalogCard.vue')),
   color: defineAsyncComponent(() => import('~/components/entities/Color/ColorCard.vue')),
   entityRevision: defineAsyncComponent(() => import('~/components/entities/EntityRevision/EntityRevisionCard.vue')),
@@ -39,7 +40,8 @@ const props = defineProps({
   id: { type: [String, Number, Object], default: null },
   entity: { type: Object, default: null },
   fetch: { type: Boolean, default: true },
-  fields: { type: Array, default: () => ['serial'] }
+  fields: { type: Array, default: () => ['serial'] },
+  allowDetailRoute: { type: Boolean, default: true }
 });
 
 const loaded = ref(null);
@@ -69,7 +71,7 @@ const cardProps = computed(() => ({
   variant: 'inline'
 }));
 const detailRoute = computed(() => {
-  if (!authStore.processActive || !normalizedId.value) return null;
+  if (!props.allowDetailRoute || !authStore.processActive || !normalizedId.value) return null;
   return detailRouteForEntity({
     entity: resolved.value || { _id: normalizedId.value },
     entityType: generatedEntityType.value,

@@ -1643,6 +1643,7 @@
     "addEntity": "Добавить сущность",
     "openChat": "Открыть чаты",
     "noMessages": "Нет сообщений",
+    "recipientChatOnlyWarning": "{label} недоступна получателю вне этого чата",
     "entityTypes": {
       "sheet": "Лист",
       "material": "Материал"
