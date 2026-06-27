@@ -2282,6 +2282,18 @@
        prevents the profile creation dialog from crashing when the template
        list is still undefined or contains incomplete DTOs.
 
+     [2026-06-27] Rework profile sketch polyline UX
+     Files changed: components/ProfileSketchEditor.vue,
+       components/CassetteDesignerV2.vue, utils/occs/profiles.js,
+       utils/occs/profiles.spec.js, components/ProfileSketchEditor.spec.js
+     Docs updated: server/features/profile-templates/README.md,
+       utils/occs/README.md, TODO.org
+     Notes: New profile drawing sessions now start blank instead of showing a
+       default rectangle. Profile sketches carry an explicit open/closed
+       polyline state, the editor renders open in-progress polylines with thin
+       strokes and small square vertex grips, and the polyline command exposes
+       Close, Undo, and Finish controls instead of arbitrary point insertion.
+
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
        packages/processes/src/index.js,

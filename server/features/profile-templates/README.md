@@ -21,8 +21,9 @@ Key fields:
 - `data.process`: `extruded`, `roll_formed`, `brake_formed`, or `machined`.
 - `data.parameters`: simple profile metadata such as sweep length.
 - `data.sketch`: editable numeric point/polyline/circle graph with endpoint
-  snaps, typed segment-distance drawing helpers, and per-corner fillet
-  modifiers stored as `{ type: 'fillet', vertexId, radius }`.
+  snaps, typed segment-distance drawing helpers, explicit `closed` state for
+  in-progress profile drawing, and per-corner fillet modifiers stored as
+  `{ type: 'fillet', vertexId, radius }`.
 - `data.occsProfile`: normalized OCCS `profile.section` and `profile.sweep` snapshot.
 
 ## Migrations
