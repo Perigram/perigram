@@ -35,13 +35,15 @@ describe('ProfileSketchEditor', () => {
   });
 
   it('renders an empty in-progress drawing sketch without crashing', async () => {
-    await expect(renderEditor({
+    const html = await renderEditor({
       version: '0.1',
       units: 'mm',
       points: [],
       edges: [],
       holes: [],
       modifiers: []
-    })).resolves.toContain('svg');
+    });
+    expect(html).toContain('svg');
+    expect(html).not.toContain('<path');
   });
 });

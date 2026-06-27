@@ -836,6 +836,7 @@ import {
   OCCS_PROFILE_KINDS,
   OCCS_PROFILE_PROCESSES,
   createDefaultOccsProfileTemplateData,
+  createEmptyOccsProfileSketch,
   occsProfileFromSketch
 } from '../utils/occs/profiles.js';
 
@@ -904,7 +905,7 @@ const selectedProfileTemplateId = ref('');
 const editingProfileWorkpieceId = ref('');
 const profileDraft = ref({
   name: '',
-  ...createDefaultOccsProfileTemplateData()
+  ...createDefaultOccsProfileTemplateData({ sketch: createEmptyOccsProfileSketch() })
 });
 
 const templateOptions = computed(() => props.templateOptions || []);
@@ -1969,7 +1970,7 @@ const openProfileDialog = async (workpieceId = '') => {
     selectedProfileTemplateId.value = '';
     profileDraft.value = {
       name: t('cassette.v2.profileEditor.defaultName'),
-      ...createDefaultOccsProfileTemplateData()
+      ...createDefaultOccsProfileTemplateData({ sketch: createEmptyOccsProfileSketch() })
     };
   }
   profileDialogVisible.value = true;

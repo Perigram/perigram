@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createDefaultOccsProfileSketch,
+  createEmptyOccsProfileSketch,
   evaluateOccsProfileSketchPreview,
   normalizeOccsProfileSketch,
   occsProfileFromSketch,
@@ -9,6 +10,23 @@ import {
 } from './profiles.js';
 
 describe('OCCS profile helpers', () => {
+  it('creates an empty sketch for blank profile drawing sessions', () => {
+    const sketch = createEmptyOccsProfileSketch();
+    expect(sketch).toMatchObject({
+      points: [],
+      edges: [],
+      holes: [],
+      modifiers: [],
+      closed: false
+    });
+    expect(normalizeOccsProfileSketch(sketch)).toMatchObject({
+      points: [],
+      edges: [],
+      holes: [],
+      closed: false
+    });
+  });
+
   it('exports a sketch as an OCCS profile section with circle holes and fillets', () => {
     const sketch = createDefaultOccsProfileSketch();
     const profile = occsProfileFromSketch(sketch);

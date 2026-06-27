@@ -55,7 +55,8 @@
             :d="sectionPath"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.5"
+            stroke-linejoin="round"
+            stroke-width="0.7"
           />
           <line
             v-if="previewSegment"
@@ -65,7 +66,7 @@
             :y2="previewSegment.to[1]"
             stroke="var(--p-primary-color)"
             stroke-dasharray="4 3"
-            stroke-width="1"
+            stroke-width="0.6"
           />
           <circle
             v-for="hole in preview.holes"
@@ -76,27 +77,30 @@
             fill="none"
             stroke="currentColor"
             stroke-dasharray="3 2"
-            stroke-width="1"
+            stroke-width="0.7"
             @pointerdown.stop="selectHole(hole.id)"
           />
-          <circle
+          <rect
             v-for="point in preview.points"
             :key="point.id"
-            :cx="point.xValue"
-            :cy="point.yValue"
-            r="3.2"
+            :x="point.xValue - gripSize(point.id) / 2"
+            :y="point.yValue - gripSize(point.id) / 2"
+            :width="gripSize(point.id)"
+            :height="gripSize(point.id)"
             class="cursor-move"
             :fill="point.id === selectedPointId ? 'var(--p-primary-color)' : 'currentColor'"
+            stroke="var(--p-content-background)"
+            stroke-width="0.45"
             @pointerdown="event => startDrag(event, point)"
           />
           <circle
             v-if="snapPoint"
             :cx="snapPoint[0]"
             :cy="snapPoint[1]"
-            r="5"
+            r="2.5"
             fill="none"
             stroke="var(--p-primary-color)"
-            stroke-width="1"
+            stroke-width="0.7"
           />
         </svg>
       </div>
@@ -192,7 +196,30 @@
             />
           </div>
           <div class="flex flex-wrap gap-1">
-            <Button icon="pi pi-plus" :label="$t('cassette.v2.profileEditor.addPoint')" severity="secondary" size="small" @click="addPoint()" />
+            <Button
+              icon="pi pi-undo"
+              :label="$t('cassette.v2.profileEditor.undoPoint')"
+              severity="secondary"
+              size="small"
+              :disabled="!preview.points.length"
+              @click="undoLastPoint"
+            />
+            <Button
+              icon="pi pi-link"
+              :label="$t('cassette.v2.profileEditor.closePolyline')"
+              severity="secondary"
+              size="small"
+              :disabled="preview.points.length < 3"
+              @click="closeActivePolyline"
+            />
+            <Button
+              icon="pi pi-check"
+              :label="$t('cassette.v2.profileEditor.finishPolyline')"
+              severity="secondary"
+              size="small"
+              :disabled="activeTool !== 'polyline'"
+              @click="finishDrawingCommand"
+            />
             <Button icon="pi pi-circle" :label="$t('cassette.v2.profileEditor.addCircle')" severity="secondary" size="small" @click="addHole()" />
           </div>
         </div>
@@ -280,15 +307,15 @@ const sectionPath = computed(() => {
   if (!points.length) return '';
   if (points.length === 1) return '';
   if (points.length === 2) return `M ${points[0].xValue} ${points[0].yValue} L ${points[1].xValue} ${points[1].yValue}`;
-  if (points.some(point => filletRadiusForVertex(point.id) > 0)) {
+  const closeCommand = preview.value.closed ? ' Z' : '';
+  if (preview.value.closed && points.some(point => filletRadiusForVertex(point.id) > 0)) {
     return roundedClosedPolylinePath(points, point => filletRadiusForVertex(point.id));
   }
   const [first, ...rest] = points;
   return [
     `M ${first.xValue} ${first.yValue}`,
     ...rest.map(point => `L ${point.xValue} ${point.yValue}`),
-    'Z'
-  ].join(' ');
+  ].join(' ') + closeCommand;
 });
 const viewBox = computed(() => {
   const stablePreview = evaluateOccsProfileSketchPreview(localSketch.value);
@@ -393,12 +420,15 @@ const updateLocalSketch = (updater) => {
   localSketch.value = normalizeOccsProfileSketch(next);
 };
 
-const rebuildClosedLineEdges = (points = []) => points.map((point, index) => ({
-  id: `e${index}`,
-  type: 'line',
-  from: point.id,
-  to: points[(index + 1) % points.length]?.id || point.id
-})).filter(edge => edge.from !== edge.to);
+const rebuildPolylineEdges = (points = [], closed = false) => {
+  const edgeCount = closed ? points.length : Math.max(0, points.length - 1);
+  return points.slice(0, edgeCount).map((point, index) => ({
+    id: `e${index}`,
+    type: 'line',
+    from: point.id,
+    to: points[(index + 1) % points.length]?.id || point.id
+  })).filter(edge => edge.from !== edge.to);
+};
 
 const nextPointId = (points = []) => {
   const used = new Set(points.map(point => point.id));
@@ -416,13 +446,15 @@ const defaultPointTarget = () => {
 const filletRadiusForVertex = vertexId => (
   localSketch.value.modifiers?.find(modifier => modifier.type === 'fillet' && modifier.vertexId === vertexId)?.radius || 0
 );
+const gripSize = pointId => (pointId === selectedPointId.value ? 3.2 : 2.4);
 
 const addPoint = (coords = null) => {
   const target = coords || defaultPointTarget();
   updateLocalSketch((next) => {
     const id = nextPointId(next.points);
     next.points.push({ id, x: round(target[0]), y: round(target[1]) });
-    next.edges = rebuildClosedLineEdges(next.points);
+    next.closed = false;
+    next.edges = rebuildPolylineEdges(next.points, false);
     selectedPointId.value = id;
     selectedHoleId.value = '';
   });
@@ -434,11 +466,8 @@ const closePolylineIfFirstPoint = (coords) => {
   const first = points[0];
   const distance = Math.hypot(first.xValue - coords[0], first.yValue - coords[1]);
   if (distance > snapThreshold.value) return false;
-  activeTool.value = 'select';
-  pointerPoint.value = null;
-  drawDistance.value = null;
+  closeActivePolyline();
   selectedPointId.value = first.id;
-  selectedHoleId.value = '';
   return true;
 };
 
@@ -450,12 +479,41 @@ const startNewPolyline = () => {
     points: [],
     edges: [],
     holes: sketchHoles(localSketch.value),
+    closed: false,
     modifiers: [],
     constraints: localSketch.value.constraints
   });
   selectedPointId.value = '';
   selectedHoleId.value = '';
   activeTool.value = 'polyline';
+  pointerPoint.value = null;
+  drawDistance.value = null;
+};
+
+const closeActivePolyline = () => {
+  updateLocalSketch((next) => {
+    if (sketchPoints(next).length < 3) return;
+    next.closed = true;
+    next.edges = rebuildPolylineEdges(sketchPoints(next), true);
+  });
+  finishDrawingCommand();
+};
+
+const undoLastPoint = () => {
+  updateLocalSketch((next) => {
+    const points = sketchPoints(next);
+    const removed = points.pop();
+    if (!removed) return;
+    next.modifiers = (next.modifiers || []).filter(modifier => modifier.vertexId !== removed.id);
+    next.closed = false;
+    next.edges = rebuildPolylineEdges(points, false);
+    selectedPointId.value = points[points.length - 1]?.id || '';
+    selectedHoleId.value = '';
+  });
+};
+
+const finishDrawingCommand = () => {
+  activeTool.value = 'select';
   pointerPoint.value = null;
   drawDistance.value = null;
 };
@@ -606,8 +664,7 @@ const commitDrawPointFromKeyboard = () => {
 
 const cancelPendingDraw = () => {
   if (activeTool.value !== 'polyline') return;
-  pointerPoint.value = null;
-  drawDistance.value = null;
+  finishDrawingCommand();
 };
 
 const handleDxfUpload = async (event) => {

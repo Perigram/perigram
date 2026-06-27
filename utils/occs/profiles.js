@@ -43,12 +43,28 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
   holes: [
     { id: 'h0', type: 'circle', center: [21, 14], diameter: 6 }
   ],
+  closed: true,
   modifiers: [
     { type: 'fillet', vertexId: 'p0', radius: 3 },
     { type: 'fillet', vertexId: 'p1', radius: 3 },
     { type: 'fillet', vertexId: 'p2', radius: 3 },
     { type: 'fillet', vertexId: 'p3', radius: 3 }
   ],
+  constraints: []
+});
+
+export const createEmptyOccsProfileSketch = (parameters = {}) => ({
+  version: '0.1',
+  units: 'mm',
+  parameters: {
+    ...DEFAULT_OCCS_PROFILE_PARAMETERS,
+    ...parameters
+  },
+  points: [],
+  edges: [],
+  holes: [],
+  closed: false,
+  modifiers: [],
   constraints: []
 });
 
@@ -59,7 +75,7 @@ export const createDefaultOccsProfileTemplateData = (overrides = {}) => ({
     ...DEFAULT_OCCS_PROFILE_PARAMETERS,
     ...(overrides.parameters || {})
   },
-  sketch: createDefaultOccsProfileSketch(overrides.parameters),
+  sketch: overrides.sketch || createDefaultOccsProfileSketch(overrides.parameters),
   occsProfile: null
 });
 
@@ -131,6 +147,9 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
     Array.isArray(sketch.modifiers) ? sketch.modifiers : fallback.modifiers,
     pointIds
   );
+  const closed = typeof sketch.closed === 'boolean'
+    ? sketch.closed
+    : points.length >= 3 && edges.some(edge => edge.to === points[0]?.id);
 
   return {
     version: sketch.version || '0.1',
@@ -139,6 +158,7 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
     points,
     edges,
     holes,
+    closed,
     modifiers,
     constraints: Array.isArray(sketch.constraints) ? sketch.constraints : fallback.constraints
   };
@@ -146,23 +166,13 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
 
 export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   const normalized = normalizeOccsProfileSketch(sketch, options.parameters);
-  const pointById = new Map(normalized.points.map(point => [point.id, point]));
   const vertices = [];
   const vertexIds = [];
 
-  for (const edge of normalized.edges) {
-    if (!vertexIds.includes(edge.from) && pointById.has(edge.from)) {
-      vertexIds.push(edge.from);
-      const point = pointById.get(edge.from);
-      vertices.push([String(point.x), String(point.y)]);
-    }
-  }
-
-  if (!vertices.length) {
-    for (const point of normalized.points) {
-      vertexIds.push(point.id);
-      vertices.push([String(point.x), String(point.y)]);
-    }
+  for (const point of normalized.points) {
+    if (vertexIds.includes(point.id)) continue;
+    vertexIds.push(point.id);
+    vertices.push([String(point.x), String(point.y)]);
   }
 
   return {
@@ -310,6 +320,7 @@ const sketchFromPointsAndCircles = ({ points = [], circles = [] } = {}) => {
       ],
       diameter: Math.round(circle.diameter * 1000) / 1000
     })),
+    closed: normalizedPoints.length >= 3,
     modifiers: [],
     constraints: []
   });
