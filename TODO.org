@@ -204,7 +204,9 @@
       Support write validation now normalizes frontend entity-type aliases such
       as `cassetteDesign` and `nestingRun` to canonical backend snake-case
       types before checking generated attachment scope, which prevents draft
-      refs from disappearing on send.
+      refs from disappearing on send. The chat composer also posts only compact
+      `{ type, id, label }` refs on send instead of the hydrated entity objects
+      used for draft preview rendering.
 
     [2026-06-26] Route trace links through generated detail access
     Files changed: components/shared/links/TraceChain.vue,

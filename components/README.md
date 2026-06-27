@@ -661,7 +661,9 @@ will be visible only inside chat. Selected attachments stay in structured
 `entityRefs` and render as removable draft chips before send; any text preview
 must not duplicate ordinary textarea text. Status-history actor chat actions
 preseed the current entity into that draft. The composer must not inject
-attachment tokens into the textarea body. The conversation snapshot is auth-
+attachment tokens into the textarea body, and the final send payload must
+collapse draft refs back to minimal `{ type, id, label }` records instead of
+posting hydrated entity snapshots. The conversation snapshot is auth-
 gated by the store so direct user candidates are not lost behind a failed
 pre-auth request.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
