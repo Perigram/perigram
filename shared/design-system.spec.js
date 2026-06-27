@@ -513,6 +513,7 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('compactStatusState');
     expect(inlineRef).toContain('entity-inline-compact-status-row');
     expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
+    expect(inlineRef).toContain("'sheet_design'");
     expect(inlineRef).not.toContain('entity-inline-compact-fallback');
     expect(identityBlock).toContain('entity-inline-chip');
     expect(entityPreview).toContain('hideDimensionLayer');

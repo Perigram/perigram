@@ -114,7 +114,7 @@ const compactDataFields = computed(() => compactDisplay.value.fields.filter(fiel
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
 const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type);
 const compactPreviewHideDimensionLayer = computed(() =>
-  ['cassette', 'cassette_design'].includes(generatedEntityType.value)
+  ['cassette', 'cassette_design', 'sheet_design'].includes(generatedEntityType.value)
 );
 const compactStatusState = computed(() => {
   const state = resolved.value?.status?.state;
