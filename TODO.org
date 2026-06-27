@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Uncramp compact relation status badges
+    Files changed: assets/css/main.css,
+      components/shared/EntityInlineRef.vue,
+      shared/design-system.spec.js
+    Docs updated: TODO.org
+    Notes: Compact relation cards now render status on its own compact row
+      instead of squeezing an icon-only badge into the identity chip row.
+
     [2026-06-27] Bound compact relation galleries and enlarge micro previews
     Files changed: assets/css/main.css,
       components/shared/EntityInlineRef.vue,
