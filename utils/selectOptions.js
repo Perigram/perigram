@@ -50,3 +50,13 @@ export function namedSelectOptions(items, fallback = '') {
     .filter(Boolean)
     .map(item => namedSelectOption(item, fallback));
 }
+
+export function labelValueSelectOptions(items, fallback = '') {
+  return (Array.isArray(items) ? items : [])
+    .filter(Boolean)
+    .map(item => ({
+      label: entitySelectLabel(item, fallback),
+      value: entitySelectValue(item)
+    }))
+    .filter(option => option.value);
+}

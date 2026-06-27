@@ -809,6 +809,7 @@ import { useEntity } from '~/composables/useEntity.js';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { buildCassetteV2FoldedPreview } from '~/utils/cassetteV2FoldedPreview.js';
+import { labelValueSelectOptions } from '~/utils/selectOptions.js';
 import {
   addCassetteV2GraphChild,
   addCassetteV2HardwareWorkpiece,
@@ -1049,10 +1050,13 @@ const profileProcessOptions = computed(() => OCCS_PROFILE_PROCESSES.map(process 
   label: t(`cassette.v2.profileProcesses.${process}`),
   value: process
 })));
-const profileTemplateOptions = computed(() => (profileTemplateEntity.items.value || []).map(profile => ({
-  label: profile.identity?.name || profile.name || profile._id,
-  value: profile._id
-})));
+const profileTemplateItems = computed(() => (
+  Array.isArray(profileTemplateEntity.items.value) ? profileTemplateEntity.items.value : []
+));
+const profileTemplateOptions = computed(() => labelValueSelectOptions(
+  profileTemplateItems.value,
+  t('cassette.v2.profileEditor.defaultName')
+));
 const placementModeOptions = computed(() => ['point', 'edgeArray'].map(mode => ({
   label: t(`cassette.v2.placementModes.${mode}`),
   value: mode
@@ -1929,7 +1933,7 @@ const profileDraftPayload = () => {
 };
 
 const loadProfileTemplateDraft = (profileId) => {
-  const profile = (profileTemplateEntity.items.value || []).find(item => item._id === profileId);
+  const profile = profileTemplateItems.value.find(item => String(item._id || '') === String(profileId || ''));
   if (!profile) return;
   profileDraft.value = {
     _id: profile._id,
@@ -1945,7 +1949,7 @@ const loadProfileTemplateDraft = (profileId) => {
 const openProfileDialog = async (workpieceId = '') => {
   closeInlineEditor();
   editingProfileWorkpieceId.value = workpieceId;
-  if (!profileTemplateEntity.items.value.length) {
+  if (!profileTemplateItems.value.length) {
     await profileTemplateEntity.list().catch(() => []);
   }
   const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;

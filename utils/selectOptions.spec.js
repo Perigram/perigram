@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   entitySelectLabel,
   entitySelectValue,
+  labelValueSelectOptions,
   namedSelectOptions,
   selectOptionText
 } from './selectOptions.js';
@@ -25,5 +26,17 @@ describe('select option helpers', () => {
 
   it('never returns undefined from text selection', () => {
     expect(selectOptionText(undefined, null, '')).toBe('');
+  });
+
+  it('normalizes arrays for PrimeVue option-label label selectors', () => {
+    expect(labelValueSelectOptions([
+      { identity: { name: 'Template A' }, _id: 'profile-1' },
+      { name: '', _id: 'profile-2' },
+      null,
+      { identity: {} }
+    ], 'Profile')).toEqual([
+      { label: 'Template A', value: 'profile-1' },
+      { label: 'profile-2', value: 'profile-2' }
+    ]);
   });
 });
