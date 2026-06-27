@@ -4,6 +4,14 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Add LAN-visible dev HMR host override
+    Files changed: nuxt.config.js, docker-compose.dev.yml
+    Docs updated: README.md, TODO.org
+    Notes: Nuxt dev now accepts `NUXT_DEV_HMR_HOST`,
+      `NUXT_DEV_HMR_CLIENT_PORT`, and `NUXT_DEV_HMR_PROTOCOL` so Dockerized
+      Vite clients opened from another device can target the laptop's LAN
+      address for websocket traffic instead of relying on internal defaults.
+
     [2026-06-27] Fail open on public landing auth check
     Files changed: pages/index.vue
     Docs updated: pages/README.md, TODO.org

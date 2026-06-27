@@ -99,6 +99,11 @@ human explicitly asks. Worker endpoints require matching `WORKER_TOKEN` on app
 and workers; compose files use `cutkit-dev-worker` for local development.
 Docker dev starts Nuxt with `--host 0.0.0.0` so the app binds to the container
 interface and is reachable through the compose `3000:3000` port mapping.
+When opening the dev app from another device on the LAN, also set
+`NUXT_DEV_HMR_HOST=<your-laptop-LAN-IP>` so the proxied Vite client advertises
+the same browser-visible host for hot-module websocket traffic instead of an
+internal container-only endpoint. `NUXT_DEV_HMR_CLIENT_PORT` defaults to
+`3000`, and `NUXT_DEV_HMR_PROTOCOL` defaults to `ws`.
 The E2E command assumes the app stack is already running and uses Playwright
 against the configured `E2E_BASE_URL`.
 
