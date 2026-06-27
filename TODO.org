@@ -4,6 +4,25 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Refine generated entity card child galleries and dark-theme inline refs
+    Files changed: assets/css/main.css,
+      components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedHomeScreen.vue,
+      components/generated/GeneratedScreen.vue,
+      components/shared/EntityInlineRef.vue,
+      components/shared/EntityRelationsBlock.vue,
+      components/shared/EntitySurfaceContent.vue,
+      packages/domain-cnc/src/ui-fields.js, utils/entity-relations.js,
+      shared/design-system.spec.js
+    Docs updated: components/README.md, components/shared/README.md,
+      docs/DESIGN_SYSTEM.md, packages/domain-cnc/README.md, TODO.org
+    Notes: Inline entity refs now use theme-aware accent mixes instead of
+      light-only utility colors. Generated screens provide loaded source
+      entities as shared context so child-count fields can turn into compact
+      inline galleries when matching child entities are already present in the
+      current screen; if not, the numeric count stays visible. Generated card
+      footers also expose an explicit open-detail action.
+
     [2026-06-27] Add recipient-aware chat attachments and status-history drafts
     Files changed: components/ChatSupport.vue,
       components/shared/EntityInlineRef.vue,

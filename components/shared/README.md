@@ -99,8 +99,16 @@ and renders preview, data facts, and relation rows with the shared primitives.
 `GeometryPreview` and `CassetteThumbnail`, and renders ordinary DTO thumbnails
 from `data.thumbnailUrl` or thumbnail attachment metadata for non-cassette
 entities. `EntityRelationsBlock` renders relation descriptors through
-`EntityInlineRef`. Specialized production cards may still use custom slots
-where the workflow needs more than the default body.
+`EntityInlineRef`. Single refs render as inline chips; relation lists render as
+compact horizontal galleries that show the latest several refs plus a small
+overflow count. Generated card surfaces pass `suppress-child-counts` to
+`EntitySurfaceContent`; when the generated screen already has matching child
+entities loaded in another visible source, `EntitySurfaceContent` converts
+aggregate child-count fields such as `summary.queueCount` into that compact
+gallery. If no loaded child entities are available, the original numeric count
+row stays visible instead of leaving the card empty. Specialized production
+cards may still use custom slots where the workflow needs more than the default
+body.
 
 ### `EntityWorkspace.vue`
 Canonical entity-detail workspace layout for operational editors embedded
@@ -270,6 +278,9 @@ and reuses its canonical body inside that popover. Use this for entity relation
 context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
+Inline chips now carry a restrained type-family tone in addition to the icon so
+project/queue/run refs, cassette/design refs, stock refs, and admin/meta refs
+read differently at a glance without changing the popover card body.
 Use canonical design-system surface keys for new references, for example
 `materialPile`, `nestingRun`, `cassetteDesign`, `cassetteTemplate`, and
 `entityRevision`. Backend snake-case aliases continue to resolve through the

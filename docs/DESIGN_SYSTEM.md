@@ -38,6 +38,12 @@ framework consumers. A surface selects preview mode, field groups, data display
 density, relation display, status/trace policy, and action placement.
 
 Card content is part of the contract, not filler. The title area owns identity and status, the body uses `SpecsBlock`/`DataBlock` for concise operational facts, and the footer owns actions. Prefer canonical DTO paths (`data.*`, `identity.*`, `lineage.*`, `attachments.*`, `summary.*`) and use flat aliases only as compatibility fallbacks where current services still emit them.
+Generated card surfaces may replace aggregate child-count facts when the card
+already has relation-backed child previews to show, either from the DTO itself
+or from sibling generated-screen sources already loaded in memory. Use
+`EntityInlineRef`-based compact galleries for those child previews instead of
+rendering `N children` rows in the card body. If no previewable child entities
+are loaded, keep the numeric count.
 Standard field groups live in `@cutkit/domain-cnc`; Vue cards consume resolved
 field descriptors through `utils/entity-display-contract.js`. Final apps may
 layer additional field groups and surface overrides, but access policy still

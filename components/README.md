@@ -170,6 +170,16 @@ to fit the viewport. The fixed width belongs on the carousel item wrapper, not
 on `<EntityCard>` itself, because shared entity cards have variant root
 branches and cannot be relied on to receive layout sizing through attribute
 fallthrough.
+Generated card bodies may replace aggregate child-count facts such as
+`summary.queueCount` when those cards are rendered through
+`EntitySurfaceContent`. Prefer a compact horizontal `EntityInlineRef` gallery
+when the DTO already carries relation-backed child refs (`entityRefList`
+fields such as material pools, physical outputs, or sheet design ids) or when
+the current generated screen already has those child entities loaded in another
+visible source. If neither source exists, keep the numeric count row. Generated
+card footers may add an icon-only open-detail action, but detail navigation
+must still route through the compiled generated screen manifest rather than
+hardcoded feature paths.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,
