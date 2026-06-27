@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import vue from '@vitejs/plugin-vue';
 
 const cutkitAliases = {
   '@cutkit/core': path.resolve(__dirname, './packages/core/src/index.js'),
@@ -18,6 +19,7 @@ const portableAliases = {
 };
 
 export default defineConfig({
+  plugins: [vue()],
   test: {
     environment: 'node',
     globals: true,

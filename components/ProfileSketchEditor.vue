@@ -248,11 +248,14 @@ const toolModes = [
   { value: 'circle', labelKey: 'cassette.v2.profileEditor.tools.circle', icon: 'pi pi-circle' }
 ];
 
+const sketchPoints = sketch => (Array.isArray(sketch?.points) ? sketch.points : []);
+const sketchHoles = sketch => (Array.isArray(sketch?.holes) ? sketch.holes : []);
+
 const displaySketch = computed(() => {
   if (!draggingPointId.value || !dragPoint.value) return localSketch.value;
   return {
     ...localSketch.value,
-    points: localSketch.value.points.map(point => (
+    points: sketchPoints(localSketch.value).map(point => (
       point.id === draggingPointId.value
         ? { ...point, x: dragPoint.value[0], y: dragPoint.value[1] }
         : point
@@ -260,8 +263,8 @@ const displaySketch = computed(() => {
   };
 });
 const preview = computed(() => evaluateOccsProfileSketchPreview(displaySketch.value));
-const selectedPoint = computed(() => localSketch.value.points.find(point => point.id === selectedPointId.value) || null);
-const selectedHole = computed(() => localSketch.value.holes.find(hole => hole.id === selectedHoleId.value) || null);
+const selectedPoint = computed(() => sketchPoints(localSketch.value).find(point => point.id === selectedPointId.value) || null);
+const selectedHole = computed(() => sketchHoles(localSketch.value).find(hole => hole.id === selectedHoleId.value) || null);
 const selectedFilletRadius = computed(() => filletRadiusForVertex(selectedPointId.value));
 const snapPoint = computed(() => {
   if (!pointerPoint.value || draggingPointId.value) return null;
@@ -336,10 +339,10 @@ watch(() => props.modelValue, (value) => {
   const normalized = normalizeOccsProfileSketch(value || {});
   if (JSON.stringify(normalized) === JSON.stringify(normalizeOccsProfileSketch(localSketch.value))) return;
   localSketch.value = normalized;
-  if (selectedPointId.value && !localSketch.value.points.some(point => point.id === selectedPointId.value)) {
-    selectedPointId.value = localSketch.value.points[0]?.id || '';
+  if (selectedPointId.value && !sketchPoints(localSketch.value).some(point => point.id === selectedPointId.value)) {
+    selectedPointId.value = sketchPoints(localSketch.value)[0]?.id || '';
   }
-  if (selectedHoleId.value && !localSketch.value.holes.some(hole => hole.id === selectedHoleId.value)) {
+  if (selectedHoleId.value && !sketchHoles(localSketch.value).some(hole => hole.id === selectedHoleId.value)) {
     selectedHoleId.value = '';
   }
 }, { deep: true });
@@ -405,7 +408,8 @@ const nextPointId = (points = []) => {
 };
 
 const defaultPointTarget = () => {
-  const last = localSketch.value.points[localSketch.value.points.length - 1];
+  const points = sketchPoints(localSketch.value);
+  const last = points[points.length - 1];
   return last ? [Number(last.x || 0) + 10, Number(last.y || 0)] : [0, 0];
 };
 
@@ -445,7 +449,7 @@ const startNewPolyline = () => {
     parameters: localSketch.value.parameters,
     points: [],
     edges: [],
-    holes: localSketch.value.holes,
+    holes: sketchHoles(localSketch.value),
     modifiers: [],
     constraints: localSketch.value.constraints
   });
@@ -459,6 +463,7 @@ const startNewPolyline = () => {
 const addHole = (coords = null) => {
   const target = coords || [0, 0];
   updateLocalSketch((next) => {
+    next.holes = sketchHoles(next);
     const id = `h${next.holes.length}`;
     next.holes.push({
       id,
@@ -473,7 +478,7 @@ const addHole = (coords = null) => {
 
 const updatePoint = (id, patch) => {
   updateLocalSketch((next) => {
-    const point = next.points.find(item => item.id === id);
+    const point = sketchPoints(next).find(item => item.id === id);
     if (point) Object.assign(point, {
       ...patch,
       ...(patch.x !== undefined ? { x: round(patch.x) } : {}),
@@ -484,7 +489,7 @@ const updatePoint = (id, patch) => {
 
 const updateHole = (id, patch) => {
   updateLocalSketch((next) => {
-    const hole = next.holes.find(item => item.id === id);
+    const hole = sketchHoles(next).find(item => item.id === id);
     if (!hole) return;
     if (patch.center) patch.center = patch.center.map(round);
     if (patch.diameter !== undefined) patch.diameter = Math.max(0, round(patch.diameter));
