@@ -459,6 +459,12 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `entityType` without leaking the UI key. Queue relation rows must not fetch a
   protected cassette/design endpoint when the surrounding queue DTO did not
   include that related DTO; render the typed id chip instead.
+  When older queue rows contain a baked cassette source id such as
+  `lineage.originalCassetteId`, `QueueEditor` resolves the matching loaded
+  `cassette_design` by parameter values and persists the canonical design id
+  before saving or running nesting. Rows that cannot be resolved to a loaded
+  cassette or cassette design are rejected before the queue save so the nesting
+  command never receives an unresolvable job item.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
   lane rendered newest-first as compact queue entity rows, a center lane for nesting settings and wide
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The

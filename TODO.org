@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Repair legacy queue item ids before process nesting
+    Files changed: components/QueueEditor.vue, utils/queue-items.js,
+      utils/queue-items.spec.js, i18n/locales/en.json, i18n/locales/ru.json
+    Docs updated: components/README.md, TODO.org
+    Notes: QueueEditor now canonicalizes legacy baked cassette source ids such
+      as lineage.originalCassetteId to loaded cassette_design ids by parameter
+      values before saving or running nesting, and rejects unresolved queue rows
+      before the solveNesting command sees them.
+
     [2026-06-27] Hide sheet-design dimension layer in compact previews
     Files changed: components/shared/EntityInlineRef.vue,
       shared/design-system.spec.js
