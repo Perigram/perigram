@@ -511,6 +511,7 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('variant="inline"');
     expect(inlineRef).toContain('StatusBadge');
     expect(inlineRef).toContain('compactStatusState');
+    expect(inlineRef).toContain('entity-inline-compact-status-row');
     expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
     expect(inlineRef).not.toContain('entity-inline-compact-fallback');
     expect(identityBlock).toContain('entity-inline-chip');

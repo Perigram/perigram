@@ -300,12 +300,13 @@ function tonePalette(role) {
           <span v-else class="min-w-0 flex-1 truncate font-medium text-sm">
             {{ normalizedId || $t('common.notAvailable') }}
           </span>
+        </span>
+        <span class="entity-inline-compact-status-row">
           <StatusBadge
             v-if="compactStatusState"
             :state="compactStatusState"
             :display="compactStatusDisplay"
-            icon-only
-            class="shrink-0"
+            class="max-w-full"
           />
         </span>
         <span class="entity-inline-compact-facts">
