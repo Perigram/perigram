@@ -246,7 +246,7 @@ const newChatUserId = ref('')
 const newChatUsers = ref([])
 const newChatUsersLoading = ref(false)
 
-const messagePreviewVisible = computed(() => Boolean(message.value.trim() && (message.value.includes('{{entity:') || entityRefs.value.length)))
+const messagePreviewVisible = computed(() => Boolean(message.value.includes('{{entity:') || entityRefs.value.length))
 const draftPreviewMessage = computed(() => ({
     message: message.value,
     entityRefs: entityRefs.value
@@ -426,9 +426,8 @@ const loadEntityTypes = async () => {
             label: type.labelKey ? t(type.labelKey) : (type.label || type.value),
             value: type.value
         }))
-        if (!entityDraft.value.type && entityTypeOptions.value[0]) {
-            entityDraft.value.type = entityTypeOptions.value[0].value
-        }
+        const currentTypeAvailable = entityTypeOptions.value.some(option => option.value === entityDraft.value.type)
+        entityDraft.value.type = currentTypeAvailable ? entityDraft.value.type : (entityTypeOptions.value[0]?.value || '')
     } catch (error) {
         console.error('Failed to load support entity types:', error)
         entityTypeOptions.value = []
@@ -454,8 +453,6 @@ const loadEntityOptions = async () => {
 const insertEntityRef = () => {
     const selected = entityOptions.value.find(option => option.value === entityDraft.value.id)
     if (!selected) return
-    const token = `{{entity:${selected.type}:${selected.value}}}`
-    message.value = message.value ? `${message.value} ${token}` : token
     if (!entityRefs.value.some(ref => ref.type === selected.type && ref.id === selected.value)) {
         entityRefs.value.push({ type: selected.type, id: selected.value, label: selected.label })
     }

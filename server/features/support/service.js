@@ -1,21 +1,42 @@
 import { createError } from 'h3';
+import * as cassetteDesignsService from '~/server/features/cassette-designs/service.js';
+import * as cassettesService from '~/server/features/cassettes/service.js';
+import * as catalogsService from '~/server/features/catalogs/service.js';
+import * as librariesService from '~/server/features/libraries/service.js';
 import * as materialsService from '~/server/features/materials/service.js';
+import * as materialPilesService from '~/server/features/material-piles/service.js';
+import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
 import * as projectsService from '~/server/features/projects/service.js';
 import * as queuesService from '~/server/features/queues/service.js';
+import * as remnantsService from '~/server/features/remnants/service.js';
+import * as requisitionsService from '~/server/features/requisitions/service.js';
+import * as sheetDesignsService from '~/server/features/sheet-designs/service.js';
 import * as sheetsService from '~/server/features/sheets/service.js';
 import * as usersService from '~/server/features/users/service.js';
+import * as warehousesService from '~/server/features/warehouses/service.js';
 import { actionToLevel, levelAtLeast, normalizePermissionGrants } from '#shared/access-control.js';
 import * as repository from './repository.js';
 import { MESSAGE_SENDER } from './const.js';
 
 const ENTITY_REF_LIMIT = 6;
 const ENTITY_OPTION_LIMIT = 20;
+const scopedList = (service) => (auth, filters) => service.list(auth.userId, auth.organizationId, auth.role, auth, filters);
 const ENTITY_OPTION_LOADERS = {
+    cassette: scopedList(cassettesService),
+    cassette_design: scopedList(cassetteDesignsService),
+    catalog: scopedList(catalogsService),
+    library: scopedList(librariesService),
     project: (auth, filters) => projectsService.list(auth.userId, auth.organizationId, auth.role, auth, filters),
     queue: (auth, filters) => queuesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+    material_pile: scopedList(materialPilesService),
+    nesting_run: scopedList(nestingRunsService),
+    remnant: scopedList(remnantsService),
+    requisition: (auth) => requisitionsService.list(auth.userId, auth.organizationId, auth.role, auth),
+    sheet_design: scopedList(sheetDesignsService),
     sheet: (auth, filters) => sheetsService.list(auth.userId, auth.organizationId, auth.role, auth, filters),
     material: () => materialsService.list(),
-    user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
+    user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth),
+    warehouse: scopedList(warehousesService)
 };
 
 export async function getUserConversationContext(auth, recipientUserId = null) {
@@ -358,7 +379,7 @@ function scopedEntityOptionTypes(auth = {}) {
         const sources = [];
         for (const screen of auth.screens || []) {
             for (const source of screen.sources || []) {
-                if (!source?.entityType || !ENTITY_OPTION_LOADERS[source.entityType]) continue;
+                if (!source?.entityType) continue;
                 if (!sourceRequirementAllowed(auth, source.required || screen.required || {})) continue;
                 sources.push({
                     ...source,

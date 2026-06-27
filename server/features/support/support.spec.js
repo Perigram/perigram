@@ -13,18 +13,38 @@ const mocks = vi.hoisted(() => ({
     getById: vi.fn(),
     list: vi.fn()
   },
+  cassetteDesignsService: { list: vi.fn() },
+  cassettesService: { list: vi.fn() },
+  catalogsService: { list: vi.fn() },
+  librariesService: { list: vi.fn() },
   projectsService: { list: vi.fn() },
   queuesService: { list: vi.fn() },
+  materialPilesService: { list: vi.fn() },
+  nestingRunsService: { list: vi.fn() },
+  remnantsService: { list: vi.fn() },
+  requisitionsService: { list: vi.fn() },
+  sheetDesignsService: { list: vi.fn() },
   sheetsService: { list: vi.fn() },
-  materialsService: { list: vi.fn() }
+  materialsService: { list: vi.fn() },
+  warehousesService: { list: vi.fn() }
 }));
 
 vi.mock('./repository.js', () => mocks.repository);
+vi.mock('~/server/features/cassette-designs/service.js', () => mocks.cassetteDesignsService);
+vi.mock('~/server/features/cassettes/service.js', () => mocks.cassettesService);
+vi.mock('~/server/features/catalogs/service.js', () => mocks.catalogsService);
+vi.mock('~/server/features/libraries/service.js', () => mocks.librariesService);
 vi.mock('~/server/features/users/service.js', () => mocks.usersService);
 vi.mock('~/server/features/projects/service.js', () => mocks.projectsService);
 vi.mock('~/server/features/queues/service.js', () => mocks.queuesService);
+vi.mock('~/server/features/material-piles/service.js', () => mocks.materialPilesService);
+vi.mock('~/server/features/nesting-runs/service.js', () => mocks.nestingRunsService);
+vi.mock('~/server/features/remnants/service.js', () => mocks.remnantsService);
+vi.mock('~/server/features/requisitions/service.js', () => mocks.requisitionsService);
+vi.mock('~/server/features/sheet-designs/service.js', () => mocks.sheetDesignsService);
 vi.mock('~/server/features/sheets/service.js', () => mocks.sheetsService);
 vi.mock('~/server/features/materials/service.js', () => mocks.materialsService);
+vi.mock('~/server/features/warehouses/service.js', () => mocks.warehousesService);
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
     const error = new Error(err.message);
@@ -171,17 +191,52 @@ describe('support communication service', () => {
           mode: 'list',
           required: { feature: 'projects', level: 'read' }
         }, {
-          id: 'cassette_design',
-          entityType: 'cassette_design',
-          label: 'Unsupported Loader',
+          id: 'external_record',
+          entityType: 'external_record',
+          label: 'Readable External Records',
           mode: 'list',
-          required: { feature: 'cassette_designs', level: 'read' }
+          required: { feature: 'queues', level: 'read' }
         }]
       }]
     };
 
     expect(supportService.listEntityOptionTypes(processAuth)).toEqual([
-      { value: 'queue', label: 'My Queues', labelKey: null, sourceId: 'queue', screenKey: 'queue_screen' }
+      { value: 'queue', label: 'My Queues', labelKey: null, sourceId: 'queue', screenKey: 'queue_screen' },
+      { value: 'external_record', label: 'Readable External Records', labelKey: null, sourceId: 'external_record', screenKey: 'queue_screen' }
+    ]);
+  });
+
+  it('loads concrete options for generated readable entity sources', async () => {
+    mocks.cassetteDesignsService.list.mockResolvedValue([
+      { _id: 'design-1', identity: { name: 'Design Alpha' }, data: {} }
+    ]);
+    const processAuth = {
+      ...auth,
+      process: { active: true },
+      effectivePermissions: {
+        cassette_designs: [{ level: 'read' }]
+      },
+      screens: [{
+        id: 'design_screen',
+        sources: [{
+          id: 'cassette_design',
+          entityType: 'cassette_design',
+          label: 'Cassette Designs',
+          required: { feature: 'cassette_designs', level: 'read' }
+        }]
+      }]
+    };
+
+    const options = await supportService.listEntityOptions(processAuth, 'cassette_design', 'alpha');
+
+    expect(mocks.cassetteDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {});
+    expect(options).toEqual([
+      {
+        type: 'cassette_design',
+        value: 'design-1',
+        label: 'Design Alpha',
+        entity: { _id: 'design-1', identity: { name: 'Design Alpha' }, data: {} }
+      }
     ]);
   });
 });
