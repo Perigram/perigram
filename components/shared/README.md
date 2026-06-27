@@ -305,7 +305,11 @@ When the active generated screen manifest exposes a detail route for the
 reference type, `EntityInlineRef` provides that route to the expanded inline
 entity-card popover. The popover footer renders an icon-only open action that
 navigates through generated `/screens/:screenKey` detail routing, not legacy
-feature routes.
+feature routes. Inline-ref popovers also force the shared `TraceChain` even
+when the base card surface normally hides trace in compact contexts, and show a
+small localized entity-type label above the identity row so the operator can
+see both lineage context and exact entity kind without adding extra chrome to
+the collapsed chip itself.
 Revision/provenance rows should use this component with `type="entityRevision"`
 so the shared entity popover shows the immutable revision summary and source
 relationship.

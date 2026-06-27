@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Add trace and type label to inline entity popovers
+    Files changed: components/shared/EntityInlineRef.vue,
+      components/shared/EntityCard.vue
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Inline entity refs now force the access-aware TraceChain inside the
+      expanded popover and provide a small localized entity-type label above
+      the identity row. The collapsed inline chip remains compact; the extra
+      type/lineage context appears only in the expanded popover.
+
     [2026-06-27] Add semantic inline-ref hierarchy styling
     Files changed: assets/css/main.css,
       components/shared/EntityInlineRef.vue,
