@@ -19,9 +19,11 @@ Shared frontend utility modules used by Vue pages/components.
 - `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows. Also exposes `hasWorkflow()` so UI primitives can avoid server action lookups for workflow-less entity types without importing the domain package directly.
 - `status-location.js`: Normalizes typed current location facts from `status.lifecycle.data.location` for status surfaces. Supported UI types are `warehouse`, `coordinates`, and `address`.
 - `entity-events.js`: Browser-local entity change event helpers. Status
-  transitions emit the changed entity and synchronous transition effect
-  entities through this helper so pages/stores can refresh related data without
-  coupling every status button to a page-specific command.
+  transitions and successful `useEntity()` CRUD mutations emit the changed
+  entity through this helper so pages/stores can refresh related data without
+  coupling every button to a page-specific command. The standardized event
+  detail shape is `{ type, id, entity?, change, reason, source }`, and shared
+  caches should subscribe here instead of inventing per-feature buses.
 - `interactive-target.js`: Shared DOM guard for entity cards that have parent
   click/select actions. It detects nested links, buttons, form controls, status
   controls, geometry previews, and nested inline/compact entity cards so parent

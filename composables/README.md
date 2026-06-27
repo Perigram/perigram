@@ -51,6 +51,11 @@ Entity JSON is strict block DTO data: root `_id` plus canonical blocks only.
 `lineage`, and `specs`, but it does not rely on root aliases such as
 `entity.id`, `entity.name`, `entity.slug`, `entity.type`, or
 `entity.parameters`.
+Successful `create()`, `update()`, and `remove()` calls emit the shared
+browser-local entity sync event from `utils/entity-events.js`, using the same
+contract as status transitions. Frontend surfaces that need cache invalidation
+or dependent refreshes should listen to that contract rather than wiring
+page-local callbacks for each CRUD button.
 `state` is the primary lifecycle string derived from structured
 `status.state.primary`; `stateObject` and `statusRegions` expose the full v2
 machine state when a surface needs region details.
@@ -134,10 +139,10 @@ All standard workflow transitions go through `POST /api/status/transition`.
 Interactive status controls load server-authorized actions from
 `GET /api/status/actions`, so frontend components do not duplicate transition
 permission checks.
-After a successful transition, `useStatusController` emits a browser-local
-entity-change event for the changed entity and any related entities returned in
-transition `effects`. Transition responses normalize effects as grouped arrays
-(`effects.entities`, `effects.tasks`, `effects.transitions`, and
+After a successful transition, `useStatusController` emits the same
+browser-local entity sync event for the changed entity and any related entities
+returned in transition `effects`. Transition responses normalize effects as
+grouped arrays (`effects.entities`, `effects.tasks`, `effects.transitions`, and
 `effects.events`); legacy array-shaped responses remain tolerated by the browser
 event bridge.
 
