@@ -597,4 +597,31 @@ describe('support communication service', () => {
       })
     ]);
   });
+
+  it('allows attachment-only messages when at least one ref survives validation', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    mocks.cassettesService.list.mockResolvedValue([
+      {
+        toJSON: () => ({
+          _id: 'cassette-1',
+          identity: { name: 'Iklya 1' },
+          data: {}
+        })
+      }
+    ]);
+
+    const message = await supportService.sendUserMessage(auth, {
+      message: '   ',
+      entityRefs: [{ type: 'cassette', id: 'cassette-1' }]
+    });
+
+    expect(message.message).toBe('');
+    expect(message.entityRefs).toEqual([
+      expect.objectContaining({
+        type: 'cassette',
+        id: 'cassette-1',
+        label: 'Iklya 1'
+      })
+    ]);
+  });
 });

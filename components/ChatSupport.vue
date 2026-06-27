@@ -232,7 +232,7 @@
                         <Button
                             icon="pi pi-send"
                             @click="sendMessage"
-                            :disabled="!message.trim() || isLoading"
+                            :disabled="(!message.trim() && !entityRefs.length) || isLoading"
                             rounded
                             size="small"
                             class="flex-shrink-0"
@@ -289,6 +289,18 @@ const draftPreviewMessage = computed(() => ({
 }))
 const activeRecipientUserId = computed(() => activeConversation.value?.conversationKind === 'direct' ? participantUserId(activeConversation.value) : '')
 const recipientLimitedRefs = computed(() => entityRefs.value.filter(ref => ref.recipientHasAccess === false))
+const localizedEntityTypeLabel = (type) => {
+    const candidates = [
+        `support.entityTypeLabels.${type}`,
+        `entities.${type}`,
+        `common.${type}`
+    ]
+    for (const key of candidates) {
+        const translated = t(key)
+        if (translated !== key) return translated
+    }
+    return type
+}
 
 const listedDirectUserIds = computed(() => new Set(displayConversations.value
     .filter(conversation => conversation.conversationKind === 'direct')
@@ -466,7 +478,7 @@ const loadEntityTypes = async () => {
     try {
         const types = await $fetch('/api/support/entity-types')
         entityTypeOptions.value = (types || []).map(type => ({
-            label: type.labelKey ? t(type.labelKey) : (type.label || type.value),
+            label: type.labelKey ? t(type.labelKey) : localizedEntityTypeLabel(type.value),
             value: type.value
         }))
         const currentTypeAvailable = entityTypeOptions.value.some(option => option.value === entityDraft.value.type)

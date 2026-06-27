@@ -95,6 +95,25 @@
     "zoomOut": "Zoom out",
     "resetView": "Reset view"
   },
+  "support": {
+    "entityTypeLabels": {
+      "cassette": "Cassette",
+      "cassette_design": "Cassette design",
+      "queue": "Queue",
+      "library": "Library",
+      "nesting_run": "Nesting run",
+      "sheet_design": "Sheet design",
+      "project": "Project",
+      "material_pile": "Material pile",
+      "warehouse": "Warehouse",
+      "sheet": "Sheet",
+      "catalog": "Catalog",
+      "requisition": "Requisition",
+      "material": "Material",
+      "remnant": "Remnant",
+      "user": "User"
+    }
+  },
   "footer": {
     "termsAndConditions": "Terms and Conditions",
     "blog": "Blog",
@@ -499,6 +518,9 @@
         "addPoint": "Add point",
         "addCircle": "Add circle",
         "newPolyline": "New polyline",
+        "undoPoint": "Undo point",
+        "closePolyline": "Close",
+        "finishPolyline": "Finish",
         "importDxf": "Import DXF",
         "importFailed": "DXF import failed.",
         "insert": "Insert into cassette",

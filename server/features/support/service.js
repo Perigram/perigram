@@ -174,8 +174,8 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
 }
 
 async function insertMessage({ context, sender, senderUserId, message, entityRefs, auth, recipientUserId = null }) {
-    const text = normalizeMessage(message);
     const refs = await normalizeEntityRefs(entityRefs, auth, { recipientUserId });
+    const text = normalizeMessage(message, refs);
     return await repository.insert({
         userId: context.kind === 'support' ? context.participants[0] : null,
         conversationKey: context.conversationKey,
@@ -189,9 +189,9 @@ async function insertMessage({ context, sender, senderUserId, message, entityRef
     }, messageProjection());
 }
 
-function normalizeMessage(message) {
+function normalizeMessage(message, entityRefs = []) {
     const text = typeof message === 'string' ? message.trim() : '';
-    if (!text) throw createError({ statusCode: 400, message: 'Message is required' });
+    if (!text && !entityRefs.length) throw createError({ statusCode: 400, message: 'Message is required' });
     return text;
 }
 

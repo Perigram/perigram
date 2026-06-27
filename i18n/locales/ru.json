@@ -95,6 +95,25 @@
     "zoomOut": "Отдалить",
     "resetView": "Сбросить вид"
   },
+  "support": {
+    "entityTypeLabels": {
+      "cassette": "Кассета",
+      "cassette_design": "Дизайн кассеты",
+      "queue": "Очередь",
+      "library": "Библиотека",
+      "nesting_run": "Запуск раскроя",
+      "sheet_design": "Дизайн листа",
+      "project": "Проект",
+      "material_pile": "Партия материала",
+      "warehouse": "Склад",
+      "sheet": "Лист",
+      "catalog": "Каталог",
+      "requisition": "Заявка",
+      "material": "Материал",
+      "remnant": "Остаток",
+      "user": "Пользователь"
+    }
+  },
   "footer": {
     "termsAndConditions": "Условия и положения",
     "blog": "Блог",
@@ -499,6 +518,9 @@
         "addPoint": "Добавить точку",
         "addCircle": "Добавить окружность",
         "newPolyline": "Новая полилиния",
+        "undoPoint": "Отменить точку",
+        "closePolyline": "Замкнуть",
+        "finishPolyline": "Завершить",
         "importDxf": "Импорт DXF",
         "importFailed": "Не удалось импортировать DXF.",
         "insert": "Вставить в кассету",
