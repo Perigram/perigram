@@ -30,6 +30,8 @@ unread counts from messages sent after `lastReadAt` by another sender.
 The user-facing conversation stream also merges reachable same-organization
 users as empty direct conversations, so the Chats drawer can start a direct
 thread before any message exists.
+The app-shell badge owns unread notification counts; individual drawer rows do
+not show message/unread counts.
 
 ## Inline Entity References
 

@@ -57,6 +57,10 @@ attach the first organization.
   as status-history actors and chat message entity tokens. The route grants
   full user-field visibility only for the same user or callers that can manage
   users in the active organization.
+- User listing scopes by active `organizationId` as well as explicit
+  membership records, and queries both string and `ObjectId` organization-id
+  forms. Process-auth contexts that omit expanded memberships still return
+  same-organization users for pickers and chat lists.
 
 ## Permission System
 - Organization context via `user.lineage.organizationId`

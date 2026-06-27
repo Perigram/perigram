@@ -4,6 +4,17 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Fix chats drawer user candidates and row counts
+    Files changed: server/features/users/service.js,
+      server/features/users/users.spec.js, components/ChatSupport.vue
+    Docs updated: server/features/users/README.md,
+      server/features/support/README.md, components/README.md, TODO.org
+    Notes: User listing now falls back to active `organizationId` when expanded
+      memberships are absent from process auth and matches both string/ObjectId
+      organization-id storage, so the chats inbox can list same-organization
+      users. Drawer rows no longer show per-conversation unread/message count
+      badges; the app-shell chat badge remains the notification surface.
+
     [2026-06-27] Fix chats inbox candidates and mobile drawer naming
     Files changed: server/features/support/service.js,
       server/features/support/support.spec.js, components/ChatSupport.vue,
