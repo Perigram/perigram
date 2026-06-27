@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Fix chats drawer pre-auth SSE connection
+    Files changed: stores/supportChat.js, stores/supportChat.spec.js,
+      components/ChatSupport.vue
+    Docs updated: stores/README.md, components/README.md, TODO.org
+    Notes: The chats drawer no longer opens `/api/support/conversations` before
+      auth hydration. Failed conversation SSE connections now close and clear
+      the store handle so later authenticated reconnects can load the real
+      conversation list instead of leaving only the synthetic support row.
+
     [2026-06-27] Fix chats drawer user candidates and row counts
     Files changed: server/features/users/service.js,
       server/features/users/users.spec.js, components/ChatSupport.vue

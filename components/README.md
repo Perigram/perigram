@@ -633,7 +633,9 @@ floating Chats drawer opens to an inbox backed by `/api/support/conversations`;
 that inbox includes readable users even before a first direct message exists,
 uses a full-screen layout on mobile, and the app-shell chat badge shows the
 total unread count from the support chat store. Drawer rows show participant
-and latest-message context only, without per-row message-count badges.
+and latest-message context only, without per-row message-count badges. The
+conversation SSE is auth-gated by the store so direct user candidates are not
+lost behind a failed pre-auth connection.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data
