@@ -326,12 +326,17 @@ const sendMessage = async () => {
     isLoading.value = true
 
     try {
+        const payloadEntityRefs = entityRefs.value.map(ref => ({
+            type: ref.type,
+            id: ref.id,
+            label: ref.label
+        }))
         await $fetch('/api/support/messages', {
             method: 'POST',
             body: {
                 message: message.value,
                 recipientUserId: activeConversation.value.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
-                entityRefs: entityRefs.value
+                entityRefs: payloadEntityRefs
             }
         })
         message.value = ''
