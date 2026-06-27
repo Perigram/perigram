@@ -16,6 +16,7 @@ import { GridFSBucket } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { Cassette } from './model.js';
+import { serializeForAccess } from '../../utils/entity-redaction.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
 import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 import { isOccsDocument, occsQueueParameters } from '#utils/occs/parameters.js';
@@ -293,6 +294,32 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
     .filter(cassette => hasLineagePermission(userPermissions, cassette, 'cassettes', 'read'));
 }
 
+export async function listPreviewByLibraries(libraryIds = [], userId, userOrg, userRole, userPermissions, options = {}) {
+  const ids = Array.from(new Set(libraryIds.flatMap(id => flexibleLookupValues(id)).filter(Boolean)));
+  if (!ids.length) return {};
+
+  const limit = Math.max(Number(options.limit || 4), 1);
+  const raws = await repository.find({
+    ...getLineageFilter(userPermissions),
+    'lineage.libraryId': { $in: ids }
+  });
+  const previews = {};
+  const cassettes = raws
+    .map(raw => new Cassette(raw).toJSON())
+    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'cassettes', 'read'))
+    .sort(sortByStatusTimestampDesc);
+
+  for (const cassette of cassettes) {
+    const libraryId = cassette.lineage?.libraryId?.toString?.() || cassette.lineage?.libraryId;
+    if (!libraryId) continue;
+    previews[libraryId] ||= [];
+    if (previews[libraryId].length >= limit) continue;
+    previews[libraryId].push(cassettePreview(cassette, userPermissions));
+  }
+
+  return previews;
+}
+
 function normalizeLineageQuery(query = {}) {
   const normalized = { ...query };
   for (const key of ['projectId', 'queueId', 'warehouseId', 'cassetteId', 'libraryId']) {
@@ -308,6 +335,50 @@ function normalizePrimaryStatuses(value) {
   if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
   if (typeof value !== 'string') return [];
   return value.split(',').map(item => item.trim()).filter(Boolean);
+}
+
+function flexibleLookupValues(id) {
+  if (id === null || id === undefined) return [];
+  const stringId = id?.toString?.() || id;
+  const flexibleId = toFlexibleId(id);
+  return [flexibleId, stringId].filter((value, index, values) => (
+    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
+  ));
+}
+
+function sortByStatusTimestampDesc(left = {}, right = {}) {
+  return statusTimestamp(right) - statusTimestamp(left);
+}
+
+function statusTimestamp(entity = {}) {
+  const value = entity.status?.timestamp || entity.origin?.timestamp || entity.updatedAt || entity.createdAt;
+  const timestamp = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function cassettePreview(cassette = {}, userPermissions = null) {
+  const preview = {
+    _id: cassette._id?.toString?.() || cassette._id,
+    entityType: 'cassette',
+    identity: {
+      ...(cassette.identity || {}),
+      name: cassette.identity?.name || cassette.identity?.slug || cassette.identity?.uid || 'Cassette'
+    },
+    origin: cassette.origin || null,
+    status: cassette.status || null,
+    lineage: cassette.lineage || {},
+    data: {
+      type: cassette.data?.type || null,
+      definition: cassette.data?.definition || null,
+      geometry: cassette.data?.geometry || null,
+      layerData: Array.isArray(cassette.data?.layerData) ? cassette.data.layerData : [],
+      polygonParts: Array.isArray(cassette.data?.polygonParts) ? cassette.data.polygonParts : [],
+      parameters: Array.isArray(cassette.data?.parameters) ? cassette.data.parameters : [],
+      revisions: cassette.data?.revisions || {}
+    },
+    summary: {}
+  };
+  return serializeForAccess('cassette', preview, userPermissions);
 }
 
 async function syncParentSummary(cassette = {}) {

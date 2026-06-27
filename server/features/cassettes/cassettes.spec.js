@@ -316,4 +316,58 @@ describe('Cassette Management & Ownership', () => {
       createdAuth
     )).rejects.toThrow(/Permission denied/);
   });
+
+  it('includes thumbnail-capable geometry fields in library cassette previews', async () => {
+    const libraryId = new ObjectId();
+    await db.collection('libraries').insertOne({
+      _id: libraryId,
+      identity: { name: 'Preview Library', slug: 'preview-library' },
+      lineage: { organizationId: user1.organizationId },
+      summary: { cassetteCount: 0 }
+    });
+
+    const cassette = await cassetteService.create({
+      name: 'Preview Cassette',
+      libraryId,
+      type: 'PARAMETRIC',
+      definition: {
+        params: { A: 100, B: 200 },
+        extrusions: [{ id: 'face-1', width: 100, height: 200 }]
+      },
+      parameters: ['A', 'B']
+    }, user1.userId, user1.organizationId, null, user1.permissions);
+
+    await db.collection('cassettes').updateOne(
+      { _id: cassette._id },
+      {
+        $set: {
+          'data.geometry': { preview: { viewBox: [0, 0, 100, 200], layers: [] } },
+          'data.layerData': [{ layer: 'cut.outer', coordinates: [[0, 0], [100, 0], [100, 200], [0, 200]] }],
+          'data.polygonParts': [{ layer: 'cut.outer', points: [[0, 0], [100, 0], [100, 200], [0, 200]] }]
+        }
+      }
+    );
+
+    const previews = await cassetteService.listPreviewByLibraries(
+      [libraryId],
+      user1.userId,
+      user1.organizationId,
+      null,
+      user1.permissions,
+      { limit: 4 }
+    );
+
+    expect(previews[libraryId.toString()]).toHaveLength(1);
+    expect(previews[libraryId.toString()][0].data).toMatchObject({
+      type: 'PARAMETRIC',
+      definition: {
+        params: { A: 100, B: 200 }
+      },
+      geometry: {
+        preview: { viewBox: [0, 0, 100, 200], layers: [] }
+      }
+    });
+    expect(previews[libraryId.toString()][0].data.layerData).toHaveLength(1);
+    expect(previews[libraryId.toString()][0].data.polygonParts).toHaveLength(1);
+  });
 });
