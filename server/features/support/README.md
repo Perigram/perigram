@@ -81,7 +81,10 @@ Cassette snapshots must retain preview-driving fields such as `data.type` and
 `data.definition`, because direct-chat inline cards render from the stored
 snapshot instead of refetching protected cassette endpoints.
 Message writes drop unsupported or unreadable refs instead of accepting
-arbitrary ids.
+arbitrary ids. Incoming refs normalize common frontend/entity-surface aliases
+such as `cassetteDesign`, `nestingRun`, and `materialPile` to their canonical
+backend snake-case types before that validation step, so status-history drafts
+and other UI-local relation refs do not disappear on send.
 
 ## API
 

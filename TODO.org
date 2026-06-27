@@ -182,6 +182,10 @@
       direct-chat inline previews render without a fallback fetch. Older
       non-restricted cassette refs still rehydrate through the normal entity
       API when their stored snapshot predates that richer preview contract.
+      Support write validation now normalizes frontend entity-type aliases such
+      as `cassetteDesign` and `nestingRun` to canonical backend snake-case
+      types before checking generated attachment scope, which prevents draft
+      refs from disappearing on send.
 
     [2026-06-26] Route trace links through generated detail access
     Files changed: components/shared/links/TraceChain.vue,
