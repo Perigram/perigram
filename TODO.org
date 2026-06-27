@@ -4,6 +4,18 @@
   :END:
 
 *** Agent Notes
+    [2026-06-27] Add semantic inline-ref hierarchy styling
+    Files changed: assets/css/main.css,
+      components/shared/EntityInlineRef.vue,
+      components/shared/blocks/IdentityBlock.vue,
+      components/shared/EntityRelationsBlock.vue
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Inline entity refs now encode both family hue and semantic role.
+      Containers use the strongest filled treatment, template/design/meta refs
+      use mid-strength definition styling, and concrete items stay lighter and
+      more outlined. Gallery rows remain single-line and chip labels truncate
+      with ellipsis instead of wrapping.
+
     [2026-06-27] Refine generated entity card child galleries and dark-theme inline refs
     Files changed: assets/css/main.css,
       components/generated/GeneratedEntityCollection.vue,

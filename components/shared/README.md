@@ -278,9 +278,14 @@ and reuses its canonical body inside that popover. Use this for entity relation
 context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
-Inline chips now carry a restrained type-family tone in addition to the icon so
-project/queue/run refs, cassette/design refs, stock refs, and admin/meta refs
-read differently at a glance without changing the popover card body.
+Inline chips now carry a restrained semantic tone in addition to the icon. The
+hue comes from the entity family (`project/queue`, cassette family, sheet/run
+family, stock/material family, admin/meta family), while the surface treatment
+comes from the entity role: containers render as the strongest filled chips,
+templates/designs/revisions render as mid-strength definition chips, and
+concrete items/instances render as lighter outlined chips. This keeps inline
+refs visually legible in both light and dark themes without changing the
+popover card body.
 Use canonical design-system surface keys for new references, for example
 `materialPile`, `nestingRun`, `cassetteDesign`, `cassetteTemplate`, and
 `entityRevision`. Backend snake-case aliases continue to resolve through the
