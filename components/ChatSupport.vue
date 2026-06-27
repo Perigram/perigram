@@ -248,7 +248,7 @@ const newChatUsersLoading = ref(false)
 
 const messagePreviewVisible = computed(() => Boolean(message.value.includes('{{entity:') || entityRefs.value.length))
 const draftPreviewMessage = computed(() => ({
-    message: message.value,
+    message: message.value.includes('{{entity:') ? message.value : '',
     entityRefs: entityRefs.value
 }))
 
