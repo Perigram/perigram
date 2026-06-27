@@ -127,7 +127,9 @@ export const useEntityStore = defineStore('entities', () => {
             }
             if (entity) {
                 registry.value[type][normalizedId] = entity;
+                return;
             }
+            delete registry.value[type][normalizedId];
         });
     }
 

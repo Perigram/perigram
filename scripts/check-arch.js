@@ -15,6 +15,7 @@ const API_DIR = './server/api';
 const ENTITY_FEATURES = cncEntities.map(entity => entity.feature || entityTypeToFeature(entity.type));
 const CAPABILITY_FEATURES = [
   'config-bot',
+  'entity-events',
   'files',
   'invitations',
   'material-options',

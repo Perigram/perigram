@@ -127,6 +127,7 @@
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
     import { useSupportChatStore } from '~/stores/supportChat'
+    import { useEntityEventsStore } from '~/stores/entityEvents'
     import { useNavigationStore } from '~/stores/navigation'
     import { useGlobalStore } from '~/stores/global'
 
@@ -136,6 +137,7 @@
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
     const supportChatStore = useSupportChatStore()
+    const entityEventsStore = useEntityEventsStore()
     const navStore = useNavigationStore()
     const globalStore = useGlobalStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
@@ -157,8 +159,13 @@
     })
 
     watch(() => authStore.userIsSet, (isSet) => {
-        if (isSet) supportChatStore.connect()
-        else supportChatStore.disconnect()
+        if (isSet) {
+            supportChatStore.connect()
+            entityEventsStore.connect()
+        } else {
+            supportChatStore.disconnect()
+            entityEventsStore.disconnect()
+        }
     }, { immediate: true })
 
     // --- Breadcrumb Navigation ---

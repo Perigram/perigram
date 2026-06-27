@@ -7,6 +7,7 @@ import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
+import * as entityEventService from '~/server/features/entity-events/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
@@ -269,13 +270,15 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
     const targetState = action.status?.to || action.access?.statusTo;
     if (!targetState) throw createError({ statusCode: 400, message: `Action ${actionId} has no target status` });
-    return await statusService.transitionWithResult({
+    const result = await statusService.transitionWithResult({
       entityType: resolveActionEntityType(action),
       targetId,
       targetState,
       auth,
       context: processTransitionContext(action, data, process.data)
     });
+    await publishStatusResultEvents(auth, resolveActionEntityType(action), targetId, result, 'process-status-action');
+    return result;
   }
 
   if (action.actionKind === 'sendToOrganization') {
@@ -289,10 +292,14 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   if (action.actionKind === 'createEntity') {
     const entityType = resolveActionEntityType(action);
     if (entityType === 'cassette_design' && action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-      return await executeBakeCassetteDesign(action, data, organizationId, auth, process.data, entities);
+      const created = await executeBakeCassetteDesign(action, data, organizationId, auth, process.data, entities);
+      await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
+      return created;
     }
     if (entityType === 'cassette' && action.construction?.mode === 'createDefaultOccsTemplate') {
-      return await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth, process.data, entities);
+      const created = await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth, process.data, entities);
+      await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
+      return created;
     }
     if (entityType === 'cassette_design') {
       throw createError({ statusCode: 400, message: 'cassette_design requires typed construction' });
@@ -301,10 +308,16 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
     const created = await service.create(createActionPayload(action, data, entities), auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
     const targetState = action.status?.to;
-    if (!targetState) return created;
+    if (!targetState) {
+      await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
+      return created;
+    }
     const createdDto = created?.toJSON ? created.toJSON() : created;
     const targetId = createdDto?._id || createdDto?.identity?.uid;
-    if (!targetId) return created;
+    if (!targetId) {
+      await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
+      return created;
+    }
     const status = await statusService.setInitialStateForOrganization(
       entityType,
       targetId,
@@ -313,10 +326,12 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       auth.userId,
       processStatusMetadata(action, `Created by process action ${action.id || actionId}`, process.data)
     );
-    return {
+    const result = {
       ...createdDto,
       status
     };
+    await publishActionEntityEvent(auth, entityType, result, 'created', 'process-create');
+    return result;
   }
 
   if (action.actionKind === 'updateEntity') {
@@ -324,7 +339,9 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
     const service = getEntityServiceForAction(action);
     if (!service.update) throw createError({ statusCode: 500, message: `Entity service cannot update ${resolveActionEntityType(action)}` });
-    return await service.update(targetId, pickMutationData(data, action), auth.userId, organizationId, auth.role, auth);
+    const updated = await service.update(targetId, pickMutationData(data, action), auth.userId, organizationId, auth.role, auth);
+    await publishActionEntityEvent(auth, resolveActionEntityType(action), updated || { _id: targetId }, 'updated', 'process-update');
+    return updated;
   }
 
   throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
@@ -378,7 +395,49 @@ async function applyProcessOutputStatuses({ actionId, result = {}, processData =
       auth.userId,
       processStatusMetadata({ entityType, status: { to: targetState } }, `Created by process command action ${actionId}`, processData)
     );
+    await entityEventService.publishEntityChanged(auth, {
+      type: entityType,
+      id: targetId,
+      change: 'updated',
+      reason: 'process-command-output-status'
+    });
   }
+}
+
+async function publishStatusResultEvents(auth, entityType, targetId, result = {}, reason = 'process-status-action') {
+  await entityEventService.publishEntityChanged(auth, {
+    type: entityType,
+    id: result.entity?._id || targetId,
+    change: 'updated',
+    reason
+  });
+  for (const changed of normalizedEffectEntities(result.effects)) {
+    await entityEventService.publishEntityChanged(auth, {
+      type: changed.type,
+      id: changed.id || changed.entity?._id,
+      change: 'updated',
+      reason: `${reason}-effect`
+    });
+  }
+}
+
+async function publishActionEntityEvent(auth, entityType, entity, change, reason) {
+  await entityEventService.publishEntityChanged(auth, {
+    type: entityType,
+    id: entityId(entity),
+    change,
+    reason
+  });
+}
+
+function normalizedEffectEntities(effects) {
+  if (!effects) return [];
+  if (Array.isArray(effects)) return effects.flatMap(effect => effect?.entities || []);
+  return effects.entities || [];
+}
+
+function entityId(entity = {}) {
+  return entity?._id || entity?.id || entity?.identity?.uid || null;
 }
 
 function hasAsyncOutputBoundary(result = {}) {

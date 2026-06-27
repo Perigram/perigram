@@ -91,6 +91,7 @@ export const useEntity = (type, identifier = null) => {
       }));
       entity.value = data;
       emitEntityUpdated({ type, id: data?._id || id, entity: data });
+      publishEntityMutation({ type, id: data?._id || id, change: 'updated', reason: 'update' });
       return data;
     } catch (err) {
       error.value = err.data?.message || `Failed to update ${type}`;
@@ -111,6 +112,7 @@ export const useEntity = (type, identifier = null) => {
       const result = await $fetch(url, entityFetchOptions({ method: 'POST', body: data }));
       entity.value = result;
       emitEntityCreated({ type, id: result?._id, entity: result });
+      publishEntityMutation({ type, id: result?._id, change: 'created', reason: 'create' });
       return result;
     } catch (err) {
       error.value = err.data?.message || `Failed to create ${type}`;
@@ -132,6 +134,7 @@ export const useEntity = (type, identifier = null) => {
       await $fetch(getSingleEndpoint(id), entityFetchOptions({ method: 'DELETE' }));
       entity.value = null;
       emitEntityDeleted({ type, id: removedId, entity: removedEntity });
+      publishEntityMutation({ type, id: removedId, change: 'deleted', reason: 'delete' });
     } catch (err) {
       error.value = err.data?.message || `Failed to delete ${type}`;
       throw err;
@@ -201,4 +204,12 @@ function entityFetchOptions(options = {}) {
       ...(options.headers || {})
     }
   };
+}
+
+function publishEntityMutation(detail = {}) {
+  if (import.meta.server || !detail.type || !detail.id) return;
+  $fetch('/api/entity-events', {
+    method: 'POST',
+    body: detail
+  }).catch(() => null);
 }

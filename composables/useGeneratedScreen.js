@@ -1,9 +1,10 @@
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '~/stores/auth';
 import { useEntity } from '~/composables/useEntity';
 import { normalizeScreenContract } from '~/packages/processes/src/screen-contract.js';
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
+import { onEntityChanged } from '~/utils/entity-events.js';
 
 export function useGeneratedScreen(screenRef) {
   const authStore = useAuthStore();
@@ -49,6 +50,15 @@ export function useGeneratedScreen(screenRef) {
   watch(screen, () => {
     load();
   }, { immediate: true, deep: true });
+
+  const stopEntityChangeListener = onEntityChanged(({ type }) => {
+    if (!type || !visibleSources.value.some(source => source.entityType === type)) return;
+    load();
+  });
+
+  onUnmounted(() => {
+    stopEntityChangeListener();
+  });
 
   function sourceState(sourceId) {
     return sourceStates.value[sourceId] || emptyState({ id: sourceId });
