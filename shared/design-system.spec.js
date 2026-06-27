@@ -496,6 +496,9 @@ describe('Design system manifest', () => {
     expect(generatedHome).toContain('pi pi-external-link');
     expect(generatedCollection).toContain('pi pi-external-link');
     expect(relationsBlock).toContain('overflow-x-auto');
+    expect(relationsBlock).toContain('entity-relations-gallery--compact');
+    expect(relationsBlock).toContain('openOverflow');
+    expect(relationsBlock).toContain('overflowItems');
     expect(relationsBlock).toContain('itemVariant');
     expect(relationsBlock).toContain("field.display === 'entityRefList'");
     expect(surfaceContent).toContain('replacesCountPath');
@@ -506,6 +509,8 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain("variant === 'compact'");
     expect(inlineRef).toContain('class="inline-flex w-full');
     expect(inlineRef).toContain('variant="inline"');
+    expect(inlineRef).toContain('StatusBadge');
+    expect(inlineRef).toContain('compactStatusState');
     expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
     expect(inlineRef).not.toContain('entity-inline-compact-fallback');
     expect(identityBlock).toContain('entity-inline-chip');

@@ -5,6 +5,7 @@ import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import EntityPreview from '~/components/shared/EntityPreview.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
@@ -115,6 +116,12 @@ const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.va
 const compactPreviewHideDimensionLayer = computed(() =>
   ['cassette', 'cassette_design'].includes(generatedEntityType.value)
 );
+const compactStatusState = computed(() => {
+  const state = resolved.value?.status?.state;
+  if (typeof state === 'string') return state;
+  return state?.primary || state?.active?.main || '';
+});
+const compactStatusDisplay = computed(() => resolved.value?.status?.metadata?.display || null);
 
 watch(
   () => [props.entity, normalizedId.value, props.type, contextEntity.value?._id],
@@ -280,18 +287,28 @@ function tonePalette(role) {
           :hide-dimension-layer="compactPreviewHideDimensionLayer"
         />
       </span>
-      <span class="min-w-0 flex-1">
-        <span class="flex min-w-0 flex-col gap-1">
+      <span class="entity-inline-compact-main">
+        <span class="entity-inline-compact-header">
           <IdentityBlock
             v-if="resolved"
+            class="min-w-0 flex-1"
             :entity="resolved"
             variant="inline"
             :icon="icon"
             :fields="fields"
           />
-          <span v-else class="truncate font-medium text-sm">
+          <span v-else class="min-w-0 flex-1 truncate font-medium text-sm">
             {{ normalizedId || $t('common.notAvailable') }}
           </span>
+          <StatusBadge
+            v-if="compactStatusState"
+            :state="compactStatusState"
+            :display="compactStatusDisplay"
+            icon-only
+            class="shrink-0"
+          />
+        </span>
+        <span class="entity-inline-compact-facts">
           <DataBlock
             v-if="resolved && compactDataFields.length"
             :entity-type="generatedEntityType"
