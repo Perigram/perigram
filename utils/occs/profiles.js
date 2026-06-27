@@ -44,7 +44,10 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
     { id: 'h0', type: 'circle', center: [21, 14], diameter: 6 }
   ],
   modifiers: [
-    { type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 3 }
+    { type: 'fillet', vertexId: 'p0', radius: 3 },
+    { type: 'fillet', vertexId: 'p1', radius: 3 },
+    { type: 'fillet', vertexId: 'p2', radius: 3 },
+    { type: 'fillet', vertexId: 'p3', radius: 3 }
   ],
   constraints: []
 });
@@ -78,6 +81,24 @@ const normalizeLineEdge = (edge = {}, index = 0) => ({
   to: edge.to
 });
 
+const normalizeFilletModifiers = (modifiers = [], pointIds = new Set()) => {
+  const filletsByVertex = new Map();
+  for (const modifier of modifiers) {
+    if (modifier?.type !== 'fillet') continue;
+    const radius = Math.max(0, numericValue(modifier.radius));
+    const vertices = modifier.vertexId
+      ? [modifier.vertexId]
+      : Array.isArray(modifier.vertices)
+        ? modifier.vertices
+        : [];
+    for (const vertexId of vertices) {
+      if (!pointIds.has(vertexId)) continue;
+      filletsByVertex.set(vertexId, { type: 'fillet', vertexId, radius });
+    }
+  }
+  return [...filletsByVertex.values()];
+};
+
 export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {}) => {
   const fallback = createDefaultOccsProfileSketch(fallbackParameters);
   const parameters = {
@@ -85,11 +106,14 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
     ...(fallbackParameters || {}),
     ...(sketch.parameters || {})
   };
-  const points = Array.isArray(sketch.points) && sketch.points.length
+  const points = Array.isArray(sketch.points)
     ? sketch.points.map(normalizePoint)
     : fallback.points;
   const pointIds = new Set(points.map(point => point.id));
-  const edges = (Array.isArray(sketch.edges) && sketch.edges.length ? sketch.edges : fallback.edges)
+  const edgeSource = Array.isArray(sketch.edges)
+    ? sketch.edges
+    : points.length ? fallback.edges : [];
+  const edges = edgeSource
     .filter(edge => pointIds.has(edge.from) && pointIds.has(edge.to))
     .map(normalizeLineEdge);
   const holes = (Array.isArray(sketch.holes) ? sketch.holes : fallback.holes)
@@ -103,14 +127,10 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
       ] : [0, 0],
       diameter: numericValue(hole.diameter)
     }));
-  const modifiers = (Array.isArray(sketch.modifiers) ? sketch.modifiers : fallback.modifiers)
-    .filter(modifier => modifier?.type === 'fillet')
-    .map(modifier => ({
-      type: 'fillet',
-      vertices: Array.isArray(modifier.vertices) ? modifier.vertices.filter(id => pointIds.has(id)) : [],
-      radius: numericValue(modifier.radius)
-    }))
-    .filter(modifier => modifier.vertices.length);
+  const modifiers = normalizeFilletModifiers(
+    Array.isArray(sketch.modifiers) ? sketch.modifiers : fallback.modifiers,
+    pointIds
+  );
 
   return {
     version: sketch.version || '0.1',
@@ -162,6 +182,47 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
       length: String(options.length || normalized.parameters.L || 120)
     },
     sketch: normalized
+  };
+};
+
+export const resolveProfileSketchOrthoPoint = (previous = {}, pointer = {}) => {
+  const previousPoint = {
+    x: numericValue(previous.x ?? previous.xValue),
+    y: numericValue(previous.y ?? previous.yValue)
+  };
+  const pointerPoint = {
+    x: numericValue(pointer.x ?? pointer.xValue),
+    y: numericValue(pointer.y ?? pointer.yValue)
+  };
+  const dx = pointerPoint.x - previousPoint.x;
+  const dy = pointerPoint.y - previousPoint.y;
+  return Math.abs(dx) >= Math.abs(dy)
+    ? { x: pointerPoint.x, y: previousPoint.y }
+    : { x: previousPoint.x, y: pointerPoint.y };
+};
+
+export const projectProfileSketchPointFromPrevious = (previous = {}, pointer = {}, distance = null, options = {}) => {
+  const previousPoint = {
+    x: numericValue(previous.x ?? previous.xValue),
+    y: numericValue(previous.y ?? previous.yValue)
+  };
+  const pointerPoint = options.ortho
+    ? resolveProfileSketchOrthoPoint(previousPoint, pointer)
+    : {
+        x: numericValue(pointer.x ?? pointer.xValue),
+        y: numericValue(pointer.y ?? pointer.yValue)
+      };
+  const length = Math.hypot(pointerPoint.x - previousPoint.x, pointerPoint.y - previousPoint.y);
+  const targetDistance = Number(distance);
+  if (!Number.isFinite(targetDistance) || targetDistance <= 0 || !length) {
+    return {
+      x: Math.round(pointerPoint.x * 1000) / 1000,
+      y: Math.round(pointerPoint.y * 1000) / 1000
+    };
+  }
+  return {
+    x: Math.round((previousPoint.x + ((pointerPoint.x - previousPoint.x) / length) * targetDistance) * 1000) / 1000,
+    y: Math.round((previousPoint.y + ((pointerPoint.y - previousPoint.y) / length) * targetDistance) * 1000) / 1000
   };
 };
 

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   createDefaultOccsProfileSketch,
   evaluateOccsProfileSketchPreview,
+  normalizeOccsProfileSketch,
   occsProfileFromSketch,
+  projectProfileSketchPointFromPrevious,
   profileSketchFromDxfText
 } from './profiles.js';
 
@@ -15,9 +17,59 @@ describe('OCCS profile helpers', () => {
       type: 'polygon',
       vertices: [['0', '0'], ['42', '0'], ['42', '28'], ['0', '28']],
       holes: [{ type: 'circle', center: ['21', '14'], diameter: '6' }],
-      modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 3 }]
+      modifiers: [
+        { type: 'fillet', vertexId: 'p0', radius: 3 },
+        { type: 'fillet', vertexId: 'p1', radius: 3 },
+        { type: 'fillet', vertexId: 'p2', radius: 3 },
+        { type: 'fillet', vertexId: 'p3', radius: 3 }
+      ]
     });
     expect(profile.sweep).toEqual({ type: 'linear', length: '120' });
+  });
+
+  it('normalizes legacy multi-vertex fillets into per-corner fillets', () => {
+    const sketch = normalizeOccsProfileSketch({
+      points: [
+        { id: 'a', x: 0, y: 0 },
+        { id: 'b', x: 10, y: 0 },
+        { id: 'c', x: 10, y: 10 }
+      ],
+      edges: [
+        { from: 'a', to: 'b' },
+        { from: 'b', to: 'c' },
+        { from: 'c', to: 'a' }
+      ],
+      modifiers: [{ type: 'fillet', vertices: ['a', 'c'], radius: 2 }]
+    });
+
+    expect(sketch.modifiers).toEqual([
+      { type: 'fillet', vertexId: 'a', radius: 2 },
+      { type: 'fillet', vertexId: 'c', radius: 2 }
+    ]);
+    expect(occsProfileFromSketch(sketch).section.modifiers).toEqual(sketch.modifiers);
+  });
+
+  it('projects the next drawn point by distance along the cursor vector', () => {
+    expect(projectProfileSketchPointFromPrevious(
+      { x: 0, y: 0 },
+      { x: 30, y: 40 },
+      10
+    )).toEqual({ x: 6, y: 8 });
+  });
+
+  it('projects the next drawn point in ortho mode along the dominant axis', () => {
+    expect(projectProfileSketchPointFromPrevious(
+      { x: 0, y: 0 },
+      { x: 30, y: 10 },
+      12,
+      { ortho: true }
+    )).toEqual({ x: 12, y: 0 });
+    expect(projectProfileSketchPointFromPrevious(
+      { x: 0, y: 0 },
+      { x: 10, y: 30 },
+      12,
+      { ortho: true }
+    )).toEqual({ x: 0, y: 12 });
   });
 
   it('evaluates numeric preview coordinates without a parametric solver', () => {
