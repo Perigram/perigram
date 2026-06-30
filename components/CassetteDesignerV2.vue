@@ -1073,6 +1073,9 @@ const profileTemplateOptions = computed(() => labelValueSelectOptions(
   profileTemplateItems.value,
   t('cassette.v2.profileEditor.defaultName')
 ));
+const editableProfileTemplateId = (profile = null) => (
+  profile?.lineage?.userId || profile?.lineage?.organizationId ? profile._id : ''
+);
 const placementModeOptions = computed(() => ['point', 'edgeArray'].map(mode => ({
   label: t(`cassette.v2.placementModes.${mode}`),
   value: mode
@@ -1949,11 +1952,17 @@ const profileDraftPayload = () => {
   };
 };
 
+const profileDraftTemplateReference = () => ({
+  _id: profileDraft.value._id || '',
+  identity: { name: profileDraft.value.name || t('cassette.v2.profileEditor.defaultName') },
+  data: profileDraftPayload()
+});
+
 const loadProfileTemplateDraft = (profileId) => {
   const profile = profileTemplateItems.value.find(item => String(item._id || '') === String(profileId || ''));
   if (!profile) return;
   profileDraft.value = {
-    _id: profile._id,
+    _id: editableProfileTemplateId(profile),
     name: profile.identity?.name || profile.name || '',
     kind: profile.data?.kind || 'hanger',
     process: profile.data?.process || 'extruded',
@@ -1972,9 +1981,10 @@ const openProfileDialog = async (workpieceId = '') => {
   const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
   if (workpiece) {
     const profile = workpiece.profileSnapshot || workpiece.profile || createDefaultOccsProfileTemplateData();
+    const sourceTemplate = profileTemplateItems.value.find(item => String(item._id || '') === String(workpiece.profileTemplateId || ''));
     selectedProfileTemplateId.value = workpiece.profileTemplateId || '';
     profileDraft.value = {
-      _id: workpiece.profileTemplateId || '',
+      _id: editableProfileTemplateId(sourceTemplate),
       name: workpiece.name || t('cassette.v2.profileEditor.defaultName'),
       kind: workpiece.role || profile.kind || 'hanger',
       process: workpiece.process || profile.process || 'extruded',
@@ -2017,8 +2027,11 @@ const saveProfileDraft = async () => {
 };
 
 const insertProfileDraft = async () => {
-  const saved = await saveProfileDraft();
-  if (!saved) return;
+  if (!profileDraftReady.value) {
+    toast.add({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
+    return;
+  }
+  const localTemplate = profileDraftTemplateReference();
   const selectedIsAttachment = Boolean(selectedWorkpiece.value?.family || selectedWorkpiece.value?.hardware?.family || selectedWorkpiece.value?.type === 'profile');
   const parentRelation = selectedIsAttachment
     ? workpieceRelations.value.find(relation => relation.sourceWorkpieceId === selectedWorkpieceId.value)
@@ -2034,19 +2047,15 @@ const insertProfileDraft = async () => {
           type: 'profile',
           role: profileDraft.value.kind,
           process: profileDraft.value.process,
-          profileTemplateId: saved?._id || profileDraft.value._id || '',
-          profileSnapshot: profileDraftPayload()
+          profileTemplateId: profileDraft.value._id || '',
+          profileSnapshot: localTemplate.data
         }),
         workpieceId: editingProfileWorkpieceId.value
       }
     : addCassetteV2ProfileWorkpiece(cassetteTree.value, {
         referenceWorkpieceId,
         referenceNodeId,
-        profileTemplate: saved || {
-          _id: profileDraft.value._id || '',
-          identity: { name: profileDraft.value.name },
-          data: profileDraftPayload()
-        }
+        profileTemplate: localTemplate
       });
   cassetteTree.value = result.tree;
   selectedWorkpieceOverrideId.value = result.workpieceId;
