@@ -7,29 +7,41 @@ import {
   normalizeOccsProfileSketch,
   occsProfileFromSketch
 } from '#utils/occs/profiles.js';
+import { hasLineagePermission } from '../../utils/permissions.js';
 import { ProfileTemplate } from './model.js';
 import * as repository from './repository.js';
 
 function toDTO(profileTemplate) {
   if (!profileTemplate) return null;
-  return new ProfileTemplate(profileTemplate).toJSON();
-}
-
-function scopeFromAuth(auth = {}) {
   return {
-    userId: auth.userId || auth?.context?.auth?.userId || null,
-    organizationId: auth.organizationId || auth.orgId || auth?.context?.auth?.organizationId || null
+    ...new ProfileTemplate(profileTemplate).toJSON(),
+    _id: profileTemplate._id
   };
 }
 
-function canAccess(profileTemplate = {}, scope = {}) {
+function scopeFromAuth(auth = {}) {
+  const membershipOrganizationId = auth.memberships?.[0]?.organizationId || null;
+  return {
+    userId: auth.userId || auth?.context?.auth?.userId || null,
+    organizationId: auth.organizationId || auth.orgId || auth?.context?.auth?.organizationId || membershipOrganizationId || null
+  };
+}
+
+function profileAccessEntity(profileTemplate = {}, scope = {}) {
+  return {
+    ...profileTemplate,
+    lineage: {
+      ...(profileTemplate.lineage || {}),
+      organizationId: profileTemplate.lineage?.organizationId || scope.organizationId || null
+    }
+  };
+}
+
+function canAccess(profileTemplate = {}, scope = {}, auth = {}, level = 'read') {
   const ownerId = profileTemplate.lineage?.userId || null;
   const organizationId = profileTemplate.lineage?.organizationId || null;
-  if (!ownerId && !organizationId) return true;
-  return Boolean(
-    (ownerId && scope.userId && ownerId.toString() === scope.userId.toString()) ||
-    (organizationId && scope.organizationId && organizationId.toString() === scope.organizationId.toString())
-  );
+  if (!ownerId && !organizationId) return level === 'read';
+  return hasLineagePermission(auth, profileAccessEntity(profileTemplate, scope), 'cassettes', level);
 }
 
 function normalizePayload(payload = {}) {
@@ -57,7 +69,7 @@ export async function getById(id, auth = {}) {
   if (!profileTemplate) {
     throw createError({ statusCode: 404, message: 'Profile template not found' });
   }
-  if (!canAccess(profileTemplate, scope)) {
+  if (!canAccess(profileTemplate, scope, auth, 'read')) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
   return toDTO(profileTemplate);
@@ -70,13 +82,18 @@ export async function listAll(auth = {}) {
     repository.findByScope(scope)
   ]);
   const byId = new Map([...systemProfiles, ...scopedProfiles].map(profile => [profile._id.toString(), profile]));
-  return [...byId.values()].map(toDTO);
+  return [...byId.values()]
+    .filter(profile => canAccess(profile, scope, auth, 'read'))
+    .map(toDTO);
 }
 
 export async function create(payload = {}, auth = {}) {
   const scope = scopeFromAuth(auth);
   if (!payload.name) {
     throw createError({ statusCode: 400, message: 'Name is required' });
+  }
+  if (!hasLineagePermission(auth, { lineage: { organizationId: scope.organizationId } }, 'cassettes', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }
   const data = normalizePayload(payload);
   const origin = createStatus('ACTIVE', scope.userId || 'SYSTEM', { note: 'Profile template created' });
@@ -97,7 +114,7 @@ export async function update(id, updates = {}, auth = {}) {
   const scope = scopeFromAuth(auth);
   const current = await repository.findById(id);
   if (!current) throw createError({ statusCode: 404, message: 'Profile template not found' });
-  if (!canAccess(current, scope)) throw createError({ statusCode: 403, message: 'Access denied' });
+  if (!canAccess(current, scope, auth, 'write')) throw createError({ statusCode: 403, message: 'Access denied' });
   if (!current.lineage?.userId && !current.lineage?.organizationId) {
     throw createError({ statusCode: 403, message: 'System profile templates cannot be modified' });
   }
@@ -118,7 +135,9 @@ export async function update(id, updates = {}, auth = {}) {
 }
 
 export async function remove(id, auth = {}) {
+  const scope = scopeFromAuth(auth);
   const profileTemplate = await getById(id, auth);
+  if (!canAccess(profileTemplate, scope, auth, 'admin')) throw createError({ statusCode: 403, message: 'Access denied' });
   if (!profileTemplate.lineage?.userId && !profileTemplate.lineage?.organizationId) {
     throw createError({ statusCode: 403, message: 'System profile templates cannot be deleted' });
   }
