@@ -635,6 +635,21 @@
                     :aria-label="$t('cassette.v2.hardwareFields.productionMode')"
                     @update:model-value="value => updateSelectedHardware({ productionMode: value })"
                   />
+                  <Select
+                    v-if="row.family === 'hanger_clip'"
+                    :model-value="row.profileTemplateId || ''"
+                    :options="profileTemplateOptions"
+                    option-label="label"
+                    option-value="value"
+                    size="small"
+                    class="w-full"
+                    :placeholder="$t('cassette.v2.profileEditor.loadTemplate')"
+                    :aria-label="$t('cassette.v2.profileEditor.loadTemplate')"
+                    @click="ensureProfileTemplatesLoaded"
+                    @focus="ensureProfileTemplatesLoaded"
+                    @show="ensureProfileTemplatesLoaded"
+                    @update:model-value="value => updateSelectedHardwareProfile(value)"
+                  />
                   <InputText
                     :model-value="row.parameters.diameter || row.parameters.width || ''"
                     size="small"
@@ -748,6 +763,8 @@
           :placeholder="$t('cassette.v2.profileEditor.loadTemplate')"
           append-to="self"
           class="w-full"
+          @focus="ensureProfileTemplatesLoaded"
+          @show="ensureProfileTemplatesLoaded"
           @update:model-value="loadProfileTemplateDraft"
         />
         <ProfileSketchEditor
@@ -759,29 +776,20 @@
       <template #footer>
         <div class="flex w-full flex-wrap justify-between gap-2">
           <Button
-            :label="$t('cassette.v2.profileEditor.insert')"
-            icon="pi pi-plus"
+            :label="$t('common.save')"
+            icon="pi pi-save"
             size="small"
+            :loading="profileSaving"
             :disabled="profileSaving"
-            @click="insertProfileDraft"
+            @click="saveProfileDraft"
           />
-          <div class="flex gap-2">
-            <Button
-              :label="$t('common.cancel')"
-              severity="secondary"
-              text
-              size="small"
-              @click="profileDialogVisible = false"
-            />
-            <Button
-              :label="$t('common.save')"
-              icon="pi pi-save"
-              size="small"
-              :loading="profileSaving"
-              :disabled="profileSaving"
-              @click="saveProfileDraft"
-            />
-          </div>
+          <Button
+            :label="$t('common.cancel')"
+            severity="secondary"
+            text
+            size="small"
+            @click="profileDialogVisible = false"
+          />
         </div>
       </template>
     </StandardDialog>
@@ -816,7 +824,6 @@ import { labelValueSelectOptions } from '~/utils/selectOptions.js';
 import {
   addCassetteV2GraphChild,
   addCassetteV2HardwareWorkpiece,
-  addCassetteV2ProfileWorkpiece,
   addCassetteV2WorkpieceAttachment,
   addCassetteV2Workpiece,
   CASSETTE_V2_HANGER_PRODUCTION_MODES,
@@ -1008,6 +1015,7 @@ const workpieceRows = computed(() => workpieces.value.map(workpiece => ({
   type: workpiece.type || 'sheet',
   family: workpiece.family || workpiece.hardware?.family || '',
   productionMode: workpiece.productionMode || workpiece.hardware?.productionMode || '',
+  profileTemplateId: workpiece.profileTemplateId || workpiece.hardware?.profileTemplateId || '',
   parameters: workpiece.parameters || workpiece.hardware?.parameters || {},
   isHardware: Boolean(workpiece.family || workpiece.hardware?.family),
   isProfile: workpiece.type === 'profile' || Boolean(workpiece.profileSnapshot || workpiece.profile),
@@ -1079,6 +1087,22 @@ const profileTemplateOptions = computed(() => labelValueSelectOptions(
 const editableProfileTemplateId = (profile = null) => (
   profile?.lineage?.userId || profile?.lineage?.organizationId ? profile._id : ''
 );
+const ensureProfileTemplatesLoaded = async () => {
+  if (!profileTemplateItems.value.length) {
+    await profileTemplateEntity.list().catch(() => []);
+  }
+};
+const upsertProfileTemplateItem = (profile = null) => {
+  if (!profile?._id) return;
+  const nextItems = [...profileTemplateItems.value];
+  const index = nextItems.findIndex(item => String(item?._id || '') === String(profile._id));
+  if (index >= 0) {
+    nextItems[index] = profile;
+  } else {
+    nextItems.unshift(profile);
+  }
+  profileTemplateEntity.items.value = nextItems;
+};
 const placementModeOptions = computed(() => ['point', 'edgeArray'].map(mode => ({
   label: t(`cassette.v2.placementModes.${mode}`),
   value: mode
@@ -1955,12 +1979,6 @@ const profileDraftPayload = () => {
   };
 };
 
-const profileDraftTemplateReference = () => ({
-  _id: profileDraft.value._id || '',
-  identity: { name: profileDraft.value.name || t('cassette.v2.profileEditor.defaultName') },
-  data: profileDraftPayload()
-});
-
 const loadProfileTemplateDraft = (profileId) => {
   const profile = profileTemplateItems.value.find(item => String(item._id || '') === String(profileId || ''));
   if (!profile) return;
@@ -2018,54 +2036,19 @@ const saveProfileDraft = async () => {
       : await profileTemplateEntity.create(payload);
     selectedProfileTemplateId.value = saved?._id || selectedProfileTemplateId.value;
     profileDraft.value._id = saved?._id || profileDraft.value._id;
+    upsertProfileTemplateItem(saved);
     await profileTemplateEntity.list().catch(() => []);
+    upsertProfileTemplateItem(saved);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.saved'), life: 2500 });
     return saved;
-  } catch {
-    toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.v2.profileEditor.saveFailed'), life: 3000 });
+  } catch (error) {
+    const detail = error?.data?.message || error?.message || t('cassette.v2.profileEditor.saveFailed');
+    console.error('[CassetteDesignerV2] Failed to save profile template', error);
+    toast.add({ severity: 'error', summary: t('common.error'), detail, life: 5000 });
     return null;
   } finally {
     profileSaving.value = false;
   }
-};
-
-const insertProfileDraft = async () => {
-  if (!profileDraftReady.value) {
-    toast.add({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
-    return;
-  }
-  const localTemplate = profileDraftTemplateReference();
-  const selectedIsAttachment = Boolean(selectedWorkpiece.value?.family || selectedWorkpiece.value?.hardware?.family || selectedWorkpiece.value?.type === 'profile');
-  const parentRelation = selectedIsAttachment
-    ? workpieceRelations.value.find(relation => relation.sourceWorkpieceId === selectedWorkpieceId.value)
-    : null;
-  const referenceWorkpieceId = parentRelation?.targetWorkpieceId || selectedWorkpieceId.value || workpieces.value[0]?.id;
-  const referenceNodeId = selectedNode.value?.workpieceId === referenceWorkpieceId
-    ? selectedNode.value.id
-    : treeNodes.value.find(node => node.workpieceId === referenceWorkpieceId && !node.parentId)?.id;
-  const result = editingProfileWorkpieceId.value
-    ? {
-        tree: updateCassetteV2Workpiece(cassetteTree.value, editingProfileWorkpieceId.value, {
-          name: profileDraft.value.name,
-          type: 'profile',
-          role: profileDraft.value.kind,
-          process: profileDraft.value.process,
-          profileTemplateId: profileDraft.value._id || '',
-          profileSnapshot: localTemplate.data
-        }),
-        workpieceId: editingProfileWorkpieceId.value
-      }
-    : addCassetteV2ProfileWorkpiece(cassetteTree.value, {
-        referenceWorkpieceId,
-        referenceNodeId,
-        profileTemplate: localTemplate
-      });
-  cassetteTree.value = result.tree;
-  selectedWorkpieceOverrideId.value = result.workpieceId;
-  selectedRelationId.value = getCassetteV2WorkpieceRelations(result.tree)
-    .find(relation => relation.sourceWorkpieceId === result.workpieceId)?.id || '';
-  inspectorSelection.value = 'attachment';
-  profileDialogVisible.value = false;
 };
 
 const updateSelectedHardware = (patch) => {
@@ -2080,6 +2063,14 @@ const updateSelectedHardwareParameter = (key, value) => {
       ...(selectedWorkpieceHardware.value?.parameters || selectedWorkpiece.value.parameters || {}),
       [key]: value
     }
+  });
+};
+
+const updateSelectedHardwareProfile = (profileId) => {
+  const profile = profileTemplateItems.value.find(item => String(item._id || '') === String(profileId || ''));
+  updateSelectedHardware({
+    profileTemplateId: profile?._id || '',
+    profileSnapshot: profile?.data || null
   });
 };
 

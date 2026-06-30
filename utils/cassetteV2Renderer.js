@@ -882,7 +882,7 @@ export const updateCassetteV2Workpiece = (tree, workpieceId, patch = {}) => {
   const index = nextTree.workpieces.findIndex(workpiece => workpiece.id === workpieceId);
   if (index < 0) return nextTree;
   const current = nextTree.workpieces[index];
-  if (isCassetteV2ProfileWorkpiece(current) || patch.type === 'profile' || patch.profile || patch.profileSnapshot) {
+  if (isCassetteV2ProfileWorkpiece(current) || patch.type === 'profile' || patch.profile) {
     const profile = normalizeCassetteV2Profile({
       ...current,
       ...patch,
@@ -2326,6 +2326,18 @@ const polygonInsideFace = (polygon = [], face = []) => {
   return withoutClosingVertex(polygon).every(point => pointInPolygon(point, faceVertices));
 };
 
+const profileCutPolygon = (workpiece = {}, point = [0, 0, 0]) => {
+  if (!workpiece.profileSnapshot && !workpiece.profile) return null;
+  const profile = normalizeCassetteV2Profile(workpiece);
+  const vertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
+  if (vertices.length < 3) return null;
+  return vertices.map(vertex => [
+    numeric(point?.[0], 0) + numeric(vertex?.[0], 0),
+    numeric(point?.[1], 0) + numeric(vertex?.[1], 0),
+    0
+  ]);
+};
+
 const hardwareProductionEntitiesForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
@@ -2348,7 +2360,7 @@ const hardwareProductionEntitiesForTree = (curves = [], tree = createCassetteV2G
           relationId: relation.id,
           geometry: {
             type: 'polygon',
-            vertices: hangerClipCutPolygon(hardware.parameters, point)
+            vertices: profileCutPolygon(workpiece, point) || hangerClipCutPolygon(hardware.parameters, point)
           }
         })).map((entity) => ({
           ...entity,

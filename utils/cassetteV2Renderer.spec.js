@@ -678,6 +678,44 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(folded.cutouts.filter(cutout => cutout.layer === 'cut.inner').map(cutout => cutout.points.length)).toEqual([9, 9]);
   });
 
+  it('uses a selected profile template as hanger feature cut geometry', () => {
+    const result = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      family: 'hanger_clip',
+      productionMode: 'integralCut'
+    });
+    const relation = getCassetteV2WorkpieceRelations(result.tree)[0];
+    const profiled = updateCassetteV2Workpiece(result.tree, result.workpieceId, {
+      profileTemplateId: 'profile_1',
+      profileSnapshot: {
+        kind: 'hanger',
+        process: 'extruded',
+        parameters: { L: '100' },
+        section: {
+          type: 'polygon',
+          vertices: [['0', '0'], ['12', '0'], ['12', '8'], ['0', '8']],
+          holes: []
+        },
+        sweep: { type: 'linear', length: '100' }
+      }
+    });
+    const placed = updateCassetteV2WorkpieceRelation(profiled, relation.id, {
+      targetSnap: 'center',
+      offsetX: '-6',
+      offsetY: '10'
+    });
+    const occs = createCassetteV2OccsDocument(placed);
+    const cut = occs.definitions.workpieces[0].entities.find(entity => entity.layer === 'cut.inner');
+
+    expect(cut.geometry.vertices).toEqual([
+      ['250', '10'],
+      ['262', '10'],
+      ['262', '18'],
+      ['250', '18']
+    ]);
+  });
+
   it('dispatches edge-breaking integral cuts only through the modified parent contour', async () => {
     const result = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
