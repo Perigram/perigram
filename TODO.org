@@ -2602,6 +2602,20 @@
        organization lineage are normalized to the active membership
        organization in read DTOs when they belong to the current user.
 
+     [2026-06-30] Unblock owned profile template saves
+     Files changed: server/api/profile-templates/index.post.js,
+       server/api/profile-templates/index.get.js,
+       server/api/profile-templates/[id].get.js,
+       server/api/profile-templates/[id].patch.js,
+       server/features/profile-templates/service.js,
+       server/features/profile-templates/profile-templates.spec.js
+     Docs updated: server/features/profile-templates/README.md, TODO.org
+     Notes: Profile-template routes now return service-authorized DTOs directly
+       instead of passing them through cassette field redaction. Authenticated
+       users can save their own reusable profile templates even when no
+       cassette write grant is available; cassette context still scopes
+       organization lineage and shared feature visibility when present.
+
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
        packages/processes/src/index.js,

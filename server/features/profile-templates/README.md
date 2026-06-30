@@ -47,6 +47,10 @@ Designer list/save requests include the active `cassetteTemplateId` when one is
 available. The service loads that cassette and authorizes against the real
 cassette entity so entity-id-scoped cassette grants work for profile template
 save and dropdown fetches.
+Creating a profile template is always allowed for the authenticated owner and
+returns the service DTO directly; cassette access only scopes organization
+lineage and shared/template visibility, not the ability to save a user's own
+profile library entry.
 
 ## Migrations
 
