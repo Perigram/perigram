@@ -4,6 +4,24 @@
   :END:
 
 *** Agent Notes
+    [2026-06-30] Fix inline entity popup action initialization
+    Files changed: components/shared/EntityInlineRef.vue
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Inline refs now initialize the normalized generated entity type
+      before detail-route and popup-action providers read it, preventing a
+      setup-time ReferenceError while keeping alias handling centralized.
+
+    [2026-06-30] Render nesting-run sheet designs through relation gallery
+    Files changed: components/QueueEditor.vue,
+      components/entities/NestingRun/NestingRunCard.vue,
+      components/entities/NestingRun/README.md,
+      shared/design-system.spec.js
+    Docs updated: components/entities/NestingRun/README.md, TODO.org
+    Notes: Nesting run cards now feed related sheet designs into the shared
+      EntityRelationsBlock compact gallery from the domain display contract
+      instead of using a nesting-run-specific SheetDesignCard/GeometryPreview
+      branch or compact count row.
+
     [2026-06-30] Mirror generated detail actions in entity reference popups
     Files changed: components/generated/GeneratedEntityCollection.vue,
       components/generated/GeneratedEntityDetail.vue,
@@ -41,6 +59,16 @@
       chats, and profile actions. Shortcut captures are scoped per user and
       organization, use compiled screen labels/icons, and close transient
       surfaces before mobile navigation.
+
+    [2026-06-27] Make compact child-gallery overflow visible in-card
+    Files changed: assets/css/main.css,
+      components/shared/EntityRelationsBlock.vue,
+      shared/design-system.spec.js
+    Docs updated: components/README.md, components/shared/README.md,
+      TODO.org
+    Notes: Compact in-card relation galleries now show two refs and render
+      `+N` as an in-grid tile that opens the hidden refs popover, so cropping is
+      visible inside the parent card.
 
     [2026-06-27] Repair legacy queue item ids before process nesting
     Files changed: components/QueueEditor.vue, utils/queue-items.js,
@@ -2481,6 +2509,33 @@
        drawing with at least three points. The payload closes the normalized
        sketch boundary during save so users do not have to run the Close command
        before saving or adding the profile to the cassette.
+
+     [2026-06-30] Decouple profile cassette insertion from template save
+     Files changed: components/CassetteDesignerV2.vue
+     Docs updated: server/features/profile-templates/README.md,
+       utils/occs/README.md, TODO.org
+     Notes: Insert into cassette now uses the current local profile draft
+       instead of requiring profile-template persistence to succeed first.
+       Loading a system profile template clears the editable template id so
+       Save creates an owned copy instead of attempting to patch read-only
+       system data.
+
+     [2026-06-30] Keep profile dropdown overlays inside dialog
+     Files changed: components/CassetteDesignerV2.vue
+     Docs updated: components/README.md, TODO.org
+     Notes: Profile sketch dialog selects now render their dropdown overlays
+       inside the dialog instead of teleporting to the page body, preventing
+       nested designer dialogs from closing when the profile template dropdown
+       is opened.
+
+     [2026-06-30] Render inserted profile section geometry in cassette preview
+     Files changed: utils/cassetteV2Renderer.js,
+       utils/cassetteV2Renderer.spec.js
+     Docs updated: components/README.md, utils/occs/README.md, TODO.org
+     Notes: Profile workpieces now contribute their normalized section polygon
+       to the designer section layer at the attachment target, so inserting a
+       drawn profile produces visible cassette preview geometry instead of only
+       adding a profile definition to the OCCS workpiece list.
 
      [2026-06-30] Restore profile save dropdown flow
      Files changed: components/CassetteDesignerV2.vue,

@@ -101,8 +101,8 @@ from `data.thumbnailUrl` or thumbnail attachment metadata for non-cassette
 entities. `EntityRelationsBlock` renders relation descriptors through
 `EntityInlineRef`. Single refs render as inline chips; relation lists can also
 render compact micro cards in a bounded responsive grid with preview on the
-left, identity/status/facts on the right, and a small overflow control that
-opens the hidden refs. Generated card surfaces pass
+left, identity/status/facts on the right, and at most two visible refs before
+an in-grid `+N` overflow control opens the hidden refs. Generated card surfaces pass
 `suppress-child-counts` plus `relationVariant="compact"` to
 `EntitySurfaceContent`; when the DTO already carries relation-backed child
 previews such as `summary.queuePreview`, `summary.runPreview`,
@@ -281,7 +281,9 @@ and reuses its canonical body inside that popover. In generated surfaces,
 the popover action row is access-aware: `EntityInlineRef` resolves the
 referenced entity's generated detail-screen actions, forwards them to
 `EntityCard`, and invokes the surrounding generated screen's action executor
-instead of running process actions from shared UI code. Use this for entity relation
+instead of running process actions from shared UI code. Route, preview, and
+popup-action providers share the same normalized generated entity type so
+aliases such as `sheetDesign` / `sheet_design` stay consistent. Use this for entity relation
 context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
@@ -301,8 +303,9 @@ left when the entity has one, the same semantic inline chip for identity on the
 right, a read-only status badge beside identity, compact facts below, and the
 same expanded popover for trace/type/detail context. Icons stay with the
 identity chip and are not used as fake preview images. Generated card relation
-galleries use a one-or-two-row responsive grid instead of in-card horizontal
-scrolling, so child previews stay scannable without spacing changing per item.
+galleries use a bounded responsive grid instead of in-card horizontal
+scrolling; compact galleries show two refs and then an in-grid overflow tile so
+cropping remains visible inside the card.
 Use canonical design-system surface keys for new references, for example
 `materialPile`, `nestingRun`, `cassetteDesign`, `cassetteTemplate`, and
 `entityRevision`. Backend snake-case aliases continue to resolve through the
