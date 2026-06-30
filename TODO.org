@@ -18,6 +18,21 @@
       generated screen executor is available, and execute them through the
       surrounding generated screen instead of shared UI code.
 
+    [2026-06-30] Close mobile transient surfaces on inline entity navigation
+    Files changed: components/shared/EntityCard.vue,
+      components/shared/EntityInlineRef.vue,
+      components/shared/links/TraceLink.vue, layouts/app.vue,
+      utils/mobile-transient-surfaces.js,
+      utils/mobile-transient-surfaces.spec.js
+    Docs updated: components/README.md, components/shared/README.md,
+      utils/README.md, TODO.org
+    Notes: Detail buttons and lineage links inside inline entity popovers now
+      dispatch a shared mobile close event before navigation. Inline popovers,
+      shell menus, and the chat drawer close themselves on mobile so destination
+      routes are not covered by stale overlays. The floating chat launcher is
+      now icon-only with an accessible label. Chat open actions also dispatch
+      the same close event before opening the drawer so popovers are closed.
+
     [2026-06-27] Repair legacy queue item ids before process nesting
     Files changed: components/QueueEditor.vue, utils/queue-items.js,
       utils/queue-items.spec.js, i18n/locales/en.json, i18n/locales/ru.json

@@ -26,6 +26,12 @@ Shared frontend utility modules used by Vue pages/components.
   caches should subscribe here instead of inventing per-feature buses. Server
   SSE events from `GET /api/entity-events` are bridged into this same helper,
   so local and cross-device updates use one frontend consumption contract.
+- `mobile-transient-surfaces.js`: Browser-only helper for mobile navigation
+  from temporary UI surfaces. Inline entity popovers and trace links dispatch
+  one shared close event before route navigation; overlay owners such as
+  popovers, menus, and the chat drawer listen and close themselves. Chat open
+  actions can dispatch the same event without viewport gating to close popups
+  before the drawer opens.
 - `interactive-target.js`: Shared DOM guard for entity cards that have parent
   click/select actions. It detects nested links, buttons, form controls, status
   controls, geometry previews, and nested inline/compact entity cards so parent

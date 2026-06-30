@@ -329,6 +329,12 @@ when the base card surface normally hides trace in compact contexts, and show a
 small localized entity-type label above the identity row so the operator can
 see both lineage context and exact entity kind without adding extra chrome to
 the collapsed chip or compact micro card itself.
+On mobile, detail-route buttons and lineage links inside inline-ref popovers
+dispatch the shared mobile transient-surface close event before navigation.
+`EntityCard`/`EntityInlineRef` hide their popovers and the app shell closes the
+chat drawer, so the destination screen is not covered by stale overlays. Chat
+open actions also dispatch that close event before opening the drawer, which
+keeps inline popovers mutually exclusive with chat.
 Revision/provenance rows should use this component with `type="entityRevision"`
 so the shared entity popover shows the immutable revision summary and source
 relationship.

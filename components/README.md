@@ -183,6 +183,12 @@ cassette cards also expose the access-gated `CassetteDesignerV2` action in the
 footer so collection/home cards are not detail-only dead ends. Detail
 navigation must still route through the compiled generated screen manifest
 rather than hardcoded feature paths.
+On mobile, navigation launched from temporary inline entity popovers or lineage
+links closes transient overlays, including the chat drawer, before the route
+changes. The floating chat launcher is icon-only; unread state belongs to the
+app-shell badge, not to a wide floating button label. Opening chat dispatches
+the same transient close event first, so inline entity popovers and shell menus
+do not remain open behind or above the chat surface.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,
