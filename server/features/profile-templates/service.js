@@ -7,6 +7,7 @@ import {
   normalizeOccsProfileSketch,
   occsProfileFromSketch
 } from '#utils/occs/profiles.js';
+import * as cassetteService from '../cassettes/service.js';
 import { hasLineagePermission } from '../../utils/permissions.js';
 import { ProfileTemplate } from './model.js';
 import * as repository from './repository.js';
@@ -52,11 +53,48 @@ function profileAccessEntity(profileTemplate = {}, scope = {}) {
   };
 }
 
-function canAccess(profileTemplate = {}, scope = {}, auth = {}, level = 'read') {
+function sameOrganization(left = {}, right = {}) {
+  const leftOrg = left.lineage?.organizationId?.toString?.() || left.lineage?.organizationId || null;
+  const rightOrg = right.lineage?.organizationId?.toString?.() || right.lineage?.organizationId || null;
+  return Boolean(leftOrg && rightOrg && leftOrg.toString() === rightOrg.toString());
+}
+
+function currentUserOwns(profileTemplate = {}, scope = {}) {
+  const ownerId = profileTemplate.lineage?.userId || null;
+  return Boolean(ownerId && scope.userId && ownerId.toString() === scope.userId.toString());
+}
+
+function canAccess(profileTemplate = {}, scope = {}, auth = {}, level = 'read', accessEntity = null) {
   const ownerId = profileTemplate.lineage?.userId || null;
   const organizationId = profileTemplate.lineage?.organizationId || null;
   if (!ownerId && !organizationId) return level === 'read';
+  if (accessEntity) {
+    return hasLineagePermission(auth, accessEntity, 'cassettes', level) && (
+      sameOrganization(profileAccessEntity(profileTemplate, scope), accessEntity) ||
+      currentUserOwns(profileTemplate, scope)
+    );
+  }
   return hasLineagePermission(auth, profileAccessEntity(profileTemplate, scope), 'cassettes', level);
+}
+
+function cassetteContextId(source = {}) {
+  return source.cassetteTemplateId || source.cassetteId || source.templateId || source.template?._id || null;
+}
+
+async function resolveCassetteContext(source = {}, auth = {}, scope = {}, level = 'read') {
+  const id = cassetteContextId(source);
+  if (!id) return { scope, accessEntity: null };
+  const cassette = await cassetteService.getById(id);
+  if (!hasLineagePermission(auth, cassette, 'cassettes', level)) {
+    throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
+  }
+  return {
+    scope: {
+      ...scope,
+      organizationId: cassette.lineage?.organizationId || scope.organizationId || null
+    },
+    accessEntity: cassette
+  };
 }
 
 function normalizePayload(payload = {}) {
@@ -90,24 +128,26 @@ export async function getById(id, auth = {}) {
   return toDTO(profileTemplate, scope);
 }
 
-export async function listAll(auth = {}) {
-  const scope = scopeFromAuth(auth);
+export async function listAll(auth = {}, filters = {}) {
+  const context = await resolveCassetteContext(filters, auth, scopeFromAuth(auth), 'read');
+  const scope = context.scope;
   const [systemProfiles, scopedProfiles] = await Promise.all([
     repository.findSystem(),
     repository.findByScope(scope)
   ]);
   const byId = new Map([...systemProfiles, ...scopedProfiles].map(profile => [profile._id.toString(), profile]));
   return [...byId.values()]
-    .filter(profile => canAccess(profile, scope, auth, 'read'))
+    .filter(profile => canAccess(profile, scope, auth, 'read', context.accessEntity))
     .map(profile => toDTO(profile, scope));
 }
 
 export async function create(payload = {}, auth = {}) {
-  const scope = scopeFromAuth(auth);
+  const context = await resolveCassetteContext(payload, auth, scopeFromAuth(auth), 'write');
+  const scope = context.scope;
   if (!payload.name) {
     throw createError({ statusCode: 400, message: 'Name is required' });
   }
-  if (!hasLineagePermission(auth, { lineage: { organizationId: scope.organizationId } }, 'cassettes', 'write')) {
+  if (!context.accessEntity && !hasLineagePermission(auth, { lineage: { organizationId: scope.organizationId } }, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }
   const data = normalizePayload(payload);
@@ -126,10 +166,11 @@ export async function create(payload = {}, auth = {}) {
 }
 
 export async function update(id, updates = {}, auth = {}) {
-  const scope = scopeFromAuth(auth);
+  const context = await resolveCassetteContext(updates, auth, scopeFromAuth(auth), 'write');
+  const scope = context.scope;
   const current = await repository.findById(id);
   if (!current) throw createError({ statusCode: 404, message: 'Profile template not found' });
-  if (!canAccess(current, scope, auth, 'write')) throw createError({ statusCode: 403, message: 'Access denied' });
+  if (!canAccess(current, scope, auth, 'write', context.accessEntity)) throw createError({ statusCode: 403, message: 'Access denied' });
   if (!current.lineage?.userId && !current.lineage?.organizationId) {
     throw createError({ statusCode: 403, message: 'System profile templates cannot be modified' });
   }

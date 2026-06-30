@@ -12,11 +12,15 @@ const mocks = vi.hoisted(() => ({
   },
   permissions: {
     hasLineagePermission: vi.fn()
+  },
+  cassetteService: {
+    getById: vi.fn()
   }
 }));
 
 vi.mock('./repository.js', () => mocks.repository);
 vi.mock('../../utils/permissions.js', () => mocks.permissions);
+vi.mock('../cassettes/service.js', () => mocks.cassetteService);
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
     const error = new Error(err.message);
@@ -69,6 +73,12 @@ describe('profile templates service', () => {
     mocks.repository.create.mockImplementation(async (record) => ({ ...record, _id: createdId }));
     mocks.repository.updateById.mockResolvedValue(true);
     mocks.repository.deleteById.mockResolvedValue(true);
+    mocks.cassetteService.getById.mockResolvedValue({
+      _id: 'cassette-1',
+      identity: { name: 'Cassette' },
+      lineage: { organizationId: 'org-cassette' },
+      data: {}
+    });
   });
 
   it('creates profile templates under cassette-accessible organization lineage from memberships', async () => {
@@ -96,6 +106,25 @@ describe('profile templates service', () => {
     expect(redacted._id.toString()).toBe(createdId.toString());
     expect(redacted.identity.name).toBe('Visible profile');
     expect(redacted.data.sketch.points).toHaveLength(3);
+  });
+
+  it('creates profile templates through entity-scoped cassette access', async () => {
+    mocks.permissions.hasLineagePermission.mockImplementation((_, entity) => entity?._id === 'cassette-1');
+
+    const created = await service.create({
+      name: 'Entity scoped profile',
+      cassetteTemplateId: 'cassette-1',
+      sketch
+    }, auth);
+
+    expect(mocks.cassetteService.getById).toHaveBeenCalledWith('cassette-1');
+    expect(created._id.toString()).toBe(createdId.toString());
+    expect(mocks.repository.create).toHaveBeenCalledWith(expect.objectContaining({
+      lineage: {
+        userId: 'user-profile',
+        organizationId: 'org-cassette'
+      }
+    }));
   });
 
   it('lists only scoped profiles readable through cassette permissions', async () => {

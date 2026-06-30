@@ -1084,12 +1084,15 @@ const profileTemplateOptions = computed(() => labelValueSelectOptions(
   profileTemplateItems.value,
   t('cassette.v2.profileEditor.defaultName')
 ));
+const profileTemplateListFilters = () => ({
+  ...(selectedTemplateId.value ? { cassetteTemplateId: selectedTemplateId.value } : {})
+});
 const editableProfileTemplateId = (profile = null) => (
   profile?.lineage?.userId || profile?.lineage?.organizationId ? profile._id : ''
 );
 const ensureProfileTemplatesLoaded = async () => {
   if (!profileTemplateItems.value.length) {
-    await profileTemplateEntity.list().catch(() => []);
+    await profileTemplateEntity.list(profileTemplateListFilters()).catch(() => []);
   }
 };
 const upsertProfileTemplateItem = (profile = null) => {
@@ -1975,6 +1978,7 @@ const profileDraftPayload = () => {
   };
   return {
     name: profileDraft.value.name || t('cassette.v2.profileEditor.defaultName'),
+    cassetteTemplateId: selectedTemplateId.value || '',
     ...data
   };
 };
@@ -1997,7 +2001,7 @@ const openProfileDialog = async (workpieceId = '') => {
   closeInlineEditor();
   editingProfileWorkpieceId.value = workpieceId;
   if (!profileTemplateItems.value.length) {
-    await profileTemplateEntity.list().catch(() => []);
+    await profileTemplateEntity.list(profileTemplateListFilters()).catch(() => []);
   }
   const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
   if (workpiece) {
@@ -2037,7 +2041,7 @@ const saveProfileDraft = async () => {
     selectedProfileTemplateId.value = saved?._id || selectedProfileTemplateId.value;
     profileDraft.value._id = saved?._id || profileDraft.value._id;
     upsertProfileTemplateItem(saved);
-    await profileTemplateEntity.list().catch(() => []);
+    await profileTemplateEntity.list(profileTemplateListFilters()).catch(() => []);
     upsertProfileTemplateItem(saved);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.saved'), life: 2500 });
     return saved;

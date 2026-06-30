@@ -4,7 +4,6 @@ import { serializeManyForAccess } from '~/server/utils/entity-redaction.js';
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
-  const profiles = await service.listAll(auth);
+  const profiles = await service.listAll(auth, getQuery(event));
   return serializeManyForAccess('profileTemplate', profiles, auth);
 });
-
