@@ -79,6 +79,9 @@ export default defineNuxtConfig({
         // The NUXT_ prefix allows runtime override
         mongoUri: process.env.NUXT_MONGODB_URI || process.env.MONGODB_URI || '',
         stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
+        billing: {
+            priceCatalog: process.env.NUXT_BILLING_PRICE_CATALOG || '[]',
+        },
         resendToken: process.env.RESEND_TOKEN || '',
         public: {
             baseUrl: process.env.BASE_URL || 'http://localhost:3000',

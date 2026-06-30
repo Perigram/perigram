@@ -5,6 +5,7 @@ import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as commandRunsRepository from './repository.js';
 import { processEffects, processEvents } from '../effects/service.js';
 import { resolveProcessCommandService } from '../../features/process-definitions/runtime.js';
+import * as billingService from '../../features/billing/service.js';
 
 export async function executeCommand(commandId, input = {}, auth = {}) {
   const registry = getAppRegistry();
@@ -26,7 +27,12 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
 
   try {
     const entities = await loadCommandEntities(registry, command, normalizedInput.entities || {});
-    await assertProcessServiceAvailable(commandId, auth);
+    const processServiceState = await assertProcessServiceAvailable(commandId, auth);
+    await billingService.assertSufficientServiceTokens({
+      organizationId: resolveOrganizationId(auth),
+      service: processServiceState.service,
+      commandId
+    });
     assertCommandAccess({ command, entities, auth });
 
     const handler = registry.getCommandHandler(commandId);
@@ -62,6 +68,20 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
       finishedAt: new Date()
     });
 
+    const billing = await billingService.debitServiceTokens({
+      organizationId: resolveOrganizationId(auth),
+      service: processServiceState.service,
+      commandId,
+      commandRunId: run._id
+    });
+    if (billing) {
+      result.billing = billing;
+      await commandRunsRepository.updateById(run._id, {
+        result,
+        billing
+      });
+    }
+
     return result;
   } catch (error) {
     await commandRunsRepository.updateById(run._id, {
@@ -77,20 +97,25 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
 }
 
 async function assertProcessServiceAvailable(commandId, auth = {}) {
-  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
+  const organizationId = resolveOrganizationId(auth);
   const serviceState = await resolveProcessCommandService({ organizationId, commandId });
-  if (!serviceState.processActive || !serviceState.gated) return;
+  if (!serviceState.processActive || !serviceState.gated) return serviceState;
   if (!serviceState.service) {
     throw createError({ statusCode: 403, message: `Command ${commandId} is not available in the active process` });
   }
 
   const allowedRoleIds = serviceState.service.roles?.run || [];
-  if (!allowedRoleIds.length) return;
+  if (!allowedRoleIds.length) return serviceState;
   const actualRoleIds = auth.roleAssignments?.roleIds || [];
   const allowed = actualRoleIds.some(roleId => allowedRoleIds.includes(roleId));
   if (!allowed) {
     throw createError({ statusCode: 403, message: `Command ${commandId} is not assigned to the current process role` });
   }
+  return serviceState;
+}
+
+function resolveOrganizationId(auth = {}) {
+  return auth.organizationId || auth.memberships?.[0]?.organizationId || null;
 }
 
 function mergeProcessedEffects(left, right) {

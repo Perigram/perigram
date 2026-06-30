@@ -238,9 +238,7 @@ export const useFilesStore = defineStore('files', () => {
 
             } catch (error) {
                 if (error?.response?.status === 402) {
-                    // Assuming useBuyCreditsDialog is an auto-imported composable
-                    const buyCreditsDialog = useBuyCreditsDialog();
-                    if (buyCreditsDialog) buyCreditsDialog.value = true;
+                    await navigateTo('/organization');
                     return;
                 }
             }

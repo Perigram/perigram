@@ -30,7 +30,8 @@ const COMMON_SERVICES = {
       { id: 'nestingRun', entityType: 'nesting_run', multiple: false },
       { id: 'sheetDesign', entityType: 'sheet_design', multiple: true }
     ],
-    access: { runPrincipals: ['principal_nesting'], viewPrincipals: ['principal_nesting'] }
+    access: { runPrincipals: ['principal_nesting'], viewPrincipals: ['principal_nesting'] },
+    billing: { mode: 'prepaidTokens', tokenCost: 1, meterKey: 'nesting.solve' }
   }
 };
 

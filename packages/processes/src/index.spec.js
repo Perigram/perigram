@@ -1995,6 +1995,24 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.services.service_nesting.roles).toBeUndefined();
   });
 
+  it('compiles prepaid token billing on service contracts', () => {
+    const compiled = compileProcessDefinition({
+      services: {
+        service_nesting: {
+          id: 'service_nesting',
+          commandId: 'solveNesting',
+          billing: { mode: 'prepaidTokens', tokenCost: 3, meterKey: 'nesting.solve' }
+        }
+      }
+    }, domain);
+
+    expect(compiled.services.service_nesting.billing).toEqual({
+      mode: 'prepaidTokens',
+      tokenCost: 3,
+      meterKey: 'nesting.solve'
+    });
+  });
+
   it('preserves command ids on manual command action manifests', () => {
     const compiled = compileProcessDefinition({
       roles: {

@@ -152,6 +152,22 @@
                     </div>
                   </div>
                   <div class="grid grid-cols-1 gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.serviceBillingMode') }}</label>
+                      <Select v-model="selectedService.billing.mode" :options="serviceBillingModeOptions" option-label="label" option-value="value" />
+                    </div>
+                    <div v-if="selectedService.billing.mode === 'prepaidTokens'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.serviceTokenCost') }}</label>
+                        <InputNumber v-model="selectedService.billing.tokenCost" :min="0" :max-fraction-digits="2" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.serviceMeterKey') }}</label>
+                        <InputText v-model="selectedService.billing.meterKey" class="w-full" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 gap-3">
                     <Panel :header="$t('processDesigner.inputs')">
                       <div class="flex flex-wrap gap-2">
                         <Tag v-for="input in selectedService.inputs" :key="input.id" :value="input.entityType || input.id" size="small" />
@@ -492,6 +508,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
+import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import MultiSelect from 'primevue/multiselect';
@@ -576,6 +593,10 @@ const genericActionLabels = new Set(['action', 'create', 'modify', 'status', 'se
 const triggerModeOptions = [
   { label: 'Manual', value: 'manual' },
   { label: 'Event', value: 'event' }
+];
+const serviceBillingModeOptions = [
+  { label: t('processDesigner.serviceBillingNone'), value: 'none' },
+  { label: t('processDesigner.serviceBillingPrepaidTokens'), value: 'prepaidTokens' }
 ];
 const lifecycleModes = [
   { label: 'defaultCreated', value: 'defaultCreated' },
@@ -1107,6 +1128,9 @@ function ensureRecord(key, node, factory) {
   draft.value.data[key] ||= {};
   const refId = node?.data?.refId || node?.id || `${key}_${Date.now()}`;
   draft.value.data[key][refId] ||= factory(refId);
+  if (key === 'services') {
+    draft.value.data[key][refId].billing ||= { mode: 'none', tokenCost: 0, meterKey: '' };
+  }
   return draft.value.data[key][refId];
 }
 
@@ -1154,7 +1178,16 @@ function createEntityProfile(id) {
 }
 
 function createService(id) {
-  return { id, label: id, serviceType: '', commandId: '', inputs: [], outputs: [], access: { runPrincipals: [], viewPrincipals: [] } };
+  return {
+    id,
+    label: id,
+    serviceType: '',
+    commandId: '',
+    inputs: [],
+    outputs: [],
+    access: { runPrincipals: [], viewPrincipals: [] },
+    billing: { mode: 'none', tokenCost: 0, meterKey: '' }
+  };
 }
 
 function createAction(id, actionKind = 'createEntity') {

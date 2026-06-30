@@ -3,10 +3,8 @@
         <Tabs value="0">
             <TabList>
                 <Tab value="0"><span>{{ $t('profile.account') }}</span></Tab>
-                <Tab value="1"><span>{{ $t('profile.billing') }}</span></Tab>
-                <Tab value="2"><span>{{ $t('profile.preferences') }}</span></Tab>
-                <Tab value="3"><span>{{ $t('auth.organization') }}</span></Tab>
-                <Tab value="4"><span>{{ $t('nav.projects') }}</span></Tab>
+                <Tab value="1"><span>{{ $t('profile.preferences') }}</span></Tab>
+                <Tab value="2"><span>{{ $t('auth.organization') }}</span></Tab>
             </TabList>
             <TabPanels>
                 <TabPanel value="0">
@@ -35,32 +33,6 @@
                 </TabPanel>
 
                 <TabPanel value="1">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
-                        <Panel :header="$t('billing.creditBalance')">
-                                <div class="flex flex-col gap-6 py-2">
-                                    <Panel>
-                                            <div class="flex justify-between items-center p-6">
-                                                <div class="flex flex-col gap-1">
-                                                    <small>{{ $t('profile.balance') }}</small>
-                                                    <span class="text-4xl font-bold">{{ user.balance || 0 }}</span>
-                                                </div>
-                                                <Button :label="$t('profile.buyCredits')" icon="pi pi-shopping-cart" size="large" @click="showBuyCredits = true" />
-                                            </div>
-                                    </Panel>
-                                    <div class="pt-4 border-t border-dashed">
-                                        <p class="mb-3">{{ $t('profile.developerTools') }}</p>
-                                        <Button :label="$t('billing.addTestCredits')" icon="pi pi-plus" severity="secondary" text @click="addCredits" />
-                                    </div>
-                                </div>
-                        </Panel>
-                        
-                        <Panel :header="$t('billing.purchaseHistory')">
-                                <StateBlock :message="$t('billing.noHistory')" icon="pi pi-history" />
-                        </Panel>
-                    </div>
-                </TabPanel>
-
-                <TabPanel value="2">
                     <div class="max-w-2xl py-4">
                         <Panel :header="$t('profile.settings')">
                                 <div class="flex flex-col gap-8 py-2">
@@ -94,7 +66,7 @@
                     </div>
                 </TabPanel>
 
-                <TabPanel value="3">
+                <TabPanel value="2">
                     <div class="py-4 flex flex-col gap-6">
                         <!-- Create New Organization Button -->
                         <ActionToolbar :title="$t('profile.myOrganizations')">
@@ -138,17 +110,8 @@
                     </div>
                 </TabPanel>
 
-                <TabPanel value="4">
-                    <div class="py-4">
-                        <Panel :header="$t('profile.usageStatistics')">
-                                <StateBlock :message="$t('profile.usageStatisticsComingSoon')" icon="pi pi-chart-bar" />
-                        </Panel>
-                    </div>
-                </TabPanel>
             </TabPanels>
         </Tabs>
-
-        <BuyCreditsDialog v-if="showBuyCredits" @close="showBuyCredits = false" />
 
         <StandardDialog v-model:visible="showCreateOrgDialog" :header="$t('auth.createOrg')" size="sm">
             <form @submit.prevent="createOrganization" class="flex flex-col gap-4 pt-4">
@@ -191,12 +154,10 @@ import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
-import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
-import StateBlock from '~/components/shared/StateBlock.vue';
 import { useEntity } from '~/composables/useEntity';
 import { selectOptionText } from '~/utils/selectOptions';
 
@@ -214,7 +175,6 @@ const authStore = useAuthStore();
 const { user: userRef } = storeToRefs(authStore);
 const user = computed(() => userRef.value || {});
 
-const showBuyCredits = ref(false);
 const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
 
@@ -270,16 +230,4 @@ const logoutHandler = async () => {
     router.push({ path: '/' });
 };
 
-const addCredits = async () => {
-    try {
-        const result = await $fetch('/api/user/add-test-credits', {
-            method: 'POST'
-        });
-        // Refresh user data to show new balance
-        await authStore.setUser();
-        console.log('Added 100 credits! New balance:', result.newBalance);
-    } catch (error) {
-        console.error('Failed to add credits:', error);
-    }
-};
 </script>

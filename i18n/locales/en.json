@@ -87,6 +87,8 @@
     "lastUpdated": "Last Updated",
     "note": "Note",
     "history": "History"
+    ,
+    "refresh": "Refresh"
   },
   "drawing": {
     "showAllLayers": "Show all layers",
@@ -1253,13 +1255,27 @@
     "title": "Billing",
     "currentBalance": "Your current balance:",
     "creditBalance": "Credit Balance",
+    "organizationAccount": "Organization account",
+    "organizationAccountHint": "Tokens are owned by the active organization.",
+    "tokenBalance": "Token balance",
+    "tokenPackages": "Token packages",
+    "tokenPackagesHint": "Packages are provided by runtime configuration.",
     "selectPackage": "Select a package:",
     "buyNow": "Buy Now",
     "addTestCredits": "Add 100 Test Credits",
     "purchaseHistory": "Purchase History",
+    "invoices": "Invoices",
+    "ledger": "Ledger",
     "noHistory": "No purchase history yet.",
+    "noLedger": "No account activity yet.",
+    "noPackages": "No token packages are configured.",
     "credits": "Credits",
+    "tokens": "tokens",
     "role": "Role",
+    "ledgerTypes": {
+      "payment_credit": "Payment",
+      "service_debit": "Service run"
+    },
     "errors": {
       "loadOptionsFailed": "Failed to load payment options.",
       "createLinkFailed": "Failed to create payment link."
@@ -2301,6 +2317,11 @@
     "commandId": "Command",
     "runPrincipals": "Run identity",
     "viewPrincipals": "View identity",
+    "serviceBillingMode": "Billing mode",
+    "serviceBillingNone": "None",
+    "serviceBillingPrepaidTokens": "Prepaid tokens",
+    "serviceTokenCost": "Token cost",
+    "serviceMeterKey": "Meter key",
     "inputs": "Inputs",
     "outputs": "Outputs",
     "inputsCount": "{count} inputs",

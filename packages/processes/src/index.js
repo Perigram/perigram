@@ -1590,15 +1590,29 @@ function compileFieldPolicies(entityProfiles = {}) {
 
 function compileServices(services = {}) {
   return Object.fromEntries(Object.entries(services).map(([id, service]) => [id, {
+    id: service.id || id,
     enabled: true,
     commandId: service.commandId || null,
     principals: {
       run: service.access?.runPrincipals || [],
       view: service.access?.viewPrincipals || []
     },
+    billing: compileServiceBilling(service.billing),
     inputs: service.inputs || [],
     outputs: service.outputs || []
   }]));
+}
+
+function compileServiceBilling(billing = {}) {
+  const tokenCost = Number(billing.tokenCost);
+  if (billing.mode !== 'prepaidTokens' || !Number.isFinite(tokenCost) || tokenCost <= 0) {
+    return { mode: 'none', tokenCost: 0, meterKey: null };
+  }
+  return {
+    mode: 'prepaidTokens',
+    tokenCost,
+    meterKey: billing.meterKey || null
+  };
 }
 
 function compileSockets(sockets = {}) {

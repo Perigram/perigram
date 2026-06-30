@@ -87,6 +87,8 @@
     "lastUpdated": "Последнее обновление",
     "note": "Примечание",
     "history": "История"
+    ,
+    "refresh": "Обновить"
   },
   "drawing": {
     "showAllLayers": "Показать все слои",
@@ -1253,13 +1255,27 @@
     "title": "Биллинг",
     "currentBalance": "Ваш текущий баланс:",
     "creditBalance": "Баланс кредитов",
+    "organizationAccount": "Счет организации",
+    "organizationAccountHint": "Токены принадлежат активной организации.",
+    "tokenBalance": "Баланс токенов",
+    "tokenPackages": "Пакеты токенов",
+    "tokenPackagesHint": "Пакеты задаются во внешней runtime-конфигурации.",
     "selectPackage": "Выберите пакет:",
     "buyNow": "Купить сейчас",
     "addTestCredits": "Добавить 100 тестовых кредитов",
     "purchaseHistory": "История покупок",
+    "invoices": "Счета",
+    "ledger": "Журнал",
     "noHistory": "Истории покупок пока нет.",
+    "noLedger": "Операций по счету пока нет.",
+    "noPackages": "Пакеты токенов не настроены.",
     "credits": "Кредитов",
+    "tokens": "токенов",
     "role": "Роль",
+    "ledgerTypes": {
+      "payment_credit": "Оплата",
+      "service_debit": "Запуск сервиса"
+    },
     "errors": {
       "loadOptionsFailed": "Не удалось загрузить варианты оплаты.",
       "createLinkFailed": "Не удалось создать ссылку на оплату."
@@ -2301,6 +2317,11 @@
     "commandId": "Команда",
     "runPrincipals": "Идентификатор запуска",
     "viewPrincipals": "Идентификатор просмотра",
+    "serviceBillingMode": "Режим биллинга",
+    "serviceBillingNone": "Нет",
+    "serviceBillingPrepaidTokens": "Предоплаченные токены",
+    "serviceTokenCost": "Стоимость в токенах",
+    "serviceMeterKey": "Ключ метрики",
     "inputs": "Входы",
     "outputs": "Выходы",
     "inputsCount": "{count} входов",
