@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT,
   isMobileViewport,
-  requestCloseMobileTransientSurfaces
+  requestCloseMobileTransientSurfaces,
+  requestCloseTransientSurfaces
 } from './mobile-transient-surfaces.js';
 
 describe('mobile transient surface helpers', () => {
@@ -23,6 +24,17 @@ describe('mobile transient surface helpers', () => {
 
     windowTarget.matchMedia = vi.fn(() => ({ matches: false }));
     expect(requestCloseMobileTransientSurfaces()).toBe(false);
+    expect(events).toEqual([MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT]);
+  });
+
+  it('can request a close regardless of viewport', () => {
+    const events = [];
+    const windowTarget = new EventTarget();
+    windowTarget.matchMedia = vi.fn(() => ({ matches: false }));
+    windowTarget.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, event => events.push(event.type));
+    vi.stubGlobal('window', windowTarget);
+
+    expect(requestCloseTransientSurfaces()).toBe(true);
     expect(events).toEqual([MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT]);
   });
 });

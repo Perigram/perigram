@@ -63,7 +63,7 @@
                             rounded
                             size="small"
                             :aria-label="$t('support.openChat')"
-                            @click="supportDialog = true"
+                            @click="openSupportDialog"
                         />
                         <Badge
                             v-if="supportChatStore.totalUnread"
@@ -109,7 +109,7 @@
             severity="secondary"
             rounded
             :aria-label="$t('support.openChat')"
-            @click="supportDialog = true"
+            @click="openSupportDialog"
             v-if="!supportDialog"
             class="fixed bottom-8 right-8 z-[999] [box-shadow:var(--ck-shadow-overlay)]"
         />
@@ -131,7 +131,10 @@
     import { useEntityEventsStore } from '~/stores/entityEvents'
     import { useNavigationStore } from '~/stores/navigation'
     import { useGlobalStore } from '~/stores/global'
-    import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
+    import {
+        MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT,
+        requestCloseTransientSurfaces
+    } from '~/utils/mobile-transient-surfaces.js'
 
     const router = useRouter()
     const route = useRoute()
@@ -196,6 +199,11 @@
         supportDialog.value = false
         breadcrumbMenu.value?.hide?.()
         userMenu.value?.hide?.()
+    }
+
+    const openSupportDialog = () => {
+        requestCloseTransientSurfaces()
+        supportDialog.value = true
     }
 
     // --- User Menu ---

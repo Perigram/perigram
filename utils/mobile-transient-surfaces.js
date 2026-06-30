@@ -7,6 +7,10 @@ export function isMobileViewport() {
 
 export function requestCloseMobileTransientSurfaces() {
   if (!isMobileViewport()) return false;
+  return requestCloseTransientSurfaces();
+}
+
+export function requestCloseTransientSurfaces() {
   window.dispatchEvent(new CustomEvent(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT));
   return true;
 }
