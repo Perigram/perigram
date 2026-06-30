@@ -35,9 +35,12 @@ frontend/shared utility layer.
   polylines with explicit open/closed state, typed segment-distance projection,
   ortho projection, circle holes, DXF-imported geometry, and per-corner fillet
   modifiers are normalized into `profile.section` polygon/circle data plus a
-  linear `profile.sweep`. Save/insert workflows accept any drawn boundary with
-  at least three points and close it into a profile section snapshot so users do
-  not need to run a separate close command before persisting or inserting. The
+  linear `profile.sweep`. Save workflows accept any drawn boundary with at least
+  three points and close it into a profile section snapshot so users do not need
+  to run a separate close command before persisting. Cassette Designer v2 uses
+  saved profile templates from hanger feature selectors; selecting one stores
+  the template id plus a snapshot on that feature, and renderer cut-in-parent
+  output uses the snapshot geometry instead of the default hanger polygon. The
   current editor does not run a parametric constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.

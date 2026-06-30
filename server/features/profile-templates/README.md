@@ -23,10 +23,16 @@ Key fields:
 - `data.sketch`: editable numeric point/polyline/circle graph with endpoint
   snaps, typed segment-distance drawing helpers, explicit `closed` state for
   in-progress profile drawing, and per-corner fillet modifiers stored as
-  `{ type: 'fillet', vertexId, radius }`. The designer saves or inserts a
-  profile after at least three boundary points exist; open drawn boundaries are
-  closed in the saved sketch/profile snapshot.
+  `{ type: 'fillet', vertexId, radius }`. The designer saves a profile after at
+  least three boundary points exist; open drawn boundaries are closed in the
+  saved sketch/profile snapshot.
 - `data.occsProfile`: normalized OCCS `profile.section` and `profile.sweep` snapshot.
+
+Profile templates are reusable library records. Cassette Designer v2 does not
+insert them as independent cassette graph workpieces; hanger features load a
+saved template by id and store a geometry snapshot for reproducible
+cut-in-parent rendering. Saving a system profile template from the designer
+creates an owned copy because system templates are read-only.
 
 ## Migrations
 

@@ -2473,6 +2473,20 @@
        sketch boundary during save so users do not have to run the Close command
        before saving or adding the profile to the cassette.
 
+     [2026-06-30] Restore profile save dropdown flow
+     Files changed: components/CassetteDesignerV2.vue,
+       utils/cassetteV2Renderer.js, utils/cassetteV2Renderer.spec.js,
+       utils/mobile-transient-surfaces.js
+     Docs updated: components/README.md,
+       server/features/profile-templates/README.md, utils/occs/README.md,
+       TODO.org
+     Notes: Profile drawing now only saves reusable profile templates. Hanger
+       features load saved profile templates from their feature selector and
+       keep cut-in-parent production mode on the feature. Saving a profile
+       immediately upserts the returned template DTO into the local selector
+       list, then refreshes from the server without dropping the just-saved
+       option if the refresh is stale.
+
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
        packages/processes/src/index.js,

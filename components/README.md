@@ -432,9 +432,13 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   lifecycle action design remains a workflow-machine concern, not a local card
   action override.
 - `CassetteDesignerV2` owns OCCS cassette-template editing. It uses
-  `StandardDialog` for the profile sketch popup, `ProfileSketchEditor` for
-  reusable `profile_template` sketches, and renderer helpers for inserting
-  profile workpieces as cassette-local snapshots with library references.
+  `StandardDialog` for the profile sketch popup and `ProfileSketchEditor` for
+  reusable `profile_template` sketches. Profile drawing saves library templates;
+  cassette geometry consumes those templates from the selected hanger feature's
+  profile selector instead of adding a separate profile workpiece to the
+  cassette graph. Hanger features keep their production-mode controls, including
+  cut-in-parent behavior, and selected profile snapshots replace the default
+  hanger cut polygon when present.
   `ProfileSketchEditor` is a compact CAD-style direct editor: new profile
   sessions start blank, the polyline tool uses a command loop with first point,
   rubber-band preview, subsequent vertices, explicit Close/Undo/Finish actions,
@@ -446,7 +450,9 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   sketches; helper math remains covered in `utils/occs/profiles.spec.js`.
   Profile template selectors must normalize library DTOs through shared
   select-option helpers so PrimeVue receives string `label` and `value` fields
-  even while template data is loading.
+  even while template data is loading. Profile-dialog selects keep their
+  overlays inside the dialog so nested designer dialogs do not close when a
+  dropdown is opened.
 - `RemnantCard` and `RemnantDetail` render saved leftover material geometry
   through `GeometryPreview`, including polygon-with-holes queue-cut remnants.
   Source sheet, warehouse, and material pile context should be compact
