@@ -14,13 +14,10 @@ chrome.
 - Renders related `sheet_design` entities from the explicit `sheetDesigns` prop
   and from injected context only after filtering by `lineage.runId` or
   `run.data.sheetDesignIds`; queue-level sheet-design lists must not make every
-  run card show every design in the queue. Related designs render as the normal
-  `SheetDesignCard` inline variant; expansion is owned by `EntityCard`, not by
-  the nesting run card or the workbench page.
-- When `showSheetDesignPreviews` is true, related designs render as compact
-  geometry preview tiles using `GeometryPreview` plus `IdentityBlock`. The
-  production queue workspace enables this in the right-side runs lane so
-  operators can inspect resulting sheet layouts without opening each design.
+  run card show every design in the queue. Related designs render through the
+  shared `EntityRelationsBlock` compact gallery, so sheet-design previews,
+  overflow, popovers, and generated detail actions follow the same convention
+  as generated card relation galleries instead of a nesting-run-specific tile.
 - Does not render generated artifacts or DXF previews. File outputs are owned by
   artifact/attachment surfaces; the nesting run card stays focused on run
   metrics and resulting sheet designs.
