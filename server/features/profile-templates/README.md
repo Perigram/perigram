@@ -17,6 +17,9 @@ Collection: `profile_templates`
 Key fields:
 - `identity.name`: display name.
 - `lineage.userId` / `lineage.organizationId`: owner scope; both null means system profile.
+  Designer-created templates resolve `organizationId` from the active auth
+  organization or the first organization membership so cassette-scoped grants
+  can authorize list, save, update, and delete operations.
 - `data.kind`: `hanger`, `extruded_profile`, or `generic_profile`.
 - `data.process`: `extruded`, `roll_formed`, `brake_formed`, or `machined`.
 - `data.parameters`: simple profile metadata such as sweep length.
@@ -33,6 +36,10 @@ insert them as independent cassette graph workpieces; hanger features load a
 saved template by id and store a geometry snapshot for reproducible
 cut-in-parent rendering. Saving a system profile template from the designer
 creates an owned copy because system templates are read-only.
+Profile-template API access derives from the `cassettes` feature grants on the
+template lineage. Service DTOs preserve the storage `_id` rather than the
+identity UID so selectors can use the returned id for subsequent patch/load
+requests.
 
 ## Migrations
 

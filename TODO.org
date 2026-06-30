@@ -2551,6 +2551,17 @@
        list, then refreshes from the server without dropping the just-saved
        option if the refresh is stale.
 
+     [2026-06-30] Derive profile template access from cassette rights
+     Files changed: server/features/profile-templates/service.js,
+       server/features/profile-templates/profile-templates.spec.js
+     Docs updated: server/features/profile-templates/README.md, TODO.org
+     Notes: Profile-template list/save/update/delete now authorize through the
+       `cassettes` feature grants on the resolved organization lineage. Create
+       resolves organization scope from active auth or memberships so the API
+       redaction layer keeps `_id`, identity, and sketch fields visible to the
+       cassette designer, and service DTOs preserve the storage id for selector
+       values and PATCH routes.
+
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
        packages/processes/src/index.js,
