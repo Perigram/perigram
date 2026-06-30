@@ -190,10 +190,14 @@ app-shell badge, not to a wide floating button label. Opening chat dispatches
 the same transient close event first, so inline entity popovers and shell menus
 do not remain open behind or above the chat surface.
 The app shell mobile bottom panel may expose up to two generated-screen
-shortcuts captured by the user from the active `/screens/:screenKey` route.
-Those shortcuts use compiled screen labels and authored icons when available,
-then fall back to generated entity/template icons; they must not be hardcoded
-domain routes.
+shortcuts selected by the user from a generated-screen picker. Those shortcuts
+use compiled screen labels and authored icons when available, then fall back to
+generated entity/template icons; they must not be hardcoded domain routes. The
+plus action appears only until the two shortcut slots are full; full shortcut
+sets are changed by long-pressing a shortcut and selecting a replacement from
+the same picker. The mobile chats entry renders the chat component as an app tab
+rather than the desktop overlay, while the profile entry opens the account menu
+that also owns theme switching.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,

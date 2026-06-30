@@ -20,12 +20,18 @@ Project queue workspaces use a viewport-bounded main area so scrolling remains
 inside queue lanes and panels rather than the page body.
 
 On mobile, `app.vue` replaces the desktop header with a fixed bottom panel.
-The panel contains home, up to two user-captured generated-screen shortcuts,
-add-current-generated-screen, chats, and profile actions. The add action is
-enabled only on `/screens/:screenKey` routes, stores shortcuts per user and
-organization in FIFO order, and keeps only the two newest entries. Mobile
-bottom-panel navigation dispatches the shared transient close event before
-route changes so popovers, menus, and chat do not overlap the destination.
+The panel contains home, up to two user-captured generated-screen shortcuts, a
+generated-screen picker, chats, and a profile-menu button. The picker lists the
+current user's generated screens except home/detail screens. The plus action is
+shown only while zero or one shortcut exists; once both slots are full, users
+long-press a shortcut to reopen the same picker and replace that slot.
+Shortcuts are stored per user and organization in FIFO order. Chats render as
+an embedded mobile tab inside the app layout instead of the desktop overlay, so
+the chat close button is hidden there. Profile is not a tab; it opens the same
+account menu used on desktop. Theme switching lives in that account menu on
+both desktop and mobile. Mobile bottom-panel navigation dispatches the shared
+transient close event before route changes so popovers, menus, and chat do not
+overlap the destination.
 
 The authenticated user menu links the current organization to `/organization`
 and exposes team management and process designer actions from explicit

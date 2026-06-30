@@ -60,6 +60,22 @@
       organization, use compiled screen labels/icons, and close transient
       surfaces before mobile navigation.
 
+    [2026-06-30] Refine mobile bottom navigation tab behavior
+    Files changed: layouts/app.vue, components/ChatSupport.vue
+    Docs updated: layouts/README.md, components/README.md, TODO.org
+    Notes: Mobile plus opens a generated-screen picker instead of capturing the
+      current route. Chats render as an embedded mobile tab without the overlay
+      close button, and profile opens the shared account menu. Theme switching
+      moved into that account menu for both desktop and mobile.
+
+    [2026-06-30] Add long-press replacement for full mobile shortcut slots
+    Files changed: layouts/app.vue
+    Docs updated: layouts/README.md, components/README.md, TODO.org
+    Notes: The mobile plus button is shown only while fewer than two generated
+      screen shortcut slots exist. When both slots are full, long-pressing an
+      existing shortcut opens the same generated-screen picker and replaces that
+      specific shortcut slot.
+
     [2026-06-27] Make compact child-gallery overflow visible in-card
     Files changed: assets/css/main.css,
       components/shared/EntityRelationsBlock.vue,
