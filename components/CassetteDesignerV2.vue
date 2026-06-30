@@ -759,7 +759,7 @@
             :label="$t('cassette.v2.profileEditor.insert')"
             icon="pi pi-plus"
             size="small"
-            :disabled="profileSaving || !profileDraftReady"
+            :disabled="profileSaving"
             @click="insertProfileDraft"
           />
           <div class="flex gap-2">
@@ -775,7 +775,7 @@
               icon="pi pi-save"
               size="small"
               :loading="profileSaving"
-              :disabled="profileSaving || !profileDraftReady"
+              :disabled="profileSaving"
               @click="saveProfileDraft"
             />
           </div>
@@ -835,6 +835,7 @@ import {
 import {
   OCCS_PROFILE_KINDS,
   OCCS_PROFILE_PROCESSES,
+  closeOccsProfileSketchBoundary,
   createDefaultOccsProfileTemplateData,
   createEmptyOccsProfileSketch,
   isOccsProfileSketchSavable,
@@ -917,6 +918,10 @@ const profileDraftReady = computed(() => {
   const sketch = profileDraftSketch.value;
   return isOccsProfileSketchSavable(sketch, profileDraft.value.parameters || {});
 });
+const preparedProfileDraftSketch = computed(() => closeOccsProfileSketchBoundary(
+  profileDraftSketch.value,
+  profileDraft.value.parameters || {}
+));
 
 const templateOptions = computed(() => props.templateOptions || []);
 const selectedTemplateId = computed(() => persistedTemplateIdOverride.value || props.template?._id || '');
@@ -1930,7 +1935,7 @@ const addHardwareToSelectedWorkpiece = () => {
 };
 
 const profileDraftPayload = () => {
-  const sketch = profileDraftSketch.value;
+  const sketch = preparedProfileDraftSketch.value;
   const data = {
     kind: profileDraft.value.kind,
     process: profileDraft.value.process,

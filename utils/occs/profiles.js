@@ -166,7 +166,28 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
 
 export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {}) => {
   const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
-  return Boolean(normalized.closed && normalized.points.length >= 3);
+  return normalized.points.length >= 3;
+};
+
+export const closeOccsProfileSketchBoundary = (sketch = {}, fallbackParameters = {}) => {
+  const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
+  if (normalized.points.length < 3) return normalized;
+  const existingEdges = normalized.edges.filter(edge => edge.type === 'line');
+  const edges = normalized.points.map((point, index) => {
+    const to = normalized.points[(index + 1) % normalized.points.length]?.id || point.id;
+    const existing = existingEdges.find(edge => edge.from === point.id && edge.to === to);
+    return existing || {
+      id: `e${index}`,
+      type: 'line',
+      from: point.id,
+      to
+    };
+  }).filter(edge => edge.from !== edge.to);
+  return {
+    ...normalized,
+    closed: true,
+    edges
+  };
 };
 
 export const occsProfileFromSketch = (sketch = {}, options = {}) => {

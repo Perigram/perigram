@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createDefaultOccsProfileSketch,
   createEmptyOccsProfileSketch,
+  closeOccsProfileSketchBoundary,
   evaluateOccsProfileSketchPreview,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
@@ -28,9 +29,9 @@ describe('OCCS profile helpers', () => {
     });
   });
 
-  it('requires a closed boundary with at least three points before profile save', () => {
+  it('prepares a drawn boundary for profile save once it has at least three points', () => {
     expect(isOccsProfileSketchSavable(createEmptyOccsProfileSketch())).toBe(false);
-    expect(isOccsProfileSketchSavable({
+    const openSketch = {
       points: [
         { id: 'a', x: 0, y: 0 },
         { id: 'b', x: 10, y: 0 },
@@ -41,7 +42,16 @@ describe('OCCS profile helpers', () => {
         { from: 'b', to: 'c' }
       ],
       closed: false
-    })).toBe(false);
+    };
+    expect(isOccsProfileSketchSavable(openSketch)).toBe(true);
+    expect(closeOccsProfileSketchBoundary(openSketch)).toMatchObject({
+      closed: true,
+      edges: [
+        { from: 'a', to: 'b' },
+        { from: 'b', to: 'c' },
+        { from: 'c', to: 'a' }
+      ]
+    });
     expect(isOccsProfileSketchSavable(createDefaultOccsProfileSketch())).toBe(true);
     expect(isOccsProfileSketchSavable({
       points: [
