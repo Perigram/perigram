@@ -120,9 +120,15 @@
                     rounded
                     :severity="isRouteActive(shortcut.to) ? 'primary' : 'secondary'"
                     :aria-label="shortcut.label"
-                    @click="navigateMobile(shortcut.to)"
+                    @pointerdown="startShortcutHold($event, shortcut.index)"
+                    @pointerup="clearShortcutHold"
+                    @pointerleave="clearShortcutHold"
+                    @pointercancel="clearShortcutHold"
+                    @contextmenu.prevent="openReplaceShortcutMenu($event, shortcut.index)"
+                    @click="handleShortcutClick(shortcut)"
                 />
                 <Button
+                    v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT"
                     icon="pi pi-plus"
                     rounded
                     :disabled="!mobileScreenMenuItems.length"
@@ -199,6 +205,9 @@
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
     const mobileShortcuts = ref([])
     const mobileActiveTab = ref('content')
+    const mobileShortcutReplaceIndex = ref(null)
+    const mobileShortcutHoldTriggered = ref(false)
+    const mobileShortcutHoldTimer = ref(null)
     const MOBILE_SHORTCUT_LIMIT = 2
 
     // Sync protected project context with SSR cookies when route changes.
@@ -221,6 +230,7 @@
 
     onUnmounted(() => {
         window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeMobileTransientSurfaces)
+        clearShortcutHold()
     })
 
     watch(() => authStore.userIsSet, (isSet) => {
@@ -285,7 +295,7 @@
         command: () => addMobileScreenShortcut(screen)
     })))
     const mobileShortcutLinks = computed(() => mobileShortcuts.value
-        .map(shortcut => {
+        .map((shortcut, index) => {
             const screen = authStore.screenManifest.find(item => (
                 item.screenKey === shortcut.screenKey
                 || item.id === shortcut.screenKey
@@ -293,6 +303,7 @@
             ))
             return {
                 ...shortcut,
+                index,
                 key: `${shortcut.screenKey}:${shortcut.to}`,
                 label: screen ? screenName(screen) : shortcut.label,
                 icon: screenIcon(screen || shortcut)
@@ -324,6 +335,14 @@
         router.push(to)
     }
 
+    const handleShortcutClick = (shortcut) => {
+        if (mobileShortcutHoldTriggered.value) {
+            mobileShortcutHoldTriggered.value = false
+            return
+        }
+        navigateMobile(shortcut.to)
+    }
+
     const isMobileViewport = () => process.client
         && window.matchMedia?.('(max-width: 767px)')?.matches
 
@@ -351,7 +370,29 @@
     }
 
     const openMobileScreenMenu = (event) => {
+        mobileShortcutReplaceIndex.value = null
         mobileScreenMenu.value?.toggle(event)
+    }
+
+    const openReplaceShortcutMenu = (event, index) => {
+        mobileShortcutReplaceIndex.value = index
+        mobileScreenMenu.value?.show?.(event)
+    }
+
+    const startShortcutHold = (event, index) => {
+        clearShortcutHold()
+        mobileShortcutHoldTriggered.value = false
+        mobileShortcutHoldTimer.value = window.setTimeout(() => {
+            mobileShortcutHoldTriggered.value = true
+            openReplaceShortcutMenu(event, index)
+        }, 550)
+    }
+
+    const clearShortcutHold = () => {
+        if (mobileShortcutHoldTimer.value) {
+            clearTimeout(mobileShortcutHoldTimer.value)
+            mobileShortcutHoldTimer.value = null
+        }
     }
 
     const addMobileScreenShortcut = (screen) => {
@@ -362,10 +403,20 @@
             label: screen.label,
             icon: screen.icon
         }
-        mobileShortcuts.value = [
-            ...mobileShortcuts.value.filter(item => !(item.screenKey === next.screenKey && item.to === next.to)),
-            next
-        ].slice(-MOBILE_SHORTCUT_LIMIT)
+        const replaceIndex = mobileShortcutReplaceIndex.value
+        if (Number.isInteger(replaceIndex)) {
+            const items = mobileShortcuts.value
+                .slice(0, MOBILE_SHORTCUT_LIMIT)
+                .filter((item, index) => index !== replaceIndex && !(item.screenKey === next.screenKey && item.to === next.to))
+            items.splice(Math.min(replaceIndex, items.length), 0, next)
+            mobileShortcuts.value = items.slice(0, MOBILE_SHORTCUT_LIMIT)
+        } else {
+            mobileShortcuts.value = [
+                ...mobileShortcuts.value.filter(item => !(item.screenKey === next.screenKey && item.to === next.to)),
+                next
+            ].slice(-MOBILE_SHORTCUT_LIMIT)
+        }
+        mobileShortcutReplaceIndex.value = null
         saveMobileShortcuts()
     }
 
