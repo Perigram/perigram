@@ -230,7 +230,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(Object.values(composition.graph.nodes).filter(node => node.label === 'parentEdgeIndex').map(node => node.entity.data.value)).toContain(2);
   });
 
-  it('adds profile workpieces and exports them without hardware normalization', () => {
+  it('adds profile workpieces and renders their attached section geometry', async () => {
     const initialTree = createCassetteV2GraphTree();
     const result = addCassetteV2ProfileWorkpiece(initialTree, {
       referenceWorkpieceId: 'wp_1',
@@ -268,6 +268,15 @@ describe('cassette v2 trapezoid renderer', () => {
       },
       manufacturing: { process: 'extruded' }
     });
+    const drawing = await renderCassetteV2TreeToDrawing(result.tree, { mode: 'assembly' });
+    const sectionLayer = drawing.layers.find(layer => layer.name === 'designer.section');
+    expect(sectionLayer.paths).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        workpieceId: result.workpieceId,
+        relationId: expect.any(String),
+        sectionKind: 'profile'
+      })
+    ]));
   });
 
   it('builds one face graph by feeding evaluated parent vertices through a Nodi polyline input', () => {

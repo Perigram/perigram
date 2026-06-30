@@ -2159,6 +2159,10 @@ const relationHardwareWorkpiece = (tree, relation) => (
   )) || null
 );
 
+const relationProfileWorkpiece = (tree, relation) => (
+  tree.workpieces.find(workpiece => workpiece.id === relation.sourceWorkpieceId && isCassetteV2ProfileWorkpiece(workpiece)) || null
+);
+
 const hardwarePointsForRelation = (curve, relation, parameters = {}) => {
   const vertices = curve?.boundaryVertices || curve?.vertices || [];
   if (relation.pattern?.type === 'edgeArray') {
@@ -2227,6 +2231,61 @@ const hardwareSchematicLayer = (curves = [], tree = createCassetteV2GraphTree(),
       markKind: 'hardware'
     }))
   };
+};
+
+const profileSectionPointsForRelation = (profile = {}, targetCurve = {}, relation = {}, parameters = {}) => {
+  const vertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
+  if (vertices.length < 2) return [];
+  const targetVertices = targetCurve?.boundaryVertices || targetCurve?.vertices || [];
+  const snap = faceSnapPoint(targetVertices, relation.targetSnap);
+  const offset = [
+    resolveCassetteV2Expression(relation.offsetX, parameters, 0),
+    resolveCassetteV2Expression(relation.offsetY, parameters, 0)
+  ];
+  const rotation = resolveCassetteV2AngleExpression(relation.rotation, parameters, 0);
+  const origin = [
+    numeric(snap?.[0], 0) + offset[0],
+    numeric(snap?.[1], 0) + offset[1]
+  ];
+
+  return vertices.map((vertex) => {
+    const rotated = rotate2d([numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)], rotation);
+    return [origin[0] + rotated[0], origin[1] + rotated[1], 0];
+  });
+};
+
+const designerProfileSectionsForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
+  const sourceTree = cloneCassetteV2Tree(tree);
+  const parameters = treeParameters(sourceTree);
+  const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
+  const paths = [];
+  const viewBoxCurves = [];
+
+  for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
+    const workpiece = relationProfileWorkpiece(sourceTree, relation);
+    if (!workpiece) continue;
+    if (options.contextWorkpieceId && ![relation.sourceWorkpieceId, relation.targetWorkpieceId].includes(options.contextWorkpieceId)) {
+      continue;
+    }
+    const targetCurve = curveById.get(relation.targetFaceId);
+    if (!targetCurve) continue;
+    const profile = normalizeCassetteV2Profile(workpiece);
+    const points = profileSectionPointsForRelation(profile, targetCurve, relation, parameters);
+    if (points.length < 2) continue;
+    const svgPoints = points.map(toSvgPoint);
+    paths.push({
+      d: `${sectionPath(svgPoints)} Z`,
+      fill: 'none',
+      stroke: 'layer',
+      workpieceId: relation.sourceWorkpieceId,
+      relationId: relation.id,
+      sectionKind: 'profile',
+      active: !options.selectedRelationId || options.selectedRelationId === relation.id
+    });
+    viewBoxCurves.push({ vertices: points });
+  }
+
+  return { paths, viewBoxCurves };
 };
 
 const circlePathAt = (point = [0, 0], diameter = 5) => {
@@ -2851,6 +2910,12 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   const designerFoldEdges = designerFoldEdgesForTree(shapedCurves, tree);
   const foldedPreview = foldedPreviewForTree(foldedPreviewCurves, tree, { includeJoints: options.includeFoldedPreviewJoints });
   const designerSections = designerSectionsForTree(shapedCurves, foldedPreview, tree);
+  const designerProfileSections = designerProfileSectionsForTree(shapedCurves, tree, {
+    contextWorkpieceId: options.contextWorkpieceId,
+    selectedRelationId: options.selectedRelationId
+  });
+  designerSections.layer.paths.push(...designerProfileSections.paths);
+  designerSections.viewBoxCurves.push(...designerProfileSections.viewBoxCurves);
   const hardwareLayers = hardwareProductionLayers(hardwareProductionEntities);
   const cassetteMarkLayer = buildCassetteV2CassetteMarkLayer(shapedCurves, tree, options.cassetteMarkContext || {});
   const hardwareLayer = hardwareSchematicLayer(shapedCurves, tree, {
