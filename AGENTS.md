@@ -31,6 +31,17 @@ first or in the same task before relying on implementation details.
 
 ## Execution Rules
 
+- Start each coding-agent session in its own git worktree created from the
+  primary `local` checkout before changing files. Use a dedicated session
+  branch, such as `agent/<task-slug>-<timestamp>`, so multiple agents never
+  share one working tree or branch.
+- Treat the primary checkout on `local` as the integration tree. Keep session
+  changes inside the agent worktree until they are committed, then merge the
+  session branch back into `local` from the primary checkout. If the merge is
+  not clean, stop and report the conflicted files instead of resolving unrelated
+  work opportunistically.
+- Remove the session worktree after its branch has been merged, unless the user
+  asks to keep it for inspection.
 - State risky assumptions before making changes.
 - Prefer the smallest implementation that satisfies the task.
 - Change only files directly required by the task.
@@ -58,16 +69,9 @@ first or in the same task before relying on implementation details.
   decisions. Avoid placeholders, guesses, and obvious file listings.
 - Keep AGENTS.md as protocol only. Move backend/frontend/domain-specific rules
   to the relevant README source of truth.
-- Add an Agent Notes entry under the relevant `TODO.org` task before committing
-  docs:
-
-```org
-*** Agent Notes
-    [YYYY-MM-DD] Task description
-    Files changed: file1.js, file2.js
-    Docs updated: README.md
-    Notes: key decisions, patterns used
-```
+- Do not create or fill `TODO.org` Agent Notes only to satisfy process. Update
+  `TODO.org` only when the task itself changes tracked work, status, or plans
+  that belong there.
 
 ## Validation Rules
 
@@ -85,7 +89,8 @@ first or in the same task before relying on implementation details.
 
 Committing is mandatory for completed work.
 
-1. Work on branch `local`. Do not commit directly to `main` or other branches.
+1. Commit task work on the session branch inside the agent worktree. Do not
+   commit directly to `main` or to the primary `local` checkout.
 2. Inspect `git status --short` before staging.
 3. Stage only files that belong to the completed task.
 4. Commit implementation changes first with a normal conventional prefix such
@@ -98,7 +103,10 @@ Committing is mandatory for completed work.
    only the task-owned files.
 8. If unrelated dirty files make safe staging impossible, stop and report the
    exact files and reason.
-9. Do not rewrite history, amend old commits, revert commits, or use destructive
+9. After committing in the session worktree, merge the session branch back into
+   `local` from the primary checkout and report both the session commit hash and
+   the merge result.
+10. Do not rewrite history, amend old commits, revert commits, or use destructive
    git commands unless explicitly instructed.
 
 At handoff, report commit hashes, validation run, and any remaining untracked or
