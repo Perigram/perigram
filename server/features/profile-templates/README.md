@@ -23,8 +23,9 @@ Key fields:
 - `data.sketch`: editable numeric point/polyline/circle graph with endpoint
   snaps, typed segment-distance drawing helpers, explicit `closed` state for
   in-progress profile drawing, and per-corner fillet modifiers stored as
-  `{ type: 'fillet', vertexId, radius }`. The designer only enables save and
-  cassette insertion after the boundary is closed with at least three points.
+  `{ type: 'fillet', vertexId, radius }`. The designer saves or inserts a
+  profile after at least three boundary points exist; open drawn boundaries are
+  closed in the saved sketch/profile snapshot.
 - `data.occsProfile`: normalized OCCS `profile.section` and `profile.sweep` snapshot.
 
 ## Migrations

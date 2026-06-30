@@ -2448,6 +2448,16 @@
        normalized sketch, and route cassette insertion through the same save
        path so edits to existing templates are persisted before insertion.
 
+     [2026-06-30] Restore profile save and insertion from open drawn boundary
+     Files changed: components/CassetteDesignerV2.vue,
+       utils/occs/profiles.js, utils/occs/profiles.spec.js
+     Docs updated: server/features/profile-templates/README.md,
+       utils/occs/README.md, TODO.org
+     Notes: Save and insert buttons are clickable again while the editor has a
+       drawing with at least three points. The payload closes the normalized
+       sketch boundary during save so users do not have to run the Close command
+       before saving or adding the profile to the cassette.
+
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
        packages/processes/src/index.js,
