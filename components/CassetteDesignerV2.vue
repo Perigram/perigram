@@ -728,6 +728,7 @@
             :options="profileKindOptions"
             option-label="label"
             option-value="value"
+            append-to="self"
             class="w-full"
           />
           <Select
@@ -735,6 +736,7 @@
             :options="profileProcessOptions"
             option-label="label"
             option-value="value"
+            append-to="self"
             class="w-full"
           />
         </div>
@@ -744,6 +746,7 @@
           option-label="label"
           option-value="value"
           :placeholder="$t('cassette.v2.profileEditor.loadTemplate')"
+          append-to="self"
           class="w-full"
           @update:model-value="loadProfileTemplateDraft"
         />
