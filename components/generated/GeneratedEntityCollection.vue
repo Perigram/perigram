@@ -107,7 +107,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, provide } from 'vue';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
@@ -141,10 +141,13 @@ const props = defineProps({
   actionContext: { type: Object, default: () => ({}) }
 });
 
-defineEmits(['refresh', 'execute-action']);
+const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
+provide('generatedExecuteAction', (action, entity, context = {}) => {
+  emit('execute-action', action, entity, context);
+});
 const resolvedActions = computed(() => props.actions
   .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
   .filter(Boolean));

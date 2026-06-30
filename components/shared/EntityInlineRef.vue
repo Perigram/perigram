@@ -10,6 +10,11 @@ import EntityPreview from '~/components/shared/EntityPreview.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
+import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
+import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
+import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { useEntity } from '~/composables/useEntity';
@@ -64,6 +69,7 @@ const domainUi = useCutkitDomainUi();
 const { t } = useI18n();
 const entityApi = useEntity(props.type);
 const entityContext = inject('entityContext', null);
+const generatedExecuteAction = inject('generatedExecuteAction', null);
 const normalizedId = computed(() => props.id?.toString?.() || props.id || '');
 const contextEntity = computed(() => {
   if (!normalizedId.value) return null;
@@ -102,6 +108,12 @@ const detailRoute = computed(() => {
 provide('entityInlineDetailRoute', detailRoute);
 provide('entityInlineForceTrace', true);
 provide('entityInlineTypeLabel', computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type));
+provide('entityInlineActionIds', computed(() => popupActionIds.value));
+provide('entityInlineActionEntity', resolved);
+provide('entityInlineActionEntityType', generatedEntityType);
+provide('entityInlineCanDelete', computed(() => popupCanDelete.value));
+provide('entityInlineShowCassetteDesigner', computed(() => popupShowCassetteDesigner.value));
+provide('entityInlineExecuteAction', executePopupAction);
 const toneStyle = computed(() => entityToneStyle(props.type));
 const compactDisplay = computed(() => resolveEntityDisplayContract({
   entityType: generatedEntityType.value,
@@ -123,6 +135,32 @@ const compactStatusState = computed(() => {
   return state?.primary || state?.active?.main || '';
 });
 const compactStatusDisplay = computed(() => resolved.value?.status?.metadata?.display || null);
+const popupDetailActionIds = computed(() => detailActionIdsForEntityType(generatedEntityType.value));
+const hasGeneratedActionExecutor = computed(() => typeof unref(generatedExecuteAction) === 'function');
+const popupActions = computed(() => {
+  if (!hasGeneratedActionExecutor.value) return [];
+  return resolveGeneratedEntityActions({
+    actionIds: popupDetailActionIds.value,
+    actionManifest: authStore.actionManifest,
+    entity: resolved.value,
+    entityType: generatedEntityType.value
+  })
+    .filter(isGeneratedSurfaceAction)
+    .filter(action => !isConsumedDetailAction(action));
+});
+const popupActionIds = computed(() => popupActions.value.map(action => action.actionId));
+const popupCanDelete = computed(() => canDeleteGeneratedEntity({
+  authStore,
+  domainUi,
+  entity: resolved.value,
+  entityType: generatedEntityType.value
+}));
+const popupShowCassetteDesigner = computed(() => generatedEntityType.value === 'cassette');
+const popupHasActions = computed(() => (
+  popupShowCassetteDesigner.value
+  || popupActionIds.value.length
+  || popupCanDelete.value
+));
 
 watch(
   () => [props.entity, normalizedId.value, props.type, contextEntity.value?._id],
@@ -172,6 +210,47 @@ function generatedEntityTypeFor(type) {
   return aliases[type] || type;
 }
 
+function detailActionIdsForEntityType(entityType) {
+  const screen = detailScreenForEntityType(entityType);
+  if (!screen) return [];
+  const mainRegion = detailMainRegion(screen, entityType);
+  const actionIds = mainRegion?.actions?.length ? mainRegion.actions : screen.actions;
+  return Array.isArray(actionIds) ? actionIds : [];
+}
+
+function detailScreenForEntityType(entityType) {
+  const screens = Array.isArray(authStore.screenManifest) ? authStore.screenManifest : [];
+  const candidates = screens.filter(screen => (
+    screen?.template === 'entityDetail'
+    && screenHasSingleEntitySource(screen, entityType)
+  ));
+  if (!candidates.length) return null;
+  const routePath = typeof detailRoute.value === 'string' ? detailRoute.value : detailRoute.value?.path;
+  return candidates.find(screen => screen.route === routePath) || candidates[0];
+}
+
+function detailMainRegion(screen = {}, entityType = '') {
+  const regions = Array.isArray(screen.regions) ? screen.regions : [];
+  return regions.find(region => (
+    region?.sourceId
+    && (screen.sources || []).some(source => (
+      source.id === region.sourceId
+      && source.entityType === entityType
+      && source.mode === 'single'
+    ))
+  )) || regions.find(region => region.actions?.length) || null;
+}
+
+function screenHasSingleEntitySource(screen = {}, entityType = '') {
+  return (screen.sources || []).some(source => source.entityType === entityType && source.mode === 'single');
+}
+
+function isConsumedDetailAction(action = {}) {
+  return generatedEntityType.value === 'queue'
+    && action.actionKind === 'runCommand'
+    && action.commandId === 'solveNesting';
+}
+
 function toggleCompactPopup(event) {
   if (isInteractiveEventTarget(event)) return;
   compactOp.value?.toggle(event);
@@ -188,6 +267,12 @@ function openDetail(event) {
   event?.stopPropagation?.();
   requestCloseMobileTransientSurfaces();
   if (detailRoute.value) navigateTo(detailRoute.value);
+}
+
+function executePopupAction(action) {
+  const executor = unref(generatedExecuteAction);
+  if (typeof executor !== 'function' || !resolved.value) return;
+  executor(action, resolved.value);
 }
 
 function closeCompactPopup() {
@@ -357,8 +442,25 @@ function tonePalette(role) {
             :entity-type="generatedEntityType"
             surface="card"
           />
-          <div v-if="detailRoute" class="flex justify-end" @click.stop>
+          <div v-if="popupHasActions || detailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
+            <GeneratedCassetteDesignerAction
+              v-if="popupShowCassetteDesigner"
+              :entity="resolved"
+            />
+            <GeneratedActionButton
+              v-for="actionId in popupActionIds"
+              :key="actionId"
+              :action-id="actionId"
+              @execute="executePopupAction"
+            />
+            <GeneratedDeleteButton
+              v-if="popupCanDelete"
+              :entity="resolved"
+              :entity-type="generatedEntityType"
+              @deleted="closeCompactPopup"
+            />
             <Button
+              v-if="detailRoute"
               icon="pi pi-external-link"
               text
               rounded

@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, provide } from 'vue';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import EntityCard from '~/components/shared/EntityCard.vue';
@@ -123,11 +123,14 @@ const props = defineProps({
   sourceState: { type: Function, required: true }
 });
 
-defineEmits(['refresh', 'execute-action']);
+const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const { t, te } = useI18n();
+provide('generatedExecuteAction', (action, entity, context = {}) => {
+  emit('execute-action', action, entity, context);
+});
 
 const sections = computed(() => props.screen.regions
   .map(region => {

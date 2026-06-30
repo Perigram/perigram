@@ -37,8 +37,25 @@
                         <slot />
                     </slot>
                     <slot name="footer" />
-                    <div v-if="inlineDetailRoute" class="flex justify-end" @click.stop>
+                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
+                        <GeneratedCassetteDesignerAction
+                            v-if="inlineShowCassetteDesigner"
+                            :entity="inlineActionEntity"
+                        />
+                        <GeneratedActionButton
+                            v-for="actionId in inlineActionIds"
+                            :key="actionId"
+                            :action-id="actionId"
+                            @execute="executeInlineAction"
+                        />
+                        <GeneratedDeleteButton
+                            v-if="inlineCanDelete"
+                            :entity="inlineActionEntity"
+                            :entity-type="inlineActionEntityType"
+                            @deleted="closePopup"
+                        />
                         <Button
+                            v-if="inlineDetailRoute"
                             icon="pi pi-external-link"
                             text
                             rounded
@@ -119,8 +136,25 @@
                         <slot />
                     </slot>
                     <slot name="footer" />
-                    <div v-if="inlineDetailRoute" class="flex justify-end" @click.stop>
+                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
+                        <GeneratedCassetteDesignerAction
+                            v-if="inlineShowCassetteDesigner"
+                            :entity="inlineActionEntity"
+                        />
+                        <GeneratedActionButton
+                            v-for="actionId in inlineActionIds"
+                            :key="actionId"
+                            :action-id="actionId"
+                            @execute="executeInlineAction"
+                        />
+                        <GeneratedDeleteButton
+                            v-if="inlineCanDelete"
+                            :entity="inlineActionEntity"
+                            :entity-type="inlineActionEntityType"
+                            @deleted="closePopup"
+                        />
                         <Button
+                            v-if="inlineDetailRoute"
                             icon="pi pi-external-link"
                             text
                             rounded
@@ -203,6 +237,9 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Popover from 'primevue/popover';
+import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { ENTITY_UI } from '~/utils/status-engine';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
@@ -226,6 +263,12 @@ const emit = defineEmits(['refresh']);
 const inlineDetailRouteRef = inject('entityInlineDetailRoute', null);
 const inlineForceTraceRef = inject('entityInlineForceTrace', false);
 const inlineTypeLabelRef = inject('entityInlineTypeLabel', '');
+const inlineActionIdsRef = inject('entityInlineActionIds', []);
+const inlineActionEntityRef = inject('entityInlineActionEntity', null);
+const inlineActionEntityTypeRef = inject('entityInlineActionEntityType', '');
+const inlineCanDeleteRef = inject('entityInlineCanDelete', false);
+const inlineShowCassetteDesignerRef = inject('entityInlineShowCassetteDesigner', false);
+const inlineExecuteActionRef = inject('entityInlineExecuteAction', null);
 
 const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi pi-box' });
 const displayPlan = computed(() => resolveEntityDisplayContract({
@@ -251,11 +294,27 @@ const compactDensityClass = computed(() => props.density === 'dense'
 );
 const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
 const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
+const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);
+const inlineActionEntity = computed(() => unref(inlineActionEntityRef) || props.entity);
+const inlineActionEntityType = computed(() => unref(inlineActionEntityTypeRef) || props.entityType);
+const inlineCanDelete = computed(() => Boolean(unref(inlineCanDeleteRef)));
+const inlineShowCassetteDesigner = computed(() => Boolean(unref(inlineShowCassetteDesignerRef)));
+const inlinePopupHasActions = computed(() => (
+    inlineShowCassetteDesigner.value
+    || inlineActionIds.value.length
+    || inlineCanDelete.value
+));
 
 function openInlineDetail(event) {
     event.stopPropagation();
     requestCloseMobileTransientSurfaces();
     if (inlineDetailRoute.value) navigateTo(inlineDetailRoute.value);
+}
+
+function executeInlineAction(action) {
+    const executor = unref(inlineExecuteActionRef);
+    if (typeof executor !== 'function') return;
+    executor(action);
 }
 
 const op = ref();

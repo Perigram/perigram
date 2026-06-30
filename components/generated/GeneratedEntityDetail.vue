@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, provide } from 'vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
@@ -57,10 +57,13 @@ const props = defineProps({
   actions: { type: Array, default: () => [] }
 });
 
-defineEmits(['refresh', 'execute-action']);
+const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
+provide('generatedExecuteAction', (action, entity, context = {}) => {
+  emit('execute-action', action, entity, context);
+});
 const resolvedActions = computed(() => resolveGeneratedEntityActions({
   actionIds: props.actions,
   actionManifest: authStore.actionManifest,
