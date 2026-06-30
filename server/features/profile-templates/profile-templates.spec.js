@@ -123,6 +123,23 @@ describe('profile templates service', () => {
     });
   });
 
+  it('normalizes legacy user-scoped profiles for cassette-rights redaction', async () => {
+    const legacyId = new ObjectId('665000000000000000000002');
+    mocks.repository.findByScope.mockResolvedValue([{
+      _id: legacyId,
+      identity: { name: 'Legacy user profile' },
+      lineage: { userId: 'user-profile' },
+      data: { sketch }
+    }]);
+
+    const [profile] = await service.listAll(auth);
+    const redacted = serializeForAccess('profileTemplate', profile, auth);
+
+    expect(redacted._id.toString()).toBe(legacyId.toString());
+    expect(redacted.identity.name).toBe('Legacy user profile');
+    expect(redacted.lineage.organizationId).toBe('org-cassette');
+  });
+
   it('updates editable templates through cassette write permission', async () => {
     mocks.repository.findById
       .mockResolvedValueOnce({

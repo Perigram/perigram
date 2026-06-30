@@ -11,10 +11,25 @@ import { hasLineagePermission } from '../../utils/permissions.js';
 import { ProfileTemplate } from './model.js';
 import * as repository from './repository.js';
 
-function toDTO(profileTemplate) {
+function dtoSource(profileTemplate = {}, scope = {}) {
+  const ownerId = profileTemplate.lineage?.userId || null;
+  const organizationId = profileTemplate.lineage?.organizationId || null;
+  if (
+    scope.organizationId &&
+    ownerId &&
+    scope.userId &&
+    ownerId.toString() === scope.userId.toString() &&
+    !organizationId
+  ) {
+    return profileAccessEntity(profileTemplate, scope);
+  }
+  return profileTemplate;
+}
+
+function toDTO(profileTemplate, scope = {}) {
   if (!profileTemplate) return null;
   return {
-    ...new ProfileTemplate(profileTemplate).toJSON(),
+    ...new ProfileTemplate(dtoSource(profileTemplate, scope)).toJSON(),
     _id: profileTemplate._id
   };
 }
@@ -72,7 +87,7 @@ export async function getById(id, auth = {}) {
   if (!canAccess(profileTemplate, scope, auth, 'read')) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
-  return toDTO(profileTemplate);
+  return toDTO(profileTemplate, scope);
 }
 
 export async function listAll(auth = {}) {
@@ -84,7 +99,7 @@ export async function listAll(auth = {}) {
   const byId = new Map([...systemProfiles, ...scopedProfiles].map(profile => [profile._id.toString(), profile]));
   return [...byId.values()]
     .filter(profile => canAccess(profile, scope, auth, 'read'))
-    .map(toDTO);
+    .map(profile => toDTO(profile, scope));
 }
 
 export async function create(payload = {}, auth = {}) {
@@ -107,7 +122,7 @@ export async function create(payload = {}, auth = {}) {
     },
     data: createData(data)
   });
-  return toDTO(created);
+  return toDTO(created, scope);
 }
 
 export async function update(id, updates = {}, auth = {}) {
