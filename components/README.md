@@ -189,6 +189,11 @@ changes. The floating chat launcher is icon-only; unread state belongs to the
 app-shell badge, not to a wide floating button label. Opening chat dispatches
 the same transient close event first, so inline entity popovers and shell menus
 do not remain open behind or above the chat surface.
+The app shell mobile bottom panel may expose up to two generated-screen
+shortcuts captured by the user from the active `/screens/:screenKey` route.
+Those shortcuts use compiled screen labels and authored icons when available,
+then fall back to generated entity/template icons; they must not be hardcoded
+domain routes.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,

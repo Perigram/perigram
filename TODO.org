@@ -33,6 +33,15 @@
       now icon-only with an accessible label. Chat open actions also dispatch
       the same close event before opening the drawer so popovers are closed.
 
+    [2026-06-30] Replace mobile app header with bottom navigation
+    Files changed: layouts/app.vue
+    Docs updated: layouts/README.md, components/README.md, TODO.org
+    Notes: Mobile app chrome now hides the desktop header and renders a bottom
+      panel with home, FIFO generated-screen shortcuts, add-current-screen,
+      chats, and profile actions. Shortcut captures are scoped per user and
+      organization, use compiled screen labels/icons, and close transient
+      surfaces before mobile navigation.
+
     [2026-06-27] Repair legacy queue item ids before process nesting
     Files changed: components/QueueEditor.vue, utils/queue-items.js,
       utils/queue-items.spec.js, i18n/locales/en.json, i18n/locales/ru.json

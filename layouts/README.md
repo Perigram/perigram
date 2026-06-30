@@ -4,9 +4,9 @@ Nuxt layout shells for public and authenticated app surfaces.
 
 ## Core Files
 
-- `app.vue`: Authenticated workspace chrome with sticky header, route
-  breadcrumbs, theme toggle, user menu, support entry, and bounded workspace
-  sizing for `/project/:slug/queues`.
+- `app.vue`: Authenticated workspace chrome with desktop sticky header, mobile
+  bottom navigation, route breadcrumbs, theme toggle, user/profile entry,
+  support entry, and bounded workspace sizing for `/project/:slug/queues`.
 
 ## Navigation Behavior
 
@@ -18,6 +18,14 @@ owns that text.
 
 Project queue workspaces use a viewport-bounded main area so scrolling remains
 inside queue lanes and panels rather than the page body.
+
+On mobile, `app.vue` replaces the desktop header with a fixed bottom panel.
+The panel contains home, up to two user-captured generated-screen shortcuts,
+add-current-generated-screen, chats, and profile actions. The add action is
+enabled only on `/screens/:screenKey` routes, stores shortcuts per user and
+organization in FIFO order, and keeps only the two newest entries. Mobile
+bottom-panel navigation dispatches the shared transient close event before
+route changes so popovers, menus, and chat do not overlap the destination.
 
 The authenticated user menu links the current organization to `/organization`
 and exposes team management and process designer actions from explicit
