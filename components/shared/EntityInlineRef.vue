@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, inject, provide, ref, unref, watch } from 'vue';
+import { computed, defineAsyncComponent, inject, onMounted, onUnmounted, provide, ref, unref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
@@ -17,6 +17,7 @@ import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const CARD_COMPONENTS = {
   project: defineAsyncComponent(() => import('~/components/entities/Project/ProjectCard.vue')),
@@ -185,8 +186,21 @@ function onCompactKeydown(event) {
 
 function openDetail(event) {
   event?.stopPropagation?.();
+  requestCloseMobileTransientSurfaces();
   if (detailRoute.value) navigateTo(detailRoute.value);
 }
+
+function closeCompactPopup() {
+  compactOp.value?.hide?.();
+}
+
+onMounted(() => {
+  window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeCompactPopup);
+});
+
+onUnmounted(() => {
+  window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeCompactPopup);
+});
 
 function entityToneStyle(type) {
   const family = entityFamilyAccent(type);

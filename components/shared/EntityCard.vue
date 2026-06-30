@@ -180,7 +180,7 @@
 </template>
 
 <script setup>
-import { computed, inject, ref, unref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
 /**
  * EntityCard - v24 Standardized
  * Shared entity card chrome: TraceChain + IdentityBlock + EntityStatus.
@@ -206,6 +206,7 @@ import Popover from 'primevue/popover';
 import { ENTITY_UI } from '~/utils/status-engine';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const props = defineProps({
     entity: { type: Object, required: true },
@@ -253,6 +254,7 @@ const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 
 function openInlineDetail(event) {
     event.stopPropagation();
+    requestCloseMobileTransientSurfaces();
     if (inlineDetailRoute.value) navigateTo(inlineDetailRoute.value);
 }
 
@@ -268,4 +270,15 @@ const onToggleKeydown = (event) => {
     togglePopup(event);
 };
 
+function closePopup() {
+    op.value?.hide?.();
+}
+
+onMounted(() => {
+    window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closePopup);
+});
+
+onUnmounted(() => {
+    window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closePopup);
+});
 </script>

@@ -106,8 +106,9 @@
         <ChatSupport v-if="supportDialog" />
         <Button
             icon="pi pi-comment"
-            :label="$t('support.button')"
             severity="secondary"
+            rounded
+            :aria-label="$t('support.openChat')"
             @click="supportDialog = true"
             v-if="!supportDialog"
             class="fixed bottom-8 right-8 z-[999] [box-shadow:var(--ck-shadow-overlay)]"
@@ -116,7 +117,7 @@
 </template>
 
 <script setup>
-    import { ref, computed, watch, onMounted } from 'vue'
+    import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
@@ -130,6 +131,7 @@
     import { useEntityEventsStore } from '~/stores/entityEvents'
     import { useNavigationStore } from '~/stores/navigation'
     import { useGlobalStore } from '~/stores/global'
+    import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
 
     const router = useRouter()
     const route = useRoute()
@@ -156,6 +158,11 @@
         if (authStore.userIsSet && globalStore.projectsList.length === 0) {
             await globalStore.getProjects()
         }
+        window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeMobileTransientSurfaces)
+    })
+
+    onUnmounted(() => {
+        window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeMobileTransientSurfaces)
     })
 
     watch(() => authStore.userIsSet, (isSet) => {
@@ -184,6 +191,12 @@
     }
 
     const isBoundedWorkspaceRoute = computed(() => /^\/project\/[^/]+\/queues\/?$/.test(route.path))
+
+    const closeMobileTransientSurfaces = () => {
+        supportDialog.value = false
+        breadcrumbMenu.value?.hide?.()
+        userMenu.value?.hide?.()
+    }
 
     // --- User Menu ---
     const userMenu = ref();

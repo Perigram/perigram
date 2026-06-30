@@ -4,7 +4,7 @@
         :to="route"
         class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1"
         data-entity-card-interactive="true"
-        @click.stop
+        @click.stop="requestCloseMobileTransientSurfaces"
     >
         <i :class="config.icon" class="shrink-0"></i>
         <span class="truncate">
@@ -26,6 +26,7 @@
 <script setup>
 import { computed } from 'vue';
 import { ENTITY_UI } from '~/utils/status-engine';
+import { requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const props = defineProps({
     type: {
