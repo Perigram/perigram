@@ -29,7 +29,6 @@ vi.mock('h3', () => ({
   })
 }));
 
-import { serializeForAccess } from '../../utils/entity-redaction.js';
 import * as service from './service.js';
 
 const auth = {
@@ -84,12 +83,7 @@ describe('profile templates service', () => {
   it('creates profile templates under cassette-accessible organization lineage from memberships', async () => {
     const created = await service.create({ name: 'Hook profile', sketch }, auth);
 
-    expect(mocks.permissions.hasLineagePermission).toHaveBeenCalledWith(
-      auth,
-      { lineage: { organizationId: 'org-cassette' } },
-      'cassettes',
-      'write'
-    );
+    expect(mocks.permissions.hasLineagePermission).not.toHaveBeenCalled();
     expect(mocks.repository.create).toHaveBeenCalledWith(expect.objectContaining({
       lineage: {
         userId: 'user-profile',
@@ -99,13 +93,30 @@ describe('profile templates service', () => {
     expect(created._id.toString()).toBe(createdId.toString());
   });
 
-  it('returns saved profile fields after cassette-rights redaction', async () => {
+  it('returns saved profile fields directly from the service DTO', async () => {
     const created = await service.create({ name: 'Visible profile', sketch }, auth);
-    const redacted = serializeForAccess('profileTemplate', created, auth);
 
-    expect(redacted._id.toString()).toBe(createdId.toString());
-    expect(redacted.identity.name).toBe('Visible profile');
-    expect(redacted.data.sketch.points).toHaveLength(3);
+    expect(created._id.toString()).toBe(createdId.toString());
+    expect(created.identity.name).toBe('Visible profile');
+    expect(created.data.sketch.points).toHaveLength(3);
+  });
+
+  it('saves an owned profile template even without cassette write grants', async () => {
+    mocks.permissions.hasLineagePermission.mockReturnValue(false);
+
+    const created = await service.create({ name: 'Owned profile', sketch }, {
+      userId: 'user-profile',
+      memberships: [{ organizationId: 'org-cassette', permissions: {} }]
+    });
+
+    expect(created._id.toString()).toBe(createdId.toString());
+    expect(created.identity.name).toBe('Owned profile');
+    expect(mocks.repository.create).toHaveBeenCalledWith(expect.objectContaining({
+      lineage: {
+        userId: 'user-profile',
+        organizationId: 'org-cassette'
+      }
+    }));
   });
 
   it('creates profile templates through entity-scoped cassette access', async () => {
@@ -162,11 +173,10 @@ describe('profile templates service', () => {
     }]);
 
     const [profile] = await service.listAll(auth);
-    const redacted = serializeForAccess('profileTemplate', profile, auth);
 
-    expect(redacted._id.toString()).toBe(legacyId.toString());
-    expect(redacted.identity.name).toBe('Legacy user profile');
-    expect(redacted.lineage.organizationId).toBe('org-cassette');
+    expect(profile._id.toString()).toBe(legacyId.toString());
+    expect(profile.identity.name).toBe('Legacy user profile');
+    expect(profile.lineage.organizationId).toBe('org-cassette');
   });
 
   it('updates editable templates through cassette write permission', async () => {

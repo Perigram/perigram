@@ -68,6 +68,7 @@ function canAccess(profileTemplate = {}, scope = {}, auth = {}, level = 'read', 
   const ownerId = profileTemplate.lineage?.userId || null;
   const organizationId = profileTemplate.lineage?.organizationId || null;
   if (!ownerId && !organizationId) return level === 'read';
+  if (currentUserOwns(profileTemplate, scope)) return true;
   if (accessEntity) {
     return hasLineagePermission(auth, accessEntity, 'cassettes', level) && (
       sameOrganization(profileAccessEntity(profileTemplate, scope), accessEntity) ||
@@ -146,9 +147,6 @@ export async function create(payload = {}, auth = {}) {
   const scope = context.scope;
   if (!payload.name) {
     throw createError({ statusCode: 400, message: 'Name is required' });
-  }
-  if (!context.accessEntity && !hasLineagePermission(auth, { lineage: { organizationId: scope.organizationId } }, 'cassettes', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }
   const data = normalizePayload(payload);
   const origin = createStatus('ACTIVE', scope.userId || 'SYSTEM', { note: 'Profile template created' });
