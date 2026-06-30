@@ -685,7 +685,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   listeners while the queue upload workflow consumes the returned initial
   `cassette_design` so the queued card has baked polygon geometry.
 - For standard CRUD and status operations, use `useEntity` — no direct `$fetch` calls.
-- Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: declared domain operations, uploads/downloads, invitations, permissions, support chat, payments, debug endpoints, and project-scoped subresources.
+- Direct `$fetch` is reserved for custom workflows that are not represented by `useEntity`: declared domain operations, uploads/downloads, invitations, permissions, support chat, organization billing, debug endpoints, and project-scoped subresources.
 Support chat uses direct `$fetch`/SSE routes and the shared
 `SupportMessageContent` renderer. Messages may target the support channel or a
 specific user selected from status history actor rows, and inline entity

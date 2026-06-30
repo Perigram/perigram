@@ -4,6 +4,28 @@
   :END:
 
 *** Agent Notes
+    [2026-06-30] Move prepaid billing from user profile to organization account
+    Files changed: server/features/billing/*,
+      server/api/organizations/[id]/billing/*,
+      server/core/commands/service.js, packages/processes/src/index.js,
+      packages/processes/src/templates.js, pages/organization/index.vue,
+      pages/organization/process.vue, pages/profile/index.vue,
+      server/plugins/stripesync.js, server/api/project/[slug]/nest.post.js,
+      composables/useModalState.js, stores/files.js, i18n/locales/en.json,
+      i18n/locales/ru.json
+    Docs updated: server/features/billing/README.md,
+      server/features/README.md, server/api/README.md,
+      server/features/organizations/README.md,
+      server/core/commands/README.md, packages/processes/README.md,
+      pages/organization/README.md, pages/README.md,
+      components/README.md, TODO.org
+    Notes: Organization billing accounts now own prepaid token balances,
+      packages come from runtime config, Stripe sync credits organization
+      payments idempotently, and command-backed process services can declare
+      prepaid token costs that debit the active organization after successful
+      command execution. Profile no longer exposes user credits or project
+      usage.
+
     [2026-06-30] Fix inline entity popup action initialization
     Files changed: components/shared/EntityInlineRef.vue
     Docs updated: components/shared/README.md, TODO.org
@@ -2579,17 +2601,6 @@
        values and PATCH routes. Existing user-scoped profile templates without
        organization lineage are normalized to the active membership
        organization in read DTOs when they belong to the current user.
-
-     [2026-06-30] Pass cassette context to profile template saves
-     Files changed: components/CassetteDesignerV2.vue,
-       server/api/profile-templates/index.get.js,
-       server/features/profile-templates/service.js,
-       server/features/profile-templates/profile-templates.spec.js
-     Docs updated: server/features/profile-templates/README.md, TODO.org
-     Notes: Profile template save and dropdown list requests now include the
-       active cassette template id. The backend loads that cassette and checks
-       cassette read/write access against the real cassette entity, so
-       entity-id-scoped cassette grants authorize profile save and fetch.
 
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,

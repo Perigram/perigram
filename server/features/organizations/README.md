@@ -38,6 +38,10 @@ Key fields:
 ## API Behavior
 - `GET /api/organizations/:id` returns the serialized organization when found.
 - Missing organizations return 404 instead of attempting to serialize `null`.
+- Organization billing is exposed under `/api/organizations/:id/billing/*`.
+  The active organization owns its prepaid token account, invoices, payment
+  errors, and ledger entries. User profiles do not contain spendable credit
+  balances.
 
 ## Related Components
 - [users](../users/README.md) - Users belong to organizations

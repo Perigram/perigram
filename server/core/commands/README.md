@@ -14,6 +14,10 @@ Generic runtime for declared domain commands.
   organization process declares command-backed services. If a process gates
   services, commands not represented by enabled service nodes are denied; run
   roles on the service node further constrain execution by process role id.
+- Enforces prepaid token billing for compiled process service contracts with
+  `billing.mode = prepaidTokens`: checks the active organization account before
+  the handler runs and writes a service debit after successful command
+  execution.
 - Invokes only handlers registered in the app registry.
 - Persists run history in `command_runs`.
 - Returns normalized `createCommandResult()` output.

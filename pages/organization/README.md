@@ -3,9 +3,14 @@
 Organization pages manage the current tenant context.
 
 `index.vue` is the organization workspace route linked from the user menu and
-profile organization cards. It exposes team management and process design as
-first-class organization actions and is the breadcrumb parent for organization
-routes.
+profile organization cards. It exposes the organization billing account, token
+packages, invoice history, ledger entries, team management, and process design
+as first-class organization actions and is the breadcrumb parent for
+organization routes. Billing packages are loaded from
+`/api/organizations/:id/billing/packages`, account state from
+`/api/organizations/:id/billing/account`, and checkout/payment sync through the
+same organization billing route group. User profile routes do not buy or hold
+credits.
 
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the
@@ -87,7 +92,8 @@ The inspector edits compiler-owned fields directly:
   sockets from those controls. Entity and block settings are recalculated from
   incoming wires during graph sync, so process nodes that read entities or
   blocks follow the connected source contract in real time;
-- service nodes own command selection, run/view service identities, and command-derived inputs/outputs;
+- service nodes own command selection, run/view service identities, prepaid
+  token billing metadata, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are

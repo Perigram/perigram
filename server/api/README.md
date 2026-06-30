@@ -12,6 +12,10 @@ Routes are grouped into sub-directories corresponding to features:
   service so parent detail pages only list their own child templates.
 - `commands/`: Authenticated execution route for declared domain commands such
   as `saveCassetteTemplate` and `generateAttachment`.
+- `organizations/:id/billing`: Authenticated organization billing account,
+  package catalog, Stripe checkout creation, and payment sync routes. Token
+  packages come from runtime config, not from user records or database price
+  collections.
 - `entity-events/`: Authenticated entity invalidation stream. `GET` opens the
   app-wide SSE connection for the current user, and `POST` publishes successful
   frontend CRUD mutations after their canonical entity API call succeeds.
@@ -73,7 +77,8 @@ Routes are grouped into sub-directories corresponding to features:
   structured refs.
 - `workflow-overrides/`: Authenticated organization-owned lifecycle override
   read and replace endpoints for entity status machines.
-- `user/`: Profile and credit management.
+- `user/`: Current-user profile routes. Billing is organization-scoped under
+  `organizations/:id/billing`.
 - `users/`: Organization user listing, mutation, and single-user detail
   endpoints used by inline user references.
 

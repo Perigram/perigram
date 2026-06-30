@@ -36,6 +36,11 @@ permissions, screens, and navigation for each user. Services use separate
 service identities stored in `servicePrincipals` plus
 `access.runPrincipals` / `access.viewPrincipals`; those service identities are
 not selectable as manual user triggers.
+Service records may also carry billing metadata. `billing.mode:
+prepaidTokens` with a positive `tokenCost` compiles into the runtime service
+contract, and the command runtime debits the active organization's billing
+account after successful command execution. Token package prices stay outside
+process definitions in runtime billing configuration.
 At runtime those compiled permissions are the organization's active access
 source.
 When an assignment contains multiple role ids, generated and authored screens

@@ -121,6 +121,10 @@ design without going through profile/admin pages. Team management assigns users
 to active process roles; the process designer activation defines available
 services, field policies, navigation, and lifecycle machines for the current
 organization.
+The organization workspace is also the billing account surface: token packages,
+invoices, payment sync, and ledger rows belong to the active organization.
+Profile remains a personal account/preferences/membership page and must not
+show project usage or user-owned credit purchase flows.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,

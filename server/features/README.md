@@ -28,7 +28,7 @@ Support capabilities are documented and classified, but do not need empty
 | Kind | Modules |
 |---|---|
 | Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
-| Capability modules | `config-bot`, `entity-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `payment`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
+| Capability modules | `billing`, `config-bot`, `entity-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
 
 ---
 
@@ -118,6 +118,10 @@ services must not self-register through hidden globals.
   open sessions publish typed invalidation events through
   `server/features/entity-events`; do not create per-feature polling loops when
   the shared event bus can feed the browser-local `entity-events.js` contract.
+- **organization billing**: prepaid service tokens live in
+  `server/features/billing` and are owned by organizations. Command-backed
+  process services may declare prepaid token cost in the compiled service
+  contract; user documents must not be used as spendable balance accounts.
 
 ## Related
 
@@ -126,5 +130,6 @@ services must not self-register through hidden globals.
 - [server/utils/README.md](../utils/README.md) — Permissions API
 - [server/features/_template/README.md](./_template/README.md) — Golden Path template
 - [server/features/config-bot/README.md](./config-bot/README.md) — draft package generator capability
+- [server/features/billing/README.md](./billing/README.md) — organization billing account and token ledger
 - [server/features/workflow-overrides/README.md](./workflow-overrides/README.md) — organization-owned lifecycle overrides
 - [packages/domain-cnc/README.md](../../packages/domain-cnc/README.md) — CNC entity/workflow definition pack
