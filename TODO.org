@@ -4,6 +4,20 @@
   :END:
 
 *** Agent Notes
+    [2026-06-30] Mirror generated detail actions in entity reference popups
+    Files changed: components/generated/GeneratedEntityCollection.vue,
+      components/generated/GeneratedEntityDetail.vue,
+      components/generated/GeneratedHomeScreen.vue,
+      components/shared/EntityCard.vue,
+      components/shared/EntityInlineRef.vue
+    Docs updated: components/README.md, components/shared/README.md,
+      TODO.org
+    Notes: Inline and compact entity reference popovers now resolve the
+      referenced entity's generated detail-screen actions through existing
+      action visibility/delete helpers, hide generated action buttons when no
+      generated screen executor is available, and execute them through the
+      surrounding generated screen instead of shared UI code.
+
     [2026-06-27] Repair legacy queue item ids before process nesting
     Files changed: components/QueueEditor.vue, utils/queue-items.js,
       utils/queue-items.spec.js, i18n/locales/en.json, i18n/locales/ru.json

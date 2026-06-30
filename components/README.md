@@ -195,6 +195,13 @@ Generated non-status action surfaces, including detail header buttons and card
 footers, must not render `changeStatus` actions. Lifecycle/status transitions
 belong only in `EntityStatus`, which loads server-filtered actions and owns the
 status popover/history.
+Entity reference popovers inside generated surfaces mirror the action affordances
+available on the referenced entity's generated detail screen. They resolve
+compiled detail-screen action ids through the same access/status visibility
+helpers as detail headers, consume workspace-specific actions such as queue
+nesting controls, and execute generated buttons through the surrounding
+generated screen's process action handler instead of calling process endpoints
+locally.
 Entity-detail templates render child collection regions inside the `EntityPage`
 body so parent-child graph flows, such as project-to-queue creation, stay in the
 opened parent context.

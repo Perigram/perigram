@@ -277,7 +277,11 @@ Compact embedded entity reference for relation rows inside cards and details.
 It loads the DTO through `useEntity(type)` when only an id is provided, resolves
 the matching design-system entity card, and renders that card with
 `variant="inline"`. The referenced entity card owns the click/keyboard popover
-and reuses its canonical body inside that popover. Use this for entity relation
+and reuses its canonical body inside that popover. In generated surfaces,
+the popover action row is access-aware: `EntityInlineRef` resolves the
+referenced entity's generated detail-screen actions, forwards them to
+`EntityCard`, and invokes the surrounding generated screen's action executor
+instead of running process actions from shared UI code. Use this for entity relation
 context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
