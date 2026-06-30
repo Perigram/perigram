@@ -1,8 +1,14 @@
 <template>
-    <div class="fixed inset-0 z-[1000] flex items-stretch justify-stretch p-0 pointer-events-none md:inset-auto md:bottom-0 md:right-0 md:items-end md:justify-end md:p-6">
+    <div
+        :class="embedded
+            ? 'flex h-full min-h-0 w-full items-stretch justify-stretch p-0'
+            : 'fixed inset-0 z-[1000] flex items-stretch justify-stretch p-0 pointer-events-none md:inset-auto md:bottom-0 md:right-0 md:items-end md:justify-end md:p-6'"
+    >
         <div
-            v-if="supportDialog"
-            class="flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content shadow-lg pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border"
+            v-if="supportDialog || embedded"
+            :class="embedded
+                ? 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
+                : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content shadow-lg pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
         >
             <div class="flex items-center justify-between p-4 border-b border-content-border bg-content">
                 <div class="flex min-w-0 items-center gap-2">
@@ -33,6 +39,7 @@
                         @click="toggleNewChat"
                     />
                     <Button
+                        v-if="!embedded"
                         icon="pi pi-times"
                         severity="secondary"
                         text
@@ -257,6 +264,13 @@ import SupportMessageContent from '~/components/shared/SupportMessageContent.vue
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
+
+const props = defineProps({
+    embedded: {
+        type: Boolean,
+        default: false
+    }
+})
 
 const { t } = useI18n()
 const supportDialog = useSupportDialog()
@@ -614,8 +628,8 @@ const showInbox = () => {
 }
 
 const closeChat = () => {
-    supportDialog.value = false
     showInbox()
+    if (!props.embedded) supportDialog.value = false
 }
 
 const openDirectTarget = async () => {

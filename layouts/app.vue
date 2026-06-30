@@ -46,16 +46,8 @@
                     </div>
                 </div>
 
-                <!-- Right: Theme & User -->
+                <!-- Right: Chat & User -->
                 <div class="flex items-center gap-2 shrink-0">
-                    <Button
-                        :icon="themeIcon"
-                        @click="toggleTheme"
-                        text
-                        rounded
-                        size="small"
-                        :aria-label="$t('common.toggleTheme')"
-                    />
                     <div v-if="authStore.userIsSet" class="relative flex items-center">
                         <Button
                             icon="pi pi-comments"
@@ -88,7 +80,6 @@
                                 class="bg-primary text-primary-contrast"
                             />
                         </Button>
-                        <Menu ref="userMenu" :model="userMenuItems" :popup="true" />
                     </div>
                 </div>
             </nav>
@@ -100,10 +91,13 @@
                 isBoundedWorkspaceRoute ? 'overflow-hidden px-3 pt-3 pb-24 md:p-4' : 'px-4 pt-4 pb-24 md:p-6 lg:p-8'
             ]"
         >
-            <slot />
+            <ChatSupport v-if="mobileActiveTab === 'chats'" embedded />
+            <slot v-else />
         </main>
 
-        <ChatSupport v-if="supportDialog" />
+        <ChatSupport v-if="supportDialog && mobileActiveTab !== 'chats'" />
+        <Menu ref="userMenu" :model="userMenuItems" :popup="true" />
+        <Menu ref="mobileScreenMenu" :model="mobileScreenMenuItems" :popup="true" />
         <nav
             v-if="authStore.userIsSet"
             class="fixed inset-x-0 bottom-0 z-[998] border-t border-content-border bg-[var(--ck-chrome-background)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 [box-shadow:var(--ck-shadow-overlay)] md:hidden"
@@ -131,10 +125,10 @@
                 <Button
                     icon="pi pi-plus"
                     rounded
-                    :disabled="!currentGeneratedScreen"
-                    :severity="currentGeneratedScreen ? 'primary' : 'secondary'"
+                    :disabled="!mobileScreenMenuItems.length"
+                    :severity="mobileScreenMenuItems.length ? 'primary' : 'secondary'"
                     :aria-label="$t('common.add')"
-                    @click="addMobileScreenShortcut"
+                    @click="openMobileScreenMenu"
                 />
                 <div class="relative flex items-center">
                     <Button
@@ -157,9 +151,9 @@
                     icon="pi pi-user"
                     text
                     rounded
-                    :severity="isRouteActive('/profile') ? 'primary' : 'secondary'"
+                    severity="secondary"
                     :aria-label="$t('nav.profile')"
-                    @click="navigateMobile('/profile')"
+                    @click="toggleUserMenu"
                 />
             </div>
         </nav>
@@ -204,6 +198,7 @@
     const globalStore = useGlobalStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
     const mobileShortcuts = ref([])
+    const mobileActiveTab = ref('content')
     const MOBILE_SHORTCUT_LIMIT = 2
 
     // Sync protected project context with SSR cookies when route changes.
@@ -238,6 +233,12 @@
         }
     }, { immediate: true })
 
+    watch(supportDialog, (isOpen) => {
+        if (isOpen && isMobileViewport()) {
+            mobileActiveTab.value = 'chats'
+        }
+    })
+
     // --- Breadcrumb Navigation ---
     const breadcrumbs = computed(() => {
         return navStore.resolveBreadcrumbs(route.path, route.query)
@@ -269,16 +270,20 @@
         }
         return '/'
     })
-    const currentGeneratedScreen = computed(() => {
-        if (!route.path.startsWith('/screens/')) return null
-        const key = String(route.params.screenKey || route.path.split('/').filter(Boolean)[1] || '')
-        if (!key) return null
-        return authStore.screenManifest.find(screen => (
-            screen.screenKey === key
-            || screen.id === key
-            || screen.route === route.path
-        )) || null
-    })
+    const availableMobileGeneratedScreens = computed(() => authStore.screenManifest
+        .filter(screen => screen.route && screen.template !== 'home')
+        .filter(screen => screen.template !== 'entityDetail')
+        .map(screen => ({
+            screenKey: screen.screenKey || screen.id || screen.route,
+            to: screen.route,
+            label: screenName(screen),
+            icon: screenIcon(screen)
+        })))
+    const mobileScreenMenuItems = computed(() => availableMobileGeneratedScreens.value.map(screen => ({
+        label: screen.label,
+        icon: screen.icon,
+        command: () => addMobileScreenShortcut(screen)
+    })))
     const mobileShortcutLinks = computed(() => mobileShortcuts.value
         .map(shortcut => {
             const screen = authStore.screenManifest.find(item => (
@@ -297,8 +302,10 @@
 
     const closeMobileTransientSurfaces = () => {
         supportDialog.value = false
+        mobileActiveTab.value = 'content'
         breadcrumbMenu.value?.hide?.()
         userMenu.value?.hide?.()
+        mobileScreenMenu.value?.hide?.()
     }
 
     const requestCloseTransientSurfaces = () => {
@@ -307,13 +314,18 @@
 
     const openSupportDialog = () => {
         requestCloseTransientSurfaces()
+        if (isMobileViewport()) mobileActiveTab.value = 'chats'
         supportDialog.value = true
     }
 
     const navigateMobile = (to) => {
+        mobileActiveTab.value = 'content'
         requestCloseTransientSurfaces()
         router.push(to)
     }
+
+    const isMobileViewport = () => process.client
+        && window.matchMedia?.('(max-width: 767px)')?.matches
 
     const isRouteActive = (to) => {
         const target = String(to || '')
@@ -338,18 +350,20 @@
         window.localStorage.setItem(mobileShortcutStorageKey.value, JSON.stringify(mobileShortcuts.value.slice(-MOBILE_SHORTCUT_LIMIT)))
     }
 
-    const addMobileScreenShortcut = () => {
-        const screen = currentGeneratedScreen.value
+    const openMobileScreenMenu = (event) => {
+        mobileScreenMenu.value?.toggle(event)
+    }
+
+    const addMobileScreenShortcut = (screen) => {
         if (!screen) return
-        const screenKey = screen.screenKey || screen.id || route.params.screenKey
         const next = {
-            screenKey,
-            to: route.fullPath,
-            label: screenName(screen),
-            icon: screenIcon(screen)
+            screenKey: screen.screenKey,
+            to: screen.to,
+            label: screen.label,
+            icon: screen.icon
         }
         mobileShortcuts.value = [
-            ...mobileShortcuts.value.filter(item => !(item.screenKey === screenKey && item.to === next.to)),
+            ...mobileShortcuts.value.filter(item => !(item.screenKey === next.screenKey && item.to === next.to)),
             next
         ].slice(-MOBILE_SHORTCUT_LIMIT)
         saveMobileShortcuts()
@@ -391,6 +405,7 @@
 
     // --- User Menu ---
     const userMenu = ref();
+    const mobileScreenMenu = ref();
     const toggleUserMenu = (event) => {
         userMenu.value.toggle(event);
     };
@@ -449,9 +464,14 @@
             label: authStore.userData.name || t('common.user'),
             items: [
                 {
+                    label: t('common.toggleTheme'),
+                    icon: themeIcon.value,
+                    command: toggleTheme
+                },
+                {
                     label: t('nav.profile'),
                     icon: 'pi pi-user',
-                    command: () => router.push('/profile')
+                    command: () => navigateMobile('/profile')
                 },
                 {
                     label: t('nav.logout'),
