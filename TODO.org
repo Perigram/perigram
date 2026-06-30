@@ -2560,7 +2560,9 @@
        resolves organization scope from active auth or memberships so the API
        redaction layer keeps `_id`, identity, and sketch fields visible to the
        cassette designer, and service DTOs preserve the storage id for selector
-       values and PATCH routes.
+       values and PATCH routes. Existing user-scoped profile templates without
+       organization lineage are normalized to the active membership
+       organization in read DTOs when they belong to the current user.
 
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,

@@ -39,7 +39,10 @@ creates an owned copy because system templates are read-only.
 Profile-template API access derives from the `cassettes` feature grants on the
 template lineage. Service DTOs preserve the storage `_id` rather than the
 identity UID so selectors can use the returned id for subsequent patch/load
-requests.
+requests. Older user-scoped templates without organization lineage are
+normalized to the active membership organization in read DTOs when they belong
+to the current user, which keeps previously saved profiles visible to the
+cassette designer without making system templates editable.
 
 ## Migrations
 
