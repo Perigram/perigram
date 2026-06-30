@@ -5,7 +5,7 @@
             isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'
         ]"
     >
-    <header class="sticky top-0 z-50 shrink-0 border-b border-content-border bg-[var(--ck-chrome-background)] backdrop-blur-md">
+    <header class="sticky top-0 z-50 hidden shrink-0 border-b border-content-border bg-[var(--ck-chrome-background)] backdrop-blur-md md:block">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
@@ -97,13 +97,72 @@
         <main
             :class="[
                 'flex min-h-0 w-full max-w-[var(--ck-page-max-width)] flex-1 flex-col mx-auto',
-                isBoundedWorkspaceRoute ? 'overflow-hidden p-3 md:p-4' : 'p-4 md:p-6 lg:p-8'
+                isBoundedWorkspaceRoute ? 'overflow-hidden px-3 pt-3 pb-24 md:p-4' : 'px-4 pt-4 pb-24 md:p-6 lg:p-8'
             ]"
         >
             <slot />
         </main>
 
         <ChatSupport v-if="supportDialog" />
+        <nav
+            v-if="authStore.userIsSet"
+            class="fixed inset-x-0 bottom-0 z-[998] border-t border-content-border bg-[var(--ck-chrome-background)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 [box-shadow:var(--ck-shadow-overlay)] md:hidden"
+            :aria-label="$t('nav.home')"
+        >
+            <div class="mx-auto flex max-w-md items-center justify-around gap-1">
+                <Button
+                    icon="pi pi-home"
+                    text
+                    rounded
+                    :severity="isRouteActive(homeRoute) ? 'primary' : 'secondary'"
+                    :aria-label="$t('nav.home')"
+                    @click="navigateMobile(homeRoute)"
+                />
+                <Button
+                    v-for="shortcut in mobileShortcutLinks"
+                    :key="shortcut.key"
+                    :icon="shortcut.icon"
+                    text
+                    rounded
+                    :severity="isRouteActive(shortcut.to) ? 'primary' : 'secondary'"
+                    :aria-label="shortcut.label"
+                    @click="navigateMobile(shortcut.to)"
+                />
+                <Button
+                    icon="pi pi-plus"
+                    rounded
+                    :disabled="!currentGeneratedScreen"
+                    :severity="currentGeneratedScreen ? 'primary' : 'secondary'"
+                    :aria-label="$t('common.add')"
+                    @click="addMobileScreenShortcut"
+                />
+                <div class="relative flex items-center">
+                    <Button
+                        icon="pi pi-comments"
+                        text
+                        rounded
+                        :severity="supportDialog ? 'primary' : 'secondary'"
+                        :aria-label="$t('support.openChat')"
+                        @click="openSupportDialog"
+                    />
+                    <Badge
+                        v-if="supportChatStore.totalUnread"
+                        :value="supportChatStore.totalUnread"
+                        severity="danger"
+                        size="small"
+                        class="absolute -right-1 -top-1"
+                    />
+                </div>
+                <Button
+                    icon="pi pi-user"
+                    text
+                    rounded
+                    :severity="isRouteActive('/profile') ? 'primary' : 'secondary'"
+                    :aria-label="$t('nav.profile')"
+                    @click="navigateMobile('/profile')"
+                />
+            </div>
+        </nav>
         <Button
             icon="pi pi-comment"
             severity="secondary"
@@ -111,7 +170,7 @@
             :aria-label="$t('support.openChat')"
             @click="openSupportDialog"
             v-if="!supportDialog"
-            class="fixed bottom-8 right-8 z-[999] [box-shadow:var(--ck-shadow-overlay)]"
+            class="fixed bottom-8 right-8 z-[999] hidden [box-shadow:var(--ck-shadow-overlay)] md:inline-flex"
         />
     </div>
 </template>
@@ -131,14 +190,12 @@
     import { useEntityEventsStore } from '~/stores/entityEvents'
     import { useNavigationStore } from '~/stores/navigation'
     import { useGlobalStore } from '~/stores/global'
-    import {
-        MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT,
-        requestCloseTransientSurfaces
-    } from '~/utils/mobile-transient-surfaces.js'
+    import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
+    import { generatedScreenLabel } from '~/utils/generated-labels.js'
 
     const router = useRouter()
     const route = useRoute()
-    const { t } = useI18n()
+    const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
     const supportChatStore = useSupportChatStore()
@@ -146,6 +203,8 @@
     const navStore = useNavigationStore()
     const globalStore = useGlobalStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
+    const mobileShortcuts = ref([])
+    const MOBILE_SHORTCUT_LIMIT = 2
 
     // Sync protected project context with SSR cookies when route changes.
     watch([() => route.params.slug, () => authStore.userIsSet], async ([newSlug, isSet]) => {
@@ -161,6 +220,7 @@
         if (authStore.userIsSet && globalStore.projectsList.length === 0) {
             await globalStore.getProjects()
         }
+        loadMobileShortcuts()
         window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeMobileTransientSurfaces)
     })
 
@@ -194,6 +254,46 @@
     }
 
     const isBoundedWorkspaceRoute = computed(() => /^\/project\/[^/]+\/queues\/?$/.test(route.path))
+    const screenName = (screen) => generatedScreenLabel(screen, { t, te })
+    const mobileShortcutStorageKey = computed(() => [
+        'cutkit.mobileScreenShortcuts.v1',
+        authStore.userData?.id || authStore.userData?.userId || 'anonymous',
+        authStore.userData?.organizationId || authStore.organizationData?._id || 'organization'
+    ].join(':'))
+    const homeRoute = computed(() => {
+        if (authStore.processActive) {
+            const home = authStore.screenManifest.find(screen => screen.template === 'home' && screen.route)
+            if (home?.route) return home.route
+            const hub = authStore.screenManifest.find(screen => screen.route && screen.template !== 'entityDetail' && (screen.placement || 'hub') === 'hub')
+            if (hub?.route) return hub.route
+        }
+        return '/'
+    })
+    const currentGeneratedScreen = computed(() => {
+        if (!route.path.startsWith('/screens/')) return null
+        const key = String(route.params.screenKey || route.path.split('/').filter(Boolean)[1] || '')
+        if (!key) return null
+        return authStore.screenManifest.find(screen => (
+            screen.screenKey === key
+            || screen.id === key
+            || screen.route === route.path
+        )) || null
+    })
+    const mobileShortcutLinks = computed(() => mobileShortcuts.value
+        .map(shortcut => {
+            const screen = authStore.screenManifest.find(item => (
+                item.screenKey === shortcut.screenKey
+                || item.id === shortcut.screenKey
+                || item.route === shortcut.to
+            ))
+            return {
+                ...shortcut,
+                key: `${shortcut.screenKey}:${shortcut.to}`,
+                label: screen ? screenName(screen) : shortcut.label,
+                icon: screenIcon(screen || shortcut)
+            }
+        })
+        .filter(shortcut => Boolean(shortcut.to)))
 
     const closeMobileTransientSurfaces = () => {
         supportDialog.value = false
@@ -201,10 +301,93 @@
         userMenu.value?.hide?.()
     }
 
+    const requestCloseTransientSurfaces = () => {
+        window.dispatchEvent(new CustomEvent(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT))
+    }
+
     const openSupportDialog = () => {
         requestCloseTransientSurfaces()
         supportDialog.value = true
     }
+
+    const navigateMobile = (to) => {
+        requestCloseTransientSurfaces()
+        router.push(to)
+    }
+
+    const isRouteActive = (to) => {
+        const target = String(to || '')
+        const [path, query] = target.split('?')
+        return query ? route.fullPath === target : route.path === path
+    }
+
+    const loadMobileShortcuts = () => {
+        if (!process.client) return
+        try {
+            const parsed = JSON.parse(window.localStorage.getItem(mobileShortcutStorageKey.value) || '[]')
+            mobileShortcuts.value = Array.isArray(parsed)
+                ? parsed.slice(-MOBILE_SHORTCUT_LIMIT).filter(item => item?.to && item?.screenKey)
+                : []
+        } catch {
+            mobileShortcuts.value = []
+        }
+    }
+
+    const saveMobileShortcuts = () => {
+        if (!process.client) return
+        window.localStorage.setItem(mobileShortcutStorageKey.value, JSON.stringify(mobileShortcuts.value.slice(-MOBILE_SHORTCUT_LIMIT)))
+    }
+
+    const addMobileScreenShortcut = () => {
+        const screen = currentGeneratedScreen.value
+        if (!screen) return
+        const screenKey = screen.screenKey || screen.id || route.params.screenKey
+        const next = {
+            screenKey,
+            to: route.fullPath,
+            label: screenName(screen),
+            icon: screenIcon(screen)
+        }
+        mobileShortcuts.value = [
+            ...mobileShortcuts.value.filter(item => !(item.screenKey === screenKey && item.to === next.to)),
+            next
+        ].slice(-MOBILE_SHORTCUT_LIMIT)
+        saveMobileShortcuts()
+    }
+
+    const screenIcon = (screen = {}) => {
+        if (screen.icon) return screen.icon
+        if (screen.template === 'home') return 'pi pi-home'
+        const entityIcons = {
+            project: 'pi pi-folder',
+            queue: 'pi pi-list',
+            nestingRun: 'pi pi-list-check',
+            nesting_run: 'pi pi-list-check',
+            sheetDesign: 'pi pi-map',
+            sheet_design: 'pi pi-map',
+            cassette: 'pi pi-box',
+            cassetteDesign: 'pi pi-pencil',
+            cassette_design: 'pi pi-pencil',
+            cassetteTemplate: 'pi pi-palette',
+            cassette_template: 'pi pi-palette',
+            cassetteInstance: 'pi pi-box',
+            cassette_instance: 'pi pi-box',
+            library: 'pi pi-book',
+            artifact: 'pi pi-file',
+            geometryCapture: 'pi pi-camera',
+            geometry_capture: 'pi pi-camera',
+            warehouse: 'pi pi-building',
+            material: 'pi pi-database',
+            materialPile: 'pi pi-box',
+            material_pile: 'pi pi-box',
+            requisition: 'pi pi-shopping-cart',
+            user: 'pi pi-user',
+            organization: 'pi pi-building'
+        }
+        return entityIcons[screen.entityType] || 'pi pi-th-large'
+    }
+
+    watch(mobileShortcutStorageKey, loadMobileShortcuts)
 
     // --- User Menu ---
     const userMenu = ref();
