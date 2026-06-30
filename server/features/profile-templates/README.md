@@ -43,6 +43,10 @@ requests. Older user-scoped templates without organization lineage are
 normalized to the active membership organization in read DTOs when they belong
 to the current user, which keeps previously saved profiles visible to the
 cassette designer without making system templates editable.
+Designer list/save requests include the active `cassetteTemplateId` when one is
+available. The service loads that cassette and authorizes against the real
+cassette entity so entity-id-scoped cassette grants work for profile template
+save and dropdown fetches.
 
 ## Migrations
 

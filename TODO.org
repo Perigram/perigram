@@ -2580,6 +2580,17 @@
        organization lineage are normalized to the active membership
        organization in read DTOs when they belong to the current user.
 
+     [2026-06-30] Pass cassette context to profile template saves
+     Files changed: components/CassetteDesignerV2.vue,
+       server/api/profile-templates/index.get.js,
+       server/features/profile-templates/service.js,
+       server/features/profile-templates/profile-templates.spec.js
+     Docs updated: server/features/profile-templates/README.md, TODO.org
+     Notes: Profile template save and dropdown list requests now include the
+       active cassette template id. The backend loads that cassette and checks
+       cassette read/write access against the real cassette entity, so
+       entity-id-scoped cassette grants authorize profile save and fetch.
+
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
        packages/processes/src/index.js,
