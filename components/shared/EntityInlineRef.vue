@@ -97,6 +97,7 @@ const cardProps = computed(() => ({
   [contract.value?.propName || 'entity']: resolved.value,
   variant: 'inline'
 }));
+const generatedEntityType = computed(() => contract.value?.entityType || generatedEntityTypeFor(props.type));
 const detailRoute = computed(() => {
   if (!props.allowDetailRoute || !authStore.processActive || !resolvedId.value) return null;
   return detailRouteForEntity({
@@ -189,8 +190,6 @@ function contextTypeCandidates(type) {
   };
   return Array.from(new Set([type, aliases[type]].filter(Boolean)));
 }
-
-const generatedEntityType = computed(() => contract.value?.entityType || generatedEntityTypeFor(props.type));
 
 function generatedEntityTypeFor(type) {
   const aliases = {
