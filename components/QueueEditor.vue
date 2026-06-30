@@ -276,7 +276,6 @@
                             :key="activeRun._id"
                             :run="activeRun"
                             :sheet-designs="sheetDesigns"
-                            :show-sheet-design-previews="true"
                             :active="true"
                             :is-chosen="getPrimaryState(activeRun.status) === 'CHOSEN'"
                             @select="selectedRunId = $event.toString()"

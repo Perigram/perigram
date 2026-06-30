@@ -3,16 +3,12 @@
  * Nesting Run View Component - v24 Standardized
  */
 import { computed, inject, unref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
-import GeometryPreview from '~/components/shared/GeometryPreview.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import SheetDesignCard from '../SheetDesign/SheetDesignCard.vue';
+import EntityRelationsBlock from '~/components/shared/EntityRelationsBlock.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
@@ -25,16 +21,12 @@ const props = defineProps({
   variant: { type: String, default: 'card' },
   active: { type: Boolean, default: false },
   isChosen: { type: Boolean, default: false },
-  sheetDesigns: { type: Array, default: () => [] },
-  showSheetDesignPreviews: { type: Boolean, default: false }
+  sheetDesigns: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['select', 'choose', 'delete', 'convert-to-physical', 'refresh']);
 
 const authStore = useAuthStore();
-const { t } = useI18n();
-const route = useRoute();
-const router = useRouter();
 const entityContext = inject('entityContext', null);
 
 const canDeleteRun = computed(() => hasPermissionGrant({
@@ -56,15 +48,31 @@ const materialSources = computed(() => (props.run.data?.materialPool || [])
         count: Number(source.available || source.availableCount || source.quantity || source.count || 1)
     }))
     .filter(source => source.entityType && source.id));
-const projectSlug = computed(() => route.params.slug || props.run.lineage?.projectSlug || null);
 const runSheetDesignIds = computed(() => (props.run.data?.sheetDesignIds || []).map(String));
 const relatedSheetDesigns = computed(() => uniqueById([
     ...props.sheetDesigns.filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value)),
     ...contextEntities('sheet_design').filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value))
 ]));
-const hasCompletedOutput = computed(() => isComplete.value || hasResultData.value || relatedSheetDesigns.value.length > 0);
-const RUN_FIELDS = resolveEntityDisplayFields({ entityType: 'nestingRun', surface: 'card' })
-    .filter(field => field.display !== 'entityRefList');
+const hasCompletedOutput = computed(() =>
+    isComplete.value || hasResultData.value || sheetDesignRelationItems.value.length > 0
+);
+const NESTING_RUN_CARD_FIELDS = resolveEntityDisplayFields({ entityType: 'nestingRun', surface: 'card' });
+const RUN_FIELDS = NESTING_RUN_CARD_FIELDS.filter(field => field.display !== 'entityRefList');
+const sheetDesignRelationFields = computed(() => NESTING_RUN_CARD_FIELDS
+    .filter(field => field.display === 'entityRefList')
+    .map(field => ({ ...field, items: sheetDesignRelationItems.value })));
+const sheetDesignRelationItems = computed(() => {
+    const loadedItems = relatedSheetDesigns.value.map(design => ({
+            entityType: 'sheetDesign',
+            id: design._id,
+            entity: design
+    }));
+    const idItems = runSheetDesignIds.value.map(id => ({ entityType: 'sheetDesign', id }));
+    return Array.from(new Map([...idItems, ...loadedItems]
+        .filter(item => item.id)
+        .map(item => [item.id.toString(), item])
+    ).values());
+});
 
 function contextEntities(type) {
     const context = unref(entityContext);
@@ -94,10 +102,6 @@ function selectRun(event) {
     emit('select', props.run._id);
 }
 
-function openSheetDesign(design) {
-    if (!projectSlug.value || !design?._id) return;
-    router.push(`/project/${projectSlug.value}/sheet-design/${design._id}`);
-}
 </script>
 
 <template>
@@ -120,9 +124,13 @@ function openSheetDesign(design) {
         </div>
       </template>
       <template #compact-content>
-        <small v-if="relatedSheetDesigns.length" class="mt-3 block text-muted-color">
-          {{ relatedSheetDesigns.length }} {{ $t('nestingRun.sheetDesigns') }}
-        </small>
+        <EntityRelationsBlock
+          v-if="sheetDesignRelationItems.length"
+          class="mt-3"
+          :entity="run"
+          :fields="sheetDesignRelationFields"
+          item-variant="compact"
+        />
       </template>
       <Divider />
       <div class="flex flex-col gap-4">
@@ -142,49 +150,12 @@ function openSheetDesign(design) {
             </div>
           </div>
         </div>
-        <div v-if="hasCompletedOutput && relatedSheetDesigns.length" class="flex flex-col gap-2">
-          <small class="text-muted-color">{{ $t('nestingRun.sheetDesigns') }}</small>
-          <div
-            v-if="showSheetDesignPreviews"
-            class="grid grid-cols-1 gap-2"
-          >
-            <div
-              v-for="design in relatedSheetDesigns"
-              :key="design._id"
-              class="min-w-0 rounded-ui border border-content-border bg-content p-2 text-left"
-            >
-              <GeometryPreview :entity="design" />
-              <div class="mt-2 flex min-w-0 items-center justify-between gap-2">
-                <IdentityBlock :entity="design" variant="compact" />
-                <div class="flex shrink-0 items-center gap-1">
-                  <Tag
-                    v-if="design.summary?.placedCount"
-                    :value="design.summary.placedCount"
-                    severity="secondary"
-                    size="small"
-                  />
-                  <Button
-                    v-if="projectSlug"
-                    icon="pi pi-external-link"
-                    text
-                    rounded
-                    severity="secondary"
-                    size="small"
-                    :aria-label="$t('common.open')"
-                    @click.stop="openSheetDesign(design)"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="flex flex-wrap gap-2">
-            <SheetDesignCard
-              v-for="design in relatedSheetDesigns"
-              :key="design._id"
-              :design="design"
-              variant="inline"
-            />
-          </div>
+        <div v-if="hasCompletedOutput && sheetDesignRelationItems.length">
+          <EntityRelationsBlock
+            :entity="run"
+            :fields="sheetDesignRelationFields"
+            item-variant="compact"
+          />
         </div>
         <div v-else-if="state === 'NESTING'" class="flex justify-center p-2">
           <i class="pi pi-spin pi-spinner"></i>

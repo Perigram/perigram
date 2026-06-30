@@ -462,7 +462,11 @@ describe('Design system manifest', () => {
     const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
     const nestingRunService = fs.readFileSync(path.join(REPO_ROOT, 'server/features/nesting-runs/service.js'), 'utf8');
 
-    expect(nestingRunCard).toContain('SheetDesignCard');
+    expect(nestingRunCard).toContain('EntityRelationsBlock');
+    expect(nestingRunCard).toContain("entityType: 'sheetDesign'");
+    expect(nestingRunCard).toContain('item-variant="compact"');
+    expect(nestingRunCard).not.toContain('SheetDesignCard');
+    expect(nestingRunCard).not.toContain('GeometryPreview');
     expect(nestingRunCard).not.toContain('ArtifactCard');
     expect(nestingRunCard).not.toContain('relatedArtifacts');
     expect(nestingRunCard).toContain("feature: 'nesting_runs'");
