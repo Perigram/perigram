@@ -4,6 +4,16 @@
   :END:
 
 *** Agent Notes
+    [2026-07-01] Hydrate nesting-run inline popups for sheet-design outputs
+    Files changed: components/shared/EntityInlineRef.vue,
+      composables/useEntity.js, shared/design-system.spec.js
+    Docs updated: components/shared/README.md, composables/README.md, TODO.org
+    Notes: Compact inline nesting-run popups no longer depend on partial
+      queue-card preview DTOs for output galleries. They silently hydrate the
+      full run when output refs are missing and load access-filtered
+      sheetDesign rows by `runId`, so sheet-design compact previews render
+      from canonical child lineage access when the user can read them.
+
     [2026-07-01] Show nesting-run sheet designs in popups and clarify queue item label
     Files changed: components/entities/NestingRun/NestingRunCard.vue,
       i18n/locales/en.json, i18n/locales/ru.json,

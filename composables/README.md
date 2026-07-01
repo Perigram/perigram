@@ -43,7 +43,7 @@ const result = useEntity(type, identifier?)
 | `update(data)` | `async (data) => entity` | PATCH entity |
 | `remove(id?)` | `async () => void` | DELETE entity |
 | `changeStatus(state, metaOrContext?)` | `async () => result` | State machine transition |
-| `list(filters?)` | `async (filters?) => items[]` | Fetch collection (see below) |
+| `list(filters?, options?)` | `async (filters?, options?) => items[]` | Fetch collection; pass `{ silent: true }` for optional fallback lookups |
 | `items` | `Ref<array>` | Results from last `list()` call |
 
 Entity JSON is strict block DTO data: root `_id` plus canonical blocks only.
@@ -79,6 +79,12 @@ onMounted(() => list({ 'lineage.projectId': projectId }));
 // items is a ref<array> updated after each list() call
 // call list() again with new filters to refresh
 ```
+
+Use `list(filters, { silent: true })` only for optional enrichment where a
+protected collection may legitimately be unavailable, such as an inline
+nesting-run popup attempting to load readable sheet-design children by
+`runId`. Ordinary collection screens should keep the default logging behavior
+so access and endpoint errors remain visible during development.
 
 ### Endpoint map
 

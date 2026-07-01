@@ -340,6 +340,11 @@ the collapsed chip or compact micro card itself. Their expanded body uses the
 card surface contract with compact data display, suppressed child counts, and
 compact relation galleries, so nested outputs such as nesting-run sheet designs
 or library cassette previews render the same way as in generated cards.
+Nesting-run inline refs may receive partial preview DTOs from queue cards; the
+popover hydrates the full run through `useEntity('nestingRun')` when output refs
+are missing, then loads access-filtered `sheetDesign` rows with `runId` so the
+sheet-design compact gallery is based on the canonical child lineage endpoint
+rather than queue-card-local child state.
 On mobile, detail-route buttons and lineage links inside inline-ref popovers
 dispatch the shared mobile transient-surface close event before navigation.
 `EntityCard`/`EntityInlineRef` hide their popovers and the app shell closes the
