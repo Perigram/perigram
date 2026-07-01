@@ -3,6 +3,7 @@ import {
   collectionToEntityType,
   createDomainUiAdapter,
   createEndpointMap,
+  getListEndpoint,
   getSingleEndpoint
 } from './index.js';
 
@@ -21,6 +22,22 @@ describe('@cutkit/vue endpoint map', () => {
 
     expect(getSingleEndpoint(endpointMap, 'cassetteInstance', 'ci-1')).toBe('/api/cassette-instances/ci-1');
     expect(getSingleEndpoint(endpointMap, 'cassette_instance', 'ci-1')).toBe('/api/cassette-instances/ci-1');
+  });
+
+  it('registers list aliases for hyphenated master-data collections', () => {
+    const endpointMap = createEndpointMap([
+      {
+        type: 'layerStandard',
+        collection: 'layer-standards',
+        routes: {
+          single: '/api/layer-standards/:id',
+          list: '/api/layer-standards'
+        }
+      }
+    ]);
+
+    expect(getListEndpoint(endpointMap, 'layerStandard')).toBe('/api/layer-standards');
+    expect(getListEndpoint(endpointMap, 'layer_standard')).toBe('/api/layer-standards');
   });
 
   it('keeps cassette design endpoints separate from cassette templates', () => {

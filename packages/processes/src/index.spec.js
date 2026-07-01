@@ -594,15 +594,10 @@ describe('@cutkit/processes compiler', () => {
       actions: ['action_accept']
     });
     expect(compiled.userAccess.user_a.navigation[0]).toMatchObject({
-      route: '/screens/home_user_a',
-      screenKey: 'home_user_a'
+      route: '/screens/auto_queue',
+      screenKey: 'auto_queue'
     });
-    expect(compiled.userAccess.user_a.screens[0]).toMatchObject({
-      screenKey: 'home_user_a',
-      template: 'home',
-      sources: [expect.objectContaining({ entityType: 'queue', mode: 'list' })],
-      regions: [expect.objectContaining({ sourceId: 'home_queue', actions: ['action_accept'] })]
-    });
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.template === 'home')).toBeFalsy();
   });
 
   it('includes generated screens for every assigned role grant', () => {
@@ -634,17 +629,59 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(resolveScreens({ compiled, userId: 'user_a' }).map(screen => screen.screenKey).sort()).toEqual([
-      'home_user_a',
       'auto_project_detail',
       'auto_project',
       'auto_queue_detail',
       'auto_queue'
     ].sort());
-    const home = compiled.userAccess.user_a.screens.find(screen => screen.template === 'home');
-    expect(home.sources.map(source => source.entityType)).toEqual(['project']);
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.template === 'home')).toBeFalsy();
     expect(compiled.userAccess.user_a.permissions).toMatchObject({
       projects: [{ level: 'read' }],
       queues: [{ level: 'read' }]
+    });
+  });
+
+  it('synthesizes home sections from authored list screens', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_queue: { id: 'role_queue', label: 'Queue role' }
+      },
+      entityProfiles: {
+        queue_profile: {
+          id: 'queue_profile',
+          entityType: 'queue',
+          allowedRoles: { read: ['role_queue'] }
+        }
+      },
+      screens: {
+        queue_home: {
+          id: 'queue_home',
+          label: 'Queues',
+          template: 'entityList',
+          placement: 'hub',
+          route: '/queue-home',
+          entityType: 'queue',
+          roleIds: ['role_queue']
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_queue'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, domain);
+
+    const home = compiled.userAccess.user_a.screens.find(screen => screen.template === 'home');
+    expect(home).toMatchObject({
+      screenKey: 'home_user_a',
+      sources: [expect.objectContaining({ entityType: 'queue', mode: 'list' })]
+    });
+    expect(home.regions[0]).toMatchObject({
+      sourceId: 'home_queue',
+      screenKey: 'queue_home:/queue-home'
     });
   });
 

@@ -30,6 +30,7 @@ export const cncFrontendEntities = [
   { type: 'geometryCapture', collection: 'geometry-captures', routes: { single: '/api/geometry-captures/:id', list: '/api/geometry-captures' } },
   { type: 'profileTemplate', collection: 'profile-templates', routes: { single: '/api/profile-templates/:id', list: '/api/profile-templates' } },
   { type: 'warehouse', collection: 'warehouses', routes: { single: '/api/warehouses/:id', list: '/api/warehouses' } },
+  { type: 'layerStandard', collection: 'layer-standards', routes: { single: '/api/layer-standards/:id', list: '/api/layer-standards' } },
   { type: 'user', collection: 'users', routes: { single: '/api/users/:id', list: '/api/users' } },
   { type: 'organization', collection: 'organizations', routes: { single: '/api/organizations/:id', list: '/api/organizations' } },
   { type: 'nestingRun', collection: 'nesting-runs', routes: { single: '/api/nesting-runs/:id', list: '/api/nesting-runs' } }
