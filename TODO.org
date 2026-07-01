@@ -4,6 +4,15 @@
   :END:
 
 *** Agent Notes
+    [2026-07-01] Suppress dimension layers in sheet-design compact previews
+    Files changed: components/shared/EntityPreview.vue,
+      components/shared/GeometryPreview.vue, shared/design-system.spec.js
+    Docs updated: components/shared/README.md, TODO.org
+    Notes: Geometry previews now honor the same compact `hideDimensionLayer`
+      flag as cassette thumbnails. Sheet-design micro previews keep
+      sheet/stock, cut, fold, and bend production layers while suppressing
+      dimension annotation layers.
+
     [2026-07-01] Hydrate nesting-run inline popups for sheet-design outputs
     Files changed: components/shared/EntityInlineRef.vue,
       composables/useEntity.js, shared/design-system.spec.js

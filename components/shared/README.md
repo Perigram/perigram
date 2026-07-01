@@ -276,6 +276,10 @@ as `entity.data.geometry.data.polygon`. It marks the preview as an interactive
 card child so parent card click handlers do not steal pan/preview clicks.
 
 Use this for DXF-derived layer previews and polygon remnants instead of displaying file ids, queue ids, or static filename fields in entity cards.
+When callers pass `hideDimensionLayer`, geometry previews keep production
+layers such as sheet/stock, cut, fold, and bend layers in compact cards while
+suppressing dimension annotation layers so in-card sheet-design previews stay
+readable.
 
 ### `EntityInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
@@ -331,8 +335,8 @@ reference type, `EntityInlineRef` provides that route to the expanded inline
 entity-card popover. The popover footer renders an icon-only open action that
 navigates through generated `/screens/:screenKey` detail routing, not legacy
 feature routes. Cassette, cassette-design, and sheet-design compact refs
-suppress the `dimension.cassette` layer in their micro preview so annotation
-text does not overpower the gallery thumbnail. Inline-ref popovers also force the shared `TraceChain` even
+suppress dimension annotation layers in their micro preview so annotation text
+does not overpower the gallery thumbnail. Inline-ref popovers also force the shared `TraceChain` even
 when the base card surface normally hides trace in compact contexts, and show a
 small localized entity-type label above the identity row so the operator can
 see both lineage context and exact entity kind without adding extra chrome to
