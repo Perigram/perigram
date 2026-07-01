@@ -20,6 +20,7 @@ node server/scripts/migrate-org-types-to-processes.js # Backfill active process 
 node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
 node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts
 node server/scripts/migrate-process-role-memberships.js # Clear preset permissions from process-role memberships and recover tenant admins
+node server/scripts/migrate-organization-owner-admins.js # Mark existing organization creator/admin memberships as owner admins
 node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
 node server/scripts/migrate-process-command-output-statuses.js # Apply graph-derived process statuses to existing command output entities
@@ -152,6 +153,13 @@ preserving the process role assignment data. It also promotes an active
 team-management member to explicit `organizations:admin` when an organization
 has no tenant admin, so creator/admin recovery does not depend on membership
 role labels.
+
+Use `server/scripts/migrate-organization-owner-admins.js` after adopting owner
+memberships. It marks one active membership per organization as
+`owner: true`, preferring the organization creator, then an active admin
+membership, then the first active member. The selected owner receives
+`organizations:admin` and `users:admin` so every organization keeps at least
+one permanent tenant admin.
 
 Use `server/scripts/migrate-process-create-status-grants.js` after compiler
 changes that affect generated screens, create-action status grants,

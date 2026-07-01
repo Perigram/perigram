@@ -50,6 +50,31 @@ export async function find(filter = {}) {
   return await db.collection(COLLECTION).find(filter).toArray();
 }
 
+export async function findActiveMembersByOrganization(organizationId) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).find({
+    'data.memberships': {
+      $elemMatch: {
+        organizationId: { $in: organizationIdValues(organizationId) },
+        $or: [{ status: 'active' }, { status: { $exists: false } }]
+      }
+    }
+  }).toArray();
+}
+
+export async function findActiveOwnersByOrganization(organizationId) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).find({
+    'data.memberships': {
+      $elemMatch: {
+        organizationId: { $in: organizationIdValues(organizationId) },
+        $or: [{ status: 'active' }, { status: { $exists: false } }],
+        owner: true
+      }
+    }
+  }).toArray();
+}
+
 export async function updateById(id, updates) {
   const db = await connectDB();
   const { _id, ...clean } = updates;
@@ -111,4 +136,8 @@ export async function updateGlobalPermissions(userId, permissions) {
 export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
+}
+
+function organizationIdValues(organizationId) {
+  return [toFlexibleId(organizationId), organizationId?.toString?.() || organizationId].filter(Boolean);
 }

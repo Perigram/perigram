@@ -1,4 +1,5 @@
 import { BaseEntity } from '~/server/core/blocks/index.js';
+import { ensureOwnerMembership } from './organization-owner.js';
 /**
  * User Entity - v24 Absolute Final
  */
@@ -9,10 +10,13 @@ export class User extends BaseEntity {
     this.data = this.data || {};
     if (raw._id) {
       this.data.permissions = this.data.permissions || {};
-      this.data.memberships = (this.data.memberships || []).map(membership => ({
-        ...membership,
-        permissions: membership.permissions || {}
-      }));
+      this.data.memberships = (this.data.memberships || []).map((membership) => {
+        const normalized = ensureOwnerMembership(membership);
+        return {
+          ...normalized,
+          permissions: normalized.permissions || {}
+        };
+      });
       this.data.isActive = raw.data?.isActive !== undefined ? raw.data.isActive : true;
     }
   }

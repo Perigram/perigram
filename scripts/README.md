@@ -35,6 +35,10 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   `access.permissions` from transitions that already have `processRoleIds`, so
   process role assignment remains the transition authority and target-status
   grants remain post-transition entity access windows. Supports `--dry-run`.
+- `server/scripts/migrate-organization-owner-admins.js`: Tenant safety
+  migration. It marks one active membership per organization as `owner: true`,
+  preferring the creator, then an active admin, then the first active member,
+  and materializes permanent organization/user admin recovery grants.
 - `server/scripts/migrate-profile-template-fillets.js`: Profile-template data
   migration. Rewrites legacy multi-vertex sketch fillets and normalized OCCS
   snapshots into per-corner `{ vertexId, radius }` fillet modifiers. Supports
