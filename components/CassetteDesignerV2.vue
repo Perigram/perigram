@@ -339,30 +339,33 @@
               v-tooltip.top="$t('cassette.v2.attachmentFields.sourceSnap')"
               @update:model-value="value => updateInlineAttachmentRelation({ sourceSnap: value })"
             />
-            <div v-tooltip.top="$t('cassette.v2.attachmentFields.offsetX')">
+            <label class="flex min-w-0 flex-col gap-1 text-xs text-muted-color" v-tooltip.top="$t('cassette.v2.attachmentFields.edgeMargin')">
+              <span class="truncate">{{ $t('cassette.v2.attachmentFields.edgeMargin') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.offsetX"
                 :parameters="globalParameters"
                 :parameter-names="globalParameterNames"
                 @update:model-value="value => updateInlineAttachmentRelation({ offsetX: value })"
               />
-            </div>
-            <div v-tooltip.top="$t('cassette.v2.attachmentFields.offsetY')">
+            </label>
+            <label class="flex min-w-0 flex-col gap-1 text-xs text-muted-color" v-tooltip.top="$t('cassette.v2.attachmentFields.normalOffset')">
+              <span class="truncate">{{ $t('cassette.v2.attachmentFields.normalOffset') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.offsetY"
                 :parameters="globalParameters"
                 :parameter-names="globalParameterNames"
                 @update:model-value="value => updateInlineAttachmentRelation({ offsetY: value })"
               />
-            </div>
-            <div v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
+            </label>
+            <label class="flex min-w-0 flex-col gap-1 text-xs text-muted-color" v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
+              <span class="truncate">{{ $t('cassette.v2.attachmentFields.rotation') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.rotation"
                 :parameters="globalParameters"
                 :parameter-names="globalParameterNames"
                 @update:model-value="value => updateInlineAttachmentRelation({ rotation: value })"
               />
-            </div>
+            </label>
             <Select
               :model-value="inlineEditorRelation.targetSide"
               :options="sideOptions"
@@ -409,20 +412,39 @@
               v-tooltip.top="$t('cassette.v2.attachmentFields.arrayMode')"
               @update:model-value="value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayMode: value })"
             />
-            <div v-if="inlineEditorRelation.placementMode === 'edgeArray'" v-tooltip.top="$t('cassette.v2.attachmentFields.arrayCount')">
+            <label
+              v-if="inlineEditorRelation.placementMode === 'edgeArray'"
+              class="flex min-w-0 flex-col gap-1 text-xs text-muted-color"
+              v-tooltip.top="arrayValueLabel(inlineEditorRelation)"
+            >
+              <span class="truncate">{{ arrayValueLabel(inlineEditorRelation) }}</span>
               <CassetteExpressionEditor
-                :model-value="inlineEditorRelation.arrayCount"
+                :model-value="arrayValue(inlineEditorRelation)"
                 :parameters="globalParameters"
                 :parameter-names="globalParameterNames"
-                @update:model-value="value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayCount: value })"
+                @update:model-value="value => updateInlineAttachmentRelation(arrayValuePatch(inlineEditorRelation, value))"
               />
-            </div>
-            <div v-if="inlineEditorRelation.placementMode === 'edgeArray'" v-tooltip.top="$t('cassette.v2.attachmentFields.arraySpacing')">
-              <CassetteExpressionEditor
-                :model-value="inlineEditorRelation.arraySpacing"
-                :parameters="globalParameters"
-                :parameter-names="globalParameterNames"
-                @update:model-value="value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arraySpacing: value })"
+            </label>
+            <div class="flex min-w-0 gap-1">
+              <Button
+                icon="pi pi-arrows-h"
+                :severity="inlineEditorRelation.mirrorX ? 'primary' : 'secondary'"
+                size="small"
+                class="min-w-0 flex-1"
+                :label="$t('cassette.v2.attachmentFields.mirrorX')"
+                :aria-label="$t('cassette.v2.attachmentFields.mirrorX')"
+                v-tooltip.top="$t('cassette.v2.attachmentFields.mirrorX')"
+                @click="updateInlineAttachmentRelation({ mirrorX: !inlineEditorRelation.mirrorX })"
+              />
+              <Button
+                icon="pi pi-arrows-v"
+                :severity="inlineEditorRelation.mirrorY ? 'primary' : 'secondary'"
+                size="small"
+                class="min-w-0 flex-1"
+                :label="$t('cassette.v2.attachmentFields.mirrorY')"
+                :aria-label="$t('cassette.v2.attachmentFields.mirrorY')"
+                v-tooltip.top="$t('cassette.v2.attachmentFields.mirrorY')"
+                @click="updateInlineAttachmentRelation({ mirrorY: !inlineEditorRelation.mirrorY })"
               />
             </div>
             <Select
@@ -435,14 +457,6 @@
               :aria-label="$t('cassette.v2.attachmentFields.jointType')"
               v-tooltip.top="$t('cassette.v2.attachmentFields.jointType')"
               @update:model-value="value => updateInlineAttachmentRelation({ type: value })"
-            />
-            <InputText
-              :model-value="inlineEditorRelation.method"
-              size="small"
-              class="w-full"
-              :aria-label="$t('cassette.v2.attachmentFields.method')"
-              v-tooltip.top="$t('cassette.v2.attachmentFields.method')"
-              @update:model-value="value => updateInlineAttachmentRelation({ method: value })"
             />
             <Button
               icon="pi pi-map-marker"
@@ -649,22 +663,6 @@
                     @focus="ensureProfileTemplatesLoaded"
                     @show="ensureProfileTemplatesLoaded"
                     @update:model-value="value => updateSelectedHardwareProfile(value)"
-                  />
-                  <InputText
-                    :model-value="row.parameters.diameter || row.parameters.width || ''"
-                    size="small"
-                    class="w-full"
-                    :placeholder="$t('cassette.v2.hardwareFields.primarySize')"
-                    :aria-label="$t('cassette.v2.hardwareFields.primarySize')"
-                    @update:model-value="value => updateSelectedHardwareParameter(row.family === 'hanger_clip' ? 'width' : 'diameter', value)"
-                  />
-                  <InputText
-                    :model-value="row.parameters.length || row.parameters.height || row.parameters.thickness || ''"
-                    size="small"
-                    class="w-full"
-                    :placeholder="$t('cassette.v2.hardwareFields.secondarySize')"
-                    :aria-label="$t('cassette.v2.hardwareFields.secondarySize')"
-                    @update:model-value="value => updateSelectedHardwareParameter(row.family === 'hanger_clip' ? 'height' : 'length', value)"
                   />
                 </div>
 
@@ -955,7 +953,6 @@ const selectedNode = computed(() => treeNodes.value.find(node => node.id === sel
 const workpieces = computed(() => getCassetteV2Workpieces(cassetteTree.value));
 const selectedWorkpieceId = computed(() => selectedWorkpieceOverrideId.value || selectedNode.value?.workpieceId || workpieces.value[0]?.id || '');
 const selectedWorkpiece = computed(() => workpieces.value.find(workpiece => workpiece.id === selectedWorkpieceId.value) || workpieces.value[0] || null);
-const selectedWorkpieceHardware = computed(() => selectedWorkpiece.value?.hardware || null);
 const workpieceRelations = computed(() => getCassetteV2WorkpieceRelations(cassetteTree.value));
 const previewMode = computed(() => (
   inspectorSelection.value === 'workpiece' || inspectorSelection.value === 'attachment'
@@ -1114,6 +1111,20 @@ const arrayModeOptions = computed(() => ['count', 'spacing'].map(mode => ({
   label: t(`cassette.v2.arrayModes.${mode}`),
   value: mode
 })));
+const arrayValueLabel = (relation = {}) => (
+  relation.arrayMode === 'spacing'
+    ? t('cassette.v2.attachmentFields.arraySpacing')
+    : t('cassette.v2.attachmentFields.arrayCount')
+);
+const arrayValue = (relation = {}) => (
+  relation.arrayMode === 'spacing'
+    ? relation.arraySpacing
+    : relation.arrayCount
+);
+const arrayValuePatch = (relation = {}, value) => ({
+  placementMode: 'edgeArray',
+  [relation.arrayMode === 'spacing' ? 'arraySpacing' : 'arrayCount']: value
+});
 const edgeOptions = computed(() => [0, 1, 2, 3].map(index => ({
   label: `E${index}`,
   value: `E${index}`
@@ -2058,16 +2069,6 @@ const saveProfileDraft = async () => {
 const updateSelectedHardware = (patch) => {
   if (!selectedWorkpiece.value) return;
   cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, selectedWorkpiece.value.id, patch);
-};
-
-const updateSelectedHardwareParameter = (key, value) => {
-  if (!selectedWorkpiece.value || !key) return;
-  updateSelectedHardware({
-    parameters: {
-      ...(selectedWorkpieceHardware.value?.parameters || selectedWorkpiece.value.parameters || {}),
-      [key]: value
-    }
-  });
 };
 
 const updateSelectedHardwareProfile = (profileId) => {

@@ -514,6 +514,8 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
     offsetX: origin[0] ?? placement.offsetX ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetX,
     offsetY: origin[1] ?? placement.offsetY ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetY,
     rotation: placement.rotation ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.rotation,
+    mirrorX: Boolean(placement.mirrorX ?? placement.mirror?.x),
+    mirrorY: Boolean(placement.mirrorY ?? placement.mirror?.y),
     pattern,
     placementMode: pattern ? 'edgeArray' : 'point',
     arrayEdge: pattern?.edge || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.edge,
@@ -1129,6 +1131,8 @@ export const updateCassetteV2WorkpieceRelation = (tree, relationId, patch = {}) 
       patch.offsetY ?? relation.offsetY
     ],
     rotation: patch.rotation ?? relation.rotation,
+    mirrorX: patch.mirrorX ?? relation.mirrorX,
+    mirrorY: patch.mirrorY ?? relation.mirrorY,
     anchor: sourceSnap,
     targetAnchor: targetSnap
   };
@@ -2249,7 +2253,8 @@ const profileSectionPointsForRelation = (profile = {}, targetCurve = {}, relatio
   ];
 
   return vertices.map((vertex) => {
-    const rotated = rotate2d([numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)], rotation);
+    const mirrored = mirroredProfileVertex(vertex, relation);
+    const rotated = rotate2d(mirrored, rotation);
     return [origin[0] + rotated[0], origin[1] + rotated[1], 0];
   });
 };
@@ -2326,16 +2331,24 @@ const polygonInsideFace = (polygon = [], face = []) => {
   return withoutClosingVertex(polygon).every(point => pointInPolygon(point, faceVertices));
 };
 
-const profileCutPolygon = (workpiece = {}, point = [0, 0, 0]) => {
+const mirroredProfileVertex = (vertex = [], relation = {}) => [
+  numeric(vertex?.[0], 0) * (relation.mirrorX ? -1 : 1),
+  numeric(vertex?.[1], 0) * (relation.mirrorY ? -1 : 1)
+];
+
+const profileCutPolygon = (workpiece = {}, point = [0, 0, 0], relation = {}) => {
   if (!workpiece.profileSnapshot && !workpiece.profile) return null;
   const profile = normalizeCassetteV2Profile(workpiece);
   const vertices = Array.isArray(profile.section?.vertices) ? profile.section.vertices : [];
   if (vertices.length < 3) return null;
-  return vertices.map(vertex => [
-    numeric(point?.[0], 0) + numeric(vertex?.[0], 0),
-    numeric(point?.[1], 0) + numeric(vertex?.[1], 0),
-    0
-  ]);
+  return vertices.map((vertex) => {
+    const mirrored = mirroredProfileVertex(vertex, relation);
+    return [
+      numeric(point?.[0], 0) + mirrored[0],
+      numeric(point?.[1], 0) + mirrored[1],
+      0
+    ];
+  });
 };
 
 const hardwareProductionEntitiesForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
@@ -2360,7 +2373,7 @@ const hardwareProductionEntitiesForTree = (curves = [], tree = createCassetteV2G
           relationId: relation.id,
           geometry: {
             type: 'polygon',
-            vertices: profileCutPolygon(workpiece, point) || hangerClipCutPolygon(hardware.parameters, point)
+            vertices: profileCutPolygon(workpiece, point, relation) || hangerClipCutPolygon(hardware.parameters, point)
           }
         })).map((entity) => ({
           ...entity,
@@ -2838,6 +2851,8 @@ const foldedPreviewBodiesForTree = (tree = createCassetteV2GraphTree(), paramete
         offsetX: resolveCassetteV2Expression(relation.offsetX, parameters, 0),
         offsetY: resolveCassetteV2Expression(relation.offsetY, parameters, 0),
         rotation: resolveCassetteV2AngleExpression(relation.rotation, parameters, 0),
+        mirrorX: Boolean(relation.mirrorX),
+        mirrorY: Boolean(relation.mirrorY),
         pattern: relation.pattern ? {
           ...relation.pattern,
           mode: relation.pattern.mode || 'count',

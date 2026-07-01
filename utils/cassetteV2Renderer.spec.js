@@ -714,6 +714,19 @@ describe('cassette v2 trapezoid renderer', () => {
       ['262', '18'],
       ['250', '18']
     ]);
+
+    const mirrored = updateCassetteV2WorkpieceRelation(placed, relation.id, {
+      mirrorX: true
+    });
+    const mirroredOccs = createCassetteV2OccsDocument(mirrored);
+    const mirroredCut = mirroredOccs.definitions.workpieces[0].entities.find(entity => entity.layer === 'cut.inner');
+
+    expect(mirroredCut.geometry.vertices).toEqual([
+      ['250', '10'],
+      ['238', '10'],
+      ['238', '18'],
+      ['250', '18']
+    ]);
   });
 
   it('dispatches edge-breaking integral cuts only through the modified parent contour', async () => {
