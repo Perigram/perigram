@@ -28,6 +28,7 @@ function normalizePackage(item = {}) {
   if (!id || !stripePriceId || !Number.isFinite(tokenAmount) || tokenAmount <= 0) return null;
   return {
     id,
+    labelKey: item.labelKey || null,
     label: item.label || `${tokenAmount} tokens`,
     tokenAmount,
     stripePriceId,
