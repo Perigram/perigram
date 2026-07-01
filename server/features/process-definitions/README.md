@@ -155,11 +155,8 @@ returns receiver lifecycle metadata for the target organization to interpret.
 Inbound sockets are receiver contracts in the active process graph and cannot
 be used by the outbound projection API.
 
-Auth hydration also strips stale compiler-generated `home` screens that only
-point at inferred `auto_*` screens. That runtime guard keeps previously
-compiled process records from forcing a generated home after the compiler
-contract changed; stored process definitions should still be recompiled with
-`server/scripts/migrate-process-compiled-runtime.js`. When cleanup removes the
-only compiled process home, auth hydration leaves the process without a home
-screen; process entry selection must then use the first operational generated
-screen or `/screens`, never organization system screens.
+Auth hydration returns the compiled process screen manifest as-is. Generated
+process `home` screens may be synthesized from inferred `auto_*` list screens,
+so stored process definitions should still be recompiled with
+`server/scripts/migrate-process-compiled-runtime.js` whenever the compiler
+changes that contract.
