@@ -128,16 +128,10 @@
                         :icon="shortcut.icon"
                         text
                         rounded
-                        :severity="mobileShortcutEditMode || isRouteActive(shortcut.to) ? 'primary' : 'secondary'"
+                        :severity="isRouteActive(shortcut.to) ? 'primary' : 'secondary'"
                         :aria-label="shortcut.label"
-                        @click="handleShortcutClick($event, shortcut)"
+                        @click="handleShortcutClick(shortcut)"
                     />
-                    <span
-                        v-if="mobileShortcutEditMode"
-                        class="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[0.625rem] text-primary-contrast"
-                    >
-                        <i class="pi pi-pencil"></i>
-                    </span>
                 </div>
                 <Button
                     v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT"
@@ -147,15 +141,6 @@
                     :severity="mobileScreenMenuItems.length ? 'primary' : 'secondary'"
                     :aria-label="$t('common.add')"
                     @click="openMobileScreenMenu"
-                />
-                <Button
-                    v-else
-                    icon="pi pi-pencil"
-                    text
-                    rounded
-                    :severity="mobileShortcutEditMode ? 'primary' : 'secondary'"
-                    :aria-label="$t('common.edit')"
-                    @click="toggleShortcutEditMode"
                 />
                 <div class="relative flex items-center">
                     <Button
@@ -229,7 +214,6 @@
     const mobileShortcutReplaceIndex = ref(null)
     const mobileShortcutHoldTriggered = ref(false)
     const mobileShortcutHoldTimer = ref(null)
-    const mobileShortcutEditMode = ref(false)
     const MOBILE_SHORTCUT_LIMIT = 2
 
     // Sync protected project context with SSR cookies when route changes.
@@ -317,7 +301,15 @@
         label: screen.label,
         icon: screen.icon,
         command: () => addMobileScreenShortcut(screen)
-    })))
+    })).concat(Number.isInteger(mobileShortcutReplaceIndex.value)
+        ? [{
+            separator: true
+        }, {
+            label: t('common.delete'),
+            icon: 'pi pi-trash',
+            command: deleteMobileScreenShortcut
+        }]
+        : []))
     const mobileShortcutLinks = computed(() => mobileShortcuts.value
         .map((shortcut, index) => {
             const screen = authStore.screenManifest.find(item => (
@@ -341,7 +333,6 @@
         breadcrumbMenu.value?.hide?.()
         userMenu.value?.hide?.()
         mobileScreenMenu.value?.hide?.()
-        mobileShortcutEditMode.value = false
     }
 
     const requestCloseTransientSurfaces = () => {
@@ -356,18 +347,13 @@
 
     const navigateMobile = (to) => {
         mobileActiveTab.value = 'content'
-        mobileShortcutEditMode.value = false
         requestCloseTransientSurfaces()
         router.push(to)
     }
 
-    const handleShortcutClick = (event, shortcut) => {
+    const handleShortcutClick = (shortcut) => {
         if (mobileShortcutHoldTriggered.value) {
             mobileShortcutHoldTriggered.value = false
-            return
-        }
-        if (mobileShortcutEditMode.value) {
-            openReplaceShortcutMenu(event, shortcut.index)
             return
         }
         navigateMobile(shortcut.to)
@@ -401,13 +387,11 @@
 
     const openMobileScreenMenu = (event) => {
         mobileShortcutReplaceIndex.value = null
-        mobileShortcutEditMode.value = false
         mobileScreenMenu.value?.toggle(event)
     }
 
     const openReplaceShortcutMenu = (event, index) => {
         mobileShortcutReplaceIndex.value = index
-        mobileShortcutEditMode.value = true
         mobileScreenMenu.value?.show?.(event)
     }
 
@@ -450,15 +434,15 @@
             ].slice(-MOBILE_SHORTCUT_LIMIT)
         }
         mobileShortcutReplaceIndex.value = null
-        mobileShortcutEditMode.value = false
         saveMobileShortcuts()
     }
 
-    const toggleShortcutEditMode = () => {
-        clearShortcutHold()
-        mobileShortcutEditMode.value = !mobileShortcutEditMode.value
+    const deleteMobileScreenShortcut = () => {
+        const removeIndex = mobileShortcutReplaceIndex.value
+        if (!Number.isInteger(removeIndex)) return
+        mobileShortcuts.value = mobileShortcuts.value.filter((_, index) => index !== removeIndex)
         mobileShortcutReplaceIndex.value = null
-        if (!mobileShortcutEditMode.value) mobileScreenMenu.value?.hide?.()
+        saveMobileShortcuts()
     }
 
     const screenIcon = (screen = {}) => {
