@@ -87,8 +87,10 @@
 
         <main
             :class="[
-                'flex min-h-0 w-full max-w-[var(--ck-page-max-width)] flex-1 flex-col mx-auto',
-                isBoundedWorkspaceRoute ? 'overflow-hidden px-3 pt-3 pb-24 md:p-4' : 'px-4 pt-4 pb-24 md:p-6 lg:p-8'
+                'flex min-h-0 w-full flex-1 flex-col mx-auto',
+                isFlushMobileSurface ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-w-[var(--ck-page-max-width)] md:overflow-visible md:p-6 lg:p-8'
+                    : isBoundedWorkspaceRoute ? 'max-w-[var(--ck-page-max-width)] overflow-hidden px-3 pt-3 pb-24 md:p-4'
+                        : 'max-w-[var(--ck-page-max-width)] px-4 pt-4 pb-24 md:p-6 lg:p-8'
             ]"
         >
             <ChatSupport v-if="mobileActiveTab === 'chats'" embedded />
@@ -112,21 +114,31 @@
                     :aria-label="$t('nav.home')"
                     @click="navigateMobile(homeRoute)"
                 />
-                <Button
+                <div
                     v-for="shortcut in mobileShortcutLinks"
                     :key="shortcut.key"
-                    :icon="shortcut.icon"
-                    text
-                    rounded
-                    :severity="isRouteActive(shortcut.to) ? 'primary' : 'secondary'"
-                    :aria-label="shortcut.label"
+                    class="relative flex items-center"
                     @pointerdown="startShortcutHold($event, shortcut.index)"
                     @pointerup="clearShortcutHold"
                     @pointerleave="clearShortcutHold"
                     @pointercancel="clearShortcutHold"
                     @contextmenu.prevent="openReplaceShortcutMenu($event, shortcut.index)"
-                    @click="handleShortcutClick(shortcut)"
-                />
+                >
+                    <Button
+                        :icon="shortcut.icon"
+                        text
+                        rounded
+                        :severity="mobileShortcutEditMode || isRouteActive(shortcut.to) ? 'primary' : 'secondary'"
+                        :aria-label="shortcut.label"
+                        @click="handleShortcutClick($event, shortcut)"
+                    />
+                    <span
+                        v-if="mobileShortcutEditMode"
+                        class="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[0.625rem] text-primary-contrast"
+                    >
+                        <i class="pi pi-pencil"></i>
+                    </span>
+                </div>
                 <Button
                     v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT"
                     icon="pi pi-plus"
@@ -135,6 +147,15 @@
                     :severity="mobileScreenMenuItems.length ? 'primary' : 'secondary'"
                     :aria-label="$t('common.add')"
                     @click="openMobileScreenMenu"
+                />
+                <Button
+                    v-else
+                    icon="pi pi-pencil"
+                    text
+                    rounded
+                    :severity="mobileShortcutEditMode ? 'primary' : 'secondary'"
+                    :aria-label="$t('common.edit')"
+                    @click="toggleShortcutEditMode"
                 />
                 <div class="relative flex items-center">
                     <Button
@@ -208,6 +229,7 @@
     const mobileShortcutReplaceIndex = ref(null)
     const mobileShortcutHoldTriggered = ref(false)
     const mobileShortcutHoldTimer = ref(null)
+    const mobileShortcutEditMode = ref(false)
     const MOBILE_SHORTCUT_LIMIT = 2
 
     // Sync protected project context with SSR cookies when route changes.
@@ -265,6 +287,8 @@
     }
 
     const isBoundedWorkspaceRoute = computed(() => /^\/project\/[^/]+\/queues\/?$/.test(route.path))
+    const isAccountRoute = computed(() => route.path === '/profile' || route.path === '/organization')
+    const isFlushMobileSurface = computed(() => mobileActiveTab.value === 'chats' || isAccountRoute.value)
     const screenName = (screen) => generatedScreenLabel(screen, { t, te })
     const mobileShortcutStorageKey = computed(() => [
         'cutkit.mobileScreenShortcuts.v1',
@@ -317,6 +341,7 @@
         breadcrumbMenu.value?.hide?.()
         userMenu.value?.hide?.()
         mobileScreenMenu.value?.hide?.()
+        mobileShortcutEditMode.value = false
     }
 
     const requestCloseTransientSurfaces = () => {
@@ -331,13 +356,18 @@
 
     const navigateMobile = (to) => {
         mobileActiveTab.value = 'content'
+        mobileShortcutEditMode.value = false
         requestCloseTransientSurfaces()
         router.push(to)
     }
 
-    const handleShortcutClick = (shortcut) => {
+    const handleShortcutClick = (event, shortcut) => {
         if (mobileShortcutHoldTriggered.value) {
             mobileShortcutHoldTriggered.value = false
+            return
+        }
+        if (mobileShortcutEditMode.value) {
+            openReplaceShortcutMenu(event, shortcut.index)
             return
         }
         navigateMobile(shortcut.to)
@@ -371,20 +401,23 @@
 
     const openMobileScreenMenu = (event) => {
         mobileShortcutReplaceIndex.value = null
+        mobileShortcutEditMode.value = false
         mobileScreenMenu.value?.toggle(event)
     }
 
     const openReplaceShortcutMenu = (event, index) => {
         mobileShortcutReplaceIndex.value = index
+        mobileShortcutEditMode.value = true
         mobileScreenMenu.value?.show?.(event)
     }
 
     const startShortcutHold = (event, index) => {
         clearShortcutHold()
         mobileShortcutHoldTriggered.value = false
+        const anchor = event.currentTarget
         mobileShortcutHoldTimer.value = window.setTimeout(() => {
             mobileShortcutHoldTriggered.value = true
-            openReplaceShortcutMenu(event, index)
+            openReplaceShortcutMenu({ currentTarget: anchor, target: anchor }, index)
         }, 550)
     }
 
@@ -417,7 +450,15 @@
             ].slice(-MOBILE_SHORTCUT_LIMIT)
         }
         mobileShortcutReplaceIndex.value = null
+        mobileShortcutEditMode.value = false
         saveMobileShortcuts()
+    }
+
+    const toggleShortcutEditMode = () => {
+        clearShortcutHold()
+        mobileShortcutEditMode.value = !mobileShortcutEditMode.value
+        mobileShortcutReplaceIndex.value = null
+        if (!mobileShortcutEditMode.value) mobileScreenMenu.value?.hide?.()
     }
 
     const screenIcon = (screen = {}) => {
