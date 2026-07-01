@@ -27,11 +27,12 @@ shown only while zero or one shortcut exists; once both slots are full, users
 long-press a shortcut to reopen the same picker and replace that slot.
 Shortcuts are stored per user and organization in FIFO order. Chats render as
 an embedded mobile tab inside the app layout instead of the desktop overlay, so
-the chat close button is hidden there. Profile is not a tab; it opens the same
-account menu used on desktop. Theme switching lives in that account menu on
-both desktop and mobile. Mobile bottom-panel navigation dispatches the shared
-transient close event before route changes so popovers, menus, and chat do not
-overlap the destination.
+the chat close button is hidden there.
+Profile is not a tab; it opens the same account menu used on desktop. Theme
+switching lives in that account menu on both desktop and mobile.
+Mobile bottom-panel navigation dispatches the shared transient close event
+before route changes so popovers, menus, and chat do not overlap the
+destination.
 
 The authenticated user menu links the current organization to `/organization`
 and exposes team management and process designer actions from explicit
