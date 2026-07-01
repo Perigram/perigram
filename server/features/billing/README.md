@@ -12,12 +12,14 @@ balances.
 Purchasable token packages come from runtime configuration:
 
 ```env
-NUXT_BILLING_PRICE_CATALOG='[{"id":"starter","label":"Starter","tokenAmount":25,"stripePriceId":"price_...","currency":"USD","amount":1000}]'
+NUXT_BILLING_PRICE_CATALOG='[{"id":"starter","labelKey":"billing.packages.starter","tokenAmount":25,"stripePriceId":"price_...","currency":"USD","amount":1000}]'
 ```
 
 The catalog is parsed by `pricing.js`. Invalid entries are ignored. API routes
 must not hardcode package prices or read package definitions from app database
-collections.
+collections. Package display names should use `labelKey` so the generated
+organization account screen can resolve localized text; `label` is only the
+runtime-config fallback when no translation key is supplied.
 
 ## Collections
 

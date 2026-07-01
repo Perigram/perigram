@@ -26,6 +26,13 @@ Key fields:
 - `write` can create/update organization records.
 - `admin` can delete organization records.
 - List queries are scoped by membership lineage.
+- Organization account UI is exposed as a system generated screen during auth
+  hydration, not as hardcoded page buttons. `system-screens.js` emits the
+  `/organization` screen with localized label keys, billing regions when the
+  caller has `organizations:read`, checkout/process actions when the caller has
+  `organizations:admin`, and team-management actions when the caller has
+  `users:admin`. When an active process exists, those checks use the compiled
+  effective permissions.
 - `createInitialForUser()` is the narrow public-signup helper. It creates the
   first organization for a newly registered user, creates and activates a
   starter process definition, assigns the creator to the process admin role,

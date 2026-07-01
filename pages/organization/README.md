@@ -2,12 +2,13 @@
 
 Organization pages manage the current tenant context.
 
-`index.vue` is the organization workspace route linked from the user menu and
-profile organization cards. It exposes the organization billing account, token
-packages, invoice history, ledger entries, team management, and process design
-as first-class organization actions and is the breadcrumb parent for
-organization routes. Billing packages are loaded from
-`/api/organizations/:id/billing/packages`, account state from
+`index.vue` is a thin route wrapper around the generated organization account
+screen from auth hydration. The server stores that screen in the user's screen
+manifest with `template: "organizationAccount"`, localized `labelKey` values,
+billing regions, and access-filtered system actions for team management,
+process design, and checkout. The page does not decide which management
+buttons exist; it renders the hydrated screen contract. Billing packages are
+loaded from `/api/organizations/:id/billing/packages`, account state from
 `/api/organizations/:id/billing/account`, and checkout/payment sync through the
 same organization billing route group. User profile routes do not buy or hold
 credits.
