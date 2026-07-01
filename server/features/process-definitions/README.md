@@ -159,4 +159,7 @@ Auth hydration also strips stale compiler-generated `home` screens that only
 point at inferred `auto_*` screens. That runtime guard keeps previously
 compiled process records from forcing a generated home after the compiler
 contract changed; stored process definitions should still be recompiled with
-`server/scripts/migrate-process-compiled-runtime.js`.
+`server/scripts/migrate-process-compiled-runtime.js`. When cleanup removes the
+only compiled process home, auth hydration injects an empty generated `home`
+screen so active processes still open on `/screens/home_*` before any system
+organization screen.
