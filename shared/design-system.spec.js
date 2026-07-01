@@ -522,7 +522,12 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('entity-inline-compact-status-row');
     expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
     expect(inlineRef).toContain("'sheet_design'");
+    expect(inlineRef).toContain('needsNestingRunHydration');
+    expect(inlineRef).toContain('hydrateNestingRunOutputs');
+    expect(inlineRef).toContain(".list({ runId }, { silent: true })");
+    expect(inlineRef).toContain('relationSheetDesigns');
     expect(inlineRef).not.toContain('entity-inline-compact-fallback');
+    expect(fs.readFileSync(path.join(REPO_ROOT, 'composables/useEntity.js'), 'utf8')).toContain('options.silent');
     expect(identityBlock).toContain('entity-inline-chip');
     expect(entityPreview).toContain('hideDimensionLayer');
     expect(cassetteThumbnail).toContain("name !== 'dimension.cassette'");

@@ -68,9 +68,14 @@ const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const { t } = useI18n();
 const entityApi = useEntity(props.type);
+const sheetDesignApi = useEntity('sheetDesign');
 const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
 const normalizedId = computed(() => props.id?.toString?.() || props.id || '');
+const contract = computed(() =>
+  DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.key === props.type || entry.entityType === props.type) || null
+);
+const generatedEntityType = computed(() => contract.value?.entityType || generatedEntityTypeFor(props.type));
 const contextEntity = computed(() => {
   if (!normalizedId.value) return null;
   const context = unref(entityContext);
@@ -81,7 +86,15 @@ const contextEntity = computed(() => {
   }
   return null;
 });
-const resolved = computed(() => props.entity || contextEntity.value || loaded.value);
+const hydrated = ref(null);
+const relationSheetDesigns = ref([]);
+const relationFetchId = computed(() => normalizedId.value
+  || entityId(props.entity)
+  || entityId(contextEntity.value)
+  || ''
+);
+const baseResolved = computed(() => hydrated.value || props.entity || contextEntity.value || loaded.value);
+const resolved = computed(() => withNestingRunOutputRefs(baseResolved.value));
 const resolvedId = computed(() => normalizedId.value
   || resolved.value?._id?.toString?.()
   || resolved.value?.id?.toString?.()
@@ -89,15 +102,11 @@ const resolvedId = computed(() => normalizedId.value
   || ''
 );
 const icon = computed(() => domainUi.getIcon?.(props.type) || 'pi pi-box');
-const contract = computed(() =>
-  DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.key === props.type || entry.entityType === props.type) || null
-);
 const cardComponent = computed(() => CARD_COMPONENTS[contract.value?.key] || null);
 const cardProps = computed(() => ({
   [contract.value?.propName || 'entity']: resolved.value,
   variant: 'inline'
 }));
-const generatedEntityType = computed(() => contract.value?.entityType || generatedEntityTypeFor(props.type));
 const detailRoute = computed(() => {
   if (!props.allowDetailRoute || !authStore.processActive || !resolvedId.value) return null;
   return detailRouteForEntity({
@@ -164,14 +173,62 @@ const popupHasActions = computed(() => (
 ));
 
 watch(
-  () => [props.entity, normalizedId.value, props.type, contextEntity.value?._id],
+  () => [props.entity, relationFetchId.value, props.type, entityId(contextEntity.value)],
   async () => {
     loaded.value = null;
-    if (props.entity || contextEntity.value || !normalizedId.value || !props.fetch) return;
-    loaded.value = await entityApi.fetch(normalizedId.value, { silent: true }).catch(() => null);
+    hydrated.value = null;
+    relationSheetDesigns.value = [];
+    if (!relationFetchId.value || !props.fetch) return;
+
+    const provided = props.entity || contextEntity.value;
+    if (!provided) {
+      loaded.value = await entityApi.fetch(relationFetchId.value, { silent: true }).catch(() => null);
+      await hydrateNestingRunOutputs(loaded.value);
+      return;
+    }
+
+    if (needsNestingRunHydration(provided)) {
+      hydrated.value = await entityApi.fetch(relationFetchId.value, { silent: true }).catch(() => null);
+    }
+    await hydrateNestingRunOutputs(hydrated.value || provided);
   },
   { immediate: true }
 );
+
+function entityId(entity) {
+  return entity?._id?.toString?.()
+    || entity?.id?.toString?.()
+    || entity?.identity?.uid
+    || '';
+}
+
+function hasNestingRunOutputRefs(entity) {
+  return Array.isArray(entity?.data?.sheetDesignIds) && entity.data.sheetDesignIds.length > 0;
+}
+
+function needsNestingRunHydration(entity) {
+  return generatedEntityType.value === 'nesting_run' && !hasNestingRunOutputRefs(entity);
+}
+
+async function hydrateNestingRunOutputs(entity) {
+  if (generatedEntityType.value !== 'nesting_run' || !entity) return;
+  const runId = entityId(entity) || relationFetchId.value;
+  if (!runId) return;
+  relationSheetDesigns.value = await sheetDesignApi
+    .list({ runId }, { silent: true })
+    .catch(() => []);
+}
+
+function withNestingRunOutputRefs(entity) {
+  if (generatedEntityType.value !== 'nesting_run' || !entity || !relationSheetDesigns.value.length) return entity;
+  return {
+    ...entity,
+    data: {
+      ...(entity.data || {}),
+      sheetDesignIds: relationSheetDesigns.value
+    }
+  };
+}
 
 function contextTypeCandidates(type) {
   const aliases = {

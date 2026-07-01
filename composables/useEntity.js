@@ -63,7 +63,7 @@ export const useEntity = (type, identifier = null) => {
    * Results are stored in `items` ref.
    * @param {object} [filters] - Query params as key/value pairs
    */
-  const list = async (filters) => {
+  const list = async (filters, options = {}) => {
     loading.value = true;
     error.value = null;
     try {
@@ -72,7 +72,9 @@ export const useEntity = (type, identifier = null) => {
       return items.value;
     } catch (err) {
       error.value = err.data?.message || `Failed to fetch ${type} list`;
-      console.error(`[useEntity] Error listing ${type}:`, err);
+      if (!options.silent) {
+        console.error(`[useEntity] Error listing ${type}:`, err);
+      }
       throw err;
     } finally {
       loading.value = false;
