@@ -578,9 +578,6 @@
                   >
                     <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="workpieceAccentStyle(row.id)" aria-hidden="true" />
                     <span class="truncate">{{ row.label }}</span>
-                    <Tag v-if="row.isProfile" :value="$t('cassette.v2.profile')" severity="secondary" size="small" />
-                    <Tag v-if="row.family" :value="$t(`cassette.v2.hardwareFamilies.${row.family}`)" severity="secondary" size="small" />
-                    <Tag v-if="row.productionMode" :value="$t(`cassette.v2.hangerProductionModes.${row.productionMode}`)" severity="secondary" size="small" />
                     <Tag v-if="row.parentCount > 1" :value="`×${row.parentCount}`" severity="secondary" size="small" />
                   </button>
                   <Button
