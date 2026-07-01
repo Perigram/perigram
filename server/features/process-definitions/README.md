@@ -160,6 +160,6 @@ point at inferred `auto_*` screens. That runtime guard keeps previously
 compiled process records from forcing a generated home after the compiler
 contract changed; stored process definitions should still be recompiled with
 `server/scripts/migrate-process-compiled-runtime.js`. When cleanup removes the
-only compiled process home, auth hydration injects an empty generated `home`
-screen so active processes still open on `/screens/home_*` before any system
-organization screen.
+only compiled process home, auth hydration leaves the process without a home
+screen; process entry selection must then use the first operational generated
+screen or `/screens`, never organization system screens.
