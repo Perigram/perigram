@@ -129,8 +129,13 @@ compiled process screen manifests through a fixed template registry and shared
 entity primitives (`EntityCard`, `EntityPage`, `EntitySurfaceContent`,
 `ResponsiveGrid`, `WorkspaceLanes`, and `TableFrame`). Process data may select
 registered templates, sources, regions, surfaces, and action ids; it must not
-select arbitrary Vue component names or inject page-local markup. Generated
-user manifests are effective access views: when a user has several process
+select arbitrary Vue component names or inject page-local markup. App-owned
+system screens appended during auth hydration use the same generated template
+contract. The organization account template renders billing regions and
+route/checkout `systemActions` from the hydrated screen, so team management,
+process design, and billing checkout affordances follow effective access
+instead of page-local permission checks. Generated user manifests are
+effective access views: when a user has several process
 roles that touch the same entity screen, the process compiler merges those
 role-derived screens into one route with combined source requirements and
 combined runnable actions. Generated components should render the supplied

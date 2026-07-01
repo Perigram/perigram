@@ -607,7 +607,9 @@ const socketDirections = [
   { label: 'outbound', value: 'outbound' },
   { label: 'inbound', value: 'inbound' }
 ];
-const screenTemplateOptions = SCREEN_TEMPLATES.map(value => ({ label: value, value }));
+const screenTemplateOptions = SCREEN_TEMPLATES
+  .filter(value => value !== 'organizationAccount')
+  .map(value => ({ label: value, value }));
 const screenSourceModeOptions = SCREEN_SOURCE_MODES.map(value => ({ label: value, value }));
 const screenSlotOptions = SCREEN_REGION_SLOTS.map(value => ({ label: value, value }));
 const screenSurfaceOptions = ['card', 'compact', 'detail', 'table', 'workspace'].map(value => ({ label: value, value }));

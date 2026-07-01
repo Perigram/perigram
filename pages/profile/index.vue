@@ -99,10 +99,17 @@
                                         <div v-if="membership.status === 'pending'" class="mt-2 py-2 italic opacity-60">
                                             {{ $t('profile.membershipPending') }}
                                         </div>
-                                        <div v-else class="flex justify-between items-center mt-2 pt-2 border-t border-muted border-dashed">
-                                            <Button :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" @click.stop="router.push('/organization')" />
-                                            <Button v-if="authStore.hasPermission('users', 'admin')" :label="$t('profile.manageTeam')" icon="pi pi-users" text size="small" @click.stop="router.push('/organization/users')" />
-                                            <Button v-if="authStore.hasPermission('organizations', 'admin')" :label="$t('processDesigner.title')" icon="pi pi-sitemap" text size="small" @click.stop="router.push('/organization/process')" />
+                                        <div v-else-if="membership.organizationId === authStore.userData.organizationId && organizationAccountScreen" class="flex justify-between items-center mt-2 pt-2 border-t border-muted border-dashed">
+                                            <Button :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" @click.stop="router.push(organizationAccountScreen.route || '/organization')" />
+                                            <Button
+                                                v-for="action in organizationRouteActions"
+                                                :key="action.id"
+                                                :label="systemActionLabel(action)"
+                                                :icon="action.icon"
+                                                text
+                                                size="small"
+                                                @click.stop="router.push(action.route)"
+                                            />
                                         </div>
                                     </div>
                             </Panel>
@@ -168,12 +175,14 @@ definePageMeta({
 
 const router = useRouter();
 const toast = useToast();
-const { t, locale, locales, setLocale } = useI18n();
+const { t, te, locale, locales, setLocale } = useI18n();
 const organizationsEntity = useEntity('organization');
 
 const authStore = useAuthStore();
 const { user: userRef } = storeToRefs(authStore);
 const user = computed(() => userRef.value || {});
+const organizationAccountScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'organizationAccount' || screen.screenKey === 'organization_account') || null);
+const organizationRouteActions = computed(() => (organizationAccountScreen.value?.systemActions || []).filter(action => action.route));
 
 const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
@@ -182,6 +191,11 @@ const getOrgName = (orgId) => {
     const org = authStore.userOrganizations.find(o => o._id.toString() === orgId.toString());
     return org ? org.name : t('profile.unknownOrganization');
 };
+
+function systemActionLabel(action = {}) {
+    const key = action.titleKey || action.labelKey;
+    return key && te(key) ? t(key) : action.id;
+}
 
 const orgForm = ref({
     name: '',

@@ -1276,6 +1276,13 @@
     "credits": "Кредитов",
     "tokens": "токенов",
     "role": "Роль",
+    "statuses": {
+      "active": "Активен",
+      "open": "Открыт",
+      "paid": "Оплачен",
+      "created": "Создан",
+      "completed": "Завершен"
+    },
     "ledgerTypes": {
       "payment_credit": "Оплата",
       "service_debit": "Запуск сервиса"

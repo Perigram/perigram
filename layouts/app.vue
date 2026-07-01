@@ -485,33 +485,29 @@
     const toggleUserMenu = (event) => {
         userMenu.value.toggle(event);
     };
+    const organizationAccountScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'organizationAccount' || screen.screenKey === 'organization_account') || null)
+    const localizedSystemLabel = (key, fallback = '') => key && te(key) ? t(key) : fallback || key
 
     const userMenuItems = computed(() => {
         const items = [];
         const canOpenGeneratedRoute = (route) => !authStore.processActive || navStore.processAllowsRoute(route);
 
         // 1. Current Organization & Context
-        if (authStore.organizationData) {
+        if (authStore.organizationData && organizationAccountScreen.value) {
             const organizationItems = [
                 {
-                    label: t('organization.workspace'),
+                    label: localizedSystemLabel(organizationAccountScreen.value.labelKey, t('organization.workspace')),
                     icon: 'pi pi-building',
-                    visible: authStore.hasTenantPermission('organizations', 'read') || authStore.hasTenantPermission('users', 'admin'),
-                    command: () => router.push('/organization')
+                    command: () => router.push(organizationAccountScreen.value.route || '/organization')
                 },
-                {
-                    label: t('organization.teamManagement'),
-                    icon: 'pi pi-users',
-                    visible: authStore.hasTenantPermission('users', 'admin'),
-                    command: () => router.push('/organization/users')
-                },
-                {
-                    label: t('processDesigner.title'),
-                    icon: 'pi pi-sitemap',
-                    visible: authStore.hasTenantPermission('organizations', 'admin'),
-                    command: () => router.push('/organization/process')
-                }
-            ].filter(item => item.visible !== false);
+                ...(organizationAccountScreen.value.systemActions || [])
+                    .filter(action => action.route)
+                    .map(action => ({
+                        label: localizedSystemLabel(action.titleKey || action.labelKey, action.id),
+                        icon: action.icon || 'pi pi-arrow-right',
+                        command: () => router.push(action.route)
+                    }))
+            ];
             if (organizationItems.length) items.push({
                 label: authStore.organizationData.identity?.name || authStore.organizationData.name || t('organization.workspace'),
                 items: organizationItems

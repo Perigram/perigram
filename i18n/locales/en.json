@@ -1276,6 +1276,13 @@
     "credits": "Credits",
     "tokens": "tokens",
     "role": "Role",
+    "statuses": {
+      "active": "Active",
+      "open": "Open",
+      "paid": "Paid",
+      "created": "Created",
+      "completed": "Completed"
+    },
     "ledgerTypes": {
       "payment_credit": "Payment",
       "service_debit": "Service run"

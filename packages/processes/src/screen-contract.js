@@ -1,6 +1,6 @@
-export const SCREEN_TEMPLATES = ['entityList', 'entityDetail', 'workspaceLanes', 'table', 'formAction', 'home'];
+export const SCREEN_TEMPLATES = ['entityList', 'entityDetail', 'workspaceLanes', 'table', 'formAction', 'home', 'organizationAccount'];
 export const SCREEN_SOURCE_MODES = ['list', 'single'];
-export const SCREEN_REGION_SLOTS = ['main', 'left', 'center', 'right'];
+export const SCREEN_REGION_SLOTS = ['main', 'left', 'center', 'right', 'supporting'];
 export const GENERATED_SCREEN_ROUTE_PREFIX = '/screens';
 
 const TEMPLATE_DEFAULT_MODE = {

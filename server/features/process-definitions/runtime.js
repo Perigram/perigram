@@ -5,6 +5,7 @@ import {
   resolveWorkflow
 } from '~/packages/processes/src/index.js';
 import * as repository from './repository.js';
+import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
 
 export async function getActiveProcessForOrganization(organizationId) {
   if (!organizationId) return null;
@@ -20,15 +21,24 @@ export async function getActiveCompiledProcess(organizationId) {
 export async function resolveProcessAuth(auth = {}) {
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
   const compiled = await getActiveCompiledProcess(organizationId);
-  if (!compiled) return auth;
+  if (!compiled) {
+    const system = resolveOrganizationSystemScreens(auth);
+    return {
+      ...auth,
+      navigation: system.navigation,
+      screens: system.screens
+    };
+  }
   const userId = String(auth.userId || '');
+  const effectivePermissions = resolveEffectiveAccess({ compiled, userId });
+  const system = resolveOrganizationSystemScreens({ ...auth, effectivePermissions });
   return {
     ...auth,
     process: { active: true, schemaVersion: compiled.schemaVersion },
-    effectivePermissions: resolveEffectiveAccess({ compiled, userId }),
+    effectivePermissions,
     fieldPolicies: compiled.fieldPolicies || {},
-    navigation: resolveNavigation({ compiled, userId }),
-    screens: resolveScreens({ compiled, userId }),
+    navigation: [...system.navigation, ...resolveNavigation({ compiled, userId })],
+    screens: [...system.screens, ...resolveScreens({ compiled, userId })],
     roleAssignments: compiled.userAccess?.[userId] || null
   };
 }

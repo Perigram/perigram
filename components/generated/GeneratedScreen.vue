@@ -10,6 +10,10 @@
       @refresh="load"
       @execute-action="executeAction"
     />
+    <GeneratedOrganizationAccount
+      v-else-if="screen.template === 'organizationAccount'"
+      :screen="screen"
+    />
     <WorkspaceLanes v-else-if="screen.template === 'workspaceLanes'" class="min-h-[32rem]">
       <template v-if="regionBySlot.left" #left>
         <GeneratedRegion
@@ -168,6 +172,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
+import GeneratedOrganizationAccount from '~/components/generated/GeneratedOrganizationAccount.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import { entityIdentifier, generatedActionRequiresParent, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
