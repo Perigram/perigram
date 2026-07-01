@@ -23,11 +23,9 @@ On mobile, `app.vue` replaces the desktop header with a fixed bottom panel.
 The panel contains home, up to two user-captured generated-screen shortcuts, a
 generated-screen picker, chats, and a profile-menu button. The picker lists the
 current user's generated screens except home/detail screens. The plus action is
-shown only while zero or one shortcut exists; once both slots are full, users
-tap the edit shortcut action to mark shortcuts as replaceable, then tap the
-exact shortcut slot to reopen the same picker and replace that slot.
-Long-pressing a shortcut opens that replacement picker as a secondary gesture,
-but replacement must not depend on long-press being discoverable.
+shown only while zero or one shortcut exists. Long-pressing a shortcut opens a
+context menu for that exact slot; the menu can replace the shortcut with another
+generated screen or delete the shortcut.
 Shortcuts are stored per user and organization in FIFO order. Chats render as
 an embedded mobile tab inside the app layout instead of the desktop overlay, so
 the chat close button is hidden there.
