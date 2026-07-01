@@ -30,6 +30,10 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   status snapshots from the compiled workflow, inserts status events, and
   updates existing output entities that are outside the active process status
   window. Supports `--dry-run`.
+- `server/scripts/migrate-process-compiled-runtime.js`: Recompiles stored
+  `data.compiled` contracts after process compiler changes. Use this after
+  generated-screen synthesis changes so active organizations drop stale
+  compiler-projected home and navigation manifests.
 - `server/scripts/migrate-process-transition-role-access.js`: Compiled-process
   cleanup for status transitions. It removes stale workflow
   `access.permissions` from transitions that already have `processRoleIds`, so

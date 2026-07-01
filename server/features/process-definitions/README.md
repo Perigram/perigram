@@ -154,3 +154,9 @@ access, copies only the socket projection fields, applies excluded fields, and
 returns receiver lifecycle metadata for the target organization to interpret.
 Inbound sockets are receiver contracts in the active process graph and cannot
 be used by the outbound projection API.
+
+Auth hydration also strips stale compiler-generated `home` screens that only
+point at inferred `auto_*` screens. That runtime guard keeps previously
+compiled process records from forcing a generated home after the compiler
+contract changed; stored process definitions should still be recompiled with
+`server/scripts/migrate-process-compiled-runtime.js`.
