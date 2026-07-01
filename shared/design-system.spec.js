@@ -530,6 +530,10 @@ describe('Design system manifest', () => {
     expect(fs.readFileSync(path.join(REPO_ROOT, 'composables/useEntity.js'), 'utf8')).toContain('options.silent');
     expect(identityBlock).toContain('entity-inline-chip');
     expect(entityPreview).toContain('hideDimensionLayer');
+    expect(entityPreview).toContain(':hide-dimension-layer="hideDimensionLayer"');
+    expect(entityPreview).toContain('GeometryPreview');
+    expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isProductionPreviewLayer');
+    expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isDimensionLayerName');
     expect(cassetteThumbnail).toContain("name !== 'dimension.cassette'");
     expect(generatedHome).not.toContain('min-w-64 max-w-72');
   });

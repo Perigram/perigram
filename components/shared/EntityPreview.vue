@@ -16,6 +16,7 @@
     <GeometryPreview
       v-else-if="mode === 'hero' || mode === 'canvas'"
       :entity="entity"
+      :hide-dimension-layer="hideDimensionLayer"
     />
   </template>
 </template>
