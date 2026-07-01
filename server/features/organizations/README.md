@@ -31,13 +31,15 @@ Key fields:
   `organizations:admin` and `users:admin` grants. Process roles may change
   operational access, but they must not remove or weaken this tenant owner
   recovery authority.
-- Organization account UI is exposed as a system generated screen during auth
-  hydration, not as hardcoded page buttons. `system-screens.js` emits the
-  `/organization` screen with localized label keys, billing regions when the
-  caller has `organizations:read`, checkout/process actions when the caller has
-  `organizations:admin`, and team-management actions when the caller has
-  `users:admin`. When an active process exists, those checks use the compiled
-  effective permissions.
+- Organization management UI is exposed as system generated screens during auth
+  hydration, not as hardcoded page buttons. `system-screens.js` emits an
+  overview screen at `/organization`, a billing screen at
+  `/organization/billing` when the caller has `organizations:read`, a team
+  route screen at `/organization/users` when the caller has `users:admin`, and
+  a process-designer route screen at `/organization/process` when the caller
+  has `organizations:admin`. Billing checkout remains an action on the billing
+  screen and requires `organizations:admin`. When an active process exists,
+  those checks use the compiled effective permissions.
 - `createInitialForUser()` is the narrow public-signup helper. It creates the
   first organization for a newly registered user, creates and activates a
   starter process definition, assigns the creator to the process admin role,

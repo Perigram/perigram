@@ -1,4 +1,4 @@
-export const SCREEN_TEMPLATES = ['entityList', 'entityDetail', 'workspaceLanes', 'table', 'formAction', 'home', 'organizationAccount'];
+export const SCREEN_TEMPLATES = ['entityList', 'entityDetail', 'workspaceLanes', 'table', 'formAction', 'home', 'route', 'organizationOverview', 'organizationAccount'];
 export const SCREEN_SOURCE_MODES = ['list', 'single'];
 export const SCREEN_REGION_SLOTS = ['main', 'left', 'center', 'right', 'supporting'];
 export const GENERATED_SCREEN_ROUTE_PREFIX = '/screens';
@@ -60,7 +60,7 @@ export function validateScreenContract(screen = {}, { screenId = screen.id, enti
 }
 
 function defaultSourcesForScreen(screen = {}, template = 'entityList') {
-  if (template === 'home') return [];
+  if (['home', 'route', 'organizationOverview', 'organizationAccount'].includes(template)) return [];
   if (!screen.entityType) return [];
   const sourceId = screen.sourceId || screen.entityType;
   const mode = TEMPLATE_DEFAULT_MODE[template] || 'list';

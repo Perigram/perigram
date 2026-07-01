@@ -2,16 +2,20 @@
 
 Organization pages manage the current tenant context.
 
-`index.vue` is a thin route wrapper around the generated organization account
+`index.vue` is a thin route wrapper around the generated organization overview
 screen from auth hydration. The server stores that screen in the user's screen
-manifest with `template: "organizationAccount"`, localized `labelKey` values,
-billing regions, and access-filtered system actions for team management,
-process design, and checkout. The page does not decide which management
-buttons exist; it renders the hydrated screen contract. Billing packages are
-loaded from `/api/organizations/:id/billing/packages`, account state from
+manifest with `template: "organizationOverview"` and a list of accessible
+organization system screens. The page does not decide which organization
+sections exist; it renders the hydrated screen contract.
+
+`billing.vue` renders the generated organization billing screen from auth
+hydration. Billing packages are loaded from
+`/api/organizations/:id/billing/packages`, account state from
 `/api/organizations/:id/billing/account`, and checkout/payment sync through the
 same organization billing route group. User profile routes do not buy or hold
-credits.
+credits. Billing checkout is a billing-screen action gated by
+`organizations:admin`; team management and process design are separate route
+screens gated by their own effective permissions.
 
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the

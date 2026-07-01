@@ -21,7 +21,7 @@ definePageMeta({
 const authStore = useAuthStore();
 const refreshingAuth = ref(true);
 
-const organizationScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'organizationAccount' || screen.screenKey === 'organization_account') || null);
+const organizationScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'organizationOverview' || screen.screenKey === 'organization_overview') || null);
 
 onMounted(() => refreshProcessManifest());
 

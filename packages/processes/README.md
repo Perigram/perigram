@@ -281,7 +281,8 @@ Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. They compile into generated screen
 manifests, not arbitrary Vue component names. A screen declares a fixed
 template (`home`, `entityList`, `entityDetail`, `workspaceLanes`, `table`,
-`formAction`, or the app-owned `organizationAccount` system template), typed
+`formAction`, or app-owned system templates such as `route`,
+`organizationOverview`, and `organizationAccount`), typed
 entity sources, template regions, required access, and manual process action
 ids. A source describes an entity type plus list/single loading mode; a region
 binds a template slot to one source and a domain display surface. The
@@ -307,12 +308,13 @@ regions keep the target list route and the list-level manual action ids for
 that entity, so generated UI can show one horizontal section per top-level
 entity with its matching process action buttons.
 Auth hydration may append app-owned system screens beside compiled process
-screens. The organization account screen uses the same generated screen
-manifest shape and effective access rules as process screens, but its
-`systemActions` execute fixed app routes or billing checkout workflows instead
-of the active process action endpoint. App-owned system templates are valid
-screen contracts for rendering/normalization, but the process designer keeps
-them out of ordinary process screen authoring.
+screens. Organization overview, billing, team, and process-designer entries use
+the same generated screen manifest shape and effective access rules as process
+screens. Billing `systemActions` execute fixed organization workflows instead
+of the active process action endpoint, while team and process designer entries
+are route screens. App-owned system templates are valid screen contracts for
+rendering/normalization, but the process designer keeps them out of ordinary
+process screen authoring.
 When a role can read both a parent entity and a child entity, inferred parent
 detail screens receive child collection sources for relations declared in the
 domain summary registry. Create-action ownership is not required to see the

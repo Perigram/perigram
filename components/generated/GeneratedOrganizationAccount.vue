@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-6">
-    <ResponsiveGrid v-if="mainRegions.length || screenActions.length" variant="wide">
+    <ResponsiveGrid v-if="mainRegions.length" variant="wide">
       <Panel v-if="hasRegion('billingAccount')">
         <div class="flex h-full flex-col gap-4">
           <div class="flex items-center justify-between gap-3">
@@ -50,20 +50,6 @@
         </div>
       </Panel>
 
-      <Panel v-for="action in routeActions" :key="action.id">
-        <div class="flex h-full flex-col gap-4">
-          <div class="flex items-center gap-3">
-            <i :class="action.icon" class="text-xl text-primary" aria-hidden="true"></i>
-            <div class="min-w-0">
-              <h2 class="m-0 text-base">{{ systemLabel(action.titleKey || action.labelKey) }}</h2>
-              <small v-if="action.descriptionKey" class="text-muted-color">{{ systemLabel(action.descriptionKey) }}</small>
-            </div>
-          </div>
-          <div class="mt-auto">
-            <Button icon="pi pi-arrow-right" :label="systemLabel(action.labelKey)" size="small" @click="router.push(action.route)" />
-          </div>
-        </div>
-      </Panel>
     </ResponsiveGrid>
 
     <div v-if="supportingRegions.length" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -98,7 +84,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
 import Panel from 'primevue/panel';
@@ -114,7 +100,6 @@ const props = defineProps({
 });
 
 const route = useRoute();
-const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
 const { t, te } = useI18n();
@@ -132,7 +117,6 @@ const regions = computed(() => props.screen.regions || []);
 const mainRegions = computed(() => regions.value.filter(region => (region.slot || 'main') === 'main'));
 const supportingRegions = computed(() => regions.value.filter(region => region.slot === 'supporting'));
 const screenActions = computed(() => props.screen.systemActions || []);
-const routeActions = computed(() => screenActions.value.filter(action => action.route));
 const canCheckout = computed(() => screenActions.value.some(action => action.id === 'organization.billing.checkout'));
 const accountStatusLabel = computed(() => billingAccount.value?.status ? billingStatusLabel(billingAccount.value.status) : t('common.loading'));
 
@@ -143,10 +127,6 @@ onMounted(async () => {
 
 function hasRegion(id) {
   return regions.value.some(region => region.id === id || region.kind === id);
-}
-
-function systemLabel(key = '') {
-  return key && te(key) ? t(key) : key;
 }
 
 function packageLabel(pack = {}) {
