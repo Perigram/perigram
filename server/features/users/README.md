@@ -69,8 +69,12 @@ attach the first organization.
 - `membership.owner: true` is the ultimate tenant admin flag. Owner
   memberships always materialize `organizations:admin` and `users:admin`, and
   auth hydration merges those grants after active-process compilation so the
-  process graph cannot lock the owner out. User mutation paths reject removing
-  the last active organization user or the last active owner.
+  process graph cannot lock the owner out. Legacy active memberships or active
+  user permission snapshots with both `organizations:admin` and `users:admin`
+  are treated as owner recovery until
+  `server/scripts/migrate-organization-owner-admins.js` writes the explicit
+  `owner` flag. User mutation paths reject removing the last active
+  organization user or the last active owner.
 - When `server/middleware/auth.js` resolves an active process, the user's
   `effectivePermissions`, navigation, field policies, and role assignment come
   from the compiled process definition.

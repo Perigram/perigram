@@ -279,6 +279,51 @@ describe('User Management & Auth', () => {
     });
   });
 
+  it('merges legacy creator membership admin grants even without owner flag', () => {
+    const orgId = new ObjectId();
+    const auth = applyOwnerPermissionsToAuth({
+      userId: 'legacy-owner',
+      organizationId: orgId,
+      effectivePermissions: {},
+      memberships: [{
+        organizationId: orgId,
+        permissions: {
+          organizations: { level: 'admin' },
+          users: { level: 'admin' }
+        },
+        status: 'active'
+      }]
+    });
+
+    expect(auth.effectivePermissions).toEqual({
+      organizations: { level: 'admin' },
+      users: { level: 'admin' }
+    });
+  });
+
+  it('merges legacy active user admin grants when memberships have no copied grants', () => {
+    const orgId = new ObjectId();
+    const auth = applyOwnerPermissionsToAuth({
+      userId: 'legacy-owner',
+      organizationId: orgId,
+      permissions: {
+        organizations: { level: 'admin' },
+        users: { level: 'admin' }
+      },
+      effectivePermissions: {},
+      memberships: [{
+        organizationId: orgId,
+        permissions: {},
+        status: 'active'
+      }]
+    });
+
+    expect(auth.effectivePermissions).toEqual({
+      organizations: { level: 'admin' },
+      users: { level: 'admin' }
+    });
+  });
+
   it('prevents removing the last active organization user', async () => {
     const orgId = new ObjectId();
     const ownerId = new ObjectId();
