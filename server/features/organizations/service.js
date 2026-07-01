@@ -7,15 +7,13 @@ import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
 import { legacyTypeToTemplateId } from '~/packages/processes/src/index.js';
 import * as processDefinitionsService from '../process-definitions/service.js';
+import { ORGANIZATION_OWNER_PERMISSIONS, ownerMembership } from '../users/organization-owner.js';
 
 /**
  * Organizations Service - v24 Absolute Final
  */
 
-const TENANT_CREATOR_PERMISSIONS = {
-  organizations: { level: 'admin' },
-  users: { level: 'admin' }
-};
+const TENANT_CREATOR_PERMISSIONS = ORGANIZATION_OWNER_PERMISSIONS;
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   if (!hasPermission({ permissions: userPermissions.effectivePermissions || userPermissions.permissions }, 'organizations', 'write')) {
@@ -43,12 +41,9 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     actorId: userId
   });
   
-  const membership = {
+  const membership = ownerMembership({
     organizationId: createdRaw._id,
-    role: 'role_admin',
-    permissions: TENANT_CREATOR_PERMISSIONS,
-    status: 'active'
-  };
+  });
 
   await repository.addUserMembership(userId, membership, {
     role: 'role_admin',
@@ -85,12 +80,9 @@ export async function createInitialForUser(userId, data = {}) {
     actorId: userId
   });
 
-  await repository.addUserMembership(userId, {
-    organizationId: createdRaw._id,
-    role: 'role_admin',
-    permissions: TENANT_CREATOR_PERMISSIONS,
-    status: 'active'
-  }, {
+  await repository.addUserMembership(userId, ownerMembership({
+    organizationId: createdRaw._id
+  }), {
     role: 'role_admin',
     permissions: TENANT_CREATOR_PERMISSIONS,
     organizationId: createdRaw._id

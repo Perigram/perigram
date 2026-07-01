@@ -10,6 +10,7 @@ import { ObjectId } from 'mongodb';
 import { hasEntityAccess } from '../../core/access/service.js';
 import * as processDefinitionsService from '../process-definitions/service.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
+import { ensureOwnerMembership, isOwnerMembership, mergeOwnerPermissions } from './organization-owner.js';
 
 /**
  * Users Service - v24 Absolute Final
@@ -152,7 +153,7 @@ export async function switchOrganization(userId, organizationId) {
 
   user.lineage.organizationId = toFlexibleId(organizationId);
   user.data.role = membership.role;
-  user.data.permissions = membership.permissions;
+  user.data.permissions = membership.owner ? mergeOwnerPermissions(membership.permissions || {}) : membership.permissions;
 
   await usersRepository.updateById(userId, user);
   return await getById(userId);
@@ -180,6 +181,7 @@ export async function confirmMembership(userId, organizationId, action, updaterU
       actorId: updaterUser.userId || 'SYSTEM'
     });
   } else {
+    await assertCanRemoveMembership({ userId, organizationId });
     await usersRepository.removeMembership(userId, organizationId);
   }
   return { success: true };
@@ -196,7 +198,9 @@ export async function updatePermissions(userId, newPermissions, updaterAuth = {}
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
-  await usersRepository.updateMembershipPermissions(userId, targetOrgId, newPermissions);
+  const membership = userRaw.data.memberships?.find(item => item.organizationId?.toString() === targetOrgId.toString());
+  const permissions = membership?.owner ? mergeOwnerPermissions(newPermissions || {}) : newPermissions;
+  await usersRepository.updateMembershipPermissions(userId, targetOrgId, permissions);
   return { success: true };
 }
 
@@ -241,6 +245,7 @@ export async function remove(uid, deleterAuth = {}) {
     throw createError({ statusCode: 403, message: 'Forbidden' });
   }
 
+  await assertCanRemoveMembership({ userId: uid, organizationId: targetOrgId });
   await usersRepository.removeMembership(uid, targetOrgId);
   return { success: true };
 }
@@ -277,6 +282,7 @@ export async function canManageUsersInOrganization(auth = {}, organizationId) {
 
   const membership = findOrganizationMembership(auth, organizationId);
   if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
+  if (membership.owner === true) return true;
   if (hasPermissionGrant({ permissions: membership.permissions || {}, feature: 'users', level: 'admin' })) return true;
   return false;
 }
@@ -292,7 +298,25 @@ function normalizeAuthFromArgs(userId, organizationId, role, auth = {}) {
 
 function findOrganizationMembership(auth = {}, organizationId) {
   const target = organizationId?.toString();
-  return (auth.memberships || []).find(item => item.organizationId?.toString() === target);
+  const membership = (auth.memberships || []).find(item => item.organizationId?.toString() === target);
+  return membership ? ensureOwnerMembership(membership) : null;
+}
+
+async function assertCanRemoveMembership({ userId, organizationId } = {}) {
+  const targetRaw = await usersRepository.findById(userId);
+  const targetMembership = targetRaw?.data?.memberships?.find(item => item.organizationId?.toString() === organizationId?.toString());
+  if (!targetMembership || ['pending', 'rejected'].includes(targetMembership.status)) return;
+
+  const activeMembers = await usersRepository.findActiveMembersByOrganization(organizationId);
+  if (activeMembers.length <= 1) {
+    throw createError({ statusCode: 409, message: 'Organization must have at least one active user' });
+  }
+
+  if (!isOwnerMembership(targetMembership)) return;
+  const activeOwners = await usersRepository.findActiveOwnersByOrganization(organizationId);
+  if (activeOwners.length <= 1) {
+    throw createError({ statusCode: 409, message: 'Organization must have at least one owner admin' });
+  }
 }
 
 async function assignProcessRolesFromInput({ userId, organizationId, role, roleIds, bindings, status, actorId } = {}) {

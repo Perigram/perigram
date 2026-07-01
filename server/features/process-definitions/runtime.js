@@ -6,6 +6,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import * as repository from './repository.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
+import { applyOwnerPermissionsToAuth } from '../users/organization-owner.js';
 
 export async function getActiveProcessForOrganization(organizationId) {
   if (!organizationId) return null;
@@ -22,20 +23,21 @@ export async function resolveProcessAuth(auth = {}) {
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
   const compiled = await getActiveCompiledProcess(organizationId);
   if (!compiled) {
-    const system = resolveOrganizationSystemScreens(auth);
+    const ownerAuth = applyOwnerPermissionsToAuth(auth);
+    const system = resolveOrganizationSystemScreens(ownerAuth);
     return {
-      ...auth,
+      ...ownerAuth,
       navigation: system.navigation,
       screens: system.screens
     };
   }
   const userId = String(auth.userId || '');
   const effectivePermissions = resolveEffectiveAccess({ compiled, userId });
-  const system = resolveOrganizationSystemScreens({ ...auth, effectivePermissions });
+  const ownerAuth = applyOwnerPermissionsToAuth({ ...auth, effectivePermissions });
+  const system = resolveOrganizationSystemScreens(ownerAuth);
   return {
-    ...auth,
+    ...ownerAuth,
     process: { active: true, schemaVersion: compiled.schemaVersion },
-    effectivePermissions,
     fieldPolicies: compiled.fieldPolicies || {},
     navigation: [...system.navigation, ...resolveNavigation({ compiled, userId })],
     screens: [...system.screens, ...resolveScreens({ compiled, userId })],

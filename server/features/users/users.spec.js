@@ -10,6 +10,7 @@ vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
 import * as userService from './service';
 import * as organizationService from '../organizations/service';
 import { User } from './model';
+import { applyOwnerPermissionsToAuth } from './organization-owner';
 
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
@@ -106,6 +107,7 @@ describe('User Management & Auth', () => {
       users: { level: 'admin' }
     });
     expect(rawUser.data.memberships[0].organizationId.toString()).toBe(organization.id);
+    expect(rawUser.data.memberships[0].owner).toBe(true);
     expect(rawUser.data.memberships[0].permissions).toEqual({
       organizations: { level: 'admin' },
       users: { level: 'admin' }
@@ -239,6 +241,166 @@ describe('User Management & Auth', () => {
         status: 'active'
       }]
     }, orgId)).toBe(true);
+  });
+
+  it('allows owner membership to recover user management even when copied grants are missing', async () => {
+    const orgId = new ObjectId();
+
+    expect(await userService.canManageUsersInOrganization({
+      userId: 'owner-user',
+      effectivePermissions: {},
+      memberships: [{
+        organizationId: orgId,
+        role: 'role_admin',
+        permissions: {},
+        owner: true,
+        status: 'active'
+      }]
+    }, orgId)).toBe(true);
+  });
+
+  it('merges owner grants after process effective permissions are resolved', () => {
+    const orgId = new ObjectId();
+    const auth = applyOwnerPermissionsToAuth({
+      userId: 'owner-user',
+      organizationId: orgId,
+      effectivePermissions: {},
+      memberships: [{
+        organizationId: orgId,
+        owner: true,
+        permissions: {},
+        status: 'active'
+      }]
+    });
+
+    expect(auth.effectivePermissions).toEqual({
+      organizations: { level: 'admin' },
+      users: { level: 'admin' }
+    });
+  });
+
+  it('prevents removing the last active organization user', async () => {
+    const orgId = new ObjectId();
+    const ownerId = new ObjectId();
+    await db.collection('users').insertOne({
+      _id: ownerId,
+      identity: { uid: 'owner-user', name: 'Owner User' },
+      data: {
+        memberships: [{
+          organizationId: orgId,
+          role: 'role_admin',
+          permissions: { users: { level: 'admin' }, organizations: { level: 'admin' } },
+          owner: true,
+          status: 'active'
+        }]
+      }
+    });
+
+    await expect(userService.remove(ownerId.toString(), {
+      userId: ownerId.toString(),
+      organizationId: orgId,
+      memberships: [{ organizationId: orgId, owner: true, permissions: {}, status: 'active' }]
+    })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('prevents removing the last owner admin when other members remain', async () => {
+    const orgId = new ObjectId();
+    const ownerId = new ObjectId();
+    await db.collection('users').insertMany([{
+      _id: ownerId,
+      identity: { uid: 'owner-user', name: 'Owner User' },
+      data: {
+        memberships: [{
+          organizationId: orgId,
+          role: 'role_admin',
+          permissions: { users: { level: 'admin' }, organizations: { level: 'admin' } },
+          owner: true,
+          status: 'active'
+        }]
+      }
+    }, {
+      _id: new ObjectId(),
+      identity: { uid: 'member-user', name: 'Member User' },
+      data: {
+        memberships: [{ organizationId: orgId, role: 'role_worker', permissions: {}, status: 'active' }]
+      }
+    }]);
+
+    await expect(userService.remove(ownerId.toString(), {
+      userId: ownerId.toString(),
+      organizationId: orgId,
+      memberships: [{ organizationId: orgId, owner: true, permissions: {}, status: 'active' }]
+    })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('allows removing an owner when another active owner remains', async () => {
+    const orgId = new ObjectId();
+    const ownerId = new ObjectId();
+    const otherOwnerId = new ObjectId();
+    await db.collection('users').insertMany([{
+      _id: ownerId,
+      identity: { uid: 'owner-user', name: 'Owner User' },
+      data: {
+        memberships: [{
+          organizationId: orgId,
+          role: 'role_admin',
+          permissions: { users: { level: 'admin' }, organizations: { level: 'admin' } },
+          owner: true,
+          status: 'active'
+        }]
+      }
+    }, {
+      _id: otherOwnerId,
+      identity: { uid: 'other-owner', name: 'Other Owner' },
+      data: {
+        memberships: [{
+          organizationId: orgId,
+          role: 'role_admin',
+          permissions: { users: { level: 'admin' }, organizations: { level: 'admin' } },
+          owner: true,
+          status: 'active'
+        }]
+      }
+    }]);
+
+    await expect(userService.remove(ownerId.toString(), {
+      userId: otherOwnerId.toString(),
+      organizationId: orgId,
+      memberships: [{ organizationId: orgId, owner: true, permissions: {}, status: 'active' }]
+    })).resolves.toEqual({ success: true });
+
+    const removed = await db.collection('users').findOne({ _id: ownerId });
+    expect(removed.data.memberships).toEqual([]);
+  });
+
+  it('preserves owner admin grants when membership permissions are updated', async () => {
+    const orgId = new ObjectId();
+    const ownerId = new ObjectId();
+    await db.collection('users').insertOne({
+      _id: ownerId,
+      identity: { uid: 'owner-user', name: 'Owner User' },
+      data: {
+        memberships: [{
+          organizationId: orgId,
+          role: 'role_admin',
+          permissions: { users: { level: 'admin' }, organizations: { level: 'admin' } },
+          owner: true,
+          status: 'active'
+        }]
+      }
+    });
+
+    await userService.updatePermissions(ownerId.toString(), {}, {
+      userId: ownerId.toString(),
+      organizationId: orgId,
+      memberships: [{ organizationId: orgId, owner: true, permissions: {}, status: 'active' }]
+    });
+
+    const owner = await db.collection('users').findOne({ _id: ownerId });
+    expect(owner.data.memberships[0].permissions).toEqual({
+      organizations: { level: 'admin' },
+      users: { level: 'admin' }
+    });
   });
 
   it('does not treat sole active membership as user-management access', async () => {
