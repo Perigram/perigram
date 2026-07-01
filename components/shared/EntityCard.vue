@@ -33,10 +33,12 @@
                             @transitioned="$emit('refresh')"
                         />
                     </div>
-                    <slot name="expanded">
-                        <slot />
-                    </slot>
-                    <slot name="footer" />
+                    <div class="entity-card-popup-content flex flex-col gap-3">
+                        <slot name="expanded">
+                            <slot />
+                        </slot>
+                        <slot name="footer" />
+                    </div>
                     <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
                         <GeneratedCassetteDesignerAction
                             v-if="inlineShowCassetteDesigner"
@@ -132,10 +134,12 @@
                             @transitioned="$emit('refresh')"
                         />
                     </div>
-                    <slot name="expanded">
-                        <slot />
-                    </slot>
-                    <slot name="footer" />
+                    <div class="entity-card-popup-content flex flex-col gap-3">
+                        <slot name="expanded">
+                            <slot />
+                        </slot>
+                        <slot name="footer" />
+                    </div>
                     <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
                         <GeneratedCassetteDesignerAction
                             v-if="inlineShowCassetteDesigner"

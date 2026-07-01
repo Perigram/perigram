@@ -1,7 +1,7 @@
 <template>
   <dl
     v-if="visibleRows.length"
-    class="m-0"
+    class="data-block m-0"
     :class="variant === 'compact' ? 'flex flex-wrap gap-x-4 gap-y-1 text-sm' : 'grid grid-cols-1 gap-3 sm:grid-cols-2'"
   >
     <div

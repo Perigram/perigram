@@ -3,6 +3,8 @@
     v-if="entity"
     :entity="entity"
     :entity-type="entityType"
+    show-trace
+    :show-identity="false"
     @refresh="$emit('refresh')"
   >
     <GeneratedQueueDetail

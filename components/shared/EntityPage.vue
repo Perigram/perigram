@@ -15,6 +15,7 @@ const props = defineProps({
   title: { type: String, default: null },
   loading: { type: Boolean, default: false },
   showTrace: { type: Boolean, default: false },
+  showIdentity: { type: Boolean, default: true },
   showStatus: { type: Boolean, default: true },
   statusActions: { type: Array, default: () => [] }
 });
@@ -33,7 +34,7 @@ const effectiveTitle = computed(() => props.title || '');
           <div v-if="effectiveTitle" class="text-sm text-muted-color">
             {{ effectiveTitle }}
           </div>
-          <IdentityBlock :entity="entity" variant="header" />
+          <IdentityBlock v-if="showIdentity" :entity="entity" variant="header" />
           <div v-if="$slots.info" class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-color">
             <slot name="info"></slot>
           </div>

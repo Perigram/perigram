@@ -435,12 +435,17 @@ function tonePalette(role) {
               variant="inline"
             />
           </div>
-          <EntitySurfaceContent
-            v-if="resolved"
-            :entity="resolved"
-            :entity-type="generatedEntityType"
-            surface="card"
-          />
+          <div class="entity-card-popup-content">
+            <EntitySurfaceContent
+              v-if="resolved"
+              :entity="resolved"
+              :entity-type="generatedEntityType"
+              surface="card"
+              suppress-child-counts
+              relation-variant="compact"
+              :display-overrides="{ dataDisplay: 'compact' }"
+            />
+          </div>
           <div v-if="popupHasActions || detailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
             <GeneratedCassetteDesignerAction
               v-if="popupShowCassetteDesigner"
