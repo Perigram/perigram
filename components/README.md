@@ -451,6 +451,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   attachment popup as edge-relative placement: edge margin, normal offset,
   edge id, count-or-spacing array value, and profile mirror controls live with
   the relation instead of duplicated width/height fields in the workpiece row.
+  Graph rows must not duplicate hanger family, production mode, or profile
+  selectors as badges; those values are edited in the expanded controls.
   `ProfileSketchEditor` is a compact CAD-style direct editor: new profile
   sessions start blank, the polyline tool uses a command loop with first point,
   rubber-band preview, subsequent vertices, explicit Close/Undo/Finish actions,

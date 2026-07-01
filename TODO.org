@@ -2627,6 +2627,13 @@
        are stored on placement data and applied to selected profile cut
        geometry.
 
+     [2026-07-01] Remove duplicated hanger graph badges
+     Files changed: components/CassetteDesignerV2.vue
+     Docs updated: components/README.md, TODO.org
+     Notes: Cassette graph rows no longer repeat hanger family, production
+       mode, or profile state as badges beside the workpiece label; the expanded
+       dropdown controls are the single surface for those settings.
+
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
        packages/processes/src/index.js,
