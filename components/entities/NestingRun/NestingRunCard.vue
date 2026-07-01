@@ -59,7 +59,7 @@ const hasCompletedOutput = computed(() =>
 const NESTING_RUN_CARD_FIELDS = resolveEntityDisplayFields({ entityType: 'nestingRun', surface: 'card' });
 const RUN_FIELDS = NESTING_RUN_CARD_FIELDS.filter(field => field.display !== 'entityRefList');
 const sheetDesignRelationFields = computed(() => NESTING_RUN_CARD_FIELDS
-    .filter(field => field.display === 'entityRefList')
+    .filter(field => field.display === 'entityRefList' && field.path === 'data.sheetDesignIds')
     .map(field => ({ ...field, items: sheetDesignRelationItems.value })));
 const sheetDesignRelationItems = computed(() => {
     const loadedItems = relatedSheetDesigns.value.map(design => ({

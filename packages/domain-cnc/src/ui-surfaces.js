@@ -24,7 +24,10 @@ const previewFor = (key) => {
 
 const cardGroupsFor = (key) => {
   const groups = cncEntityFieldGroups[key] || {};
-  return ['summary', 'specs', 'stock', 'geometry', 'relations', 'provenance']
+  const orderedGroups = key === 'nestingRun'
+    ? ['summary', 'production', 'specs', 'stock', 'geometry', 'relations', 'provenance']
+    : ['summary', 'specs', 'stock', 'geometry', 'relations', 'provenance'];
+  return orderedGroups
     .filter(group => groups[group]);
 };
 

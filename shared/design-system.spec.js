@@ -464,6 +464,7 @@ describe('Design system manifest', () => {
 
     expect(nestingRunCard).toContain('EntityRelationsBlock');
     expect(nestingRunCard).toContain("entityType: 'sheetDesign'");
+    expect(nestingRunCard).toContain("field.path === 'data.sheetDesignIds'");
     expect(nestingRunCard).toContain('item-variant="compact"');
     expect(nestingRunCard).not.toContain('SheetDesignCard');
     expect(nestingRunCard).not.toContain('GeometryPreview');
@@ -477,6 +478,7 @@ describe('Design system manifest', () => {
     expect(queueEditor).not.toContain('@artifact-click');
     expect(nestingRunService).toContain("run, 'nesting_runs', 'read'");
     expect(nestingRunService).not.toContain("run.lineage, 'queues', 'read'");
+    expect(DESIGN_SYSTEM_SURFACES.nestingRun.surfaces.card.fieldGroups).toContain('production');
   });
 
   it('keeps generated home cards as horizontal carousel items', () => {
