@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeEffectiveScreens, resolveProcessEntryRoute, resolveVisibleScreens } from './process-navigation.js';
+import { composeEffectiveScreens, processOperationalScreens, resolveProcessEntryRoute, resolveVisibleScreens } from './process-navigation.js';
 
 describe('process navigation', () => {
   it('keeps assignment-scoped screens visible when the matching scoped grant exists', () => {
@@ -152,6 +152,38 @@ describe('process navigation', () => {
         entityType: 'queue'
       }]
     })).toBe('/screens/auto_queue');
+  });
+
+  it('ignores organization system screens when choosing the active process entry route', () => {
+    expect(resolveProcessEntryRoute({
+      processActive: true,
+      screens: [{
+        id: 'organization_overview',
+        screenKey: 'organization_overview',
+        route: '/organization',
+        template: 'organizationOverview',
+        placement: 'hub',
+        kind: 'system'
+      }]
+    })).toBe('/screens');
+  });
+
+  it('keeps only operational generated screens in process mode hub lists', () => {
+    expect(processOperationalScreens([{
+      id: 'organization_overview',
+      screenKey: 'organization_overview',
+      route: '/organization',
+      template: 'organizationOverview',
+      placement: 'hub',
+      kind: 'system'
+    }, {
+      id: 'auto_cassette',
+      screenKey: 'auto_cassette',
+      route: '/screens/auto_cassette',
+      template: 'entityList',
+      placement: 'hub',
+      entityType: 'cassette'
+    }]).map(screen => screen.screenKey)).toEqual(['auto_cassette']);
   });
 
   it('returns no process route when there is no active process', () => {

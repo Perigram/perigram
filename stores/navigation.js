@@ -4,7 +4,7 @@ import { useAuthStore } from './auth';
 import { useGlobalStore } from './global';
 import { useI18n } from 'vue-i18n';
 import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
-import { resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
+import { processOperationalScreens, resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
 import { generatedScreenLabel } from '~/utils/generated-labels.js';
 
 export const useNavigationStore = defineStore('navigation', () => {
@@ -66,7 +66,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         authStore.screenManifest,
         authStore.activePermissions
     ));
-    const processScreenSiblings = computed(() => visibleProcessScreens.value.filter(screen => {
+    const processScreenSiblings = computed(() => processOperationalScreens(visibleProcessScreens.value).filter(screen => {
         if (screen.template === 'entityDetail') return false;
         return (screen.placement || 'hub') === 'hub';
     }));

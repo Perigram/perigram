@@ -279,16 +279,20 @@
         authStore.userData?.id || authStore.userData?.userId || 'anonymous',
         authStore.userData?.organizationId || authStore.organizationData?._id || 'organization'
     ].join(':'))
+    const processOperationalScreens = computed(() => authStore.screenManifest
+        .filter(screen => screen.kind !== 'system')
+        .filter(screen => typeof screen.route === 'string' && screen.route.startsWith('/screens/')))
     const homeRoute = computed(() => {
         if (authStore.processActive) {
-            const home = authStore.screenManifest.find(screen => screen.template === 'home' && screen.route)
+            const home = processOperationalScreens.value.find(screen => screen.template === 'home' && screen.route)
             if (home?.route) return home.route
-            const hub = authStore.screenManifest.find(screen => screen.route && screen.template !== 'entityDetail' && (screen.placement || 'hub') === 'hub')
+            const hub = processOperationalScreens.value.find(screen => screen.route && screen.template !== 'entityDetail' && (screen.placement || 'hub') === 'hub')
             if (hub?.route) return hub.route
+            return '/screens'
         }
         return '/'
     })
-    const availableMobileGeneratedScreens = computed(() => authStore.screenManifest
+    const availableMobileGeneratedScreens = computed(() => processOperationalScreens.value
         .filter(screen => screen.route && screen.template !== 'home')
         .filter(screen => screen.template !== 'entityDetail')
         .map(screen => ({

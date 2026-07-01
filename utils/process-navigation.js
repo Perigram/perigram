@@ -20,7 +20,7 @@ export function resolveVisibleScreens(screens = [], permissions = {}) {
 
 export function resolveProcessEntryRoute({ processActive = false, screens = [], navigation = [] } = {}) {
   if (!processActive) return null;
-  const effectiveScreens = composeEffectiveScreens(screens);
+  const effectiveScreens = processOperationalScreens(composeEffectiveScreens(screens));
   const home = effectiveScreens.find(screen => screen.template === 'home' && screen.route);
   if (home) return home.route;
   const hub = effectiveScreens.find(screen => screen.route && screen.template !== 'entityDetail' && (screen.placement || 'hub') === 'hub');
@@ -49,6 +49,15 @@ export function composeEffectiveScreens(screens = []) {
     existing.regions = mergeRegions(existing.regions || [], normalized.regions || []);
   }
   return [...byKey.values()];
+}
+
+export function processOperationalScreens(screens = []) {
+  return (screens || []).filter(screen => (
+    screen
+    && screen.kind !== 'system'
+    && typeof screen.route === 'string'
+    && screen.route.startsWith('/screens/')
+  ));
 }
 
 function normalizeEffectiveScreen(screen = {}) {
