@@ -26,6 +26,11 @@ Key fields:
 - `write` can create/update organization records.
 - `admin` can delete organization records.
 - List queries are scoped by membership lineage.
+- Every organization must retain at least one active owner membership. The
+  organization creator receives `membership.owner: true` plus permanent
+  `organizations:admin` and `users:admin` grants. Process roles may change
+  operational access, but they must not remove or weaken this tenant owner
+  recovery authority.
 - Organization account UI is exposed as a system generated screen during auth
   hydration, not as hardcoded page buttons. `system-screens.js` emits the
   `/organization` screen with localized label keys, billing regions when the
@@ -36,11 +41,11 @@ Key fields:
 - `createInitialForUser()` is the narrow public-signup helper. It creates the
   first organization for a newly registered user, creates and activates a
   starter process definition, assigns the creator to the process admin role,
-  and writes the user's initial membership/lineage. The creator membership
-  stores explicit `organizations:admin` and `users:admin` grants so tenant
-  management remains reachable even if the active process graph later removes
-  operational organization screens. Active process assignments provide runtime
-  app access.
+  and writes the user's initial owner membership/lineage. The creator
+  membership stores explicit `organizations:admin` and `users:admin` grants so
+  tenant management remains reachable even if the active process graph later
+  removes operational organization screens. Active process assignments provide
+  runtime app access.
 
 ## API Behavior
 - `GET /api/organizations/:id` returns the serialized organization when found.
