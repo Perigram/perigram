@@ -80,12 +80,17 @@ describe('process runtime auth hydration', () => {
       'organization_billing',
       'organization_team',
       'organization_process',
+      'home_user-1',
       'auto_project'
     ]);
-    expect(result.screens.find(screen => screen.template === 'home')).toBeFalsy();
-    expect(result.navigation[0]).toMatchObject({
-      id: 'organization_overview',
-      route: '/organization'
+    expect(result.screens.find(screen => screen.template === 'home')).toMatchObject({
+      screenKey: 'home_user-1',
+      sources: [],
+      regions: []
+    });
+    expect(result.navigation.find(item => item.screenKey === 'home_user-1')).toMatchObject({
+      screenKey: 'home_user-1',
+      route: '/screens/home_user-1'
     });
   });
 
@@ -154,6 +159,44 @@ describe('process runtime auth hydration', () => {
 
     expect(result.screens.find(screen => screen.template === 'home')).toMatchObject({
       screenKey: 'home_user-1'
+    });
+  });
+
+  it('adds an empty process home when the active process has no compiled screens', async () => {
+    repository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-1',
+      data: {
+        compiled: {
+          schemaVersion: 1,
+          userAccess: {
+            'user-1': {
+              permissions: {},
+              navigation: [],
+              screens: []
+            }
+          }
+        }
+      }
+    });
+
+    const result = await resolveProcessAuth({
+      userId: 'user-1',
+      organizationId: 'org-1',
+      memberships: [{
+        organizationId: 'org-1',
+        owner: true,
+        permissions: {},
+        status: 'active'
+      }]
+    });
+
+    expect(result.screens.find(screen => screen.template === 'home')).toMatchObject({
+      screenKey: 'home_user-1',
+      route: '/screens/home_user-1'
+    });
+    expect(result.navigation.find(item => item.screenKey === 'home_user-1')).toMatchObject({
+      screenKey: 'home_user-1',
+      route: '/screens/home_user-1'
     });
   });
 });
