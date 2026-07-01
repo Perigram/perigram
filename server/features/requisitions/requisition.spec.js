@@ -131,6 +131,30 @@ describe('Requisition Lifecycle', () => {
       .rejects.toThrow('Permission denied');
   });
 
+  it('should list requisitions for string organization ids without ObjectId conversion errors', async () => {
+    await db.collection('requisitions').insertMany([
+      {
+        identity: { uid: 'req-a', name: 'REQ-A' },
+        lineage: { organizationId: 'org-alpha', manufacturerId: 'org-beta' },
+        status: { state: { primary: 'DRAFT' } },
+        data: {}
+      },
+      {
+        identity: { uid: 'req-b', name: 'REQ-B' },
+        lineage: { organizationId: new ObjectId(), manufacturerId: 'org-alpha' },
+        status: { state: { primary: 'SENT' } },
+        data: {}
+      }
+    ]);
+
+    const results = await requisitionService.list('user-alpha', 'org-alpha', null, {
+      memberships: [{ organizationId: 'org-alpha', permissions: { requisitions: 'admin' } }]
+    });
+
+    expect(results).toHaveLength(2);
+    expect(results.map(item => item.identity.name)).toEqual(['REQ-A', 'REQ-B']);
+  });
+
   it('should progress status from draft to sent', async () => {
     const reqId = new ObjectId();
     await db.collection('requisitions').insertOne({
@@ -142,6 +166,6 @@ describe('Requisition Lifecycle', () => {
     });
 
     const result = await requisitionService.send(reqId.toString(), mockContractor.userId, mockContractor.organizationId, null, mockContractor.permissions);
-    expect(result.state).toBe('SENT');
+    expect(result.state.primary).toBe('SENT');
   });
 });

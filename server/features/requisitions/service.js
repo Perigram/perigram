@@ -7,6 +7,7 @@ import { hasPermissionGrant } from '#shared/access-control.js';
 import { ObjectId } from 'mongodb';
 import { createIdentity, createStatus, inheritLineage, createData } from '~/server/core/blocks/index.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
+import { toFlexibleId } from '~/server/utils/objectid.js';
 
 /**
  * Requisitions Service - v24 Standardized
@@ -61,9 +62,9 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     origin,
     status: origin,
     lineage: {
-      organizationId: new ObjectId(userOrg),
-      manufacturerId: new ObjectId(data.manufacturerId),
-      projectId: data.projectId ? new ObjectId(data.projectId) : null
+      organizationId: toFlexibleId(userOrg),
+      manufacturerId: toFlexibleId(data.manufacturerId),
+      projectId: data.projectId ? toFlexibleId(data.projectId) : null
     },
     data: createData({
       items: snapshotItems,
@@ -94,13 +95,24 @@ function permissionsForOrganization(auth = {}, organizationId) {
   return membership?.permissions || auth.permissions || {};
 }
 
+function lineageMatchValues(value) {
+  const flexible = toFlexibleId(value);
+  const values = [flexible];
+  const stringValue = value?.toString?.() || value;
+  if (stringValue && !values.some(entry => entry?.toString?.() === stringValue)) {
+    values.push(stringValue);
+  }
+  return values;
+}
+
 export async function list(userId, userOrg, userRole, userPermissions) {
-  const filter = getLineageFilter(userPermissions);
+  const filter = { ...getLineageFilter(userPermissions) };
+  delete filter['lineage.organizationId'];
   // Add specific filter to see either as contractor (organizationId) or manufacturer (manufacturerId)
-  const orgId = new ObjectId(userOrg);
+  const orgIds = lineageMatchValues(userOrg);
   filter.$or = [
-    { 'lineage.organizationId': orgId },
-    { 'lineage.manufacturerId': orgId }
+    { 'lineage.organizationId': { $in: orgIds } },
+    { 'lineage.manufacturerId': { $in: orgIds } }
   ];
   
   const requisitions = await repository.find(filter);
