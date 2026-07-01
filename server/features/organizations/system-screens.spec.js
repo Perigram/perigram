@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveOrganizationSystemScreens } from './system-screens.js';
 
 describe('organization system screens', () => {
-  it('stores billing regions and admin actions on the organization account screen', () => {
+  it('emits separate organization overview, billing, team, and process screens', () => {
     const result = resolveOrganizationSystemScreens({
       userId: 'user-1',
       organizationId: 'org-1',
@@ -12,28 +12,51 @@ describe('organization system screens', () => {
       }
     });
 
-    expect(result.screens).toHaveLength(1);
+    expect(result.screens.map(screen => screen.screenKey)).toEqual([
+      'organization_overview',
+      'organization_billing',
+      'organization_team',
+      'organization_process'
+    ]);
     expect(result.screens[0]).toMatchObject({
-      screenKey: 'organization_account',
-      template: 'organizationAccount',
+      screenKey: 'organization_overview',
+      template: 'organizationOverview',
       labelKey: 'organization.workspace',
       route: '/organization',
       scope: { organizationId: 'org-1' }
     });
-    expect(result.screens[0].regions.map(region => region.id)).toEqual([
+    expect(result.screens[0].systemScreens.map(screen => screen.screenKey)).toEqual([
+      'organization_billing',
+      'organization_team',
+      'organization_process'
+    ]);
+
+    const billingScreen = result.screens.find(screen => screen.screenKey === 'organization_billing');
+    expect(billingScreen).toMatchObject({
+      template: 'organizationAccount',
+      labelKey: 'billing.title',
+      route: '/organization/billing',
+      required: { feature: 'organizations', level: 'read' }
+    });
+    expect(billingScreen.regions.map(region => region.id)).toEqual([
       'billingAccount',
       'billingPackages',
       'billingInvoices',
       'billingLedger'
     ]);
-    expect(result.screens[0].systemActions.map(action => action.id)).toEqual([
-      'organization.team',
-      'organization.processDesigner',
+    expect(billingScreen.systemActions.map(action => action.id)).toEqual([
       'organization.billing.checkout'
+    ]);
+
+    expect(result.navigation.map(item => item.id)).toEqual([
+      'organization_overview',
+      'organization_billing',
+      'organization_team',
+      'organization_process'
     ]);
   });
 
-  it('omits billing regions when the user can only manage team members', () => {
+  it('only exposes overview and team screens when the user can only manage team members', () => {
     const result = resolveOrganizationSystemScreens({
       userId: 'user-1',
       organizationId: 'org-1',
@@ -42,7 +65,26 @@ describe('organization system screens', () => {
       }
     });
 
-    expect(result.screens[0].regions).toEqual([]);
-    expect(result.screens[0].systemActions.map(action => action.id)).toEqual(['organization.team']);
+    expect(result.screens.map(screen => screen.screenKey)).toEqual([
+      'organization_overview',
+      'organization_team'
+    ]);
+    expect(result.screens[0].systemScreens.map(screen => screen.screenKey)).toEqual(['organization_team']);
+  });
+
+  it('omits admin checkout from billing when the user has read-only organization access', () => {
+    const result = resolveOrganizationSystemScreens({
+      userId: 'user-1',
+      organizationId: 'org-1',
+      effectivePermissions: {
+        organizations: { level: 'read' }
+      }
+    });
+
+    expect(result.screens.map(screen => screen.screenKey)).toEqual([
+      'organization_overview',
+      'organization_billing'
+    ]);
+    expect(result.screens.find(screen => screen.screenKey === 'organization_billing').systemActions).toEqual([]);
   });
 });

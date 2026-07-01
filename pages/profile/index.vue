@@ -99,16 +99,16 @@
                                         <div v-if="membership.status === 'pending'" class="mt-2 py-2 italic opacity-60">
                                             {{ $t('profile.membershipPending') }}
                                         </div>
-                                        <div v-else-if="membership.organizationId === authStore.userData.organizationId && organizationAccountScreen" class="flex justify-between items-center mt-2 pt-2 border-t border-muted border-dashed">
-                                            <Button :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" @click.stop="router.push(organizationAccountScreen.route || '/organization')" />
+                                        <div v-else-if="membership.organizationId === authStore.userData.organizationId && organizationOverviewScreen" class="flex flex-wrap justify-end gap-2 mt-2 pt-2 border-t border-muted border-dashed">
+                                            <Button :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" @click.stop="router.push(organizationOverviewScreen.route || '/organization')" />
                                             <Button
-                                                v-for="action in organizationRouteActions"
-                                                :key="action.id"
-                                                :label="systemActionLabel(action)"
-                                                :icon="action.icon"
+                                                v-for="screen in organizationRouteScreens"
+                                                :key="screen.screenKey || screen.id"
+                                                :label="systemScreenLabel(screen)"
+                                                :icon="screen.icon || 'pi pi-arrow-right'"
                                                 text
                                                 size="small"
-                                                @click.stop="router.push(action.route)"
+                                                @click.stop="router.push(screen.route)"
                                             />
                                         </div>
                                     </div>
@@ -167,6 +167,7 @@ import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useEntity } from '~/composables/useEntity';
 import { selectOptionText } from '~/utils/selectOptions';
+import { generatedScreenLabel } from '~/utils/generated-labels';
 
 definePageMeta({
     layout: "app",
@@ -181,8 +182,11 @@ const organizationsEntity = useEntity('organization');
 const authStore = useAuthStore();
 const { user: userRef } = storeToRefs(authStore);
 const user = computed(() => userRef.value || {});
-const organizationAccountScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'organizationAccount' || screen.screenKey === 'organization_account') || null);
-const organizationRouteActions = computed(() => (organizationAccountScreen.value?.systemActions || []).filter(action => action.route));
+const organizationScreens = computed(() => authStore.screenManifest
+    .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization'))
+    .sort((left, right) => organizationScreenOrder(left) - organizationScreenOrder(right)));
+const organizationOverviewScreen = computed(() => organizationScreens.value.find(screen => screen.screenKey === 'organization_overview') || organizationScreens.value[0] || null);
+const organizationRouteScreens = computed(() => organizationScreens.value.filter(screen => screen.route && screen.screenKey !== organizationOverviewScreen.value?.screenKey));
 
 const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
@@ -192,9 +196,18 @@ const getOrgName = (orgId) => {
     return org ? org.name : t('profile.unknownOrganization');
 };
 
-function systemActionLabel(action = {}) {
-    const key = action.titleKey || action.labelKey;
-    return key && te(key) ? t(key) : action.id;
+function systemScreenLabel(screen = {}) {
+    return generatedScreenLabel(screen, { t, te });
+}
+
+function organizationScreenOrder(screen = {}) {
+    const order = {
+        organization_overview: 0,
+        organization_billing: 1,
+        organization_team: 2,
+        organization_process: 3
+    };
+    return order[screen.screenKey || screen.id] ?? 100;
 }
 
 const orgForm = ref({

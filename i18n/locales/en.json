@@ -2207,6 +2207,7 @@
     "type": "Organization Type",
     "workspace": "Organization",
     "overview": "Overview",
+    "billing": "Billing",
     "teamManagement": "Team management",
     "teamManagementHint": "Invite users, approve memberships, and edit access grants.",
     "processDesignerHint": "Compose roles, entity lifecycles, services, and sockets for this organization.",

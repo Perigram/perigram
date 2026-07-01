@@ -608,7 +608,7 @@ const socketDirections = [
   { label: 'inbound', value: 'inbound' }
 ];
 const screenTemplateOptions = SCREEN_TEMPLATES
-  .filter(value => value !== 'organizationAccount')
+  .filter(value => !['route', 'organizationOverview', 'organizationAccount'].includes(value))
   .map(value => ({ label: value, value }));
 const screenSourceModeOptions = SCREEN_SOURCE_MODES.map(value => ({ label: value, value }));
 const screenSlotOptions = SCREEN_REGION_SLOTS.map(value => ({ label: value, value }));

@@ -271,7 +271,7 @@
     }
 
     const isBoundedWorkspaceRoute = computed(() => /^\/project\/[^/]+\/queues\/?$/.test(route.path))
-    const isAccountRoute = computed(() => route.path === '/profile' || route.path === '/organization')
+    const isAccountRoute = computed(() => route.path === '/profile' || route.path.startsWith('/organization'))
     const isFlushMobileSurface = computed(() => mobileActiveTab.value === 'chats' || isAccountRoute.value)
     const screenName = (screen) => generatedScreenLabel(screen, { t, te })
     const mobileShortcutStorageKey = computed(() => [
@@ -485,29 +485,30 @@
     const toggleUserMenu = (event) => {
         userMenu.value.toggle(event);
     };
-    const organizationAccountScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'organizationAccount' || screen.screenKey === 'organization_account') || null)
-    const localizedSystemLabel = (key, fallback = '') => key && te(key) ? t(key) : fallback || key
+    const organizationSystemScreens = computed(() => authStore.screenManifest
+        .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization'))
+        .sort((left, right) => organizationScreenOrder(left) - organizationScreenOrder(right)))
+    const organizationScreenOrder = (screen = {}) => {
+        const order = {
+            organization_overview: 0,
+            organization_billing: 1,
+            organization_team: 2,
+            organization_process: 3
+        }
+        return order[screen.screenKey || screen.id] ?? 100
+    }
 
     const userMenuItems = computed(() => {
         const items = [];
         const canOpenGeneratedRoute = (route) => !authStore.processActive || navStore.processAllowsRoute(route);
 
         // 1. Current Organization & Context
-        if (authStore.organizationData && organizationAccountScreen.value) {
-            const organizationItems = [
-                {
-                    label: localizedSystemLabel(organizationAccountScreen.value.labelKey, t('organization.workspace')),
-                    icon: 'pi pi-building',
-                    command: () => router.push(organizationAccountScreen.value.route || '/organization')
-                },
-                ...(organizationAccountScreen.value.systemActions || [])
-                    .filter(action => action.route)
-                    .map(action => ({
-                        label: localizedSystemLabel(action.titleKey || action.labelKey, action.id),
-                        icon: action.icon || 'pi pi-arrow-right',
-                        command: () => router.push(action.route)
-                    }))
-            ];
+        if (authStore.organizationData && organizationSystemScreens.value.length) {
+            const organizationItems = organizationSystemScreens.value.map(screen => ({
+                label: screenName(screen),
+                icon: screen.icon || screenIcon(screen),
+                command: () => router.push(screen.route)
+            }));
             if (organizationItems.length) items.push({
                 label: authStore.organizationData.identity?.name || authStore.organizationData.name || t('organization.workspace'),
                 items: organizationItems
