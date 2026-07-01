@@ -594,10 +594,13 @@ describe('@cutkit/processes compiler', () => {
       actions: ['action_accept']
     });
     expect(compiled.userAccess.user_a.navigation[0]).toMatchObject({
-      route: '/screens/auto_queue',
-      screenKey: 'auto_queue'
+      route: '/screens/home_user_a',
+      screenKey: 'home_user_a'
     });
-    expect(compiled.userAccess.user_a.screens.find(screen => screen.template === 'home')).toBeFalsy();
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.template === 'home')).toMatchObject({
+      screenKey: 'home_user_a',
+      sources: [expect.objectContaining({ entityType: 'queue', mode: 'list' })]
+    });
   });
 
   it('includes generated screens for every assigned role grant', () => {
@@ -632,9 +635,12 @@ describe('@cutkit/processes compiler', () => {
       'auto_project_detail',
       'auto_project',
       'auto_queue_detail',
-      'auto_queue'
+      'auto_queue',
+      'home_user_a'
     ].sort());
-    expect(compiled.userAccess.user_a.screens.find(screen => screen.template === 'home')).toBeFalsy();
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.template === 'home')).toMatchObject({
+      screenKey: 'home_user_a'
+    });
     expect(compiled.userAccess.user_a.permissions).toMatchObject({
       projects: [{ level: 'read' }],
       queues: [{ level: 'read' }]

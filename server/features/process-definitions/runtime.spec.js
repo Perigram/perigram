@@ -12,7 +12,7 @@ describe('process runtime auth hydration', () => {
     vi.clearAllMocks();
   });
 
-  it('strips stale generated home screens when the process has only auto-generated screens', async () => {
+  it('keeps generated process home screens for inferred operational screens', async () => {
     repository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-1',
       data: {
@@ -80,10 +80,17 @@ describe('process runtime auth hydration', () => {
       'organization_billing',
       'organization_team',
       'organization_process',
+      'home_user-1',
       'auto_project'
     ]);
-    expect(result.screens.find(screen => screen.template === 'home')).toBeFalsy();
-    expect(result.navigation.find(item => item.screenKey === 'home_user-1')).toBeFalsy();
+    expect(result.screens.find(screen => screen.template === 'home')).toMatchObject({
+      screenKey: 'home_user-1',
+      sources: [expect.objectContaining({ entityType: 'project', mode: 'list' })]
+    });
+    expect(result.navigation.find(item => item.screenKey === 'home_user-1')).toMatchObject({
+      screenKey: 'home_user-1',
+      route: '/screens/home_user-1'
+    });
   });
 
   it('keeps authored process home screens intact', async () => {
