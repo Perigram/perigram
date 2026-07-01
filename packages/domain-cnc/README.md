@@ -138,7 +138,11 @@ Display constructor metadata is split from access policy:
   cards use that metadata together with explicit `summary.*Preview`
   `entityRefList` fields to swap a numeric count for a compact child gallery.
   Current preview-backed replacements include project queues, queue runs,
-  queue sheets, library cassettes, and catalog colors.
+  queue sheets, nesting-run sheet designs, library cassettes, and catalog
+  colors. The nesting-run `card` surface includes the `production` group so
+  generic card and popup surfaces can render `data.sheetDesignIds` as a
+  relation gallery; custom nesting-run cards still filter that group to sheet
+  designs so material source context stays in its dedicated source section.
 - `ui-surfaces.js` declares which groups and display modes belong to surfaces
   such as inline, compact, card, and detail.
 - `field-access.js` remains the hard visibility boundary. A field group path

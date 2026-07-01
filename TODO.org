@@ -4,6 +4,21 @@
   :END:
 
 *** Agent Notes
+    [2026-07-01] Show nesting-run sheet designs in popups and clarify queue item label
+    Files changed: components/entities/NestingRun/NestingRunCard.vue,
+      i18n/locales/en.json, i18n/locales/ru.json,
+      packages/domain-cnc/src/ui-surfaces.js,
+      shared/design-system.spec.js
+    Docs updated: components/entities/NestingRun/README.md,
+      components/entities/Queue/README.md, packages/domain-cnc/README.md,
+      TODO.org
+    Notes: Nesting-run card surfaces now include the production field group so
+      generic inline popups can render `data.sheetDesignIds` as compact
+      sheet-design galleries, while the custom nesting-run card still filters
+      that group to sheet designs only. Queue job item labels now say
+      "Items to Nest" / "Позиции раскроя" to describe cassette/design quantities
+      sent into nesting.
+
     [2026-07-01] Densify entity popups and align relation galleries
     Files changed: assets/css/main.css,
       components/entities/Library/LibraryCard.vue,

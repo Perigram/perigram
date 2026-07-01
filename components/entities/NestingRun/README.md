@@ -18,6 +18,9 @@ chrome.
   shared `EntityRelationsBlock` compact gallery, so sheet-design previews,
   overflow, popovers, and generated detail actions follow the same convention
   as generated card relation galleries instead of a nesting-run-specific tile.
+  The generic card/popup surface also includes the domain `production` field
+  group so an inline nesting-run popup can render `data.sheetDesignIds` without
+  needing the queue editor's explicit `sheetDesigns` prop.
 - Does not render generated artifacts or DXF previews. File outputs are owned by
   artifact/attachment surfaces; the nesting run card stays focused on run
   metrics and resulting sheet designs.

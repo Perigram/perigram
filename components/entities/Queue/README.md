@@ -41,6 +41,9 @@ Production queue card and detail surface.
   the queue but not the related design/template directly, `QueueEntryCard`
   renders a typed id chip and skips protected relation fetches instead of
   calling the wrong endpoint.
+- Queue card summary labels describe `data.job.items` as "Items to Nest"
+  (`Позиции раскроя`), meaning cassette/design quantities entering the nesting
+  job, not commercial order lines.
 - Queue editor selected warehouse sources use compact `QueueSourceCard` tiles
   instead of embedding pile/sheet/remnant cards. It draws remnant polygons when
   present and rectangular sheet previews for stock sources without stored
