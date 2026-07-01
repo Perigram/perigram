@@ -1,9 +1,10 @@
 # Remote Access Runbook
 
-This project is deployed on the R240 host behind the CutKit WireGuard VPN.
-Use this runbook for agent access, deployment, and basic checks. It intentionally
-does not store private keys, sudo passwords, full WireGuard configs, cookies, or
-tokens.
+This runbook covers the legacy R240 self-hosted path. Production currently runs
+on Railway; use [DEPLOYMENT.md](./DEPLOYMENT.md) for the active Railway app and
+database workflow. Keep this file for VPN/SSH access to the R240 host and for
+the old Swarm rollout path. It intentionally does not store private keys, sudo
+passwords, full WireGuard configs, cookies, or tokens.
 
 ## Current Targets
 

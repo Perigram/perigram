@@ -22,20 +22,35 @@ The fastest way to develop is running the app locally and using Docker only for 
 
 ## ☁️ Cloud Deployment (Railway)
 
-Railway is recommended for quick cloud deployments with automatic CI/CD.
+Railway is the current hosted production target.
 
-1.  **MongoDB**: Use MongoDB Atlas (Free Tier) or Railway's built-in MongoDB.
-2.  **Environment Variables**:
-    *   `MONGODB_URI`: Your connection string.
-    *   `BASE_URL`: Public URL of your app.
-    *   `GOOGLE_CLIENT_ID` / `GITHUB_CLIENT_ID`: OAuth credentials.
-3.  **Deploy**: Connect your GitHub repository to Railway. It will auto-detect the `Dockerfile` and deploy.
+Current production shape:
+
+- Service: `cutkit-demo`
+- Public URL: `https://cutkit-demo-production.up.railway.app`
+- Database: Railway Mongo service on the project private network
+- Health check: `GET /api/service/health`
+
+Operational notes:
+
+1.  **App/database split**: Production app vars `MONGODB_URI`, `MONGO_URI`,
+    and `NUXT_MONGO_URI` point at the Railway private Mongo hostname with
+    `authSource=admin`. Do not switch back to Atlas without re-validating the
+    network path.
+2.  **Redeploy vs restart**: Railway restarts can keep the current deployment
+    env snapshot. After changing production env vars, prefer a full
+    `railway redeploy --service cutkit-demo --environment production`.
+3.  **Local seeding**: `railway run` executes on the local workstation, so it
+    cannot resolve Railway private hostnames. For one-off local seeds against
+    production, use the Railway Mongo public proxy URI only for that command.
+4.  **Deploy**: `railway up --service cutkit-demo --environment production`
+    deploys the root app `Dockerfile`.
 
 ## 🏠 Self-Hosted (Docker Swarm)
 
 For production on your own server.
 
-For the current R240 deployment path, VPN/SSH targets, and Swarm rollout
+For the R240 deployment path, VPN/SSH targets, and Swarm rollout
 commands, use [REMOTE_ACCESS.md](./REMOTE_ACCESS.md).
 
 1.  **Init Swarm**: `docker swarm init`

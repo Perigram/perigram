@@ -25,6 +25,15 @@ Governed by `server/core/machines/definitions.js`:
 - **`transition`**: Moves requisition through lifecycle via `statusService`.
 - **`list`**: Uses a dual-lineage filter (either `organizationId` matches as buyer, or `manufacturerId` matches as seller).
 
+## ID Handling
+
+- Requisition lineage references use flexible ids. Organization, manufacturer,
+  and project ids may be stored as string UIDs or Mongo `ObjectId` values
+  depending on how the organization and process were bootstrapped.
+- Store lineage fields through `toFlexibleId()` and list by matching both the
+  flexible value and its string form. Do not cast authenticated organization
+  ids to `ObjectId` in this feature.
+
 ## Related
 - [catalogs](../catalogs/README.md) - Pricing source.
 - [material-piles](../material-piles/README.md) - Target for fulfillment.
