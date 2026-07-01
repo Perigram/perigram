@@ -18,7 +18,11 @@ redirect gate for authenticated users.
   screen, then `/screens` only when no navigable generated screen exists. The
   entry route must not fall back to static domain routes such as `/projects`
   while a process is active, because available screens are defined entirely by
-  the active process graph. Authenticated users without an active process use
+  the active process graph. The synthesized `home` screen is for authored
+  operational surfaces, not for inferred `auto_*` grant screens; when a user
+  only has those inferred screens, the organization workspace stays the first
+  destination instead of forcing a generated list fetch on login.
+  Authenticated users without an active process use
   the static projects workspace.
 - Anonymous visitors stay on the landing page, which embeds
   `CassetteMarketingAnimation` as the first-viewport visual and links to login

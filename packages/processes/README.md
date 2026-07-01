@@ -50,7 +50,10 @@ compiler-inferred role/entity screens stay separate per role and entity so a
 multi-role user receives every matching operational screen. Each inferred
 role/entity list screen also gets a paired `entityDetail` screen with the same
 required access and action set, so generated collection names can open an
-entity page through `screen.scope.entityId`.
+entity page through `screen.scope.entityId`. Grant-only inferred screens are
+still valid destinations, but the synthesized process `home` screen is seeded
+only from authored operational list surfaces. Inferred `auto_*` grant screens
+must not become the default first screen on their own.
 
 Action records represent executable process steps on the visual canvas. The
 compiler validates `createEntity`, `updateEntity`, `changeStatus`,
