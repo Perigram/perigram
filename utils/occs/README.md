@@ -28,7 +28,10 @@ frontend/shared utility layer.
   placements resolve to exact `cut.hole` circles. Edge arrays use attachment X
   as a margin from both edge ends, attachment Y as the face-normal offset, and
   the target snap (`start`, `end`, or `center`) as the array binding before
-  applying either a `count` or `spacing` rule.
+  applying either a `count` or `spacing` rule. Cassette Designer v2 exposes that
+  same contract as edge margin, normal offset, edge, count/step value, and
+  profile mirror controls on the attachment relation; hanger width/height is
+  not duplicated in the workpiece row when a saved profile supplies geometry.
 - `profiles.js` declares the reusable OCCS profile sketch helper used by
   Cassette Designer v2. It keeps profile templates declarative but direct:
   blank profile drawing sessions, editable snap points, point-by-point

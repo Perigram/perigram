@@ -2616,6 +2616,17 @@
        cassette write grant is available; cassette context still scopes
        organization lineage and shared feature visibility when present.
 
+     [2026-07-01] Clarify hanger edge placement controls
+     Files changed: components/CassetteDesignerV2.vue,
+       utils/cassetteV2Renderer.js, utils/cassetteV2Renderer.spec.js,
+       i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md, utils/occs/README.md, TODO.org
+     Notes: Hanger workpiece rows now keep only self-sufficient selectors while
+       attachment relations expose edge margin, normal offset, edge selection,
+       count-or-step array input, and mirror X/Y controls. Relation mirror flags
+       are stored on placement data and applied to selected profile cut
+       geometry.
+
      [2026-06-21] Add process starter templates and migration helper
      Files changed: packages/processes/src/templates.js,
        packages/processes/src/index.js,

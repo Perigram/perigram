@@ -447,7 +447,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   profile selector instead of adding a separate profile workpiece to the
   cassette graph. Hanger features keep their production-mode controls, including
   cut-in-parent behavior, and selected profile snapshots replace the default
-  hanger cut polygon when present.
+  hanger cut polygon when present. Hanger placement is edited from the
+  attachment popup as edge-relative placement: edge margin, normal offset,
+  edge id, count-or-spacing array value, and profile mirror controls live with
+  the relation instead of duplicated width/height fields in the workpiece row.
   `ProfileSketchEditor` is a compact CAD-style direct editor: new profile
   sessions start blank, the polyline tool uses a command loop with first point,
   rubber-band preview, subsequent vertices, explicit Close/Undo/Finish actions,
