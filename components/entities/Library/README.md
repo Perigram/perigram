@@ -6,13 +6,17 @@ Cards for `library` DTOs from the `libraries` collection.
 
 - `LibraryCard.vue` renders inline, compact, and card variants through shared
   `EntityCard` chrome. It displays the library identity, material data, and the
-  cassette count summary.
+  cassette count summary. When `summary.cassettePreview` is present, the card
+  replaces that count with the shared compact cassette relation gallery so
+  library children use the same preview/popover/overflow convention as
+  generated entity cards.
 
 ## Contract
 
 - Expects a v24 `library` DTO with `identity`, `lineage`, `origin`, `status`,
   `attachments`, `data`, and `summary`.
-- Uses `data.material`, `data.description`, and `summary.cassetteCount`.
+- Uses `data.material`, `data.description`, `summary.cassetteCount`, and
+  `summary.cassettePreview`.
 - Cassettes created with a library parent persist `lineage.libraryId`; summary
   sync treats those cassettes as children of the library.
 - Trace links to libraries resolve through generated entity-detail screens when

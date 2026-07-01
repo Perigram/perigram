@@ -175,9 +175,9 @@ Generated card bodies may replace aggregate child-count facts such as
 `EntitySurfaceContent`. Prefer compact `EntityInlineRef variant="compact"`
 micro cards when the DTO already carries relation-backed child refs, including
 `summary.*Preview` payloads such as queue runs/sheets, library cassettes, or
-catalog colors. These galleries render as a bounded one-or-two-row grid with a
-small overflow control for hidden refs, not as a nested horizontal scroller. If
-no previewable child refs exist, keep the numeric count row.
+catalog colors. These galleries render as a bounded grid with two visible refs
+and an in-grid overflow control for hidden refs, not as a nested horizontal
+scroller. If no previewable child refs exist, keep the numeric count row.
 Generated card footers may add an icon-only open-detail action, and generated
 cassette cards also expose the access-gated `CassetteDesignerV2` action in the
 footer so collection/home cards are not detail-only dead ends. Detail
@@ -210,6 +210,9 @@ Generated non-status action surfaces, including detail header buttons and card
 footers, must not render `changeStatus` actions. Lifecycle/status transitions
 belong only in `EntityStatus`, which loads server-filtered actions and owns the
 status popover/history.
+Generated entity detail headers show the entity `TraceChain` instead of a
+standalone repeated identity name, so the opened record keeps lineage context in
+the primary header while actions/status remain in the same header row.
 Entity reference popovers inside generated surfaces mirror the action affordances
 available on the referenced entity's generated detail screen. They resolve
 compiled detail-screen action ids through the same access/status visibility

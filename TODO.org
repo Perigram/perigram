@@ -4,6 +4,23 @@
   :END:
 
 *** Agent Notes
+    [2026-07-01] Densify entity popups and align relation galleries
+    Files changed: assets/css/main.css,
+      components/entities/Library/LibraryCard.vue,
+      components/generated/GeneratedEntityDetail.vue,
+      components/shared/EntityCard.vue,
+      components/shared/EntityInlineRef.vue,
+      components/shared/EntityPage.vue,
+      components/shared/blocks/DataBlock.vue
+    Docs updated: components/README.md,
+      components/entities/Library/README.md,
+      components/shared/README.md, TODO.org
+    Notes: Entity popovers now scope body data through compact popup styling,
+      compact inline-ref popups request compact relation galleries and suppress
+      child counts, libraries render cassette previews through
+      EntityRelationsBlock, and generated entity details show TraceChain in the
+      header instead of a standalone identity name.
+
     [2026-06-30] Move prepaid billing from user profile to organization account
     Files changed: server/features/billing/*,
       server/api/organizations/[id]/billing/*,

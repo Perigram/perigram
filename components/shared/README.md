@@ -79,6 +79,11 @@ Props: `entity-type` (required), `:entity` (required), `:access-entity` (optiona
 **Field schema:** `{ path, i18n, suffix?, prefix? }` — `path` is dot-notation into entity object, `i18n` is the translation key for the label. Rows with null/undefined values are hidden automatically.
 Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden. Fields with `display: 'parameterMap'` render scalar object entries as exact named parameters such as `A=1200, B=400`; use this for materialized cassette design values, not symbolic template parameter lists.
 Default layout renders a semantic `<dl>` grid for card bodies; compact layout renders inline facts for popovers, relation rows, and tight embedded surfaces.
+Inline entity popovers mark their body with `entity-card-popup-content`, and
+`DataBlock` collapses default grid rows to compact inline facts inside that
+scope. Do not add entity-local popup data layouts just to make popovers denser;
+use the shared popup scope or pass `variant="compact"` for explicit compact
+surfaces.
 Descriptors may come from the domain display constructor instead of component
 local constants. Constructor descriptors can also declare `fallbackPaths` and
 `priority`; `DataBlock` uses the first non-empty allowed path and hides rows
@@ -331,7 +336,10 @@ text does not overpower the gallery thumbnail. Inline-ref popovers also force th
 when the base card surface normally hides trace in compact contexts, and show a
 small localized entity-type label above the identity row so the operator can
 see both lineage context and exact entity kind without adding extra chrome to
-the collapsed chip or compact micro card itself.
+the collapsed chip or compact micro card itself. Their expanded body uses the
+card surface contract with compact data display, suppressed child counts, and
+compact relation galleries, so nested outputs such as nesting-run sheet designs
+or library cassette previews render the same way as in generated cards.
 On mobile, detail-route buttons and lineage links inside inline-ref popovers
 dispatch the shared mobile transient-surface close event before navigation.
 `EntityCard`/`EntityInlineRef` hide their popovers and the app shell closes the
