@@ -21,7 +21,10 @@ const standardPenId = (standard) => (
 export const resolveStandardPen = (standard, pens = [], fallbackPen = DEFAULT_DRAWING_PEN) => {
   if (!standard) return fallbackPen;
   const penId = standardPenId(standard);
-  return pens.find(pen => sameId(pen._id, penId)) || fallbackPen;
+  return pens.find(pen => (
+    sameId(pen._id, penId) ||
+    sameId(pen.identity?.uid, penId)
+  )) || fallbackPen;
 };
 
 export const resolveLayerStandard = ({

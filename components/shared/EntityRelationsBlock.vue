@@ -52,6 +52,7 @@
           :type="item.entityType"
           :id="item.id"
           :entity="item.entity || null"
+          :variant="itemVariant"
         />
       </div>
     </Popover>

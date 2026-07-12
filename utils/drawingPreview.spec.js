@@ -232,6 +232,17 @@ describe('drawing preview contract', () => {
     expect(drawing.layers[0].penId).toBe('fold-pen');
   });
 
+  it('resolves canonical pen identity uids stored by layer standards', () => {
+    const drawing = applyLayerPens({
+      layers: [{ name: 'cut.outer', standardCode: 'cut.outer', paths: [] }]
+    }, {
+      standards: [{ _id: 'cut-standard', data: { code: 'cut.outer', defaultPenId: 'pen-cut-uid' } }],
+      pens: [{ _id: 'pen-mongo-id', identity: { uid: 'pen-cut-uid' }, data: { stroke: { color: '#ef4444', weight: 0.5, pattern: 'SOLID' } } }]
+    });
+
+    expect(drawing.layers[0]).toMatchObject({ color: '#ef4444', penId: 'pen-mongo-id' });
+  });
+
   it('preserves explicit layer styling when a standard pen is missing', () => {
     const drawing = applyLayerPens({
       viewBox: '0 0 10 10',
