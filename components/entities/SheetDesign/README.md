@@ -20,6 +20,12 @@
   `generateAttachment` command with `entities.sheetDesign` and
   `parameters.kind = "LAYOUT_DXF"`, then downloads the returned artifact from
   `/api/artifacts/:id`.
+- Write-authorized detail surfaces mount `SheetDesignEditor`. It draws the
+  physical sheet and cassette outlines in sheet coordinates, supports pointer
+  dragging with solver-spacing snapping, keyboard or toolbar deletion, adding
+  existing cassette designs, and DXF upload through `CassetteEditorDialog`.
+  Save sends source items and placements to the revision-backed update
+  endpoint. Read-only users continue to receive `GeometryPreview`.
 - Cards show a compact cassette-design summary when `data.cassetteDesigns` is
   present. The detail sidebar lists each cassette design placed on the sheet
   with `EntityInlineRef type="cassetteDesign"` and its placement count; it must

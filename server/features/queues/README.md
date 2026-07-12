@@ -83,6 +83,10 @@ Defines a specific nesting job, bridging the digital production intent with phys
   creating them. Process graphs should first create a `cassette_design` from a
   cassette template, then add that design id to `data.job.items[]` through a
   queue update/action.
+  Queue editor parameter and quantity changes use this same update boundary but
+  do not request a generated-screen source refresh for each input value. The
+  editor's local canonical rows remain visible until another entity change is
+  received.
 - `listPreviewByProjects(projectIds, ..., { limit })` returns access-redacted,
   summary-oriented queue previews keyed by parent project id. `/api/project`
   uses this to attach `summary.queuePreview` for the `/projects` route without

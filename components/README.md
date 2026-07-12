@@ -247,6 +247,11 @@ registered entity workspaces are not duplicated as generic detail-header
 buttons. Entity-local operational editors should use the canonical
 main/supporting proportions from
 `EntityWorkspace` rather than inventing local stacked or sidebar grids.
+Sheet-design details similarly mount `SheetDesignEditor` when the active user
+has a concrete `sheet_designs:write` grant. The editor mutates nesting source
+items and placements, snaps moves to the saved solver spacing, supports
+existing/uploaded cassette designs, and persists through immutable geometry
+revisions. Read-only generated details keep the standard geometry display.
 The queue detail support region for nesting runs follows the same contract:
 process mode separates command controls from result viewing. The nesting
 command/settings panel renders only when the opened queue detail receives a

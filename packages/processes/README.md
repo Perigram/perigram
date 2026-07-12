@@ -54,6 +54,10 @@ entity page through `screen.scope.entityId`. Grant-only inferred screens are
 still valid destinations, and inferred `auto_*` list surfaces also seed the
 synthesized process `home` screen so the active process opens on a stable home
 surface instead of jumping directly into the first inferred entity list.
+Domain entities marked `meta: true` are excluded from this inference because
+they represent organization configuration, administration, or provenance
+rather than operational work. Their grants still compile into effective
+permissions, and an authored/system screen may expose them explicitly.
 
 Action records represent executable process steps on the visual canvas. The
 compiler validates `createEntity`, `updateEntity`, `changeStatus`,

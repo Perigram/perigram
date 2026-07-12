@@ -168,6 +168,14 @@ process-derived access grants before showing destructive controls. A delete
 button requires both the domain capability and an active `delete`/admin grant
 for the exact entity; endpoint presence alone is not enough.
 
+Entity definitions may also declare `meta: true` for configuration,
+administration, or provenance records that are not operational work items.
+Current meta entities include users, organizations, process definitions,
+entity revisions, layer and pen standards, tool profiles, and profile
+templates. The process compiler keeps their access grants but does not infer
+generated list/detail work screens for them. Explicit organization/system
+templates remain responsible for placing those management surfaces.
+
 ## Related
 
 - [@cutkit/core](../core/README.md)

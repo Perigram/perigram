@@ -1,7 +1,7 @@
 # COMPONENT: Entity Revisions
 
 Stores immutable content snapshots for versioned entity scopes such as cassette
-template geometry.
+template geometry and manually edited sheet layouts.
 
 ## Core Files
 
@@ -40,6 +40,9 @@ data.contentHash)`. Re-saving identical content reuses the existing revision.
   scope.
 - `derivedFromRevision()` builds the provenance block stored on derived entities
   such as `cassette_design.data.derivedFrom`.
+- Sheet designs use the same `geometry` scope. Their snapshot contains the
+  nesting result/preview, cassette placement counts, nesting parameters, and
+  sheet specs needed to reproduce the saved layout.
 
 Revisions are read-only provenance records. They are not updated or deleted by
 standard entity APIs.
@@ -50,3 +53,4 @@ legacy cassette/project fallbacks for existing cassette-derived records.
 
 - [cassettes](../cassettes/README.md) - owns current geometry revision pointers.
 - [cassette-designs](../cassette-designs/README.md) - stores derivation refs.
+- [sheet-designs](../sheet-designs/README.md) - stores revision-backed layouts.

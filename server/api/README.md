@@ -54,8 +54,9 @@ Routes are grouped into sub-directories corresponding to features:
   listing, creation, and revocation. Handlers delegate authorization to the
   invitations feature so all invitation operations use the same process-derived
   user-management access contract and support string organization ids.
-- `sheet-designs/`: Lineage-scoped sheet design list/detail and direct DXF
-  export.
+- `sheet-designs/`: Lineage-scoped sheet design list/detail, direct DXF export,
+  and `PUT /api/sheet-designs/:id` for write-authorized, revision-backed manual
+  placement updates.
 - `queue/:id` and `cassette-designs/:id`: Single-entity DELETE routes delegate
   to feature `remove()` services, which enforce admin/delete access. Generated
   process screens use these canonical routes through `useEntity().remove()`

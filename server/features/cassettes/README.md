@@ -123,6 +123,11 @@ not the template id.
   without an entity ref so the operation creates a real cassette row. App
   surfaces use `CassetteDesignerV2`; the legacy designer is kept for dev/test
   fixture flows.
+- Cassette Designer v2 keeps its dialog open after Save so the active editing
+  session is not destroyed by a refresh. Save As runs the same command without
+  an input cassette entity, creating a distinct template and switching the
+  editor to that saved record. Escape clears the current
+  face/workpiece/attachment selection instead of closing the designer dialog.
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.
 - **`updateParameters`**: Updates the list of configurable parameters for the template.
 - **`ensureCurrentGeometryRevision`**: Creates or reuses the current geometry
