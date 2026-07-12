@@ -58,8 +58,11 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.definition` | String | definition field |
+| `data.geometry` | String | geometry field |
+| `data.layerData` | String | layer data field |
 | `data.organizationId` | String | organization id field |
 | `data.parameters` | Array | parameters field |
+| `data.polygonParts` | Array | polygon parts field |
 | `data.revisions` | Array | revisions field |
 | `data.templateId` | String | template id field |
 | `data.type` | String | type field |
@@ -408,6 +411,8 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.cassetteDesigns` | Array | cassette designs field |
 | `data.geometry` | String | geometry field |
 | `data.materialPool` | String | material pool field |
+| `data.nestingParams` | Array | nesting params field |
+| `data.revisions` | Array | revisions field |
 | `data.specs` | Array | specs field |
 
 ### sheets
@@ -438,6 +443,18 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.note` | String | note field |
+
+### supportMessages
+*Support - manages supportMessages*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.geometry` | String | geometry field |
 
 ### tool_profiles
 *Tool-profiles - manages tool profiles*

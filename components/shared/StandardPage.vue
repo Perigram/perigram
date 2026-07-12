@@ -6,7 +6,7 @@
             <ActionToolbar v-if="!$slots.header" :title="title" :subtitle="subtitle" :level="1">
                 <template #title>
                     <div class="flex items-center gap-3">
-                        <span v-if="title">{{ title }}</span>
+                        <!-- <span v-if="title">{{ title }}</span> -->
                         <slot name="title-append"></slot>
                     </div>
                 </template>
