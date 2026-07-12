@@ -1,8 +1,7 @@
 /**
  * Seed Layer Standards
  * 
- * Populates the layer_standards collection with initial data
- * from docs/specs/layers.md
+ * Populates the layer_standards collection from the OCCS layer registry.
  * 
  * Usage:
  *   node server/scripts/seed-layer-standards.js
@@ -13,124 +12,66 @@ dotenv.config();
 
 import { service } from '../features/layer-standards/index.js';
 import { connectDB } from '../db/mongo.js';
-import { ObjectId } from 'mongodb';
+import { loadOccsLayerStandardSeeds, penTemplateDtoId } from './occs-layer-standards.js';
 
-// Layer standards data - parametric templates
-// defaultPen: system pen name to assign by default (matched at seed time)
-const LAYER_STANDARDS = [
-  {
-    code: "1_1_FACE",
-    category: "CONTOUR",
-    i18n: {
-      ru: { nameTemplate: "Лицо_Кассеты" },
-      en: { nameTemplate: "Cassette_Face" }
-    },
-    parameters: [],
-    defaultPen: "Black Solid 0.35mm"
-  },
-  {
-    code: "1_2_UNFOLD",
-    category: "CONTOUR",
-    i18n: {
-      ru: { nameTemplate: "Развертка_кассеты" },
-      en: { nameTemplate: "Cassette_Unfold" }
-    },
-    parameters: [],
-    defaultPen: "Black Solid 0.35mm"
-  },
-  {
-    code: "1_3_UNFOLD_BOUNDARY",
-    category: "CONTOUR",
-    i18n: {
-      ru: { nameTemplate: "Габарит_развертки" },
-      en: { nameTemplate: "Unfold_Boundary" }
-    },
-    parameters: [],
-    defaultPen: "Black Solid 0.35mm"
-  },
-  {
-    code: "2_1_CUT",
-    category: "CUT",
-    i18n: {
-      ru: { nameTemplate: "Обрезь_{diameter}" },
-      en: { nameTemplate: "Cut_{diameter}" }
-    },
-    parameters: ["diameter"],
-    defaultPen: "Red Solid 0.5mm"
-  },
-  {
-    code: "2_2_HOLE",
-    category: "CUT",
-    i18n: {
-      ru: { nameTemplate: "Отверстие_{diameter}" },
-      en: { nameTemplate: "Hole_{diameter}" }
-    },
-    parameters: ["diameter"],
-    defaultPen: "Red Solid 0.5mm"
-  },
-  {
-    code: "3_1_BEND",
-    category: "BEND",
-    i18n: {
-      ru: { nameTemplate: "Фрезеровка_{angle}" },
-      en: { nameTemplate: "Mill_{angle}" }
-    },
-    parameters: ["angle"],
-    defaultPen: "Blue Dashed 0.25mm"
-  },
-  {
-    code: "3_2_ENGRAVE",
-    category: "MARKING",
-    i18n: {
-      ru: { nameTemplate: "Гравировка" },
-      en: { nameTemplate: "Engraving" }
-    },
-    parameters: [],
-    defaultPen: "Green Solid 0.7mm"
-  }
+const LEGACY_LAYER_STANDARD_CODES = [
+  '1_1_FACE',
+  '1_2_UNFOLD',
+  '1_3_UNFOLD_BOUNDARY',
+  '2_1_CUT',
+  '2_2_HOLE',
+  '3_1_BEND',
+  '3_2_ENGRAVE',
+  'FACADE_EXT'
 ];
+
+const sameId = (left, right) => left?.toString?.() === right?.toString?.();
 
 async function main() {
   console.log('🌱 Seeding layer standards...\n');
   
   try {
     const db = await connectDB();
+    const layerSeeds = await loadOccsLayerStandardSeeds();
     
     // Resolve system pen IDs by name
     const systemPens = await db.collection('pen_templates').find({ 'lineage.userId': null }).toArray();
-    const penByName = Object.fromEntries(systemPens.map(p => [p.identity?.name, p._id]));
-
-    // Check if standards already exist
-    const existingCount = await service.getCount();
-    
-    if (existingCount > 0) {
-      console.log(`⚠️  Layer standards already exist (count: ${existingCount})`);
-      console.log('   To reseed, drop the collection first:\n');
-      console.log('   use cutkit;');
-      console.log('   db.layer_standards.drop();\n');
-      process.exit(1);
-    }
+    const penByName = Object.fromEntries(systemPens.map(p => [p.identity?.name, penTemplateDtoId(p)]));
 
     // Resolve defaultPenId from pen name
-    const resolved = LAYER_STANDARDS.map(s => {
+    const resolved = layerSeeds.map(s => {
       const { defaultPen, ...rest } = s;
       const penId = defaultPen ? (penByName[defaultPen] || null) : null;
       if (defaultPen && !penId) console.warn(`  ⚠️  Pen not found: "${defaultPen}" for ${s.code}`);
       return { ...rest, defaultPenId: penId };
     });
     
-    // Seed standards
-    console.log(`📝 Creating ${resolved.length} layer standards...`);
+    console.log(`📝 Upserting ${resolved.length} OCCS layer standards...`);
     const ids = await service.seed(resolved);
+
+    const occsCodes = resolved.map(standard => standard.code);
+    const cleanup = await db.collection('layer_standards').deleteMany({
+      'data.source.registry': { $exists: false },
+      $or: [
+        { 'data.code': { $in: LEGACY_LAYER_STANDARD_CODES } },
+        { code: { $in: [...LEGACY_LAYER_STANDARD_CODES, ...occsCodes] } }
+      ]
+    });
+    if (cleanup.deletedCount > 0) {
+      console.log(`🧹 Removed ${cleanup.deletedCount} legacy layer standards`);
+    }
     
-    console.log(`\n✅ Successfully created ${Object.keys(ids).length} layer standards:`);
+    console.log(`\n✅ Successfully upserted ${Object.keys(ids).length} layer standards:`);
     
     // Display created standards
     const standards = await service.getAll();
     for (const std of standards) {
-      const params = std.parameters?.length > 0 ? ` (params: ${std.parameters.join(', ')})` : '';
-      const pen = std.defaultPenId ? systemPens.find(p => p._id.equals(std.defaultPenId))?.identity?.name || std.defaultPenId : 'none';
-      console.log(`   - ${std.code}: ${std.i18n?.en?.nameTemplate}${params} (${std.category}) → ${pen}`);
+      const data = std.data || std;
+      const params = data.parameters?.length > 0 ? ` (params: ${data.parameters.join(', ')})` : '';
+      const pen = data.defaultPenId
+        ? systemPens.find(p => sameId(penTemplateDtoId(p), data.defaultPenId))?.identity?.name || data.defaultPenId
+        : 'none';
+      console.log(`   - ${data.code}: ${data.i18n?.en?.nameTemplate}${params} (${data.category}) → ${pen}`);
     }
     
     console.log('\n✨ Seeding complete!');

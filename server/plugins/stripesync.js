@@ -1,5 +1,5 @@
 import { connectDB } from "../db/mongo";
-import { getTransactionStatus } from "../features/payment/sync";
+import * as billingService from "../features/billing/service.js";
 import logger from "../utils/logger";
 
 const tag = "stripesync";
@@ -20,61 +20,23 @@ export default defineNitroPlugin(async (_) => {
 
             await db
 
-                .collection("transactions")
+                .collection("organization_billing_payments")
 
                 .updateMany({ status: "processing" }, { $set: { status: "created" } });
 
 
 
-            logger.info(`[${tag}] Cleared processing transactions`);
+            logger.info(`[${tag}] Cleared processing organization billing payments`);
 
 
 
             while (true) {
 
-                const transaction = await db
+                const payment = await billingService.syncNextPendingPayment();
 
-                    .collection("transactions")
+                if (payment) {
 
-                    .findOneAndUpdate(
-
-                        {
-
-                            status: "created",
-
-                            createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
-
-                            attempt: { $lt: 3 },
-
-                        },
-
-                        { $set: { status: "processing", updatedAt: new Date() } },
-
-                        { returnDocument: "after" }
-
-                    );
-
-
-
-                if (transaction) {
-
-                    logger.info(`[${tag}] Found transaction`, { transaction });
-
-                    await db.collection("transactions").updateOne({ _id: transaction._id }, { $inc: { attempt: 1 } });
-
-                    const status = await getTransactionStatus(transaction.checkoutId);
-
-                    if (status === "paid") {
-
-                        await db.collection("users").updateOne({ id: transaction.userId }, { $inc: { balance: transaction.credit } });
-
-                        await db.collection("transactions").updateOne({ _id: transaction._id }, { $set: { status: "completed", updatedAt: new Date() } });
-
-                    } else {
-
-                        await db.collection("transactions").updateOne({ _id: transaction._id }, { $set: { status: "created", updatedAt: new Date() } });
-
-                    }
+                    logger.info(`[${tag}] Synced organization billing payment`, { paymentId: payment._id, status: payment.status });
 
                 } else {
 

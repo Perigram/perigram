@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 import json
 import subprocess
 import os
@@ -35,7 +35,7 @@ class NestingParams(BaseModel):
     height: float
     space: float
     sheetCount: int
-    sheet_polygon: Optional[List[List[float]]] = None
+    sheet_polygon: Optional[Union[List[List[float]], Dict[str, Any]]] = None
 
 class NestingRequest(BaseModel):
     items: List[NestingItem]

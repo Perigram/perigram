@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 describe('Framework package contracts', () => {
@@ -174,13 +174,14 @@ describe('Framework package contracts', () => {
     });
 
     expect(cncEntities.find(entity => entity.type === 'queue')?.collection).toBe('queues');
+    expect(cncEntities.find(entity => entity.type === 'user')?.meta).toBe(true);
     expect(cncEntities).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'layer_standard', collection: 'layer_standards' }),
       expect.objectContaining({ type: 'material', collection: 'materials' }),
       expect.objectContaining({ type: 'pen_template', collection: 'pen_templates' }),
       expect.objectContaining({ type: 'tool_profile', collection: 'tool_profiles' })
     ]));
-    expect(cncWorkflows.queue.initial).toBe('DRAFT');
+    expect(cncWorkflows.queue.regions.main.initial).toBe('DRAFT');
     expect(cncCommands.solveNesting).toMatchObject({
       service: 'nesting',
       action: 'solve',
@@ -195,18 +196,37 @@ describe('Framework package contracts', () => {
     expect(cncCommands.generateAttachment).toMatchObject({
       service: 'artifacts',
       action: 'generate',
+      input: {
+        abstractEntities: [expect.objectContaining({
+          name: 'source',
+          capability: 'attachments.generate',
+          accepts: ['sheet_design', 'nesting_run']
+        })]
+      },
       access: { permissions: [expect.objectContaining({ feature: 'artifacts', level: 'write' })] }
     });
-    expect(cncWorkflows.queue.transitions.every(transition => !transition.roles)).toBe(true);
+    expect(cncCommands.generateConfigBotDraft).toMatchObject({
+      service: 'configBot',
+      action: 'generateDraft',
+      access: { permissions: [expect.objectContaining({ feature: 'config_bot', level: 'admin' })] }
+    });
+    expect(cncCommands.reindexConfigBotKnowledge).toMatchObject({
+      service: 'configBot',
+      action: 'reindexKnowledge'
+    });
+    expect(cncWorkflows.queue.regions.main.transitions.every(transition => !transition.roles)).toBe(true);
     expect(cncDomain).toMatchObject({ id: 'cnc', commands: cncCommands, tasks: cncTasks, attachmentKinds: cncAttachmentKinds });
     expect(cncDomain.ui.designSystem).toBe(cncDesignSystem);
     expect(cncDesignSystemEntityContracts).toContainEqual(expect.objectContaining({ key: 'cassette', entityType: 'cassette' }));
     expect(cncTasks.nestingSolve).toMatchObject({ id: 'nesting.solve', service: 'nesting' });
+    expect(cncTasks.nestingSolve.output.entities).toEqual(['nesting_run', 'sheet_design']);
+    expect(cncTasks.nestingSolve.output).not.toHaveProperty('attachments');
     expect(cncAttachmentKinds.LAYOUT_DXF).toMatchObject({ bucket: 'nestDxf', preview: { mode: 'dxf' } });
     const endpointMap = createEndpointMap(cncFrontendEntities);
     const domainUi = createDomainUiAdapter(cncDomain);
     expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/project/p-1');
     expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/cassette-instances?lineage.queueId=q-1');
+    expect(existsSync('server/api/cassette-instances/index.get.js')).toBe(true);
     expect(domainUi.getSingleEndpoint('project', 'p-1')).toBe('/api/project/p-1');
     expect(domainUi.getAttachmentPreview('LAYOUT_DXF')).toEqual({ mode: 'dxf' });
     expect(domainUi.getDownloadEndpoint('artifact', 'a-1')).toBe('/api/artifacts/a-1');
@@ -216,6 +236,7 @@ describe('Framework package contracts', () => {
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'solveNesting' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'saveCassetteTemplate' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'generateAttachment' }));
+    await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'generateConfigBotDraft' }));
     await expect(handlers.list_ui_primitives()).resolves.toContainEqual(expect.objectContaining({ key: 'EntityCard', kind: 'entity-chrome' }));
     await expect(handlers.query_docs({ query: 'workflow' })).resolves.toContainEqual(expect.objectContaining({ path: 'README.md' }));
     await expect(handlers.get_framework_manifest()).resolves.toMatchObject({ schemaVersion: 1, validations: { ok: true } });
@@ -235,6 +256,7 @@ describe('Framework package contracts', () => {
     const composition = readFileSync('server/runtime/app-registry.js', 'utf8');
     expect(composition).toContain('cncDomain');
     expect(composition).toContain('saveCassetteTemplate');
+    expect(composition).toContain('generateConfigBotDraft');
   });
 
   it('keeps the committed framework manifest synchronized with source metadata', () => {
@@ -245,8 +267,9 @@ describe('Framework package contracts', () => {
     const committed = JSON.parse(readFileSync('framework.manifest.json', 'utf8'));
     expect(committed).toEqual(generated);
     expect(committed.validations).toEqual({ ok: true, issues: [] });
-    expect(committed.designSystem.components.find(component => component.key === 'cassetteTemplate')?.fieldPaths).toEqual([
-      'data.parameters.length'
+    expect(committed.designSystem.components.find(component => component.key === 'cassetteTemplate')?.fieldPaths).toEqual([]);
+    expect(committed.designSystem.components.find(component => component.key === 'cassetteDesign')?.fieldPaths).toEqual([
+      'data.parameters'
     ]);
     expect(committed.designSystem.primitives).toContainEqual(expect.objectContaining({
       key: 'EntityPage',

@@ -1,7 +1,10 @@
 import { service } from '~/server/features/tool-profiles';
+import { requireAuth } from '~/server/utils/permissions.js';
+import { serializeForAccess } from '~/server/utils/entity-redaction.js';
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.auth.userId;
+  const auth = requireAuth(event);
   const body = await readBody(event);
-  return await service.create(body, userId);
+  const tool = await service.create(body, auth.userId);
+  return serializeForAccess('toolProfile', tool, auth);
 });

@@ -12,6 +12,9 @@ node_modules
 # Logs
 logs
 *.log
+playwright-report
+test-results
+.playwright
 
 # Misc
 .DS_Store
@@ -47,4 +50,3 @@ workers/nesting/jagua-rs/jagua-rs/target/
 .test-data
 
 .mongo-data
-

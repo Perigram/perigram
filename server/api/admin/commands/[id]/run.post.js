@@ -20,16 +20,21 @@ function createCommandAuth(auth, testAccess) {
   const permissions = testAccess.permissions && typeof testAccess.permissions === 'object'
     ? testAccess.permissions
     : {};
-  const memberships = (auth.memberships || []).filter(membership => membership.organizationId?.toString() !== organizationId.toString());
+  const sourceMemberships = Array.isArray(testAccess.memberships) && testAccess.memberships.length > 0
+    ? testAccess.memberships
+    : auth.memberships || [];
+  const memberships = sourceMemberships.filter(membership => membership.organizationId?.toString() !== organizationId.toString());
 
   return {
     ...auth,
     userId: testAccess.userId || auth.userId,
     organizationId,
+    role: testAccess.role || auth.role,
     memberships: [
       ...memberships,
       { organizationId, permissions, status: 'active' }
     ],
-    permissions
+    permissions,
+    restrictedTo: testAccess.restrictedTo || auth.restrictedTo
   };
 }

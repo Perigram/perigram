@@ -42,7 +42,6 @@ describe('Catalog Management', () => {
     userId: 'user1',
     organizationId: new ObjectId(),
     organizationData: { type: 'Manufacturer' },
-    role: 'ManufacturerAdmin',
     permissions: null
   };
 
@@ -60,7 +59,7 @@ describe('Catalog Management', () => {
         sheetThicknesses: [3, 4],
         widths: [1220, 1500]
       }
-    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
+    }, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
 
     const dto = catalog.toJSON();
     expect(dto.identity.name).toBe('Standard Aluminum Composite');
@@ -78,7 +77,49 @@ describe('Catalog Management', () => {
       lineage: { organizationId: otherManufacturerId }
     });
 
-    await expect(catalogService.remove(catalogId.toString(), mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions))
+    await expect(catalogService.remove(catalogId.toString(), mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
       .rejects.toThrow(/Permission denied/);
+  });
+
+  it('should require an explicit view_all action to list catalogs across organizations', async () => {
+    const otherManufacturerId = new ObjectId();
+    await db.collection('catalogs').insertMany([
+      {
+        _id: new ObjectId(),
+        identity: { uid: 'own-catalog', name: 'Own Catalog' },
+        lineage: { organizationId: mockUser.organizationId }
+      },
+      {
+        _id: new ObjectId(),
+        identity: { uid: 'other-catalog', name: 'Other Catalog' },
+        lineage: { organizationId: otherManufacturerId }
+      }
+    ]);
+
+    const ownOnly = await catalogService.list(mockUser.userId, mockUser.organizationId, null, {
+      permissions: { catalogs: 'admin' },
+      memberships: [{ organizationId: mockUser.organizationId, permissions: { catalogs: 'admin' } }]
+    });
+    expect(ownOnly.map(item => item.identity.name)).toEqual(['Own Catalog']);
+
+    const viewAll = await catalogService.list(mockUser.userId, mockUser.organizationId, null, {
+      permissions: { catalogs: { level: 'read', actions: { view_all: true } } },
+      memberships: [{ organizationId: mockUser.organizationId, permissions: { catalogs: { level: 'read', actions: { view_all: true } } } }]
+    });
+    expect(viewAll.map(item => item.identity.name).sort()).toEqual(['Other Catalog', 'Own Catalog']);
+  });
+
+  it('should allow warehouse stock fallback catalog creation with materials write permission', async () => {
+    const catalog = await catalogService.create({
+      source: 'WAREHOUSE_STOCK',
+      name: 'Manual ACM',
+      manufacturerId: mockUser.organizationId.toString(),
+      material: 'Manual ACM',
+      options: { widths: [3000], lengths: [1500] }
+    }, mockUser.userId, mockUser.organizationId, null, {
+      memberships: [{ organizationId: mockUser.organizationId, permissions: { materials: 'write', catalogs: 'none' } }]
+    });
+
+    expect(catalog.identity.name).toBe('Manual ACM');
   });
 });

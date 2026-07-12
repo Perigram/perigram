@@ -4,6 +4,7 @@ import { generateRandomString } from "~~/server/utils/strings";
 import standardSlugify from "standard-slugify";
 import logger from "~~/server/utils/logger";
 import { trackEvent } from "~~/server/tracking/add";
+import * as billingService from "~~/server/features/billing/service.js";
 
 export default defineEventHandler(async (event) => {
   const userId = event.context?.auth?.userId;
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
       statusMessage: "Unauthorized",
     });
   }
+  const organizationId = event.context.auth.organizationId || user.lineage?.organizationId || user.organizationId;
 
   const projectSlug = getRouterParam(event, "slug");
 
@@ -28,12 +30,11 @@ export default defineEventHandler(async (event) => {
     projectSlug: projectSlug,
   });
 
-  if (user.balance < 1) {
-    throw createError({
-      statusCode: 402,
-      statusMessage: "Not enough credits",
-    });
-  }
+  await billingService.assertSufficientServiceTokens({
+    organizationId,
+    commandId: 'legacyProjectNesting',
+    service: { billing: { mode: 'prepaidTokens', tokenCost: 1, meterKey: 'legacy.project.nesting' } }
+  });
   const project = await db.collection("projects").findOne({ slug: projectSlug, ownerId: userId })
   if (!project) {
     throw createError({
@@ -111,6 +112,13 @@ export default defineEventHandler(async (event) => {
     status: "pending",
     createdAt: new Date(),
     ownerId: userId,
+  });
+
+  await billingService.debitServiceTokens({
+    organizationId,
+    commandId: 'legacyProjectNesting',
+    service: { id: 'legacy_project_nesting', billing: { mode: 'prepaidTokens', tokenCost: 1, meterKey: 'legacy.project.nesting' } },
+    commandRunId: nestingSlug
   });
 
   return {

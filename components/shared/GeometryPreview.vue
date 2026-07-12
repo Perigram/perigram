@@ -1,35 +1,44 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 
 const props = defineProps({
-  entity: { type: Object, required: true }
+  entity: { type: Object, required: true },
+  hideDimensionLayer: { type: Boolean, default: false }
 });
 
-const geometry = computed(() => props.entity.data?.geometry || {});
-const preview = computed(() => geometry.value.preview || geometry.value.data || {});
-const viewBox = computed(() => preview.value.viewBox || '0 0 100 60');
-const layers = computed(() => Array.isArray(preview.value.layers) ? preview.value.layers : []);
-const polygon = computed(() => {
-  if (Array.isArray(preview.value.points)) return preview.value.points;
-  if (Array.isArray(geometry.value.points)) return geometry.value.points;
-  return [];
-});
-const hasPreview = computed(() => layers.value.length > 0 || polygon.value.length > 0);
-const polygonPoints = computed(() => polygon.value.map(point => point.join(',')).join(' '));
+const visibleLayerNames = ref(null);
+const previewVisibleLayerNames = computed(() => props.hideDimensionLayer ? visibleLayerNames.value : null);
+
+function handleDrawingReady(drawing) {
+  if (!props.hideDimensionLayer) {
+    visibleLayerNames.value = null;
+    return;
+  }
+  const layerNames = Array.isArray(drawing?.layers)
+    ? drawing.layers.map(layer => layer.name).filter(Boolean)
+    : [];
+  const allowed = layerNames.filter(isProductionPreviewLayer);
+  visibleLayerNames.value = allowed.length ? allowed : layerNames.filter(name => !isDimensionLayerName(name));
+}
+
+function isProductionPreviewLayer(name = '') {
+  return /^(sheet|stock|cut|fold|bend)(\.|$)/i.test(String(name));
+}
+
+function isDimensionLayerName(name = '') {
+  return /^dimension(\.|$)/i.test(String(name));
+}
 </script>
 
 <template>
-  <div class="aspect-[5/3] w-full overflow-hidden rounded-ui border border-content-border bg-subtle">
-    <svg v-if="hasPreview" class="h-full w-full" :viewBox="viewBox" xmlns="http://www.w3.org/2000/svg">
-      <g v-if="layers.length" fill="none">
-        <g v-for="layer in layers" :key="layer.name" :stroke="layer.color || 'currentColor'" :stroke-width="layer.weight || 1">
-          <path v-for="path in layer.paths" :key="path" :d="path" />
-        </g>
-      </g>
-      <polygon v-else :points="polygonPoints" fill="none" stroke="currentColor" stroke-width="2" />
-    </svg>
-    <div v-else class="flex h-full items-center justify-center text-muted-color">
-      <i class="pi pi-image" />
-    </div>
+  <div data-entity-card-interactive="true" @click.stop>
+    <DrawingCanvas
+      :source="entity"
+      source-type="geometry-preview"
+      mode="card"
+      :visible-layer-names="previewVisibleLayerNames"
+      @ready="handleDrawingReady"
+    />
   </div>
 </template>

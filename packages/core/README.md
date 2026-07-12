@@ -14,8 +14,10 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
   `registerTaskExecutor`, `registerHookHandler`, `registerAdapter`
 - Result refs: `createEntityRef`, `createAttachmentRef`,
   `createCommandResult`, `createTaskResult`
-- Block helpers: `createIdentity`, `createStatus`, `createSpecs`,
-  `createData`, `inheritLineage`, `createAttachment`
+- Block helpers: `createIdentity`, `createStatus`, `createStatusState`,
+  `normalizeStatusState`, `getPrimaryState`, `getRegionState`,
+  `getStatusRegions`, `createSpecs`, `createData`, `inheritLineage`,
+  `createAttachment`
 
 ## Vocabulary
 
@@ -24,7 +26,7 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
 | Entity | Persisted business object described by canonical blocks. |
 | Command | Synchronous business intent and access boundary. It validates entity refs and permissions, invokes one registered handler, and records `command_runs`. |
 | Task | Async execution boundary for worker/server work. It is queued in `task_runs`, claimed by a worker or executor, and completed with a normalized task result. |
-| Workflow | Entity lifecycle machine: states, transitions, access requirements, hooks, and lifecycle data policy. |
+| Workflow | Entity lifecycle machine: region states, transitions, access requirements, hooks, and lifecycle data policy. |
 | Hook | Transition side-effect contract plus app-registered handler. |
 | AttachmentKind | File/blob content contract: kind, bucket, MIME type, preview mode. |
 | Adapter | Application binding that connects pure domain definitions to infrastructure. |
@@ -42,6 +44,10 @@ runtime packages and server modules.
 `BaseEntity.toJSON()` is strict: it emits root `_id` plus canonical blocks only.
 Identity fields stay under `identity`; feature-specific data stays under
 `data`, `specs`, `attachments`, or `summary`.
+
+`Status.state` is a v2 structured object with `primary`, `active`, and
+`regions`; compare states through `getPrimaryState()` or `getRegionState()`
+rather than reading `status.state` as a string.
 
 ## Related
 

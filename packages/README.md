@@ -13,6 +13,7 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 | `@cutkit/vue` | Frontend route, surface, and attachment metadata helpers |
 | `@cutkit/devtools` | Architecture/data-model inspection helpers |
 | `@cutkit/mcp` | Read-only MCP tool handlers for schema/workflow/docs inspection |
+| `@cutkit/processes` | Organization process definition normalization, validation, and compilation |
 | `@cutkit/domain-cnc` | CutKit CNC entity, workflow, command, task, attachment-kind, UI, and summary definitions |
 
 Current extraction status, module boundaries, runtime relationships, and Mermaid diagrams are maintained in [docs/FRAMEWORK_EXTRACTION_STATUS.md](../docs/FRAMEWORK_EXTRACTION_STATUS.md).

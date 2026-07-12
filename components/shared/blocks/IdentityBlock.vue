@@ -3,8 +3,8 @@
  * IdentityBlock - v24 Standardized
  * Displays Name and ID/Slug/Serial
  */
-import Chip from 'primevue/chip';
 import { computed, toRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useIdentity } from '~/composables/useBlocks';
 
 const props = defineProps({
@@ -15,8 +15,9 @@ const props = defineProps({
 });
 
 const { name, slug, serial, reference } = useIdentity(toRef(props, 'entity'));
+const { t } = useI18n();
 const uid = computed(() => props.entity?.identity?.uid || '');
-const primary = computed(() => name.value || slug.value || uid.value || 'Unnamed');
+const primary = computed(() => name.value || slug.value || uid.value || t('common.unnamed'));
 
 const fieldValueMap = computed(() => ({
   uid: uid.value,
@@ -50,8 +51,15 @@ const identityMetaText = computed(() => identityMeta.value.map((item) => `${item
       <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
     </div>
 
-    <!-- Inline Variant — Chip pill with optional icon -->
-    <Chip v-else-if="variant === 'inline'" :label="primary" :icon="icon || undefined" :title="identityMetaText || primary" />
+    <!-- Inline Variant — text-inline pill with optional icon -->
+    <span
+      v-else-if="variant === 'inline'"
+      class="entity-inline-chip max-w-full"
+      :title="identityMetaText || primary"
+    >
+      <i v-if="icon" :class="['entity-inline-chip-icon', icon]" aria-hidden="true"></i>
+      <span class="entity-inline-chip-label">{{ primary }}</span>
+    </span>
 
     <!-- Default (Card title area) -->
     <div v-else class="flex flex-col gap-0.5 min-w-0">

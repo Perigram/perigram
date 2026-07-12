@@ -5,15 +5,12 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import { createIdentity, createStatus, createData } from '~/server/core/blocks/index.js';
+import { Material } from './model.js';
+import { markPublicSystemData } from '#shared/public-entities.js';
 
 function toDTO(material) {
   if (!material) return null;
-  return {
-    ...material,
-    ...material.data,
-    name: material.identity?.name,
-    code: material.identity?.code
-  };
+  return new Material(material).toJSON();
 }
 
 export async function list(options = {}) {
@@ -51,7 +48,7 @@ export async function create(data) {
     })
   };
 
-  const created = await repository.create(materialData);
+  const created = await repository.create(markPublicSystemData(materialData));
   return toDTO(created);
 }
 

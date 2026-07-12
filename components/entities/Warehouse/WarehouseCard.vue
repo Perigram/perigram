@@ -1,11 +1,23 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="warehouse" entity-type="warehouse" :variant="variant" class="card-interactive" :show-trace="false" :show-status="false">
-      <template #subtitle>
-        <small>{{ warehouseType }}</small>
+    <EntityCard :entity="warehouse" entity-type="warehouse" :variant="variant" :show-trace="false" :show-status="false">
+      <template #before-identity>
+        <i class="pi pi-building"></i>
+      </template>
+      <template #subtitle v-if="variant !== 'card'">
+        <div class="flex flex-wrap gap-2">
+          <Tag v-if="warehouseType" :value="warehouseType" severity="secondary" size="small" />
+          <Tag v-if="totalSheets" :value="`${totalSheets} ${$t('warehouse.rawSheets')}`" severity="info" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <Tag v-if="totalRemnants" :value="`${totalRemnants} ${$t('warehouse.remnants')}`" severity="secondary" size="small" />
+          <Tag v-if="warehouse.identity?.reference" :value="warehouse.identity.reference" severity="secondary" size="small" />
+        </div>
       </template>
       <Divider />
-      <DataBlock :entity="warehouse" :fields="FIELDS" />
+      <DataBlock entity-type="warehouse" :entity="warehouse" :fields="FIELDS" />
     </EntityCard>
   </div>
 </template>
@@ -16,16 +28,12 @@
  */
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
+import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = [
-    { path: 'data.type',          i18n: 'warehouse.type' },
-    { path: 'data.address',       i18n: 'warehouse.address' },
-    { path: 'data.contactPerson', i18n: 'warehouse.contactPerson' },
-    { path: 'data.stats.totalSheets', i18n: 'warehouse.rawSheets' },
-    { path: 'data.stats.totalRemnants', i18n: 'warehouse.remnants' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'warehouse', surface: 'card' });
 
 const props = defineProps({
   warehouse: { type: Object, required: true },
@@ -33,4 +41,6 @@ const props = defineProps({
 });
 
 const warehouseType = computed(() => props.warehouse.data?.type || '');
+const totalSheets = computed(() => props.warehouse.data?.stats?.totalSheets || 0);
+const totalRemnants = computed(() => props.warehouse.data?.stats?.totalRemnants || 0);
 </script>

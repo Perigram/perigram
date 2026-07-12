@@ -2,6 +2,7 @@ export function summarizeDefinitions(definitions = []) {
   return definitions.map(definition => ({
     type: definition.type,
     collection: definition.collection,
+    ...(definition.meta ? { meta: true } : {}),
     blocks: definition.blocks || [],
     lineage: definition.lineage || {}
   }));
@@ -10,9 +11,11 @@ export function summarizeDefinitions(definitions = []) {
 export function summarizeWorkflows(workflows = []) {
   return workflows.map(({ type, workflow }) => ({
     type,
-    initial: workflow.initial,
-    states: Object.keys(workflow.states || {}),
-    transitionCount: workflow.transitions?.length || 0
+    initial: workflow.initial || workflow.regions?.[workflow.primaryRegion || 'main']?.initial,
+    states: Object.values(workflow.regions || { main: workflow }).flatMap(region => Object.keys(region.states || {})),
+    regions: Object.keys(workflow.regions || { main: workflow }),
+    transitionCount: Object.values(workflow.regions || { main: workflow })
+      .reduce((total, region) => total + (region.transitions?.length || 0), 0)
   }));
 }
 
@@ -41,7 +44,7 @@ export function summarizeCommands(commands = {}) {
     service: action.service,
     action: action.action,
     label: action.label || id,
-    inputs: (action.input?.entities || []).map(input => input.type),
+    inputs: summarizeInputs(action.input),
     outputs: action.output?.entities || [],
     attachments: action.output?.attachments || [],
     tasks: action.output?.tasks || [],
@@ -58,12 +61,20 @@ export function summarizeTasks(tasks = {}) {
     service: task.service,
     label: task.label || task.id,
     executor: task.executor || null,
-    inputs: (task.input?.entities || []).map(input => input.type),
+    inputs: summarizeInputs(task.input),
     outputs: task.output?.entities || [],
     attachments: task.output?.attachments || [],
     tasks: task.output?.tasks || [],
     events: task.output?.events || []
   }));
+}
+
+function summarizeInputs(input = {}) {
+  const abstractInputs = input.abstractEntities || [];
+  if (abstractInputs.length) {
+    return abstractInputs.map(item => item.capability || item.label || item.name);
+  }
+  return (input.entities || []).map(item => item.type);
 }
 
 export function summarizeAttachmentKinds(attachmentKinds = {}) {
@@ -152,7 +163,8 @@ export function validateStatusPolicies({ components = [], workflows = {} } = {})
     .filter(component => component.status === 'interactive' && workflows[component.entityType])
     .flatMap(component => {
       const workflow = workflows[component.entityType];
-      if (workflow.initial && Object.keys(workflow.states || {}).length > 0) return [];
+      const regions = workflow.regions || { main: workflow };
+      if ((workflow.initial || regions[workflow.primaryRegion || 'main']?.initial) && Object.values(regions).some(region => Object.keys(region.states || {}).length > 0)) return [];
       return [{ key: component.key, entityType: component.entityType, issue: 'invalid-workflow-status-policy' }];
     });
 }
@@ -256,14 +268,14 @@ export function validateFrameworkManifest({
 }
 
 export function validateWorkflowAccess(workflows = {}) {
-  return Object.entries(workflows).flatMap(([type, workflow]) => (workflow.transitions || []).flatMap((transition, index) => {
+  return Object.entries(workflows).flatMap(([type, workflow]) => Object.entries(workflow.regions || { main: workflow }).flatMap(([regionId, region]) => (region.transitions || []).flatMap((transition, index) => {
     const issues = [];
-    if (transition.roles) issues.push({ type, index, issue: 'legacy roles are not allowed' });
+    if (transition.roles) issues.push({ type, region: regionId, index, issue: 'legacy roles are not allowed' });
     if (!transition.access?.system && !Array.isArray(transition.access?.permissions)) {
-      issues.push({ type, index, issue: 'missing access permissions' });
+      issues.push({ type, region: regionId, index, issue: 'missing access permissions' });
     }
     return issues;
-  }));
+  })));
 }
 
 export function validateCommands(commands = {}) {

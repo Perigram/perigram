@@ -4,7 +4,9 @@ export function createRegistry({ id = 'app' } = {}) {
   const workflowDefinitions = new Map();
   const commandDefinitions = new Map();
   const taskDefinitions = new Map();
+  const eventDefinitions = new Map();
   const hookDefinitions = new Map();
+  const effectDefinitions = new Map();
   const attachmentKindDefinitions = new Map();
   const entityServices = new Map();
   const commandHandlers = new Map();
@@ -22,7 +24,9 @@ export function createRegistry({ id = 'app' } = {}) {
       for (const [entityType, workflow] of Object.entries(domain.workflows || {})) registry.defineWorkflow({ entityType, ...workflow });
       for (const command of Object.values(domain.commands || {})) registry.defineCommand(command);
       for (const task of Object.values(domain.tasks || {})) registry.defineTask(task);
+      for (const event of Object.values(domain.events || {})) registry.defineEvent(event);
       for (const hook of Object.values(domain.hooks || {})) registry.defineHook(hook);
+      for (const effect of Object.values(domain.effects || {})) registry.defineEffect(effect);
       for (const kind of Object.values(domain.attachmentKinds || {})) registry.defineAttachmentKind(kind);
       return registry.getDomain(domain.id);
     },
@@ -111,6 +115,24 @@ export function createRegistry({ id = 'app' } = {}) {
       return Array.from(taskDefinitions.values());
     },
 
+    defineEvent(definition) {
+      validateEventDefinition(definition);
+      eventDefinitions.set(definition.id, deepFreeze({
+        informational: false,
+        payload: [],
+        ...definition
+      }));
+      return registry.getEventDefinition(definition.id);
+    },
+
+    getEventDefinition(id) {
+      return eventDefinitions.get(id) || null;
+    },
+
+    listEventDefinitions() {
+      return Array.from(eventDefinitions.values());
+    },
+
     defineHook(definition) {
       validateHookDefinition(definition);
       hookDefinitions.set(definition.id, deepFreeze({ parameters: [], ...definition }));
@@ -123,6 +145,23 @@ export function createRegistry({ id = 'app' } = {}) {
 
     listHookDefinitions() {
       return Array.from(hookDefinitions.values());
+    },
+
+    defineEffect(definition) {
+      validateEffectDefinition(definition);
+      effectDefinitions.set(definition.id, deepFreeze({
+        effects: [],
+        ...definition
+      }));
+      return registry.getEffectDefinition(definition.id);
+    },
+
+    getEffectDefinition(id) {
+      return effectDefinitions.get(id) || null;
+    },
+
+    listEffectDefinitions() {
+      return Array.from(effectDefinitions.values());
     },
 
     defineAttachmentKind(definition) {
@@ -228,7 +267,7 @@ export class Identity {
 export class Status {
   constructor(state, userId = 'SYSTEM', metadata = {}, eventId = null, timestamp = new Date(), lifecycle = {}) {
     if (!state) throw new Error('Status: state is required');
-    this.state = state;
+    this.state = normalizeStatusState(state);
     this.userId = userId || 'SYSTEM';
     this.timestamp = timestamp ? new Date(timestamp) : new Date();
     this.metadata = metadata || {};
@@ -255,6 +294,98 @@ export function normalizeStatusLifecycle(lifecycle = {}) {
     attachments: source.attachments && typeof source.attachments === 'object' ? source.attachments : {},
     data: source.data && typeof source.data === 'object' ? source.data : {}
   };
+}
+
+export function normalizeStatusState(state, { region = 'main' } = {}) {
+  if (state && typeof state === 'object' && state.schemaVersion === 2) {
+    const primary = state.primary || getFirstActiveState(state.active) || 'UNKNOWN';
+    const active = normalizeActiveStates(state.active || { [region]: primary });
+    const regions = normalizeStateRegions(state.regions || {}, active);
+    return {
+      schemaVersion: 2,
+      primary,
+      active,
+      regions
+    };
+  }
+
+  const primary = typeof state === 'string' ? state : String(state || 'UNKNOWN');
+  return {
+    schemaVersion: 2,
+    primary,
+    active: { [region]: primary },
+    regions: {
+      [region]: { state: primary, path: [primary] }
+    }
+  };
+}
+
+export function createStatusState(primary, options = {}) {
+  return normalizeStatusState({
+    schemaVersion: 2,
+    primary,
+    active: options.active || { [options.region || 'main']: primary },
+    regions: options.regions || {
+      [options.region || 'main']: {
+        state: primary,
+        path: Array.isArray(options.path) && options.path.length ? options.path : [primary]
+      }
+    }
+  });
+}
+
+export function getPrimaryState(statusOrState, fallback = 'UNKNOWN') {
+  const state = statusOrState?.state ?? statusOrState;
+  if (typeof state === 'string') return state || fallback;
+  if (state && typeof state === 'object') {
+    return state.primary || getFirstActiveState(state.active) || fallback;
+  }
+  return fallback;
+}
+
+export function getRegionState(statusOrState, region = 'main', fallback = null) {
+  const state = statusOrState?.state ?? statusOrState;
+  if (typeof state === 'string') return region === 'main' ? state : fallback;
+  if (!state || typeof state !== 'object') return fallback;
+  return state.active?.[region] || state.regions?.[region]?.state || (region === 'main' ? getPrimaryState(state, fallback) : fallback);
+}
+
+export function getStatusRegions(statusOrState) {
+  const state = normalizeStatusState(statusOrState?.state ?? statusOrState);
+  return Object.entries(state.regions || {}).map(([id, region]) => ({
+    id,
+    state: region.state || state.active?.[id] || state.primary,
+    path: Array.isArray(region.path) ? region.path : [region.state || state.active?.[id] || state.primary],
+    label: region.label || id
+  }));
+}
+
+function normalizeActiveStates(active = {}) {
+  return Object.fromEntries(Object.entries(active)
+    .filter(([key, value]) => key && value)
+    .map(([key, value]) => [key, typeof value === 'string' ? value : String(value)]));
+}
+
+function normalizeStateRegions(regions = {}, active = {}) {
+  const entries = Object.entries(regions)
+    .filter(([key]) => key)
+    .map(([key, value]) => {
+      const regionState = value?.state || active[key] || 'UNKNOWN';
+      return [key, {
+        ...(value && typeof value === 'object' ? value : {}),
+        state: regionState,
+        path: Array.isArray(value?.path) && value.path.length ? value.path : [regionState]
+      }];
+    });
+  const normalized = Object.fromEntries(entries);
+  for (const [key, value] of Object.entries(active)) {
+    if (!normalized[key]) normalized[key] = { state: value, path: [value] };
+  }
+  return normalized;
+}
+
+function getFirstActiveState(active = {}) {
+  return Object.values(active || {}).find(Boolean) || null;
 }
 
 export class Lineage {
@@ -366,11 +497,13 @@ export function createCommandResult({
   tasks = [],
   transitions = [],
   events = [],
+  effects = [],
   data = {},
+  raw = null,
   error = null
 } = {}) {
   if (!commandId) throw new Error('CommandResult requires commandId');
-  return { ok, commandId, entities, attachments, tasks, transitions, events, data, error };
+  return { ok, commandId, entities, attachments, tasks, transitions, events, effects, data, raw, error };
 }
 
 export function createTaskResult({
@@ -380,11 +513,13 @@ export function createTaskResult({
   attachments = [],
   tasks = [],
   events = [],
+  effects = [],
   data = {},
+  raw = null,
   error = null
 } = {}) {
   if (!taskId) throw new Error('TaskResult requires taskId');
-  return { ok, taskId, entities, attachments, tasks, events, data, error };
+  return { ok, taskId, entities, attachments, tasks, events, effects, data, raw, error };
 }
 
 export const createIdentity = (name, slug = '', serial = '', reference = '', uid = slug || name) => new Identity(uid, name, slug, serial, reference);
@@ -404,8 +539,9 @@ export function validateEntityDefinition(definition) {
 
 export function validateWorkflowDefinition(definition) {
   if (!definition?.entityType) throw new Error('Workflow definition requires entityType');
-  if (!definition?.initial) throw new Error(`Workflow ${definition.entityType} requires initial state`);
-  if (!definition?.states || typeof definition.states !== 'object') throw new Error(`Workflow ${definition.entityType} requires states`);
+  if (!definition?.regions && !definition?.initial) throw new Error(`Workflow ${definition.entityType} requires regions or initial state`);
+  if (definition.regions && typeof definition.regions !== 'object') throw new Error(`Workflow ${definition.entityType} regions must be an object`);
+  if (!definition.regions && (!definition?.states || typeof definition.states !== 'object')) throw new Error(`Workflow ${definition.entityType} requires states`);
 }
 
 export function validateCommandDefinition(definition) {
@@ -420,8 +556,17 @@ export function validateTaskDefinition(definition) {
   if (!definition?.executor) throw new Error(`Task ${definition.id} requires executor`);
 }
 
+export function validateEventDefinition(definition) {
+  if (!definition?.id) throw new Error('Event definition requires id');
+}
+
 export function validateHookDefinition(definition) {
   if (!definition?.id) throw new Error('Hook definition requires id');
+}
+
+export function validateEffectDefinition(definition) {
+  if (!definition?.id) throw new Error('Effect definition requires id');
+  if (!definition?.on) throw new Error(`Effect ${definition.id} requires on`);
 }
 
 export function validateAttachmentKindDefinition(definition) {

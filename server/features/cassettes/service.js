@@ -1,21 +1,27 @@
 import * as repository from './repository.js';
-import * as designRepository from '../cassette-designs/repository.js';
+import * as cassetteDesignService from '../cassette-designs/service.js';
+import * as entityRevisionsService from '../entity-revisions/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
   createIdentity,
   createStatus,
-  inheritLineage,
   createData
 } from '../../core/blocks/index.js';
-import { statusService } from '../../core/machines/service.js';
-import { mapLineageQuery } from '../../utils/query.js';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
+import { aggregator } from '../../core/machines/aggregator.js';
 import standardSlugify from 'standard-slugify';
 import { generateRandomString } from '../../utils/strings.js';
-import { ObjectId, GridFSBucket } from 'mongodb';
+import { GridFSBucket } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { Cassette } from './model.js';
+import { serializeForAccess } from '../../utils/entity-redaction.js';
+import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
+import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
+import { isOccsDocument, occsQueueParameters } from '#utils/occs/parameters.js';
+import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
+import { generateLayeredDxf } from '../../utils/dxf-writer.js';
 
 /**
  * Cassette Templates Service - v24 Standardized
@@ -27,12 +33,137 @@ function toDTO(cassette) {
   return new Cassette(cassette).toJSON();
 }
 
+function buildMappedLayerData(fileBuffer, layerMapping = {}) {
+  return Object.entries(layerMapping).flatMap(([sourceLayer, layer]) => {
+    if (!layer) return [];
+    return extractCurvesFromDXFLayer(fileBuffer, sourceLayer).map((part, index) => ({
+      layer,
+      sourceLayer,
+      coordinates: part.coordinates,
+      handles: part.handles || [],
+      entityType: part.entityType,
+      sourceId: `${sourceLayer}:${part.handles?.[0] || index}`
+    }));
+  });
+}
+
+const GEOMETRY_REVISION_SCOPE = 'geometry';
+
+function geometryRevisionContent(cassette) {
+  const data = cassette.data || {};
+  return {
+    type: data.type || 'PARAMETRIC',
+    definition: data.definition || null,
+    parameters: data.parameters || []
+  };
+}
+
+function geometryRevisionSnapshot(cassette) {
+  return {
+    identity: cassette.identity || null,
+    data: geometryRevisionContent(cassette)
+  };
+}
+
+function geometryRevisionPointer(revision) {
+  if (!revision) return null;
+  return {
+    currentId: revision._id,
+    number: revision.data?.number || 0,
+    contentHash: revision.data?.contentHash || ''
+  };
+}
+
+async function ensureGeometryRevision(cassette, userId, reason = 'content-change') {
+  const revision = await entityRevisionsService.ensureForEntitySnapshot({
+    entityType: 'cassette',
+    entity: cassette,
+    scope: GEOMETRY_REVISION_SCOPE,
+    content: geometryRevisionContent(cassette),
+    snapshot: geometryRevisionSnapshot(cassette),
+    userId,
+    reason
+  });
+  const data = {
+    ...(cassette.data || {}),
+    revisions: {
+      ...(cassette.data?.revisions || {}),
+      [GEOMETRY_REVISION_SCOPE]: geometryRevisionPointer(revision)
+    }
+  };
+  const updated = await repository.updateById(cassette._id, { data });
+  return { revision, cassette: updated };
+}
+
+export async function ensureCurrentGeometryRevision(cassetteOrId, userId = 'SYSTEM', reason = 'content-change') {
+  const raw = typeof cassetteOrId === 'object'
+    ? cassetteOrId
+    : await repository.findById(toFlexibleId(cassetteOrId));
+  if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
+  return await ensureGeometryRevision(new Cassette(raw).toJSON(), userId, reason);
+}
+
+export function derivedFromGeometryRevision(revision, parameters = {}) {
+  return entityRevisionsService.derivedFromRevision(revision, parameters);
+}
+
+function resolveTemplateDefinition(template = {}) {
+  const candidates = [
+    template.data?.definition,
+    template.data?.definition?.definition,
+    template.data?.definition?.occs,
+    template.definition?.data,
+    template.definition
+  ].filter(candidate => candidate && typeof candidate === 'object');
+
+  return candidates.find(isOccsDocument) ||
+    candidates.find(candidate => (
+      candidate.params ||
+      candidate.extrusions ||
+      candidate.extensions ||
+      (candidate.parameters && !Array.isArray(candidate.parameters))
+    )) ||
+    null;
+}
+
+function assertEvaluatableParametricTemplate(template = {}) {
+  const definition = resolveTemplateDefinition(template);
+  if (!definition) {
+    throw createError({ statusCode: 400, message: 'Cassette template has no construction definition' });
+  }
+  if (isOccsDocument(definition)) {
+    if (!definition.extensions?.cutkit?.graphTree) {
+      throw createError({ statusCode: 400, message: 'Cassette template has no OCCS graph tree' });
+    }
+    return definition;
+  }
+  const params = definition.params || {};
+  if (!Object.prototype.hasOwnProperty.call(params, 'A') || !Object.prototype.hasOwnProperty.call(params, 'B')) {
+    throw createError({ statusCode: 400, message: 'Cassette template requires A and B parameters for construction' });
+  }
+  return definition;
+}
+
+function normalizeConstructionParameters(template = {}, supplied = {}) {
+  const definition = assertEvaluatableParametricTemplate(template);
+  const defaults = occsQueueParameters(definition);
+  const declaredNames = Array.isArray(template.data?.parameters) ? template.data.parameters : [];
+  const declaredDefaults = Object.fromEntries(declaredNames.map(name => [name, defaults[name] ?? 1]));
+  return {
+    ...declaredDefaults,
+    ...defaults,
+    ...(supplied || {})
+  };
+}
+
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Lineage: Templates belong to the organization
   const targetOrgId = userOrg || userId;
   const lineage = { organizationId: toFlexibleId(targetOrgId) };
+  const libraryId = data.libraryId || data.data?.libraryId;
+  if (libraryId) lineage.libraryId = toFlexibleId(libraryId);
 
-  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
+  if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }
 
@@ -52,16 +183,41 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   };
 
   const cassette = await repository.create(cassetteData);
-  return toDTO(cassette);
+  const { cassette: updated } = await ensureGeometryRevision(cassette, userId, 'template-created');
+  await syncParentSummary(updated);
+  return toDTO(updated);
+}
+
+export async function createDefaultOccsTemplate(data = {}, userId, userOrg, userRole, userPermissions) {
+  const name = data.name || data.identity?.name;
+  if (!name) throw createError({ statusCode: 400, message: 'Cassette template name is required' });
+  const definition = createDefaultOccsCassetteTemplateDefinition();
+  return await create({
+    name,
+    libraryId: data.libraryId || data.data?.libraryId,
+    type: 'PARAMETRIC',
+    definition,
+    parameters: Object.keys(definition.parameters || {})
+  }, userId, userOrg, userRole, userPermissions);
 }
 
 export async function upload(fileBuffer, fileName, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {
   const targetOrgId = userOrg || userId;
   const lineage = { organizationId: toFlexibleId(targetOrgId) };
 
-  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, lineage, 'cassettes', 'write')) {
+  if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
+
+  const layerMapping = mapping || {};
+  const polygonParts = extractNestingPolygons(fileBuffer, layerMapping, OCCS_LAYER_CUT_OUTER);
+  if (!polygonParts.length) {
+    throw createError({
+      statusCode: 400,
+      message: `DXF upload requires at least one closed polygon mapped to ${OCCS_LAYER_CUT_OUTER}`
+    });
+  }
+  const layerData = buildMappedLayerData(fileBuffer, layerMapping);
 
   const db = await connectDB();
   const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
@@ -87,51 +243,44 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
     lineage,
     data: createData({
       type: 'STANDARD',
-      definition: { mapping: mapping || {} },
+      definition: { mapping: layerMapping },
       parameters: parameters || []
     })
   };
 
   const template = await repository.create(templateData);
+  const { revision, cassette: updatedTemplate } = await ensureGeometryRevision(template, userId, 'template-uploaded');
 
-  // 2. Create Design (Baked Geometry)
-  const designOrigin = createStatus('ACTIVE', userId, { note: 'Initial design from upload' });
-  const designData = {
-    identity: createIdentity(`${name || fileName} (Base Design)`),
-    origin: designOrigin,
-    status: designOrigin,
-    lineage: {
-      ...lineage,
-      templateId: template._id
+  const design = await cassetteDesignService.createFromTemplateUpload({
+    name: `${name || fileName} (Base Design)`,
+    lineage,
+    templateId: template._id,
+    polygonParts,
+    layerData,
+    geometryData: {
+      polygonParts,
+      layerData
     },
-    data: createData({
-      geometry: {
-        data: null,
-        dxfId: uploadStream.id
-      },
-      parameters: {}
-    })
+    dxfId: uploadStream.id,
+    parameters: {},
+    derivedFrom: derivedFromGeometryRevision(revision, {})
+  }, userId);
+
+  return {
+    template: toDTO(updatedTemplate),
+    design
   };
-
-  await designRepository.create(designData);
-
-  return toDTO(template);
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, query = {}) {
-  const { limit, skip, status, ...rest } = query;
+  const { limit, skip, status, primaryStatus, primaryStatuses, ...rest } = query;
 
-  const lineageFilter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
-  const processedFilter = { ...rest };
+  const lineageFilter = getLineageFilter(userPermissions);
+  const processedFilter = normalizeLineageQuery(rest);
 
-  if (status) {
-    processedFilter['status.state'] = status;
-  }
-
-  if (userRole !== 'SuperAdmin') {
-      const targetOrgId = userOrg || userId;
-      processedFilter['lineage.organizationId'] = toFlexibleId(targetOrgId);
-  }
+  const statuses = normalizePrimaryStatuses(primaryStatuses);
+  if (statuses.length) processedFilter['status.state.primary'] = { $in: statuses };
+  else if (status || primaryStatus) processedFilter['status.state.primary'] = status || primaryStatus;
 
   const finalFilter = { ...lineageFilter, ...processedFilter };
 
@@ -140,7 +289,101 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
     skip: skip ? parseInt(skip) : 0
   });
 
-  return cassettes.map(toDTO);
+  return cassettes
+    .map(toDTO)
+    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'cassettes', 'read'));
+}
+
+export async function listPreviewByLibraries(libraryIds = [], userId, userOrg, userRole, userPermissions, options = {}) {
+  const ids = Array.from(new Set(libraryIds.flatMap(id => flexibleLookupValues(id)).filter(Boolean)));
+  if (!ids.length) return {};
+
+  const limit = Math.max(Number(options.limit || 4), 1);
+  const raws = await repository.find({
+    ...getLineageFilter(userPermissions),
+    'lineage.libraryId': { $in: ids }
+  });
+  const previews = {};
+  const cassettes = raws
+    .map(raw => new Cassette(raw).toJSON())
+    .filter(cassette => hasLineagePermission(userPermissions, cassette, 'cassettes', 'read'))
+    .sort(sortByStatusTimestampDesc);
+
+  for (const cassette of cassettes) {
+    const libraryId = cassette.lineage?.libraryId?.toString?.() || cassette.lineage?.libraryId;
+    if (!libraryId) continue;
+    previews[libraryId] ||= [];
+    if (previews[libraryId].length >= limit) continue;
+    previews[libraryId].push(cassettePreview(cassette, userPermissions));
+  }
+
+  return previews;
+}
+
+function normalizeLineageQuery(query = {}) {
+  const normalized = { ...query };
+  for (const key of ['projectId', 'queueId', 'warehouseId', 'cassetteId', 'libraryId']) {
+    if (normalized[key] !== undefined) {
+      normalized[`lineage.${key}`] = toFlexibleId(normalized[key]);
+      delete normalized[key];
+    }
+  }
+  return normalized;
+}
+
+function normalizePrimaryStatuses(value) {
+  if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
+  if (typeof value !== 'string') return [];
+  return value.split(',').map(item => item.trim()).filter(Boolean);
+}
+
+function flexibleLookupValues(id) {
+  if (id === null || id === undefined) return [];
+  const stringId = id?.toString?.() || id;
+  const flexibleId = toFlexibleId(id);
+  return [flexibleId, stringId].filter((value, index, values) => (
+    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
+  ));
+}
+
+function sortByStatusTimestampDesc(left = {}, right = {}) {
+  return statusTimestamp(right) - statusTimestamp(left);
+}
+
+function statusTimestamp(entity = {}) {
+  const value = entity.status?.timestamp || entity.origin?.timestamp || entity.updatedAt || entity.createdAt;
+  const timestamp = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function cassettePreview(cassette = {}, userPermissions = null) {
+  const preview = {
+    _id: cassette._id?.toString?.() || cassette._id,
+    entityType: 'cassette',
+    identity: {
+      ...(cassette.identity || {}),
+      name: cassette.identity?.name || cassette.identity?.slug || cassette.identity?.uid || 'Cassette'
+    },
+    origin: cassette.origin || null,
+    status: cassette.status || null,
+    lineage: cassette.lineage || {},
+    data: {
+      type: cassette.data?.type || null,
+      definition: cassette.data?.definition || null,
+      geometry: cassette.data?.geometry || null,
+      layerData: Array.isArray(cassette.data?.layerData) ? cassette.data.layerData : [],
+      polygonParts: Array.isArray(cassette.data?.polygonParts) ? cassette.data.polygonParts : [],
+      parameters: Array.isArray(cassette.data?.parameters) ? cassette.data.parameters : [],
+      revisions: cassette.data?.revisions || {}
+    },
+    summary: {}
+  };
+  return serializeForAccess('cassette', preview, userPermissions);
+}
+
+async function syncParentSummary(cassette = {}) {
+  if (!cassette.lineage?.libraryId) return;
+  await aggregator.syncParentSummary('cassette', cassette.lineage);
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {
@@ -149,11 +392,32 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
 
   const cassette = new Cassette(raw);
 
-  if (userPermissions && !hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'read')) {
+  if (userPermissions && !hasLineagePermission(userPermissions, cassette, 'cassettes', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
   return cassette.toJSON();
+}
+
+export async function findDefaultConstructableTemplate(userId, userOrg, userRole, userPermissions) {
+  const templates = await list(userId, userOrg, userRole, userPermissions, { limit: 100 });
+  return templates.find(isParametricConstructableTemplate)
+    || templates.find(isStandardTemplate)
+    || null;
+}
+
+function isParametricConstructableTemplate(template = {}) {
+  if (template.data?.type !== 'PARAMETRIC') return false;
+  try {
+    assertEvaluatableParametricTemplate(template);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isStandardTemplate(template = {}) {
+  return template.data?.type === 'STANDARD';
 }
 
 export async function exportDxf(id, dimensions, userId, userOrg, userRole, userPermissions) {
@@ -161,8 +425,10 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
 
   if (template.data?.type === 'PARAMETRIC') {
     const { evaluateTemplate, generateSimpleDxf } = await import('../parametric-cassettes/service.js');
-    const { polygons } = await evaluateTemplate(id, dimensions || {});
-    return generateSimpleDxf(polygons);
+    const { polygons, nestingPolygons, layerData } = await evaluateTemplate(id, dimensions || {});
+    return layerData?.length
+      ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : polygons })
+      : generateSimpleDxf(polygons);
   } else {
     const db = await connectDB();
     const design = await repository.findDesignByTemplateId(id);
@@ -176,17 +442,96 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
   }
 }
 
+export async function createDesignFromTemplate(id, parameters, userId, userOrg, userRole, userPermissions, options = {}) {
+  const template = await getById(id, userId, userOrg, userRole, userPermissions);
+
+  if (!hasLineagePermission(userPermissions || {}, template.lineage, 'cassettes', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  if (template.data?.type === 'PARAMETRIC') {
+    assertEvaluatableParametricTemplate(template);
+  }
+  const constructionParameters = template.data?.type === 'PARAMETRIC'
+    ? normalizeConstructionParameters(template, parameters || {})
+    : (parameters || {});
+  const templateName = template.identity?.name || 'Cassette Template';
+  const revisionResult = await ensureCurrentGeometryRevision(template, userId, 'design-created');
+  const derivedFrom = derivedFromGeometryRevision(revisionResult.revision, constructionParameters);
+
+  if (template.data?.type !== 'PARAMETRIC') {
+    const existing = await cassetteDesignService.getByTemplateId(
+      id,
+      userId,
+      userOrg,
+      userRole,
+      userPermissions
+    );
+    if (existing) return existing;
+
+    throw createError({ statusCode: 400, message: 'Uploaded templates require a base design DXF' });
+  }
+
+  const { evaluateTemplate, generateSimpleDxf } = await import('../parametric-cassettes/service.js');
+  const {
+    polygons,
+    dimensions,
+    nestingPolygons,
+    layerData: evaluatedLayerData
+  } = await evaluateTemplate(id, constructionParameters);
+  if (!polygons?.length) {
+    throw createError({ statusCode: 400, message: 'Template evaluation produced no geometry' });
+  }
+  const layerData = evaluatedLayerData || polygons.map((polygon, index) => ({
+    layer: index === 0 ? OCCS_LAYER_CUT_OUTER : OCCS_LAYER_CONTOUR_CASSETTE_FACE,
+    coordinates: polygon.coordinates,
+    handles: polygon.handles || [(256 + index).toString(16).toUpperCase()]
+  }));
+  const dxfContent = layerData?.length
+    ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]] })
+    : generateSimpleDxf(polygons);
+
+  const db = await connectDB();
+  const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
+  const filename = `cassette-design-${id}-${Date.now()}.dxf`;
+  const dxfId = await new Promise((resolve, reject) => {
+    const uploadStream = bucket.openUploadStream(filename, {
+      metadata: { userId, organizationId: userOrg || userId, templateId: id, type: 'CASSETTE_DESIGN_DXF' }
+    });
+    uploadStream.on('finish', () => resolve(uploadStream.id));
+    uploadStream.on('error', reject);
+    uploadStream.write(dxfContent);
+    uploadStream.end();
+  });
+
+  return await cassetteDesignService.createFromTemplateUpload({
+    name: options.name || `${templateName} Design`,
+    lineage: template.lineage,
+    templateId: id,
+    polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]],
+    layerData,
+    geometryData: {
+      polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]],
+      layerData,
+      dimensions
+    },
+    dxfId,
+    parameters: dimensions || constructionParameters,
+    derivedFrom
+  }, userId, userPermissions);
+}
+
 export async function update(id, updates, userId, userOrg, userRole, userPermissions) {
   const raw = await repository.findById(toFlexibleId(id));
   if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   const cassette = new Cassette(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
   if (updates.status && typeof updates.status === 'string') {
-    await statusService.transition('cassette', cassette._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('cassette', cassette._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     delete updates.status;
   }
 
@@ -208,7 +553,8 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
   await repository.updateById(id, { identity: cassette.identity, data: cassetteData });
   const updatedRaw = await repository.findById(id);
-  return new Cassette(updatedRaw).toJSON();
+  const { cassette: revisioned } = await ensureGeometryRevision(updatedRaw, userId, 'template-updated');
+  return new Cassette(revisioned).toJSON();
 }
 
 export async function updateLayerMapping(id, mapping, userId, userOrg, userRole, userPermissions) {
@@ -216,7 +562,7 @@ export async function updateLayerMapping(id, mapping, userId, userOrg, userRole,
   if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   const cassette = new Cassette(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -230,7 +576,8 @@ export async function updateLayerMapping(id, mapping, userId, userOrg, userRole,
 
   await repository.updateById(id, { data });
   const updatedRaw = await repository.findById(id);
-  return new Cassette(updatedRaw).toJSON();
+  const { cassette: revisioned } = await ensureGeometryRevision(updatedRaw, userId, 'layer-mapping-updated');
+  return new Cassette(revisioned).toJSON();
 }
 
 export async function updateParameters(id, parameters, userId, userOrg, userRole, userPermissions) {
@@ -238,7 +585,7 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
   if (!raw) throw createError({ statusCode: 404, message: 'Template not found' });
   const cassette = new Cassette(raw);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -249,13 +596,14 @@ export async function updateParameters(id, parameters, userId, userOrg, userRole
 
   await repository.updateById(id, { data });
   const updatedRaw = await repository.findById(id);
-  return new Cassette(updatedRaw).toJSON();
+  const { cassette: revisioned } = await ensureGeometryRevision(updatedRaw, userId, 'parameters-updated');
+  return new Cassette(revisioned).toJSON();
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const cassette = await getById(toFlexibleId(id), userId, userOrg, userRole, userPermissions);
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, cassette.lineage, 'cassettes', 'admin')) {
+  if (!hasLineagePermission(userPermissions, cassette, 'cassettes', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 

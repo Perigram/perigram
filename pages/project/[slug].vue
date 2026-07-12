@@ -1,44 +1,14 @@
 <template>
-    <EntityPage 
-        v-if="project" 
-        :entity="project" 
-        entity-type="project"
-        @refresh="loadProject"
-    >
-        <template #actions>
-            <Button 
-                v-if="authStore.can('projects', 'edit')"
-                :label="$t('common.edit')" 
-                icon="pi pi-pencil" 
-                outlined 
-                @click="showEditDialog = true" 
-            />
-        </template>
-
-        <div class="flex flex-col gap-6">
-            <Tabs :value="activeTabIndex">
-                <TabList>
-                    <Tab v-for="(tab, index) in tabs" :key="tab.key" :value="index" @click="onTabChange(index)">
-                        {{ tab.label }}
-                    </Tab>
-                </TabList>
-            </Tabs>
-            
-            <NuxtPage />
-        </div>
-    </EntityPage>
+    <NuxtPage v-if="isEntityDetailRoute" />
+    <StandardPage v-else-if="project" :class="{ 'h-full min-h-0 gap-0 overflow-hidden': isQueueWorkspaceRoute }">
+        <NuxtPage />
+    </StandardPage>
 </template>
 
 <script setup>
-    import { ref, computed, watch, onMounted } from 'vue'
+    import { computed, onMounted } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
-    import { useI18n } from 'vue-i18n'
-    import Tabs from 'primevue/tabs'
-    import TabList from 'primevue/tablist'
-    import Tab from 'primevue/tab'
-    import Button from 'primevue/button'
-    import EntityPage from '~/components/shared/EntityPage.vue'
-    import { useAuthStore } from '~/stores/auth'
+    import StandardPage from '~/components/shared/StandardPage.vue'
     import { useEntity } from '~/composables/useEntity'
 
     definePageMeta({
@@ -48,49 +18,28 @@
 
     const route = useRoute()
     const router = useRouter()
-    const { t } = useI18n()
-    const authStore = useAuthStore()
     const slug = route.params.slug
 
-    const { entity: project, loading, error, fetch: loadProject } = useEntity('project', slug)
-    const activeTabIndex = ref(0)
-    const showEditDialog = ref(false)
-
-    const tabs = computed(() => [
-        { label: t('project.queues'), to: `/project/${slug}/queues`, key: 'queues' },
-        { label: t('project.data'), to: `/project/${slug}/data`, key: 'data' },
-    ])
+    const { entity: project, fetch: loadProject } = useEntity('project', slug)
+    const isEntityDetailRoute = computed(() =>
+        route.path.includes(`/project/${slug}/queue/`) ||
+        route.path.includes(`/project/${slug}/sheet-design/`)
+    )
+    const isQueueWorkspaceRoute = computed(() => route.path.replace(/\/$/, '') === `/project/${slug}/queues`)
 
     onMounted(async () => {
-        await loadProject()
-        updateActiveTab()
+        try {
+            await loadProject(undefined, { silent: true })
+        } catch (error) {
+            if (error?.statusCode === 403 || error?.status === 403) {
+                router.replace('/projects')
+                return
+            }
+            throw error
+        }
 
         if (route.path === `/project/${slug}` || route.path === `/project/${slug}/`) {
             router.replace(`/project/${slug}/queues`)
         }
     })
-
-    watch(
-        () => route.path,
-        () => {
-            updateActiveTab()
-        },
-    )
-
-    const updateActiveTab = () => {
-        if (route.path.includes('/queues')) {
-            activeTabIndex.value = 0
-        } else if (route.path.includes('/data')) {
-            activeTabIndex.value = 1
-        }
-    }
-
-    const onTabChange = (index) => {
-        const tab = tabs.value[index]
-        router.push(tab.to)
-    }
 </script>
-
-<style scoped>
-</style>
-

@@ -1,0 +1,210 @@
+import {
+  ACCESS_LEVELS,
+  hasPermissionGrant,
+  levelAtLeast
+} from '#shared/access-control.js';
+import {
+  getEntityFieldAccessPolicy,
+  normalizeFieldAccessEntityType
+} from '@cutkit/domain-cnc';
+import { isPublicReadEntity } from './public-entities.js';
+
+const POLICY_LEVELS = ['read', 'write', 'admin'];
+
+export function getActivePermissionsFromAuth(auth = {}, entity = null) {
+  if (!auth) return {};
+  if (auth.effectivePermissions) return auth.effectivePermissions;
+  if (auth.permissions) return auth.permissions;
+
+  const entityOrgId = entity?.lineage?.organizationId?.toString?.() || entity?.lineage?.organizationId;
+  const activeOrgId = entityOrgId || auth.organizationId?.toString?.() || auth.organizationId;
+  const membership = activeOrgId
+    ? (auth.memberships || []).find(item => item.organizationId?.toString?.() === activeOrgId.toString())
+    : (auth.memberships || [])[0];
+
+  return membership?.permissions || auth.data?.permissions || {};
+}
+
+export function normalizeFieldDescriptor(field) {
+  if (typeof field === 'string') return { path: field };
+  return field || {};
+}
+
+export function fieldPathMatches(policyPath, requestedPath) {
+  if (!policyPath || !requestedPath) return false;
+  if (policyPath === requestedPath) return true;
+
+  if (policyPath.endsWith('.*')) {
+    const basePath = policyPath.slice(0, -2);
+    return requestedPath === basePath || requestedPath.startsWith(`${basePath}.`);
+  }
+
+  return requestedPath.startsWith(`${policyPath}.`);
+}
+
+export function getEntityFieldPolicyEntries(entityType) {
+  const policy = getEntityFieldAccessPolicy(entityType);
+  if (!policy) return [];
+
+  return POLICY_LEVELS.flatMap(level =>
+    (policy[level] || []).map(path => ({
+      path,
+      feature: policy.feature,
+      level
+    }))
+  );
+}
+
+export function getActiveEntityFieldPolicyEntries(entityType, auth = null) {
+  const baseEntries = getEntityFieldPolicyEntries(entityType);
+  const processPolicy = auth?.fieldPolicies?.[entityType];
+  if (!processPolicy) return baseEntries;
+
+  const baseFeature = baseEntries[0]?.feature || getEntityFieldAccessPolicy(entityType)?.feature || entityType;
+  return [
+    ...(processPolicy.read || []).map(path => ({ path, feature: baseFeature, level: 'read' })),
+    ...(processPolicy.write || []).map(path => ({ path, feature: baseFeature, level: 'write' })),
+    ...(processPolicy.private || []).map(path => ({ path, feature: baseFeature, level: 'admin' }))
+  ];
+}
+
+export function findEntityFieldPolicy(entityType, path, auth = null) {
+  const matches = getActiveEntityFieldPolicyEntries(entityType, auth)
+    .filter(entry => fieldPathMatches(entry.path, path))
+    .sort((a, b) => {
+      const levelDelta = ACCESS_LEVELS.indexOf(a.level) - ACCESS_LEVELS.indexOf(b.level);
+      if (levelDelta !== 0) return levelDelta;
+      return b.path.length - a.path.length;
+    });
+
+  return matches[0] || null;
+}
+
+export function canDisplayEntityField({
+  permissions = {},
+  auth = null,
+  entity = null,
+  entityType,
+  field = null,
+  path = null
+} = {}) {
+  const descriptor = normalizeFieldDescriptor(field);
+  const requestedPath = path || descriptor.path;
+  if (!entityType || !requestedPath) return false;
+
+  const policy = findEntityFieldPolicy(entityType, requestedPath, auth);
+  if (!policy) return false;
+
+  const activePermissions = auth
+    ? getActivePermissionsFromAuth(auth, entity)
+    : permissions;
+
+  if ((descriptor.level || policy.level) === 'read' && isPublicReadEntity({
+    entity,
+    entityType: normalizeFieldAccessEntityType(entityType),
+    feature: descriptor.feature || policy.feature
+  })) return true;
+
+  return hasPermissionGrant({
+    permissions: activePermissions,
+    feature: descriptor.feature || policy.feature,
+    level: descriptor.level || policy.level,
+    entity,
+    entityType: normalizeFieldAccessEntityType(entityType)
+  });
+}
+
+export function filterEntityFields({
+  fields = [],
+  permissions = {},
+  auth = null,
+  entity = null,
+  entityType
+} = {}) {
+  return fields.filter(field => canDisplayEntityField({
+    permissions,
+    auth,
+    entity,
+    entityType,
+    field
+  }));
+}
+
+export function allowedEntityFieldPolicies({ entityType, permissions = {}, auth = null, entity = null } = {}) {
+  const activePermissions = auth
+    ? getActivePermissionsFromAuth(auth, entity)
+    : permissions;
+
+  return getActiveEntityFieldPolicyEntries(entityType, auth).filter(entry =>
+    (entry.level === 'read' && isPublicReadEntity({
+      entity,
+      entityType: normalizeFieldAccessEntityType(entityType),
+      feature: entry.feature
+    })) || hasPermissionGrant({
+      permissions: activePermissions,
+      feature: entry.feature,
+      level: entry.level,
+      entity,
+      entityType: normalizeFieldAccessEntityType(entityType)
+    })
+  );
+}
+
+export function redactEntityForAccess(entity, entityType, authOrPermissions = null) {
+  if (!entity || !entityType || !authOrPermissions) return entity;
+
+  const isAuthContext = authOrPermissions.memberships
+    || authOrPermissions.permissions
+    || authOrPermissions.effectivePermissions
+    || authOrPermissions.organizationId;
+  const permissions = isAuthContext
+    ? getActivePermissionsFromAuth(authOrPermissions, entity)
+    : authOrPermissions;
+
+  const redacted = {};
+  const policies = allowedEntityFieldPolicies({
+    entityType,
+    permissions,
+    auth: isAuthContext ? authOrPermissions : null,
+    entity
+  });
+  for (const policy of policies) {
+    copyPolicyPath(entity, redacted, policy.path);
+  }
+  return redacted;
+}
+
+function copyPolicyPath(source, target, policyPath) {
+  const sourcePath = policyPath.endsWith('.*') ? policyPath.slice(0, -2) : policyPath;
+  copyAllowedPath(source, target, sourcePath.split('.').filter(Boolean));
+}
+
+function copyAllowedPath(source, target, segments) {
+  if (!source || !target || !segments.length) return;
+  const [segment, ...rest] = segments;
+  const value = source[segment];
+  if (value === undefined) return;
+
+  if (!rest.length) {
+    target[segment] = value;
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    if (!Array.isArray(target[segment])) target[segment] = [];
+    value.forEach((item, index) => {
+      if (item === undefined || item === null) return;
+      if (!target[segment][index] || typeof target[segment][index] !== 'object') target[segment][index] = {};
+      copyAllowedPath(item, target[segment][index], rest);
+    });
+    return;
+  }
+
+  if (!target[segment] || typeof target[segment] !== 'object') target[segment] = {};
+  copyAllowedPath(value, target[segment], rest);
+}
+
+export function hasFieldPolicyLevel(entityType, path, level = 'read') {
+  const policy = findEntityFieldPolicy(entityType, path);
+  return Boolean(policy && levelAtLeast(policy.level, level));
+}

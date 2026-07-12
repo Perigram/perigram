@@ -25,6 +25,15 @@ export async function findById(id) {
   return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
+export async function findByIds(ids = []) {
+  const flexibleIds = ids.map(toFlexibleId).filter(Boolean);
+  if (!flexibleIds.length) return [];
+  const db = await connectDB();
+  return await db.collection(COLLECTION)
+    .find({ _id: { $in: flexibleIds } })
+    .toArray();
+}
+
 export async function findByEmail(email) {
   const db = await connectDB();
   const emailLower = email.toLowerCase();
@@ -39,6 +48,31 @@ export async function findByEmail(email) {
 export async function find(filter = {}) {
   const db = await connectDB();
   return await db.collection(COLLECTION).find(filter).toArray();
+}
+
+export async function findActiveMembersByOrganization(organizationId) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).find({
+    'data.memberships': {
+      $elemMatch: {
+        organizationId: { $in: organizationIdValues(organizationId) },
+        $or: [{ status: 'active' }, { status: { $exists: false } }]
+      }
+    }
+  }).toArray();
+}
+
+export async function findActiveOwnersByOrganization(organizationId) {
+  const db = await connectDB();
+  return await db.collection(COLLECTION).find({
+    'data.memberships': {
+      $elemMatch: {
+        organizationId: { $in: organizationIdValues(organizationId) },
+        $or: [{ status: 'active' }, { status: { $exists: false } }],
+        owner: true
+      }
+    }
+  }).toArray();
 }
 
 export async function updateById(id, updates) {
@@ -102,4 +136,8 @@ export async function updateGlobalPermissions(userId, permissions) {
 export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
+}
+
+function organizationIdValues(organizationId) {
+  return [toFlexibleId(organizationId), organizationId?.toString?.() || organizationId].filter(Boolean);
 }

@@ -1,4 +1,10 @@
 import { ref } from 'vue';
+import { emitStatusTransitionResult } from '~/utils/entity-events.js';
+
+export const STATUS_ACTIONS_ENDPOINT = '/api/status/actions';
+export const STATUS_TRANSITION_ENDPOINT = '/api/status/transition';
+
+export const getStatusEndpoint = () => STATUS_TRANSITION_ENDPOINT;
 
 /**
  * Status Controller Composable
@@ -8,47 +14,32 @@ export const useStatusController = () => {
   const isTransitioning = ref(false);
   const transitionError = ref(null);
 
-  const getStatusEndpoint = (type, id) => {
-    const map = {
-        project: `/api/project/${id}`,
-        queue: `/api/queue/${id}`,
-        requisition: `/api/requisitions/${id}`,
-        batch: `/api/material-piles/${id}`,
-        pile: `/api/material-piles/${id}`,
-        material_pile: `/api/material-piles/${id}`,
-        sheet: `/api/sheets/${id}`,
-        remnant: `/api/remnants/${id}`,
-        cassetteInstance: `/api/cassette-instances/${id}`,
-        cassette_instance: `/api/cassette-instances/${id}`,
-        cassetteDesign: `/api/cassette-designs/${id}`,
-        cassette_design: `/api/cassette-designs/${id}`,
-        sheetDesign: `/api/sheet-designs/${id}`,
-        sheet_design: `/api/sheet-designs/${id}`,
-        nestingRun: `/api/nesting-runs/${id}`,
-        nesting_run: `/api/nesting-runs/${id}`,
-        artifact: `/api/artifacts/${id}`,
-        catalog: `/api/catalogs/${id}`,
-        color: `/api/colors/${id}`,
-        warehouse: `/api/warehouses/${id}`,
-        user: `/api/users/${id}`,
-        organization: `/api/organizations/${id}`
-    };
-    return map[type] || `/api/${type}/${id}`;
-  };
-
   const transition = async (entityType, targetId, newState, context = {}) => {
     isTransitioning.value = true;
     transitionError.value = null;
     const statusMeta = context && typeof context === 'object' && ('metadata' in context || 'lifecycle' in context)
       ? context
       : { metadata: context || {} };
+    const intent = context?.intent || null;
+    const region = context?.region || context?.machineRegion || context?.machine || null;
+    const path = Array.isArray(context?.path) ? context.path : null;
     
     try {
-      // Use standard PATCH update endpoint which handles status updates
-      const response = await $fetch(getStatusEndpoint(entityType, targetId), {
-        method: 'PATCH',
-        body: { status: newState, statusMeta }
+      const response = await $fetch(getStatusEndpoint(), {
+        method: 'POST',
+        body: {
+          entityType,
+          id: targetId,
+          status: newState,
+          intent,
+          statusMeta: {
+            ...statusMeta,
+            ...(region ? { region } : {}),
+            ...(path ? { path } : {})
+          }
+        }
       });
+      emitStatusTransitionResult({ entityType, targetId, response });
       return response;
     } catch (err) {
       transitionError.value = err.data?.message || 'Failed to update status';
@@ -58,8 +49,19 @@ export const useStatusController = () => {
     }
   };
 
+  const fetchActions = async (entityType, targetId) => {
+    if (!entityType || !targetId) return [];
+
+    const response = await $fetch(STATUS_ACTIONS_ENDPOINT, {
+      query: { entityType, id: targetId }
+    });
+
+    return response?.actions || [];
+  };
+
   return {
     transition,
+    fetchActions,
     isTransitioning,
     transitionError
   };

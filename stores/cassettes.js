@@ -96,10 +96,11 @@ export const useCassettesStore = defineStore('cassettes', () => {
                 method: 'POST',
                 body: formData,
             });
-            cassettes.value.push(result);
+            const template = result?.template || result;
+            cassettes.value.push(template);
             uploadStatus.value = 'idle';
-            pollCassetteStatus(result._id);
-            return result;
+            pollCassetteStatus(template._id);
+            return template;
         } catch (error) {
             uploadStatus.value = 'error';
             console.error('Failed to upload cassette:', error);

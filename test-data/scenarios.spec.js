@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
 import { createCncFixtureScenario, validateCncFixtureScenario } from './scenarios.js';
-import { contextToScenario, createWorkbenchContext, findContextEntity, upsertContextEntities } from './workbench-context.js';
+import { contextToScenario, createWorkbenchContext, findContextEntity, transitionContextEntityStatus, upsertContextEntities } from './workbench-context.js';
+import { buildManualWorkbenchEntity, defaultManualEntityDraft, manualEntityContextType, manualFieldsForEntity } from './workbench-manual-entities.js';
 
 describe('CNC fixture scenarios', () => {
   it('creates an interlinked scenario with workflow-backed statuses', () => {
@@ -13,6 +14,8 @@ describe('CNC fixture scenarios', () => {
     expect(scenario.refs.queue).toBeTruthy();
     expect(scenario.refs.sheetDesign).toBeTruthy();
     expect(scenario.entities.queue[0].data.job.items[0].id).toBe(scenario.refs.cassetteTemplate);
+    expect(scenario.entities.cassette[0].data.definition.occs).toBe('0.4-draft');
+    expect(scenario.entities.queue[0].data.job.items[0].parameters).toEqual({ A: 500, B: 400, R: 35 });
     expect(scenario.entities.sheet_design[0].data.placements[0].cassetteDesignId).toBe(scenario.refs.cassetteDesign);
     expect(scenario.entities.layer_standard[0].data.defaultPenId).toBe(scenario.refs.penTemplate);
 
@@ -58,5 +61,97 @@ describe('CNC fixture scenarios', () => {
 
     expect(findContextEntity(next, 'sheet_design', 'sheet-design-generated-001')?.identity.name).toBe('Generated sheet design');
     expect(contextToScenario(next).entities.sheet_design.some(entity => entity._id === 'sheet-design-generated-001')).toBe(true);
+  });
+
+  it('updates workbench entity statuses inside the fixture context', () => {
+    const context = createWorkbenchContext();
+    const next = transitionContextEntityStatus(context, {
+      type: 'project',
+      id: context.refs.project,
+      state: 'ACTIVE',
+      userId: context.access.userId
+    });
+
+    expect(findContextEntity(next, 'project', context.refs.project)?.status.state).toBe('ACTIVE');
+    expect(next.persisted).toBe(false);
+  });
+
+  it('creates manual workbench entities with typed lineage references', () => {
+    const context = createWorkbenchContext();
+    const queueFields = manualFieldsForEntity('queue', context.workflows);
+    const draft = defaultManualEntityDraft('queue', {
+      context,
+      workflowCompile: context.workflows,
+      label: 'Queue'
+    });
+    const queue = buildManualWorkbenchEntity('queue', {
+      ...draft,
+      organizationId: context.refs.organization,
+      projectId: context.refs.project,
+      cassetteId: context.refs.cassetteTemplate,
+      quantity: 2
+    }, {
+      context,
+      workflowCompile: context.workflows
+    });
+    const projectFields = manualFieldsForEntity('project', context.workflows).map(field => field.name);
+    const projectDraft = defaultManualEntityDraft('project', {
+      context,
+      workflowCompile: context.workflows,
+      label: 'Project'
+    });
+
+    expect(queueFields.find(field => field.name === 'projectId')?.type).toBe('entityId');
+    expect(queueFields.find(field => field.name === 'cassetteId')?.entityType).toBe('cassette');
+    expect(projectFields).not.toContain('address');
+    expect(projectDraft.organizationId).toBeUndefined();
+    expect(queue.lineage.projectId).toBe(context.refs.project);
+    expect(queue.data.job.items[0].id).toBe(context.refs.cassetteTemplate);
+    expect(queue.data.job.items[0].quantity).toBe(2);
+    expect(queue.data.queueNumber).toBeUndefined();
+  });
+
+  it('stores manual cassette designer output in the cassette context bucket', () => {
+    const context = createWorkbenchContext();
+    const cassette = buildManualWorkbenchEntity('cassette', {
+      name: 'Manual template',
+      definition: { params: { A: 700, B: 400 }, extrusions: [] },
+      parameters: ['A', 'B']
+    }, {
+      context,
+      workflowCompile: context.workflows
+    });
+    const next = upsertContextEntities(context, [{ type: manualEntityContextType('cassette'), entity: cassette }]);
+
+    expect(findContextEntity(next, 'cassette', cassette._id)?.data.definition.params.A).toBe(700);
+    expect(contextToScenario(next).entities.cassette.some(entity => entity._id === cassette._id)).toBe(true);
+  });
+
+  it('uses OCCS v2 template parameters when creating manual nesting queue items', () => {
+    const context = createWorkbenchContext();
+    const cassette = buildManualWorkbenchEntity('cassette', {
+      name: 'OCCS v2 template',
+      definition: {
+        occs: '0.4-draft',
+        parameters: { A: '500', B: '400', R: '35' }
+      },
+      parameters: ['A', 'B', 'R']
+    }, {
+      context,
+      workflowCompile: context.workflows
+    });
+    const withCassette = upsertContextEntities(context, [{ type: manualEntityContextType('cassette'), entity: cassette }]);
+    const queue = buildManualWorkbenchEntity('queue', {
+      name: 'Queue with OCCS v2 cassette',
+      organizationId: withCassette.refs.organization,
+      projectId: withCassette.refs.project,
+      cassetteId: cassette._id,
+      quantity: 3
+    }, {
+      context: withCassette,
+      workflowCompile: withCassette.workflows
+    });
+
+    expect(queue.data.job.items[0].parameters).toEqual({ A: 500, B: 400, R: 35 });
   });
 });

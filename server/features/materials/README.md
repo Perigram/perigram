@@ -18,3 +18,12 @@ This directory contains the Materials feature, managing the global collection of
 
 ## Project Integration
 Projects store references to these materials and maintain their own inventory of sheets and waste polygons for each used material.
+
+## Access
+
+Base materials are system catalogue records. They are marked public-read with
+`lineage.scope: "system"`, `lineage.public: true`, and
+`data.visibility.public: true`, and `GET /api/materials` is public-read. Viewing
+base materials does not require or grant a `materials` permission; mutable
+inventory entities such as material piles, sheets, remnants, and geometry
+captures still use normal `materials` grants.

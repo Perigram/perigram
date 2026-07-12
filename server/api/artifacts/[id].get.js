@@ -1,6 +1,7 @@
 import { service } from '~/server/features/artifacts';
 import { getSvgResultBucket, getDxfResultBucket } from '~/server/db/mongo';
 import { toObjectId } from '~/server/utils/objectid';
+import { getPrimaryState } from '~/server/core/blocks/index.js';
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id');
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
   });
 
   // Check if the artifact is ready and has a file
-  const artifactState = artifact.status?.state;
+  const artifactState = getPrimaryState(artifact.status);
   if (artifactState !== 'READY') {
     throw createError({
       statusCode: 400,

@@ -10,6 +10,11 @@ validation step for CNC workflow definitions from `@cutkit/domain-cnc`.
 - `defineWorkflow(type, workflow)`
 - `getWorkflow(type)`
 - `listWorkflows()`
+- `normalizeWorkflow(workflow)`
+- `createWorkflowState(workflow, overrides)`
+- `applyWorkflowTransitionState(currentState, workflow, transition, targetState)`
+- `getPrimaryState(statusOrState)`
+- `getRegionState(statusOrState, regionId)`
 - `validateTransition(context)`
 - `normalizeLifecycle(lifecycle)`
 - `validateLifecyclePayload(schema, lifecycle)`
@@ -17,6 +22,44 @@ validation step for CNC workflow definitions from `@cutkit/domain-cnc`.
 - `createTransitionEngine(adapters)`
 
 ## Lifecycle Validation
+
+## Workflow Shape
+
+Workflows use the v2 region contract. A simple lifecycle is a single `main`
+region; independent lifecycle axes can be added as additional regions.
+
+```js
+{
+  schemaVersion: 2,
+  primaryRegion: 'main',
+  regions: {
+    main: {
+      initial: 'DRAFT',
+      states: { DRAFT: {}, READY: {} },
+      transitions: [{ from: 'DRAFT', to: 'READY', access: { permissions: [] } }]
+    },
+    qa: {
+      initial: 'OPEN',
+      states: { OPEN: {}, APPROVED: {} },
+      transitions: [{ from: 'OPEN', to: 'APPROVED', access: { permissions: [] } }]
+    }
+  }
+}
+```
+
+Runtime status snapshots store structured state:
+
+```js
+{
+  schemaVersion: 2,
+  primary: 'READY',
+  active: { main: 'READY', qa: 'OPEN' },
+  regions: {
+    main: { state: 'READY', path: ['READY'] },
+    qa: { state: 'OPEN', path: ['OPEN'] }
+  }
+}
+```
 
 Workflow states may declare lifecycle payload schemas:
 
@@ -27,8 +70,12 @@ states: {
     lifecycle: {
       actors: ['operator', 'mounting'],
       attachments: {
-        geometry: { multiple: false },
+        geometry: { multiple: false, required: true, kind: 'geometry-proof' },
         photos: { multiple: true }
+      },
+      description: { required: true },
+      snapshots: {
+        cassetteDesigns: { entityType: 'cassette_design', lineageKey: 'queueId' }
       },
       data: true
     }
@@ -36,9 +83,12 @@ states: {
 }
 ```
 
-`validateTransition()` checks declared attachment slots,
-actor capability names, optional transition `capabilities`, and current
-`status.lifecycle.actors` assignments that apply to the target state.
+`validateTransition()` checks declared attachment slots, required lifecycle
+attachments, declared snapshot keys, actor capability names, optional transition
+`capabilities`, and current `status.lifecycle.actors` assignments that apply to
+the target state. Runtime adapters may pass `requireLifecyclePayload: false`
+when listing available actions so required evidence can be collected by the UI
+before the transition is submitted.
 Application role names are not workflow policy. Runtime adapters evaluate
 transition `access.permissions` through their access layer.
 

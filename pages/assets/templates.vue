@@ -1,12 +1,12 @@
 <template>
-  <div class="flex flex-col gap-6">
-    <div class="flex justify-end items-center">
+  <StandardPage :title="$t('assets.templates')">
+    <template #actions>
       <Button 
         :label="$t('assets.newTemplate')" 
         icon="pi pi-plus" 
         @click="showDialog = true"
       />
-    </div>
+    </template>
     
     <StateBlock :message="$t('assets.templateManagementComingSoon')" icon="pi pi-inbox" />
     
@@ -19,12 +19,13 @@
         <p>{{ $t('assets.templateCreationComingSoon') }}</p>
       </div>
     </StandardDialog>
-  </div>
+  </StandardPage>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import Button from 'primevue/button';
+import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 

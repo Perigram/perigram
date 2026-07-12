@@ -24,37 +24,50 @@
         :key="cassette._id"
         :entity="cassette"
         entity-type="cassette_template"
-        class="card-interactive"
         :show-trace="false"
         :show-status="false"
       >
-        <template #header>
-            <div class="aspect-square relative overflow-hidden">
-                <CassetteThumbnail :cassette="cassette" />
-                <!-- Actions overlay -->
-                <div class="absolute top-2 right-2 flex gap-1">
-                    <Button icon="pi pi-pencil" text @click="editCassette(cassette)" />
-                    <Button icon="pi pi-trash" text severity="danger" @click="handleDelete(cassette._id)" />
-                </div>
-            </div>
+        <template #before-identity>
+          <i class="pi pi-clone"></i>
         </template>
-        <template #title>
-          <Inplace @open="onRenameStart(cassette)">
-            <template #display>
-              <span class="truncate block">
-                {{ getCassetteName(cassette) }}
-              </span>
-            </template>
-            <template #content="{ closeCallback }">
-              <InputText v-model="editingName" size="small" autofocus @keyup.enter="onRename(cassette, closeCallback)" @keyup.esc="closeCallback" />
-            </template>
-          </Inplace>
-        </template>
+
         <template #subtitle>
-            <div class="flex items-center justify-between gap-2">
-                <EntityStatus :entity="cassette" entity-type="cassette" variant="inline" />
-                <small>{{ formatDate(cassette.status?.timestamp || cassette.origin?.timestamp) }}</small>
-            </div>
+          <small>{{ formatDate(cassette.status?.timestamp || cassette.origin?.timestamp) }}</small>
+        </template>
+
+        <div class="flex flex-col gap-4">
+          <CassetteThumbnail :cassette="cassette" />
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-2" data-entity-card-interactive="true" @click.stop>
+            <NameEditPopover
+              :model-value="getCassetteName(cassette)"
+              :label="$t('common.name')"
+              :aria-label="$t('common.edit')"
+              @save="(name, close) => onRename(cassette, name, close)"
+            />
+            <Button icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="editCassette(cassette)" />
+            <Button
+              icon="pi pi-sitemap"
+              text
+              rounded
+              size="small"
+              :loading="creatingDesignId === cassette._id"
+              :aria-label="$t('cassetteDesign.createFromTemplate')"
+              data-testid="cassette-template-create-design"
+              @click="createDesignFromTemplate(cassette)"
+            />
+            <Button
+              icon="pi pi-download"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('cassette.downloadDxf')"
+              @click="downloadCassetteDxf(cassette)"
+            />
+            <Button icon="pi pi-trash" text rounded size="small" severity="danger" :aria-label="$t('common.delete')" @click="handleDelete(cassette._id)" />
+          </div>
         </template>
       </EntityCard>
     </ResponsiveGrid>
@@ -68,34 +81,40 @@
       v-model:visible="showDesignerDialog"
       :header="$t('cassette.designerTitle')"
       size="full"
+      :close-on-escape="false"
       @hide="editingCassette = null"
     >
-      <CassetteDesigner :initial-data="editingCassette" @saved="showDesignerDialog = false" />
+      <CassetteDesignerV2
+        :template="editingCassette"
+        :template-options="cassetteTemplateOptions"
+        :persisted-template-ids="persistedTemplateIds"
+        @load-template="loadDesignerTemplate"
+        @save-template="handleDesignerSaved"
+      />
     </StandardDialog>
     <ConfirmDialog />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCassettesStore } from '~/stores/cassettes';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import ConfirmDialog from 'primevue/confirmdialog';
-import Inplace from 'primevue/inplace';
-import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
-import CassetteDesigner from './CassetteDesigner.vue';
+import CassetteDesignerV2 from './CassetteDesignerV2.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import NameEditPopover from '~/components/shared/NameEditPopover.vue';
+import { occsQueueParameters } from '~/utils/occs/parameters.js';
 
 const { t } = useI18n();
 const cassettesStore = useCassettesStore();
@@ -107,7 +126,14 @@ const confirm = useConfirm();
 const showUploadDialog = ref(false);
 const showDesignerDialog = ref(false);
 const editingCassette = ref(null);
-const editingName = ref('');
+const creatingDesignId = ref(null);
+const cassetteTemplateOptions = computed(() => (cassettes.value || []).map(cassette => ({
+  label: getCassetteName(cassette),
+  value: cassette._id?.toString()
+})));
+const persistedTemplateIds = computed(() => (cassettes.value || [])
+  .map(cassette => cassette._id?.toString())
+  .filter(Boolean));
 
 onMounted(async () => {
   await cassettesStore.fetchCassettes();
@@ -119,7 +145,7 @@ const formatDate = (date) => {
 };
 
 const getCassetteName = (cassette) => {
-    return cassette?.identity?.name || cassette?.identity?.slug || 'Unnamed';
+    return cassette?.identity?.name || cassette?.identity?.slug || t('common.unnamed');
 };
 
 const handleDelete = async (cassetteId) => {
@@ -140,12 +166,62 @@ const editCassette = (cassette) => {
   showDesignerDialog.value = true;
 };
 
-const onRenameStart = (cassette) => {
-  editingName.value = getCassetteName(cassette);
+const createDesignFromTemplate = async (cassette) => {
+  if (!cassette?._id) return;
+  creatingDesignId.value = cassette._id;
+  try {
+    await $fetch(`/api/cassettes/${encodeURIComponent(cassette._id)}/designs`, {
+      method: 'POST',
+      body: { parameters: defaultTemplateParameters(cassette) }
+    });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassetteDesign.createdFromTemplate'), life: 3000 });
+  } catch {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassetteDesign.createFromTemplateFailed'), life: 4000 });
+  } finally {
+    creatingDesignId.value = null;
+  }
 };
 
-const onRename = async (cassette, closeCallback) => {
-  const newName = editingName.value.trim();
+const defaultTemplateParameters = (cassette) => {
+  const rawParameters = cassette?.data?.parameters;
+  const definitionDefaults = occsQueueParameters(cassette?.data?.definition || {});
+  if (rawParameters && typeof rawParameters === 'object' && !Array.isArray(rawParameters)) {
+    return occsQueueParameters({ parameters: rawParameters });
+  }
+
+  const definitions = Array.isArray(rawParameters)
+    ? rawParameters
+    : Object.keys(definitionDefaults);
+  return definitions.reduce((parameters, item) => {
+    const key = item?.key || item?.name || item;
+    if (!key) return parameters;
+    parameters[key] = Number(item?.default ?? item?.value ?? item?.min ?? definitionDefaults[key] ?? 1);
+    return parameters;
+  }, {});
+};
+
+const downloadCassetteDxf = (cassette) => {
+  if (!cassette?._id || !import.meta.client) return;
+  window.location.href = `/api/cassettes/${encodeURIComponent(cassette._id)}/export`;
+};
+
+const loadDesignerTemplate = async (cassetteId) => {
+  const id = cassetteId?.toString?.() || cassetteId;
+  if (!id) return;
+  editingCassette.value = cassettes.value.find(cassette => cassette._id?.toString() === id) ||
+    await cassettesStore.fetchById(id);
+};
+
+const handleDesignerSaved = async (payload = {}) => {
+  const result = await cassettesStore.fetchCassettes();
+  cassettes.value = result || [];
+  const savedId = payload.savedEntity?._id || payload.id;
+  editingCassette.value = savedId
+    ? cassettes.value.find(cassette => cassette._id?.toString() === savedId.toString()) || payload.savedEntity || null
+    : null;
+};
+
+const onRename = async (cassette, newName, closeCallback) => {
   if (!newName) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.nameRequired'), life: 3000 });
     return;

@@ -4,11 +4,16 @@
       <template #before-identity>
         <i class="pi pi-database"></i>
       </template>
-      <template #subtitle>
+      <template #subtitle v-if="variant !== 'card'">
         <Tag v-if="material.data?.code" :value="material.data.code" severity="secondary" size="small" />
       </template>
+      <template #compact-content>
+        <p v-if="material.data?.description" class="mt-3 mb-0 text-sm text-muted-color">
+          {{ material.data.description }}
+        </p>
+      </template>
       <Divider />
-      <DataBlock :entity="material" :fields="FIELDS" />
+      <DataBlock entity-type="material" :entity="material" :fields="FIELDS" />
     </EntityCard>
   </div>
 </template>
@@ -18,11 +23,9 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = [
-  { path: 'data.code', i18n: 'common.code' },
-  { path: 'data.description', i18n: 'common.description' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'material', surface: 'card' });
 
 defineProps({
   material: { type: Object, required: true },

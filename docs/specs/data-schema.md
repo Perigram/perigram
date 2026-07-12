@@ -9,76 +9,78 @@ _Industrial-grade data structures for 2D vector cassette nesting platform_
 
 **Collection:** `layer_standards`
 
-System catalogue of standardized layer patterns. Supports parametric layer names.
+System catalogue of standardized layer patterns. The maintained source is
+`docs/specs/Cassette spec/layers.json`; database records are v24 entities with
+canonical fields under `data.*`.
 
 ```typescript
 interface LayerStandard {
   _id: ObjectId;
-  code: string;              // e.g., "1_1_FACE", "2_1_CUT", "3_1_BEND"
-  category: LayerCategory;   // "CONTOUR" | "CUT" | "BEND" | "MARKING"
-  
-  // Localized name templates (can include parameters)
-  i18n: {
-    en: { nameTemplate: string; };  // e.g., "Cut_{diameter}", "Mill_{angle}"
-    ru: { nameTemplate: string; };  // e.g., "Обрезь_{diameter}", "Фрезеровка_{angle}"
+  data: {
+    code: string;            // e.g., "fold.route", "cut.outer"
+    category: LayerCategory; // "CONTOUR" | "CUT" | "FOLD" | "CODE" | "DIMENSION"
+    group?: string;
+    kind?: string;
+    purpose?: string;
+    production: boolean;
+    allowedGeometry: string[];
+    aliases: string[];
+    defaultExport: Record<string, unknown>;
+    parameterSchema: Record<string, unknown>;
+    source: { registry: string; registryId: string };
+
+    // Localized name templates (can include parameters)
+    i18n: {
+      en: { nameTemplate: string; };
+      ru: { nameTemplate: string; };
+    };
+    parameters?: string[];
+    defaultPenId?: ObjectId;
+    orgPenId?: ObjectId;
   };
-  
-  // Parameters that can be substituted in nameTemplate
-  parameters?: string[];     // e.g., ["diameter"], ["angle"]
-  
-  // Display defaults (user can override per cassette)
-  defaultPenId?: ObjectId;   // Reference to pen template
-  
-  isActive: boolean;         // Soft-delete capability
-  createdAt: Date;
 }
 
 enum LayerCategory {
   CONTOUR = "CONTOUR",       // Outer boundary (1_x)
   CUT = "CUT",               // Through cuts, holes (2_x)
-  BEND = "BEND",             // Bend lines (3_x)
-  MARKING = "MARKING"        // Text, dimensions
+  FOLD = "FOLD",             // Fold route / engraving
+  CODE = "CODE",             // Text / coding annotations
+  DIMENSION = "DIMENSION"    // Dimensions
 }
 ```
 
-**Indexes:** `code` (unique), `category`, `isActive`
+**Indexes:** `data.code` (unique), `data.category`
 
 **Examples:**
 ```json
 [
   { 
-    "code": "1_1_FACE", 
-    "category": "CONTOUR", 
-    "i18n": { 
-      "ru": { "nameTemplate": "Лицо_Кассеты" }, 
-      "en": { "nameTemplate": "Cassette_Face" } 
-    },
-    "parameters": []
-  },
-  { 
-    "code": "2_1_CUT", 
-    "category": "CUT", 
-    "i18n": { 
-      "ru": { "nameTemplate": "Обрезь_{diameter}" }, 
-      "en": { "nameTemplate": "Cut_{diameter}" } 
-    },
-    "parameters": ["diameter"]
-  },
-  { 
-    "code": "3_1_BEND", 
-    "category": "BEND", 
-    "i18n": { 
-      "ru": { "nameTemplate": "Фрезеровка_{angle}" }, 
-      "en": { "nameTemplate": "Mill_{angle}" } 
-    },
-    "parameters": ["angle"]
+    "data": {
+      "code": "fold.route",
+      "category": "FOLD",
+      "group": "fold",
+      "kind": "production",
+      "purpose": "fold_routing",
+      "production": true,
+      "allowedGeometry": ["path"],
+      "defaultExport": {
+        "dxfLayer": "3_1_Фрезеровка_90",
+        "svgClass": "occs-fold-route"
+      },
+      "i18n": {
+        "ru": { "nameTemplate": "3_1_Фрезеровка_90" },
+        "en": { "nameTemplate": "Fold Route" }
+      },
+      "parameters": ["routeType"]
+    }
   }
 ]
 ```
 
 **Usage:** When creating cassette from template, substitute parameters:
-- Template: `"Обрезь_{diameter}"` + diameter=3.15 → Layer name: `"2_1_Обрезь_3,15"`
-- Template: `"Фрезеровка_{angle}"` + angle=90 → Layer name: `"3_1_Фрезеровка_90"`
+- Template: `"3_1_Фрезеровка_90"` from `fold.route` metadata → export layer
+  aliases come from `data.defaultExport`, while previews resolve pens through
+  `data.defaultPenId` / `data.orgPenId`.
 
 ---
 
@@ -513,7 +515,7 @@ Artifact
 ## Collections Summary
 
 **Core Collections:**
-- `layer_standards` - System catalogue (seeded from layers.md)
+- `layer_standards` - OCCS layer catalogue seeded from `docs/specs/Cassette spec/layers.json`
 - `pen_templates` - System + user display styles
 - `tool_profiles` - System + user tool library
 - `cassette_templates` - User cassettes with layer mappings

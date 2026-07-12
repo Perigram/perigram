@@ -6,6 +6,6 @@
 
 <style scoped>
 :deep(.p-datatable-header-cell) {
-  background: var(--p-surface-50);
+  background: var(--ck-subtle-background);
 }
 </style>

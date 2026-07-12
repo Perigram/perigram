@@ -1,5 +1,6 @@
 import { defineEventHandler, readBody } from 'h3';
 import { requireAuth } from '../../utils/permissions';
+import { serializeForAccess } from '../../utils/entity-redaction.js';
 import * as batchService from '../../features/material-piles/service';
 
 export default defineEventHandler(async (event) => {
@@ -7,12 +8,14 @@ export default defineEventHandler(async (event) => {
   const id = event.context.params.id;
   
   if (event.req.method === 'GET') {
-    return await batchService.getById(id, auth.userId, auth.organizationId, auth.role, auth);
+    const pile = await batchService.getById(id, auth.userId, auth.organizationId, auth.role, auth);
+    return serializeForAccess('materialPile', pile, auth);
   }
   
   if (event.req.method === 'PUT' || event.req.method === 'PATCH') {
     const body = await readBody(event);
-    return await batchService.update(id, body, auth.userId, auth.organizationId, auth.role, auth);
+    const pile = await batchService.update(id, body, auth.userId, auth.organizationId, auth.role, auth);
+    return serializeForAccess('materialPile', pile, auth);
   }
   
   if (event.req.method === 'DELETE') {

@@ -4,14 +4,22 @@
       <template #before-identity>
         <i class="pi pi-palette"></i>
       </template>
-      <template #subtitle>
-        <Badge v-if="category" :value="category" severity="secondary" size="small" />
+      <template #subtitle v-if="variant !== 'card'">
+        <div class="flex flex-wrap gap-2">
+          <Badge v-if="category" :value="category" severity="secondary" size="small" />
+          <Badge v-if="standardCode" :value="standardCode" severity="info" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div v-if="activePen" class="mt-3">
+          <PenTemplateCard :pen="activePen" variant="inline" />
+        </div>
       </template>
       <Divider />
       <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between gap-2">
           <small class="text-muted-color">{{ standardCode || $t('layerStandard.defaultPen') }}</small>
-          <Badge v-if="standard.data?.orgPenId" value="overridden" severity="warn" size="small" />
+          <Badge v-if="standard.data?.orgPenId" :value="$t('layerStandard.overridden')" severity="warn" size="small" />
         </div>
         <PenTemplateCard v-if="activePen" :pen="activePen" variant="inline" />
         <p v-else class="italic opacity-50">{{ $t('layerStandard.noDefaultPen') }}</p>

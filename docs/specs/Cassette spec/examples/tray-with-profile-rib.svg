@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-116 -716 1432 832" data-occs-id="tray-with-profile-rib-design" data-occs-document-type="design">
+  <title>OCCS cassette flat pattern</title>
+  <desc>Generated from OCCS geometry by tools/occs-toolkit.mjs</desc>
+  <g id="occs-contour-flat_pattern-face_and_returns" data-layer="contour.flat_pattern.face_and_returns">
+    <path data-occs-face="main" d="M 0 0 L 1200 0 L 1200 -600 L 0 -600 Z" style="fill:#e0f2fe;stroke:#0f172a;stroke-width:1.4" />
+  </g>
+  <g id="occs-contour-profile" data-layer="contour.profile">
+    <path data-occs-occurrence="rib_01" data-workpiece-ref="rib_def" d="M 150 -280 L 1050 -280 L 1050 -320 L 150 -320 Z" style="fill:#fef3c7;stroke:#a16207;stroke-width:1.2" />
+  </g>
+</svg>

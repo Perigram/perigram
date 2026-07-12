@@ -1,7 +1,15 @@
 <template>
-    <EntityPage :entity="queue" entity-type="queue" :status-actions="queueStatusActions">
+    <EntityPage :entity="queue" entity-type="queue">
         <template #actions>
                 <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
+                <Button
+                  v-if="queueCommandActions.length"
+                  :label="queueCommandActions[0].label"
+                  :icon="queueCommandActions[0].icon"
+                  :severity="queueCommandActions[0].severity || 'secondary'"
+                  outlined
+                  @click="queueCommandActions[0].command?.()"
+                />
         </template>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-10">
@@ -14,7 +22,7 @@
                         {{ $t('queues.artifacts') }}
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <TraceLink v-for="artId in queue.artifacts" :key="artId" type="artifact" :id="artId" />
+                        <EntityInlineRef v-for="artId in queue.artifacts" :key="artId" type="artifact" :id="artId" />
                     </div>
                 </div>
 
@@ -55,6 +63,20 @@
                     <StatusHistory :entity="queue" entity-type="queue" />
                 </Panel>
 
+                <Panel v-if="materialConsumption.length" :header="$t('queue.materialConsumption')">
+                    <div class="flex flex-col gap-3">
+                        <div
+                            v-for="item in materialConsumption"
+                            :key="`${item.type}-${item.id}`"
+                            class="flex items-center justify-between gap-3"
+                        >
+                            <EntityInlineRef v-if="item.entityType" :type="item.entityType" :id="item.id" />
+                            <span v-else>{{ item.id }}</span>
+                            <Tag :value="item.count" severity="warn" size="small" />
+                        </div>
+                    </div>
+                </Panel>
+
                  <Panel :header="$t('project.overview')">
                     <div class="flex flex-col gap-4 py-2">
                         <div class="flex justify-between items-center">
@@ -72,7 +94,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import Panel from 'primevue/panel';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -80,6 +102,7 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
     queue: { type: Object, required: true }
@@ -87,9 +110,21 @@ const props = defineProps({
 
 const emit = defineEmits(['run-nesting']);
 const { t } = useI18n();
+const materialConsumption = computed(() => (props.queue.data?.materialConsumption?.sources || [])
+    .map(source => ({
+        ...source,
+        entityType: materialSourceEntityType(source)
+    })));
 
-const queueStatusActions = computed(() => {
-    if (props.queue.status?.state !== 'DRAFT') return [];
+function materialSourceEntityType(source = {}) {
+    if (source.type === 'PILE') return 'materialPile';
+    if (source.type === 'SHEET') return 'sheet';
+    if (source.type === 'REMNANT') return 'remnant';
+    return null;
+}
+
+const queueCommandActions = computed(() => {
+    if (getPrimaryState(props.queue.status) !== 'DRAFT') return [];
     return [{
         label: t('queues.runNesting'),
         icon: 'pi pi-play',

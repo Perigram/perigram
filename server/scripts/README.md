@@ -11,19 +11,50 @@ node server/scripts/seed-all.js
 
 **Individual seeds:**
 ```bash
-node server/scripts/seed-layer-standards.js  # 7 parametric layer templates
-node server/scripts/seed-system-pens.js      # 5 default pens
+node server/scripts/seed-layer-standards.js  # OCCS layer standards from docs/specs/Cassette spec/layers.json
+node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
+node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry revisions and design provenance
+node server/scripts/migrate-public-system-data.js # Mark system materials/layers/pens/tools public-read
+node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from stored organization type labels
+node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
+node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts
+node server/scripts/migrate-process-role-memberships.js # Clear preset permissions from process-role memberships and recover tenant admins
+node server/scripts/migrate-organization-owner-admins.js # Mark existing organization creator/admin memberships as owner admins
+node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
+node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
+node server/scripts/migrate-process-command-output-statuses.js # Apply graph-derived process statuses to existing command output entities
+node server/scripts/migrate-process-transition-role-access.js # Remove stale transition permission checks from process-role workflow transitions
+node server/scripts/migrate-queue-job-item-entity-types.js # Backfill queue job item entityType/id contract
+node server/scripts/repair-nesting-run-completions.js # Complete runs that already have solver results but were blocked by missing process system intents
 ```
 
 ## What Gets Created
 
-### Layer Standards (7)
-- Parametric templates with `nameTemplate` + `parameters`
-- Examples: `"Обрезь_{diameter}"`, `"Фрезеровка_{angle}"`
-- Used for generating actual layer names at runtime
+### Layer Standards
+- Seeded from [docs/specs/Cassette spec/layers.json](../../docs/specs/Cassette%20spec/layers.json)
+- Stored as v24 DTO records with canonical fields under `data.*`
+- Preserve OCCS metadata such as `group`, `kind`, `purpose`, `allowedGeometry`,
+  `defaultExport`, `parameterSchema`, and registry `source`
+- Resolve canonical `defaultPenId` values from layer-code defaults in
+  `server/scripts/occs-layer-standards.js`; run system pens before layer
+  standards so those names exist in MongoDB
+- Store the frontend pen DTO id (`identity.uid` when present), not the raw
+  Mongo `_id`, because DrawingCanvas and layer-standard cards match against the
+  `/api/templates/pens` DTO `_id`
+- Known legacy seed codes such as `1_1_FACE` and raw root-code records from the
+  old root script are removed when the OCCS seed runs
 
-### System Pens (5)
+### System Pens
+- OCCS Contour Blue 0.35mm
+- OCCS Flat Pattern Cyan 0.4mm
+- OCCS Cut Red 0.6mm
+- OCCS Cut Orange 0.45mm
+- OCCS Fold Amber Dashed 0.35mm
+- OCCS Engrave Indigo Dotted 0.25mm
+- OCCS Code Green 0.35mm
+- OCCS Dimension Violet Dotted 0.25mm
+- OCCS Envelope Slate Dashed 0.25mm
 - Black Solid 0.35mm
 - Red Solid 0.5mm
 - Blue Dashed 0.25mm
@@ -40,9 +71,15 @@ node server/scripts/seed-system-tools.js     # 6 common tools
 
 ## System Data Characteristics
 
-- **Read-Only:** System data has `ownerId = null`
-- **Cannot be Modified:** Users cannot edit or delete system templates
-- **Can be Copied:** Users can create custom templates based on system ones
+- **Public read:** System materials, layer standards, pens, and tools are marked
+  with `lineage.scope: "system"`, `lineage.public: true`, and
+  `data.visibility.public: true`. The access engine reads that marker directly;
+  no user or process role receives `materials` or `layer_standards` grants just
+  to view these catalogues.
+- **Read-only:** System pens/tools cannot be edited or deleted through user
+  ownership operations.
+- **Can be copied:** Users can create custom templates based on system ones
+  where the owning feature supports user-owned copies.
 
 ## Reset / Re-seed
 
@@ -51,9 +88,9 @@ To reset system data:
 ```bash
 # In MongoDB shell
 use cutkit;
-db.layer_standards.deleteMany({ownerId: null});
-db.pen_templates.deleteMany({ownerId: null});
-db.tool_profiles.deleteMany({ownerId: null});
+db.layer_standards.deleteMany({ "lineage.userId": null });
+db.pen_templates.deleteMany({ "lineage.userId": null });
+db.tool_profiles.deleteMany({ "lineage.userId": null });
 
 # Then re-run seed script
 node server/scripts/seed-all.js
@@ -61,20 +98,112 @@ node server/scripts/seed-all.js
 
 ## Script Behavior
 
-- **Idempotent:** Scripts check for existing data
-- **Error Handling:** Continues on duplicate errors
-- **Summary Output:** Shows created/skipped counts
+- **Idempotent:** Layer standards upsert by `data.code`; system pens upsert by
+  system name and update stale stroke data
+- **Error Handling:** Continues on per-record errors where possible
+- **Summary Output:** Shows created/updated/skipped counts
 - **Exit Codes:** 0 = success, 1 = failure
 
 ## Development
 
 Add new system data by editing:
-- `server/scripts/seed-layer-standards.js`
+- `docs/specs/Cassette spec/layers.json` for layer standards
 - `server/scripts/seed-system-pens.js`
 - `server/scripts/seed-system-tools.js`
 
-All scripts follow same pattern:
-1. Import service + connectDB
-2. Define DATA array
-3. Loop and call `service.create(data, null)` (null = system)
-4. Report results
+Layer standard seed flow:
+1. `server/scripts/occs-layer-standards.js` loads the OCCS registry.
+2. `server/scripts/seed-layer-standards.js` resolves default pen names to pen ids.
+3. `layer-standards.service.seed()` upserts records by `data.code`.
+4. The script removes known legacy seed records and reports the resulting catalogue.
+
+Use `server/scripts/assign-default-pens.js` only as a repair helper for
+standards missing `data.defaultPenId`; it uses the same OCCS code/group pen
+mapping instead of round-robin assignment.
+
+Use `server/scripts/migrate-public-system-data.js` after adopting or repairing
+the public system catalogue contract. It marks existing records in `materials`,
+system `layer_standards`, system `pen_templates`, and system `tool_profiles`
+as public-read without modifying user grants.
+
+Use `server/scripts/migrate-org-types-to-processes.js` once when introducing
+process definitions to existing data. It maps stored `organization.data.type`
+labels to starter process templates, creates an active compiled
+`process_definition` for organizations without `data.activeProcessDefinitionId`,
+and removes organization type branching from runtime behavior.
+
+Use `server/scripts/migrate-process-action-access-grants.js` after adopting
+action access grants. It rewrites stored process actions so `trigger` contains
+only execution mode, rewrites old trigger/access role ids into
+`access.grants: [{ roleId, level }]`, defaults missing grant levels to `write`,
+derives status-action access conditions into `access.statusFrom/statusTo`, and
+recompiles active process contracts.
+
+Use `server/scripts/migrate-process-screens-to-generated-ui.js` after adopting
+generated operational screens. It normalizes stored screen records into fixed
+template/source/region contracts, filters stale screen action ids that are not
+defined in the process actions, preserves the previous route as `sourceRoute`,
+recompiles active process contracts, and picks up compiler-inferred screens
+from role grants for processes that have role access but no authored screens.
+
+Use `server/scripts/migrate-process-role-memberships.js` after changing
+membership/process role separation. It clears copied permission presets from
+memberships whose `role` or `roleIds` are process role ids (`role_*`) while
+preserving the process role assignment data. It also promotes an active
+team-management member to explicit `organizations:admin` when an organization
+has no tenant admin, so creator/admin recovery does not depend on membership
+role labels.
+
+Use `server/scripts/migrate-organization-owner-admins.js` after adopting owner
+memberships. It marks one active membership per organization as
+`owner: true`, preferring the organization creator, then an active admin
+membership, then the first active member. The selected owner receives
+`organizations:admin` and `users:admin` so every organization keeps at least
+one permanent tenant admin.
+
+Use `server/scripts/migrate-process-create-status-grants.js` after compiler
+changes that affect generated screens, create-action status grants,
+action-derived workflows, construction contracts, or other compiled runtime
+contracts. It rewrites stored create actions to include the current domain
+`construction` and `inputPolicy` records, resets stale invalid construction
+modes to the current entity-type default, and rewrites every stored semantic
+process action, including drafts. Definitions that already have a compiled
+runtime contract are recompiled, so existing active processes pick up compiler
+fixes without editing their semantic graph records.
+
+Use `server/scripts/migrate-queue-job-item-entity-types.js` after adopting the
+canonical queue job item source contract. It inspects existing queue item ids
+against `cassette_designs` and `cassettes`, writes `entityType` plus canonical
+`id`, and preserves the nesting `type`, quantity, and parameters.
+
+Use `server/scripts/migrate-process-command-output-statuses.js` after adding
+runtime projection from command output handles to downstream process status
+nodes. It scans active process graphs, finds `runCommand -> changeStatus`
+edges, builds v2 status snapshots from the compiled workflow, and updates
+existing command output entities whose current status is outside the active
+process state window. It supports `--dry-run` and must remain graph-derived,
+not status-name-specific.
+
+Use `server/scripts/migrate-process-transition-role-access.js` after separating
+process-role transition authority from target-status access grants. It removes
+compiled workflow `access.permissions` from transitions that already have
+`processRoleIds`, including both v2 region transitions and root transition
+mirrors. It does not alter semantic action grants, user assignments, or
+status-scoped entity access windows.
+
+Use `server/scripts/repair-nesting-run-completions.js` after fixing process
+workflow resolution for domain system intents. It finds `nesting_run` records
+that are still in `NESTING` but already have solver `data.results` and
+`data.sheetDesignIds`, then writes the normal `COMPLETE` status snapshot and
+status event without calling the nesting worker or recreating sheet designs.
+
+## Entity Revision Migration
+
+`server/scripts/migrate-entity-revisions.js` creates or reuses
+`entity_revisions` records for every cassette template's current geometry scope
+and writes `data.revisions.geometry` pointers back to the templates. It also
+backfills `cassette_design.data.derivedFrom` when a design has
+`lineage.templateId` but no recorded source revision. Backfilled design
+provenance is marked with `migration.inferred: true` because historical designs
+created before revision tracking cannot prove which old template geometry state
+was used.

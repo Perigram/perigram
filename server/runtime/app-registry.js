@@ -8,42 +8,62 @@ import * as cassetteInstancesService from '~/server/features/cassette-instances/
 import * as cassettesService from '~/server/features/cassettes/service.js';
 import * as catalogsService from '~/server/features/catalogs/service.js';
 import * as colorsService from '~/server/features/colors/service.js';
+import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
+import * as geometryCapturesService from '~/server/features/geometry-captures/service.js';
+import * as layerStandardsService from '~/server/features/layer-standards/service.js';
+import * as librariesService from '~/server/features/libraries/service.js';
+import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
 import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
+import * as penTemplatesService from '~/server/features/pen-templates/service.js';
+import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
+import * as profileTemplatesService from '~/server/features/profile-templates/service.js';
 import * as projectsService from '~/server/features/projects/service.js';
 import * as queuesService from '~/server/features/queues/service.js';
 import * as remnantsService from '~/server/features/remnants/service.js';
 import * as requisitionsService from '~/server/features/requisitions/service.js';
 import * as sheetDesignsService from '~/server/features/sheet-designs/service.js';
 import * as sheetsService from '~/server/features/sheets/service.js';
+import * as toolProfilesService from '~/server/features/tool-profiles/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import * as warehousesService from '~/server/features/warehouses/service.js';
 
 import { saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
-import { solveNesting } from '~/server/features/nesting/operations.js';
+import { executeNestingSolveTask, solveNesting } from '~/server/features/nesting/operations.js';
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
+import { generateConfigBotDraft, reindexConfigBotKnowledge } from '~/server/features/config-bot/operations.js';
 
 let appRegistry = null;
 
 export function getAppRegistry() {
-  if (appRegistry) return appRegistry;
+  if (appRegistry) {
+    registerAppBindings(appRegistry);
+    return appRegistry;
+  }
 
   const registry = createRegistry({ id: 'cutkit-app' });
   registry.defineDomain(cncDomain);
 
+  registerAppBindings(registry);
+
+  appRegistry = registry;
+  return appRegistry;
+}
+
+function registerAppBindings(registry) {
   for (const [type, service] of Object.entries(entityServices)) {
     registry.registerEntityService(type, service);
   }
   for (const [id, handler] of Object.entries(commandHandlers)) {
     registry.registerCommandHandler(id, handler);
   }
-  for (const [id, handler] of Object.entries(hooks)) {
+  for (const [id, executor] of Object.entries(taskExecutors)) {
+    registry.registerTaskExecutor(id, executor);
+  }
+  for (const [id, handler] of Object.entries({ ...hooks, ...featureHookHandlers })) {
     registry.registerHookHandler(id, handler);
   }
-
-  appRegistry = registry;
-  return appRegistry;
 }
 
 export const getCutkitRegistry = getAppRegistry;
@@ -61,15 +81,24 @@ const entityServices = {
   cassette: cassettesService,
   catalog: catalogsService,
   color: colorsService,
+  entity_revision: entityRevisionsService,
+  geometry_capture: geometryCapturesService,
+  layer_standard: layerStandardsService,
+  library: librariesService,
+  material: materialsService,
   material_pile: materialPilesService,
   nesting_run: nestingRunsService,
   organization: organizationsService,
+  pen_template: penTemplatesService,
+  process_definition: processDefinitionsService,
+  profile_template: profileTemplatesService,
   project: projectsService,
   queue: queuesService,
   remnant: remnantsService,
   requisition: requisitionsService,
   sheet_design: sheetDesignsService,
   sheet: sheetsService,
+  tool_profile: toolProfilesService,
   user: usersService,
   warehouse: warehousesService
 };
@@ -77,5 +106,13 @@ const entityServices = {
 const commandHandlers = {
   saveCassetteTemplate,
   solveNesting,
-  generateAttachment
+  generateAttachment,
+  generateConfigBotDraft,
+  reindexConfigBotKnowledge
 };
+
+const taskExecutors = {
+  'nesting.solve': executeNestingSolveTask
+};
+
+const featureHookHandlers = {};

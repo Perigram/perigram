@@ -8,7 +8,6 @@ export type TrackDBRecord = {
     data: Record<string, string>
     sessionKey: string
     timestamp: Date,
-    userBalance: number | null,
     userId: string | null
 }
 
@@ -24,9 +23,6 @@ export async function trackEvent(event: H3Event<any>, action: string, data: Reco
 
     const userId = event.context.auth?.userId
 
-    const user = await db.collection('users').findOne({ id: userId })
-    const userBalance = user?.balance || null
-
     const timestamp = new Date()
     const record: TrackDBRecord = {
         action,
@@ -35,7 +31,6 @@ export async function trackEvent(event: H3Event<any>, action: string, data: Reco
         sessionKey,
         timestamp,
         userId,
-        userBalance,
     }
     await db.collection('tracking').insertOne(record)
 }

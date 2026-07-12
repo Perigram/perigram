@@ -1,6 +1,7 @@
 import { defineEventHandler, readBody } from "h3";
 import * as projectsService from "../../features/projects/service.js";
 import { requireAuth } from "../../utils/permissions.js";
+import { serializeForAccess } from "../../utils/entity-redaction.js";
 
 export default defineEventHandler(async (event) => {
   requireAuth(event);
@@ -17,5 +18,5 @@ export default defineEventHandler(async (event) => {
     auth
   );
 
-  return project?.toJSON ? project.toJSON() : project;
+  return serializeForAccess('project', project, auth);
 });

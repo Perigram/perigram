@@ -1,5 +1,6 @@
 import { connectDB } from "~~/server/db/mongo";
 import { ObjectId } from "mongodb";
+import { getPrimaryState } from "~/server/core/blocks/index.js";
 
 /**
  * @param {string} userId 
@@ -26,7 +27,7 @@ export async function getResults(userId, projectSlug) {
 
         if (!latestRun) return null;
 
-        const status = latestRun.status?.state || 'pending';
+        const status = getPrimaryState(latestRun.status, 'pending');
         const isInProgress = status === 'PROPOSED' || status === 'QUEUED';
         
         // Find artifacts for this run

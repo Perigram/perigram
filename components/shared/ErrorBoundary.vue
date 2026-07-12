@@ -5,14 +5,9 @@
       <div class="flex items-start gap-3">
         <i class="pi pi-exclamation-triangle"></i>
         <div class="flex-1">
-          <h4>{{ title || 'Component Error' }}</h4>
+          <h4>{{ title || $t('common.componentError') }}</h4>
           <p class="italic">{{ error }}</p>
-          <button 
-            @click="reset" 
-            class="mt-2"
-          >
-            Try Again
-          </button>
+          <Button :label="$t('common.tryAgain')" size="small" class="mt-2" @click="reset" />
         </div>
       </div>
     </div>
@@ -21,6 +16,7 @@
 
 <script setup>
 import { ref, onErrorCaptured } from 'vue';
+import Button from 'primevue/button';
 
 const props = defineProps({
   title: {

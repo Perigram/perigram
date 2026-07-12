@@ -18,5 +18,5 @@ Cards for requisition/batch-sourced `material_pile` entries. This is not the sam
 ## Related
 
 - [components/entities/MaterialPile/README.md](../MaterialPile/README.md) - general material pile card
-- [components/shared/README.md](../../shared/README.md) - EntityCard, DataBlock, SpecsBlock, TraceLink
+- [components/shared/README.md](../../shared/README.md) - EntityCard, DataBlock, SpecsBlock, EntityInlineRef
 - [server/features/material-piles/README.md](../../../server/features/material-piles/README.md) - Material pile data contract

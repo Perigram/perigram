@@ -16,7 +16,7 @@
                     <span>{{ slotProps.data.data?.email }}</span>
                 </template>
             </Column>
-            <Column field="data.role" :header="$t('queue.status')" sortable>
+            <Column field="data.role" :header="$t('auth.accessPreset')" sortable>
                 <template #body="slotProps">
                     <Tag :value="$t(`roles.${slotProps.data.data?.role}`)" :severity="getRoleSeverity(slotProps.data.data?.role)" size="small" />
                 </template>
@@ -25,7 +25,7 @@
                 <template #body="slotProps">
                     <div class="flex flex-col gap-1">
                         <small class="text-muted-color">{{ activeMembership(slotProps.data)?.organizationId || $t('common.notAvailable') }}</small>
-                        <span>{{ activeMembership(slotProps.data)?.role || slotProps.data.data?.role }}</span>
+                        <span>{{ $t(`roles.${activeMembership(slotProps.data)?.role || slotProps.data.data?.role}`) }}</span>
                     </div>
                 </template>
             </Column>
@@ -45,8 +45,8 @@
             <Column :header="$t('common.actions.title')" class="text-right">
                 <template #body="slotProps">
                     <div class="flex justify-end gap-2">
-                        <Button icon="pi pi-pencil" text @click="editUser(slotProps.data)" />
-                        <Button icon="pi pi-shield" text severity="warn" @click="editPermissions(slotProps.data)" />
+                        <Button icon="pi pi-pencil" text :aria-label="$t('common.edit')" @click="editUser(slotProps.data)" />
+                        <Button icon="pi pi-shield" text severity="warn" :aria-label="$t('auth.permissions')" @click="editPermissions(slotProps.data)" />
                     </div>
                 </template>
             </Column>
@@ -70,25 +70,34 @@
                         size="small"
                     />
                 </div>
-                <PermissionEditor
-                    :permissions="activeMembership(selectedUser)?.permissions || selectedUser.data?.permissions"
-                    @save="savePermissions"
-                />
+                <Message severity="info">
+                    {{ $t('organization.legacyPermissionsReadOnly') }}
+                </Message>
+                <pre class="max-h-96 overflow-auto rounded-ui border border-content-border bg-subtle p-3 text-xs">{{ legacyPermissionsJson }}</pre>
+                <div class="flex justify-end">
+                    <Button
+                        :label="$t('organization.openTeam')"
+                        icon="pi pi-users"
+                        severity="secondary"
+                        outlined
+                        @click="navigateTo('/organization/users')"
+                    />
+                </div>
             </div>
         </StandardDialog>
     </StandardPage>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
+import Message from 'primevue/message';
 import UserForm from '~/components/UserForm.vue';
-import PermissionEditor from '~/components/PermissionEditor.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -108,6 +117,7 @@ const permDialog = ref(false);
 const selectedUser = ref(null);
 const editMode = ref(false);
 const usersEntity = useEntity('user');
+const legacyPermissionsJson = computed(() => JSON.stringify(activeMembership(selectedUser.value)?.permissions || selectedUser.value?.data?.permissions || {}, null, 2));
 
 const loadUsers = async () => {
     loading.value = true;
@@ -122,7 +132,6 @@ const loadUsers = async () => {
 
 const getRoleSeverity = (role) => {
     switch (role) {
-        case 'SuperAdmin': return 'danger';
         case 'ManufacturerAdmin': return 'warning';
         case 'ContractorAdmin': return 'success';
         case 'CustomerAdmin': return 'info';
@@ -139,7 +148,7 @@ const permissionSummary = (user) => {
     const permissions = activeMembership(user)?.permissions || user?.data?.permissions || {};
     return Object.entries(permissions)
         .filter(([, level]) => level && level !== 'none')
-        .map(([feature, level]) => `${feature}:${level}`);
+        .map(([feature, level]) => `${feature}:${typeof level === 'string' ? level : level.level || 'custom'}`);
 };
 
 const openCreateUser = () => {
@@ -170,20 +179,6 @@ const saveUser = async (formData) => {
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userCreated') });
         }
         userDialog.value = false;
-        loadUsers();
-    } catch (error) {
-        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message });
-    }
-};
-
-const savePermissions = async (newPermissions) => {
-    try {
-        await $fetch(`/api/users/${selectedUser.value._id}/permissions`, {
-            method: 'PATCH',
-            body: { permissions: newPermissions }
-        });
-        toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.permissionsUpdated') });
-        permDialog.value = false;
         loadUsers();
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error.message });

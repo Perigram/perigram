@@ -8,7 +8,5 @@ export default defineEventHandler(async (event) => {
   
   const id = event.context.params.id;
   
-  // Note: Only SuperAdmins or Organization Admins (of the user's org) should be able to delete users
-  // This logic is inside the service
-  return await usersService.remove(id, auth.userId, auth.organizationId, auth.role, auth);
+  return await usersService.remove(id, auth);
 });

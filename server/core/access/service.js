@@ -1,11 +1,11 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { actionToLevel, hasPermissionGrant } from '#shared/access-control.js';
+import { isPublicReadEntity } from '#shared/public-entities.js';
 
-const LEVELS = ['none', 'read', 'write', 'admin'];
-
-export function assertEntityAccess({ entity, entityType, feature = entityType, level = 'read', auth }) {
+export function assertEntityAccess({ entity, entityType, feature = entityType, level = 'read', action = null, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
-  if (!hasEntityAccess({ entity, feature, level, auth })) {
+  if (!hasEntityAccess({ entity, feature, level, action, auth, entityType })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return true;
@@ -14,7 +14,7 @@ export function assertEntityAccess({ entity, entityType, feature = entityType, l
 export function assertCommandAccess({ command, action = command, entities = {}, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
   const access = action?.access || {};
-  if (auth.role === 'SYSTEM' && access.system === true) return true;
+  if (isSystemAuth(auth) && access.system === true) return true;
 
   const entityList = Object.values(entities).filter(Boolean);
   const lineageEntity = entityList.find(entity => entity?.lineage) || entityList[0];
@@ -23,7 +23,9 @@ export function assertCommandAccess({ command, action = command, entities = {}, 
       entity: lineageEntity,
       feature: requirement.feature,
       level: requirement.level || 'read',
-      auth
+      auth,
+      entityType: requirement.entityType,
+      context: { lineageEntities: entities }
     })) {
       throw createError({ statusCode: 403, message: `Permission denied for ${requirement.feature}:${requirement.level || 'read'}` });
     }
@@ -34,14 +36,26 @@ export function assertCommandAccess({ command, action = command, entities = {}, 
 export function assertTransitionAccess({ transition, entity, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
   const access = transition?.access || {};
-  if (auth.role === 'SYSTEM' && access.system === true) return true;
+  if (isSystemAuth(auth) && access.system === true) return true;
+
+  const processRoleIds = access.processRoleIds || transition?.processRoleIds || [];
+  if (processRoleIds.length) {
+    const assignedRoleIds = auth.roleAssignments?.roleIds || [];
+    const hasRequiredRole = assignedRoleIds.some(roleId => processRoleIds.includes(roleId));
+    if (!hasRequiredRole) {
+      throw createError({ statusCode: 403, message: 'Permission denied for process transition role' });
+    }
+    return true;
+  }
 
   for (const requirement of access.permissions || []) {
     if (!hasEntityAccess({
       entity,
       feature: requirement.feature,
       level: requirement.level || 'read',
-      auth
+      auth,
+      entityType: requirement.entityType,
+      transition
     })) {
       throw createError({ statusCode: 403, message: `Permission denied for ${requirement.feature}:${requirement.level || 'read'}` });
     }
@@ -50,24 +64,30 @@ export function assertTransitionAccess({ transition, entity, auth }) {
 }
 
 export function createLineageFilter(auth) {
-  if (auth?.role === 'SuperAdmin') return {};
   const orgIds = (auth?.memberships || [])
     .map(membership => membership.organizationId ? toFlexibleId(membership.organizationId) : null)
     .filter(Boolean);
   return orgIds.length ? { 'lineage.organizationId': { $in: orgIds } } : { 'lineage.organizationId': { $in: [] } };
 }
 
-export function hasEntityAccess({ entity, feature, level = 'read', auth }) {
-  if (!auth || !feature) return false;
-  if (auth.role === 'SuperAdmin') return true;
-  const requiredIndex = LEVELS.indexOf(level);
-  if (requiredIndex === -1) return false;
+export function hasEntityAccess({ entity, feature, level = 'read', action = null, auth, entityType = null, transition = null, context = {} }) {
+  if (!feature) return false;
+  const requiredLevel = action ? actionToLevel(action, level) : level;
+  if (requiredLevel === 'read' && isPublicReadEntity({ entity, entityType, feature })) return true;
+  if (!auth) return false;
 
   const orgId = entity?.lineage?.organizationId?.toString();
   const membership = orgId
     ? (auth.memberships || []).find(item => item.organizationId?.toString() === orgId)
     : (auth.memberships || [])[0];
-  const permissions = membership?.permissions || auth.permissions || {};
-  const actualIndex = LEVELS.indexOf(permissions[feature] || 'none');
-  return actualIndex >= requiredIndex;
+  const permissions = getEffectivePermissions(auth, membership);
+  return hasPermissionGrant({ permissions, feature, level, action, entity, entityType, transition, context });
+}
+
+export function getEffectivePermissions(auth = {}, membership = null) {
+  return auth.effectivePermissions || membership?.permissions || auth.permissions || {};
+}
+
+function isSystemAuth(auth = {}) {
+  return auth.system === true || auth.userId === 'SYSTEM';
 }

@@ -1,0 +1,21 @@
+name: Agent Scope
+
+on:
+  pull_request:
+    branches:
+      - local
+  workflow_dispatch:
+
+jobs:
+  app-layer-scope:
+    if: startsWith(github.head_ref || github.ref_name, 'agent/app-layer/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check top-layer agent write scope
+        run: npm run agent:scope-check -- --base origin/local

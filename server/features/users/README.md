@@ -3,10 +3,10 @@
 User authentication and permission management. Built on the v24 BaseEntity architecture.
 
 ## Core Files
-- `model.js`: User entity extending `BaseEntity` with migration logic
+- `model.js`: User entity extending `BaseEntity`; exposes stored copied grants without preset expansion
 - `repository.js`: Database operations on `users` collection
 - `service.js`: Register, login, session management
-- `permission-templates.js`: Re-export of shared default permissions by role
+- `permission-templates.js`: Re-export of shared access preset templates
 - API endpoints in `server/api/auth/` and `server/api/users/`
 
 ## Data Structure
@@ -20,9 +20,10 @@ Inherits all `BaseEntity` fields.
 **Data Block:**
 - `email`: User's email (lowercase)
 - `passwordHash`: Argon2id hash
-- `role`: SuperAdmin, ManufacturerAdmin, ContractorAdmin, CustomerAdmin, IndividualUser
+- `role`: Compatibility label. When an active organization process exists,
+  runtime authorization uses the process assignment instead of this label.
 - `permissions`: Per-entity access levels (none/read/write/admin)
-- `memberships`: Array of organization memberships `{ organizationId, role, permissions, status }`
+- `memberships`: Array of organization memberships `{ organizationId, role, roleIds?, permissions, status, owner? }`; memberships establish tenant relationship and approval state
 - `isActive`: Boolean flag
 
 ## Authentication Flow
@@ -32,17 +33,68 @@ Inherits all `BaseEntity` fields.
 4. Token → `generateAccessToken(userId)` (JWT, 15m)
 5. Middleware → `server/middleware/auth.js` populates `event.context.auth`
 
+## Public Signup
+`POST /api/auth/register` creates a password-backed user and, when
+`organizationName` is supplied, creates the first organization through the
+organizations service. The new user receives an active membership, lineage
+organization, an owner membership with permanent tenant-management grants, and
+an active process assignment in the selected starter process.
+Invitation signup intentionally omits
+organization fields: the account is created without a membership, then the user
+logs in and accepts `/invitation/:token` to create a pending membership for the
+inviting organization. `recoverSignupWithoutOrganization()` is the narrow
+recovery path for pre-fix accounts that have a password hash but no organization
+membership; it verifies the submitted password before the register route can
+attach the first organization.
+
 ## Persistence Notes
 - `User.toJSON()` strips `data.passwordHash` and is safe for API responses.
 - `repository.create()` restores `data.passwordHash` from the model instance before inserting into MongoDB; persistence must not rely on the public JSON shape for sensitive fields.
 - Existing users without `data.passwordHash` cannot log in until their password is reset or the account is recreated.
+- `repository.findByIds()` is the batch lookup used by status history actor
+  enrichment. It accepts the same flexible string/ObjectId ids as `findById()`.
+- `GET /api/users/:id` returns a redacted user DTO for inline references such
+  as status-history actors and chat message entity tokens. The route grants
+  full user-field visibility only for the same user or callers that can manage
+  users in the active organization.
+- User listing scopes by active `organizationId` as well as explicit
+  membership records, and queries both string and `ObjectId` organization-id
+  forms. Process-auth contexts that omit expanded memberships still return
+  same-organization users for pickers and chat lists.
 
 ## Permission System
-- Global role check (e.g. `SuperAdmin`)
 - Organization context via `user.lineage.organizationId`
-- Per-organization permissions in `memberships`
-- Default role templates live in [shared permission templates](../../../shared/README.md)
-  so browser dev tools and server user creation read the same access contract.
+- Per-organization permissions in `memberships` are explicit stored grants used
+  only by tenant-management recovery paths.
+- `membership.owner: true` is the ultimate tenant admin flag. Owner
+  memberships always materialize `organizations:admin` and `users:admin`, and
+  auth hydration merges those grants after active-process compilation so the
+  process graph cannot lock the owner out. Legacy active memberships or active
+  user permission snapshots with both `organizations:admin` and `users:admin`
+  are treated as owner recovery until
+  `server/scripts/migrate-organization-owner-admins.js` writes the explicit
+  `owner` flag. User mutation paths reject removing the last active
+  organization user or the last active owner.
+- When `server/middleware/auth.js` resolves an active process, the user's
+  `effectivePermissions`, navigation, field policies, and role assignment come
+  from the compiled process definition.
+- User management checks use the compiled `users:admin` grant first, then a
+  narrow recovery path for active membership `users:admin` grants. Membership
+  role labels and sole-member status do not imply management access.
+- Default access presets live in [shared permission templates](../../../shared/README.md)
+  so browser dev tools and server user creation read the same grant contract.
+- Permission presets are materialized only when a caller explicitly creates a
+  non-process user role. Process-role invitation memberships store no copied
+  permissions and rely on active process assignments for runtime access.
+  Creator memberships are owner memberships and store explicit
+  `organizations:admin` and `users:admin` recovery grants. `User` model reads
+  do not expand ordinary permissions from
+  `data.role`; persisted memberships must carry the explicit grant object used
+  by authorization.
+- System materials, layer standards, pens, and tools are not exposed through
+  copied user grants. They carry the public system catalogue marker documented
+  in [server architecture](../../README.md), and read access is evaluated from
+  that marker directly.
 
 ## Related Components
 - [organizations](../organizations/README.md) - Users belong to organizations via memberships and current lineage context

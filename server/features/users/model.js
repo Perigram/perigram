@@ -1,6 +1,5 @@
 import { BaseEntity } from '~/server/core/blocks/index.js';
-import { PERMISSION_TEMPLATES } from './permission-templates.js';
-
+import { ensureOwnerMembership } from './organization-owner.js';
 /**
  * User Entity - v24 Absolute Final
  */
@@ -10,9 +9,14 @@ export class User extends BaseEntity {
     
     this.data = this.data || {};
     if (raw._id) {
-      this.data.role = this.data.role || 'IndividualUser';
-      this.data.permissions = this.data.permissions || PERMISSION_TEMPLATES[this.data.role];
-      this.data.memberships = this.data.memberships || [];
+      this.data.permissions = this.data.permissions || {};
+      this.data.memberships = (this.data.memberships || []).map((membership) => {
+        const normalized = ensureOwnerMembership(membership);
+        return {
+          ...normalized,
+          permissions: normalized.permissions || {}
+        };
+      });
       this.data.isActive = raw.data?.isActive !== undefined ? raw.data.isActive : true;
     }
   }

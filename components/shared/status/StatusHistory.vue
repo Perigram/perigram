@@ -3,12 +3,15 @@
  * Unified Status History Component - v24 Standardized
  * Fetches and displays the audit log (status_events) for an entity.
  */
-import Timeline from 'primevue/timeline';
-import Divider from 'primevue/divider';
 import ProgressSpinner from 'primevue/progressspinner';
+import Button from 'primevue/button';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStatusHistory } from '~/composables/useStatusHistory';
+import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
   entity: { type: Object, default: null },
@@ -22,7 +25,10 @@ const resolvedTargetId = computed(
   () => props.targetId || props.entity?._id?.toString() || props.entity?.id?.toString()
 );
 
+const { t } = useI18n();
 const { events, isLoading, fetchHistory } = useStatusHistory(props.entityType, resolvedTargetId.value);
+const supportDialog = useSupportDialog();
+const supportChatTarget = useSupportChatTarget();
 const displayEvents = computed(() => {
   if (events.value.length) return events.value;
   return fallbackEvents.value;
@@ -31,7 +37,7 @@ const fallbackEvents = computed(() => {
   const status = props.entity?.status || props.entity?.origin;
   if (!status?.state) return [];
   return [{
-    toState: status.state,
+    toState: getPrimaryState(status),
     timestamp: status.timestamp || status.createdAt || props.entity?.updatedAt || props.entity?.createdAt || new Date(),
     status
   }];
@@ -50,8 +56,83 @@ watch(() => props.mockEvents, (newVal) => {
 }, { deep: true });
 
 const formatTime = (ts) => {
-  return new Date(ts).toLocaleString();
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(undefined, {
+    dateStyle: props.compact ? 'short' : 'medium',
+    timeStyle: 'short'
+  });
 };
+
+const dateTimeAttribute = (ts) => {
+  const date = new Date(ts);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const eventState = (event) => event.toStatePrimary || event.toState || getPrimaryState(event.status || event.state);
+
+const eventDisplay = (event) => event.status?.metadata?.display || event.metadata?.display || null;
+
+const eventNote = (event) => event.status?.metadata?.note || event.metadata?.note || '';
+
+const eventAttachments = (event) => Object.entries(event.status?.lifecycle?.attachments || {})
+  .flatMap(([slot, value]) => (Array.isArray(value) ? value : [value]).filter(Boolean).map(item => ({
+    slot,
+    label: item.name || item.fileId || slot,
+    url: item.url || (item.fileId ? `/api/files/download/${item.fileId}?bucket=${item.bucketName || 'uploads'}` : '')
+  })));
+
+const eventSnapshots = (event) => Object.entries(event.status?.lifecycle?.data?.snapshots || {})
+  .map(([key, value]) => ({
+    key,
+    label: value?.label || key,
+    count: value?.count ?? value?.refs?.length ?? 0
+  }));
+
+const actorName = (event) => {
+  const userId = event.status?.userId || event.userId;
+  if (userId === 'SYSTEM') return t('status.systemActor');
+
+  return event.actor?.name
+    || event.status?.actor?.name
+    || event.status?.metadata?.actorName
+    || event.status?.metadata?.userName
+    || event.metadata?.actorName
+    || event.metadata?.userName
+    || userId
+    || '';
+};
+
+const actorTitle = (event) => {
+  const userId = event.status?.userId || event.userId;
+  const name = actorName(event);
+  return userId && name && userId !== name ? userId : name;
+};
+
+const actorUserId = (event) => {
+  const userId = event.actor?.userId || event.status?.userId || event.userId;
+  return userId && userId !== 'SYSTEM' ? userId : '';
+};
+
+const openActorChat = (event) => {
+  const userId = actorUserId(event);
+  if (!userId) return;
+  supportChatTarget.value = {
+    userId,
+    name: actorName(event),
+    draftEntityRefs: resolvedTargetId.value
+      ? [{
+          type: props.entityType,
+          id: resolvedTargetId.value,
+          label: props.entity?.identity?.name || props.entity?.identity?.serial || resolvedTargetId.value,
+          entity: props.entity || null
+        }]
+      : []
+  };
+  supportDialog.value = true;
+};
+
+const eventKey = (event, index) => event._id || `${eventState(event)}-${event.timestamp}-${index}`;
 </script>
 
 <template>
@@ -59,37 +140,74 @@ const formatTime = (ts) => {
     <div v-if="isLoading" class="flex justify-center" :class="compact ? 'p-3' : 'p-10'">
       <ProgressSpinner />
     </div>
-    
-    <Timeline v-else-if="displayEvents.length" :value="displayEvents" class="customized-timeline" :class="{ 'compact-timeline': compact }">
-      <template #opposite="slotProps">
-        <small>{{ formatTime(slotProps.item.timestamp) }}</small>
-      </template>
-      <template #content="slotProps">
-        <div class="flex flex-col gap-2" :class="compact ? 'mb-3' : 'mb-8'">
-            <div class="flex items-center justify-between">
-              <StatusBadge :state="slotProps.item.toState" />
-              <small>{{ slotProps.item.status?.userId }}</small>
-            </div>
-            <p v-if="slotProps.item.status?.metadata?.note" class="m-0 italic text-sm">
-              "{{ slotProps.item.status.metadata.note }}"
-            </p>
-            <Divider />
+
+    <ol v-else-if="displayEvents.length" class="m-0 flex min-w-0 list-none flex-col p-0" :class="compact ? 'gap-2' : 'gap-3'">
+      <li
+        v-for="(event, index) in displayEvents"
+        :key="eventKey(event, index)"
+        class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2"
+      >
+        <div class="flex flex-col items-center pt-1">
+          <span class="h-2.5 w-2.5 rounded-full bg-primary"></span>
+          <span v-if="index < displayEvents.length - 1" class="mt-1 min-h-6 w-px flex-1 bg-content-border"></span>
         </div>
-      </template>
-    </Timeline>
+
+        <div class="min-w-0 pb-2">
+          <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <StatusBadge :state="eventState(event)" :display="eventDisplay(event)" />
+            <span v-if="actorUserId(event)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
+              <EntityInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
+              <Button
+                icon="pi pi-comments"
+                text
+                rounded
+                size="small"
+                :aria-label="$t('support.openChat')"
+                @click="openActorChat(event)"
+              />
+            </span>
+            <small v-else-if="actorName(event)" class="min-w-0 truncate text-muted-color" :title="actorTitle(event)">
+              <i class="pi pi-user mr-1"></i>{{ actorName(event) }}
+            </small>
+            <time
+              v-if="formatTime(event.timestamp)"
+              class="ml-auto text-right text-xs text-muted-color"
+              :datetime="dateTimeAttribute(event.timestamp)"
+            >
+              {{ formatTime(event.timestamp) }}
+            </time>
+          </div>
+
+          <p v-if="eventNote(event)" class="m-0 mt-2 min-w-0 break-words text-sm italic">
+            {{ eventNote(event) }}
+          </p>
+
+          <div v-if="eventAttachments(event).length" class="mt-2 flex min-w-0 flex-wrap gap-2">
+            <a
+              v-for="attachment in eventAttachments(event)"
+              :key="`${eventKey(event, index)}-${attachment.slot}-${attachment.label}`"
+              :href="attachment.url"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex min-w-0 items-center gap-1 text-sm text-primary no-underline"
+            >
+              <i class="pi pi-paperclip shrink-0"></i>
+              <span class="truncate">{{ attachment.label }}</span>
+            </a>
+          </div>
+
+          <div v-if="eventSnapshots(event).length" class="mt-2 flex min-w-0 flex-wrap gap-2">
+            <small
+              v-for="snapshot in eventSnapshots(event)"
+              :key="`${eventKey(event, index)}-${snapshot.key}`"
+              class="inline-flex min-w-0 items-center gap-1 text-muted-color"
+            >
+              <i class="pi pi-camera shrink-0"></i>
+              <span class="truncate">{{ snapshot.label }}: {{ snapshot.count }}</span>
+            </small>
+          </div>
+        </div>
+      </li>
+    </ol>
   </div>
 </template>
-
-<style scoped>
-.customized-timeline :deep(.p-timeline-event-opposite) {
-    flex: 0;
-    min-width: 140px;
-    text-align: right;
-    padding-right: 1.5rem;
-}
-
-.compact-timeline :deep(.p-timeline-event-opposite) {
-    min-width: 84px;
-    padding-right: 0.75rem;
-}
-</style>

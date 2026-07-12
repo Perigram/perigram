@@ -65,54 +65,60 @@ export function validateDomainDraft(draft = {}) {
 
   for (const [type, workflow] of Object.entries(workflows)) {
     if (!entityTypes.has(type)) issues.push({ area: 'workflows', severity: 'error', message: `Workflow references unknown entity type: ${type}` });
-    const states = workflow?.states && typeof workflow.states === 'object' ? Object.keys(workflow.states) : [];
-    const stateSet = new Set(states);
-    if (!workflow?.initial) issues.push({ area: 'workflows', severity: 'error', message: `${type} workflow is missing initial state` });
-    if (workflow?.initial && !stateSet.has(workflow.initial)) issues.push({ area: 'workflows', severity: 'error', message: `${type} initial state does not exist: ${workflow.initial}` });
-    if (states.length === 0) issues.push({ area: 'workflows', severity: 'error', message: `${type} workflow has no states` });
-    if (!Array.isArray(workflow?.transitions)) issues.push({ area: 'workflows', severity: 'error', message: `${type} workflow transitions must be an array` });
+    const regions = workflowRegions(workflow);
+    if (Object.keys(regions).length === 0) issues.push({ area: 'workflows', severity: 'error', message: `${type} workflow has no regions` });
 
-    for (const [index, transition] of (workflow?.transitions || []).entries()) {
-      const label = `${type} transition #${index + 1}`;
-      if (!stateSet.has(transition.from)) issues.push({ area: 'workflows', severity: 'error', message: `${label} has unknown from state: ${transition.from}` });
-      if (!stateSet.has(transition.to)) issues.push({ area: 'workflows', severity: 'error', message: `${label} has unknown to state: ${transition.to}` });
-      if (transition.roles) {
-        issues.push({ area: 'workflows', severity: 'error', message: `${label} uses legacy roles; use access.permissions` });
-      }
-      if (!transition.access?.system && !Array.isArray(transition.access?.permissions)) {
-        issues.push({ area: 'workflows', severity: 'error', message: `${label} must define access.permissions or access.system` });
-      }
-      if (transition.display && !['inline', 'menu', 'hidden'].includes(transition.display)) {
-        issues.push({ area: 'workflows', severity: 'error', message: `${label} has invalid display: ${transition.display}` });
-      }
-      for (const hook of transition.hooks || []) {
-        if (!hook?.handler) issues.push({ area: 'workflows', severity: 'error', message: `${label} has a hook without handler` });
-        else if (!hookContracts[hook.handler]) issues.push({ area: 'workflows', severity: 'error', message: `${label} references unknown hook contract: ${hook.handler}` });
-        else validateSettingsObject({
-          issues,
-          area: 'workflows',
-          label: `${label} ${hook.handler} params`,
-          fields: hookContracts[hook.handler].parameters || [],
-          value: hook.params || {}
-        });
-      }
-    }
+    for (const [regionId, region] of Object.entries(regions)) {
+      const labelPrefix = `${type}.${regionId}`;
+      const states = region?.states && typeof region.states === 'object' ? Object.keys(region.states) : [];
+      const stateSet = new Set(states);
+      if (!region?.initial) issues.push({ area: 'workflows', severity: 'error', message: `${labelPrefix} workflow is missing initial state` });
+      if (region?.initial && !stateSet.has(region.initial)) issues.push({ area: 'workflows', severity: 'error', message: `${labelPrefix} initial state does not exist: ${region.initial}` });
+      if (states.length === 0) issues.push({ area: 'workflows', severity: 'error', message: `${labelPrefix} workflow has no states` });
+      if (!Array.isArray(region?.transitions)) issues.push({ area: 'workflows', severity: 'error', message: `${labelPrefix} workflow transitions must be an array` });
 
-    for (const [state, definition] of Object.entries(workflow?.states || {})) {
-      const lifecycle = definition?.lifecycle;
-      if (!lifecycle) continue;
-      const allowedKeys = new Set(['actors', 'attachments', 'data']);
-      for (const key of Object.keys(lifecycle)) {
-        if (!allowedKeys.has(key)) issues.push({ area: 'workflows', severity: 'error', message: `${type}.${state} lifecycle uses unknown key: ${key}` });
+      for (const [index, transition] of (region?.transitions || []).entries()) {
+        const label = `${labelPrefix} transition #${index + 1}`;
+        if (!stateSet.has(transition.from)) issues.push({ area: 'workflows', severity: 'error', message: `${label} has unknown from state: ${transition.from}` });
+        if (!stateSet.has(transition.to)) issues.push({ area: 'workflows', severity: 'error', message: `${label} has unknown to state: ${transition.to}` });
+        if (transition.roles) {
+          issues.push({ area: 'workflows', severity: 'error', message: `${label} uses legacy roles; use access.permissions` });
+        }
+        if (!transition.access?.system && !Array.isArray(transition.access?.permissions)) {
+          issues.push({ area: 'workflows', severity: 'error', message: `${label} must define access.permissions or access.system` });
+        }
+        if (transition.display && !['inline', 'menu', 'hidden'].includes(transition.display)) {
+          issues.push({ area: 'workflows', severity: 'error', message: `${label} has invalid display: ${transition.display}` });
+        }
+        for (const hook of transition.hooks || []) {
+          if (!hook?.handler) issues.push({ area: 'workflows', severity: 'error', message: `${label} has a hook without handler` });
+          else if (!hookContracts[hook.handler]) issues.push({ area: 'workflows', severity: 'error', message: `${label} references unknown hook contract: ${hook.handler}` });
+          else validateSettingsObject({
+            issues,
+            area: 'workflows',
+            label: `${label} ${hook.handler} params`,
+            fields: hookContracts[hook.handler].parameters || [],
+            value: hook.params || {}
+          });
+        }
       }
-      if (lifecycle.actors && !Array.isArray(lifecycle.actors)) {
-        issues.push({ area: 'workflows', severity: 'error', message: `${type}.${state} lifecycle actors must be an array` });
-      }
-      if (lifecycle.attachments && typeof lifecycle.attachments !== 'object') {
-        issues.push({ area: 'workflows', severity: 'error', message: `${type}.${state} lifecycle attachments must be an object` });
-      }
-      if (lifecycle.data !== undefined && lifecycle.data !== true) {
-        issues.push({ area: 'workflows', severity: 'error', message: `${type}.${state} lifecycle data must be true when present` });
+
+      for (const [state, definition] of Object.entries(region?.states || {})) {
+        const lifecycle = definition?.lifecycle;
+        if (!lifecycle) continue;
+        const allowedKeys = new Set(['actors', 'attachments', 'data']);
+        for (const key of Object.keys(lifecycle)) {
+          if (!allowedKeys.has(key)) issues.push({ area: 'workflows', severity: 'error', message: `${labelPrefix}.${state} lifecycle uses unknown key: ${key}` });
+        }
+        if (lifecycle.actors && !Array.isArray(lifecycle.actors)) {
+          issues.push({ area: 'workflows', severity: 'error', message: `${labelPrefix}.${state} lifecycle actors must be an array` });
+        }
+        if (lifecycle.attachments && typeof lifecycle.attachments !== 'object') {
+          issues.push({ area: 'workflows', severity: 'error', message: `${labelPrefix}.${state} lifecycle attachments must be an object` });
+        }
+        if (lifecycle.data !== undefined && lifecycle.data !== true) {
+          issues.push({ area: 'workflows', severity: 'error', message: `${labelPrefix}.${state} lifecycle data must be true when present` });
+        }
       }
     }
   }
@@ -177,13 +183,14 @@ export function validateDomainDraft(draft = {}) {
   };
 }
 
-export function buildWorkflowGraph(workflow = {}) {
-  const states = Object.keys(workflow.states || {});
+export function buildWorkflowGraph(workflow = {}, regionId = null) {
+  const region = workflowRegion(workflow, regionId);
+  const states = Object.keys(region.states || {});
   const nodeWidth = 148;
   const nodeHeight = 44;
   const gapX = 112;
   const gapY = 86;
-  const ranks = rankStates(states, workflow);
+  const ranks = rankStates(states, region);
   const rowsByRank = states.reduce((acc, state) => {
     const rank = ranks.get(state) || 0;
     acc.set(rank, [...(acc.get(rank) || []), state]);
@@ -198,12 +205,12 @@ export function buildWorkflowGraph(workflow = {}) {
       y: 24 + row * (nodeHeight + gapY),
       width: nodeWidth,
       height: nodeHeight,
-      initial: state === workflow.initial,
-      terminal: Boolean(workflow.states?.[state]?.isTerminal)
+      initial: state === region.initial,
+      terminal: Boolean(region.states?.[state]?.isTerminal)
     };
   });
   const byId = new Map(nodes.map(node => [node.id, node]));
-  const edges = (workflow.transitions || [])
+  const edges = (region.transitions || [])
     .filter(transition => byId.has(transition.from) && byId.has(transition.to))
     .map((transition, index, transitions) => {
       const sameDirectionIndex = transitions
@@ -258,6 +265,26 @@ function rankStates(states, workflow) {
     if (!ranks.has(state)) ranks.set(state, index);
   }
   return ranks;
+}
+
+function workflowRegions(workflow = {}) {
+  if (workflow?.regions && typeof workflow.regions === 'object') return workflow.regions;
+  if (workflow?.states || workflow?.transitions || workflow?.initial) {
+    return {
+      main: {
+        initial: workflow.initial,
+        states: workflow.states || {},
+        transitions: workflow.transitions || []
+      }
+    };
+  }
+  return {};
+}
+
+function workflowRegion(workflow = {}, regionId = null) {
+  const regions = workflowRegions(workflow);
+  const id = regionId || workflow.primaryRegion || (regions.main ? 'main' : Object.keys(regions)[0]);
+  return regions[id] || { initial: '', states: {}, transitions: [] };
 }
 
 export function generateDomainCncSource(draft = {}) {

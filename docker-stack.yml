@@ -8,6 +8,8 @@ services:
       - 8.8.4.4
     ports:
       - 7100:3000
+    volumes:
+      - ${CONFIG_BOT_CORTEX_HOST_PATH:-/home/cutkit/Documents/cutkit-cortex}:/opt/cutkit-cortex:ro
     environment:
       - BASE_URL=${BASE_URL:-http://192.168.0.67:7100}
       - NUXT_PUBLIC_BASE_URL=${NUXT_PUBLIC_BASE_URL:-http://192.168.0.67:7100}
@@ -18,6 +20,10 @@ services:
       - NUXT_RESEND_TOKEN=${RESEND_TOKEN}
       - WORKER_TOKEN=${WORKER_TOKEN}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://192.168.0.67:11434}
+      - CONFIG_BOT_CHAT_MODEL=${CONFIG_BOT_CHAT_MODEL:-qwen3:4b}
+      - CONFIG_BOT_EMBED_MODEL=${CONFIG_BOT_EMBED_MODEL:-bge-m3}
+      - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/opt/cutkit-cortex}
     secrets:
       - source: cutkit_stripe_secret_key
         target: stripe_secret_key
@@ -107,6 +113,33 @@ services:
     networks:
       - cutkit-network
 
+  geometry-capture-worker:
+    image: ghcr.io/1suo/geometry-capture-worker:${GIT_COMMIT_HASH:-latest}
+    environment:
+      - CUTKIT_API_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN}
+      - GEOMETRY_CAPTURE_WORKER_ID=geometry-capture
+      - GEOMETRY_CAPTURE_ML=${GEOMETRY_CAPTURE_ML:-1}
+      - GEOMETRY_CAPTURE_MODEL_FIRST=${GEOMETRY_CAPTURE_MODEL_FIRST:-1}
+      - GEOMETRY_CAPTURE_PRELOAD_MODELS=${GEOMETRY_CAPTURE_PRELOAD_MODELS:-}
+      - HF_HOME=/models/huggingface
+      - SAM2_MODEL_ID=${SAM2_MODEL_ID:-facebook/sam2-hiera-large}
+      - SAM2_CHECKPOINT=${SAM2_CHECKPOINT:-}
+      - SAM2_MODEL_CFG=${SAM2_MODEL_CFG:-}
+      - SAM2_DEVICE=${SAM2_DEVICE:-cpu}
+      - GROUNDING_DINO_MODEL=${GROUNDING_DINO_MODEL:-IDEA-Research/grounding-dino-tiny}
+      - GROUNDING_DINO_DEVICE=${GROUNDING_DINO_DEVICE:-cpu}
+      - GROUNDING_DINO_BOX_THRESHOLD=${GROUNDING_DINO_BOX_THRESHOLD:-0.25}
+      - GROUNDING_DINO_TEXT_THRESHOLD=${GROUNDING_DINO_TEXT_THRESHOLD:-0.25}
+    volumes:
+      - geometry-model-cache:/models
+    deploy:
+      replicas: ${WORKERS_REPLICAS}
+      update_config:
+        order: start-first
+    networks:
+      - cutkit-network
+
 secrets:
   cutkit_stripe_secret_key:
     external: true
@@ -121,3 +154,4 @@ networks:
 
 volumes:
   mongo-data:
+  geometry-model-cache:

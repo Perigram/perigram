@@ -5,6 +5,31 @@
 
 import DxfParser from 'dxf-parser';
 
+function polygonArea(points = []) {
+  if (!Array.isArray(points) || points.length < 3) return 0;
+  let area = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index];
+    const next = points[(index + 1) % points.length];
+    if (!Array.isArray(current) || !Array.isArray(next)) continue;
+    const x1 = Number(current[0]);
+    const y1 = Number(current[1]);
+    const x2 = Number(next[0]);
+    const y2 = Number(next[1]);
+    if (!Number.isFinite(x1) || !Number.isFinite(y1) || !Number.isFinite(x2) || !Number.isFinite(y2)) continue;
+    area += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(area) / 2;
+}
+
+function uniquePointCount(points = []) {
+  return new Set(points.map(point => `${Math.round(Number(point[0]) * 1000000) / 1000000}:${Math.round(Number(point[1]) * 1000000) / 1000000}`)).size;
+}
+
+function isValidPolygonCoordinates(points = []) {
+  return points.length >= 3 && uniquePointCount(points) >= 3 && polygonArea(points) > 0.000001;
+}
+
 /**
  * Extract polygons from a DXF buffer for a specific layer
  * @param {Buffer} dxfBuffer - DXF file buffer
@@ -84,7 +109,7 @@ export function extractPolygonsFromDXF(dxfBuffer, layerName) {
         coordinates = entity.controlPoints.map(p => [p.x, p.y]);
       }
       
-      if (coordinates && coordinates.length >= 3) {
+      if (coordinates && isValidPolygonCoordinates(coordinates)) {
         polygonParts.push({
           coordinates,
           handles: entity.handle ? [entity.handle] : []
@@ -97,6 +122,73 @@ export function extractPolygonsFromDXF(dxfBuffer, layerName) {
     
   } catch (error) {
     console.error('Error extracting polygons from DXF:', error);
+    return [];
+  }
+}
+
+export function extractCurvesFromDXFLayer(dxfBuffer, layerName) {
+  try {
+    const parser = new DxfParser();
+    const dxfString = dxfBuffer.toString('utf-8');
+    const dxf = parser.parseSync(dxfString);
+
+    if (!dxf || !dxf.entities) {
+      console.error('Failed to parse DXF or no entities found');
+      return [];
+    }
+
+    return dxf.entities
+      .filter(entity => entity.layer === layerName)
+      .map((entity) => {
+        let coordinates = null;
+
+        if ((entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') && entity.vertices) {
+          coordinates = entity.vertices.map(v => [v.x, v.y]);
+          const first = coordinates[0];
+          const last = coordinates[coordinates.length - 1];
+          if ((entity.closed || entity.shape) && first && last && (first[0] !== last[0] || first[1] !== last[1])) {
+            coordinates.push([first[0], first[1]]);
+          }
+        } else if (entity.type === 'LINE') {
+          const start = entity.startPoint || entity.vertices?.[0];
+          const end = entity.endPoint || entity.vertices?.[1];
+          if (start && end) coordinates = [[start.x, start.y], [end.x, end.y]];
+        } else if (entity.type === 'CIRCLE' && entity.center && entity.radius) {
+          const segments = 32;
+          coordinates = [];
+          for (let i = 0; i <= segments; i += 1) {
+            const angle = (i / segments) * 2 * Math.PI;
+            coordinates.push([
+              entity.center.x + entity.radius * Math.cos(angle),
+              entity.center.y + entity.radius * Math.sin(angle)
+            ]);
+          }
+        } else if (entity.type === 'ARC' && entity.center && entity.radius) {
+          const segments = 16;
+          const startAngle = entity.startAngle * Math.PI / 180;
+          const endAngle = entity.endAngle * Math.PI / 180;
+          coordinates = [];
+          for (let i = 0; i <= segments; i += 1) {
+            const angle = startAngle + (endAngle - startAngle) * (i / segments);
+            coordinates.push([
+              entity.center.x + entity.radius * Math.cos(angle),
+              entity.center.y + entity.radius * Math.sin(angle)
+            ]);
+          }
+        } else if (entity.type === 'SPLINE' && entity.controlPoints) {
+          coordinates = entity.controlPoints.map(p => [p.x, p.y]);
+        }
+
+        if (!coordinates || coordinates.length < 2) return null;
+        return {
+          coordinates,
+          handles: entity.handle ? [entity.handle] : [],
+          entityType: entity.type
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    console.error('Error extracting curves from DXF:', error);
     return [];
   }
 }

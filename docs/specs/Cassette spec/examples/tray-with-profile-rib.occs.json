@@ -1,0 +1,140 @@
+{
+  "occs": "0.4-draft",
+  "documentType": "template",
+  "id": "tray-with-profile-rib",
+  "units": "mm",
+  "parameters": {
+    "A": "1200",
+    "B": "600",
+    "T": "4",
+    "RIB_L": "900",
+    "RIB_W": "40",
+    "RIVET_D": "4.8"
+  },
+  "definitions": {
+    "workpieces": [
+      {
+        "id": "tray_def",
+        "type": "sheet",
+        "role": "cassette_tray",
+        "material": "ACM_4",
+        "thickness": "T",
+        "faces": [
+          {
+            "id": "main",
+            "role": "main",
+            "shape": {
+              "type": "trapezoid",
+              "baseLength": "A",
+              "height": "B"
+            }
+          }
+        ],
+        "folds": [],
+        "entities": []
+      },
+      {
+        "id": "rib_def",
+        "type": "profile",
+        "role": "stiffener",
+        "material": "aluminium",
+        "profile": {
+          "profileType": "hat_channel",
+          "length": "RIB_L",
+          "nominalWidth": "RIB_W",
+          "crossSectionRef": "HAT_40x20x2"
+        },
+        "manufacturing": {
+          "process": "brake_formed"
+        },
+        "entities": []
+      }
+    ],
+    "libraryParts": [
+      {
+        "id": "rivet_4_8",
+        "type": "hardware",
+        "role": "rivet",
+        "parameters": {
+          "diameter": "RIVET_D"
+        }
+      }
+    ]
+  },
+  "cassette": {
+    "occurrences": [
+      {
+        "id": "tray",
+        "ref": "tray_def",
+        "placement": {
+          "relativeTo": "world",
+          "origin": [
+            "0",
+            "0",
+            "0"
+          ],
+          "rotation": [
+            "0deg",
+            "0deg",
+            "0deg"
+          ]
+        }
+      },
+      {
+        "id": "rib_01",
+        "ref": "rib_def",
+        "placement": {
+          "relativeTo": {
+            "occurrence": "tray",
+            "face": "main",
+            "side": "back"
+          },
+          "origin": [
+            "A / 2",
+            "B / 2"
+          ],
+          "rotation": "0deg",
+          "anchor": "center"
+        }
+      }
+    ],
+    "joints": [
+      {
+        "id": "joint_rib_01",
+        "type": "mechanical",
+        "method": "rivet",
+        "source": {
+          "occurrence": "rib_01"
+        },
+        "target": {
+          "occurrence": "tray",
+          "face": "main",
+          "side": "back"
+        },
+        "placement": {
+          "relativeTo": {
+            "occurrence": "tray",
+            "face": "main",
+            "side": "back"
+          },
+          "origin": [
+            "A / 2",
+            "B / 2"
+          ],
+          "rotation": "0deg",
+          "anchor": "center"
+        },
+        "fastenerPattern": {
+          "type": "linear",
+          "axis": "u",
+          "spacing": "150",
+          "startOffset": "50",
+          "endOffset": "50",
+          "fastener": {
+            "ref": "rivet_4_8"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-116 -751 1432 867" data-occs-id="simple-tray-design" data-occs-document-type="design">
+  <title>OCCS cassette flat pattern</title>
+  <desc>Generated from OCCS geometry by tools/occs-toolkit.mjs</desc>
+  <g id="occs-contour-flat_pattern-face_and_returns" data-layer="contour.flat_pattern.face_and_returns">
+    <path data-occs-face="main" d="M 0 0 L 1200 0 L 1200 -600 L 0 -600 Z" style="fill:#e0f2fe;stroke:#0f172a;stroke-width:1.4" />
+    <path data-occs-face="top_return" d="M 1200 -600 L 0 -600 L 0 -635 L 1200 -635 Z" style="fill:#f8fafc;stroke:#0f172a;stroke-width:1.4" />
+  </g>
+  <g id="occs-fold-route" data-layer="fold.route">
+    <path data-occs-fold="fold_top" class="occs-fold-route" d="M 1200 -600 L 0 -600" style="fill:none;stroke:#2563eb;stroke-width:1.2;stroke-dasharray:8 4" />
+  </g>
+  <g id="occs-cut-hole" data-layer="cut.hole">
+    <circle data-occs-id="hole_top_mid" data-layer="cut.hole" data-target="top_return" class="occs-cut-hole" cx="600" cy="-617.5" r="2.5" style="fill:none;stroke:#dc2626;stroke-width:1.8" />
+  </g>
+  <g id="occs-code-cassette_mark" data-layer="code.cassette_mark">
+    <text data-occs-id="cassette_mark" data-layer="code.cassette_mark" data-target="main" class="occs-code-cassette_mark" x="20" y="-20" font-size="12" fill="#059669">C-001</text>
+  </g>
+</svg>

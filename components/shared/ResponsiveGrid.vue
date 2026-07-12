@@ -13,11 +13,11 @@ const props = defineProps({
 
 const gridClass = computed(() => {
   if (props.variant === 'dense') {
-    return 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
+    return 'grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
   }
   if (props.variant === 'wide') {
-    return 'grid grid-cols-1 gap-[var(--ck-grid-gap)] lg:grid-cols-2';
+    return 'grid grid-cols-1 items-start gap-[var(--ck-grid-gap)] lg:grid-cols-2';
   }
-  return 'grid grid-cols-1 gap-[var(--ck-grid-gap)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6';
+  return 'grid grid-cols-1 items-start gap-[var(--ck-grid-gap)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6';
 });
 </script>

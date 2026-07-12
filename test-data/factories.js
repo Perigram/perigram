@@ -6,7 +6,7 @@
  * `data`, `summary`, `specs`) plus root `_id`.
  */
 import { ObjectId } from 'bson';
-import { PERMISSION_TEMPLATES } from '~/shared/permission-templates.js';
+import { PERMISSION_TEMPLATES } from '#shared/permission-templates.js';
 
 const now = () => new Date();
 const id = (prefix) => `${prefix}-${new ObjectId().toString().slice(-8)}`;
@@ -68,10 +68,12 @@ export const MOCK_IDS = {
   projectId: 'project-demo-downtown',
   queueId: 'queue-demo-morning',
   runId: 'run-demo-001',
+  libraryId: 'library-demo-acm',
   catalogId: 'catalog-demo-acm',
   sheetDesignId: 'sheet-design-demo-001',
   cassetteTemplateId: 'cassette-template-demo-001',
-  cassetteDesignId: 'cassette-design-demo-001'
+  cassetteDesignId: 'cassette-design-demo-001',
+  entityRevisionId: 'entity-revision-demo-001'
 };
 
 export function createMockProject(overrides = {}) {
@@ -230,7 +232,50 @@ export function createMockCassetteDesign(overrides = {}) {
       serial: 'CD-FACADE-01',
       state: 'APPROVED',
       lineage: { projectId: MOCK_IDS.projectId, templateId: MOCK_IDS.cassetteTemplateId },
-      data: { geometry, parameters }
+      data: {
+        geometry,
+        parameters,
+        derivedFrom: {
+          entityType: 'cassette',
+          entityId: MOCK_IDS.cassetteTemplateId,
+          scope: 'geometry',
+          revisionId: MOCK_IDS.entityRevisionId,
+          revisionNumber: 1,
+          contentHash: 'sha256:demo1234567890',
+          parameters
+        }
+      }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockEntityRevision(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: MOCK_IDS.entityRevisionId,
+      name: 'cassette geometry v1',
+      state: 'ACTIVE',
+      lineage: {
+        organizationId: MOCK_IDS.organizationId,
+        cassetteId: MOCK_IDS.cassetteTemplateId
+      },
+      data: {
+        entityType: 'cassette',
+        entityId: MOCK_IDS.cassetteTemplateId,
+        scope: 'geometry',
+        number: 1,
+        contentHash: 'sha256:demo1234567890',
+        snapshot: {
+          identity: { name: 'Parametric Type G' },
+          data: {
+            type: 'PARAMETRIC',
+            definition: { params: { A: 600, B: 400, C: 35 } },
+            parameters: ['A', 'B', 'C']
+          }
+        },
+        reason: 'template-created'
+      }
     }),
     ...overrides
   };
@@ -302,6 +347,24 @@ export function createMockMaterial(overrides = {}) {
   };
 }
 
+export function createMockLibrary(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: MOCK_IDS.libraryId,
+      name: 'ACP Cassette Library',
+      slug: 'acp-cassette-library',
+      state: 'ACTIVE',
+      lineage: { organizationId: MOCK_IDS.organizationId },
+      data: {
+        material: { code: 'ACP', name: 'Aluminum Composite Panel' },
+        description: 'Reusable cassette templates for aluminum composite panels'
+      },
+      summary: { cassetteCount: 4 }
+    }),
+    ...overrides
+  };
+}
+
 export function createMockPile(overrides = {}) {
   const stock = { total: 100, used: 25 };
   const specs = { sheetThickness: 4, foilThickness: 0.5, width: 3000, length: 1500, area: 4.5 };
@@ -310,7 +373,7 @@ export function createMockPile(overrides = {}) {
       uid: 'pile-demo-001',
       name: 'Alucobond Silver',
       serial: 'P-101',
-      state: 'IN_STOCK',
+      state: 'STOCKED',
       lineage: {
         organizationId: MOCK_IDS.organizationId,
         warehouseId: MOCK_IDS.warehouseId,
@@ -332,7 +395,7 @@ export function createMockBatchPile(overrides = {}) {
       name: 'Batch Pile REQ-2025-001 / P-003',
       slug: 'batch-pile-req-2025-001-p-003',
       serial: 'P-003',
-      state: 'IN_STOCK',
+      state: 'STOCKED',
       lineage: {
         organizationId: MOCK_IDS.organizationId,
         warehouseId: MOCK_IDS.warehouseId,
@@ -352,11 +415,11 @@ export function createMockRemnant(overrides = {}) {
       uid: 'remnant-demo-001',
       name: 'Remnant REM-2025-X1',
       serial: 'REM-2025-X1',
-      state: 'SCRAP',
+      state: 'AVAILABLE',
       lineage: { warehouseId: MOCK_IDS.warehouseId, sheetId: 'sheet-demo-001' },
       specs: { width: 900, length: 500, area: 0.45, sheetThickness: 4 },
       data: {
-        isReusable: false,
+        isReusable: true,
         geometry: {
           preview: {
             viewBox: '0 0 120 80',
@@ -368,6 +431,52 @@ export function createMockRemnant(overrides = {}) {
         data: {
           location: { type: 'coordinates', coordinates: { x: 12, y: 4, z: 1 } }
         }
+      }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockGeometryCapture(overrides = {}) {
+  const geometry = {
+    polygon: {
+      outer: [[0, 0], [1200, 0], [1180, 680], [80, 720], [0, 0]],
+      inner: [[[420, 180], [680, 180], [680, 360], [420, 360], [420, 180]]]
+    },
+    preview: {
+      viewBox: '-50 -50 1300 820',
+      layers: [
+        { name: 'capture.outer', standardCode: 'cut.outer', paths: ['M0 0 L1200 0 L1180 680 L80 720 Z'] },
+        { name: 'capture.holes', standardCode: 'cut.inner', paths: ['M420 180 L680 180 L680 360 L420 360 Z'] }
+      ]
+    }
+  };
+  return {
+    ...createEntity({
+      uid: 'geometry-capture-demo-001',
+      name: 'Captured remnant draft',
+      state: 'READY',
+      lineage: {
+        organizationId: MOCK_IDS.organizationId,
+        warehouseId: MOCK_IDS.warehouseId
+      },
+      specs: { width: 1200, height: 720, area: 0.8172 },
+      attachments: {
+        primary: createAttachmentEntry('CAPTURE_PHOTO', 'capture-photo-demo-001', 'remnant-photo.jpg', {
+          bucketName: 'capturePhotos',
+          mimeType: 'image/jpeg'
+        })
+      },
+      data: {
+        mode: 'REMNANT',
+        calibration: { mode: 'knownDimension', knownWidth: 1200 },
+        geometry,
+        extraction: {
+          status: 'READY',
+          confidence: 0.82,
+          diagnostics: ['outer_vertices:4', 'holes:1', 'scale_mode:knownDimension']
+        },
+        output: null
       }
     }),
     ...overrides
@@ -432,6 +541,52 @@ export function createMockToolProfile(overrides = {}) {
       state: 'ACTIVE',
       lineage: { userId: 'user-demo' },
       data: { diameter: 4, angle: 180, kerf: 4, description: 'General cutting tool' }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockProfileTemplate(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: 'profile-demo-hanger',
+      name: 'Hanger profile',
+      state: 'ACTIVE',
+      lineage: { userId: 'user-demo' },
+      data: {
+        kind: 'hanger',
+        process: 'extruded',
+        parameters: { W: 42, H: 28, R: 3, D: 6, L: 120 },
+        sketch: {
+          version: '0.1',
+          units: 'mm',
+          parameters: { W: 42, H: 28, R: 3, D: 6, L: 120 },
+          points: [
+            { id: 'p0', x: 0, y: 0 },
+            { id: 'p1', x: 42, y: 0 },
+            { id: 'p2', x: 42, y: 28 },
+            { id: 'p3', x: 0, y: 28 }
+          ],
+          edges: [
+            { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
+            { id: 'e1', type: 'line', from: 'p1', to: 'p2' },
+            { id: 'e2', type: 'line', from: 'p2', to: 'p3' },
+            { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
+          ],
+          holes: [{ id: 'h0', type: 'circle', center: [21, 14], diameter: 6 }],
+          modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 3 }]
+        },
+        occsProfile: {
+          section: {
+            type: 'polygon',
+            vertices: [['0', '0'], ['42', '0'], ['42', '28'], ['0', '28']],
+            edges: [{ type: 'line' }, { type: 'line' }, { type: 'line' }, { type: 'line' }],
+            holes: [{ type: 'circle', center: ['21', '14'], diameter: '6' }],
+            modifiers: [{ type: 'fillet', vertices: ['p0', 'p1', 'p2', 'p3'], radius: 3 }]
+          },
+          sweep: { type: 'linear', length: '120' }
+        }
+      }
     }),
     ...overrides
   };

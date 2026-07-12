@@ -5,6 +5,8 @@ import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../asse
 import {
   cncAttachmentKinds,
   cncDesignSystemEntityContracts,
+  cncEntityFieldGroups,
+  cncEntitySurfaceContracts,
   cncDesignSystemGroups,
   cncDesignSystemPrimitives,
   cncDesignSystemVariants,
@@ -43,10 +45,12 @@ const UI_COMPONENT_PATHS = {
   queue: 'components/entities/Queue/QueueCard.vue',
   nestingRun: 'components/entities/NestingRun/NestingRunCard.vue',
   sheetDesign: 'components/entities/SheetDesign/SheetDesignCard.vue',
+  cassette: 'components/entities/Cassette/CassetteCard.vue',
   cassetteDesign: 'components/entities/CassetteDesign/CassetteDesignCard.vue',
   cassetteTemplate: 'components/entities/CassetteTemplate/CassetteTemplateCard.vue',
   cassetteInstance: 'components/entities/CassetteInstance/CassetteInstanceCard.vue',
   requisition: 'components/entities/Requisition/RequisitionCard.vue',
+  material: 'components/entities/Material/MaterialCard.vue',
   materialPile: 'components/entities/MaterialPile/PileCard.vue',
   batchPile: 'components/entities/BatchPile/BatchPileCard.vue',
   sheet: 'components/entities/Sheet/SheetCard.vue',
@@ -278,14 +282,21 @@ function createComponentInventory() {
     key,
     {
       componentPath,
-      fieldPaths: existsSync(componentPath) ? extractDataBlockFieldPaths(readFileSync(componentPath, 'utf8')) : []
+      fieldPaths: contractFieldPaths(key)
     }
   ]));
 }
 
-function extractDataBlockFieldPaths(source) {
-  return Array.from(source.matchAll(/path:\s*['"]([^'"]+)['"]/g))
-    .map(match => match[1])
+function contractFieldPaths(key) {
+  const groups = cncEntityFieldGroups[key] || {};
+  const surfaceGroups = Object.values(cncEntitySurfaceContracts[key]?.surfaces || {})
+    .flatMap(surface => surface.fieldGroups || []);
+
+  return surfaceGroups
+    .flatMap(group => groups[group] || [])
+    .filter(field => field.role !== 'previewSource' && field.display !== 'entityRef' && field.display !== 'entityRefList')
+    .map(field => field.path)
+    .filter(Boolean)
     .filter((path, index, paths) => paths.indexOf(path) === index)
     .sort();
 }

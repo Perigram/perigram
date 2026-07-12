@@ -44,6 +44,7 @@ flowchart LR
 | Attachment | Persisted file/blob metadata linked to an entity. |
 | AttachmentKind | Declared file content/preview/storage contract. |
 | Adapter | App binding between pure domain definitions and infrastructure. |
+| Process Definition | Organization-owned graph that compiles abstract roles, entity workflows, field policy, services, sockets, screens, and navigation into runtime contracts. |
 
 Commands and tasks are not duplicates: commands decide "what business action is
 allowed and requested"; tasks execute retryable background work created by those
@@ -56,6 +57,7 @@ commands.
 | `cutkit-app` | `server/`, `pages/`, `components/`, `composables/` | Nuxt UI, Nitro API, command/task runtimes, feature services. |
 | `file-processing-worker` | `workers/fileprocessing/` | Claims `dxf.parseUpload`, processes uploaded DXF files. |
 | `cassette-processing-worker` | `workers/cassette-processing/` | Claims `cassette.bakeTemplate`, bakes cassette geometry. |
+| `geometry-capture-worker` | `workers/geometry-capture/` | Claims `vision.extractGeometry`, extracts draft polygons from capture photos. |
 | `nesting-worker` | `workers/nesting/` | FastAPI HTTP solver for nesting geometry. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
 
@@ -89,22 +91,40 @@ npm install
 npx vitest run shared/framework-packages.spec.js shared/design-system.spec.js
 node scripts/check-arch.js
 npm run framework:validate
+E2E_BASE_URL=http://localhost:3000 npm run test:e2e
 ```
 
 Do not run `npm run build` or start dev servers from coding-agent tasks unless a
 human explicitly asks. Worker endpoints require matching `WORKER_TOKEN` on app
 and workers; compose files use `cutkit-dev-worker` for local development.
+Docker dev starts Nuxt with `--host 0.0.0.0` so the app binds to the container
+interface and is reachable through the compose `3000:3000` port mapping.
+When opening the dev app from another device on the LAN, also set
+`NUXT_DEV_HMR_HOST=<your-laptop-LAN-IP>` so the proxied Vite client advertises
+the same browser-visible host for hot-module websocket traffic instead of an
+internal container-only endpoint. `NUXT_DEV_HMR_CLIENT_PORT` defaults to
+`3000`, and `NUXT_DEV_HMR_PROTOCOL` defaults to `ws`.
+The E2E command assumes the app stack is already running and uses Playwright
+against the configured `E2E_BASE_URL`.
 
 ## Documentation Map
 
 | Area | Doc |
 |---|---|
 | System graph | [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md) |
+| Remote access and deployment | [docs/REMOTE_ACCESS.md](./docs/REMOTE_ACCESS.md) |
+| UI component audit | [docs/UI_COMPONENT_AUDIT.md](./docs/UI_COMPONENT_AUDIT.md) |
 | Backend | [server/README.md](./server/README.md) |
 | Runtime registry | [server/runtime/README.md](./server/runtime/README.md) |
 | Commands | [server/core/commands/README.md](./server/core/commands/README.md) |
 | Tasks | [server/core/tasks/README.md](./server/core/tasks/README.md) |
 | Domain package | [packages/domain-cnc/README.md](./packages/domain-cnc/README.md) |
+| Process compiler | [packages/processes/README.md](./packages/processes/README.md) |
 | Core package | [packages/core/README.md](./packages/core/README.md) |
+| Pages and public entry | [pages/README.md](./pages/README.md) |
 | Workers | [workers/README.md](./workers/README.md) |
+| E2E workflow tests | [e2e/README.md](./e2e/README.md) |
 | Admin workbench | [pages/admin/README.md](./pages/admin/README.md) |
+| Scripts and guardrails | [scripts/README.md](./scripts/README.md) |
+| Schema specs | [docs/specs/README.md](./docs/specs/README.md) |
+| Codex agent assets | [.codex/README.md](./.codex/README.md) |

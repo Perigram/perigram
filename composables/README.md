@@ -27,6 +27,8 @@ const result = useEntity(type, identifier?)
 | `serial` | `ComputedRef<string>` | `entity.identity.serial` |
 | `reference` | `ComputedRef<string>` | `entity.identity.reference` |
 | `state` | `ComputedRef<string>` | `entity.status.state` |
+| `stateObject` | `ComputedRef<object>` | Structured v2 status state snapshot |
+| `statusRegions` | `ComputedRef<array>` | Active region chips derived from `entity.status.state.regions` |
 | `statusColor` | `ComputedRef<string>` | PrimeVue severity string |
 | `statusTime` | `ComputedRef<Date>` | `entity.status.timestamp` |
 | `statusMeta` | `ComputedRef<object>` | `entity.status.metadata` |
@@ -36,12 +38,12 @@ const result = useEntity(type, identifier?)
 | `specs` | `ComputedRef<object>` | Full specs block |
 | `formattedDimensions` | `ComputedRef<string>` | `"1200×2400 mm"` |
 | `formattedArea` | `ComputedRef<string>` | `"2.88 m²"` |
-| `fetch(id?)` | `async () => entity` | Load single entity |
+| `fetch(id?, options?)` | `async () => entity` | Load single entity; pass `{ silent: true }` for fallback lookups such as inline relation refs |
 | `create(data?)` | `async (data) => entity` | POST to create entity |
 | `update(data)` | `async (data) => entity` | PATCH entity |
 | `remove(id?)` | `async () => void` | DELETE entity |
 | `changeStatus(state, metaOrContext?)` | `async () => result` | State machine transition |
-| `list(filters?)` | `async (filters?) => items[]` | Fetch collection (see below) |
+| `list(filters?, options?)` | `async (filters?, options?) => items[]` | Fetch collection; pass `{ silent: true }` for optional fallback lookups |
 | `items` | `Ref<array>` | Results from last `list()` call |
 
 Entity JSON is strict block DTO data: root `_id` plus canonical blocks only.
@@ -49,6 +51,18 @@ Entity JSON is strict block DTO data: root `_id` plus canonical blocks only.
 `lineage`, and `specs`, but it does not rely on root aliases such as
 `entity.id`, `entity.name`, `entity.slug`, `entity.type`, or
 `entity.parameters`.
+Successful `create()`, `update()`, and `remove()` calls emit the shared
+browser-local entity sync event from `utils/entity-events.js`, using the same
+contract as status transitions. Frontend surfaces that need cache invalidation
+or dependent refreshes should listen to that contract rather than wiring
+page-local callbacks for each CRUD button.
+On the client, those same successful CRUD calls also publish a typed
+invalidation to `POST /api/entity-events`, which fans out to other authenticated
+sessions over SSE. Server events intentionally carry ids and change metadata,
+not full DTOs; receiving surfaces refetch through their normal entity APIs.
+`state` is the primary lifecycle string derived from structured
+`status.state.primary`; `stateObject` and `statusRegions` expose the full v2
+machine state when a surface needs region details.
 
 ### Fetching a single entity
 
@@ -66,21 +80,32 @@ onMounted(() => list({ 'lineage.projectId': projectId }));
 // call list() again with new filters to refresh
 ```
 
+Use `list(filters, { silent: true })` only for optional enrichment where a
+protected collection may legitimately be unavailable, such as an inline
+nesting-run popup attempting to load readable sheet-design children by
+`runId`. Ordinary collection screens should keep the default logging behavior
+so access and endpoint errors remain visible during development.
+
 ### Endpoint map
 
 Endpoint metadata is supplied by the injected CutKit domain UI adapter from
 `plugins/cutkit-domain.js`; `useEntity` remains the app-facing compatibility
 composable and does not import the CNC domain package directly.
+During server-side rendering, `useEntity` forwards the incoming request cookie
+to internal `$fetch` calls. Generated process screens can therefore load
+authenticated entity sources during SSR without receiving false 401s from
+server API routes.
 
 | Type key | Single endpoint | List / create endpoint |
 |---|---|---|
 | `material` | `/api/materials/:id` | `/api/materials` |
 | `project` | `/api/project/:id` | `/api/project` |
-| `queue` | `/api/queue/:id` | `/api/queues` |
+| `queue` | `/api/queue/:id` | `/api/queue` |
 | `requisition` | `/api/requisitions/:id` | `/api/requisitions` |
-| `pile` / `batch` | `/api/material-piles/:id` | `/api/material-piles` |
+| `materialPile` / `pile` / `batch` | `/api/material-piles/:id` | `/api/material-piles` |
 | `sheet` | `/api/sheets/:id` | `/api/sheets` |
 | `remnant` | `/api/remnants/:id` | `/api/remnants` |
+| `cassette` / `cassetteTemplate` | `/api/cassettes/:id` | `/api/cassettes` |
 | `cassetteInstance` | `/api/cassette-instances/:id` | `/api/cassette-instances` |
 | `cassetteDesign` | `/api/cassette-designs/:id` | `/api/cassette-designs` |
 | `sheetDesign` | `/api/sheet-designs/:id` | `/api/sheet-designs` |
@@ -92,7 +117,16 @@ composable and does not import the CNC domain package directly.
 | `organization` | `/api/organizations/:id` | `/api/organizations` |
 | `nestingRun` | `/api/nesting-runs/:id` | `/api/nesting-runs` |
 
-> **Note:** Queue listing for a project uses the project-scoped sub-resource `/api/project/:slug/queues` (not the generic queue list) since queues are always project-scoped.
+The domain UI adapter registers both design-system surface keys and backend
+entity aliases, so `materialPile` and `material_pile` resolve to the same
+endpoint. New UI code should use surface keys because they identify the
+intended card contract.
+
+> **Note:** Queue listing for a project should use the project-scoped
+> sub-resource `/api/project/:slug/queues` when the screen is already inside a
+> project workspace. Generated process screens that need an organization-level
+> queue source use the canonical collection endpoint `/api/queue`; the app does
+> not expose `/api/queues`.
 
 ---
 
@@ -111,15 +145,27 @@ Exception: `useStatus` may be used in entity cards for a `v-if` conditional (not
 ## useStatusController
 
 Direct bridge to the State Machine Engine. Used internally by `useEntity.changeStatus()`.
-Supports both camelCase and snake_case entity type keys for runtime status components.
+All standard workflow transitions go through `POST /api/status/transition`.
+Interactive status controls load server-authorized actions from
+`GET /api/status/actions`, so frontend components do not duplicate transition
+permission checks.
+After a successful transition, `useStatusController` emits the same
+browser-local entity sync event for the changed entity and any related entities
+returned in transition `effects`. Transition responses normalize effects as
+grouped arrays (`effects.entities`, `effects.tasks`, `effects.transitions`, and
+`effects.events`); legacy array-shaped responses remain tolerated by the browser
+event bridge.
 
 ```js
-const { transition, isTransitioning } = useStatusController();
+const { transition, fetchActions, isTransitioning } = useStatusController();
+const actions = await fetchActions(type, id);
 await transition(type, id, newState, metadata);
 await transition(type, id, newState, {
   metadata: { note: 'Measured after milling' },
   lifecycle: { attachments: { geometry: geometryRef } }
 });
+await transition(type, id, newState, { intent: 'acceptNestingRun' });
+await transition(type, id, newState, { region: 'qa' });
 ```
 
 ---
@@ -133,6 +179,44 @@ const { events, fetch } = useStatusHistory(type, id);
 ```
 
 Used by `<StatusHistory>` component.
+
+---
+
+## useGeneratedScreen
+
+Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
+The composable normalizes the screen contract, checks source-level process
+requirements against the active permission grants before fetching, and then
+loads entity data through `useEntity()`. It supports list and single-entity
+sources, assignment-bound filters/identifiers, and exposes source states to the
+generated renderer.
+Generated screens listen to the shared browser-local entity sync event and
+reload when an event targets one of their visible source entity types. This is
+the generated-screen side of cross-device entity synchronization; the backend
+still enforces whether the refreshed source can read each changed entity.
+
+Generated screens are UI composition only. They decide which regions, sources,
+and action buttons are visible, while API routes still enforce real access.
+`stores/auth.js` exposes generated screen manifests as effective user views:
+auto-generated role/entity screens are merged by entity, template, and scope
+before generated pages, menus, and breadcrumbs consume them. Breadcrumb sibling
+menus use only generated hub/list screens; detail screens stay paired with
+their list screen instead of appearing as duplicate top-level destinations.
+Manual generated-screen actions post to the active process action endpoint,
+which verifies the compiled action manifest before delegating to the relevant
+entity, status, socket, or command runtime.
+Collection actions also receive the current screen/region context. If an action
+declares a parent entity type, the generated screen sends the active parent id
+from `$screen.scope` in the `entities` map, so child constructors such as queue
+creation inside a project detail page receive their lineage parent.
+Generated action dialogs render entity-list construction fields as multi-select
+controls backed by the domain UI endpoint registry. Submitted values are
+normalized into the action input path before posting to the process runtime.
+When a generated source comes from a role with several status-scoped grants for
+the same entity feature, `useGeneratedScreen` derives a role-local
+`primaryStatuses` list from the source requirement and passes it to
+`useEntity.list()`. This keeps a multi-role user's role-specific screen from
+showing records that are only visible through another assigned role.
 
 ---
 
@@ -156,6 +240,11 @@ Used by `<TraceChain>` component.
 | `queues.js` | Nesting jobs state |
 | `cassettes.js` | User templates and designs |
 | `global.js` | Layout, notifications, shared lookup lists |
+
+`auth.js` prefers server-provided `effectivePermissions` and `navigation` when
+the active organization has an active process definition. Membership
+permissions remain the fallback for organizations that have not activated a
+process.
 
 ---
 

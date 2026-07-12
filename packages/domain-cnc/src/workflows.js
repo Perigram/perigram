@@ -1,4 +1,17 @@
-export const cncWorkflows = {
+const mainWorkflow = ({ initial, states, transitions }) => ({
+  schemaVersion: 2,
+  primaryRegion: 'main',
+  regions: {
+    main: {
+      label: 'Lifecycle',
+      initial,
+      states,
+      transitions
+    }
+  }
+});
+
+const workflowDefinitions = {
   project: {
     initial: 'DRAFT',
     states: { DRAFT: { canUpdateMeta: true }, ACTIVE: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false } },
@@ -12,31 +25,39 @@ export const cncWorkflows = {
   },
   queue: {
     initial: 'DRAFT',
-    states: { DRAFT: { canUpdateMeta: true }, NESTING: { canUpdateMeta: true }, READY: { canUpdateMeta: true }, CUT: { isTerminal: true, canUpdateMeta: false }, CLOSED: { isTerminal: true, canUpdateMeta: false } },
+    states: { DRAFT: { canUpdateMeta: true }, NESTING: { canUpdateMeta: true }, READY: { canUpdateMeta: true }, ERROR: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
     transitions: [
-      { from: 'DRAFT', to: 'NESTING', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'NESTING', to: 'READY', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'READY', to: 'CUT', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }, { handler: 'processPhysicalCut' }] },
+      { from: 'DRAFT', to: 'NESTING', intent: 'requestNesting', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'DRAFT', to: 'READY', display: 'hidden', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'READY', intent: 'completeNestingProduction', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'ERROR', intent: 'nestingSolveFailed', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'READY', to: 'CLOSED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'NESTING', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'DRAFT', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'READY', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'CLOSED', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'DRAFT', access: { system: true, permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'READY', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'CLOSED', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'ARCHIVED', to: 'DRAFT', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'DRAFT', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
       { from: 'NESTING', to: 'NESTING', access: { system: true } },
-      { from: 'READY', to: 'READY', access: { permissions: [{ feature: 'queues', level: 'write' }] } }
+      { from: 'READY', to: 'READY', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
+      { from: 'ERROR', to: 'ERROR', access: { system: true } },
+      { from: 'ARCHIVED', to: 'ARCHIVED', access: { permissions: [{ feature: 'queues', level: 'write' }] } }
     ]
   },
   nesting_run: {
     initial: 'NESTING',
     states: { NESTING: { canUpdateMeta: true }, COMPLETE: { canUpdateMeta: true }, ERROR: { isTerminal: true, canUpdateMeta: true }, CHOSEN: { isTerminal: true, canUpdateMeta: false }, REJECTED: { isTerminal: true, canUpdateMeta: false } },
     transitions: [
-      { from: 'NESTING', to: 'COMPLETE', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'NESTING', to: 'ERROR', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'COMPLETE', to: 'CHOSEN', access: { permissions: [{ feature: 'nesting_runs', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }, { handler: 'createPhysicalUnits' }] },
-      { from: 'COMPLETE', to: 'REJECTED', display: 'menu', access: { permissions: [{ feature: 'nesting_runs', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'CHOSEN', to: 'COMPLETE', access: { permissions: [{ feature: 'nesting_runs', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'COMPLETE', intent: 'nestingSolveCompleted', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'ERROR', intent: 'nestingSolveFailed', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'COMPLETE', to: 'CHOSEN', intent: 'acceptNestingRun', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'preflightChosenNestingRun', phase: 'before' }, { handler: 'applyChosenNestingRun', mode: 'sync' }, { handler: 'triggerAggregator' }] },
+      { from: 'COMPLETE', to: 'REJECTED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'CHOSEN', to: 'COMPLETE', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'NESTING', access: { system: true } },
-      { from: 'COMPLETE', to: 'COMPLETE', access: { permissions: [{ feature: 'nesting_runs', level: 'write' }] } },
+      { from: 'COMPLETE', to: 'COMPLETE', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
       { from: 'ERROR', to: 'ERROR', access: { system: true } }
     ]
   },
@@ -60,14 +81,75 @@ export const cncWorkflows = {
       { from: 'IN-CUTTING', to: 'SCRAP', display: 'menu', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
     ]
   },
-  cassette_instance: {
-    initial: 'PRODUCED',
+  material_pile: {
+    initial: 'STOCKED',
     states: {
+      STOCKED: { canUpdateMeta: true },
+      DEPLETED: { canUpdateMeta: true, isTerminal: true }
+    },
+    transitions: [
+      { from: 'STOCKED', to: 'DEPLETED', access: { system: true } },
+      { from: 'STOCKED', to: 'STOCKED', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
+      { from: 'DEPLETED', to: 'DEPLETED', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
+    ]
+  },
+  geometry_capture: {
+    initial: 'DRAFT',
+    states: {
+      DRAFT: { canUpdateMeta: true },
+      PROCESSING: { canUpdateMeta: true },
+      READY: { canUpdateMeta: true },
+      COMPLETE: { isTerminal: true, canUpdateMeta: true },
+      FAILED: { canUpdateMeta: true }
+    },
+    transitions: [
+      { from: 'DRAFT', to: 'PROCESSING', intent: 'queueExtraction', access: { system: true } },
+      { from: 'READY', to: 'PROCESSING', intent: 'queueExtraction', access: { system: true } },
+      { from: 'FAILED', to: 'PROCESSING', intent: 'queueExtraction', access: { system: true } },
+      { from: 'PROCESSING', to: 'READY', intent: 'extractionReady', access: { system: true } },
+      { from: 'PROCESSING', to: 'FAILED', intent: 'extractionFailed', access: { system: true } },
+      { from: 'READY', to: 'READY', intent: 'extractionReady', access: { system: true } },
+      { from: 'READY', to: 'READY', intent: 'activateRevision', access: { system: true } },
+      { from: 'READY', to: 'COMPLETE', intent: 'confirmGeometry', access: { system: true } },
+      { from: 'READY', to: 'DRAFT', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
+      { from: 'DRAFT', to: 'DRAFT', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
+      { from: 'READY', to: 'READY', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
+    ]
+  },
+  remnant: {
+    initial: 'AVAILABLE',
+    states: {
+      AVAILABLE: { canUpdateMeta: true },
+      USED: { canUpdateMeta: true, isTerminal: true }
+    },
+    transitions: [
+      { from: 'AVAILABLE', to: 'USED', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
+      { from: 'AVAILABLE', to: 'AVAILABLE', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
+      { from: 'USED', to: 'USED', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
+    ]
+  },
+  process_definition: {
+    initial: 'DRAFT',
+    states: {
+      DRAFT: { canUpdateMeta: true },
+      ACTIVE: { canUpdateMeta: true },
+      ARCHIVED: { isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: [
+      { from: 'DRAFT', to: 'ACTIVE', intent: 'activateProcessDefinition', access: { permissions: [{ feature: 'organizations', level: 'admin' }] } },
+      { from: 'ACTIVE', to: 'ARCHIVED', intent: 'archiveProcessDefinition', access: { permissions: [{ feature: 'organizations', level: 'admin' }] } }
+    ]
+  },
+  cassette_instance: {
+    initial: 'CUT',
+    states: {
+      CUT: { canUpdateLifecycle: true, lifecycle: { actors: ['engineering', 'operator', 'mounting'], attachments: { geometry: { multiple: false }, photos: { multiple: true } }, data: true } },
       PRODUCED: { canUpdateLifecycle: true, lifecycle: { actors: ['engineering', 'operator', 'mounting'], attachments: { geometry: { multiple: false }, photos: { multiple: true } }, data: true } },
       MILLED: { canUpdateLifecycle: true, lifecycle: { actors: ['engineering', 'operator', 'mounting'], attachments: { geometry: { multiple: false }, photos: { multiple: true } }, data: true } },
       INSTALLED: { canUpdateLifecycle: true, lifecycle: { actors: ['mounting'], attachments: { geometry: { multiple: false }, photos: { multiple: true } }, data: true } }
     },
     transitions: [
+      { from: 'CUT', to: 'MILLED', access: { permissions: [{ feature: 'projects', level: 'write' }], capabilities: ['operator'] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'PRODUCED', to: 'MILLED', access: { permissions: [{ feature: 'projects', level: 'write' }], capabilities: ['operator'] }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'MILLED', to: 'INSTALLED', access: { permissions: [{ feature: 'projects', level: 'write' }], capabilities: ['mounting'] }, hooks: [{ handler: 'triggerAggregator' }] }
     ]
@@ -84,3 +166,6 @@ export const cncWorkflows = {
   }
 };
 
+export const cncWorkflows = Object.fromEntries(
+  Object.entries(workflowDefinitions).map(([entityType, workflow]) => [entityType, mainWorkflow(workflow)])
+);

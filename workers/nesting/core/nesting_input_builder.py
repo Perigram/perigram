@@ -28,15 +28,33 @@ def build_item(id, demand, points):
         }
     }
     
+def normalize_bin_polygon(polygon):
+    if not polygon:
+        return None
+    if isinstance(polygon, dict):
+        outer = polygon.get('outer')
+        if not outer:
+            return None
+        return {
+            'outer': outer,
+            'inner': polygon.get('inner') or []
+        }
+    return {
+        'outer': polygon,
+        'inner': []
+    }
+
 def build_bin(stock, width, height, polygon=None):
+    normalized_polygon = normalize_bin_polygon(polygon)
     shape_data = {
-        'outer': polygon if polygon else [
+        'outer': normalized_polygon['outer'] if normalized_polygon else [
             [0.0, 0.0],
             [width, 0.0],
             [width, height],
             [0.0, height],
             [0.0, 0.0]
-        ]
+        ],
+        'inner': normalized_polygon['inner'] if normalized_polygon else []
     }
     return {
         'id': 0,

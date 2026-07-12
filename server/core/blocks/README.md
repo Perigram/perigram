@@ -2,13 +2,14 @@
 
 Canonical class library for all v24 entities. Every feature model extends `BaseEntity` and composes these blocks.
 
-Implementation source is `@cutkit/core`; this directory is the application
-compatibility import path and owns server-specific helpers such as ObjectId
-attachment creation and flexible-ID lineage inheritance.
+Implementation source is `@cutkit/core` through the `#packages/core/src/index.js`
+package import alias; this directory is the application compatibility import
+path and owns server-specific helpers such as ObjectId attachment creation and
+flexible-ID lineage inheritance.
 
 **Import path (always use this, not `server/utils/blocks.js`):**
 ```js
-import { BaseEntity, Identity, Status, Lineage, Specs, registerEntityService, getService,
+import { BaseEntity, Identity, Status, Lineage, Specs,
          createIdentity, createStatus, createSpecs, createData, inheritLineage, createAttachment
        } from '~/server/core/blocks/index.js';
 ```
@@ -47,12 +48,27 @@ Status { state, userId, timestamp, metadata, eventId, lifecycle }
 
 | Field | Type | Purpose |
 |---|---|---|
-| `state` | string | Machine state key (e.g. `'OPEN'`, `'PROCESSING'`) |
+| `state` | object | v2 machine state snapshot with `primary`, `active`, and `regions` |
 | `userId` | string | OAuth user ID who caused transition; `'SYSTEM'` for automated |
 | `timestamp` | Date | When this status was recorded |
 | `metadata` | object | Event-local transition context (notes, reason codes, job/request ids) |
 | `eventId` | ObjectId \| null | Reference to `status_events` collection entry |
 | `lifecycle` | object | Current mutable facts owned by this lifecycle state |
+
+`state` always serializes as a v2 object:
+
+```js
+{
+  schemaVersion: 2,
+  primary: 'READY',
+  active: { main: 'READY' },
+  regions: { main: { state: 'READY', path: ['READY'] } }
+}
+```
+
+Use `getPrimaryState(status)` and `getRegionState(status, regionId)` for reads;
+do not compare `status.state` directly to a string. Mongo filters use
+`status.state.primary` for the primary lifecycle.
 
 `lifecycle` always serializes as `{ actors: [], attachments: {}, data: {} }`. Use it for current lifecycle facts such as assigned actors, state-specific attachment refs, and measured/captured state data. Do not use `metadata` for durable facts that must be queried, diffed, or updated independently.
 
@@ -61,7 +77,7 @@ or lineage. The frontend status surface supports typed location values such as
 `{ type: 'warehouse', warehouseId }`, `{ type: 'coordinates', coordinates: { x, y, z } }`,
 and `{ type: 'address', address }`.
 
-**Usage:** Created with `createStatus(state, userId, metadata, eventId, lifecycle)` or via `BaseEntity.applyStatus()`.
+**Usage:** Created with `createStatus(state, userId, metadata, eventId, lifecycle)` or via `BaseEntity.applyStatus()`. String input is normalized to the v2 object shape at construction boundaries.
 
 ---
 
@@ -141,9 +157,9 @@ const registry = getAppRegistry();
 registry.getEntityService('project');
 ```
 
-Entity, workflow, command, task, hook, and attachment-kind contracts are
-re-exported from `@cutkit/core`; server command/task runtimes consume them after
-access checks.
+Entity, workflow, command, task, hook, and attachment-kind contracts are defined
+through a `createRegistry()` instance from `@cutkit/core`; server command/task
+runtimes consume those registry definitions after access checks.
 
 ---
 

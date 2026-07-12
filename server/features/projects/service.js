@@ -5,7 +5,7 @@ import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
 import { createStatus } from '~/server/core/blocks/index.js';
 import { Project } from './model.js';
-import { statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 
@@ -15,10 +15,11 @@ import { toFlexibleId } from '../../utils/objectid.js';
 
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
-  if (userRole !== 'SuperAdmin' && !userOrg) {
+  const organizationId = data.organizationId || userOrg;
+  if (!organizationId) {
     throw createError({ 
       statusCode: 400, 
-      message: `Organization context required (Role: ${userRole})` 
+      message: 'Organization context required'
     });
   }
 
@@ -28,7 +29,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const project = new Project({
     identity: { uid, name },
     lineage: { 
-      organizationId: userRole === 'SuperAdmin' && data.organizationId ? toFlexibleId(data.organizationId) : toFlexibleId(userOrg)
+      organizationId: toFlexibleId(organizationId)
     },
     data: {
       name,
@@ -37,7 +38,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   });
   
   // Verify permissions
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, project.lineage, 'projects', 'write')) {
+  if (!hasLineagePermission(userPermissions, project, 'projects', 'write', { action: 'create' })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -47,10 +48,23 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   return new Project(createdRaw);
 }
 
-export async function list(userId, userOrg, userRole, userPermissions) {
-  const filter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+export async function list(userId, userOrg, userRole, userPermissions, query = {}) {
+  const filter = {
+    ...getLineageFilter(userPermissions)
+  };
+  const primaryStatuses = normalizePrimaryStatuses(query.primaryStatuses);
+  if (primaryStatuses.length) filter['status.state.primary'] = { $in: primaryStatuses };
+  else if (query.status || query.primaryStatus) filter['status.state.primary'] = query.status || query.primaryStatus;
   const raws = await repository.find(filter);
-  return raws.map(raw => new Project(raw));
+  return raws
+    .map(raw => new Project(raw))
+    .filter(project => hasLineagePermission(userPermissions, project, 'projects', 'read'));
+}
+
+function normalizePrimaryStatuses(value) {
+  if (Array.isArray(value)) return value.flatMap(normalizePrimaryStatuses);
+  if (typeof value !== 'string') return [];
+  return value.split(',').map(item => item.trim()).filter(Boolean);
 }
 
 export async function getById(uid) {
@@ -65,7 +79,7 @@ export async function getBySlug(uid, userId, userOrg, userRole, userPermissions)
     throw createError({ statusCode: 404, message: 'Project not found' });
   }
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, project.lineage, 'projects', 'read')) {
+  if (!hasLineagePermission(userPermissions, project, 'projects', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -76,7 +90,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   const project = await getBySlug(uid, userId, userOrg, userRole, userPermissions);
   
   if (updates.status) {
-    await statusService.transition('project', project._id, updates.status, userId, userRole, updates.statusMeta || {});
+    await statusService.transition('project', project._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
     return await getById(uid);
   }
 
@@ -97,7 +111,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
     const project = await getBySlug(uid, userId, userOrg, userRole, userPermissions);
-    if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, project.lineage, 'projects', 'admin')) {
+    if (!hasLineagePermission(userPermissions, project, 'projects', 'admin')) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
     }
     return await repository.deleteById(uid);

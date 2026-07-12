@@ -1,28 +1,16 @@
 export const PERMISSION_TEMPLATES = {
-  SuperAdmin: {
-    projects: 'admin',
-    queues: 'admin',
-    nesting_runs: 'admin',
-    artifacts: 'admin',
-    cassettes: 'admin',
-    warehouses: 'admin',
-    catalogs: 'admin',
-    requisitions: 'admin',
-    materials: 'admin',
-    users: 'admin',
-    organizations: 'admin'
-  },
-
   ManufacturerAdmin: {
     projects: 'none',
-    queues: 'none',
+    queues: { level: 'read', actions: { view: true, edit: false } },
     nesting_runs: 'none',
     artifacts: 'none',
     cassettes: 'none',
     warehouses: 'admin',
     catalogs: 'admin',
-    requisitions: 'admin',
-    materials: 'admin',
+    requisitions: {
+      level: 'admin',
+      actions: { create: false, edit: false, delete: false, view: true, approve: true, reject: true, fulfill: true }
+    },
     users: 'admin',
     organizations: 'write'
   },
@@ -34,9 +22,8 @@ export const PERMISSION_TEMPLATES = {
     artifacts: 'admin',
     cassettes: 'admin',
     warehouses: 'admin',
-    catalogs: 'read',
+    catalogs: { level: 'read', actions: { view: true, view_all: true, create: false, edit: false, delete: false } },
     requisitions: 'admin',
-    materials: 'admin',
     users: 'admin',
     organizations: 'write'
   },
@@ -50,7 +37,6 @@ export const PERMISSION_TEMPLATES = {
     warehouses: 'none',
     catalogs: 'none',
     requisitions: 'read',
-    materials: 'read',
     users: 'admin',
     organizations: 'write'
   },
@@ -64,8 +50,19 @@ export const PERMISSION_TEMPLATES = {
     warehouses: 'none',
     catalogs: 'none',
     requisitions: 'none',
-    materials: 'none',
     users: 'none',
     organizations: 'write'
   }
 };
+
+export function materializeRolePermissions(role, permissions = {}) {
+  const template = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES.IndividualUser || {};
+  return {
+    ...clonePermissions(template),
+    ...clonePermissions(permissions)
+  };
+}
+
+export function clonePermissions(permissions = {}) {
+  return JSON.parse(JSON.stringify(permissions || {}));
+}

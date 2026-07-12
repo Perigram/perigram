@@ -10,11 +10,19 @@ import DxfParser from 'dxf-parser';
  */
 export function buildLayerPenMap(mapping = {}, standards = [], pens = []) {
     const result = {};
-    for (const [layerName, standardCode] of Object.entries(mapping)) {
-        if (!standardCode) continue;
-        const standard = standards.find(s => s.code === standardCode);
+    const codeForStandard = (standard) => standard?.data?.code || standard?.code || null;
+    const standardPenId = (standard) => (
+        standard?.data?.orgPenId ||
+        standard?.orgPenId ||
+        standard?.data?.defaultPenId ||
+        standard?.defaultPenId ||
+        null
+    );
+    for (const [layerName, targetCode] of Object.entries(mapping)) {
+        if (!targetCode) continue;
+        const standard = standards.find(s => codeForStandard(s) === targetCode);
         if (!standard) continue;
-        const penId = standard.orgPenId || standard.defaultPenId;
+        const penId = standardPenId(standard);
         if (!penId) continue;
         const pen = pens.find(p => p._id?.toString() === penId.toString());
         if (pen) result[layerName] = pen;
@@ -136,28 +144,47 @@ export async function generateSvgData(source, layerMapping = {}, defaultPen = nu
       if (pattern === 'DOTTED') return '1,3';
       return 'none';
     };
+
+    const penStroke = (pen) => pen?.data?.stroke || pen?.stroke || {};
     
+    const pointPair = (entity) => {
+      const start = entity.startPoint || entity.vertices?.[0];
+      const end = entity.endPoint || entity.vertices?.[1];
+      return start && end ? [start, end] : null;
+    };
+
+    const pointPath = (points = [], close = false) => {
+      const valid = points.filter(point => point && point.x !== undefined && point.y !== undefined);
+      if (!valid.length) return null;
+      const commands = valid.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${-point.y}`);
+      if (close) commands.push('Z');
+      return commands.join(' ');
+    };
+
     dxf.entities.forEach(entity => {
       if (!layers[entity.layer]) {
         const pen = layerMapping[entity.layer] || defaultPenSettings;
+        const stroke = penStroke(pen);
         layers[entity.layer] = {
           name: entity.layer,
-          color: pen.stroke?.color || 'currentColor',
-          weight: pen.stroke?.weight || 0.5,
-          dasharray: getStrokeDasharray(pen.stroke?.pattern || 'SOLID'),
+          color: stroke.color || 'currentColor',
+          weight: stroke.weight || 0.5,
+          dasharray: getStrokeDasharray(stroke.pattern || 'SOLID'),
           paths: []
         };
       }
       
       const layer = layers[entity.layer];
       
-      if (entity.type === 'LINE' && entity.startPoint && entity.endPoint) {
-        layer.paths.push(`<line x1="${entity.startPoint.x}" y1="${-entity.startPoint.y}" x2="${entity.endPoint.x}" y2="${-entity.endPoint.y}" />`);
+      if (entity.type === 'LINE') {
+        const pair = pointPair(entity);
+        const path = pair ? pointPath(pair) : null;
+        if (path) layer.paths.push(path);
       } else if ((entity.type === 'LWPOLYLINE' || entity.type === 'POLYLINE') && entity.vertices) {
-        const points = entity.vertices.map(v => `${v.x},${-v.y}`).join(' ');
-        layer.paths.push(`<polyline points="${points}" fill="none" />`);
+        const path = pointPath(entity.vertices, entity.closed || entity.shape);
+        if (path) layer.paths.push(path);
       } else if (entity.type === 'CIRCLE' && entity.center && entity.radius) {
-        layer.paths.push(`<circle cx="${entity.center.x}" cy="${-entity.center.y}" r="${entity.radius}" fill="none" />`);
+        layer.paths.push(`M ${entity.center.x + entity.radius} ${-entity.center.y} A ${entity.radius} ${entity.radius} 0 1 0 ${entity.center.x - entity.radius} ${-entity.center.y} A ${entity.radius} ${entity.radius} 0 1 0 ${entity.center.x + entity.radius} ${-entity.center.y}`);
       } else if (entity.type === 'ARC' && entity.center && entity.radius) {
         const startAngle = entity.startAngle * Math.PI / 180;
         const endAngle = entity.endAngle * Math.PI / 180;
@@ -167,7 +194,7 @@ export async function generateSvgData(source, layerMapping = {}, defaultPen = nu
         const y2 = entity.center.y + entity.radius * Math.sin(endAngle);
         const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
         const sweep = endAngle > startAngle ? 0 : 1; // DXF angles are CCW
-        layer.paths.push(`<path d="M ${x1} ${-y1} A ${entity.radius} ${entity.radius} 0 ${largeArc} ${sweep} ${x2} ${-y2}" fill="none" />`);
+        layer.paths.push(`M ${x1} ${-y1} A ${entity.radius} ${entity.radius} 0 ${largeArc} ${sweep} ${x2} ${-y2}`);
       }
     });
     

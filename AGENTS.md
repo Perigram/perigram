@@ -1,192 +1,113 @@
 # AGENTS.md
 
-In this project, coding agents work in strict documentation-first mode and follow some mandatory rules. Following rules must be internalized and followed strictly by all coding agents working on this project, so if you are an AI agent, read and understand them fully before proceeding.
+Coding agents in this repository work in strict documentation-first mode. This
+file is the operating protocol; project architecture details live in README.md
+files and must not be duplicated here.
 
-README.md documentation files are created at different places in the project and contain information about the code in that directory. It's purpose is to help humans and AI agents understand, maintain, and extend the codebase without need for deep code analysis, guesses, grepping, etc. On other hand, documentation should not overwhelm with unnecessary details or duplicate self-evident information.
+## Mandatory First Reads
 
----
+Before changing files, read:
 
-# Engineering Execution Guidelines
+1. `README.md`
+2. The nearest relevant component README for the area being changed
+3. Related READMEs linked from those docs
 
-These behavioral rules apply to all coding, review, and refactoring tasks.
+Use these source-of-truth docs for technical rules:
 
-## Think Before Coding
-- State assumptions explicitly. If the task is ambiguous or multiple interpretations exist, surface the ambiguity before choosing an approach.
-- If a simpler solution exists, mention it and prefer it unless the task requires more.
-- If required context is missing and a reasonable assumption would be risky, ask for clarification.
+| Area | Source of truth |
+|---|---|
+| System overview | `README.md` |
+| Backend architecture | `server/README.md` |
+| Backend feature Golden Path | `server/features/_template/README.md` |
+| API routes | `server/api/README.md` |
+| Workflow/status engine | `server/core/machines/README.md` |
+| Frontend components and design system | `components/README.md`, `components/shared/README.md` |
+| Frontend entity data flow | `composables/README.md` |
+| Scripts and validation | `scripts/README.md` |
+| External agent write scope | `.agents/README.md`, `.agents/app-layer.allowlist` |
 
-## Simplicity First
-- Implement the minimum code needed to solve the requested problem.
-- Do not add speculative features, abstractions, configurability, or error handling for impossible scenarios.
-- If an implementation becomes large or indirect, simplify it before continuing.
+If a required README is missing, stale, or contradicts code, update the README
+first or in the same task before relying on implementation details.
 
-## Surgical Changes
-- Change only lines that directly support the requested task.
-- Do not refactor, reformat, improve adjacent code, or remove unrelated dead code unless explicitly asked.
-- Match existing project style and conventions, even when another style might be preferable.
-- Remove only imports, variables, functions, or files made unused by the current change.
+## Execution Rules
 
-## Goal-Driven Execution
-- Convert tasks into verifiable success criteria before implementation.
-- For bug fixes, prefer reproducing the issue with a focused test or check before fixing it.
-- For validation or behavior changes, verify the expected success and failure paths.
-- Continue until the task is implemented, documented, and verified, or clearly report the blocker.
+- Start each coding-agent session in its own git worktree created from the
+  primary `local` checkout before changing files. Use a dedicated session
+  branch, such as `agent/<task-slug>-<timestamp>`, so multiple agents never
+  share one working tree or branch.
+- Treat the primary checkout on `local` as the integration tree. Keep session
+  changes inside the agent worktree until they are committed, then merge the
+  session branch back into `local` from the primary checkout. If the merge is
+  not clean, stop and report the conflicted files instead of resolving unrelated
+  work opportunistically.
+- Remove the session worktree after its branch has been merged, unless the user
+  asks to keep it for inspection.
+- State risky assumptions before making changes.
+- Prefer the smallest implementation that satisfies the task.
+- Change only files directly required by the task.
+- Follow existing project structures, helpers, names, and conventions.
+- Do not add speculative abstractions, features, or future-proofing.
+- Do not refactor unrelated code.
+- Do not add compatibility bridges, legacy fallbacks, dual-read paths, or
+  adapter shims when changing data structures, permissions, routes, APIs, or
+  process protocols. Replace the old contract and migrate existing data in the
+  same task.
+- Do not revert or overwrite unrelated user/agent changes.
+- Do not run `npm run build` or start dev servers unless explicitly asked.
+- Continue until the task is implemented, documented, validated, and committed,
+  or clearly report the blocker.
+- When a user asks to implement a plan, execute the whole accepted plan. Do not
+  intentionally ship a partial plan slice unless the user explicitly narrows
+  scope or an external blocker makes completion impossible; report any blocker
+  before committing partial work.
 
----
+## Documentation Rules
 
-# Documentation Workflow 
-C4 levels are used internally to interpret the scope and detail of README.md documentation files.
+- Every implementation change must update relevant README.md documentation in
+  the same task session.
+- Documentation should explain real architecture, flows, contracts, and unusual
+  decisions. Avoid placeholders, guesses, and obvious file listings.
+- Keep AGENTS.md as protocol only. Move backend/frontend/domain-specific rules
+  to the relevant README source of truth.
+- Do not create or fill `TODO.org` Agent Notes only to satisfy process. Update
+  `TODO.org` only when the task itself changes tracked work, status, or plans
+  that belong there.
 
-## When to Use Each Level
+## Validation Rules
 
-### SYSTEM Level (always)
-- **Location:** Project root
-- **Use:** Every project has one SYSTEM level README.md
-- **Purpose:** Project overview, tech stack and conventions, containers/components list, critical project-wide workflows and data flows
+- Run focused validation for the touched area whenever practical.
+- Backend architecture changes are incomplete until `node scripts/check-arch.js`
+  passes.
+- Framework/package contract changes should run `npm run framework:validate`
+  when practical.
+- External top-layer/app-composition agents must run
+  `npm run agent:scope-check -- --base origin/local` before committing or
+  pushing.
+- Report any validation that could not be run.
 
-### CONTAINER Level (optional)
-- **Location:** Separately deployable unit directories (api/, worker/, frontend/)
-- **Use ONLY when:**
-  - Multiple separately deployable units (microservices)
-  - Each unit runs independently
-  - Example: API server, worker service, frontend app
-- **Skip when:**
-  - Single deployable application
-  - Just source code directories (src/)
+## Commit Rules
 
-### COMPONENT Level (always)
-- **Location:** Functional unit directories (src/auth/, api/users/)
-- **Use:** For every functional component
-- **Purpose:** Detailed architecture + implementation helping understand, maintain and extend the component
+Committing is mandatory for completed work.
 
-### CODE Level (optional)
-- **Location:** Sub-component directories (src/auth/utils/)
-- **Use ONLY when:**
-  - Sub-component has 3+ files
-  - Complex logic needs documentation
-- **Skip when:**
-  - Simple utilities
-  - Self-explanatory code
+1. Commit task work on the session branch inside the agent worktree. Do not
+   commit directly to `main` or to the primary `local` checkout.
+2. Inspect `git status --short` before staging.
+3. Stage only files that belong to the completed task.
+4. Commit implementation changes first with a normal conventional prefix such
+   as `feat:`, `fix:`, `refactor:`, or `test:`.
+5. Commit documentation separately. Any README.md, TODO.org, or TODO.org_archive
+   changes must be in a separate commit whose message starts with `neo:`.
+6. If a task has both code and docs, the final state must include both commits.
+7. Do not leave completed work uncommitted because the worktree was already
+   dirty. Instead, inspect the dirty set, separate unrelated changes, and commit
+   only the task-owned files.
+8. If unrelated dirty files make safe staging impossible, stop and report the
+   exact files and reason.
+9. After committing in the session worktree, merge the session branch back into
+   `local` from the primary checkout and report both the session commit hash and
+   the merge result.
+10. Do not rewrite history, amend old commits, revert commits, or use destructive
+   git commands unless explicitly instructed.
 
-## Document Component Guide (read when creating or modifying README.md)
-
-README.md file should contain accurate, concise information about the code in that directory. It's purpose is to help humans and AI agents understand, maintain, and extend the codebase, not to overwhelm with unnecessary details or to duplicate self-evident information.
-
-### Step 1: Determine C4 Level
-
-**Quick check:**
-- Root directory → SYSTEM
-- Separately deployable (api/, worker/) → CONTAINER (optional)
-- Functional component (src/auth/) → COMPONENT (most common)
-- Sub-component (src/auth/utils/) → CODE (optional, if 3+ files)
-
-### Step 2: Identify Scope
-
-Depending on level and system architecture, determine:
-- Core files
-- Tech stack
-- Entry points
-- Dependencies
-- Key functions/classes
-- Data structures
-- Data flows
-- Patterns and conventions
-- Workflows
-
-### Step 3: Create README.md
-
-Read actual folders and code files in the directory.
-Write information extracted from code, that would help understand, maintain and extend it. Need only relevant info in readable understandabe format, no guesses, no obvious details, no placeholders, no self-explanatory parts such as schema/structure duplicates (but include references and links). Can use mermaid diagrams, tables, plain text, checklists, etc. Main goal is clarity and completeness.
-What to extract from code is dependending on multiple factors such as C4 level, system architecture, technology stack, coding patterns and conventions used in the project. But generally, extract fundamental information and avoid trivial details. If found something unusual or complex, document it. Remember to keep it concise and to the point, avoiding unnecessary verbosity, examples and duplicating what is already obvious from code.
-
-### Step 4: Add Cross-Links
-
-Add links to file, find and update related README.md files:
-- Parent level → add to components list
-- Related components → add to Related section
-- System workflows → add references if used
-
----
-
-## Tasks Workflow
-
-### Phase 0: Verify Docs Exist
-
-When starting a new task, first verify that README.md documentation files exist at all required levels (SYSTEM in project root and local COMPONENT where code change is needed) and contain all required information (data structures, flows, APIs, links to README files in related components) so that you don't need to guess, grep, or hallucinate anything.
-If any README.md is missing or incomplete, create or update it first using "Document Component Guide" above.
-
-### Phase 1: Context Assembly
-
-- Read relevant README.md files to assemble full context for the task - data structures, patterns, APIs, flows, technologies involved.
-- Read code parts that are directly related to the task.
-- If README.md doesn't match code, update it using "Document Component Guide" above.
-
-### Phase 2: Implement
-
-1. Complete task FULLY (no placeholders, TODOs, or "later" comments)
-2. Implement error handling and edge cases
-3. Move to WAITING status (not DONE, so reviewer can verify)
-4. Change ONLY what task requires
-5. Must not refactor unrelated code or fix unrelated bugs
-6. Follow existing structures, patterns, conventions, APIs
-7. Do not modify structures and flows without explicit task requirement
-8. Do not run npm build or dev servers
-
-### Phase 3: Documentation Synchronization
-
-1. Update README.md when changing implementation or adding/removing features (use "Document Component Guide" above)
-2. Write execution log in Agent Notes format under TODO.org task:
-    ```org
-    *** Agent Notes
-         [YYYY-MM-DD] Task description
-         Files changed: file1.js, file2.js
-         Docs updated: README.md (COMPONENT level)
-         Notes: key decisions, patterns used
-    ```
-
-### Phase 4: Commit Strategy
-
-1. Commit code changes first with message starting with "feat:", "fix:", etc. as appropriate
-2. Commit documentation separately from code (any TODO.org(_archive) or README.md should go in separate commit with "neo: ..." prefix)
-3. If project uses "local" branch, use only it. Do not commit directly to main or other branches.
-4. Do not revert commits or modify git history unless explicitly instructed.
-5. Pay attention to unstaged changes before committing - they can contain changes done by user or other agents.
-
----
-
-# Technical Constraints
-
-## Backend Pattern: v24 Golden Path
-Location: `server/features/[module]/`
-
-All features must strictly follow the directory structure and implementation rules defined in `server/features/_template/README.md`.
-
-### The Core Rules:
-1.  **Architecture Verification**: Every backend task is considered incomplete until `node scripts/check-arch.js` passes with zero errors.
-2.  **Flexible IDs**: Always use `toFlexibleId()` in Repositories to support both string UIDs and ObjectIds.
-3.  **No Raw Database in Services**: Services must never use `db.collection`. All data access must go through the Repository.
-4.  **Decoupled Hooks**: Do not add business logic to `server/core/machines/hooks.js`. Register feature hooks in the Service Layer using `registerService`.
-5.  **Standardized Blocks**: Use the classes from `server/core/blocks/` (`Identity`, `Status`, `Lineage`, `Specs`) via `BaseEntity`.
-6.  **Serialized Outputs**: Services must return results from `Model.toJSON()`.
-
-## Frontend Pattern: v24 Absolute Final
-Location: `composables/`, `components/shared/`
-
-All frontend features must strictly adhere to the standardized interaction layer.
-
-### The Core Rules:
-1.  **Unified Interaction**: Use `useEntity(type, id)` for all entity-specific data fetching, updates, and status transitions. Do NOT use manual `$fetch` calls for standard CRUD or status operations.
-2.  **Standardized Visualization**:
-    - Use `EntityStatus` for all interactive status displays and transitions.
-    - Use `StatusBadge` for atomic, read-only status display.
-    - Use `TraceChain` for all lineage and ancestry visualization.
-    - Use `StatusHistory` for audit logs and lifecycle timelines.
-3.  **Atomic Blocks**: Use `IdentityBlock` for name/slug/serial display to ensure consistent layout across the application.
-4.  **Zero Styling Policy**: Rely on PrimeVue's unstyled components and the global theme. Avoid manual CSS for colors, spacing, and typography; use semantic layout containers instead.
-5.  **Reactive Block Unwrapping**: Leverage the computed properties provided by `useEntity` (e.g., `name`, `statusColor`, `lineage`) instead of manually drilling into the `entity.value` object.
-
-## Critical Conventions
-- **User IDs:** Authenticated user IDs (`userId`) are strings (OAuth IDs), not MongoDB ObjectIds.
-- **Data Access:** No cross-module DB access (use service calls).
-- **Documentation Rule:** Every code change MUST update relevant README.md docs in the same task session.
-
+At handoff, report commit hashes, validation run, and any remaining untracked or
+unstaged files.

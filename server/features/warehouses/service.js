@@ -15,7 +15,9 @@ import { ObjectId } from 'mongodb';
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { name, organizationId, type, address, contactPerson } = data;
-  const organization = await organizationsService.getById(organizationId);
+  const targetOrganizationId = organizationId || userOrg;
+  if (!targetOrganizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
+  const organization = await organizationsService.getById(targetOrganizationId);
   if (!organization) throw createError({ statusCode: 404, message: 'Organization not found' });
 
   const warehouse = new Warehouse({
@@ -29,7 +31,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     }
   });
 
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, warehouse.lineage, 'warehouses', 'write')) {
+  if (!hasLineagePermission(userPermissions, warehouse.lineage, 'warehouses', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -46,7 +48,7 @@ export async function getById(uid) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const finalFilter = mapLineageQuery({ ...getLineageFilter({ memberships: userPermissions.memberships, role: userRole }), ...filter });
+  const finalFilter = mapLineageQuery({ ...getLineageFilter(userPermissions), ...filter });
   const raws = await repository.find(finalFilter);
   return raws.map(raw => new Warehouse(raw));
 }
@@ -56,7 +58,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   if (!raw) throw createError({ statusCode: 404, message: 'Warehouse not found' });
   const warehouse = new Warehouse(raw);
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, warehouse.lineage, 'warehouses', 'write')) {
+  if (!hasLineagePermission(userPermissions, warehouse.lineage, 'warehouses', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -71,7 +73,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   const warehouse = await getById(uid);
   if (!warehouse) throw createError({ statusCode: 404, message: 'Warehouse not found' });
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, warehouse.lineage, 'warehouses', 'admin')) {
+  if (!hasLineagePermission(userPermissions, warehouse.lineage, 'warehouses', 'admin')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   const stats = warehouse.data?.stats || {};
@@ -87,7 +89,8 @@ export async function updateInventoryCounts(uid, increments = {}) {
 
   const stats = { ...(warehouse.data?.stats || {}) };
   for (const [key, value] of Object.entries(increments)) {
-    stats[key] = (stats[key] || 0) + value;
+    const nextValue = Number(stats[key] || 0) + Number(value || 0);
+    stats[key] = Math.max(nextValue, 0);
   }
 
   await repository.updateById(uid, { data: { ...warehouse.data, stats } });

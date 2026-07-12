@@ -5,6 +5,11 @@ import { updateProjectStatistics } from "../features/nesting/statistics.js";
 
 export default defineNitroPlugin(async (nitroApp) => {
   logger.info("Nest notify plugin start");
+  const config = useRuntimeConfig();
+  if (!config.resendToken) {
+    logger.info("Nest notify plugin disabled: RESEND token is not configured");
+    return;
+  }
   
   // Run in background
   (async () => {
@@ -28,10 +33,10 @@ export default defineNitroPlugin(async (nitroApp) => {
           if (result) {
             await updateProjectStatistics(result.projectSlug, result);
             try {
-              await sendNestFinishEmail(result);
+              const sent = await sendNestFinishEmail(result);
               await db.collection('nesting_jobs').updateOne(
                 { _id: result._id },
-                { $set: { emailNotify: 'notification_sent' } }
+                { $set: { emailNotify: sent ? 'notification_sent' : 'notification_skipped' } }
               );
             } catch (error) {
               await db.collection('nesting_jobs').updateOne(

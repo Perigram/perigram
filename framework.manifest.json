@@ -28,6 +28,15 @@
       }
     },
     {
+      "bucket": "capturePhotos",
+      "key": "CAPTURE_PHOTO",
+      "kind": "CAPTURE_PHOTO",
+      "mimeType": "image/*",
+      "preview": {
+        "mode": "image"
+      }
+    },
+    {
       "bucket": "nestDxf",
       "key": "LAYOUT_DXF",
       "kind": "LAYOUT_DXF",
@@ -90,9 +99,8 @@
       "action": "solve",
       "attachments": [],
       "events": [
-        "nesting.solveStarted",
-        "nesting.solveCompleted",
-        "nesting.solveFailed"
+        "queue.nestingRequested",
+        "nesting.solveStarted"
       ],
       "id": "solveNesting",
       "inputs": [
@@ -106,10 +114,6 @@
       "permissions": [
         {
           "feature": "queues",
-          "level": "write"
-        },
-        {
-          "feature": "nesting_runs",
           "level": "write"
         }
       ],
@@ -136,8 +140,7 @@
       ],
       "id": "generateAttachment",
       "inputs": [
-        "sheet_design",
-        "nesting_run"
+        "attachments.generate"
       ],
       "label": "Generate attachment",
       "outputs": [],
@@ -154,6 +157,46 @@
           "event": "attachment.generationRequested"
         }
       ]
+    },
+    {
+      "action": "generateDraft",
+      "attachments": [],
+      "events": [
+        "configBot.draftGenerated"
+      ],
+      "id": "generateConfigBotDraft",
+      "inputs": [],
+      "label": "Generate ConfigBot draft",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "config_bot",
+          "level": "admin"
+        }
+      ],
+      "service": "configBot",
+      "tasks": [],
+      "triggers": []
+    },
+    {
+      "action": "reindexKnowledge",
+      "attachments": [],
+      "events": [
+        "configBot.knowledgeReindexed"
+      ],
+      "id": "reindexConfigBotKnowledge",
+      "inputs": [],
+      "label": "Reindex ConfigBot knowledge",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "config_bot",
+          "level": "admin"
+        }
+      ],
+      "service": "configBot",
+      "tasks": [],
+      "triggers": []
     }
   ],
   "designSystem": {
@@ -184,6 +227,7 @@
         "entityType": "queue",
         "fieldPaths": [
           "data.job.items.length",
+          "data.queueNumber",
           "summary.runCount",
           "summary.sheetCount",
           "summary.totalArea"
@@ -219,7 +263,12 @@
           "server/features/sheet-designs/README.md"
         ],
         "entityType": "sheet_design",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "specs.cuttingLength",
+          "specs.estimatedTime",
+          "summary.efficiency",
+          "summary.placedCount"
+        ],
         "group": "production",
         "key": "sheetDesign",
         "labelKey": "entities.sheetDesign",
@@ -228,7 +277,7 @@
         "trace": true
       },
       {
-        "componentPath": null,
+        "componentPath": "components/entities/Cassette/CassetteCard.vue",
         "docs": [
           "components/entities/Cassette/README.md",
           "server/features/cassettes/README.md"
@@ -249,8 +298,7 @@
         ],
         "entityType": "cassette_design",
         "fieldPaths": [
-          "data.parameters.A",
-          "data.parameters.C"
+          "data.parameters"
         ],
         "group": "production",
         "key": "cassetteDesign",
@@ -262,12 +310,11 @@
       {
         "componentPath": "components/entities/CassetteTemplate/CassetteTemplateCard.vue",
         "docs": [
+          "components/entities/CassetteTemplate/README.md",
           "server/features/cassettes/README.md"
         ],
         "entityType": "cassette_template",
-        "fieldPaths": [
-          "data.parameters.length"
-        ],
+        "fieldPaths": [],
         "group": "production",
         "key": "cassetteTemplate",
         "labelKey": "entities.cassetteTemplate",
@@ -282,8 +329,7 @@
         ],
         "entityType": "cassette_instance",
         "fieldPaths": [
-          "identity.reference",
-          "lineage.queueId"
+          "identity.reference"
         ],
         "group": "production",
         "key": "cassetteInstance",
@@ -312,11 +358,29 @@
       {
         "componentPath": null,
         "docs": [
+          "components/entities/Library/README.md",
+          "server/features/libraries/README.md"
+        ],
+        "entityType": "library",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "library",
+        "labelKey": "entities.library",
+        "propName": "library",
+        "status": "hidden",
+        "trace": true
+      },
+      {
+        "componentPath": "components/entities/Material/MaterialCard.vue",
+        "docs": [
           "components/entities/Material/README.md",
           "server/DATA_MODEL.md"
         ],
         "entityType": "material",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.code",
+          "data.description"
+        ],
         "group": "material",
         "key": "material",
         "labelKey": "entities.material",
@@ -331,12 +395,15 @@
           "server/features/material-piles/README.md"
         ],
         "entityType": "material_pile",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.stock.total",
+          "data.stock.used"
+        ],
         "group": "material",
         "key": "materialPile",
         "labelKey": "entities.materialPile",
         "propName": "pile",
-        "status": "hidden",
+        "status": "interactive",
         "trace": true
       },
       {
@@ -355,7 +422,7 @@
         "key": "batchPile",
         "labelKey": "entities.batchPile",
         "propName": "pile",
-        "status": "hidden",
+        "status": "interactive",
         "trace": true
       },
       {
@@ -364,7 +431,11 @@
           "server/features/sheets/README.md"
         ],
         "entityType": "sheet",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "specs.area",
+          "specs.length",
+          "specs.width"
+        ],
         "group": "material",
         "key": "sheet",
         "labelKey": "entities.sheet",
@@ -383,7 +454,7 @@
         "key": "remnant",
         "labelKey": "entities.remnant",
         "propName": "remnant",
-        "status": "hidden",
+        "status": "interactive",
         "trace": true
       },
       {
@@ -418,6 +489,50 @@
         "propName": "color",
         "status": "hidden",
         "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "components/entities/EntityRevision/README.md",
+          "server/features/entity-revisions/README.md"
+        ],
+        "entityType": "entity_revision",
+        "fieldPaths": [],
+        "group": "system",
+        "key": "entityRevision",
+        "labelKey": "entities.entityRevision",
+        "propName": "revision",
+        "status": "hidden",
+        "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "components/entities/GeometryCapture/README.md",
+          "server/features/geometry-captures/README.md"
+        ],
+        "entityType": "geometry_capture",
+        "fieldPaths": [],
+        "group": "production",
+        "key": "geometryCapture",
+        "labelKey": "entities.geometryCapture",
+        "propName": "capture",
+        "status": "interactive",
+        "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "server/features/profile-templates/README.md"
+        ],
+        "entityType": "profile_template",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "profileTemplate",
+        "labelKey": "entities.profileTemplate",
+        "propName": "profile",
+        "status": "hidden",
+        "trace": false
       },
       {
         "componentPath": "components/entities/Warehouse/WarehouseCard.vue",
@@ -481,7 +596,10 @@
           "server/features/layer-standards/README.md"
         ],
         "entityType": "layer_standard",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.category",
+          "data.code"
+        ],
         "group": "master",
         "key": "layerStandard",
         "labelKey": "entities.layerStandard",
@@ -530,7 +648,10 @@
           "server/features/artifacts/README.md"
         ],
         "entityType": "artifact",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "attachments.primary.name",
+          "data.type"
+        ],
         "group": "system",
         "key": "artifact",
         "labelKey": "entities.artifact",
@@ -642,6 +763,16 @@
         "key": "StatusHistory",
         "kind": "status",
         "purpose": "Status audit timeline for entity lifecycle events."
+      },
+      {
+        "componentPath": "components/shared/DrawingCanvas.vue",
+        "docs": [
+          "components/shared/README.md",
+          "utils/README.md"
+        ],
+        "key": "DrawingCanvas",
+        "kind": "block",
+        "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions."
       },
       {
         "componentPath": "components/shared/GeometryPreview.vue",
@@ -961,9 +1092,52 @@
         "attachments",
         "data"
       ],
+      "collection": "entity_revisions",
+      "lineage": {},
+      "meta": true,
+      "type": "entity_revision"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data",
+        "specs"
+      ],
+      "collection": "geometry_captures",
+      "lineage": {},
+      "type": "geometry_capture"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
       "collection": "layer_standards",
       "lineage": {},
+      "meta": true,
       "type": "layer_standard"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data",
+        "summary"
+      ],
+      "collection": "libraries",
+      "lineage": {},
+      "type": "library"
     },
     {
       "blocks": [
@@ -1013,6 +1187,7 @@
       ],
       "collection": "organizations",
       "lineage": {},
+      "meta": true,
       "type": "organization"
     },
     {
@@ -1026,7 +1201,36 @@
       ],
       "collection": "pen_templates",
       "lineage": {},
+      "meta": true,
       "type": "pen_template"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
+      "collection": "process_definitions",
+      "lineage": {},
+      "meta": true,
+      "type": "process_definition"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
+      "collection": "profile_templates",
+      "lineage": {},
+      "meta": true,
+      "type": "profile_template"
     },
     {
       "blocks": [
@@ -1120,6 +1324,7 @@
       ],
       "collection": "tool_profiles",
       "lineage": {},
+      "meta": true,
       "type": "tool_profile"
     },
     {
@@ -1133,6 +1338,7 @@
       ],
       "collection": "users",
       "lineage": {},
+      "meta": true,
       "type": "user"
     },
     {
@@ -1193,6 +1399,18 @@
     {
       "kind": "lineage",
       "source": "organization",
+      "target": "process_definition",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
+      "source": "organization",
+      "target": "profile_template",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
+      "source": "organization",
       "target": "project",
       "via": "lineage.organizationId"
     },
@@ -1204,26 +1422,32 @@
     },
     {
       "kind": "lineage",
+      "source": "organization",
+      "target": "user",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
+      "source": "organization",
+      "target": "workflow_override",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
       "source": "project",
       "target": "requisition",
       "via": "lineage.projectId"
     },
     {
       "kind": "lineage",
-      "source": "template",
-      "target": "cassette",
-      "via": "lineage.templateId"
-    },
-    {
-      "kind": "lineage",
-      "source": "template",
-      "target": "cassette_template",
-      "via": "lineage.templateId"
+      "source": "user",
+      "target": "pen_template",
+      "via": "lineage.userId"
     },
     {
       "kind": "lineage",
       "source": "user",
-      "target": "pen_template",
+      "target": "profile_template",
       "via": "lineage.userId"
     },
     {
@@ -1237,6 +1461,12 @@
       "source": "catalog",
       "target": "color",
       "via": "lineage.catalogId"
+    },
+    {
+      "kind": "summary",
+      "source": "library",
+      "target": "cassette",
+      "via": "lineage.libraryId"
     },
     {
       "kind": "summary",
@@ -1261,6 +1491,12 @@
       "source": "queue",
       "target": "sheet",
       "via": "lineage.queueId"
+    },
+    {
+      "kind": "summary",
+      "source": "queue",
+      "target": "sheet_design",
+      "via": "lineage.queueId"
     }
   ],
   "routes": [
@@ -1278,7 +1514,7 @@
     },
     {
       "collection": "queues",
-      "list": "/api/queues",
+      "list": "/api/queue",
       "single": "/api/queue/:id",
       "type": "queue"
     },
@@ -1311,6 +1547,24 @@
       "list": "/api/remnants",
       "single": "/api/remnants/:id",
       "type": "remnant"
+    },
+    {
+      "collection": "libraries",
+      "list": "/api/libraries",
+      "single": "/api/libraries/:id",
+      "type": "library"
+    },
+    {
+      "collection": "cassettes",
+      "list": "/api/cassettes",
+      "single": "/api/cassettes/:id",
+      "type": "cassette"
+    },
+    {
+      "collection": "cassettes",
+      "list": "/api/cassettes",
+      "single": "/api/cassettes/:id",
+      "type": "cassetteTemplate"
     },
     {
       "collection": "cassette-instances",
@@ -1349,10 +1603,34 @@
       "type": "color"
     },
     {
+      "collection": "entity-revisions",
+      "list": "/api/entity-revisions",
+      "single": "/api/entity-revisions/:id",
+      "type": "entityRevision"
+    },
+    {
+      "collection": "geometry-captures",
+      "list": "/api/geometry-captures",
+      "single": "/api/geometry-captures/:id",
+      "type": "geometryCapture"
+    },
+    {
+      "collection": "profile-templates",
+      "list": "/api/profile-templates",
+      "single": "/api/profile-templates/:id",
+      "type": "profileTemplate"
+    },
+    {
       "collection": "warehouses",
       "list": "/api/warehouses",
       "single": "/api/warehouses/:id",
       "type": "warehouse"
+    },
+    {
+      "collection": "layer-standards",
+      "list": "/api/layer-standards",
+      "single": "/api/layer-standards/:id",
+      "type": "layerStandard"
     },
     {
       "collection": "users",
@@ -1376,6 +1654,13 @@
   "schemaVersion": 1,
   "summaries": [
     {
+      "countField": "cassetteCount",
+      "entityType": "cassette",
+      "parentIdKey": "libraryId",
+      "parentType": "library",
+      "sumFields": {}
+    },
+    {
       "countField": "queueCount",
       "entityType": "queue",
       "parentIdKey": "projectId",
@@ -1392,6 +1677,13 @@
     {
       "countField": "runCount",
       "entityType": "nesting_run",
+      "parentIdKey": "queueId",
+      "parentType": "queue",
+      "sumFields": {}
+    },
+    {
+      "countField": "sheetDesignCount",
+      "entityType": "sheet_design",
       "parentIdKey": "queueId",
       "parentType": "queue",
       "sumFields": {}
@@ -1456,10 +1748,7 @@
       "tasks": []
     },
     {
-      "attachments": [
-        "LAYOUT_DXF",
-        "LAYOUT_SVG"
-      ],
+      "attachments": [],
       "events": [
         "nesting.solveStarted",
         "nesting.solveCompleted",
@@ -1501,13 +1790,31 @@
       },
       "id": "attachment.generate",
       "inputs": [
-        "sheet_design",
-        "nesting_run"
+        "attachments.generate"
       ],
       "key": "attachmentGenerate",
       "label": "Generate attachment",
       "outputs": [],
       "service": "artifacts",
+      "tasks": []
+    },
+    {
+      "attachments": [],
+      "events": [],
+      "executor": {
+        "type": "worker",
+        "workerType": "geometry-capture"
+      },
+      "id": "vision.extractGeometry",
+      "inputs": [
+        "geometry_capture"
+      ],
+      "key": "visionExtractGeometry",
+      "label": "Extract geometry from capture photo",
+      "outputs": [
+        "geometry_capture"
+      ],
+      "service": "geometry-captures",
       "tasks": []
     }
   ],
@@ -1518,6 +1825,9 @@
   "workflows": [
     {
       "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
       "states": [
         "DRAFT",
         "ACTIVE",
@@ -1528,18 +1838,25 @@
     },
     {
       "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
       "states": [
         "DRAFT",
         "NESTING",
         "READY",
-        "CUT",
-        "CLOSED"
+        "ERROR",
+        "CLOSED",
+        "ARCHIVED"
       ],
-      "transitionCount": 10,
+      "transitionCount": 18,
       "type": "queue"
     },
     {
       "initial": "NESTING",
+      "regions": [
+        "main"
+      ],
       "states": [
         "NESTING",
         "COMPLETE",
@@ -1552,6 +1869,9 @@
     },
     {
       "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
       "states": [
         "ACTIVE",
         "ARCHIVED"
@@ -1561,6 +1881,9 @@
     },
     {
       "initial": "AVAILABLE",
+      "regions": [
+        "main"
+      ],
       "states": [
         "AVAILABLE",
         "IN-CUTTING",
@@ -1571,17 +1894,76 @@
       "type": "sheet"
     },
     {
-      "initial": "PRODUCED",
+      "initial": "STOCKED",
+      "regions": [
+        "main"
+      ],
       "states": [
+        "STOCKED",
+        "DEPLETED"
+      ],
+      "transitionCount": 3,
+      "type": "material_pile"
+    },
+    {
+      "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "DRAFT",
+        "PROCESSING",
+        "READY",
+        "COMPLETE",
+        "FAILED"
+      ],
+      "transitionCount": 11,
+      "type": "geometry_capture"
+    },
+    {
+      "initial": "AVAILABLE",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "AVAILABLE",
+        "USED"
+      ],
+      "transitionCount": 3,
+      "type": "remnant"
+    },
+    {
+      "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "DRAFT",
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 2,
+      "type": "process_definition"
+    },
+    {
+      "initial": "CUT",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "CUT",
         "PRODUCED",
         "MILLED",
         "INSTALLED"
       ],
-      "transitionCount": 2,
+      "transitionCount": 3,
       "type": "cassette_instance"
     },
     {
       "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
       "states": [
         "DRAFT",
         "SENT",

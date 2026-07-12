@@ -16,34 +16,62 @@
             </template>
         </StateBlock>
 
-        <DataView
-            v-else
-            :value="filteredProjects"
-            layout="grid"
-            :paginator="filteredProjects.length > 12"
-            :rows="12"
-            dataKey="_id"
-            :loading="loading"
-        >
-            <template #grid="slotProps">
-                <ResponsiveGrid>
-                    <ProjectCard
-                        v-for="project in slotProps.items"
-                        :key="project._id"
-                        :project="project"
-                        variant="card"
-                        @view="navigateToProject"
-                        @edit="editProject"
-                        @delete="confirmDeleteProject"
+        <div v-else class="flex flex-col gap-6">
+            <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                    <small class="text-muted-color">{{ $t('nav.projects') }}</small>
+                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.total }}</div>
+                </div>
+                <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                    <small class="text-muted-color">{{ $t('common.active') }}</small>
+                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.active }}</div>
+                </div>
+                <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                    <small class="text-muted-color">{{ $t('project.queues') }}</small>
+                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.queues }}</div>
+                </div>
+                <div class="rounded-ui border border-content-border bg-content px-4 py-3">
+                    <small class="text-muted-color">{{ $t('project.totalArea') }}</small>
+                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.totalArea }} m²</div>
+                </div>
+            </section>
+
+            <div class="rounded-panel border border-content-border bg-subtle p-3">
+                <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
+                    <InputText
+                        v-model="searchQuery"
+                        :placeholder="$t('common.search')"
+                        class="w-full"
                     />
-                </ResponsiveGrid>
-            </template>
-        </DataView>
+                    <Select
+                        v-model="sortBy"
+                        :options="sortOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                    />
+                </div>
+            </div>
+
+            <StateBlock v-if="filteredProjects.length === 0" :message="$t('common.noResults')" icon="pi pi-search" />
+
+            <div v-else class="grid grid-cols-1 gap-4">
+                <ProjectIndexCard
+                    v-for="project in filteredProjects"
+                    :key="project._id"
+                    :project="project"
+                    :renaming="renamingProjectId === project._id"
+                    @view="navigateToProject"
+                    @rename="renameProject"
+                    @delete="confirmDeleteProject"
+                />
+            </div>
+        </div>
 
         <!-- Create/Edit Project Dialog -->
         <StandardDialog
             v-model:visible="showCreateDialog"
-            :header="editingProject ? $t('project.edit') : $t('project.create')"
+            :header="$t('project.create')"
             size="sm"
         >
             <div class="py-4">
@@ -66,29 +94,32 @@
                     @click="closeDialog"
                 />
                 <Button
-                    :label="editingProject ? $t('common.save') : $t('common.create')"
+                    :label="$t('common.create')"
                     :loading="creating"
-                    @click="editingProject ? saveProject() : createProject()"
+                    @click="createProject"
                 />
             </template>
         </StandardDialog>
+        <ConfirmDialog />
     </StandardPage>
 </template>
 
 <script setup>
     import { ref, computed, onMounted } from 'vue'
-    import DataView from 'primevue/dataview'
     import Button from 'primevue/button'
     import InputText from 'primevue/inputtext'
-    import ProjectCard from '~/components/entities/Project/ProjectCard.vue'
+    import Select from 'primevue/select'
+    import ConfirmDialog from 'primevue/confirmdialog'
+    import ProjectIndexCard from '~/components/entities/Project/ProjectIndexCard.vue'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
     import StandardPage from '~/components/shared/StandardPage.vue'
-    import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue'
     import StateBlock from '~/components/shared/StateBlock.vue'
     import { useGlobalStore } from '~/stores/global'
     import { storeToRefs } from 'pinia'
     import { useToast } from 'primevue/usetoast'
+    import { useConfirm } from 'primevue/useconfirm'
     import { useEntity } from '~/composables/useEntity'
+    import { getPrimaryState } from '~/packages/core/src/index.js'
 
     definePageMeta({
         layout: 'app',
@@ -99,18 +130,18 @@
     const router = useRouter()
     const globalStore = useGlobalStore()
     const toast = useToast()
+    const confirm = useConfirm()
     const { projectsList } = storeToRefs(globalStore)
     
-    const projects = projectsList
+    const projects = computed(() => projectsList.value.map(normalizeProjectListItem))
     const loading = ref(true)
     const searchQuery = ref('')
     const sortBy = ref('date-desc')
-    const viewMode = ref('grid')
 
     const showCreateDialog = ref(false)
     const newProjectName = ref('')
     const creating = ref(false)
-    const editingProject = ref(null)
+    const renamingProjectId = ref(null)
 
     const sortOptions = computed(() => [
         { label: t('projects.sortNewest'), value: 'date-desc' },
@@ -119,9 +150,15 @@
         { label: t('projects.sortNameZA'), value: 'name-desc' },
     ])
 
-    const viewModes = computed(() => [
-        { label: t('assets.viewModes.grid'), value: 'grid', icon: 'pi pi-th-large' },
-    ])
+    const projectStats = computed(() => {
+        const rows = projects.value || []
+        return {
+            total: rows.length,
+            active: rows.filter(project => getPrimaryState(project.status, 'UNKNOWN') === 'ACTIVE').length,
+            queues: rows.reduce((sum, project) => sum + Number(project.summary?.queueCount || 0), 0),
+            totalArea: formatNumber(rows.reduce((sum, project) => sum + Number(project.summary?.totalArea || 0), 0)),
+        }
+    })
 
     const filteredProjects = computed(() => {
         if (!projects.value) return []
@@ -164,57 +201,44 @@
     })
 
     const navigateToProject = (project) => {
-        const slug = project.identity?.slug
+        const slug = project.identity?.slug || project.identity?.uid || project._id
         router.push(`/project/${slug}`)
-    }
-
-    const editProject = (project) => {
-        editingProject.value = project
-        newProjectName.value = project.identity?.name || ''
-        showCreateDialog.value = true
     }
 
     const closeDialog = () => {
         showCreateDialog.value = false
-        editingProject.value = null
         newProjectName.value = ''
     }
 
-    const saveProject = async () => {
-        if (!newProjectName.value.trim()) return
-        creating.value = true
+    const renameProject = async (project, name, close) => {
+        if (!name.trim()) return
+        renamingProjectId.value = project._id
         try {
-            const slug = editingProject.value.identity?.slug
+            const slug = project.identity?.slug
             const { update } = useEntity('project', slug)
-            await update({ name: newProjectName.value.trim() })
+            await update({ name: name.trim() })
             await globalStore.getProjects()
-            closeDialog()
+            close?.()
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('project.updated'), life: 3000 })
         } catch (error) {
             console.error('Failed to update project:', error)
             toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 })
         } finally {
-            creating.value = false
+            renamingProjectId.value = null
         }
     }
 
     const createProject = async () => {
         creating.value = true
         try {
-            const { create, update } = useEntity('project')
-            const newProject = await create({})
-
-            if (newProjectName.value.trim()) {
-                const slug = newProject.identity?.slug
-                const { update: updateNew } = useEntity('project', slug)
-                await updateNew({ name: newProjectName.value.trim() })
-            }
+            const { create } = useEntity('project')
+            const newProject = await create({ name: newProjectName.value.trim() || undefined })
 
             showCreateDialog.value = false
             newProjectName.value = ''
 
             await globalStore.getProjects()
-            const slug = newProject.identity?.slug
+            const slug = newProject.identity?.slug || newProject.identity?.uid
             router.push(`/project/${slug}`)
         } catch (error) {
             console.error('Failed to create project:', error)
@@ -225,17 +249,50 @@
     }
 
     const confirmDeleteProject = async (project) => {
-        if (confirm(t('project.confirmDelete'))) {
-            try {
-                const slug = project.identity?.slug
-                const { remove } = useEntity('project', slug)
-                await remove()
-                await globalStore.getProjects()
-                toast.add({ severity: 'success', summary: t('common.success'), detail: t('project.deleted'), life: 3000 })
-            } catch (error) {
-                console.error('Failed to delete project:', error)
-                toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 })
+        confirm.require({
+            message: t('project.confirmDelete'),
+            header: t('common.confirmation'),
+            icon: 'pi pi-exclamation-triangle',
+            accept: async () => {
+                try {
+                    const slug = project.identity?.slug
+                    const { remove } = useEntity('project', slug)
+                    await remove()
+                    await globalStore.getProjects()
+                    toast.add({ severity: 'success', summary: t('common.success'), detail: t('project.deleted'), life: 3000 })
+                } catch (error) {
+                    console.error('Failed to delete project:', error)
+                    toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 })
+                }
             }
+        })
+    }
+
+    function normalizeProjectListItem(project = {}) {
+        const id = project._id || project.id || project.identity?.uid || project.slug || project.identity?.slug || ''
+        return {
+            ...project,
+            _id: project._id || id,
+            identity: {
+                ...(project.identity || {}),
+                uid: project.identity?.uid || id,
+                name: project.identity?.name || project.name || project.title || project.identity?.slug || project.slug || id,
+                slug: project.identity?.slug || project.slug || project.identity?.uid || id,
+            },
+            status: normalizeStatusBlock(project.status || project.state || project.currentStatus || 'UNKNOWN'),
+            data: project.data || {},
+            summary: project.summary || {},
         }
+    }
+
+    function normalizeStatusBlock(status) {
+        if (status?.state) return status;
+        if (status?.current) return { ...status, state: status.current };
+        return { state: status || 'UNKNOWN' };
+    }
+
+    function formatNumber(value) {
+        const number = Number(value || 0)
+        return Number.isInteger(number) ? number : Number(number.toFixed(2))
     }
 </script>

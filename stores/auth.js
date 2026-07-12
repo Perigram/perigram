@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { API_ROUTES } from '~/composables/apiRoutes';
 import { resolveUiPermission } from '~/shared/ui-permissions';
+import { hasPermissionGrant } from '~/shared/access-control';
+import { composeEffectiveScreens } from '~/utils/process-navigation';
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref({});
@@ -14,15 +16,23 @@ export const useAuthStore = defineStore('auth', () => {
     const organizationData = computed(() => organization.value);
     const userOrganizations = computed(() => userOrgs.value);
     const memberships = computed(() => user.value?.memberships || user.value?.data?.memberships || []);
+    const activeMembership = computed(() => {
+        const activeOrgId = user.value?.organizationId || organization.value?._id;
+        return activeOrgId
+            ? memberships.value.find(membership => membership.organizationId?.toString() === activeOrgId.toString())
+            : memberships.value[0];
+    });
+    const activePermissions = computed(() => {
+        return user.value?.effectivePermissions || activeMembership.value?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
+    });
+    const tenantPermissions = computed(() => activeMembership.value?.permissions || {});
+    const navigationManifest = computed(() => user.value?.navigation || []);
+    const screenManifest = computed(() => composeEffectiveScreens(user.value?.screens || []));
+    const actionManifest = computed(() => user.value?.roleAssignments?.actions || []);
+    const fieldPolicies = computed(() => user.value?.fieldPolicies || {});
+    const processActive = computed(() => user.value?.process?.active === true);
 
-    // Roles
-    const isSuperAdmin = computed(() => user.value?.role === 'SuperAdmin');
-    const isOrgAdmin = computed(() => ['ManufacturerAdmin', 'ContractorAdmin', 'CustomerAdmin'].includes(user.value?.role));
-    
-    // Org Types
-    const isManufacturer = computed(() => organization.value?.data?.type === 'Manufacturer' || user.value?.role?.includes('Manufacturer'));
-    const isContractor = computed(() => organization.value?.data?.type === 'Contractor' || user.value?.role?.includes('Contractor'));
-    const isCustomer = computed(() => organization.value?.data?.type === 'Customer' || user.value?.role?.includes('Customer'));
+    const canManagePlatform = computed(() => hasTenantPermission('organizations', 'admin') || hasTenantPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
 
     async function setUser(fetchOptions = {}) {
         try {
@@ -106,10 +116,24 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function fetchUserOrgs(fetchOptions = {}) {
+        if (!isUserSet.value) {
+            userOrgs.value = [];
+            return [];
+        }
+
         try {
             userOrgs.value = await $fetch('/api/auth/organizations', fetchOptions);
+            return userOrgs.value;
         } catch (err) {
+            if (err.status === 401) {
+                user.value = {};
+                organization.value = null;
+                userOrgs.value = [];
+                isUserSet.value = false;
+                return [];
+            }
             console.error('Failed to fetch user organizations:', err);
+            return [];
         }
     }
 
@@ -127,20 +151,26 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     function hasPermission(entity, level) {
-        if (!user.value?.permissions) return false;
-        const userLevel = user.value.permissions[entity] || 'none';
-        const levels = ['none', 'read', 'write', 'admin'];
-        return levels.indexOf(userLevel) >= levels.indexOf(level);
+        return hasPermissionGrant({ permissions: activePermissions.value, feature: entity, level });
+    }
+
+    function hasTenantPermission(entity, level) {
+        return hasPermission(entity, level)
+            || hasPermissionGrant({ permissions: tenantPermissions.value, feature: entity, level });
     }
 
     /**
      * Checks if the current user has permission for a specific UI action.
      * Uses the centralized UI Permission Matrix.
      */
-    function can(feature, action) {
-        // Fallback to role from user object if organization not fully loaded
-        const role = user.value?.role || 'IndividualUser';
-        return resolveUiPermission(role, feature, action);
+    function can(feature, action, context = {}) {
+        if (processActive.value && context.actionId) {
+            return actionManifest.value.some(item => item.actionId === context.actionId);
+        }
+        return resolveUiPermission(null, feature, action, {
+            ...context,
+            permissions: context.permissions || activePermissions.value
+        });
     }
 
     return {
@@ -153,17 +183,21 @@ export const useAuthStore = defineStore('auth', () => {
         organizationData,
         userOrganizations,
         memberships,
-        isSuperAdmin,
-        isOrgAdmin,
-        isManufacturer,
-        isContractor,
-        isCustomer,
+        activePermissions,
+        tenantPermissions,
+        navigationManifest,
+        screenManifest,
+        actionManifest,
+        fieldPolicies,
+        processActive,
+        canManagePlatform,
         setUser,
         fetchUserOrgs,
         login,
         register,
         logout,
         hasPermission,
+        hasTenantPermission,
         can,
         switchOrganization
     };

@@ -3,21 +3,14 @@
  */
 
 import * as repository from './repository.js';
-import { ObjectId } from 'mongodb';
 import { createIdentity, createStatus, createData } from '../../core/blocks/index.js';
 import { createError } from 'h3';
+import { ToolProfile } from './model.js';
+import { markPublicSystemData } from '#shared/public-entities.js';
 
 function toDTO(tool) {
   if (!tool) return null;
-  return {
-    _id: tool._id,
-    identity: tool.identity,
-    lineage: tool.lineage || {},
-    origin: tool.origin || null,
-    status: tool.status || null,
-    data: tool.data || {},
-    summary: tool.summary || {}
-  };
+  return new ToolProfile(tool).toJSON();
 }
 
 export async function getById(id, userId = null) {
@@ -68,7 +61,7 @@ export async function create(data, userId) {
     })
   };
 
-  const created = await repository.create(doc);
+  const created = await repository.create(userId ? doc : markPublicSystemData(doc));
   return toDTO(created);
 }
 

@@ -8,7 +8,7 @@
                 <Button :label="$t('project.createQueue')" icon="pi pi-plus" @click="$emit('add-queue', project)" />
         </template>
 
-        <div class="grid-details">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
             <!-- Main Content: Queues List -->
             <div class="lg:col-span-3 flex flex-col gap-8">
                 <div class="flex items-center gap-2">

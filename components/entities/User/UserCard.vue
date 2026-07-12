@@ -1,15 +1,24 @@
 <template>
-  <div v-if="user" :class="[`variant-${variant}`]">
-    <EntityCard :entity="user" entity-type="user" :variant="variant" @click="handleCardClick" class="cursor-pointer" :show-trace="false" :show-status="false">
+  <div v-if="user" :class="[`variant-${variant}`]" class="cursor-pointer" @click="handleCardClick">
+    <EntityCard :entity="user" entity-type="user" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
-        <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" size="xlarge" />
+        <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" :size="avatarSize" />
+      </template>
+      <template #subtitle v-if="variant !== 'card'">
+        <div class="flex flex-wrap gap-2">
+          <Tag v-if="role" :value="role" severity="secondary" size="small" />
+          <Tag v-if="organizationCount" :value="`${organizationCount} ${$t('profile.myOrganizations')}`" severity="info" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div v-if="email" class="mt-3 text-sm text-muted-color">{{ email }}</div>
       </template>
       <Divider />
-      <DataBlock :entity="user" :fields="USER_FIELDS" />
+      <DataBlock entity-type="user" :entity="user" :fields="USER_FIELDS" />
       <template #footer>
         <Divider />
         <div class="flex justify-center gap-2" @click.stop>
-          <Button v-if="authStore.can('users', 'edit')" icon="pi pi-pencil" text size="small" @click="$emit('edit', user)" />
+          <Button v-if="authStore.can('users', 'edit')" icon="pi pi-pencil" text size="small" :aria-label="$t('common.edit')" @click="$emit('edit', user)" />
         </div>
       </template>
     </EntityCard>
@@ -23,10 +32,13 @@
 import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
+import Tag from 'primevue/tag';
 import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { useAuthStore } from '~/stores/auth';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -38,13 +50,15 @@ const authStore = useAuthStore();
 
 const avatarUrl = computed(() => props.user.data?.avatarUrl || null);
 const avatarLabel = computed(() => (props.user.identity?.name || '?').charAt(0));
+const email = computed(() => props.user.data?.email || props.user.identity?.reference || '');
+const role = computed(() => props.user.data?.role || '');
+const organizationCount = computed(() => props.user.data?.memberships?.length || 0);
+const avatarSize = computed(() => props.variant === 'inline' ? 'normal' : 'xlarge');
 
-const USER_FIELDS = [
-  { path: 'data.email', i18n: 'profile.email' },
-  { path: 'identity.reference', i18n: 'common.reference' }
-];
+const USER_FIELDS = resolveEntityDisplayFields({ entityType: 'user', surface: 'card' });
 
-const handleCardClick = () => {
+const handleCardClick = (event) => {
+    if (isInteractiveEventTarget(event)) return;
     emit('view', props.user);
 };
 

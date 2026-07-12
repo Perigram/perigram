@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { onEntityChanged } from '~/utils/entity-events.js';
+
+let syncListenerAttached = false;
 
 /**
  * Universal Entity Store
@@ -22,11 +25,14 @@ export const useEntityStore = defineStore('entities', () => {
         batchPile: {},
         sheet: {},
         remnant: {},
-        cassetteTemplate: {}
+        cassetteTemplate: {},
+        library: {}
     });
 
     const loading = ref(false);
     const error = ref(null);
+
+    ensureSyncListener();
 
     /**
      * Map of how entities relate to their parents (The Ancestry Tree)
@@ -64,6 +70,7 @@ export const useEntityStore = defineStore('entities', () => {
      */
     async function fetchEntity(type, id, force = false, options = {}) {
         if (!type || !id) return null;
+        registry.value[type] ||= {};
         if (!force && registry.value[type][id]) return registry.value[type][id];
 
         loading.value = true;
@@ -76,6 +83,10 @@ export const useEntityStore = defineStore('entities', () => {
                 requisition: `/api/requisitions/${id}`,
                 batch: `/api/material-piles/${id}`,
                 cassetteInstance: `/api/cassette-instances/${id}`,
+                cassetteTemplate: `/api/cassettes/${id}`,
+                cassetteDesign: `/api/cassette-designs/${id}`,
+                sheetDesign: `/api/sheet-designs/${id}`,
+                library: `/api/libraries/${id}`,
                 // ... others as endpoints are implemented
             };
 
@@ -101,6 +112,25 @@ export const useEntityStore = defineStore('entities', () => {
     function getAncestry(type, data) {
         if (!ancestryMap[type]) return [];
         return ancestryMap[type](data).filter(ref => ref.id);
+    }
+
+    function ensureSyncListener() {
+        if (syncListenerAttached || typeof window === 'undefined') return;
+        syncListenerAttached = true;
+        onEntityChanged(({ type, id, entity, change }) => {
+            const normalizedId = id?.toString?.() || id || entity?._id?.toString?.() || entity?._id;
+            if (!type || !normalizedId) return;
+            registry.value[type] ||= {};
+            if (change === 'deleted') {
+                delete registry.value[type][normalizedId];
+                return;
+            }
+            if (entity) {
+                registry.value[type][normalizedId] = entity;
+                return;
+            }
+            delete registry.value[type][normalizedId];
+        });
     }
 
     return {

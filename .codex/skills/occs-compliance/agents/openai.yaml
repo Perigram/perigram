@@ -1,0 +1,4 @@
+interface:
+  display_name: "OCCS Compliance"
+  short_description: "OCCS specs and runtime validation workflow"
+  default_prompt: "Use $occs-compliance to update or review OCCS cassette behavior."

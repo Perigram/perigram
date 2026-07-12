@@ -20,6 +20,11 @@ Use PrimeVue semantic variables for color and component state. Use CutKit `--ck-
 
 The active visual language is a quiet operational UI: zinc-neutral surfaces, teal primary actions, compact 8-10px radii, subtle card elevation, and visible focus rings. Avoid adding decorative gradients, large ornamental backgrounds, or page-local theme colors; promote durable visual decisions to `assets/tokens/index.js`.
 
+Do not add page or panel headers, descriptions, helper bubbles, notes, tips, or
+empty-state prose unless the workflow would be ambiguous or blocked without
+them. Prefer compact controls, clear placement, icons, typed labels, and
+domain-specific data surfaces over explanatory text.
+
 The production app shell (`layouts/app.vue`), UI lab shell, and shared entity cards consume the same `--ck-*` CSS variables directly for page background, chrome background, and elevation. This makes visual changes verifiable through CSS variable updates even when Tailwind alias generation requires a dev-server restart.
 
 Allowed local hardcoded visual values are limited to real data, such as pen stroke colors, DXF layer colors, or uploaded asset metadata. Page-local decorative colors, radii, animation durations, chat/dialog dimensions, swatch sizes, and max-widths must be promoted to tokens or removed.
@@ -27,8 +32,23 @@ Allowed local hardcoded visual values are limited to real data, such as pen stro
 ## Component Contract
 
 Entity cards support `variant="inline"`, `variant="compact"`, and `variant="card"`.
+Those variants are compatibility aliases for constructor surfaces. The domain
+contract also declares `detail`, `table`, `picker`, and `workspace` surfaces for
+framework consumers. A surface selects preview mode, field groups, data display
+density, relation display, status/trace policy, and action placement.
 
 Card content is part of the contract, not filler. The title area owns identity and status, the body uses `SpecsBlock`/`DataBlock` for concise operational facts, and the footer owns actions. Prefer canonical DTO paths (`data.*`, `identity.*`, `lineage.*`, `attachments.*`, `summary.*`) and use flat aliases only as compatibility fallbacks where current services still emit them.
+Generated card surfaces may replace aggregate child-count facts when the card
+already has relation-backed child previews to show. Prefer explicit
+DTO-backed preview refs such as `summary.queuePreview`, `summary.runPreview`,
+`summary.sheetPreview`, `summary.cassettePreview`, and `summary.colorPreview`
+over sibling-screen inference. Use compact `EntityInlineRef` micro cards for
+those child previews instead of rendering `N children` rows in the card body.
+If no previewable child refs are loaded, keep the numeric count.
+Standard field groups live in `@cutkit/domain-cnc`; Vue cards consume resolved
+field descriptors through `utils/entity-display-contract.js`. Final apps may
+layer additional field groups and surface overrides, but access policy still
+controls whether a path can render.
 
 `cassette`, `cassetteTemplate`, `cassetteDesign`, and `cassetteInstance` are
 separate card contracts. `cassette` covers the base `cassettes` collection,
@@ -54,6 +74,11 @@ timestamps are part of the status timeline; when persisted events are not
 available, `StatusHistory` renders the entity's current `status`/`origin` as the
 first event. Status rows wrap deliberately in tight cards, while badges keep
 stable minimum width.
+When the target state declares lifecycle evidence requirements, `EntityStatus`
+opens a compact `StatusTransitionDialog` to collect the operator description
+and proof attachments before submitting the transition. The dialog stays
+schema-driven; relation snapshots are captured by the status API from declared
+lifecycle snapshot sources instead of reading arbitrary page state.
 
 Shared ownership:
 
@@ -64,7 +89,8 @@ Shared ownership:
 - `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, and `TableFrame` own repeated page-level layout patterns.
 - `IdentityBlock`, `EntityStatus`, `StatusBadge`, `TraceChain`, `SpecsBlock`, and `DataBlock` own v24 block visualization.
 - `StatusLocation` renders typed mutable location facts from `status.lifecycle.data.location` so cards do not hardcode warehouse ids or coordinate text as static fields.
-- `GeometryPreview` renders token-backed DXF/layer/polygon previews from `data.geometry.preview` so design cards show geometry instead of file-name fields.
+- `DrawingCanvas` owns layer-aware SVG canvas rendering for DXF/SVG previews, cassette thumbnails, mapping previews, and cassette designer interactions. Sources must normalize into its `{ viewBox, layers }` contract and provide layer standard metadata explicitly; the shared canvas does not invent production layer codes.
+- `GeometryPreview` wraps `DrawingCanvas` for token-backed DXF/layer/polygon previews from `data.geometry.preview` so design cards show geometry instead of file-name fields.
 - `TypedSettingsForm` renders simple typed contract fields for admin operation
   parameters and lifecycle hook settings; do not use raw JSON editors for those
   contracts when a field descriptor exists.

@@ -1,0 +1,86 @@
+<template>
+  <Panel>
+    <template #header>
+      <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
+        <EntityInlineRef :type="sourceType" :entity="cassette" :id="sourceId" :fetch="Boolean(cassette)" />
+        <div class="flex items-center gap-1" data-entity-card-interactive="true" @click.stop>
+          <InputNumber
+            :model-value="entry.quantity"
+            :min="1"
+            :disabled="disabled"
+            size="small"
+            class="w-16"
+            @update:model-value="value => emit('update-quantity', value)"
+          />
+          <small>{{ $t('common.units') }}</small>
+          <Button
+            icon="pi pi-trash"
+            severity="danger"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('common.delete')"
+            :disabled="disabled"
+            @click="emit('remove')"
+          />
+        </div>
+      </div>
+    </template>
+
+    <div class="flex flex-col gap-4">
+      <CassetteThumbnail
+        v-if="cassette"
+        :cassette-id="sourceId"
+        :cassette="cassette"
+        :dimensions="entry.dimensions"
+      />
+
+      <Divider />
+
+      <div v-if="parameters.length" class="grid grid-cols-2 gap-4">
+        <div v-for="param in parameters" :key="param" class="flex flex-col gap-1">
+          <small>{{ param }}</small>
+          <InputNumber
+            :model-value="entry.dimensions?.[param]"
+            :disabled="disabled"
+            size="small"
+            :min="0"
+            @update:model-value="value => emit('update-dimension', param, value)"
+          />
+        </div>
+      </div>
+      <StateBlock
+        v-else
+        :message="$t('queue.static')"
+        icon="pi pi-lock"
+      />
+    </div>
+  </Panel>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+import Panel from 'primevue/panel';
+import Button from 'primevue/button';
+import Divider from 'primevue/divider';
+import InputNumber from 'primevue/inputnumber';
+import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
+
+const props = defineProps({
+  entry: { type: Object, required: true },
+  cassette: { type: Object, default: null },
+  parameters: { type: Array, default: () => [] },
+  disabled: { type: Boolean, default: false }
+});
+
+const emit = defineEmits(['update-quantity', 'update-dimension', 'remove']);
+
+const sourceId = computed(() => props.entry.cassetteTemplateId || props.entry.id);
+const sourceType = computed(() => {
+  if (props.entry.entityType === 'cassette_design') return 'cassetteDesign';
+  if (props.entry.entityType === 'cassette') return 'cassetteTemplate';
+  return props.cassette?.data?.geometry ? 'cassetteDesign' : 'cassetteTemplate';
+});
+</script>

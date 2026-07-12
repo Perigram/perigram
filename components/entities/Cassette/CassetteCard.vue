@@ -1,16 +1,17 @@
 <template>
   <div class="h-full">
-    <EntityCard :entity="cassette" entity-type="cassette" :variant="variant" :show-trace="false">
+    <EntityCard :entity="cassette" entity-type="cassette" :variant="variant">
       <template #before-identity>
         <i class="pi pi-clone"></i>
       </template>
-      <template #subtitle>
-        <Tag v-if="cassetteType" :value="cassetteType" severity="secondary" size="small" />
-      </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
-        <GeometryPreview :entity="cassette" />
-        <DataBlock :entity="cassetteForDisplay" :fields="FIELDS" />
+        <CassetteThumbnail :cassette="cassette" />
+        <DataBlock entity-type="cassette" :entity="cassetteForDisplay" :fields="FIELDS" />
+        <div v-if="geometryRevisionId" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('revision.currentGeometry') }}</small>
+          <EntityInlineRef type="entityRevision" :id="geometryRevisionId" />
+        </div>
       </div>
     </EntityCard>
   </div>
@@ -19,29 +20,31 @@
 <script setup>
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
-import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import GeometryPreview from '~/components/shared/GeometryPreview.vue';
+import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = [
-  { path: 'data.type', i18n: 'common.type' },
-  { path: 'data.parameters.length', i18n: 'cassette.parametersTitle' }
-];
+const FIELDS = resolveEntityDisplayFields({ entityType: 'cassette', surface: 'card' })
+  .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 
 const props = defineProps({
   cassette: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
 
-const cassetteType = computed(() => props.cassette.data?.type || '');
+const definition = computed(() => props.cassette.data?.definition || {});
+const parameterNames = computed(() => {
+  const raw = props.cassette.data?.parameters || definition.value.parameters || [];
+  return Array.isArray(raw) ? raw : Object.keys(raw);
+});
+const geometryRevisionId = computed(() => props.cassette.data?.revisions?.geometry?.currentId || null);
 const cassetteForDisplay = computed(() => ({
   ...props.cassette,
   data: {
     ...(props.cassette.data || {}),
-    parameters: Array.isArray(props.cassette.data?.parameters)
-      ? props.cassette.data.parameters
-      : Object.keys(props.cassette.data?.parameters || {})
+    parameters: parameterNames.value
   }
 }));
 </script>

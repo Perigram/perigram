@@ -1,7 +1,7 @@
 <template>
-    <EntityPage :entity="requisition" entity-type="requisition" :status-actions="statusActions">
+    <EntityPage :entity="requisition" entity-type="requisition">
 
-        <div class="grid-details">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
             <div class="lg:col-span-3 flex flex-col gap-8">
                 <!-- Items List -->
                 <div class="flex flex-col gap-4">
@@ -11,7 +11,7 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Panel v-for="(item, idx) in requisition.items" :key="idx" class="card-interactive">
+                        <Panel v-for="(item, idx) in requisition.items" :key="idx">
                             <template #header>
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-2">
@@ -22,7 +22,7 @@
                                 </div>
                             </template>
                             <Divider />
-                            <SpecsBlock :entity="item" />
+                            <SpecsBlock entity-type="requisition" :entity="item" :access-entity="requisition" />
                             <Divider />
                             <div class="flex justify-between items-center">
                                 <div class="flex flex-col">
@@ -54,9 +54,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useAuthStore } from '~/stores/auth';
 import Panel from 'primevue/panel';
 import Fieldset from 'primevue/fieldset';
 import Divider from 'primevue/divider';
@@ -64,41 +61,10 @@ import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
 
-const props = defineProps({
+defineProps({
     requisition: {
         type: Object,
         required: true
     }
-});
-
-const emit = defineEmits(['send', 'approve', 'reject', 'start-fulfillment', 'fulfill']);
-
-const authStore = useAuthStore();
-const { t } = useI18n();
-const requisitionState = computed(() => props.requisition.status?.state || 'UNKNOWN');
-
-const statusActions = computed(() => {
-    const actions = [];
-    const id = props.requisition._id;
-
-    if (requisitionState.value === 'DRAFT' && authStore.can('requisitions', 'send')) {
-        actions.push({ label: t('status.sent'), icon: 'pi pi-send', command: () => emit('send', id) });
-    }
-
-    if (requisitionState.value === 'SENT') {
-        if (authStore.can('requisitions', 'approve')) {
-            actions.push({ label: t('status.approved'), icon: 'pi pi-check', severity: 'success', command: () => emit('approve', id) });
-        }
-        if (authStore.can('requisitions', 'reject')) {
-            actions.push({ label: t('status.rejected'), icon: 'pi pi-times', severity: 'danger', command: () => emit('reject', id) });
-        }
-    }
-
-    if (requisitionState.value === 'APPROVED' && authStore.can('requisitions', 'fulfill')) {
-        actions.push({ label: t('status.fulfilling'), icon: 'pi pi-play', severity: 'info', command: () => emit('start-fulfillment', id) });
-        actions.push({ label: t('status.fulfilled'), icon: 'pi pi-box', severity: 'success', command: () => emit('fulfill', id) });
-    }
-
-    return actions;
 });
 </script>

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 export const useQueuesStore = defineStore('queues', () => {
     const queues = ref([]);
@@ -17,8 +18,30 @@ export const useQueuesStore = defineStore('queues', () => {
         }
     }
 
+    function hasActiveNestingRun(queueRuns = []) {
+        const latest = sortQueueRuns(queueRuns).at(-1);
+        if (!latest) return false;
+        const state = getPrimaryState(latest.status);
+        if (state === 'NESTING') return true;
+        if (['COMPLETE', 'CHOSEN', 'ERROR'].includes(state)) return false;
+        return !hasNestingResults(latest);
+    }
+
+    function hasNestingResults(run = {}) {
+        return Boolean(run.data?.results) || Boolean(run.data?.sheetDesignIds?.length);
+    }
+
+    function sortQueueRuns(queueRuns = []) {
+        return [...queueRuns].sort((left, right) => runOrder(left) - runOrder(right));
+    }
+
+    function runOrder(run = {}) {
+        return Number(run.data?.runNumber ?? run.runNumber ?? Number.MAX_SAFE_INTEGER);
+    }
+
     async function pollQueueStatus(queueId) {
         if (pollingIntervals.value[queueId]) return;
+        if (!hasActiveNestingRun(runs.value[queueId] || [])) return;
 
         pollingIntervals.value[queueId] = setInterval(async () => {
             try {
@@ -36,11 +59,11 @@ export const useQueuesStore = defineStore('queues', () => {
                 }
 
                 const queueRuns = await fetchRuns(queueId);
-                const hasNestingRuns = queueRuns.some(run => run.status?.state === 'NESTING');
-                if (!hasNestingRuns) {
+                if (!hasActiveNestingRun(queueRuns)) {
                     stopPolling(queueId);
-                    // Nesting just completed — notify so UI can re-fetch artifacts
-                    nestingCompleted.value = queueId;
+                    // Nesting just completed; use a fresh object so repeated
+                    // runs for the same queue still trigger Vue watchers.
+                    nestingCompleted.value = { queueId, completedAt: Date.now() };
                 }
             } catch (err) {
                 console.error(`Polling error for queue ${queueId}:`, err);
@@ -52,8 +75,7 @@ export const useQueuesStore = defineStore('queues', () => {
     function checkTransientStatuses() {
         queues.value.forEach(queue => {
             const queueRuns = runs.value[queue._id] || [];
-            const hasNestingRuns = queueRuns.some(run => run.status?.state === 'NESTING');
-            if (hasNestingRuns) {
+            if (hasActiveNestingRun(queueRuns)) {
                 pollQueueStatus(queue._id);
             }
         });
@@ -128,11 +150,11 @@ export const useQueuesStore = defineStore('queues', () => {
         }
     }
 
-    async function startNesting(queueId, nestingParams) {
+    async function startNesting(queueId, payload = {}) {
         try {
             const result = await $fetch(`/api/queue/${queueId}/nest`, {
                 method: 'POST',
-                body: nestingParams
+                body: payload
             });
             await fetchRuns(queueId);
             pollQueueStatus(queueId);
@@ -191,6 +213,15 @@ export const useQueuesStore = defineStore('queues', () => {
                 body: { runId }
             });
             await fetchRuns(queueId);
+            if (result.queue) {
+                const index = queues.value.findIndex(q => q._id === queueId);
+                if (index !== -1) {
+                    queues.value[index] = result.queue;
+                }
+                if (currentQueue.value?._id === queueId) {
+                    currentQueue.value = result.queue;
+                }
+            }
             return result;
         } catch (err) {
             error.value = err.message;
@@ -214,32 +245,12 @@ export const useQueuesStore = defineStore('queues', () => {
     async function fetchRuns(queueId) {
         try {
             const data = await $fetch(`/api/nesting-runs`, { query: { queueId } });
-            runs.value[queueId] = data;
-            return data;
+            const sorted = sortQueueRuns(data);
+            runs.value[queueId] = sorted;
+            return sorted;
         } catch (err) {
             error.value = err.message;
             return [];
-        }
-    }
-
-    async function markCut(queueId) {
-        try {
-            const result = await $fetch(`/api/queue/${queueId}/mark-cut`, {
-                method: 'POST'
-            });
-            
-            const index = queues.value.findIndex(q => q._id === queueId);
-            if (index !== -1) {
-                queues.value[index] = result.queue;
-            }
-            if (currentQueue.value?._id === queueId) {
-                currentQueue.value = result.queue;
-            }
-            
-            return result;
-        } catch (err) {
-            error.value = err.message;
-            throw err;
         }
     }
 
@@ -259,9 +270,9 @@ export const useQueuesStore = defineStore('queues', () => {
         getArtifacts,
         resetStatus,
         chooseRun,
-        markCut,
         deleteRun,
         stopPolling,
+        pollQueueStatus,
         fetchRuns
     };
 });

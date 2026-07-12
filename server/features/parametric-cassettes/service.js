@@ -11,6 +11,8 @@ import init, { Modular } from 'nodi-modular';
 import fs from 'fs/promises';
 import path from 'path';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
+import { isOccsDocument } from '#utils/occs/parameters.js';
 import { 
   createIdentity, 
   createStatus, 
@@ -21,6 +23,37 @@ import {
 let wasmInitialized = false;
 let baseTemplateGraph = null;
 let evaluationChain = Promise.resolve();
+
+const OCCS_CASSETTE_FACE_LAYER = 'contour.cassette_face';
+const OCCS_FLAT_PATTERN_LAYER = 'contour.flat_pattern.face_and_returns';
+
+function resolveTemplateDefinition(template = {}) {
+  const candidates = [
+    template.data?.definition,
+    template.data?.definition?.definition,
+    template.data?.definition?.occs,
+    template.definition?.data,
+    template.definition
+  ].filter(candidate => candidate && typeof candidate === 'object');
+
+  return candidates.find(isOccsDocument) ||
+    candidates.find(candidate => (
+      candidate.params ||
+      candidate.extrusions ||
+      candidate.extensions ||
+      (candidate.parameters && !Array.isArray(candidate.parameters))
+    )) ||
+    {};
+}
+
+function isReusableBakedInstance(existing = {}, isOccsTemplate = false) {
+  if (!existing) return false;
+  if (!isOccsTemplate) return true;
+  const polygonParts = existing.data?.polygonParts || [];
+  const layerData = existing.data?.layerData || [];
+  return polygonParts.some(part => part.workpieceId) &&
+    layerData.some(item => item.layer === OCCS_LAYER_CUT_OUTER);
+}
 
 async function runWithEvaluationLock(task) {
   const run = evaluationChain.then(() => task());
@@ -86,7 +119,7 @@ async function getEngine() {
 /**
  * Robust AC1015 DXF Generator for polygons
  */
-export function generateSimpleDxf(polygons, nestingLayer = '1_3_UNFOLD_BOUNDARY', internalLayer = '1_1_FACE') {
+export function generateSimpleDxf(polygons, nestingLayer = OCCS_FLAT_PATTERN_LAYER, internalLayer = OCCS_CASSETTE_FACE_LAYER) {
   let lines = [];
 
   const add = (code, value) => {
@@ -299,9 +332,16 @@ export async function evaluateTemplate(cassetteId, dimensions) {
     const template = await repository.findTemplateById(cassetteId);
     if (!template) throw new Error('Template not found');
 
+    const definitionData = resolveTemplateDefinition(template);
+    if (isOccsDocument(definitionData)) {
+      const { evaluateOccsCassetteTemplate } = await import('#utils/occs/evaluate.js');
+      return await evaluateOccsCassetteTemplate(definitionData, dimensions, {
+        templateId: template._id?.toString?.() || cassetteId?.toString?.() || cassetteId,
+        templateName: template.identity?.name || template.name || 'Cassette template'
+      });
+    }
+
     const engine = await getEngine();
-    
-    const definitionData = template.data?.definition || template.definition?.data || template.definition || {};
     const mergedParams = { ...(definitionData.params || {}), ...dimensions };
 
     // Keep backend evaluation behavior aligned with frontend renderer:
@@ -370,14 +410,26 @@ export async function evaluateTemplate(cassetteId, dimensions) {
  * Generate and store a DXF for a parametric cassette entry
  */
 export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
-  const existing = await repository.findExistingBakedInstance(cassetteId, dimensions);
-  if (existing) return existing;
+  const template = await repository.findTemplateById(cassetteId);
+  if (!template) throw new Error('Template not found');
 
-  const { polygons, dimensions: evalDims } = await evaluateTemplate(cassetteId, dimensions);
+  const existing = await repository.findExistingBakedInstance(cassetteId, dimensions);
+  const definitionData = resolveTemplateDefinition(template);
+  const occsTemplate = isOccsDocument(definitionData);
+  if (isReusableBakedInstance(existing, occsTemplate)) return existing;
+
+  const {
+    polygons,
+    dimensions: evalDims,
+    nestingPolygons: evaluatedNestingPolygons,
+    layerData: evaluatedLayerData,
+    annotations: evaluatedAnnotations,
+    dimensionEntities: evaluatedDimensionEntities
+  } = await evaluateTemplate(cassetteId, dimensions);
   
-  // Default layers from standards
-  const nestingLayer = '1_3_UNFOLD_BOUNDARY';
-  const internalLayer = '1_1_FACE';
+  const usesOccsCutLayer = evaluatedLayerData?.some(item => item.layer === OCCS_LAYER_CUT_OUTER);
+  const nestingLayer = usesOccsCutLayer ? OCCS_LAYER_CUT_OUTER : OCCS_FLAT_PATTERN_LAYER;
+  const internalLayer = OCCS_CASSETTE_FACE_LAYER;
   
   const dxfContent = generateSimpleDxf(polygons, nestingLayer, internalLayer);
   
@@ -395,15 +447,14 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
     uploadStream.end();
   });
 
-  const template = await repository.findTemplateById(cassetteId);
   const templateName = template.identity?.name || 'Unnamed';
   const templateSlug = template.identity?.slug || 'unnamed';
   
   // ONLY use the largest polygon for nesting to avoid duplicate items
-  const nestingPolygons = [polygons[0]];
+  const nestingPolygons = evaluatedNestingPolygons?.length ? evaluatedNestingPolygons : [polygons[0]];
   
   // Store all polygons with their target layers in layerData for artifacts generation
-  const layerData = polygons.map((p, idx) => ({
+  const layerData = evaluatedLayerData || polygons.map((p, idx) => ({
     layer: idx === 0 ? nestingLayer : internalLayer,
     coordinates: p.coordinates,
     handles: [(256 + idx).toString(16).toUpperCase()]
@@ -423,10 +474,16 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
       attachment: createAttachment('DXF', fileId, filename, { userId, type: 'BAKED_PARAMETRIC' }),
       polygonParts: nestingPolygons.map((p, i) => ({
         coordinates: p.coordinates,
-        handles: [(256 + i).toString(16).toUpperCase()]
+        handles: p.handles?.length ? p.handles : [(256 + i).toString(16).toUpperCase()],
+        workpieceId: p.workpieceId,
+        workpieceDefinitionId: p.workpieceDefinitionId,
+        occurrenceId: p.occurrenceId
       })),
       layerData: layerData,
-      dimensions: evalDims
+      dimensions: evalDims,
+      annotations: evaluatedAnnotations || {
+        dimensions: evaluatedDimensionEntities || []
+      }
     })
   };
 

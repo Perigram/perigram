@@ -2,6 +2,11 @@
   "name": "cutkit-demo",
   "private": false,
   "type": "module",
+  "imports": {
+    "#shared/*": "./shared/*",
+    "#packages/*": "./packages/*",
+    "#utils/*": "./utils/*"
+  },
   "workspaces": [
     "packages/*"
   ],
@@ -12,6 +17,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "test": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
     "framework:list-entities": "node scripts/framework-inspect.js list-entities",
     "framework:list-workflows": "node scripts/framework-inspect.js list-workflows",
     "framework:list-routes": "node scripts/framework-inspect.js list-routes",
@@ -20,7 +28,8 @@
     "framework:query-docs": "node scripts/framework-inspect.js query-docs",
     "framework:manifest": "node scripts/framework-inspect.js check-manifest",
     "framework:write-manifest": "node scripts/framework-inspect.js write-manifest",
-    "framework:validate": "node scripts/framework-inspect.js validate"
+    "framework:validate": "node scripts/framework-inspect.js validate",
+    "agent:scope-check": "node scripts/check-agent-scope.js"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
@@ -32,13 +41,14 @@
     "@vue-flow/core": "^1.48.2",
     "archiver": "^7.0.1",
     "argon2": "^0.44.0",
+    "clipper2-wasm": "^0.4.0",
     "dxf-parser": "^1.1.2",
     "formidable": "^3.5.4",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "6.8",
     "multiparty": "^4.2.3",
     "nodemailer": "^7.0.3",
-    "nodi-modular": "^0.0.36",
+    "nodi-modular": "^0.0.41",
     "nuxt": "^3.15.3",
     "pdfkit": "^0.17.2",
     "pinia": "^3.0.4",
@@ -46,6 +56,7 @@
     "primevue": "^4.4.1",
     "standard-slugify": "^4.0.0",
     "tabulator-tables": "^6.3.1",
+    "three": "^0.184.0",
     "tslib": "^2.8.1",
     "vite": "^6.0.6",
     "vue": "^3.5.13",
@@ -54,6 +65,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@primevue/nuxt-module": "^4.4.1",
     "@types/node": "^22.10.2",
     "kickstart-scripts": "^1.0.1",

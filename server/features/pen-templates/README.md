@@ -13,14 +13,16 @@ This component manages the display styles (pens) for DXF layers, including color
 ```json
 {
   "_id": "ObjectId",
-  "name": "string",
-  "ownerId": "string",  // null for system pens, string (OAuth ID) for user pens
-  "stroke": {
-    "color": "string",  // Hex color code (e.g., #FF0000)
-    "weight": "number", // Line weight (e.g., 0.25)
-    "pattern": "string" // SOLID, DASHED, DOTTED
+  "identity": { "name": "string" },
+  "lineage": { "userId": "string | null" },
+  "data": {
+    "stroke": {
+      "color": "string",
+      "weight": "number",
+      "pattern": "SOLID | DASHED | DOTTED"
+    }
   },
-  "createdAt": "Date"
+  "status": "Status block"
 }
 ```
 
@@ -31,10 +33,16 @@ This component manages the display styles (pens) for DXF layers, including color
 - `remove(id, userId)`: Deletes a user-owned pen.
 
 ## Patterns and Conventions
-- **System Pens:** Pens with `ownerId: null` are read-only and available to all users.
+- **System Pens:** Pens with `lineage.userId: null` are marked public-read with
+  `lineage.scope: "system"`, `lineage.public: true`, and
+  `data.visibility.public: true`. They are read-only and available through the
+  shared public-system-data access rule rather than copied permission grants.
+  `GET /api/templates/pens` is public-read; unauthenticated callers receive
+  only system pens, while authenticated callers also receive their own pens.
 - **Ownership:** User IDs are strings from OAuth providers.
 - **Color Format:** Colors must be in 6-digit Hex format with `#` prefix.
-- **Seeding:** `server/scripts/seed-system-pens.js` imports this feature directly from Node, so service imports must use relative server paths rather than the Nuxt `~` alias.
+- **Seeding:** `server/scripts/seed-system-pens.js` imports this feature directly from Node, so service imports must use relative server paths rather than the Nuxt `~` alias. It upserts system pens by `identity.name` and refreshes stroke data so existing layer-standard `defaultPenId` references keep working after pen color changes.
+- **OCCS Pens:** The seed includes distinctive OCCS pens for contour, cut, fold, engraving, code, dimension, and envelope layers. Layer-standard seeding resolves those names to `data.defaultPenId`.
 
 ## Related
 - [Layer Standards](../layer-standards/) - Layers are assigned a default pen.

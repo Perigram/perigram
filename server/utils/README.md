@@ -11,7 +11,7 @@ Every API route has `event.context.auth` populated by the auth middleware after 
 ```js
 {
   userId: string,         // OAuth user ID (string, NOT ObjectId)
-  role: string,           // 'SuperAdmin' | 'Admin' | 'User' | 'Viewer'
+  role: string,           // Optional legacy compatibility label
   memberships: [          // Array of organization memberships
     {
       organizationId: ObjectId,
@@ -42,15 +42,16 @@ Throws 401 if not authenticated. Returns `event.context.auth`.
 const user = requireAuth(event);
 ```
 
-### `hasLineagePermission(user, lineage, entityType, level)` → `boolean`
+### `hasLineagePermission(user, lineage, entityType, level, options?)` → `boolean`
 Checks if user has the required access level for an entity based on its `lineage.organizationId`.
 
 ```js
 // entityType: 'projects' | 'queues' | 'sheets' | 'material-piles' | ...
 // level: 'read' | 'write' | 'admin'
 if (!hasLineagePermission(user, entity.lineage, 'queues', 'write')) { ... }
+if (!hasLineagePermission(user, entity, 'projects', 'write', { action: 'create' })) { ... }
 ```
-SuperAdmin bypasses all checks. Levels are ordered: `none < read < write < admin`.
+Levels are ordered: `none < read < write < admin`.
 
 ### `requireLineagePermission(event, lineage, entityType, level)` → `authContext`
 Combines requireAuth + hasLineagePermission. Throws 401/403. Returns user.
@@ -68,23 +69,26 @@ Returns a MongoDB filter for multi-tenant scoping. Plug into repository queries.
 const filter = { ...getLineageFilter(user), status: 'OPEN' };
 const results = await repository.findAll(filter);
 ```
-SuperAdmin gets `{}` (no filter). Regular users get `{ 'lineage.organizationId': { $in: [...orgIds] } }`.
+Users without memberships get an empty `$in` filter; users with memberships get
+`{ 'lineage.organizationId': { $in: [...orgIds] } }`.
+
+## entity-redaction.js
+
+### `serializeForAccess(entityType, entity, auth)` / `serializeManyForAccess(...)`
+Serializes model instances or DTOs and applies shared field-level redaction
+from `shared/entity-field-access.js` when an auth context is provided. Internal
+service calls can omit `auth` to keep full domain objects for workflows, hooks,
+and background tasks. API GET/list routes should pass `event.context.auth` so
+entity cards only receive fields allowed by the current user's membership
+permissions.
 
 ### `requirePermission(event, entity, level)` → `authContext`
-Uses `hasPermission()` from auth-helpers (global role-based, not lineage-based). Use for system-level resources without lineage.
+Uses `hasPermission()` from auth-helpers against explicit `user.permissions`.
+Use for system-level resources without lineage.
 
 ### `checkEntityAccess(user, entity, entityOrgId)` → `boolean`
 Legacy organization-level compatibility helper. New v24 services should use
 `hasLineagePermission()` / `requireLineagePermission()` instead.
-
-### `requireRole(event, ...roles)` → `void`
-Throws 403 if user's role not in allowed list. For admin-only routes.
-
-```js
-requireRole(event, 'SuperAdmin', 'Admin');
-```
-
----
 
 ## auth-helpers.js
 
@@ -95,7 +99,8 @@ Argon2 password hashing.
 JWT signing/verification (15min expiry). Tokens carry only `userId` — permissions fetched fresh from DB on each request.
 
 ### `hasPermission(user, entity, requiredLevel)` → `boolean`
-Role-based check using `user.permissions[entity]`. Different from lineage-based — use for non-entity system resources.
+Checks explicit `user.permissions[entity]`. Different from lineage-based — use
+for non-entity system resources.
 
 ### `canAccessEntity(user, entityType, entityId)` → `boolean`
 Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
@@ -108,7 +113,7 @@ Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
 |---|---|
 | Any entity with a lineage block | `requireLineagePermission` |
 | List query — scope to user's orgs | `getLineageFilter` |
-| Admin/SuperAdmin only route | `requireRole` |
+| Admin capability route | `requirePermission` or a feature-level access check |
 | Auth check only, permission later | `requireAuth` |
 | Non-entity resource (system settings) | `requirePermission` / `hasPermission` |
 | Password login flow | `hashPassword` / `verifyPassword` |
@@ -140,6 +145,30 @@ so it must avoid Node-only APIs and browser APIs that require secure contexts.
 Graph ID generation falls back from `crypto.randomUUID` to
 `crypto.getRandomValues`, then to a timestamp/random string for plain HTTP LAN
 usage.
+
+## dxf-extractor.js
+
+Parses uploaded DXF buffers for cassette import. `extractNestingPolygons()`
+uses the DXF-to-OCCS layer mapping to find the source layer mapped to
+`cut.outer` and returns only closed polygon parts for nesting. It rejects
+degenerate two-point/zero-area curves so they remain available as source curves
+only when mapped through `extractCurvesFromDXFLayer()`, not as nestable parts.
+`extractCurvesFromDXFLayer()` preserves open and closed curves from mapped
+layers for `layerData`, so folds, marks, dimensions, and other source drawing
+layers can be projected into sheet-design previews after nesting.
+
+## dxf-writer.js
+
+Writes simple AC1015 DXF output from the app drawing contract. It accepts:
+- DrawingCanvas-style preview layers with SVG-like `M/L/H/V/Z` paths and text
+  path objects.
+- OCCS `layerData` records with coordinates, text geometry, or dimension
+  geometry.
+- `polygonParts` as a fallback when only nestable outlines exist.
+
+Sheet design exports and cassette template/design exports use this helper so
+semantic layer names such as `cut.outer`, `fold.route`, `dimension.cassette`,
+and `code.cassette_mark` survive into downloaded DXF files.
 
 ## Related
 

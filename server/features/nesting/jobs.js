@@ -17,6 +17,15 @@ export async function create(job) {
   return { ...job, _id: result.insertedId };
 }
 
+export async function updateById(id, update) {
+  const db = await connectDB();
+  await db.collection(COLLECTION).updateOne(
+    { _id: toFlexibleId(id) },
+    { $set: { ...update, updatedAt: new Date() } }
+  );
+  return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
+}
+
 export async function findLatestByRun(runId) {
   const db = await connectDB();
   return await db.collection(COLLECTION)

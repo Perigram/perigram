@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { requireAuth, requirePermission, checkEntityAccess, requireRole } from './permissions';
+import { requireAuth, requirePermission, checkEntityAccess } from './permissions';
 
 // h3 createError returns an object that we throw
 // We want to test that it is called or that the function throws it
@@ -25,12 +25,7 @@ describe('Permissions Utility', () => {
   });
 
   describe('checkEntityAccess', () => {
-    const user = { role: 'ContractorAdmin', organizationId: 'org1' };
-    const superAdmin = { role: 'SuperAdmin' };
-
-    it('should allow SuperAdmin to access anything', () => {
-      expect(checkEntityAccess(superAdmin, {}, 'anyOrg')).toBe(true);
-    });
+    const user = { organizationId: 'org1' };
 
     it('should allow user to access their own organization entity', () => {
       expect(checkEntityAccess(user, {}, 'org1')).toBe(true);
@@ -45,15 +40,52 @@ describe('Permissions Utility', () => {
     });
   });
 
-  describe('requireRole', () => {
-    it('should not throw if user has allowed role', () => {
-      const event = { context: { auth: { role: 'SuperAdmin' } } };
-      expect(() => requireRole(event, 'SuperAdmin', 'ManufacturerAdmin')).not.toThrow();
+  describe('requirePermission', () => {
+    it('uses active process effective permissions before stored user permissions', () => {
+      const event = {
+        context: {
+          auth: {
+            permissions: { organizations: 'none' },
+            effectivePermissions: { organizations: 'admin' }
+          }
+        }
+      };
+
+      expect(() => requirePermission(event, 'organizations', 'write')).not.toThrow();
     });
 
-    it('should throw 403 if user does not have allowed role', () => {
-      const event = { context: { auth: { role: 'IndividualUser' } } };
-      expect(() => requireRole(event, 'SuperAdmin')).toThrow(/Insufficient privileges/);
+    it('supports granular process grants through the shared evaluator', () => {
+      const event = {
+        context: {
+          auth: {
+            effectivePermissions: {
+              projects: [{ level: 'write', actions: { create: true } }]
+            }
+          }
+        }
+      };
+
+      expect(() => requirePermission(event, 'projects', 'read')).not.toThrow();
+      expect(() => requirePermission(event, 'projects', 'admin')).toThrow(/Permission denied/);
+    });
+  });
+
+  describe('hasLineagePermission', () => {
+    it('checks create action grants explicitly when requested', async () => {
+      const { hasLineagePermission } = await import('./permissions');
+      const auth = {
+        effectivePermissions: {
+          projects: [{ level: 'write', actions: { create: true } }]
+        }
+      };
+      const project = { lineage: { organizationId: 'org-1' } };
+
+      expect(hasLineagePermission(auth, project, 'projects', 'write', { action: 'create' })).toBe(true);
+      expect(hasLineagePermission({
+        effectivePermissions: {
+          projects: [{ level: 'write', actions: { create: false } }]
+        }
+      }, project, 'projects', 'write', { action: 'create' })).toBe(false);
     });
   });
 });

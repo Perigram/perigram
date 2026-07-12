@@ -4,50 +4,38 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { cncEntities } from '../packages/domain-cnc/src/entities.js';
+import { cncCommands } from '../packages/domain-cnc/src/commands.js';
+import { cncTasks } from '../packages/domain-cnc/src/tasks.js';
+import { cncEvents } from '../packages/domain-cnc/src/events.js';
+import { cncEffects } from '../packages/domain-cnc/src/effects.js';
 
 const FEATURES_DIR = './server/features';
 const API_DIR = './server/api';
-const ENTITY_FEATURES = [
-  'artifacts',
-  'cassette-designs',
-  'cassette-instances',
-  'cassettes',
-  'catalogs',
-  'colors',
-  'material-piles',
-  'nesting-runs',
-  'organizations',
-  'projects',
-  'queues',
-  'remnants',
-  'requisitions',
-  'sheet-designs',
-  'sheets',
-  'users',
-  'warehouses'
-];
+const ENTITY_FEATURES = cncEntities.map(entity => entity.feature || entityTypeToFeature(entity.type));
 const CAPABILITY_FEATURES = [
+  'config-bot',
+  'entity-events',
   'files',
+  'billing',
   'invitations',
-  'layer-standards',
   'material-options',
-  'materials',
   'nesting',
   'notification',
   'parametric-cassettes',
-  'payment',
-  'pen-templates',
   'results',
   'sessions',
   'statuses',
   'support',
   'system-settings',
-  'tool-profiles'
+  'workflow-overrides'
 ];
 const IGNORE = ['_template', 'README.md', 'index.js'];
 const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];
 const LEGACY_RAW_FIELD_PATTERN = /\braw\.(name|slug|serial|reference|type|geometry|parameters|metadata|organizationId|currentOrganizationId|warehouseId|params)\b/;
 const ROOT_TO_JSON_ALIAS_PATTERN = new RegExp(`\\b(${ENTITY_ROOT_ALIAS_FIELDS.join('|')}):\\s*this\\.`);
+const NUXT_ROOT_ALIAS_IMPORT_PATTERN = /(?:from\s+['"]~{1,2}\/|import\s*\(\s*['"]~{1,2}\/|require\s*\(\s*['"]~{1,2}\/)/;
+const PARENT_RELATIVE_IMPORT_PATTERN = /(?:from\s+['"]\.\.\/|import\s*\(\s*['"]\.\.\/|require\s*\(\s*['"]\.\.\/)/;
 
 console.log('🚀 Starting Architectural Verification...');
 
@@ -65,8 +53,29 @@ const walkDir = (dir) => {
 const directories = fs.readdirSync(FEATURES_DIR).filter(f => !IGNORE.includes(f) && fs.statSync(path.join(FEATURES_DIR, f)).isDirectory());
 const declared = new Set([...ENTITY_FEATURES, ...CAPABILITY_FEATURES]);
 const features = ENTITY_FEATURES;
+const appRegistry = fs.readFileSync('server/runtime/app-registry.js', 'utf8');
 
 let errors = 0;
+const inventory = [];
+
+function addInventory(rule, file, line, symbol, message) {
+  inventory.push({ rule, file: path.relative('.', file), line, symbol, message });
+}
+
+function collectLineMatches(files, checks) {
+  files.forEach(file => {
+    const content = fs.readFileSync(file, 'utf8');
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      checks.forEach(check => {
+        const match = line.match(check.pattern);
+        if (match) {
+          addInventory(check.rule, file, index + 1, match[1] || check.symbol || 'n/a', check.message);
+        }
+      });
+    });
+  });
+}
 
 directories.forEach(feature => {
   if (!declared.has(feature)) {
@@ -162,6 +171,13 @@ features.forEach(feature => {
   }
 });
 
+cncEntities.forEach(entity => {
+  if (!new RegExp(`\\b${entity.type}\\s*:`).test(appRegistry)) {
+    console.error(`❌ Entity [${entity.type}] is not registered in server/runtime/app-registry.js`);
+    errors++;
+  }
+});
+
 // 8. API routes must not import repository or model directly from features
 console.log('\nChecking API routes for layer violations...');
 const apiFiles = walkDir(API_DIR).filter(file => file.endsWith('.js'));
@@ -217,6 +233,24 @@ dtoContractFiles.forEach(file => {
 });
 
 console.log('\nChecking golden architecture boundaries...');
+const portableRuntimeFiles = [
+  ...walkDir('shared').filter(file => /\.(js|ts|mjs|cjs)$/.test(file) && !file.endsWith('.spec.js')),
+  ...walkDir('test-data').filter(file => /\.(js|ts|mjs|cjs)$/.test(file) && !file.endsWith('.spec.js')),
+  ...walkDir('packages').filter(file => /\.(js|ts|mjs|cjs)$/.test(file) && !file.endsWith('.spec.js'))
+];
+portableRuntimeFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const relFile = path.relative('.', file);
+  if (NUXT_ROOT_ALIAS_IMPORT_PATTERN.test(content)) {
+    console.error(`❌ ${relFile} uses Nuxt root alias in a portable runtime module — use package names or relative imports`);
+    errors++;
+  }
+  if ((relFile.startsWith('shared/') || relFile.startsWith('test-data/')) && PARENT_RELATIVE_IMPORT_PATTERN.test(content)) {
+    console.error(`❌ ${relFile} uses parent-relative imports in a portable runtime module — use #shared/#packages/#utils imports`);
+    errors++;
+  }
+});
+
 const jsFiles = [
   ...walkDir('server').filter(file => file.endsWith('.js')),
   ...walkDir('components').filter(file => file.endsWith('.vue')),
@@ -252,6 +286,131 @@ jsFiles.forEach(file => {
   }
 });
 
+console.log('\nChecking command/task boundary leaks...');
+const intentFlowFile = 'packages/domain-cnc/src/workflows.js';
+const intentFlowContent = fs.readFileSync(intentFlowFile, 'utf8');
+[
+  { pattern: /from:\s*'DRAFT',\s*to:\s*'NESTING'[\s\S]*?intent:\s*'requestNesting'/, message: 'missing queue requestNesting intent' },
+  { pattern: /from:\s*'NESTING',\s*to:\s*'READY'[\s\S]*?intent:\s*'completeNestingProduction'/, message: 'missing completeNestingProduction intent' },
+  { pattern: /from:\s*'NESTING',\s*to:\s*'ERROR'[\s\S]*?intent:\s*'nestingSolveFailed'/, message: 'missing nestingSolveFailed intent on queue' },
+  { pattern: /from:\s*'NESTING',\s*to:\s*'COMPLETE'[\s\S]*?intent:\s*'nestingSolveCompleted'/, message: 'missing nestingSolveCompleted intent' },
+  { pattern: /from:\s*'NESTING',\s*to:\s*'ERROR'[\s\S]*?intent:\s*'nestingSolveFailed'/, message: 'missing nestingSolveFailed intent on nesting_run' },
+  { pattern: /from:\s*'COMPLETE',\s*to:\s*'CHOSEN'[\s\S]*?intent:\s*'acceptNestingRun'/, message: 'missing acceptNestingRun intent' }
+].forEach(check => {
+  if (!check.pattern.test(intentFlowContent)) {
+    console.error(`❌ ${intentFlowFile} ${check.message}`);
+    errors++;
+  }
+});
+
+const commandBoundaryFiles = walkDir('server/features').filter(file => file.endsWith('operations.js'));
+commandBoundaryFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const relFile = path.relative('.', file);
+  if (/statusService\.transition\(\s*['"]queue['"]/.test(content) || /transitionQueueIfState/.test(content)) {
+    console.error(`❌ ${relFile} mutates queue status directly inside a command handler — return an effect instead`);
+    errors++;
+  }
+  if (/statusService\.transition\(\s*['"]nesting_run['"]/.test(content) && relFile.includes('/nesting/')) {
+    console.error(`❌ ${relFile} mutates nesting_run status directly inside a task/command handler — return a transition effect instead`);
+    errors++;
+  }
+  if (/\bcreateStatus\s*\(/.test(content) || /import\s+\{[^}]*\bcreateStatus\b/.test(content)) {
+    console.error(`❌ ${relFile} creates status blocks inside a command/task operation — use service initialization or transition effects`);
+    errors++;
+  }
+});
+
+console.log('\nChecking domain event contracts...');
+const eventPolicies = Object.values(cncEffects || {});
+const eventDefinitions = new Map(Object.values(cncEvents || {}).map(event => [event.id, event]));
+const checkDeclaredOutputEvents = (ownerType, ownerId, events = []) => {
+  for (const eventId of events || []) {
+    const event = eventDefinitions.get(eventId);
+    const hasPolicy = eventPolicies.some(policy => policy.on === eventId);
+    if (!event) {
+      console.error(`❌ ${ownerType} [${ownerId}] outputs undeclared event [${eventId}]`);
+      errors++;
+      continue;
+    }
+    if (!hasPolicy && event.informational !== true) {
+      console.error(`❌ ${ownerType} [${ownerId}] event [${eventId}] is not consumed by an effect policy or marked informational`);
+      errors++;
+    }
+  }
+};
+
+Object.values(cncCommands || {}).forEach(command => {
+  checkDeclaredOutputEvents('Command', command.id, command.output?.events || []);
+});
+Object.values(cncTasks || {}).forEach(task => {
+  checkDeclaredOutputEvents('Task', task.id, task.output?.events || []);
+});
+
+console.log('\nChecking UI status boundaries...');
+const uiRuntimeFiles = [
+  ...walkDir('components').filter(file => file.endsWith('.vue')),
+  ...walkDir('composables').filter(file => file.endsWith('.js')),
+  ...walkDir('pages').filter(file => file.endsWith('.vue')),
+  ...walkDir('utils').filter(file => file.endsWith('.js'))
+];
+uiRuntimeFiles.forEach(file => {
+  const relFile = path.relative('.', file);
+  if (relFile === 'composables/useStatusController.js') return;
+  const content = fs.readFileSync(file, 'utf8');
+  if (/['"]\/api\/status\/(?:transition|actions)['"]/.test(content)) {
+    console.error(`❌ ${relFile} calls status API directly — use useStatusController/EntityStatus`);
+    errors++;
+  }
+  if (
+    !relFile.startsWith('components/shared/') &&
+    !relFile.startsWith('pages/test/') &&
+    /:status-actions\s*=/.test(content)
+  ) {
+    console.error(`❌ ${relFile} passes local status actions — live entity UI must use server-provided EntityStatus actions`);
+    errors++;
+  }
+});
+
+console.log('\nCollecting migration inventory...');
+const featureServiceFiles = walkDir('server/features').filter(file => file.endsWith('/service.js'));
+collectLineMatches(featureServiceFiles, [
+  {
+    rule: 'status.initialization.createStatus',
+    pattern: /\b(createStatus)\s*\(/,
+    message: 'legacy status block creation; migrate entity creation to statusService.initialStatus()'
+  },
+  {
+    rule: 'status.transition.rawState',
+    pattern: /\bstatusService\.(transition)\s*\(/,
+    message: 'raw target-state transition in feature service; prefer workflow intent or status API boundary'
+  },
+  {
+    rule: 'service.persistence.rawDb',
+    pattern: /\b(db\.collection)\s*\(/,
+    message: 'raw DB access in feature service; move persistence behind repository/adapter'
+  }
+]);
+
+const frontendStatusFiles = [
+  ...walkDir('components').filter(file => file.endsWith('.vue')),
+  ...walkDir('pages').filter(file => file.endsWith('.vue'))
+];
+collectLineMatches(frontendStatusFiles, [
+  {
+    rule: 'ui.lifecycle.literal',
+    pattern: /\bstatus(?:\.state)?\s*(?:===|!==)\s*['"]([A-Z][A-Z_-]+)['"]/,
+    message: 'hardcoded lifecycle state in UI; prefer server-provided actions/status contracts'
+  }
+]);
+
+if (inventory.length > 0) {
+  console.log(`\n--- Migration Inventory (${inventory.length} non-blocking items) ---`);
+  inventory.forEach(item => {
+    console.log(`• ${item.rule} ${item.file}:${item.line} [${item.symbol}] ${item.message}`);
+  });
+}
+
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {
   console.log('✅ All features comply with v24 Golden Path.');
@@ -259,4 +418,8 @@ if (errors === 0) {
 } else {
   console.error(`❌ Found ${errors} architectural violations.`);
   process.exit(1);
+}
+
+function entityTypeToFeature(type) {
+  return `${type.replace(/_/g, '-')}s`;
 }

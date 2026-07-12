@@ -42,7 +42,6 @@ export const cncTasks = {
     input: cncCommands.solveNesting.input,
     output: {
       entities: ['nesting_run', 'sheet_design'],
-      attachments: ['LAYOUT_DXF', 'LAYOUT_SVG'],
       tasks: ['nesting.solve'],
       events: ['nesting.solveStarted', 'nesting.solveCompleted', 'nesting.solveFailed']
     }
@@ -54,5 +53,28 @@ export const cncTasks = {
     executor: { type: 'server', target: 'artifacts' },
     input: cncCommands.generateAttachment.input,
     output: cncCommands.generateAttachment.output
+  },
+  visionExtractGeometry: {
+    id: 'vision.extractGeometry',
+    service: 'geometry-captures',
+    label: 'Extract geometry from capture photo',
+    executor: { type: 'worker', workerType: 'geometry-capture' },
+    input: {
+      entities: [{ name: 'geometryCapture', type: 'geometry_capture', required: true }],
+      parameters: [
+        { name: 'mode', label: 'Capture mode', type: 'enum', options: ['REMNANT', 'FACADE'], required: true },
+        { name: 'revisionId', label: 'Capture revision id', type: 'string' },
+        { name: 'preset', label: 'Detector preset', type: 'string' },
+        { name: 'fileId', label: 'Photo file id', type: 'string', required: true },
+        { name: 'bucketName', label: 'Photo bucket', type: 'string', default: 'capturePhotos' },
+        { name: 'fileUrl', label: 'Photo URL', type: 'string', required: true },
+        { name: 'calibration', label: 'Calibration', type: 'object', default: {} },
+        { name: 'prompt', label: 'Manual vision prompt', type: 'object', default: {} }
+      ]
+    },
+    output: {
+      entities: ['geometry_capture'],
+      data: ['geometry', 'calibration', 'confidence', 'diagnostics']
+    }
   }
 };

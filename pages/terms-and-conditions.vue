@@ -1,10 +1,6 @@
 <template>
-  <div class="max-w-4xl mx-auto p-8 border rounded">
+  <StandardPage :title="$t('terms.title')">
     <div class="flex flex-col gap-8">
-      <div class="border-b pb-6 flex flex-col gap-2">
-        <h1 class="m-0">{{ $t('terms.title') }}</h1>
-      </div>
-
       <div class="flex flex-col gap-4">
         <p class="m-0">
           {{ $t('terms.welcome') }}
@@ -117,10 +113,12 @@
         </a>
       </div>
     </div>
-  </div>
+  </StandardPage>
 </template>
 
 <script setup>
+import StandardPage from '~/components/shared/StandardPage.vue';
+
 definePageMeta({
   layout: "app",
 });

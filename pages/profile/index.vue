@@ -1,20 +1,16 @@
 <template>
-    <div class="flex flex-col gap-6">
-        <h1>{{ $t('nav.profile') }}</h1>
-        
+    <StandardPage :title="$t('nav.profile')">
         <Tabs value="0">
             <TabList>
                 <Tab value="0"><span>{{ $t('profile.account') }}</span></Tab>
-                <Tab value="1"><span>{{ $t('profile.billing') }}</span></Tab>
-                <Tab value="2"><span>{{ $t('profile.preferences') }}</span></Tab>
-                <Tab value="3"><span>{{ $t('auth.organization') }}</span></Tab>
-                <Tab value="4"><span>{{ $t('nav.projects') }}</span></Tab>
+                <Tab value="1"><span>{{ $t('profile.preferences') }}</span></Tab>
+                <Tab value="2"><span>{{ $t('auth.organization') }}</span></Tab>
             </TabList>
             <TabPanels>
                 <TabPanel value="0">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6 py-4">
                         <div class="md:col-span-4">
-                            <Panel class="h-full card-interactive" :header="$t('profile.title')">
+                            <Panel class="h-full" :header="$t('profile.title')">
                                     <div class="flex flex-col items-center text-center gap-4 py-4">
                                         <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" />
                                         <div class="flex flex-col gap-1">
@@ -25,7 +21,7 @@
                             </Panel>
                         </div>
                         <div class="md:col-span-8">
-                            <Panel class="h-full card-interactive" :header="$t('profile.authentication')">
+                            <Panel class="h-full" :header="$t('profile.authentication')">
                                     <div class="flex flex-col gap-6 py-2">
                                         <div class="mt-auto">
                                             <Button :label="$t('nav.logout')" icon="pi pi-sign-out" severity="danger" outlined @click="logoutHandler" />
@@ -37,37 +33,8 @@
                 </TabPanel>
 
                 <TabPanel value="1">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
-                        <Panel class="card-interactive" :header="$t('billing.creditBalance')">
-                                <div class="flex flex-col gap-6 py-2">
-                                    <Panel>
-                                            <div class="flex justify-between items-center p-6">
-                                                <div class="flex flex-col gap-1">
-                                                    <small>{{ $t('profile.balance') }}</small>
-                                                    <span class="text-4xl font-bold">{{ user.balance || 0 }}</span>
-                                                </div>
-                                                <Button :label="$t('profile.buyCredits')" icon="pi pi-shopping-cart" size="large" @click="showBuyCredits = true" />
-                                            </div>
-                                    </Panel>
-                                    <div class="pt-4 border-t border-dashed">
-                                        <p class="mb-3">{{ $t('profile.developerTools') }}</p>
-                                        <Button :label="$t('billing.addTestCredits')" icon="pi pi-plus" severity="secondary" text @click="addCredits" />
-                                    </div>
-                                </div>
-                        </Panel>
-                        
-                        <Panel class="card-interactive" :header="$t('billing.purchaseHistory')">
-                                <div class="flex flex-col items-center justify-center py-12 text-center gap-4 border-2 border-dashed rounded opacity-50">
-                                    <i class="pi pi-history text-4xl"></i>
-                                    <p class="m-0 italic">{{ $t('billing.noHistory') }}</p>
-                                </div>
-                        </Panel>
-                    </div>
-                </TabPanel>
-
-                <TabPanel value="2">
                     <div class="max-w-2xl py-4">
-                        <Panel class="card-interactive" :header="$t('profile.settings')">
+                        <Panel :header="$t('profile.settings')">
                                 <div class="flex flex-col gap-8 py-2">
                                     <div class="flex flex-col gap-3">
                                         <label>{{ $t('profile.theme') }}</label>
@@ -99,20 +66,21 @@
                     </div>
                 </TabPanel>
 
-                <TabPanel value="3">
+                <TabPanel value="2">
                     <div class="py-4 flex flex-col gap-6">
                         <!-- Create New Organization Button -->
-                        <div class="flex justify-between items-center px-1">
-                            <h2 class="m-0">{{ $t('profile.myOrganizations') }}</h2>
-                            <Button :label="$t('auth.createOrg')" icon="pi pi-plus" @click="showCreateOrgDialog = true" />
-                        </div>
+                        <ActionToolbar :title="$t('profile.myOrganizations')">
+                            <template #actions>
+                                <Button :label="$t('auth.createOrg')" icon="pi pi-plus" @click="showCreateOrgDialog = true" />
+                            </template>
+                        </ActionToolbar>
 
                         <!-- Memberships List -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <ResponsiveGrid variant="wide">
                             <Panel 
                                 v-for="membership in authStore.userData.memberships" 
                                 :key="membership.organizationId"
-                                class="relative overflow-hidden card-interactive"
+                                class="relative overflow-hidden"
                                 :class="[membership.status === 'pending' ? 'opacity-50' : '']"
                                 @click="membership.status !== 'pending' && authStore.switchOrganization(membership.organizationId)"
                             >
@@ -131,30 +99,26 @@
                                         <div v-if="membership.status === 'pending'" class="mt-2 py-2 italic opacity-60">
                                             {{ $t('profile.membershipPending') }}
                                         </div>
-                                        <div v-else class="flex justify-between items-center mt-2 pt-2 border-t border-muted border-dashed">
-                                            <Button v-if="membership.role.includes('Admin')" :label="$t('profile.manageTeam')" icon="pi pi-users" text size="small" @click.stop="router.push('/organization/users')" />
-                                            <Button v-else :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" />
+                                        <div v-else-if="membership.organizationId === authStore.userData.organizationId && organizationOverviewScreen" class="flex flex-wrap justify-end gap-2 mt-2 pt-2 border-t border-muted border-dashed">
+                                            <Button :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" @click.stop="router.push(organizationOverviewScreen.route || '/organization')" />
+                                            <Button
+                                                v-for="screen in organizationRouteScreens"
+                                                :key="screen.screenKey || screen.id"
+                                                :label="systemScreenLabel(screen)"
+                                                :icon="screen.icon || 'pi pi-arrow-right'"
+                                                text
+                                                size="small"
+                                                @click.stop="router.push(screen.route)"
+                                            />
                                         </div>
                                     </div>
                             </Panel>
-                        </div>
+                        </ResponsiveGrid>
                     </div>
                 </TabPanel>
 
-                <TabPanel value="4">
-                    <div class="py-4">
-                        <Panel class="card-interactive" :header="$t('profile.usageStatistics')">
-                                <div class="flex flex-col items-center justify-center py-20 text-center gap-4 border-2 border-dashed rounded opacity-50">
-                                    <i class="pi pi-chart-bar text-5xl"></i>
-                                    <p class="m-0 italic">{{ $t('profile.usageStatisticsComingSoon') }}</p>
-                                </div>
-                        </Panel>
-                    </div>
-                </TabPanel>
             </TabPanels>
         </Tabs>
-
-        <BuyCreditsDialog v-if="showBuyCredits" @close="showBuyCredits = false" />
 
         <StandardDialog v-model:visible="showCreateOrgDialog" :header="$t('auth.createOrg')" size="sm">
             <form @submit.prevent="createOrganization" class="flex flex-col gap-4 pt-4">
@@ -163,8 +127,8 @@
                     <InputText v-model="orgForm.name" required class="w-full" autofocus />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label>{{ $t('queue.status') }} *</label>
-                    <Select v-model="orgForm.type" :options="orgTypeOptions" optionLabel="label" optionValue="value" class="w-full" />
+                    <label>{{ $t('auth.processTemplate') }} *</label>
+                    <Select v-model="orgForm.processTemplateId" :options="processTemplateOptions" optionLabel="label" optionValue="value" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
                     <label>{{ $t('profile.email') }} *</label>
@@ -176,7 +140,7 @@
                 </div>
             </form>
         </StandardDialog>
-    </div>
+    </StandardPage>
 </template>
 
 <script setup>
@@ -197,9 +161,13 @@ import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
-import BuyCreditsDialog from '~/components/BuyCreditsDialog.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import StandardPage from '~/components/shared/StandardPage.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useEntity } from '~/composables/useEntity';
+import { selectOptionText } from '~/utils/selectOptions';
+import { generatedScreenLabel } from '~/utils/generated-labels';
 
 definePageMeta({
     layout: "app",
@@ -208,14 +176,18 @@ definePageMeta({
 
 const router = useRouter();
 const toast = useToast();
-const { t, locale, locales, setLocale } = useI18n();
+const { t, te, locale, locales, setLocale } = useI18n();
 const organizationsEntity = useEntity('organization');
 
 const authStore = useAuthStore();
 const { user: userRef } = storeToRefs(authStore);
 const user = computed(() => userRef.value || {});
+const organizationScreens = computed(() => authStore.screenManifest
+    .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization'))
+    .sort((left, right) => organizationScreenOrder(left) - organizationScreenOrder(right)));
+const organizationOverviewScreen = computed(() => organizationScreens.value.find(screen => screen.screenKey === 'organization_overview') || organizationScreens.value[0] || null);
+const organizationRouteScreens = computed(() => organizationScreens.value.filter(screen => screen.route && screen.screenKey !== organizationOverviewScreen.value?.screenKey));
 
-const showBuyCredits = ref(false);
 const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
 
@@ -224,16 +196,31 @@ const getOrgName = (orgId) => {
     return org ? org.name : t('profile.unknownOrganization');
 };
 
+function systemScreenLabel(screen = {}) {
+    return generatedScreenLabel(screen, { t, te });
+}
+
+function organizationScreenOrder(screen = {}) {
+    const order = {
+        organization_overview: 0,
+        organization_billing: 1,
+        organization_team: 2,
+        organization_process: 3
+    };
+    return order[screen.screenKey || screen.id] ?? 100;
+}
+
 const orgForm = ref({
     name: '',
-    type: 'Contractor',
+    processTemplateId: 'contractor',
     email: user.value.email || '',
 });
 
-const orgTypeOptions = [
-    { label: t('auth.orgTypes.contractor'), value: 'Contractor' },
-    { label: t('auth.orgTypes.manufacturer'), value: 'Manufacturer' },
-    { label: t('auth.orgTypes.customer'), value: 'Customer' },
+const processTemplateOptions = [
+    { label: t('auth.processTemplates.contractor'), value: 'contractor' },
+    { label: t('auth.processTemplates.manufacturer'), value: 'manufacturer' },
+    { label: t('auth.processTemplates.customer'), value: 'customer' },
+    { label: t('auth.processTemplates.serviceProvider'), value: 'serviceProvider' },
 ];
 
 const createOrganization = async () => {
@@ -254,8 +241,8 @@ const createOrganization = async () => {
 const currentLocale = ref(locale.value);
 const availableLocales = computed(() => {
     return locales.value.map(l => ({
-        code: l.code || l,
-        name: l.name || l.toUpperCase()
+        code: selectOptionText(l?.code, l),
+        name: selectOptionText(l?.name, selectOptionText(l?.code, l).toUpperCase())
     }));
 });
 
@@ -270,16 +257,4 @@ const logoutHandler = async () => {
     router.push({ path: '/' });
 };
 
-const addCredits = async () => {
-    try {
-        const result = await $fetch('/api/user/add-test-credits', {
-            method: 'POST'
-        });
-        // Refresh user data to show new balance
-        await authStore.setUser();
-        console.log('Added 100 credits! New balance:', result.newBalance);
-    } catch (error) {
-        console.error('Failed to add credits:', error);
-    }
-};
 </script>

@@ -4,12 +4,18 @@
       <template #before-identity>
         <Avatar :label="avatarLabel" shape="circle" size="large" />
       </template>
-      <template #subtitle>
-        <small>{{ organization.data?.type || $t('common.default') }}</small>
+      <template #subtitle v-if="variant !== 'card'">
+        <div class="flex flex-wrap gap-2">
+          <Tag :value="organization.data?.type || $t('common.default')" severity="secondary" size="small" />
+          <Tag v-if="organization.identity?.slug" :value="organization.identity.slug" severity="info" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div v-if="organization.data?.email" class="mt-3 text-sm text-muted-color">{{ organization.data.email }}</div>
       </template>
       <Divider />
       <div class="flex flex-col gap-2">
-        <DataBlock :entity="organization" :fields="ORGANIZATION_FIELDS" />
+        <DataBlock entity-type="organization" :entity="organization" :fields="ORGANIZATION_FIELDS" />
         <div v-if="createdAt" class="flex justify-between items-center">
           <small>{{ $t('common.created') }}</small>
           <span>{{ createdAt }}</span>
@@ -26,8 +32,10 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
+import Tag from 'primevue/tag';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   organization: { type: Object, required: true },
@@ -36,11 +44,7 @@ const props = defineProps({
 
 const avatarLabel = computed(() => (props.organization.identity?.name || '?').charAt(0));
 
-const ORGANIZATION_FIELDS = [
-  { path: 'data.type', i18n: 'organization.type' },
-  { path: 'data.email', i18n: 'profile.email' },
-  { path: 'data.phone', i18n: 'profile.phone' }
-];
+const ORGANIZATION_FIELDS = resolveEntityDisplayFields({ entityType: 'organization', surface: 'card' });
 
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;

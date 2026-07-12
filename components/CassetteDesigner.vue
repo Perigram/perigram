@@ -17,7 +17,7 @@
                 <div class="flex flex-col gap-6">
                     <div class="flex justify-between items-center">
                         <small>{{ $t('cassette.parametersTitle') }}</small>
-                        <Button icon="pi pi-plus" text rounded @click="showAddParamDialog = true" />
+                        <Button icon="pi pi-plus" text rounded :aria-label="$t('common.add')" @click="showAddParamDialog = true" />
                     </div>
                     
                     <!-- Global Dimensions -->
@@ -57,7 +57,7 @@
                                     <Tag :value="ext.param" severity="info" />
                                     <small>{{ $t('cassette.edge') }} {{ ext.edge }}</small>
                                 </div>
-                                <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeExtrusion(idx)" />
+                                <Button icon="pi pi-trash" severity="danger" text rounded size="small" :aria-label="$t('common.delete')" @click="removeExtrusion(idx)" />
                             </div>
                             <Select 
                                 v-model="ext.param" 
@@ -79,7 +79,7 @@
             </div>
         </div>
 
-        <!-- Main Content: SVG Canvas -->
+        <!-- Main Content: Shared Drawing Canvas -->
         <div class="flex-1 relative overflow-hidden">
             <div v-if="!isReady" class="absolute inset-0 flex items-center justify-center z-20">
                 <div class="flex flex-col items-center gap-4">
@@ -88,81 +88,15 @@
                 </div>
             </div>
 
-            <!-- Canvas Toolbar -->
-            <div class="absolute top-6 right-6 z-10 flex flex-col gap-1">
-                <Button icon="pi pi-plus" @click="zoomInAtCenter" text rounded />
-                <Button icon="pi pi-minus" @click="zoomOutAtCenter" text rounded />
-                <Divider />
-                <Button icon="pi pi-expand" @click="resetView" text rounded />
-            </div>
-
-            <svg
-                ref="svgElement"
-                :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`"
-                :class="isPanning ? 'cursor-grabbing' : 'cursor-crosshair'"
-                class="w-full h-full"
-                @mousemove="handleMouseMove"
-                @mousedown="handleMouseDown"
-                @mouseup="handleMouseUp"
-                @mouseleave="handleMouseUp"
-                @wheel.prevent="handleWheel"
-            >
-                <defs>
-                    <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
-                        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="currentColor" class="opacity-10" />
-                    </pattern>
-                </defs>
-                <rect :x="viewBox.x" :y="viewBox.y" :width="viewBox.width" :height="viewBox.height" fill="url(#grid)" />
-
-                <!-- Extrusion Highlights -->
-                <g v-for="(ext, idx) in extrusionShapes" :key="`ext-${idx}`">
-                    <path 
-                        :d="ext.path" 
-                        fill="currentColor" 
-                        :class="highlightedIdx === idx ? 'opacity-20' : 'opacity-5'"
-                        style="pointer-events: none" 
-                    />
-                </g>
-
-                <!-- Union Polygon -->
-                <path v-if="currentPolygonPath" 
-                    :d="currentPolygonPath" 
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2" 
-                    stroke-linejoin="round"
-                />
-
-                <!-- Interactive Edges -->
-                <g v-for="(edge, idx) in currentPolygonEdges" :key="`edge-${idx}`">
-                    <line
-                        :x1="edge.x1"
-                        :y1="edge.y1"
-                        :x2="edge.x2"
-                        :y2="edge.y2"
-                        stroke="transparent"
-                        stroke-width="20"
-                        stroke-linecap="round"
-                        class="cursor-pointer"
-                        @mouseenter="hoveredEdge = idx"
-                        @mouseleave="hoveredEdge = null"
-                        @click.stop="showAddFaceDialog(idx, edge)"
-                    />
-                    
-                    <!-- Dimension Label -->
-                    <g :transform="`translate(${edge.midX}, ${edge.midY})`" class="pointer-events-none select-none">
-                        <rect 
-                            :x="-30" :y="-10" :width="60" :height="20" 
-                            rx="10" fill="currentColor" />
-                        <text 
-                            text-anchor="middle" dominant-baseline="middle" 
-                            class="fill-current text-xs"
-                        >
-                            {{ getEdgeAlias(idx) }}
-                        </text>
-                    </g>
-                </g>
-            </svg>
+            <DrawingCanvas
+                :source="canvasSource"
+                source-type="parametric-cassette"
+                mode="designer"
+                :highlighted-extrusion-index="highlightedIdx"
+                @ready="handleCanvasReady"
+                @error="handleCanvasError"
+                @designer-action="handleDesignerAction"
+            />
 
             <!-- Floating Type Selector -->
             <div
@@ -188,7 +122,7 @@
                         </div>
                     </Button>
                 </div>
-                <Button icon="pi pi-times" text rounded size="small" @click="addDialog.visible = false" class="absolute -top-2 -right-2 border" />
+                <Button icon="pi pi-times" text rounded size="small" :aria-label="$t('common.close')" @click="addDialog.visible = false" class="absolute -top-2 -right-2 border" />
             </div>
         </div>
         
@@ -215,7 +149,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted, reactive, computed, watch } from 'vue'
+    import { ref, reactive, computed, watch } from 'vue'
     import { useI18n } from 'vue-i18n'
     import Panel from 'primevue/panel'
     import Button from 'primevue/button'
@@ -229,12 +163,17 @@
     import Tag from 'primevue/tag'
     import { useToast } from 'primevue/usetoast'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
+    import DrawingCanvas from '~/components/shared/DrawingCanvas.vue'
 
     const { t } = useI18n()
     const props = defineProps({
         initialData: {
             type: Object,
             default: null
+        },
+        persist: {
+            type: Boolean,
+            default: true
         }
     })
 
@@ -243,7 +182,8 @@
 
     const DEFAULT_CASSETTE_GRAPH = {
         params: { A: 600, B: 600 },
-        extrusions: []
+        extrusions: [],
+        layers: {}
     }
 
     const isDesignerGraph = (value) => {
@@ -265,10 +205,14 @@
         const extrusions = Array.isArray(graph.extrusions)
             ? graph.extrusions
             : DEFAULT_CASSETTE_GRAPH.extrusions
+        const layers = graph.layers && typeof graph.layers === 'object'
+            ? graph.layers
+            : (graph.layerRoles && typeof graph.layerRoles === 'object' ? graph.layerRoles : DEFAULT_CASSETTE_GRAPH.layers)
 
         return {
             params: { ...DEFAULT_CASSETTE_GRAPH.params, ...params },
-            extrusions: extrusions.map(ext => ({ ...ext }))
+            extrusions: extrusions.map(ext => ({ ...ext })),
+            layers: { ...layers }
         }
     }
 
@@ -280,6 +224,7 @@
     const cassetteData = reactive({
         params: initialGraph.params,
         extrusions: initialGraph.extrusions,
+        layers: initialGraph.layers,
     })
 
     const showAddParamDialog = ref(false)
@@ -290,12 +235,12 @@
         cassetteName.value = initialData?.name || t('cassette.newCassette')
         cassetteData.params = graph.params
         cassetteData.extrusions = graph.extrusions
+        cassetteData.layers = graph.layers
     }
 
     watch(() => props.initialData, hydrateFromInitialData)
 
     // UI State
-    const hoveredEdge = ref(null)
     const highlightedIdx = ref(null)
     const addDialog = reactive({
         visible: false,
@@ -304,47 +249,19 @@
         edgeIndex: null,
     })
 
-    // Geometry Data
-    const currentPolygonPath = ref('')
-    const currentPolygonEdges = ref([])
-    const extrusionShapes = ref([])
-
-    // Viewport State
-    const svgElement = ref(null)
-    const viewBox = ref({ x: -1000, y: -1000, width: 2000, height: 2000 })
-    const isPanning = ref(false)
-    const panStart = ref({ x: 0, y: 0 })
-
     const availableParams = computed(() => Object.keys(cassetteData.params))
+    const canvasSource = computed(() => ({
+        params: { ...cassetteData.params },
+        extrusions: cassetteData.extrusions.map(ext => ({ ...ext })),
+        layers: { ...cassetteData.layers }
+    }))
 
-    onMounted(async () => {
-        try {
-            // This ensures the global engine is initialized
-            await (await import('~/utils/cassetteRenderer')).renderCassetteToSVG(cassetteData)
-            isReady.value = true
-            await rebuildAndEvaluate()
-        } catch (error) {
-            console.error('Initialization failed:', error)
-        }
+    watch(canvasSource, () => {
+        isReady.value = false
     })
 
     const rebuildAndEvaluate = async () => {
-        if (!process.client) return
-
-        try {
-            const result = await (await import('~/utils/cassetteRenderer')).renderCassetteToSVG(cassetteData)
-            if (!result) return
-
-            currentPolygonPath.value = result.path
-            currentPolygonEdges.value = extractEdges(result.vertices)
-            
-            // Map extrusion shapes from the rich result
-            extrusionShapes.value = result.allCurves
-                .filter(c => c.isExtrusion)
-                .map(c => ({ path: c.path }))
-        } catch (e) {
-            console.error('Designer Rebuild failed:', e)
-        }
+        isReady.value = false
     }
 
     const getParamType = (key) => {
@@ -358,68 +275,19 @@
         highlightedIdx.value = idx
     }
 
-    const extractEdges = (vertices) => {
-        return vertices.map((v, i) => {
-            const next = vertices[(i + 1) % vertices.length]
-            return {
-                x1: v[0],
-                y1: -v[1],
-                x2: next[0],
-                y2: -next[1],
-                midX: (v[0] + next[0]) / 2,
-                midY: -(v[1] + next[1]) / 2,
-            }
-        })
+    const handleCanvasReady = () => {
+        isReady.value = true
     }
 
-    const getEdgeAlias = (idx) => {
-        const edge = currentPolygonEdges.value[idx];
-        if (!edge) return '';
-        
-        const dx = edge.x2 - edge.x1;
-        const dy = edge.y2 - edge.y1;
-        const length = Math.round(Math.sqrt(dx*dx + dy*dy));
-        
-        // Find best matching parameter
-        let bestMatch = null;
-        let minDiff = 2;
-        
-        for (const [key, val] of Object.entries(cassetteData.params)) {
-            const diff = Math.abs(val - length);
-            if (diff < minDiff) {
-                minDiff = diff;
-                bestMatch = key;
-            }
-        }
-        
-        if (bestMatch) return `${bestMatch}: ${length}`;
-        return `${length}`;
+    const handleCanvasError = (error) => {
+        isReady.value = true
+        console.error('Designer canvas failed:', error)
     }
 
-    const showAddFaceDialog = (edgeIndex, edge) => {
-        if (!svgElement.value) return
-        const svg = svgElement.value
-        const pt = svg.createSVGPoint()
-        pt.x = edge.midX
-        pt.y = edge.midY
-        const screenPt = pt.matrixTransform(svg.getScreenCTM())
-
-        // Adjust positioning to keep within screen
-        let x = screenPt.x
-        let y = screenPt.y
-
-        const padding = 100
-        const viewportWidth = window.innerWidth
-        const viewportHeight = window.innerHeight
-
-        if (x < padding) x = padding
-        if (x > viewportWidth - padding) x = viewportWidth - padding
-        if (y < padding) y = padding
-        if (y > viewportHeight - padding) y = viewportHeight - padding
-
+    const handleDesignerAction = ({ edgeIndex, screenX, screenY }) => {
         addDialog.visible = true
-        addDialog.screenX = x
-        addDialog.screenY = y
+        addDialog.screenX = screenX
+        addDialog.screenY = screenY
         addDialog.edgeIndex = edgeIndex
     }
 
@@ -496,83 +364,19 @@
                 }
             }
 
+            if (!props.persist) {
+                toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 })
+                emit('saved', body)
+                return
+            }
+
             await $fetch('/api/commands/saveCassetteTemplate/run', { method: 'POST', body })
             
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 })
-            emit('saved')
+            emit('saved', body)
         } catch (e) {
             toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.saveFailed'), life: 3000 })
         }
     }
 
-    // Viewport Controls
-    const getPointFromEvent = (event) => {
-        const svg = svgElement.value
-        const pt = svg.createSVGPoint()
-        pt.x = event.clientX
-        pt.y = event.clientY
-        return pt.matrixTransform(svg.getScreenCTM().inverse())
-    }
-
-    const handleWheel = (event) => {
-        const svg = svgElement.value
-        const mousePoint = getPointFromEvent(event)
-        
-        const zoomFactor = event.deltaY > 0 ? 1.1 : 0.9
-        
-        const newWidth = viewBox.value.width * zoomFactor
-        const newHeight = viewBox.value.height * zoomFactor
-        
-        // Calculate new X and Y to zoom into mouse point
-        const dx = (mousePoint.x - viewBox.value.x) * (zoomFactor - 1)
-        const dy = (mousePoint.y - viewBox.value.y) * (zoomFactor - 1)
-        
-        viewBox.value = {
-            x: viewBox.value.x - dx,
-            y: viewBox.value.y - dy,
-            width: newWidth,
-            height: newHeight
-        }
-    }
-
-    const zoomInAtCenter = () => {
-        const zoomFactor = 0.8
-        const newWidth = viewBox.value.width * zoomFactor
-        const newHeight = viewBox.value.height * zoomFactor
-        const dx = (viewBox.value.width - newWidth) / 2
-        const dy = (viewBox.value.height - newHeight) / 2
-        viewBox.value = { x: viewBox.value.x + dx, y: viewBox.value.y + dy, width: newWidth, height: newHeight }
-    }
-
-    const zoomOutAtCenter = () => {
-        const zoomFactor = 1.25
-        const newWidth = viewBox.value.width * zoomFactor
-        const newHeight = viewBox.value.height * zoomFactor
-        const dx = (viewBox.value.width - newWidth) / 2
-        const dy = (viewBox.value.height - newHeight) / 2
-        viewBox.value = { x: viewBox.value.x + dx, y: viewBox.value.y + dy, width: newWidth, height: newHeight }
-    }
-
-    const resetView = () => {
-        viewBox.value = { x: -1000, y: -1000, width: 2000, height: 2000 };
-    }
-
-    const handleMouseDown = (event) => {
-        if (event.button === 0 && event.shiftKey) {
-            isPanning.value = true
-            panStart.value = { x: event.clientX, y: event.clientY }
-            event.preventDefault()
-        }
-    }
-
-    const handleMouseMove = (event) => {
-        if (isPanning.value) {
-            const dx = (event.clientX - panStart.value.x) * (viewBox.value.width / svgElement.value.clientWidth)
-            const dy = (event.clientY - panStart.value.y) * (viewBox.value.height / svgElement.value.clientHeight)
-            viewBox.value.x -= dx; viewBox.value.y -= dy;
-            panStart.value = { x: event.clientX, y: event.clientY };
-        }
-    }
-
-    const handleMouseUp = () => (isPanning.value = false)
 </script>

@@ -7,15 +7,16 @@
       <Divider />
       <div class="grid grid-cols-1 gap-4">
         <CassetteThumbnail :cassette="template" />
-        <DataBlock :entity="templateForDisplay" :fields="TEMPLATE_FIELDS" />
-      </div>
-      <div v-if="templateParameters.length" class="flex flex-wrap gap-2 mt-4">
-        <Tag v-for="param in templateParameters" :key="param" :value="param" severity="secondary" size="small" />
+        <DataBlock entity-type="cassetteTemplate" :entity="templateForDisplay" :fields="TEMPLATE_FIELDS" />
+        <div v-if="geometryRevisionId" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('revision.currentGeometry') }}</small>
+          <EntityInlineRef type="entityRevision" :id="geometryRevisionId" />
+        </div>
       </div>
       <template #footer>
         <div class="flex gap-2">
-          <Button :label="$t('cassetteInstance.create')" icon="pi pi-plus" text size="small" class="flex-1" @click="emit('create-instance', template)" />
-          <Button icon="pi pi-download" text size="small" @click="emit('download', template)" />
+          <Button :label="$t('cassetteDesign.createFromTemplate')" icon="pi pi-sitemap" text size="small" class="flex-1" @click="emit('create-design', template)" />
+          <Button icon="pi pi-download" text size="small" :aria-label="$t('common.download')" @click="emit('download', template)" />
         </div>
       </template>
     </EntityCard>
@@ -27,28 +28,30 @@
  * Cassette Template View Component - v24 Standardized
  */
 import Divider from 'primevue/divider';
-import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const TEMPLATE_FIELDS = [
-    { path: 'data.parameters.length', i18n: 'cassette.parametersTitle' }
-];
+const TEMPLATE_FIELDS = resolveEntityDisplayFields({ entityType: 'cassetteTemplate', surface: 'card' })
+    .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 
 const props = defineProps({
   template: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
 
-const emit = defineEmits(['create-instance', 'download']);
+const emit = defineEmits(['create-design', 'download']);
 
+const definition = computed(() => props.template.data?.definition || {});
 const templateParameters = computed(() => {
-    const raw = props.template.data?.parameters || [];
+    const raw = props.template.data?.parameters || definition.value.parameters || [];
     return Array.isArray(raw) ? raw : Object.keys(raw);
 });
+const geometryRevisionId = computed(() => props.template.data?.revisions?.geometry?.currentId || null);
 const templateForDisplay = computed(() => ({
     ...props.template,
     data: {

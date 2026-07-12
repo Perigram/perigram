@@ -1,14 +1,28 @@
 <template>
   <div>
-    <EntityCard :entity="design" entity-type="cassette_design" :variant="variant" :show-trace="false" :show-status="false">
-      <template #subtitle>
-        <Badge v-if="parameterCount" :value="parameterCount" severity="secondary" size="small" />
+    <EntityCard :entity="design" entity-type="cassette_design" :variant="variant" :show-status="false">
+      <template #before-identity>
+        <i class="pi pi-cog"></i>
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
-        <CassetteThumbnail :cassette="design" />
-        <DataBlock :entity="design" :fields="DESIGN_FIELDS" />
+        <CassetteThumbnail :cassette="design" prefer-geometry />
+        <div v-if="revisionId" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('revision.sourceRevision') }}</small>
+          <EntityInlineRef type="entityRevision" :id="revisionId" />
+        </div>
       </div>
+      <template #footer>
+        <div class="flex justify-end">
+          <Button
+            icon="pi pi-download"
+            text
+            size="small"
+            :aria-label="$t('cassetteDesign.downloadDxf')"
+            @click="downloadDxf"
+          />
+        </div>
+      </template>
     </EntityCard>
   </div>
 </template>
@@ -19,21 +33,22 @@
  * CassetteDesign has no status — uses EntityCard with status disabled.
  */
 import { computed } from 'vue';
-import Badge from 'primevue/badge';
 import Divider from 'primevue/divider';
+import Button from 'primevue/button';
 import EntityCard from '~/components/shared/EntityCard.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 
 const props = defineProps({
   design: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
 
-const DESIGN_FIELDS = [
-  { path: 'data.parameters.A', i18n: 'cassette.rootDim', suffix: ' mm' },
-  { path: 'data.parameters.C', i18n: 'cassette.faceDepth', suffix: ' mm' }
-];
+const revisionId = computed(() => props.design.data?.derivedFrom?.revisionId || null);
 
-const parameterCount = computed(() => Object.keys(props.design.data?.parameters || {}).length);
+const downloadDxf = () => {
+  if (!props.design?._id || !import.meta.client) return;
+  window.location.href = `/api/cassette-designs/${encodeURIComponent(props.design._id)}/export`;
+};
+
 </script>

@@ -1,11 +1,13 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
+import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
 import {
   contextEntityOptions,
   contextToScenario,
   createWorkbenchContext,
   findContextEntity,
   normalizeWorkbenchContext,
+  transitionContextEntityStatus,
   upsertContextEntities
 } from '~/test-data/workbench-context.js';
 
@@ -33,7 +35,12 @@ export const useWorkbenchFixturesStore = defineStore('workbenchFixtures', () => 
   }
 
   async function seed({ workflows, entities, commands } = {}) {
-    const compiled = rebuild({ workflows, entities, commands });
+    const compiled = compileWorkflowDraft({ entities, workflows });
+    context.value = normalizeWorkbenchContext({
+      ...context.value,
+      workflows: compiled
+    });
+    error.value = compiled.ok ? '' : compiled.issues?.map(issue => issue.message).join('\n');
     if (!compiled.ok) return { ok: false, issues: compiled.issues };
 
     loading.value = true;
@@ -65,6 +72,11 @@ export const useWorkbenchFixturesStore = defineStore('workbenchFixtures', () => 
     context.value = upsertContextEntities(context.value, entities);
   }
 
+  function transitionEntityStatus(type, id, state, options = {}) {
+    context.value = transitionContextEntityStatus(context.value, { type, id, state, ...options });
+    return findContextEntity(context.value, type, id);
+  }
+
   function entity(type, id) {
     return findContextEntity(context.value, type, id);
   }
@@ -84,6 +96,7 @@ export const useWorkbenchFixturesStore = defineStore('workbenchFixtures', () => 
     seed,
     defaultsForAction,
     upsertEntities,
+    transitionEntityStatus,
     entity
   };
 });

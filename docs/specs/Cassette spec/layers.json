@@ -1,0 +1,449 @@
+{
+  "occsLayerRegistry": "0.1",
+  "id": "occs-default-layers-ru",
+  "description": "Default OCCS layer registry with canonical English IDs and Russian CAD aliases.",
+  "idConvention": "lowercase dot-separated English identifiers; aliases preserve CAD/local layer names",
+  "layers": [
+    {
+      "id": "contour.prefix",
+      "group": "contour",
+      "kind": "group",
+      "purpose": "layer_group_prefix",
+      "production": false,
+      "allowedGeometry": [],
+      "aliases": [
+        "1_0_Контуры________________Префикс"
+      ],
+      "defaultExport": {
+        "dxfLayer": "1_0_Контуры________________Префикс",
+        "svgClass": "occs-contour-prefix"
+      },
+      "description": "Prefix/group layer for contour-related geometry. Not normally used for entities."
+    },
+    {
+      "id": "contour.cassette_face",
+      "group": "contour",
+      "kind": "reference",
+      "purpose": "visible_cassette_face_contour",
+      "production": false,
+      "allowedGeometry": [
+        "polygon",
+        "path"
+      ],
+      "aliases": [
+        "1_1_Лицо_Кассеты"
+      ],
+      "defaultExport": {
+        "dxfLayer": "1_1_Лицо_Кассеты",
+        "svgClass": "occs-contour-cassette-face"
+      },
+      "description": "Contour of the cassette face/visible face in façade view."
+    },
+    {
+      "id": "contour.flat_pattern.face_and_returns",
+      "group": "contour",
+      "kind": "reference",
+      "purpose": "flat_pattern_face_and_returns_contour",
+      "production": false,
+      "allowedGeometry": [
+        "polygon",
+        "path"
+      ],
+      "aliases": [
+        "1_2_Развертка кассеты_Лицо+подгибы"
+      ],
+      "defaultExport": {
+        "dxfLayer": "1_2_Развертка кассеты_Лицо+подгибы",
+        "svgClass": "occs-contour-flat-pattern"
+      },
+      "description": "Contour of the cassette flat pattern, including face and folded returns."
+    },
+    {
+      "id": "contour.flat_pattern.offset_envelope",
+      "group": "contour",
+      "kind": "reference",
+      "purpose": "flat_pattern_offset_envelope",
+      "production": false,
+      "allowedGeometry": [
+        "polygon",
+        "path"
+      ],
+      "aliases": [
+        "1_3_Габарит развертки_  + Ǿ фрезы"
+      ],
+      "defaultExport": {
+        "dxfLayer": "1_3_Габарит развертки_  + Ǿ фрезы",
+        "svgClass": "occs-contour-offset-envelope"
+      },
+      "parameters": {
+        "toolOffset": {
+          "mode": "outside",
+          "value": "toolOffset"
+        }
+      },
+      "description": "Offset/envelope contour of the flat pattern. Concrete tool allowance is resolved in design/export data."
+    },
+    {
+      "id": "contour.material_sheet",
+      "group": "contour",
+      "kind": "reference",
+      "purpose": "material_sheet_boundary",
+      "production": false,
+      "allowedGeometry": [
+        "polygon"
+      ],
+      "aliases": [
+        "1_4_Лист материала_Цвет_№ партии"
+      ],
+      "defaultExport": {
+        "dxfLayer": "1_4_Лист материала_Цвет_№ партии",
+        "svgClass": "occs-contour-material-sheet"
+      },
+      "description": "Boundary of the source material sheet, usually with color and batch metadata."
+    },
+    {
+      "id": "contour.nesting_field",
+      "group": "contour",
+      "kind": "reference",
+      "purpose": "nesting_batch_field_boundary",
+      "production": false,
+      "allowedGeometry": [
+        "polygon"
+      ],
+      "aliases": [
+        "1_5_Поле партии раскроя_№"
+      ],
+      "defaultExport": {
+        "dxfLayer": "1_5_Поле партии раскроя_№",
+        "svgClass": "occs-contour-nesting-field"
+      },
+      "description": "Boundary or field of a cutting/nesting batch."
+    },
+    {
+      "id": "cut.prefix",
+      "group": "cut",
+      "kind": "group",
+      "purpose": "layer_group_prefix",
+      "production": false,
+      "allowedGeometry": [],
+      "aliases": [
+        "2_0_Обрезка_____________Ǿ  Фрезы"
+      ],
+      "defaultExport": {
+        "dxfLayer": "2_0_Обрезка_____________Ǿ  Фрезы",
+        "svgClass": "occs-cut-prefix"
+      },
+      "description": "Prefix/group layer for through-cut geometry. Not normally used for entities."
+    },
+    {
+      "id": "cut.outer",
+      "group": "cut",
+      "kind": "production",
+      "purpose": "outer_through_cut",
+      "production": true,
+      "allowedGeometry": [
+        "polygon",
+        "path",
+        "circle"
+      ],
+      "aliases": [
+        "2_1_Обрезь_3,15"
+      ],
+      "defaultExport": {
+        "dxfLayer": "2_1_Обрезь_3,15",
+        "svgClass": "occs-cut-outer"
+      },
+      "parameters": {
+        "cutType": "through",
+        "toolOffset": {
+          "mode": "outside",
+          "value": "toolOffset"
+        }
+      },
+      "description": "Outer through-cut contour. CAD aliases may include shop-specific tool diameter text."
+    },
+    {
+      "id": "cut.inner",
+      "group": "cut",
+      "kind": "production",
+      "purpose": "inner_through_cut",
+      "production": true,
+      "allowedGeometry": [
+        "polygon",
+        "path",
+        "circle"
+      ],
+      "aliases": [],
+      "defaultExport": {
+        "dxfLayer": "CUT_INNER",
+        "svgClass": "occs-cut-inner"
+      },
+      "parameters": {
+        "cutType": "through",
+        "toolOffset": {
+          "mode": "inside",
+          "value": "toolOffset"
+        }
+      },
+      "description": "Inner through-cut contour for openings and cutouts."
+    },
+    {
+      "id": "cut.hole",
+      "group": "cut",
+      "kind": "production",
+      "purpose": "through_cut_hole",
+      "production": true,
+      "allowedGeometry": [
+        "circle",
+        "polygon"
+      ],
+      "aliases": [
+        "2_2_Отверстие_5"
+      ],
+      "defaultExport": {
+        "dxfLayer": "2_2_Отверстие_5",
+        "svgClass": "occs-cut-hole-d5"
+      },
+      "parameters": {
+        "cutType": "through",
+        "toolOffset": {
+          "mode": "inside",
+          "value": "toolOffset"
+        }
+      },
+      "description": "Through-cut hole. Hole diameter belongs to entity geometry or exact design parameters."
+    },
+    {
+      "id": "fold.prefix",
+      "group": "fold",
+      "kind": "group",
+      "purpose": "layer_group_prefix",
+      "production": false,
+      "allowedGeometry": [],
+      "aliases": [
+        "3_0_Загиб______________↓ Угол Фрезы"
+      ],
+      "defaultExport": {
+        "dxfLayer": "3_0_Загиб______________↓ Угол Фрезы",
+        "svgClass": "occs-fold-prefix"
+      },
+      "description": "Prefix/group layer for fold, routing, and engraving operations. Not normally used for entities."
+    },
+    {
+      "id": "fold.route",
+      "group": "fold",
+      "kind": "production",
+      "purpose": "fold_routing",
+      "production": true,
+      "allowedGeometry": [
+        "path"
+      ],
+      "aliases": [
+        "3_1_Фрезеровка_90"
+      ],
+      "defaultExport": {
+        "dxfLayer": "3_1_Фрезеровка_90",
+        "svgClass": "occs-fold-route"
+      },
+      "parameters": {
+        "routeType": "v_groove",
+        "toolOffset": {
+          "mode": "centerline",
+          "value": 0
+        }
+      },
+      "description": "Routing/V-groove layer for a fold. Fold angle belongs to fold.angle or exact design data."
+    },
+    {
+      "id": "fold.engrave",
+      "group": "fold",
+      "kind": "production",
+      "purpose": "engraving_or_marking_line",
+      "production": true,
+      "allowedGeometry": [
+        "path",
+        "text",
+        "polygon"
+      ],
+      "aliases": [
+        "3_2_Гравировка _"
+      ],
+      "defaultExport": {
+        "dxfLayer": "3_2_Гравировка _",
+        "svgClass": "occs-fold-engrave"
+      },
+      "description": "Engraving/marking layer."
+    },
+    {
+      "id": "fold.reserved",
+      "group": "fold",
+      "kind": "reserved",
+      "purpose": "reserved_future_fold_operation",
+      "production": false,
+      "allowedGeometry": [
+        "path",
+        "polygon",
+        "circle",
+        "text"
+      ],
+      "aliases": [
+        "3_3__"
+      ],
+      "defaultExport": {
+        "dxfLayer": "3_3__",
+        "svgClass": "occs-fold-reserved"
+      },
+      "description": "Reserved layer slot for future fold/routing operation."
+    },
+    {
+      "id": "code.prefix",
+      "group": "code",
+      "kind": "group",
+      "purpose": "layer_group_prefix",
+      "production": false,
+      "allowedGeometry": [],
+      "aliases": [
+        "4_0_Кодификатор_____________Префикс"
+      ],
+      "defaultExport": {
+        "dxfLayer": "4_0_Кодификатор_____________Префикс",
+        "svgClass": "occs-code-prefix"
+      },
+      "description": "Prefix/group layer for text codes and production identifiers. Not normally used for entities."
+    },
+    {
+      "id": "code.cassette_mark",
+      "group": "code",
+      "kind": "annotation",
+      "purpose": "cassette_identifier_mark",
+      "production": true,
+      "allowedGeometry": [
+        "text",
+        "path",
+        "polygon"
+      ],
+      "aliases": [
+        "4_1_Марка_Кассета"
+      ],
+      "defaultExport": {
+        "dxfLayer": "4_1_Марка_Кассета",
+        "svgClass": "occs-code-cassette-mark"
+      },
+      "description": "Cassette mark/identifier for production and installation."
+    },
+    {
+      "id": "code.batch_number",
+      "group": "code",
+      "kind": "annotation",
+      "purpose": "cutting_batch_number",
+      "production": true,
+      "allowedGeometry": [
+        "text"
+      ],
+      "aliases": [
+        "4_2_№  партии_раскроя"
+      ],
+      "defaultExport": {
+        "dxfLayer": "4_2_№  партии_раскроя",
+        "svgClass": "occs-code-batch-number"
+      },
+      "description": "Cutting/nesting batch number."
+    },
+    {
+      "id": "code.paint_direction",
+      "group": "code",
+      "kind": "annotation",
+      "purpose": "paint_or_grain_direction",
+      "production": true,
+      "allowedGeometry": [
+        "path",
+        "text",
+        "polygon"
+      ],
+      "aliases": [
+        "4_3_Направление_Покраски"
+      ],
+      "defaultExport": {
+        "dxfLayer": "4_3_Направление_Покраски",
+        "svgClass": "occs-code-paint-direction"
+      },
+      "description": "Paint, grain, or coating direction mark."
+    },
+    {
+      "id": "dimension.prefix",
+      "group": "dimension",
+      "kind": "group",
+      "purpose": "layer_group_prefix",
+      "production": false,
+      "allowedGeometry": [],
+      "aliases": [
+        "5_0_Размеры_______________Префикс"
+      ],
+      "defaultExport": {
+        "dxfLayer": "5_0_Размеры_______________Префикс",
+        "svgClass": "occs-dimension-prefix"
+      },
+      "description": "Prefix/group layer for dimensions. Not normally used for entities."
+    },
+    {
+      "id": "dimension.cassette",
+      "group": "dimension",
+      "kind": "annotation",
+      "purpose": "cassette_dimension_annotation",
+      "production": false,
+      "allowedGeometry": [
+        "dimension",
+        "text",
+        "path"
+      ],
+      "aliases": [
+        "5_1_Размер_Кассета"
+      ],
+      "defaultExport": {
+        "dxfLayer": "5_1_Размер_Кассета",
+        "svgClass": "occs-dimension-cassette"
+      },
+      "description": "Dimensions of the finished cassette."
+    },
+    {
+      "id": "dimension.material_sheet",
+      "group": "dimension",
+      "kind": "annotation",
+      "purpose": "material_sheet_dimension_annotation",
+      "production": false,
+      "allowedGeometry": [
+        "dimension",
+        "text",
+        "path"
+      ],
+      "aliases": [
+        "5_2_Размер_Лист"
+      ],
+      "defaultExport": {
+        "dxfLayer": "5_2_Размер_Лист",
+        "svgClass": "occs-dimension-material-sheet"
+      },
+      "description": "Dimensions of the material sheet."
+    },
+    {
+      "id": "dimension.envelope",
+      "group": "dimension",
+      "kind": "annotation",
+      "purpose": "overall_envelope_dimension_annotation",
+      "production": false,
+      "allowedGeometry": [
+        "dimension",
+        "text",
+        "path"
+      ],
+      "aliases": [
+        "5_3_Размер_Габарит"
+      ],
+      "defaultExport": {
+        "dxfLayer": "5_3_Размер_Габарит",
+        "svgClass": "occs-dimension-envelope"
+      },
+      "description": "Overall envelope dimensions."
+    }
+  ]
+}

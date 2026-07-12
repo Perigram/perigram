@@ -46,7 +46,6 @@ describe('Remnants & Reusability Logic', () => {
   const mockUser = {
     userId: 'user1',
     organizationId: new ObjectId(),
-    role: 'ContractorAdmin',
     memberships: null,
     permissions: null
   };
@@ -71,7 +70,7 @@ describe('Remnants & Reusability Logic', () => {
       warehouseId: warehouseId.toString(),
       geometryDxf: new ObjectId().toString(),
       area: 0.15 
-    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
+    }, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
     expect(large.isReusable).toBe(true);
 
     const small = await remnantService.create({
@@ -79,7 +78,7 @@ describe('Remnants & Reusability Logic', () => {
       warehouseId: warehouseId.toString(),
       geometryDxf: new ObjectId().toString(),
       area: 0.05 
-    }, mockUser.userId, mockUser.organizationId, mockUser.role, mockUser.permissions);
+    }, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
     expect(small.isReusable).toBe(false);
   });
 
@@ -104,7 +103,7 @@ describe('Remnants & Reusability Logic', () => {
     const queueId = new ObjectId();
     const result = await remnantService.markAsUsed(remnantId.toString(), queueId.toString(), mockUser);
     
-    expect(result.status.state).toBe('USED');
+    expect(result.status.state.primary).toBe('USED');
     expect(result.usedInQueueId.toString()).toBe(queueId.toString());
 
     const wh = await db.collection('warehouses').findOne({ _id: warehouseId });

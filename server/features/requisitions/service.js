@@ -3,9 +3,11 @@ import * as catalogRepository from '../catalogs/repository.js';
 import * as colorRepository from '../colors/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
+import { hasPermissionGrant } from '#shared/access-control.js';
 import { ObjectId } from 'mongodb';
 import { createIdentity, createStatus, inheritLineage, createData } from '~/server/core/blocks/index.js';
-import { statusService } from '~/server/core/machines/service';
+import { createTransitionAuth, statusService } from '~/server/core/machines/service';
+import { toFlexibleId } from '~/server/utils/objectid.js';
 
 /**
  * Requisitions Service - v24 Standardized
@@ -26,10 +28,6 @@ function toDTO(requisition) {
 }
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
-  if (userRole?.includes('Manufacturer')) {
-    throw createError({ statusCode: 403, message: 'Only contractors can create requisitions' });
-  }
-
   if (!data.manufacturerId || !data.items || data.items.length === 0) {
     throw createError({ statusCode: 400, message: 'ManufacturerId and items required' });
   }
@@ -64,9 +62,9 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     origin,
     status: origin,
     lineage: {
-      organizationId: new ObjectId(userOrg),
-      manufacturerId: new ObjectId(data.manufacturerId),
-      projectId: data.projectId ? new ObjectId(data.projectId) : null
+      organizationId: toFlexibleId(userOrg),
+      manufacturerId: toFlexibleId(data.manufacturerId),
+      projectId: data.projectId ? toFlexibleId(data.projectId) : null
     },
     data: createData({
       items: snapshotItems,
@@ -75,7 +73,15 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   };
 
   // Verify permissions
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisitionData.lineage, 'requisitions', 'write')) {
+  if (!hasPermissionGrant({
+    permissions: permissionsForOrganization(userPermissions, userOrg),
+    feature: 'requisitions',
+    action: 'create',
+    entity: { lineage: requisitionData.lineage }
+  })) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  if (!hasLineagePermission(userPermissions, requisitionData.lineage, 'requisitions', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
@@ -83,13 +89,30 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   return toDTO(requisition);
 }
 
+function permissionsForOrganization(auth = {}, organizationId) {
+  if (auth.effectivePermissions) return auth.effectivePermissions;
+  const membership = (auth.memberships || []).find(item => item.organizationId?.toString() === organizationId?.toString());
+  return membership?.permissions || auth.permissions || {};
+}
+
+function lineageMatchValues(value) {
+  const flexible = toFlexibleId(value);
+  const values = [flexible];
+  const stringValue = value?.toString?.() || value;
+  if (stringValue && !values.some(entry => entry?.toString?.() === stringValue)) {
+    values.push(stringValue);
+  }
+  return values;
+}
+
 export async function list(userId, userOrg, userRole, userPermissions) {
-  const filter = getLineageFilter({ memberships: userPermissions.memberships, role: userRole });
+  const filter = { ...getLineageFilter(userPermissions) };
+  delete filter['lineage.organizationId'];
   // Add specific filter to see either as contractor (organizationId) or manufacturer (manufacturerId)
-  const orgId = new ObjectId(userOrg);
+  const orgIds = lineageMatchValues(userOrg);
   filter.$or = [
-    { 'lineage.organizationId': orgId },
-    { 'lineage.manufacturerId': orgId }
+    { 'lineage.organizationId': { $in: orgIds } },
+    { 'lineage.manufacturerId': { $in: orgIds } }
   ];
   
   const requisitions = await repository.find(filter);
@@ -100,7 +123,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions) {
   const requisition = await repository.findById(id);
   if (!requisition) throw createError({ statusCode: 404, message: 'Requisition not found' });
   
-  if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisition.lineage, 'requisitions', 'read')) {
+  if (!hasLineagePermission(userPermissions, requisition.lineage, 'requisitions', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
@@ -111,12 +134,12 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
     const requisition = await repository.findById(id);
     if (!requisition) throw createError({ statusCode: 404, message: 'Requisition not found' });
     
-    if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisition.lineage, 'requisitions', 'write')) {
+    if (!hasLineagePermission(userPermissions, requisition.lineage, 'requisitions', 'write')) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
     }
 
     if (updates.status) {
-        await statusService.transition('requisition', requisition._id, updates.status, userId, userRole, updates.statusMeta || {});
+        await statusService.transition('requisition', requisition._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
         delete updates.status;
     }
 
@@ -137,13 +160,12 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
 export async function transition(id, targetState, metadata, userId, userOrg, userRole, userPermissions) {
     const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
-    return await statusService.transition('requisition', requisition._id, targetState, userId, {
-        userId,
+    return await statusService.transition('requisition', requisition._id, targetState, userId, createTransitionAuth(userId, userRole, {
         organizationId: userOrg,
-        role: userRole,
         memberships: userPermissions?.memberships || [],
+        effectivePermissions: userPermissions?.effectivePermissions || null,
         permissions: userPermissions?.permissions || {}
-    }, metadata);
+    }), metadata);
 }
 
 export async function send(id, userId, userOrg, userRole, userPermissions) {
@@ -173,7 +195,7 @@ export async function cancel(id, userId, userOrg, userRole, userPermissions) {
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
     const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
-    if (!hasLineagePermission({ memberships: userPermissions.memberships, role: userRole }, requisition.lineage, 'requisitions', 'admin')) {
+    if (!hasLineagePermission(userPermissions, requisition.lineage, 'requisitions', 'admin')) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
     }
     return await repository.deleteById(id);

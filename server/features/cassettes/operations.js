@@ -1,11 +1,12 @@
 import * as cassetteService from './service.js';
+import { occsParameterNames } from '#utils/occs/parameters.js';
 
 export async function saveCassetteTemplate({ entities = {}, parameters = {}, auth }) {
   const body = {
     name: parameters.name,
     type: parameters.type || 'PARAMETRIC',
-    data: parameters.definition,
-    parameters: parameters.parameters || Object.keys(parameters.definition?.params || {})
+    definition: parameters.definition,
+    parameters: parameters.parameters || occsParameterNames(parameters.definition || {})
   };
 
   const cassetteId = entities.cassette?._id;
@@ -15,6 +16,10 @@ export async function saveCassetteTemplate({ entities = {}, parameters = {}, aut
 
   return {
     entities: [{ type: 'cassette', id: cassette._id.toString() }],
+    events: [{
+      type: 'cassette.templateSaved',
+      source: { type: 'cassette', id: cassette._id.toString() }
+    }],
     data: { cassetteId: cassette._id.toString() }
   };
 }

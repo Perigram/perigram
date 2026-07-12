@@ -7,18 +7,43 @@ Vue components for displaying and interacting with `Project` entities.
 | File | Purpose |
 |---|---|
 | `ProjectCard.vue` | Card display for a project entity — supports `card`, `compact`, `inline` variants via `EntityCard` chrome |
+| `ProjectIndexCard.vue` | `/projects` workcard composed from `EntityCard`, thumbnail/visual area, app workspace surface facts, queue preview tiles, a metrics/action rail, and footer edit/delete actions |
 | `ProjectDetail.vue` | Expanded detail view with queues list and summary sidebar |
 
 ## ProjectCard
 
-Props: `project` (Object, required), `variant` (String, default `'card'`).
-Emits: `view`, `edit`, `delete`.
+Props: `project` (Object, required), `variant` (String, default `'card'`),
+`renaming` (Boolean, default `false`).
+Emits: `view`, `rename`, `delete`.
 
 - Delegates chrome (TraceChain, IdentityBlock, EntityStatus) to `EntityCard`.
-- Card header: optional `data.thumbnailUrl` image when a project DTO provides one.
-- Card body: `DataBlock` with `summary.queueCount` — populated by the centralized aggregator (`server/core/machines/aggregator.js`) when queues are created — plus optional `data.address` text.
-- Footer: edit `Button` gated by `authStore.can('projects', 'edit')`.
-- Delete is passed to `EntityCard` as a `statusActions` menu action so destructive commands stay in the shared status/action surface.
+- Card body: `EntitySurfaceContent` using the app `workspace` surface from
+  `utils/app-entity-surfaces.js`. That surface layers `data.address`,
+  `summary.queueCount`, and `summary.totalArea` onto the core project display
+  contract while preserving field-access filtering.
+- Footer: `NameEditPopover` gated by `authStore.can('projects', 'edit')`
+  for compact single-field project renames. The optional `renaming` prop drives
+  the popover save loading state without coupling it to create dialogs.
+- Delete is rendered in the project card footer so the shared status surface stays limited to lifecycle actions.
+
+## ProjectIndexCard
+
+Props: `project` (Object, required), `renaming` (Boolean, default `false`).
+Emits: `view`, `rename`, `delete`.
+
+- Used only by `pages/projects/index.vue` so the project list can combine
+  canonical `EntityCard` chrome and app workspace facts with the project-list
+  queue preview payload.
+- Renders identity/status through `EntityCard`, a thumbnail or folder visual,
+  project facts through `EntitySurfaceContent` with the app `workspace`
+  surface, recent queue tiles in the body, a right-side metrics/open rail, and
+  permission-gated rename/delete actions in the footer.
+- Reads `/api/project` `summary.queuePreview` to show compact recent queue
+  details in the row body: status, cassette item count, requested quantity, run
+  count, generated sheet count, and selected stock count. This preview is
+  attached by the project list API so cards do not fetch queues independently.
+- Uses the same click target guard as other entity cards so footer controls do
+  not trigger card navigation.
 
 ## ProjectDetail
 

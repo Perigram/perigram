@@ -22,6 +22,22 @@ export const cncServiceContracts = {
     outputs: ['cassette', 'cassette_design'],
     actions: ['saveCassetteTemplate'],
     triggers: ['cassette.templateSaved']
+  },
+  configBot: {
+    service: 'configBot',
+    label: 'ConfigBot draft generator',
+    inputs: [],
+    outputs: [],
+    actions: ['generateConfigBotDraft', 'reindexConfigBotKnowledge'],
+    triggers: []
+  },
+  geometryCapture: {
+    service: 'geometry-captures',
+    label: 'Geometry capture vision service',
+    inputs: ['geometry_capture'],
+    outputs: ['geometry_capture', 'remnant'],
+    actions: [],
+    triggers: ['geometryCapture.photoUploaded']
   }
 };
 
@@ -58,12 +74,15 @@ export const cncCommands = {
     input: {
       entities: [{ name: 'queue', type: 'queue', required: true }],
       parameters: [
-        { name: 'materialMode', label: 'Material mode', type: 'enum', options: ['VIRTUAL', 'INVENTORY'], default: 'VIRTUAL' },
+        { name: 'materialMode', label: 'Material mode', type: 'enum', options: ['VIRTUAL', 'WAREHOUSE', 'INVENTORY'], default: 'VIRTUAL' },
         { name: 'width', label: 'Sheet width', type: 'number', default: 1220, min: 1, unit: 'mm' },
         { name: 'height', label: 'Sheet height', type: 'number', default: 2440, min: 1, unit: 'mm' },
+        { name: 'virtualWidth', label: 'Virtual sheet width', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
+        { name: 'virtualLength', label: 'Virtual sheet length', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
         { name: 'spacing', label: 'Spacing', type: 'number', default: 5, min: 0, unit: 'mm' },
         { name: 'sheet_polygon', label: 'Sheet polygon', type: 'object', display: 'hidden', source: 'scenario.sheetSource.geometry' },
         { name: 'inventoryItems', label: 'Inventory items', type: 'array', default: [], display: 'hidden', source: 'scenario.inventorySource.items' },
+        { name: 'materialPool', label: 'Material pool', type: 'array', display: 'hidden', source: 'scenario.inventorySource.materialPool' },
         { name: 'toolProfileId', label: 'Tool profile', type: 'entityId', entityType: 'tool_profile' }
       ]
     },
@@ -71,12 +90,15 @@ export const cncCommands = {
     output: {
       entities: ['nesting_run', 'sheet_design'],
       tasks: ['nesting.solve'],
-      events: ['nesting.solveStarted', 'nesting.solveCompleted', 'nesting.solveFailed']
+      events: ['queue.nestingRequested', 'nesting.solveStarted']
     },
     access: {
       permissions: [
-        { feature: 'queues', level: 'write' },
-        { feature: 'nesting_runs', level: 'write' }
+        { feature: 'queues', level: 'write' }
+      ],
+      executionGrants: [
+        { feature: 'cassettes', level: 'read', actions: { view: true } },
+        { feature: 'cassette_designs', level: 'read', actions: { view: true } }
       ]
     }
   },
@@ -86,6 +108,15 @@ export const cncCommands = {
     action: 'generate',
     label: 'Generate attachment',
     input: {
+      abstractEntities: [
+        {
+          name: 'source',
+          label: 'Attachment source',
+          capability: 'attachments.generate',
+          accepts: ['sheet_design', 'nesting_run'],
+          required: true
+        }
+      ],
       entities: [
         { name: 'sheetDesign', type: 'sheet_design' },
         { name: 'nestingRun', type: 'nesting_run' }
@@ -103,6 +134,45 @@ export const cncCommands = {
     access: {
       permissions: [
         { feature: 'artifacts', level: 'write' }
+      ]
+    }
+  },
+  generateConfigBotDraft: {
+    id: 'generateConfigBotDraft',
+    service: 'configBot',
+    action: 'generateDraft',
+    label: 'Generate ConfigBot draft',
+    input: {
+      parameters: [
+        { name: 'prompt', label: 'Prompt', type: 'string', required: true },
+        { name: 'context', label: 'Context', type: 'object', default: {} }
+      ]
+    },
+    triggers: [],
+    output: {
+      events: ['configBot.draftGenerated']
+    },
+    access: {
+      permissions: [
+        { feature: 'config_bot', level: 'admin' }
+      ]
+    }
+  },
+  reindexConfigBotKnowledge: {
+    id: 'reindexConfigBotKnowledge',
+    service: 'configBot',
+    action: 'reindexKnowledge',
+    label: 'Reindex ConfigBot knowledge',
+    input: {
+      parameters: []
+    },
+    triggers: [],
+    output: {
+      events: ['configBot.knowledgeReindexed']
+    },
+    access: {
+      permissions: [
+        { feature: 'config_bot', level: 'admin' }
       ]
     }
   }

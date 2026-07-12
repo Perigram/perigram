@@ -2,29 +2,28 @@ import * as repository from './repository.js';
 import * as usersRepository from '../users/repository.js';
 import * as organizationsRepository from '../organizations/repository.js';
 import { createError } from 'h3';
-import { ObjectId } from 'mongodb';
 import crypto from 'node:crypto';
-import { PERMISSION_TEMPLATES } from '../users/permission-templates.js';
+import { canManageUsersInOrganization } from '../users/service.js';
 import { addStatus, initializeStatus } from '~/server/features/statuses/service';
+import { toFlexibleId } from '~/server/utils/objectid.js';
 
-export async function generateInvitation(organizationId, role, creatorUser) {
+export async function generateInvitation(organizationId, role, creatorUser, roleIds = null) {
   const org = await organizationsRepository.findById(organizationId);
   if (!org) throw createError({ statusCode: 404, message: 'Organization not found' });
-
-  // Only org admins can generate invitations
-  if (creatorUser.role !== 'SuperAdmin' && creatorUser.organizationId.toString() !== organizationId.toString()) {
-    throw createError({ statusCode: 403, message: 'Forbidden' });
-  }
+  await assertCanManageInvitations(organizationId, creatorUser);
 
   const token = crypto.randomBytes(32).toString('hex');
   const code = `INV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`; // Keep short code as fallback
+  const invitedRoleIds = normalizeRoleIds(roleIds?.length ? roleIds : role);
+  if (!invitedRoleIds.length) throw createError({ statusCode: 400, message: 'Invitation requires at least one process role' });
   
   const id = await repository.create({
     token,
     code,
-    organizationId: new ObjectId(organizationId),
-    organizationName: org.name,
-    role: role || 'IndividualUser',
+    organizationId: toFlexibleId(organizationId),
+    organizationName: org.identity?.name || org.name || '',
+    role: invitedRoleIds[0],
+    roleIds: invitedRoleIds,
     isActive: true,
     createdBy: creatorUser.userId
   });
@@ -54,7 +53,7 @@ export async function joinByCode(code, user) {
 async function processJoin(invitation, user) {
   if (invitation.expiresAt && new Date() > invitation.expiresAt) {
     // Log status as expired if we find it expired during access
-    await addStatus('invitations', invitation._id.toString(), 'system', 'expired', 'Detected expiration during access');
+    await addStatus('invitations', invitation._id.toString(), 'expired', 'SYSTEM', 'Detected expiration during access');
     throw createError({ statusCode: 410, message: 'Invitation expired' });
   }
 
@@ -66,14 +65,16 @@ async function processJoin(invitation, user) {
     throw createError({ statusCode: 409, message: 'You already have a relationship with this organization' });
   }
 
-  const role = invitation.role;
-  const permissions = PERMISSION_TEMPLATES[role] || PERMISSION_TEMPLATES.IndividualUser;
+  const invitedRoleIds = normalizeRoleIds(invitation.roleIds || invitation.role);
+  if (!invitedRoleIds.length) throw createError({ statusCode: 400, message: 'Invitation has no process role' });
+  const role = invitedRoleIds[0];
 
   // Add membership as PENDING
   const newMembership = {
     organizationId: invitation.organizationId,
     role,
-    permissions,
+    roleIds: invitedRoleIds,
+    permissions: {},
     status: 'pending'
   };
 
@@ -87,6 +88,25 @@ async function processJoin(invitation, user) {
   return { success: true };
 }
 
-export async function listByOrg(organizationId) {
+export async function listByOrgForUser(organizationId, auth = {}) {
+  await assertCanManageInvitations(organizationId, auth);
   return await repository.findByOrg(organizationId);
+}
+
+export async function revokeInvitation(organizationId, invitationId, auth = {}) {
+  await assertCanManageInvitations(organizationId, auth);
+  await repository.revoke(invitationId);
+  return { success: true };
+}
+
+async function assertCanManageInvitations(organizationId, auth = {}) {
+  if (!await canManageUsersInOrganization(auth, organizationId)) {
+    throw createError({ statusCode: 403, message: 'Forbidden' });
+  }
+}
+
+function normalizeRoleIds(role) {
+  if (Array.isArray(role)) return role.filter(Boolean);
+  if (role && String(role).startsWith('role_')) return [String(role)];
+  return [];
 }

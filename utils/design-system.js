@@ -14,18 +14,25 @@ import SheetCard from '~/components/entities/Sheet/SheetCard.vue';
 import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
 import CatalogCard from '~/components/entities/Catalog/CatalogCard.vue';
 import ColorCard from '~/components/entities/Color/ColorCard.vue';
+import EntityRevisionCard from '~/components/entities/EntityRevision/EntityRevisionCard.vue';
+import GeometryCaptureCard from '~/components/entities/GeometryCapture/GeometryCaptureCard.vue';
+import ProfileTemplateCard from '~/components/entities/ProfileTemplate/ProfileTemplateCard.vue';
 import WarehouseCard from '~/components/entities/Warehouse/WarehouseCard.vue';
 import ToolProfileCard from '~/components/entities/ToolProfile/ToolProfileCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
+import LibraryCard from '~/components/entities/Library/LibraryCard.vue';
 import UserCard from '~/components/entities/User/UserCard.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
 
 import * as factories from '~/test-data/factories.js';
 import {
+  DESIGN_SYSTEM_FIELD_GROUPS,
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
-  validateDesignSystemContracts
+  DESIGN_SYSTEM_SURFACES,
+  validateDesignSystemContracts,
+  validateDesignSystemDisplayContracts
 } from '~/utils/design-system-contract.js';
 
 const components = {
@@ -45,10 +52,14 @@ const components = {
   remnant: RemnantCard,
   catalog: CatalogCard,
   color: ColorCard,
+  entityRevision: EntityRevisionCard,
+  geometryCapture: GeometryCaptureCard,
+  profileTemplate: ProfileTemplateCard,
   warehouse: WarehouseCard,
   toolProfile: ToolProfileCard,
   penTemplate: PenTemplateCard,
   layerStandard: LayerStandardCard,
+  library: LibraryCard,
   user: UserCard,
   organization: OrganizationCard,
   artifact: ArtifactCard
@@ -56,6 +67,8 @@ const components = {
 
 export const DESIGN_SYSTEM_ENTITIES = DESIGN_SYSTEM_ENTITY_CONTRACTS.map((entry) => ({
   ...entry,
+  fieldGroups: DESIGN_SYSTEM_FIELD_GROUPS[entry.key] || {},
+  surfaces: DESIGN_SYSTEM_SURFACES[entry.key]?.surfaces || {},
   component: components[entry.key],
   factory: factories[entry.factoryName]
 }));
@@ -73,6 +86,7 @@ export function createDesignSystemDemoRows() {
 
 export function validateDesignSystemManifest(entries = DESIGN_SYSTEM_ENTITIES) {
   const contractIssues = validateDesignSystemContracts(entries);
+  const displayIssues = validateDesignSystemDisplayContracts(entries);
   const runtimeIssues = entries.flatMap((entry) => {
     const issues = [];
     if (!entry.component) issues.push('missing component');
@@ -89,5 +103,5 @@ export function validateDesignSystemManifest(entries = DESIGN_SYSTEM_ENTITIES) {
     return issues.map((issue) => ({ key: entry.key || 'unknown', issue }));
   });
 
-  return [...contractIssues, ...runtimeIssues];
+  return [...contractIssues, ...displayIssues, ...runtimeIssues];
 }

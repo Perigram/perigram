@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-8">
-    <ActionToolbar :title="$t('features.requisitions')" :subtitle="$t('requisition.subtitle') || 'Track material orders and fulfillment status.'">
+    <ActionToolbar :title="$t('features.requisitions')" :subtitle="$t('requisition.subtitle')">
       <template #actions>
         <Button v-if="authStore.can('requisitions', 'create')" :label="$t('common.create')" icon="pi pi-plus" @click="$emit('create')" />
       </template>

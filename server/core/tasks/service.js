@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { createTaskResult } from '../blocks/index.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as repository from './repository.js';
+import { processEffects, processEvents } from '../effects/service.js';
 
 const TERMINAL_STATUSES = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
 
@@ -42,6 +43,43 @@ export async function claimTask({ taskId = null, workerType = null, workerId = '
 
 export const claimNextTaskRun = (taskId, workerId) => claimTask({ taskId, workerId });
 
+export async function dispatchRegisteredTaskExecutors({ workerId = 'app-task-executor', limit = 5, leaseMs = 3600000 } = {}) {
+  const registry = getAppRegistry();
+  const dispatched = [];
+  for (const task of registry.listTaskDefinitions()) {
+    const executor = registry.getTaskExecutor(task.id);
+    if (!executor) continue;
+
+    let claimed = 0;
+    while (claimed < limit) {
+      const run = await claimTask({
+        taskId: task.id,
+        workerType: task.executor?.workerType || task.executor?.target || null,
+        workerId,
+        leaseMs
+      });
+      if (!run) break;
+      claimed += 1;
+      dispatched.push(await runClaimedTaskRun(run, executor, task));
+    }
+  }
+  return dispatched;
+}
+
+export async function runClaimedTaskRun(run, executor, task = getTaskDefinition(run.taskId)) {
+  try {
+    const result = await executor({
+      task,
+      run,
+      input: run.input || {},
+      auth: run.auth || {}
+    });
+    return await completeTaskRun(run._id, result || {}, run.claimToken);
+  } catch (error) {
+    return await failTaskRun(run._id, error, run.claimToken);
+  }
+}
+
 export async function heartbeatTaskRun(id, claimToken, { leaseMs = 60000 } = {}) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
@@ -58,7 +96,17 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   requireClaim(run, claimToken);
   const task = getTaskDefinition(run.taskId);
-  const output = createTaskResult({ taskId: run.taskId, ...result });
+  const output = createTaskResult({ taskId: run.taskId, ...result, raw: result });
+  const effectContext = {
+    auth: run.auth || {},
+    task,
+    run,
+    registry: getAppRegistry()
+  };
+  const processedEvents = await processEvents(output.events || [], effectContext);
+  const processedEffects = await processEffects(output.effects || [], effectContext);
+  output.events = processedEvents.events;
+  output.effects = mergeProcessedEffects(processedEvents, processedEffects);
   return await repository.updateClaimedById(id, claimToken, {
     status: task?.status?.succeeded || 'SUCCEEDED',
     output,
@@ -66,12 +114,23 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
   });
 }
 
+function mergeProcessedEffects(left, right) {
+  return {
+    entities: [...(left.entities || []), ...(right.entities || [])],
+    tasks: [...(left.tasks || []), ...(right.tasks || [])],
+    transitions: [...(left.transitions || []), ...(right.transitions || [])],
+    events: [...(left.events || []), ...(right.events || [])],
+    attachments: [...(left.attachments || []), ...(right.attachments || [])]
+  };
+}
+
 export async function failTaskRun(id, error, claimToken = null) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   requireClaim(run, claimToken);
   const task = getTaskDefinition(run.taskId);
-  const shouldRetry = (run.attempts || 0) < (run.maxAttempts || task?.retry?.maxAttempts || 3);
+  const retryable = !error?.statusCode || error.statusCode >= 500;
+  const shouldRetry = retryable && (run.attempts || 0) < (run.maxAttempts || task?.retry?.maxAttempts || 3);
   if (shouldRetry) {
     return await repository.updateClaimedById(id, claimToken, {
       status: task?.status?.retryWait || 'RETRY_WAIT',
@@ -82,9 +141,28 @@ export async function failTaskRun(id, error, claimToken = null) {
       leaseExpiresAt: null
     });
   }
+  const processedEvents = await processEvents(error?.events || [], {
+    auth: run.auth || {},
+    task,
+    run,
+    registry: getAppRegistry()
+  });
+  const processedEffects = await processEffects(error?.effects || [], {
+    auth: run.auth || {},
+    task,
+    run,
+    registry: getAppRegistry()
+  });
   return await repository.updateClaimedById(id, claimToken, {
     status: task?.status?.failed || 'FAILED',
     error: { message: error?.message || String(error) },
+    output: {
+      ok: false,
+      taskId: run.taskId,
+      events: processedEvents.events,
+      effects: mergeProcessedEffects(processedEvents, processedEffects),
+      error: { message: error?.message || String(error) }
+    },
     finishedAt: new Date()
   });
 }
@@ -112,6 +190,10 @@ export async function retryTaskRun(id) {
     leaseExpiresAt: null,
     finishedAt: null
   });
+}
+
+export async function getTaskRunById(id) {
+  return await repository.findById(id);
 }
 
 export async function listTaskRuns(filter = {}) {

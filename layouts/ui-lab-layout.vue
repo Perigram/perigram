@@ -8,10 +8,10 @@
                         to="/test/ui-lab"
                         class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0"
                     >
-                        <span>CutKit UI Lab</span>
+                        <span>{{ $t('uiLab.shellTitle') }}</span>
                     </NuxtLink>
                     <div class="px-2 py-0.5 rounded-ui bg-[var(--ck-subtle-background)] text-[10px] font-bold uppercase text-muted-color border border-content-border">
-                        Test Mode
+                        {{ $t('uiLab.testMode') }}
                     </div>
                 </div>
 
@@ -33,7 +33,7 @@
                                 size="normal" 
                                 class="bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)]"
                             />
-                            <span class="text-sm font-bold hidden sm:block">Test User</span>
+                            <span class="text-sm font-bold hidden sm:block">{{ $t('uiLab.testUser') }}</span>
                         </div>
                     </div>
                 </div>

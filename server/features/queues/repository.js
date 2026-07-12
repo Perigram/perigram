@@ -33,9 +33,12 @@ export async function updateById(uid, updates) {
   return await findById(uid);
 }
 
-export async function getNextQueueNumber(projectId) {
+export async function getNextQueueNumber({ projectId = null, organizationId = null } = {}) {
   const db = await connectDB();
-  return await db.collection(COLLECTION).countDocuments({ 'lineage.projectId': toFlexibleId(projectId) }) + 1;
+  const filter = projectId
+    ? { 'lineage.projectId': toFlexibleId(projectId) }
+    : { 'lineage.organizationId': toFlexibleId(organizationId), 'lineage.projectId': { $exists: false } };
+  return await db.collection(COLLECTION).countDocuments(filter) + 1;
 }
 
 export async function findChosenNestingRun(queueId) {
@@ -43,7 +46,7 @@ export async function findChosenNestingRun(queueId) {
   const flexibleId = toFlexibleId(queueId);
   return await db.collection('nesting_runs').findOne({
     'lineage.queueId': { $in: [flexibleId, queueId?.toString()] },
-    'status.state': 'CHOSEN'
+    'status.state.primary': 'CHOSEN'
   });
 }
 

@@ -8,8 +8,10 @@ import Divider from 'primevue/divider';
 import { computed } from 'vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import TraceLink from '~/components/shared/links/TraceLink.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { useAuthStore } from '~/stores/auth';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   catalog: { type: Object, required: true },
@@ -19,15 +21,16 @@ const props = defineProps({
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 
-const handleCardClick = () => emit('view', props.catalog);
+const handleCardClick = (event) => {
+  if (isInteractiveEventTarget(event)) return;
+  emit('view', props.catalog);
+};
 const material = computed(() => props.catalog.data?.material || '');
+const sheetOptionCount = computed(() => props.catalog.data?.options?.sheetThicknesses?.length || 0);
+const foilOptionCount = computed(() => props.catalog.data?.options?.foilThicknesses?.length || 0);
 
-const CATALOG_FIELDS = [
-  { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable' },
-  { path: 'data.options.sheetThicknesses', i18n: 'catalog.sheetThicknessOptions', suffix: ' mm' },
-  { path: 'data.options.foilThicknesses', i18n: 'catalog.foilThicknessOptions', suffix: ' mm' },
-  { path: 'data.pricing.pricePerSqm', i18n: 'catalog.pricePerSqm', prefix: '$' }
-];
+const CATALOG_FIELDS = resolveEntityDisplayFields({ entityType: 'catalog', surface: 'card' })
+  .filter(field => field.display !== 'entityRef');
 
 </script>
 
@@ -37,15 +40,24 @@ const CATALOG_FIELDS = [
       <template #before-identity>
         <i class="pi pi-book"></i>
       </template>
-      <template #subtitle>
-        <Tag v-if="material" :value="material" severity="secondary" size="small" />
+      <template #subtitle v-if="variant !== 'card'">
+        <div class="flex flex-wrap gap-2">
+          <Tag v-if="material" :value="material" severity="secondary" size="small" />
+          <Tag v-if="catalog.summary?.colorCount" :value="`${catalog.summary.colorCount} ${$t('catalog.colorsAvailable')}`" severity="info" size="small" />
+        </div>
+      </template>
+      <template #compact-content>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <Tag v-if="sheetOptionCount" :value="`${sheetOptionCount} ${$t('catalog.sheetOptions')}`" severity="secondary" size="small" />
+          <Tag v-if="foilOptionCount" :value="`${foilOptionCount} ${$t('catalog.foilOptions')}`" severity="secondary" size="small" />
+        </div>
       </template>
       <Divider />
       <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
         <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
-        <TraceLink type="organization" :id="catalog.lineage.manufacturerId" />
+        <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
       </div>
-      <DataBlock :entity="catalog" :fields="CATALOG_FIELDS" />
+      <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
       <template #footer>
         <div class="flex justify-end gap-2" @click.stop>
           <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', catalog)" />

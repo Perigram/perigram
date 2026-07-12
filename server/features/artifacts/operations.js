@@ -2,28 +2,37 @@ import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
 import * as attachmentService from './service.js';
 import * as nestingJobs from '../nesting/jobs.js';
+import * as sheetDesignsService from '../sheet-designs/service.js';
+import { getPrimaryState } from '~/server/core/blocks/index.js';
 
 export async function generateAttachment({ entities, parameters = {}, auth }) {
-  const source = entities.sheetDesign || entities.nestingRun;
+  const source = entities.source || entities.sheetDesign || entities.nestingRun;
   if (!source) throw createError({ statusCode: 400, message: 'Attachment source entity is required' });
 
   const kind = parameters.kind || parameters.type;
   const sourceId = toFlexibleId(source._id);
+  const sourceType = source.type || source.entityType || source.origin?.type || source.data?.type;
+  const isSheetDesign = Boolean(entities.sheetDesign || sourceType === 'sheet_design');
+  const isNestingRun = Boolean(entities.nestingRun || sourceType === 'nesting_run');
   const lineage = {
     ...(source.lineage || {}),
-    ...(entities.sheetDesign ? { sheetDesignId: sourceId } : {}),
-    ...(entities.nestingRun ? { runId: sourceId } : {})
+    ...(isSheetDesign ? { sheetDesignId: sourceId } : {}),
+    ...(isNestingRun ? { runId: sourceId } : {})
   };
 
   if (kind === 'LAYOUT_DXF') {
-    const existingDxf = entities.nestingRun ? await findGeneratedRunDxf(sourceId) : null;
+    const generatedDxf = isSheetDesign
+      ? await sheetDesignsService.generateAndStoreDxf(sourceId, auth.userId, auth.organizationId, auth.role, auth)
+      : null;
+    const existingDxf = isNestingRun ? await findGeneratedRunDxf(sourceId) : null;
+    const dxfFile = generatedDxf || existingDxf;
     const attachment = await attachmentService.create({
       type: kind,
       lineage,
       name: `${source.identity?.name || 'Source'} - LAYOUT_DXF.dxf`,
-      status: existingDxf ? 'READY' : 'GENERATING',
-      fileId: existingDxf?.fileId,
-      mimeType: existingDxf ? 'application/dxf' : undefined
+      status: dxfFile ? 'READY' : 'GENERATING',
+      fileId: dxfFile?.fileId,
+      mimeType: dxfFile ? 'application/dxf' : undefined
     }, auth.userId);
 
     return toCommandAttachmentResult(attachment);
@@ -52,12 +61,20 @@ async function findGeneratedRunDxf(runId) {
 }
 
 function toCommandAttachmentResult(attachment) {
+  const id = (attachment._id || attachment.id).toString();
+  const kind = attachment.data?.type;
+  const status = getPrimaryState(attachment.status, 'GENERATING');
   return {
-    attachments: [{ kind: attachment.data?.type, id: (attachment._id || attachment.id).toString() }],
+    attachments: [{ kind, id }],
+    events: [{
+      type: status === 'READY' ? 'attachment.generationCompleted' : 'attachment.generationQueued',
+      source: { type: 'artifact', id },
+      data: { kind, status }
+    }],
     data: {
-      attachmentId: (attachment._id || attachment.id).toString(),
-      kind: attachment.data?.type,
-      status: attachment.status?.state || 'GENERATING'
+      attachmentId: id,
+      kind,
+      status
     }
   };
 }

@@ -25,10 +25,12 @@ Key fields:
 - All org members: Read warehouses in their organization
 
 ## Key Operations
-- `create()`: Create new warehouse, initialize counts to 0
+- `create()`: Create new warehouse, initialize counts to 0, and default to the
+  authenticated organization when no explicit organization id is provided
 - `list()`: List warehouses filtered by organization
 - `update()`: Update warehouse details (name, address, contact)
-- `updateInventoryCounts()`: Internal method to increment/decrement inventory counts
+- `updateInventoryCounts()`: Internal method to increment/decrement inventory
+  counts; cached counters are clamped at zero to avoid negative stale stats
 - `remove()`: Delete warehouse (only if empty)
 
 ## Inventory Management
@@ -38,6 +40,19 @@ Inventory counts are updated automatically when:
 - Sheets consumed in cutting (totalSheets--)
 - Remnants created after cutting (totalRemnants++)
 - Remnants used in queue (totalRemnants--)
+
+Cached `data.stats` counters are advisory summaries and never go below zero.
+
+The production warehouse hub also derives a live inventory snapshot from loaded
+`material_pile`, `sheet`, and `remnant` lists. That UI path does not require a
+separate stats endpoint and can be used while cached `data.stats` fields are
+only partially maintained.
+
+## Manual Stock Workflow
+
+Users can create warehouses directly, then add manual material piles against an
+existing catalog and color. This records stock quantity and sheet dimensions on
+`material_pile` without invoking requisitions or supply-network flows.
 
 ## Related Components
 - [material-piles](../material-piles/README.md) - Batches stored in warehouse

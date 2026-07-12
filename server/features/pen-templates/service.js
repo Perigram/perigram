@@ -3,24 +3,17 @@
  */
 
 import * as repository from './repository.js';
-import { ObjectId } from 'mongodb';
 import { createError } from 'h3';
 import { createIdentity, createStatus, createData } from '../../core/blocks/index.js';
+import { PenTemplate } from './model.js';
+import { markPublicSystemData } from '#shared/public-entities.js';
 
 function toDTO(pen) {
   if (!pen) return null;
-  return {
-    ...pen,
-    ...pen.data,
-    name: pen.identity?.name
-  };
+  return new PenTemplate(pen).toJSON();
 }
 
 export async function getById(id, userId = null) {
-  if (!ObjectId.isValid(id)) {
-    throw createError({ statusCode: 400, message: 'Invalid ID format' });
-  }
-  
   const pen = await repository.findById(id);
   if (!pen) {
     throw createError({ statusCode: 404, message: 'Pen template not found' });
@@ -55,7 +48,7 @@ export async function create(data, userId) {
   
   const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Pen template created' });
 
-  return await repository.create({
+  const doc = {
     identity: createIdentity(data.name),
     origin,
     status: origin,
@@ -65,7 +58,10 @@ export async function create(data, userId) {
     data: createData({
       stroke: data.stroke
     })
-  });
+  };
+
+  const created = await repository.create(userId ? doc : markPublicSystemData(doc));
+  return toDTO(created);
 }
 
 export async function update(id, updates, userId) {

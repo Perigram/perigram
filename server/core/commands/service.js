@@ -3,6 +3,9 @@ import { createCommandResult } from '../blocks/index.js';
 import { assertCommandAccess } from '../access/service.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as commandRunsRepository from './repository.js';
+import { processEffects, processEvents } from '../effects/service.js';
+import { resolveProcessCommandService } from '../../features/process-definitions/runtime.js';
+import * as billingService from '../../features/billing/service.js';
 
 export async function executeCommand(commandId, input = {}, auth = {}) {
   const registry = getAppRegistry();
@@ -24,27 +27,60 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
 
   try {
     const entities = await loadCommandEntities(registry, command, normalizedInput.entities || {});
+    const processServiceState = await assertProcessServiceAvailable(commandId, auth);
+    await billingService.assertSufficientServiceTokens({
+      organizationId: resolveOrganizationId(auth),
+      service: processServiceState.service,
+      commandId
+    });
     assertCommandAccess({ command, entities, auth });
 
     const handler = registry.getCommandHandler(commandId);
     if (!handler) throw createError({ statusCode: 500, message: `Command handler not registered: ${commandId}` });
 
+    const rawResult = await handler({
+      command,
+      entities,
+      parameters,
+      data: parameters,
+      auth
+    }) || {};
     const result = createCommandResult({
       commandId,
-      ...(await handler({
-        command,
-        entities,
-        parameters,
-        data: parameters,
-        auth
-      }) || {})
+      ...rawResult,
+      raw: rawResult
     });
+    const effectContext = {
+      auth,
+      command,
+      entities,
+      result,
+      registry: getAppRegistry()
+    };
+    const processedEvents = await processEvents(result.events || [], effectContext);
+    const processedEffects = await processEffects(result.effects || [], effectContext);
+    result.events = processedEvents.events;
+    result.effects = mergeProcessedEffects(processedEvents, processedEffects);
 
     await commandRunsRepository.updateById(run._id, {
       status: 'SUCCEEDED',
       result,
       finishedAt: new Date()
     });
+
+    const billing = await billingService.debitServiceTokens({
+      organizationId: resolveOrganizationId(auth),
+      service: processServiceState.service,
+      commandId,
+      commandRunId: run._id
+    });
+    if (billing) {
+      result.billing = billing;
+      await commandRunsRepository.updateById(run._id, {
+        result,
+        billing
+      });
+    }
 
     return result;
   } catch (error) {
@@ -58,6 +94,38 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
     });
     throw error;
   }
+}
+
+async function assertProcessServiceAvailable(commandId, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  const serviceState = await resolveProcessCommandService({ organizationId, commandId });
+  if (!serviceState.processActive || !serviceState.gated) return serviceState;
+  if (!serviceState.service) {
+    throw createError({ statusCode: 403, message: `Command ${commandId} is not available in the active process` });
+  }
+
+  const allowedRoleIds = serviceState.service.roles?.run || [];
+  if (!allowedRoleIds.length) return serviceState;
+  const actualRoleIds = auth.roleAssignments?.roleIds || [];
+  const allowed = actualRoleIds.some(roleId => allowedRoleIds.includes(roleId));
+  if (!allowed) {
+    throw createError({ statusCode: 403, message: `Command ${commandId} is not assigned to the current process role` });
+  }
+  return serviceState;
+}
+
+function resolveOrganizationId(auth = {}) {
+  return auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+}
+
+function mergeProcessedEffects(left, right) {
+  return {
+    entities: [...(left.entities || []), ...(right.entities || [])],
+    tasks: [...(left.tasks || []), ...(right.tasks || [])],
+    transitions: [...(left.transitions || []), ...(right.transitions || [])],
+    events: [...(left.events || []), ...(right.events || [])],
+    attachments: [...(left.attachments || []), ...(right.attachments || [])]
+  };
 }
 
 export function listCommands() {
@@ -93,7 +161,32 @@ async function loadCommandEntities(registry, command, refs) {
     if (!entity) throw createError({ statusCode: 404, message: `${input.type} not found` });
     loaded[input.name] = entity;
   }
+  for (const input of command.input?.abstractEntities || []) {
+    const ref = refs[input.name];
+    if (!ref && input.required) throw createError({ statusCode: 400, message: `Command ${command.id} requires ${input.name}` });
+    if (!ref) continue;
+
+    const { type, id } = normalizeAbstractEntityRef(ref);
+    if (!type || !id) throw createError({ statusCode: 400, message: `Command ${command.id} requires ${input.name} as { type, id }` });
+    if (input.accepts?.length && !input.accepts.includes(type)) {
+      throw createError({ statusCode: 400, message: `Command ${command.id} ${input.name} does not accept ${type}` });
+    }
+
+    const service = registry.getEntityService(type);
+    if (!service?.getById) throw createError({ statusCode: 500, message: `Entity service missing for ${type}` });
+    const entity = await service.getById(id);
+    if (!entity) throw createError({ statusCode: 404, message: `${type} not found` });
+    loaded[input.name] = entity;
+  }
   return loaded;
+}
+
+function normalizeAbstractEntityRef(ref) {
+  if (!ref || typeof ref !== 'object') return {};
+  return {
+    type: ref.type || ref.entityType,
+    id: ref.id || ref._id
+  };
 }
 
 function sanitizeCommandInput(input = {}) {

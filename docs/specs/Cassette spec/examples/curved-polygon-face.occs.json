@@ -1,0 +1,124 @@
+{
+  "occs": "0.4-draft",
+  "documentType": "template",
+  "id": "curved-polygon-face",
+  "units": "mm",
+  "parameters": {
+    "A": "800",
+    "B": "400",
+    "T": "4"
+  },
+  "definitions": {
+    "workpieces": [
+      {
+        "id": "curved_panel_def",
+        "type": "sheet",
+        "role": "cassette_tray",
+        "material": "ACM_4",
+        "thickness": "T",
+        "faces": [
+          {
+            "id": "main",
+            "role": "main",
+            "shape": {
+              "type": "polygon",
+              "vertices": [
+                [
+                  "0",
+                  "0"
+                ],
+                [
+                  "A",
+                  "0"
+                ],
+                [
+                  "A",
+                  "B"
+                ],
+                [
+                  "0",
+                  "B"
+                ]
+              ],
+              "edges": [
+                {
+                  "type": "line"
+                },
+                {
+                  "type": "line"
+                },
+                {
+                  "type": "cubicBezier",
+                  "c1": [
+                    "A * 0.65",
+                    "B + 80"
+                  ],
+                  "c2": [
+                    "A * 0.35",
+                    "B + 80"
+                  ]
+                },
+                {
+                  "type": "line"
+                }
+              ],
+              "holes": [
+                {
+                  "type": "circle",
+                  "center": [
+                    "A / 2",
+                    "B / 2"
+                  ],
+                  "diameter": "50"
+                }
+              ]
+            }
+          }
+        ],
+        "folds": [],
+        "entities": [
+          {
+            "id": "engrave_curve",
+            "layer": "fold.engrave",
+            "target": "main",
+            "geometry": {
+              "type": "path",
+              "closed": false,
+              "start": [
+                "100",
+                "100"
+              ],
+              "segments": [
+                {
+                  "type": "cubicBezier",
+                  "c1": [
+                    "200",
+                    "250"
+                  ],
+                  "c2": [
+                    "600",
+                    "250"
+                  ],
+                  "to": [
+                    "700",
+                    "100"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "libraryParts": []
+  },
+  "cassette": {
+    "occurrences": [
+      {
+        "id": "panel",
+        "ref": "curved_panel_def"
+      }
+    ],
+    "joints": []
+  }
+}

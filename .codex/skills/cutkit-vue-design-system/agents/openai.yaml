@@ -1,0 +1,4 @@
+interface:
+  display_name: "CutKit Vue Design System"
+  short_description: "CutKit Vue v24 UI workflow"
+  default_prompt: "Use $cutkit-vue-design-system to update CutKit Vue UI consistently."

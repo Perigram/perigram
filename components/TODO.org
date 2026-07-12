@@ -8,6 +8,23 @@
      Currently, CassetteDesigner is a Vue component with a lot of logic inside. It uses SVG which is probably not optimal for complex shapes and transformations. It uses nodi-modular for shape building and some 2d work like intersections, unions, etc. Need to figure out best way to rework this component.
 
 *** Agent Notes
+     [2026-06-26] Updated generated cassette-design card parameter display contract.
+     Files changed: packages/domain-cnc/src/ui-fields.js, utils/data-display.js, shared/design-system.spec.js, shared/framework-packages.spec.js, framework.manifest.json
+     Docs updated: components/README.md, components/shared/README.md, components/entities/Cassette/README.md, components/entities/CassetteTemplate/README.md, components/entities/CassetteDesign/README.md, server/features/cassette-designs/README.md
+     Notes:
+     - Cassette and cassette-template cards no longer surface parameter counts because those entities own symbolic template definitions.
+     - Cassette-design generated surfaces render exact materialized parameter values from `data.parameters` as `A=1200, B=400`, with `data.derivedFrom.parameters` as a display fallback.
+     - Added shared `parameterMap` formatting so generated screens keep using the domain field contract and `DataBlock`.
+     - Regenerated `framework.manifest.json`; the generated snapshot also includes existing library metadata already present in the domain registry.
+
+     [2026-06-16] Cassette Designer v2 UX fixes for onboarding, history, default topology, edge actions, autosave, section drag, inline popup behavior, and theme-safe overlay text.
+     Files changed: components/CassetteDesignerV2.vue, components/shared/DrawingCanvas.vue, utils/cassetteV2Renderer.js, utils/cassetteV2Renderer.spec.js, i18n/locales/en.json, i18n/locales/ru.json
+     Docs updated: components/README.md (COMPONENT level), components/shared/README.md (COMPONENT level), utils/README.md (COMPONENT level), pages/admin/README.md (COMPONENT level)
+     Notes:
+     - Default v2 graph starts from one root face; one user plus action creates one child, with return-flange defaults from non-return parents and mounting-flange -90 defaults from return flanges.
+     - Face addition is only triggered by the visible edge + chip; session autosave stays browser-local until explicit save.
+     - Added canvas-local designer undo/redo, absolute onboarding callouts, left-rail document controls, draggable inline popups with inline close controls, document-level section drag release, outward-positive offset geometry, and theme-safe SVG overlay label fills.
+
      [2026-01-09] Reworked CassetteDesigner component.
      Files changed: components/CassetteDesigner.vue, utils/cassetteGraphBuilder.js, utils/cassette.js
      Docs updated: components/README.md (COMPONENT level)
@@ -23,5 +40,3 @@
     Need named dimension aliases as in schema. For example, root node has "A" and "B" dimensions, it's children inherit those have shared edge and their depths are "C", "D", etc. Also separate flange dimensions "F1", "F2, etc.
     Need previews in dataview cards, need to display dimension aliases as dimensions.
     Need to convert cassette template to DXF when used in batch using exact values from batch.
-
-

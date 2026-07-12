@@ -12,15 +12,16 @@ export const cncHookContracts = {
       { name: 'childState', label: 'Child state', type: 'workflowState', required: true, dependsOn: 'childType' }
     ]
   },
-  processPhysicalCut: {
-    id: 'processPhysicalCut',
-    label: 'Process physical cut',
+  preflightChosenNestingRun: {
+    id: 'preflightChosenNestingRun',
+    label: 'Preflight chosen nesting run',
+    mode: 'sync',
     parameters: []
   },
-  createPhysicalUnits: {
-    id: 'createPhysicalUnits',
-    label: 'Create physical units',
+  applyChosenNestingRun: {
+    id: 'applyChosenNestingRun',
+    label: 'Apply chosen nesting run',
+    mode: 'sync',
     parameters: []
   }
 };
-

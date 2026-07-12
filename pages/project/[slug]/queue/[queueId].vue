@@ -1,73 +1,30 @@
 <template>
-  <div>
-    <h1>{{ $t('queue.pageTitle') }}</h1>
-    <div v-if="loading">{{ $t('queue.loading') }}</div>
-    <div v-else-if="queue">
-      <h2>{{ queue.identity?.name }}</h2>
-      <pre>{{ queue }}</pre>
-    </div>
-    <div v-else>
-      <p>{{ $t('queue.notFound') }}</p>
-    </div>
-  </div>
+  <StateBlock v-if="loading" state="loading" :message="$t('queue.loading')" />
+  <QueueDetail v-else-if="queue" :queue="queue" @run-nesting="goToQueueEditor" />
+  <StateBlock v-else :message="$t('queue.notFound')" icon="pi pi-inbox" />
 </template>
 
 <script setup>
-
-import { ref, onMounted } from 'vue';
-
-import { useRoute } from 'vue-router';
-
-import { useI18n } from 'vue-i18n';
-
-import { useQueuesStore } from '~/stores/queues';
-
-
+import { onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import QueueDetail from '~/components/entities/Queue/QueueDetail.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
+import { useEntity } from '~/composables/useEntity';
 
 definePageMeta({
-
   layout: 'app',
-
   middleware: 'auth',
-
 });
-
-
 
 const route = useRoute();
+const router = useRouter();
+const { entity: queue, loading, fetch: loadQueue } = useEntity('queue', route.params.queueId);
 
-const { t } = useI18n();
-
-const { queueId } = route.params;
-
-const queuesStore = useQueuesStore();
-
-
-
-const loading = ref(true);
-
-const queue = ref(null);
-
-
+const goToQueueEditor = () => {
+  router.push(`/project/${route.params.slug}/queues`);
+};
 
 onMounted(async () => {
-
-  loading.value = true;
-
-  try {
-
-    queue.value = await queuesStore.getQueue(queueId);
-
-  } catch (error) {
-
-    console.error('Failed to load queue:', error);
-
-  } finally {
-
-    loading.value = false;
-
-  }
-
+  await loadQueue();
 });
-
 </script>

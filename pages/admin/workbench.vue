@@ -1,20 +1,11 @@
 <template>
-  <StandardPage :title="$t('admin.workbench.title')" :subtitle="$t('admin.workbench.subtitle')">
-    <template #actions>
-      <Button icon="pi pi-refresh" :label="$t('common.reset')" severity="secondary" @click="resetWorkbench" />
-      <Button icon="pi pi-download" :label="$t('admin.workbench.exportDraft')" @click="downloadDraft" />
-    </template>
-
+  <div class="flex w-full flex-col gap-4 p-4 md:p-6">
     <div class="flex flex-col gap-4">
-      <div class="flex flex-row flex-nowrap items-center gap-2 overflow-x-auto">
-        <Button
-          v-for="tab in globalWorkbenchTabs"
-          :key="tab.value"
-          :label="$t(tab.labelKey)"
-          :severity="activeWorkbenchSection === tab.value ? 'primary' : 'secondary'"
-          size="small"
-          @click="activeWorkbenchSection = tab.value"
-        />
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <div class="flex items-center gap-2">
+          <Button icon="pi pi-refresh" :label="$t('common.reset')" severity="secondary" size="small" @click="resetWorkbench" />
+          <Button icon="pi pi-download" :label="$t('admin.workbench.exportDraft')" size="small" @click="downloadDraft" />
+        </div>
       </div>
 
       <div v-if="activeWorkbenchSection === 'commands'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
@@ -82,6 +73,7 @@
                   v-for="preview in commandInputPreviews"
                   :key="preview.key"
                   v-bind="preview.props"
+                  v-on="preview.listeners || {}"
                   variant="compact"
                 />
               </div>
@@ -113,6 +105,7 @@
                     v-for="preview in commandOutputPreviews"
                     :key="preview.key"
                     v-bind="preview.props"
+                    v-on="preview.listeners || {}"
                     variant="compact"
                   />
                 </div>
@@ -179,8 +172,8 @@
                     </div>
                   </div>
                   <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
-                    <small class="text-muted-color">{{ $t('admin.tasks.worker') }}: {{ run.workerId || run.lockedBy || 'SYSTEM' }}</small>
-                    <small class="text-muted-color">{{ $t('admin.tasks.lease') }}: {{ formatDateTime(run.leaseExpiresAt) || 'N/A' }}</small>
+                    <small class="text-muted-color">{{ $t('admin.tasks.worker') }}: {{ run.workerId || run.lockedBy || $t('admin.tasks.systemWorker') }}</small>
+                    <small class="text-muted-color">{{ $t('admin.tasks.lease') }}: {{ formatDateTime(run.leaseExpiresAt) || $t('common.notAvailable') }}</small>
                     <small class="text-muted-color">{{ $t('common.created') }}: {{ formatDateTime(run.createdAt) }}</small>
                   </div>
                   <pre class="m-0 max-h-52 overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ taskRunDebug(run) }}</pre>
@@ -209,12 +202,71 @@
               <Button icon="pi pi-refresh" :label="$t('admin.commands.rebuildScenario')" severity="secondary" size="small" @click="rebuildFixtureScenario" />
               <Button icon="pi pi-database" :label="$t('admin.commands.seedScenario')" :loading="fixtureStore.loading" size="small" :disabled="workflowCompileIssues.length > 0" @click="seedFixtureScenario" />
             </div>
+            <div class="flex flex-col gap-3 rounded-ui border border-content-border bg-content p-3">
+              <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div class="flex min-w-0 flex-col gap-1">
+                  <label>{{ $t('admin.workbench.manualEntity') }}</label>
+                  <Select
+                    :model-value="manualEntityType"
+                    :options="manualEntityTypeOptions"
+                    option-label="label"
+                    option-value="value"
+                    :placeholder="$t('admin.workbench.manualEntity')"
+                    class="w-full"
+                    @update:model-value="selectManualEntityType"
+                  >
+                    <template #value="{ value, placeholder }">
+                      <span v-if="value" class="truncate">{{ manualEntityTypeLabel(value) }}</span>
+                      <span v-else>{{ placeholder }}</span>
+                    </template>
+                    <template #option="{ option }">
+                      <div class="flex min-w-0 flex-col">
+                        <span class="truncate">{{ option.label }}</span>
+                        <small class="truncate text-muted-color">{{ option.value }}</small>
+                      </div>
+                    </template>
+                  </Select>
+                </div>
+                <Button
+                  v-if="manualEntityType !== 'cassette'"
+                  icon="pi pi-plus"
+                  :label="$t('admin.workbench.createManualEntity')"
+                  size="small"
+                  :disabled="!canCreateManualEntity"
+                  @click="createManualEntity"
+                />
+              </div>
+              <div v-if="manualEntityType === 'cassette'" class="h-[38rem] overflow-hidden rounded-ui border border-content-border">
+                <CassetteDesigner
+                  :key="manualCassetteDesignerKey"
+                  :persist="false"
+                  @saved="createManualCassetteTemplate"
+                />
+              </div>
+              <TypedSettingsForm
+                v-else
+                v-model="manualEntityDraft"
+                :fields="manualEntityFields"
+                :context="typedSettingsContext"
+              />
+              <div v-if="manualEntityPreviews.length" class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <component
+                  :is="preview.component"
+                  v-for="preview in manualEntityPreviews"
+                  :key="preview.key"
+                  v-bind="preview.props"
+                  v-on="preview.listeners || {}"
+                  variant="compact"
+                />
+              </div>
+            </div>
             <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <component
                 :is="preview.component"
                 v-for="preview in scenarioEntityPreviews"
                 :key="preview.key"
                 v-bind="preview.props"
+                v-on="preview.listeners || {}"
                 variant="card"
               />
             </div>
@@ -317,145 +369,10 @@
         </Panel>
 
           <Panel v-else-if="activeEntityTab === 'workflow'" :header="$t('admin.workbench.sectionsWorkflow')" class="order-2">
-          <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_22rem]">
-            <div class="flex flex-col gap-4">
-              <Message severity="info">{{ $t('admin.workbench.workflowNoRoles') }}</Message>
-              <div class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
-                <div class="flex flex-col gap-2">
-                  <label>{{ $t('admin.domainBuilder.initialState') }}</label>
-                  <Select v-model="workflowDraft.initial" :options="workflowStateOptions" option-label="label" option-value="value" />
-                </div>
-                <Button icon="pi pi-circle" :label="$t('admin.domainBuilder.addState')" size="small" @click="addWorkflowState" />
-                <Button
-                  icon="pi pi-arrow-right"
-                  :label="$t('admin.domainBuilder.addTransition')"
-                  :severity="transitionDraftFrom ? 'primary' : 'secondary'"
-                  size="small"
-                  @click="startTransitionDraft"
-                />
-              </div>
-              <Message v-if="transitionDraftFrom" severity="info">
-                {{ $t('admin.domainBuilder.transitionDraft', { state: transitionDraftFrom }) }}
-              </Message>
-              <div class="h-[32rem] w-full overflow-hidden rounded-ui border border-content-border bg-content">
-                <VueFlow
-                  :nodes="workflowNodes"
-                  :edges="workflowEdges"
-                  fit-view-on-init
-                  :nodes-draggable="true"
-                  :nodes-connectable="true"
-                  :default-edge-options="defaultEdgeOptions"
-                  @node-click="onWorkflowNodeClick"
-                  @node-drag-stop="onWorkflowNodeDragStop"
-                  @edge-click="onWorkflowEdgeClick"
-                  @connect="onWorkflowConnect"
-                />
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-4">
-              <Panel v-if="selectedState" :header="$t('admin.domainBuilder.stateProperties')">
-                <div class="flex flex-col gap-3">
-                  <div class="flex flex-col gap-2">
-                    <label>{{ $t('admin.domainBuilder.state') }}</label>
-                    <InputText :model-value="selectedState" class="w-full font-mono" @update:model-value="renameSelectedState" />
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox :model-value="workflowDraft.initial === selectedState" binary @update:model-value="value => value && (workflowDraft.initial = selectedState)" />
-                    <label>{{ $t('admin.domainBuilder.initialState') }}</label>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox v-model="selectedStateDefinition.isTerminal" binary />
-                    <label>{{ $t('admin.domainBuilder.terminalState') }}</label>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox v-model="selectedStateDefinition.canUpdateMeta" binary />
-                    <label>{{ $t('admin.domainBuilder.canUpdateMeta') }}</label>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox v-model="selectedStateDefinition.canUpdateLifecycle" binary />
-                    <label>{{ $t('admin.domainBuilder.canUpdateLifecycle') }}</label>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label>{{ $t('admin.domainBuilder.lifecycleActors') }}</label>
-                    <InputText :model-value="stringifyCommaList(selectedStateDefinition.lifecycle?.actors)" class="w-full" @update:model-value="updateLifecycleActors" />
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                      <label>{{ $t('admin.domainBuilder.lifecycleAttachments') }}</label>
-                      <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addLifecycleAttachment" />
-                    </div>
-                    <div v-for="attachment in selectedLifecycleAttachments" :key="attachment.name" class="grid grid-cols-[1fr_auto_auto] items-center gap-2">
-                      <InputText :model-value="attachment.name" :placeholder="$t('admin.domainBuilder.attachmentName')" @update:model-value="value => renameLifecycleAttachment(attachment.name, value)" />
-                      <div class="flex items-center gap-2">
-                        <Checkbox :model-value="attachment.multiple" binary @update:model-value="value => updateLifecycleAttachmentMultiple(attachment.name, value)" />
-                        <label>{{ $t('admin.domainBuilder.multiple') }}</label>
-                      </div>
-                      <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="removeLifecycleAttachment(attachment.name)" />
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox :model-value="selectedStateDefinition.lifecycle?.data === true" binary @update:model-value="updateLifecycleData" />
-                    <label>{{ $t('admin.domainBuilder.lifecycleData') }}</label>
-                  </div>
-                  <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeState')" severity="danger" outlined @click="removeWorkflowState(selectedState)" />
-                </div>
-              </Panel>
-
-              <Panel v-else-if="selectedTransition" :header="$t('admin.domainBuilder.transitionProperties')">
-                <div class="flex flex-col gap-3">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-2">
-                      <label>{{ $t('admin.domainBuilder.from') }}</label>
-                      <Select v-model="selectedTransition.from" :options="workflowStateOptions" option-label="label" option-value="value" />
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <label>{{ $t('admin.domainBuilder.to') }}</label>
-                      <Select v-model="selectedTransition.to" :options="workflowStateOptions" option-label="label" option-value="value" />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label>{{ $t('admin.domainBuilder.access') }}</label>
-                    <Textarea
-                      :model-value="JSON.stringify(selectedTransition.access || {}, null, 2)"
-                      rows="4"
-                      class="w-full font-mono text-xs"
-                      @update:model-value="value => updateTransitionAccess(selectedTransition, value)"
-                    />
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label>{{ $t('admin.domainBuilder.capabilities') }}</label>
-                    <InputText :model-value="stringifyCommaList(selectedTransition.capabilities || selectedTransition.requiredCapabilities)" @update:model-value="value => updateTransitionCapabilities(selectedTransition, value)" />
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <strong>{{ $t('admin.domainBuilder.hooks') }}</strong>
-                    <Button icon="pi pi-plus" :label="$t('common.add')" size="small" @click="addTransitionHook(selectedTransition)" />
-                  </div>
-                  <div v-for="(hook, index) in selectedTransition.hooks || []" :key="index" class="flex flex-col gap-2 rounded-ui border border-content-border p-3">
-                    <Select
-                      :model-value="hook.handler"
-                      :options="hookOptions"
-                      option-label="label"
-                      option-value="value"
-                      class="w-full"
-                      @update:model-value="value => updateHookHandler(hook, value)"
-                    />
-                    <TypedSettingsForm
-                      v-model="hook.params"
-                      :fields="hookParameterFields(hook.handler)"
-                      :context="typedSettingsContext"
-                    />
-                    <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" text @click="selectedTransition.hooks.splice(index, 1)" />
-                  </div>
-                  <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeTransition')" severity="danger" outlined @click="removeSelectedTransition" />
-                </div>
-              </Panel>
-
-              <Panel v-else :header="$t('admin.domainBuilder.selection')">
-                <Message severity="info">{{ $t('admin.domainBuilder.selectGraphItem') }}</Message>
-              </Panel>
-            </div>
-              </div>
+          <div class="flex flex-col gap-4">
+            <Message severity="info">{{ $t('admin.workbench.workflowNoRoles') }}</Message>
+            <WorkflowDesignerV2 v-model="workflows[selectedEntity.type]" :feature="entityFeature(selectedEntity.type)" />
+          </div>
         </Panel>
 
           <Panel v-else-if="activeEntityTab === 'data'" :header="$t('admin.workbench.sectionsData')" class="order-4">
@@ -491,7 +408,38 @@
         </div>
       </div>
     </div>
-  </StandardPage>
+
+    <StandardDialog
+      v-model:visible="artifactPreviewVisible"
+      :header="artifactPreviewEntity?.identity?.name || $t('artifacts.previewTitle')"
+      size="full"
+      class="h-preview-dialog"
+      :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }"
+    >
+      <div class="flex h-full">
+        <div v-if="artifactPreviewError" class="flex flex-1 flex-col items-center justify-center gap-4">
+          <i class="pi pi-exclamation-circle text-4xl"></i>
+          <p>{{ artifactPreviewError }}</p>
+        </div>
+        <DrawingCanvas
+          v-else-if="artifactPreviewDrawingSource"
+          :source="artifactPreviewDrawingSource"
+          :source-type="artifactPreviewSourceType"
+          mode="viewer"
+          show-layer-panel
+          @error="handleArtifactPreviewError"
+        />
+        <div v-else class="flex flex-1 flex-col items-center justify-center gap-6">
+          <i :class="artifactPreviewMode === 'pdf' ? 'pi pi-file-pdf text-6xl opacity-20' : 'pi pi-file text-6xl opacity-20'"></i>
+          <div class="text-center">
+            <p>{{ artifactPreviewMode === 'pdf' ? $t('artifacts.pdfPreviewUnavailable') : $t('artifacts.previewUnavailable') }}</p>
+            <small>{{ $t('artifacts.downloadFilePrompt') }}</small>
+          </div>
+          <Button :label="$t('common.download')" icon="pi pi-download" @click="downloadArtifactPreview" />
+        </div>
+      </div>
+    </StandardDialog>
+  </div>
 </template>
 
 <script setup>
@@ -503,16 +451,28 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
+import MultiSelect from 'primevue/multiselect';
 import Panel from 'primevue/panel';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
-import StandardPage from '~/components/shared/StandardPage.vue';
 import TypedSettingsForm from '~/components/shared/TypedSettingsForm.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
+import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import CassetteDesigner from '~/components/CassetteDesigner.vue';
+import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { DESIGN_SYSTEM_ENTITIES, createDesignSystemDemoRows } from '~/utils/design-system.js';
-import { buildWorkflowGraph, parseCommaList, parseJsonObject, stringifyCommaList } from '~/utils/domain-builder.js';
+import { buildWorkflowGraph, parseCommaList, parseJsonObject } from '~/utils/domain-builder.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
+import { occsParameterNames, occsQueueParameters } from '~/utils/occs/parameters.js';
 import { useWorkbenchFixturesStore } from '~/stores/workbenchFixtures.js';
+import {
+  buildManualWorkbenchEntity,
+  defaultManualEntityDraft as createDefaultManualEntityDraft,
+  manualEntityContextType,
+  manualEntityPreviewType,
+  manualFieldsForEntity as buildManualFieldsForEntity
+} from '~/test-data/workbench-manual-entities.js';
 
 definePageMeta({
   layout: 'app',
@@ -520,9 +480,18 @@ definePageMeta({
 });
 
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 const fixtureStore = useWorkbenchFixturesStore();
+const domainUi = useCutkitDomainUi();
 const STORAGE_KEY = 'cutkit:entity-workbench:v1';
 const WORKFLOW_LAYOUT_STORAGE_KEY = 'cutkit:entity-workbench-layout:v1';
+const globalWorkbenchTabs = [
+  { value: 'entities', labelKey: 'admin.workbench.sectionsEntities' },
+  { value: 'context', labelKey: 'admin.workbench.sectionsContext' },
+  { value: 'commands', labelKey: 'admin.workbench.sectionsCommands' }
+];
+const WORKBENCH_SECTION_VALUES = globalWorkbenchTabs.map(tab => tab.value);
 
 const domainLoading = ref(false);
 const domainError = ref('');
@@ -530,7 +499,7 @@ const sourceDomain = ref({ entities: [], workflows: {}, hooks: {} });
 const entities = ref([]);
 const workflows = ref({});
 const hookContracts = ref({});
-const activeWorkbenchSection = ref('entities');
+const activeWorkbenchSection = ref(normalizeWorkbenchSection(route.query.section));
 const activeEntityTab = ref('ui');
 const uiRows = createDesignSystemDemoRows();
 const feedback = ref({});
@@ -549,6 +518,9 @@ const commandRuns = ref([]);
 const commandsLoading = ref(false);
 const commandRunsLoading = ref(false);
 const commandRunning = ref(false);
+const artifactPreviewVisible = ref(false);
+const artifactPreviewEntity = ref(null);
+const artifactPreviewError = ref('');
 const commandsError = ref('');
 const commandsRegistry = ref({});
 const commandSearch = ref('');
@@ -560,6 +532,12 @@ const taskRuns = ref([]);
 const tasksLoading = ref(false);
 const tasksError = ref('');
 const workbenchTestAccess = ref({ enabled: true, userId: '', organizationId: '', permissions: {} });
+const manualEntityType = ref('project');
+const manualEntityDraft = ref({});
+const manualEntityRefs = ref([]);
+const manualCassetteDesignerKey = ref(0);
+const selectedCassetteTemplateId = ref('');
+const persistedCassetteTemplateIds = ref([]);
 let commandRunPoll = null;
 let taskRunPoll = null;
 
@@ -612,6 +590,7 @@ const workflowCompile = computed(() => compileWorkflowDraft({
 }));
 const workflowCompileIssues = computed(() => workflowCompile.value.issues.map(issue => issue.message));
 provide('statusWorkflows', computed(() => workflowCompile.value.machines));
+provide('statusTransitionHandler', handleWorkbenchStatusTransition);
 provide('entityContext', computed(() => fixtureStore.context));
 const defaultEdgeOptions = {
   type: 'smoothstep',
@@ -664,11 +643,6 @@ const selectedLifecycleAttachments = computed(() => {
     multiple: Boolean(definition?.multiple)
   }));
 });
-const globalWorkbenchTabs = [
-  { value: 'entities', labelKey: 'admin.workbench.entities' },
-  { value: 'context', labelKey: 'admin.workbench.sectionsContext' },
-  { value: 'commands', labelKey: 'admin.workbench.sectionsCommands' }
-];
 const entityWorkbenchTabs = [
   { value: 'ui', labelKey: 'admin.workbench.sectionsUi' },
   { value: 'workflow', labelKey: 'admin.workbench.sectionsWorkflow' },
@@ -679,6 +653,23 @@ const hookOptions = computed(() => uniqueSorted([
   ...Object.keys(hookContracts.value),
   ...(workflowDraft.value.transitions || []).flatMap(transition => (transition.hooks || []).map(hook => hook.handler).filter(Boolean))
 ]).map(value => ({ label: value, value })));
+const capabilityOptions = computed(() => uniqueSorted([
+  'engineering',
+  'operator',
+  'mounting',
+  ...Object.values(workflows.value || {}).flatMap(workflow => [
+    ...Object.values(workflow.states || {}).flatMap(state => state.lifecycle?.actors || []),
+    ...(workflow.transitions || []).flatMap(transition => transition.capabilities || transition.requiredCapabilities || [])
+  ])
+]).map(value => ({ label: value, value })));
+const hookPhaseOptions = computed(() => [
+  { label: t('admin.domainBuilder.hookPhaseAfter'), value: 'after' },
+  { label: t('admin.domainBuilder.hookPhaseBefore'), value: 'before' }
+]);
+const hookModeOptions = computed(() => [
+  { label: t('admin.domainBuilder.hookModeAsync'), value: 'async' },
+  { label: t('admin.domainBuilder.hookModeSync'), value: 'sync' }
+]);
 const visibleCommands = computed(() => {
   const term = commandSearch.value.trim().toLowerCase();
   const runnableCommands = commands.value.filter(command => command.kind !== 'task' && command.runnable !== false);
@@ -722,24 +713,29 @@ const workbenchAccessFields = computed(() => Object.keys({
   ...(workbenchTestAccess.value.permissions || {})
 }).sort().map(feature => ({ name: feature, label: feature })));
 const lastCommandRun = computed(() => commandRuns.value[0] || null);
+const commandOutputRefs = computed(() => uniqueOutputRefs([
+  ...outputRefsFromResult(lastCommandRun.value?.result),
+  ...selectedCommandTaskRuns.value.flatMap(run => outputRefsFromResult(run.output))
+]));
 const commandInputPreviews = computed(() => commandEntityFields.value
   .map(field => previewForEntityRef(field.entityType, commandEntities.value[field.name], `input:${field.name}`))
   .filter(Boolean));
-const commandOutputPreviews = computed(() => {
-  const result = lastCommandRun.value?.result;
-  if (!result) return [];
-  return [
-    ...(result.entities || []).map(item => previewForEntityRef(item.type, item.id, `entity:${item.type}:${item.id}`)),
-    ...(result.attachments || []).map(item => previewForArtifactOutput(item))
-  ].filter(Boolean);
+const commandOutputPreviews = computed(() => commandOutputRefs.value
+  .map(item => item.type === 'artifact'
+    ? previewForArtifactOutput(item)
+    : previewForEntityRef(item.type, item.id, `entity:${item.type}:${item.id}`))
+  .filter(Boolean));
+const artifactPreviewKind = computed(() => artifactPreviewEntity.value?.data?.type || '');
+const artifactPreviewMode = computed(() => domainUi.getAttachmentPreview(artifactPreviewKind.value).mode);
+const artifactPreviewDrawingSource = computed(() => {
+  if (!artifactPreviewEntity.value?._id) return null;
+  if (artifactPreviewMode.value !== 'dxf' && artifactPreviewMode.value !== 'svg') return null;
+  return domainUi.getDownloadEndpoint('artifact', artifactPreviewEntity.value._id);
 });
+const artifactPreviewSourceType = computed(() => `${artifactPreviewMode.value}-url`);
 const commandMissingOutputRefs = computed(() => {
-  const result = lastCommandRun.value?.result;
-  if (!result) return [];
-  return [
-    ...(result.entities || []).map(item => ({ type: item.type, id: item.id })),
-    ...(result.attachments || []).map(item => ({ type: 'artifact', id: item.id }))
-  ]
+  if (!commandOutputRefs.value.length) return [];
+  return commandOutputRefs.value
     .filter(item => item.type && item.id && !findScenarioEntity(item.type, item.id))
     .map(item => `${item.type}:${item.id}`);
 });
@@ -749,11 +745,43 @@ const scenarioEntityPreviews = computed(() => [
   previewForEntityRef('cassette', fixtureStore.refs.cassetteTemplate, 'scenario:cassette'),
   previewForEntityRef('sheet_design', fixtureStore.refs.sheetDesign, 'scenario:sheet-design')
 ].filter(Boolean));
+const cassetteTemplateOptions = computed(() => (fixtureStore.entityOptions.cassette || []).map(option => ({
+  label: option.label,
+  value: option.value
+})));
+const selectedCassetteTemplate = computed(() => (
+  findScenarioEntity('cassette', selectedCassetteTemplateId.value) ||
+  findScenarioEntity('cassette', fixtureStore.refs.cassetteTemplate) ||
+  null
+));
 const typedSettingsContext = computed(() => ({
-  entityTypes: entities.value.map(entity => entity.type),
+  entityTypes: manualEntityDefinitions.value.map(entity => entity.type),
   workflowStates: workflowCompile.value.states,
   entityOptions: fixtureStore.entityOptions
 }));
+const manualEntityDefinitions = computed(() => {
+  const byType = new Map((entities.value || [])
+    .filter(entity => entity?.type)
+    .map(entity => [entity.type, entity]));
+  for (const entry of DESIGN_SYSTEM_ENTITIES) {
+    const type = manualEntityContextType(entry.entityType);
+    if (type && !byType.has(type)) byType.set(type, { type });
+  }
+  return Array.from(byType.values());
+});
+const manualEntityTypeOptions = computed(() => manualEntityDefinitions.value
+  .map(entity => ({ label: entityLabelForType(entity.type), value: entity.type }))
+  .sort((a, b) => a.label.localeCompare(b.label)));
+const manualEntityFields = computed(() => manualFieldsForEntity(manualEntityType.value));
+const canCreateManualEntity = computed(() => manualEntityType.value !== 'cassette' && manualEntityFields.value.every(field => {
+  if (!field.required) return true;
+  const value = manualEntityDraft.value?.[field.name];
+  if (field.type === 'number') return Number.isFinite(Number(value)) && Number(value) >= Number(field.min ?? 0);
+  return value !== '' && value !== null && value !== undefined;
+}));
+const manualEntityPreviews = computed(() => manualEntityRefs.value
+  .map(ref => previewForEntityRef(ref.previewType || ref.type, ref.id, `manual:${ref.type}:${ref.id}`))
+  .filter(Boolean));
 
 const dataDecisionOptions = ['unchecked', 'keep', 'remove', 'rename', 'move', 'investigate'].map(value => ({ label: value, value }));
 const accessLevelOptions = ['none', 'read', 'write', 'admin'].map(value => ({ label: value, value }));
@@ -763,8 +791,9 @@ onMounted(async () => {
   loadStoredDraft();
   loadModels();
   loadWorkflowLayouts();
-  rebuildFixtureScenario();
-  loadCommands();
+  await rebuildFixtureScenario({ loadPersistedCassettes: false });
+  await loadCommands();
+  await loadPersistedCassetteTemplates();
   loadCommandRuns();
   loadTasks();
   if (import.meta.client) commandRunPoll = window.setInterval(loadCommandRuns, 5000);
@@ -778,6 +807,24 @@ onUnmounted(() => {
 
 watch([workflows, feedback, dataDecisions], saveDraft, { deep: true });
 watch(workflowLayouts, saveWorkflowLayouts, { deep: true });
+watch(() => route.query.section, (section) => {
+  const normalized = normalizeWorkbenchSection(section);
+  activeWorkbenchSection.value = normalized;
+  const raw = Array.isArray(section) ? section[0] : section;
+  if (raw && raw !== normalized) {
+    router.replace({ path: route.path, query: { ...route.query, section: normalized } });
+  }
+}, { immediate: true });
+watch(() => fixtureStore.refs.cassetteTemplate, (id) => {
+  if (!selectedCassetteTemplateId.value || !findScenarioEntity('cassette', selectedCassetteTemplateId.value)) {
+    selectedCassetteTemplateId.value = id || cassetteTemplateOptions.value[0]?.value || '';
+  }
+}, { immediate: true });
+watch(cassetteTemplateOptions, (options) => {
+  if (!options.some(option => option.value?.toString() === selectedCassetteTemplateId.value?.toString())) {
+    selectedCassetteTemplateId.value = fixtureStore.refs.cassetteTemplate || options[0]?.value || '';
+  }
+});
 watch(selectedEntityKey, () => {
   selectedState.value = '';
   selectedTransitionIndex.value = null;
@@ -785,23 +832,200 @@ watch(selectedEntityKey, () => {
 });
 
 watch(selectedCommandId, syncCommandInput);
+watch(manualEntityType, resetManualEntityDraft);
+
+function normalizeWorkbenchSection(value) {
+  const section = Array.isArray(value) ? value[0] : value;
+  return WORKBENCH_SECTION_VALUES.includes(section) ? section : 'entities';
+}
+
+function loadCassetteTemplate(id) {
+  if (!id) return;
+  selectedCassetteTemplateId.value = id;
+  const entity = findScenarioEntity('cassette', id);
+  if (!entity) return;
+  setWorkbenchRefs({ cassetteTemplate: entity._id });
+  syncNestingQueueCassette(entity);
+  applyScenarioDefaults();
+}
+
+async function saveCassetteTemplate(payload = {}) {
+  const definition = payload.definition || payload.occs || {};
+  const name = String(payload.name || selectedCassetteTemplate.value?.identity?.name || t('cassette.newCassette')).trim() || t('cassette.newCassette');
+  const resultCassetteId = payload.commandResult?.data?.cassetteId ||
+    payload.commandResult?.entities?.find(entity => entity.type === 'cassette')?.id ||
+    '';
+  const persistedId = payload.savedEntity?._id || resultCassetteId;
+  const lookupId = persistedId || payload.id || '';
+  const savedEntity = payload.savedEntity
+    ? clonePlain(payload.savedEntity)
+    : await fetchPersistedCassetteTemplate(lookupId).catch(() => null);
+  const existing = savedEntity || (payload.id ? findScenarioEntity('cassette', payload.id) : selectedCassetteTemplate.value);
+  const entity = savedEntity || buildCassetteV2TemplateEntity({ ...payload, definition, name }, existing);
+  if (!entity) return;
+
+  rememberPersistedCassetteTemplateIds([savedEntity?._id || persistedId].filter(Boolean));
+  fixtureStore.upsertEntities([{ type: 'cassette', entity }]);
+  selectedCassetteTemplateId.value = entity._id;
+  setWorkbenchRefs({ cassetteTemplate: entity._id });
+  syncNestingQueueCassette(entity);
+  manualEntityRefs.value = uniqueOutputRefs([
+    { type: 'cassette_template', id: entity._id },
+    ...manualEntityRefs.value
+  ]);
+  applyScenarioDefaults();
+}
+
+async function loadPersistedCassetteTemplates(options = {}) {
+  const preferredTemplateId = options.preferredTemplateId || selectedCassetteTemplateId.value;
+  const templates = await fetchPersistedCassetteTemplates().catch(() => []);
+  if (!templates.length) return;
+
+  rememberPersistedCassetteTemplateIds(templates.map(template => template._id));
+  fixtureStore.upsertEntities(templates.map(entity => ({ type: 'cassette', entity })));
+
+  const selectedEntity = preferredTemplateId ? findScenarioEntity('cassette', preferredTemplateId) : null;
+  if (selectedEntity) {
+    loadCassetteTemplate(selectedEntity._id);
+  }
+}
+
+async function fetchPersistedCassetteTemplates() {
+  const result = await $fetch('/api/cassettes');
+  const cassettes = Array.isArray(result) ? result : (result?.items || result?.data || []);
+  return cassettes.filter(entity => entity?._id && entity.data?.type === 'PARAMETRIC');
+}
+
+async function fetchPersistedCassetteTemplate(id) {
+  if (!id) return null;
+  const entity = await $fetch(`/api/cassettes/${encodeURIComponent(id)}`);
+  return entity && entity.data?.type === 'PARAMETRIC' ? entity : null;
+}
+
+function rememberPersistedCassetteTemplateIds(ids = []) {
+  const next = new Set(persistedCassetteTemplateIds.value.map(id => id?.toString()).filter(Boolean));
+  for (const id of ids) {
+    if (id) next.add(id.toString());
+  }
+  persistedCassetteTemplateIds.value = Array.from(next);
+}
+
+function buildCassetteV2TemplateEntity(payload = {}, existing = null) {
+  const definition = clonePlain(payload.definition || {});
+  const parameterNames = Array.isArray(payload.parameters)
+    ? payload.parameters
+    : occsParameterNames(definition);
+  if (!existing) {
+    const entity = buildManualEntity('cassette', {
+      name: payload.name,
+      definition,
+      parameters: parameterNames
+    });
+    if (payload.id && entity) {
+      entity._id = payload.id;
+      entity.identity = {
+        ...(entity.identity || {}),
+        uid: payload.id,
+        serial: String(payload.id).toUpperCase()
+      };
+    }
+    return entity;
+  }
+
+  const entity = clonePlain(existing);
+  const uid = entity.identity?.uid || entity._id;
+  entity.identity = {
+    ...(entity.identity || {}),
+    uid,
+    name: payload.name,
+    slug: slugifyWorkbenchValue(payload.name),
+    serial: entity.identity?.serial || String(uid).toUpperCase()
+  };
+  entity.lineage = {
+    ...(entity.lineage || {}),
+    organizationId: entity.lineage?.organizationId || fixtureStore.access.organizationId
+  };
+  entity.attachments ||= {};
+  entity.data = {
+    ...(entity.data || {}),
+    type: 'PARAMETRIC',
+    definition,
+    parameters: parameterNames,
+    organizationId: fixtureStore.access.organizationId,
+    userId: fixtureStore.access.userId
+  };
+  return entity;
+}
+
+function syncNestingQueueCassette(cassette) {
+  const queue = findScenarioEntity('queue', fixtureStore.refs.queue);
+  if (!queue || !cassette?._id) return;
+  const nextQueue = clonePlain(queue);
+  const currentJob = nextQueue.data?.job || {};
+  const currentItems = Array.isArray(currentJob.items) ? currentJob.items : [];
+  const currentItem = currentItems[0] || {};
+  nextQueue.data = {
+    ...(nextQueue.data || {}),
+    job: {
+      ...currentJob,
+      items: [
+        {
+          ...currentItem,
+          id: cassette._id,
+          type: cassette.data?.type || currentItem.type || 'PARAMETRIC',
+          quantity: Number(currentItem.quantity) > 0 ? Number(currentItem.quantity) : 10,
+          parameters: cassetteParametersForQueue(cassette)
+        },
+        ...currentItems.slice(1)
+      ]
+    }
+  };
+  fixtureStore.upsertEntities([{ type: 'queue', entity: nextQueue }]);
+}
+
+function setWorkbenchRefs(patch = {}) {
+  fixtureStore.context = {
+    ...fixtureStore.context,
+    refs: {
+      ...(fixtureStore.context.refs || {}),
+      ...patch
+    },
+    persisted: false
+  };
+}
+
+function cassetteParametersForQueue(cassette = {}) {
+  return occsQueueParameters(cassette.data?.definition || {});
+}
+
+function clonePlain(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function slugifyWorkbenchValue(value) {
+  return String(value || 'entity')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'entity';
+}
 
 async function loadDomain() {
   domainLoading.value = true;
   domainError.value = '';
   try {
     const result = await $fetch('/api/admin/domain');
-    if (result?.success === false) throw new Error(result.error || 'Failed to load domain');
+    if (result?.success === false) throw new Error(result.error || t('admin.workbench.errors.loadDomainFailed'));
     sourceDomain.value = {
       entities: result.entities || result.domain?.entities || [],
       workflows: result.workflows || result.domain?.workflows || {},
       hooks: result.hooks || result.domain?.hooks || {}
     };
-    entities.value = structuredClone(sourceDomain.value.entities);
-    workflows.value = structuredClone(sourceDomain.value.workflows);
-    hookContracts.value = structuredClone(sourceDomain.value.hooks);
+    entities.value = clonePlain(sourceDomain.value.entities);
+    workflows.value = clonePlain(sourceDomain.value.workflows);
+    hookContracts.value = clonePlain(sourceDomain.value.hooks);
   } catch (error) {
-    domainError.value = error?.data?.message || error?.message || 'Failed to load domain';
+    domainError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadDomainFailed');
   } finally {
     domainLoading.value = false;
   }
@@ -812,10 +1036,10 @@ async function loadModels() {
   modelError.value = '';
   try {
     const result = await $fetch('/api/debug/data-models');
-    if (result?.success === false) throw new Error(result.error || 'Failed to load data models');
+    if (result?.success === false) throw new Error(result.error || t('admin.workbench.errors.loadDataModelsFailed'));
     models.value = Array.isArray(result) ? result : (result?.models || []);
   } catch (error) {
-    modelError.value = error?.message || 'Failed to load data models';
+    modelError.value = error?.message || t('admin.workbench.errors.loadDataModelsFailed');
   } finally {
     modelLoading.value = false;
   }
@@ -828,11 +1052,11 @@ async function loadCommands() {
     const result = await $fetch('/api/admin/commands');
     commands.value = (result.commands || []).filter(command => command.kind !== 'task');
     commandsRegistry.value = result.registry || {};
-    rebuildFixtureScenario();
+    await rebuildFixtureScenario({ loadPersistedCassettes: false });
     ensureSelectedCommand();
     syncCommandInput();
   } catch (error) {
-    commandsError.value = error?.data?.message || error?.message || 'Failed to load commands';
+    commandsError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadCommandsFailed');
   } finally {
     commandsLoading.value = false;
   }
@@ -850,7 +1074,7 @@ async function loadTasks() {
     taskDefinitions.value = result.definitions || [];
     taskRuns.value = result.runs || [];
   } catch (error) {
-    tasksError.value = error?.data?.message || error?.message || 'Failed to load tasks';
+    tasksError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadTasksFailed');
   } finally {
     tasksLoading.value = false;
   }
@@ -867,41 +1091,11 @@ async function loadCommandRuns() {
       query: { commandId: selectedCommandId.value, limit: 1 }
     });
     commandRuns.value = result.runs || [];
-    await hydrateCommandRunOutput(commandRuns.value[0]);
   } catch (error) {
-    commandsError.value = error?.data?.message || error?.message || 'Failed to load command runs';
+    commandsError.value = error?.data?.message || error?.message || t('admin.workbench.errors.loadCommandRunsFailed');
   } finally {
     commandRunsLoading.value = false;
   }
-}
-
-async function hydrateCommandRunOutput(run) {
-  const refs = [
-    ...(run?.result?.entities || []),
-    ...(run?.result?.attachments || []).map(item => ({ type: 'artifact', id: item.id, artifactKind: item.kind }))
-  ].filter(item => item.type && item.id);
-  const hydrated = [];
-  for (const ref of refs) {
-    const entity = await fetchCommandEntity(ref).catch(() => null);
-    if (entity) hydrated.push({ type: ref.type, entity });
-  }
-  if (hydrated.length) fixtureStore.upsertEntities(hydrated);
-}
-
-async function fetchCommandEntity(ref) {
-  const path = commandEntityPath(ref.type, ref.id);
-  if (!path) return null;
-  const entity = await $fetch(path);
-  return entity && typeof entity === 'object' ? entity : null;
-}
-
-function commandEntityPath(type, id) {
-  const paths = {
-    nesting_run: `/api/nesting-runs/${id}`,
-    sheet_design: `/api/sheet-designs/${id}`,
-    artifact: `/api/artifacts/${id}/metadata`
-  };
-  return paths[type] || null;
 }
 
 async function runSelectedCommand() {
@@ -919,20 +1113,26 @@ async function runSelectedCommand() {
     });
     await loadCommandRuns();
   } catch (error) {
-    commandsError.value = error?.data?.message || error?.message || 'Failed to run command';
+    commandsError.value = error?.data?.message || error?.message || t('admin.workbench.errors.runCommandFailed');
     await loadCommandRuns();
   } finally {
     commandRunning.value = false;
   }
 }
 
-function rebuildFixtureScenario() {
+async function rebuildFixtureScenario(options = {}) {
+  const previousTemplateId = selectedCassetteTemplateId.value;
   fixtureStore.rebuild({
     workflows: workflows.value,
     entities: entities.value,
     commands: commands.value
   });
+  manualEntityRefs.value = [];
   applyScenarioDefaults();
+  resetManualEntityDraft();
+  if (options?.loadPersistedCassettes !== false) {
+    await loadPersistedCassetteTemplates({ preferredTemplateId: previousTemplateId });
+  }
 }
 
 async function seedFixtureScenario() {
@@ -942,6 +1142,80 @@ async function seedFixtureScenario() {
     commands: commands.value
   });
   applyScenarioDefaults();
+}
+
+function resetManualEntityDraft() {
+  manualEntityDraft.value = defaultManualEntityDraft(manualEntityType.value);
+}
+
+function selectManualEntityType(type) {
+  manualEntityType.value = type;
+}
+
+function createManualEntity() {
+  if (manualEntityType.value === 'cassette') return;
+  if (!canCreateManualEntity.value) return;
+  const entity = buildManualEntity(manualEntityType.value, manualEntityDraft.value);
+  if (!entity) return;
+  upsertManualEntity(manualEntityType.value, entity);
+  resetManualEntityDraft();
+}
+
+function createManualCassetteTemplate(payload = {}) {
+  const params = payload.parameters || {};
+  const definition = params.definition || {};
+  const parameterNames = Array.isArray(params.parameters) ? params.parameters : occsParameterNames(definition);
+  const entity = buildManualEntity('cassette', {
+    name: params.name || t('cassette.newCassette'),
+    definition,
+    parameters: parameterNames
+  });
+  if (!entity) return;
+  upsertManualEntity('cassette', entity, 'cassette_template');
+  selectedCassetteTemplateId.value = entity._id;
+  setWorkbenchRefs({ cassetteTemplate: entity._id });
+  syncNestingQueueCassette(entity);
+  applyScenarioDefaults();
+  manualCassetteDesignerKey.value += 1;
+}
+
+function upsertManualEntity(type, entity, previewType = manualEntityPreviewType(type)) {
+  fixtureStore.upsertEntities([{ type: manualEntityContextType(type), entity }]);
+  manualEntityRefs.value = uniqueOutputRefs([
+    { type: previewType, id: entity._id },
+    ...manualEntityRefs.value
+  ]);
+}
+
+async function handleWorkbenchStatusTransition({ entityType, targetId, targetState }) {
+  const entity = fixtureStore.transitionEntityStatus(manualEntityContextType(entityType), targetId, targetState, {
+    userId: workbenchTestAccess.value.userId || fixtureStore.access.userId || 'workbench-user',
+    metadata: { note: 'Workbench preview transition' }
+  });
+  return { entity, status: entity?.status || null, actions: [] };
+}
+
+function defaultManualEntityDraft(type) {
+  return createDefaultManualEntityDraft(type, {
+    context: fixtureStore.context,
+    workflowCompile: workflowCompile.value,
+    label: entityLabelForType(type)
+  });
+}
+
+function manualFieldsForEntity(type) {
+  return buildManualFieldsForEntity(type, workflowCompile.value).map(field => ({
+    ...field,
+    label: manualFieldLabel(field.name)
+  }));
+}
+
+function buildManualEntity(type, draft = {}) {
+  return buildManualWorkbenchEntity(type, draft, {
+    context: fixtureStore.context,
+    workflowCompile: workflowCompile.value,
+    entityDefinition: manualEntityDefinitionFor(type)
+  });
 }
 
 function syncCommandInput() {
@@ -981,6 +1255,9 @@ function syncWorkbenchAccessDefaults() {
     ...workbenchTestAccess.value,
     userId: fixtureStore.access.userId || workbenchTestAccess.value.userId,
     organizationId: fixtureStore.access.organizationId || workbenchTestAccess.value.organizationId,
+    role: fixtureStore.access.role || workbenchTestAccess.value.role,
+    restrictedTo: fixtureStore.access.restrictedTo || workbenchTestAccess.value.restrictedTo,
+    memberships: fixtureStore.access.memberships || workbenchTestAccess.value.memberships,
     permissions: {
       ...(fixtureStore.access.permissions || {}),
       ...(workbenchTestAccess.value.permissions || {})
@@ -1087,12 +1364,42 @@ function previewForArtifactOutput(item) {
   return {
     key: `attachment:${item.kind || item.type}:${item.id}`,
     component: renderer.component,
-    props: { [renderer.propName]: entity }
+    props: { [renderer.propName]: entity },
+    listeners: { click: previewArtifactOutput }
   };
 }
 
+function previewArtifactOutput(artifact) {
+  artifactPreviewEntity.value = artifact;
+  artifactPreviewError.value = '';
+  artifactPreviewVisible.value = true;
+}
+
+function downloadArtifactPreview() {
+  if (!artifactPreviewEntity.value?._id) return;
+  window.location.href = domainUi.getDownloadEndpoint('artifact', artifactPreviewEntity.value._id);
+}
+
+function handleArtifactPreviewError(error) {
+  artifactPreviewError.value = t('artifacts.loadDxfPreviewFailed', { message: error.message });
+}
+
+function outputRefsFromResult(result) {
+  if (!result) return [];
+  return [
+    ...(result.entities || []).map(item => ({ type: item.type, id: item.id })),
+    ...(result.attachments || []).map(item => ({ type: 'artifact', id: item.id, artifactKind: item.kind }))
+  ].filter(item => item.type && item.id);
+}
+
+function uniqueOutputRefs(refs = []) {
+  return Array.from(new Map(refs
+    .filter(ref => ref.type && ref.id)
+    .map(ref => [`${ref.type}:${ref.id}`, ref])).values());
+}
+
 function findScenarioEntity(entityType, id) {
-  const options = fixtureStore.entityOptions[entityType] || [];
+  const options = fixtureStore.entityOptions[manualEntityContextType(entityType)] || [];
   return options.find(option => option.value?.toString() === id?.toString())?.entity || null;
 }
 
@@ -1147,9 +1454,9 @@ function saveWorkflowLayouts() {
 }
 
 function resetWorkbench() {
-  entities.value = structuredClone(sourceDomain.value.entities || []);
-  workflows.value = structuredClone(sourceDomain.value.workflows || {});
-  hookContracts.value = structuredClone(sourceDomain.value.hooks || {});
+  entities.value = clonePlain(sourceDomain.value.entities || []);
+  workflows.value = clonePlain(sourceDomain.value.workflows || {});
+  hookContracts.value = clonePlain(sourceDomain.value.hooks || {});
   feedback.value = {};
   dataDecisions.value = {};
   workflowLayouts.value = {};
@@ -1316,7 +1623,7 @@ function pruneLifecycle() {
 }
 
 function updateLifecycleActors(value) {
-  const actors = parseCommaList(value);
+  const actors = parseValueList(value);
   if (actors.length) ensureLifecycle().actors = actors;
   else if (selectedStateDefinition.value.lifecycle) delete selectedStateDefinition.value.lifecycle.actors;
   pruneLifecycle();
@@ -1362,7 +1669,7 @@ function removeLifecycleAttachment(name) {
 }
 
 function updateTransitionCapabilities(transition, value) {
-  const capabilities = parseCommaList(value);
+  const capabilities = parseValueList(value);
   delete transition.requiredCapabilities;
   if (capabilities.length) transition.capabilities = capabilities;
   else delete transition.capabilities;
@@ -1386,8 +1693,23 @@ function updateHookHandler(hook, value) {
   hook.params = {};
 }
 
+function updateHookPhase(hook, value) {
+  if (value && value !== 'after') hook.phase = value;
+  else delete hook.phase;
+}
+
+function updateHookMode(hook, value) {
+  if (value && value !== 'async') hook.mode = value;
+  else delete hook.mode;
+}
+
 function hookParameterFields(handler) {
   return hookContracts.value[handler]?.parameters || [];
+}
+
+function parseValueList(value) {
+  if (Array.isArray(value)) return uniqueSorted(value.map(item => String(item || '').trim()).filter(Boolean));
+  return parseCommaList(value);
 }
 
 function removeSelectedTransition() {
@@ -1446,8 +1768,38 @@ function downloadDraft() {
   URL.revokeObjectURL(url);
 }
 
+function entityLabelForType(type) {
+  if (type === 'cassette') return t('entities.cassetteTemplate');
+  const row = DESIGN_SYSTEM_ENTITIES.find(entry => entry.entityType === type)
+    || DESIGN_SYSTEM_ENTITIES.find(entry => manualEntityContextType(entry.entityType) === type);
+  return row?.labelKey ? t(row.labelKey) : type;
+}
+
+function manualEntityTypeLabel(type) {
+  return manualEntityTypeOptions.value.find(option => option.value === type)?.label || entityLabelForType(type);
+}
+
+function manualEntityDefinitionFor(type) {
+  return manualEntityDefinitions.value.find(entity => entity.type === type) || {};
+}
+
+function manualFieldLabel(name) {
+  const key = `admin.workbench.manualFields.${name}`;
+  const translated = t(key);
+  return translated === key ? name : translated;
+}
+
 function normalizeCollection(collection) {
   return String(collection || '').replace(/-/g, '_');
+}
+
+function entityFeature(entityType) {
+  if (entityType === 'project') return 'projects';
+  if (entityType === 'queue') return 'queues';
+  if (['material', 'material_pile', 'sheet', 'remnant', 'geometry_capture'].includes(entityType)) return 'materials';
+  if (entityType === 'requisition') return 'requisitions';
+  if (String(entityType || '').includes('cassette')) return 'projects';
+  return String(entityType || '').replace(/_/g, '-');
 }
 
 function uniqueName(prefix, existing) {

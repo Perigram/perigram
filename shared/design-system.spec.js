@@ -3,9 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import {
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
+  DESIGN_SYSTEM_FIELD_GROUPS,
+  DESIGN_SYSTEM_SURFACES,
   DESIGN_SYSTEM_VARIANTS,
   DESIGN_SYSTEM_PRIMITIVES,
-  validateDesignSystemContracts
+  validateDesignSystemContracts,
+  validateDesignSystemDisplayContracts
 } from '../utils/design-system-contract.js';
 import * as factories from '../test-data/factories.js';
 import {
@@ -15,7 +18,9 @@ import {
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
 import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { normalizeWorkflow } from '../packages/workflows/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
+import { resolveEntityRelationRefs } from '../utils/entity-relations.js';
 import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 import { getWorkflowStatusActions } from '../utils/status-actions.js';
 
@@ -118,6 +123,34 @@ describe('Design system manifest', () => {
     expect(template).not.toHaveProperty('parameters');
   });
 
+  it('formats cassette design parameter maps as exact named values', () => {
+    const design = factories.createMockCassetteDesign();
+
+    expect(decorateDataValue(design.data.parameters, { display: 'parameterMap' })).toBe('A=1200, B=400, C=35');
+  });
+
+  it('normalizes relation lists for compact generated card galleries', () => {
+    expect(resolveEntityRelationRefs([
+      { type: 'PILE', id: 'pile-1' },
+      { type: 'SHEET', id: 'sheet-1' },
+      { type: 'REMNANT', id: 'remnant-1' }
+    ])).toEqual([
+      { entityType: 'materialPile', id: 'pile-1', entity: null },
+      { entityType: 'sheet', id: 'sheet-1', entity: null },
+      { entityType: 'remnant', id: 'remnant-1', entity: null }
+    ]);
+
+    expect(resolveEntityRelationRefs({
+      sheetIds: ['sheet-1'],
+      remnantIds: ['remnant-1'],
+      cassetteInstanceIds: ['instance-1']
+    })).toEqual([
+      { entityType: 'sheet', id: 'sheet-1' },
+      { entityType: 'remnant', id: 'remnant-1' },
+      { entityType: 'cassetteInstance', id: 'instance-1' }
+    ]);
+  });
+
   it('keeps material pile and batch pile demo DTOs distinct', () => {
     const material = factories.createMockMaterial();
     const materialPile = factories.createMockPile();
@@ -156,6 +189,45 @@ describe('Design system manifest', () => {
     expect(actions.map(action => action.to)).toEqual(['READY_FOR_TEST']);
   });
 
+  it('passes target lifecycle evidence schema through status actions', () => {
+    const actions = getWorkflowStatusActions({
+      entityType: 'queue',
+      state: 'DRAFT',
+      workflows: {
+        queue: {
+          initial: 'DRAFT',
+          states: {
+            DRAFT: {},
+            SENT: {
+              lifecycle: {
+                description: { required: true },
+                attachments: { proof: { required: true } }
+              }
+            }
+          },
+          transitions: [{ from: 'DRAFT', to: 'SENT' }]
+        }
+      }
+    });
+
+    expect(actions[0].lifecycle).toEqual({
+      description: { required: true },
+      attachments: { proof: { required: true } }
+    });
+  });
+
+  it('keeps local workflow preview transitions out of the server status API', () => {
+    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
+    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
+    const store = fs.readFileSync(path.join(REPO_ROOT, 'stores/workbenchFixtures.js'), 'utf8');
+
+    expect(entityStatus).toContain("inject('statusTransitionHandler'");
+    expect(entityStatus).toContain('useLocalTransition');
+    expect(workbench).toContain("provide('statusTransitionHandler'");
+    expect(workbench).toContain('handleWorkbenchStatusTransition');
+    expect(store).toContain('transitionEntityStatus');
+  });
+
   it('gives the UI lab test user a real access model', () => {
     const user = factories.createMockUser();
 
@@ -173,6 +245,13 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens.dataview.root.background).toBe('transparent');
+  });
+
+  it('uses existing semantic variables for SVG designer label contrast', () => {
+    const drawingCanvas = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/DrawingCanvas.vue'), 'utf8');
+
+    expect(drawingCanvas).not.toContain('--ck-content-background');
+    expect(drawingCanvas).toContain('fill-[var(--p-content-background)]');
   });
 
   it('keeps raw Card and Dialog ownership inside shared wrappers', () => {
@@ -202,46 +281,90 @@ describe('Design system manifest', () => {
 
   it('keeps framework manifest UI fields tied to canonical DTO paths', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'framework.manifest.json'), 'utf8'));
+    const cassette = manifest.designSystem.components.find(component => component.key === 'cassette');
+    const cassetteDesign = manifest.designSystem.components.find(component => component.key === 'cassetteDesign');
     const cassetteTemplate = manifest.designSystem.components.find(component => component.key === 'cassetteTemplate');
 
     expect(manifest.validations).toEqual({ ok: true, issues: [] });
-    expect(cassetteTemplate.fieldPaths).toEqual(['data.parameters.length']);
+    expect(cassette.fieldPaths).toEqual([]);
+    expect(cassette.fieldPaths).not.toContain('data.type');
+    expect(cassetteDesign.fieldPaths).toEqual(['data.parameters']);
+    expect(DESIGN_SYSTEM_FIELD_GROUPS.cassetteDesign.summary[0].fallbackPaths).toEqual(['data.derivedFrom.parameters']);
+    expect(cassetteTemplate.fieldPaths).toEqual([]);
     expect(cassetteTemplate.fieldPaths).not.toContain('type');
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
   });
 
-  it('keeps data-model review support collections out of manifest gap warnings', () => {
-    const source = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/data-model-review.vue'), 'utf8');
+  it('declares constructor surfaces and field groups in the domain contract', () => {
+    expect(validateDesignSystemDisplayContracts()).toEqual([]);
 
-    expect(source).toContain('const SUPPORT_COLLECTIONS = new Set');
-    expect(source).toContain('collection_name');
-    expect(source).toContain('invitations');
-    expect(source).toContain('material_options');
-    expect(source).toContain('sessions');
-    expect(source).toContain('status_events');
-    expect(source).toContain('const contractModels = computed');
-    expect(source).toContain('!SUPPORT_COLLECTIONS.has(model.collection)');
+    for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
+      expect(DESIGN_SYSTEM_SURFACES[entry.key]?.surfaces).toEqual(expect.objectContaining({
+        inline: expect.any(Object),
+        compact: expect.any(Object),
+        card: expect.any(Object),
+        detail: expect.any(Object)
+      }));
+      expect(DESIGN_SYSTEM_FIELD_GROUPS[entry.key] || {}).toBeTruthy();
+    }
   });
 
-  it('exposes the browser-export domain builder as an admin tool', () => {
-    const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/domain-builder.vue'), 'utf8');
-    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
+  it('keeps standard entity DataBlock fields out of component-local arrays', () => {
+    const offenders = walkFiles(
+      path.join(REPO_ROOT, 'components/entities'),
+      (file) => file.endsWith('.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
+    ).filter((file) => /path:\s*['"][^'"]+['"]/.test(fs.readFileSync(file, 'utf8')))
+      .map((file) => path.relative(REPO_ROOT, file));
 
-    expect(page).toContain('DOMAIN_BUILDER_STORAGE_KEY');
-    expect(page).toContain('generateDomainCncSource');
-    expect(page).toContain('validateDomainDraft');
-    expect(page).toContain('buildWorkflowGraph');
-    expect(page).toContain('addTransition');
-    expect(page).toContain('selectTransition');
-    expect(page).toContain('startTransitionDraft');
-    expect(page).toContain("from '@vue-flow/core'");
-    expect(page).not.toContain("from '@vue-flow/background'");
-    expect(page).toContain('workflowNodes');
-    expect(page).toContain('workflowEdges');
-    expect(page).not.toContain("tabs = ['entities', 'workflows', 'operations'");
-    expect(page).toContain("downloadText('domain-cnc.generated.js'");
-    expect(page).toContain("middleware: 'auth'");
-    expect(layout).toContain("router.push('/admin/domain-builder')");
+    expect(offenders).toEqual([]);
+  });
+
+  it('keeps entity full-card subtitles from duplicating body facts', () => {
+    const offenders = walkFiles(
+      path.join(REPO_ROOT, 'components/entities'),
+      (file) => file.endsWith('.vue')
+    )
+      .map((file) => path.relative(REPO_ROOT, file))
+      .filter((file) => {
+        const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+        return /<template\s+#subtitle(?![^>]*variant !== 'card')/.test(source);
+      });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('keeps admin navigation tied to existing admin routes', () => {
+    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
+    const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
+
+    for (const route of [
+      '/admin/domain-builder',
+      '/admin/data-model-review',
+      '/admin/diagnostics',
+      '/admin/organizations',
+      '/admin/marketing-animations',
+      '/admin/settings'
+    ]) {
+      expect(layout).not.toContain(route);
+      expect(navigation).not.toContain(route);
+    }
+  });
+
+  it('exposes ConfigBot as a draft-only admin tool', () => {
+    const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/config-bot.vue'), 'utf8');
+    const preview = fs.readFileSync(path.join(REPO_ROOT, 'components/config-bot/ConfigBotDraftPreview.vue'), 'utf8');
+    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
+    const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
+
+    expect(page).toContain('/api/config-bot/generate');
+    expect(page).toContain('/api/config-bot/chat');
+    expect(page).toContain('/api/admin/config-bot/reindex');
+    expect(page).toContain("writes: 'draft-only'");
+    expect(page).not.toContain('applyPackage');
+    expect(preview).toContain('ActionToolbar');
+    expect(preview).toContain('StateBlock');
+    expect(layout).toContain("router.push('/admin/config-bot')");
+    expect(navigation).toContain("to: '/admin/config-bot'");
   });
 
   it('exposes command definitions and runs in the admin workbench', () => {
@@ -318,6 +441,146 @@ describe('Design system manifest', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('keeps embedded previews and statuses from conflicting with parent card clicks', () => {
+    const entityCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityCard.vue'), 'utf8');
+    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
+    const artifactCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Artifact/ArtifactCard.vue'), 'utf8');
+    const cassetteCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Cassette/CassetteCard.vue'), 'utf8');
+    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
+
+    expect(entityCard).toContain('isInteractiveEventTarget');
+    expect(entityCard).toContain('expandable');
+    expect(entityStatus).toContain('data-entity-card-interactive="true"');
+    expect(artifactCard).toContain(':expandable="false"');
+    expect(workbench).toContain('listeners: { click: previewArtifactOutput }');
+    expect(cassetteCard).toContain('CassetteThumbnail');
+    expect(cassetteCard).not.toContain("path: 'data.type'");
+  });
+
+  it('keeps nesting runs focused on sheet design outputs', () => {
+    const nestingRunCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/NestingRun/NestingRunCard.vue'), 'utf8');
+    const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
+    const nestingRunService = fs.readFileSync(path.join(REPO_ROOT, 'server/features/nesting-runs/service.js'), 'utf8');
+
+    expect(nestingRunCard).toContain('EntityRelationsBlock');
+    expect(nestingRunCard).toContain("entityType: 'sheetDesign'");
+    expect(nestingRunCard).toContain("field.path === 'data.sheetDesignIds'");
+    expect(nestingRunCard).toContain('item-variant="compact"');
+    expect(nestingRunCard).not.toContain('SheetDesignCard');
+    expect(nestingRunCard).not.toContain('GeometryPreview');
+    expect(nestingRunCard).not.toContain('ArtifactCard');
+    expect(nestingRunCard).not.toContain('relatedArtifacts');
+    expect(nestingRunCard).toContain("feature: 'nesting_runs'");
+    expect(nestingRunCard).not.toContain("authStore.can('queues', 'edit')");
+    expect(queueEditor).toContain('readableQueueRuns');
+    expect(queueEditor).toContain("feature: 'nesting_runs'");
+    expect(queueEditor).not.toContain('getRunArtifacts');
+    expect(queueEditor).not.toContain('@artifact-click');
+    expect(nestingRunService).toContain("run, 'nesting_runs', 'read'");
+    expect(nestingRunService).not.toContain("run.lineage, 'queues', 'read'");
+    expect(DESIGN_SYSTEM_SURFACES.nestingRun.surfaces.card.fieldGroups).toContain('production');
+  });
+
+  it('keeps inline design editing inside its active workspace', () => {
+    const cassetteDesigner = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteDesignerV2.vue'), 'utf8');
+    const cassetteManager = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteManager.vue'), 'utf8');
+    const generatedCassetteAction = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedCassetteDesignerAction.vue'), 'utf8');
+    const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
+
+    expect(cassetteDesigner).toContain('saveTemplate({ saveAs: true })');
+    expect(cassetteDesigner).toContain('handleDesignerEscape');
+    expect(cassetteManager).toContain(':close-on-escape="false"');
+    expect(cassetteManager).not.toContain('showDesignerDialog.value = false;\n};\n\nconst onRename');
+    expect(generatedCassetteAction).toContain(':close-on-escape="false"');
+    expect(generatedCassetteAction).not.toContain('visible.value = false;\n  emit(\'refresh\')');
+    expect(queueEditor).toContain('saveQueue({ notify: false })');
+  });
+
+  it('keeps generated home cards as horizontal carousel items', () => {
+    const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
+    const generatedCollection = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedEntityCollection.vue'), 'utf8');
+    const relationsBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityRelationsBlock.vue'), 'utf8');
+    const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntitySurfaceContent.vue'), 'utf8');
+    const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
+    const identityBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/IdentityBlock.vue'), 'utf8');
+    const entityPreview = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityPreview.vue'), 'utf8');
+    const cassetteThumbnail = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteThumbnail.vue'), 'utf8');
+
+    expect(generatedHome).toContain('overflow-x-auto');
+    expect(generatedHome).toContain('shrink-0');
+    expect(generatedHome).toContain('suppress-child-counts');
+    expect(generatedHome).toContain('relation-variant="compact"');
+    expect(generatedHome).toContain('GeneratedCassetteDesignerAction');
+    expect(generatedCollection).toContain('suppress-child-counts');
+    expect(generatedCollection).toContain('relation-variant="compact"');
+    expect(generatedCollection).toContain('GeneratedCassetteDesignerAction');
+    expect(generatedHome).toContain('pi pi-external-link');
+    expect(generatedCollection).toContain('pi pi-external-link');
+    expect(relationsBlock).toContain('overflow-x-auto');
+    expect(relationsBlock).toContain('entity-relations-gallery--compact');
+    expect(relationsBlock).toContain('isCompactGallery.value ? 2 : 4');
+    expect(relationsBlock).toContain('entity-relations-overflow-tile');
+    expect(relationsBlock).toContain('openOverflow');
+    expect(relationsBlock).toContain('overflowItems');
+    expect(relationsBlock).toContain('itemVariant');
+    expect(relationsBlock).toContain("field.display === 'entityRefList'");
+    expect(surfaceContent).toContain('replacesCountPath');
+    expect(surfaceContent).toContain('resolveEntityRelationRefs');
+    expect(surfaceContent).toContain('relationVariant');
+    expect(inlineRef).toContain('entityToneStyle');
+    expect(inlineRef).toContain('color-mix');
+    expect(inlineRef).toContain("variant === 'compact'");
+    expect(inlineRef).toContain('class="inline-flex w-full');
+    expect(inlineRef).toContain('variant="inline"');
+    expect(inlineRef).toContain('StatusBadge');
+    expect(inlineRef).toContain('compactStatusState');
+    expect(inlineRef).toContain('entity-inline-compact-status-row');
+    expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
+    expect(inlineRef).toContain("'sheet_design'");
+    expect(inlineRef).toContain('needsNestingRunHydration');
+    expect(inlineRef).toContain('hydrateNestingRunOutputs');
+    expect(inlineRef).toContain(".list({ runId }, { silent: true })");
+    expect(inlineRef).toContain('relationSheetDesigns');
+    expect(inlineRef).not.toContain('entity-inline-compact-fallback');
+    expect(fs.readFileSync(path.join(REPO_ROOT, 'composables/useEntity.js'), 'utf8')).toContain('options.silent');
+    expect(identityBlock).toContain('entity-inline-chip');
+    expect(entityPreview).toContain('hideDimensionLayer');
+    expect(entityPreview).toContain(':hide-dimension-layer="hideDimensionLayer"');
+    expect(entityPreview).toContain('GeometryPreview');
+    expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isProductionPreviewLayer');
+    expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isDimensionLayerName');
+    expect(cassetteThumbnail).toContain("name !== 'dimension.cassette'");
+    expect(generatedHome).not.toContain('min-w-64 max-w-72');
+  });
+
+  it('keeps queue entity controls scoped to the concrete queue', () => {
+    const queueCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Queue/QueueCard.vue'), 'utf8');
+    const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
+
+    expect(queueCard).toContain('hasPermissionGrant');
+    expect(queueCard).not.toContain("authStore.can('queues', 'edit')");
+    expect(queueCard).not.toContain("authStore.can('queues', 'delete')");
+    expect(queueEditor).toContain('props.processActions');
+    expect(queueEditor).toContain("isProcessMode.value ? Boolean(processRunNestingAction.value) : canEditQueue.value");
+    expect(queueEditor).not.toContain('canEditQueue.value || Boolean(processRunNestingAction.value)');
+  });
+
+  it('keeps manual workbench forms explicit about type and lineage choices', () => {
+    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
+    const manualEntities = fs.readFileSync(path.join(REPO_ROOT, 'test-data/workbench-manual-entities.js'), 'utf8');
+    const typedSettingsForm = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/TypedSettingsForm.vue'), 'utf8');
+
+    expect(workbench).toContain('manualEntityTypeLabel');
+    expect(workbench).toContain('manualEntityDefinitions');
+    expect(workbench).toContain('DESIGN_SYSTEM_ENTITIES');
+    expect(workbench).toContain('canCreateManualEntity');
+    expect(workbench).toContain(':disabled="!canCreateManualEntity"');
+    expect(manualEntities).not.toContain("if (field.type === 'entityId')");
+    expect(manualEntities).not.toContain('draft[field.name] = value');
+    expect(typedSettingsForm).toContain("field.type === 'entityId'");
+    expect(typedSettingsForm).not.toContain('field.entityType && `entity:${field.entityType}`');
+  });
+
   it('keeps entity details on shared EntityPage header chrome', () => {
     const offenders = walkFiles(
       path.join(REPO_ROOT, 'components/entities'),
@@ -360,6 +623,8 @@ describe('Design system manifest', () => {
     expect(statusHistory).not.toContain("status.noHistory");
     expect(statusHistory).toContain('fallbackEvents');
     expect(statusHistory).toContain('displayEvents');
+    expect(statusHistory).toContain('eventDisplay');
+    expect(statusHistory).toContain(':display="eventDisplay(event)"');
   });
 
   it('normalizes typed status lifecycle locations for status surfaces', async () => {
@@ -390,16 +655,22 @@ describe('Design system manifest', () => {
     for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
       const workflow = cncWorkflows[entry.entityType];
       if (!workflow) continue;
+      const normalizedWorkflow = normalizeWorkflow(workflow);
+      const workflowStates = Object.values(normalizedWorkflow.regions || {})
+        .flatMap(region => Object.keys(region.states || {}));
 
       const entity = factories[entry.factoryName]();
       expect(
-        Object.keys(workflow.states),
+        workflowStates,
         `${entry.key} factory state ${entity.status.state} must exist in workflow ${entry.entityType}`
       ).toContain(entity.status.state);
     }
 
     for (const [entityType, workflow] of Object.entries(cncWorkflows)) {
-      for (const state of Object.keys(workflow.states)) {
+      const normalizedWorkflow = normalizeWorkflow(workflow);
+      const workflowStates = Object.values(normalizedWorkflow.regions || {})
+        .flatMap(region => Object.keys(region.states || {}));
+      for (const state of workflowStates) {
         expect(
           STATUS_MAPPINGS[state] || STATUS_MAPPINGS[state.toLowerCase()],
           `${entityType}.${state} missing status badge mapping`

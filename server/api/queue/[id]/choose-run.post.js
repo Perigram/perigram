@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'runId is required' });
   }
   
-  const run = await nestingRunsService.chooseRun(
+  const result = await nestingRunsService.chooseRun(
     queueId,
     body.runId,
     auth.userId,
@@ -25,5 +25,5 @@ export default defineEventHandler(async (event) => {
     auth
   );
 
-  return { success: true, run };
+  return { success: true, ...result };
 });

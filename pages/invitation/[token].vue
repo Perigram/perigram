@@ -1,6 +1,6 @@
 <template>
-    <div class="min-h-screen flex items-center justify-center p-4">
-        <Panel class="w-full max-w-md border">
+    <div class="min-h-screen flex items-center justify-center bg-[var(--ck-page-background)] p-4">
+        <Panel class="w-full max-w-md">
             <template #header>
                 <div class="flex flex-col items-center gap-4 text-center">
                     <div class="w-16 h-16 border rounded-full flex items-center justify-center">
@@ -9,10 +9,7 @@
                     <h1 class="m-0">{{ $t('auth.invitationTitle') }}</h1>
                 </div>
             </template>
-            <div v-if="loading" class="flex flex-col items-center py-12 gap-4">
-                <ProgressSpinner />
-                <p>{{ $t('auth.fetchingInvitation') }}</p>
-            </div>
+            <StateBlock v-if="loading" state="loading" :message="$t('auth.fetchingInvitation')" />
             
             <div v-else-if="error" class="text-center py-8 flex flex-col gap-4">
                 <Message severity="error">{{ error }}</Message>
@@ -20,7 +17,7 @@
             </div>
 
             <div v-else-if="invitation" class="flex flex-col gap-6 py-4">
-                <div class="p-6 border rounded text-center">
+                <div class="flex flex-col items-center gap-3 text-center">
                     <small>{{ $t('auth.invitedToJoin') }}</small>
                     <h2 class="m-0">{{ invitation.organizationName }}</h2>
                     <div class="mt-4 inline-flex items-center gap-2">
@@ -44,7 +41,15 @@
                             :label="$t('auth.loginToJoin')"
                             icon="pi pi-sign-in" 
                             class="w-full" 
-                            @click="navigateTo('/')" 
+                            @click="navigateTo(loginTarget)" 
+                        />
+                        <Button 
+                            :label="$t('auth.registerToJoin')"
+                            icon="pi pi-user-plus" 
+                            severity="secondary"
+                            outlined
+                            class="w-full" 
+                            @click="navigateTo(registerTarget)" 
                         />
                         <p class="text-center">
                             <small>{{ $t('auth.loginRequiredForInvitation') }}</small>
@@ -65,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -73,7 +78,8 @@ import { useAuthStore } from '~/stores/auth';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
-import ProgressSpinner from 'primevue/progressspinner';
+import Tag from 'primevue/tag';
+import StateBlock from '~/components/shared/StateBlock.vue';
 
 definePageMeta({
     layout: false
@@ -89,6 +95,14 @@ const invitation = ref(null);
 const loading = ref(true);
 const error = ref(null);
 const joining = ref(false);
+const loginTarget = computed(() => ({
+    path: '/auth/login',
+    query: { redirect: route.fullPath }
+}));
+const registerTarget = computed(() => ({
+    path: '/auth/register',
+    query: { invitation: token, redirect: route.fullPath }
+}));
 
 const fetchInvitation = async () => {
     loading.value = true;

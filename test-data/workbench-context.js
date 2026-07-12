@@ -1,5 +1,5 @@
-import { cncCommands, cncWorkflows } from '../packages/domain-cnc/src/index.js';
-import { compileWorkflowDraft } from '../utils/workflow-compiler.js';
+import { cncCommands, cncWorkflows } from '#packages/domain-cnc/src/index.js';
+import { compileWorkflowDraft } from '#utils/workflow-compiler.js';
 import { createCncFixtureScenario, validateCncFixtureScenario } from './scenarios.js';
 
 export const WORKBENCH_CONTEXT_ID = 'cnc-workbench-context';
@@ -73,6 +73,26 @@ export function upsertContextEntities(context, entries = []) {
   return next;
 }
 
+export function transitionContextEntityStatus(context, { type, id, state, userId = 'SYSTEM', metadata = {}, lifecycle = null } = {}) {
+  const next = normalizeWorkbenchContext(context);
+  const entity = type && id ? next.entities?.[type]?.[id.toString()] : null;
+  if (!entity || !state) return next;
+
+  const status = {
+    ...(entity.status || {}),
+    state,
+    userId,
+    timestamp: new Date().toISOString(),
+    metadata,
+    eventId: `workbench-status-${Date.now().toString(36)}`,
+    lifecycle: lifecycle || entity.status?.lifecycle || { actors: [], attachments: {}, data: {} }
+  };
+  if (!entity.origin) entity.origin = status;
+  entity.status = status;
+  next.persisted = false;
+  return next;
+}
+
 export function contextEntityOptions(context = {}) {
   const normalized = normalizeWorkbenchContext(context);
   return Object.fromEntries(Object.entries(normalized.entities).map(([type, byId]) => [type, Object.values(byId).map(entity => ({
@@ -103,8 +123,10 @@ function normalizeAccess(access = {}) {
   return {
     userId: access.userId || 'user-demo',
     organizationId: access.organizationId || 'org-demo-acme',
+    role: access.role || 'WorkbenchUser',
     permissions,
-    memberships: access.memberships || [{ organizationId: access.organizationId || 'org-demo-acme', permissions, status: 'active' }]
+    memberships: access.memberships || [{ organizationId: access.organizationId || 'org-demo-acme', permissions, status: 'active' }],
+    restrictedTo: access.restrictedTo || null
   };
 }
 

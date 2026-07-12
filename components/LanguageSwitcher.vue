@@ -2,7 +2,7 @@
     <div class="relative inline-block">
         <Select 
             v-model="currentLocale" 
-            :options="locales"
+            :options="localeOptions"
             optionLabel="name"
             optionValue="code"
             @change="changeLocale"
@@ -12,12 +12,20 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import Select from 'primevue/select';
+import { selectOptionText } from '~/utils/selectOptions';
 
 // Using useI18n composable from @nuxtjs/i18n
 const { locale, locales, setLocale } = useI18n();
 const currentLocale = ref(locale.value);
+const localeOptions = computed(() => locales.value.map((entry) => {
+    const code = selectOptionText(entry?.code, entry);
+    return {
+        code,
+        name: selectOptionText(entry?.name, code.toUpperCase())
+    };
+}));
 
 const changeLocale = async () => {
     console.log('Changing locale to:', currentLocale.value);

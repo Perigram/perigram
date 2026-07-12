@@ -1,0 +1,86 @@
+import { describe, expect, it } from 'vitest';
+import {
+  actionAppliesToEntity,
+  isGeneratedSurfaceAction,
+  parentBoundCreateAppliesToEntityType,
+  resolveGeneratedEntityActions
+} from './action-visibility.js';
+
+describe('generated action visibility', () => {
+  it('shows status actions only on entities in the source status', () => {
+    const action = {
+      actionKind: 'changeStatus',
+      entityType: 'cassette',
+      status: { from: 'CREATED', to: 'DELETED' }
+    };
+
+    expect(actionAppliesToEntity(action, { status: { state: { primary: 'CREATED' } } }, 'cassette')).toBe(true);
+    expect(actionAppliesToEntity(action, { status: { state: { primary: 'DELETED' } } }, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity(action, {}, 'cassette')).toBe(false);
+  });
+
+  it('does not expose create actions on entity rows', () => {
+    expect(actionAppliesToEntity({ actionKind: 'createEntity', entityType: 'cassette' }, {}, 'cassette')).toBe(false);
+  });
+
+  it('shows parent-bound create actions on matching entity details', () => {
+    const action = {
+      actionKind: 'createEntity',
+      entityType: 'cassette_design',
+      parentEntityType: 'cassette',
+      status: { from: 'CREATED', to: 'RECEIVED' }
+    };
+
+    expect(actionAppliesToEntity(action, { status: { state: { primary: 'CREATED' } } }, 'cassette')).toBe(true);
+    expect(actionAppliesToEntity(action, { status: { state: { primary: 'DELETED' } } }, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity(action, { status: { state: { primary: 'CREATED' } } }, 'project')).toBe(false);
+  });
+
+  it('identifies parent-bound create actions for collection rows', () => {
+    expect(parentBoundCreateAppliesToEntityType({
+      actionKind: 'createEntity',
+      entityType: 'cassette_design',
+      parentEntityType: 'cassette'
+    }, 'cassette')).toBe(true);
+    expect(parentBoundCreateAppliesToEntityType({
+      actionKind: 'createEntity',
+      entityType: 'cassette'
+    }, 'cassette')).toBe(false);
+  });
+
+  it('hides entity actions from other entity lists', () => {
+    expect(actionAppliesToEntity({ actionKind: 'updateEntity', entityType: 'project' }, {}, 'cassette')).toBe(false);
+  });
+
+  it('resolves generated entity actions from region ids and user action manifest', () => {
+    const entity = { status: { state: { primary: 'READY' } } };
+    const actions = resolveGeneratedEntityActions({
+      actionIds: ['solve', 'delete', 'missing'],
+      actionManifest: [
+        {
+          actionId: 'solve',
+          actionKind: 'runCommand',
+          commandId: 'solveNesting',
+          entityType: 'queue',
+          status: { from: 'READY' }
+        },
+        {
+          actionId: 'delete',
+          actionKind: 'changeStatus',
+          entityType: 'queue',
+          status: { from: 'ARCHIVED', to: 'DELETED' }
+        }
+      ],
+      entity,
+      entityType: 'queue'
+    });
+
+    expect(actions.map(action => action.actionId)).toEqual(['solve']);
+  });
+
+  it('keeps lifecycle transitions out of generic action surfaces', () => {
+    expect(isGeneratedSurfaceAction({ actionKind: 'changeStatus' })).toBe(false);
+    expect(isGeneratedSurfaceAction({ actionKind: 'runCommand' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'updateEntity' })).toBe(true);
+  });
+});

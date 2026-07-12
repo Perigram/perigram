@@ -4,6 +4,8 @@
 SESSION_NAME="cutkit"
 ROOT_DIR=$(pwd)
 export NODE_OPTIONS="--max-old-space-size=4096"
+export GEOMETRY_CAPTURE_ML="${GEOMETRY_CAPTURE_ML:-1}"
+export GEOMETRY_CAPTURE_MODEL_FIRST="${GEOMETRY_CAPTURE_MODEL_FIRST:-1}"
 
 # Check if the tmux session already exists
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then

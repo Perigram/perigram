@@ -1,11 +1,12 @@
 <template>
-    <div class="flex flex-col gap-6">
+    <StandardPage :title="$t('assets.cassettes')">
         <CassetteManager />
-    </div>
+    </StandardPage>
 </template>
 
 <script setup>
 import CassetteManager from '~/components/CassetteManager.vue';
+import StandardPage from '~/components/shared/StandardPage.vue';
 
 definePageMeta({
     layout: "app",

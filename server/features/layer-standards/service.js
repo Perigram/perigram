@@ -2,6 +2,8 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import { createIdentity, createData, createStatus } from '../../core/blocks/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { LayerStandard } from './model.js';
+import { markPublicSystemData } from '#shared/public-entities.js';
 
 /**
  * Layer Standards Service - v24 Standardized
@@ -9,20 +11,32 @@ import { toFlexibleId } from '../../utils/objectid.js';
 
 function toDTO(standard) {
   if (!standard) return null;
-  return {
-    ...standard,
-    ...standard.data,
-    name: standard.identity?.name
-  };
+  return new LayerStandard(standard).toJSON();
 }
 
-export async function create(data, userId, userOrg, userRole, userPermissions) {
-  const { code, category, name, i18n, parameters, defaultPenId } = data;
-
+function buildLayerStandardDocument(data, userId, userOrg) {
+  const {
+    code,
+    category,
+    name,
+    i18n,
+    parameters,
+    defaultPenId,
+    group,
+    kind,
+    purpose,
+    production,
+    allowedGeometry,
+    aliases,
+    defaultExport,
+    parameterSchema,
+    description,
+    source
+  } = data;
   const lineage = userOrg ? { organizationId: toFlexibleId(userOrg) } : {};
   const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Layer standard created' });
 
-  const standardData = {
+  const doc = {
     identity: createIdentity(name || code),
     origin,
     status: origin,
@@ -32,9 +46,24 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
       category,
       defaultPenId: defaultPenId ? toFlexibleId(defaultPenId) : null,
       i18n: i18n || { en: { nameTemplate: name }, ru: { nameTemplate: name } },
-      parameters: parameters || []
+      parameters: parameters || [],
+      group: group || null,
+      kind: kind || null,
+      purpose: purpose || null,
+      production: Boolean(production),
+      allowedGeometry: allowedGeometry || [],
+      aliases: aliases || [],
+      defaultExport: defaultExport || {},
+      parameterSchema: parameterSchema || {},
+      description: description || '',
+      source: source || null
     })
   };
+  return userOrg ? doc : markPublicSystemData(doc);
+}
+
+export async function create(data, userId, userOrg, userRole, userPermissions) {
+  const standardData = buildLayerStandardDocument(data, userId, userOrg);
 
   const created = await repository.create(standardData);
   return toDTO(created);
@@ -58,6 +87,11 @@ export async function seed(standards = []) {
   for (const standard of standards) {
     const existing = await repository.findByCode(standard.code);
     if (existing) {
+      const next = buildLayerStandardDocument(standard, 'SYSTEM');
+      await repository.updateById(existing._id, {
+        identity: next.identity,
+        data: next.data
+      });
       created[standard.code] = existing._id;
       continue;
     }

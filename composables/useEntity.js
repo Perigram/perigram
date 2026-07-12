@@ -1,7 +1,9 @@
+import { useRequestHeaders } from '#app';
 import { ref, computed } from 'vue';
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 import { useStatusController } from './useStatusController';
 import { useCutkitDomainUi } from './useCutkitDomainUi';
+import { emitEntityCreated, emitEntityDeleted, emitEntityUpdated } from '~/utils/entity-events.js';
 
 /**
  * Unified Entity Composable - v24 Standardized
@@ -22,7 +24,7 @@ export const useEntity = (type, identifier = null) => {
 
   // Block helpers — reactive to entity ref
   const { name, slug, serial, reference } = useIdentity(entity);
-  const { state, statusColor, timestamp: statusTime, metadata: statusMeta, lifecycle: statusLifecycle } = useStatus(entity);
+  const { state, stateObject, regions: statusRegions, statusColor, timestamp: statusTime, metadata: statusMeta, lifecycle: statusLifecycle } = useStatus(entity);
   const { lineage, getAncestorId } = useLineage(entity);
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
@@ -37,17 +39,19 @@ export const useEntity = (type, identifier = null) => {
   /**
    * Fetch a single entity by ID or slug
    */
-  const fetch = async (id = identifier) => {
+  const fetch = async (id = identifier, options = {}) => {
     if (!id) return;
     loading.value = true;
     error.value = null;
     try {
-      const data = await $fetch(getSingleEndpoint(id));
+      const data = await $fetch(getSingleEndpoint(id), entityFetchOptions());
       entity.value = data;
       return data;
     } catch (err) {
       error.value = err.data?.message || `Failed to fetch ${type}`;
-      console.error(`[useEntity] Error fetching ${type}:`, err);
+      if (!options.silent) {
+        console.error(`[useEntity] Error fetching ${type}:`, err);
+      }
       throw err;
     } finally {
       loading.value = false;
@@ -59,16 +63,18 @@ export const useEntity = (type, identifier = null) => {
    * Results are stored in `items` ref.
    * @param {object} [filters] - Query params as key/value pairs
    */
-  const list = async (filters) => {
+  const list = async (filters, options = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await $fetch(getListEndpoint(filters));
+      const data = await $fetch(getListEndpoint(filters), entityFetchOptions());
       items.value = Array.isArray(data) ? data : data.items ?? data.projects ?? data.data ?? [];
       return items.value;
     } catch (err) {
       error.value = err.data?.message || `Failed to fetch ${type} list`;
-      console.error(`[useEntity] Error listing ${type}:`, err);
+      if (!options.silent) {
+        console.error(`[useEntity] Error listing ${type}:`, err);
+      }
       throw err;
     } finally {
       loading.value = false;
@@ -81,11 +87,13 @@ export const useEntity = (type, identifier = null) => {
   const update = async (updates, id = identifier || entity.value?._id) => {
     loading.value = true;
     try {
-      const data = await $fetch(getSingleEndpoint(id), {
+      const data = await $fetch(getSingleEndpoint(id), entityFetchOptions({
         method: 'PATCH',
         body: updates
-      });
+      }));
       entity.value = data;
+      emitEntityUpdated({ type, id: data?._id || id, entity: data });
+      publishEntityMutation({ type, id: data?._id || id, change: 'updated', reason: 'update' });
       return data;
     } catch (err) {
       error.value = err.data?.message || `Failed to update ${type}`;
@@ -103,8 +111,10 @@ export const useEntity = (type, identifier = null) => {
       error.value = null;
     try {
       const url = domainUi.getListEndpoint(type);
-      const result = await $fetch(url, { method: 'POST', body: data });
+      const result = await $fetch(url, entityFetchOptions({ method: 'POST', body: data }));
       entity.value = result;
+      emitEntityCreated({ type, id: result?._id, entity: result });
+      publishEntityMutation({ type, id: result?._id, change: 'created', reason: 'create' });
       return result;
     } catch (err) {
       error.value = err.data?.message || `Failed to create ${type}`;
@@ -121,8 +131,12 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
     error.value = null;
     try {
-      await $fetch(getSingleEndpoint(id), { method: 'DELETE' });
+      const removedId = id || entity.value?._id;
+      const removedEntity = entity.value;
+      await $fetch(getSingleEndpoint(id), entityFetchOptions({ method: 'DELETE' }));
       entity.value = null;
+      emitEntityDeleted({ type, id: removedId, entity: removedEntity });
+      publishEntityMutation({ type, id: removedId, change: 'deleted', reason: 'delete' });
     } catch (err) {
       error.value = err.data?.message || `Failed to delete ${type}`;
       throw err;
@@ -137,7 +151,9 @@ export const useEntity = (type, identifier = null) => {
   const changeStatus = async (newState, context = {}) => {
     const id = entity.value?._id || identifier;
     const result = await transition(type, id, newState, context);
-    if (result) {
+    if (result?.entity) {
+      entity.value = result.entity;
+    } else if (result) {
       await fetch(id);
     }
     return result;
@@ -159,6 +175,8 @@ export const useEntity = (type, identifier = null) => {
     serial,
     reference,
     state,
+    stateObject,
+    statusRegions,
     statusColor,
     statusTime,
     statusMeta,
@@ -178,3 +196,22 @@ export const useEntity = (type, identifier = null) => {
     getAncestorId
   };
 };
+
+function entityFetchOptions(options = {}) {
+  if (!import.meta.server) return options;
+  return {
+    ...options,
+    headers: {
+      ...useRequestHeaders(['cookie']),
+      ...(options.headers || {})
+    }
+  };
+}
+
+function publishEntityMutation(detail = {}) {
+  if (import.meta.server || !detail.type || !detail.id) return;
+  $fetch('/api/entity-events', {
+    method: 'POST',
+    body: detail
+  }).catch(() => null);
+}

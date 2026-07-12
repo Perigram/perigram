@@ -1,5 +1,7 @@
 import { cncFrontendEntities } from './summaries.js';
 import { cncWorkflows } from './workflows.js';
+import { cncEntityFieldGroups } from './ui-fields.js';
+import { createEntitySurfaceContracts } from './ui-surfaces.js';
 
 export const cncStatusUi = {
   DRAFT: { label: 'status.draft', severity: 'info', icon: 'pi pi-pencil' },
@@ -13,6 +15,9 @@ export const cncStatusUi = {
   CHOSEN: { label: 'status.chosen', severity: 'success', icon: 'pi pi-star' },
   ACTIVE: { label: 'status.active', severity: 'success', icon: 'pi pi-check-circle' },
   AVAILABLE: { label: 'status.available', severity: 'success', icon: 'pi pi-box' },
+  STOCKED: { label: 'status.stocked', severity: 'success', icon: 'pi pi-database' },
+  DEPLETED: { label: 'status.depleted', severity: 'secondary', icon: 'pi pi-inbox' },
+  USED: { label: 'status.used', severity: 'secondary', icon: 'pi pi-check-circle' },
   'IN-CUTTING': { label: 'status.inCutting', severity: 'warn', icon: 'pi pi-scissors' },
   MILLED: { label: 'status.milled', severity: 'success', icon: 'pi pi-check-square' },
   SENT: { label: 'status.sent', severity: 'info', icon: 'pi pi-send' },
@@ -22,6 +27,7 @@ export const cncStatusUi = {
   PRODUCED: { label: 'status.produced', severity: 'info', icon: 'pi pi-box' },
   INSTALLED: { label: 'status.installed', severity: 'success', icon: 'pi pi-check' },
   GENERATING: { label: 'status.generating', severity: 'warn', icon: 'pi pi-spin pi-cog' },
+  PROCESSING: { label: 'status.processing', severity: 'warn', icon: 'pi pi-spin pi-cog' },
   FAILED: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
   SCRAP: { label: 'status.scrap', severity: 'danger', icon: 'pi pi-trash' }
 };
@@ -45,6 +51,7 @@ export const cncDesignSystemPrimitives = [
   { key: 'EntityStatus', kind: 'status', componentPath: 'components/shared/status/EntityStatus.vue', purpose: 'Interactive status display and workflow-derived transition actions.', docs: ['components/shared/README.md', 'utils/README.md'] },
   { key: 'StatusLocation', kind: 'status', componentPath: 'components/shared/status/StatusLocation.vue', purpose: 'Typed current lifecycle location rendering from status.lifecycle.data.location.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
   { key: 'StatusHistory', kind: 'status', componentPath: 'components/shared/status/StatusHistory.vue', purpose: 'Status audit timeline for entity lifecycle events.', docs: ['components/shared/README.md'] },
+  { key: 'DrawingCanvas', kind: 'block', componentPath: 'components/shared/DrawingCanvas.vue', purpose: 'Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions.', docs: ['components/shared/README.md', 'utils/README.md'] },
   { key: 'GeometryPreview', kind: 'block', componentPath: 'components/shared/GeometryPreview.vue', purpose: 'Token-backed SVG preview for DXF layers and polygon geometry stored in data.geometry.preview.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
   { key: 'TraceLink', kind: 'trace', componentPath: 'components/shared/links/TraceLink.vue', purpose: 'Single related-entity link used inside rows, status locations, and custom relation fields; TraceChain is for full ancestry.', docs: ['components/shared/README.md'] },
   { key: 'TraceChain', kind: 'trace', componentPath: 'components/shared/links/TraceChain.vue', purpose: 'Canonical lineage breadcrumb chain for entity ancestry.', docs: ['components/shared/README.md'] },
@@ -65,9 +72,10 @@ export const cncDesignSystemEntityContracts = [
   ['sheetDesign', 'sheet_design', 'production', 'entities.sheetDesign', 'design', 'createMockSheetDesign', workflowStatus('sheet_design'), true, ['server/features/sheet-designs/README.md']],
   ['cassette', 'cassette', 'production', 'entities.cassette', 'cassette', 'createMockCassette', workflowStatus('cassette'), true, ['components/entities/Cassette/README.md', 'server/features/cassettes/README.md']],
   ['cassetteDesign', 'cassette_design', 'production', 'entities.cassetteDesign', 'design', 'createMockCassetteDesign', 'hidden', true, ['server/features/cassette-designs/README.md']],
-  ['cassetteTemplate', 'cassette_template', 'production', 'entities.cassetteTemplate', 'template', 'createMockCassetteTemplate', 'hidden', true, ['server/features/cassettes/README.md']],
+  ['cassetteTemplate', 'cassette_template', 'production', 'entities.cassetteTemplate', 'template', 'createMockCassetteTemplate', 'hidden', true, ['components/entities/CassetteTemplate/README.md', 'server/features/cassettes/README.md']],
   ['cassetteInstance', 'cassette_instance', 'production', 'entities.cassetteInstance', 'instance', 'createMockCassetteInstance', workflowStatus('cassette_instance'), true, ['server/features/cassette-instances/README.md']],
   ['requisition', 'requisition', 'production', 'entities.requisition', 'requisition', 'createMockRequisition', workflowStatus('requisition'), true, ['server/features/requisitions/README.md']],
+  ['library', 'library', 'master', 'entities.library', 'library', 'createMockLibrary', 'hidden', true, ['components/entities/Library/README.md', 'server/features/libraries/README.md']],
   ['material', 'material', 'material', 'entities.material', 'material', 'createMockMaterial', 'hidden', false, ['components/entities/Material/README.md', 'server/DATA_MODEL.md']],
   ['materialPile', 'material_pile', 'material', 'entities.materialPile', 'pile', 'createMockPile', workflowStatus('material_pile'), true, ['components/entities/MaterialPile/README.md', 'server/features/material-piles/README.md']],
   ['batchPile', 'material_pile', 'material', 'entities.batchPile', 'pile', 'createMockBatchPile', workflowStatus('material_pile'), true, ['components/entities/BatchPile/README.md', 'server/features/material-piles/README.md']],
@@ -75,6 +83,9 @@ export const cncDesignSystemEntityContracts = [
   ['remnant', 'remnant', 'material', 'entities.remnant', 'remnant', 'createMockRemnant', workflowStatus('remnant'), true, ['server/features/remnants/README.md']],
   ['catalog', 'catalog', 'master', 'entities.catalog', 'catalog', 'createMockCatalog', 'hidden', true, ['server/features/catalogs/README.md']],
   ['color', 'color', 'master', 'entities.color', 'color', 'createMockColor', 'hidden', true, ['server/features/colors/README.md']],
+  ['entityRevision', 'entity_revision', 'system', 'entities.entityRevision', 'revision', 'createMockEntityRevision', 'hidden', true, ['components/entities/EntityRevision/README.md', 'server/features/entity-revisions/README.md']],
+  ['geometryCapture', 'geometry_capture', 'production', 'entities.geometryCapture', 'capture', 'createMockGeometryCapture', workflowStatus('geometry_capture'), true, ['components/entities/GeometryCapture/README.md', 'server/features/geometry-captures/README.md']],
+  ['profileTemplate', 'profile_template', 'master', 'entities.profileTemplate', 'profile', 'createMockProfileTemplate', 'hidden', false, ['server/features/profile-templates/README.md']],
   ['warehouse', 'warehouse', 'master', 'entities.warehouse', 'warehouse', 'createMockWarehouse', workflowStatus('warehouse'), true, ['server/features/warehouses/README.md']],
   ['toolProfile', 'tool_profile', 'master', 'entities.toolProfile', 'tool', 'createMockToolProfile', 'hidden', false, ['server/features/tool-profiles/README.md']],
   ['penTemplate', 'pen_template', 'master', 'entities.penTemplate', 'pen', 'createMockPenTemplate', 'hidden', false, ['server/features/pen-templates/README.md']],
@@ -94,11 +105,15 @@ export const cncDesignSystemEntityContracts = [
   docs
 }));
 
+export const cncEntitySurfaceContracts = createEntitySurfaceContracts(cncDesignSystemEntityContracts);
+
 export const cncDesignSystem = {
   variants: cncDesignSystemVariants,
   groups: cncDesignSystemGroups,
   primitives: cncDesignSystemPrimitives,
-  contracts: cncDesignSystemEntityContracts
+  contracts: cncDesignSystemEntityContracts,
+  fieldGroups: cncEntityFieldGroups,
+  surfaces: cncEntitySurfaceContracts
 };
 
 export const cncUiSurfaces = cncFrontendEntities.map(definition => ({
@@ -123,7 +138,9 @@ function iconForType(type) {
     cassetteDesign: 'pi pi-pencil',
     cassetteTemplate: 'pi pi-palette',
     cassetteInstance: 'pi pi-box',
+    library: 'pi pi-book',
     artifact: 'pi pi-file',
+    geometryCapture: 'pi pi-camera',
     warehouse: 'pi pi-building',
     user: 'pi pi-user',
     organization: 'pi pi-building'

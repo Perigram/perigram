@@ -3,26 +3,124 @@
 Cross-runtime JavaScript contracts used by both browser-facing Nuxt code and
 server features.
 
+Modules in this directory are portable runtime contracts. They must not import
+other repo files through Nuxt-only `~/` or `~~/` aliases because server scripts,
+workers, and direct Node imports do not own that resolver. Use package imports
+such as `#shared/access-control.js` when the imported contract may be bundled
+by Nitro dev; sibling-only helpers may use `./file.js` only when they are not
+imported through server modules that Nitro externalizes.
+
 ## Core Files
-- `permission-templates.js`: Backend feature access levels by app role. Users
-  copy these defaults into membership permissions and the admin workbench edits
-  drafts from the same source.
-- `ui-permissions.js`: UI action visibility by app role, feature key, and
-  action name.
+- `access-control.js`: Shared permission grant evaluator for feature levels,
+  UI actions, entity lineage scopes, workflow-transition scopes, and optional
+  logical grant rules.
+- `permission-templates.js`: Access presets that expand into copied membership
+  permission grants when a preset is assigned. Runtime checks consume the
+  decomposed grants and do not branch on verbal preset labels.
+- `entity-field-access.js`: Field-level display/redaction helpers shared by
+  Nuxt cards and server API serialization. It consumes `@cutkit/domain-cnc`
+  field policies plus the same grant evaluator used by UI actions and backend
+  access checks.
+- `ui-permissions.js`: Compatibility UI resolver backed by the same grant
+  evaluator as the server access engine.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
 
-## Permission Model
-Backend access uses feature keys such as `projects`, `queues`, `cassettes`,
-`nesting_runs`, `artifacts`, `warehouses`, `catalogs`, `requisitions`,
-`materials`, `users`, and `organizations` with levels `none`, `read`, `write`,
-and `admin`.
+`scripts/check-arch.js` enforces the no-Nuxt-root-alias rule for portable
+runtime modules under `shared/`, `test-data/`, and `packages/`, and rejects
+parent-relative cross-root imports from `shared/` and `test-data/`.
 
-UI visibility is a separate action matrix keyed by the same feature names where
-possible. Workflow definitions must not duplicate app role names for access
-policy; they should keep lifecycle state, capabilities, and hooks.
+## Permission Model
+Access uses feature keys such as `projects`, `queues`, `cassettes`,
+`nesting_runs`, `artifacts`, `warehouses`, `catalogs`, `requisitions`,
+`materials`, `layer_standards`, `users`, and `organizations` with levels
+`none`, `read`, `write`, and `admin`.
+
+System materials, layer standards, pens, and tools are not granted through
+default presets. They are read from the public system catalogue marker
+(`lineage.scope: "system"`, `lineage.public: true`, and
+`data.visibility.public: true`) documented in the server architecture. User and
+process grants still control mutable inventory/catalogue records and all
+write/admin operations.
+
+Permission values may be legacy strings (`queues: 'write'`) or grant objects /
+arrays:
+
+```js
+{
+  queues: [{ level: 'write', scope: { projectId: 'project-a' } }],
+  projects: [{ level: 'write', transitions: ['PRODUCED->MILLED'] }],
+  requisitions: {
+    level: 'admin',
+    actions: { create: false, approve: true, reject: true, fulfill: true }
+  }
+}
+```
+
+Scopes are matched against entity lineage (`organizationId`, `projectId`,
+`queueId`, `warehouseId`) or the entity id. Transition scopes match
+`from->to`, target state, or `{ from, to }`. Workbench test access uses the
+same permission object shape, so fixture ownership and per-run access overrides
+exercise production access code.
+
+Entity relation access is explicit rather than inherited. A `projects:admin`
+grant does not automatically imply `queues:admin` for child queues; the process
+compiler or caller must emit a separate `queues` grant, optionally scoped with
+`scope.projectId` so it applies only to queues under the intended project
+branch.
+
+Lineage ID facts such as `lineage.projectId` read directly from the checked
+entity. Lineage entity traits use facts such as
+`lineage.project.status.primary` and `lineage.project.type`; they require the
+caller to supply resolved ancestors through `context.lineageEntities` (for
+example `{ project }`) or embed them on the checked entity as
+`entity.lineageEntities`. Without that context, only the stored lineage IDs are
+enforceable.
+
+Grant objects may also include `rule`, an additive logical filter evaluated
+after level/action/scope/transition checks:
+
+```js
+{
+  projects: {
+    level: 'write',
+    rule: {
+      all: [
+        { fact: 'lineage.projectId', equals: 'project-a' },
+        { fact: 'status.primary', equals: 'ACTIVE' },
+        { not: { fact: 'action', equals: 'delete' } }
+      ]
+    }
+  }
+}
+```
+
+Rules support `all`, `any`, and `not` gates plus predicates over feature,
+level, action, entity type/id, entity lineage IDs, resolved lineage entity
+traits, primary status, transition fields, arbitrary entity fields, and
+explicit context facts. Supported comparators are `exists`, `equals`,
+`notEquals`, `in`, `includes`, and `atLeast` for access levels.
+
+Workflow definitions must not duplicate app preset names for access policy; they
+should declare feature permission requirements, lifecycle capabilities, and
+hooks. Preset labels are compatibility labels only. Persisted user records must
+already carry copied permission grants; loading a user does not expand grants
+from the preset label. Workbench `testAccess` grants use the same explicit
+permission shape.
+
+Entity field display is stricter than entity read access. Entity read access
+decides whether the record may be fetched; `entity-field-access.js` decides
+which DTO paths may be shown. A path must be declared in
+`cncEntityFieldAccess` and the active membership or process grant must satisfy
+the policy level. Active process field policies can narrow the domain policy
+per organization: `read` fields display with read grants, `write` fields with
+write grants, and `private` fields with admin grants. No field policy means no
+display and no API serialization for auth-bound DTOs.
+Field policies may target subfields inside arrays, such as
+`data.memberships.organizationId`; redaction preserves only those allowed keys
+on each array item instead of copying the whole object.
 
 ## Related
-- [users feature](../server/features/users/README.md) - Stores role,
-  membership, and copied permission data on user records.
+- [users feature](../server/features/users/README.md) - Stores membership and
+  copied permission data on user records.
 - [admin pages](../pages/admin/README.md) - Workbench editor for permission
   template drafts and UI action visibility drafts.

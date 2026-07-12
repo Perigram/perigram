@@ -41,14 +41,12 @@ describe('Projects & Multi-tenant Ownership', () => {
   const contractor1 = {
     userId: 'user1',
     organizationId: new ObjectId(),
-    role: 'ContractorAdmin',
     permissions: null
   };
 
   const contractor2 = {
     userId: 'user2',
     organizationId: new ObjectId(),
-    role: 'ContractorAdmin',
     permissions: null
   };
 
@@ -65,7 +63,7 @@ describe('Projects & Multi-tenant Ownership', () => {
       data, 
       contractor1.userId, 
       contractor1.organizationId, 
-      contractor1.role,
+      null,
       contractor1.permissions
     );
 
@@ -75,39 +73,88 @@ describe('Projects & Multi-tenant Ownership', () => {
     expect(dto).not.toHaveProperty('id');
     expect(dto).not.toHaveProperty('name');
     expect(result.lineage.organizationId.toString()).toBe(contractor1.organizationId.toString());
-    expect(result.status.state).toBe('DRAFT');
+    expect(result.status.state.primary).toBe('DRAFT');
   });
 
   it('should isolate project lists between organizations', async () => {
-    await projectService.create({ name: 'Org 1 Proj' }, contractor1.userId, contractor1.organizationId, contractor1.role, contractor1.permissions);
-    await projectService.create({ name: 'Org 2 Proj' }, contractor2.userId, contractor2.organizationId, contractor2.role, contractor2.permissions);
+    await projectService.create({ name: 'Org 1 Proj' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    await projectService.create({ name: 'Org 2 Proj' }, contractor2.userId, contractor2.organizationId, null, contractor2.permissions);
 
-    const list1 = await projectService.list(contractor1.userId, contractor1.organizationId, contractor1.role, contractor1.permissions);
+    const list1 = await projectService.list(contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
     expect(list1).toHaveLength(1);
     expect(list1[0].toJSON().identity.name).toBe('Org 1 Proj');
 
-    const list2 = await projectService.list(contractor2.userId, contractor2.organizationId, contractor2.role, contractor2.permissions);
+    const list2 = await projectService.list(contractor2.userId, contractor2.organizationId, null, contractor2.permissions);
     expect(list2).toHaveLength(1);
     expect(list2[0].toJSON().identity.name).toBe('Org 2 Proj');
   });
 
   it('should deny access to other organization projects', async () => {
-    const project = await projectService.create({ name: 'Secret Proj' }, contractor1.userId, contractor1.organizationId, contractor1.role, contractor1.permissions);
+    const project = await projectService.create({ name: 'Secret Proj' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
 
     await expect(projectService.getBySlug(
       project._id, 
       contractor2.userId, 
       contractor2.organizationId, 
-      contractor2.role, 
+      null, 
       contractor2.permissions
     )).rejects.toThrow(/Permission denied/);
   });
 
-  it('should allow SuperAdmin to see everything', async () => {
-    await projectService.create({ name: 'Org 1 Proj' }, contractor1.userId, contractor1.organizationId, contractor1.role, contractor1.permissions);
+  it('should not expose projects without membership lineage', async () => {
+    await projectService.create({ name: 'Org 1 Proj' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
     
-    const superAdmin = { role: 'SuperAdmin', permissions: { memberships: [] } };
-    const list = await projectService.list('sa', null, 'SuperAdmin', superAdmin.permissions);
-    expect(list).toHaveLength(1);
+    const list = await projectService.list('observer', null, null, { memberships: [] });
+    expect(list).toHaveLength(0);
+  });
+
+  it('should filter project lists through grant rules used by project detail', async () => {
+    const visible = await projectService.create({ name: 'Visible Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    const hidden = await projectService.create({ name: 'Hidden Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    await db.collection('projects').updateOne(
+      { _id: hidden._id },
+      { $set: { 'status.state': 'CLOSED' } }
+    );
+
+    const permissions = {
+      memberships: [{
+        organizationId: contractor1.organizationId,
+        permissions: {
+          projects: {
+            level: 'read',
+            rule: { all: [{ fact: 'status.primary', equals: 'DRAFT' }] }
+          }
+        }
+      }]
+    };
+
+    const list = await projectService.list(contractor1.userId, contractor1.organizationId, null, permissions);
+    expect(list.map(project => project._id)).toEqual([visible._id]);
+    await expect(projectService.getBySlug(hidden._id, contractor1.userId, contractor1.organizationId, null, permissions))
+      .rejects.toThrow(/Permission denied/);
+  });
+
+  it('should accept multi-status list filters for generated process screens', async () => {
+    const draft = await projectService.create({ name: 'Draft Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    const closed = await projectService.create({ name: 'Closed Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    const archived = await projectService.create({ name: 'Archived Project' }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    await db.collection('projects').updateOne(
+      { _id: closed._id },
+      { $set: { 'status.state.primary': 'CLOSED' } }
+    );
+    await db.collection('projects').updateOne(
+      { _id: archived._id },
+      { $set: { 'status.state.primary': 'ARCHIVED' } }
+    );
+
+    const list = await projectService.list(
+      contractor1.userId,
+      contractor1.organizationId,
+      null,
+      contractor1.permissions,
+      { primaryStatuses: 'DRAFT,CLOSED' }
+    );
+
+    expect(list.map(project => project._id).sort()).toEqual([closed._id, draft._id].sort());
   });
 });

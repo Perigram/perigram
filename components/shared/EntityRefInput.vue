@@ -27,7 +27,7 @@
       @update:model-value="value => emit('update:modelValue', value)"
     />
     <div v-if="selectedEntity" class="flex flex-wrap items-center gap-2">
-      <StatusBadge :state="selectedEntity.status?.state" />
+      <StatusBadge :state="getPrimaryState(selectedEntity.status)" />
       <small class="truncate text-muted-color">{{ selectedEntity.identity?.uid || selectedEntity._id }}</small>
     </div>
   </div>
@@ -38,6 +38,7 @@ import { computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
+import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },

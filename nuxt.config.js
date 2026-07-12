@@ -3,6 +3,9 @@ import Re_L from './assets/presets/re_l'
 import { fileURLToPath } from 'node:url'
 
 const resolveRoot = (path) => fileURLToPath(new URL(path, import.meta.url))
+const devHmrHost = process.env.NUXT_DEV_HMR_HOST || undefined
+const devHmrProtocol = process.env.NUXT_DEV_HMR_PROTOCOL || 'ws'
+const devHmrClientPort = Number(process.env.NUXT_DEV_HMR_CLIENT_PORT || 3000)
 const cutkitAliases = {
     '@cutkit/core': resolveRoot('./packages/core/src/index.js'),
     '@cutkit/workflows': resolveRoot('./packages/workflows/src/index.js'),
@@ -11,13 +14,22 @@ const cutkitAliases = {
     '@cutkit/vue': resolveRoot('./packages/vue/src/index.js'),
     '@cutkit/devtools': resolveRoot('./packages/devtools/src/index.js'),
     '@cutkit/mcp': resolveRoot('./packages/mcp/src/index.js'),
+    '@cutkit/processes': resolveRoot('./packages/processes/src/index.js'),
     '@cutkit/domain-cnc': resolveRoot('./packages/domain-cnc/src/index.js')
+}
+const portableAliases = {
+    '#shared': resolveRoot('./shared'),
+    '#packages': resolveRoot('./packages'),
+    '#utils': resolveRoot('./utils')
 }
 
 export default defineNuxtConfig({
     compatibilityDate: '2025-07-15',
 
-    alias: cutkitAliases,
+    alias: {
+        ...cutkitAliases,
+        ...portableAliases
+    },
 
     devtools: { enabled: true },
 
@@ -67,6 +79,9 @@ export default defineNuxtConfig({
         // The NUXT_ prefix allows runtime override
         mongoUri: process.env.NUXT_MONGODB_URI || process.env.MONGODB_URI || '',
         stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
+        billing: {
+            priceCatalog: process.env.NUXT_BILLING_PRICE_CATALOG || '[]',
+        },
         resendToken: process.env.RESEND_TOKEN || '',
         public: {
             baseUrl: process.env.BASE_URL || 'http://localhost:3000',
@@ -76,7 +91,10 @@ export default defineNuxtConfig({
 
     vite: {
         resolve: {
-            alias: cutkitAliases
+            alias: {
+                ...cutkitAliases,
+                ...portableAliases
+            }
         },
         css: {
             preprocessorOptions: {
@@ -135,11 +153,21 @@ export default defineNuxtConfig({
                 'primevue/tab',
                 'primevue/tabpanels',
                 'primevue/tabpanel',
-                '@vue-flow/core'
+                '@vue-flow/core',
+                'three',
+                'three/examples/jsm/controls/OrbitControls.js'
             ],
             exclude: ['nodi-modular']
         },
         server: {
+            host: '0.0.0.0',
+            strictPort: true,
+            hmr: {
+                protocol: devHmrProtocol,
+                host: devHmrHost,
+                clientPort: devHmrClientPort,
+                path: '/_nuxt/'
+            },
             fs: {
                 allow: ['..']
             }
@@ -220,7 +248,10 @@ export default defineNuxtConfig({
 
     nitro: {
         compressPublicAssets: true,
-        alias: cutkitAliases,
+        alias: {
+            ...cutkitAliases,
+            ...portableAliases
+        },
         routeRules: {
             '/icons/**': {
                 headers: {
