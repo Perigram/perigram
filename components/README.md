@@ -249,9 +249,12 @@ main/supporting proportions from
 `EntityWorkspace` rather than inventing local stacked or sidebar grids.
 Sheet-design details similarly mount `SheetDesignEditor` when the active user
 has a concrete `sheet_designs:write` grant. The editor mutates nesting source
-items and placements, snaps moves to the saved solver spacing, supports
-existing/uploaded cassette designs, and persists through immutable geometry
-revisions. Read-only generated details keep the standard geometry display.
+items and placements, resolves OCCS layer pens through the shared layer
+standards, snaps moves to the selected tool diameter, clamps complete rotated
+geometry inside the visible material-sheet boundary, supports existing/uploaded
+cassette designs, and persists through immutable geometry revisions. Generated
+sheet-design details keep the sheet identity visible in `EntityPage`; read-only
+details keep the standard geometry display.
 The queue detail support region for nesting runs follows the same contract:
 process mode separates command controls from result viewing. The nesting
 command/settings panel renders only when the opened queue detail receives a

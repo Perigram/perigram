@@ -58,7 +58,9 @@ Important `data` fields:
   with group-level fallback only for unknown future codes.
 - Visual drawing code resolves pens from layer standards through canonical DTO
   fields first: `standard.data.code`, `standard.data.defaultPenId`,
-  `standard.data.orgPenId`, and `pen.data.stroke`.
+  `standard.data.orgPenId`, and `pen.data.stroke`. Pen references may contain
+  the pen Mongo `_id` or canonical `pen.identity.uid`; shared resolution must
+  support both.
 
 ## Related
 
