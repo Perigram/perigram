@@ -647,6 +647,35 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('does not infer operational screens for domain meta entities', () => {
+    const metaDomain = {
+      ...domain,
+      entities: (domain.entities || []).map(entity => (
+        entity.type === 'user' ? { ...entity, meta: true } : entity
+      ))
+    };
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_admin: {
+          id: 'role_admin',
+          label: 'Admin',
+          grants: [{ feature: 'users', level: 'read' }]
+        }
+      },
+      assignments: {
+        user_a: {
+          userId: 'user_a',
+          roleIds: ['role_admin'],
+          bindings: {},
+          status: 'active'
+        }
+      }
+    }, metaDomain);
+
+    expect(Object.keys(compiled.screens)).not.toContain('auto_role_admin_user');
+    expect(compiled.userAccess.user_a.permissions.users).toEqual([{ level: 'read' }]);
+  });
+
   it('synthesizes home sections from authored list screens', () => {
     const compiled = compileProcessDefinition({
       roles: {

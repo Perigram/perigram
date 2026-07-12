@@ -1399,15 +1399,19 @@ function aggregateScreenRequirement(feature, grants = []) {
 }
 
 function entityTypeFromFeature(domain = {}, feature) {
-  return (domain.entities || []).find(entity =>
+  return (domain.entities || []).find(entity => !entity.meta && (
     entity.collection === feature ||
     entity.type === feature ||
     `${entity.type}s` === feature
-  )?.type || null;
+  ))?.type || null;
 }
 
 function entityTypeFromProfiles(entityProfiles = {}, domain = {}, feature) {
-  return Object.values(entityProfiles).find(profile => resolveEntityFeature(domain, profile.entityType) === feature)?.entityType || null;
+  const entityType = Object.values(entityProfiles)
+    .find(profile => resolveEntityFeature(domain, profile.entityType) === feature)
+    ?.entityType || null;
+  const definition = (domain.entities || []).find(entity => entity.type === entityType);
+  return definition?.meta ? null : entityType;
 }
 
 function featureFromEntityType(domain = {}, entityType) {

@@ -401,6 +401,7 @@ async function createSheetDesignsForLayouts(run, result, summary, params, auth =
         summary: sheetSummary
       },
       materialPool: run?.data?.materialPool || [],
+      nestingParams: params,
       summary: sheetSummary || summary
     }, auth.userId || 'SYSTEM'));
   }

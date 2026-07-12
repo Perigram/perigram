@@ -36,6 +36,10 @@ Production queue card and detail surface.
   and parameter updates while `QueueEditor` remains the owner of persistence and
   `_key`-based row deletion. These rows keep natural panel height inside the
   center lane grid; the workspace lane owns scrolling.
+- Inline quantity and parameter updates persist without emitting the route-level
+  `updated` refresh event. The editor retains its local rows while the PUT
+  completes, so typing a cassette parameter does not remount the generated
+  detail page.
 - Queue job item relation rows read `item.entityType` to distinguish
   `cassette_design` from `cassette` template ids. When a process role can read
   the queue but not the related design/template directly, `QueueEntryCard`

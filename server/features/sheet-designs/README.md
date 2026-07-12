@@ -31,7 +31,11 @@ Digital sheet layouts generated from nesting runs.
     ],
     materialPool: [
       { type, id, label, specs, dimensions, available }
-    ]
+    ],
+    nestingParams,
+    revisions: {
+      geometry: { currentId, number, contentHash }
+    }
   },
   summary
 }
@@ -74,6 +78,15 @@ stock was allowed for the generated layout.
 `updateGeometryFromResult(id, { result, summary, params })` is retained for
 legacy callers that update an existing sheet design in place. New nesting runs
 create per-layout sheet designs directly through `createFromRun()`.
+
+Every generated or manually saved layout resolves an immutable
+`entity_revision` with `entityType: "sheet_design"` and `scope: "geometry"`.
+The sheet design stores the current pointer under
+`data.revisions.geometry`. `PUT /api/sheet-designs/:id` accepts nesting source
+`items` plus the first sheet's `placedItems`, requires a concrete
+`sheet_designs:write` grant, rebuilds the preview and placement summaries, and
+creates or reuses the geometry revision. `data.nestingParams` preserves the
+solver settings; the solver spacing is the editor snap increment.
 
 GET/list APIs require authenticated lineage context. `queueId`, `projectId`,
 and `runId`/`runIds` query parameters are mapped to `lineage.queueId`,

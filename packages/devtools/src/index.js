@@ -2,6 +2,7 @@ export function summarizeDefinitions(definitions = []) {
   return definitions.map(definition => ({
     type: definition.type,
     collection: definition.collection,
+    ...(definition.meta ? { meta: true } : {}),
     blocks: definition.blocks || [],
     lineage: definition.lineage || {}
   }));

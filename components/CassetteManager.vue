@@ -81,6 +81,7 @@
       v-model:visible="showDesignerDialog"
       :header="$t('cassette.designerTitle')"
       size="full"
+      :close-on-escape="false"
       @hide="editingCassette = null"
     >
       <CassetteDesignerV2
@@ -218,7 +219,6 @@ const handleDesignerSaved = async (payload = {}) => {
   editingCassette.value = savedId
     ? cassettes.value.find(cassette => cassette._id?.toString() === savedId.toString()) || payload.savedEntity || null
     : null;
-  showDesignerDialog.value = false;
 };
 
 const onRename = async (cassette, newName, closeCallback) => {

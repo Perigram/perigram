@@ -14,6 +14,12 @@
       :process-actions="resolvedActions"
       @refresh="$emit('refresh')"
     />
+    <SheetDesignEditor
+      v-else-if="entityType === 'sheet_design'"
+      :design="entity"
+      :editable="canEditSheetDesign"
+      @saved="$emit('refresh')"
+    />
     <EntitySurfaceContent v-else :entity="entity" :entity-type="entityType" :surface="surface" />
     <slot />
     <template v-if="entityType === 'cassette' || headerActionIds.length || entityCanDelete" #actions>
@@ -45,10 +51,12 @@ import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCas
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import GeneratedQueueDetail from '~/components/generated/GeneratedQueueDetail.vue';
+import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
+import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -82,5 +90,12 @@ const entityCanDelete = computed(() => canDeleteGeneratedEntity({
   domainUi,
   entity: props.entity,
   entityType: props.entityType
+}));
+const canEditSheetDesign = computed(() => hasPermissionGrant({
+  permissions: authStore.activePermissions,
+  feature: 'sheet_designs',
+  level: 'write',
+  entity: props.entity,
+  entityType: 'sheet_design'
 }));
 </script>
