@@ -50,6 +50,8 @@ Shared frontend utility modules used by Vue pages/components.
   role-prefixed labels, generic action words, and status ids as fallback data
   rather than primary visible copy.
 - `drawingPreview.js`: Pure drawing preview helpers for `DrawingCanvas`. It normalizes entity geometry previews, baked cassette `data.layerData` / `data.polygonParts` (including migration fallback under `data.geometry.data`), polygon-only remnant geometry, and cassette render results into the shared `{ viewBox, layers }` drawing contract, extracts designer edge overlays, and resolves layer pens by explicit source mapping, caller-provided `standardCode`, layer-name standard fallback, source layer styling, then default pen. If a matched layer standard points to a pen that is not loaded or no longer exists, normalization preserves the source layer `color` and `weight` before falling back to the default pen. It must not hardcode production layer standard codes; source/caller data owns layer semantics.
+  Pen lookup accepts both `_id` and canonical `identity.uid`, matching the
+  layer-standard persistence contract.
 - `occs/`: Canonical OCCS helpers for semantic layer ids, parameter
   extraction, arithmetic expression evaluation, Clipper-backed production
   layout, default dimension annotation entities, DrawingCanvas conversion,
@@ -69,7 +71,9 @@ Shared frontend utility modules used by Vue pages/components.
 - `sheetLayoutEditor.js`: Pure sheet-layout editor adapters. It extracts the
   first physical layout, resolves source polygons and placement transforms,
   snaps sheet coordinates, and converts cassette-design polygon/layer data into
-  nesting source items without coupling geometry logic to Vue.
+  nesting source items without coupling geometry logic to Vue. Bounds helpers
+  rotate source geometry around the nesting origin and clamp the complete shape
+  to snap-aligned coordinates inside the material sheet.
 - `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency including multi-region workflows, builds automatic Vue Flow node/edge layout data with reciprocal-transition metadata used unless the page has browser-local manual node positions, and generates deterministic `@cutkit/domain-cnc` source for manual export.
 - `workflow-compiler.js`: Shared workbench/domain-builder compiler wrapper for live workflow drafts. It normalizes single-region and multi-region workflow shapes, validates draft machines, exposes state options for typed forms, and derives permission summaries used by fixture scenarios and workbench test access. If a caller has not loaded entity or hook definitions yet, it falls back to committed CNC contracts so workflow validation does not report every known workflow/hook as unknown.
 - `cassette.js` / `cassetteRenderer.js`: Browser cassette designer helpers. ID generation must work on plain HTTP LAN deployments where `crypto.randomUUID` may be unavailable; use local helpers that fall back to `crypto.getRandomValues` before non-cryptographic IDs.

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   cassetteDesignSheetItem,
+  clampSheetPlacement,
+  sheetItemBounds,
   sheetLayoutState,
   sheetPlacementTransform,
   snapSheetCoordinate
@@ -21,6 +23,26 @@ describe('sheet layout editor helpers', () => {
   it('converts radians to SVG degrees', () => {
     expect(sheetPlacementTransform({ transformation: { translation: [10, 20], rotation: Math.PI / 2 } }))
       .toEqual({ x: 10, y: 20, rotation: 90 });
+  });
+
+  it('keeps the complete rotated cassette inside the sheet on the snap grid', () => {
+    const item = {
+      shape: { data: [[0, 0], [40, 0], [40, 20], [0, 20], [0, 0]] }
+    };
+    const bounds = sheetItemBounds(item, 90);
+    expect(bounds.minX).toBeCloseTo(-20);
+    expect(bounds.minY).toBeCloseTo(0);
+    expect(bounds.maxX).toBeCloseTo(0);
+    expect(bounds.maxY).toBeCloseTo(40);
+    expect(clampSheetPlacement({
+      x: 3,
+      y: 88,
+      item,
+      rotation: 90,
+      sheetWidth: 100,
+      sheetHeight: 100,
+      snap: 5
+    })).toEqual({ x: 20, y: 60 });
   });
 
   it('creates a nesting source item from uploaded cassette geometry', () => {

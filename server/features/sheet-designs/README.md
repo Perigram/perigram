@@ -86,7 +86,9 @@ The sheet design stores the current pointer under
 `items` plus the first sheet's `placedItems`, requires a concrete
 `sheet_designs:write` grant, rebuilds the preview and placement summaries, and
 creates or reuses the geometry revision. `data.nestingParams` preserves the
-solver settings; the solver spacing is the editor snap increment.
+solver settings. The editor resolves `toolProfileId` through the public tool
+catalogue and uses the tool diameter as its snap increment; saved solver spacing
+is the fallback for older layouts without a resolvable tool profile.
 
 GET/list APIs require authenticated lineage context. `queueId`, `projectId`,
 and `runId`/`runIds` query parameters are mapped to `lineage.queueId`,

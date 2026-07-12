@@ -46,6 +46,37 @@ export function sheetPlacementTransform(placement = {}) {
   };
 }
 
+export function sheetItemBounds(item = {}, rotation = 0) {
+  const points = sheetItemPoints(item);
+  if (!points.length) return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 };
+  const radians = Math.abs(Number(rotation) || 0) <= Math.PI * 2
+    ? Number(rotation) || 0
+    : ((Number(rotation) || 0) * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const rotated = points.map(([x, y]) => [x * cos - y * sin, x * sin + y * cos]);
+  const xs = rotated.map(point => point[0]);
+  const ys = rotated.map(point => point[1]);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+  return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
+}
+
+export function clampSheetPlacement({ x = 0, y = 0, item = {}, rotation = 0, sheetWidth = 0, sheetHeight = 0, snap = 1 } = {}) {
+  const bounds = sheetItemBounds(item, rotation);
+  const step = Math.max(Number(snap) || 1, 0.001);
+  const minX = Math.ceil((-bounds.minX) / step) * step;
+  const minY = Math.ceil((-bounds.minY) / step) * step;
+  const maxX = Math.floor((Math.max(Number(sheetWidth) || 0, bounds.width) - bounds.maxX) / step) * step;
+  const maxY = Math.floor((Math.max(Number(sheetHeight) || 0, bounds.height) - bounds.maxY) / step) * step;
+  return {
+    x: Math.min(Math.max(snapSheetCoordinate(x, step), minX), Math.max(maxX, minX)),
+    y: Math.min(Math.max(snapSheetCoordinate(y, step), minY), Math.max(maxY, minY))
+  };
+}
+
 function designLayerData(design = {}) {
   const data = design.data || {};
   const geometry = data.geometry?.data || {};

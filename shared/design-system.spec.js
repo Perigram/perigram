@@ -466,6 +466,7 @@ describe('Design system manifest', () => {
     expect(nestingRunCard).toContain("entityType: 'sheetDesign'");
     expect(nestingRunCard).toContain("field.path === 'data.sheetDesignIds'");
     expect(nestingRunCard).toContain('item-variant="compact"');
+    expect(nestingRunCard).not.toContain('item-variant="inline"');
     expect(nestingRunCard).not.toContain('SheetDesignCard');
     expect(nestingRunCard).not.toContain('GeometryPreview');
     expect(nestingRunCard).not.toContain('ArtifactCard');
@@ -479,6 +480,20 @@ describe('Design system manifest', () => {
     expect(nestingRunService).toContain("run, 'nesting_runs', 'read'");
     expect(nestingRunService).not.toContain("run.lineage, 'queues', 'read'");
     expect(DESIGN_SYSTEM_SURFACES.nestingRun.surfaces.card.fieldGroups).toContain('production');
+  });
+
+  it('keeps sheet layout editing on semantic layer and bounded snap contracts', () => {
+    const editor = fs.readFileSync(path.join(REPO_ROOT, 'components/SheetDesignEditor.vue'), 'utf8');
+    const generatedDetail = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedEntityDetail.vue'), 'utf8');
+    const relationBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityRelationsBlock.vue'), 'utf8');
+
+    expect(editor).toContain('applyLayerPens');
+    expect(editor).toContain("resolvedStyle('contour.material_sheet')");
+    expect(editor).toContain('clampSheetPlacement');
+    expect(editor).toContain('majorGridSize');
+    expect(editor).toContain('selectedSnapPoint');
+    expect(generatedDetail).toContain(":show-identity=\"entityType === 'sheet_design'\"");
+    expect(relationBlock).toContain(':variant="itemVariant"');
   });
 
   it('keeps inline design editing inside its active workspace', () => {

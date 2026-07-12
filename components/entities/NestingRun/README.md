@@ -18,6 +18,8 @@ chrome.
   shared `EntityRelationsBlock` compact gallery, so sheet-design previews,
   overflow, popovers, and generated detail actions follow the same convention
   as generated card relation galleries instead of a nesting-run-specific tile.
+  Compact relation mode is preserved inside the overflow popover, so runs with
+  more than two sheet outputs do not fall back to inline sheet references.
   The generic card/popup surface also includes the domain `production` field
   group so an inline nesting-run popup can render `data.sheetDesignIds` without
   needing the queue editor's explicit `sheetDesigns` prop.

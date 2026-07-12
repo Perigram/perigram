@@ -4,7 +4,7 @@
     :entity="entity"
     :entity-type="entityType"
     show-trace
-    :show-identity="false"
+    :show-identity="entityType === 'sheet_design'"
     @refresh="$emit('refresh')"
   >
     <GeneratedQueueDetail
