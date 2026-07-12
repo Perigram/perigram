@@ -16,6 +16,7 @@ import { SheetDesign } from './model.js';
 import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
 import { generateLayeredDxf } from '../../utils/dxf-writer.js';
 import * as filesService from '../files/service.js';
+import * as entityRevisionsService from '../entity-revisions/service.js';
 
 /**
  * Sheet Designs Service - v24 Standardized
@@ -25,6 +26,50 @@ import * as filesService from '../files/service.js';
 function toDTO(design, userPermissions = null) {
   if (!design) return null;
   return serializeForAccess('sheetDesign', new SheetDesign(design), userPermissions);
+}
+
+const GEOMETRY_REVISION_SCOPE = 'geometry';
+
+function geometryRevisionContent(design) {
+  return {
+    geometry: design.data?.geometry || null,
+    cassetteDesigns: design.data?.cassetteDesigns || [],
+    nestingParams: design.data?.nestingParams || {},
+    specs: design.specs || {}
+  };
+}
+
+function geometryRevisionPointer(revision) {
+  return revision ? {
+    currentId: revision._id,
+    number: revision.data?.number || 0,
+    contentHash: revision.data?.contentHash || ''
+  } : null;
+}
+
+async function ensureGeometryRevision(design, userId = 'SYSTEM', reason = 'layout-updated') {
+  const revision = await entityRevisionsService.ensureForEntitySnapshot({
+    entityType: 'sheet_design',
+    entity: design,
+    scope: GEOMETRY_REVISION_SCOPE,
+    content: geometryRevisionContent(design),
+    snapshot: {
+      identity: design.identity || null,
+      data: geometryRevisionContent(design)
+    },
+    userId,
+    reason
+  });
+  const updated = await repository.updateById(design._id, {
+    data: {
+      ...(design.data || {}),
+      revisions: {
+        ...(design.data?.revisions || {}),
+        [GEOMETRY_REVISION_SCOPE]: geometryRevisionPointer(revision)
+      }
+    }
+  });
+  return { design: updated, revision };
 }
 
 const LAYER_STYLES = {
@@ -355,6 +400,7 @@ export async function createFromRun(run, data, userId) {
       },
       cassetteDesigns,
       materialPool: data.materialPool || run.data?.materialPool || [],
+      nestingParams: data.nestingParams || run.data?.params || {},
       attachments: {
         svg: data.svgId ? createAttachment('SVG', data.svgId, 'Design SVG') : null,
         dxf: data.dxfId ? createAttachment('DXF', data.dxfId, 'Design DXF') : null
@@ -369,7 +415,8 @@ export async function createFromRun(run, data, userId) {
   };
 
   const created = await repository.create(designData);
-  return toDTO(created);
+  const revisioned = await ensureGeometryRevision(created, userId, 'nesting-layout-created');
+  return toDTO(revisioned.design);
 }
 
 export async function updateGeometryFromResult(id, { result = {}, summary = {}, params = {} } = {}) {
@@ -403,7 +450,62 @@ export async function updateGeometryFromResult(id, { result = {}, summary = {}, 
     }
   };
   const updated = await repository.updateById(id, design.toJSON());
-  return toDTO(updated);
+  const revisioned = await ensureGeometryRevision(updated, 'SYSTEM', 'nesting-layout-updated');
+  return toDTO(revisioned.design);
+}
+
+export async function updateLayout(id, { items = [], placedItems = [] } = {}, userId, userOrg, userRole, userPermissions) {
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Sheet design not found' });
+  const design = new SheetDesign(raw);
+  if (!hasLineagePermission(userPermissions || {}, design, 'sheet_designs', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  if (!Array.isArray(items) || !Array.isArray(placedItems)) {
+    throw createError({ statusCode: 400, message: 'Sheet layout items and placements must be arrays' });
+  }
+
+  const existingResult = design.data?.geometry?.data || {};
+  const existingSolution = existingResult.solution || {};
+  const result = {
+    ...existingResult,
+    items,
+    solution: {
+      ...existingSolution,
+      layouts: [{
+        ...(existingSolution.layouts?.[0] || {}),
+        placed_items: placedItems
+      }]
+    }
+  };
+  const params = {
+    ...(design.data?.nestingParams || {}),
+    width: design.specs?.width,
+    height: design.specs?.length
+  };
+  const cassetteDesigns = cassetteDesignsForNestingResult(result);
+  const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
+  const data = {
+    ...(design.data || {}),
+    cassetteDesigns,
+    geometry: {
+      ...(design.data?.geometry || {}),
+      data: result,
+      preview: nestingResultToPreview(result, params, { layoutIndex: 0 })
+    }
+  };
+  const updated = await repository.updateById(id, {
+    data,
+    summary: {
+      ...(design.summary || {}),
+      placedCount: placedItems.length,
+      partsCount: placedItems.length,
+      cassetteDesignCount: cassetteDesigns.length,
+      cassettePlacementCount
+    }
+  });
+  const revisioned = await ensureGeometryRevision(updated, userId, 'manual-layout-updated');
+  return toDTO(revisioned.design, userPermissions);
 }
 
 export async function getById(id, userId, userOrg, userRole, userPermissions) {

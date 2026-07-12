@@ -1,5 +1,5 @@
 <template>
-  <div class="relative flex h-[calc(100dvh-10rem)] min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
+  <div class="relative flex h-[calc(100dvh-10rem)] min-h-0 min-w-0 flex-col gap-3 overflow-hidden" @keydown.esc.capture="handleDesignerEscape">
     <div
       v-if="showOnboardingRail"
       class="absolute z-[140] w-80 rounded-ui border border-content-border bg-content p-3 [box-shadow:var(--ck-shadow-overlay)]"
@@ -55,6 +55,18 @@
             :aria-label="$t('common.save')"
             v-tooltip.top="$t('common.save')"
             @click="saveTemplate"
+          />
+          <Button
+            icon="pi pi-copy"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :loading="savingTemplate"
+            :disabled="savingTemplate"
+            :aria-label="$t('common.saveAs')"
+            v-tooltip.top="$t('common.saveAs')"
+            @click="saveTemplate({ saveAs: true })"
           />
           <Button
             icon="pi pi-refresh"
@@ -948,8 +960,12 @@ const selectedTemplateIsPersisted = computed(() => Boolean(
 const treeNodes = computed(() => cassetteTree.value.nodes || []);
 const selectedNode = computed(() => treeNodes.value.find(node => node.id === selectedNodeId.value) || treeNodes.value[0] || null);
 const workpieces = computed(() => getCassetteV2Workpieces(cassetteTree.value));
-const selectedWorkpieceId = computed(() => selectedWorkpieceOverrideId.value || selectedNode.value?.workpieceId || workpieces.value[0]?.id || '');
-const selectedWorkpiece = computed(() => workpieces.value.find(workpiece => workpiece.id === selectedWorkpieceId.value) || workpieces.value[0] || null);
+const selectedWorkpieceId = computed(() => inspectorSelection.value
+  ? selectedWorkpieceOverrideId.value || selectedNode.value?.workpieceId || workpieces.value[0]?.id || ''
+  : '');
+const selectedWorkpiece = computed(() => selectedWorkpieceId.value
+  ? workpieces.value.find(workpiece => workpiece.id === selectedWorkpieceId.value) || null
+  : null);
 const workpieceRelations = computed(() => getCassetteV2WorkpieceRelations(cassetteTree.value));
 const previewMode = computed(() => (
   inspectorSelection.value === 'workpiece' || inspectorSelection.value === 'attachment'
@@ -1353,7 +1369,26 @@ const isEditableKeyboardTarget = (target) => {
   return Boolean(target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName));
 };
 
+const clearDesignerSelection = () => {
+  closeInlineEditor();
+  selectedNodeId.value = '';
+  selectedWorkpieceOverrideId.value = '';
+  selectedRelationId.value = '';
+  pendingAttachmentSourceId.value = '';
+  inspectorSelection.value = '';
+};
+
+const handleDesignerEscape = (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  clearDesignerSelection();
+};
+
 const handleDesignerKeydown = (event) => {
+  if (event.key === 'Escape') {
+    handleDesignerEscape(event);
+    return;
+  }
   if (isEditableKeyboardTarget(event.target)) return;
   const isUndo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.shiftKey;
   const isRedo = (event.ctrlKey || event.metaKey) && (
@@ -1464,12 +1499,13 @@ const templateTree = (template) => {
   }
 };
 
-const saveTemplate = async () => {
+const saveTemplate = async ({ saveAs = false } = {}) => {
   const tree = JSON.parse(JSON.stringify(cassetteTree.value));
   const definition = createCassetteV2OccsDocument(tree, cassetteMarkContext.value);
   const draftKeyBeforeSave = autosaveStorageKey.value;
   const payload = {
-    id: selectedTemplateId.value,
+    id: saveAs ? '' : selectedTemplateId.value,
+    saveAs,
     name: cassetteNameDraft.value || t('cassette.newCassette'),
     definition,
     occs: definition,
@@ -1486,7 +1522,7 @@ const saveTemplate = async () => {
   savingTemplate.value = true;
   try {
     const body = {
-      entities: selectedTemplateIsPersisted.value && payload.id ? { cassette: payload.id } : {},
+      entities: !saveAs && selectedTemplateIsPersisted.value && payload.id ? { cassette: payload.id } : {},
       parameters: {
         name: payload.name,
         type: 'PARAMETRIC',
@@ -1639,7 +1675,7 @@ watch([selectedWorkpieceId, workpieceRelations], () => {
 
 onMounted(() => {
   if (!process.client) return;
-  window.addEventListener('keydown', handleDesignerKeydown);
+  window.addEventListener('keydown', handleDesignerKeydown, true);
   try {
     const onboardingState = window.localStorage.getItem(onboardingStorageKey);
     onboardingDismissed.value = Boolean(onboardingState && JSON.parse(onboardingState)?.dismissed);
@@ -1655,7 +1691,7 @@ onBeforeUnmount(() => {
   if (previewTimer && process.client) window.clearTimeout(previewTimer);
   if (autosaveTimer && process.client) window.clearTimeout(autosaveTimer);
   if (!process.client) return;
-  window.removeEventListener('keydown', handleDesignerKeydown);
+  window.removeEventListener('keydown', handleDesignerKeydown, true);
   window.document.removeEventListener('mousemove', handleInlineEditorDragMove);
   window.document.removeEventListener('mouseup', stopInlineEditorDrag);
 });

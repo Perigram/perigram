@@ -1094,6 +1094,7 @@
       ],
       "collection": "entity_revisions",
       "lineage": {},
+      "meta": true,
       "type": "entity_revision"
     },
     {
@@ -1121,6 +1122,7 @@
       ],
       "collection": "layer_standards",
       "lineage": {},
+      "meta": true,
       "type": "layer_standard"
     },
     {
@@ -1185,6 +1187,7 @@
       ],
       "collection": "organizations",
       "lineage": {},
+      "meta": true,
       "type": "organization"
     },
     {
@@ -1198,6 +1201,7 @@
       ],
       "collection": "pen_templates",
       "lineage": {},
+      "meta": true,
       "type": "pen_template"
     },
     {
@@ -1211,6 +1215,7 @@
       ],
       "collection": "process_definitions",
       "lineage": {},
+      "meta": true,
       "type": "process_definition"
     },
     {
@@ -1224,6 +1229,7 @@
       ],
       "collection": "profile_templates",
       "lineage": {},
+      "meta": true,
       "type": "profile_template"
     },
     {
@@ -1318,6 +1324,7 @@
       ],
       "collection": "tool_profiles",
       "lineage": {},
+      "meta": true,
       "type": "tool_profile"
     },
     {
@@ -1331,6 +1338,7 @@
       ],
       "collection": "users",
       "lineage": {},
+      "meta": true,
       "type": "user"
     },
     {
@@ -1617,6 +1625,12 @@
       "list": "/api/warehouses",
       "single": "/api/warehouses/:id",
       "type": "warehouse"
+    },
+    {
+      "collection": "layer-standards",
+      "list": "/api/layer-standards",
+      "single": "/api/layer-standards/:id",
+      "type": "layerStandard"
     },
     {
       "collection": "users",

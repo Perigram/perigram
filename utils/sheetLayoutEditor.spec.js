@@ -1,0 +1,38 @@
+import { describe, expect, it } from 'vitest';
+import {
+  cassetteDesignSheetItem,
+  sheetLayoutState,
+  sheetPlacementTransform,
+  snapSheetCoordinate
+} from './sheetLayoutEditor.js';
+
+describe('sheet layout editor helpers', () => {
+  it('reads the first physical layout and snaps coordinates', () => {
+    const state = sheetLayoutState({
+      data: { geometry: { data: {
+        items: [{ id: 1 }],
+        solution: { layouts: [{ placed_items: [{ item_id: 1 }] }] }
+      } } }
+    });
+    expect(state).toEqual({ items: [{ id: 1 }], placedItems: [{ item_id: 1 }] });
+    expect(snapSheetCoordinate(13, 5)).toBe(15);
+  });
+
+  it('converts radians to SVG degrees', () => {
+    expect(sheetPlacementTransform({ transformation: { translation: [10, 20], rotation: Math.PI / 2 } }))
+      .toEqual({ x: 10, y: 20, rotation: 90 });
+  });
+
+  it('creates a nesting source item from uploaded cassette geometry', () => {
+    const item = cassetteDesignSheetItem({
+      _id: 'design-1',
+      identity: { name: 'Panel' },
+      data: {
+        polygonParts: [{ layer: 'cut.outer', coordinates: [[0, 0], [20, 0], [20, 10], [0, 10], [0, 0]] }],
+        layerData: [{ layer: 'fold.route', coordinates: [[0, 5], [20, 5]] }]
+      }
+    }, 'manual-1');
+    expect(item).toMatchObject({ id: 'manual-1', cassette_id: 'design-1', name: 'Panel' });
+    expect(item.sourceLayers[0].layer).toBe('fold.route');
+  });
+});

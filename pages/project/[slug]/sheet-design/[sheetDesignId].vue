@@ -1,6 +1,6 @@
 <template>
   <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
-  <SheetDesignDetail v-else-if="design" :design="design" />
+  <SheetDesignDetail v-else-if="design" :design="design" @saved="fetch" />
   <StateBlock v-else :message="$t('sheetDesign.notFound')" icon="pi pi-map" />
 </template>
 

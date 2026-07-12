@@ -14,7 +14,8 @@
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
             <div class="lg:col-span-3 flex flex-col gap-8">
                 <Panel>
-                    <GeometryPreview :entity="design" />
+                    <SheetDesignEditor v-if="canEdit" :design="design" editable @saved="$emit('saved', $event)" />
+                    <GeometryPreview v-else :entity="design" />
                 </Panel>
 
                 <Panel>
@@ -82,6 +83,7 @@ import { useToast } from 'primevue/usetoast';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
+import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
@@ -89,13 +91,24 @@ import Tag from 'primevue/tag';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import { cassetteDesignCountsForSheetDesign } from '~/utils/sheetDesigns.js';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { useAuthStore } from '~/stores/auth';
+import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
     design: { type: Object, required: true }
 });
+defineEmits(['saved']);
 const { t } = useI18n();
 const toast = useToast();
+const authStore = useAuthStore();
 const generatingDxf = ref(false);
+const canEdit = computed(() => hasPermissionGrant({
+    permissions: authStore.activePermissions,
+    feature: 'sheet_designs',
+    level: 'write',
+    entity: props.design,
+    entityType: 'sheet_design'
+}));
 
 const SHEET_DESIGN_FIELDS = resolveEntityDisplayFields({ entityType: 'sheetDesign', surface: 'detail' })
     .filter(field => field.role !== 'previewSource');

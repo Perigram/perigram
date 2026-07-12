@@ -174,6 +174,7 @@ describe('Framework package contracts', () => {
     });
 
     expect(cncEntities.find(entity => entity.type === 'queue')?.collection).toBe('queues');
+    expect(cncEntities.find(entity => entity.type === 'user')?.meta).toBe(true);
     expect(cncEntities).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'layer_standard', collection: 'layer_standards' }),
       expect.objectContaining({ type: 'material', collection: 'materials' }),

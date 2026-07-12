@@ -12,6 +12,7 @@
     v-model:visible="visible"
     :header="$t('cassette.designerTitle')"
     size="full"
+    :close-on-escape="false"
   >
     <CassetteDesignerV2
       :template="entity"
@@ -76,7 +77,6 @@ async function loadTemplate(cassetteId) {
 
 function handleSaved(payload = {}) {
   currentTemplate.value = payload.savedEntity || currentTemplate.value;
-  visible.value = false;
   emit('refresh');
 }
 </script>

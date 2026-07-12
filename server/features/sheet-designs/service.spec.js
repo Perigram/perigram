@@ -227,6 +227,7 @@ describe('sheet design access', () => {
 
   beforeEach(async () => {
     await db.collection('sheet_designs').deleteMany({});
+    await db.collection('entity_revisions').deleteMany({});
   });
 
   it('uses sheet_designs grants for list and detail access', async () => {
@@ -254,6 +255,33 @@ describe('sheet design access', () => {
       .resolves.toMatchObject({ _id: 'sheet-visible' });
     await expect(sheetDesignsService.getById('sheet-hidden', 'operator', 'org-1', null, auth))
       .rejects.toThrow(/Permission denied/);
+  });
+
+  it('saves manual placements as a new geometry revision', async () => {
+    await db.collection('sheet_designs').insertOne(sheetDesign({ id: 'sheet-editable', status: 'READY' }));
+    const auth = {
+      userId: 'operator',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }],
+      effectivePermissions: { sheet_designs: [{ level: 'write' }] }
+    };
+
+    const updated = await sheetDesignsService.updateLayout('sheet-editable', {
+      items: [{
+        id: 'manual-1',
+        cassette_id: 'cassette-design-1',
+        shape: { type: 'simple_polygon', data: [[0, 0], [20, 0], [20, 10], [0, 10], [0, 0]] }
+      }],
+      placedItems: [{ item_id: 'manual-1', transformation: { rotation: 0, translation: [25, 30] } }]
+    }, 'operator', 'org-1', null, auth);
+
+    expect(updated.data.geometry.preview.layers.find(layer => layer.standardCode === 'contour.cassette_face')?.paths)
+      .toEqual(['M 25 30 L 45 30 L 45 40 L 25 40 L 25 30 Z']);
+    expect(updated.data.revisions.geometry).toMatchObject({ number: 1 });
+    expect(await db.collection('entity_revisions').countDocuments({
+      'data.entityType': 'sheet_design',
+      'data.scope': 'geometry'
+    })).toBe(1);
   });
 });
 

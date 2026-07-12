@@ -967,7 +967,7 @@ const syncEntryWithCassette = (entry) => {
 const updateEntryQuantity = async (entry, quantity) => {
     if (!canEditQueue.value) return;
     entry.quantity = quantity;
-    await saveQueue();
+    await saveQueue({ notify: false });
 };
 
 const updateEntryDimension = async (entry, param, value) => {
@@ -976,7 +976,7 @@ const updateEntryDimension = async (entry, param, value) => {
         ...(entry.dimensions || {}),
         [param]: value
     };
-    await saveQueue();
+    await saveQueue({ notify: false });
 };
 
 const addEntry = async (item = null) => {
@@ -1006,7 +1006,7 @@ const addEntry = async (item = null) => {
     showAddDialog.value = false;
 };
 
-const saveQueue = async () => {
+const saveQueue = async ({ notify = true } = {}) => {
     if (!canEditQueue.value) return false;
     try {
         entries.value.forEach(syncEntryWithCassette);
@@ -1030,7 +1030,7 @@ const saveQueue = async () => {
                 nestingSettings: nestingOptions.value
             }
         );
-        emit('updated');
+        if (notify) emit('updated');
         return true;
     } catch (e) {
         console.error(e);
