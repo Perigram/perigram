@@ -4,6 +4,7 @@ const COMMON_READ_FIELDS = [
   'origin.*',
   'status.*',
   'lineage.*',
+  'relations.*',
   'summary.*'
 ];
 
@@ -11,8 +12,8 @@ export const cncEntityFieldAccess = {
   project: {
     feature: 'projects',
     read: [...COMMON_READ_FIELDS, 'data.address', 'data.thumbnailUrl'],
-    write: ['data.metadata', 'data.name'],
-    admin: ['data.*', 'attachments.*']
+    write: ['data.metadata', 'data.name', 'relations.libraries'],
+    admin: ['data.*', 'attachments.*', 'relations.*']
   },
   queue: {
     feature: 'queues',
@@ -22,7 +23,7 @@ export const cncEntityFieldAccess = {
   },
   nestingRun: {
     feature: 'nesting_runs',
-    read: [...COMMON_READ_FIELDS, 'data.results.*', 'data.materialPool', 'data.sheetDesignIds'],
+    read: [...COMMON_READ_FIELDS, 'data.results.*', 'data.materialPool', 'data.sheetDesignOutputs.*'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
@@ -68,6 +69,12 @@ export const cncEntityFieldAccess = {
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
+  machine: {
+    feature: 'machines',
+    read: [...COMMON_READ_FIELDS, 'data.workArea.*', 'data.boundaryOffset.*', 'data.default'],
+    write: ['identity.name', 'data.*'],
+    admin: ['data.*', 'attachments.*']
+  },
   materialPile: {
     feature: 'materials',
     read: [...COMMON_READ_FIELDS, 'specs.*', 'data.material', 'data.catalog', 'data.serial', 'data.stock', 'data.stockMovements'],
@@ -96,6 +103,12 @@ export const cncEntityFieldAccess = {
     feature: 'materials',
     read: [...COMMON_READ_FIELDS, 'specs.*', 'data.specs.*'],
     write: ['data.*', 'specs.*'],
+    admin: ['data.*', 'attachments.*']
+  },
+  sheetInstance: {
+    feature: 'sheet_instances',
+    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.sheetDesignId', 'data.layoutHash', 'data.sequence', 'data.physicalSheetId'],
+    write: ['data.physicalSheetId'],
     admin: ['data.*', 'attachments.*']
   },
   remnant: {
@@ -206,6 +219,7 @@ const ENTITY_ALIASES = {
   cassette_design: 'cassetteDesign',
   cassette_instance: 'cassetteInstance',
   material_pile: 'materialPile',
+  sheet_instance: 'sheetInstance',
   batch_pile: 'batchPile',
   entity_revision: 'entityRevision',
   geometry_capture: 'geometryCapture',

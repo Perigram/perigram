@@ -400,6 +400,11 @@ export class Lineage {
     return this;
   }
 
+  addRevision(type, revisionId) {
+    if (revisionId) this[`${type}RevisionId`] = revisionId;
+    return this;
+  }
+
   toJSON() {
     const json = {};
     for (const [key, value] of Object.entries(this)) {
@@ -440,6 +445,7 @@ export class BaseEntity {
       raw.identity?.reference || ''
     );
     this.lineage = new Lineage(raw.lineage || {});
+    this.relations = normalizeRelations(raw.relations || {});
     this.origin = raw.origin?.state ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp, raw.origin.lifecycle) : null;
     this.status = raw.status?.state ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp, raw.status.lifecycle) : null;
     this.specs = raw.specs ? new Specs(raw.specs) : null;
@@ -468,6 +474,7 @@ export class BaseEntity {
       _id: this._id,
       identity: this.identity.toJSON(),
       lineage: this.lineage.toJSON(),
+      relations: this.relations,
       origin: this.origin?.toJSON() || null,
       status: this.status?.toJSON() || null,
       specs: this.specs?.toJSON() || null,
@@ -481,6 +488,33 @@ export class BaseEntity {
 export function createEntityRef(type, id) {
   if (!type || !id) throw new Error('EntityRef requires type and id');
   return { type, id: id.toString() };
+}
+
+export function createRelationRef(entityType, entityId, revisionId = null) {
+  if (!entityType || !entityId) throw new Error('RelationRef requires entityType and entityId');
+  return {
+    entityType,
+    entityId: entityId.toString(),
+    ...(revisionId ? { revisionId: revisionId.toString() } : {})
+  };
+}
+
+export function normalizeRelations(raw = {}) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  return Object.fromEntries(Object.entries(raw).flatMap(([key, value]) => {
+    const refs = (Array.isArray(value) ? value : [value])
+      .filter(Boolean)
+      .map(ref => {
+        if (!ref || typeof ref !== 'object') return null;
+        const entityType = ref.entityType || ref.type;
+        const entityId = ref.entityId || ref.id || ref._id;
+        return entityType && entityId
+          ? createRelationRef(entityType, entityId, ref.revisionId)
+          : null;
+      })
+      .filter(Boolean);
+    return refs.length ? [[key, refs]] : [];
+  }));
 }
 
 export function createAttachmentRef({ entityId, kind, name = '', metadata = {} } = {}) {
@@ -526,7 +560,9 @@ export const createIdentity = (name, slug = '', serial = '', reference = '', uid
 export const createStatus = (state, userId = 'SYSTEM', metadata = {}, eventId = null, lifecycle = {}) => new Status(state, userId, metadata, eventId, null, lifecycle);
 export const createSpecs = (data = {}) => new Specs(data);
 export const createData = (data = {}) => ({ ...data });
-export const inheritLineage = (parent, type, mapId = value => value) => new Lineage(parent?.lineage || {}).add(type, mapId(parent?.identity?.uid || parent?._id));
+export const inheritLineage = (parent, type, mapId = value => value, revisionId = null) => new Lineage(parent?.lineage || {})
+  .add(type, mapId(parent?.identity?.uid || parent?._id))
+  .addRevision(type, revisionId);
 export const createAttachment = (kind, fileId, name = '', metadata = {}) => ({ kind, fileId, name, metadata, timestamp: new Date() });
 
 export function validateDomain(domain) {

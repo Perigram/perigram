@@ -203,7 +203,7 @@ function entityId(entity) {
 }
 
 function hasNestingRunOutputRefs(entity) {
-  return Array.isArray(entity?.data?.sheetDesignIds) && entity.data.sheetDesignIds.length > 0;
+  return Array.isArray(entity?.data?.sheetDesignOutputs) && entity.data.sheetDesignOutputs.length > 0;
 }
 
 function needsNestingRunHydration(entity) {
@@ -225,7 +225,11 @@ function withNestingRunOutputRefs(entity) {
     ...entity,
     data: {
       ...(entity.data || {}),
-      sheetDesignIds: relationSheetDesigns.value
+      sheetDesignOutputs: relationSheetDesigns.value.map(design => ({
+        sheetDesignId: entityId(design),
+        quantity: 1,
+        sheetInstanceIds: []
+      }))
     }
   };
 }

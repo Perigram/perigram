@@ -133,7 +133,11 @@ export function createMockNestingRun(overrides = {}) {
         projectId: MOCK_IDS.projectId,
         queueId: MOCK_IDS.queueId
       },
-      data: { results, layoutData: {} }
+      data: {
+        results,
+        layoutData: {},
+        sheetDesignOutputs: [{ sheetDesignId: MOCK_IDS.sheetDesignId, quantity: 1, sheetInstanceIds: ['sheet-instance-demo-001'] }]
+      }
     }),
     ...overrides
   };
@@ -160,6 +164,20 @@ export function createMockSheetDesign(overrides = {}) {
       lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
       specs: { width: 2000, length: 1000, area: 2, sheetThickness: 4 },
       data: { geometry }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockSheetInstance(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: 'sheet-instance-demo-001',
+      name: 'Planned sheet #1',
+      state: 'PLANNED',
+      lineage: { sheetDesignId: MOCK_IDS.sheetDesignId, runId: MOCK_IDS.runId },
+      specs: { width: 2000, length: 1000, area: 2, sheetThickness: 4 },
+      data: { sheetDesignId: MOCK_IDS.sheetDesignId, sequence: 1, physicalSheetId: null }
     }),
     ...overrides
   };
@@ -541,6 +559,22 @@ export function createMockToolProfile(overrides = {}) {
       state: 'ACTIVE',
       lineage: { userId: 'user-demo' },
       data: { diameter: 4, angle: 180, kerf: 4, description: 'General cutting tool' }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockMachine(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: 'machine-demo-router',
+      name: 'CNC Router 3000 x 1500',
+      state: 'ACTIVE',
+      lineage: { organizationId: MOCK_IDS.organizationId },
+      data: {
+        workArea: { width: 3000, length: 1500 },
+        boundaryOffset: { top: 10, right: 10, bottom: 10, left: 10 }
+      }
     }),
     ...overrides
   };

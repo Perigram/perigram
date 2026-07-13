@@ -5,6 +5,7 @@ import { assertEntityAccess } from '~/server/core/access/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
+import { mutateEntityFields } from '~/server/core/entities/mutation.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
 import * as entityEventService from '~/server/features/entity-events/service.js';
@@ -265,19 +266,29 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     return result;
   }
 
-  if (action.actionKind === 'changeStatus') {
+  if (action.actionKind === 'mutateEntity') {
     const targetId = entityId || entities?.entity || entities?.[action.entityType];
     if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
+    const entityType = resolveActionEntityType(action);
     const targetState = action.status?.to || action.access?.statusTo;
-    if (!targetState) throw createError({ statusCode: 400, message: `Action ${actionId} has no target status` });
-    const result = await statusService.transitionWithResult({
-      entityType: resolveActionEntityType(action),
-      targetId,
-      targetState,
-      auth,
-      context: processTransitionContext(action, data, process.data)
-    });
-    await publishStatusResultEvents(auth, resolveActionEntityType(action), targetId, result, 'process-status-action');
+    const mutationData = (action.mutation?.fields || []).length ? pickMutationData(data, action) : {};
+    let result = null;
+    if (Object.keys(mutationData || {}).length) {
+      result = await mutateEntityFields(entityType, targetId, action.mutation.fields, mutationData);
+      await publishActionEntityEvent(auth, entityType, result || { _id: targetId }, 'updated', 'process-mutate');
+    }
+    if (targetState) {
+      const statusResult = await statusService.transitionWithResult({
+        entityType,
+        targetId,
+        targetState,
+        auth,
+        context: processTransitionContext(action, data, process.data)
+      });
+      await publishStatusResultEvents(auth, entityType, targetId, statusResult, 'process-mutate');
+      result = { ...(result?.toJSON ? result.toJSON() : result || {}), status: statusResult.status || statusResult };
+    }
+    if (!result) throw createError({ statusCode: 400, message: `Action ${actionId} has no connected mutation blocks` });
     return result;
   }
 
@@ -332,16 +343,6 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     };
     await publishActionEntityEvent(auth, entityType, result, 'created', 'process-create');
     return result;
-  }
-
-  if (action.actionKind === 'updateEntity') {
-    const targetId = entityId || entities?.entity || entities?.[action.entityType];
-    if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
-    const service = getEntityServiceForAction(action);
-    if (!service.update) throw createError({ statusCode: 500, message: `Entity service cannot update ${resolveActionEntityType(action)}` });
-    const updated = await service.update(targetId, pickMutationData(data, action), auth.userId, organizationId, auth.role, auth);
-    await publishActionEntityEvent(auth, resolveActionEntityType(action), updated || { _id: targetId }, 'updated', 'process-update');
-    return updated;
   }
 
   throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
@@ -461,7 +462,7 @@ function commandOutputStatusMap(actionId, processData = {}) {
     if (!sourceNodeIds.has(String(edge.source))) continue;
     const targetActionId = actionIdByNodeId.get(String(edge.target)) || String(edge.target);
     const targetAction = targetActionId ? processData.actions?.[targetActionId] : null;
-    if (targetAction?.actionKind !== 'changeStatus') continue;
+    if (targetAction?.actionKind !== 'mutateEntity') continue;
     const entityType = normalizeEntityType(
       targetAction.entityType
       || targetAction.inputs?.find(input => input.entityType)?.entityType
@@ -669,8 +670,7 @@ function commandExecutionGrants(action = {}) {
 
 function executionActionsForAction(action = {}) {
   if (action.actionKind === 'runCommand') return { run: true };
-  if (action.actionKind === 'updateEntity') return { update: true, edit: true };
-  if (action.actionKind === 'changeStatus') return { update: true };
+  if (action.actionKind === 'mutateEntity') return { update: true, edit: true };
   return { create: true };
 }
 

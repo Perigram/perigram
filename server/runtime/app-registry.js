@@ -14,6 +14,7 @@ import * as layerStandardsService from '~/server/features/layer-standards/servic
 import * as librariesService from '~/server/features/libraries/service.js';
 import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
+import * as machinesService from '~/server/features/machines/service.js';
 import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
 import * as penTemplatesService from '~/server/features/pen-templates/service.js';
@@ -25,11 +26,12 @@ import * as remnantsService from '~/server/features/remnants/service.js';
 import * as requisitionsService from '~/server/features/requisitions/service.js';
 import * as sheetDesignsService from '~/server/features/sheet-designs/service.js';
 import * as sheetsService from '~/server/features/sheets/service.js';
+import * as sheetInstancesService from '~/server/features/sheet-instances/service.js';
 import * as toolProfilesService from '~/server/features/tool-profiles/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import * as warehousesService from '~/server/features/warehouses/service.js';
 
-import { saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
+import { importCassetteDesign, saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
 import { executeNestingSolveTask, solveNesting } from '~/server/features/nesting/operations.js';
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
 import { generateConfigBotDraft, reindexConfigBotKnowledge } from '~/server/features/config-bot/operations.js';
@@ -87,6 +89,7 @@ const entityServices = {
   library: librariesService,
   material: materialsService,
   material_pile: materialPilesService,
+  machine: machinesService,
   nesting_run: nestingRunsService,
   organization: organizationsService,
   pen_template: penTemplatesService,
@@ -97,6 +100,7 @@ const entityServices = {
   remnant: remnantsService,
   requisition: requisitionsService,
   sheet_design: sheetDesignsService,
+  sheet_instance: sheetInstancesService,
   sheet: sheetsService,
   tool_profile: toolProfilesService,
   user: usersService,
@@ -105,6 +109,7 @@ const entityServices = {
 
 const commandHandlers = {
   saveCassetteTemplate,
+  importCassetteDesign,
   solveNesting,
   generateAttachment,
   generateConfigBotDraft,

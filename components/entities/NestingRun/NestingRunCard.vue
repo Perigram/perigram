@@ -48,7 +48,7 @@ const materialSources = computed(() => (props.run.data?.materialPool || [])
         count: Number(source.available || source.availableCount || source.quantity || source.count || 1)
     }))
     .filter(source => source.entityType && source.id));
-const runSheetDesignIds = computed(() => (props.run.data?.sheetDesignIds || []).map(String));
+const runSheetDesignIds = computed(() => (props.run.data?.sheetDesignOutputs || []).map(output => String(output.sheetDesignId)).filter(Boolean));
 const relatedSheetDesigns = computed(() => uniqueById([
     ...props.sheetDesigns.filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value)),
     ...contextEntities('sheet_design').filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value))
@@ -59,7 +59,7 @@ const hasCompletedOutput = computed(() =>
 const NESTING_RUN_CARD_FIELDS = resolveEntityDisplayFields({ entityType: 'nestingRun', surface: 'card' });
 const RUN_FIELDS = NESTING_RUN_CARD_FIELDS.filter(field => field.display !== 'entityRefList');
 const sheetDesignRelationFields = computed(() => NESTING_RUN_CARD_FIELDS
-    .filter(field => field.display === 'entityRefList' && field.path === 'data.sheetDesignIds')
+    .filter(field => field.display === 'entityRefList' && field.path === 'data.sheetDesignOutputs')
     .map(field => ({ ...field, items: sheetDesignRelationItems.value })));
 const sheetDesignRelationItems = computed(() => {
     const loadedItems = relatedSheetDesigns.value.map(design => ({
@@ -132,8 +132,8 @@ function selectRun(event) {
           item-variant="compact"
         />
       </template>
-      <Divider />
-      <div class="flex flex-col gap-4">
+      <Divider v-if="variant !== 'compact'" />
+      <div v-if="variant !== 'compact'" class="flex flex-col gap-4">
         <div v-if="hasCompletedOutput" class="flex flex-col gap-2">
           <DataBlock entity-type="nestingRun" :entity="run" :fields="RUN_FIELDS" />
         </div>

@@ -56,7 +56,7 @@ describe('artifact operations', () => {
       status: 'READY',
       fileId: 'file-1',
       mimeType: 'application/dxf'
-    }), 'user-1');
+    }), 'user-1', 'org-1', 'member', expect.objectContaining({ userId: 'user-1' }));
     expect(result.data).toEqual({
       attachmentId: 'artifact-1',
       kind: 'LAYOUT_DXF',
@@ -92,6 +92,6 @@ describe('artifact operations', () => {
     expect(generateAndStoreDxfMock).toHaveBeenCalledWith('sheet-2', 'user-2', 'org-2', 'member', expect.any(Object));
     expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
       lineage: expect.objectContaining({ sheetDesignId: 'sheet-2' })
-    }), 'user-2');
+    }), 'user-2', 'org-2', 'member', expect.objectContaining({ userId: 'user-2' }));
   });
 });

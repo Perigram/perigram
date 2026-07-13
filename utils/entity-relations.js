@@ -23,6 +23,7 @@ const ENTITY_TYPE_ALIASES = {
   requisition: 'requisition',
   sheet: 'sheet',
   sheet_design: 'sheetDesign',
+  sheet_instance: 'sheetInstance',
   tool_profile: 'toolProfile',
   user: 'user',
   warehouse: 'warehouse'
@@ -61,7 +62,7 @@ const OBJECT_LIST_KEY_TYPES = {
   queueIds: 'queue',
   remnantIds: 'remnant',
   runIds: 'nestingRun',
-  sheetDesignIds: 'sheetDesign',
+  sheetInstanceIds: 'sheetInstance',
   sheetIds: 'sheet'
 };
 
@@ -83,7 +84,10 @@ function appendRelationValue(refs, rawValue, fallbackEntityType = null) {
   }
 
   if (typeof rawValue === 'object') {
+    const direct = normalizeRelationRef(rawValue, fallbackEntityType);
+    if (direct) refs.push(direct);
     for (const [key, value] of Object.entries(rawValue)) {
+      if (key === 'sheetDesignId' && value) appendRelationValue(refs, value, 'sheetDesign');
       if (!Array.isArray(value) || !value.length) continue;
       appendRelationValue(refs, value, OBJECT_LIST_KEY_TYPES[key] || fallbackEntityType);
     }

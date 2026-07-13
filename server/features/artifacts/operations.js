@@ -33,7 +33,7 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
       status: dxfFile ? 'READY' : 'GENERATING',
       fileId: dxfFile?.fileId,
       mimeType: dxfFile ? 'application/dxf' : undefined
-    }, auth.userId);
+    }, auth.userId, auth.organizationId, auth.role, auth);
 
     return toCommandAttachmentResult(attachment);
   }
@@ -45,7 +45,7 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
       name: `${source.identity?.name || 'Source'} - Technical Passports`,
       status: 'GENERATING',
       metadata: { templateId: parameters.pdfTemplateId }
-    }, auth.userId);
+    }, auth.userId, auth.organizationId, auth.role, auth);
 
     return toCommandAttachmentResult(attachment);
   }

@@ -1,4 +1,13 @@
 export const cncEntityConstruction = {
+  artifact: {
+    modes: ['createArtifactFromAttachment'],
+    defaultMode: 'createArtifactFromAttachment',
+    inputs: [
+      { id: 'name', label: 'Artifact name', path: 'name', type: 'string', required: true, prompt: true },
+      { id: 'file', label: 'File', path: 'file', type: 'attachment', required: true, prompt: true, capture: true },
+      { id: 'source', label: 'Source entity', path: 'source', type: 'entity', required: false, prompt: true }
+    ]
+  },
   project: {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',

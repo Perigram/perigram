@@ -5,6 +5,7 @@
         <Tag :value="$t('sheetDesign.snapSize', { size: snapSize })" severity="secondary" size="small" />
         <Button icon="pi pi-plus" size="small" :disabled="!editable" :aria-label="$t('sheetDesign.addCassette')" v-tooltip.top="$t('sheetDesign.addCassette')" @click="openAddDialog" />
         <Button icon="pi pi-upload" severity="secondary" text rounded size="small" :disabled="!editable" :aria-label="$t('common.upload')" v-tooltip.top="$t('common.upload')" @click="uploadVisible = true" />
+        <Button icon="pi pi-refresh" severity="secondary" text rounded size="small" :disabled="!editable || selectedIndex < 0" :aria-label="$t('sheetDesign.rotate90')" v-tooltip.top="$t('sheetDesign.rotate90')" @click="rotateSelected" />
         <Button icon="pi pi-trash" severity="danger" text rounded size="small" :disabled="!editable || selectedIndex < 0" :aria-label="$t('common.delete')" v-tooltip.top="$t('common.delete')" @click="removeSelected" />
         <Button icon="pi pi-save" size="small" :loading="saving" :disabled="!editable || saving" :aria-label="$t('common.save')" v-tooltip.top="$t('common.save')" @click="save" />
       </template>
@@ -138,8 +139,10 @@ import {
   cassetteDesignSheetItem,
   clampSheetPlacement,
   placementWithTranslation,
+  rotateSheetPlacement90,
   sheetItemPoints,
   sheetLayoutState,
+  snapSheetPlacementToNeighbors,
   sheetPlacementSource,
   sheetPlacementTransform
 } from '~/utils/sheetLayoutEditor.js';
@@ -329,10 +332,24 @@ function dragPlacement(event) {
     item: source,
     rotation: placement.transformation?.rotation ?? placement.rotation ?? 0,
     sheetWidth: sheetWidth.value,
-    sheetHeight: sheetHeight.value,
-    snap: snapSize.value
+    sheetHeight: sheetHeight.value
   });
-  const { x, y } = bounded;
+  const snapped = snapSheetPlacementToNeighbors({
+    ...bounded,
+    item: source,
+    rotation: placement.transformation?.rotation ?? placement.rotation ?? 0,
+    placements: placedItems.value,
+    items: items.value,
+    currentIndex: drag.index,
+    gap: snapSize.value
+  });
+  const { x, y } = clampSheetPlacement({
+    ...snapped,
+    item: source,
+    rotation: placement.transformation?.rotation ?? placement.rotation ?? 0,
+    sheetWidth: sheetWidth.value,
+    sheetHeight: sheetHeight.value
+  });
   placedItems.value[drag.index] = placementWithTranslation(placedItems.value[drag.index], x, y);
 }
 
@@ -348,6 +365,23 @@ function removePlacement(index) {
 
 function removeSelected() {
   removePlacement(selectedIndex.value);
+}
+
+function rotateSelected() {
+  if (!props.editable || selectedIndex.value < 0) return;
+  const index = selectedIndex.value;
+  const rotated = rotateSheetPlacement90(placedItems.value[index]);
+  const transform = sheetPlacementTransform(rotated);
+  const source = sheetPlacementSource(items.value, rotated);
+  const position = clampSheetPlacement({
+    x: transform.x,
+    y: transform.y,
+    item: source,
+    rotation: rotated.transformation?.rotation,
+    sheetWidth: sheetWidth.value,
+    sheetHeight: sheetHeight.value
+  });
+  placedItems.value[index] = placementWithTranslation(rotated, position.x, position.y);
 }
 
 async function openAddDialog() {

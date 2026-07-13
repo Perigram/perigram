@@ -464,7 +464,7 @@ describe('Design system manifest', () => {
 
     expect(nestingRunCard).toContain('EntityRelationsBlock');
     expect(nestingRunCard).toContain("entityType: 'sheetDesign'");
-    expect(nestingRunCard).toContain("field.path === 'data.sheetDesignIds'");
+    expect(nestingRunCard).toContain("field.path === 'data.sheetDesignOutputs'");
     expect(nestingRunCard).toContain('item-variant="compact"');
     expect(nestingRunCard).not.toContain('item-variant="inline"');
     expect(nestingRunCard).not.toContain('SheetDesignCard');

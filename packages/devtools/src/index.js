@@ -30,9 +30,9 @@ export function summarizeRoutes(definitions = []) {
 
 export function summarizeSummaries(summaries = []) {
   return summaries.map(summary => ({
-    entityType: summary.entityType,
-    parentType: summary.parentType,
-    parentIdKey: summary.parentIdKey,
+    sourceType: summary.sourceType,
+    targetType: summary.targetType,
+    targetIdKey: summary.targetIdKey,
     countField: summary.countField || null,
     sumFields: summary.sumFields || {}
   }));
@@ -89,9 +89,9 @@ export function summarizeAttachmentKinds(attachmentKinds = {}) {
 
 export function summarizeRelationships({ summaries = [], dataModelFields = [] } = {}) {
   const summaryRelationships = summaries.map(summary => ({
-    source: summary.parentType,
-    target: summary.entityType,
-    via: `lineage.${summary.parentIdKey}`,
+    source: summary.targetType,
+    target: summary.sourceType,
+    via: `lineage.${summary.targetIdKey}`,
     kind: 'summary'
   }));
 

@@ -32,7 +32,7 @@ describe('generated labels', () => {
     }, '', i18n)).toBe('Cassette');
 
     expect(generatedActionLabel({
-      actionKind: 'changeStatus',
+      actionKind: 'mutateEntity',
       entityType: 'cassette',
       status: { from: 'NEW', to: 'DELETED' },
       label: 'DELETED'

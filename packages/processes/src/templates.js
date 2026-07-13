@@ -28,7 +28,8 @@ const COMMON_SERVICES = {
     inputs: [{ id: 'queue', entityType: 'queue', required: true, multiple: false }],
     outputs: [
       { id: 'nestingRun', entityType: 'nesting_run', multiple: false },
-      { id: 'sheetDesign', entityType: 'sheet_design', multiple: true }
+      { id: 'sheetDesign', entityType: 'sheet_design', multiple: true },
+      { id: 'sheetInstance', entityType: 'sheet_instance', multiple: true }
     ],
     access: { runPrincipals: ['principal_nesting'], viewPrincipals: ['principal_nesting'] },
     billing: { mode: 'prepaidTokens', tokenCost: 1, meterKey: 'nesting.solve' }
@@ -44,10 +45,16 @@ export const PROCESS_TEMPLATES = {
       projects: 'admin',
       queues: 'admin',
       nesting_runs: 'admin',
+      sheet_designs: 'admin',
+      sheet_instances: 'admin',
+      artifacts: 'admin',
+      machines: 'admin',
       materials: 'admin',
       warehouses: 'admin',
       requisitions: 'write',
       cassettes: 'admin',
+      tool_profiles: 'admin',
+      pen_templates: 'admin',
       organizations: 'admin',
       users: 'admin',
       layer_standards: 'read'

@@ -296,7 +296,7 @@ const runs = [
     data: {
       results: { efficiency: 93.8, sheetCount: 5, remnantArea: 0.8 },
       materialPool: [{ type: 'PILE', id: 'pile-demo-001', available: 42 }],
-      sheetDesignIds: sheetDesigns.map(design => design._id)
+      sheetDesignOutputs: sheetDesigns.map(design => ({ sheetDesignId: design._id, quantity: 1, sheetInstanceIds: [] }))
     }
   }),
   createMockNestingRun({

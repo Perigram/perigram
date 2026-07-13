@@ -33,6 +33,14 @@
                     :slug="item.slug"
                     class="max-w-[14rem]"
                 />
+                <TraceLink
+                    v-if="item.revisionId"
+                    type="entityRevision"
+                    :id="item.revisionId"
+                    :fallback-label="revisionLabel(item.revisionId)"
+                    :to="routeForRevision(item.revisionId)"
+                    class="max-w-[8rem]"
+                />
                 <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-[0.625rem] text-muted-color"></i>
             </li>
         </ol>
@@ -86,11 +94,13 @@ const items = computed(() => {
     if (!lin) return [];
 
     if (lin.organizationId) list.push({ type: 'organization', id: lin.organizationId });
-    if (lin.libraryId) list.push({ type: 'library', id: lin.libraryId });
-    if (lin.templateId) list.push({ type: 'cassetteTemplate', id: lin.templateId });
+    if (lin.libraryId) list.push({ type: 'library', id: lin.libraryId, revisionId: lin.libraryRevisionId });
+    if (lin.templateId) list.push({ type: 'cassetteTemplate', id: lin.templateId, revisionId: lin.templateRevisionId });
     if (lin.warehouseId) list.push({ type: 'warehouse', id: lin.warehouseId });
-    if (lin.projectId) list.push({ type: 'project', id: lin.projectId });
-    if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, slug: lin.projectId });
+    if (lin.projectId) list.push({ type: 'project', id: lin.projectId, revisionId: lin.projectRevisionId });
+    if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, revisionId: lin.queueRevisionId, slug: lin.projectId });
+    if (lin.runId) list.push({ type: 'nestingRun', id: lin.runId, revisionId: lin.runRevisionId });
+    if (lin.sheetDesignId) list.push({ type: 'sheetDesign', id: lin.sheetDesignId, revisionId: lin.sheetDesignRevisionId });
     
     return list;
 });
@@ -124,6 +134,12 @@ const contextTypeCandidates = (type) => {
 const labelKey = (item) => `${item.type}:${item.id}`;
 
 const fallbackLabel = (item) => item?.label || FALLBACK_LABELS[item?.type] || '';
+const revisionLabel = id => `@${String(id).slice(-8)}`;
+const routeForRevision = id => detailRouteForEntity({
+    entity: { _id: id },
+    entityType: 'entity_revision',
+    manifest: authStore.screenManifest
+});
 
 const entityLabel = (entity) => {
     return entity?.identity?.name

@@ -238,7 +238,7 @@ export const statusService = {
 function appendProcessStatusActions(actions = [], { auth = {}, entityType = '', primaryState = '' } = {}) {
   const existingTargets = new Set(actions.map(action => `${action.from || ''}->${action.to || ''}`));
   for (const action of auth.roleAssignments?.actions || []) {
-    if (action.actionKind !== 'changeStatus') continue;
+    if (action.actionKind !== 'mutateEntity' || !action.status?.to) continue;
     if (normalizeEntityType(action.entityType) !== entityType) continue;
     const from = action.status?.from || action.access?.statusFrom || '';
     const to = action.status?.to || action.access?.statusTo || '';

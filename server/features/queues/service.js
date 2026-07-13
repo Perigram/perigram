@@ -26,6 +26,9 @@ const DEFAULT_NESTING_SETTINGS = Object.freeze({
   spacing: 5,
   warehouseId: null,
   inventoryItems: [],
+  machineId: null,
+  materialId: null,
+  sheetThickness: 4,
   toolProfileId: null,
   requestedArtifacts: []
 });
@@ -55,6 +58,9 @@ export function normalizeQueueNestingSettings(input = {}, previous = {}) {
     spacing: nonNegativeNumber(merged.spacing ?? merged.space, DEFAULT_NESTING_SETTINGS.spacing),
     warehouseId: merged.warehouseId?.toString?.() || merged.warehouseId || null,
     inventoryItems,
+    machineId: merged.machineId?.toString?.() || merged.machineId || null,
+    materialId: merged.materialId?.toString?.() || merged.materialId || null,
+    sheetThickness: nonNegativeNumber(merged.sheetThickness, DEFAULT_NESTING_SETTINGS.sheetThickness),
     toolProfileId: merged.toolProfileId?.toString?.() || merged.toolId?.toString?.() || merged.toolProfileId || merged.toolId || null,
     requestedArtifacts
   };
@@ -77,6 +83,9 @@ export function buildNestingCommandParameters(queue = {}, overrides = {}) {
     spacing: settings.spacing,
     inventoryItems: settings.inventoryItems,
     materialPool,
+    machineId: settings.machineId,
+    materialId: settings.materialId,
+    sheetThickness: settings.sheetThickness,
     toolProfileId: settings.toolProfileId
   };
 }
@@ -559,7 +568,8 @@ function createCutSheetDescriptor(pileId, { queue, run, source = {}, index = 0, 
 
 async function sheetDesignsForRun(queue, chosenRun, userId, userOrg, userRole, userPermissions) {
   const runId = chosenRun._id?.toString();
-  return await sheetDesignsService.listForRunOutput(queue._id, runId, chosenRun.data?.sheetDesignIds || []);
+  const designIds = (chosenRun.data?.sheetDesignOutputs || []).map(output => output.sheetDesignId).filter(Boolean);
+  return await sheetDesignsService.listForRunOutput(queue._id, runId, designIds);
 }
 
 function cassetteInstanceDesignsForSheet(sheetDesign = null) {

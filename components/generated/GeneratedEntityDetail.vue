@@ -13,6 +13,7 @@
       :screen-key="screenKey"
       :process-actions="resolvedActions"
       @refresh="$emit('refresh')"
+      @execute-action="(...args) => $emit('execute-action', ...args)"
     />
     <SheetDesignEditor
       v-else-if="entityType === 'sheet_design'"

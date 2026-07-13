@@ -3,6 +3,7 @@ export const DOMAIN_BUILDER_STORAGE_KEY = 'cutkit:domain-builder:v1';
 export const CANONICAL_BLOCKS = [
   'identity',
   'lineage',
+  'relations',
   'origin',
   'status',
   'specs',
@@ -11,7 +12,7 @@ export const CANONICAL_BLOCKS = [
   'summary'
 ];
 
-export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'entityType', 'workflowState', 'array', 'object']);
+export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'entityType', 'workflowState', 'attachment', 'array', 'object']);
 
 export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [], serviceContracts = {}, commands = {}, hookContracts = {} } = {}) {
   const normalizedCommands = commands && typeof commands === 'object' ? commands : {};
@@ -125,9 +126,9 @@ export function validateDomainDraft(draft = {}) {
 
   for (const [index, summary] of summaries.entries()) {
     const label = `Summary #${index + 1}`;
-    if (!entityTypes.has(summary.entityType)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown entity type: ${summary.entityType}` });
-    if (!entityTypes.has(summary.parentType)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown parent type: ${summary.parentType}` });
-    if (!summary.parentIdKey) issues.push({ area: 'summaries', severity: 'error', message: `${label} is missing parentIdKey` });
+    if (!entityTypes.has(summary.sourceType)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown source type: ${summary.sourceType}` });
+    if (!entityTypes.has(summary.targetType)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown target type: ${summary.targetType}` });
+    if (!summary.targetIdKey) issues.push({ area: 'summaries', severity: 'error', message: `${label} is missing targetIdKey` });
     if (!summary.countField) issues.push({ area: 'summaries', severity: 'error', message: `${label} is missing countField` });
     if (summary.sumFields && (typeof summary.sumFields !== 'object' || Array.isArray(summary.sumFields))) {
       issues.push({ area: 'summaries', severity: 'error', message: `${label} sumFields must be an object` });

@@ -401,6 +401,7 @@ export async function createFromRun(run, data, userId) {
       cassetteDesigns,
       materialPool: data.materialPool || run.data?.materialPool || [],
       nestingParams: data.nestingParams || run.data?.params || {},
+      layoutHash: data.layoutHash || '',
       attachments: {
         svg: data.svgId ? createAttachment('SVG', data.svgId, 'Design SVG') : null,
         dxf: data.dxfId ? createAttachment('DXF', data.dxfId, 'Design DXF') : null

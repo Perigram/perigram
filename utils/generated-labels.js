@@ -29,8 +29,7 @@ export function generatedActionLabel(action = {}, fallback = '', { t, te } = {})
   if (explicit && !isGenericActionLabel(explicit, action)) return explicit;
 
   if (action.actionKind === 'createEntity') return generatedEntityLabel(action.entityType, { t, te }) || fallback;
-  if (action.actionKind === 'changeStatus') return t('generatedScreen.actions.change');
-  if (action.actionKind === 'updateEntity') return t('common.edit');
+  if (action.actionKind === 'mutateEntity') return action.status?.to ? t('generatedScreen.actions.change') : t('common.edit');
   if (action.actionKind === 'runCommand') return meaningfulLabel(action.commandId) || t('generatedScreen.actions.run');
   if (action.actionKind === 'sendToOrganization') return t('generatedScreen.actions.send');
   return fallback || t('common.confirm');

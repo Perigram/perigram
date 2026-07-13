@@ -28,7 +28,7 @@ export const useQueuesStore = defineStore('queues', () => {
     }
 
     function hasNestingResults(run = {}) {
-        return Boolean(run.data?.results) || Boolean(run.data?.sheetDesignIds?.length);
+        return Boolean(run.data?.results) || Boolean(run.data?.sheetDesignOutputs?.length);
     }
 
     function sortQueueRuns(queueRuns = []) {

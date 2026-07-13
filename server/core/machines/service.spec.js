@@ -143,7 +143,7 @@ describe('status service lifecycle payloads', () => {
         actions: [{
           actionId: 'move_old',
           label: 'Move project OLD',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           entityType: 'project',
           status: { from: 'NEWS', to: 'OLD' }
         }]
@@ -181,7 +181,7 @@ describe('status service lifecycle payloads', () => {
         actions: [{
           actionId: 'mark_cut',
           label: 'Mark cut',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           entityType: 'project',
           status: { to: 'CUT' }
         }]

@@ -66,7 +66,10 @@ describe('Production Queues & Nesting Status', () => {
   };
 
   mockUser.permissions = {
-    memberships: [{ organizationId: mockUser.organizationId, permissions: { queues: 'admin', projects: 'admin' } }]
+    memberships: [{
+      organizationId: mockUser.organizationId,
+      permissions: { queues: 'admin', projects: 'admin', nesting_runs: 'admin' }
+    }]
   };
 
   it('should create a queue and update project queue count', async () => {
@@ -193,7 +196,10 @@ describe('Production Queues & Nesting Status', () => {
       spacing: 8,
       inventoryItems: ['pile_1'],
       materialPool,
-      toolProfileId: 'tool-1'
+      toolProfileId: 'tool-1',
+      machineId: null,
+      materialId: null,
+      sheetThickness: 4
     });
   });
 
@@ -483,7 +489,7 @@ describe('Production Queues & Nesting Status', () => {
       status: statusFixture('COMPLETE'),
       data: {
         results: { sheetCount: 1, remnantArea: 0.25 },
-        sheetDesignIds: ['sheet-design-physical'],
+        sheetDesignOutputs: [{ sheetDesignId: 'sheet-design-physical', quantity: 1, sheetInstanceIds: [] }],
         materialPool: [{
           type: 'PILE',
           id: pileId,

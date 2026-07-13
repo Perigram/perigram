@@ -25,7 +25,7 @@ async function main() {
   const runs = db.collection('nesting_runs').find({
     'status.state.primary': 'NESTING',
     'data.results': { $exists: true },
-    'data.sheetDesignIds.0': { $exists: true }
+    'data.sheetDesignOutputs.0': { $exists: true }
   });
 
   let scanned = 0;
@@ -34,7 +34,7 @@ async function main() {
 
   for await (const run of runs) {
     scanned++;
-    const sheetDesignIds = (run?.data?.sheetDesignIds || []).map(id => id?.toString?.() || id).filter(Boolean);
+    const sheetDesignIds = (run?.data?.sheetDesignOutputs || []).map(output => output.sheetDesignId?.toString?.() || output.sheetDesignId).filter(Boolean);
     if (!run?.data?.results || !sheetDesignIds.length) {
       skipped++;
       continue;

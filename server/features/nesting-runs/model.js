@@ -15,6 +15,7 @@ export class NestingRun extends BaseEntity {
         remnantArea: 0
       },
       layoutData: raw.data?.layoutData || {},
+      sheetDesignOutputs: raw.data?.sheetDesignOutputs || [],
       artifactIds: raw.data?.artifactIds || []
     };
   }

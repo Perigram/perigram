@@ -83,6 +83,26 @@
                                 size="small"
                                 :disabled="!canRunNesting"
                             />
+                            <Select
+                                v-model="nestingOptions.machineId"
+                                :options="machineOptions"
+                                optionLabel="name"
+                                optionValue="_id"
+                                :placeholder="$t('nesting.selectMachine')"
+                                class="min-w-48 flex-1"
+                                size="small"
+                                :disabled="!canRunNesting"
+                            />
+                            <Select
+                                v-model="nestingOptions.materialId"
+                                :options="materialOptions"
+                                optionLabel="name"
+                                optionValue="_id"
+                                :placeholder="$t('nesting.selectMaterial')"
+                                class="min-w-48 flex-1"
+                                size="small"
+                                :disabled="!canRunNesting"
+                            />
                         </div>
                     </template>
                     <template #actions>
@@ -103,6 +123,7 @@
                                 <div class="grid grid-cols-2 gap-4">
                                     <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" size="small" />
                                     <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" size="small" />
+                                    <InputNumber v-model="nestingOptions.sheetThickness" :min="0" :placeholder="$t('nesting.sheetThickness')" suffix=" mm" size="small" />
                                 </div>
                                 <div class="rounded-panel border border-content-border bg-content p-3">
                                     <div class="flex items-center justify-between gap-3">
@@ -187,24 +208,15 @@
                         <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
                         <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
                         <Button
-                            v-if="canEditQueue"
-                            :label="$t('queues.addFromTemplate')"
+                            v-for="action in producerActions"
+                            :key="action.actionId"
+                            :label="producerActionLabel(action)"
                             icon="pi pi-plus"
                             text
                             severity="secondary"
                             size="small"
-                            @click="showAddDialog = true"
-                        />
-                        <FileUpload
-                            v-if="canEditQueue"
-                            mode="basic"
-                            name="file"
-                            accept=".dxf"
-                            :auto="true"
-                            :customUpload="true"
-                            @select="onInstantUploadSelect"
-                            :chooseLabel="$t('queues.uploadCassette')"
-                            :choose-button-props="{ severity: 'secondary', text: true, size: 'small' }"
+                            :disabled="!canEditQueue"
+                            @click="$emit('execute-producer', action)"
                         />
                     </template>
                     <div class="flex flex-col gap-6">
@@ -275,7 +287,7 @@
                             v-if="activeRun"
                             :key="activeRun._id"
                             :run="activeRun"
-                            :sheet-designs="sheetDesigns"
+                            :sheet-designs="activeRunSheetDesigns"
                             :active="true"
                             :is-chosen="getPrimaryState(activeRun.status) === 'CHOSEN'"
                             @select="selectedRunId = $event.toString()"
@@ -291,32 +303,12 @@
         </component>
 
 
-        <!-- Add Entry Dialog -->
-        <StandardDialog v-model:visible="showAddDialog" :header="$t('queues.addEntry')">
-            <div class="flex flex-col gap-4 py-4">
-                <div class="flex flex-col gap-2">
-                    <label>{{ $t('queues.cassette') }}</label>
-                    <Select v-model="newEntry.cassetteTemplateId" :options="allAvailableCassettes" optionLabel="name" optionValue="_id" class="w-full" size="small" @change="onNewCassetteChange" />
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label>{{ $t('queues.quantity') }}</label>
-                    <InputNumber v-model="newEntry.quantity" :min="1" fluid size="small" />
-                </div>
-            </div>
-            <template #footer>
-                <Button :label="$t('common.cancel')" text severity="secondary" size="small" @click="showAddDialog = false" />
-                <Button :label="$t('common.add')" severity="secondary" size="small" @click="() => addEntry()" :disabled="!newEntry.cassetteTemplateId" />
-            </template>
-        </StandardDialog>
-
-        <CassetteEditorDialog v-model:modelValue="showUploadDialog" @saved="onCassetteUploaded" ref="uploadDialogRef" />
-
         <ConfirmDialog />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -333,10 +325,8 @@ import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
 import Message from 'primevue/message';
 import InputNumber from 'primevue/inputnumber';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
-import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import QueueEntryCard from '~/components/entities/Queue/QueueEntryCard.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import QueueSourceCard from '~/components/entities/Queue/QueueSourceCard.vue';
@@ -350,6 +340,7 @@ import EntityWorkspace from '~/components/shared/EntityWorkspace.vue';
 import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { onEntityChanged } from '~/utils/entity-events.js';
+import { generatedActionLabel } from '~/utils/generated-labels.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
 import { canonicalQueueItem } from '~/utils/queue-items.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
@@ -361,11 +352,12 @@ const props = defineProps({
     projectSlug: { type: String, required: true },
     showQueueNavigation: { type: Boolean, default: true },
     editMode: { type: String, default: 'workflow' },
-    processActions: { type: Array, default: () => [] }
+    processActions: { type: Array, default: () => [] },
+    producerActions: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted']);
-const { t } = useI18n();
+const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted', 'execute-producer']);
+const { t, te } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
 const authStore = useAuthStore();
@@ -376,6 +368,7 @@ const isProcessMode = computed(() => props.editMode === 'process');
 const showQueueNavigation = computed(() => props.showQueueNavigation);
 const workspaceComponent = computed(() => showQueueNavigation.value ? WorkspaceLanes : EntityWorkspace);
 const supportSlot = computed(() => showQueueNavigation.value ? 'right' : 'support');
+const producerActionLabel = action => generatedActionLabel(action, action.actionId || action.id, { t, te });
 
 const queuesStore = useQueuesStore();
 const cassettesStore = useCassettesStore();
@@ -384,13 +377,12 @@ const toolProfilesStore = useToolProfilesStore();
 const entries = ref([]);
 const { runs, nestingCompleted } = storeToRefs(queuesStore);
 const nestingInProgress = ref(false);
-const showAddDialog = ref(false);
-const showUploadDialog = ref(false);
-const uploadDialogRef = ref(null);
 const cassettes = ref([]);
 const cassetteDesigns = ref([]);
 const sheetDesigns = ref([]);
 const warehouses = ref([]);
+const machines = ref([]);
+const materials = ref([]);
 const availableInventory = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
@@ -399,6 +391,8 @@ const instances = ref([]);
 const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
 const queueList = computed(() => [...props.queues].reverse());
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
+const machineOptions = computed(() => namedSelectOptions(machines.value, t('common.unnamed')));
+const materialOptions = computed(() => namedSelectOptions(materials.value, t('common.unnamed')));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
 const canCreateQueue = computed(() => authStore.can('queues', 'create'));
 const canEditQueue = computed(() => {
@@ -546,7 +540,10 @@ const nestingCommandParameters = computed(() => ({
     spacing: nestingOptions.value.spacing,
     inventoryItems: nestingOptions.value.inventoryItems,
     materialPool: selectedMaterialPool.value,
-    toolProfileId: nestingOptions.value.toolProfileId
+    toolProfileId: nestingOptions.value.toolProfileId,
+    machineId: nestingOptions.value.machineId,
+    materialId: nestingOptions.value.materialId,
+    sheetThickness: nestingOptions.value.sheetThickness
 }));
 const selectedStockSizeKeys = computed(() => Array.from(new Set(selectedMaterialPool.value.map(stockSizeKey).filter(Boolean))));
 const selectedStockSizeConflict = computed(() => selectedStockSizeKeys.value.length > 1);
@@ -577,12 +574,6 @@ const addInventoryItem = (value) => {
 const removeInventoryItem = (uniqueId) => {
     nestingOptions.value.inventoryItems = nestingOptions.value.inventoryItems.filter(item => item !== uniqueId);
 };
-
-const newEntry = ref({
-    cassetteTemplateId: null,
-    quantity: 1,
-    dimensions: {}
-});
 
 const entryKeyFor = (item = {}, index = 0) => (
     item._key ||
@@ -643,11 +634,6 @@ const getEntryParameters = (e) => {
     return [];
 };
 
-const allAvailableCassettes = computed(() => {
-    const items = [...cassettes.value, ...cassetteDesigns.value];
-    return namedSelectOptions(items, t('common.unnamed'));
-});
-
 const allParameters = computed(() => {
     const params = new Set();
     entries.value.forEach(e => {
@@ -659,26 +645,6 @@ const allParameters = computed(() => {
     return Array.from(params);
 });
 
-const findDesignForTemplate = (templateId) => {
-    const id = templateId?.toString();
-    if (!id) return null;
-    return cassetteDesigns.value.find(design => design.lineage?.templateId?.toString() === id) || null;
-};
-
-const resolveUploadedQueueItem = (payload) => {
-    if (!payload) return null;
-    const design = payload.design || (payload.data?.geometry ? payload : null);
-    if (design) {
-        if (!cassetteDesigns.value.some(item => item._id?.toString() === design._id?.toString())) {
-            cassetteDesigns.value.push(design);
-        }
-        return design;
-    }
-
-    const template = payload.template || payload;
-    return findDesignForTemplate(template._id) || template;
-};
-
 const defaultNestingSettings = () => ({
     materialMode: 'VIRTUAL',
     virtualWidth: 3000,
@@ -686,6 +652,9 @@ const defaultNestingSettings = () => ({
     warehouseId: null,
     inventoryItems: [],
     toolProfileId: null,
+    machineId: null,
+    materialId: null,
+    sheetThickness: 4,
     requestedArtifacts: []
 });
 
@@ -718,6 +687,9 @@ const runOptions = computed(() => readableQueueRuns.value.map(run => ({
     name: entitySelectLabel(run, t('entities.nestingRun'))
 })));
 const activeRun = computed(() => readableQueueRuns.value.find(run => run._id?.toString() === selectedRunId.value?.toString()) || readableQueueRuns.value[0] || null);
+const activeRunSheetDesigns = computed(() => sheetDesigns.value.filter(design =>
+    design.lineage?.runId?.toString?.() === activeRun.value?._id?.toString?.()
+));
 const hasPhysicalOutputs = computed(() => Boolean(props.queue.data?.physicalOutputs?.cassetteInstanceIds?.length));
 const warehouseShortage = computed(() => {
     if (nestingOptions.value.materialMode !== 'WAREHOUSE') return null;
@@ -829,10 +801,10 @@ const loadQueueData = async () => {
 
 const loadSheetDesigns = async () => {
     try {
-        const runIds = readableQueueRuns.value.map(run => run._id?.toString()).filter(Boolean);
+        const runId = activeRun.value?._id?.toString();
         sheetDesigns.value = await $fetch('/api/sheet-designs', {
-            query: runIds.length
-                ? { queueId: props.queue._id, runIds: runIds.join(',') }
+            query: runId
+                ? { queueId: props.queue._id, runId }
                 : { queueId: props.queue._id }
         });
     } catch (e) {
@@ -871,14 +843,18 @@ const handleRunStatusChanged = async () => {
 };
 
 onMounted(async () => {
-    const [cassetteResult, designResult, whRes] = await Promise.all([
+    const [cassetteResult, designResult, whRes, machineResult, materialResult] = await Promise.all([
         optionalList(() => cassettesStore.fetchCassettes()),
         optionalList(() => $fetch('/api/cassette-designs')),
-        optionalList(() => $fetch('/api/warehouses'))
+        optionalList(() => $fetch('/api/warehouses')),
+        optionalList(() => $fetch('/api/machines')),
+        optionalList(() => $fetch('/api/materials'))
     ]);
     cassettes.value = cassetteResult || [];
     cassetteDesigns.value = designResult || [];
     warehouses.value = whRes || [];
+    machines.value = machineResult || [];
+    materials.value = materialResult || [];
     await toolProfilesStore.fetchTools();
     await queuesStore.fetchRuns(props.queue._id);
     await loadSheetDesigns();
@@ -888,6 +864,7 @@ onMounted(async () => {
 const stopEntityChangeListener = onEntityChanged(async ({ type, id, entity }) => {
     const queueId = props.queue._id?.toString();
     if (type === 'queue' && id?.toString() === queueId) {
+        if (Date.now() < ignoreQueueEventsUntil) return;
         await loadQueueData();
         return;
     }
@@ -902,6 +879,7 @@ const stopEntityChangeListener = onEntityChanged(async ({ type, id, entity }) =>
 });
 
 onUnmounted(() => {
+    clearTimeout(queueSaveTimer);
     stopEntityChangeListener();
 });
 
@@ -922,6 +900,8 @@ watch(readableQueueRuns, (runsForQueue) => {
     }
 }, { immediate: true });
 
+watch(selectedRunId, () => loadSheetDesigns());
+
 watch(() => props.queue._id, async () => {
     await loadQueueData();
     await queuesStore.fetchRuns(props.queue._id);
@@ -929,16 +909,6 @@ watch(() => props.queue._id, async () => {
 });
 
 const formatDate = (d) => new Date(d).toLocaleString();
-
-const onNewCassetteChange = () => {
-    const data = getCassetteData(newEntry.value.cassetteTemplateId);
-    if (getCassetteParameters(data).length > 0) {
-        newEntry.value.dimensions = {};
-        getCassetteParameters(data).forEach(p => newEntry.value.dimensions[p] = 0);
-    } else {
-        newEntry.value.dimensions = {};
-    }
-};
 
 const syncEntryWithCassette = (entry) => {
     const canonical = canonicalQueueItem(entry, { cassettes: cassettes.value, cassetteDesigns: cassetteDesigns.value });
@@ -976,39 +946,20 @@ const updateEntryDimension = async (entry, param, value) => {
         ...(entry.dimensions || {}),
         [param]: value
     };
-    await saveQueue({ notify: false });
+    scheduleQueueSave();
 };
 
-const addEntry = async (item = null) => {
-    if (!canEditQueue.value) return;
-    const data = item || getCassetteData(newEntry.value.cassetteTemplateId);
-    if (!data) return;
-
-    const isDesign = isCassetteDesignEntity(data);
-    const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
-
-    const entryData = item ? {
-        cassetteTemplateId: data._id,
-        quantity: 1,
-        dimensions: {}
-    } : { ...newEntry.value };
-
-    entries.value.push(syncEntryWithCassette({
-        ...entryData,
-        _key: `entry_${data._id}_${Date.now()}_${entries.value.length}`,
-        entityType: queueItemEntityType({}, data),
-        type,
-        id: data._id
-    }));
-
-    await saveQueue();
-    newEntry.value = { cassetteTemplateId: null, quantity: 1, dimensions: {} };
-    showAddDialog.value = false;
-};
+let queueSaveTimer = null;
+let ignoreQueueEventsUntil = 0;
+function scheduleQueueSave() {
+    clearTimeout(queueSaveTimer);
+    queueSaveTimer = setTimeout(() => saveQueue({ notify: false }), 250);
+}
 
 const saveQueue = async ({ notify = true } = {}) => {
     if (!canEditQueue.value) return false;
     try {
+        ignoreQueueEventsUntil = Date.now() + 1500;
         entries.value.forEach(syncEntryWithCassette);
         const invalidEntry = entries.value.find(entry => !getEntryCassetteData(entry));
         if (invalidEntry) {
@@ -1144,26 +1095,4 @@ const loadInstances = async () => {
     } catch (e) { console.error('Failed to load instances:', e); }
 };
 
-const onCassetteUploaded = async (newItem) => {
-    showUploadDialog.value = false;
-    const [cRes, dRes] = await Promise.all([
-        optionalList(() => cassettesStore.fetchCassettes()),
-        optionalList(() => $fetch('/api/cassette-designs'))
-    ]);
-    cassettes.value = cRes || [];
-    cassetteDesigns.value = dRes || [];
-    const queueItem = resolveUploadedQueueItem(newItem);
-    if (queueItem) await addEntry(queueItem);
-};
-
-const onInstantUploadSelect = (event) => {
-    if (event.files && event.files.length > 0) {
-        showUploadDialog.value = true;
-        nextTick(() => {
-            if (uploadDialogRef.value) {
-                uploadDialogRef.value.handleFileSelect({ files: [event.files[0]] });
-            }
-        });
-    }
-};
 </script>

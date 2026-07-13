@@ -12,6 +12,18 @@ vi.mock('../parametric-cassettes/service.js', () => ({
   bakeTemplateInstance: vi.fn()
 }));
 
+vi.mock('../machines/service.js', () => ({
+  ensureSystemDefault: vi.fn(() => ({
+    _id: 'machine-default',
+    identity: { name: 'Test machine' },
+    data: { workArea: { width: 10000, length: 10000 }, boundaryOffset: {} }
+  })),
+  getById: vi.fn()
+}));
+
+vi.mock('../tool-profiles/service.js', () => ({ getById: vi.fn() }));
+vi.mock('../materials/service.js', () => ({ getById: vi.fn() }));
+
 vi.mock('./jobs.js', () => ({
   findActiveByQueue: vi.fn(),
   create: vi.fn()
@@ -42,7 +54,7 @@ import { statusService } from '../../core/machines/service.js';
 import { bakeTemplateInstance } from '../parametric-cassettes/service.js';
 import { cncCommands } from '../../../packages/domain-cnc/src/commands.js';
 import { cncWorkflows } from '../../../packages/domain-cnc/src/workflows.js';
-import { buildJobFiles, buildNestingWorkerRequest, enrichNestingResult, resolveNestingContext, resolveNestingMaterialPool, resolveNestingParams, solveNesting, summarizeNestingResult } from './operations.js';
+import { buildJobFiles, buildNestingWorkerRequest, enrichNestingResult, groupEquivalentNestingLayouts, resolveNestingContext, resolveNestingMaterialPool, resolveNestingParams, solveNesting, summarizeNestingResult } from './operations.js';
 
 describe('nesting operation worker payloads', () => {
   beforeEach(() => {
@@ -103,7 +115,12 @@ describe('nesting operation worker payloads', () => {
       height: 1500,
       space: 5,
       sheetCount: 5,
-      sheet_polygon: null
+      sheet_polygon: null,
+      machine: null,
+      tool: null,
+      material: null,
+      itemGap: 5,
+      sheetThickness: 0
     });
   });
 
@@ -129,6 +146,58 @@ describe('nesting operation worker payloads', () => {
     };
     expect(context.sheet_polygon).toEqual(expected);
     expect(resolveNestingParams(context).sheet_polygon).toEqual(expected);
+  });
+
+  it('uses the tool diameter as item gap and clips the usable sheet to machine offsets', () => {
+    const context = resolveNestingContext({
+      width: 300,
+      height: 200,
+      tool: { id: 'tool-1', diameter: 6 },
+      machine: {
+        id: 'machine-1',
+        workArea: { width: 400, length: 300 },
+        boundaryOffset: { top: 10, right: 20, bottom: 30, left: 40 }
+      }
+    });
+
+    expect(context.space).toBe(6);
+    expect(context.sheet_polygon).toEqual({
+      outer: [[40, 170], [40, 10], [280, 10], [280, 170], [40, 170]],
+      inner: []
+    });
+    expect(() => resolveNestingContext({
+      width: 500,
+      height: 200,
+      machine: { workArea: { width: 400, length: 300 } }
+    })).toThrow(/exceeds machine work area/);
+  });
+
+  it('groups equivalent worker layouts into one canonical sheet design quantity', () => {
+    const placement = {
+      item_id: 0,
+      transformation: { translation: [10, 20], rotation: 90 }
+    };
+    const result = {
+      items: [{ id: 0, shape: { data: { outer: [[0, 0], [20, 0], [20, 10], [0, 10]] } } }],
+      solution: {
+        layouts: [
+          { bin: 0, placed_items: [placement] },
+          { bin: 0, placed_items: [placement] }
+        ]
+      }
+    };
+
+    const groups = groupEquivalentNestingLayouts(result, {
+      width: 100,
+      height: 100,
+      machine: { id: 'machine-1' },
+      tool: { id: 'tool-1', diameter: 4 },
+      material: { id: 'material-1', sheetThickness: 3 }
+    }, { width: 100, length: 100, area: 0.01 });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({ sourceIndex: 0, quantity: 2 });
+    expect(groups[0].layoutHash).toBeTruthy();
   });
 
   it('declares warehouse material pool as a solveNesting command input', () => {

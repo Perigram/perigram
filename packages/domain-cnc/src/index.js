@@ -6,6 +6,7 @@ export { cncServiceContracts, cncCommands } from './commands.js';
 export { cncTasks } from './tasks.js';
 export { cncHookContracts } from './hooks.js';
 export { cncSummaries, cncFrontendEntities } from './summaries.js';
+export { cncRelations, containmentForChild, relationsFromSource } from './relations.js';
 export { cncAttachmentKinds } from './attachment-kinds.js';
 export { cncEntityCreateInputs, getEntityCreateInputs } from './entity-create-inputs.js';
 export { cncEntityConstruction, getEntityConstruction } from './entity-construction.js';
@@ -43,6 +44,7 @@ import { cncServiceContracts, cncCommands } from './commands.js';
 import { cncTasks } from './tasks.js';
 import { cncHookContracts } from './hooks.js';
 import { cncFrontendEntities, cncSummaries } from './summaries.js';
+import { cncRelations } from './relations.js';
 import { cncAttachmentKinds } from './attachment-kinds.js';
 import { cncEntityCreateInputs } from './entity-create-inputs.js';
 import { cncEntityConstruction } from './entity-construction.js';
@@ -62,6 +64,7 @@ export const cncDomain = {
   tasks: cncTasks,
   hooks: cncHookContracts,
   summaries: cncSummaries,
+  relations: cncRelations,
   attachmentKinds: cncAttachmentKinds,
   createInputs: cncEntityCreateInputs,
   construction: cncEntityConstruction,

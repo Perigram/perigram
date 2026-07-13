@@ -610,7 +610,7 @@ function compactEntitySnapshot(type, entity) {
     const data = { ...(dto.data || {}) };
 
     if (type === 'nesting_run') {
-        snapshot.data = pickDefined(data, ['results', 'materialPool', 'sheetDesignIds']);
+        snapshot.data = pickDefined(data, ['results', 'materialPool', 'sheetDesignOutputs']);
         return snapshot;
     }
 
@@ -621,7 +621,7 @@ function compactEntitySnapshot(type, entity) {
 
     if (type === 'cassette') {
         snapshot.data = {
-            ...pickDefined(data, ['type', 'definition', 'materialPool', 'parameters', 'description', 'revisions', 'sheetDesignIds', 'results']),
+            ...pickDefined(data, ['type', 'definition', 'materialPool', 'parameters', 'description', 'revisions', 'sheetDesignOutputs', 'results']),
             ...(data.geometry ? { geometry: compactGeometrySnapshot(data.geometry) } : {}),
             ...(data.layerData ? { layerData: data.layerData } : {}),
             ...(data.polygonParts ? { polygonParts: data.polygonParts } : {})
@@ -631,7 +631,7 @@ function compactEntitySnapshot(type, entity) {
 
     if (type === 'cassette_design' || type === 'sheet_design' || type === 'remnant') {
         snapshot.data = {
-            ...pickDefined(data, ['materialPool', 'parameters', 'description', 'revisions', 'sheetDesignIds', 'results']),
+            ...pickDefined(data, ['materialPool', 'parameters', 'description', 'revisions', 'sheetDesignOutputs', 'results']),
             ...(data.geometry ? { geometry: compactGeometrySnapshot(data.geometry) } : {})
         };
         return snapshot;

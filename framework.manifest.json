@@ -96,6 +96,35 @@
       ]
     },
     {
+      "action": "importDesign",
+      "attachments": [],
+      "events": [
+        "cassette.designImported"
+      ],
+      "id": "importCassetteDesign",
+      "inputs": [
+        "artifact"
+      ],
+      "label": "Import cassette design",
+      "outputs": [
+        "cassette",
+        "cassette_design"
+      ],
+      "permissions": [
+        {
+          "feature": "cassettes",
+          "level": "write"
+        }
+      ],
+      "service": "cassettes",
+      "tasks": [],
+      "triggers": [
+        {
+          "event": "cassette.designImported"
+        }
+      ]
+    },
+    {
       "action": "solve",
       "attachments": [],
       "events": [
@@ -109,7 +138,8 @@
       "label": "Solve nesting",
       "outputs": [
         "nesting_run",
-        "sheet_design"
+        "sheet_design",
+        "sheet_instance"
       ],
       "permissions": [
         {
@@ -277,6 +307,20 @@
         "trace": true
       },
       {
+        "componentPath": null,
+        "docs": [
+          "server/features/sheet-instances/README.md"
+        ],
+        "entityType": "sheet_instance",
+        "fieldPaths": [],
+        "group": "production",
+        "key": "sheetInstance",
+        "labelKey": "entities.sheetInstance",
+        "propName": "instance",
+        "status": "hidden",
+        "trace": true
+      },
+      {
         "componentPath": "components/entities/Cassette/CassetteCard.vue",
         "docs": [
           "components/entities/Cassette/README.md",
@@ -385,6 +429,20 @@
         "key": "material",
         "labelKey": "entities.material",
         "propName": "material",
+        "status": "hidden",
+        "trace": false
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "server/features/machines/README.md"
+        ],
+        "entityType": "machine",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "machine",
+        "labelKey": "entities.machine",
+        "propName": "machine",
         "status": "hidden",
         "trace": false
       },
@@ -1173,6 +1231,20 @@
         "attachments",
         "data"
       ],
+      "collection": "machines",
+      "lineage": {},
+      "meta": true,
+      "type": "machine"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data"
+      ],
       "collection": "nesting_runs",
       "lineage": {},
       "type": "nesting_run"
@@ -1299,6 +1371,20 @@
       "collection": "sheets",
       "lineage": {},
       "type": "sheet"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data",
+        "specs"
+      ],
+      "collection": "sheet_instances",
+      "lineage": {},
+      "type": "sheet_instance"
     },
     {
       "blocks": [
@@ -1507,6 +1593,12 @@
       "type": "material"
     },
     {
+      "collection": "machines",
+      "list": "/api/machines",
+      "single": "/api/machines/:id",
+      "type": "machine"
+    },
+    {
       "collection": "projects",
       "list": "/api/project",
       "single": "/api/project/:id",
@@ -1541,6 +1633,12 @@
       "list": "/api/sheets",
       "single": "/api/sheets/:id",
       "type": "sheet"
+    },
+    {
+      "collection": "sheet-instances",
+      "list": "/api/sheet-instances",
+      "single": "/api/sheet-instances/:id",
+      "type": "sheetInstance"
     },
     {
       "collection": "remnants",
@@ -1655,54 +1753,54 @@
   "summaries": [
     {
       "countField": "cassetteCount",
-      "entityType": "cassette",
-      "parentIdKey": "libraryId",
-      "parentType": "library",
-      "sumFields": {}
+      "sourceType": "cassette",
+      "sumFields": {},
+      "targetIdKey": "libraryId",
+      "targetType": "library"
     },
     {
       "countField": "queueCount",
-      "entityType": "queue",
-      "parentIdKey": "projectId",
-      "parentType": "project",
-      "sumFields": {}
+      "sourceType": "queue",
+      "sumFields": {},
+      "targetIdKey": "projectId",
+      "targetType": "project"
     },
     {
       "countField": "instanceCount",
-      "entityType": "cassette_instance",
-      "parentIdKey": "projectId",
-      "parentType": "project",
-      "sumFields": {}
+      "sourceType": "cassette_instance",
+      "sumFields": {},
+      "targetIdKey": "projectId",
+      "targetType": "project"
     },
     {
       "countField": "runCount",
-      "entityType": "nesting_run",
-      "parentIdKey": "queueId",
-      "parentType": "queue",
-      "sumFields": {}
+      "sourceType": "nesting_run",
+      "sumFields": {},
+      "targetIdKey": "queueId",
+      "targetType": "queue"
     },
     {
       "countField": "sheetDesignCount",
-      "entityType": "sheet_design",
-      "parentIdKey": "queueId",
-      "parentType": "queue",
-      "sumFields": {}
+      "sourceType": "sheet_design",
+      "sumFields": {},
+      "targetIdKey": "queueId",
+      "targetType": "queue"
     },
     {
       "countField": "sheetCount",
-      "entityType": "sheet",
-      "parentIdKey": "queueId",
-      "parentType": "queue",
+      "sourceType": "sheet",
       "sumFields": {
         "area": "totalArea"
-      }
+      },
+      "targetIdKey": "queueId",
+      "targetType": "queue"
     },
     {
       "countField": "colorCount",
-      "entityType": "color",
-      "parentIdKey": "catalogId",
-      "parentType": "catalog",
-      "sumFields": {}
+      "sourceType": "color",
+      "sumFields": {},
+      "targetIdKey": "catalogId",
+      "targetType": "catalog"
     }
   ],
   "tasks": [

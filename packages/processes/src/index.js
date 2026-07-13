@@ -311,7 +311,7 @@ function compileWorkflows(process = {}, domain = {}) {
 
   for (const [actionId, action] of Object.entries(process.actions || {})) {
     const kind = action.actionKind || 'createEntity';
-    if (!['createEntity', 'changeStatus'].includes(kind)) continue;
+    if (!['createEntity', 'mutateEntity'].includes(kind)) continue;
     const entityType = actionEntityType(action);
     if (!entityType) continue;
     const builder = ensureWorkflowBuilder(builders, entityType);
@@ -624,7 +624,12 @@ function compileRoles(process = {}, domain = {}) {
         status: actionStatusForExposure(action, actionWindow, access, process),
         construction: normalizeConstruction(action.construction, action.entityType, domain),
         inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
-        inputs: actionInputsForExposure(action, parentEntityType, domain)
+        inputs: actionInputsForExposure(action, parentEntityType, domain),
+        outputs: (action.outputs || actionWindow?.outputs || []).map(output => ({
+          id: output.id,
+          entityType: output.entityType,
+          multiple: Boolean(output.multiple)
+        })).filter(output => output.entityType)
       });
     }
   }
@@ -641,7 +646,7 @@ function exposedActionFeature(action = {}, actionWindow = null, access = {}, dom
 
 function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
   const kind = action.actionKind || 'createEntity';
-  if (kind === 'changeStatus') {
+  if (kind === 'mutateEntity') {
     const executable = executableRoleIdsForWindow(actionWindow?.input, access);
     if (executable.length) return [...new Set(executable)];
   }
@@ -660,7 +665,7 @@ function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
 }
 
 function actionExposureRoleIdsForInput(action = {}, access = {}, inputWindow = null) {
-  if ((action.actionKind || 'createEntity') !== 'changeStatus') return actionExposureRoleIds(action, access, null);
+  if ((action.actionKind || 'createEntity') !== 'mutateEntity') return actionExposureRoleIds(action, access, null);
   const executable = executableRoleIdsForWindow(inputWindow, access);
   if (executable.length) return [...new Set(executable)];
   return actionExposureRoleIds(action, access, null);
@@ -707,7 +712,7 @@ function grantFromAction(action = {}, access = {}, domain = {}) {
     const to = action.status?.to || '';
     if (to) grant.rule = { fact: 'primaryStatus', equals: to };
   }
-  if (action.actionKind === 'changeStatus') {
+  if (action.actionKind === 'mutateEntity') {
     const from = access.statusFrom || action.status?.from || '';
     const to = access.statusTo || action.status?.to || '';
     if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
@@ -866,7 +871,7 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
   const explicitRoleGrants = access.grants || grantsFromRoleIds(access.roleIds || [], access.level);
   const hasExplicitRoleGrants = hasExplicitActionRoleGrants(action.access);
   const useInherited = inheritedRoleGrants.length && (
-    (kind === 'changeStatus' && !access.modified) ||
+    (kind === 'mutateEntity' && !access.modified) ||
     (kind === 'runCommand' && !hasExplicitRoleGrants && !access.modified)
   );
   const roleGrants = useInherited ? inheritedRoleGrants : explicitRoleGrants;
@@ -876,8 +881,10 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
   const outputs = [];
   const grants = [];
 
-  if (['createEntity', 'changeStatus', 'updateEntity'].includes(kind) && feature && entityType) {
-    const status = kind === 'updateEntity' ? (incoming?.status || action.inputs?.find(input => input.status)?.status || '') : statusTo;
+  if (['createEntity', 'mutateEntity'].includes(kind) && feature && entityType) {
+    const status = kind === 'mutateEntity'
+      ? (actionTargetState(action, process) || incoming?.status || action.inputs?.find(input => input.status)?.status || '')
+      : statusTo;
     const window = {
       id: outputSocketId(action, kind),
       handleId: outputHandleId(action, kind),
@@ -982,6 +989,26 @@ function parentSupportedByDomain(domain = {}, entityType = '', parentType = '') 
 }
 
 function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}) {
+  if (action.actionKind === 'runCommand') {
+    const command = domain.commands?.[action.commandId] || {};
+    return [
+      ...(action.inputs || []).map(input => ({ ...input, type: input.type || (input.entityType ? 'entity' : input.kind) })),
+      ...(command.input?.parameters || []).filter(parameter => parameter.display !== 'hidden').map(parameter => ({
+        id: parameter.name,
+        label: parameter.label || parameter.name,
+        path: `parameters.${parameter.name}`,
+        type: parameter.type,
+        entityType: parameter.entityType,
+        options: parameter.options,
+        accept: parameter.accept,
+        capture: parameter.capture,
+        default: parameter.default,
+        min: parameter.min,
+        required: Boolean(parameter.required),
+        prompt: true
+      }))
+    ];
+  }
   if ((action.actionKind || 'createEntity') !== 'createEntity') return action.inputs || [];
   const inputs = (action.inputs || []).map(input => {
     if (input.id !== 'parent') return input;
@@ -1073,7 +1100,7 @@ function windowGrant(window = {}, action = {}, access = {}, level = window.level
   };
   if (window.scope) grant.scope = window.scope;
   if (window.status) grant.rule = { fact: 'primaryStatus', equals: window.status };
-  if ((action.actionKind || 'createEntity') === 'changeStatus') {
+  if ((action.actionKind || 'createEntity') === 'mutateEntity') {
     const from = access.statusFrom || action.status?.from || '';
     const to = access.statusTo || action.status?.to || window.status || '';
     if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
@@ -1286,16 +1313,16 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
   const actionIds = [];
   const grantsByFeature = groupGrantsByFeature(role.grants || []);
 
-  for (const relation of domain.summaries || []) {
-    if (relation.parentType !== parentEntityType || !relation.entityType || !relation.parentIdKey) continue;
-    const childFeature = featureFromEntityType(domain, relation.entityType);
+  for (const relation of domain.relations || []) {
+    if (relation.kind !== 'containment' || relation.parentType !== parentEntityType || !relation.childType || !relation.parentIdKey) continue;
+    const childFeature = featureFromEntityType(domain, relation.childType);
     if (!childFeature) continue;
     const childGrants = grantsByFeature.get(childFeature) || [];
     if (!childGrants.length) continue;
     ensureChildRegion({
       sourcesByEntity,
       regions,
-      childEntityType: relation.entityType,
+      childEntityType: relation.childType,
       childFeature,
       childGrants,
       parentIdKey: relation.parentIdKey
@@ -1360,10 +1387,11 @@ function ensureChildRegion({ sourcesByEntity, regions, childEntityType, childFea
 }
 
 function parentRelationForChild(domain = {}, childEntityType = '', parentEntityType = '') {
-  return (domain.summaries || []).find(summary => (
-    summary.entityType === childEntityType
-    && (!parentEntityType || summary.parentType === parentEntityType)
-    && summary.parentIdKey
+  return (domain.relations || []).find(relation => (
+    relation.kind === 'containment'
+    && relation.childType === childEntityType
+    && (!parentEntityType || relation.parentType === parentEntityType)
+    && relation.parentIdKey
   )) || null;
 }
 
@@ -1838,11 +1866,9 @@ function displayActionLabel(action = {}, id = '', process = {}) {
   if ((action.actionKind || 'createEntity') === 'createEntity') {
     return ['Create', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
   }
-  if (action.actionKind === 'changeStatus') {
-    return statusTargetLabel(action, process) || ['Move', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
-  }
-  if (action.actionKind === 'updateEntity') {
-    return ['Update', entityTypeLabel(entityType)].filter(Boolean).join(' ');
+  if (action.actionKind === 'mutateEntity') {
+    return statusTargetLabel(action, process)
+      || ['Update', entityTypeLabel(entityType)].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'runCommand') {
     return ['Run', action.commandId].filter(Boolean).join(' ');
@@ -1898,14 +1924,14 @@ function normalizeAccessLevel(level) {
 
 function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, statusDefinitions = {} }) {
   const kind = action.actionKind || 'createEntity';
-  if (!['createEntity', 'updateEntity', 'changeStatus', 'runCommand', 'sendToOrganization'].includes(kind)) {
+  if (!['createEntity', 'mutateEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
     errors.push(`Action ${actionId} uses unknown action kind ${kind}`);
     return;
   }
   if (kind === 'runCommand') {
     if (!action.commandId) errors.push(`Action ${actionId} must select a command`);
     if (action.commandId && !commands.has(action.commandId)) errors.push(`Action ${actionId} uses unknown command ${action.commandId}`);
-  } else if (!['changeStatus', 'updateEntity'].includes(kind)) {
+  } else if (kind !== 'mutateEntity') {
     if (!action.entityType) errors.push(`Action ${actionId} must select an entity type`);
     if (action.entityType && !entities.has(action.entityType)) errors.push(`Action ${actionId} uses unknown entity type ${action.entityType}`);
   }
@@ -1913,20 +1939,20 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     errors.push(`Action ${actionId} uses unknown parent entity type ${action.parentEntityType}`);
   }
   const hasTargetStatus = Boolean(action.status?.to || (action.statusRef && statusDefinitions[action.statusRef]));
-  if (kind === 'changeStatus' && !hasTargetStatus) {
-    errors.push(`Action ${actionId} must define a target status`);
-  }
   if (kind === 'createEntity' && !hasTargetStatus) {
     errors.push(`Action ${actionId} must define target status`);
   }
   if (kind === 'createEntity') {
     validateConstruction(actionId, action, domain, errors);
   }
-  if (kind === 'updateEntity') {
+  if (kind === 'mutateEntity') {
     const entityType = action.inputs?.find(input => input.entityType)?.entityType || action.entityType;
-    if (!entityType) errors.push(`Action ${actionId} must receive an entity input`);
+    if (!entityType && (action.mutation?.fields || []).length) errors.push(`Action ${actionId} must receive an entity input`);
     if (entityType && !entities.has(entityType)) errors.push(`Action ${actionId} input uses unknown entity type ${entityType}`);
-    validateFieldList(action.mutation?.fields, domain, entityType, `action ${actionId} update fields`, errors);
+    validateFieldList(action.mutation?.fields, domain, entityType, `action ${actionId} mutation fields`, errors);
+    if (!hasTargetStatus && !(action.mutation?.fields || []).length) {
+      errors.push(`Action ${actionId} must connect at least one entity block`);
+    }
   }
   const normalizedAccess = normalizeActionAccess(action.access);
   const canInheritAccess = kind === 'runCommand' && action.inputs?.some(input => input.entityType);
@@ -1951,10 +1977,11 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
 
 function validateProcessNode(nodeId, node = {}, { entities, errors }) {
   const kind = node.kind || 'fieldRead';
-  if (!['entityRef', 'fieldRead', 'blockRead', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
+  if (!['entityRef', 'fieldRead', 'entityAssemble', 'blockRead', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
     errors.push(`Process node ${nodeId} uses unknown node kind ${kind}`);
     return;
   }
+  if (kind === 'entityAssemble' && !node.entityType) errors.push(`Process node ${nodeId} must select an entity type`);
   for (const key of ['entityType', 'relationEntityType']) {
     if (node[key] && !entities.has(node[key])) {
       errors.push(`Process node ${nodeId} uses unknown ${key} ${node[key]}`);

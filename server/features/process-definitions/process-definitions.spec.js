@@ -338,7 +338,7 @@ describe('process definitions access fallback', () => {
           actions: {
             delete_project: {
               id: 'delete_project',
-              actionKind: 'changeStatus',
+              actionKind: 'mutateEntity',
               entityType: 'project',
               statusRef: 'status_deleted',
               status: { to: 'DELETED' },
@@ -404,7 +404,7 @@ describe('process definitions access fallback', () => {
           },
           mark_cut: {
             id: 'mark_cut',
-            actionKind: 'changeStatus',
+            actionKind: 'mutateEntity',
             inputs: [{ id: 'entity', entityType: 'nesting_run' }],
             status: { to: 'CUT' }
           }
@@ -500,7 +500,7 @@ describe('process definitions access fallback', () => {
           },
           mark_cut: {
             id: 'mark_cut',
-            actionKind: 'changeStatus',
+            actionKind: 'mutateEntity',
             inputs: [{ id: 'entity', entityType: 'nesting_run' }],
             status: { to: 'CUT' }
           }

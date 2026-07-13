@@ -27,6 +27,12 @@ const INDEXES = {
     { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } }
   ],
 
+  // CNC Machines Collection
+  machines: [
+    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
+    { keys: { 'lineage.scope': 1, 'data.default': 1 }, options: { name: 'scope_default_idx' } }
+  ],
+
   // Cassettes Collection
   cassettes: [
     { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } },
@@ -63,6 +69,13 @@ const INDEXES = {
   // Sheet Designs Collection
   sheet_designs: [
     { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } }
+  ],
+
+  // Planned Sheet Instances Collection
+  sheet_instances: [
+    { keys: { 'lineage.sheetDesignId': 1 }, options: { name: 'lineage_sheet_design_idx' } },
+    { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } },
+    { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Cassette Designs Collection

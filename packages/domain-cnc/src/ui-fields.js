@@ -4,6 +4,9 @@ export const cncEntityFieldGroups = {
       { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', role: 'childCount', priority: 10 },
       { path: 'summary.queuePreview', i18n: 'project.queues', display: 'entityRefList', entityType: 'queue', replacesCountPath: 'summary.queueCount', priority: 15 },
       { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²', display: 'area', priority: 20 }
+    ],
+    relations: [
+      { path: 'relations.libraries', i18n: 'entities.library', display: 'entityRefList', entityType: 'library', priority: 50 }
     ]
   },
   queue: {
@@ -31,7 +34,12 @@ export const cncEntityFieldGroups = {
     ],
     production: [
       { path: 'data.materialPool', i18n: 'queue.materialConsumption', display: 'entityRefList', priority: 40 },
-      { path: 'data.sheetDesignIds', i18n: 'entities.sheetDesign', display: 'entityRefList', entityType: 'sheetDesign', priority: 50 }
+      { path: 'data.sheetDesignOutputs', i18n: 'entities.sheetDesign', display: 'entityRefList', entityType: 'sheetDesign', priority: 50 }
+    ]
+  },
+  artifact: {
+    relations: [
+      { path: 'relations.source', i18n: 'common.source', display: 'entityRefList', priority: 10 }
     ]
   },
   sheetDesign: {
@@ -100,6 +108,18 @@ export const cncEntityFieldGroups = {
     summary: [
       { path: 'data.code', i18n: 'common.code', display: 'text', priority: 10 },
       { path: 'data.description', i18n: 'common.description', display: 'text', priority: 20 }
+    ]
+  },
+  machine: {
+    summary: [
+      { path: 'data.workArea.width', i18n: 'nesting.width', suffix: ' mm', display: 'dimension', priority: 10 },
+      { path: 'data.workArea.length', i18n: 'nesting.length', suffix: ' mm', display: 'dimension', priority: 20 }
+    ]
+  },
+  sheetInstance: {
+    summary: [
+      { path: 'data.sequence', i18n: 'common.number', display: 'count', priority: 10 },
+      { path: 'data.physicalSheetId', i18n: 'entities.sheet', display: 'entityRef', entityType: 'sheet', priority: 20 }
     ]
   },
   library: {

@@ -152,6 +152,12 @@
             display="chip"
             class="w-full"
           />
+          <AttachmentInput
+            v-else-if="field.type === 'attachment'"
+            v-model="promptValues[field.id]"
+            :accept="field.accept || '*/*'"
+            :capture="field.capture === true"
+          />
           <InputText
             v-else
             v-model="promptValues[field.id]"
@@ -173,6 +179,7 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import AttachmentInput from '~/components/shared/AttachmentInput.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
@@ -234,7 +241,7 @@ async function executeAction(action, entity = null, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    if (['createEntity', 'updateEntity'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
+    if (['createEntity', 'mutateEntity', 'runCommand'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
       await openInputDialog(action, entity, context);
       return;
     }
@@ -291,20 +298,74 @@ async function postAction(action, entity = null, data = {}, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
+    const result = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
       method: 'POST',
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
-        entities: actionEntities(action, entity, context),
+        entities: {
+          ...actionEntities(action, entity, context),
+          ...promptEntityInputs(action, data)
+        },
         data,
         parameters: context?.parameters || data?.parameters || {}
       }
     });
+    await bindActionOutput(result, context?.outputTarget);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await load();
   } catch (err) {
     showActionError(err);
   }
+}
+
+function promptEntityInputs(action = {}, data = {}) {
+  return Object.fromEntries((action.inputs || [])
+    .filter(input => input.entityType)
+    .map(input => [input.id || input.name || input.entityType, getByPath(data, input.path || input.id)])
+    .filter(([, value]) => value));
+}
+
+function getByPath(source = {}, path = '') {
+  return String(path).split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
+}
+
+async function bindActionOutput(result, target = null) {
+  if (!target || target.entityType !== 'queue' || !target.entityId || target.path !== 'data.job.items') return;
+  const outputTypes = new Set(target.accepts || []);
+  const produced = normalizeActionOutputEntities(result)
+    .filter(item => outputTypes.has(item.entityType));
+  if (!produced.length) return;
+  const queue = await $fetch(`/api/queue/${encodeURIComponent(target.entityId)}`);
+  const existing = queue.data?.job?.items || [];
+  const existingIds = new Set(existing.map(item => String(item.id)));
+  const additions = produced
+    .filter(item => !existingIds.has(String(item.id)))
+    .map((item, index) => ({
+      entryId: `action_${item.id}_${Date.now()}_${index}`,
+      id: item.id,
+      entityType: item.entityType,
+      type: 'STATIC',
+      quantity: 1,
+      parameters: {}
+    }));
+  if (!additions.length) return;
+  await $fetch(`/api/queue/${encodeURIComponent(target.entityId)}`, {
+    method: 'PUT',
+    body: { job: { ...(queue.data?.job || {}), items: [...existing, ...additions] } }
+  });
+}
+
+function normalizeActionOutputEntities(result = {}) {
+  const values = Array.isArray(result?.entities) ? result.entities : [result];
+  return values.map(value => ({
+    entityType: value.entityType || value.type || result.entityType || inferCreatedEntityType(value),
+    id: value.id || value._id || value.entityId
+  })).filter(value => value.entityType && value.id);
+}
+
+function inferCreatedEntityType(value = {}) {
+  if (value.data?.geometry && (value.lineage?.templateId || value.data?.parameters)) return 'cassette_design';
+  return '';
 }
 
 function actionEntities(action = {}, entity = null, context = {}) {
@@ -379,6 +440,7 @@ function contextWithSelectedParent(context = {}) {
 
 function initialPromptValue(field = {}) {
   if (field.type === 'entityList') return Array.isArray(field.default) ? field.default : [];
+  if (field.type === 'attachment') return field.default || null;
   if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
   const value = field.default ?? '';
   if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);

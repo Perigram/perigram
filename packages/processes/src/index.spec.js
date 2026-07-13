@@ -38,11 +38,11 @@ const domain = {
       output: { entities: ['nesting_run', 'sheet_design'] }
     }
   },
-  summaries: [
-    { entityType: 'queue', parentType: 'project', parentIdKey: 'projectId' },
-    { entityType: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId' },
-    { entityType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId' },
-    { entityType: 'cassette', parentType: 'library', parentIdKey: 'libraryId' }
+  relations: [
+    { kind: 'containment', childType: 'queue', parentType: 'project', parentIdKey: 'projectId' },
+    { kind: 'containment', childType: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId' },
+    { kind: 'containment', childType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId' },
+    { kind: 'containment', childType: 'cassette', parentType: 'library', parentIdKey: 'libraryId' }
   ],
   workflows: {
     project: {
@@ -229,7 +229,7 @@ describe('@cutkit/processes compiler', () => {
         },
         update_queue: {
           id: 'update_queue',
-          actionKind: 'updateEntity',
+          actionKind: 'mutateEntity',
           access: { roleIds: ['role_admin'], level: 'write' },
           inputs: [{ id: 'entity', entityType: 'queue' }],
           outputs: [{ id: 'entity', entityType: 'queue' }],
@@ -305,7 +305,7 @@ describe('@cutkit/processes compiler', () => {
         },
         mark_run_cut: {
           id: 'mark_run_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           status: { to: 'CUT' },
           access: { roleIds: ['role_operator'], level: 'write' },
           inputs: [{ id: 'entity', entityType: 'nesting_run' }],
@@ -313,7 +313,7 @@ describe('@cutkit/processes compiler', () => {
         },
         mark_sheet_cut: {
           id: 'mark_sheet_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           status: { to: 'CUT' },
           access: { roleIds: ['role_operator'], level: 'write' },
           inputs: [{ id: 'entity', entityType: 'sheet_design' }],
@@ -415,13 +415,13 @@ describe('@cutkit/processes compiler', () => {
         },
         mark_run_cut: {
           id: 'mark_run_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           inputs: [{ id: 'entity', label: 'nesting_run', entityType: 'nesting_run', multiple: true }],
           outputs: [{ id: 'entity', entityType: 'nesting_run' }]
         },
         mark_sheet_cut: {
           id: 'mark_sheet_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           inputs: [{ id: 'entity', label: 'sheet_design', entityType: 'sheet_design', multiple: true }],
           outputs: [{ id: 'entity', entityType: 'sheet_design' }]
         }
@@ -554,7 +554,7 @@ describe('@cutkit/processes compiler', () => {
         action_accept: {
           id: 'action_accept',
           label: 'Accept',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           entityType: 'queue',
           status: { to: 'NEXT_STATUS' },
           access: { roleIds: ['role_operator'], level: 'write' }
@@ -964,7 +964,7 @@ describe('@cutkit/processes compiler', () => {
         },
         approve_project: {
           id: 'approve_project',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           status: { to: 'APPROVED' },
           access: { level: 'admin', roleIds: [] }
         }
@@ -989,7 +989,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_a.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({
         actionId: 'approve_project',
-        actionKind: 'changeStatus',
+        actionKind: 'mutateEntity',
         feature: 'projects',
         entityType: 'project',
         status: { from: 'NEW', to: 'APPROVED' }
@@ -1284,7 +1284,7 @@ describe('@cutkit/processes compiler', () => {
         activate_incoming: {
           id: 'activate_incoming',
           label: 'Activate incoming',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           status: { to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: [] },
@@ -1296,7 +1296,7 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.activate_incoming).toMatchObject({
-      actionKind: 'changeStatus',
+      actionKind: 'mutateEntity',
       entityType: null,
       status: { to: TARGET_STATE },
       trigger: { mode: 'manual' },
@@ -1763,7 +1763,7 @@ describe('@cutkit/processes compiler', () => {
         delete_queue: {
           id: 'delete_queue',
           label: 'Action',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           statusRef: 'status_deleted',
           status: { from: 'CREATED' },
           access: { level: 'admin', roleIds: ['role_admin'] },
@@ -1971,7 +1971,7 @@ describe('@cutkit/processes compiler', () => {
       actions: {
         update_project_data: {
           id: 'update_project_data',
-          actionKind: 'updateEntity',
+          actionKind: 'mutateEntity',
           mutation: { fields: ['data.metadata'] },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_editor'] },
@@ -1992,7 +1992,7 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.update_project_data).toMatchObject({
-      actionKind: 'updateEntity',
+      actionKind: 'mutateEntity',
       mutation: { fields: ['data.metadata'] },
       inputs: [
         { id: 'entity', entityType: 'project' },
@@ -2196,7 +2196,7 @@ describe('@cutkit/processes compiler', () => {
     const validation = validateProcessDefinition({
       actions: {
         activate_project: {
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           entityType: 'project',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
@@ -2296,7 +2296,7 @@ describe('@cutkit/processes compiler', () => {
       actions: {
         activate_project: {
           id: 'activate_project',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
@@ -2357,7 +2357,7 @@ describe('@cutkit/processes compiler', () => {
         },
         activate_project: {
           id: 'activate_project',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           status: { to: TARGET_STATE },
           access: {
             level: 'admin',
@@ -2539,7 +2539,7 @@ describe('@cutkit/processes compiler', () => {
         },
         send_queue: {
           id: 'send_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           entityType: 'queue',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
@@ -2559,7 +2559,7 @@ describe('@cutkit/processes compiler', () => {
         },
         mark_run_cut: {
           id: 'mark_run_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           entityType: 'nesting_run',
           status: { to: 'CUT' },
           trigger: { mode: 'manual' },
@@ -2567,7 +2567,7 @@ describe('@cutkit/processes compiler', () => {
         },
         reject_queue: {
           id: 'reject_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           entityType: 'queue',
           status: { from: TARGET_STATE, to: 'REJECTED' },
           trigger: { mode: 'manual' },
@@ -2612,7 +2612,7 @@ describe('@cutkit/processes compiler', () => {
         },
         send_queue: {
           id: 'send_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           entityType: 'queue',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
@@ -2669,7 +2669,7 @@ describe('@cutkit/processes compiler', () => {
         },
         activate_project: {
           id: 'activate_project',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
@@ -2737,7 +2737,7 @@ describe('@cutkit/processes compiler', () => {
         },
         send_queue: {
           id: 'send_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           status: { from: INITIAL_STATE, to: TARGET_STATE },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: INITIAL_STATE, statusTo: TARGET_STATE },
           inputs: [{ id: 'entity', entityType: 'queue', status: INITIAL_STATE }],
@@ -2745,7 +2745,7 @@ describe('@cutkit/processes compiler', () => {
         },
         reject_queue: {
           id: 'reject_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'mutateEntity',
           status: { from: TARGET_STATE, to: NEXT_STATE },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: TARGET_STATE, statusTo: NEXT_STATE },
           inputs: [{ id: 'entity', entityType: 'queue', status: TARGET_STATE }],

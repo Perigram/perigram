@@ -54,6 +54,12 @@ const accent = computed(() => ({
     title: 'text-cyan-700',
     handle: '!border-cyan-500 !bg-cyan-500'
   },
+  entityAssemble: {
+    stripe: 'bg-green-500',
+    icon: 'text-green-600',
+    title: 'text-green-700',
+    handle: '!border-green-500 !bg-green-500'
+  },
   blockRead: {
     stripe: 'bg-teal-500',
     icon: 'text-teal-600',

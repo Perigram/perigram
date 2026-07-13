@@ -25,15 +25,17 @@ function normalizeAccessGrants(action = {}) {
 
 function normalizeAction(action = {}) {
   const grants = normalizeAccessGrants(action);
+  const actionKind = ['changeStatus', 'updateEntity'].includes(action.actionKind) ? 'mutateEntity' : action.actionKind;
   return {
     ...action,
+    actionKind,
     trigger: {
       mode: normalizeTriggerMode(action.trigger?.mode)
     },
     access: {
       grants,
-      statusFrom: action.actionKind === 'changeStatus' ? (action.access?.statusFrom || action.status?.from || '') : (action.access?.statusFrom || ''),
-      statusTo: action.actionKind === 'changeStatus' ? (action.access?.statusTo || action.status?.to || '') : (action.access?.statusTo || '')
+      statusFrom: actionKind === 'mutateEntity' ? (action.access?.statusFrom || action.status?.from || '') : (action.access?.statusFrom || ''),
+      statusTo: actionKind === 'mutateEntity' ? (action.access?.statusTo || action.status?.to || '') : (action.access?.statusTo || '')
     }
   };
 }
