@@ -19,4 +19,7 @@ Indexes are defined in `indexes.js` and can be managed via CLI:
 - `node server/db/indexes.js create` - Apply all defined indexes.
 - `node server/db/indexes.js list [collection]` - View current indexes.
 
-Key indexes include unique constraints on natural keys (`slug`, `code`), foreign keys (`ownerId`), and compound indexes for common query patterns.
+Key indexes include unique constraints on natural keys (`slug`, `code`),
+lineage foreign keys, and compound indexes for common query patterns. Machine
+lookups index organization/system-default scope; planned sheet instances index
+their sheet-design and nesting-run lineage.

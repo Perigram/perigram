@@ -1,3 +1,17 @@
+* DONE 2026-07-13 Entity, queue, sheet-design, and process architecture plan
+  - [X] Snap sheet placements to neighboring cassettes with the selected tool gap and rotate by 90 degrees.
+  - [X] Treat artifacts as normal entities with generated upload and camera inputs.
+  - [X] Replace hardcoded queue cassette creation controls with process actions that output cassette designs.
+  - [X] Separate containment relations from aggregate summaries and keep children on parent detail screens.
+  - [X] Add optional revision-qualified lineage references and lineage revision links in trace UI.
+  - [X] Add non-owning typed relations and render project-library and artifact-source links.
+  - [X] Deduplicate equivalent nesting layouts into one sheet design with planned sheet instances.
+  - [X] Add machine work area/boundary offsets and material/tool/thickness nesting snapshots.
+  - [X] Replace status/update process actions with block-driven mutateEntity and add entity assembly.
+  - [X] Preserve cassette designer Save As and Escape selection behavior without closing its dialog.
+  - [X] Keep sheet-design identity/boundary/layer styling visible and compact selected-run previews.
+  - [X] Prevent queue parameter edits from reloading their editor state.
+
 * WAITING Full Intent/Contract/Responsibility Audit And Refactor
   :PROPERTIES:
   :ID: full-intent-contract-responsibility-audit-and-refactor

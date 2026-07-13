@@ -20,13 +20,13 @@ Command handler and compatibility job metadata for queue nesting.
   `solveNesting` is asynchronous, active-process command-output status
   projection must not move the returned `nesting_run` to a downstream process
   status before the `nesting.solve` task completes; task completion owns the
-  final run status and the `sheetDesignIds` link.
+  final run status and the `sheetDesignOutputs` link.
 - The registered `nesting.solve` task executor builds the FastAPI payload from
   cassette polygon parts or dimension fallback rectangles, carries baked OCCS
   `layerData` as request-side source layers, calls `NESTING_WORKER_URL`,
   enriches stripped worker responses with source request geometry, source
   layers, and bin shape data, creates one `sheet_design` per returned layout,
-  stores their IDs on `nesting_run.data.sheetDesignIds`, updates the
+  groups equivalent layouts, stores `nesting_run.data.sheetDesignOutputs`, updates the
   compatibility job, and returns solver completion/failure effects for the task
   runtime to apply. Queue lifecycle changes now happen through the declared
   effect policy rather than directly inside the executor.
@@ -100,3 +100,8 @@ algorithm service lives in [workers/nesting](../../../workers/nesting/README.md)
 - [Command runtime](../../core/commands/README.md)
 - [Task runtime](../../core/tasks/README.md)
 - [Nesting runs](../nesting-runs/README.md)
+Each output group owns one canonical geometry-revisioned sheet design and the
+planned `sheet_instance` IDs needed for its quantity. Machine, tool, material,
+and thickness snapshots participate in the layout hash, so physically distinct
+production settings cannot be deduplicated together. The machine boundary
+offset clips the usable sheet polygon and rejects sheets outside the work area.

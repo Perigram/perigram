@@ -7,3 +7,7 @@ MongoDB adapter helpers for the framework extraction. The package contains facto
 - `createMongoRepository({ connectDB, collection, toFlexibleId })`
 - `createStatusEventStore({ connectDB })`
 - `createSummarySync({ connectDB, pluralize, toFlexibleId })`
+
+Summary synchronization consumes the domain summary contract directly:
+`sourceType` identifies the aggregated entity, `targetType` identifies the
+entity receiving the summary, and `targetIdKey` identifies its lineage field.

@@ -44,10 +44,10 @@ Digital sheet layouts generated from nesting runs.
 ## Workflow
 
 `createFromRun(run, data, userId)` inherits lineage from the nesting run,
-creates a `READY` status/origin block, stores geometry metadata, and returns
-`SheetDesign.toJSON()`. The nesting task passes complete per-layout geometry,
-so each physical worker sheet becomes its own `sheet_design` entity named and
-serialized from the parent run.
+creates a `READY` status/origin block, stores geometry metadata and a stable
+`data.layoutHash`, and returns `SheetDesign.toJSON()`. The nesting task passes
+complete per-layout geometry, groups equivalent layouts, and creates one
+canonical design plus the required planned `sheet_instance` records per group.
 
 `nestingResultForLayout(result, layoutIndex)` slices a multi-sheet worker result
 to one physical layout. `nestingResultToPreview(result, params, { layoutIndex })`
@@ -87,8 +87,9 @@ The sheet design stores the current pointer under
 `sheet_designs:write` grant, rebuilds the preview and placement summaries, and
 creates or reuses the geometry revision. `data.nestingParams` preserves the
 solver settings. The editor resolves `toolProfileId` through the public tool
-catalogue and uses the tool diameter as its snap increment; saved solver spacing
-is the fallback for older layouts without a resolvable tool profile.
+catalogue and uses the tool diameter as the clearance when snapping placement
+edges to neighboring cassettes. Grid lines are visual guides only; the physical
+sheet boundary is the placement limit.
 
 GET/list APIs require authenticated lineage context. `queueId`, `projectId`,
 and `runId`/`runIds` query parameters are mapped to `lineage.queueId`,

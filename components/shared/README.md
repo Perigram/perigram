@@ -493,6 +493,14 @@ primary action is a custom preview, such as `ArtifactCard`, can pass
 
 Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `WorkspaceLanes`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 
+`AttachmentInput.vue` is the canonical generated-form file control. It supports
+file selection and device-camera capture, uploads immediately, and returns the
+canonical attachment descriptor consumed by entity construction.
+
+`TraceChain.vue` renders cumulative lineage links and an adjacent revision link
+when a paired `<type>RevisionId` is present. Non-owning `relations` are rendered
+by domain field contracts and do not appear as ancestors in the trace chain.
+
 Shared wrappers also own token-backed visual chrome. When a wrapper needs a new width, radius, spacing, or motion value, add it to `assets/tokens/index.js` and project it through Tailwind or CSS variables instead of hardcoding it in feature components.
 
 ## Demo Contract

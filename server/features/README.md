@@ -27,7 +27,7 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
+| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `machines`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheet-instances`, `sheets`, `tool-profiles`, `users`, `warehouses` |
 | Capability modules | `billing`, `config-bot`, `entity-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
 
 ---
@@ -85,6 +85,7 @@ services must not self-register through hidden globals.
 | `sheets` | Physical sheet or digital design | `organizationId`, `projectId`, `queueId` |
 | `materials` | Base material catalog record | — |
 | `material-piles` | Inventory batch | `organizationId`, `warehouseId` |
+| `machines` | CNC work area and boundary offsets | `organizationId`, or system scope |
 | `entity-revisions` | Immutable scoped content snapshots | mirrors source lineage plus source entity id |
 | `geometry-captures` | Photo-derived draft geometry captures | `organizationId`, plus `warehouseId` for remnants or `projectId` for facades |
 | `layer-standards` | Drawing layer contract | `organizationId` when overridden or scoped |
@@ -92,6 +93,7 @@ services must not self-register through hidden globals.
 | `cassette-designs` | Master CAD template | `organizationId` |
 | `cassette-instances` | Manufactured part (digital twin) | `organizationId`, `projectId`, `queueId`, `cassetteDesignId` |
 | `nesting-runs` | Nesting engine output | `organizationId`, `projectId`, `queueId` |
+| `sheet-instances` | Planned physical sheet twin | inherited run lineage plus `sheetDesignId` and optional `sheetDesignRevisionId` |
 | `remnants` | Leftover material | `organizationId`, `projectId`, `queueId` |
 | `requisitions` | Procurement workflow | `organizationId`, `projectId` |
 | `artifacts` | DXF/SVG/PDF files | mirrors parent lineage |

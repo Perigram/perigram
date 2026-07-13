@@ -12,8 +12,8 @@ chrome.
   `EntityInlineRef` rows. This is the accepted source context for a run; queue
   cards do not summarize available material sources.
 - Renders related `sheet_design` entities from the explicit `sheetDesigns` prop
-  and from injected context only after filtering by `lineage.runId` or
-  `run.data.sheetDesignIds`; queue-level sheet-design lists must not make every
+  and from injected context only after filtering by `lineage.runId` or IDs in
+  `run.data.sheetDesignOutputs`; queue-level sheet-design lists must not make every
   run card show every design in the queue. Related designs render through the
   shared `EntityRelationsBlock` compact gallery, so sheet-design previews,
   overflow, popovers, and generated detail actions follow the same convention
@@ -21,7 +21,7 @@ chrome.
   Compact relation mode is preserved inside the overflow popover, so runs with
   more than two sheet outputs do not fall back to inline sheet references.
   The generic card/popup surface also includes the domain `production` field
-  group so an inline nesting-run popup can render `data.sheetDesignIds` without
+  group so an inline nesting-run popup can render `data.sheetDesignOutputs` without
   needing the queue editor's explicit `sheetDesigns` prop.
 - Does not render generated artifacts or DXF previews. File outputs are owned by
   artifact/attachment surfaces; the nesting run card stays focused on run
@@ -36,9 +36,9 @@ chrome.
   expose queue editing and run visibility in different status windows.
 
 The injected context is used by development surfaces such as the admin
-workbench. The production queue editor passes related entities explicitly by
-loading `/api/sheet-designs?queueId=:queueId` after run fetches and after
-nesting completion.
+workbench. The production queue editor loads only the selected run's output
+designs. Its compact rail keeps metrics and output thumbnails available while
+omitting the full card body.
 
 ## Related
 

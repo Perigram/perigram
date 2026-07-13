@@ -43,7 +43,9 @@ runtime packages and server modules.
 
 `BaseEntity.toJSON()` is strict: it emits root `_id` plus canonical blocks only.
 Identity fields stay under `identity`; feature-specific data stays under
-`data`, `specs`, `attachments`, or `summary`.
+`data`, `specs`, `attachments`, or `summary`. Typed non-owning references live
+under the root `relations` block. `Lineage.addRevision()` writes optional paired
+`<type>RevisionId` ancestry without replacing the owning `<type>Id`.
 
 `Status.state` is a v2 structured object with `primary`, `active`, and
 `regions`; compare states through `getPrimaryState()` or `getRegionState()`

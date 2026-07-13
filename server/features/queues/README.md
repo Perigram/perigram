@@ -129,3 +129,13 @@ Defines a specific nesting job, bridging the digital production intent with phys
   }
 }
 ```
+Queue item creation is process-driven. The generated queue detail lists active
+process actions whose typed output includes `cassette_design`; after execution,
+the generic output binding appends new design refs to `data.job.items`. DXF
+upload is modeled by the `importCassetteDesign` command's generated attachment
+input, which persists an artifact before importing, not by a queue component
+branch.
+
+Parameter edits are debounced and suppress their own entity-event echo so the
+local editor is not reconstructed while a number is being entered. The run
+rail fetches sheet designs only for the selected nesting run.

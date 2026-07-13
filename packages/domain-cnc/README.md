@@ -116,7 +116,7 @@ OCCS definition instead of asking users to enter a raw object string.
 `entity-create-inputs.js` projects those construction contracts into
 process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an
-`updateEntity` process action.
+`mutateEntity` process action.
 
 `profile_template` is reusable master data for OCCS profile-section sketches.
 Cassette templates insert profile workpieces as snapshots with a
@@ -140,7 +140,7 @@ Display constructor metadata is split from access policy:
   Current preview-backed replacements include project queues, queue runs,
   queue sheets, nesting-run sheet designs, library cassettes, and catalog
   colors. The nesting-run `card` surface includes the `production` group so
-  generic card and popup surfaces can render `data.sheetDesignIds` as a
+  generic card and popup surfaces can render `data.sheetDesignOutputs` as a
   relation gallery; custom nesting-run cards still filter that group to sheet
   designs so material source context stays in its dedicated source section.
 - `ui-surfaces.js` declares which groups and display modes belong to surfaces
@@ -180,3 +180,31 @@ templates remain responsible for placing those management surfaces.
 
 - [@cutkit/core](../core/README.md)
 - [Runtime registry](../../server/runtime/README.md)
+## Entity Classification And Relations
+
+Entity definitions use `meta: true` for organization/system configuration such
+as users, machines, tools, pens, and layer standards. The process compiler does
+not infer operational list/detail screens for these types; organization and
+asset templates own their UI. Operational entities remain eligible for
+generated screens.
+
+`cncRelations` is the source of truth for ownership. `containment` relations
+place children only on the parent detail screen, while `link` relations are
+non-owning references stored in the root `relations` block. Aggregate summary
+definitions use `sourceType`, `targetType`, and `targetIdKey`; they do not imply
+ownership.
+
+Lineage may pair `<type>Id` with `<type>RevisionId`. Text references use
+`entityType/entityId@revisionId`, with the revision suffix optional.
+
+## Nesting Resources And Outputs
+
+`solveNesting` serializes the selected machine work area and boundary offsets,
+tool diameter/kerf, material, and sheet thickness. The tool diameter is the
+placement gap. Material thickness overrides cassette parameter `T` before
+parametric baking.
+
+Equivalent layouts produce one `sheet_design` and one or more planned
+`sheet_instance` records. A nesting run stores `data.sheetDesignOutputs` entries
+with design ID, layout hash, quantity, and instance IDs. `nesting_run` remains a
+separate execution entity rather than a queue revision.

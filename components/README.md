@@ -214,7 +214,7 @@ not display English verbs such as `Create` or raw target statuses such as
 and status-change actions show a localized operation label without exposing the
 state id in the button text.
 Generated non-status action surfaces, including detail header buttons and card
-footers, must not render `changeStatus` actions. Lifecycle/status transitions
+footers, must not render `mutateEntity` actions. Lifecycle/status transitions
 belong only in `EntityStatus`, which loads server-filtered actions and owns the
 status popover/history.
 Generated entity detail headers show the entity `TraceChain` instead of a
@@ -247,10 +247,23 @@ registered entity workspaces are not duplicated as generic detail-header
 buttons. Entity-local operational editors should use the canonical
 main/supporting proportions from
 `EntityWorkspace` rather than inventing local stacked or sidebar grids.
+
+Queue cassette producers are also manifest-driven. A generated queue detail
+offers every executable process action whose declared output contains a
+`cassette_design`, prompts for that action's entity and parameter inputs, and
+binds returned designs to the queue. Attachment construction uses the shared
+camera/upload input rather than feature-local file controls.
+
+The sheet editor snaps placement edges to neighboring placements using the
+selected tool diameter as the clearance, clamps the rotated bounds to the
+material-sheet boundary, and supports explicit 90-degree rotation. Queue
+numeric edits debounce persistence and ignore their own entity-event echo so a
+partially entered value does not remount the workspace.
 Sheet-design details similarly mount `SheetDesignEditor` when the active user
 has a concrete `sheet_designs:write` grant. The editor mutates nesting source
 items and placements, resolves OCCS layer pens through the shared layer
-standards, snaps moves to the selected tool diameter, clamps complete rotated
+standards, snaps neighboring edges using the selected tool diameter as the
+clearance, clamps complete rotated
 geometry inside the visible material-sheet boundary, supports existing/uploaded
 cassette designs, and persists through immutable geometry revisions. Generated
 sheet-design details keep the sheet identity visible in `EntityPage`; read-only
@@ -264,7 +277,7 @@ runs, but it must not expose command settings or a run button. Run cards gate
 destructive controls with `nesting_runs` grants for the concrete run, not with
 parent queue or global feature permissions. Process-authored result states
 such as organization-specific cut/done labels still render run metrics and
-sheet-design output when `data.results`, `data.sheetDesignIds`, or scoped
+sheet-design output when `data.results`, `data.sheetDesignOutputs`, or scoped
 sheet-design context exists. Queue details load sheet designs by the concrete
 readable run ids as well as queue lineage, so a run output card can display the
 layouts it owns without requiring a broad sheet-design list screen. Run cards

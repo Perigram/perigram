@@ -160,3 +160,9 @@ uses the same status-scoped grant as the detail read.
 - [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.
 - [entity-revisions](../entity-revisions/README.md) - Immutable source revision snapshots.
 - [parametric-cassettes](../parametric-cassettes/README.md) - Engine for evaluating parametric logic.
+`importCassetteDesign` consumes either an uploaded artifact or a generated
+attachment input plus an explicit DXF layer mapping. Direct uploads are first
+persisted through the ordinary artifact service. The command then creates the
+standard cassette template/base design pair and returns a typed
+`cassette_design` output, so organization process graphs can expose DXF import
+wherever cassette designs are needed.

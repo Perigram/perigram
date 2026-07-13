@@ -26,7 +26,7 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   the v2 structured status shape. Supports `--dry-run`.
 - `server/scripts/migrate-process-command-output-statuses.js`: Active-process
   data migration for command outputs. It reads graph edges from `runCommand`
-  action nodes into downstream `changeStatus` nodes, builds proper process
+  action nodes into downstream status-targeting `mutateEntity` nodes, builds proper process
   status snapshots from the compiled workflow, inserts status events, and
   updates existing output entities that are outside the active process status
   window. Supports `--dry-run`.

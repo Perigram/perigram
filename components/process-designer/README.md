@@ -173,9 +173,9 @@ polymorphic. For example, `generateAttachment` presents one `Attachment source`
 socket with `attachments.generate` capability and accepted source types instead
 of separate `sheet_design` and `nesting_run` sockets.
 
-New process behavior should use `createEntity`, `updateEntity`, `changeStatus`,
+New process behavior should use `createEntity`, `mutateEntity`,
 `runCommand`, status-definition nodes, value-input nodes, and inbound/outbound
-socket nodes. Archive is represented as a `changeStatus`
+socket nodes. Archive is represented as a `mutateEntity`
 action targeting an archive status, not as a separate node type. Entity naming
 is a construction input: generated create actions prompt for the domain
 contract's name field or consume a connected block/value default. A block node

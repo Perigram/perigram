@@ -42,6 +42,12 @@ Command, task, and status handlers may return declared effects. Those effects
 are executed by the centralized effect runtime after validation so handlers
 can stay focused on local state and emitted intent.
 
+Process `mutateEntity` actions delegate exact block-field writes to
+`server/core/entities/mutation.js`. The runtime resolves the domain entity
+collection and declared action fields, rejects immutable or undeclared roots,
+and only then performs an optional status transition through the machine
+service.
+
 Workers must use `/api/tasks/*` and must never write `task_runs` directly.
 
 Server modules that need shared root utilities should import them through

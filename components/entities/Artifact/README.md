@@ -20,6 +20,9 @@ reports.
   currently part of the compact trace contract.
 - The card may own a custom preview click action and disables `EntityCard`
   expansion for that action.
+- Generated artifact construction uses the shared `AttachmentInput` for file
+  selection or device-camera capture and stores optional source provenance in
+  `relations.source`.
 
 ## Related
 

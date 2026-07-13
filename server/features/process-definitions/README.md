@@ -121,7 +121,7 @@ queue job, while queue job edits still require the separate `queues:write`
 entity grant. A queue write grant alone does not expose the command action, and
 a command action grant does not expose queue mutation controls.
 When a synchronous run-command action returns entity refs and the visual graph
-wires a typed output handle into a downstream `changeStatus` node, execution
+wires a typed output handle into a downstream `mutateEntity` node, execution
 applies that target process status to each returned entity through the status
 runtime. Async command results that include task/job refs are not projected at
 command-return time; the task completion boundary owns final output status and

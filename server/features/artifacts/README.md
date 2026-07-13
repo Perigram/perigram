@@ -19,6 +19,8 @@ current app entity type that stores file metadata and GridFS references.
 
 ## APIs
 
+- `GET /api/artifacts`
+- `POST /api/artifacts`
 - `GET /api/artifacts/:id`
 - `GET /api/artifacts/:id/metadata`
 - `DELETE /api/artifacts/:id`
@@ -40,3 +42,11 @@ whose type is accepted by the domain command contract.
 
 - [domain-cnc attachment kinds](../../../packages/domain-cnc/README.md)
 - [commands](../../core/commands/README.md)
+
+Artifacts are ordinary domain entities with list/create APIs. Typed creation
+uses `createArtifactFromAttachment`: generated forms upload a file immediately
+through the shared attachment input, may request the device camera, and store
+the resulting descriptor in `attachments.primary`. Optional provenance is a
+non-owning revision-capable `relations.source` reference. Download, metadata,
+and deletion all load the entity through the same access check; downloads use
+the attachment's recorded GridFS bucket, including ordinary uploads.

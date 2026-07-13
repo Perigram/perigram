@@ -60,7 +60,7 @@ rather than operational work. Their grants still compile into effective
 permissions, and an authored/system screen may expose them explicitly.
 
 Action records represent executable process steps on the visual canvas. The
-compiler validates `createEntity`, `updateEntity`, `changeStatus`,
+compiler validates `createEntity`, `mutateEntity`,
 `runCommand`, and `sendToOrganization` actions against the domain entity,
 construction, field-policy, status-definition, value-input, and command
 registries, preserves their typed inputs/outputs, preserves completion events,
@@ -380,3 +380,21 @@ Compiled-only runtime contracts are not editable process sources. If a stored
 process definition has `data.compiled` but no canonical semantic records, the
 designer and activation path fail clearly instead of inferring a visual design
 from runtime output.
+## Mutation And Entity Blocks
+
+`mutateEntity` is the only process action that changes an existing entity. Its
+entity input determines the entity type, and only connected fields from the
+declared entity blocks are written. A status socket is optional and uses the
+same action to perform a workflow transition. Persisted `changeStatus` and
+`updateEntity` actions must be migrated with
+`server/scripts/migrate-process-mutate-actions.js`.
+
+`fieldRead` decomposes an entity into its domain-declared blocks.
+`entityAssemble` performs the inverse and exposes only the blocks declared by
+the selected entity definition. These sockets are the canonical way to pass
+identity, lineage, relations, data, specs, summary, and attachments through a
+process graph.
+
+Containment comes only from `domain.relations`. Child entity collections are
+generated as regions on their parent detail screen and are not independently
+inferred as top-level work screens merely because a summary exists.
