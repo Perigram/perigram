@@ -5,6 +5,9 @@ Command handler and compatibility job metadata for queue nesting.
 ## Responsibilities
 
 - `operations.js` implements the `solveNesting` command.
+- Shared root OCCS helpers are imported through `#utils`; relative imports into
+  root `utils/` are not safe after Nitro relocates feature modules into its dev
+  bundle.
 - The handler validates queue state, creates a `nesting_run`, enqueues
   `nesting.solve`, writes a linked compatibility `nesting_jobs` record, and
   returns a queue `requestNesting` effect only when the active queue workflow

@@ -58,10 +58,11 @@ server feature structure against `server/features/_template/README.md`, keeps
 repositories/services/API routes on their assigned layers, rejects Nuxt
 root-alias imports inside portable runtime modules under `shared/`,
 `test-data/`, and `packages/`, and rejects parent-relative cross-root imports
-from `shared/` and non-spec `test-data/` modules. Cross-root portable imports
-should use the package imports declared in `package.json` (`#shared/...`,
-`#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
-resolve the same graph.
+from `shared/` and non-spec `test-data/` modules. It also rejects those imports
+from Nitro-bound feature modules when they target root `utils/`, `shared/`, or
+`packages/`; generated dev bundles relocate feature modules, so cross-root
+imports must use the package imports declared in `package.json`
+(`#shared/...`, `#packages/...`, `#utils/...`).
 Entity feature directories are derived from domain entity metadata. Use an
 explicit `feature` field on a domain entity when English pluralization is
 irregular, such as `library -> libraries`; do not add script-local exceptions.
