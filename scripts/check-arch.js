@@ -262,6 +262,16 @@ jsFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
 
+  if (relFile.startsWith('server/features/') && !relFile.endsWith('.spec.js')) {
+    for (const match of content.matchAll(/(?:from\s*|import\s*\(\s*)['"]((?:\.\.\/)+(?:utils|shared|packages)\/[^'"]+)['"]/g)) {
+      const resolvedImport = path.normalize(path.join(path.dirname(relFile), match[1]));
+      if (/^(?:utils|shared|packages)\//.test(resolvedImport)) {
+        console.error(`❌ ${relFile} imports root runtime code through ${match[1]} — use #utils/#shared/#packages so Nitro preserves the workspace root`);
+        errors++;
+      }
+    }
+  }
+
   if (relFile.startsWith('server/core/') && !relFile.endsWith('README.md') && /(@cutkit\/domain-cnc|packages\/domain-cnc)/.test(content)) {
     console.error(`❌ ${relFile} imports CNC domain directly — use server/runtime/cutkit-registry.js`);
     errors++;

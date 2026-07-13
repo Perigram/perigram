@@ -18,7 +18,7 @@ import { createTaskRun, getTaskRunById } from '../../core/tasks/service.js';
 import { statusService } from '../../core/machines/service.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { occsParametersWithMaterialThickness } from '../../../utils/occs/parameters.js';
+import { occsParametersWithMaterialThickness } from '#utils/occs/parameters.js';
 
 const activeQueueNestLocks = new Set();
 
