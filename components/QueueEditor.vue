@@ -295,7 +295,7 @@
                     <Select v-model="producerValues.designId" :options="designOptions" optionLabel="label" optionValue="value" class="w-full" size="small" />
                 </div>
                 <template v-else>
-                    <div v-for="field in producerFields" :key="field.id" class="flex flex-col gap-2">
+                    <div v-for="field in visibleProducerFields" :key="field.id" class="flex flex-col gap-2">
                         <label>{{ field.label || field.id }}</label>
                         <Select
                             v-if="field.type === 'entity'"
@@ -491,6 +491,7 @@ const producerFields = computed(() => {
     }
     return constructionFields(producer.constructionMode);
 });
+const visibleProducerFields = computed(() => producerFields.value.filter(field => !usesServerDefaultTemplate(field)));
 const designOptions = computed(() => cassetteDesigns.value.map(design => ({
     label: entitySelectLabel(design, t('entities.cassetteDesign')),
     value: design._id?.toString(),
@@ -567,10 +568,18 @@ function domainCollection(entityType = '') {
 }
 
 function hasProducerValue(field = {}) {
+    if (usesServerDefaultTemplate(field)) return true;
     if (field.type === 'cassetteParameters') return true;
     const value = producerValues.value[field.id];
     if (Array.isArray(value)) return value.length > 0;
     return value !== undefined && value !== null && value !== '';
+}
+
+function usesServerDefaultTemplate(field = {}) {
+    return isProcessMode.value
+        && selectedProducer.value?.constructionMode === 'bakeCassetteDesignFromTemplate'
+        && field.id === 'templateId'
+        && (producerFieldOptions.value[field.id] || []).length === 0;
 }
 
 function templateForProducer() {
@@ -588,7 +597,8 @@ function selectedMaterialThickness() {
 function syncProducerParameters() {
     const template = templateForProducer();
     if (!template) {
-        producerParameters.value = {};
+        const thickness = selectedMaterialThickness();
+        producerParameters.value = thickness ? { T: thickness } : {};
         return;
     }
     const definitions = template.data?.definition?.parameters || {};
