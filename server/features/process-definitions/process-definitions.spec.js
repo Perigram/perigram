@@ -796,6 +796,106 @@ describe('process definitions access fallback', () => {
     expect(result.status.state.primary).toBe('REVIEW');
   });
 
+  it('appends process-produced cassette designs to the queue through queue processUpdate', async () => {
+    const queueProcessUpdate = vi.fn().mockResolvedValue({
+      _id: 'queue-1',
+      lineage: { organizationId: 'org-1' },
+      data: {
+        job: {
+          items: [{
+            type: 'PARAMETRIC',
+            entityType: 'cassette_design',
+            id: 'design-created',
+            quantity: 3,
+            parameters: { A: 1200, T: 18 }
+          }]
+        }
+      }
+    });
+    getAppRegistry.mockReturnValue({
+      getDomain: () => ({
+        entities: [
+          { type: 'queue', collection: 'queues' },
+          { type: 'cassette_design', collection: 'cassette_designs' }
+        ],
+        fieldAccess: {
+          queue: { feature: 'queues', write: ['data.job.*'] },
+          cassette_design: { feature: 'cassette_designs', write: ['data.*'] }
+        }
+      }),
+      getEntityService: (entityType) => entityType === 'queue'
+        ? {
+            getById: vi.fn().mockResolvedValue({
+              _id: 'queue-1',
+              lineage: { organizationId: 'org-1' },
+              data: { job: { items: [] } }
+            }),
+            processUpdate: queueProcessUpdate
+          }
+        : null
+    });
+    cassetteService.createDesignFromTemplate.mockResolvedValueOnce({
+      _id: 'design-created',
+      identity: { uid: 'design-created', name: 'Facade A' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: { primary: 'DRAFT' } },
+      data: { parameters: { A: 1200, T: 18 }, geometry: { dxfId: 'dxf-1' } }
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {},
+        compiled: {
+          actions: {
+            create_design: {
+              id: 'create_design',
+              actionKind: 'createEntity',
+              entityType: 'cassette_design',
+              construction: { mode: 'bakeCassetteDesignFromTemplate' },
+              status: {},
+              access: { level: 'write', roleIds: ['role_designer'] }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({
+      actionId: 'create_design',
+      entities: { queue: 'queue-1' },
+      data: {
+        templateId: 'cassette-template-1',
+        parameters: { A: 1200, T: 18 },
+        queueAppend: { quantity: 3 }
+      }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: {
+        actions: [{ actionId: 'create_design' }]
+      }
+    });
+
+    expect(queueProcessUpdate).toHaveBeenCalledWith('queue-1', {
+      'data.job.items': [{
+        type: 'PARAMETRIC',
+        entityType: 'cassette_design',
+        id: 'design-created',
+        quantity: 3,
+        parameters: { A: 1200, T: 18 }
+      }]
+    }, expect.objectContaining({
+      effectivePermissions: expect.objectContaining({
+        queues: expect.arrayContaining([
+          expect.objectContaining({ level: 'write', actions: { update: true, edit: true } })
+        ])
+      })
+    }));
+  });
+
   it('executes cassette design construction from the selected parent cassette', async () => {
     cassetteService.createDesignFromTemplate.mockResolvedValueOnce({
       _id: 'design-from-parent',

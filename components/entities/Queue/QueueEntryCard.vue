@@ -2,13 +2,18 @@
   <Panel>
     <template #header>
       <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
-        <EntityInlineRef
-          :type="sourceType"
-          :entity="cassette"
-          :id="sourceId"
-          :fetch="shouldFetchSource"
-          variant="compact"
-        />
+        <div class="min-w-0">
+          <IdentityBlock
+            v-if="cassette"
+            :entity="cassette"
+            variant="compact"
+          />
+          <Tag
+            v-else
+            :value="sourceLabel"
+            severity="secondary"
+          />
+        </div>
         <div class="flex items-center gap-1" data-entity-card-interactive="true" @click.stop>
           <InputNumber
             :model-value="entry.quantity"
@@ -70,8 +75,9 @@ import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import InputNumber from 'primevue/inputnumber';
+import Tag from 'primevue/tag';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 
 const props = defineProps({
@@ -85,6 +91,5 @@ const props = defineProps({
 const emit = defineEmits(['update-quantity', 'update-dimension', 'remove']);
 
 const sourceId = computed(() => props.entry.id);
-const sourceType = computed(() => 'cassetteDesign');
-const shouldFetchSource = computed(() => !props.cassette && props.entry.entityType === 'cassette_design');
+const sourceLabel = computed(() => `${props.entry.entityType || 'cassette_design'}:${sourceId.value || 'unknown'}`);
 </script>
