@@ -36,6 +36,9 @@ Production queue card and detail surface.
   and parameter updates while `QueueEditor` remains the owner of persistence and
   `_key`-based row deletion. These rows keep natural panel height inside the
   center lane grid; the workspace lane owns scrolling.
+- The generated/process queue composer exposes Add as both a panel header
+  action and an in-grid Add tile so cassette-design producers are visible inside
+  the composition workspace, not only hidden among header controls.
 - Inline quantity and parameter updates persist without emitting the route-level
   `updated` refresh event. The editor retains its local rows while the PUT
   completes, so typing a cassette parameter does not remount the generated
@@ -43,8 +46,11 @@ Production queue card and detail surface.
 - Queue job item relation rows read `item.entityType` to distinguish
   `cassette_design` from `cassette` template ids. When a process role can read
   the queue but not the related design/template directly, `QueueEntryCard`
-  renders a typed id chip and skips protected relation fetches instead of
-  calling the wrong endpoint.
+  renders a typed id chip with a localized source type and skips protected
+  relation fetches instead of calling the wrong endpoint. Explicit legacy
+  `entityType: cassette` queue items hydrate from readable cassette templates
+  and remain labeled as cassette-template entries; ids without an explicit
+  entity type are not reinterpreted as templates.
 - Queue editor cassette rows render the hydrated `cassette_design` identity in
   the panel header, or a typed id chip when the design cannot be read. They do
   not nest `EntityInlineRef` popovers or full relation cards inside the row
