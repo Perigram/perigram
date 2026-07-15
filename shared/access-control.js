@@ -112,10 +112,10 @@ function scopeMatches(scope = {}, entity = null, entityType = null) {
 
   const lineage = entity?.lineage || {};
   const entityId = entity?._id || entity?.identity?.uid;
-  return idScopeMatches(scope, 'organizationId', lineage.organizationId)
-    && idScopeMatches(scope, 'projectId', lineage.projectId)
-    && idScopeMatches(scope, 'queueId', lineage.queueId)
-    && idScopeMatches(scope, 'warehouseId', lineage.warehouseId)
+  return idScopeMatches(scope, 'organizationId', lineage.organization?.entityId)
+    && idScopeMatches(scope, 'projectId', lineage.project?.entityId)
+    && idScopeMatches(scope, 'queueId', lineage.queue?.entityId)
+    && idScopeMatches(scope, 'warehouseId', lineage.warehouse?.entityId)
     && idScopeMatches(scope, 'entityId', entityId);
 }
 
@@ -160,7 +160,7 @@ function resolveRuleFact(rule, context) {
 }
 
 function resolveLineageFact(path, context) {
-  if (!path || path.endsWith('Id')) return getByPath(context.entity?.lineage, path);
+  if (!path) return undefined;
   const [type, ...rest] = path.split('.');
   if (!type || rest.length === 0) return getByPath(context.entity?.lineage, path);
 
@@ -169,7 +169,8 @@ function resolveLineageFact(path, context) {
     || context.entity?.lineage?.[type];
   const traitPath = rest.join('.');
 
-  if (traitPath === 'id') return lineageEntity?._id || lineageEntity?.identity?.uid || context.entity?.lineage?.[`${type}Id`];
+  if (traitPath === 'id' || traitPath === 'entityId') return lineageEntity?._id || lineageEntity?.identity?.uid || lineageEntity?.entityId;
+  if (traitPath === 'revisionId') return lineageEntity?.revisionId;
   if (traitPath === 'type') return lineageEntity?.type || lineageEntity?.entityType || lineageEntity?.origin?.type || lineageEntity?.data?.type;
   if (traitPath === 'status.primary') return getPrimaryStatus(lineageEntity?.status);
   return getByPath(lineageEntity, traitPath);

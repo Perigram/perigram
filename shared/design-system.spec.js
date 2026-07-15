@@ -157,8 +157,8 @@ describe('Design system manifest', () => {
     const batchPile = factories.createMockBatchPile();
 
     expect(material.data.code).toBe('ACP');
-    expect(materialPile.lineage.requisitionId).toBeUndefined();
-    expect(batchPile.lineage.requisitionId).toBeTruthy();
+    expect(materialPile.lineage.requisition).toBeUndefined();
+    expect(batchPile.lineage.requisition.entityId).toBeTruthy();
     expect(batchPile.data.serial).toBeTruthy();
     expect(batchPile.data.stock.total).toBeGreaterThan(batchPile.data.stock.used);
   });
@@ -457,29 +457,21 @@ describe('Design system manifest', () => {
     expect(cassetteCard).not.toContain("path: 'data.type'");
   });
 
-  it('keeps nesting runs focused on sheet design outputs', () => {
-    const nestingRunCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/NestingRun/NestingRunCard.vue'), 'utf8');
+  it('keeps nesting results as queue revisions with selected sheet outputs', () => {
+    const revisionCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/EntityRevision/EntityRevisionCard.vue'), 'utf8');
     const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
-    const nestingRunService = fs.readFileSync(path.join(REPO_ROOT, 'server/features/nesting-runs/service.js'), 'utf8');
+    const revisionService = fs.readFileSync(path.join(REPO_ROOT, 'server/features/entity-revisions/service.js'), 'utf8');
 
-    expect(nestingRunCard).toContain('EntityRelationsBlock');
-    expect(nestingRunCard).toContain("entityType: 'sheetDesign'");
-    expect(nestingRunCard).toContain("field.path === 'data.sheetDesignOutputs'");
-    expect(nestingRunCard).toContain('item-variant="compact"');
-    expect(nestingRunCard).not.toContain('item-variant="inline"');
-    expect(nestingRunCard).not.toContain('SheetDesignCard');
-    expect(nestingRunCard).not.toContain('GeometryPreview');
-    expect(nestingRunCard).not.toContain('ArtifactCard');
-    expect(nestingRunCard).not.toContain('relatedArtifacts');
-    expect(nestingRunCard).toContain("feature: 'nesting_runs'");
-    expect(nestingRunCard).not.toContain("authStore.can('queues', 'edit')");
-    expect(queueEditor).toContain('readableQueueRuns');
-    expect(queueEditor).toContain("feature: 'nesting_runs'");
+    expect(revisionCard).toContain('entity-type="entity_revision"');
+    expect(revisionCard).toContain("queue: 'queue'");
+    expect(queueEditor).toContain('selectedRevisionId');
+    expect(queueEditor).toContain('selectedSheetDesigns');
+    expect(queueEditor).toContain("revision.data?.outcome === 'SUCCESS'");
+    expect(queueEditor).toContain('lineage?.queue?.revisionId');
     expect(queueEditor).not.toContain('getRunArtifacts');
-    expect(queueEditor).not.toContain('@artifact-click');
-    expect(nestingRunService).toContain("run, 'nesting_runs', 'read'");
-    expect(nestingRunService).not.toContain("run.lineage, 'queues', 'read'");
-    expect(DESIGN_SYSTEM_SURFACES.nestingRun.surfaces.card.fieldGroups).toContain('production');
+    expect(revisionService).toContain('createTerminalSnapshot');
+    expect(revisionService).toContain('taskRunId');
+    expect(revisionService).toContain('outcome');
   });
 
   it('keeps sheet layout editing on semantic layer and bounded snap contracts', () => {
@@ -490,8 +482,10 @@ describe('Design system manifest', () => {
     expect(editor).toContain('applyLayerPens');
     expect(editor).toContain("resolvedStyle('contour.material_sheet')");
     expect(editor).toContain('clampSheetPlacement');
-    expect(editor).toContain('majorGridSize');
-    expect(editor).toContain('selectedSnapPoint');
+    expect(editor).toContain('snapSheetPlacementToNeighbors');
+    expect(editor).toContain('gap: toolGap.value');
+    expect(editor).toContain('rotateSheetPlacement90');
+    expect(editor).not.toContain('majorGridSize');
     expect(generatedDetail).toContain(":show-identity=\"entityType === 'sheet_design'\"");
     expect(relationBlock).toContain(':variant="itemVariant"');
   });
@@ -552,10 +546,8 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('entity-inline-compact-status-row');
     expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
     expect(inlineRef).toContain("'sheet_design'");
-    expect(inlineRef).toContain('needsNestingRunHydration');
-    expect(inlineRef).toContain('hydrateNestingRunOutputs');
-    expect(inlineRef).toContain(".list({ runId }, { silent: true })");
-    expect(inlineRef).toContain('relationSheetDesigns');
+    expect(inlineRef).not.toContain('needsNestingRunHydration');
+    expect(inlineRef).not.toContain(".list({ runId }, { silent: true })");
     expect(inlineRef).not.toContain('entity-inline-compact-fallback');
     expect(fs.readFileSync(path.join(REPO_ROOT, 'composables/useEntity.js'), 'utf8')).toContain('options.silent');
     expect(identityBlock).toContain('entity-inline-chip');
@@ -612,7 +604,8 @@ describe('Design system manifest', () => {
     const { getWorkflowStatusActions } = await import('../utils/status-actions.js');
 
     expect(getWorkflowStatusActions({ entityType: 'queue', state: 'DRAFT', t: key => key })).toContainEqual(expect.objectContaining({
-      to: 'NESTING'
+      to: 'RUNNING',
+      region: 'nesting'
     }));
     expect(getWorkflowStatusActions({ entityType: 'queue', state: 'DRAFT', t: key => key })).not.toContainEqual(expect.objectContaining({
       to: 'READY'

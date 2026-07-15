@@ -60,10 +60,10 @@ const route = useRoute();
 const { t } = useI18n();
 const slug = route.params.slug;
 const { entity: project, loading: projectLoading, fetch: loadProject } = useEntity('project', slug);
-const selectedRunSheetDesigns = ref([]);
+const selectedRevisionSheetDesigns = ref([]);
 const sheetDesignsLoading = ref(false);
 const loading = computed(() => projectLoading.value || sheetDesignsLoading.value);
-const sheetDesigns = computed(() => [...selectedRunSheetDesigns.value].sort((left, right) => (
+const sheetDesigns = computed(() => [...selectedRevisionSheetDesigns.value].sort((left, right) => (
   new Date(right.createdAt || right.origin?.timestamp || 0) -
   new Date(left.createdAt || left.origin?.timestamp || 0)
 )));
@@ -72,53 +72,48 @@ const sheetDesignStats = computed(() => {
   return {
     total: rows.length,
     parts: rows.reduce((sum, design) => sum + Number(design.summary?.placedCount || 0), 0),
-    runs: new Set(rows.map(design => toIdString(design.lineage?.runId)).filter(Boolean)).size,
+    revisions: new Set(rows.map(design => toIdString(design.lineage?.queue?.revisionId)).filter(Boolean)).size,
     materialSources: rows.reduce((sum, design) => sum + Number(design.data?.materialPool?.length || 0), 0)
   };
 });
 const sheetDesignMetrics = computed(() => [
   { key: 'total', label: t('entities.sheetDesign'), value: sheetDesignStats.value.total },
   { key: 'parts', label: t('sheetDesign.parts'), value: sheetDesignStats.value.parts },
-  { key: 'runs', label: t('queue.runs'), value: sheetDesignStats.value.runs },
+  { key: 'revisions', label: t('revision.revisions'), value: sheetDesignStats.value.revisions },
   { key: 'materialSources', label: t('sheetDesign.materialSources'), value: sheetDesignStats.value.materialSources }
 ]);
 
 const loadSheetDesigns = async () => {
   const loadedProject = project.value || await loadProject();
   if (!loadedProject?._id) {
-    selectedRunSheetDesigns.value = [];
+    selectedRevisionSheetDesigns.value = [];
     return;
   }
 
   sheetDesignsLoading.value = true;
   try {
     const queues = await $fetch(`/api/project/${slug}/queues`);
-    const selectedRuns = queues
+    const selectedRevisions = queues
       .map((queue) => ({
         queueId: toIdString(queue._id),
-        runId: toIdString(queue.data?.materialConsumption?.runId)
+        revisionId: toIdString(queue.status?.lifecycle?.data?.selectedRevisionId)
       }))
-      .filter(({ queueId, runId }) => queueId && runId);
+      .filter(({ queueId, revisionId }) => queueId && revisionId);
 
-    if (!selectedRuns.length) {
-      selectedRunSheetDesigns.value = [];
+    if (!selectedRevisions.length) {
+      selectedRevisionSheetDesigns.value = [];
       return;
     }
 
-    const designGroups = await Promise.all(selectedRuns.map(async ({ queueId, runId }) => {
-      const designs = await $fetch('/api/sheet-designs', { query: { queueId } });
-      return designs.filter((design) => isSheetDesignForRun(design, runId));
+    const designGroups = await Promise.all(selectedRevisions.map(async ({ queueId, revisionId }) => {
+      return await $fetch('/api/sheet-designs', { query: { queueId, revisionId } });
     }));
 
-    selectedRunSheetDesigns.value = uniqueById(designGroups.flat());
+    selectedRevisionSheetDesigns.value = uniqueById(designGroups.flat());
   } finally {
     sheetDesignsLoading.value = false;
   }
 };
-
-function isSheetDesignForRun(design, runId) {
-  return toIdString(design?.lineage?.runId) === runId;
-}
 
 function toIdString(value) {
   if (!value) return '';

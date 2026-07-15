@@ -6,9 +6,9 @@ import {
   createMockCassetteTemplate,
   createMockCatalog,
   createMockColor,
+  createMockEntityRevision,
   createMockLayerStandard,
   createMockMaterial,
-  createMockNestingRun,
   createMockOrganization,
   createMockPenTemplate,
   createMockProfileTemplate,
@@ -51,7 +51,7 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
     cassetteTemplate: MOCK_IDS.cassetteTemplateId,
     cassetteDesign: MOCK_IDS.cassetteDesignId,
     queue: MOCK_IDS.queueId,
-    nestingRun: MOCK_IDS.runId,
+    queueRevision: MOCK_IDS.queueRevisionId,
     sheetDesign: MOCK_IDS.sheetDesignId,
     artifact: 'artifact-demo-layout-dxf',
     cassetteInstance: 'cassette-instance-demo-001',
@@ -86,7 +86,7 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
       layer_standard: [createMockLayerStandard({
         status: undefined,
         origin: undefined,
-        lineage: { organizationId: refs.organization },
+        lineage: { organization: ref('organization', refs.organization) },
         data: {
           code: 'FACADE_EXT',
           category: 'MILLING',
@@ -95,7 +95,11 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
           metadata: { color: '#3b82f6' }
         }
       })],
-      tool_profile: [createMockToolProfile({ status: undefined, origin: undefined, lineage: { userId: refs.user, organizationId: refs.organization } })],
+      tool_profile: [createMockToolProfile({
+        status: undefined,
+        origin: undefined,
+        lineage: { user: ref('user', refs.user), organization: ref('organization', refs.organization) }
+      })],
       warehouse: [createMockWarehouse({ status: undefined, origin: undefined })],
       material_pile: [createMockPile({ status: undefined, origin: undefined })],
       sheet: [createMockSheet({ status: undefined, origin: undefined })],
@@ -115,7 +119,11 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
       cassette_design: [createMockCassetteDesign({
         status: undefined,
         origin: undefined,
-        lineage: { organizationId: refs.organization, projectId: refs.project, templateId: refs.cassetteTemplate },
+        lineage: {
+          organization: ref('organization', refs.organization),
+          project: ref('project', refs.project),
+          cassette: ref('cassette', refs.cassetteTemplate)
+        },
         data: {
           parameters: occsQueueParameters(cassetteTemplateDefinition),
           geometry: {
@@ -141,20 +149,57 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
           }
         }
       })],
-      nesting_run: [createMockNestingRun({ status: undefined, origin: undefined })],
+      entity_revision: [createMockEntityRevision({
+        _id: refs.queueRevision,
+        identity: { uid: refs.queueRevision, name: 'Balanced nesting result', slug: 'balanced-nesting-result' },
+        status: undefined,
+        origin: undefined,
+        lineage: { queue: ref('queue', refs.queue) },
+        data: {
+          entityType: 'queue',
+          entityId: refs.queue,
+          scope: 'nesting',
+          number: 1,
+          outcome: 'SUCCESS',
+          taskRunId: 'task-run-demo-nesting',
+          snapshot: { sheetDesignIds: [refs.sheetDesign] }
+        }
+      })],
       sheet_design: [createMockSheetDesign({
         status: undefined,
         origin: undefined,
-        lineage: { organizationId: refs.organization, projectId: refs.project, queueId: refs.queue, runId: refs.nestingRun },
+        lineage: {
+          organization: ref('organization', refs.organization),
+          project: ref('project', refs.project),
+          queue: ref('queue', refs.queue, refs.queueRevision)
+        },
         data: {
           placements: [{ cassetteDesignId: refs.cassetteDesign, x: 200, y: 120, rotation: 0 }],
           geometry: createMockSheetDesign().data.geometry
         }
       })],
-      artifact: [createMockArtifact({ status: undefined, origin: undefined, lineage: { organizationId: refs.organization, queueId: refs.queue, runId: refs.nestingRun, sheetDesignId: refs.sheetDesign } })],
-      cassette_instance: [createMockCassetteInstance({ status: undefined, origin: undefined, lineage: { organizationId: refs.organization, projectId: refs.project, queueId: refs.queue, runId: refs.nestingRun, cassetteDesignId: refs.cassetteDesign } })],
+      artifact: [createMockArtifact({
+        status: undefined,
+        origin: undefined,
+        lineage: {
+          organization: ref('organization', refs.organization),
+          queue: ref('queue', refs.queue, refs.queueRevision),
+          sheetDesign: ref('sheet_design', refs.sheetDesign)
+        },
+        relations: { source: [ref('sheet_design', refs.sheetDesign)] }
+      })],
+      cassette_instance: [createMockCassetteInstance({
+        status: undefined,
+        origin: undefined,
+        lineage: {
+          organization: ref('organization', refs.organization),
+          project: ref('project', refs.project),
+          queue: ref('queue', refs.queue, refs.queueRevision),
+          cassetteDesign: ref('cassette_design', refs.cassetteDesign)
+        }
+      })],
       requisition: [createMockRequisition({ status: undefined, origin: undefined })],
-      material: [createMockMaterial({ status: undefined, origin: undefined, lineage: { organizationId: refs.organization } })]
+      material: [createMockMaterial({ status: undefined, origin: undefined, lineage: { organization: ref('organization', refs.organization) } })]
     }
   };
 
@@ -179,8 +224,8 @@ export function validateCncFixtureScenario(scenario, workflows = cncWorkflows) {
         issues.push(`${type}:${entity._id} has state ${state} outside compiled workflow`);
       }
       for (const [key, value] of Object.entries(entity.lineage || {})) {
-        if (String(key).endsWith('Id') && value && !isExternalRef(value) && !byId.has(value)) {
-          issues.push(`${type}:${entity._id} lineage ${key} references missing ${value}`);
+        if (value?.entityId && !isExternalRef(value.entityId) && !byId.has(value.entityId)) {
+          issues.push(`${type}:${entity._id} lineage ${key} references missing ${value.entityId}`);
         }
       }
     }
@@ -207,8 +252,8 @@ function applyWorkflowStatuses(scenario, workflows, status) {
 
 function buildRelationships(scenario) {
   return Object.entries(scenario.entities).flatMap(([type, entities]) => entities.flatMap(entity => Object.entries(entity.lineage || {})
-    .filter(([key, value]) => key.endsWith('Id') && value)
-    .map(([key, value]) => ({ from: `${type}:${entity._id}`, key, to: value }))));
+    .filter(([, value]) => value?.entityId)
+    .map(([key, value]) => ({ from: `${type}:${entity._id}`, key, to: value.entityId, revisionId: value.revisionId }))));
 }
 
 function buildScenarioAccess({ scenario, workflows, commands }) {
@@ -219,7 +264,7 @@ function buildScenarioAccess({ scenario, workflows, commands }) {
     materials: 'admin',
     projects: 'admin',
     queues: 'admin',
-    nesting_runs: 'admin',
+    entity_revisions: 'admin',
     artifacts: 'admin'
   };
   return {
@@ -237,7 +282,7 @@ function buildCommandDefaults(refs) {
       parameters: { materialMode: 'VIRTUAL', width: 1220, height: 2440, spacing: 5, inventoryItems: [], toolProfileId: refs.toolProfile }
     },
     generateAttachment: {
-      entities: { sheetDesign: refs.sheetDesign, nestingRun: refs.nestingRun },
+      entities: { sheetDesign: refs.sheetDesign },
       parameters: { kind: 'LAYOUT_DXF' }
     }
   };
@@ -253,6 +298,10 @@ function buildEntityOptions(entities) {
 
 function isExternalRef(value) {
   return String(value).startsWith('file-') || String(value).startsWith('dxf-') || String(value).startsWith('svg-');
+}
+
+function ref(entityType, entityId, revisionId) {
+  return { entityType, entityId, ...(revisionId ? { revisionId } : {}) };
 }
 
 function toPlainObject(value) {

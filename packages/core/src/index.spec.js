@@ -7,7 +7,7 @@ describe('entity relation and revision lineage blocks', () => {
       _id: 'artifact-1',
       identity: { uid: 'artifact-1', name: 'Source DXF' },
       relations: {
-        source: { type: 'cassette', id: 'cassette-1', revisionId: 'revision-1' }
+        source: { entityType: 'cassette', entityId: 'cassette-1', revisionId: 'revision-1' }
       }
     }).toJSON();
 
@@ -20,14 +20,24 @@ describe('entity relation and revision lineage blocks', () => {
     const lineage = inheritLineage({
       _id: 'design-1',
       identity: { uid: 'design-1' },
-      lineage: { organizationId: 'org-1', runId: 'run-1' }
+      lineage: {
+        organization: { entityType: 'organization', entityId: 'org-1' },
+        queue: { entityType: 'queue', entityId: 'queue-1' }
+      }
     }, 'sheetDesign', value => value, 'revision-2').toJSON();
 
     expect(lineage).toEqual({
-      organizationId: 'org-1',
-      runId: 'run-1',
-      sheetDesignId: 'design-1',
-      sheetDesignRevisionId: 'revision-2'
+      organization: { entityType: 'organization', entityId: 'org-1' },
+      queue: { entityType: 'queue', entityId: 'queue-1' },
+      sheetDesign: { entityType: 'sheet_design', entityId: 'design-1', revisionId: 'revision-2' }
     });
+  });
+
+  it('rejects legacy paired lineage keys instead of dual-reading them', () => {
+    expect(() => new BaseEntity({
+      _id: 'queue-1',
+      identity: { uid: 'queue-1' },
+      lineage: { projectId: 'project-1' }
+    })).toThrow(/must be migrated/);
   });
 });

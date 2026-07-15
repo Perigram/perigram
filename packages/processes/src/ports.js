@@ -157,6 +157,9 @@ function processNodeInputPorts(record = {}) {
     return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
   }
   if (record.kind === 'entityAssemble') return processBlockPorts();
+  if (record.kind === 'blockAssemble') {
+    return (record.inputs || []).map(port => normalizePortSpec(port));
+  }
   if (record.kind === 'blockRead') {
     return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '' })];
   }
@@ -193,6 +196,9 @@ function processNodeOutputPorts(record = {}) {
   }
   if (record.kind === 'entityAssemble') {
     return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
+  }
+  if (record.kind === 'blockAssemble') {
+    return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '' })];
   }
   if (record.kind === 'blockRead') {
     return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: record.valueType || 'data', block: record.block || '', dataPath: record.path || '' })];

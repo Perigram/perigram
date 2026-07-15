@@ -17,14 +17,8 @@ export const cncEntityFieldAccess = {
   },
   queue: {
     feature: 'queues',
-    read: [...COMMON_READ_FIELDS, 'data.queueNumber', 'data.job.items', 'data.job.materialPool', 'data.materialConsumption', 'data.physicalOutputs'],
-    write: ['data.job.*', 'data.nestingParams'],
-    admin: ['data.*', 'attachments.*']
-  },
-  nestingRun: {
-    feature: 'nesting_runs',
-    read: [...COMMON_READ_FIELDS, 'data.results.*', 'data.materialPool', 'data.sheetDesignOutputs.*'],
-    write: ['data.*'],
+    read: [...COMMON_READ_FIELDS, 'data.queueNumber', 'data.job.items', 'data.job.materialPool', 'data.nestingSettings'],
+    write: ['data.job.*', 'data.nestingSettings'],
     admin: ['data.*', 'attachments.*']
   },
   sheetDesign: {
@@ -59,7 +53,7 @@ export const cncEntityFieldAccess = {
   },
   cassetteInstance: {
     feature: 'projects',
-    read: [...COMMON_READ_FIELDS, 'data.cassetteDesignId'],
+    read: [...COMMON_READ_FIELDS, 'data.source'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
@@ -107,7 +101,7 @@ export const cncEntityFieldAccess = {
   },
   sheetInstance: {
     feature: 'sheet_instances',
-    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.sheetDesignId', 'data.layoutHash', 'data.sequence', 'data.physicalSheetId'],
+    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.layoutHash', 'data.sequence', 'data.physicalSheetId'],
     write: ['data.physicalSheetId'],
     admin: ['data.*', 'attachments.*']
   },
@@ -131,7 +125,7 @@ export const cncEntityFieldAccess = {
   },
   requisition: {
     feature: 'requisitions',
-    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.items', 'data.totalPrice', 'data.currency', 'data.manufacturerId', 'data.projectId'],
+    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.items', 'data.totalPrice', 'data.currency'],
     write: ['data.*', 'specs.*'],
     admin: ['data.*', 'attachments.*']
   },
@@ -175,8 +169,8 @@ export const cncEntityFieldAccess = {
     admin: ['data.*', 'summary.*', 'attachments.*']
   },
   entityRevision: {
-    feature: 'cassettes',
-    read: [...COMMON_READ_FIELDS, 'data.entityType', 'data.entityId', 'data.scope', 'data.number', 'data.shortHash', 'data.contentHash', 'data.createdAt'],
+    feature: 'entity_revisions',
+    read: [...COMMON_READ_FIELDS, 'data.entityType', 'data.entityId', 'data.scope', 'data.number', 'data.outcome', 'data.taskRunId', 'data.contentHash', 'data.createdAt'],
     write: [],
     admin: ['data.*', 'attachments.*']
   },
@@ -213,7 +207,6 @@ export const cncEntityFieldAccess = {
 };
 
 const ENTITY_ALIASES = {
-  nesting_run: 'nestingRun',
   sheet_design: 'sheetDesign',
   cassette_template: 'cassetteTemplate',
   cassette_design: 'cassetteDesign',

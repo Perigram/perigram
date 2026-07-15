@@ -6,7 +6,7 @@ import * as instanceService from '~/server/features/cassette-instances/service';
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const query = getQuery(event);
-  const queueId = query['lineage.queueId'] || query.queueId;
+  const queueId = query['lineage.queue.entityId'] || query.queueId;
 
   if (queueId) {
     const instances = await instanceService.listByQueue(

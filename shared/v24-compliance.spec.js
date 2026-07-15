@@ -9,16 +9,23 @@ describe('V24 Compliance Integration Check', () => {
     const { inheritLineage } = await import('../server/utils/blocks.js');
     
     // Test with string ID
-    const parentStr = { _id: '6795f7c3562473335500808b', lineage: { orgId: new ObjectId('6795f7c3562473335500808a') } };
+    const parentStr = {
+      _id: '6795f7c3562473335500808b',
+      lineage: {
+        organization: {
+          entityType: 'organization',
+          entityId: '6795f7c3562473335500808a'
+        }
+      }
+    };
     const lineageStr = inheritLineage(parentStr, 'project');
-    expect(lineageStr.projectId).toBeInstanceOf(ObjectId);
-    expect(lineageStr.projectId.toString()).toBe('6795f7c3562473335500808b');
-    expect(lineageStr.orgId.toString()).toBe('6795f7c3562473335500808a');
+    expect(lineageStr.project).toEqual({ entityType: 'project', entityId: '6795f7c3562473335500808b' });
+    expect(lineageStr.organization).toEqual({ entityType: 'organization', entityId: '6795f7c3562473335500808a' });
 
     // Test with ObjectId
     const parentObj = { _id: new ObjectId('6795f7c3562473335500808c') };
     const lineageObj = inheritLineage(parentObj, 'organization');
-    expect(lineageObj.organizationId.toString()).toBe('6795f7c3562473335500808c');
+    expect(lineageObj.organization).toEqual({ entityType: 'organization', entityId: '6795f7c3562473335500808c' });
   });
 
   it('should verify mapLineageQuery centralized utility', async () => {
@@ -26,15 +33,14 @@ describe('V24 Compliance Integration Check', () => {
     
     const query = {
         catalogId: '6795f7c3562473335500808a',
-        'lineage.projectId': '6795f7c3562473335500808b', // already compliant
+        'lineage.project.entityId': '6795f7c3562473335500808b', // already compliant
         name: 'Test'
     };
     
     const mapped = mapLineageQuery(query);
     
-    expect(mapped['lineage.catalogId']).toBeInstanceOf(ObjectId);
-    expect(mapped['lineage.catalogId'].toString()).toBe('6795f7c3562473335500808a');
-    expect(mapped['lineage.projectId'].toString()).toBe('6795f7c3562473335500808b');
+    expect(mapped['lineage.catalog.entityId']).toBe('6795f7c3562473335500808a');
+    expect(mapped['lineage.project.entityId']).toBe('6795f7c3562473335500808b');
     expect(mapped.name).toBe('Test');
     expect(mapped.catalogId).toBeUndefined(); // removed
   });

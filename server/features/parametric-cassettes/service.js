@@ -17,7 +17,8 @@ import {
   createIdentity, 
   createStatus, 
   createData, 
-  createAttachment 
+  createAttachment,
+  inheritLineage
 } from '../../core/blocks/index.js';
 
 let wasmInitialized = false;
@@ -466,9 +467,7 @@ export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
     identity: createIdentity(`${templateName} (${evalDims.A}x${evalDims.B})`, `baked-${templateSlug}-${Date.now()}`),
     origin,
     status: origin,
-    lineage: {
-      originalCassetteId: toFlexibleId(cassetteId)
-    },
+    lineage: inheritLineage(template, 'cassette'),
     data: createData({
       type: 'BAKED_PARAMETRIC',
       attachment: createAttachment('DXF', fileId, filename, { userId, type: 'BAKED_PARAMETRIC' }),

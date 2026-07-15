@@ -100,7 +100,7 @@ describe('User Management & Auth', () => {
 
     const rawUser = await db.collection('users').findOne({ 'data.email': 'owner@example.com' });
     expect(organization.toJSON().identity.name).toBe('Owner Workshop');
-    expect(rawUser.lineage.organizationId.toString()).toBe(organization.id);
+    expect(rawUser.lineage.organization.entityId.toString()).toBe(organization.id);
     expect(rawUser.data.role).toBe('role_admin');
     expect(rawUser.data.permissions).toEqual({
       organizations: { level: 'admin' },
@@ -136,7 +136,7 @@ describe('User Management & Auth', () => {
     
     const user = await db.collection('users').insertOne({
       identity: { uid: 'multi-org-user', name: 'Multi-org User' },
-      lineage: { organizationId: org1 },
+      lineage: { organization: { entityType: 'organization', entityId: org1.toString() } },
       data: {
       memberships: [
         { organizationId: org1, role: 'IndividualUser', permissions: {} },
@@ -147,7 +147,7 @@ describe('User Management & Auth', () => {
 
     const updatedUser = await userService.switchOrganization(user.insertedId.toString(), org2.toString());
     
-    expect(updatedUser.toJSON().lineage.organizationId.toString()).toBe(org2.toString());
+    expect(updatedUser.toJSON().lineage.organization.entityId.toString()).toBe(org2.toString());
     expect(updatedUser.toJSON().data.role).toBe('IndividualUser');
   });
 
@@ -494,7 +494,7 @@ describe('User Management & Auth', () => {
     
     const user = await db.collection('users').insertOne({
       identity: { uid: 'single-org-user', name: 'Single-org User' },
-      lineage: { organizationId: org1 },
+      lineage: { organization: { entityType: 'organization', entityId: org1.toString() } },
       data: { memberships: [{ organizationId: org1 }] }
     });
 

@@ -1,5 +1,4 @@
 import { createError } from 'h3';
-import { ObjectId } from 'mongodb';
 import { createData, createIdentity, createStatus, createSpecs, inheritLineage } from '../../core/blocks/index.js';
 import { getLineageFilter, hasLineagePermission } from '../../utils/permissions.js';
 import { mapLineageQuery } from '../../utils/query.js';
@@ -9,6 +8,9 @@ import { SheetInstance } from './model.js';
 const toDTO = raw => raw ? new SheetInstance(raw).toJSON() : null;
 
 export async function createFromDesign(design, data = {}, userId = 'SYSTEM') {
+  const id = data.id || `sheet-instance-${design._id}-${data.sequence || 1}`;
+  const existing = await repository.findById(id);
+  if (existing) return toDTO(existing);
   const origin = createStatus('PLANNED', userId, { note: 'Planned sheet instance created from nesting output' });
   const lineage = inheritLineage(
     design,
@@ -17,16 +19,16 @@ export async function createFromDesign(design, data = {}, userId = 'SYSTEM') {
     design.data?.revisions?.geometry?.currentId || null
   );
   const created = await repository.create({
+    _id: id,
     identity: createIdentity(
       data.name || `${design.identity?.name || 'Sheet'} #${data.sequence || 1}`,
-      '', '', '', `sheet-instance-${new ObjectId().toString()}`
+      id
     ),
     origin,
     status: origin,
     lineage,
     specs: createSpecs(design.specs || {}),
     data: createData({
-      sheetDesignId: design._id?.toString?.() || design._id,
       layoutHash: data.layoutHash || '',
       sequence: Number(data.sequence || 1),
       physicalSheetId: null

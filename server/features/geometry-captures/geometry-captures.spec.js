@@ -66,7 +66,7 @@ describe('Geometry captures service', () => {
     await db.collection('warehouses').insertOne({
       _id: warehouseId,
       identity: { uid: warehouseId.toString(), name: 'Capture Warehouse' },
-      lineage: { organizationId },
+      lineage: { organization: { entityType: 'organization', entityId: organizationId.toString() } },
       status: { state: 'ACTIVE' },
       data: { stats: { totalRemnants: 0 } }
     });

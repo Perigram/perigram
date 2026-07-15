@@ -4,7 +4,7 @@ import * as projectsService from '../projects/service.js';
 import * as remnantsService from '../remnants/service.js';
 import * as warehousesService from '../warehouses/service.js';
 import { GeometryCapture } from './model.js';
-import { createAttachment, createData } from '../../core/blocks/index.js';
+import { createAttachment, createData, Lineage } from '../../core/blocks/index.js';
 import { statusService, createTransitionAuth } from '../../core/machines/service.js';
 import { createTaskRun } from '../../core/tasks/service.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
@@ -395,7 +395,7 @@ export async function confirm(id, userId, userOrg, userRole, userPermissions) {
   if (mode === 'REMNANT' && !output?.entityId) {
     const metrics = raw.specs || metricsForGeometry(raw.data.geometry);
     const remnant = await remnantsService.create({
-      warehouseId: raw.lineage?.warehouseId,
+      warehouseId: raw.lineage?.warehouse?.entityId,
       geometryData: raw.data.geometry,
       area: metrics.area || 0,
       width: metrics.width || 0,
@@ -410,8 +410,8 @@ export async function confirm(id, userId, userOrg, userRole, userPermissions) {
       }
     }, userId, userOrg, userRole, userPermissions);
     output = { entityType: 'remnant', entityId: remnant._id?.toString?.() || remnant._id || remnant.id };
-    if (raw.lineage?.warehouseId) {
-      await warehousesService.updateInventoryCounts(raw.lineage.warehouseId, { totalRemnants: 1 });
+    if (raw.lineage?.warehouse?.entityId) {
+      await warehousesService.updateInventoryCounts(raw.lineage.warehouse.entityId, { totalRemnants: 1 });
     }
   } else if (mode === 'FACADE') {
     output = { entityType: 'facadeDraft', entityId: null };
@@ -440,20 +440,14 @@ async function resolveLineage(mode, data, auth, level) {
     const warehouse = await warehousesService.getById(data.warehouseId);
     if (!warehouse) throw createError({ statusCode: 404, message: 'Warehouse not found' });
     requireLineageAccess(warehouse.lineage, 'materials', level, auth.userPermissions);
-    return {
-      ...(warehouse.lineage || {}),
-      warehouseId: toFlexibleId(data.warehouseId)
-    };
+    return new Lineage(warehouse.lineage || {}).add('warehouse', data.warehouseId);
   }
 
   if (!data.projectId) throw createError({ statusCode: 400, message: 'projectId is required for facade capture' });
   const project = await projectsService.getById(data.projectId);
   if (!project) throw createError({ statusCode: 404, message: 'Project not found' });
   requireLineageAccess(project.lineage, 'projects', level, auth.userPermissions);
-  return {
-    ...(project.lineage || {}),
-    projectId: toFlexibleId(data.projectId)
-  };
+  return new Lineage(project.lineage || {}).add('project', data.projectId);
 }
 
 function requireLineageAccess(lineage, feature, level, userPermissions = {}) {

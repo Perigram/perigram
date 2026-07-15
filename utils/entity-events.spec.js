@@ -42,7 +42,7 @@ describe('entity sync event helpers', () => {
         entity: { _id: 'queue-1' },
         effects: {
           entities: [
-            { type: 'nesting_run', id: 'run-1', entity: { _id: 'run-1' } }
+            { type: 'entity_revision', id: 'revision-1', entity: { _id: 'revision-1' } }
           ]
         }
       }
@@ -50,7 +50,7 @@ describe('entity sync event helpers', () => {
 
     expect(received).toEqual([
       expect.objectContaining({ type: 'queue', id: 'queue-1', change: 'updated', reason: 'status-transition' }),
-      expect.objectContaining({ type: 'nesting_run', id: 'run-1', change: 'updated', reason: 'status-transition-effect' })
+      expect.objectContaining({ type: 'entity_revision', id: 'revision-1', change: 'updated', reason: 'status-transition-effect' })
     ]);
   });
 });

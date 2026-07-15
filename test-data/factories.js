@@ -3,7 +3,7 @@
  *
  * Factories model API DTOs, not raw MongoDB documents. They keep only
  * canonical blocks (`identity`, `origin`, `status`, `lineage`, `attachments`,
- * `data`, `summary`, `specs`) plus root `_id`.
+ * `relations`, `data`, `summary`, `specs`) plus root `_id`.
  */
 import { ObjectId } from 'bson';
 import { PERMISSION_TEMPLATES } from '#shared/permission-templates.js';
@@ -39,6 +39,7 @@ const createEntity = ({
   reference,
   state = 'DRAFT',
   lineage = {},
+  relations = {},
   specs = null,
   attachments = {},
   data = {},
@@ -54,6 +55,7 @@ const createEntity = ({
     origin,
     status: origin,
     lineage,
+    relations,
     specs,
     attachments,
     data,
@@ -67,7 +69,7 @@ export const MOCK_IDS = {
   warehouseId: 'wh-demo-main',
   projectId: 'project-demo-downtown',
   queueId: 'queue-demo-morning',
-  runId: 'run-demo-001',
+  queueRevisionId: 'entity-revision-nesting-demo-001',
   libraryId: 'library-demo-acm',
   catalogId: 'catalog-demo-acm',
   sheetDesignId: 'sheet-design-demo-001',
@@ -83,7 +85,8 @@ export function createMockProject(overrides = {}) {
       name: 'Downtown Complex',
       slug: 'downtown-complex',
       state: 'DRAFT',
-      lineage: { organizationId: MOCK_IDS.organizationId },
+      lineage: { organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId } },
+      relations: { libraries: [{ entityType: 'library', entityId: MOCK_IDS.libraryId }] },
       data: {
         address: '42 Riverfront Ave',
         thumbnailUrl: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 600 240%22%3E%3Crect width=%22600%22 height=%22240%22 fill=%22%23f4f4f5%22/%3E%3Cpath d=%22M40 190h520M80 190V80h120v110M230 190V45h150v145M410 190V105h90v85%22 fill=%22none%22 stroke=%22%230f766e%22 stroke-width=%2212%22/%3E%3C/svg%3E'
@@ -113,31 +116,12 @@ export function createMockQueue(overrides = {}) {
       name: 'Morning Production Run',
       slug: 'morning-production-run',
       state: 'DRAFT',
-      lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId },
-      data: { job, queueNumber: 'Q-001' },
-      summary: { runCount: 2, sheetCount: 12, totalArea: 45.6 }
-    }),
-    ...overrides
-  };
-}
-
-export function createMockNestingRun(overrides = {}) {
-  const results = { efficiency: 92.4, sheetCount: 5, remnantArea: 1.2 };
-  return {
-    ...createEntity({
-      uid: MOCK_IDS.runId,
-      name: 'Run #1',
-      state: 'COMPLETE',
       lineage: {
-        organizationId: MOCK_IDS.organizationId,
-        projectId: MOCK_IDS.projectId,
-        queueId: MOCK_IDS.queueId
+        organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId },
+        project: { entityType: 'project', entityId: MOCK_IDS.projectId }
       },
-      data: {
-        results,
-        layoutData: {},
-        sheetDesignOutputs: [{ sheetDesignId: MOCK_IDS.sheetDesignId, quantity: 1, sheetInstanceIds: ['sheet-instance-demo-001'] }]
-      }
+      data: { job, queueNumber: 'Q-001' },
+      summary: { revisionCount: 2, sheetCount: 12, totalArea: 45.6 }
     }),
     ...overrides
   };
@@ -161,7 +145,7 @@ export function createMockSheetDesign(overrides = {}) {
       name: 'Sheet Design SD-NEST-001',
       serial: 'SD-NEST-001',
       state: 'READY',
-      lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
+      lineage: { queue: { entityType: 'queue', entityId: MOCK_IDS.queueId, revisionId: MOCK_IDS.queueRevisionId } },
       specs: { width: 2000, length: 1000, area: 2, sheetThickness: 4 },
       data: { geometry }
     }),
@@ -175,7 +159,10 @@ export function createMockSheetInstance(overrides = {}) {
       uid: 'sheet-instance-demo-001',
       name: 'Planned sheet #1',
       state: 'PLANNED',
-      lineage: { sheetDesignId: MOCK_IDS.sheetDesignId, runId: MOCK_IDS.runId },
+      lineage: {
+        queue: { entityType: 'queue', entityId: MOCK_IDS.queueId, revisionId: MOCK_IDS.queueRevisionId },
+        sheetDesign: { entityType: 'sheet_design', entityId: MOCK_IDS.sheetDesignId }
+      },
       specs: { width: 2000, length: 1000, area: 2, sheetThickness: 4 },
       data: { sheetDesignId: MOCK_IDS.sheetDesignId, sequence: 1, physicalSheetId: null }
     }),
@@ -200,7 +187,10 @@ export function createMockCassette(overrides = {}) {
       name: 'Cassette Type A',
       slug: 'cassette-type-a',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId, templateId: MOCK_IDS.cassetteTemplateId },
+      lineage: {
+        organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId },
+        cassette: { entityType: 'cassette', entityId: MOCK_IDS.cassetteTemplateId }
+      },
       data: {
         type: 'PARAMETRIC',
         parameters: ['A', 'B', 'C'],
@@ -226,7 +216,7 @@ export function createMockCassetteTemplate(overrides = {}) {
       name: 'Parametric Type G',
       slug: 'parametric-type-g',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId },
+      lineage: { organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId } },
       data: {
         type: 'PARAMETRIC',
         definition,
@@ -249,7 +239,10 @@ export function createMockCassetteDesign(overrides = {}) {
       name: 'Standard Type A',
       serial: 'CD-FACADE-01',
       state: 'APPROVED',
-      lineage: { projectId: MOCK_IDS.projectId, templateId: MOCK_IDS.cassetteTemplateId },
+      lineage: {
+        project: { entityType: 'project', entityId: MOCK_IDS.projectId },
+        cassette: { entityType: 'cassette', entityId: MOCK_IDS.cassetteTemplateId, revisionId: MOCK_IDS.entityRevisionId }
+      },
       data: {
         geometry,
         parameters,
@@ -275,8 +268,8 @@ export function createMockEntityRevision(overrides = {}) {
       name: 'cassette geometry v1',
       state: 'ACTIVE',
       lineage: {
-        organizationId: MOCK_IDS.organizationId,
-        cassetteId: MOCK_IDS.cassetteTemplateId
+        organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId },
+        cassette: { entityType: 'cassette', entityId: MOCK_IDS.cassetteTemplateId }
       },
       data: {
         entityType: 'cassette',
@@ -308,10 +301,9 @@ export function createMockCassetteInstance(overrides = {}) {
       reference: 'Panel-A-01',
       state: 'PRODUCED',
       lineage: {
-        projectId: MOCK_IDS.projectId,
-        queueId: MOCK_IDS.queueId,
-        runId: MOCK_IDS.runId,
-        cassetteDesignId: MOCK_IDS.cassetteDesignId
+        project: { entityType: 'project', entityId: MOCK_IDS.projectId },
+        queue: { entityType: 'queue', entityId: MOCK_IDS.queueId, revisionId: MOCK_IDS.queueRevisionId },
+        cassetteDesign: { entityType: 'cassette_design', entityId: MOCK_IDS.cassetteDesignId }
       },
       data: {},
       lifecycle: {
@@ -332,10 +324,9 @@ export function createMockSheet(overrides = {}) {
       serial: 'SH-2025-001',
       state: 'AVAILABLE',
       lineage: {
-        organizationId: MOCK_IDS.organizationId,
-        warehouseId: MOCK_IDS.warehouseId,
-        queueId: MOCK_IDS.queueId,
-        runId: MOCK_IDS.runId
+        organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId },
+        warehouse: { entityType: 'warehouse', entityId: MOCK_IDS.warehouseId },
+        queue: { entityType: 'queue', entityId: MOCK_IDS.queueId, revisionId: MOCK_IDS.queueRevisionId }
       },
       specs: { width: 3000, length: 1500, area: 4.5, sheetThickness: 4 },
       data: {},
@@ -372,7 +363,7 @@ export function createMockLibrary(overrides = {}) {
       name: 'ACP Cassette Library',
       slug: 'acp-cassette-library',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId },
+      lineage: { organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId } },
       data: {
         material: { code: 'ACP', name: 'Aluminum Composite Panel' },
         description: 'Reusable cassette templates for aluminum composite panels'
@@ -393,9 +384,9 @@ export function createMockPile(overrides = {}) {
       serial: 'P-101',
       state: 'STOCKED',
       lineage: {
-        organizationId: MOCK_IDS.organizationId,
-        warehouseId: MOCK_IDS.warehouseId,
-        catalogId: MOCK_IDS.catalogId
+        organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId },
+        warehouse: { entityType: 'warehouse', entityId: MOCK_IDS.warehouseId },
+        catalog: { entityType: 'catalog', entityId: MOCK_IDS.catalogId }
       },
       specs,
       data: { serial: 'MAN-P-101', material: 'ALUMINUM', specs, stock, quantity: stock.total }
@@ -415,10 +406,10 @@ export function createMockBatchPile(overrides = {}) {
       serial: 'P-003',
       state: 'STOCKED',
       lineage: {
-        organizationId: MOCK_IDS.organizationId,
-        warehouseId: MOCK_IDS.warehouseId,
-        catalogId: MOCK_IDS.catalogId,
-        requisitionId: 'requisition-demo-001'
+        organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId },
+        warehouse: { entityType: 'warehouse', entityId: MOCK_IDS.warehouseId },
+        catalog: { entityType: 'catalog', entityId: MOCK_IDS.catalogId },
+        requisition: { entityType: 'requisition', entityId: 'requisition-demo-001' }
       },
       specs,
       data: { serial: 'REQ-2025-001-P-003', specs, stock, quantity: stock.total }
@@ -434,7 +425,10 @@ export function createMockRemnant(overrides = {}) {
       name: 'Remnant REM-2025-X1',
       serial: 'REM-2025-X1',
       state: 'AVAILABLE',
-      lineage: { warehouseId: MOCK_IDS.warehouseId, sheetId: 'sheet-demo-001' },
+      lineage: {
+        warehouse: { entityType: 'warehouse', entityId: MOCK_IDS.warehouseId },
+        sheet: { entityType: 'sheet', entityId: 'sheet-demo-001' }
+      },
       specs: { width: 900, length: 500, area: 0.45, sheetThickness: 4 },
       data: {
         isReusable: true,
@@ -509,7 +503,10 @@ export function createMockCatalog(overrides = {}) {
       uid: MOCK_IDS.catalogId,
       name: 'Standard Metals',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId, manufacturerId: MOCK_IDS.manufacturerId },
+      lineage: {
+        organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId },
+        manufacturer: { entityType: 'organization', entityId: MOCK_IDS.manufacturerId }
+      },
       data: { material: 'ALUMINUM', pricing, options },
       summary: { colorCount: 8 }
     }),
@@ -524,7 +521,7 @@ export function createMockColor(overrides = {}) {
       name: 'Traffic White',
       serial: 'RAL-9016',
       state: 'ACTIVE',
-      lineage: { catalogId: MOCK_IDS.catalogId },
+      lineage: { catalog: { entityType: 'catalog', entityId: MOCK_IDS.catalogId } },
       data: { code: 'RAL-9016', visuals: { hexCode: '#F6F6F6', textureUrl: null } }
     }),
     ...overrides
@@ -539,7 +536,7 @@ export function createMockWarehouse(overrides = {}) {
       serial: 'WH-01',
       reference: 'SEC-A',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId },
+      lineage: { organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId } },
       data: {
         type: 'MAIN',
         address: '123 Industrial Way, Tech City',
@@ -557,7 +554,7 @@ export function createMockToolProfile(overrides = {}) {
       uid: 'tool-demo-flat-endmill-4',
       name: 'Flat Endmill 4mm',
       state: 'ACTIVE',
-      lineage: { userId: 'user-demo' },
+      lineage: { user: { entityType: 'user', entityId: 'user-demo' } },
       data: { diameter: 4, angle: 180, kerf: 4, description: 'General cutting tool' }
     }),
     ...overrides
@@ -570,7 +567,7 @@ export function createMockMachine(overrides = {}) {
       uid: 'machine-demo-router',
       name: 'CNC Router 3000 x 1500',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId },
+      lineage: { organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId } },
       data: {
         workArea: { width: 3000, length: 1500 },
         boundaryOffset: { top: 10, right: 10, bottom: 10, left: 10 }
@@ -586,7 +583,7 @@ export function createMockProfileTemplate(overrides = {}) {
       uid: 'profile-demo-hanger',
       name: 'Hanger profile',
       state: 'ACTIVE',
-      lineage: { userId: 'user-demo' },
+      lineage: { user: { entityType: 'user', entityId: 'user-demo' } },
       data: {
         kind: 'hanger',
         process: 'extruded',
@@ -633,7 +630,7 @@ export function createMockPenTemplate(overrides = {}) {
       uid: 'pen-demo-cutting',
       name: 'Cutting Pen',
       state: 'ACTIVE',
-      lineage: { userId: 'user-demo' },
+      lineage: { user: { entityType: 'user', entityId: 'user-demo' } },
       data: { stroke }
     }),
     ...overrides
@@ -670,7 +667,10 @@ export function createMockRequisition(overrides = {}) {
       name: 'Q1 Material Order',
       serial: 'REQ-2025-001',
       state: 'SENT',
-      lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId },
+      lineage: {
+        organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId },
+        project: { entityType: 'project', entityId: MOCK_IDS.projectId }
+      },
       data: { items, notes: ['Priority delivery requested.'], requisitionNumber: 'REQ-2025-001', totalPrice: 12500, currency: 'USD' }
     }),
     ...overrides
@@ -692,7 +692,7 @@ export function createMockUser(overrides = {}) {
       uid: 'user-demo',
       name: 'John Doe',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId },
+      lineage: { organization: { entityType: 'organization', entityId: MOCK_IDS.organizationId } },
       data: {
         email: 'john@example.com',
         isActive: true,
@@ -733,7 +733,8 @@ export function createMockArtifact(overrides = {}) {
       uid: 'artifact-demo-layout-dxf',
       name: 'Queue Q-001 - Layout DXF',
       state: 'GENERATING',
-      lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
+      lineage: { queue: { entityType: 'queue', entityId: MOCK_IDS.queueId, revisionId: MOCK_IDS.queueRevisionId } },
+      relations: { source: [{ entityType: 'queue', entityId: MOCK_IDS.queueId, revisionId: MOCK_IDS.queueRevisionId }] },
       attachments: { primary: attachment },
       data: { type: 'LAYOUT_DXF', metadata: { requestedBy: 'ui-lab' } }
     }),

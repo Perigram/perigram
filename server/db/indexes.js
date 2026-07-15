@@ -13,109 +13,102 @@ const INDEXES = {
   // Layer Standards Collection
   layer_standards: [
     { keys: { 'data.code': 1 }, options: { unique: true, name: 'code_unique' } },
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } }
+    { keys: { 'lineage.organization.entityId': 1 }, options: { name: 'lineage_org_idx' } }
   ],
 
   // Pen Templates Collection
   pen_templates: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
+    { keys: { 'lineage.organization.entityId': 1 }, options: { name: 'lineage_org_idx' } },
     { keys: { 'identity.name': 1 }, options: { name: 'name_idx' } }
   ],
 
   // Tool Profiles Collection
   tool_profiles: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } }
+    { keys: { 'lineage.organization.entityId': 1 }, options: { name: 'lineage_org_idx' } }
   ],
 
   // CNC Machines Collection
   machines: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
+    { keys: { 'lineage.organization.entityId': 1 }, options: { name: 'lineage_org_idx' } },
     { keys: { 'lineage.scope': 1, 'data.default': 1 }, options: { name: 'scope_default_idx' } }
   ],
 
   // Cassettes Collection
   cassettes: [
     { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } },
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
-    { keys: { 'lineage.libraryId': 1 }, options: { name: 'lineage_library_idx' } }
+    { keys: { 'lineage.organization.entityId': 1 }, options: { name: 'lineage_org_idx' } },
+    { keys: { 'lineage.library.entityId': 1 }, options: { name: 'lineage_library_idx' } }
   ],
 
   // Libraries Collection
   libraries: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
+    { keys: { 'lineage.organization.entityId': 1 }, options: { name: 'lineage_org_idx' } },
     { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Projects Collection
   projects: [
     { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } },
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
+    { keys: { 'lineage.organization.entityId': 1 }, options: { name: 'lineage_org_idx' } },
     { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Queues Collection
   queues: [
-    { keys: { 'lineage.organizationId': 1, 'lineage.projectId': 1 }, options: { name: 'lineage_org_prj_idx' } },
+    { keys: { 'lineage.organization.entityId': 1, 'lineage.project.entityId': 1 }, options: { name: 'lineage_org_prj_idx' } },
     { keys: { 'identity.queueNumber': -1 }, options: { name: 'queue_number_idx' } },
-    { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
-  ],
-
-  // Nesting Runs Collection
-  nesting_runs: [
-    { keys: { 'lineage.queueId': 1 }, options: { name: 'lineage_queue_idx' } },
     { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Sheet Designs Collection
   sheet_designs: [
-    { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } }
+    { keys: { 'lineage.queue.entityId': 1, 'lineage.queue.revisionId': 1 }, options: { name: 'lineage_queue_revision_idx' } }
   ],
 
   // Planned Sheet Instances Collection
   sheet_instances: [
-    { keys: { 'lineage.sheetDesignId': 1 }, options: { name: 'lineage_sheet_design_idx' } },
-    { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } },
+    { keys: { 'lineage.sheetDesign.entityId': 1 }, options: { name: 'lineage_sheet_design_idx' } },
+    { keys: { 'lineage.queue.entityId': 1, 'lineage.queue.revisionId': 1 }, options: { name: 'lineage_queue_revision_idx' } },
     { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Cassette Designs Collection
   cassette_designs: [
-    { keys: { 'lineage.queueId': 1 }, options: { name: 'lineage_queue_idx' } },
-    { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } }
+    { keys: { 'lineage.queue.entityId': 1 }, options: { name: 'lineage_queue_idx' } },
+    { keys: { 'lineage.project.entityId': 1 }, options: { name: 'lineage_project_idx' } }
   ],
 
   // Cassette Instances Collection
   cassette_instances: [
-    { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } },
-    { keys: { 'lineage.sheetId': 1 }, options: { name: 'lineage_sheet_idx' } },
+    { keys: { 'lineage.project.entityId': 1 }, options: { name: 'lineage_project_idx' } },
+    { keys: { 'lineage.sheet.entityId': 1 }, options: { name: 'lineage_sheet_idx' } },
     { keys: { 'identity.serial': 1 }, options: { name: 'serial_idx' } }
   ],
 
   // Material Piles Collection
   material_piles: [
-    { keys: { 'lineage.organizationId': 1, 'lineage.warehouseId': 1 }, options: { name: 'lineage_org_wh_idx' } },
+    { keys: { 'lineage.organization.entityId': 1, 'lineage.warehouse.entityId': 1 }, options: { name: 'lineage_org_wh_idx' } },
     { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Sheets Collection
   sheets: [
     { keys: { 'identity.serial': 1 }, options: { unique: true, name: 'serial_unique' } },
-    { keys: { 'lineage.pileId': 1 }, options: { name: 'lineage_pile_idx' } },
-    { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } },
+    { keys: { 'lineage.materialPile.entityId': 1 }, options: { name: 'lineage_pile_idx' } },
     { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Remnants Collection
   remnants: [
     { keys: { 'identity.serial': 1 }, options: { unique: true, name: 'serial_unique' } },
-    { keys: { 'lineage.parentSheetId': 1 }, options: { name: 'lineage_parent_sheet_idx' } }
+    { keys: { 'lineage.sheet.entityId': 1 }, options: { name: 'lineage_parent_sheet_idx' } }
   ],
 
   // Artifacts Collection
   artifacts: [
-    { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } },
-    { keys: { 'lineage.queueId': 1 }, options: { name: 'lineage_queue_idx' } },
-    { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } },
+    { keys: { 'lineage.project.entityId': 1 }, options: { name: 'lineage_project_idx' } },
+    { keys: { 'lineage.queue.entityId': 1 }, options: { name: 'lineage_queue_idx' } },
+    { keys: { 'lineage.queue.entityId': 1, 'lineage.queue.revisionId': 1 }, options: { name: 'lineage_queue_revision_idx' } },
     { keys: { 'data.type': 1 }, options: { name: 'data_type_idx' } }
   ],
 
@@ -133,7 +126,7 @@ const INDEXES = {
 
   // Memberships Collection
   memberships: [
-    { keys: { 'lineage.organizationId': 1, 'lineage.userId': 1 }, options: { unique: true, name: 'org_user_unique' } }
+    { keys: { 'lineage.organization.entityId': 1, 'lineage.user.entityId': 1 }, options: { unique: true, name: 'org_user_unique' } }
   ],
 
   // Organizations Collection
@@ -148,7 +141,7 @@ const INDEXES = {
 
   // Warehouses Collection
   warehouses: [
-    { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } }
+    { keys: { 'lineage.organization.entityId': 1 }, options: { name: 'lineage_org_idx' } }
   ],
 
   // Catalogs Collection
@@ -158,7 +151,7 @@ const INDEXES = {
 
   // Colors Collection
   colors: [
-    { keys: { 'lineage.catalogId': 1 }, options: { name: 'lineage_catalog_idx' } }
+    { keys: { 'lineage.catalog.entityId': 1 }, options: { name: 'lineage_catalog_idx' } }
   ]
 };
 

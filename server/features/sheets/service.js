@@ -7,7 +7,6 @@ import { Sheet } from './model.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
 import { mapLineageQuery } from '~/server/utils/query';
-import { toFlexibleId } from '~/server/utils/objectid.js';
 import { serializeForAccess } from '~/server/utils/entity-redaction.js';
 
 /**
@@ -28,7 +27,7 @@ export async function createFromPile(pileId, count, userId, userRole, userPermis
     throw createError({ statusCode: 400, message: `Insufficient stock in pile. Available: ${available}` });
   }
 
-  const baseLineage = inheritLineage(pileRaw, 'pile');
+  const baseLineage = inheritLineage(pileRaw, 'materialPile');
   const created = [];
 
   for (let i = 0; i < count; i++) {
@@ -56,40 +55,6 @@ export async function allocateFromPile(pileId, count, user) {
   return await createFromPile(pileId, count, user.userId, user.role, userPermissions);
 }
 
-export async function createCutSheetFromPile(pileId, { queue, run, source = {}, index = 0, userId = 'SYSTEM' } = {}) {
-  const pileRaw = await materialPilesRepository.findById(pileId);
-  if (!pileRaw) throw createError({ statusCode: 404, message: 'Material pile not found' });
-
-  const serial = `CUT-${generateRandomString(8)}`;
-  const lineage = inheritLineage(pileRaw, 'pile')
-    .add('queue', queue?._id)
-    .add('run', run?._id);
-  if (queue?.lineage?.projectId) lineage.projectId = queue.lineage.projectId;
-
-  const specs = pileRaw.specs || pileRaw.data?.specs || source.dimensions || {};
-  const sheet = new Sheet({
-    identity: { uid: `sheet-${generateRandomString(8)}`, serial, name: `Cut sheet ${index + 1}` },
-    lineage,
-    specs,
-    data: {
-      serial,
-      specs,
-      source: 'QUEUE_CUT',
-      materialSource: {
-        type: 'PILE',
-        id: pileId,
-        label: source.label || pileRaw.identity?.name || pileId
-      },
-      queueId: queue?._id?.toString?.() || queue?._id,
-      runId: run?._id?.toString?.() || run?._id
-    }
-  });
-
-  sheet.applyStatus('MILLED', userId, { note: 'Consumed by queue cut' });
-  const createdRaw = await repository.create(sheet);
-  return new Sheet(createdRaw).toJSON();
-}
-
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter(userPermissions);
   const finalFilter = mapLineageQuery({ ...lineageFilter, ...filter });
@@ -104,7 +69,7 @@ export async function listPreviewByQueues(queueIds = [], userId, userOrg, userRo
   const limit = Math.max(Number(options.limit || 4), 1);
   const raws = await repository.find({
     ...getLineageFilter(userPermissions),
-    'lineage.queueId': { $in: ids }
+    'lineage.queue.entityId': { $in: ids }
   });
   const previews = {};
   const sheets = raws
@@ -113,7 +78,7 @@ export async function listPreviewByQueues(queueIds = [], userId, userOrg, userRo
     .sort(sortByStatusTimestampDesc);
 
   for (const sheet of sheets) {
-    const queueId = sheet.lineage?.queueId?.toString?.() || sheet.lineage?.queueId;
+    const queueId = sheet.lineage?.queue?.entityId?.toString?.() || sheet.lineage?.queue?.entityId;
     if (!queueId) continue;
     previews[queueId] ||= [];
     if (previews[queueId].length >= limit) continue;
@@ -190,7 +155,7 @@ export async function finishMilling(uid, cassetteInstanceIds = [], remnantIds = 
 
   await repository.updateById(uid, sheet);
 
-  const warehouseId = raw.lineage?.warehouseId;
+  const warehouseId = raw.lineage?.warehouse?.entityId;
   if (warehouseId) {
     const { updateInventoryCounts } = await import('../warehouses/service.js');
     await updateInventoryCounts(warehouseId, {
@@ -204,11 +169,7 @@ export async function finishMilling(uid, cassetteInstanceIds = [], remnantIds = 
 
 function flexibleLookupValues(id) {
   if (id === null || id === undefined) return [];
-  const stringId = id?.toString?.() || id;
-  const flexibleId = toFlexibleId(id);
-  return [flexibleId, stringId].filter((value, index, values) => (
-    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
-  ));
+  return [String(id)];
 }
 
 function sortByStatusTimestampDesc(left = {}, right = {}) {

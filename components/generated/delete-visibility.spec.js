@@ -16,7 +16,7 @@ describe('generated delete visibility', () => {
   });
 
   it('requires admin delete access for the exact generated entity', () => {
-    const entity = { _id: 'queue-1', lineage: { organizationId: 'org-1' } };
+    const entity = { _id: 'queue-1', lineage: { organization: { entityType: 'organization', entityId: 'org-1' } } };
     const authStore = {
       activePermissions: {
         queues: [{ level: 'admin', scope: { entityType: 'queue', entityId: 'queue-1' } }]
@@ -33,13 +33,13 @@ describe('generated delete visibility', () => {
     expect(canDeleteGeneratedEntity({
       authStore,
       domainUi,
-      entity: { _id: 'queue-2', lineage: { organizationId: 'org-1' } },
+      entity: { _id: 'queue-2', lineage: { organization: { entityType: 'organization', entityId: 'org-1' } } },
       entityType: 'queue'
     })).toBe(false);
   });
 
   it('requires the domain entity to support delete operations', () => {
-    const entity = { _id: 'material-1', lineage: { organizationId: 'org-1' } };
+    const entity = { _id: 'material-1', lineage: { organization: { entityType: 'organization', entityId: 'org-1' } } };
     const authStore = {
       activePermissions: {
         materials: [{ level: 'admin', scope: { entityType: 'material', entityId: 'material-1' } }]

@@ -200,7 +200,6 @@ const entityLoaders = {
     cassetteTemplate: useEntity('cassetteTemplate'),
     geometryCapture: useEntity('geometryCapture'),
     material: useEntity('material'),
-    nestingRun: useEntity('nestingRun'),
     project: useEntity('project'),
     sheetDesign: useEntity('sheetDesign'),
     user: useEntity('user'),
@@ -213,7 +212,6 @@ const FEATURE_ENTITY_TYPE = {
     cassettes: 'cassetteInstance',
     geometry_captures: 'geometryCapture',
     materials: 'material',
-    nesting_runs: 'nestingRun',
     projects: 'project',
     requisitions: 'requisition',
     queues: 'queue',
@@ -224,7 +222,7 @@ const FEATURE_ENTITY_TYPE = {
 };
 
 const RELATED_ENTITY_TYPES_BY_ENTITY = {
-    artifact: ['queue', 'nestingRun', 'project', 'organization'],
+    artifact: ['sheetDesign', 'queue', 'project', 'organization'],
     batchPile: ['requisition', 'warehouse', 'organization'],
     catalog: ['organization'],
     cassetteDesign: ['queue', 'project', 'organization'],
@@ -234,7 +232,6 @@ const RELATED_ENTITY_TYPES_BY_ENTITY = {
     geometryCapture: ['project', 'warehouse', 'organization'],
     material: ['organization'],
     materialPile: ['warehouse', 'organization'],
-    nestingRun: ['queue', 'project', 'organization'],
     project: ['organization'],
     queue: ['project', 'organization'],
     remnant: ['warehouse', 'organization'],
@@ -254,7 +251,6 @@ const PERMISSION_LEVELS = computed(() => [
 const entities = computed(() => [
     { key: 'projects',      label: t('features.projects') },
     { key: 'queues',        label: t('features.queues'), actions: ['view', 'edit', 'run', 'delete'] },
-    { key: 'nesting_runs',  label: t('entities.nestingRun'), actions: ['view', 'run', 'delete'] },
     { key: 'artifacts',     label: t('entities.artifact'), actions: ['view', 'create', 'delete'] },
     { key: 'cassettes',     label: t('features.cassettes') },
     { key: 'warehouses',    label: t('features.warehouses') },
@@ -309,10 +305,10 @@ const relatedEntityTypeOptions = computed(() => {
 });
 
 const SCOPE_FACT_BY_KEY = {
-    organizationId: 'lineage.organizationId',
-    projectId: 'lineage.projectId',
-    queueId: 'lineage.queueId',
-    warehouseId: 'lineage.warehouseId',
+    organizationId: 'lineage.organization.entityId',
+    projectId: 'lineage.project.entityId',
+    queueId: 'lineage.queue.entityId',
+    warehouseId: 'lineage.warehouse.entityId',
     entityId: 'entityId',
     entityType: 'entityType'
 };
@@ -1121,7 +1117,6 @@ function getIcon(key) {
     const iconMap = {
         projects: 'pi pi-folder',
         queues: 'pi pi-list',
-        nesting_runs: 'pi pi-sitemap',
         artifacts: 'pi pi-file',
         cassettes: 'pi pi-pencil',
         warehouses: 'pi pi-building',

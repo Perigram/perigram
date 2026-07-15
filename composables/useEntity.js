@@ -25,7 +25,7 @@ export const useEntity = (type, identifier = null) => {
   // Block helpers — reactive to entity ref
   const { name, slug, serial, reference } = useIdentity(entity);
   const { state, stateObject, regions: statusRegions, statusColor, timestamp: statusTime, metadata: statusMeta, lifecycle: statusLifecycle } = useStatus(entity);
-  const { lineage, getAncestorId } = useLineage(entity);
+  const { lineage, getAncestorReference, getAncestorId } = useLineage(entity);
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
   const getSingleEndpoint = (id = identifier || entity.value?._id) => {
@@ -193,6 +193,7 @@ export const useEntity = (type, identifier = null) => {
     update,
     remove,
     changeStatus,
+    getAncestorReference,
     getAncestorId
   };
 };

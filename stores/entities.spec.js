@@ -25,4 +25,19 @@ describe('entity store sync listener', () => {
     emitEntityDeleted({ type: 'project', id: 'project-1' });
     expect(store.registry.project['project-1']).toBeUndefined();
   });
+
+  it('derives ancestry from structured lineage and preserves revision qualification', () => {
+    const store = useEntityStore();
+
+    expect(store.getAncestry('cassetteInstance', {
+      lineage: {
+        project: { entityType: 'project', entityId: 'project-1' },
+        queue: { entityType: 'queue', entityId: 'queue-1', revisionId: 'revision-2' }
+      },
+      data: { projectSlug: 'legacy-project', queueId: 'legacy-queue' }
+    })).toEqual([
+      { type: 'project', id: 'project-1' },
+      { type: 'queue', id: 'queue-1', revisionId: 'revision-2' }
+    ]);
+  });
 });

@@ -274,7 +274,7 @@
             </template>
 
             <template v-else-if="primitive.key === 'TraceLink'">
-              <TraceLink type="project" :id="primitiveEntity.lineage.projectId" :label="$t('uiLab.fixtures.downtownComplex')" slug="downtown-complex" />
+              <TraceLink type="project" :id="primitiveEntity.lineage.project.entityId" :label="$t('uiLab.fixtures.downtownComplex')" slug="downtown-complex" />
             </template>
 
             <template v-else-if="primitive.key === 'TraceChain'">
@@ -514,7 +514,7 @@ const pileFields = [
 
 const queueFields = [
   { path: 'data.job.items.length', i18n: 'requisition.items' },
-  { path: 'summary.runCount', i18n: 'queue.runs' },
+  { path: 'summary.revisionCount', i18n: 'queue.revisions' },
   { path: 'summary.sheetCount', i18n: 'results.sheets' }
 ];
 

@@ -43,7 +43,7 @@ const props = defineProps({
 const strokeColor = computed(() => props.pen.data?.stroke?.color || props.pen.stroke?.color || 'var(--p-content-border-color)');
 const strokeWeight = computed(() => props.pen.data?.stroke?.weight || props.pen.stroke?.weight || null);
 const strokePattern = computed(() => props.pen.data?.stroke?.pattern || props.pen.stroke?.pattern || '');
-const isSystemPen = computed(() => !props.pen.lineage?.userId && !props.pen.ownerId);
+const isSystemPen = computed(() => !props.pen.lineage?.user?.entityId);
 const lineStyle = computed(() => ({
   borderTop: `${strokeWeight.value || 2}px solid ${strokeColor.value}`,
   borderStyle: strokePattern.value === 'DASHED' ? 'dashed' : 'solid'

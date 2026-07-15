@@ -17,12 +17,12 @@ async function main() {
   results.push(await markMany(db, 'materials', {}));
   results.push(await markMany(db, 'layer_standards', {
     $or: [
-      { 'lineage.organizationId': { $exists: false } },
-      { 'lineage.organizationId': null }
+      { 'lineage.organization': { $exists: false } },
+      { 'lineage.organization.entityId': null }
     ]
   }));
-  results.push(await markMany(db, 'pen_templates', { 'lineage.userId': null }));
-  results.push(await markMany(db, 'tool_profiles', { 'lineage.userId': null }));
+  results.push(await markMany(db, 'pen_templates', { 'lineage.user': { $exists: false } }));
+  results.push(await markMany(db, 'tool_profiles', { 'lineage.user': { $exists: false } }));
 
   console.log(JSON.stringify(results, null, 2));
   process.exit(0);

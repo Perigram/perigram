@@ -14,6 +14,8 @@ export class EntityRevision extends BaseEntity {
       scope: raw.data?.scope || '',
       number: Number(raw.data?.number || 0),
       contentHash: raw.data?.contentHash || '',
+      outcome: raw.data?.outcome || null,
+      taskRunId: raw.data?.taskRunId || null,
       snapshot: raw.data?.snapshot || null,
       sourceStatus: raw.data?.sourceStatus || null,
       reason: raw.data?.reason || ''

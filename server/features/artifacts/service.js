@@ -2,8 +2,9 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import {
   createAttachment,
-  createIdentity,
-  createStatus
+  createRelationRef,
+  createStatus,
+  Lineage
 } from '../../core/blocks/index.js';
 import { Artifact } from './model.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -19,12 +20,9 @@ import { mapLineageQuery } from '../../utils/query.js';
 
 export async function create(data, userId, userOrg, userRole, userPermissions = {}) {
   const organizationId = data.organizationId || userOrg;
-  const lineage = {
-    ...(data.lineage || {}),
-    ...(organizationId ? { organizationId } : {}),
-    ...(data.queueId ? { queueId: toFlexibleId(data.queueId) } : {}),
-    ...(data.runId ? { runId: toFlexibleId(data.runId) } : {})
-  };
+  const lineage = new Lineage(data.lineage || {});
+  if (organizationId) lineage.add('organization', organizationId);
+  if (data.queueId) lineage.add('queue', data.queueId, data.queueRevisionId);
   if (!hasLineagePermission(userPermissions, lineage, 'artifacts', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for artifacts' });
   }
@@ -36,12 +34,8 @@ export async function create(data, userId, userOrg, userRole, userPermissions = 
     origin,
     status: origin,
     lineage,
-    relations: data.source?.entityType && (data.source.entityId || data.source.id) ? {
-      source: [{
-        entityType: data.source.entityType,
-        entityId: data.source.entityId || data.source.id,
-        ...(data.source.revisionId ? { revisionId: data.source.revisionId } : {})
-      }]
+    relations: data.source?.entityType && data.source.entityId ? {
+      source: [createRelationRef(data.source.entityType, data.source.entityId, data.source.revisionId)]
     } : {},
     attachments: (file?.fileId || file?.id || data.fileId) ? {
       primary: createArtifactAttachment(
@@ -75,8 +69,7 @@ export async function getById(id, userId, userOrg, userRole, userPermissions = {
 export async function list(filter = {}, userPermissions = {}) {
   filter = mapLineageQuery({ ...getLineageFilter(userPermissions), ...filter });
   // Normalize IDs in filters
-  if (filter['lineage.queueId']) filter['lineage.queueId'] = toFlexibleId(filter['lineage.queueId']);
-  if (filter['lineage.runId']) filter['lineage.runId'] = toFlexibleId(filter['lineage.runId']);
+  if (filter['lineage.queue.entityId']) filter['lineage.queue.entityId'] = String(filter['lineage.queue.entityId']);
 
   const raws = await repository.find(filter);
   return raws
@@ -98,9 +91,10 @@ export async function remove(id, userId, userOrg, userRole, userPermissions = {}
   return await repository.deleteById(toFlexibleId(id));
 }
 
-export async function markReadyByRun(runId, type, fileId, mimeType, name = '') {
+export async function markReadyByQueueRevision(queueId, queueRevisionId, type, fileId, mimeType, name = '') {
   const filter = {
-    'lineage.runId': toFlexibleId(runId),
+    'lineage.queue.entityId': String(queueId),
+    'lineage.queue.revisionId': String(queueRevisionId),
     'data.type': type
   };
 

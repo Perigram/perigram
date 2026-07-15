@@ -19,7 +19,7 @@ import * as repository from './repository.js';
 import { buildConfigBotKnowledge } from './indexer.js';
 import { askOllama, getOllamaConfig } from './ollama.js';
 
-const DEFAULT_ENTITY_TYPES = ['project', 'queue', 'nesting_run', 'sheet_design'];
+const DEFAULT_ENTITY_TYPES = ['project', 'queue', 'entity_revision', 'sheet_design'];
 const PACKAGE_NAMES = [
   '@cutkit/core',
   '@cutkit/workflows',
@@ -110,7 +110,7 @@ export function assertConfigBotAccess(auth = {}) {
   if (!auth?.userId) throw createError({ statusCode: 401, message: 'Authentication required' });
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
   const allowed = hasEntityAccess({
-    entity: { lineage: { organizationId } },
+    entity: { lineage: { organization: { entityType: 'organization', entityId: String(organizationId) } } },
     feature: 'config_bot',
     level: 'admin',
     auth

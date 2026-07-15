@@ -15,8 +15,7 @@ function normalizeEntityType(type = '') {
 }
 
 function processOrganizationId(process = {}) {
-  return process.lineage?.organizationId
-    || process.lineage?.organization
+  return process.lineage?.organization?.entityId
     || process.data?.organizationId
     || process.data?.organization
     || '';
@@ -113,7 +112,7 @@ async function migrateMapping({ db, process, organizationId, mapping }) {
   let scanned = 0;
   let updated = 0;
   let skipped = 0;
-  const cursor = db.collection(collection).find({ 'lineage.organizationId': organizationId });
+  const cursor = db.collection(collection).find({ 'lineage.organization.entityId': String(organizationId) });
 
   for await (const entity of cursor) {
     scanned++;

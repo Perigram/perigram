@@ -20,7 +20,7 @@ describe('Framework package contracts', () => {
     });
     const entity = new BaseEntity({
       identity: { uid: 'test-1', name: 'Test Entity' },
-      lineage: { organizationId: 'org-1' }
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } }
     });
 
     expect(definition.collection).toBe('test_entities');
@@ -29,7 +29,7 @@ describe('Framework package contracts', () => {
     expect(entity.toJSON()).toMatchObject({
       _id: 'test-1',
       identity: { uid: 'test-1', name: 'Test Entity' },
-      lineage: { organizationId: 'org-1' }
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } }
     });
     expect(entity.toJSON()).not.toHaveProperty('id');
     expect(entity.toJSON()).not.toHaveProperty('name');
@@ -126,10 +126,12 @@ describe('Framework package contracts', () => {
       cncDesignSystem,
       cncDesignSystemEntityContracts,
       cncDomain,
+      cncEntityConstruction,
       cncEntities,
       cncFrontendEntities,
       cncCommands,
       cncTasks,
+      cncRelations,
       cncWorkflows
     } = await import('../packages/domain-cnc/src/index.js');
     const { createDomainUiAdapter, createEndpointMap, getSingleEndpoint, getListEndpoint } = await import('../packages/vue/src/index.js');
@@ -144,6 +146,7 @@ describe('Framework package contracts', () => {
       tasks: cncTasks,
       attachmentKinds: cncAttachmentKinds,
       summaries: [],
+      relations: cncRelations,
       designSystem: {
         contracts: cncDesignSystem.contracts,
         primitives: cncDesignSystem.primitives,
@@ -174,6 +177,21 @@ describe('Framework package contracts', () => {
     });
 
     expect(cncEntities.find(entity => entity.type === 'queue')?.collection).toBe('queues');
+    expect(cncEntities.find(entity => entity.type === 'artifact')?.blocks).toEqual(expect.arrayContaining([
+      'identity',
+      'lineage',
+      'origin',
+      'status',
+      'relations',
+      'attachments',
+      'data'
+    ]));
+    expect(cncEntityConstruction.artifact).toMatchObject({
+      defaultMode: 'createArtifactFromAttachment',
+      inputs: expect.arrayContaining([
+        expect.objectContaining({ id: 'file', type: 'attachment', required: true, capture: true })
+      ])
+    });
     expect(cncEntities.find(entity => entity.type === 'user')?.meta).toBe(true);
     expect(cncEntities).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'layer_standard', collection: 'layer_standards' }),
@@ -200,7 +218,7 @@ describe('Framework package contracts', () => {
         abstractEntities: [expect.objectContaining({
           name: 'source',
           capability: 'attachments.generate',
-          accepts: ['sheet_design', 'nesting_run']
+          accepts: ['sheet_design']
         })]
       },
       access: { permissions: [expect.objectContaining({ feature: 'artifacts', level: 'write' })] }
@@ -219,17 +237,29 @@ describe('Framework package contracts', () => {
     expect(cncDomain.ui.designSystem).toBe(cncDesignSystem);
     expect(cncDesignSystemEntityContracts).toContainEqual(expect.objectContaining({ key: 'cassette', entityType: 'cassette' }));
     expect(cncTasks.nestingSolve).toMatchObject({ id: 'nesting.solve', service: 'nesting' });
-    expect(cncTasks.nestingSolve.output.entities).toEqual(['nesting_run', 'sheet_design']);
+    expect(cncTasks.nestingSolve.output.entities).toEqual(['entity_revision', 'sheet_design', 'sheet_instance']);
     expect(cncTasks.nestingSolve.output).not.toHaveProperty('attachments');
+    expect(manifest.relationships).toContainEqual({
+      kind: 'containment',
+      source: 'queue',
+      target: 'entity_revision',
+      via: 'lineage.queue.entityId'
+    });
+    expect(manifest.relationships).toContainEqual({
+      kind: 'link',
+      source: 'project',
+      target: 'library',
+      via: 'relations.libraries'
+    });
     expect(cncAttachmentKinds.LAYOUT_DXF).toMatchObject({ bucket: 'nestDxf', preview: { mode: 'dxf' } });
     const endpointMap = createEndpointMap(cncFrontendEntities);
     const domainUi = createDomainUiAdapter(cncDomain);
     expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/project/p-1');
-    expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/cassette-instances?lineage.queueId=q-1');
+    expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queue.entityId': 'q-1' })).toBe('/api/cassette-instances?lineage.queue.entityId=q-1');
     expect(existsSync('server/api/cassette-instances/index.get.js')).toBe(true);
     expect(domainUi.getSingleEndpoint('project', 'p-1')).toBe('/api/project/p-1');
     expect(domainUi.getAttachmentPreview('LAYOUT_DXF')).toEqual({ mode: 'dxf' });
-    expect(domainUi.getDownloadEndpoint('artifact', 'a-1')).toBe('/api/artifacts/a-1');
+    expect(domainUi.getDownloadEndpoint('artifact', 'a-1')).toBe('/api/artifacts/a-1/content');
     await expect(handlers.list_entities()).resolves.toContainEqual(expect.objectContaining({ type: 'project' }));
     await expect(handlers.get_entity_schema({ type: 'queue' })).resolves.toMatchObject({ collection: 'queues' });
     await expect(handlers.list_routes()).resolves.toContainEqual(expect.objectContaining({ type: 'project', single: '/api/project/:id' }));
@@ -275,6 +305,7 @@ describe('Framework package contracts', () => {
       key: 'EntityPage',
       componentPath: 'components/shared/EntityPage.vue'
     }));
+    expect(committed.relationships).not.toContainEqual(expect.objectContaining({ via: 'lineage.undefined' }));
 
     const docsResult = spawnSync( process.execPath, ['scripts/framework-inspect.js', 'query-docs', 'EntityPage'], { encoding: 'utf8' });
     expect(docsResult.status).toBe(0);

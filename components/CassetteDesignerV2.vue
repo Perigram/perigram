@@ -1098,7 +1098,7 @@ const profileTemplateListFilters = () => ({
   ...(selectedTemplateId.value ? { cassetteTemplateId: selectedTemplateId.value } : {})
 });
 const editableProfileTemplateId = (profile = null) => (
-  profile?.lineage?.userId || profile?.lineage?.organizationId ? profile._id : ''
+  profile?.lineage?.user?.entityId || profile?.lineage?.organization?.entityId ? profile._id : ''
 );
 const ensureProfileTemplatesLoaded = async () => {
   if (!profileTemplateItems.value.length) {

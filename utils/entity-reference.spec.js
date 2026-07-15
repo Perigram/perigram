@@ -8,8 +8,8 @@ describe('entity references', () => {
     expect(parseEntityReference('project/project-1')).toEqual({ entityType: 'project', entityId: 'project-1' });
   });
 
-  it('reads paired lineage revision keys', () => {
-    expect(lineageReference({ projectId: 'project-1', projectRevisionId: 'revision-4' }, 'project')).toEqual({
+  it('reads a structured revision-qualified lineage reference', () => {
+    expect(lineageReference({ project: { entityType: 'project', entityId: 'project-1', revisionId: 'revision-4' } }, 'project')).toEqual({
       entityType: 'project',
       entityId: 'project-1',
       revisionId: 'revision-4'

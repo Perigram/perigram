@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { getPrimaryState } from '~/packages/core/src/index.js';
+import { getRegionState } from '~/packages/core/src/index.js';
 
 export const useQueuesStore = defineStore('queues', () => {
     const queues = ref([]);
     const currentQueue = ref(null);
-    const runs = ref({});
+    const revisions = ref({});
     const loading = ref(false);
     const error = ref(null);
     const nestingCompleted = ref(null);
@@ -18,30 +18,16 @@ export const useQueuesStore = defineStore('queues', () => {
         }
     }
 
-    function hasActiveNestingRun(queueRuns = []) {
-        const latest = sortQueueRuns(queueRuns).at(-1);
-        if (!latest) return false;
-        const state = getPrimaryState(latest.status);
-        if (state === 'NESTING') return true;
-        if (['COMPLETE', 'CHOSEN', 'ERROR'].includes(state)) return false;
-        return !hasNestingResults(latest);
-    }
-
-    function hasNestingResults(run = {}) {
-        return Boolean(run.data?.results) || Boolean(run.data?.sheetDesignOutputs?.length);
-    }
-
-    function sortQueueRuns(queueRuns = []) {
-        return [...queueRuns].sort((left, right) => runOrder(left) - runOrder(right));
-    }
-
-    function runOrder(run = {}) {
-        return Number(run.data?.runNumber ?? run.runNumber ?? Number.MAX_SAFE_INTEGER);
+    function hasActiveNesting(queue = {}) {
+        return getRegionState(queue.status, 'nesting', 'IDLE') === 'RUNNING';
     }
 
     async function pollQueueStatus(queueId) {
         if (pollingIntervals.value[queueId]) return;
-        if (!hasActiveNestingRun(runs.value[queueId] || [])) return;
+        const queue = currentQueue.value?._id?.toString() === queueId?.toString()
+            ? currentQueue.value
+            : queues.value.find(item => item._id?.toString() === queueId?.toString());
+        if (!hasActiveNesting(queue)) return;
 
         pollingIntervals.value[queueId] = setInterval(async () => {
             try {
@@ -58,8 +44,8 @@ export const useQueuesStore = defineStore('queues', () => {
                     currentQueue.value = data;
                 }
 
-                const queueRuns = await fetchRuns(queueId);
-                if (!hasActiveNestingRun(queueRuns)) {
+                await fetchRevisions(queueId);
+                if (!hasActiveNesting(data)) {
                     stopPolling(queueId);
                     // Nesting just completed; use a fresh object so repeated
                     // runs for the same queue still trigger Vue watchers.
@@ -74,8 +60,7 @@ export const useQueuesStore = defineStore('queues', () => {
 
     function checkTransientStatuses() {
         queues.value.forEach(queue => {
-            const queueRuns = runs.value[queue._id] || [];
-            if (hasActiveNestingRun(queueRuns)) {
+            if (hasActiveNesting(queue)) {
                 pollQueueStatus(queue._id);
             }
         });
@@ -102,7 +87,7 @@ export const useQueuesStore = defineStore('queues', () => {
         try {
             const data = await $fetch(`/api/queue/${queueId}`);
             currentQueue.value = data;
-            await fetchRuns(queueId);
+            await fetchRevisions(queueId);
             pollQueueStatus(queueId);
             
             return data;
@@ -156,8 +141,10 @@ export const useQueuesStore = defineStore('queues', () => {
                 method: 'POST',
                 body: payload
             });
-            await fetchRuns(queueId);
-            pollQueueStatus(queueId);
+            const queue = await $fetch(`/api/queue/${queueId}`);
+            currentQueue.value = queue;
+            await fetchRevisions(queueId);
+            if (hasActiveNesting(queue)) pollQueueStatus(queueId);
             return result;
         } catch (err) {
             error.value = err.message;
@@ -206,13 +193,13 @@ export const useQueuesStore = defineStore('queues', () => {
         }
     }
 
-    async function chooseRun(queueId, runId) {
+    async function chooseRevision(queueId, revisionId) {
         try {
-            const result = await $fetch(`/api/queue/${queueId}/choose-run`, {
+            const result = await $fetch(`/api/queue/${queueId}/choose-revision`, {
                 method: 'POST',
-                body: { runId }
+                body: { revisionId }
             });
-            await fetchRuns(queueId);
+            await fetchRevisions(queueId);
             if (result.queue) {
                 const index = queues.value.findIndex(q => q._id === queueId);
                 if (index !== -1) {
@@ -229,24 +216,13 @@ export const useQueuesStore = defineStore('queues', () => {
         }
     }
 
-    async function deleteRun(queueId, runId) {
+    async function fetchRevisions(queueId) {
         try {
-            await $fetch(`/api/queue/${queueId}/run/${runId}`, {
-                method: 'DELETE'
+            const data = await $fetch('/api/entity-revisions', {
+                query: { entityType: 'queue', entityId: queueId, scope: 'nesting' }
             });
-            await fetchRuns(queueId);
-            return runs.value[queueId] || [];
-        } catch (err) {
-            error.value = err.message;
-            throw err;
-        }
-    }
-
-    async function fetchRuns(queueId) {
-        try {
-            const data = await $fetch(`/api/nesting-runs`, { query: { queueId } });
-            const sorted = sortQueueRuns(data);
-            runs.value[queueId] = sorted;
+            const sorted = [...data].sort((left, right) => Number(left.data?.number || 0) - Number(right.data?.number || 0));
+            revisions.value[queueId] = sorted;
             return sorted;
         } catch (err) {
             error.value = err.message;
@@ -257,7 +233,7 @@ export const useQueuesStore = defineStore('queues', () => {
     return {
         queues,
         currentQueue,
-        runs,
+        revisions,
         nestingCompleted,
         loading,
         error,
@@ -269,10 +245,9 @@ export const useQueuesStore = defineStore('queues', () => {
         startNesting,
         getArtifacts,
         resetStatus,
-        chooseRun,
-        deleteRun,
+        chooseRevision,
         stopPolling,
         pollQueueStatus,
-        fetchRuns
+        fetchRevisions
     };
 });

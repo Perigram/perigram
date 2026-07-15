@@ -6,6 +6,10 @@ import { createEntitySurfaceContracts } from './ui-surfaces.js';
 export const cncStatusUi = {
   DRAFT: { label: 'status.draft', severity: 'info', icon: 'pi pi-pencil' },
   NESTING: { label: 'status.nesting', severity: 'warn', icon: 'pi pi-cog' },
+  IDLE: { label: 'status.idle', severity: 'secondary', icon: 'pi pi-pause' },
+  RUNNING: { label: 'status.running', severity: 'warn', icon: 'pi pi-spin pi-cog' },
+  REVIEW: { label: 'status.review', severity: 'info', icon: 'pi pi-eye' },
+  SELECTED: { label: 'status.selected', severity: 'success', icon: 'pi pi-check-circle' },
   READY: { label: 'status.ready', severity: 'success', icon: 'pi pi-check' },
   CUT: { label: 'status.cut', severity: 'success', icon: 'pi pi-scissors' },
   CLOSED: { label: 'status.closed', severity: 'secondary', icon: 'pi pi-lock' },
@@ -68,7 +72,6 @@ const workflowStatus = (entityType) => cncWorkflows[entityType] ? 'interactive' 
 export const cncDesignSystemEntityContracts = [
   ['project', 'project', 'production', 'entities.project', 'project', 'createMockProject', workflowStatus('project'), true, ['components/entities/Project/README.md', 'server/features/projects/README.md']],
   ['queue', 'queue', 'production', 'entities.queue', 'queue', 'createMockQueue', workflowStatus('queue'), true, ['server/features/queues/README.md']],
-  ['nestingRun', 'nesting_run', 'production', 'entities.nestingRun', 'run', 'createMockNestingRun', workflowStatus('nesting_run'), true, ['server/features/nesting-runs/README.md']],
   ['sheetDesign', 'sheet_design', 'production', 'entities.sheetDesign', 'design', 'createMockSheetDesign', workflowStatus('sheet_design'), true, ['server/features/sheet-designs/README.md']],
   ['sheetInstance', 'sheet_instance', 'production', 'entities.sheetInstance', 'instance', 'createMockSheetInstance', 'hidden', true, ['server/features/sheet-instances/README.md']],
   ['cassette', 'cassette', 'production', 'entities.cassette', 'cassette', 'createMockCassette', workflowStatus('cassette'), true, ['components/entities/Cassette/README.md', 'server/features/cassettes/README.md']],
@@ -134,7 +137,6 @@ function iconForType(type) {
   const icons = {
     project: 'pi pi-folder',
     queue: 'pi pi-list',
-    nestingRun: 'pi pi-list-check',
     sheetDesign: 'pi pi-map',
     cassette: 'pi pi-box',
     cassetteDesign: 'pi pi-pencil',

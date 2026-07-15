@@ -225,6 +225,15 @@
         }
     }, { immediate: true })
 
+    watch(
+        [() => route.path, () => route.query, () => authStore.screenManifest, () => authStore.userIsSet],
+        async ([path, query, , isSet]) => {
+            if (!isSet) return
+            await navStore.syncEntityHierarchy(path, query, ssrFetchOptions)
+        },
+        { immediate: true, deep: true }
+    )
+
     // Fetch projects list once for breadcrumb siblings
     onMounted(async () => {
         if (authStore.userIsSet && globalStore.projectsList.length === 0) {
@@ -455,8 +464,6 @@
         const entityIcons = {
             project: 'pi pi-folder',
             queue: 'pi pi-list',
-            nestingRun: 'pi pi-list-check',
-            nesting_run: 'pi pi-list-check',
             sheetDesign: 'pi pi-map',
             sheet_design: 'pi pi-map',
             cassette: 'pi pi-box',

@@ -21,7 +21,7 @@ const domain = {
   entities: [
     { type: 'project' },
     { type: 'queue' },
-    { type: 'nesting_run', collection: 'nesting_runs' },
+    { type: 'entity_revision', collection: 'entity_revisions' },
     { type: 'sheet_design', collection: 'sheet_designs' },
     { type: 'cassette' },
     { type: 'cassette_design', collection: 'cassette_designs' },
@@ -35,14 +35,14 @@ const domain = {
   commands: {
     solveNesting: {
       id: 'solveNesting',
-      output: { entities: ['nesting_run', 'sheet_design'] }
+      output: { entities: ['entity_revision', 'sheet_design'] }
     }
   },
   relations: [
-    { kind: 'containment', childType: 'queue', parentType: 'project', parentIdKey: 'projectId' },
-    { kind: 'containment', childType: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId' },
-    { kind: 'containment', childType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId' },
-    { kind: 'containment', childType: 'cassette', parentType: 'library', parentIdKey: 'libraryId' }
+    { kind: 'containment', childType: 'queue', parentType: 'project', lineageRole: 'project', filterKey: 'projectId' },
+    { kind: 'containment', childType: 'entity_revision', parentType: 'queue', lineageRole: 'queue', filterKey: 'queueId', display: { parentDetail: false } },
+    { kind: 'containment', childType: 'sheet_design', parentType: 'queue', lineageRole: 'queue', filterKey: 'queueId', display: { parentDetail: false } },
+    { kind: 'containment', childType: 'cassette', parentType: 'library', lineageRole: 'library', filterKey: 'libraryId' }
   ],
   workflows: {
     project: {
@@ -268,7 +268,7 @@ describe('@cutkit/processes compiler', () => {
         ],
         edges: [
           { id: 'queue-cassette-parent', source: 'create_queue', target: 'create_cassette', sourceHandle: 'output', targetHandle: 'input:parent' },
-          { id: 'run-cut', source: 'solve_nesting', target: 'mark_run_cut', sourceHandle: 'output:nesting_run', targetHandle: 'input:entity' },
+          { id: 'run-cut', source: 'solve_nesting', target: 'mark_run_cut', sourceHandle: 'output:entity_revision', targetHandle: 'input:entity' },
           { id: 'sheet-cut', source: 'solve_nesting', target: 'mark_sheet_cut', sourceHandle: 'output:sheet_design', targetHandle: 'input:entity' },
           { id: 'library-cassette-parent', source: 'library_profile', target: 'create_cassette', sourceHandle: 'output', targetHandle: 'input:parent' }
         ]
@@ -299,7 +299,7 @@ describe('@cutkit/processes compiler', () => {
           access: { roleIds: ['role_operator'], level: 'write' },
           inputs: [{ id: 'queue', entityType: 'queue' }],
           outputs: [
-            { id: 'nesting_run', entityType: 'nesting_run', multiple: true },
+            { id: 'entity_revision', entityType: 'entity_revision', multiple: true },
             { id: 'sheet_design', entityType: 'sheet_design', multiple: true }
           ]
         },
@@ -308,8 +308,8 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'mutateEntity',
           status: { to: 'CUT' },
           access: { roleIds: ['role_operator'], level: 'write' },
-          inputs: [{ id: 'entity', entityType: 'nesting_run' }],
-          outputs: [{ id: 'entity', entityType: 'nesting_run' }]
+          inputs: [{ id: 'entity', entityType: 'entity_revision' }],
+          outputs: [{ id: 'entity', entityType: 'entity_revision' }]
         },
         mark_sheet_cut: {
           id: 'mark_sheet_cut',
@@ -392,7 +392,7 @@ describe('@cutkit/processes compiler', () => {
         ],
         edges: [
           {
-            id: 'action_1782325683073-output:nesting_run-action_1782325734315-input:entity-1782325754528',
+            id: 'action_1782325683073-output:entity_revision-action_1782325734315-input:entity-1782325754528',
             source: 'solve_nesting',
             target: 'mark_run_cut'
           },
@@ -409,15 +409,15 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'runCommand',
           commandId: 'solveNesting',
           outputs: [
-            { id: 'nesting_run', label: 'nesting_run', entityType: 'nesting_run', multiple: true },
+            { id: 'entity_revision', label: 'entity_revision', entityType: 'entity_revision', multiple: true },
             { id: 'sheet_design', label: 'sheet_design', entityType: 'sheet_design', multiple: true }
           ]
         },
         mark_run_cut: {
           id: 'mark_run_cut',
           actionKind: 'mutateEntity',
-          inputs: [{ id: 'entity', label: 'nesting_run', entityType: 'nesting_run', multiple: true }],
-          outputs: [{ id: 'entity', entityType: 'nesting_run' }]
+          inputs: [{ id: 'entity', label: 'entity_revision', entityType: 'entity_revision', multiple: true }],
+          outputs: [{ id: 'entity', entityType: 'entity_revision' }]
         },
         mark_sheet_cut: {
           id: 'mark_sheet_cut',
@@ -1322,6 +1322,10 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.create_queue.parentEntityType).toBe('project');
+    expect(compiled.actions.create_queue).toMatchObject({
+      parentInputKey: 'projectId',
+      parentLineageRole: 'project'
+    });
     expect(compiled.actions.create_queue.inputs[0]).toMatchObject({ id: 'parent', entityType: 'project' });
   });
 
@@ -1493,6 +1497,39 @@ describe('@cutkit/processes compiler', () => {
     expect(libraryDetail.actions).not.toContain('create_cassette');
   });
 
+  it('does not auto-render containment owned by a specialized parent detail surface', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator', label: 'Operator' }
+      },
+      actions: {
+        create_queue: {
+          id: 'create_queue',
+          actionKind: 'createEntity',
+          entityType: 'queue',
+          status: { to: SOURCE_STATE },
+          access: { level: 'write', roleIds: ['role_operator'] }
+        },
+        create_sheet_design: {
+          id: 'create_sheet_design',
+          actionKind: 'createEntity',
+          entityType: 'sheet_design',
+          parentEntityType: 'queue',
+          status: { to: SOURCE_STATE },
+          access: { level: 'write', roleIds: ['role_operator'] },
+          inputs: [{ id: 'parent', entityType: 'queue' }]
+        }
+      },
+      assignments: {
+        user_operator: { userId: 'user_operator', roleIds: ['role_operator'], status: 'active' }
+      }
+    }, domain);
+
+    const queueDetail = compiled.screens.auto_role_operator_queue_detail;
+    expect(queueDetail.sources.map(source => source.entityType)).not.toContain('sheet_design');
+    expect(queueDetail.regions.map(region => region.sourceId)).not.toContain('sheet_design_children');
+  });
+
   it('does not infer child regions without a domain parent relation', () => {
     const compiled = compileProcessDefinition({
       roles: {
@@ -1658,7 +1695,7 @@ describe('@cutkit/processes compiler', () => {
               proof: { kind: 'photo', required: true }
             },
             snapshots: {
-              designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+              designs: { entityType: 'cassette_design', lineageRole: 'queue', required: true }
             }
           }
         }
@@ -1718,7 +1755,7 @@ describe('@cutkit/processes compiler', () => {
           proof: { kind: 'photo', required: true }
         },
         snapshots: {
-          designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+          designs: { entityType: 'cassette_design', lineageRole: 'queue', required: true }
         }
       }
     });
@@ -1739,7 +1776,7 @@ describe('@cutkit/processes compiler', () => {
           proof: { kind: 'photo', required: true }
         },
         snapshots: {
-          designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+          designs: { entityType: 'cassette_design', lineageRole: 'queue', required: true }
         }
       }
     });
@@ -2498,7 +2535,7 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.userAccess.user_operator.permissions.nesting_runs).toEqual([
+    expect(compiled.userAccess.user_operator.permissions.entity_revisions).toEqual([
       { level: 'write' }
     ]);
     expect(compiled.userAccess.user_operator.permissions.sheet_designs).toEqual([
@@ -2519,7 +2556,7 @@ describe('@cutkit/processes compiler', () => {
         edges: [
           { id: 'create-send', source: 'create_queue', target: 'send_queue', sourceHandle: 'output', targetHandle: 'input:entity' },
           { id: 'send-solve', source: 'send_queue', target: 'solve_nesting', sourceHandle: 'output', targetHandle: 'input' },
-          { id: 'solve-run-cut', source: 'solve_nesting', target: 'mark_run_cut', sourceHandle: 'output:nesting_run', targetHandle: 'input:entity' },
+          { id: 'solve-run-cut', source: 'solve_nesting', target: 'mark_run_cut', sourceHandle: 'output:entity_revision', targetHandle: 'input:entity' },
           { id: 'send-reject', source: 'send_queue', target: 'reject_queue', sourceHandle: 'output', targetHandle: 'input:entity' },
           { id: 'reject-send', source: 'reject_queue', target: 'send_queue', sourceHandle: 'output', targetHandle: 'input:entity' }
         ]
@@ -2553,14 +2590,14 @@ describe('@cutkit/processes compiler', () => {
           access: { grants: [{ roleId: 'role_operator', level: 'admin' }], modified: true },
           inputs: [{ id: 'queue', entityType: 'queue' }],
           outputs: [
-            { id: 'nesting_run', entityType: 'nesting_run', multiple: true },
+            { id: 'entity_revision', entityType: 'entity_revision', multiple: true },
             { id: 'sheet_design', entityType: 'sheet_design', multiple: true }
           ]
         },
         mark_run_cut: {
           id: 'mark_run_cut',
           actionKind: 'mutateEntity',
-          entityType: 'nesting_run',
+          entityType: 'entity_revision',
           status: { to: 'CUT' },
           trigger: { mode: 'manual' },
           access: { grants: [{ roleId: 'role_operator', level: 'admin' }], modified: true }
@@ -2625,7 +2662,7 @@ describe('@cutkit/processes compiler', () => {
           trigger: { mode: 'manual' },
           inputs: [{ id: 'queue', entityType: 'queue' }],
           outputs: [
-            { id: 'nesting_run', entityType: 'nesting_run', multiple: true },
+            { id: 'entity_revision', entityType: 'entity_revision', multiple: true },
             { id: 'sheet_design', entityType: 'sheet_design', multiple: true }
           ]
         }
@@ -2648,7 +2685,7 @@ describe('@cutkit/processes compiler', () => {
     });
     expect(queueDetail.actions).toContain('solve_nesting');
     expect(queueDetail.regions[0].actions).toContain('solve_nesting');
-    expect(userAccess.permissions.nesting_runs).toEqual([{ level: 'write' }]);
+    expect(userAccess.permissions.entity_revisions).toEqual([{ level: 'write' }]);
     expect(userAccess.permissions.sheet_designs).toEqual([{ level: 'write' }]);
   });
 

@@ -17,7 +17,8 @@ export const cncEffects = {
       {
         type: 'transition',
         entity: { type: 'queue', from: 'event.source' },
-        intent: 'requestNesting'
+        intent: 'requestNesting',
+        region: 'nesting'
       }
     ]
   },
@@ -27,8 +28,9 @@ export const cncEffects = {
     effects: [
       {
         type: 'transition',
-        entity: { type: 'nesting_run', from: 'event.source' },
-        intent: 'nestingSolveCompleted'
+        entity: { type: 'queue', from: 'event.source' },
+        intent: 'nestingSolveCompleted',
+        region: 'nesting'
       }
     ]
   },
@@ -38,23 +40,9 @@ export const cncEffects = {
     effects: [
       {
         type: 'transition',
-        entity: { type: 'nesting_run', from: 'event.source' },
-        intent: 'nestingSolveFailed'
-      },
-      {
-        type: 'transition',
-        entity: { type: 'queue', from: 'event.entities.queue' },
-        intent: 'nestingSolveFailed'
-      }
-    ]
-  },
-  nestingRunChosen: {
-    id: 'nesting_run.chosen',
-    on: 'nesting_run.chosen',
-    effects: [
-      {
-        type: 'relatedEntity',
-        entity: { type: 'nesting_run', from: 'event.source' }
+        entity: { type: 'queue', from: 'event.source' },
+        intent: 'nestingSolveFailed',
+        region: 'nesting'
       }
     ]
   }

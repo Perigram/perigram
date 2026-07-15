@@ -65,9 +65,14 @@ describe('sheet layout editor helpers', () => {
   });
 
   it('rotates placements by exactly 90 degrees', () => {
-    expect(sheetPlacementTransform(rotateSheetPlacement90({
+    const initial = {
       transformation: { translation: [10, 20], rotation: 0 }
-    }))).toEqual({ x: 10, y: 20, rotation: 90 });
+    };
+    const first = rotateSheetPlacement90(initial);
+    const fullTurn = Array.from({ length: 3 }).reduce(rotateSheetPlacement90, first);
+
+    expect(sheetPlacementTransform(first)).toEqual({ x: 10, y: 20, rotation: 90 });
+    expect(sheetPlacementTransform(fullTurn)).toEqual({ x: 10, y: 20, rotation: 0 });
   });
 
   it('creates a nesting source item from uploaded cassette geometry', () => {

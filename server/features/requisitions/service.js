@@ -5,9 +5,8 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { ObjectId } from 'mongodb';
-import { createIdentity, createStatus, inheritLineage, createData } from '~/server/core/blocks/index.js';
+import { createIdentity, createRelationRef, createStatus, createData, Lineage } from '~/server/core/blocks/index.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
-import { toFlexibleId } from '~/server/utils/objectid.js';
 
 /**
  * Requisitions Service - v24 Standardized
@@ -20,6 +19,7 @@ function toDTO(requisition) {
     _id: requisition._id,
     identity: requisition.identity,
     lineage: requisition.lineage || {},
+    relations: requisition.relations || {},
     origin: requisition.origin || null,
     status: requisition.status || null,
     data: requisition.data || {},
@@ -61,10 +61,11 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     identity: createIdentity(data.name || `REQ-${serial}`, '', serial),
     origin,
     status: origin,
-    lineage: {
-      organizationId: toFlexibleId(userOrg),
-      manufacturerId: toFlexibleId(data.manufacturerId),
-      projectId: data.projectId ? toFlexibleId(data.projectId) : null
+    lineage: new Lineage()
+      .add('organization', userOrg)
+      .add('project', data.projectId),
+    relations: {
+      manufacturer: [createRelationRef('organization', data.manufacturerId)]
     },
     data: createData({
       items: snapshotItems,
@@ -96,23 +97,17 @@ function permissionsForOrganization(auth = {}, organizationId) {
 }
 
 function lineageMatchValues(value) {
-  const flexible = toFlexibleId(value);
-  const values = [flexible];
-  const stringValue = value?.toString?.() || value;
-  if (stringValue && !values.some(entry => entry?.toString?.() === stringValue)) {
-    values.push(stringValue);
-  }
-  return values;
+  return value === null || value === undefined ? [] : [String(value)];
 }
 
 export async function list(userId, userOrg, userRole, userPermissions) {
   const filter = { ...getLineageFilter(userPermissions) };
-  delete filter['lineage.organizationId'];
+  delete filter['lineage.organization.entityId'];
   // Add specific filter to see either as contractor (organizationId) or manufacturer (manufacturerId)
   const orgIds = lineageMatchValues(userOrg);
   filter.$or = [
-    { 'lineage.organizationId': { $in: orgIds } },
-    { 'lineage.manufacturerId': { $in: orgIds } }
+    { 'lineage.organization.entityId': { $in: orgIds } },
+    { 'relations.manufacturer.entityId': { $in: orgIds.map(String) } }
   ];
   
   const requisitions = await repository.find(filter);

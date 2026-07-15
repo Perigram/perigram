@@ -89,21 +89,29 @@ const FALLBACK_LABELS = {
 const activeLineage = computed(() => props.lineage || entityLineage.value);
 
 const items = computed(() => {
-    const list = [];
     const lin = activeLineage.value;
     if (!lin) return [];
-
-    if (lin.organizationId) list.push({ type: 'organization', id: lin.organizationId });
-    if (lin.libraryId) list.push({ type: 'library', id: lin.libraryId, revisionId: lin.libraryRevisionId });
-    if (lin.templateId) list.push({ type: 'cassetteTemplate', id: lin.templateId, revisionId: lin.templateRevisionId });
-    if (lin.warehouseId) list.push({ type: 'warehouse', id: lin.warehouseId });
-    if (lin.projectId) list.push({ type: 'project', id: lin.projectId, revisionId: lin.projectRevisionId });
-    if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, revisionId: lin.queueRevisionId, slug: lin.projectId });
-    if (lin.runId) list.push({ type: 'nestingRun', id: lin.runId, revisionId: lin.runRevisionId });
-    if (lin.sheetDesignId) list.push({ type: 'sheetDesign', id: lin.sheetDesignId, revisionId: lin.sheetDesignRevisionId });
-    
-    return list;
+    const orderedRoles = ['organization', 'library', 'cassette', 'warehouse', 'project', 'queue', 'sheetDesign'];
+    return Object.entries(lin)
+        .filter(([, ref]) => ref?.entityType && ref?.entityId)
+        .sort(([left], [right]) => roleOrder(left, orderedRoles) - roleOrder(right, orderedRoles))
+        .map(([role, ref]) => ({
+            type: traceEntityType(ref.entityType, role),
+            id: ref.entityId,
+            revisionId: ref.revisionId || null,
+            slug: role === 'queue' ? lin.project?.entityId || null : null
+        }));
 });
+
+const roleOrder = (role, orderedRoles) => {
+    const index = orderedRoles.indexOf(role);
+    return index === -1 ? orderedRoles.length : index;
+};
+
+const traceEntityType = (entityType, role) => {
+    if (role === 'cassette' || entityType === 'cassette') return 'cassetteTemplate';
+    return String(entityType).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
+};
 
 const findContextEntity = (type, id) => {
     const context = unref(entityContext);

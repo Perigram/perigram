@@ -35,37 +35,6 @@ export const useEntityStore = defineStore('entities', () => {
     ensureSyncListener();
 
     /**
-     * Map of how entities relate to their parents (The Ancestry Tree)
-     */
-    const ancestryMap = {
-        cassetteInstance: (data) => [
-            { type: 'cassetteDesign', id: data.cassetteDesignId },
-            { type: 'sheet', id: data.sheetId },
-            { type: 'project', id: data.projectSlug, isSlug: true }
-        ],
-        sheet: (data) => [
-            { type: 'batchPile', id: data.pileId },
-            { type: 'batch', id: data.batchId },
-            { type: 'warehouse', id: data.warehouseId }
-        ],
-        batch: (data) => [
-            { type: 'requisition', id: data.requisitionId }
-        ],
-        batchPile: (data) => [
-            { type: 'batch', id: data.batchId }
-        ],
-        queue: (data) => [
-            { type: 'project', id: data.projectSlug, isSlug: true }
-        ],
-        requisition: (data) => [
-            { type: 'catalog', id: data.catalogId }
-        ],
-        remnant: (data) => [
-            { type: 'sheet', id: data.sheetId }
-        ]
-    };
-
-    /**
      * Fetch an entity and store it in the registry.
      */
     async function fetchEntity(type, id, force = false, options = {}) {
@@ -109,9 +78,14 @@ export const useEntityStore = defineStore('entities', () => {
     /**
      * Resolves the chain of parent references for an entity.
      */
-    function getAncestry(type, data) {
-        if (!ancestryMap[type]) return [];
-        return ancestryMap[type](data).filter(ref => ref.id);
+    function getAncestry(type, entity) {
+        return Object.values(entity?.lineage || {})
+            .filter(ref => ref?.entityType && ref?.entityId)
+            .map(ref => ({
+                type: String(ref.entityType).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase()),
+                id: String(ref.entityId),
+                ...(ref.revisionId ? { revisionId: String(ref.revisionId) } : {})
+            }));
     }
 
     function ensureSyncListener() {

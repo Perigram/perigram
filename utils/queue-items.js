@@ -8,8 +8,8 @@ function parameterSignature(parameters = {}) {
     .sort(([left], [right]) => left.localeCompare(right)));
 }
 
-function designMatchesLegacySource(design = {}, sourceId = '', parameters = {}) {
-  const originalId = stringId(design.lineage?.originalCassetteId);
+function designMatchesTemplate(design = {}, sourceId = '', parameters = {}) {
+  const originalId = stringId(design.lineage?.cassette?.entityId);
   if (!sourceId || originalId !== sourceId) return false;
   const designParameters = design.data?.parameters || design.data?.dimensions || {};
   return parameterSignature(designParameters) === parameterSignature(parameters);
@@ -24,8 +24,8 @@ export function resolveQueueItemEntity(item = {}, sources = {}) {
   const direct = [...cassettes, ...cassetteDesigns].find(entity => stringId(entity?._id) === id);
   if (direct) return direct;
 
-  return cassetteDesigns.find(design => designMatchesLegacySource(design, id, item.parameters || item.dimensions || {}))
-    || cassetteDesigns.find(design => stringId(design.lineage?.originalCassetteId) === id)
+  return cassetteDesigns.find(design => designMatchesTemplate(design, id, item.parameters || item.dimensions || {}))
+    || cassetteDesigns.find(design => stringId(design.lineage?.cassette?.entityId) === id)
     || null;
 }
 

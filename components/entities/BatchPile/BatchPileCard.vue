@@ -49,5 +49,5 @@ const props = defineProps({
 const stock = computed(() => props.pile.data?.stock || null);
 const serial = computed(() => props.pile.data?.serial || props.pile.identity?.serial || '');
 const remaining = computed(() => (stock.value?.total || 0) - (stock.value?.used || 0));
-const requisitionId = computed(() => props.pile.lineage?.requisitionId || null);
+const requisitionId = computed(() => props.pile.lineage?.requisition?.entityId || null);
 </script>

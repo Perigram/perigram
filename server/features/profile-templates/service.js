@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { createData, createIdentity, createStatus } from '../../core/blocks/index.js';
+import { createData, createIdentity, createStatus, Lineage } from '../../core/blocks/index.js';
 import {
   OCCS_PROFILE_KINDS,
   OCCS_PROFILE_PROCESSES,
@@ -12,25 +12,10 @@ import { hasLineagePermission } from '../../utils/permissions.js';
 import { ProfileTemplate } from './model.js';
 import * as repository from './repository.js';
 
-function dtoSource(profileTemplate = {}, scope = {}) {
-  const ownerId = profileTemplate.lineage?.userId || null;
-  const organizationId = profileTemplate.lineage?.organizationId || null;
-  if (
-    scope.organizationId &&
-    ownerId &&
-    scope.userId &&
-    ownerId.toString() === scope.userId.toString() &&
-    !organizationId
-  ) {
-    return profileAccessEntity(profileTemplate, scope);
-  }
-  return profileTemplate;
-}
-
-function toDTO(profileTemplate, scope = {}) {
+function toDTO(profileTemplate) {
   if (!profileTemplate) return null;
   return {
-    ...new ProfileTemplate(dtoSource(profileTemplate, scope)).toJSON(),
+    ...new ProfileTemplate(profileTemplate).toJSON(),
     _id: profileTemplate._id
   };
 }
@@ -43,39 +28,29 @@ function scopeFromAuth(auth = {}) {
   };
 }
 
-function profileAccessEntity(profileTemplate = {}, scope = {}) {
-  return {
-    ...profileTemplate,
-    lineage: {
-      ...(profileTemplate.lineage || {}),
-      organizationId: profileTemplate.lineage?.organizationId || scope.organizationId || null
-    }
-  };
-}
-
 function sameOrganization(left = {}, right = {}) {
-  const leftOrg = left.lineage?.organizationId?.toString?.() || left.lineage?.organizationId || null;
-  const rightOrg = right.lineage?.organizationId?.toString?.() || right.lineage?.organizationId || null;
+  const leftOrg = left.lineage?.organization?.entityId?.toString?.() || left.lineage?.organization?.entityId || null;
+  const rightOrg = right.lineage?.organization?.entityId?.toString?.() || right.lineage?.organization?.entityId || null;
   return Boolean(leftOrg && rightOrg && leftOrg.toString() === rightOrg.toString());
 }
 
 function currentUserOwns(profileTemplate = {}, scope = {}) {
-  const ownerId = profileTemplate.lineage?.userId || null;
+  const ownerId = profileTemplate.lineage?.user?.entityId || null;
   return Boolean(ownerId && scope.userId && ownerId.toString() === scope.userId.toString());
 }
 
 function canAccess(profileTemplate = {}, scope = {}, auth = {}, level = 'read', accessEntity = null) {
-  const ownerId = profileTemplate.lineage?.userId || null;
-  const organizationId = profileTemplate.lineage?.organizationId || null;
+  const ownerId = profileTemplate.lineage?.user?.entityId || null;
+  const organizationId = profileTemplate.lineage?.organization?.entityId || null;
   if (!ownerId && !organizationId) return level === 'read';
   if (currentUserOwns(profileTemplate, scope)) return true;
   if (accessEntity) {
     return hasLineagePermission(auth, accessEntity, 'cassettes', level) && (
-      sameOrganization(profileAccessEntity(profileTemplate, scope), accessEntity) ||
+      sameOrganization(profileTemplate, accessEntity) ||
       currentUserOwns(profileTemplate, scope)
     );
   }
-  return hasLineagePermission(auth, profileAccessEntity(profileTemplate, scope), 'cassettes', level);
+  return hasLineagePermission(auth, profileTemplate, 'cassettes', level);
 }
 
 function cassetteContextId(source = {}) {
@@ -92,7 +67,7 @@ async function resolveCassetteContext(source = {}, auth = {}, scope = {}, level 
   return {
     scope: {
       ...scope,
-      organizationId: cassette.lineage?.organizationId || scope.organizationId || null
+      organizationId: cassette.lineage?.organization?.entityId || scope.organizationId || null
     },
     accessEntity: cassette
   };
@@ -126,7 +101,7 @@ export async function getById(id, auth = {}) {
   if (!canAccess(profileTemplate, scope, auth, 'read')) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
-  return toDTO(profileTemplate, scope);
+  return toDTO(profileTemplate);
 }
 
 export async function listAll(auth = {}, filters = {}) {
@@ -139,7 +114,7 @@ export async function listAll(auth = {}, filters = {}) {
   const byId = new Map([...systemProfiles, ...scopedProfiles].map(profile => [profile._id.toString(), profile]));
   return [...byId.values()]
     .filter(profile => canAccess(profile, scope, auth, 'read', context.accessEntity))
-    .map(profile => toDTO(profile, scope));
+    .map(profile => toDTO(profile));
 }
 
 export async function create(payload = {}, auth = {}) {
@@ -154,13 +129,12 @@ export async function create(payload = {}, auth = {}) {
     identity: createIdentity(payload.name),
     origin,
     status: origin,
-    lineage: {
-      userId: scope.userId,
-      organizationId: scope.organizationId
-    },
+    lineage: new Lineage()
+      .add('user', scope.userId)
+      .add('organization', scope.organizationId),
     data: createData(data)
   });
-  return toDTO(created, scope);
+  return toDTO(created);
 }
 
 export async function update(id, updates = {}, auth = {}) {
@@ -169,7 +143,7 @@ export async function update(id, updates = {}, auth = {}) {
   const current = await repository.findById(id);
   if (!current) throw createError({ statusCode: 404, message: 'Profile template not found' });
   if (!canAccess(current, scope, auth, 'write', context.accessEntity)) throw createError({ statusCode: 403, message: 'Access denied' });
-  if (!current.lineage?.userId && !current.lineage?.organizationId) {
+  if (!current.lineage?.user?.entityId && !current.lineage?.organization?.entityId) {
     throw createError({ statusCode: 403, message: 'System profile templates cannot be modified' });
   }
 
@@ -192,7 +166,7 @@ export async function remove(id, auth = {}) {
   const scope = scopeFromAuth(auth);
   const profileTemplate = await getById(id, auth);
   if (!canAccess(profileTemplate, scope, auth, 'admin')) throw createError({ statusCode: 403, message: 'Access denied' });
-  if (!profileTemplate.lineage?.userId && !profileTemplate.lineage?.organizationId) {
+  if (!profileTemplate.lineage?.user?.entityId && !profileTemplate.lineage?.organization?.entityId) {
     throw createError({ statusCode: 403, message: 'System profile templates cannot be deleted' });
   }
   await repository.deleteById(id);

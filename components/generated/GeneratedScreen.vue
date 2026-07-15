@@ -307,10 +307,13 @@ async function postAction(action, entity = null, data = {}, context = {}) {
           ...promptEntityInputs(action, data)
         },
         data,
-        parameters: context?.parameters || data?.parameters || {}
+        parameters: context?.parameters || data?.parameters || {},
+        context: {
+          screenKey: context?.screenKey || screen.value.screenKey || screen.value.id,
+          regionId: context?.regionId || null
+        }
       }
     });
-    await bindActionOutput(result, context?.outputTarget);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await load();
   } catch (err) {
@@ -327,45 +330,6 @@ function promptEntityInputs(action = {}, data = {}) {
 
 function getByPath(source = {}, path = '') {
   return String(path).split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
-}
-
-async function bindActionOutput(result, target = null) {
-  if (!target || target.entityType !== 'queue' || !target.entityId || target.path !== 'data.job.items') return;
-  const outputTypes = new Set(target.accepts || []);
-  const produced = normalizeActionOutputEntities(result)
-    .filter(item => outputTypes.has(item.entityType));
-  if (!produced.length) return;
-  const queue = await $fetch(`/api/queue/${encodeURIComponent(target.entityId)}`);
-  const existing = queue.data?.job?.items || [];
-  const existingIds = new Set(existing.map(item => String(item.id)));
-  const additions = produced
-    .filter(item => !existingIds.has(String(item.id)))
-    .map((item, index) => ({
-      entryId: `action_${item.id}_${Date.now()}_${index}`,
-      id: item.id,
-      entityType: item.entityType,
-      type: 'STATIC',
-      quantity: 1,
-      parameters: {}
-    }));
-  if (!additions.length) return;
-  await $fetch(`/api/queue/${encodeURIComponent(target.entityId)}`, {
-    method: 'PUT',
-    body: { job: { ...(queue.data?.job || {}), items: [...existing, ...additions] } }
-  });
-}
-
-function normalizeActionOutputEntities(result = {}) {
-  const values = Array.isArray(result?.entities) ? result.entities : [result];
-  return values.map(value => ({
-    entityType: value.entityType || value.type || result.entityType || inferCreatedEntityType(value),
-    id: value.id || value._id || value.entityId
-  })).filter(value => value.entityType && value.id);
-}
-
-function inferCreatedEntityType(value = {}) {
-  if (value.data?.geometry && (value.lineage?.templateId || value.data?.parameters)) return 'cassette_design';
-  return '';
 }
 
 function actionEntities(action = {}, entity = null, context = {}) {

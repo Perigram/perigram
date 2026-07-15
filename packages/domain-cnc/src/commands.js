@@ -3,14 +3,14 @@ export const cncServiceContracts = {
     service: 'nesting',
     label: 'Nesting service',
     inputs: ['queue', 'sheet', 'remnant', 'tool_profile'],
-    outputs: ['nesting_run', 'sheet_design', 'sheet_instance'],
+    outputs: ['entity_revision', 'sheet_design', 'sheet_instance'],
     actions: ['solveNesting'],
     triggers: ['queue.nestingRequested']
   },
   artifacts: {
     service: 'artifacts',
     label: 'Attachments service',
-    inputs: ['sheet_design', 'nesting_run', 'cassette_design', 'cassette_instance'],
+    inputs: ['sheet_design', 'cassette_design', 'cassette_instance'],
     outputs: ['artifact'],
     actions: ['generateAttachment'],
     triggers: ['attachment.generationRequested']
@@ -117,7 +117,7 @@ export const cncCommands = {
     },
     triggers: [{ event: 'queue.nestingRequested' }],
     output: {
-      entities: ['nesting_run', 'sheet_design', 'sheet_instance'],
+      entities: ['entity_revision', 'sheet_design', 'sheet_instance'],
       tasks: ['nesting.solve'],
       events: ['queue.nestingRequested', 'nesting.solveStarted']
     },
@@ -146,13 +146,12 @@ export const cncCommands = {
           name: 'source',
           label: 'Attachment source',
           capability: 'attachments.generate',
-          accepts: ['sheet_design', 'nesting_run'],
+          accepts: ['sheet_design'],
           required: true
         }
       ],
       entities: [
-        { name: 'sheetDesign', type: 'sheet_design' },
-        { name: 'nestingRun', type: 'nesting_run' }
+        { name: 'sheetDesign', type: 'sheet_design' }
       ],
       parameters: [
         { name: 'kind', label: 'Attachment kind', type: 'enum', options: ['LAYOUT_DXF', 'PDF_PASSPORT'], required: true },

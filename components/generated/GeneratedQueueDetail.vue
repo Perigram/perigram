@@ -30,16 +30,14 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
-const projectId = computed(() => props.queue?.lineage?.projectId?.toString?.() || props.queue?.lineage?.projectId || '');
-const cassetteProducerActions = computed(() => authStore.actionManifest.filter(action =>
+const projectId = computed(() => props.queue?.lineage?.project?.entityId?.toString?.() || props.queue?.lineage?.project?.entityId || '');
+const cassetteProducerActions = computed(() => props.processActions.filter(action =>
   (action.trigger?.mode || 'manual') === 'manual' &&
   (action.outputs || []).some(output => output.entityType === 'cassette_design')
 ));
 
 function executeProducer(action) {
-  emit('execute-action', action, props.queue, {
-    outputTarget: { entityType: 'queue', entityId: props.queue._id, path: 'data.job.items', accepts: ['cassette_design'] }
-  });
+  emit('execute-action', action, props.queue);
 }
 
 function openQueue(queueId) {

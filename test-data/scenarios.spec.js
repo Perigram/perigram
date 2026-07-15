@@ -105,7 +105,7 @@ describe('CNC fixture scenarios', () => {
     expect(queueFields.find(field => field.name === 'cassetteId')?.entityType).toBe('cassette');
     expect(projectFields).not.toContain('address');
     expect(projectDraft.organizationId).toBeUndefined();
-    expect(queue.lineage.projectId).toBe(context.refs.project);
+    expect(queue.lineage.project.entityId).toBe(context.refs.project);
     expect(queue.data.job.items[0].id).toBe(context.refs.cassetteTemplate);
     expect(queue.data.job.items[0].quantity).toBe(2);
     expect(queue.data.queueNumber).toBeUndefined();

@@ -26,7 +26,7 @@ const handleCardClick = (event) => {
     emit('view', props.pile);
 };
 
-const catalogId = computed(() => props.pile.lineage?.catalogId || null);
+const catalogId = computed(() => props.pile.lineage?.catalog?.entityId || null);
 const catalog = ref(null);
 const catalogEntity = useEntity('catalog');
 

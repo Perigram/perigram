@@ -20,7 +20,6 @@ const mocks = vi.hoisted(() => ({
   projectsService: { list: vi.fn() },
   queuesService: { list: vi.fn() },
   materialPilesService: { list: vi.fn() },
-  nestingRunsService: { list: vi.fn() },
   remnantsService: { list: vi.fn() },
   requisitionsService: { list: vi.fn() },
   sheetDesignsService: { list: vi.fn() },
@@ -39,7 +38,6 @@ vi.mock('~/server/features/users/service.js', () => mocks.usersService);
 vi.mock('~/server/features/projects/service.js', () => mocks.projectsService);
 vi.mock('~/server/features/queues/service.js', () => mocks.queuesService);
 vi.mock('~/server/features/material-piles/service.js', () => mocks.materialPilesService);
-vi.mock('~/server/features/nesting-runs/service.js', () => mocks.nestingRunsService);
 vi.mock('~/server/features/remnants/service.js', () => mocks.remnantsService);
 vi.mock('~/server/features/requisitions/service.js', () => mocks.requisitionsService);
 vi.mock('~/server/features/sheet-designs/service.js', () => mocks.sheetDesignsService);
@@ -214,41 +212,41 @@ describe('support communication service', () => {
       ...input,
       process: { active: true },
       effectivePermissions: {
-        nesting_runs: [{ level: 'read' }]
+        sheet_designs: [{ level: 'read' }]
       },
       screens: [{
-        id: 'nesting_run_list',
-        screenKey: 'nesting_run_list',
+        id: 'sheet_design_list',
+        screenKey: 'sheet_design_list',
         sources: [{
-          id: 'nesting_run',
-          entityType: 'nesting_run',
+          id: 'sheet_design',
+          entityType: 'sheet_design',
           mode: 'list',
           label: 'Process Runs',
           required: {
-            feature: 'nesting_runs',
+            feature: 'sheet_designs',
             level: 'read',
             rule: { fact: 'primaryStatus', equals: 'CUT' }
           }
         }]
       }]
     }));
-    mocks.nestingRunsService.list.mockResolvedValue([
+    mocks.sheetDesignsService.list.mockResolvedValue([
       { _id: 'run-1', identity: { name: 'Run From Process Auth' }, data: {} }
     ]);
 
     await expect(supportService.listEntityOptionTypes(auth)).resolves.toEqual([
-      { value: 'nesting_run', label: 'Process Runs', labelKey: null, sourceId: 'nesting_run', screenKey: 'nesting_run_list' }
+      { value: 'sheet_design', label: 'Process Runs', labelKey: null, sourceId: 'sheet_design', screenKey: 'sheet_design_list' }
     ]);
 
-    await expect(supportService.listEntityOptions(auth, 'nesting_run', 'process')).resolves.toEqual([
+    await expect(supportService.listEntityOptions(auth, 'sheet_design', 'process')).resolves.toEqual([
       {
-        type: 'nesting_run',
+        type: 'sheet_design',
         value: 'run-1',
         label: 'Run From Process Auth',
         entity: { _id: 'run-1', identity: { name: 'Run From Process Auth' }, data: {} }
       }
     ]);
-    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, expect.objectContaining({
+    expect(mocks.sheetDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, expect.objectContaining({
       process: { active: true }
     }), { primaryStatus: 'CUT' });
   });
@@ -292,7 +290,7 @@ describe('support communication service', () => {
       { toJSON: () => ({ _id: 'queue-1', identity: { name: 'Queue 1' }, data: {} }) },
       { toJSON: () => ({ _id: 'queue-2', identity: { name: 'Queue 2' }, data: {} }) }
     ]);
-    mocks.nestingRunsService.list.mockImplementation(async (userId, userOrg, userRole, userPermissions, filters) => {
+    mocks.sheetDesignsService.list.mockImplementation(async (userId, userOrg, userRole, userPermissions, filters) => {
       if (filters?.queueId === 'queue-1') return [{ _id: 'run-1', identity: { name: 'Run Alpha' }, data: {} }];
       if (filters?.queueId === 'queue-2') return [{ _id: 'run-2', identity: { name: 'Run Beta' }, data: {} }];
       return [];
@@ -302,7 +300,7 @@ describe('support communication service', () => {
       process: { active: true },
       effectivePermissions: {
         queues: [{ level: 'read' }],
-        nesting_runs: [{ level: 'read' }]
+        sheet_designs: [{ level: 'read' }]
       },
       screens: [{
         id: 'queue_list',
@@ -317,28 +315,28 @@ describe('support communication service', () => {
         id: 'queue_detail',
         entityType: 'queue',
         sources: [{
-          id: 'nesting_run_children',
-          entityType: 'nesting_run',
-          required: { feature: 'nesting_runs', level: 'read' },
+          id: 'sheet_design_children',
+          entityType: 'sheet_design',
+          required: { feature: 'sheet_designs', level: 'read' },
           filters: { queueId: '$screen.scope.entityId' }
         }]
       }]
     };
 
-    const options = await supportService.listEntityOptions(processAuth, 'nesting_run', 'run');
+    const options = await supportService.listEntityOptions(processAuth, 'sheet_design', 'run');
 
     expect(mocks.queuesService.list).toHaveBeenCalledWith({ primaryStatus: 'READY' }, 'user-a', 'org-1', undefined, processAuth);
-    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-1' });
-    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-2' });
+    expect(mocks.sheetDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-1' });
+    expect(mocks.sheetDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-2' });
     expect(options).toEqual([
       {
-        type: 'nesting_run',
+        type: 'sheet_design',
         value: 'run-1',
         label: 'Run Alpha',
         entity: { _id: 'run-1', identity: { name: 'Run Alpha' }, data: {} }
       },
       {
-        type: 'nesting_run',
+        type: 'sheet_design',
         value: 'run-2',
         label: 'Run Beta',
         entity: { _id: 'run-2', identity: { name: 'Run Beta' }, data: {} }
@@ -347,7 +345,7 @@ describe('support communication service', () => {
   });
 
   it('uses the first generated source exposed for an attachment entity type', async () => {
-    mocks.nestingRunsService.list.mockImplementation(async (userId, userOrg, userRole, userPermissions, filters) => {
+    mocks.sheetDesignsService.list.mockImplementation(async (userId, userOrg, userRole, userPermissions, filters) => {
       if (filters?.queueId === 'queue-1') return [{ _id: 'run-1', identity: { name: 'Run From Queue' }, data: {} }];
       if (filters?.primaryStatus === 'CUT') return [{ _id: 'run-2', identity: { name: 'Run From List' }, data: {} }];
       return [];
@@ -361,7 +359,7 @@ describe('support communication service', () => {
       process: { active: true },
       effectivePermissions: {
         queues: [{ level: 'read' }],
-        nesting_runs: [{ level: 'read' }]
+        sheet_designs: [{ level: 'read' }]
       },
       screens: [{
         id: 'queue_list',
@@ -375,19 +373,19 @@ describe('support communication service', () => {
         id: 'queue_detail',
         entityType: 'queue',
         sources: [{
-          id: 'nesting_run_children',
-          entityType: 'nesting_run',
-          required: { feature: 'nesting_runs', level: 'read' },
+          id: 'sheet_design_children',
+          entityType: 'sheet_design',
+          required: { feature: 'sheet_designs', level: 'read' },
           filters: { queueId: '$screen.scope.entityId' }
         }]
       }, {
-        id: 'nesting_run_list',
-        entityType: 'nesting_run',
+        id: 'sheet_design_list',
+        entityType: 'sheet_design',
         sources: [{
-          id: 'nesting_run',
-          entityType: 'nesting_run',
+          id: 'sheet_design',
+          entityType: 'sheet_design',
           required: {
-            feature: 'nesting_runs',
+            feature: 'sheet_designs',
             level: 'read',
             rule: { fact: 'primaryStatus', equals: 'CUT' }
           }
@@ -395,22 +393,22 @@ describe('support communication service', () => {
       }]
     };
 
-    const options = await supportService.listEntityOptions(processAuth, 'nesting_run', 'run');
+    const options = await supportService.listEntityOptions(processAuth, 'sheet_design', 'run');
 
     expect(options).toEqual([
       {
-        type: 'nesting_run',
+        type: 'sheet_design',
         value: 'run-1',
         label: 'Run From Queue',
         entity: { _id: 'run-1', identity: { name: 'Run From Queue' }, data: {} }
       }
     ]);
-    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-1' });
-    expect(mocks.nestingRunsService.list).not.toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { primaryStatus: 'CUT' });
+    expect(mocks.sheetDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { queueId: 'queue-1' });
+    expect(mocks.sheetDesignsService.list).not.toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, { primaryStatus: 'CUT' });
   });
 
   it('ignores generated single-entity sources when loading attachment options', async () => {
-    mocks.nestingRunsService.list.mockImplementation(async (userId, userOrg, userRole, userPermissions, filters) => {
+    mocks.sheetDesignsService.list.mockImplementation(async (userId, userOrg, userRole, userPermissions, filters) => {
       if (filters?.primaryStatuses === 'CUT,SHIPPED') return [{ _id: 'run-1', identity: { name: 'Run From List' }, data: {} }];
       if (Object.keys(filters || {}).length === 0) return [{ _id: 'run-2', identity: { name: 'Run From Detail' }, data: {} }];
       return [];
@@ -420,42 +418,42 @@ describe('support communication service', () => {
       ...auth,
       process: { active: true },
       effectivePermissions: {
-        nesting_runs: [{ level: 'read' }]
+        sheet_designs: [{ level: 'read' }]
       },
       screens: [{
-        id: 'nesting_run_list',
-        entityType: 'nesting_run',
+        id: 'sheet_design_list',
+        entityType: 'sheet_design',
         sources: [{
-          id: 'nesting_run',
-          entityType: 'nesting_run',
+          id: 'sheet_design',
+          entityType: 'sheet_design',
           mode: 'list',
           required: {
-            feature: 'nesting_runs',
+            feature: 'sheet_designs',
             level: 'read',
             rule: { any: [{ fact: 'primaryStatus', equals: 'CUT' }, { fact: 'primaryStatus', equals: 'SHIPPED' }] }
           }
         }]
       }, {
-        id: 'nesting_run_detail',
-        entityType: 'nesting_run',
+        id: 'sheet_design_detail',
+        entityType: 'sheet_design',
         sources: [{
-          id: 'nesting_run',
-          entityType: 'nesting_run',
+          id: 'sheet_design',
+          entityType: 'sheet_design',
           mode: 'single',
-          required: { feature: 'nesting_runs', level: 'read' }
+          required: { feature: 'sheet_designs', level: 'read' }
         }]
       }]
     };
 
-    const options = await supportService.listEntityOptions(processAuth, 'nesting_run', 'run');
+    const options = await supportService.listEntityOptions(processAuth, 'sheet_design', 'run');
 
-    expect(mocks.nestingRunsService.list).toHaveBeenCalledTimes(1);
-    expect(mocks.nestingRunsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {
+    expect(mocks.sheetDesignsService.list).toHaveBeenCalledTimes(1);
+    expect(mocks.sheetDesignsService.list).toHaveBeenCalledWith('user-a', 'org-1', undefined, processAuth, {
       primaryStatuses: 'CUT,SHIPPED'
     });
     expect(options).toEqual([
       {
-        type: 'nesting_run',
+        type: 'sheet_design',
         value: 'run-1',
         label: 'Run From List',
         entity: { _id: 'run-1', identity: { name: 'Run From List' }, data: {} }
@@ -473,7 +471,7 @@ describe('support communication service', () => {
       toJSON: () => ({
         _id: 'user-b',
         identity: { name: 'User B' },
-        lineage: { organizationId: 'org-1' },
+        lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
         data: { role: 'USER', permissions: {}, memberships: [{ organizationId: 'org-1' }] }
       })
     });
@@ -502,7 +500,7 @@ describe('support communication service', () => {
       toJSON: () => ({
         _id: 'user-b',
         identity: { name: 'User B' },
-        lineage: { organizationId: 'org-1' },
+        lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
         data: { role: 'USER', permissions: {}, memberships: [{ organizationId: 'org-1' }] }
       })
     });
@@ -541,7 +539,7 @@ describe('support communication service', () => {
         toJSON: () => ({
           _id: 'cassette-1',
           identity: { name: 'Iklya 1' },
-          lineage: { organizationId: 'org-1' },
+          lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
           data: {
             type: 'STANDARD',
             definition: { params: { A: 1 } },

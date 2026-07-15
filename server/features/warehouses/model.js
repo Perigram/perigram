@@ -11,6 +11,6 @@ export class Warehouse extends BaseEntity {
   }
 
   get name() { return this.identity.name; }
-  get organizationId() { return this.lineage.organizationId; }
+  get organizationId() { return this.lineage.organization.entityId; }
 
 }

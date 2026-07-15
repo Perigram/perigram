@@ -16,7 +16,7 @@ import {
 } from '~/packages/workflows/src/index.js';
 import { assertTransitionAccess, hasEntityAccess } from '../access/service.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
-import { getEntityCollection, getEntityDefinition, normalizeEntityType } from '~/server/runtime/entities.js';
+import { getEntityCollection, getEntityDefinition, getEntityFieldAccessPolicy, normalizeEntityType } from '~/server/runtime/entities.js';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
@@ -605,16 +605,18 @@ async function captureLifecycleSnapshots({ db, entity, entityType, auth, snapsho
     const targetEntityType = normalizeEntityType(definition.entityType);
     const collection = getEntityCollection(targetEntityType);
     if (!collection) continue;
-    const lineageKey = definition.lineageKey || `${entityType}Id`;
+    const lineageRole = definition.lineageRole || entityTypeToLineageRole(entityType);
     const entityId = entity?._id || entity?.identity?.uid;
-    const candidates = [entityId, entityId?.toString?.()].filter(Boolean);
     const filter = {
-      [`lineage.${lineageKey}`]: candidates.length > 1 ? { $in: candidates } : candidates[0]
+      [`lineage.${lineageRole}.entityId`]: String(entityId)
     };
     const limit = Math.max(1, Math.min(Number(definition.limit || 50), 100));
     const docs = await db.collection(collection).find(filter).limit(limit).toArray();
     const entityDefinition = getEntityDefinition(targetEntityType);
-    const feature = entityDefinition?.feature || entityDefinition?.collection || targetEntityType;
+    const feature = getEntityFieldAccessPolicy(targetEntityType)?.feature
+      || entityDefinition?.feature
+      || entityDefinition?.collection
+      || targetEntityType;
     const readable = docs.filter(doc => hasEntityAccess({
       entity: doc,
       feature,
@@ -625,12 +627,16 @@ async function captureLifecycleSnapshots({ db, entity, entityType, auth, snapsho
     snapshots[key] = {
       capturedAt: new Date(),
       entityType: targetEntityType,
-      lineageKey,
+      lineageRole,
       count: readable.length,
       refs: readable.map(snapshotEntityRef)
     };
   }
   return snapshots;
+}
+
+function entityTypeToLineageRole(entityType = '') {
+  return String(entityType).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
 }
 
 function snapshotEntityRef(entity = {}) {
@@ -792,7 +798,7 @@ async function loadEntityForWorkflow(entityType, targetId, options = {}) {
     });
   }
 
-  const organizationId = entity.lineage?.organizationId || entity.origin?.organizationId || entity.organizationId;
+  const organizationId = entity.lineage?.organization?.entityId;
   const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId });
 
   if (!machine && requireMachine) {

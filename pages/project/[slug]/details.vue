@@ -21,14 +21,10 @@
             <Button icon="pi pi-refresh" text rounded :aria-label="$t('common.update')" @click="loadProject" />
         </template>
 
-        <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <section class="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                 <small class="text-muted-color">{{ $t('project.queues') }}</small>
                 <div class="mt-1 text-2xl font-semibold">{{ project.summary?.queueCount || 0 }}</div>
-            </div>
-            <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-                <small class="text-muted-color">{{ $t('project.totalArea') }}</small>
-                <div class="mt-1 text-2xl font-semibold">{{ project.summary?.totalArea || 0 }} m²</div>
             </div>
             <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                 <small class="text-muted-color">{{ $t('project.status') }}</small>

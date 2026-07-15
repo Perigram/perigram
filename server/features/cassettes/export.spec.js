@@ -38,7 +38,7 @@ describe('cassette template DXF export', () => {
     findByIdMock.mockResolvedValue({
       _id: 'template-1',
       identity: { uid: 'template-1', name: 'Template 1' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: { type: 'PARAMETRIC' }
     });

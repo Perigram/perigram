@@ -8,7 +8,7 @@ import {
 const project = {
   _id: 'project-1',
   identity: { uid: 'p-1', name: 'Project One' },
-  lineage: { organizationId: 'org-1', projectId: 'project-1' },
+  lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
   summary: { queueCount: 2, totalArea: 12 },
   data: {
     address: 'Factory Row',
@@ -20,7 +20,7 @@ const project = {
 const user = {
   _id: 'user-1',
   identity: { uid: 'u-1', name: 'Team Member' },
-  lineage: { organizationId: 'org-1' },
+  lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
   data: {
     email: 'member@example.com',
     role: 'role_viewer',
@@ -92,7 +92,7 @@ describe('entity field access', () => {
 
   it('honors scoped permission grants', () => {
     const permissions = {
-      projects: { level: 'read', scope: { projectId: 'project-1' } }
+      projects: { level: 'read', scope: { entityId: 'project-1' } }
     };
 
     expect(canDisplayEntityField({
@@ -104,7 +104,7 @@ describe('entity field access', () => {
 
     expect(canDisplayEntityField({
       permissions,
-      entity: { ...project, lineage: { ...project.lineage, projectId: 'project-2' } },
+      entity: { ...project, _id: 'project-2' },
       entityType: 'project',
       path: 'summary.queueCount'
     })).toBe(false);

@@ -12,7 +12,7 @@ export async function findById(id) {
 export async function findSystem() {
   const db = await connectDB();
   return await db.collection(COLLECTION)
-    .find({ 'lineage.userId': null, 'lineage.organizationId': null })
+    .find({ 'lineage.user.entityId': null, 'lineage.organization.entityId': null })
     .sort({ 'identity.name': 1 })
     .toArray();
 }
@@ -20,8 +20,8 @@ export async function findSystem() {
 export async function findByScope({ userId = null, organizationId = null } = {}) {
   const db = await connectDB();
   const scope = [];
-  if (userId) scope.push({ 'lineage.userId': userId });
-  if (organizationId) scope.push({ 'lineage.organizationId': organizationId });
+  if (userId) scope.push({ 'lineage.user.entityId': String(userId) });
+  if (organizationId) scope.push({ 'lineage.organization.entityId': String(organizationId) });
   if (!scope.length) return [];
   return await db.collection(COLLECTION)
     .find({ $or: scope })
@@ -53,4 +53,3 @@ export async function deleteById(id) {
   const result = await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });
   return result.deletedCount > 0;
 }
-

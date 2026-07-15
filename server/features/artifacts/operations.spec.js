@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { createMock, generateAndStoreDxfMock, findLatestByRunMock } = vi.hoisted(() => ({
+const { createMock, generateAndStoreDxfMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
-  generateAndStoreDxfMock: vi.fn(),
-  findLatestByRunMock: vi.fn()
+  generateAndStoreDxfMock: vi.fn()
 }));
 
 vi.mock('h3', () => ({
@@ -15,7 +14,6 @@ vi.mock('h3', () => ({
 }));
 vi.mock('./service.js', () => ({ create: createMock }));
 vi.mock('../sheet-designs/service.js', () => ({ generateAndStoreDxf: generateAndStoreDxfMock }));
-vi.mock('../nesting/jobs.js', () => ({ findLatestByRun: findLatestByRunMock }));
 
 import { generateAttachment } from './operations.js';
 
@@ -23,7 +21,6 @@ describe('artifact operations', () => {
   beforeEach(() => {
     createMock.mockReset();
     generateAndStoreDxfMock.mockReset();
-    findLatestByRunMock.mockReset();
   });
 
   it('generates and stores a sheet design layout DXF before creating the artifact', async () => {
@@ -39,7 +36,7 @@ describe('artifact operations', () => {
         sheetDesign: {
           _id: 'sheet-1',
           identity: { name: 'Sheet 1' },
-          lineage: { queueId: 'queue-1' }
+          lineage: { queue: { entityType: 'queue', entityId: 'queue-1' } }
         }
       },
       parameters: { kind: 'LAYOUT_DXF' },
@@ -78,7 +75,7 @@ describe('artifact operations', () => {
           _id: 'sheet-2',
           type: 'sheet_design',
           identity: { name: 'Sheet 2' },
-          lineage: { queueId: 'queue-2' }
+          lineage: { queue: { entityType: 'queue', entityId: 'queue-2' } }
         }
       },
       parameters: { kind: 'LAYOUT_DXF' },
@@ -91,7 +88,7 @@ describe('artifact operations', () => {
 
     expect(generateAndStoreDxfMock).toHaveBeenCalledWith('sheet-2', 'user-2', 'org-2', 'member', expect.any(Object));
     expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
-      lineage: expect.objectContaining({ sheetDesignId: 'sheet-2' })
+      lineage: expect.objectContaining({ sheetDesign: { entityType: 'sheet_design', entityId: 'sheet-2' } })
     }), 'user-2', 'org-2', 'member', expect.objectContaining({ userId: 'user-2' }));
   });
 });

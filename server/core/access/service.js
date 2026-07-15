@@ -1,5 +1,4 @@
 import { createError } from 'h3';
-import { toFlexibleId } from '../../utils/objectid.js';
 import { actionToLevel, hasPermissionGrant } from '#shared/access-control.js';
 import { isPublicReadEntity } from '#shared/public-entities.js';
 
@@ -65,9 +64,9 @@ export function assertTransitionAccess({ transition, entity, auth }) {
 
 export function createLineageFilter(auth) {
   const orgIds = (auth?.memberships || [])
-    .map(membership => membership.organizationId ? toFlexibleId(membership.organizationId) : null)
+    .map(membership => membership.organizationId?.toString?.() || null)
     .filter(Boolean);
-  return orgIds.length ? { 'lineage.organizationId': { $in: orgIds } } : { 'lineage.organizationId': { $in: [] } };
+  return orgIds.length ? { 'lineage.organization.entityId': { $in: orgIds } } : { 'lineage.organization.entityId': { $in: [] } };
 }
 
 export function hasEntityAccess({ entity, feature, level = 'read', action = null, auth, entityType = null, transition = null, context = {} }) {
@@ -76,7 +75,7 @@ export function hasEntityAccess({ entity, feature, level = 'read', action = null
   if (requiredLevel === 'read' && isPublicReadEntity({ entity, entityType, feature })) return true;
   if (!auth) return false;
 
-  const orgId = entity?.lineage?.organizationId?.toString();
+  const orgId = entity?.lineage?.organization?.entityId?.toString();
   const membership = orgId
     ? (auth.memberships || []).find(item => item.organizationId?.toString() === orgId)
     : (auth.memberships || [])[0];
