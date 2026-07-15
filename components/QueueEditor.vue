@@ -484,9 +484,12 @@ const producerFields = computed(() => {
     if (!producer || producer.kind === 'entitySource') return [];
     if (producer.action) {
         const fields = producer.action.inputPolicy?.fields || producer.action.construction?.inputs || [];
-        return producerFieldsForAction(producer.action, fields, ['queue', 'project']);
+        return producerSourceFields(
+            producer,
+            producerFieldsForAction(producer.action, fields, ['queue', 'project'])
+        );
     }
-    return constructionFields(producer.constructionMode);
+    return producerSourceFields(producer, constructionFields(producer.constructionMode));
 });
 const visibleProducerFields = computed(() => producerFields.value.filter(field => !usesServerDefaultTemplate(field)));
 const designOptions = computed(() => cassetteDesigns.value.map(design => ({
@@ -532,8 +535,12 @@ function producerLabel(producer = {}) {
 
 function constructionFields(mode = '') {
     const contract = cncDomain.construction?.cassette_design || {};
-    const fields = contract.modeInputs?.[mode] || contract.inputs || [];
-    if (mode !== 'bakeCassetteDesignFromTemplate') return fields;
+    return contract.modeInputs?.[mode] || contract.inputs || [];
+}
+
+function producerSourceFields(producer = {}, fields = []) {
+    if (producer.constructionMode !== 'bakeCassetteDesignFromTemplate') return fields;
+    const byId = new Map(fields.filter(field => field?.id).map(field => [field.id, field]));
     return [
         {
             id: 'libraryId',
@@ -544,7 +551,16 @@ function constructionFields(mode = '') {
             prompt: true,
             uiOnly: true
         },
-        ...fields
+        byId.get('templateId') || {
+            id: 'templateId',
+            label: t('entities.cassetteTemplate'),
+            path: 'templateId',
+            type: 'entity',
+            entityType: 'cassette',
+            required: true,
+            prompt: true
+        },
+        ...fields.filter(field => field.id !== 'templateId')
     ];
 }
 
