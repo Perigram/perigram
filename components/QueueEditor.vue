@@ -497,11 +497,13 @@ const designOptions = computed(() => cassetteDesigns.value.map(design => ({
     value: design._id?.toString(),
     entity: design
 })));
-const libraryOptions = computed(() => libraries.value.map(library => ({
-    label: entitySelectLabel(library, t('entities.library')),
-    value: library._id?.toString(),
-    entity: library
-})));
+const libraryOptions = computed(() => libraries.value
+    .filter(library => libraryHasReadableTemplates(library))
+    .map(library => ({
+        label: entitySelectLabel(library, t('entities.library')),
+        value: library._id?.toString(),
+        entity: library
+    })));
 const producerParameterNames = computed(() => {
     const template = templateForProducer();
     return template ? getCassetteParameters(template) : [];
@@ -531,6 +533,16 @@ const processRunNestingAction = computed(() => {
 
 function producerLabel(producer = {}) {
     return producer.labelKey ? t(producer.labelKey) : (producer.label || producer.id);
+}
+
+function libraryHasReadableTemplates(library = {}) {
+    const libraryId = library._id?.toString?.() || library._id;
+    if (!libraryId) return false;
+    if ((library.summary?.cassettePreview || []).length > 0) return true;
+    return cassettes.value.some(template => {
+        const templateLibraryId = template.lineage?.libraryId?.toString?.() || template.lineage?.libraryId;
+        return templateLibraryId?.toString() === libraryId.toString();
+    });
 }
 
 function constructionFields(mode = '') {
