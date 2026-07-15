@@ -700,3 +700,19 @@
       =/screens/auto_queue_detail?entityId=q-EI1Vtn51= showed both the header
       =Add Entry= action and the new in-grid =Add Entry= tile, with the legacy
       explicit cassette row rendered as =Cassette: type-2-o3rCZZ=.
+
+*** [2026-07-15] Queue composer action button surface repair
+
+    Follow-up browser feedback confirmed legacy row labels were fixed, but the
+    Add action surface was still not acceptable: it appeared as duplicated weak
+    buttons instead of a clear queue-composition action.
+
+    Corrective implementation:
+    - Removed the duplicate panel-header Add button from generated/process
+      queue composition so the header stays focused on view controls.
+    - Made the in-grid Add tile the primary action surface. The whole tile is
+      clickable and keyboard accessible, and the visible button uses the
+      primary PrimeVue action style.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.

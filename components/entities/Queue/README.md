@@ -36,9 +36,10 @@ Production queue card and detail surface.
   and parameter updates while `QueueEditor` remains the owner of persistence and
   `_key`-based row deletion. These rows keep natural panel height inside the
   center lane grid; the workspace lane owns scrolling.
-- The generated/process queue composer exposes Add as both a panel header
-  action and an in-grid Add tile so cassette-design producers are visible inside
-  the composition workspace, not only hidden among header controls.
+- The generated/process queue composer exposes Add as a fully clickable in-grid
+  tile with a primary action button so cassette-design producers are visible
+  inside the composition workspace instead of being hidden among header
+  controls. The panel header keeps view controls only.
 - Inline quantity and parameter updates persist without emitting the route-level
   `updated` refresh event. The editor retains its local rows while the PUT
   completes, so typing a cassette parameter does not remount the generated
