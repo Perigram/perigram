@@ -51,6 +51,9 @@ Routes are grouped into sub-directories corresponding to features:
   mapping for a user. Active action execution endpoints resolve the action from
   the active compiled process, verify that it is available to the current
   process roles, and delegate to entity, status, socket, or command runtimes.
+  The active queue item endpoint appends an existing readable cassette design to
+  a readable queue through the queue feature's `processUpdate()` boundary for
+  generated process queue composition; it is not a generic queue PATCH alias.
   Socket projection endpoints return selected entity fields and receiver
   lifecycle metadata for cross-organization transfer flows.
 - `organizations/:id/invitations`: Authenticated team-management invitation

@@ -8,7 +8,7 @@ Production queue card and detail surface.
 |---|---|
 | `QueueCard.vue` | Entity card wrapper for queue identity, job item totals, output summary, and command actions. |
 | `QueueDetail.vue` | Detail page body for artifacts, job composition, consumed source relations, and history. |
-| `QueueEntryCard.vue` | Queue-editor cassette entry card with source inline ref, thumbnail, quantity, and parameter editing. |
+| `QueueEntryCard.vue` | Queue-editor cassette entry card with row identity/typed id, thumbnail, quantity, and parameter editing. |
 | `QueueSourceCard.vue` | Compact queue-editor material source tile with deterministic SVG preview, identity, dimensions, and count. |
 
 ## Contract
@@ -45,17 +45,17 @@ Production queue card and detail surface.
   the queue but not the related design/template directly, `QueueEntryCard`
   renders a typed id chip and skips protected relation fetches instead of
   calling the wrong endpoint.
-- Queue editor cassette rows render related `cassette_design` records through
-  `EntityInlineRef variant="compact"` so a row shows a compact identity/preview
-  reference, not the full cassette-design card inside the row header.
+- Queue editor cassette rows render the hydrated `cassette_design` identity in
+  the panel header, or a typed id chip when the design cannot be read. They do
+  not nest `EntityInlineRef` popovers or full relation cards inside the row
+  header.
 - In generated process queue details, cassette producer actions come from the
-  current screen/region action ids and must expose a current
-  `contracts.outputs[]` entry for `cassette_design`. QueueEditor does not scan
-  unrelated user-manifest actions or accept legacy output shapes.
-  Generated regions pass the union of region-level and screen-level action ids
-  into queue details, because contextual producer actions may be compiled on
-  the queue detail screen even when the main queue region has its own direct
-  action list.
+  current user's compiled action manifest and must expose a current
+  `contracts.outputs[]` entry for `cassette_design`. QueueEditor does not
+  accept legacy output shapes. Existing readable cassette designs are a
+  separate source producer: selecting one in process mode appends through the
+  active-process queue item endpoint, which delegates to queue `processUpdate()`
+  instead of using the generic queue PATCH path.
 - Queue card summary labels describe `data.job.items` as "Items to Nest"
   (`Позиции раскроя`), meaning cassette/design quantities entering the nesting
   job, not commercial order lines.
