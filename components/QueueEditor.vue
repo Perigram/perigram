@@ -523,12 +523,7 @@ const processRunNestingAction = computed(() => {
 });
 
 function actionOutputContracts(action = {}) {
-    return [
-        ...(action.contracts?.outputs || []),
-        ...(action.outputs || []),
-        ...(Array.isArray(action.output?.entities) ? action.output.entities : []),
-        ...(action.output?.entityType ? [{ entityType: action.output.entityType }] : [])
-    ].map(output => typeof output === 'string' ? { entityType: output } : output);
+    return (action.contracts?.outputs || []).map(output => typeof output === 'string' ? { entityType: output } : output);
 }
 
 function systemProducer(id) {

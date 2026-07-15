@@ -5,7 +5,7 @@ Digital sheet layouts generated from nesting runs.
 ## Core Files
 
 - `model.js`: `SheetDesign` v24 entity wrapper. Preserves standard blocks and hoists `geometry` from `data.geometry`.
-- `service.js`: Creates one sheet design per nesting layout, lists by
+- `service.js`: Creates one sheet design per nesting composition group, lists by
   authenticated lineage filters, projects generated geometry from nesting
   results, and delegates status transitions to the status machine.
 - `repository.js`: MongoDB access for `sheet_designs` using `toFlexibleId()` for mixed string/ObjectId IDs.
@@ -45,9 +45,11 @@ Digital sheet layouts generated from nesting runs.
 
 `createFromRun(run, data, userId)` inherits lineage from the nesting run,
 creates a `READY` status/origin block, stores geometry metadata, and returns
-`SheetDesign.toJSON()`. The nesting task passes complete per-layout geometry,
-so each physical worker sheet becomes its own `sheet_design` entity named and
-serialized from the parent run.
+`SheetDesign.toJSON()`. The nesting task groups returned layouts by
+cassette-design/count composition. Each unique composition becomes one
+`sheet_design` whose geometry comes from the first layout in stable worker
+order and whose `data.sheetCount` records how many physical sheets share that
+composition.
 
 `nestingResultForLayout(result, layoutIndex)` slices a multi-sheet worker result
 to one physical layout. `nestingResultToPreview(result, params, { layoutIndex })`
@@ -82,7 +84,7 @@ stock was allowed for the generated layout.
 
 `updateGeometryFromResult(id, { result, summary, params })` is retained for
 legacy callers that update an existing sheet design in place. New nesting runs
-create per-layout sheet designs directly through `createFromRun()`.
+create composition-grouped sheet designs directly through `createFromRun()`.
 
 Every generated or manually saved layout resolves an immutable
 `entity_revision` with `entityType: "sheet_design"` and `scope: "geometry"`.
@@ -92,10 +94,11 @@ The sheet design stores the current pointer under
 `sheet_designs:write` grant, rebuilds the preview and placement summaries, and
 creates or reuses the geometry revision. `data.nestingParams` preserves the
 solver settings. The editor resolves `toolProfileId` through the public tool
-catalogue and uses tool kerf as placement clearance. Snapping is neighbor-edge
-magnetism with transformed-polygon clearance checks and complete rotated
-geometry clamping inside the material-sheet boundary; saved solver spacing is
-only a legacy fallback for older layouts without a resolvable tool profile.
+catalogue and uses tool kerf as placement clearance. Snapping uses
+axis-aligned neighbor bounds plus transformed-polygon clearance checks and
+rectangular rotated-geometry clamping inside the visible sheet bounds; saved
+solver spacing is only a legacy fallback for older layouts without a resolvable
+tool profile.
 
 GET/list APIs require authenticated lineage context. `queueId`, `projectId`,
 and `runId`/`runIds` query parameters are mapped to `lineage.queueId`,

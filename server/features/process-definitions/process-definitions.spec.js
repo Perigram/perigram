@@ -493,7 +493,7 @@ describe('process definitions access fallback', () => {
     }));
   });
 
-  it('delegates non-status process updates to the owning feature service', async () => {
+  it('rejects non-status process updates without an owning feature process-update handler', async () => {
     const update = vi.fn().mockResolvedValue({
       _id: 'project-1',
       identity: { uid: 'project-1', name: 'Project' },
@@ -537,7 +537,7 @@ describe('process definitions access fallback', () => {
       }
     });
 
-    await executeActiveProcessAction({
+    await expect(executeActiveProcessAction({
       actionId: 'update_project_note',
       entityId: 'project-1',
       data: { data: { metadata: { note: 'Updated by process' } } }
@@ -545,16 +545,12 @@ describe('process definitions access fallback', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       roleAssignments: { actions: [{ actionId: 'update_project_note' }] }
+    })).rejects.toMatchObject({
+      statusCode: 501,
+      message: 'Non-status process updates for project require an owning feature process-update handler'
     });
 
-    expect(update).toHaveBeenCalledWith(
-      'project-1',
-      { data: { metadata: { note: 'Updated by process' } } },
-      'user-1',
-      'org-1',
-      undefined,
-      expect.any(Object)
-    );
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('executes synchronous run-command actions with action-scoped command access and output status projection', async () => {
@@ -567,7 +563,7 @@ describe('process definitions access fallback', () => {
         access: {
           executionGrants: [
             { feature: 'cassettes', level: 'read', actions: { view: true } },
-            { feature: 'cassette_designs', level: 'write', actions: { view: true, create: true } }
+            { feature: 'cassette_designs', level: 'read', actions: { view: true } }
           ]
         }
       })
@@ -644,7 +640,7 @@ describe('process definitions access fallback', () => {
             expect.objectContaining({ level: 'read', actions: { view: true } })
           ]),
           cassette_designs: expect.arrayContaining([
-            expect.objectContaining({ level: 'write', actions: { view: true, create: true } })
+            expect.objectContaining({ level: 'read', actions: { view: true } })
           ])
         })
       })

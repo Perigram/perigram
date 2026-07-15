@@ -945,8 +945,8 @@ function fieldPathAllowed(path, patterns = []) {
 
 async function persistProcessEntityPatch(entityType, targetId, patch, auth) {
   const service = getAppRegistry().getEntityService(entityType);
-  if (!service?.getById || !service?.update) {
-    throw createError({ statusCode: 500, message: `Entity service cannot update ${entityType}` });
+  if (!service?.getById) {
+    throw createError({ statusCode: 500, message: `Entity service cannot load ${entityType}` });
   }
   const entityResult = await service.getById(targetId, auth.userId, auth.organizationId, auth.role, auth);
   const entity = entityResult?.toJSON ? entityResult.toJSON() : entityResult;
@@ -959,15 +959,10 @@ async function persistProcessEntityPatch(entityType, targetId, patch, auth) {
     action: 'update',
     auth
   });
-  return await service.update(targetId, unflattenMutationPatch(patch), auth.userId, auth.organizationId, auth.role, auth);
-}
-
-function unflattenMutationPatch(patch = {}) {
-  const result = {};
-  for (const [path, value] of Object.entries(patch || {})) {
-    setByPath(result, path, value);
-  }
-  return result;
+  throw createError({
+    statusCode: 501,
+    message: `Non-status process updates for ${entityType} require an owning feature process-update handler`
+  });
 }
 
 function flattenMutationPatch(source = {}, prefix = '', result = {}) {
