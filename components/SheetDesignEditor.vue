@@ -28,9 +28,21 @@
             <path :d="`M ${majorGridSize} 0 L 0 0 0 ${majorGridSize}`" fill="none" stroke="var(--p-text-muted-color)" stroke-opacity="0.28" :stroke-width="Math.max(majorGridSize / 80, 0.4)" />
           </pattern>
         </defs>
-        <rect x="0" y="0" :width="sheetWidth" :height="sheetHeight" fill="var(--p-content-background)" />
-        <rect x="0" y="0" :width="sheetWidth" :height="sheetHeight" :fill="`url(#${gridPatternId})`" />
+        <polygon v-if="sheetPolygonPoints" :points="sheetPolygonPoints" fill="var(--p-content-background)" />
+        <rect v-else x="0" y="0" :width="sheetWidth" :height="sheetHeight" fill="var(--p-content-background)" />
+        <polygon v-if="sheetPolygonPoints" :points="sheetPolygonPoints" :fill="`url(#${gridPatternId})`" />
+        <rect v-else x="0" y="0" :width="sheetWidth" :height="sheetHeight" :fill="`url(#${gridPatternId})`" />
+        <polygon
+          v-if="sheetPolygonPoints"
+          :points="sheetPolygonPoints"
+          fill="none"
+          :stroke="sheetBoundaryStyle.color"
+          :stroke-width="displayStrokeWidth(sheetBoundaryStyle.weight, 2)"
+          :stroke-dasharray="sheetBoundaryStyle.dasharray"
+          vector-effect="non-scaling-stroke"
+        />
         <rect
+          v-else
           x="0"
           y="0"
           :width="sheetWidth"
@@ -174,6 +186,14 @@ const selectedCassetteDesignId = ref('');
 
 const sheetWidth = computed(() => Math.max(Number(props.design.specs?.width) || 1220, 1));
 const sheetHeight = computed(() => Math.max(Number(props.design.specs?.length) || 2440, 1));
+const sheetPolygon = computed(() => normalizeSheetPolygon(
+  props.design.data?.geometry?.data?.sheetPolygon ||
+  props.design.data?.geometry?.data?.sheet_polygon ||
+  props.design.data?.geometry?.data?.polygon ||
+  props.design.data?.materialPool?.[0]?.sheetPolygon ||
+  null
+));
+const sheetPolygonPoints = computed(() => sheetPolygon.value?.outer?.map(point => point.join(',')).join(' ') || '');
 const selectedToolProfileId = computed(() => props.design.data?.toolSnapshot?.source?.id || '');
 const selectedTool = computed(() => tools.value.find(tool => String(tool._id) === String(selectedToolProfileId.value)) || null);
 const toolKerf = computed(() => Math.max(Number(
@@ -331,6 +351,7 @@ function dragPlacement(event) {
     y: pointer.y - drag.dy,
     sheetWidth: sheetWidth.value,
     sheetHeight: sheetHeight.value,
+    sheetPolygon: sheetPolygon.value,
     boundaryOffset: boundaryOffset.value,
     clearance: toolKerf.value
   });
@@ -361,6 +382,7 @@ function rotateSelected() {
     index: selectedIndex.value,
     sheetWidth: sheetWidth.value,
     sheetHeight: sheetHeight.value,
+    sheetPolygon: sheetPolygon.value,
     boundaryOffset: boundaryOffset.value,
     clearance: toolKerf.value
   });
@@ -386,6 +408,7 @@ function addCassetteDesign(design) {
     item,
     sheetWidth: sheetWidth.value,
     sheetHeight: sheetHeight.value,
+    sheetPolygon: sheetPolygon.value,
     boundaryOffset: boundaryOffset.value
   });
   placedItems.value.push({
@@ -393,6 +416,28 @@ function addCassetteDesign(design) {
     transformation: { rotation: 0, translation: [start.x, start.y] }
   });
   selectedIndex.value = placedItems.value.length - 1;
+}
+
+function normalizeSheetRing(points = []) {
+  const normalized = (Array.isArray(points) ? points : [])
+    .map(point => Array.isArray(point) && point.length >= 2 ? [Number(point[0]), Number(point[1])] : null)
+    .filter(point => point && Number.isFinite(point[0]) && Number.isFinite(point[1]));
+  if (normalized.length < 3) return null;
+  return normalized;
+}
+
+function normalizeSheetPolygon(polygon = null) {
+  if (!polygon) return null;
+  if (Array.isArray(polygon)) {
+    const outer = normalizeSheetRing(polygon);
+    return outer ? { outer, inner: [] } : null;
+  }
+  const outer = normalizeSheetRing(polygon.outer || polygon.data?.outer || []);
+  if (!outer) return null;
+  return {
+    outer,
+    inner: (polygon.inner || polygon.data?.inner || []).map(normalizeSheetRing).filter(Boolean)
+  };
 }
 
 function addSelectedCassette() {

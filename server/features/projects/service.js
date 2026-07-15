@@ -9,6 +9,7 @@ import { createTransitionAuth, statusService } from '../../core/machines/service
 import { toFlexibleId } from '../../utils/objectid.js';
 import * as librariesService from '../libraries/service.js';
 import * as entityRevisionsService from '../entity-revisions/service.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 
 /**
  * Projects Service - v24 Absolute Final
@@ -125,6 +126,12 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   const updatedRaw = await repository.findById(project.id);
   return new Project(updatedRaw);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'project',
+  repository,
+  Model: Project
+});
 
 async function normalizeProjectRelations(relations, userId, userOrg, userRole, userPermissions, existing = {}) {
   if (relations === undefined) return existing;

@@ -67,17 +67,107 @@ export function sheetItemBounds(item = {}, rotation = 0) {
   return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
 }
 
-export function clampSheetPlacement({ x = 0, y = 0, item = {}, rotation = 0, sheetWidth = 0, sheetHeight = 0, boundaryOffset = 0 } = {}) {
+function normalizePolygonRing(points = []) {
+  const ring = (Array.isArray(points) ? points : [])
+    .map(point => Array.isArray(point) && point.length >= 2 ? [Number(point[0]), Number(point[1])] : null)
+    .filter(point => point && Number.isFinite(point[0]) && Number.isFinite(point[1]));
+  if (ring.length < 3) return [];
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  if (Math.abs(first[0] - last[0]) <= GEOMETRY_EPSILON && Math.abs(first[1] - last[1]) <= GEOMETRY_EPSILON) {
+    return ring.slice(0, -1);
+  }
+  return ring;
+}
+
+function normalizeSheetPolygon(sheetPolygon) {
+  if (!sheetPolygon) return null;
+  if (Array.isArray(sheetPolygon)) {
+    const outer = normalizePolygonRing(sheetPolygon);
+    return outer.length ? { outer, inner: [] } : null;
+  }
+  const outer = normalizePolygonRing(sheetPolygon.outer || sheetPolygon.data?.outer || []);
+  if (!outer.length) return null;
+  return {
+    outer,
+    inner: (sheetPolygon.inner || sheetPolygon.data?.inner || []).map(normalizePolygonRing).filter(ring => ring.length)
+  };
+}
+
+function translatedItemPoints(item = {}, rotation = 0, x = 0, y = 0) {
+  const radians = workerRotationRadians(rotation);
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return sheetItemPoints(item).map(point => [
+    x + point[0] * cos - point[1] * sin,
+    y + point[0] * sin + point[1] * cos
+  ]);
+}
+
+function pointInsideOrOnPolygon(point, polygon = []) {
+  return pointInPolygon(point, polygon) || polygonEdges(polygon).some(edge => pointOnSegment(point, edge[0], edge[1]));
+}
+
+function polygonInsideSheet(points = [], sheetPolygon = null) {
+  const sheet = normalizeSheetPolygon(sheetPolygon);
+  if (!sheet || points.length < 3) return true;
+  const outerEdges = polygonEdges(sheet.outer);
+  const candidateEdges = polygonEdges(points);
+  if (!points.every(point => pointInsideOrOnPolygon(point, sheet.outer))) return false;
+  for (const hole of sheet.inner) {
+    if (points.some(point => pointInsideOrOnPolygon(point, hole))) return false;
+  }
+  for (const edge of candidateEdges) {
+    if (outerEdges.some(boundary => segmentsProperlyIntersect(edge[0], edge[1], boundary[0], boundary[1]))) return false;
+    for (const hole of sheet.inner) {
+      if (polygonEdges(hole).some(boundary => segmentsIntersect(edge[0], edge[1], boundary[0], boundary[1]))) return false;
+    }
+  }
+  return true;
+}
+
+function sheetPolygonCentroid(sheetPolygon = null, fallback = [0, 0]) {
+  const sheet = normalizeSheetPolygon(sheetPolygon);
+  if (!sheet) return fallback;
+  const sum = sheet.outer.reduce((acc, point) => [acc[0] + point[0], acc[1] + point[1]], [0, 0]);
+  return [sum[0] / sheet.outer.length, sum[1] / sheet.outer.length];
+}
+
+export function clampSheetPlacement({ x = 0, y = 0, item = {}, rotation = 0, sheetWidth = 0, sheetHeight = 0, boundaryOffset = 0, sheetPolygon = null } = {}) {
   const bounds = sheetItemBounds(item, rotation);
   const inset = Math.max(Number(boundaryOffset) || 0, 0);
   const minX = inset - bounds.minX;
   const minY = inset - bounds.minY;
   const maxX = Math.max((Number(sheetWidth) || 0) - inset - bounds.maxX, minX);
   const maxY = Math.max((Number(sheetHeight) || 0) - inset - bounds.maxY, minY);
-  return {
+  const rectangular = {
     x: Math.min(Math.max(Number(x) || 0, minX), maxX),
     y: Math.min(Math.max(Number(y) || 0, minY), maxY)
   };
+  if (!sheetPolygon || polygonInsideSheet(translatedItemPoints(item, rotation, rectangular.x, rectangular.y), sheetPolygon)) {
+    return rectangular;
+  }
+
+  const centroid = sheetPolygonCentroid(sheetPolygon, [Number(sheetWidth) / 2 || 0, Number(sheetHeight) / 2 || 0]);
+  const itemCenter = [(bounds.minX + bounds.maxX) / 2, (bounds.minY + bounds.maxY) / 2];
+  const target = { x: centroid[0] - itemCenter[0], y: centroid[1] - itemCenter[1] };
+  let low = 0;
+  let high = 1;
+  let best = null;
+  for (let step = 0; step < 24; step += 1) {
+    const t = (low + high) / 2;
+    const candidate = {
+      x: rectangular.x + (target.x - rectangular.x) * t,
+      y: rectangular.y + (target.y - rectangular.y) * t
+    };
+    if (polygonInsideSheet(translatedItemPoints(item, rotation, candidate.x, candidate.y), sheetPolygon)) {
+      best = candidate;
+      high = t;
+    } else {
+      low = t;
+    }
+  }
+  return best || rectangular;
 }
 
 export function sheetPlacementBounds(items = [], placement = {}) {
@@ -177,6 +267,58 @@ function segmentDistance([a, b], [c, d]) {
   );
 }
 
+function edgeUnitNormal(edge) {
+  const dx = edge[1][0] - edge[0][0];
+  const dy = edge[1][1] - edge[0][1];
+  const length = Math.hypot(dx, dy);
+  if (length <= GEOMETRY_EPSILON) return null;
+  return [-dy / length, dx / length];
+}
+
+function unitEdgeDirection(edge) {
+  const dx = edge[1][0] - edge[0][0];
+  const dy = edge[1][1] - edge[0][1];
+  const length = Math.hypot(dx, dy);
+  if (length <= GEOMETRY_EPSILON) return null;
+  return [dx / length, dy / length];
+}
+
+function dot(a, b) {
+  return a[0] * b[0] + a[1] * b[1];
+}
+
+function edgeSnapCandidates({ items = [], placement = {}, bounded = {}, other = {}, clearance = 0 } = {}) {
+  const movingPoints = transformedPlacementPoints(items, placementWithTranslation(placement, bounded.x, bounded.y));
+  const otherPoints = transformedPlacementPoints(items, other);
+  const movingEdges = polygonEdges(movingPoints);
+  const otherEdges = polygonEdges(otherPoints);
+  const candidates = [];
+  for (const movingEdge of movingEdges) {
+    const movingDirection = unitEdgeDirection(movingEdge);
+    if (!movingDirection) continue;
+    for (const otherEdge of otherEdges) {
+      const otherDirection = unitEdgeDirection(otherEdge);
+      const otherNormal = edgeUnitNormal(otherEdge);
+      if (!otherDirection || !otherNormal) continue;
+      const parallel = Math.abs(dot(movingDirection, otherDirection));
+      if (1 - parallel > 0.01) continue;
+      const currentDistance = dot([
+        movingEdge[0][0] - otherEdge[0][0],
+        movingEdge[0][1] - otherEdge[0][1]
+      ], otherNormal);
+      for (const sign of [-1, 1]) {
+        const delta = sign * clearance - currentDistance;
+        candidates.push({
+          x: bounded.x + otherNormal[0] * delta,
+          y: bounded.y + otherNormal[1] * delta,
+          snapped: true
+        });
+      }
+    }
+  }
+  return candidates;
+}
+
 function polygonsClear(leftPoints = [], rightPoints = [], clearance = 0) {
   const gap = Math.max(Number(clearance) || 0, 0);
   if (leftPoints.length < 3 || rightPoints.length < 3) return true;
@@ -218,6 +360,7 @@ export function magneticSheetPlacement({
   y = 0,
   sheetWidth = 0,
   sheetHeight = 0,
+  sheetPolygon = null,
   boundaryOffset = 0,
   clearance = 0,
   threshold = null
@@ -226,7 +369,7 @@ export function magneticSheetPlacement({
   if (!placement) return { x, y, snapped: false };
   const source = sheetPlacementSource(items, placement);
   const rotation = placement.transformation?.rotation ?? placement.rotation ?? 0;
-  const bounded = clampSheetPlacement({ x, y, item: source, rotation, sheetWidth, sheetHeight, boundaryOffset });
+  const bounded = clampSheetPlacement({ x, y, item: source, rotation, sheetWidth, sheetHeight, boundaryOffset, sheetPolygon });
   const moving = sheetItemBounds(source, rotation);
   const gap = Math.max(Number(clearance) || 0, 0);
   const snapThreshold = threshold === null ? Math.max(gap * 2, 12) : Math.max(Number(threshold) || 0, 0);
@@ -251,13 +394,21 @@ export function magneticSheetPlacement({
     alignedY.forEach(candidateY => candidates.push({ x: bounded.x, y: candidateY, snapped: true }));
     xCandidates.forEach(candidateX => alignedY.forEach(candidateY => candidates.push({ x: candidateX, y: candidateY, snapped: true })));
     yCandidates.forEach(candidateY => alignedX.forEach(candidateX => candidates.push({ x: candidateX, y: candidateY, snapped: true })));
+    candidates.push(...edgeSnapCandidates({
+      items,
+      placement,
+      bounded,
+      other,
+      clearance: gap
+    }));
   });
 
   return candidates
     .map(candidate => ({
-      ...clampSheetPlacement({ ...candidate, item: source, rotation, sheetWidth, sheetHeight, boundaryOffset }),
+      ...clampSheetPlacement({ ...candidate, item: source, rotation, sheetWidth, sheetHeight, boundaryOffset, sheetPolygon }),
       snapped: candidate.snapped
     }))
+    .filter(candidate => polygonInsideSheet(translatedItemPoints(source, rotation, candidate.x, candidate.y), sheetPolygon))
     .filter(candidate => Math.hypot(candidate.x - bounded.x, candidate.y - bounded.y) <= snapThreshold || !candidate.snapped)
     .filter(candidate => placementHasClearance({
       items,
@@ -272,7 +423,7 @@ export function magneticSheetPlacement({
     })[0] || null;
 }
 
-export function rotateSheetPlacementQuarterTurn({ items = [], placements = [], index = -1, sheetWidth = 0, sheetHeight = 0, boundaryOffset = 0, clearance = 0 } = {}) {
+export function rotateSheetPlacementQuarterTurn({ items = [], placements = [], index = -1, sheetWidth = 0, sheetHeight = 0, sheetPolygon = null, boundaryOffset = 0, clearance = 0 } = {}) {
   const placement = placements[index];
   if (!placement) return null;
   const transform = sheetPlacementTransform(placement);
@@ -286,6 +437,7 @@ export function rotateSheetPlacementQuarterTurn({ items = [], placements = [], i
     rotation,
     sheetWidth,
     sheetHeight,
+    sheetPolygon,
     boundaryOffset
   });
   const rotated = {

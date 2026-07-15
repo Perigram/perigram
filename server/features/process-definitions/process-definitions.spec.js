@@ -493,8 +493,8 @@ describe('process definitions access fallback', () => {
     }));
   });
 
-  it('rejects non-status process updates without an owning feature process-update handler', async () => {
-    const update = vi.fn().mockResolvedValue({
+  it('persists non-status process updates through the owning feature process-update handler', async () => {
+    const processUpdate = vi.fn().mockResolvedValue({
       _id: 'project-1',
       identity: { uid: 'project-1', name: 'Project' },
       lineage: { organizationId: 'org-1' },
@@ -514,7 +514,7 @@ describe('process definitions access fallback', () => {
           lineage: { organizationId: 'org-1' },
           data: { metadata: {} }
         }),
-        update
+        processUpdate
       })
     });
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
@@ -537,7 +537,7 @@ describe('process definitions access fallback', () => {
       }
     });
 
-    await expect(executeActiveProcessAction({
+    const updated = await executeActiveProcessAction({
       actionId: 'update_project_note',
       entityId: 'project-1',
       data: { data: { metadata: { note: 'Updated by process' } } }
@@ -545,12 +545,12 @@ describe('process definitions access fallback', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       roleAssignments: { actions: [{ actionId: 'update_project_note' }] }
-    })).rejects.toMatchObject({
-      statusCode: 501,
-      message: 'Non-status process updates for project require an owning feature process-update handler'
     });
 
-    expect(update).not.toHaveBeenCalled();
+    expect(processUpdate).toHaveBeenCalledWith('project-1', {
+      'data.metadata.note': 'Updated by process'
+    }, expect.objectContaining({ userId: 'user-1' }));
+    expect(updated.data.metadata.note).toBe('Updated by process');
   });
 
   it('executes synchronous run-command actions with action-scoped command access and output status projection', async () => {
