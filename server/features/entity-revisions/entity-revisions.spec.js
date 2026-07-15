@@ -3,6 +3,7 @@ import {
   derivedFromRevision,
   hashRevisionContent
 } from './service.js';
+import { EntityRevision } from './model.js';
 
 describe('entity revision helpers', () => {
   it('hashes canonical content independent of object key order', () => {
@@ -60,6 +61,22 @@ describe('entity revision helpers', () => {
       scope: 'geometry',
       revisionNumber: 2,
       contentHash: 'sha256:legacy'
+    });
+  });
+
+  it('normalizes legacy revision source fields in DTOs', () => {
+    const revision = new EntityRevision({
+      _id: 'rev-legacy',
+      data: {
+        entityType: 'cassette',
+        entityId: 'cassette-legacy',
+        scope: 'geometry'
+      }
+    }).toJSON();
+
+    expect(revision.data.source).toMatchObject({
+      type: 'cassette',
+      id: 'cassette-legacy'
     });
   });
 });

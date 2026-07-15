@@ -649,9 +649,10 @@
     - Entity revision index setup now compares existing named index keys and
       drops/recreates the content/latest indexes when an older database has the
       same index name on the pre-source-key shape.
-    - Revision hash/latest lookups and derived provenance now read both current
-      =data.source= records and existing =data.entityType/entityId= records so
-      old snapshots can still be reused without producing invalid provenance.
+    - Revision hash/latest lookups, DTO serialization, and derived provenance
+      now read both current =data.source= records and existing
+      =data.entityType/entityId= records so old snapshots can still be reused
+      without producing invalid provenance.
     - Entity revision docs now describe the current =data.source= index
       contract instead of the old =data.entityType/entityId= fields.
 
