@@ -387,6 +387,7 @@ import { occsParameterNames } from '~/utils/occs/parameters.js';
 import { canonicalQueueItem } from '~/utils/queue-items.js';
 import { currentQueueRun } from '~/utils/queue-runs.js';
 import {
+    actionProducesEntityType,
     buildProducerActionRequest,
     producerFieldsForAction,
     templatesAvailableToProject
@@ -458,9 +459,7 @@ const canEditQueue = computed(() => {
         entityType: 'queue'
     });
 });
-const cassetteDesignProducerActions = computed(() => authStore.actionManifest.filter(action => (
-    actionOutputContracts(action).some(output => output.entityType === 'cassette_design')
-)));
+const cassetteDesignProducerActions = computed(() => props.processActions.filter(action => actionProducesEntityType(action, 'cassette_design')));
 const readableDesignSource = computed(() => authStore.hasPermission('cassette_designs', 'read'));
 const availableProducers = computed(() => {
     if (isProcessMode.value) {
@@ -510,10 +509,6 @@ const processRunNestingAction = computed(() => {
     return props.processActions
         .find(action => action?.actionKind === 'runCommand' && action.commandId === 'solveNesting') || null;
 });
-
-function actionOutputContracts(action = {}) {
-    return (action.contracts?.outputs || []).map(output => typeof output === 'string' ? { entityType: output } : output);
-}
 
 function systemProducer(id) {
     return (cncDomain.producers || []).find(producer => producer.id === id) || null;

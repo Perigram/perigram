@@ -2,7 +2,13 @@
   <Panel>
     <template #header>
       <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
-        <EntityInlineRef :type="sourceType" :entity="cassette" :id="sourceId" :fetch="!cassette" />
+        <EntityInlineRef
+          :type="sourceType"
+          :entity="cassette"
+          :id="sourceId"
+          :fetch="shouldFetchSource"
+          variant="compact"
+        />
         <div class="flex items-center gap-1" data-entity-card-interactive="true" @click.stop>
           <InputNumber
             :model-value="entry.quantity"
@@ -80,4 +86,5 @@ const emit = defineEmits(['update-quantity', 'update-dimension', 'remove']);
 
 const sourceId = computed(() => props.entry.id);
 const sourceType = computed(() => 'cassetteDesign');
+const shouldFetchSource = computed(() => !props.cassette && props.entry.entityType === 'cassette_design');
 </script>

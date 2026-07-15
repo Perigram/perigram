@@ -40,6 +40,16 @@ export function producerFieldsForAction(action = {}, fields = [], autoEntityType
   return [...new Map(next.filter(field => field?.id).map(field => [field.id, field])).values()];
 }
 
+export function actionOutputContracts(action = {}) {
+  return (action.contracts?.outputs || [])
+    .map(output => typeof output === 'string' ? { entityType: output } : output)
+    .filter(output => output?.entityType);
+}
+
+export function actionProducesEntityType(action = {}, entityType = '') {
+  return actionOutputContracts(action).some(output => output.entityType === entityType);
+}
+
 export function buildProducerActionRequest({
   action = {},
   fields = [],
