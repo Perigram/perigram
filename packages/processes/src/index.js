@@ -290,7 +290,37 @@ function normalizeRecord(value) {
 }
 
 function normalizeActions(value) {
-  return Object.fromEntries(Object.entries(normalizeRecord(value)).map(([id, action]) => [id, { ...action }]));
+  return Object.fromEntries(Object.entries(normalizeRecord(value)).map(([id, action]) => [id, normalizeActionRecord(action)]));
+}
+
+function normalizeActionRecord(action = {}) {
+  if (action.actionKind !== 'changeStatus') return { ...action };
+  const entityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType || '';
+  const inputs = [...(action.inputs || [])];
+  if (!inputs.some(input => input.id === 'entity')) {
+    inputs.unshift({ id: 'entity', kind: 'entity', entityType, required: true });
+  }
+  if (!inputs.some(input => input.id === 'status')) {
+    inputs.push({
+      id: 'status',
+      kind: 'status',
+      statusRef: action.statusRef || null,
+      status: action.status?.to || action.access?.statusTo || '',
+      required: false
+    });
+  }
+  return {
+    ...action,
+    actionKind: 'updateEntity',
+    entityType,
+    inputs,
+    mutation: action.mutation || { fields: [] },
+    access: {
+      ...(action.access || {}),
+      statusFrom: action.access?.statusFrom || action.status?.from || '',
+      statusTo: action.access?.statusTo || action.status?.to || ''
+    }
+  };
 }
 
 function compileLifecycle(profile = {}, domain = {}) {

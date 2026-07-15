@@ -164,6 +164,10 @@ const props = defineProps({
   producerActionId: {
     type: String,
     default: ''
+  },
+  producerActionBody: {
+    type: Object,
+    default: () => ({})
   }
 });
 
@@ -337,7 +341,13 @@ const handleUpload = async () => {
     const uploadResult = props.producerActionId
       ? await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(props.producerActionId)}/execute`, {
           method: 'POST',
-          body: { data }
+          body: {
+            ...props.producerActionBody,
+            data: {
+              ...(props.producerActionBody?.data || {}),
+              ...data
+            }
+          }
         })
       : await $fetch('/api/cassette-designs/import', { method: 'POST', body: data });
     const uploadedTemplate = uploadResult?.template || uploadResult;
