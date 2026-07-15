@@ -342,7 +342,8 @@
     - Sheet twin count equals collapsed multiplicity.
     - No executor writes organization lifecycle literals.
     - Neighbor snapping preserves kerf clearance, rejects overlap, honors
-      boundary offset, and keeps four successive rotations reversible/in-bounds.
+      usable sheet polygons plus boundary offset, and keeps four successive
+      rotations reversible/in-bounds.
 
 *** Process and OCCS coverage
 
@@ -438,13 +439,17 @@
       require current =contracts.outputs=.
     - Removed the invalid generic non-status feature-service update call.
       Non-status process updates now fail unless an owning feature
-      process-update handler is introduced.
+      process-update handler is introduced. This line is superseded by the
+      next repair note; process-update handlers now exist for project and queue
+      process mutations.
     - Removed standalone Mongo fallback for combined status/entity patches.
       Combined mutations require transactions and fail before partial writes
       when topology cannot provide them.
     - Downgraded sheet-editor snapping documentation to the implemented
       behavior: axis-aligned neighbor bounds, kerf clearance,
       transformed-polygon overlap checks, and rectangular boundary clamping.
+      This line is superseded by the next repair note; snapping now uses
+      transformed edge-normal candidates and usable sheet-polygon clamping.
 
     Validation run:
     - =npx vitest run server/features/nesting/operations.spec.js server/features/process-definitions/process-definitions.spec.js server/core/machines/service.spec.js server/scripts/migrate-sheet-design-compositions.spec.js utils/sheetLayoutEditor.spec.js shared/framework-packages.spec.js shared/design-system.spec.js utils/occs/evaluate.spec.js utils/occs/parameters.spec.js server/features/parametric-cassettes/service.spec.js= passed: 10 files, 128 tests.
@@ -452,3 +457,28 @@
     - =node scripts/check-arch.js= passed with the existing non-blocking migration inventory.
     - Changed Vue SFC parse check for =components/QueueEditor.vue= passed.
     - =git diff --check= passed.
+
+*** [2026-07-15] Repair of remaining review findings
+
+    Corrective implementation scope:
+    - Non-status process =updateEntity= no longer disables the action path.
+      Process definitions authorize and validate the action, then call the
+      owning service's explicit =processUpdate(id, patch, auth)= handler.
+      Project and queue services expose that handler through their own
+      repository/model boundary for allowed canonical block paths.
+    - Sheet editor snapping now generates magnetic candidates from transformed
+      cassette contour edges, filters with transformed polygon clearance, and
+      clamps placements/rotations/additions against a usable sheet polygon when
+      present. Rectangular bounds remain only the fallback for virtual
+      rectangle sheets.
+    - The stale validation concern was rechecked on this branch:
+      =npm run framework:manifest= and =npm run framework:validate= both pass
+      without regenerating or changing =framework.manifest.json=.
+
+    Validation run:
+    - =npx vitest run utils/sheetLayoutEditor.spec.js server/features/process-definitions/process-definitions.spec.js server/features/queues/queues.spec.js= passed: 3 files, 48 tests.
+    - Vue SFC parse check for =components/SheetDesignEditor.vue= passed.
+    - =npm run framework:manifest= passed.
+    - =npm run framework:validate= passed.
+    - =node scripts/check-arch.js= passed with the existing non-blocking
+      migration inventory.

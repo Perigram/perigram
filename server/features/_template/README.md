@@ -19,6 +19,7 @@ This directory serves as the canonical implementation of the **v24 Absolute Fina
 4.  **Serialized Outputs**: Services must return `Model.toJSON()` results, never raw DB documents.
 5.  **Central Registry**: `server/runtime/app-registry.js` explicitly registers every entity service.
 6.  **Explicit Side-Effects**: Use the `hooks` object in the service to define side-effects triggered by the Status Engine.
+7.  **Process Updates Stay Owned**: If a feature can be mutated by non-status process `updateEntity` actions, its service exports a `processUpdate(id, patch, auth)` handler. The handler applies field-policy-approved canonical block paths through that feature's own repository/model boundary; process definitions must not call generic update signatures or write the feature collection directly.
 
 ## Boilerplate Snippets
 

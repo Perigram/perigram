@@ -250,11 +250,12 @@ main/supporting proportions from
 Sheet-design details similarly mount `SheetDesignEditor` when the active user
 has a concrete `sheet_designs:write` grant. The editor mutates nesting source
 items and placements, resolves OCCS layer pens through the shared layer
-standards, snaps axis-aligned neighbor bounds with tool-kerf clearance, checks
-transformed polygon clearance before accepting a placement, clamps complete
-rotated geometry inside rectangular visible sheet bounds, supports
-existing/uploaded cassette designs, and persists through immutable geometry
-revisions. Generated
+standards, snaps transformed cassette production-contour edges with tool-kerf
+clearance, checks transformed polygon clearance before accepting a placement,
+clamps complete rotated geometry inside the usable sheet polygon when one is
+present, falls back to rectangular sheet bounds for virtual rectangle sheets,
+supports existing/uploaded cassette designs, and persists through immutable
+geometry revisions. Generated
 sheet-design details keep the sheet identity visible in `EntityPage`; read-only
 details keep the standard geometry display.
 The queue detail support region for nesting runs follows the same contract:
