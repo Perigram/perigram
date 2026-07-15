@@ -35,6 +35,9 @@ Runtime index creation drops and recreates the named content/latest indexes
 when an older database still has the same index names on the pre-source-key
 shape, so entity revision creation is idempotent across migrated development
 databases.
+Hash/latest lookups and derived provenance also accept existing pre-source-key
+records with `data.entityType` and `data.entityId`, then emit current
+`EntityRef` provenance. New records are always written with `data.source`.
 
 ## Workflows
 
