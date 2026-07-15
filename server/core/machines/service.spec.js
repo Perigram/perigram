@@ -140,7 +140,7 @@ describe('status service lifecycle payloads', () => {
     expect(await db.collection('status_events').countDocuments({ targetId: 'queue-intent-patch' })).toBe(1);
   });
 
-  it('falls back to ordered status/entity writes when Mongo topology rejects transactions', async () => {
+  it('rejects combined status/entity writes when Mongo topology rejects transactions', async () => {
     await db.collection('queues').insertOne({
       _id: 'queue-standalone-patch',
       identity: { uid: 'queue-standalone-patch', name: 'Queue' },
@@ -160,67 +160,21 @@ describe('status service lifecycle payloads', () => {
     };
     mockedConnectDB.mockReturnValue(standaloneDb);
 
-    await statusService.transitionWithResult({
+    await expect(statusService.transitionWithResult({
       entityType: 'queue',
       targetId: 'queue-standalone-patch',
       intent: 'completeNestingProduction',
       auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
       patch: { data: { marker: 'after' } }
-    });
+    })).rejects.toThrow('Transaction numbers are only allowed on a replica set member or mongos');
 
     const queue = await db.collection('queues').findOne({ _id: 'queue-standalone-patch' });
     expect(standaloneDb.client.startSession).toHaveBeenCalled();
     expect(session.withTransaction).toHaveBeenCalled();
     expect(session.endSession).toHaveBeenCalled();
-    expect(queue.status.state.primary).toBe('READY');
-    expect(queue.data.marker).toBe('after');
-    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-standalone-patch' })).toBe(1);
-  });
-
-  it('removes the fallback status event when the standalone entity write fails', async () => {
-    await db.collection('queues').insertOne({
-      _id: 'queue-standalone-failure',
-      identity: { uid: 'queue-standalone-failure', name: 'Queue' },
-      lineage: { organizationId: 'org-1' },
-      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} },
-      data: { marker: 'before' }
-    });
-    const session = {
-      withTransaction: vi.fn(async () => {
-        throw new Error('Transaction numbers are only allowed on a replica set member or mongos');
-      }),
-      endSession: vi.fn()
-    };
-    const queuesCollection = db.collection('queues');
-    const updateOne = vi.fn(async (filter, update, options) => {
-      if (update?.$set?.status) throw new Error('standalone entity write failed');
-      return queuesCollection.updateOne(filter, update, options);
-    });
-    const failingQueuesCollection = new Proxy(queuesCollection, {
-      get(target, prop) {
-        if (prop === 'updateOne') return updateOne;
-        const value = target[prop];
-        return typeof value === 'function' ? value.bind(target) : value;
-      }
-    });
-    const standaloneDb = {
-      collection: vi.fn(name => name === 'queues' ? failingQueuesCollection : db.collection(name)),
-      client: { startSession: vi.fn(() => session) }
-    };
-    mockedConnectDB.mockReturnValue(standaloneDb);
-
-    await expect(statusService.transitionWithResult({
-      entityType: 'queue',
-      targetId: 'queue-standalone-failure',
-      intent: 'completeNestingProduction',
-      auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
-      patch: { data: { marker: 'after' } }
-    })).rejects.toThrow('standalone entity write failed');
-
-    const queue = await db.collection('queues').findOne({ _id: 'queue-standalone-failure' });
     expect(queue.status.state).toBe('DRAFT');
     expect(queue.data.marker).toBe('before');
-    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-standalone-failure' })).toBe(0);
+    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-standalone-patch' })).toBe(0);
   });
 
   it('returns archive as a queue menu action from every queue lifecycle state', async () => {

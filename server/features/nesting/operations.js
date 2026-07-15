@@ -2,8 +2,8 @@ import { createError } from 'h3';
 import { getPrimaryState, inheritLineage } from '../../core/blocks/index.js';
 import * as queuesService from '../queues/service.js';
 import * as projectsService from '../projects/service.js';
-import * as cassetteService from '../cassettes/service.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
+import * as parametricCassettesService from '../parametric-cassettes/service.js';
 import * as machinesService from '../machines/service.js';
 import * as toolProfilesService from '../tool-profiles/service.js';
 import * as nestingRunsRepository from '../nesting-runs/repository.js';
@@ -134,7 +134,7 @@ async function queueNestingRequestedEvent(queue, settings, taskRun, runId, auth)
 
 export async function buildJobFiles(queue, auth) {
   const jobFiles = [];
-  const rebakedDesigns = new Map();
+  const evaluatedDesigns = new Map();
   for (const entry of queue.data.job.items) {
     try {
       const entryParameters = entry.parameters || entry.dimensions || {};
@@ -146,8 +146,7 @@ export async function buildJobFiles(queue, auth) {
         entry,
         sourceDesign,
         parameters: entryParameters,
-        auth,
-        cache: rebakedDesigns
+        cache: evaluatedDesigns
       });
       if (!item) throw createError({ statusCode: 400, message: `Cassette design ${entry.id} not found` });
 
@@ -165,7 +164,7 @@ export async function buildJobFiles(queue, auth) {
   return jobFiles;
 }
 
-async function resolveQueueDesignGeometry({ entry, sourceDesign, parameters = {}, auth = {}, cache = new Map() } = {}) {
+async function resolveQueueDesignGeometry({ entry, sourceDesign, parameters = {}, cache = new Map() } = {}) {
   if (!sourceDesign) return null;
   const sourceParameters = hasEntries(sourceDesign.data?.parameters)
     ? sourceDesign.data.parameters
@@ -182,26 +181,35 @@ async function resolveQueueDesignGeometry({ entry, sourceDesign, parameters = {}
   const cacheKey = `${sourceRef.id}:${stableParameterKey(effectiveParameters)}`;
   if (cache.has(cacheKey)) return cache.get(cacheKey);
 
-  const rebaked = await cassetteService.createDesignFromTemplate(
-    sourceRef.id,
-    effectiveParameters,
-    auth.userId || 'SYSTEM',
-    auth.organizationId,
-    auth.role,
-    nestingDerivedDesignAuth(auth),
-    { name: `${sourceDesign.identity?.name || 'Cassette design'} (${stableParameterLabel(effectiveParameters)})` }
-  );
-  cache.set(cacheKey, rebaked);
-  return rebaked;
+  const evaluated = await parametricCassettesService.evaluateTemplate(sourceRef.id, effectiveParameters);
+  const polygonParts = evaluated.nestingPolygons?.length ? evaluated.nestingPolygons : evaluated.polygons;
+  if (!polygonParts?.length) {
+    throw createError({ statusCode: 400, message: `Parametric cassette template ${sourceRef.id} produced no geometry` });
+  }
+  const design = {
+    ...sourceDesign,
+    data: {
+      ...(sourceDesign.data || {}),
+      parameters: evaluated.dimensions || effectiveParameters,
+      polygonParts,
+      layerData: evaluated.layerData || sourceDesign.data?.layerData || [],
+      geometry: {
+        ...(sourceDesign.data?.geometry || {}),
+        data: {
+          ...(sourceDesign.data?.geometry?.data || {}),
+          dimensions: evaluated.dimensions || effectiveParameters,
+          polygonParts,
+          layerData: evaluated.layerData || sourceDesign.data?.geometry?.data?.layerData || []
+        }
+      }
+    }
+  };
+  cache.set(cacheKey, design);
+  return design;
 }
 
 function stableParameterKey(parameters = {}) {
   return JSON.stringify(Object.keys(parameters || {}).sort().map(key => [key, normalizeParameterValue(parameters[key])]));
-}
-
-function stableParameterLabel(parameters = {}) {
-  const entries = Object.keys(parameters || {}).sort().map(key => `${key}=${normalizeParameterValue(parameters[key])}`);
-  return entries.join(', ') || 'parameters';
 }
 
 function sameParameterMap(left = {}, right = {}) {
@@ -211,31 +219,6 @@ function sameParameterMap(left = {}, right = {}) {
 function normalizeParameterValue(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : value;
-}
-
-function nestingDerivedDesignAuth(auth = {}) {
-  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
-  const membership = organizationId
-    ? (auth.memberships || []).find(item => item.organizationId?.toString() === organizationId?.toString())
-    : (auth.memberships || [])[0];
-  const effectivePermissions = {
-    ...(auth.effectivePermissions || membership?.permissions || auth.permissions || {})
-  };
-  appendExecutionGrant(effectivePermissions, 'cassettes', { level: 'read', actions: { view: true } });
-  appendExecutionGrant(effectivePermissions, 'cassette_designs', { level: 'write', actions: { view: true, create: true } });
-  return {
-    ...auth,
-    effectivePermissions
-  };
-}
-
-function appendExecutionGrant(permissions, feature, grant) {
-  if (!feature) return;
-  const existing = permissions[feature];
-  permissions[feature] = [
-    ...(Array.isArray(existing) ? existing : existing ? [existing] : []),
-    grant
-  ];
 }
 
 export async function executeNestingSolveTask({ run, input, auth = {} }) {

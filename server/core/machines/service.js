@@ -496,39 +496,33 @@ async function performTransition(entityType, targetId, targetState, userId, user
 }
 
 async function writeStatusEventAndEntitySnapshot({ db, collection, targetId, eventRecord, entitySet, preferTransaction = false }) {
-  if (preferTransaction && db.client?.startSession) {
+  if (preferTransaction) {
+    if (!db.client?.startSession) {
+      throw createError({ statusCode: 500, message: 'MongoDB transactions are required for combined entity updates' });
+    }
     const session = db.client.startSession();
     try {
       await session.withTransaction(async () => {
         await db.collection('status_events').insertOne(eventRecord, { session });
-        await db.collection(collection).updateOne({ _id: targetId }, { $set: entitySet }, { session });
+        const result = await db.collection(collection).updateOne({ _id: targetId }, { $set: entitySet }, { session });
+        if (result.matchedCount !== 1) {
+          throw createError({ statusCode: 404, message: 'Status target not found during combined entity update' });
+        }
       });
       return;
-    } catch (error) {
-      if (!isTransactionTopologyError(error)) throw error;
     } finally {
       await session.endSession();
     }
   }
 
   await db.collection('status_events').insertOne(eventRecord);
-  try {
-    await db.collection(collection).updateOne(
-      { _id: targetId },
-      { $set: entitySet }
-    );
-  } catch (error) {
-    await db.collection('status_events').deleteOne({ _id: eventRecord._id }).catch(() => null);
-    throw error;
+  const result = await db.collection(collection).updateOne(
+    { _id: targetId },
+    { $set: entitySet }
+  );
+  if (result.matchedCount !== 1) {
+    throw createError({ statusCode: 404, message: 'Status target not found during entity status update' });
   }
-}
-
-function isTransactionTopologyError(error = {}) {
-  const message = String(error.message || '');
-  return message.includes('Transaction numbers are only allowed on a replica set member or mongos') ||
-    message.includes('This MongoDB deployment does not support retryable writes') ||
-    message.includes('not a replica set') ||
-    message.includes('replica set member or mongos');
 }
 
 export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {}) {

@@ -96,7 +96,7 @@ export const cncCommands = {
       ],
       executionGrants: [
         { feature: 'cassettes', level: 'read', actions: { view: true } },
-        { feature: 'cassette_designs', level: 'write', actions: { view: true, create: true } }
+        { feature: 'cassette_designs', level: 'read', actions: { view: true } }
       ]
     }
   },
