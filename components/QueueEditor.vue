@@ -210,11 +210,25 @@
                     </template>
                     <div class="flex flex-col gap-6">
                         <ResponsiveGrid v-if="viewMode === 'grid'" variant="wide">
+                            <div
+                                v-if="canAddQueueEntry && producerMenuItems.length"
+                                class="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-surface-300 p-6"
+                                data-entity-card-interactive="true"
+                            >
+                                <Button
+                                    :label="$t('queues.addEntry')"
+                                    icon="pi pi-plus"
+                                    severity="secondary"
+                                    outlined
+                                    size="small"
+                                    @click="event => producerMenu.toggle(event)"
+                                />
+                            </div>
                             <template v-for="entry in entries" :key="entry?._key">
                                 <QueueEntryCard
                                     v-if="entry"
                                     :entry="entry"
-                                    :cassette="getEntryCassetteData(entry)"
+                                    :cassette="getEntryEntityData(entry)"
                                     :parameters="getEntryParameters(entry)"
                                     :locked-parameters="['T']"
                                     :disabled="!canEditQueue"
@@ -910,7 +924,19 @@ const makeQueueEntry = (item = {}, index = 0) => {
 const getCassetteData = (id) => {
     const idStr = id?.toString();
     if (!idStr) return null;
-    return cassetteDesigns.value.find(d => d._id?.toString() === idStr);
+    return cassetteDesigns.value.find(d => d._id?.toString() === idStr)
+        || cassettes.value.find(template => template._id?.toString() === idStr);
+};
+const getEntryEntityData = (entry = {}) => {
+    const idStr = entry?.id?.toString();
+    if (!idStr) return null;
+    if (entry.entityType === 'cassette') {
+        return cassettes.value.find(template => template._id?.toString() === idStr) || null;
+    }
+    if (entry.entityType === 'cassette_design') {
+        return cassetteDesigns.value.find(design => design._id?.toString() === idStr) || null;
+    }
+    return getCassetteData(idStr);
 };
 
 const getCassetteName = (id) => {
@@ -932,14 +958,14 @@ const isParametricEntry = (entry) => {
 };
 
 const getEntryParameters = (e) => {
-    const data = getEntryCassetteData(e);
+    const data = getEntryEntityData(e);
     return data && e?.type === 'PARAMETRIC' ? getCassetteParameters(data) : [];
 };
 
 const allParameters = computed(() => {
     const params = new Set();
     entries.value.forEach(e => {
-        const data = getEntryCassetteData(e);
+        const data = getEntryEntityData(e);
         if (data) {
             getCassetteParameters(data).forEach(p => params.add(p));
         }
