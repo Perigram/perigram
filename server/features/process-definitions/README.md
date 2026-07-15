@@ -179,9 +179,12 @@ When an active process still carries a stale compiled runtime that predates
 action entity contracts, auth hydration recompiles the active process
 definition in memory from its semantic source before returning role action
 assignments. If that semantic source still uses legacy `changeStatus` action
-kinds, hydration applies the same in-memory `updateEntity` normalization as
-`server/scripts/migrate-process-update-actions.js` before recompiling. This
-preserves the strict current `contracts.inputs` / `contracts.outputs` protocol
-for generated workspaces such as queue cassette producers without adding UI
-fallbacks for older output shapes. The migration scripts remain the durable
-cleanup path for stored process data.
+kinds, hydration applies the feature-local in-memory `updateEntity`
+normalization before recompiling. The durable cleanup script reuses that pure
+normalizer and adds database persistence/recompile behavior; runtime modules
+must not import `server/scripts/*` because Nitro dev output preserves script
+relative package imports from `.nuxt/dev`. This preserves the strict current
+`contracts.inputs` / `contracts.outputs` protocol for generated workspaces
+such as queue cassette producers without adding UI fallbacks for older output
+shapes. The migration scripts remain the durable cleanup path for stored
+process data.
