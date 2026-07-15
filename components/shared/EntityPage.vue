@@ -27,7 +27,7 @@ const effectiveTitle = computed(() => props.title || '');
 <template>
   <div class="entity-page flex flex-col gap-6">
     <div class="flex flex-col gap-4">
-      <TraceChain v-if="showTrace" :entity="entity" />
+      <TraceChain v-if="showTrace" :entity="entity" :entity-type="entityType" />
 
       <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div class="flex min-w-0 flex-col gap-2">

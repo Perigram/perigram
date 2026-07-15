@@ -17,8 +17,9 @@ presentation data; runtime behavior must come from the semantic records.
 Process lifecycle profiles and action nodes compile directly to normalized
 `@cutkit/workflows` v2 state machines. Entity profiles may provide a full
 workflow, but action-only graphs also synthesize workflows: create actions add
-their target status as a state, and change-status actions add transitions with
-the process role ids and entity access requirements from the action grant.
+their target status as a state, and status-mutating `updateEntity` actions add
+transitions with the process role ids and entity access requirements from the
+action grant.
 Runtime adapters must not treat lifecycle data as visual-only metadata.
 
 `src/templates.js` contains starter process templates for organization
@@ -60,8 +61,8 @@ rather than operational work. Their grants still compile into effective
 permissions, and an authored/system screen may expose them explicitly.
 
 Action records represent executable process steps on the visual canvas. The
-compiler validates `createEntity`, `updateEntity`, `changeStatus`,
-`runCommand`, and `sendToOrganization` actions against the domain entity,
+compiler validates `createEntity`, `updateEntity`, `runCommand`, and
+`sendToOrganization` actions against the domain entity,
 construction, field-policy, status-definition, value-input, and command
 registries, preserves their typed inputs/outputs, preserves completion events,
 and emits trigger contracts. `trigger.mode` is only the execution mode:
@@ -73,13 +74,13 @@ actions, while `admin` includes write/read and is required for destructive or
 approval-style operations. `read` grants describe access to the resulting entity
 window but must not expose a runnable manual create/update/run action. Manual
 action availability uses the same
-status-scoped access window as grants: a change-status action with unmodified
-access inherits role-level grants from the incoming action output, so a status
-step placed after a create step appears for users who received access to the
-created state. For status-change actions, run availability is derived from the
-incoming entity window: roles with write/admin access to the current state can
-execute the transition, while the action's grant rows define access after the
-target state is reached. The compiled workflow transition uses those same
+status-scoped access window as grants: a status-mutating update action with
+unmodified access inherits role-level grants from the incoming action output,
+so a status step placed after a create step appears for users who received
+access to the created state. For status-mutating updates, run availability is
+derived from the incoming entity window: roles with write/admin access to the
+current state can execute the transition, while the action's grant rows define
+access after the target state is reached. The compiled workflow transition uses those same
 incoming run roles in `processRoleIds`; the status engine treats that process
 role match as the transition authority. The target-state entity grant is not
 also written into the workflow transition, because that grant describes access
@@ -191,11 +192,12 @@ block and produces a scalar/json value from a field path. These records preserve
 kind, operation/mode, entity contracts, block ids, field paths, inputs, and
 outputs through `definitionToCanvas()`, `canvasToDefinition()`, validation, and
 compilation. They do not mutate persistent state and they do not replace effect
-actions; create/update/status/command/send behavior remains owned by action
-records. Runtime action execution may consume their typed edges only after an
+actions; create/update/status mutation/command/send behavior remains owned by
+action records. Runtime action execution may consume their typed edges only after an
 effect node declares the corresponding input contract.
-Change-status actions consume their entity from the incoming data socket and
-only require a target status; they do not need a separate entity-type selector.
+Status-mutating update actions consume their entity from the incoming data
+socket and only require a target status; they do not need a separate
+entity-type selector.
 The target may be a literal `action.status.to` or a `statusRef` produced by a
 status-definition node. Status definitions compile into workflow state metadata
 (`label`, `color`, `severity`, `icon`) and into the compiled action target
@@ -211,7 +213,7 @@ applies the referenced severity/icon/color/label and lifecycle schema there.
 The same display metadata is preserved on each compiled role action manifest
 entry, because generated screens read `role.actions[].status` when filtering
 and rendering process action buttons.
-Status-change action labels are also derived from that target status
+Status-mutating update action labels are also derived from that target status
 definition label, or the target state id when no label exists, whenever the
 authored label is only a generic palette placeholder such as `Action`, `status`,
 or the raw action kind.
@@ -228,12 +230,12 @@ conditioned by the created status in the same way, so `admin` on "create project
 as NEW" means admin over `project` entities whose current primary status is
 `NEW`, not global project admin.
 Action access compiles through status-scoped access windows. A create action
-opens the first window for the created entity state. A status-change action
-inherits the incoming entity window until its `action.access.modified` flag is
-set; once modified, the selected role grant rows on that node become the
-complete grant set for the target state. Removing a role from a modified
-status-change node therefore removes that role's access to entities in the
-resulting status instead of leaving an older additive grant behind. Parent-scoped
+opens the first window for the created entity state. A status-mutating update
+action inherits the incoming entity window until its `action.access.modified`
+flag is set; once modified, the selected role grant rows on that node become
+the complete grant set for the target state. Removing a role from a modified
+status-mutating update node therefore removes that role's access to entities in
+the resulting status instead of leaving an older additive grant behind. Parent-scoped
 windows carry lineage scope forward: a queue created from a project window scoped to
 `$assignment.projectId` receives a `scope.projectId` grant, so access for one
 project branch does not apply to queues under another project branch.
@@ -252,12 +254,12 @@ a queue status node can have both a create input and a later reject/retry input,
 and the compiler must not let the loop edge overwrite the resolvable source
 edge that feeds downstream command output grants.
 Workflow synthesis also preserves those repeated incoming entity edges. If a
-single change-status action is reused from several source states, such as
+single status-mutating update action is reused from several source states, such as
 `Создано -> Отправлено` and `Отклонено -> Отправлено`, the compiled workflow
 emits one transition per source state while keeping the same target status
 definition and using the executable role window from each source edge.
-At runtime, a command output wired into a downstream change-status node receives
-that process-authored target state after the command returns its entity refs.
+At runtime, a command output wired into a downstream status-mutating update node
+receives that process-authored target state after the command returns its entity refs.
 The state projection is derived from graph edges and typed output handles such
 as `output:nesting_run`; it is not a domain-specific queue rule.
 Manual command actions preserve `commandId` in each compiled user action

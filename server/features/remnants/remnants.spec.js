@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll, beforeAll, vi } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoClient, ObjectId } from 'mongodb';
 
 const { mockedConnectDB } = vi.hoisted(() => ({
@@ -27,7 +27,7 @@ describe('Remnants & Reusability Logic', () => {
   let db;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);

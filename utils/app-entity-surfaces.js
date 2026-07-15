@@ -29,7 +29,7 @@ export const appEntityDisplayExtensions = {
       surfaces: {
         workspace: {
           preview: 'none',
-          fieldGroups: ['workspace'],
+          fieldGroups: ['workspace', 'relations'],
           dataDisplay: 'compact',
           relations: 'summary',
           actions: 'toolbar',
@@ -38,7 +38,7 @@ export const appEntityDisplayExtensions = {
         },
         detail: {
           preview: 'none',
-          fieldGroups: ['detailFacts'],
+          fieldGroups: ['detailFacts', 'relations'],
           dataDisplay: 'sectioned',
           relations: 'expanded',
           actions: 'toolbar',

@@ -160,6 +160,10 @@ const props = defineProps({
   cassetteId: {
     type: String,
     default: null
+  },
+  producerActionId: {
+    type: String,
+    default: ''
   }
 });
 
@@ -317,15 +321,25 @@ const handleUpload = async () => {
       }
     });
 
-    const formData = new FormData();
-    formData.append('file', selectedFile.value);
-    formData.append('name', name.value);
-    formData.append('layerMapping', JSON.stringify(mappings));
-
-    const uploadResult = await $fetch('/api/cassettes/upload', {
+    const artifactForm = new FormData();
+    artifactForm.append('file', selectedFile.value);
+    artifactForm.append('type', 'DXF_SOURCE');
+    artifactForm.append('metadata', JSON.stringify({ purpose: 'cassette-import' }));
+    const artifact = await $fetch('/api/artifacts', {
       method: 'POST',
-      body: formData
+      body: artifactForm
     });
+    const data = {
+      artifactId: artifact._id,
+      name: name.value,
+      layerMapping: mappings
+    };
+    const uploadResult = props.producerActionId
+      ? await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(props.producerActionId)}/execute`, {
+          method: 'POST',
+          body: { data }
+        })
+      : await $fetch('/api/cassette-designs/import', { method: 'POST', body: data });
     const uploadedTemplate = uploadResult?.template || uploadResult;
 
     emit('uploaded', uploadedTemplate);

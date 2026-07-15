@@ -573,6 +573,20 @@
         "trace": false
       },
       {
+        "componentPath": null,
+        "docs": [
+          "server/features/machines/README.md"
+        ],
+        "entityType": "machine",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "machine",
+        "labelKey": "entities.machine",
+        "propName": "machine",
+        "status": "hidden",
+        "trace": false
+      },
+      {
         "componentPath": "components/entities/PenTemplate/PenTemplateCard.vue",
         "docs": [
           "server/features/pen-templates/README.md"
@@ -656,7 +670,7 @@
         "key": "artifact",
         "labelKey": "entities.artifact",
         "propName": "artifact",
-        "status": "hidden",
+        "status": "interactive",
         "trace": true
       }
     ],
@@ -1011,7 +1025,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "artifacts",
       "lineage": {},
@@ -1024,7 +1040,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "cassettes",
       "lineage": {},
@@ -1037,7 +1055,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "cassette_designs",
       "lineage": {},
@@ -1050,7 +1070,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "cassette_instances",
       "lineage": {},
@@ -1064,7 +1086,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "catalogs",
       "lineage": {},
@@ -1077,7 +1101,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "colors",
       "lineage": {},
@@ -1090,7 +1116,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "entity_revisions",
       "lineage": {},
@@ -1105,7 +1133,9 @@
         "status",
         "attachments",
         "data",
-        "specs"
+        "specs",
+        "relations",
+        "provenance"
       ],
       "collection": "geometry_captures",
       "lineage": {},
@@ -1118,7 +1148,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "layer_standards",
       "lineage": {},
@@ -1133,7 +1165,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "libraries",
       "lineage": {},
@@ -1142,10 +1176,26 @@
     {
       "blocks": [
         "identity",
+        "lineage",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "machines",
+      "lineage": {},
+      "meta": true,
+      "type": "machine"
+    },
+    {
+      "blocks": [
+        "identity",
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "materials",
       "lineage": {},
@@ -1158,7 +1208,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "material_piles",
       "lineage": {},
@@ -1171,7 +1223,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "nesting_runs",
       "lineage": {},
@@ -1183,7 +1237,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "organizations",
       "lineage": {},
@@ -1197,7 +1253,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "pen_templates",
       "lineage": {},
@@ -1211,7 +1269,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "process_definitions",
       "lineage": {},
@@ -1225,7 +1285,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "profile_templates",
       "lineage": {},
@@ -1240,7 +1302,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "projects",
       "lineage": {},
@@ -1254,7 +1318,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "queues",
       "lineage": {},
@@ -1267,7 +1333,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "remnants",
       "lineage": {},
@@ -1280,7 +1348,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "requisitions",
       "lineage": {},
@@ -1294,7 +1364,9 @@
         "status",
         "attachments",
         "data",
-        "specs"
+        "specs",
+        "relations",
+        "provenance"
       ],
       "collection": "sheets",
       "lineage": {},
@@ -1307,7 +1379,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "sheet_designs",
       "lineage": {},
@@ -1320,7 +1394,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "tool_profiles",
       "lineage": {},
@@ -1334,7 +1410,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "users",
       "lineage": {},
@@ -1349,7 +1427,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "warehouses",
       "lineage": {},
@@ -1627,6 +1707,12 @@
       "type": "warehouse"
     },
     {
+      "collection": "machines",
+      "list": "/api/machines",
+      "single": "/api/machines/:id",
+      "type": "machine"
+    },
+    {
       "collection": "layer-standards",
       "list": "/api/layer-standards",
       "single": "/api/layer-standards/:id",
@@ -1807,7 +1893,8 @@
       },
       "id": "vision.extractGeometry",
       "inputs": [
-        "geometry_capture"
+        "geometry_capture",
+        "artifact"
       ],
       "key": "visionExtractGeometry",
       "label": "Extract geometry from capture photo",
@@ -1880,6 +1967,30 @@
       "type": "cassette"
     },
     {
+      "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 1,
+      "type": "cassette_design"
+    },
+    {
+      "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 1,
+      "type": "library"
+    },
+    {
       "initial": "AVAILABLE",
       "regions": [
         "main"
@@ -1919,6 +2030,19 @@
       ],
       "transitionCount": 11,
       "type": "geometry_capture"
+    },
+    {
+      "initial": "PENDING",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "PENDING",
+        "AVAILABLE",
+        "FAILED"
+      ],
+      "transitionCount": 2,
+      "type": "artifact"
     },
     {
       "initial": "AVAILABLE",

@@ -89,7 +89,7 @@ shared grant shape; process activation changes the grant source, not the
 permission evaluator.
 
 System catalogue entities can be public-read without grants. Materials, system
-layer standards, system pens, and system tools carry
+layer standards, system pens, system tools, and system machines carry
 `lineage.scope: "system"`, `lineage.public: true`, and
 `data.visibility.public: true`; `hasEntityAccess()` and field redaction allow
 read-level access to those marked records directly. Write/admin access still

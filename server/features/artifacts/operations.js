@@ -3,7 +3,6 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import * as attachmentService from './service.js';
 import * as nestingJobs from '../nesting/jobs.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
-import { getPrimaryState } from '~/server/core/blocks/index.js';
 
 export async function generateAttachment({ entities, parameters = {}, auth }) {
   const source = entities.source || entities.sheetDesign || entities.nestingRun;
@@ -30,10 +29,9 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
       type: kind,
       lineage,
       name: `${source.identity?.name || 'Source'} - LAYOUT_DXF.dxf`,
-      status: dxfFile ? 'READY' : 'GENERATING',
       fileId: dxfFile?.fileId,
       mimeType: dxfFile ? 'application/dxf' : undefined
-    }, auth.userId);
+    }, auth.userId, auth.organizationId, auth.role, auth);
 
     return toCommandAttachmentResult(attachment);
   }
@@ -43,9 +41,8 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
       type: kind,
       lineage,
       name: `${source.identity?.name || 'Source'} - Technical Passports`,
-      status: 'GENERATING',
       metadata: { templateId: parameters.pdfTemplateId }
-    }, auth.userId);
+    }, auth.userId, auth.organizationId, auth.role, auth);
 
     return toCommandAttachmentResult(attachment);
   }
@@ -63,18 +60,18 @@ async function findGeneratedRunDxf(runId) {
 function toCommandAttachmentResult(attachment) {
   const id = (attachment._id || attachment.id).toString();
   const kind = attachment.data?.type;
-  const status = getPrimaryState(attachment.status, 'GENERATING');
+  const completed = Boolean(attachment.attachments?.primary?.fileId);
   return {
     attachments: [{ kind, id }],
     events: [{
-      type: status === 'READY' ? 'attachment.generationCompleted' : 'attachment.generationQueued',
+      type: completed ? 'attachment.generationCompleted' : 'attachment.generationQueued',
       source: { type: 'artifact', id },
-      data: { kind, status }
+      data: { kind, completed }
     }],
     data: {
       attachmentId: id,
       kind,
-      status
+      completed
     }
   };
 }

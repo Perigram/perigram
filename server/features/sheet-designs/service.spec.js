@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoClient } from 'mongodb';
 import {
   cassetteDesignsForNestingResult,
+  collapseNestingLayoutsByComposition,
   nestingResultForLayout,
   nestingResultToPreview
 } from './service.js';
@@ -24,6 +25,38 @@ vi.mock('h3', () => ({
 import * as sheetDesignsService from './service.js';
 
 describe('sheet design nesting preview', () => {
+  it('collapses layouts by cassette composition regardless of placement geometry or order', () => {
+    const groups = collapseNestingLayoutsByComposition({
+      items: [
+        { id: 1, cassette_id: 'design-a' },
+        { id: 2, cassette_id: 'design-b' }
+      ],
+      solution: {
+        layouts: [
+          { placed_items: [{ item_id: 1, transformation: { translation: [0, 0] } }, { item_id: 2 }] },
+          { placed_items: [{ item_id: 2, transformation: { translation: [500, 0] } }, { item_id: 1 }] },
+          { placed_items: [{ item_id: 1 }, { item_id: 1 }] }
+        ]
+      }
+    });
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toMatchObject({
+      composition: [
+        { cassetteDesignId: 'design-a', count: 1 },
+        { cassetteDesignId: 'design-b', count: 1 }
+      ],
+      sheetCount: 2,
+      representativeLayoutIndex: 0,
+      layoutIndexes: [0, 1]
+    });
+    expect(groups[1]).toMatchObject({
+      composition: [{ cassetteDesignId: 'design-a', count: 2 }],
+      sheetCount: 1,
+      representativeLayoutIndex: 2
+    });
+  });
+
   it('projects worker placed items from source shape data and transformation', () => {
     const preview = nestingResultToPreview({
       items: [
@@ -214,7 +247,7 @@ describe('sheet design access', () => {
   let db;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     connection = await MongoClient.connect(mongoServer.getUri());
     db = connection.db();
     mockedConnectDB.mockReturnValue(db);
@@ -279,7 +312,7 @@ describe('sheet design access', () => {
       .toEqual(['M 25 30 L 45 30 L 45 40 L 25 40 L 25 30 Z']);
     expect(updated.data.revisions.geometry).toMatchObject({ number: 1 });
     expect(await db.collection('entity_revisions').countDocuments({
-      'data.entityType': 'sheet_design',
+      'data.source.type': 'sheet_design',
       'data.scope': 'geometry'
     })).toBe(1);
   });

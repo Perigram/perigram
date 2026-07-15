@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb';
 import { createError } from 'h3';
 import * as repository from './repository.js';
 import { Library } from './model.js';
-import { createData, createIdentity, createStatus } from '~/server/core/blocks/index.js';
+import { createData, createIdentity } from '~/server/core/blocks/index.js';
 import { statusService, createTransitionAuth } from '~/server/core/machines/service';
 import { getLineageFilter, hasLineagePermission } from '~/server/utils/permissions';
 import { mapLineageQuery } from '~/server/utils/query';
@@ -21,7 +21,7 @@ export async function create(data = {}, userId, userOrg, userRole, userPermissio
     throw createError({ statusCode: 403, message: 'Permission denied for libraries' });
   }
 
-  const origin = createStatus('ACTIVE', userId, { note: 'Library created' });
+  const origin = await statusService.initialStatusForOrganization('library', organizationId, userId, { note: 'Library created' });
   const library = new Library({
     identity: createIdentity(data.name || 'New Library', data.slug || `library-${new ObjectId().toString().slice(0, 8)}`),
     origin,

@@ -292,7 +292,8 @@
     "edit": "Edit Project",
     "updated": "Project updated",
     "confirmDelete": "Are you sure you want to delete this project?",
-    "deleted": "Project deleted"
+    "deleted": "Project deleted",
+    "cassetteLibraries": "Cassette libraries"
   },
   "file": {
     "upload": "Upload Files",
@@ -637,6 +638,7 @@
     "hash": "Hash",
     "source": "Source",
     "sourceRevision": "Source revision",
+    "parentRevision": "Pinned parent revision",
     "currentGeometry": "Current geometry"
   },
   "nesting": {
@@ -2317,6 +2319,8 @@
     "useFirstItem": "Get first item",
     "useCountItems": "Count items",
     "parentEntity": "Parent entity",
+    "pinParentRevision": "Pin current parent revision",
+    "revisionScope": "Parent revision scope",
     "lifecycleMode": "Lifecycle mode",
     "statusMachine": "Status machine",
     "stateId": "Status ID",

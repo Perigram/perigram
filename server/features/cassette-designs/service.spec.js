@@ -158,9 +158,11 @@ function cassetteDesign({ _id, organizationId, templateId = new ObjectId(), laye
   return {
     _id,
     identity: { uid: _id, name: _id, slug: _id },
-    lineage: {
-      organizationId,
-      templateId
+    lineage: { organizationId },
+    provenance: {
+      derivedFrom: {
+        source: { type: 'cassette', id: templateId.toString(), revisionId: 'revision-1' }
+      }
     },
     status: {
       state: {

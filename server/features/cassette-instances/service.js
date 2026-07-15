@@ -3,10 +3,8 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
   createIdentity,
-  createStatus,
   inheritLineage,
-  createData,
-  getPrimaryState
+  createData
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
@@ -20,19 +18,7 @@ import { ObjectId } from 'mongodb';
  */
 
 function serializeInstance(raw) {
-  const instance = new CassetteInstance(raw).toJSON();
-  if (instance.data?.source === 'QUEUE_CUT' && getPrimaryState(instance.status) === 'NESTED') {
-    instance.status = {
-      ...instance.status,
-      state: {
-        schemaVersion: 2,
-        primary: 'CUT',
-        active: { main: 'CUT' },
-        regions: { main: { state: 'CUT', path: ['CUT'] } }
-      }
-    };
-  }
-  return instance;
+  return new CassetteInstance(raw).toJSON();
 }
 
 
@@ -48,7 +34,12 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
   const created = [];
   for (const designEntry of designs) {
     // designEntry: { designId, instanceNumber, reference }
-    const origin = createStatus('CUT', userId, { note: 'Instantiated from cut sheet' });
+    const origin = await statusService.initialStatusForOrganization(
+      'cassette_instance',
+      baseLineage.organizationId,
+      userId,
+      { note: 'Instantiated from cut sheet' }
+    );
 
     // Merge lineages: digital from design + physical from sheet
     const instanceLineage = {
@@ -91,7 +82,12 @@ export async function createFromCutSheet(sheet, designs = [], userId = 'SYSTEM')
       instanceOffset += 1;
       const uid = `ci-${new ObjectId().toString().slice(-8)}-${instanceOffset}`;
       const serial = designEntry.serial || `${sheet.identity?.serial || 'CUT'}-${instanceOffset}`;
-      const origin = createStatus('CUT', userId, { note: 'Produced from queue cut' });
+      const origin = await statusService.initialStatusForOrganization(
+        'cassette_instance',
+        baseLineage.organizationId,
+        userId,
+        { note: 'Produced from queue cut' }
+      );
       const instanceLineage = {
         ...(baseLineage.toJSON?.() || baseLineage),
         designId: toFlexibleId(designEntry.designId || designEntry.cassetteDesignId),

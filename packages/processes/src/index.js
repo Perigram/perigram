@@ -56,7 +56,7 @@ export function normalizeProcessDefinition(definition = {}) {
     roles: normalizeRecord(data.roles),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
-    actions: normalizeRecord(data.actions),
+    actions: normalizeActions(data.actions),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
     statusDefinitions: normalizeRecord(data.statusDefinitions),
@@ -98,9 +98,14 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
 
   for (const [profileId, profile] of Object.entries(process.entityProfiles)) {
     if (!entities.has(profile.entityType)) errors.push(`Entity profile ${profileId} uses unknown entity type ${profile.entityType}`);
-    validateFieldList(profile.fields?.read, domain, profile.entityType, `entity profile ${profileId} read fields`, errors);
-    validateFieldList(profile.fields?.write, domain, profile.entityType, `entity profile ${profileId} write fields`, errors);
-    validateFieldList(profile.fields?.private, domain, profile.entityType, `entity profile ${profileId} private fields`, errors);
+    validateFieldList(profile.fields?.read, domain, profile.entityType, `entity profile ${profileId} read fields`, errors, 'read');
+    validateFieldList(profile.fields?.write, domain, profile.entityType, `entity profile ${profileId} write fields`, errors, 'write');
+    validateFieldList(profile.fields?.private, domain, profile.entityType, `entity profile ${profileId} private fields`, errors, 'admin');
+    for (const relationKey of profile.relations || []) {
+      if (!(domain.relations || []).some(relation => relation.ownerType === profile.entityType && relation.key === relationKey)) {
+        errors.push(`Entity profile ${profileId} uses undeclared relation ${profile.entityType}.${relationKey}`);
+      }
+    }
     try {
       compileLifecycle(profile, domain);
     } catch (error) {
@@ -122,7 +127,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
   }
 
   for (const [actionId, action] of Object.entries(process.actions)) {
-    validateAction(actionId, action, { entities, commands, roles: process.roles, domain, errors, statusDefinitions: process.statusDefinitions });
+    validateAction(actionId, action, { entities, commands, roles: process.roles, domain, errors, statusDefinitions: process.statusDefinitions, process });
   }
 
   for (const [nodeId, node] of Object.entries(process.processNodes)) {
@@ -193,7 +198,7 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
     servicePrincipals: process.servicePrincipals,
     userAccess,
     workflows,
-    fieldPolicies: compileFieldPolicies(process.entityProfiles),
+    fieldPolicies: compileFieldPolicies(process.entityProfiles, domain),
     actions: compileActions(process.actions, process, domain),
     statusDefinitions: compileStatusDefinitions(process.statusDefinitions),
     valueInputs: compileValueInputs(process.valueInputs),
@@ -284,6 +289,10 @@ function normalizeRecord(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
 }
 
+function normalizeActions(value) {
+  return Object.fromEntries(Object.entries(normalizeRecord(value)).map(([id, action]) => [id, { ...action }]));
+}
+
 function compileLifecycle(profile = {}, domain = {}) {
   const lifecycle = profile.lifecycle || {};
   if (lifecycle.mode === 'defaultCreated' || !lifecycle.mode) return createDefaultCreatedWorkflow(profile.label || profile.entityType);
@@ -311,8 +320,8 @@ function compileWorkflows(process = {}, domain = {}) {
 
   for (const [actionId, action] of Object.entries(process.actions || {})) {
     const kind = action.actionKind || 'createEntity';
-    if (!['createEntity', 'changeStatus'].includes(kind)) continue;
-    const entityType = actionEntityType(action);
+    if (!['createEntity', 'updateEntity'].includes(kind)) continue;
+    const entityType = actionEntityType(action) || actionWindows.get(actionId)?.outputs?.[0]?.entityType || actionWindows.get(actionId)?.input?.entityType;
     if (!entityType) continue;
     const builder = ensureWorkflowBuilder(builders, entityType);
 
@@ -522,7 +531,8 @@ function compileHomeScreenForAssignment({ assignment = {}, screens = [], domain 
       entityType: section.entityType,
       mode: 'list',
       required: section.required || null,
-      filters: section.filters || {}
+      filters: section.filters || {},
+      rootLineageKeys: section.rootLineageKeys || []
     })),
     regions: sections.map(section => ({
       id: `${section.sourceId}_section`,
@@ -540,10 +550,8 @@ function compileHomeScreenForAssignment({ assignment = {}, screens = [], domain 
 
 function topLevelHomeSections(screens = [], domain = {}) {
   const listScreens = screens.filter(screen => screen.template === 'entityList' && screen.entityType && screen.sources?.some(source => source.mode === 'list'));
-  const listEntityTypes = new Set(listScreens.map(screen => screen.entityType));
   const sectionsByEntity = new Map();
   for (const screen of listScreens) {
-    if (isChildEntitySuppressed(screen.entityType, listEntityTypes, domain)) continue;
     if (sectionsByEntity.has(screen.entityType)) {
       const existing = sectionsByEntity.get(screen.entityType);
       existing.actions = [...new Set([...(existing.actions || []), ...(screen.actions || [])])];
@@ -556,17 +564,13 @@ function topLevelHomeSections(screens = [], domain = {}) {
       label: screen.label || screen.entityType,
       required: source.required || screen.required || null,
       filters: source.filters || {},
+      rootLineageKeys: source.rootLineageKeys || [],
       actions: screen.actions || [],
       screenKey: screen.screenKey,
       route: screen.route
     });
   }
   return [...sectionsByEntity.values()];
-}
-
-function isChildEntitySuppressed(entityType = '', listEntityTypes = new Set(), domain = {}) {
-  const relation = parentRelationForChild(domain, entityType);
-  return Boolean(relation?.parentType && listEntityTypes.has(relation.parentType));
 }
 
 function compileRoles(process = {}, domain = {}) {
@@ -612,6 +616,12 @@ function compileRoles(process = {}, domain = {}) {
       if (!roles[roleId]) continue;
       const feature = exposedActionFeature(action, actionWindow, access, domain);
       const parentEntityType = effectiveActionParentEntityType(action, domain, graphContext.parentIncomingByActionId.get(actionId));
+      const resolvedEntityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || null;
+      const exposedAction = resolvedEntityType && !action.entityType ? { ...action, entityType: resolvedEntityType } : action;
+      const inputs = actionInputsForExposure(exposedAction, parentEntityType, domain).map(input => (
+        input.id === 'entity' && !input.entityType && resolvedEntityType ? { ...input, entityType: resolvedEntityType } : input
+      ));
+      const outputs = action.outputs || [];
       roles[roleId].actions.push({
         actionId: action.id || actionId,
         label: displayActionLabel(action, actionId, process),
@@ -619,12 +629,15 @@ function compileRoles(process = {}, domain = {}) {
         actionKind: action.actionKind || 'createEntity',
         commandId: action.commandId || null,
         feature,
-        entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || null,
+        entityType: resolvedEntityType,
         parentEntityType: parentEntityType || null,
+        parentRevision: normalizeParentRevision(action.parentRevision, parentEntityType, domain),
         status: actionStatusForExposure(action, actionWindow, access, process),
         construction: normalizeConstruction(action.construction, action.entityType, domain),
         inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
-        inputs: actionInputsForExposure(action, parentEntityType, domain)
+        inputs,
+        outputs,
+        contracts: compileActionEntityContracts(exposedAction, inputs, outputs, actionWindow, domain)
       });
     }
   }
@@ -641,7 +654,7 @@ function exposedActionFeature(action = {}, actionWindow = null, access = {}, dom
 
 function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
   const kind = action.actionKind || 'createEntity';
-  if (kind === 'changeStatus') {
+  if (kind === 'updateEntity' && actionTargetState(action)) {
     const executable = executableRoleIdsForWindow(actionWindow?.input, access);
     if (executable.length) return [...new Set(executable)];
   }
@@ -660,7 +673,7 @@ function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
 }
 
 function actionExposureRoleIdsForInput(action = {}, access = {}, inputWindow = null) {
-  if ((action.actionKind || 'createEntity') !== 'changeStatus') return actionExposureRoleIds(action, access, null);
+  if ((action.actionKind || 'createEntity') !== 'updateEntity' || !actionTargetState(action)) return actionExposureRoleIds(action, access, null);
   const executable = executableRoleIdsForWindow(inputWindow, access);
   if (executable.length) return [...new Set(executable)];
   return actionExposureRoleIds(action, access, null);
@@ -707,7 +720,7 @@ function grantFromAction(action = {}, access = {}, domain = {}) {
     const to = action.status?.to || '';
     if (to) grant.rule = { fact: 'primaryStatus', equals: to };
   }
-  if (action.actionKind === 'changeStatus') {
+  if (action.actionKind === 'updateEntity' && actionTargetState(action)) {
     const from = access.statusFrom || action.status?.from || '';
     const to = access.statusTo || action.status?.to || '';
     if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
@@ -866,7 +879,7 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
   const explicitRoleGrants = access.grants || grantsFromRoleIds(access.roleIds || [], access.level);
   const hasExplicitRoleGrants = hasExplicitActionRoleGrants(action.access);
   const useInherited = inheritedRoleGrants.length && (
-    (kind === 'changeStatus' && !access.modified) ||
+    (kind === 'updateEntity' && Boolean(actionTargetState(action, process)) && !access.modified) ||
     (kind === 'runCommand' && !hasExplicitRoleGrants && !access.modified)
   );
   const roleGrants = useInherited ? inheritedRoleGrants : explicitRoleGrants;
@@ -876,8 +889,10 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
   const outputs = [];
   const grants = [];
 
-  if (['createEntity', 'changeStatus', 'updateEntity'].includes(kind) && feature && entityType) {
-    const status = kind === 'updateEntity' ? (incoming?.status || action.inputs?.find(input => input.status)?.status || '') : statusTo;
+  if (['createEntity', 'updateEntity'].includes(kind) && feature && entityType) {
+    const status = kind === 'updateEntity'
+      ? (actionTargetState(action, process) || incoming?.status || action.inputs?.find(input => input.status)?.status || '')
+      : statusTo;
     const window = {
       id: outputSocketId(action, kind),
       handleId: outputHandleId(action, kind),
@@ -1045,9 +1060,9 @@ function deriveCommandOutputScope(outputEntityType = '', incoming = null, domain
   if (!incoming?.entityType) return inheritedScope;
   const relation = parentRelationForChild(domain, outputEntityType, incoming.entityType);
   if (!relation) return inheritedScope;
-  if (inheritedScope?.entityId && !inheritedScope[relation.parentIdKey]) {
+  if (inheritedScope?.entityId && !inheritedScope[relation.lineageKey]) {
     const { entityId, ...lineageScope } = inheritedScope;
-    return { ...lineageScope, [relation.parentIdKey]: entityId };
+    return { ...lineageScope, [relation.lineageKey]: entityId };
   }
   return inheritedScope;
 }
@@ -1073,7 +1088,7 @@ function windowGrant(window = {}, action = {}, access = {}, level = window.level
   };
   if (window.scope) grant.scope = window.scope;
   if (window.status) grant.rule = { fact: 'primaryStatus', equals: window.status };
-  if ((action.actionKind || 'createEntity') === 'changeStatus') {
+  if ((action.actionKind || 'createEntity') === 'updateEntity' && actionTargetState(action)) {
     const from = access.statusFrom || action.status?.from || '';
     const to = access.statusTo || action.status?.to || window.status || '';
     if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
@@ -1155,6 +1170,7 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
   });
   return Object.fromEntries(Object.entries({ ...screens, ...inferredScreens }).map(([id, screen]) => {
     const normalized = normalizeScreenContract(screen);
+    const sources = normalized.sources.map(source => withRootEntityScope(source, normalized, domain));
     return [id, {
       id: normalized.id || id,
       label: normalized.label || normalized.id || id,
@@ -1168,11 +1184,25 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
       required: normalized.required || null,
       roleIds: normalized.roleIds || [],
       bindings: normalized.bindings || {},
-      sources: normalized.sources,
+      sources,
       regions: normalized.regions,
       actions: normalized.actions || []
     }];
   }));
+}
+
+function withRootEntityScope(source = {}, screen = {}, domain = {}) {
+  if (screen.template !== 'entityList' || source.mode !== 'list' || source.entityType !== screen.entityType) return source;
+  const lineageKeys = [...new Set((domain.containment || [])
+    .filter(relation => relation.childType === source.entityType && relation.lineageKey)
+    .map(relation => relation.lineageKey))];
+  if (!lineageKeys.length || lineageKeys.some(key => hasScopedFilter(source.filters, key))) return source;
+  return { ...source, rootLineageKeys: lineageKeys };
+}
+
+function hasScopedFilter(filters = {}, lineageKey = '') {
+  return Object.prototype.hasOwnProperty.call(filters || {}, lineageKey)
+    || Object.prototype.hasOwnProperty.call(filters || {}, `lineage.${lineageKey}`);
 }
 
 function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {}, graph = {} } = {}) {
@@ -1286,19 +1316,19 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
   const actionIds = [];
   const grantsByFeature = groupGrantsByFeature(role.grants || []);
 
-  for (const relation of domain.summaries || []) {
-    if (relation.parentType !== parentEntityType || !relation.entityType || !relation.parentIdKey) continue;
-    const childFeature = featureFromEntityType(domain, relation.entityType);
+  for (const relation of domain.containment || []) {
+    if (relation.parentType !== parentEntityType || !relation.childType || !relation.lineageKey) continue;
+    const childFeature = featureFromEntityType(domain, relation.childType);
     if (!childFeature) continue;
     const childGrants = grantsByFeature.get(childFeature) || [];
     if (!childGrants.length) continue;
     ensureChildRegion({
       sourcesByEntity,
       regions,
-      childEntityType: relation.entityType,
+      childEntityType: relation.childType,
       childFeature,
       childGrants,
-      parentIdKey: relation.parentIdKey
+      parentIdKey: relation.lineageKey
     });
   }
 
@@ -1321,7 +1351,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
       childEntityType,
       childFeature,
       childGrants,
-      parentIdKey: parentRelation.parentIdKey
+      parentIdKey: parentRelation.lineageKey
     });
     if (actionId && !region.actions.includes(actionId)) region.actions.push(actionId);
     if (actionId) actionIds.push(actionId);
@@ -1360,10 +1390,10 @@ function ensureChildRegion({ sourcesByEntity, regions, childEntityType, childFea
 }
 
 function parentRelationForChild(domain = {}, childEntityType = '', parentEntityType = '') {
-  return (domain.summaries || []).find(summary => (
-    summary.entityType === childEntityType
-    && (!parentEntityType || summary.parentType === parentEntityType)
-    && summary.parentIdKey
+  return (domain.containment || []).find(relation => (
+    relation.childType === childEntityType
+    && (!parentEntityType || relation.parentType === parentEntityType)
+    && relation.lineageKey
   )) || null;
 }
 
@@ -1580,13 +1610,16 @@ function dedupeNavigation(items = []) {
   return [...byKey.values()];
 }
 
-function compileFieldPolicies(entityProfiles = {}) {
+function compileFieldPolicies(entityProfiles = {}, domain = {}) {
   const policies = {};
   for (const profile of Object.values(entityProfiles)) {
     policies[profile.entityType] = {
       read: profile.fields?.read || [],
       write: profile.fields?.write || [],
-      private: profile.fields?.private || []
+      private: profile.fields?.private || [],
+      relations: (domain.relations || []).filter(relation => (
+        relation.ownerType === profile.entityType && (profile.relations || []).includes(relation.key)
+      ))
     };
   }
   return policies;
@@ -1652,14 +1685,23 @@ function initialSocketStatus(socket = {}) {
 
 function compileActions(actions = {}, process = {}, domain = {}) {
   const graphContext = buildActionGraphContext(process);
+  const actionWindows = compileActionAccessWindows(process, domain);
   return Object.fromEntries(Object.entries(actions).map(([id, action]) => {
     const parentEntityType = effectiveActionParentEntityType(action, domain, graphContext.parentIncomingByActionId.get(id));
+    const actionWindow = actionWindows.get(id);
+    const resolvedEntityType = actionEntityType(action) || actionWindow?.input?.entityType || actionWindow?.outputs?.[0]?.entityType || null;
+    const normalizedAction = resolvedEntityType && !action.entityType ? { ...action, entityType: resolvedEntityType } : action;
+    const inputs = actionInputsForExposure(normalizedAction, parentEntityType, domain).map(input => (
+      input.id === 'entity' && !input.entityType && resolvedEntityType ? { ...input, entityType: resolvedEntityType } : input
+    ));
+    const outputs = action.outputs || [];
     return [id, {
       id: action.id || id,
       label: displayActionLabel(action, id, process),
       actionKind: action.actionKind || 'createEntity',
-      entityType: action.entityType || null,
+      entityType: resolvedEntityType,
       parentEntityType: parentEntityType || null,
+      parentRevision: normalizeParentRevision(action.parentRevision, parentEntityType, domain),
       commandId: action.commandId || null,
       status: compileActionStatus(action, process),
       mutation: action.mutation || { fields: [] },
@@ -1671,11 +1713,54 @@ function compileActions(actions = {}, process = {}, domain = {}) {
       trigger: {
         mode: action.trigger?.mode || 'manual'
       },
-      inputs: actionInputsForExposure(action, parentEntityType, domain),
-      outputs: action.outputs || [],
+      inputs,
+      outputs,
+      contracts: compileActionEntityContracts(normalizedAction, inputs, outputs, actionWindow, domain),
       events: action.events || []
     }];
   }));
+}
+
+function compileActionEntityContracts(action = {}, inputs = [], outputs = [], actionWindow = null, domain = {}) {
+  const inputContracts = inputs
+    .filter(input => input.entityType)
+    .map(input => ({
+      id: input.id || 'entity',
+      kind: input.multiple ? 'entity_list' : 'entity',
+      entityType: input.entityType,
+      required: input.required !== false,
+      status: input.status || null,
+      relationKey: input.relationKey || null,
+      cardinality: input.cardinality || null
+    }));
+  const outputContracts = outputs
+    .filter(output => output.entityType)
+    .map(output => ({
+      id: output.id || 'entity',
+      kind: output.multiple ? 'entity_list' : 'entity',
+      entityType: output.entityType,
+      status: output.status || null
+    }));
+  const entityType = actionEntityType(action);
+  if (action.actionKind === 'createEntity' && entityType && !outputContracts.some(contract => contract.entityType === entityType)) {
+    outputContracts.push({ id: 'created', kind: 'entity', entityType, status: actionTargetState(action) || null });
+  }
+  if (action.actionKind === 'updateEntity' && entityType) {
+    if (!inputContracts.some(contract => contract.entityType === entityType)) {
+      inputContracts.unshift({ id: 'entity', kind: 'entity', entityType, required: true, status: actionWindow?.input?.status || null });
+    }
+    if (!outputContracts.some(contract => contract.entityType === entityType)) {
+      outputContracts.push({ id: 'entity', kind: 'entity', entityType, status: actionTargetState(action) || actionWindow?.outputs?.[0]?.status || null });
+    }
+  }
+  if (action.actionKind === 'runCommand') {
+    for (const outputType of commandOutputEntityTypes(domain, action.commandId)) {
+      if (!outputContracts.some(contract => contract.entityType === outputType)) {
+        outputContracts.push({ id: outputType, kind: 'entity_list', entityType: outputType, status: null });
+      }
+    }
+  }
+  return { inputs: inputContracts, outputs: outputContracts };
 }
 
 function compileActionStatus(action = {}, process = {}) {
@@ -1741,6 +1826,8 @@ function compileProcessNodes(processNodes = {}) {
     mode: node.mode || '',
     entityType: node.entityType || '',
     relationEntityType: node.relationEntityType || '',
+    relationKey: node.relationKey || '',
+    relationCardinality: node.relationCardinality || '',
     block: node.block || '',
     path: node.path || '',
     valueType: node.valueType || '',
@@ -1759,8 +1846,14 @@ function blockForValueInput(path = '') {
 
 function normalizeConstruction(construction = {}, entityType = '', domain = {}) {
   const contract = constructionContract(domain, entityType);
+  const requestedMode = construction.mode || contract.defaultMode || defaultConstructionMode(entityType);
+  const modes = Array.isArray(contract.modes) ? contract.modes : [];
+  const mode = modes.includes(requestedMode)
+    ? requestedMode
+    : (contract.defaultMode || modes[0] || defaultConstructionMode(entityType));
   const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
-  const inputsById = new Map((contract.inputs || []).map(input => [input.id || input.path, { ...input }]));
+  const contractInputs = contract.modeInputs?.[mode] || contract.inputs || [];
+  const inputsById = new Map(contractInputs.map(input => [input.id || input.path, { ...input }]));
   for (const input of declaredInputs) {
     const key = input.id || input.path;
     const contractInput = inputsById.get(key);
@@ -1769,13 +1862,19 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
       : { ...input }
     );
   }
-  const requestedMode = construction.mode || contract.defaultMode || defaultConstructionMode(entityType);
-  const modes = Array.isArray(contract.modes) ? contract.modes : [];
   return {
-    mode: modes.includes(requestedMode)
-      ? requestedMode
-      : (contract.defaultMode || modes[0] || defaultConstructionMode(entityType)),
+    mode,
     inputs: [...inputsById.values()]
+  };
+}
+
+function normalizeParentRevision(parentRevision = {}, parentEntityType = '', domain = {}) {
+  const contract = domain.revisions?.[parentEntityType] || {};
+  const scopes = Array.isArray(contract.scopes) ? contract.scopes : [];
+  const requestedScope = parentRevision.scope || contract.defaultScope || scopes[0] || '';
+  return {
+    enabled: parentRevision.enabled === true,
+    scope: scopes.includes(requestedScope) ? requestedScope : (contract.defaultScope || scopes[0] || requestedScope)
   };
 }
 
@@ -1838,10 +1937,8 @@ function displayActionLabel(action = {}, id = '', process = {}) {
   if ((action.actionKind || 'createEntity') === 'createEntity') {
     return ['Create', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
   }
-  if (action.actionKind === 'changeStatus') {
-    return statusTargetLabel(action, process) || ['Move', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
-  }
   if (action.actionKind === 'updateEntity') {
+    if (actionTargetState(action, process)) return statusTargetLabel(action, process) || ['Move', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
     return ['Update', entityTypeLabel(entityType)].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'runCommand') {
@@ -1896,16 +1993,17 @@ function normalizeAccessLevel(level) {
   return ['read', 'write', 'admin'].includes(level) ? level : 'write';
 }
 
-function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, statusDefinitions = {} }) {
+function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, statusDefinitions = {}, process = {} }) {
   const kind = action.actionKind || 'createEntity';
-  if (!['createEntity', 'updateEntity', 'changeStatus', 'runCommand', 'sendToOrganization'].includes(kind)) {
+  const normalizedAccess = normalizeActionAccess(action.access);
+  if (!['createEntity', 'updateEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
     errors.push(`Action ${actionId} uses unknown action kind ${kind}`);
     return;
   }
   if (kind === 'runCommand') {
     if (!action.commandId) errors.push(`Action ${actionId} must select a command`);
     if (action.commandId && !commands.has(action.commandId)) errors.push(`Action ${actionId} uses unknown command ${action.commandId}`);
-  } else if (!['changeStatus', 'updateEntity'].includes(kind)) {
+  } else if (kind !== 'updateEntity') {
     if (!action.entityType) errors.push(`Action ${actionId} must select an entity type`);
     if (action.entityType && !entities.has(action.entityType)) errors.push(`Action ${actionId} uses unknown entity type ${action.entityType}`);
   }
@@ -1913,22 +2011,30 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     errors.push(`Action ${actionId} uses unknown parent entity type ${action.parentEntityType}`);
   }
   const hasTargetStatus = Boolean(action.status?.to || (action.statusRef && statusDefinitions[action.statusRef]));
-  if (kind === 'changeStatus' && !hasTargetStatus) {
-    errors.push(`Action ${actionId} must define a target status`);
-  }
   if (kind === 'createEntity' && !hasTargetStatus) {
     errors.push(`Action ${actionId} must define target status`);
   }
   if (kind === 'createEntity') {
     validateConstruction(actionId, action, domain, errors);
+    validateParentRevision(actionId, action, domain, errors, process);
   }
   if (kind === 'updateEntity') {
-    const entityType = action.inputs?.find(input => input.entityType)?.entityType || action.entityType;
+    const entityType = action.inputs?.find(input => input.entityType)?.entityType || action.entityType || inferConnectedActionEntityType(actionId, process);
     if (!entityType) errors.push(`Action ${actionId} must receive an entity input`);
     if (entityType && !entities.has(entityType)) errors.push(`Action ${actionId} input uses unknown entity type ${entityType}`);
-    validateFieldList(action.mutation?.fields, domain, entityType, `action ${actionId} update fields`, errors);
+    validateFieldList(
+      action.mutation?.fields,
+      domain,
+      entityType,
+      `action ${actionId} update fields`,
+      errors,
+      normalizedAccess.level
+    );
+    validateMutationGrantLevels(actionId, action.mutation?.fields, domain, entityType, normalizedAccess.grants, errors);
+    if (!(action.mutation?.fields || []).length && !hasTargetStatus) {
+      errors.push(`Action ${actionId} must connect at least one writable field, relation, or status`);
+    }
   }
-  const normalizedAccess = normalizeActionAccess(action.access);
   const canInheritAccess = kind === 'runCommand' && action.inputs?.some(input => input.entityType);
   if ((!action.access && !canInheritAccess) || !Array.isArray(normalizedAccess.grants) || !['read', 'write', 'admin'].includes(normalizedAccess.level)) {
     errors.push(`Action ${actionId} must define access grants`);
@@ -1949,9 +2055,43 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   }
 }
 
-function validateProcessNode(nodeId, node = {}, { entities, errors }) {
+function validateParentRevision(actionId, action = {}, domain = {}, errors = [], process = {}) {
+  if (action.parentRevision?.enabled !== true) return;
+  const graphContext = buildActionGraphContext(process);
+  const parentEntityType = effectiveActionParentEntityType(action, domain, graphContext.parentIncomingByActionId.get(actionId));
+  if (!parentEntityType) {
+    errors.push(`Action ${actionId} cannot pin a revision without a declared containment parent`);
+    return;
+  }
+  const contract = domain.revisions?.[parentEntityType];
+  if (!contract?.scopes?.length) {
+    errors.push(`Action ${actionId} cannot pin ${parentEntityType}; the entity has no revision contract`);
+    return;
+  }
+  const scope = action.parentRevision.scope || contract.defaultScope;
+  if (!contract.scopes.includes(scope)) {
+    errors.push(`Action ${actionId} uses unknown ${parentEntityType} revision scope ${scope || '(empty)'}`);
+  }
+}
+
+function inferConnectedActionEntityType(actionId, process = {}) {
+  const actionNodeIds = new Set((process.graph?.nodes || [])
+    .filter(node => node.type === 'action' && String(node.data?.refId || node.id) === String(actionId))
+    .map(node => String(node.id)));
+  for (const edge of process.graph?.edges || []) {
+    if (!actionNodeIds.has(String(edge.target)) || !isEntityTargetHandle(edge.targetHandle)) continue;
+    const sourceNode = (process.graph?.nodes || []).find(node => String(node.id) === String(edge.source));
+    const sourceActionId = sourceNode?.type === 'action' ? String(sourceNode.data?.refId || sourceNode.id) : '';
+    const sourceAction = process.actions?.[sourceActionId];
+    const sourceType = sourceAction && actionEntityType(sourceAction);
+    if (sourceType) return sourceType;
+  }
+  return '';
+}
+
+function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   const kind = node.kind || 'fieldRead';
-  if (!['entityRef', 'fieldRead', 'blockRead', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
+  if (!['entityRef', 'fieldRead', 'blockRead', 'blockCompose', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
     errors.push(`Process node ${nodeId} uses unknown node kind ${kind}`);
     return;
   }
@@ -1960,7 +2100,14 @@ function validateProcessNode(nodeId, node = {}, { entities, errors }) {
       errors.push(`Process node ${nodeId} uses unknown ${key} ${node[key]}`);
     }
   }
-  if (kind === 'blockRead' && !node.path) errors.push(`Process node ${nodeId} must define a field path`);
+  if (kind === 'entityRef' && node.mode === 'related') {
+    const relation = (domain.relations || []).find(item => item.ownerType === node.entityType && item.key === node.relationKey);
+    if (!relation) errors.push(`Process node ${nodeId} must select a declared relation for ${node.entityType}`);
+    if (relation && node.relationEntityType && node.relationEntityType !== relation.targetType) {
+      errors.push(`Process node ${nodeId} relation ${node.relationKey} must target ${relation.targetType}`);
+    }
+  }
+  if (['blockRead', 'blockCompose'].includes(kind) && !node.path) errors.push(`Process node ${nodeId} must define a field path`);
   if (['stringOp', 'compare', 'logic', 'collection'].includes(kind) && !node.operation) {
     errors.push(`Process node ${nodeId} must define an operation`);
   }
@@ -1976,7 +2123,8 @@ function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
   if (contract.derived && construction.mode === 'genericCreate') {
     errors.push(`Action ${actionId} must use a typed construction mode for derived entity ${entityType}`);
   }
-  const requiredIds = new Set((contract.inputs || []).filter(input => input.required).map(input => input.id));
+  const contractInputs = contract.modeInputs?.[construction.mode] || contract.inputs || [];
+  const requiredIds = new Set(contractInputs.filter(input => input.required).map(input => input.id));
   const presentIds = new Set([...(construction.inputs || []), ...(action.inputs || [])].map(input => input.id));
   for (const inputId of requiredIds) {
     if (!presentIds.has(inputId)) errors.push(`Action ${actionId} missing construction input ${inputId}`);
@@ -1991,16 +2139,33 @@ function constructionContract(domain = {}, entityType = '') {
   };
 }
 
-function validateFieldList(fields = [], domain = {}, entityType, label, errors) {
+function validateFieldList(fields = [], domain = {}, entityType, label, errors, access = 'read') {
   if (!Array.isArray(fields)) return;
   const policy = getFieldPolicy(domain.fieldAccess || {}, entityType);
   if (!policy) {
     if (fields.length) errors.push(`${label} cannot be checked because ${entityType} has no field-access policy`);
     return;
   }
-  const allowed = [...(policy.read || []), ...(policy.write || []), ...(policy.admin || [])];
+  const allowed = access === 'admin'
+    ? [...(policy.write || []), ...(policy.admin || [])]
+    : access === 'write'
+      ? [...(policy.write || [])]
+      : [...(policy.read || [])];
   for (const field of fields) {
     if (!fieldPathAllowed(field, allowed)) errors.push(`${label} contains field outside base policy: ${field}`);
+  }
+}
+
+function validateMutationGrantLevels(actionId, fields = [], domain = {}, entityType = '', grants = [], errors = []) {
+  const policy = getFieldPolicy(domain.fieldAccess || {}, entityType);
+  if (!policy || !Array.isArray(fields)) return;
+  const adminOnly = fields.filter(field => (
+    !fieldPathAllowed(field, policy.write || []) && fieldPathAllowed(field, policy.admin || [])
+  ));
+  if (!adminOnly.length) return;
+  for (const grant of grants || []) {
+    if (grant.level === 'admin') continue;
+    errors.push(`Action ${actionId} grants ${grant.roleId} ${grant.level} access to admin-only field ${adminOnly[0]}`);
   }
 }
 

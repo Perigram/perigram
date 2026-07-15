@@ -3,6 +3,8 @@ export const DOMAIN_BUILDER_STORAGE_KEY = 'cutkit:domain-builder:v1';
 export const CANONICAL_BLOCKS = [
   'identity',
   'lineage',
+  'relations',
+  'provenance',
   'origin',
   'status',
   'specs',

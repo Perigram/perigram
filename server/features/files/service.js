@@ -39,6 +39,13 @@ export async function getFileStream(fileId, bucketName = 'uploads') {
   }
 }
 
+export async function getFileBuffer(fileId, bucketName = 'uploads') {
+  const stream = await getFileStream(fileId, bucketName);
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks);
+}
+
 export async function deleteFile(fileId, bucketName = 'uploads') {
   const db = await connectDB();
   const bucket = new GridFSBucket(db, { bucketName });

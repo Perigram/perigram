@@ -115,7 +115,7 @@ Interactive UI status changes use the canonical status endpoints:
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. It also includes compiled manual process `changeStatus` actions from the current role assignment when their entity type and source status match the target entity. |
+| `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. It also includes compiled manual process status-mutating `updateEntity` actions from the current role assignment when their entity type and source status match the target entity. |
 | `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. Optional `statusMeta.region` / `statusMeta.path` scopes a transition to a non-primary region. `statusMeta.metadata.note` carries the operator description, and `statusMeta.lifecycle.attachments` carries uploaded proof refs for schema-declared slots. |
 
 Entity-specific PATCH routes must not be the primary status API for standard

@@ -479,7 +479,7 @@ function tonePalette(role) {
     <Popover ref="compactOp" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
       <div class="w-[min(34rem,calc(100vw-3rem))]">
         <div class="flex flex-col gap-4 p-4">
-          <TraceChain v-if="resolved" :entity="resolved" />
+          <TraceChain v-if="resolved" :entity="resolved" :entity-type="type" />
           <small class="text-xs uppercase tracking-[0.08em] text-muted-color">
             {{ compactTypeLabel }}
           </small>

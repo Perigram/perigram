@@ -12,6 +12,7 @@ import * as entityRevisionsService from '~/server/features/entity-revisions/serv
 import * as geometryCapturesService from '~/server/features/geometry-captures/service.js';
 import * as layerStandardsService from '~/server/features/layer-standards/service.js';
 import * as librariesService from '~/server/features/libraries/service.js';
+import * as machinesService from '~/server/features/machines/service.js';
 import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
 import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
@@ -85,6 +86,7 @@ const entityServices = {
   geometry_capture: geometryCapturesService,
   layer_standard: layerStandardsService,
   library: librariesService,
+  machine: machinesService,
   material: materialsService,
   material_pile: materialPilesService,
   nesting_run: nestingRunsService,

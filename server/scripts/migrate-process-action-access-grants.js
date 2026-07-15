@@ -32,8 +32,8 @@ function normalizeAction(action = {}) {
     },
     access: {
       grants,
-      statusFrom: action.actionKind === 'changeStatus' ? (action.access?.statusFrom || action.status?.from || '') : (action.access?.statusFrom || ''),
-      statusTo: action.actionKind === 'changeStatus' ? (action.access?.statusTo || action.status?.to || '') : (action.access?.statusTo || '')
+      statusFrom: action.actionKind === 'updateEntity' ? (action.access?.statusFrom || action.status?.from || '') : (action.access?.statusFrom || ''),
+      statusTo: action.actionKind === 'updateEntity' ? (action.access?.statusTo || action.status?.to || '') : (action.access?.statusTo || '')
     }
   };
 }

@@ -12,10 +12,11 @@ describe('OCCS cassette evaluation', () => {
     const result = await evaluateOccsCassetteTemplate(createDefaultOccsCassetteTemplateDefinition(), {
       A: 700,
       B: 300,
-      R: 40
+      R: 40,
+      T: 2
     });
 
-    expect(result.dimensions).toMatchObject({ A: 700, B: 300, R: 40 });
+    expect(result.dimensions).toMatchObject({ A: 700, B: 300, R: 40, T: 2 });
     expect(result.annotations.dimensions).toEqual(expect.arrayContaining([
       expect.objectContaining({
         layer: 'dimension.cassette',

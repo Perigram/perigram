@@ -225,7 +225,12 @@ const createCapture = async () => {
   try {
     const payload = new FormData();
     payload.append('file', selectedFile.value);
-    const uploaded = await $fetch('/api/files/upload?bucket=capturePhotos', {
+    payload.append('type', 'CAPTURE_PHOTO');
+    payload.append('lineage', JSON.stringify({
+      ...(form.value.mode === 'REMNANT' ? { warehouseId: form.value.warehouseId } : {}),
+      ...(form.value.mode === 'FACADE' ? { projectId: form.value.projectId } : {})
+    }));
+    const artifact = await $fetch('/api/artifacts', {
       method: 'POST',
       body: payload
     });
@@ -234,9 +239,7 @@ const createCapture = async () => {
       mode: form.value.mode,
       warehouseId: form.value.mode === 'REMNANT' ? form.value.warehouseId : undefined,
       projectId: form.value.mode === 'FACADE' ? form.value.projectId : undefined,
-      fileId: uploaded.id,
-      fileName: uploaded.filename,
-      bucketName: 'capturePhotos',
+      artifactId: artifact._id,
       preset: form.value.preset,
       calibration: calibrationForMode(),
       prompt: hasCreatePrompt.value ? createPrompt.value : undefined

@@ -88,6 +88,7 @@ export const cncDesignSystemEntityContracts = [
   ['profileTemplate', 'profile_template', 'master', 'entities.profileTemplate', 'profile', 'createMockProfileTemplate', 'hidden', false, ['server/features/profile-templates/README.md']],
   ['warehouse', 'warehouse', 'master', 'entities.warehouse', 'warehouse', 'createMockWarehouse', workflowStatus('warehouse'), true, ['server/features/warehouses/README.md']],
   ['toolProfile', 'tool_profile', 'master', 'entities.toolProfile', 'tool', 'createMockToolProfile', 'hidden', false, ['server/features/tool-profiles/README.md']],
+  ['machine', 'machine', 'master', 'entities.machine', 'machine', 'createMockMachine', 'hidden', false, ['server/features/machines/README.md']],
   ['penTemplate', 'pen_template', 'master', 'entities.penTemplate', 'pen', 'createMockPenTemplate', 'hidden', false, ['server/features/pen-templates/README.md']],
   ['layerStandard', 'layer_standard', 'master', 'entities.layerStandard', 'standard', 'createMockLayerStandard', 'hidden', false, ['server/features/layer-standards/README.md']],
   ['user', 'user', 'system', 'entities.user', 'user', 'createMockUser', workflowStatus('user'), false, ['server/features/users/README.md']],
@@ -123,7 +124,7 @@ export const cncUiSurfaces = cncFrontendEntities.map(definition => ({
   icon: iconForType(definition.type),
   display: {
     status: cncWorkflows[definition.type] || cncWorkflows[definition.collection?.replace(/-/g, '_').replace(/s$/, '')] ? 'interactive' : 'hidden',
-    trace: !['material', 'tool_profile', 'pen_template', 'organization'].includes(definition.type),
+    trace: !['material', 'machine', 'tool_profile', 'pen_template', 'organization'].includes(definition.type),
     title: 'identity.name'
   }
 }));
@@ -142,6 +143,7 @@ function iconForType(type) {
     artifact: 'pi pi-file',
     geometryCapture: 'pi pi-camera',
     warehouse: 'pi pi-building',
+    machine: 'pi pi-cog',
     user: 'pi pi-user',
     organization: 'pi pi-building'
   };

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   cassetteDesignSheetItem,
   clampSheetPlacement,
+  magneticSheetPlacement,
+  placementHasClearance,
+  rotateSheetPlacementQuarterTurn,
   sheetItemBounds,
   sheetLayoutState,
   sheetPlacementTransform,
@@ -9,7 +12,7 @@ import {
 } from './sheetLayoutEditor.js';
 
 describe('sheet layout editor helpers', () => {
-  it('reads the first physical layout and snaps coordinates', () => {
+  it('reads the first physical layout', () => {
     const state = sheetLayoutState({
       data: { geometry: { data: {
         items: [{ id: 1 }],
@@ -25,7 +28,7 @@ describe('sheet layout editor helpers', () => {
       .toEqual({ x: 10, y: 20, rotation: 90 });
   });
 
-  it('keeps the complete rotated cassette inside the sheet on the snap grid', () => {
+  it('keeps the complete rotated cassette inside the usable sheet boundary', () => {
     const item = {
       shape: { data: [[0, 0], [40, 0], [40, 20], [0, 20], [0, 0]] }
     };
@@ -41,8 +44,28 @@ describe('sheet layout editor helpers', () => {
       rotation: 90,
       sheetWidth: 100,
       sheetHeight: 100,
-      snap: 5
-    })).toEqual({ x: 20, y: 60 });
+      boundaryOffset: 5
+    })).toEqual({ x: 25, y: 55 });
+  });
+
+  it('snaps cassette bounds at exact kerf clearance without using a grid', () => {
+    const items = [{ id: 1, shape: { data: [[0, 0], [20, 0], [20, 10], [0, 10]] } }];
+    const placements = [
+      { item_id: 1, transformation: { rotation: 0, translation: [10, 10] } },
+      { item_id: 1, transformation: { rotation: 0, translation: [33, 10] } }
+    ];
+    const snapped = magneticSheetPlacement({ items, placements, index: 1, x: 31, y: 11, sheetWidth: 100, sheetHeight: 100, clearance: 3 });
+    expect(snapped).toMatchObject({ x: 33, y: 10, snapped: true });
+    expect(placementHasClearance({ items, placements, placement: { item_id: 1, transformation: { rotation: 0, translation: [33, 10] } }, index: 1, clearance: 3 })).toBe(true);
+  });
+
+  it('rotates in worker radians and returns to the original rotation after four turns', () => {
+    const items = [{ id: 1, shape: { data: [[0, 0], [20, 0], [20, 10], [0, 10]] } }];
+    let placements = [{ item_id: 1, transformation: { rotation: 0, translation: [10, 10] } }];
+    for (let turn = 0; turn < 4; turn += 1) {
+      placements = [rotateSheetPlacementQuarterTurn({ items, placements, index: 0, sheetWidth: 100, sheetHeight: 100 })];
+    }
+    expect(placements[0].transformation.rotation).toBeCloseTo(0);
   });
 
   it('creates a nesting source item from uploaded cassette geometry', () => {

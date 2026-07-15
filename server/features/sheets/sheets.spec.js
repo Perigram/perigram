@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll, beforeAll, vi } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoClient, ObjectId } from 'mongodb';
 
 const { mockedConnectDB } = vi.hoisted(() => ({
@@ -27,7 +27,7 @@ describe('Sheet Lifecycle & Milling', () => {
   let db;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);
@@ -45,8 +45,10 @@ describe('Sheet Lifecycle & Milling', () => {
 
   const mockUser = {
     userId: 'user1',
-    organizationId: new ObjectId()
+    organizationId: new ObjectId(),
+    memberships: []
   };
+  mockUser.memberships = [{ organizationId: mockUser.organizationId, permissions: { materials: 'write' } }];
 
   it('should complete milling and update warehouse stock', async () => {
     const warehouseId = new ObjectId();
@@ -61,7 +63,7 @@ describe('Sheet Lifecycle & Milling', () => {
       _id: sheetId,
       identity: { uid: sheetId, name: 'Sheet' },
       status: { state: 'IN-CUTTING' },
-      lineage: { warehouseId }
+      lineage: { organizationId: mockUser.organizationId, warehouseId }
     });
 
     const cassetteIds = [new ObjectId(), new ObjectId()];
@@ -92,6 +94,6 @@ describe('Sheet Lifecycle & Milling', () => {
     });
 
     await expect(sheetService.finishMilling(sheetId.toString(), [], [], mockUser))
-      .rejects.toThrow(/Sheet must be in cutting status/);
+      .rejects.toThrow(/No transition intent "completeMilling"/);
   });
 });

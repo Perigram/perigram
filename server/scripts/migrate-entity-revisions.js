@@ -5,6 +5,7 @@ import { toFlexibleId } from '../utils/objectid.js';
 
 const REVISION_COLLECTION = 'entity_revisions';
 const GEOMETRY_SCOPE = 'geometry';
+const APPLY = process.argv.includes('--apply');
 
 function sortValue(value) {
   if (Array.isArray(value)) return value.map(sortValue);
@@ -54,8 +55,8 @@ function revisionPointer(revision) {
 async function ensureIndexes(db) {
   await db.collection(REVISION_COLLECTION).createIndex(
     {
-      'data.entityType': 1,
-      'data.entityId': 1,
+      'data.source.type': 1,
+      'data.source.id': 1,
       'data.scope': 1,
       'data.contentHash': 1
     },
@@ -63,8 +64,8 @@ async function ensureIndexes(db) {
   );
   await db.collection(REVISION_COLLECTION).createIndex(
     {
-      'data.entityType': 1,
-      'data.entityId': 1,
+      'data.source.type': 1,
+      'data.source.id': 1,
       'data.scope': 1,
       'data.number': -1
     },
@@ -77,8 +78,8 @@ async function ensureCassetteGeometryRevision(db, cassette) {
   const content = revisionContent(cassette);
   const contentHash = hashContent(content);
   const existing = await db.collection(REVISION_COLLECTION).findOne({
-    'data.entityType': 'cassette',
-    'data.entityId': entityId,
+    'data.source.type': 'cassette',
+    'data.source.id': entityId.toString(),
     'data.scope': GEOMETRY_SCOPE,
     'data.contentHash': contentHash
   });
@@ -87,8 +88,8 @@ async function ensureCassetteGeometryRevision(db, cassette) {
 
   const latest = await db.collection(REVISION_COLLECTION)
     .find({
-      'data.entityType': 'cassette',
-      'data.entityId': entityId,
+      'data.source.type': 'cassette',
+      'data.source.id': entityId.toString(),
       'data.scope': GEOMETRY_SCOPE
     })
     .sort({ 'data.number': -1, _id: -1 })
@@ -114,8 +115,7 @@ async function ensureCassetteGeometryRevision(db, cassette) {
       cassetteId: entityId
     },
     data: {
-      entityType: 'cassette',
-      entityId,
+      source: { type: 'cassette', id: entityId.toString() },
       scope: GEOMETRY_SCOPE,
       number,
       contentHash,
@@ -129,13 +129,13 @@ async function ensureCassetteGeometryRevision(db, cassette) {
   };
 
   try {
-    await db.collection(REVISION_COLLECTION).insertOne(revision);
+    if (APPLY) await db.collection(REVISION_COLLECTION).insertOne(revision);
     return revision;
   } catch (error) {
     if (error?.code === 11000) {
       return await db.collection(REVISION_COLLECTION).findOne({
-        'data.entityType': 'cassette',
-        'data.entityId': entityId,
+        'data.source.type': 'cassette',
+        'data.source.id': entityId.toString(),
         'data.scope': GEOMETRY_SCOPE,
         'data.contentHash': contentHash
       });
@@ -152,7 +152,7 @@ async function migrateCassetteTemplateRevisions(db) {
     const revision = await ensureCassetteGeometryRevision(db, cassette);
     revisionsByTemplateId.set(cassette._id.toString(), revision);
 
-    await db.collection('cassettes').updateOne(
+    if (APPLY) await db.collection('cassettes').updateOne(
       { _id: toFlexibleId(cassette._id) },
       {
         $set: {
@@ -168,52 +168,70 @@ async function migrateCassetteTemplateRevisions(db) {
 async function migrateCassetteDesignDerivedFrom(db, revisionsByTemplateId) {
   const designs = await db.collection('cassette_designs')
     .find({
-      'data.derivedFrom': { $exists: false },
       'lineage.templateId': { $exists: true, $ne: null }
     })
     .toArray();
 
-  let updated = 0;
+  const summary = { scanned: designs.length, provenanceBackfilled: 0, lineageRemoved: 0, invalid: 0 };
   for (const design of designs) {
     const templateId = design.lineage?.templateId;
-    const revision = revisionsByTemplateId.get(templateId?.toString?.() || templateId);
-    if (!revision) continue;
+    const existing = design.provenance?.derivedFrom;
+    if (existing?.source && (
+      existing.source.type !== 'cassette' ||
+      existing.source.id?.toString?.() !== templateId?.toString?.()
+    )) {
+      summary.invalid += 1;
+      continue;
+    }
+    const revision = existing ? null : revisionsByTemplateId.get(templateId?.toString?.() || templateId);
+    if (!existing && !revision) {
+      summary.invalid += 1;
+      continue;
+    }
 
-    await db.collection('cassette_designs').updateOne(
-      { _id: toFlexibleId(design._id) },
-      {
-        $set: {
-          'data.derivedFrom': {
-            entityType: revision.data.entityType,
-            entityId: revision.data.entityId,
-            scope: revision.data.scope,
-            revisionId: revision._id,
-            revisionNumber: revision.data.number,
-            contentHash: revision.data.contentHash,
-            sourceStatus: revision.data.sourceStatus || null,
-            parameters: design.data?.parameters || {},
-            migration: {
-              inferred: true,
-              note: 'Backfilled from current template geometry revision because historical design source revision was not recorded.'
+    if (APPLY) {
+      const update = { $unset: { 'lineage.templateId': '' } };
+      if (!existing) {
+        update.$set = {
+          'provenance.derivedFrom': {
+              source: {
+                type: revision.data.source.type,
+                id: revision.data.source.id,
+                revisionId: revision._id.toString()
+              },
+              scope: revision.data.scope,
+              revisionNumber: revision.data.number,
+              contentHash: revision.data.contentHash,
+              sourceStatus: revision.data.sourceStatus || null,
+              parameters: design.data?.parameters || {},
+              migration: {
+                inferred: true,
+                note: 'Backfilled from current template geometry revision because historical design source revision was not recorded.'
+              }
             }
-          }
-        }
+        };
       }
-    );
-    updated += 1;
+      await db.collection('cassette_designs').updateOne(
+        { _id: toFlexibleId(design._id) },
+        update
+      );
+    }
+    if (!existing) summary.provenanceBackfilled += 1;
+    summary.lineageRemoved += 1;
   }
 
-  return updated;
+  return summary;
 }
 
 async function main() {
   const db = await connectDB();
-  await ensureIndexes(db);
+  if (APPLY) await ensureIndexes(db);
   const revisionsByTemplateId = await migrateCassetteTemplateRevisions(db);
-  const designCount = await migrateCassetteDesignDerivedFrom(db, revisionsByTemplateId);
+  const designSummary = await migrateCassetteDesignDerivedFrom(db, revisionsByTemplateId);
 
-  console.log(`Cassette template geometry revisions ensured: ${revisionsByTemplateId.size}`);
-  console.log(`Cassette design derivedFrom records backfilled: ${designCount}`);
+  console.log(`${APPLY ? '[apply]' : '[dry-run]'} Cassette template geometry revisions ensured: ${revisionsByTemplateId.size}`);
+  console.log(`${APPLY ? '[apply]' : '[dry-run]'} Cassette design derivation migration: ${JSON.stringify(designSummary)}`);
+  if (designSummary.invalid) process.exitCode = 1;
 }
 
 main().catch((error) => {

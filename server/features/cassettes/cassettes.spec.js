@@ -52,10 +52,10 @@ describe('Cassette Management & Ownership', () => {
   };
 
   user1.permissions = {
-    memberships: [{ organizationId: user1.organizationId, permissions: { cassettes: 'admin' } }]
+    memberships: [{ organizationId: user1.organizationId, permissions: { cassettes: 'admin', cassette_designs: 'admin' } }]
   };
   user2.permissions = {
-    memberships: [{ organizationId: user2.organizationId, permissions: { cassettes: 'admin' } }]
+    memberships: [{ organizationId: user2.organizationId, permissions: { cassettes: 'admin', cassette_designs: 'admin' } }]
   };
 
   it('should create a standard cassette', async () => {
@@ -106,7 +106,7 @@ describe('Cassette Management & Ownership', () => {
       id: 'face_1',
       operation: 'face.trapezoid'
     });
-    expect(result.data.parameters).toEqual(['A', 'B', 'R']);
+    expect(result.data.parameters).toEqual(['A', 'B', 'R', 'T']);
     expect(result.lineage.libraryId.toString()).toBe(libraryId.toString());
 
     const library = await db.collection('libraries').findOne({ _id: libraryId });

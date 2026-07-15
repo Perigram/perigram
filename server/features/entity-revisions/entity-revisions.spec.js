@@ -25,8 +25,7 @@ describe('entity revision helpers', () => {
     const revision = {
       _id: 'rev-1',
       data: {
-        entityType: 'cassette',
-        entityId: 'cassette-1',
+        source: { type: 'cassette', id: 'cassette-1' },
         scope: 'geometry',
         number: 3,
         contentHash: 'sha256:abc',
@@ -35,10 +34,8 @@ describe('entity revision helpers', () => {
     };
 
     expect(derivedFromRevision(revision, { A: 500 })).toEqual({
-      entityType: 'cassette',
-      entityId: 'cassette-1',
+      source: { type: 'cassette', id: 'cassette-1', revisionId: 'rev-1' },
       scope: 'geometry',
-      revisionId: 'rev-1',
       revisionNumber: 3,
       contentHash: 'sha256:abc',
       sourceStatus: { state: 'ACTIVE' },

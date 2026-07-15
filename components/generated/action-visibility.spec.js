@@ -7,9 +7,9 @@ import {
 } from './action-visibility.js';
 
 describe('generated action visibility', () => {
-  it('shows status actions only on entities in the source status', () => {
+  it('shows status-bearing updates only on entities in the source status', () => {
     const action = {
-      actionKind: 'changeStatus',
+      actionKind: 'updateEntity',
       entityType: 'cassette',
       status: { from: 'CREATED', to: 'DELETED' }
     };
@@ -66,7 +66,7 @@ describe('generated action visibility', () => {
         },
         {
           actionId: 'delete',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'queue',
           status: { from: 'ARCHIVED', to: 'DELETED' }
         }
@@ -78,8 +78,8 @@ describe('generated action visibility', () => {
     expect(actions.map(action => action.actionId)).toEqual(['solve']);
   });
 
-  it('keeps lifecycle transitions out of generic action surfaces', () => {
-    expect(isGeneratedSurfaceAction({ actionKind: 'changeStatus' })).toBe(false);
+  it('keeps only canonical process actions in generic action surfaces', () => {
+    expect(isGeneratedSurfaceAction({ actionKind: 'obsolete' })).toBe(false);
     expect(isGeneratedSurfaceAction({ actionKind: 'runCommand' })).toBe(true);
     expect(isGeneratedSurfaceAction({ actionKind: 'updateEntity' })).toBe(true);
   });

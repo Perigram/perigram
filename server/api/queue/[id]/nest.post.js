@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const body = await readBody(event) || {};
   const queueId = event.context.params.id;
-  const settingsUpdate = body.nestingSettings || body.nestingParams || rootNestingSettings(body);
+  const settingsUpdate = body.nestingSettings || null;
 
   if (body.job || settingsUpdate) {
     await queuesService.update(
@@ -56,25 +56,3 @@ export default defineEventHandler(async (event) => {
     attachments
   };
 });
-
-function rootNestingSettings(body = {}) {
-  const keys = [
-    'materialMode',
-    'virtualWidth',
-    'virtualLength',
-    'width',
-    'height',
-    'spacing',
-    'space',
-    'warehouseId',
-    'inventoryItems',
-    'toolProfileId',
-    'toolId',
-    'requestedArtifacts'
-  ];
-  const result = {};
-  for (const key of keys) {
-    if (body[key] !== undefined) result[key] = body[key];
-  }
-  return Object.keys(result).length ? result : null;
-}

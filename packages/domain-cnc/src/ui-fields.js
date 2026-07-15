@@ -4,6 +4,9 @@ export const cncEntityFieldGroups = {
       { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', role: 'childCount', priority: 10 },
       { path: 'summary.queuePreview', i18n: 'project.queues', display: 'entityRefList', entityType: 'queue', replacesCountPath: 'summary.queueCount', priority: 15 },
       { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²', display: 'area', priority: 20 }
+    ],
+    relations: [
+      { path: 'relations.cassetteLibraries', i18n: 'project.cassetteLibraries', display: 'entityRefList', entityType: 'library', priority: 30 }
     ]
   },
   queue: {
@@ -65,7 +68,7 @@ export const cncEntityFieldGroups = {
     summary: [
       {
         path: 'data.parameters',
-        fallbackPaths: ['data.derivedFrom.parameters'],
+        fallbackPaths: ['provenance.derivedFrom.parameters'],
         i18n: 'cassette.parametersTitle',
         display: 'parameterMap',
         priority: 10
@@ -75,7 +78,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
     ],
     provenance: [
-      { path: 'data.sourceRevisionId', i18n: 'revision.sourceRevision', display: 'entityRef', entityType: 'entityRevision', priority: 40 }
+      { path: 'provenance.derivedFrom.source', i18n: 'revision.sourceRevision', display: 'entityRef', priority: 40 }
     ]
   },
   cassetteInstance: {
@@ -168,7 +171,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.shortHash', i18n: 'revision.hash', display: 'code', priority: 30 }
     ],
     relations: [
-      { path: 'data.entityId', i18n: 'revision.source', display: 'entityRef', priority: 40 }
+      { path: 'data.source', i18n: 'revision.source', display: 'entityRef', priority: 40 }
     ]
   },
   geometryCapture: {
@@ -208,6 +211,13 @@ export const cncEntityFieldGroups = {
       { path: 'data.diameter', i18n: 'toolProfile.diameter', suffix: ' mm', display: 'dimension', priority: 10 },
       { path: 'data.angle', i18n: 'toolProfile.angle', suffix: '°', display: 'angle', priority: 20 },
       { path: 'data.kerf', i18n: 'toolProfile.kerf', suffix: ' mm', display: 'dimension', priority: 30 }
+    ]
+  },
+  machine: {
+    summary: [
+      { path: 'data.workingArea.width', i18n: 'machine.width', suffix: ' mm', display: 'dimension', priority: 10 },
+      { path: 'data.workingArea.length', i18n: 'machine.length', suffix: ' mm', display: 'dimension', priority: 20 },
+      { path: 'data.boundaryOffset', i18n: 'machine.boundaryOffset', suffix: ' mm', display: 'dimension', priority: 30 }
     ]
   },
   penTemplate: {
@@ -250,6 +260,33 @@ export const cncEntityFieldGroups = {
     ]
   }
 };
+
+const PARENT_REVISION_FIELD = {
+  path: 'provenance.parent.source',
+  i18n: 'revision.parentRevision',
+  display: 'entityRef',
+  priority: 90
+};
+
+const PINNED_PARENT_ENTITY_KEYS = [
+  'cassette',
+  'cassetteInstance',
+  'color',
+  'nestingRun',
+  'queue',
+  'remnant',
+  'sheet',
+  'sheetDesign'
+];
+
+for (const key of PINNED_PARENT_ENTITY_KEYS) {
+  const groups = cncEntityFieldGroups[key];
+  if (!groups) continue;
+  groups.provenance = [
+    ...(groups.provenance || []),
+    ...(groups.provenance?.some(field => field.path === PARENT_REVISION_FIELD.path) ? [] : [PARENT_REVISION_FIELD])
+  ];
+}
 
 export function getEntityFieldGroups(entityKey) {
   return cncEntityFieldGroups[entityKey] || {};

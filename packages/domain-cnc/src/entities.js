@@ -1,3 +1,8 @@
+const withReferenceBlocks = definition => ({
+  ...definition,
+  blocks: [...new Set([...(definition.blocks || []), 'relations', 'provenance'])]
+});
+
 export const cncEntities = [
   { type: 'artifact', collection: 'artifacts', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'cassette', collection: 'cassettes', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
@@ -9,6 +14,7 @@ export const cncEntities = [
   { type: 'geometry_capture', collection: 'geometry_captures', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'specs'] },
   { type: 'layer_standard', collection: 'layer_standards', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'library', feature: 'libraries', collection: 'libraries', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'], operations: { delete: true } },
+  { type: 'machine', feature: 'machines', collection: 'machines', meta: true, blocks: ['identity', 'lineage', 'attachments', 'data'], operations: { delete: true } },
   { type: 'material', collection: 'materials', blocks: ['identity', 'origin', 'status', 'attachments', 'data'] },
   { type: 'material_pile', collection: 'material_piles', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'nesting_run', collection: 'nesting_runs', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
@@ -25,4 +31,4 @@ export const cncEntities = [
   { type: 'tool_profile', collection: 'tool_profiles', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'user', collection: 'users', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'warehouse', collection: 'warehouses', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] }
-];
+].map(withReferenceBlocks);

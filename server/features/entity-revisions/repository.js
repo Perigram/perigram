@@ -31,8 +31,8 @@ export async function find(filter = {}, options = {}) {
 export async function findByHash(entityType, entityId, scope, contentHash) {
   const db = await connectDB();
   return await db.collection(COLLECTION).findOne({
-    'data.entityType': entityType,
-    'data.entityId': toFlexibleId(entityId),
+    'data.source.type': entityType,
+    'data.source.id': toFlexibleId(entityId).toString(),
     'data.scope': scope,
     'data.contentHash': contentHash
   });
@@ -42,8 +42,8 @@ export async function findLatest(entityType, entityId, scope) {
   const db = await connectDB();
   return await db.collection(COLLECTION)
     .find({
-      'data.entityType': entityType,
-      'data.entityId': toFlexibleId(entityId),
+      'data.source.type': entityType,
+      'data.source.id': toFlexibleId(entityId).toString(),
       'data.scope': scope
     })
     .sort({ 'data.number': -1, _id: -1 })
@@ -55,8 +55,8 @@ export async function ensureIndexes() {
   const db = await connectDB();
   await db.collection(COLLECTION).createIndex(
     {
-      'data.entityType': 1,
-      'data.entityId': 1,
+      'data.source.type': 1,
+      'data.source.id': 1,
       'data.scope': 1,
       'data.contentHash': 1
     },
@@ -64,8 +64,8 @@ export async function ensureIndexes() {
   );
   await db.collection(COLLECTION).createIndex(
     {
-      'data.entityType': 1,
-      'data.entityId': 1,
+      'data.source.type': 1,
+      'data.source.id': 1,
       'data.scope': 1,
       'data.number': -1
     },

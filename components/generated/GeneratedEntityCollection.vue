@@ -43,7 +43,7 @@
     >
       <template v-if="detailRouteFor(entity)" #title>
         <div class="flex min-w-0 flex-col gap-2">
-          <TraceChain :entity="entity" variant="compact" expandable />
+          <TraceChain :entity="entity" :entity-type="entityType" variant="compact" expandable />
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div class="flex min-w-0 flex-1 items-center">
               <button

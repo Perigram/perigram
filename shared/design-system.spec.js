@@ -151,6 +151,19 @@ describe('Design system manifest', () => {
     ]);
   });
 
+  it('renders a revision-pinned canonical ref through its immutable revision entity', () => {
+    expect(resolveEntityRelationRefs({
+      type: 'sheet_design',
+      id: 'design-1',
+      revisionId: 'revision-7'
+    })).toEqual([{
+      entityType: 'entityRevision',
+      id: 'revision-7',
+      source: { entityType: 'sheetDesign', id: 'design-1' },
+      entity: null
+    }]);
+  });
+
   it('keeps material pile and batch pile demo DTOs distinct', () => {
     const material = factories.createMockMaterial();
     const materialPile = factories.createMockPile();
@@ -289,7 +302,7 @@ describe('Design system manifest', () => {
     expect(cassette.fieldPaths).toEqual([]);
     expect(cassette.fieldPaths).not.toContain('data.type');
     expect(cassetteDesign.fieldPaths).toEqual(['data.parameters']);
-    expect(DESIGN_SYSTEM_FIELD_GROUPS.cassetteDesign.summary[0].fallbackPaths).toEqual(['data.derivedFrom.parameters']);
+    expect(DESIGN_SYSTEM_FIELD_GROUPS.cassetteDesign.summary[0].fallbackPaths).toEqual(['provenance.derivedFrom.parameters']);
     expect(cassetteTemplate.fieldPaths).toEqual([]);
     expect(cassetteTemplate.fieldPaths).not.toContain('type');
     expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');

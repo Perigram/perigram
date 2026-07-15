@@ -3,8 +3,9 @@ import * as repository from './repository.js';
 import * as projectsService from '../projects/service.js';
 import * as remnantsService from '../remnants/service.js';
 import * as warehousesService from '../warehouses/service.js';
+import * as artifactsService from '../artifacts/service.js';
 import { GeometryCapture } from './model.js';
-import { createAttachment, createData } from '../../core/blocks/index.js';
+import { createData, createEntityRef } from '../../core/blocks/index.js';
 import { statusService, createTransitionAuth } from '../../core/machines/service.js';
 import { createTaskRun } from '../../core/tasks/service.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
@@ -12,7 +13,6 @@ import { mapLineageQuery } from '../../utils/query.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 
-const PHOTO_BUCKET = 'capturePhotos';
 const DEFAULT_PRESETS = {
   REMNANT: 'remnant_auto',
   FACADE: 'facade_auto'
@@ -28,13 +28,12 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const feature = mode === 'REMNANT' ? 'materials' : 'projects';
   requireLineageAccess(lineage, feature, 'write', userPermissions);
 
-  const fileId = data.fileId || data.photo?.fileId || data.photo?.id;
-  if (!fileId) throw createError({ statusCode: 400, message: 'Capture photo fileId is required' });
-
-  const bucketName = data.bucketName || data.photo?.bucketName || PHOTO_BUCKET;
-  const fileName = data.fileName || data.photo?.filename || data.photo?.name || 'capture-photo';
+  const artifactId = data.artifactId || data.relations?.sourcePhoto?.id;
+  if (!artifactId) throw createError({ statusCode: 400, message: 'Capture photo artifact is required' });
+  const sourcePhoto = await artifactsService.getById(artifactId, userId, userOrg, userRole, userPermissions);
+  assertCapturePhotoArtifact(sourcePhoto);
   const captureUid = `capture-${generateRandomString(8)}`;
-  const origin = statusService.initialStatus('geometry_capture', userId, { note: 'Geometry capture created' });
+  const origin = await statusService.initialStatusForOrganization('geometry_capture', lineage.organizationId, userId, { note: 'Geometry capture created' });
 
   const revision = createRevision({
     mode,
@@ -53,12 +52,8 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     status: origin,
     lineage,
     specs: {},
-    attachments: {
-      primary: createAttachment('CAPTURE_PHOTO', fileId, fileName, {
-        bucketName,
-        mimeType: data.mimeType || data.photo?.mimeType || 'image/*'
-      })
-    },
+    relations: { sourcePhoto: createEntityRef('artifact', sourcePhoto._id) },
+    attachments: {},
     data: createData({
       mode,
       activeRevisionId: null,
@@ -149,8 +144,7 @@ export async function recalculate(id, options = {}, userId, userOrg, userRole, u
   const feature = mode === 'REMNANT' ? 'materials' : 'projects';
   requireLineageAccess(raw.lineage, feature, 'write', userPermissions);
 
-  const attachment = raw.attachments?.primary;
-  if (!attachment?.fileId) throw createError({ statusCode: 400, message: 'Geometry capture has no primary photo' });
+  await resolveCapturePhotoArtifact(raw, { userId, userOrg, userRole, userPermissions });
 
   const revision = createRevision({
     mode,
@@ -406,7 +400,7 @@ export async function confirm(id, userId, userOrg, userRole, userPermissions) {
       source: {
         type: 'PHOTO_CAPTURE',
         geometryCaptureId: raw._id.toString(),
-        photo: raw.attachments?.primary || null
+        sourcePhoto: raw.relations?.sourcePhoto || null
       }
     }, userId, userOrg, userRole, userPermissions);
     output = { entityType: 'remnant', entityId: remnant._id?.toString?.() || remnant._id || remnant.id };
@@ -518,11 +512,15 @@ function createRevisionId() {
 }
 
 async function enqueueExtractionTask(capture, revision, auth) {
-  const attachment = capture.attachments?.primary || {};
+  const artifact = await resolveCapturePhotoArtifact(capture);
+  const attachment = artifact.attachments?.primary || {};
   const fileId = attachment.fileId?.toString?.() || attachment.fileId;
-  const bucketName = attachment.metadata?.bucketName || attachment.bucketName || PHOTO_BUCKET;
+  const bucketName = attachment.metadata?.bucketName || attachment.bucketName || 'uploads';
   return await createTaskRun('vision.extractGeometry', {
-    entities: { geometryCapture: capture._id.toString() },
+    entities: {
+      geometryCapture: capture._id.toString(),
+      sourcePhoto: artifact._id.toString()
+    },
     parameters: {
       mode: capture.data?.mode || 'REMNANT',
       revisionId: revision.id,
@@ -536,6 +534,23 @@ async function enqueueExtractionTask(capture, revision, auth) {
   }, auth, {
     idempotencyKey: `geometry-capture:${capture._id.toString()}:extract:${revision.id}`
   });
+}
+
+async function resolveCapturePhotoArtifact(capture, auth = {}) {
+  const ref = capture.relations?.sourcePhoto;
+  if (!ref?.id) throw createError({ statusCode: 400, message: 'Geometry capture has no source photo artifact' });
+  const artifact = await artifactsService.getById(ref.id, auth.userId, auth.userOrg, auth.userRole, auth.userPermissions);
+  assertCapturePhotoArtifact(artifact);
+  return artifact;
+}
+
+function assertCapturePhotoArtifact(artifact = {}) {
+  if (artifact.data?.type !== 'CAPTURE_PHOTO') {
+    throw createError({ statusCode: 400, message: 'Geometry capture source must be a CAPTURE_PHOTO artifact' });
+  }
+  if (!artifact.attachments?.primary?.fileId) {
+    throw createError({ statusCode: 400, message: 'Capture photo artifact has no file' });
+  }
 }
 
 function normalizedRevisions(raw) {

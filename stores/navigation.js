@@ -6,14 +6,23 @@ import { useI18n } from 'vue-i18n';
 import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
 import { processOperationalScreens, resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
 import { generatedScreenLabel } from '~/utils/generated-labels.js';
+import { useEntityStore } from './entities.js';
+import { cncDomain } from '@cutkit/domain-cnc';
+import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
+import { ENTITY_UI } from '~/utils/status-engine.js';
+import { containmentAncestors, entityHierarchyId, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute, rootContainmentFilter, siblingContainmentScope } from '~/utils/entity-hierarchy.js';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
     const globalStore = useGlobalStore();
+    const entityStore = useEntityStore();
     const { t, te } = useI18n();
 
     // Store-managed state for project context
     const currentProject = ref(null);
+    const currentHierarchy = ref([]);
+    const currentHierarchyPath = ref('');
+    const currentHierarchySiblings = ref([]);
 
     const siblingOption = (name, id) => ({
         name: entitySelectLabel({ name }, id),
@@ -44,6 +53,70 @@ export const useNavigationStore = defineStore('navigation', () => {
             }
             console.error('Failed to fetch project context:', e);
         }
+    }
+
+    async function fetchRouteHierarchy(path, query = {}, fetchOptions = {}) {
+        currentHierarchy.value = [];
+        currentHierarchySiblings.value = [];
+        currentHierarchyPath.value = path;
+        const target = routeEntityTarget(path, query);
+        if (!target?.entityType || !target?.id) return;
+        const current = await entityStore.fetchEntity(hierarchyTypeAlias(target.entityType), target.id, false, { ...fetchOptions, silent: true });
+        if (!current) return;
+        const ancestorRefs = containmentAncestors(current, target.entityType);
+        const ancestors = [];
+        for (const ref of ancestorRefs) {
+            const entity = await entityStore.fetchEntity(hierarchyTypeAlias(ref.type), ref.id, false, { ...fetchOptions, silent: true });
+            if (entity) ancestors.push({ ...ref, entity });
+        }
+        currentHierarchy.value = [...ancestors, { type: normalizeHierarchyType(target.entityType), id: entityHierarchyId(current), entity: current, current: true }];
+        currentHierarchySiblings.value = await fetchHierarchySiblings(current, target.entityType, fetchOptions);
+    }
+
+    function routeEntityTarget(path, query = {}) {
+        const parts = String(path || '').split('/').filter(Boolean);
+        if (parts[0] === 'screens' && parts[1]) {
+            const screen = visibleProcessScreens.value.find(item => (item.screenKey || item.id) === parts[1]);
+            if (screen?.template !== 'entityDetail') return null;
+            return { entityType: screen.entityType, id: query.entityId || query[`${screen.entityType}Id`] };
+        }
+        if (parts[0] === 'project' && parts[2] === 'queue' && parts[3]) return { entityType: 'queue', id: parts[3] };
+        if (parts[0] === 'project' && parts[2] === 'sheet-design' && parts[3]) return { entityType: 'sheet_design', id: parts[3] };
+        return null;
+    }
+
+    async function fetchHierarchySiblings(entity, entityType, fetchOptions = {}) {
+        const endpoint = entityEndpoint(entityType);
+        if (!endpoint?.routes?.list) return [];
+        const scope = siblingContainmentScope(entity, entityType);
+        try {
+            const items = await $fetch(endpoint.routes.list, { ...fetchOptions, query: scope });
+            const rootKeys = Object.keys(rootContainmentFilter(entityType)).map(key => key.replace(/^lineage\./, ''));
+            return (Array.isArray(items) ? items : []).filter(item => (
+                Object.entries(scope).every(([key, value]) => item.lineage?.[key]?.toString?.() === value?.toString?.())
+                && (Object.keys(scope).length || rootKeys.every(key => !item.lineage?.[key]))
+            ));
+        } catch {
+            return [];
+        }
+    }
+
+    function entityEndpoint(entityType = '') {
+        return (cncDomain.ui?.endpoints || []).find(endpoint => normalizeHierarchyType(endpoint.type) === normalizeHierarchyType(entityType));
+    }
+
+    function hierarchyRoute(item = {}) {
+        if (authStore.processActive) {
+            return detailRouteForEntity({ entity: item.entity, entityType: item.type, manifest: authStore.screenManifest });
+        }
+        const project = currentHierarchy.value.find(candidate => normalizeHierarchyType(candidate.type) === 'project')?.entity
+            || currentProject.value;
+        const scopedRoute = projectHierarchyRoute({ ...item, project });
+        if (scopedRoute) return scopedRoute;
+        const config = ENTITY_UI[hierarchyTypeAlias(item.type)] || ENTITY_UI[item.type];
+        return typeof config?.route === 'function'
+            ? config.route(item.id, project?.identity?.slug || project?.identity?.uid || project?.slug)
+            : null;
     }
 
     // --- HUB DEFINITIONS (Level 1) ---
@@ -173,7 +246,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         }
 
         // --- Level 2: Project Context ---
-        if (parts[0] === 'project' && parts[1]) {
+        if (parts[0] === 'project' && parts[1] && !(currentHierarchyPath.value === path && currentHierarchy.value.length)) {
             const projectName = entitySelectLabel(currentProject.value, parts[1]);
             const projectSlug = parts[1];
 
@@ -264,6 +337,24 @@ export const useNavigationStore = defineStore('navigation', () => {
              }
         }
 
+        if (currentHierarchyPath.value === path && currentHierarchy.value.length) {
+            for (const item of currentHierarchy.value) {
+                const route = hierarchyRoute(item);
+                const siblings = item.current
+                    ? currentHierarchySiblings.value.map(sibling => ({
+                        name: entitySelectLabel(sibling, sibling._id),
+                        id: hierarchyRoute({ type: item.type, id: entityHierarchyId(sibling), entity: sibling })
+                    })).filter(sibling => sibling.id)
+                    : [];
+                nav.push({
+                    id: item.id,
+                    name: entitySelectLabel(item.entity, item.id),
+                    to: route,
+                    siblings
+                });
+            }
+        }
+
         return nav;
     };
 
@@ -271,6 +362,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         hubs,
         currentProject,
         fetchProjectContext,
+        fetchRouteHierarchy,
         resolveBreadcrumbs,
         processAllowsRoute
     };

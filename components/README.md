@@ -211,12 +211,12 @@ That resolver prefers screen/region `labelKey`, then domain entity label keys,
 and only humanizes ids as a last fallback. Generic process action labels must
 not display English verbs such as `Create` or raw target statuses such as
 `DELETED`; create actions show the localized entity name beside the plus icon,
-and status-change actions show a localized operation label without exposing the
-state id in the button text.
+and status-mutating update actions show a localized operation label without
+exposing the state id in the button text.
 Generated non-status action surfaces, including detail header buttons and card
-footers, must not render `changeStatus` actions. Lifecycle/status transitions
-belong only in `EntityStatus`, which loads server-filtered actions and owns the
-status popover/history.
+footers, must not render status-mutating update actions. Lifecycle/status
+transitions belong only in `EntityStatus`, which loads server-filtered actions
+and owns the status popover/history.
 Generated entity detail headers show the entity `TraceChain` instead of a
 standalone repeated identity name, so the opened record keeps lineage context in
 the primary header while actions/status remain in the same header row.
@@ -502,20 +502,24 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `TraceLink` for relation summaries inside cards/details; reserve it for rows
   whose explicit purpose is route navigation.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.
-- For cassette templates and queue entries, derive parametric vs static display from the cassette DTO itself, not only from saved queue item flags. Prefer `data.parameters` when present and fall back to OCCS `data.definition.parameters` so updated OCCS templates do not appear static in queues. Template/source cassette cards must not render parameter counts; generated cassette-design surfaces render exact materialized values from `data.parameters` with `data.derivedFrom.parameters` only as a display fallback.
+- For cassette templates and queue entries, derive parametric vs static display
+  from the cassette/design DTO itself, not only from saved queue item flags.
+  Prefer `data.parameters` when present and fall back to OCCS
+  `data.definition.parameters` for templates so updated OCCS templates do not
+  appear static in selectors. Template/source cassette cards must not render
+  parameter counts; generated cassette-design surfaces render exact
+  materialized values from `data.parameters` with
+  `provenance.derivedFrom.parameters` only as a display fallback.
 - `QueueEditor` keeps a UI-only `_key` for queue rows because persisted
   `queue.data.job.items[]` entries intentionally store only the cassette/design
-  `id`, source `entityType`, nesting `type`, quantity, and parameters. Delete
-  actions must use `_key`; nesting payload saves must persist `id` and
-  `entityType` without leaking the UI key. Queue relation rows must not fetch a
-  protected cassette/design endpoint when the surrounding queue DTO did not
-  include that related DTO; render the typed id chip instead.
-  When older queue rows contain a baked cassette source id such as
-  `lineage.originalCassetteId`, `QueueEditor` resolves the matching loaded
-  `cassette_design` by parameter values and persists the canonical design id
-  before saving or running nesting. Rows that cannot be resolved to a loaded
-  cassette or cassette design are rejected before the queue save so the nesting
-  command never receives an unresolvable job item.
+  `id`, `entityType: "cassette_design"`, nesting `type`, quantity, and
+  parameters. Delete actions must use `_key`; nesting payload saves must
+  persist `id` and `entityType` without leaking the UI key. Queue relation rows
+  must not fetch a protected cassette-design endpoint when the surrounding
+  queue DTO did not include that related DTO; render the typed id chip instead.
+  Rows that cannot be resolved to a loaded cassette design are rejected before
+  the queue save so the nesting command never receives an unresolvable job
+  item.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
   lane rendered newest-first as compact queue entity rows, a center lane for nesting settings and wide
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The

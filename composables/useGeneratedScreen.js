@@ -5,6 +5,7 @@ import { useEntity } from '~/composables/useEntity';
 import { normalizeScreenContract } from '~/packages/processes/src/screen-contract.js';
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
 import { onEntityChanged } from '~/utils/entity-events.js';
+import { filterRootSourceItems } from '~/utils/generated-screen-source.js';
 
 export function useGeneratedScreen(screenRef) {
   const authStore = useAuthStore();
@@ -38,7 +39,8 @@ export function useGeneratedScreen(screenRef) {
           continue;
         }
         const items = await entityApi.list(resolveSourceFilters(source, screen.value));
-        sourceStates.value[source.id] = { ...emptyState(source), items };
+        const visibleItems = filterRootSourceItems(items, source.rootLineageKeys);
+        sourceStates.value[source.id] = { ...emptyState(source), items: visibleItems };
       }
     } catch (err) {
       error.value = err;
@@ -96,7 +98,7 @@ function resolveSourceIdentifier(source = {}, screen = {}) {
     || '';
 }
 
-function resolveSourceFilters(source = {}, screen = {}) {
+export function resolveSourceFilters(source = {}, screen = {}) {
   const filters = resolveValue(source.filters || {}, screen) || {};
   const statuses = statusFiltersFromRequirement(source.required || screen.required || {});
   if (!statuses.length) return filters;

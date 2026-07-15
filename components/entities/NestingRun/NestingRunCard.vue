@@ -12,7 +12,6 @@ import EntityRelationsBlock from '~/components/shared/EntityRelationsBlock.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { getPrimaryState } from '~/packages/core/src/index.js';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
@@ -36,10 +35,9 @@ const canDeleteRun = computed(() => hasPermissionGrant({
     entity: props.run,
     entityType: 'nesting_run'
 }));
-const state = computed(() => getPrimaryState(props.run.status, 'UNKNOWN'));
-const isComplete = computed(() => state.value === 'COMPLETE' || state.value === 'CHOSEN');
 const results = computed(() => props.run.data?.results || {});
 const hasResultData = computed(() => Object.values(results.value || {}).some(value => Number(value) > 0));
+const hasFailure = computed(() => Boolean(props.run.data?.error));
 const runId = computed(() => props.run._id?.toString());
 const materialSources = computed(() => (props.run.data?.materialPool || [])
     .map(source => ({
@@ -54,7 +52,7 @@ const relatedSheetDesigns = computed(() => uniqueById([
     ...contextEntities('sheet_design').filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value))
 ]));
 const hasCompletedOutput = computed(() =>
-    isComplete.value || hasResultData.value || sheetDesignRelationItems.value.length > 0
+    hasResultData.value || sheetDesignRelationItems.value.length > 0
 );
 const NESTING_RUN_CARD_FIELDS = resolveEntityDisplayFields({ entityType: 'nestingRun', surface: 'card' });
 const RUN_FIELDS = NESTING_RUN_CARD_FIELDS.filter(field => field.display !== 'entityRefList');
@@ -120,7 +118,7 @@ function selectRun(event) {
         <div class="flex flex-wrap gap-2">
           <Tag v-if="results.efficiency" :value="`${results.efficiency}%`" severity="success" size="small" />
           <Tag v-if="results.sheetCount" :value="`${results.sheetCount} ${$t('results.sheets')}`" severity="secondary" size="small" />
-          <Tag v-if="isChosen || state === 'CHOSEN'" :value="$t('status.chosen')" severity="success" size="small" />
+          <Tag v-if="isChosen" :value="$t('status.chosen')" severity="success" size="small" />
         </div>
       </template>
       <template #compact-content>
@@ -157,10 +155,10 @@ function selectRun(event) {
             item-variant="compact"
           />
         </div>
-        <div v-else-if="state === 'NESTING'" class="flex justify-center p-2">
+        <div v-else-if="!hasFailure" class="flex justify-center p-2">
           <i class="pi pi-spin pi-spinner"></i>
         </div>
-        <div v-else-if="state === 'ERROR'" class="italic text-muted-color">
+        <div v-else class="italic text-muted-color">
           {{ $t('results.failed') }}
         </div>
       </div>

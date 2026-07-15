@@ -3,7 +3,9 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import {
   createData,
+  createEntityRef,
   createIdentity,
+  createProvenance,
   createStatus
 } from '../../core/blocks/index.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
@@ -47,7 +49,7 @@ function canReadRevision(userPermissions, revision) {
   if (!userPermissions) return true;
   const user = userPermissions;
   const lineage = revision?.lineage || {};
-  const sourceFeature = pluralize(revision?.data?.entityType || '');
+  const sourceFeature = pluralize(revision?.data?.source?.type || '');
   if (sourceFeature && hasLineagePermission(user, lineage, sourceFeature, 'read')) {
     return true;
   }
@@ -57,16 +59,17 @@ function canReadRevision(userPermissions, revision) {
 
 export function derivedFromRevision(revision, parameters = {}) {
   const data = revision?.data || revision || {};
-  return {
-    entityType: data.entityType,
-    entityId: data.entityId,
+  const source = data.source || {};
+  return createProvenance(
+    createEntityRef(source.type, source.id, revision?._id || data.revisionId || data.id),
+    {
     scope: data.scope,
-    revisionId: revision?._id || data.revisionId || data.id || null,
     revisionNumber: data.number,
     contentHash: data.contentHash,
     sourceStatus: data.sourceStatus || null,
     parameters: parameters || {}
-  };
+    }
+  );
 }
 
 export async function ensureForEntitySnapshot({
@@ -102,8 +105,7 @@ export async function ensureForEntitySnapshot({
       [`${entityType}Id`]: entityId
     },
     data: createData({
-      entityType,
-      entityId,
+      source: createEntityRef(entityType, entityId),
       scope,
       number,
       contentHash,
@@ -145,11 +147,11 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     : {};
   const processed = { ...filter };
   if (processed.entityId) {
-    processed['data.entityId'] = toFlexibleId(processed.entityId);
+    processed['data.source.id'] = toFlexibleId(processed.entityId).toString();
     delete processed.entityId;
   }
   if (processed.entityType) {
-    processed['data.entityType'] = processed.entityType;
+    processed['data.source.type'] = processed.entityType;
     delete processed.entityType;
   }
   if (processed.scope) {

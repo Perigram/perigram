@@ -23,9 +23,13 @@ node server/scripts/migrate-process-role-memberships.js # Clear preset permissio
 node server/scripts/migrate-organization-owner-admins.js # Mark existing organization creator/admin memberships as owner admins
 node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
+node server/scripts/migrate-process-update-actions.js # Replace legacy changeStatus actions with updateEntity status mutations
 node server/scripts/migrate-process-command-output-statuses.js # Apply graph-derived process statuses to existing command output entities
 node server/scripts/migrate-process-transition-role-access.js # Remove stale transition permission checks from process-role workflow transitions
-node server/scripts/migrate-queue-job-item-entity-types.js # Backfill queue job item entityType/id contract
+node server/scripts/migrate-entity-reference-contracts.js # Move legacy refs into canonical relations/provenance blocks
+node server/scripts/migrate-queue-nesting-contracts.js # Backfill queue nesting settings, machine ids, and cassette-design item refs
+node server/scripts/migrate-sheet-design-compositions.js # Backfill sheet-design cassette composition collapse keys
+node server/scripts/migrate-artifact-sources.js # Backfill artifact source refs and upload provenance
 node server/scripts/repair-nesting-run-completions.js # Complete runs that already have solver results but were blocked by missing process system intents
 ```
 
@@ -171,14 +175,37 @@ process action, including drafts. Definitions that already have a compiled
 runtime contract are recompiled, so existing active processes pick up compiler
 fixes without editing their semantic graph records.
 
-Use `server/scripts/migrate-queue-job-item-entity-types.js` after adopting the
-canonical queue job item source contract. It inspects existing queue item ids
-against `cassette_designs` and `cassettes`, writes `entityType` plus canonical
-`id`, and preserves the nesting `type`, quantity, and parameters.
+Use `server/scripts/migrate-process-update-actions.js` after adopting unified
+process updates. It rewrites stored `changeStatus` action records to
+`updateEntity` actions with status inputs, preserves status window metadata,
+and recompiles stored runtime contracts.
+
+Use `server/scripts/migrate-entity-reference-contracts.js` after adopting
+canonical entity references. It migrates legacy revision `entityType/entityId`
+fields to `data.source`, moves cassette-design `data.derivedFrom` and
+`lineage.templateId` into `provenance.derivedFrom.source`, migrates project
+library ids into `relations.cassetteLibraries`, and persists parent revision
+provenance where configured.
+
+Use `server/scripts/migrate-queue-nesting-contracts.js` after adopting the
+current queue nesting contract. It converts legacy `data.nestingParams` and
+ambiguous queue items into `data.nestingSettings` plus strict
+`cassette_design` job items, resolving old template/source ids through existing
+design provenance and concrete parameters. It seeds the system default machine
+id when legacy queues have no machine selection.
+
+Use `server/scripts/migrate-sheet-design-compositions.js` after adopting sheet
+layout collapse by cassette composition. It stores normalized cassette-design
+composition metadata so same-multiset sheet layouts collapse to one sheet
+design per run without geometry comparison.
+
+Use `server/scripts/migrate-artifact-sources.js` after adopting artifact source
+refs. It backfills source relations for existing artifacts and cassette upload
+records so file provenance flows through canonical entity refs.
 
 Use `server/scripts/migrate-process-command-output-statuses.js` after adding
 runtime projection from command output handles to downstream process status
-nodes. It scans active process graphs, finds `runCommand -> changeStatus`
+nodes. It scans active process graphs, finds `runCommand -> updateEntity`
 edges, builds v2 status snapshots from the compiled workflow, and updates
 existing command output entities whose current status is outside the active
 process state window. It supports `--dry-run` and must remain graph-derived,
@@ -201,9 +228,9 @@ status event without calling the nesting worker or recreating sheet designs.
 
 `server/scripts/migrate-entity-revisions.js` creates or reuses
 `entity_revisions` records for every cassette template's current geometry scope
-and writes `data.revisions.geometry` pointers back to the templates. It also
-backfills `cassette_design.data.derivedFrom` when a design has
-`lineage.templateId` but no recorded source revision. Backfilled design
-provenance is marked with `migration.inferred: true` because historical designs
-created before revision tracking cannot prove which old template geometry state
-was used.
+and writes `data.revisions.geometry` pointers back to the templates. Legacy
+cassette-design source fields are migrated separately by
+`migrate-entity-reference-contracts.js` into `provenance.derivedFrom`.
+Backfilled design provenance is marked with `migration.inferred: true` when
+historical designs created before revision tracking cannot prove which old
+template geometry state was used.

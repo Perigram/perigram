@@ -26,6 +26,7 @@ describe('Geometry captures service', () => {
   let auth;
   let organizationId;
   let warehouseId;
+  let photoArtifactId;
 
   beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
@@ -44,6 +45,7 @@ describe('Geometry captures service', () => {
       db.collection('geometry_captures').deleteMany({}),
       db.collection('remnants').deleteMany({}),
       db.collection('warehouses').deleteMany({}),
+      db.collection('artifacts').deleteMany({}),
       db.collection('status_events').deleteMany({})
     ]);
 
@@ -58,7 +60,8 @@ describe('Geometry captures service', () => {
         permissions: {
           materials: 'admin',
           warehouses: 'admin',
-          projects: 'admin'
+          projects: 'admin',
+          artifacts: 'admin'
         }
       }]
     };
@@ -70,14 +73,28 @@ describe('Geometry captures service', () => {
       status: { state: 'ACTIVE' },
       data: { stats: { totalRemnants: 0 } }
     });
+    photoArtifactId = `artifact-${new ObjectId().toString()}`;
+    await db.collection('artifacts').insertOne({
+      _id: photoArtifactId,
+      identity: { uid: photoArtifactId, name: 'remnant.jpg' },
+      lineage: { organizationId },
+      attachments: {
+        primary: {
+          kind: 'CAPTURE_PHOTO',
+          fileId: new ObjectId(),
+          name: 'remnant.jpg',
+          metadata: { bucketName: 'capturePhotos', mimeType: 'image/jpeg' }
+        }
+      },
+      data: { type: 'CAPTURE_PHOTO', metadata: {} }
+    });
   });
 
   it('queues extraction, applies worker geometry, and confirms a remnant', async () => {
     const capture = await geometryCaptureService.create({
       mode: 'REMNANT',
       warehouseId: warehouseId.toString(),
-      fileId: new ObjectId().toString(),
-      fileName: 'remnant.jpg',
+      artifactId: photoArtifactId,
       calibration: { mode: 'knownDimension', knownWidth: 1000, materialId: 'mat-1', material: 'ACP' },
       prompt: { outer: [[0.1, 0.1], [0.9, 0.12], [0.88, 0.8], [0.12, 0.82]] }
     }, auth.userId, auth.organizationId, auth.role, auth);
@@ -89,6 +106,7 @@ describe('Geometry captures service', () => {
     const taskRuns = await listTaskRuns({ taskId: 'vision.extractGeometry' });
     expect(taskRuns).toHaveLength(1);
     expect(taskRuns[0].input.parameters.revisionId).toBe(capture.data.revisions[0].id);
+    expect(taskRuns[0].input.entities.sourcePhoto).toBe(photoArtifactId);
     expect(taskRuns[0].input.parameters.prompt.outer).toHaveLength(4);
     expect(capture.data.revisions[0].prompt.outer).toHaveLength(4);
 
@@ -129,8 +147,7 @@ describe('Geometry captures service', () => {
     const capture = await geometryCaptureService.create({
       mode: 'REMNANT',
       warehouseId: warehouseId.toString(),
-      fileId: new ObjectId().toString(),
-      fileName: 'remnant.jpg',
+      artifactId: photoArtifactId,
       preset: 'remnant_dark_on_light',
       calibration: { mode: 'knownDimension', knownWidth: 1000 }
     }, auth.userId, auth.organizationId, auth.role, auth);
@@ -191,8 +208,7 @@ describe('Geometry captures service', () => {
     const capture = await geometryCaptureService.create({
       mode: 'REMNANT',
       warehouseId: warehouseId.toString(),
-      fileId: new ObjectId().toString(),
-      fileName: 'remnant.jpg',
+      artifactId: photoArtifactId,
       calibration: { mode: 'knownDimension', knownWidth: 1000 }
     }, auth.userId, auth.organizationId, auth.role, auth);
 
