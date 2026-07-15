@@ -141,6 +141,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const queue = new Queue({
     identity: { uid, name: name || `Queue #${queueNumber}` },
     lineage,
+    provenance: data.provenance || {},
     data: {
       job: bindQueueMaterialThickness(
         normalizeQueueJob(job || { items: [], materialPool: [] }),

@@ -15,10 +15,7 @@ vi.mock('./repository.js', () => ({
   findActiveByOrganization: vi.fn(),
   create: vi.fn(),
   updateById: vi.fn(),
-  archiveActiveByOrganization: vi.fn(),
-  findEntityInCollection: vi.fn(),
-  setEntityFieldsInCollection: vi.fn(),
-  updateEntityPatchInCollection: vi.fn()
+  archiveActiveByOrganization: vi.fn()
 }));
 
 vi.mock('~/server/features/organizations/repository.js', () => ({
@@ -61,7 +58,6 @@ vi.mock('~/server/core/commands/service.js', () => ({
 describe('process definitions access fallback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    processRepository.setEntityFieldsInCollection.mockResolvedValue({ matchedCount: 1 });
     connectDB.mockResolvedValue({
       collection: vi.fn(() => ({
         updateOne: vi.fn().mockResolvedValue({ matchedCount: 1 })
@@ -497,6 +493,70 @@ describe('process definitions access fallback', () => {
     }));
   });
 
+  it('delegates non-status process updates to the owning feature service', async () => {
+    const update = vi.fn().mockResolvedValue({
+      _id: 'project-1',
+      identity: { uid: 'project-1', name: 'Project' },
+      lineage: { organizationId: 'org-1' },
+      data: { metadata: { note: 'Updated by process' } }
+    });
+    getAppRegistry.mockReturnValue({
+      getDomain: () => ({
+        entities: [{ type: 'project', collection: 'projects' }],
+        fieldAccess: {
+          project: { feature: 'projects', write: ['data.metadata.*'] }
+        }
+      }),
+      getEntityService: () => ({
+        getById: vi.fn().mockResolvedValue({
+          _id: 'project-1',
+          identity: { uid: 'project-1', name: 'Project' },
+          lineage: { organizationId: 'org-1' },
+          data: { metadata: {} }
+        }),
+        update
+      })
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        compiled: {
+          actions: {
+            update_project_note: {
+              id: 'update_project_note',
+              actionKind: 'updateEntity',
+              entityType: 'project',
+              mutation: { fields: ['data.metadata'] },
+              access: { level: 'write', roleIds: ['role_admin'] }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({
+      actionId: 'update_project_note',
+      entityId: 'project-1',
+      data: { data: { metadata: { note: 'Updated by process' } } }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: { actions: [{ actionId: 'update_project_note' }] }
+    });
+
+    expect(update).toHaveBeenCalledWith(
+      'project-1',
+      { data: { metadata: { note: 'Updated by process' } } },
+      'user-1',
+      'org-1',
+      undefined,
+      expect.any(Object)
+    );
+  });
+
   it('executes synchronous run-command actions with action-scoped command access and output status projection', async () => {
     executeCommand.mockResolvedValueOnce({
       entities: [{ type: 'nesting_run', id: 'nesting-run-1' }],
@@ -507,7 +567,7 @@ describe('process definitions access fallback', () => {
         access: {
           executionGrants: [
             { feature: 'cassettes', level: 'read', actions: { view: true } },
-            { feature: 'cassette_designs', level: 'read', actions: { view: true } }
+            { feature: 'cassette_designs', level: 'write', actions: { view: true, create: true } }
           ]
         }
       })
@@ -584,7 +644,7 @@ describe('process definitions access fallback', () => {
             expect.objectContaining({ level: 'read', actions: { view: true } })
           ]),
           cassette_designs: expect.arrayContaining([
-            expect.objectContaining({ level: 'read', actions: { view: true } })
+            expect.objectContaining({ level: 'write', actions: { view: true, create: true } })
           ])
         })
       })
@@ -1067,7 +1127,21 @@ describe('process definitions access fallback', () => {
     const create = vi.fn().mockResolvedValue({
       _id: 'sheet-created',
       identity: { uid: 'sheet-created', name: 'Produced sheet' },
-      lineage: { organizationId: 'org-1' },
+      lineage: {
+        organizationId: 'org-1',
+        projectId: 'project-1',
+        queueId: 'queue-1',
+        runId: 'run-1',
+        sheetDesignId: 'design-1'
+      },
+      provenance: {
+        parent: {
+          source: { type: 'sheet_design', id: 'design-1', revisionId: 'revision-7' },
+          scope: 'geometry',
+          revisionNumber: 7,
+          contentHash: 'sha256:geometry'
+        }
+      },
       status: { state: { primary: 'INITIAL' } }
     });
     entityRevisionsService.getCurrentForEntity.mockResolvedValueOnce({
@@ -1147,6 +1221,14 @@ describe('process definitions access fallback', () => {
           queueId: 'queue-1',
           runId: 'run-1',
           sheetDesignId: 'design-1'
+        },
+        provenance: {
+          parent: {
+            source: { type: 'sheet_design', id: 'design-1', revisionId: 'revision-7' },
+            scope: 'geometry',
+            revisionNumber: 7,
+            contentHash: 'sha256:geometry'
+          }
         }
       },
       'user-1',
@@ -1155,22 +1237,6 @@ describe('process definitions access fallback', () => {
       expect.any(Object)
     );
     expect(entityRevisionsService.getCurrentForEntity).toHaveBeenCalledWith('sheet_design', 'design-1', 'geometry');
-    expect(processRepository.setEntityFieldsInCollection).toHaveBeenCalledWith(
-      'sheets',
-      'sheet-created',
-      {
-        'lineage.projectId': 'project-1',
-        'lineage.queueId': 'queue-1',
-        'lineage.runId': 'run-1',
-        'lineage.sheetDesignId': 'design-1',
-        'provenance.parent': {
-          source: { type: 'sheet_design', id: 'design-1', revisionId: 'revision-7' },
-          scope: 'geometry',
-          revisionNumber: 7,
-          contentHash: 'sha256:geometry'
-        }
-      }
-    );
     expect(result).toMatchObject({
       lineage: {
         organizationId: 'org-1',

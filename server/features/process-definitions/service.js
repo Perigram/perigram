@@ -326,7 +326,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
     const parentContext = await resolveParentCreationContext(action, entities, auth);
     const createdEntity = await service.create(createActionPayload(action, data, entities, parentContext), auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
-    const created = await persistParentCreationContext(entityType, createdEntity, parentContext);
+    const created = assertCreatedParentContext(entityType, createdEntity, parentContext);
     const targetState = action.status?.to;
     if (!targetState) {
       await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
@@ -404,6 +404,12 @@ function createActionPayload(action = {}, data = {}, entities = {}, parentContex
       ...(parentContext?.lineage || {}),
       [lineageKey]: parentId
     };
+    if (parentContext?.provenance) {
+      payload.provenance = {
+        ...(payload.provenance || {}),
+        parent: parentContext.provenance
+      };
+    }
   }
   return normalizeCreationPayload(payload);
 }
@@ -460,7 +466,7 @@ async function resolveParentCreationContext(action = {}, entities = {}, auth = {
   return { relation, parentEntityType, parentId: canonicalParentId, lineage, provenance };
 }
 
-async function persistParentCreationContext(entityType, createdEntity, context = null) {
+function assertCreatedParentContext(entityType, createdEntity, context = null) {
   if (!context) return createdEntity;
   const created = createdEntity?.toJSON ? createdEntity.toJSON() : createdEntity;
   const lineagePatch = Object.fromEntries(Object.entries(context.lineage || {}).filter(([key, value]) => (
@@ -468,26 +474,10 @@ async function persistParentCreationContext(entityType, createdEntity, context =
   )));
   const needsProvenance = Boolean(context.provenance) && !sameEntityRef(created?.provenance?.parent?.source, context.provenance.source);
   if (!Object.keys(lineagePatch).length && !needsProvenance) return createdEntity;
-
-  const definition = (getDomain().entities || []).find(item => normalizeEntityType(item.type) === normalizeEntityType(entityType));
-  const createdId = entityInputId(created);
-  if (!definition?.collection || !createdId) {
-    throw createError({ statusCode: 500, message: `Cannot persist containment context for ${entityType}` });
-  }
-  const set = Object.fromEntries(Object.entries(lineagePatch).map(([key, value]) => [`lineage.${key}`, value]));
-  if (needsProvenance) set['provenance.parent'] = context.provenance;
-  const result = await repository.setEntityFieldsInCollection(definition.collection, createdId, set);
-  if (result.matchedCount !== undefined && result.matchedCount !== 1) {
-    throw createError({ statusCode: 500, message: `Created ${entityType} could not be updated with containment context` });
-  }
-  return {
-    ...created,
-    lineage: { ...(created.lineage || {}), ...lineagePatch },
-    provenance: {
-      ...(created.provenance || {}),
-      ...(needsProvenance ? { parent: context.provenance } : {})
-    }
-  };
+  throw createError({
+    statusCode: 500,
+    message: `Created ${entityType} did not persist declared containment context`
+  });
 }
 
 function entityInputId(value) {
@@ -652,7 +642,7 @@ async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, orga
     auth.role,
     createActionExecutionAuth(auth, action)
   );
-  const created = await persistParentCreationContext('cassette', createdTemplate, parentContext);
+  const created = assertCreatedParentContext('cassette', createdTemplate, parentContext);
   const targetState = action.status?.to;
   if (!targetState) return created;
   const targetId = created?._id || created?.identity?.uid;
@@ -954,9 +944,12 @@ function fieldPathAllowed(path, patterns = []) {
 }
 
 async function persistProcessEntityPatch(entityType, targetId, patch, auth) {
-  const definition = (getDomain().entities || []).find(entity => normalizeEntityType(entity.type) === normalizeEntityType(entityType));
-  if (!definition?.collection) throw createError({ statusCode: 500, message: `Entity collection missing for ${entityType}` });
-  const entity = await repository.findEntityInCollection(definition.collection, targetId);
+  const service = getAppRegistry().getEntityService(entityType);
+  if (!service?.getById || !service?.update) {
+    throw createError({ statusCode: 500, message: `Entity service cannot update ${entityType}` });
+  }
+  const entityResult = await service.getById(targetId, auth.userId, auth.organizationId, auth.role, auth);
+  const entity = entityResult?.toJSON ? entityResult.toJSON() : entityResult;
   if (!entity) throw createError({ statusCode: 404, message: `${entityType} not found` });
   assertEntityAccess({
     entity,
@@ -966,7 +959,15 @@ async function persistProcessEntityPatch(entityType, targetId, patch, auth) {
     action: 'update',
     auth
   });
-  return await repository.updateEntityPatchInCollection(definition.collection, entity._id, patch);
+  return await service.update(targetId, unflattenMutationPatch(patch), auth.userId, auth.organizationId, auth.role, auth);
+}
+
+function unflattenMutationPatch(patch = {}) {
+  const result = {};
+  for (const [path, value] of Object.entries(patch || {})) {
+    setByPath(result, path, value);
+  }
+  return result;
 }
 
 function flattenMutationPatch(source = {}, prefix = '', result = {}) {

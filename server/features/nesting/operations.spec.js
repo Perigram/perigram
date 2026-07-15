@@ -4,6 +4,10 @@ vi.mock('../cassette-designs/service.js', () => ({
   getById: vi.fn()
 }));
 
+vi.mock('../cassettes/service.js', () => ({
+  createDesignFromTemplate: vi.fn()
+}));
+
 vi.mock('../machines/service.js', () => ({
   SYSTEM_DEFAULT_MACHINE_ID: 'machine-system-default',
   getById: vi.fn()
@@ -35,6 +39,7 @@ vi.mock('../../core/machines/service.js', () => ({
 }));
 
 import * as cassetteDesignService from '../cassette-designs/service.js';
+import * as cassetteService from '../cassettes/service.js';
 import * as nestingJobs from './jobs.js';
 import * as nestingRunsService from '../nesting-runs/service.js';
 import * as machinesService from '../machines/service.js';
@@ -557,6 +562,88 @@ describe('nesting operation worker payloads', () => {
       efficiency: 64.07,
       remnantArea: 1.07,
       placedCount: 1
+    });
+  });
+
+  it('re-bakes cassette designs from source parameters when material thickness changes queue parameters', async () => {
+    cassetteDesignService.getById.mockResolvedValue({
+      _id: 'design-source',
+      identity: { name: 'Parametric design' },
+      provenance: {
+        derivedFrom: {
+          source: { type: 'cassette', id: 'template-1' }
+        }
+      },
+      data: {
+        parameters: { A: 700, B: 300, T: 3 },
+        geometry: {
+          data: {
+            polygonParts: [{
+              coordinates: [[0, 0], [100, 0], [100, 50], [0, 50], [0, 0]],
+              handles: ['OLD']
+            }]
+          }
+        }
+      }
+    });
+    cassetteService.createDesignFromTemplate.mockResolvedValue({
+      _id: 'design-rebaked',
+      data: {
+        parameters: { A: 700, B: 300, T: 4 },
+        polygonParts: [{
+          coordinates: [[0, 0], [120, 0], [120, 60], [0, 60], [0, 0]],
+          handles: ['NEW']
+        }],
+        layerData: [{
+          layer: 'dimension.cassette',
+          coordinates: [[0, 0], [120, 0]],
+          handles: ['DIM']
+        }]
+      }
+    });
+
+    const queue = {
+      data: {
+        job: {
+          items: [{
+            type: 'STATIC',
+            entityType: 'cassette_design',
+            id: 'design-source',
+            quantity: 1,
+            parameters: { A: 700, B: 300, T: 4 }
+          }]
+        }
+      }
+    };
+    const auth = makeAuth();
+
+    const jobFiles = await buildJobFiles(queue, auth);
+
+    expect(cassetteService.createDesignFromTemplate).toHaveBeenCalledWith(
+      'template-1',
+      { A: 700, B: 300, T: 4 },
+      'user-1',
+      'org-1',
+      'USER',
+      expect.objectContaining({
+        effectivePermissions: expect.objectContaining({
+          cassette_designs: expect.arrayContaining([
+            expect.objectContaining({ level: 'write', actions: { view: true, create: true } })
+          ])
+        })
+      }),
+      expect.any(Object)
+    );
+    expect(jobFiles[0]).toMatchObject({
+      cassetteId: 'design-rebaked',
+      count: 1,
+      dimensions: { A: 700, B: 300, T: 4 },
+      polygonParts: [{
+        handles: ['NEW']
+      }],
+      layerData: [{
+        handles: ['DIM']
+      }]
     });
   });
 

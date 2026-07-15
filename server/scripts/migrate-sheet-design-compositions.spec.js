@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalComposition, planSheetDesignCollapse } from './migrate-sheet-design-compositions.js';
+import { canonicalComposition, planSheetDesignBackfill } from './migrate-sheet-design-compositions.js';
 
 describe('sheet design composition migration', () => {
   it('normalizes duplicate cassette ids into a sorted multiset', () => {
@@ -13,8 +13,8 @@ describe('sheet design composition migration', () => {
     ]);
   });
 
-  it('collapses equal cassette multisets regardless of geometry', () => {
-    const groups = planSheetDesignCollapse([
+  it('marks equal historical cassette multisets without collapsing designs', () => {
+    const records = planSheetDesignBackfill([
       {
         _id: 'first',
         data: {
@@ -32,25 +32,28 @@ describe('sheet design composition migration', () => {
         }
       }
     ]);
-    expect(groups).toHaveLength(1);
-    expect(groups[0]).toMatchObject({ representativeId: 'first', duplicateIds: ['second'], sheetCount: 2 });
+    expect(records).toHaveLength(2);
+    expect(records.map(record => record.designId)).toEqual(['first', 'second']);
+    expect(records.every(record => record.duplicateComposition)).toBe(true);
+    expect(records.every(record => record.sheetCount === 1)).toBe(true);
   });
 
   it('keeps different counts as different designs', () => {
-    const groups = planSheetDesignCollapse([
+    const records = planSheetDesignBackfill([
       { _id: 'one', data: { cassetteDesigns: [{ cassetteDesignId: 'a', count: 1 }] } },
       { _id: 'two', data: { cassetteDesigns: [{ cassetteDesignId: 'a', count: 2 }] } }
     ]);
-    expect(groups).toHaveLength(2);
+    expect(records).toHaveLength(2);
+    expect(records.every(record => !record.duplicateComposition)).toBe(true);
   });
 
   it('marks missing design ids and non-integer counts invalid instead of collapsing them', () => {
-    const groups = planSheetDesignCollapse([
+    const records = planSheetDesignBackfill([
       { _id: 'missing-id', data: { cassetteDesigns: [{ count: 1 }] } },
       { _id: 'fractional', data: { cassetteDesigns: [{ cassetteDesignId: 'a', count: 1.5 }] } }
     ]);
 
-    expect(groups).toHaveLength(2);
-    expect(groups.every(group => group.invalidReason)).toBe(true);
+    expect(records).toHaveLength(2);
+    expect(records.every(record => record.invalidReason)).toBe(true);
   });
 });

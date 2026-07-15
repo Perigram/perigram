@@ -176,6 +176,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     origin,
     status: origin,
     lineage,
+    provenance: data.provenance || {},
     data: createData({
         type: data.type || 'PARAMETRIC', // PARAMETRIC | STANDARD
         definition: data.definition || data.data || null,
@@ -196,6 +197,7 @@ export async function createDefaultOccsTemplate(data = {}, userId, userOrg, user
   return await create({
     name,
     libraryId: data.libraryId || data.data?.libraryId,
+    provenance: data.provenance || {},
     type: 'PARAMETRIC',
     definition,
     parameters: Object.keys(definition.parameters || {})
