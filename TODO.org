@@ -716,3 +716,13 @@
 
     Validation:
     - Vue SFC parse check for =components/QueueEditor.vue= passed.
+
+*** [2026-07-15] Queue composer action button accessibility repair
+
+    Playwright validation of the primary Add tile found a strict role conflict:
+    both the tile container and its inner button exposed the same accessible
+    =Add Entry= button. The tile remains the visual/click surface, but only the
+    PrimeVue button now owns the accessible button role/name.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
