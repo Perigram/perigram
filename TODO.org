@@ -538,3 +538,33 @@
       generated action visibility passed; Vue SFC parse check for
       =GeneratedRegion.vue=, =QueueEditor.vue=, =GeneratedEntityDetail.vue=,
       and =QueueEntryCard.vue= passed.
+
+*** [2026-07-15] Queue producer append repair after browser failure
+
+    Follow-up browser feedback showed that generated cassette-design actions
+    still did not appear or append in the queue composer for process-scoped
+    users. Root causes:
+    - =GeneratedEntityDetail= only forwarded queue producers from screen/region
+      action ids, while queue composition producers are current user-manifest
+      actions whose =contracts.outputs= exposes =cassette_design=.
+    - =QueueEditor= still hid Add and blocked =addEntry()/saveQueue()= behind
+      raw =queues:write=, so process producer actions could create a design but
+      not add it to the queue.
+    - Queue item panel headers still rendered an embedded relation ref card
+      instead of a simple row identity.
+
+    Corrective implementation:
+    - Queue detail now passes manifest-exposed cassette-design producer actions
+      into =QueueEditor= while keeping normal generated header/action buttons
+      screen-scoped.
+    - Process-mode producer execution sends queue context plus
+      =queueAppend.quantity= to the active process action endpoint. The server
+      appends the produced =cassette_design= through the queue feature's
+      explicit =processUpdate()= boundary with a narrow action-scoped queue
+      write grant, then emits queue invalidation. The browser refreshes queue
+      data instead of calling the generic queue PATCH path.
+    - Existing-design selection remains available only when the user has a real
+      queue write grant; no frontend compatibility fallback for obsolete
+      =outputs= shapes was added.
+    - Queue item headers now render the hydrated cassette-design identity or a
+      typed id chip, not an inline relation card.

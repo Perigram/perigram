@@ -277,14 +277,20 @@ manifest. A queue command such as `solveNesting` must be present on that
 queue-detail screen because it is executed against the queue input; output
 entity grants for `nesting_runs` or `sheet_designs` must not be used to decide
 where the command panel renders.
-Queue composition producers are resolved separately from queue-detail screen
-sources. Existing cassette designs require `cassette_designs:read`; process
-producer actions are accepted only when their current compiled action contract
-exposes a `cassette_design` output through `contracts.outputs`.
+Queue composition producers are resolved from the current user's compiled
+process action manifest rather than from queue-detail screen action ids.
+Existing cassette designs are available only on ordinary queue-write surfaces;
+process-mode producer actions are accepted only when their current compiled
+action contract exposes a `cassette_design` output through `contracts.outputs`.
+When a process producer is executed from a queue detail, the queue id is sent as
+action context and the server appends the produced design through the queue
+feature's `processUpdate()` boundary. The browser does not rely on a generic
+queue PATCH grant for that process-scoped append.
 Queue item rows hydrate their referenced `cassette_design` records through the
 canonical detail endpoint when the collection list did not include a saved
-queue item. The row must render the cassette-design identity/preview from that
-canonical DTO, not a raw id-only fallback.
+queue item. The row header renders the cassette-design identity from that
+canonical DTO when available, and otherwise renders a typed id chip without
+nesting another entity card inside the queue item panel.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page, and generated cassette
 collection/home cards mirror that same editor action in their footers when the
@@ -526,11 +532,11 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `id`, `entityType: "cassette_design"`, nesting `type`, quantity, and
   parameters. Delete actions must use `_key`; nesting payload saves must
   persist `id` and `entityType` without leaking the UI key. Queue relation rows
-  must not fetch a protected cassette-design endpoint when the surrounding
-  queue DTO did not include that related DTO; render the typed id chip instead.
-  Rows that cannot be resolved to a loaded cassette design are rejected before
-  the queue save so the nesting command never receives an unresolvable job
-  item.
+  render the already-hydrated cassette-design identity or a typed id chip in
+  the row header; they must not nest a full relation card/popover inside the
+  queue item panel. Rows that cannot be resolved to a loaded cassette design
+  are rejected before ordinary queue saves so the nesting command never
+  receives an unresolvable job item.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
   lane rendered newest-first as compact queue entity rows, a center lane for nesting settings and wide
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
