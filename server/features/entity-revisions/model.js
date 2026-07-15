@@ -1,4 +1,4 @@
-import { BaseEntity } from '../../core/blocks/index.js';
+import { BaseEntity, createEntityRef } from '../../core/blocks/index.js';
 
 /**
  * Immutable content revision for an entity scope such as cassette geometry.
@@ -9,8 +9,7 @@ export class EntityRevision extends BaseEntity {
 
     this.data = {
       ...this.data,
-      entityType: raw.data?.entityType || '',
-      entityId: raw.data?.entityId || null,
+      source: createEntityRef(raw.data?.source?.type, raw.data?.source?.id),
       scope: raw.data?.scope || '',
       number: Number(raw.data?.number || 0),
       contentHash: raw.data?.contentHash || '',
@@ -21,7 +20,7 @@ export class EntityRevision extends BaseEntity {
   }
 
   get name() {
-    const type = this.data.entityType || 'entity';
+    const type = this.data.source?.type || 'entity';
     const scope = this.data.scope || 'revision';
     return this.identity.name || `${type} ${scope} v${this.data.number}`;
   }

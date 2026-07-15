@@ -44,7 +44,7 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const revisionId = computed(() => props.design.data?.derivedFrom?.revisionId || null);
+const revisionId = computed(() => props.design.provenance?.derivedFrom?.source?.revisionId || null);
 
 const downloadDxf = () => {
   if (!props.design?._id || !import.meta.client) return;

@@ -73,6 +73,7 @@ export const STATUS_MAPPINGS = {
     ERROR: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
     CHOSEN: { label: 'status.chosen', severity: 'success', icon: 'pi pi-star' },
     ACTIVE: { label: 'status.active', severity: 'success', icon: 'pi pi-check-circle' },
+    PENDING: { label: 'status.pending', severity: 'warn', icon: 'pi pi-clock' },
     AVAILABLE: { label: 'status.available', severity: 'success', icon: 'pi pi-box' },
     STOCKED: { label: 'status.stocked', severity: 'success', icon: 'pi pi-database' },
     DEPLETED: { label: 'status.depleted', severity: 'secondary', icon: 'pi pi-inbox' },

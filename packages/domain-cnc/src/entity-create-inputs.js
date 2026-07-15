@@ -6,7 +6,7 @@ export const cncEntityCreateInputs = {
   cassette_design: cncEntityConstruction.cassette_design.inputs,
   cassette_instance: cncEntityConstruction.cassette_instance.inputs,
   geometryCapture: [
-    { id: 'photo', label: 'Source photo', path: 'attachments.primary', type: 'attachment', required: true },
+    { id: 'photo', label: 'Source photo', path: 'relations.sourcePhoto', type: 'entity', entityType: 'artifact', required: true },
     { id: 'prompt', label: 'Extraction prompt', path: 'data.extraction.prompt', type: 'object', required: false }
   ],
   material: [

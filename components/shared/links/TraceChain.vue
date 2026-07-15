@@ -53,9 +53,11 @@ import { useLineage } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities';
 import { ENTITY_UI } from '~/utils/status-engine';
+import { containmentAncestors, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute } from '~/utils/entity-hierarchy.js';
 
 const props = defineProps({
     entity: { type: Object, default: null },
+    entityType: { type: String, default: '' },
     lineage: { type: Object, default: null },
     expandable: { type: Boolean, default: false },
     variant: { type: String, default: 'full' }
@@ -80,20 +82,24 @@ const FALLBACK_LABELS = {
 
 const activeLineage = computed(() => props.lineage || entityLineage.value);
 
-const items = computed(() => {
-    const list = [];
-    const lin = activeLineage.value;
-    if (!lin) return [];
+const items = computed(() => containmentAncestors(
+    { ...(props.entity || {}), lineage: activeLineage.value || {} },
+    props.entityType || props.entity?.entityType || inferEntityType(activeLineage.value || {})
+).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) })));
 
-    if (lin.organizationId) list.push({ type: 'organization', id: lin.organizationId });
-    if (lin.libraryId) list.push({ type: 'library', id: lin.libraryId });
-    if (lin.templateId) list.push({ type: 'cassetteTemplate', id: lin.templateId });
-    if (lin.warehouseId) list.push({ type: 'warehouse', id: lin.warehouseId });
-    if (lin.projectId) list.push({ type: 'project', id: lin.projectId });
-    if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, slug: lin.projectId });
-    
-    return list;
-});
+function inferEntityType(lineage = {}) {
+    const candidates = ['sheetDesignId', 'runId', 'queueId', 'projectId', 'libraryId', 'catalogId', 'pileId'];
+    const key = candidates.find(item => lineage[item]);
+    return ({
+        sheetDesignId: 'sheet',
+        runId: 'sheet_design',
+        queueId: 'nesting_run',
+        projectId: 'queue',
+        libraryId: 'cassette',
+        catalogId: 'color',
+        pileId: 'sheet'
+    })[key] || '';
+}
 
 const findContextEntity = (type, id) => {
     const context = unref(entityContext);
@@ -136,22 +142,26 @@ const entityLabel = (entity) => {
 
 const routeForItem = (item) => {
     if (!item?.type || !item?.id) return null;
+    const resolvedEntity = resolvedEntities.value[labelKey(item)] || null;
     if (authStore.processActive) {
         return detailRouteForEntity({
-            entity: resolvedEntities.value[labelKey(item)] || { _id: item.id },
+            entity: resolvedEntity || { _id: item.id },
             entityType: generatedEntityType(item.type),
             manifest: authStore.screenManifest
         });
     }
+    const projectItem = items.value.find(candidate => normalizeHierarchyType(candidate.type) === 'project');
+    const project = projectItem ? resolvedEntities.value[labelKey(projectItem)] : null;
+    const scopedRoute = projectHierarchyRoute({ type: item.type, id: item.id, entity: resolvedEntity, project });
+    if (scopedRoute) return scopedRoute;
     const config = ENTITY_UI[item.type];
-    return typeof config?.route === 'function' ? config.route(item.id, item.slug) : null;
+    return typeof config?.route === 'function'
+        ? config.route(item.id, project?.identity?.slug || project?.identity?.uid || item.slug)
+        : null;
 };
 
 const generatedEntityType = (type) => {
-    const aliases = {
-        cassetteTemplate: 'cassette'
-    };
-    return aliases[type] || type;
+    return normalizeHierarchyType(type);
 };
 
 // Resolve entity names for all lineage items, using the injected context first.

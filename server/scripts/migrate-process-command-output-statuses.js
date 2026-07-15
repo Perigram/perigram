@@ -50,7 +50,7 @@ function commandOutputStatusMappings(processData = {}) {
       if (!sourceNodeIds.has(String(edge.source))) continue;
       const targetActionId = nodeIdToActionId.get(String(edge.target)) || String(edge.target);
       const targetAction = processData.actions?.[targetActionId];
-      if (targetAction?.actionKind !== 'changeStatus') continue;
+      if (targetAction?.actionKind !== 'updateEntity') continue;
       const entityType = normalizeEntityType(
         targetAction.entityType
         || targetAction.inputs?.find(input => input.entityType)?.entityType

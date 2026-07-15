@@ -60,3 +60,26 @@ export async function archiveActiveByOrganization(organizationId, userId) {
     }
   );
 }
+
+export async function findEntityInCollection(collection, id) {
+  const db = await connectDB();
+  const flexibleId = toFlexibleId(id);
+  return await db.collection(collection).findOne({
+    $or: [{ _id: flexibleId }, { 'identity.uid': String(id) }]
+  });
+}
+
+export async function setEntityFieldsInCollection(collection, id, set = {}) {
+  const db = await connectDB();
+  const result = await db.collection(collection).updateOne(
+    { $or: [{ _id: toFlexibleId(id) }, { 'identity.uid': String(id) }] },
+    { $set: set }
+  );
+  return result;
+}
+
+export async function updateEntityPatchInCollection(collection, id, patch = {}) {
+  const db = await connectDB();
+  await db.collection(collection).updateOne({ _id: toFlexibleId(id) }, { $set: patch });
+  return await db.collection(collection).findOne({ _id: toFlexibleId(id) });
+}

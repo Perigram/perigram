@@ -225,6 +225,10 @@
         }
     }, { immediate: true })
 
+    watch([() => route.fullPath, () => authStore.userIsSet], async ([, isSet]) => {
+        if (isSet) await navStore.fetchRouteHierarchy(route.path, route.query, ssrFetchOptions)
+    }, { immediate: true })
+
     // Fetch projects list once for breadcrumb siblings
     onMounted(async () => {
         if (authStore.userIsSet && globalStore.projectsList.length === 0) {

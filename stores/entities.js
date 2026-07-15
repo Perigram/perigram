@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { onEntityChanged } from '~/utils/entity-events.js';
+import { cncDomain } from '@cutkit/domain-cnc';
+import { containmentAncestors, hierarchyTypeAlias, normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 
 let syncListenerAttached = false;
 
@@ -11,59 +13,12 @@ let syncListenerAttached = false;
  */
 export const useEntityStore = defineStore('entities', () => {
     // Cache structure: { [entityType]: { [id]: data } }
-    const registry = ref({
-        organization: {},
-        project: {},
-        queue: {},
-        sheetDesign: {},
-        cassetteDesign: {},
-        cassetteInstance: {},
-        warehouse: {},
-        catalog: {},
-        requisition: {},
-        batch: {},
-        batchPile: {},
-        sheet: {},
-        remnant: {},
-        cassetteTemplate: {},
-        library: {}
-    });
+    const registry = ref(Object.fromEntries((cncDomain.entities || []).map(entity => [entity.type, {}])));
 
     const loading = ref(false);
     const error = ref(null);
 
     ensureSyncListener();
-
-    /**
-     * Map of how entities relate to their parents (The Ancestry Tree)
-     */
-    const ancestryMap = {
-        cassetteInstance: (data) => [
-            { type: 'cassetteDesign', id: data.cassetteDesignId },
-            { type: 'sheet', id: data.sheetId },
-            { type: 'project', id: data.projectSlug, isSlug: true }
-        ],
-        sheet: (data) => [
-            { type: 'batchPile', id: data.pileId },
-            { type: 'batch', id: data.batchId },
-            { type: 'warehouse', id: data.warehouseId }
-        ],
-        batch: (data) => [
-            { type: 'requisition', id: data.requisitionId }
-        ],
-        batchPile: (data) => [
-            { type: 'batch', id: data.batchId }
-        ],
-        queue: (data) => [
-            { type: 'project', id: data.projectSlug, isSlug: true }
-        ],
-        requisition: (data) => [
-            { type: 'catalog', id: data.catalogId }
-        ],
-        remnant: (data) => [
-            { type: 'sheet', id: data.sheetId }
-        ]
-    };
 
     /**
      * Fetch an entity and store it in the registry.
@@ -75,22 +30,8 @@ export const useEntityStore = defineStore('entities', () => {
 
         loading.value = true;
         try {
-            const endpointMap = {
-                organization: `/api/organizations/${id}`,
-                project: `/api/project/${id}`,
-                queue: `/api/queue/${id}`,
-                warehouse: `/api/warehouses/${id}`,
-                requisition: `/api/requisitions/${id}`,
-                batch: `/api/material-piles/${id}`,
-                cassetteInstance: `/api/cassette-instances/${id}`,
-                cassetteTemplate: `/api/cassettes/${id}`,
-                cassetteDesign: `/api/cassette-designs/${id}`,
-                sheetDesign: `/api/sheet-designs/${id}`,
-                library: `/api/libraries/${id}`,
-                // ... others as endpoints are implemented
-            };
-
-            const url = endpointMap[type] || `/api/${type}/${id}`;
+            const route = entityEndpoint(type)?.routes?.single;
+            const url = route ? route.replace(':id', encodeURIComponent(id)) : `/api/${normalizeHierarchyType(type)}/${encodeURIComponent(id)}`;
             const data = await $fetch(url);
             
             registry.value[type][id] = data;
@@ -110,8 +51,12 @@ export const useEntityStore = defineStore('entities', () => {
      * Resolves the chain of parent references for an entity.
      */
     function getAncestry(type, data) {
-        if (!ancestryMap[type]) return [];
-        return ancestryMap[type](data).filter(ref => ref.id);
+        return containmentAncestors(data, type).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) }));
+    }
+
+    function entityEndpoint(type = '') {
+        const normalized = normalizeHierarchyType(type);
+        return (cncDomain.ui?.endpoints || []).find(endpoint => normalizeHierarchyType(endpoint.type) === normalized);
     }
 
     function ensureSyncListener() {

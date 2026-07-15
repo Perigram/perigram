@@ -30,7 +30,7 @@ export function resolveGeneratedEntityActions({
 }
 
 export function isGeneratedSurfaceAction(action = {}) {
-  return action?.actionKind !== 'changeStatus';
+  return ['createEntity', 'updateEntity', 'runCommand', 'sendToOrganization'].includes(action?.actionKind);
 }
 
 export function parentBoundCreateAppliesToEntityType(action = {}, entityType = '') {

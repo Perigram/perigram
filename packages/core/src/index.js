@@ -409,6 +409,50 @@ export class Lineage {
   }
 }
 
+export function normalizeEntityRef(value = null) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (!value.type || !value.id) return null;
+  const ref = {
+    type: String(value.type),
+    id: value.id.toString()
+  };
+  if (value.revisionId) ref.revisionId = value.revisionId.toString();
+  return ref;
+}
+
+export class Relations {
+  constructor(raw = {}) {
+    for (const [key, value] of Object.entries(raw || {})) {
+      if (Array.isArray(value)) {
+        const refs = value.map(normalizeEntityRef).filter(Boolean);
+        if (refs.length) this[key] = refs;
+        continue;
+      }
+      const ref = normalizeEntityRef(value);
+      if (ref) this[key] = ref;
+    }
+  }
+
+  toJSON() {
+    return Object.fromEntries(Object.entries(this));
+  }
+}
+
+export class Provenance {
+  constructor(raw = {}) {
+    for (const [key, value] of Object.entries(raw || {})) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+      const source = normalizeEntityRef(value.source);
+      if (!source) continue;
+      this[key] = { ...value, source };
+    }
+  }
+
+  toJSON() {
+    return Object.fromEntries(Object.entries(this));
+  }
+}
+
 export class Specs {
   constructor(raw = {}) {
     this.sheetThickness = Number(raw.sheetThickness || 0);
@@ -440,6 +484,8 @@ export class BaseEntity {
       raw.identity?.reference || ''
     );
     this.lineage = new Lineage(raw.lineage || {});
+    this.relations = new Relations(raw.relations || {});
+    this.provenance = new Provenance(raw.provenance || {});
     this.origin = raw.origin?.state ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp, raw.origin.lifecycle) : null;
     this.status = raw.status?.state ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp, raw.status.lifecycle) : null;
     this.specs = raw.specs ? new Specs(raw.specs) : null;
@@ -468,6 +514,8 @@ export class BaseEntity {
       _id: this._id,
       identity: this.identity.toJSON(),
       lineage: this.lineage.toJSON(),
+      relations: this.relations.toJSON(),
+      provenance: this.provenance.toJSON(),
       origin: this.origin?.toJSON() || null,
       status: this.status?.toJSON() || null,
       specs: this.specs?.toJSON() || null,
@@ -478,9 +526,15 @@ export class BaseEntity {
   }
 }
 
-export function createEntityRef(type, id) {
+export function createEntityRef(type, id, revisionId = null) {
   if (!type || !id) throw new Error('EntityRef requires type and id');
-  return { type, id: id.toString() };
+  return normalizeEntityRef({ type, id, revisionId });
+}
+
+export function createProvenance(source, facts = {}) {
+  const normalizedSource = normalizeEntityRef(source);
+  if (!normalizedSource) throw new Error('Provenance requires a canonical source EntityRef');
+  return { ...facts, source: normalizedSource };
 }
 
 export function createAttachmentRef({ entityId, kind, name = '', metadata = {} } = {}) {

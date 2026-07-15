@@ -94,7 +94,10 @@ function normalizeSources(sources = [], screen = {}, template = 'entityList') {
       mode,
       required: source.required || screen.required || null,
       identifier: mode === 'single' ? (source.identifier || defaultSingleIdentifier({ ...screen, entityType })) : null,
-      filters: mode === 'list' && source.filters && typeof source.filters === 'object' ? source.filters : {}
+      filters: mode === 'list' && source.filters && typeof source.filters === 'object' ? source.filters : {},
+      rootLineageKeys: mode === 'list' && Array.isArray(source.rootLineageKeys)
+        ? [...new Set(source.rootLineageKeys.filter(Boolean).map(String))]
+        : []
     };
   });
 }

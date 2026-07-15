@@ -31,7 +31,7 @@ describe('artifact operations', () => {
     createMock.mockResolvedValue({
       _id: 'artifact-1',
       data: { type: 'LAYOUT_DXF' },
-      status: { state: 'READY' }
+      attachments: { primary: { fileId: 'file-1' } }
     });
 
     const result = await generateAttachment({
@@ -53,14 +53,13 @@ describe('artifact operations', () => {
     expect(generateAndStoreDxfMock).toHaveBeenCalledWith('sheet-1', 'user-1', 'org-1', 'member', expect.any(Object));
     expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
       type: 'LAYOUT_DXF',
-      status: 'READY',
       fileId: 'file-1',
       mimeType: 'application/dxf'
-    }), 'user-1');
+    }), 'user-1', 'org-1', 'member', expect.any(Object));
     expect(result.data).toEqual({
       attachmentId: 'artifact-1',
       kind: 'LAYOUT_DXF',
-      status: 'READY'
+      completed: true
     });
   });
 
@@ -69,7 +68,7 @@ describe('artifact operations', () => {
     createMock.mockResolvedValue({
       _id: 'artifact-2',
       data: { type: 'LAYOUT_DXF' },
-      status: { state: 'READY' }
+      attachments: { primary: { fileId: 'file-2' } }
     });
 
     await generateAttachment({
@@ -92,6 +91,6 @@ describe('artifact operations', () => {
     expect(generateAndStoreDxfMock).toHaveBeenCalledWith('sheet-2', 'user-2', 'org-2', 'member', expect.any(Object));
     expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
       lineage: expect.objectContaining({ sheetDesignId: 'sheet-2' })
-    }), 'user-2');
+    }), 'user-2', 'org-2', 'member', expect.any(Object));
   });
 });

@@ -83,6 +83,11 @@ function appendRelationValue(refs, rawValue, fallbackEntityType = null) {
   }
 
   if (typeof rawValue === 'object') {
+    const ref = normalizeRelationRef(rawValue, fallbackEntityType);
+    if (ref) {
+      refs.push(ref);
+      return;
+    }
     for (const [key, value] of Object.entries(rawValue)) {
       if (!Array.isArray(value) || !value.length) continue;
       appendRelationValue(refs, value, OBJECT_LIST_KEY_TYPES[key] || fallbackEntityType);
@@ -102,6 +107,15 @@ function normalizeRelationRef(value, fallbackEntityType = null) {
   const id = value.id || value.entityId || value._id || value.value;
   const entityType = normalizeEntityType(value.entityType || value.type || fallbackEntityType);
   if (!id || !entityType) return null;
+
+  if (value.revisionId) {
+    return {
+      entityType: 'entityRevision',
+      id: String(value.revisionId),
+      source: { entityType, id: String(id) },
+      entity: null
+    };
+  }
 
   return {
     entityType,

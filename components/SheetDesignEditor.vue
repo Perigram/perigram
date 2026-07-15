@@ -2,9 +2,10 @@
   <div class="flex min-h-0 flex-col gap-3">
     <ActionToolbar>
       <template #actions>
-        <Tag :value="$t('sheetDesign.snapSize', { size: snapSize })" severity="secondary" size="small" />
+        <Tag :value="`${$t('toolProfile.kerf')}: ${toolKerf} mm`" severity="secondary" size="small" />
         <Button icon="pi pi-plus" size="small" :disabled="!editable" :aria-label="$t('sheetDesign.addCassette')" v-tooltip.top="$t('sheetDesign.addCassette')" @click="openAddDialog" />
         <Button icon="pi pi-upload" severity="secondary" text rounded size="small" :disabled="!editable" :aria-label="$t('common.upload')" v-tooltip.top="$t('common.upload')" @click="uploadVisible = true" />
+        <Button icon="pi pi-refresh" severity="secondary" text rounded size="small" :disabled="!editable || selectedIndex < 0" :aria-label="$t('common.rotate')" v-tooltip.top="$t('common.rotate')" @click="rotateSelected" />
         <Button icon="pi pi-trash" severity="danger" text rounded size="small" :disabled="!editable || selectedIndex < 0" :aria-label="$t('common.delete')" v-tooltip.top="$t('common.delete')" @click="removeSelected" />
         <Button icon="pi pi-save" size="small" :loading="saving" :disabled="!editable || saving" :aria-label="$t('common.save')" v-tooltip.top="$t('common.save')" @click="save" />
       </template>
@@ -137,7 +138,9 @@ import { DEFAULT_DRAWING_PEN, applyLayerPens } from '~/utils/drawingPreview.js';
 import {
   cassetteDesignSheetItem,
   clampSheetPlacement,
+  magneticSheetPlacement,
   placementWithTranslation,
+  rotateSheetPlacementQuarterTurn,
   sheetItemPoints,
   sheetLayoutState,
   sheetPlacementSource,
@@ -171,16 +174,12 @@ const selectedCassetteDesignId = ref('');
 
 const sheetWidth = computed(() => Math.max(Number(props.design.specs?.width) || 1220, 1));
 const sheetHeight = computed(() => Math.max(Number(props.design.specs?.length) || 2440, 1));
-const selectedToolProfileId = computed(() => props.design.data?.nestingParams?.toolProfileId || '');
+const selectedToolProfileId = computed(() => props.design.data?.toolSnapshot?.source?.id || '');
 const selectedTool = computed(() => tools.value.find(tool => String(tool._id) === String(selectedToolProfileId.value)) || null);
-const snapSize = computed(() => Math.max(Number(
-  selectedTool.value?.data?.diameter ||
-  selectedTool.value?.data?.kerf ||
-  props.design.data?.nestingParams?.spacing ||
-  props.design.data?.nestingParams?.space ||
-  props.design.data?.geometry?.data?.params?.space ||
-  5
-) || 5, 0.1));
+const toolKerf = computed(() => Math.max(Number(
+  props.design.data?.toolSnapshot?.kerf ?? selectedTool.value?.data?.kerf ?? 0
+) || 0, 0));
+const boundaryOffset = computed(() => Math.max(Number(props.design.data?.machineSnapshot?.boundaryOffset || 0), 0));
 const editorPadding = computed(() => Math.max(sheetWidth.value, sheetHeight.value) * 0.025);
 const editorViewBox = computed(() => [
   -editorPadding.value,
@@ -190,7 +189,8 @@ const editorViewBox = computed(() => [
 ].join(' '));
 const majorGridSize = computed(() => {
   const target = Math.max(sheetWidth.value, sheetHeight.value) / 28;
-  return snapSize.value * Math.max(1, Math.ceil(target / snapSize.value));
+  const scale = 10 ** Math.floor(Math.log10(Math.max(target, 1)));
+  return Math.ceil(target / scale) * scale;
 });
 const gridPatternId = computed(() => `sheet-layout-grid-${String(props.design._id || 'sheet').replace(/[^A-Za-z0-9_-]/g, '-')}`);
 const layerCodes = computed(() => Array.from(new Set([
@@ -323,15 +323,18 @@ function dragPlacement(event) {
   const pointer = sheetPoint(event);
   const placement = placedItems.value[drag.index];
   const source = sheetPlacementSource(items.value, placement);
-  const bounded = clampSheetPlacement({
+  const bounded = magneticSheetPlacement({
+    items: items.value,
+    placements: placedItems.value,
+    index: drag.index,
     x: pointer.x - drag.dx,
     y: pointer.y - drag.dy,
-    item: source,
-    rotation: placement.transformation?.rotation ?? placement.rotation ?? 0,
     sheetWidth: sheetWidth.value,
     sheetHeight: sheetHeight.value,
-    snap: snapSize.value
+    boundaryOffset: boundaryOffset.value,
+    clearance: toolKerf.value
   });
+  if (!bounded) return;
   const { x, y } = bounded;
   placedItems.value[drag.index] = placementWithTranslation(placedItems.value[drag.index], x, y);
 }
@@ -350,6 +353,20 @@ function removeSelected() {
   removePlacement(selectedIndex.value);
 }
 
+function rotateSelected() {
+  if (!props.editable || selectedIndex.value < 0) return;
+  const rotated = rotateSheetPlacementQuarterTurn({
+    items: items.value,
+    placements: placedItems.value,
+    index: selectedIndex.value,
+    sheetWidth: sheetWidth.value,
+    sheetHeight: sheetHeight.value,
+    boundaryOffset: boundaryOffset.value,
+    clearance: toolKerf.value
+  });
+  if (rotated) placedItems.value[selectedIndex.value] = rotated;
+}
+
 async function openAddDialog() {
   addVisible.value = true;
   if (!cassetteDesigns.value.length) {
@@ -364,12 +381,12 @@ function addCassetteDesign(design) {
   if (!item) return;
   items.value.push(item);
   const start = clampSheetPlacement({
-    x: snapSize.value,
-    y: snapSize.value,
+    x: boundaryOffset.value,
+    y: boundaryOffset.value,
     item,
     sheetWidth: sheetWidth.value,
     sheetHeight: sheetHeight.value,
-    snap: snapSize.value
+    boundaryOffset: boundaryOffset.value
   });
   placedItems.value.push({
     item_id: id,

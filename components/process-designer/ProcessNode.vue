@@ -60,6 +60,12 @@ const accent = computed(() => ({
     title: 'text-teal-700',
     handle: '!border-teal-500 !bg-teal-500'
   },
+  blockCompose: {
+    stripe: 'bg-lime-500',
+    icon: 'text-lime-600',
+    title: 'text-lime-700',
+    handle: '!border-lime-500 !bg-lime-500'
+  },
   stringOp: {
     stripe: 'bg-emerald-500',
     icon: 'text-emerald-600',

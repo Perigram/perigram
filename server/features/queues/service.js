@@ -4,6 +4,7 @@ import * as materialPilesService from '../material-piles/service.js';
 import * as remnantsService from '../remnants/service.js';
 import * as cassetteInstancesService from '../cassette-instances/service.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
+import * as sheetsService from '../sheets/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { getPrimaryState, inheritLineage } from '~/server/core/blocks/index.js';
@@ -14,6 +15,7 @@ import { generateRandomString } from '../../utils/strings.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
+import { SYSTEM_DEFAULT_MACHINE_ID } from '../machines/service.js';
 
 /**
  * Queues Service - v24 Absolute Final
@@ -21,9 +23,10 @@ import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-r
 
 const DEFAULT_NESTING_SETTINGS = Object.freeze({
   materialMode: 'VIRTUAL',
+  machineId: SYSTEM_DEFAULT_MACHINE_ID,
   virtualWidth: 3000,
   virtualLength: 1500,
-  spacing: 5,
+  virtualThickness: null,
   warehouseId: null,
   inventoryItems: [],
   toolProfileId: null,
@@ -36,7 +39,7 @@ export function normalizeQueueNestingSettings(input = {}, previous = {}) {
     ...(previous || {}),
     ...(input || {})
   };
-  const materialMode = ['WAREHOUSE', 'INVENTORY'].includes(merged.materialMode) ? 'WAREHOUSE' : 'VIRTUAL';
+  const materialMode = merged.materialMode === 'WAREHOUSE' ? 'WAREHOUSE' : 'VIRTUAL';
   const inventoryItems = Array.from(new Set(
     (Array.isArray(merged.inventoryItems) ? merged.inventoryItems : [])
       .map(item => item?.toString?.() || item)
@@ -50,18 +53,19 @@ export function normalizeQueueNestingSettings(input = {}, previous = {}) {
 
   return {
     materialMode,
-    virtualWidth: positiveNumber(merged.virtualWidth ?? merged.width, DEFAULT_NESTING_SETTINGS.virtualWidth),
-    virtualLength: positiveNumber(merged.virtualLength ?? merged.height, DEFAULT_NESTING_SETTINGS.virtualLength),
-    spacing: nonNegativeNumber(merged.spacing ?? merged.space, DEFAULT_NESTING_SETTINGS.spacing),
+    machineId: merged.machineId?.toString?.() || merged.machineId || DEFAULT_NESTING_SETTINGS.machineId,
+    virtualWidth: positiveNumber(merged.virtualWidth, DEFAULT_NESTING_SETTINGS.virtualWidth),
+    virtualLength: positiveNumber(merged.virtualLength, DEFAULT_NESTING_SETTINGS.virtualLength),
+    virtualThickness: optionalPositiveNumber(merged.virtualThickness),
     warehouseId: merged.warehouseId?.toString?.() || merged.warehouseId || null,
     inventoryItems,
-    toolProfileId: merged.toolProfileId?.toString?.() || merged.toolId?.toString?.() || merged.toolProfileId || merged.toolId || null,
+    toolProfileId: merged.toolProfileId?.toString?.() || merged.toolProfileId || null,
     requestedArtifacts
   };
 }
 
 export function getQueueNestingSettings(queue = {}) {
-  return normalizeQueueNestingSettings(queue.data?.nestingSettings || queue.data?.nestingParams || {});
+  return normalizeQueueNestingSettings(queue.data?.nestingSettings || {});
 }
 
 export function buildNestingCommandParameters(queue = {}, overrides = {}) {
@@ -72,9 +76,10 @@ export function buildNestingCommandParameters(queue = {}, overrides = {}) {
 
   return {
     materialMode: settings.materialMode,
+    machineId: settings.machineId,
     virtualWidth: settings.virtualWidth,
     virtualLength: settings.virtualLength,
-    spacing: settings.spacing,
+    virtualThickness: settings.virtualThickness,
     inventoryItems: settings.inventoryItems,
     materialPool,
     toolProfileId: settings.toolProfileId
@@ -91,19 +96,30 @@ export function normalizeQueueJob(job = {}) {
 }
 
 export function normalizeQueueJobItems(items = []) {
-  return (Array.isArray(items) ? items : [])
-    .map(normalizeQueueJobItem)
-    .filter(item => item.id && item.entityType);
+  if (!Array.isArray(items)) {
+    throw createError({ statusCode: 400, message: 'Queue job items must be an array' });
+  }
+  return items.map(normalizeQueueJobItem);
 }
 
 function normalizeQueueJobItem(item = {}) {
   const id = item.id || '';
   const entityType = item.entityType || '';
+  if (!id || !entityType) {
+    throw createError({ statusCode: 400, message: 'Queue items require id and entityType' });
+  }
+  if (entityType !== 'cassette_design') {
+    throw createError({ statusCode: 400, message: 'Queue items must reference cassette_design entities' });
+  }
+  const quantity = Number(item.quantity ?? item.count ?? 1);
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw createError({ statusCode: 400, message: 'Queue item quantity must be a positive integer' });
+  }
   return {
     ...item,
     id,
     entityType,
-    quantity: Number(item.quantity || item.count || 1),
+    quantity,
     parameters: item.parameters || item.dimensions || {}
   };
 }
@@ -126,13 +142,19 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     identity: { uid, name: name || `Queue #${queueNumber}` },
     lineage,
     data: {
-      job: normalizeQueueJob(job || { items: [], materialPool: [] }),
-      nestingSettings: normalizeQueueNestingSettings(data.nestingSettings || data.nestingParams || {}),
+      job: bindQueueMaterialThickness(
+        normalizeQueueJob(job || { items: [], materialPool: [] }),
+        normalizeQueueNestingSettings(data.nestingSettings || {}).virtualThickness
+      ),
+      nestingSettings: normalizeQueueNestingSettings(data.nestingSettings || {}),
       queueNumber
     }
   });
+  queue.data.job = bindQueueMaterialThickness(queue.data.job, materialThicknessForQueue(queue.data));
 
-  queue.applyStatus('DRAFT', userId, { note: 'Initial queue creation' });
+  const initialStatus = await statusService.initialStatusForOrganization('queue', userOrg, userId, { note: 'Initial queue creation' });
+  queue.origin = initialStatus;
+  queue.status = initialStatus;
 
   const createdRaw = await repository.create(queue);
 
@@ -235,23 +257,18 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   }
 
   const dataUpdates = { ...(updates.data || {}) };
-  if (dataUpdates.nestingParams && !dataUpdates.nestingSettings) {
-    dataUpdates.nestingSettings = dataUpdates.nestingParams;
-  }
   delete dataUpdates.nestingParams;
-
   // Update data block
   queue.data = { ...queue.data, ...dataUpdates };
   
   // Handle root level updates that should go to job/params
   if (updates.job) queue.data.job = normalizeQueueJob(updates.job);
-  const nestingSettingsUpdate = updates.nestingSettings || updates.nestingParams;
+  const nestingSettingsUpdate = updates.nestingSettings;
   if (nestingSettingsUpdate) {
-    queue.data.nestingSettings = normalizeQueueNestingSettings(nestingSettingsUpdate, queue.data.nestingSettings || queue.data.nestingParams);
-  } else if (!queue.data.nestingSettings && queue.data.nestingParams) {
-    queue.data.nestingSettings = normalizeQueueNestingSettings(queue.data.nestingParams);
+    queue.data.nestingSettings = normalizeQueueNestingSettings(nestingSettingsUpdate, queue.data.nestingSettings);
   }
   delete queue.data.nestingParams;
+  queue.data.job = bindQueueMaterialThickness(queue.data.job, materialThicknessForQueue(queue.data));
 
   await repository.updateById(uid, queue);
   const updatedRaw = await repository.findById(uid);
@@ -282,22 +299,18 @@ export async function preflightChosenRunProduction(queueId, chosenRun, userId, u
     if (existingRunId === chosenRun._id?.toString()) return { alreadyProduced: true };
     throw createError({ statusCode: 400, message: 'Queue already has chosen production output' });
   }
-  if (getPrimaryState(chosenRun?.status) !== 'COMPLETE') {
-    throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
+  await statusService.assertIntentAvailable(
+    'queue',
+    queueId,
+    'completeNestingProduction',
+    createTransitionAuth('SYSTEM', 'SYSTEM')
+  );
+  const materialPlan = await planMaterialConsumption(queue, chosenRun);
+  const runSheets = await sheetsService.listForRunOutput(queue._id, chosenRun._id, chosenRun.data?.sheetIds || []);
+  if (runSheets.length !== materialPlan.requiredSheets) {
+    throw createError({ statusCode: 409, message: 'Chosen run sheet twins do not match its required sheet count' });
   }
-  if (!['NESTING', 'READY'].includes(getPrimaryState(queue.status, 'DRAFT'))) {
-    throw createError({ statusCode: 400, message: 'Queue must be awaiting a completed nesting run before choosing production run' });
-  }
-
-  await planMaterialConsumption(queue, chosenRun);
   return { alreadyProduced: false };
-}
-
-export async function ensureReadyForCompletedRun(queueId, chosenRun) {
-  const raw = await repository.findById(queueId);
-  if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
-  const queue = new Queue(raw);
-  return queue.toJSON();
 }
 
 export async function applyChosenRunProduction(queueId, chosenRun, userId, userOrg, userRole, userPermissions) {
@@ -322,13 +335,11 @@ export async function applyChosenRunProduction(queueId, chosenRun, userId, userO
     physicalOutputs
   };
   await repository.updateById(queueId, queue);
-  if (getPrimaryState(queue.status, 'DRAFT') !== 'READY') {
-    await statusService.applyIntent('queue', queueId, 'completeNestingProduction', createTransitionAuth('SYSTEM', 'SYSTEM'), {
-      note: 'Production run chosen',
-      runId: chosenRun._id?.toString?.() || chosenRun._id,
-      chosenBy: userId
-    });
-  }
+  await statusService.applyIntent('queue', queueId, 'completeNestingProduction', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+    note: 'Production run chosen',
+    runId: chosenRun._id?.toString?.() || chosenRun._id,
+    chosenBy: userId
+  });
 
   return await getById(queueId);
 }
@@ -347,9 +358,31 @@ function positiveNumber(value, fallback) {
   return Number.isFinite(number) && number > 0 ? number : fallback;
 }
 
-function nonNegativeNumber(value, fallback) {
+function optionalPositiveNumber(value) {
   const number = Number(value);
-  return Number.isFinite(number) && number >= 0 ? number : fallback;
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function materialThicknessForQueue(data = {}) {
+  if (data.nestingSettings?.materialMode !== 'WAREHOUSE') {
+    return optionalPositiveNumber(data.nestingSettings?.virtualThickness);
+  }
+  const source = data.job?.materialPool?.[0] || {};
+  return optionalPositiveNumber(source.dimensions?.thickness ?? source.specsData?.thickness ?? source.thickness);
+}
+
+export function bindQueueMaterialThickness(job = {}, thickness = null) {
+  const materialThickness = optionalPositiveNumber(thickness);
+  return {
+    ...(job || {}),
+    items: (job?.items || []).map(item => {
+      if (item.type !== 'PARAMETRIC') return item;
+      const parameters = { ...(item.parameters || {}) };
+      delete parameters.T;
+      if (materialThickness) parameters.T = materialThickness;
+      return { ...item, parameters };
+    })
+  };
 }
 
 function queuePreview(queue = {}) {
@@ -382,7 +415,7 @@ function queuePreview(queue = {}) {
     ...preview,
     name: preview.identity.name,
     queueNumber: preview.data.queueNumber,
-    state: getPrimaryState(queue.status, 'DRAFT'),
+    state: getPrimaryState(queue.status, ''),
     jobItemCount: preview.summary.jobItemCount,
     totalQuantity: preview.summary.totalQuantity,
     runCount: preview.summary.runCount,
@@ -459,6 +492,10 @@ async function planPileStockConsumption(materialPool, requiredSheets) {
 
 async function createPhysicalOutputsForCut(queue, chosenRun, materialConsumption, userId, userOrg, userRole, userPermissions) {
   const runSheetDesigns = await sheetDesignsForRun(queue, chosenRun, userId, userOrg, userRole, userPermissions);
+  const runSheets = await sheetsService.listForRunOutput(queue._id, chosenRun._id, chosenRun.data?.sheetIds || []);
+  if (runSheets.length !== materialConsumption.requiredSheets) {
+    throw createError({ statusCode: 409, message: 'Chosen run sheet twins do not match its required sheet count' });
+  }
   const sheetIds = [];
   const sourceSheets = [];
   const remnantIds = [];
@@ -467,14 +504,10 @@ async function createPhysicalOutputsForCut(queue, chosenRun, materialConsumption
 
   for (const source of materialConsumption.sources) {
     for (let index = 0; index < source.count; index += 1) {
-      const sheetDesign = runSheetDesigns[sheetIndex] || null;
-      const sheet = createCutSheetDescriptor(source.id, {
-        queue,
-        run: chosenRun,
-        source,
-        index: sheetIndex,
-        sheetDesign
-      });
+      const sheet = await sheetsService.bindMaterialSource(runSheets[sheetIndex]._id, source);
+      const sheetDesignId = sheet.lineage?.sheetDesignId?.toString?.() || sheet.lineage?.sheetDesignId;
+      const sheetDesign = runSheetDesigns.find(design => design._id?.toString() === sheetDesignId) || null;
+      sheetIds.push(sheet._id.toString());
       sourceSheets.push({
         id: sheet._id,
         materialSource: sheet.data?.materialSource,
@@ -510,50 +543,6 @@ async function createPhysicalOutputsForCut(queue, chosenRun, materialConsumption
     sourceSheets,
     remnantIds,
     cassetteInstanceIds
-  };
-}
-
-function createCutSheetDescriptor(pileId, { queue, run, source = {}, index = 0, sheetDesign = null } = {}) {
-  const sourceDimensions = source.dimensions || source.specsData || {};
-  const width = Number(sheetDesign?.specs?.width || sourceDimensions.width || source.width || 0);
-  const length = Number(sheetDesign?.specs?.length || sourceDimensions.length || sourceDimensions.height || source.height || 0);
-  const warehouseId = source.warehouseId || source.lineage?.warehouseId || source.materialSource?.warehouseId || null;
-  const specs = {
-    ...(source.specsData || {}),
-    ...(sourceDimensions || {}),
-    width,
-    length,
-    area: width && length ? (width * length) / 1000000 : undefined
-  };
-  const uid = `cut-source-${run?._id || 'run'}-${index + 1}`;
-  return {
-    _id: uid,
-    identity: {
-      uid,
-      serial: `CUT-S${index + 1}`,
-      name: `Cut source sheet ${index + 1}`
-    },
-    lineage: {
-      ...(queue?.lineage || {}),
-      pileId,
-      warehouseId: warehouseId ? toFlexibleId(warehouseId) : null,
-      queueId: queue?._id,
-      runId: run?._id
-    },
-    specs,
-    data: {
-      virtualSource: true,
-      source: 'QUEUE_CUT_SOURCE',
-      specs,
-      materialSource: {
-        type: 'PILE',
-        id: pileId,
-        label: source.label || pileId
-      },
-      queueId: queue?._id?.toString?.() || queue?._id,
-      runId: run?._id?.toString?.() || run?._id,
-      sheetDesignId: sheetDesign?._id?.toString?.() || sheetDesign?._id || null
-    }
   };
 }
 
@@ -716,20 +705,6 @@ function polygonArea(points = []) {
     area += current[0] * next[1] - next[0] * current[1];
   }
   return Math.abs(area) / 2;
-}
-
-export async function resetToDraft(queueId, userId, userOrg, userRole, userPermissions) {
-  const raw = await repository.findById(queueId);
-  if (!raw) throw createError({ statusCode: 404, message: 'Queue not found' });
-  const queue = new Queue(raw);
-  
-  if (!hasLineagePermission(userPermissions, queue, 'queues', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  await statusService.transition('queue', queueId, 'DRAFT', userId, createTransitionAuth(userId, userRole, userPermissions), { note: 'Reset to DRAFT' });
-  
-  return await getById(queueId);
 }
 
 export async function getArtifacts(queueId, userId, userOrg, userRole, userPermissions, runId) {

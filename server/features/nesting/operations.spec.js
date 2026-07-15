@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../cassettes/service.js', () => ({
-  getById: vi.fn()
-}));
-
 vi.mock('../cassette-designs/service.js', () => ({
   getById: vi.fn()
 }));
 
-vi.mock('../parametric-cassettes/service.js', () => ({
-  bakeTemplateInstance: vi.fn()
+vi.mock('../machines/service.js', () => ({
+  SYSTEM_DEFAULT_MACHINE_ID: 'machine-system-default',
+  getById: vi.fn()
+}));
+
+vi.mock('../tool-profiles/service.js', () => ({
+  getById: vi.fn()
 }));
 
 vi.mock('./jobs.js', () => ({
@@ -33,20 +34,22 @@ vi.mock('../../core/machines/service.js', () => ({
   }
 }));
 
-import * as cassetteService from '../cassettes/service.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
 import * as nestingJobs from './jobs.js';
 import * as nestingRunsService from '../nesting-runs/service.js';
+import * as machinesService from '../machines/service.js';
+import * as toolProfilesService from '../tool-profiles/service.js';
 import { createTaskRun } from '../../core/tasks/service.js';
 import { statusService } from '../../core/machines/service.js';
-import { bakeTemplateInstance } from '../parametric-cassettes/service.js';
 import { cncCommands } from '../../../packages/domain-cnc/src/commands.js';
 import { cncWorkflows } from '../../../packages/domain-cnc/src/workflows.js';
-import { buildJobFiles, buildNestingWorkerRequest, enrichNestingResult, resolveNestingContext, resolveNestingMaterialPool, resolveNestingParams, solveNesting, summarizeNestingResult } from './operations.js';
+import { buildJobFiles, buildNestingWorkerRequest, enrichNestingResult, insetSheetPolygon, resolveNestingExecution, resolveNestingMaterialPool, solveNesting, summarizeNestingResult } from './operations.js';
 
 describe('nesting operation worker payloads', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    machinesService.getById.mockResolvedValue(makeMachine());
+    toolProfilesService.getById.mockResolvedValue(makeTool());
   });
 
   it('builds FastAPI nesting input from cassette polygon parts', () => {
@@ -59,7 +62,7 @@ describe('nesting operation worker payloads', () => {
           handles: ['100']
         }]
       }
-    ], { width: 1220, height: 2440, spacing: 7 });
+    ], makeExecutionSettings({ width: 1220, length: 2440, kerf: 7 }));
 
     expect(request).toMatchObject({
       params: { width: 1220, height: 2440, space: 7, sheetCount: 1000 },
@@ -73,62 +76,78 @@ describe('nesting operation worker payloads', () => {
     expect(request.items[0].coords).toEqual([[0, 0], [100, 0], [100, 50], [0, 50], [0, 0]]);
   });
 
-  it('uses selected warehouse material pool as nesting sheet size and count', () => {
-    const context = resolveNestingContext({
+  it('resolves selected machine, tool, and warehouse material before creating worker params', async () => {
+    const execution = await resolveNestingExecution({
+      machineId: 'machine-1',
+      toolProfileId: 'tool-1',
       materialMode: 'WAREHOUSE',
       materialPool: [
         {
           type: 'PILE',
           id: 'pile-1',
-          dimensions: { width: 3000, length: 1500 },
+          dimensions: { width: 3000, length: 1500, thickness: 2 },
           available: 4
         },
         {
           type: 'SHEET',
           id: 'sheet-1',
-          specs: '3000x1500',
+          dimensions: { width: 3000, length: 1500, thickness: 2 },
           available: 1
         }
       ]
-    });
+    }, makeAuth());
 
-    expect(context).toMatchObject({
-      width: 3000,
-      height: 1500,
-      sheetCount: 5,
-      materialMode: 'WAREHOUSE'
+    expect(execution).toMatchObject({
+      machineSnapshot: { source: { type: 'machine', id: 'machine-1' } },
+      toolSnapshot: { source: { type: 'tool_profile', id: 'tool-1' }, kerf: 7 },
+      materialSnapshot: { mode: 'WAREHOUSE', width: 3000, length: 1500, thickness: 2, sheetCount: 5 }
     });
-    expect(resolveNestingParams(context)).toEqual({
+    expect(execution.params).toEqual({
       width: 3000,
       height: 1500,
-      space: 5,
+      space: 7,
       sheetCount: 5,
-      sheet_polygon: null
+      sheet_polygon: {
+        outer: [[0, 0], [3000, 0], [3000, 1500], [0, 1500], [0, 0]],
+        inner: []
+      }
     });
   });
 
-  it('uses selected remnant geometry as the nesting sheet polygon with holes', () => {
+  it('uses selected remnant geometry as the nesting sheet polygon with holes', async () => {
     const polygon = [[0, 0], [1200, 0], [1200, 800], [700, 800], [700, 1200], [0, 1200]];
     const hole = [[200, 200], [400, 200], [400, 400], [200, 400]];
-    const context = resolveNestingContext({
+    const execution = await resolveNestingExecution({
+      machineId: 'machine-1',
+      toolProfileId: 'tool-1',
       materialMode: 'WAREHOUSE',
       materialPool: [{
         type: 'REMNANT',
         id: 'remnant-1',
-        dimensions: { width: 1200, length: 1200 },
+        dimensions: { width: 1200, length: 1200, thickness: 1 },
         available: 1,
         geometryData: {
           polygon: { outer: polygon, inner: [hole] }
         }
       }]
-    });
+    }, makeAuth());
 
     const expected = {
       outer: [...polygon, [0, 0]],
       inner: [[...hole, [200, 200]]]
     };
-    expect(context.sheet_polygon).toEqual(expected);
-    expect(resolveNestingParams(context).sheet_polygon).toEqual(expected);
+    expect(execution.materialSnapshot.physicalSheetPolygon).toEqual(expected);
+    expect(execution.params.sheet_polygon).toEqual(expected);
+  });
+
+  it('applies the machine boundary offset to both the outside edge and holes', async () => {
+    const result = await insetSheetPolygon({
+      outer: [[100, 100], [0, 100], [0, 0], [100, 0], [100, 100]],
+      inner: [[[40, 40], [40, 60], [60, 60], [60, 40], [40, 40]]]
+    }, 10);
+
+    expect(result.outer).toEqual([[10, 10], [90, 10], [90, 90], [10, 90], [10, 10]]);
+    expect(result.inner).toEqual([[[30, 30], [30, 70], [70, 70], [70, 30], [30, 30]]]);
   });
 
   it('declares warehouse material pool as a solveNesting command input', () => {
@@ -138,9 +157,13 @@ describe('nesting operation worker payloads', () => {
     expect(materialMode.options).toContain('WAREHOUSE');
     expect(fields).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: 'materialPool', type: 'array' }),
+      expect.objectContaining({ name: 'machineId', type: 'entityId' }),
+      expect.objectContaining({ name: 'toolProfileId', type: 'entityId' }),
       expect.objectContaining({ name: 'virtualWidth', type: 'number' }),
-      expect.objectContaining({ name: 'virtualLength', type: 'number' })
+      expect.objectContaining({ name: 'virtualLength', type: 'number' }),
+      expect.objectContaining({ name: 'virtualThickness', type: 'number' })
     ]));
+    expect(fields.some(field => field.name === 'spacing')).toBe(false);
   });
 
   it('uses saved queue material pool when command payload omits normalized stock', () => {
@@ -216,23 +239,27 @@ describe('nesting operation worker payloads', () => {
     ]);
   });
 
-  it('rejects mixed-size warehouse stock for a single nesting run', () => {
-    expect(() => resolveNestingParams({
+  it('rejects mixed-size or mixed-thickness warehouse stock for a single nesting run', async () => {
+    await expect(resolveNestingExecution({
+      machineId: 'machine-1',
+      toolProfileId: 'tool-1',
       materialMode: 'WAREHOUSE',
       materialPool: [
-        { type: 'PILE', id: 'pile-1', dimensions: { width: 3000, length: 1500 }, available: 4 },
-        { type: 'PILE', id: 'pile-2', dimensions: { width: 2440, length: 1220 }, available: 2 }
+        { type: 'PILE', id: 'pile-1', dimensions: { width: 3000, length: 1500, thickness: 1 }, available: 4 },
+        { type: 'PILE', id: 'pile-2', dimensions: { width: 3000, length: 1500, thickness: 2 }, available: 2 }
       ]
-    })).toThrow(/one sheet size/);
+    }, makeAuth())).rejects.toThrow(/one sheet size and thickness/);
   });
 
-  it('rejects warehouse mode when selected stock has no sheet dimensions', () => {
-    expect(() => resolveNestingParams({
+  it('rejects warehouse mode when selected stock has no sheet dimensions', async () => {
+    await expect(resolveNestingExecution({
+      machineId: 'machine-1',
+      toolProfileId: 'tool-1',
       materialMode: 'WAREHOUSE',
       materialPool: [
         { type: 'REMNANT', id: 'remnant-1', label: 'Unknown remnant', available: 1 }
       ]
-    })).toThrow(/sheet dimensions/);
+    }, makeAuth())).rejects.toThrow(/width, length, and thickness/);
   });
 
   it('skips degenerate polygon parts before worker payload creation', () => {
@@ -251,7 +278,7 @@ describe('nesting operation worker payloads', () => {
           }
         ]
       }
-    ]);
+    ], makeExecutionSettings());
 
     expect(request.items).toHaveLength(1);
     expect(request.items[0]).toMatchObject({ id: 0, handles: ['ok'] });
@@ -260,7 +287,7 @@ describe('nesting operation worker payloads', () => {
   it('falls back to a rectangle when polygon parts are absent', () => {
     const request = buildNestingWorkerRequest([
       { cassetteId: 'cassette-2', count: 1, dimensions: { width: 300, height: 200 } }
-    ]);
+    ], makeExecutionSettings());
 
     expect(request.items[0].coords).toEqual([[0, 0], [300, 0], [300, 200], [0, 200], [0, 0]]);
   });
@@ -283,7 +310,7 @@ describe('nesting operation worker payloads', () => {
           }
         ]
       }
-    ]);
+    ], makeExecutionSettings());
 
     expect(request.items).toHaveLength(2);
     expect(request.items.map(item => item.id)).toEqual([0, 1]);
@@ -291,34 +318,13 @@ describe('nesting operation worker payloads', () => {
     expect(request.items.map(item => item.handles)).toEqual([['wp_1:C1'], ['wp_2:C1']]);
   });
 
-  it('bakes parametric cassette entries with queue parameters before worker payload creation', async () => {
-    cassetteService.getById.mockResolvedValue({
-      _id: 'template-1',
-      data: { type: 'PARAMETRIC', parameters: ['A', 'B'] }
-    });
-    bakeTemplateInstance.mockResolvedValue({
-      _id: 'baked-1',
-      data: {
-        dimensions: { A: 420, B: 260 },
-        polygonParts: [{
-          coordinates: [[0, 0, 0], [420, 0, 0], [420, 260, 0], [0, 260, 0], [0, 0, 0]],
-          handles: ['FACE']
-        }],
-        layerData: [
-          {
-            layer: 'fold.route',
-            coordinates: [[0, 0], [420, 0]],
-            handles: ['F1']
-          }
-        ]
-      }
-    });
-
+  it('rejects legacy template queue rows instead of baking through a runtime fallback', async () => {
     const queue = {
       data: {
         job: {
           items: [{
             type: 'PARAMETRIC',
+            entityType: 'cassette',
             id: 'template-1',
             quantity: 3,
             parameters: { A: 420, B: 260 }
@@ -326,115 +332,10 @@ describe('nesting operation worker payloads', () => {
         }
       }
     };
-    const auth = { userId: 'user-1', organizationId: 'org-1', role: 'USER', memberships: [] };
 
-    const jobFiles = await buildJobFiles(queue, auth);
-    const request = buildNestingWorkerRequest(jobFiles, { width: 1220, height: 2440, spacing: 5 });
-
-    expect(cassetteService.getById).toHaveBeenCalledWith('template-1', 'user-1', 'org-1', 'USER', auth);
-    expect(bakeTemplateInstance).toHaveBeenCalledWith(expect.anything(), { A: 420, B: 260 }, 'user-1');
-    expect(jobFiles).toEqual([{
-      cassetteId: 'baked-1',
-      count: 3,
-      dimensions: { A: 420, B: 260 },
-      polygonParts: [{
-        coordinates: [[0, 0, 0], [420, 0, 0], [420, 260, 0], [0, 260, 0], [0, 0, 0]],
-        handles: ['FACE']
-      }],
-      layerData: [
-        {
-          layer: 'fold.route',
-          coordinates: [[0, 0], [420, 0]],
-          handles: ['F1']
-        }
-      ]
-    }]);
-    expect(request.items[0]).toMatchObject({
-      cassette_id: 'baked-1',
-      count: 3,
-      handles: ['FACE'],
-      sourceLayers: [
-        {
-          layer: 'fold.route',
-          coordinates: [[0, 0], [420, 0]],
-          handles: ['F1']
-        }
-      ]
-    });
-    expect(request.items[0].coords).toEqual([[0, 0], [420, 0], [420, 260], [0, 260], [0, 0]]);
-  });
-
-  it('bakes fetched parametric templates even when queue item type is stale', async () => {
-    cassetteDesignService.getById.mockRejectedValue(new Error('not a design'));
-    cassetteService.getById.mockResolvedValue({
-      _id: 'template-2',
-      data: {
-        type: 'PARAMETRIC',
-        parameters: ['A', 'B'],
-        definition: {
-          occs: '0.4-draft',
-          documentType: 'template'
-        }
-      }
-    });
-    bakeTemplateInstance.mockResolvedValue({
-      _id: 'baked-2',
-      data: {
-        dimensions: { A: 700, B: 300 },
-        polygonParts: [{
-          coordinates: [[0, 0, 0], [700, 0, 0], [700, 300, 0], [0, 300, 0], [0, 0, 0]],
-          handles: ['wp_1:C1'],
-          workpieceId: 'wp_1'
-        }],
-        layerData: [
-          {
-            layer: 'fold.route',
-            workpieceId: 'wp_1',
-            coordinates: [[0, 0], [700, 0]],
-            handles: ['wp_1:F1']
-          },
-          {
-            layer: 'fold.route',
-            workpieceId: 'wp_2',
-            coordinates: [[0, 0], [300, 0]],
-            handles: ['wp_2:F1']
-          }
-        ]
-      }
-    });
-
-    const queue = {
-      data: {
-        job: {
-          items: [{
-            type: 'STATIC',
-            id: 'template-2',
-            quantity: 1,
-            parameters: { A: 700, B: 300 }
-          }]
-        }
-      }
-    };
-    const auth = { userId: 'user-1', organizationId: 'org-1', role: 'USER', memberships: [] };
-
-    const jobFiles = await buildJobFiles(queue, auth);
-    const request = buildNestingWorkerRequest(jobFiles);
-
-    expect(bakeTemplateInstance).toHaveBeenCalledWith(expect.anything(), { A: 700, B: 300 }, 'user-1');
-    expect(request.items).toHaveLength(1);
-    expect(request.items[0]).toMatchObject({
-      cassette_id: 'baked-2',
-      handles: ['wp_1:C1'],
-      sourceLayers: [
-        {
-          layer: 'fold.route',
-          workpieceId: 'wp_1',
-          coordinates: [[0, 0], [700, 0]],
-          handles: ['wp_1:F1']
-        }
-      ]
-    });
-    expect(request.items[0].coords).toEqual([[0, 0], [700, 0], [700, 300], [0, 300], [0, 0]]);
+    await expect(buildJobFiles(queue, makeAuth()))
+      .rejects.toThrow(/must reference a cassette_design/);
+    expect(cassetteDesignService.getById).not.toHaveBeenCalled();
   });
 
   it('uses uploaded static cassette design geometry directly', async () => {
@@ -462,6 +363,7 @@ describe('nesting operation worker payloads', () => {
         job: {
           items: [{
             type: 'STATIC',
+            entityType: 'cassette_design',
             id: 'design-1',
             quantity: 2,
             parameters: {}
@@ -472,10 +374,9 @@ describe('nesting operation worker payloads', () => {
     const auth = { userId: 'user-1', organizationId: 'org-1', role: 'USER', memberships: [] };
 
     const jobFiles = await buildJobFiles(queue, auth);
-    const request = buildNestingWorkerRequest(jobFiles);
+    const request = buildNestingWorkerRequest(jobFiles, makeExecutionSettings());
 
     expect(cassetteDesignService.getById).toHaveBeenCalledWith('design-1', 'user-1', 'USER', auth);
-    expect(cassetteService.getById).not.toHaveBeenCalledWith('design-1', expect.anything(), expect.anything(), expect.anything(), expect.anything());
     expect(request.items).toHaveLength(1);
     expect(request.items[0]).toMatchObject({
       cassette_id: 'design-1',
@@ -513,7 +414,7 @@ describe('nesting operation worker payloads', () => {
           { layer: 'fold.route', coordinates: [[0, 0], [100, 0]] }
         ]
       }
-    ], { width: 300, height: 200 });
+    ], makeExecutionSettings({ width: 300, length: 200 }));
     const result = enrichNestingResult({
       name: 'nesting_job',
       solution: {
@@ -550,7 +451,7 @@ describe('nesting operation worker payloads', () => {
           coordinates: [[0, 0], [20, 0], [20, 20], [0, 20], [0, 0]]
         }]
       }
-    ], { width: 100, height: 100, sheet_polygon: sheetPolygon });
+    ], makeExecutionSettings({ width: 100, length: 100, usableSheetPolygon: sheetPolygon }));
     const result = enrichNestingResult({
       solution: {
         layouts: [
@@ -579,7 +480,7 @@ describe('nesting operation worker payloads', () => {
           { layer: 'fold.route', coordinates: [[0, 25], [100, 25]] }
         ]
       }
-    ]);
+    ], makeExecutionSettings());
     const result = enrichNestingResult({
       items: [{ id: 0, handles: [], sourceLayers: [], shape: { type: 'simple_polygon', data: [] } }],
       solution: {
@@ -699,12 +600,69 @@ function makeQueue() {
       job: {
         items: [{
           type: 'STATIC',
+          entityType: 'cassette_design',
           id: 'design-1',
           quantity: 2,
           parameters: {}
         }]
       },
-      nestingSettings: {}
+      nestingSettings: {
+        machineId: 'machine-1',
+        toolProfileId: 'tool-1',
+        materialMode: 'VIRTUAL',
+        virtualWidth: 1220,
+        virtualLength: 1000,
+        virtualThickness: 1
+      }
+    }
+  };
+}
+
+function makeMachine() {
+  return {
+    _id: 'machine-1',
+    data: {
+      workingArea: { width: 3000, length: 1500 },
+      boundaryOffset: 0
+    }
+  };
+}
+
+function makeTool() {
+  return {
+    _id: 'tool-1',
+    data: { diameter: 6, angle: 0, kerf: 7 }
+  };
+}
+
+function makeExecutionSettings({
+  width = 1220,
+  length = 1000,
+  thickness = 1,
+  kerf = 5,
+  sheetCount = 1000,
+  usableSheetPolygon = null
+} = {}) {
+  return {
+    machineSnapshot: {
+      source: { type: 'machine', id: 'machine-1' },
+      workingArea: { width: 3000, length: 1500 },
+      boundaryOffset: 0
+    },
+    toolSnapshot: {
+      source: { type: 'tool_profile', id: 'tool-1' },
+      kerf
+    },
+    materialSnapshot: {
+      mode: 'VIRTUAL',
+      width,
+      length,
+      thickness,
+      sheetCount,
+      usableSheetPolygon: usableSheetPolygon || {
+        outer: [[0, 0], [width, 0], [width, length], [0, length], [0, 0]],
+        inner: []
+      }
     }
   };
 }

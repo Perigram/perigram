@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, beforeAll, vi } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoClient, ObjectId } from 'mongodb';
 
 const { mockedConnectDB } = vi.hoisted(() => ({
@@ -30,7 +30,7 @@ describe('status service lifecycle payloads', () => {
   let db;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);
@@ -97,6 +97,49 @@ describe('status service lifecycle payloads', () => {
     expect(denied.actions).toEqual([]);
   });
 
+  it('preflights a named intent without mutating status', async () => {
+    await db.collection('queues').insertOne({
+      _id: 'queue-intent-preflight',
+      identity: { uid: 'queue-intent-preflight', name: 'Queue' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} }
+    });
+
+    await expect(statusService.assertIntentAvailable(
+      'queue',
+      'queue-intent-preflight',
+      'completeNestingProduction',
+      { userId: 'SYSTEM', role: 'SYSTEM', system: true }
+    )).resolves.toMatchObject({ from: 'DRAFT', to: 'READY' });
+
+    const queue = await db.collection('queues').findOne({ _id: 'queue-intent-preflight' });
+    expect(queue.status.state).toBe('DRAFT');
+    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-intent-preflight' })).toBe(0);
+  });
+
+  it('commits an intent transition and entity patch through one transition boundary', async () => {
+    await db.collection('queues').insertOne({
+      _id: 'queue-intent-patch',
+      identity: { uid: 'queue-intent-patch', name: 'Queue' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} },
+      data: { marker: 'before' }
+    });
+
+    await statusService.transitionWithResult({
+      entityType: 'queue',
+      targetId: 'queue-intent-patch',
+      intent: 'completeNestingProduction',
+      auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
+      patch: { data: { marker: 'after' } }
+    });
+
+    const queue = await db.collection('queues').findOne({ _id: 'queue-intent-patch' });
+    expect(queue.status.state.primary).toBe('READY');
+    expect(queue.data.marker).toBe('after');
+    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-intent-patch' })).toBe(1);
+  });
+
   it('returns archive as a queue menu action from every queue lifecycle state', async () => {
     const states = ['DRAFT', 'NESTING', 'READY', 'CLOSED'];
 
@@ -143,7 +186,7 @@ describe('status service lifecycle payloads', () => {
         actions: [{
           actionId: 'move_old',
           label: 'Move project OLD',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'project',
           status: { from: 'NEWS', to: 'OLD' }
         }]
@@ -181,7 +224,7 @@ describe('status service lifecycle payloads', () => {
         actions: [{
           actionId: 'mark_cut',
           label: 'Mark cut',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'project',
           status: { to: 'CUT' }
         }]

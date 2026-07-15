@@ -1,12 +1,14 @@
 import { createError } from 'h3';
 import standardSlugify from 'standard-slugify';
 import { ObjectId } from 'mongodb';
+import { normalizeEntityRef } from '~/packages/core/src/index.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
+import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import * as entityEventService from '~/server/features/entity-events/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeEntityType } from '~/server/runtime/entities.js';
@@ -82,14 +84,14 @@ export async function update(id, payload = {}, auth) {
 export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
   assertCanonicalProcessSource(process.data);
-  return validateProcessDefinition(process.data, getDomain());
+  return validateActivatableProcess(process.data, getDomain());
 }
 
 export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
   assertCanonicalProcessSource(process.data);
   await preserveActiveAssignments(process);
-  const validation = validateProcessDefinition(process.data, getDomain());
+  const validation = validateActivatableProcess(process.data, getDomain());
   if (!validation.ok) {
     throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
   }
@@ -129,7 +131,7 @@ export async function createActiveFromTemplate({ organizationId, userId, templat
     userId
   }));
 
-  const validation = validateProcessDefinition(process.data, getDomain());
+  const validation = validateActivatableProcess(process.data, getDomain());
   if (!validation.ok) {
     throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
   }
@@ -150,6 +152,24 @@ export async function createActiveFromTemplate({ organizationId, userId, templat
   });
 
   return new ProcessDefinition(created).toJSON();
+}
+
+function validateActivatableProcess(data = {}, domain = {}) {
+  const validation = validateProcessDefinition(data, domain);
+  const process = validation.definition || normalizeProcessDefinition(data);
+  const exposesNesting = Object.values(process.actions || {}).some(action => (
+    action.actionKind === 'runCommand' && action.commandId === 'solveNesting'
+  )) || Object.values(process.services || {}).some(service => service.commandId === 'solveNesting');
+  if (!exposesNesting) return validation;
+
+  const profiledTypes = new Set(Object.values(process.entityProfiles || {}).map(profile => profile.entityType));
+  const missing = ['nesting_run', 'sheet_design', 'sheet'].filter(entityType => !profiledTypes.has(entityType));
+  if (!missing.length) return validation;
+  const errors = [
+    ...(validation.errors || []),
+    `Nesting exposure requires entity profiles and workflows for: ${missing.join(', ')}`
+  ];
+  return { ...validation, ok: false, errors };
 }
 
 export async function assignUserToActiveProcess({ userId, roleIds = [], bindings = {}, status = 'active' } = {}, auth = {}) {
@@ -265,22 +285,6 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     return result;
   }
 
-  if (action.actionKind === 'changeStatus') {
-    const targetId = entityId || entities?.entity || entities?.[action.entityType];
-    if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
-    const targetState = action.status?.to || action.access?.statusTo;
-    if (!targetState) throw createError({ statusCode: 400, message: `Action ${actionId} has no target status` });
-    const result = await statusService.transitionWithResult({
-      entityType: resolveActionEntityType(action),
-      targetId,
-      targetState,
-      auth,
-      context: processTransitionContext(action, data, process.data)
-    });
-    await publishStatusResultEvents(auth, resolveActionEntityType(action), targetId, result, 'process-status-action');
-    return result;
-  }
-
   if (action.actionKind === 'sendToOrganization') {
     return await projectEntityThroughSocket({
       socketId: action.socketId || action.projection?.socketId || action.targetSocketId,
@@ -296,6 +300,20 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
       return created;
     }
+    if (entityType === 'cassette_design' && action.construction?.mode === 'importCassetteDesignFromArtifact') {
+      const imported = await cassetteService.importFromArtifact(
+        data.artifactId,
+        data.name,
+        auth.userId,
+        organizationId,
+        auth.role,
+        createActionExecutionAuth(auth, action),
+        data.layerMapping || null,
+        data.parameters || null
+      );
+      await publishActionEntityEvent(auth, entityType, imported.design, 'created', 'process-create');
+      return imported.design;
+    }
     if (entityType === 'cassette' && action.construction?.mode === 'createDefaultOccsTemplate') {
       const created = await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth, process.data, entities);
       await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
@@ -306,7 +324,9 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     }
     const service = getEntityServiceForAction(action);
     if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
-    const created = await service.create(createActionPayload(action, data, entities), auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
+    const parentContext = await resolveParentCreationContext(action, entities, auth);
+    const createdEntity = await service.create(createActionPayload(action, data, entities, parentContext), auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
+    const created = await persistParentCreationContext(entityType, createdEntity, parentContext);
     const targetState = action.status?.to;
     if (!targetState) {
       await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
@@ -337,29 +357,150 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   if (action.actionKind === 'updateEntity') {
     const targetId = entityId || entities?.entity || entities?.[action.entityType];
     if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
-    const service = getEntityServiceForAction(action);
-    if (!service.update) throw createError({ statusCode: 500, message: `Entity service cannot update ${resolveActionEntityType(action)}` });
-    const updated = await service.update(targetId, pickMutationData(data, action), auth.userId, organizationId, auth.role, auth);
-    await publishActionEntityEvent(auth, resolveActionEntityType(action), updated || { _id: targetId }, 'updated', 'process-update');
+    const entityType = resolveActionEntityType(action);
+    const executionAuth = createActionExecutionAuth(auth, action);
+    const mutation = await normalizeProcessMutation(entityType, pickMutationData(data, action, entities), action, executionAuth);
+    const targetState = action.status?.to || action.access?.statusTo || '';
+    if (targetState) {
+      const result = await statusService.transitionWithResult({
+        entityType,
+        targetId,
+        targetState,
+        auth: executionAuth,
+        context: processTransitionContext(action, data, process.data),
+        patch: flattenMutationPatch(mutation)
+      });
+      await publishStatusResultEvents(auth, entityType, targetId, result, 'process-entity-update');
+      return result;
+    }
+    if (!Object.keys(mutation).length) throw createError({ statusCode: 400, message: `Action ${actionId} has no connected mutation inputs` });
+    const updated = await persistProcessEntityPatch(
+      entityType,
+      targetId,
+      flattenMutationPatch(mutation),
+      executionAuth
+    );
+    await publishActionEntityEvent(auth, entityType, updated || { _id: targetId }, 'updated', 'process-update');
     return updated;
   }
 
   throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
 }
 
-function createActionPayload(action = {}, data = {}, entities = {}) {
+function createActionPayload(action = {}, data = {}, entities = {}, parentContext = null) {
   const payload = { ...(data || {}) };
   if (action.parentEntityType) {
-    const parentId = entities?.[action.parentEntityType];
+    const parentId = parentContext?.parentId || entityInputId(entities?.[action.parentEntityType]);
     if (!parentId) {
       throw createError({
         statusCode: 400,
         message: `${action.parentEntityType} parent is required`
       });
     }
-    payload[`${camelCase(action.parentEntityType)}Id`] ||= parentId;
+    const lineageKey = parentContext?.relation?.lineageKey || `${camelCase(action.parentEntityType)}Id`;
+    payload[lineageKey] = parentId;
+    payload.lineage = {
+      ...(payload.lineage || {}),
+      ...(parentContext?.lineage || {}),
+      [lineageKey]: parentId
+    };
   }
   return normalizeCreationPayload(payload);
+}
+
+async function resolveParentCreationContext(action = {}, entities = {}, auth = {}) {
+  const parentEntityType = normalizeEntityType(action.parentEntityType || '');
+  if (!parentEntityType) return null;
+  const childEntityType = resolveActionEntityType(action);
+  const relation = (getDomain().containment || []).find(item => (
+    normalizeEntityType(item.parentType) === parentEntityType
+    && normalizeEntityType(item.childType) === childEntityType
+    && item.lineageKey
+  ));
+  if (!relation) {
+    throw createError({ statusCode: 400, message: `${parentEntityType} is not a declared containment parent of ${childEntityType}` });
+  }
+  const parentId = entityInputId(entities?.[parentEntityType]);
+  if (!parentId) throw createError({ statusCode: 400, message: `${parentEntityType} parent is required` });
+
+  const parentService = getAppRegistry().getEntityService(parentEntityType);
+  const parentResult = await parentService?.getById?.(parentId, auth.userId, auth.organizationId, auth.role, createActionExecutionAuth(auth, action));
+  const parent = parentResult?.toJSON ? parentResult.toJSON() : parentResult;
+  if (!parent) throw createError({ statusCode: 404, message: `${parentEntityType} parent not found` });
+  const parentDefinition = (getDomain().entities || []).find(item => normalizeEntityType(item.type) === parentEntityType);
+  assertEntityAccess({
+    entity: parent,
+    entityType: parentEntityType,
+    feature: resolveEntityFeature(parentDefinition?.type || parentEntityType),
+    level: 'read',
+    action: 'view',
+    auth: createActionExecutionAuth(auth, action)
+  });
+
+  const canonicalParentId = entityInputId(parent) || parentId;
+  const lineage = {
+    ...(parent.lineage || {}),
+    [relation.lineageKey]: parent._id || parent.identity?.uid || canonicalParentId
+  };
+  let provenance = null;
+  if (action.parentRevision?.enabled === true) {
+    const scope = action.parentRevision.scope || getDomain().revisions?.[parentEntityType]?.defaultScope;
+    if (!scope) throw createError({ statusCode: 400, message: `${parentEntityType} revision scope is required` });
+    const revision = await entityRevisionsService.getCurrentForEntity(parentEntityType, canonicalParentId, scope);
+    if (!revision) {
+      throw createError({ statusCode: 409, message: `${parentEntityType} has no current ${scope} revision to pin` });
+    }
+    provenance = {
+      source: normalizeEntityRef({ type: parentEntityType, id: canonicalParentId, revisionId: revision._id }),
+      scope,
+      revisionNumber: revision.data?.number || null,
+      contentHash: revision.data?.contentHash || ''
+    };
+  }
+  return { relation, parentEntityType, parentId: canonicalParentId, lineage, provenance };
+}
+
+async function persistParentCreationContext(entityType, createdEntity, context = null) {
+  if (!context) return createdEntity;
+  const created = createdEntity?.toJSON ? createdEntity.toJSON() : createdEntity;
+  const lineagePatch = Object.fromEntries(Object.entries(context.lineage || {}).filter(([key, value]) => (
+    String(created?.lineage?.[key] ?? '') !== String(value ?? '')
+  )));
+  const needsProvenance = Boolean(context.provenance) && !sameEntityRef(created?.provenance?.parent?.source, context.provenance.source);
+  if (!Object.keys(lineagePatch).length && !needsProvenance) return createdEntity;
+
+  const definition = (getDomain().entities || []).find(item => normalizeEntityType(item.type) === normalizeEntityType(entityType));
+  const createdId = entityInputId(created);
+  if (!definition?.collection || !createdId) {
+    throw createError({ statusCode: 500, message: `Cannot persist containment context for ${entityType}` });
+  }
+  const set = Object.fromEntries(Object.entries(lineagePatch).map(([key, value]) => [`lineage.${key}`, value]));
+  if (needsProvenance) set['provenance.parent'] = context.provenance;
+  const result = await repository.setEntityFieldsInCollection(definition.collection, createdId, set);
+  if (result.matchedCount !== undefined && result.matchedCount !== 1) {
+    throw createError({ statusCode: 500, message: `Created ${entityType} could not be updated with containment context` });
+  }
+  return {
+    ...created,
+    lineage: { ...(created.lineage || {}), ...lineagePatch },
+    provenance: {
+      ...(created.provenance || {}),
+      ...(needsProvenance ? { parent: context.provenance } : {})
+    }
+  };
+}
+
+function entityInputId(value) {
+  if (!value) return null;
+  if (typeof value !== 'object') return value;
+  return value.id || value._id || value.identity?.uid || null;
+}
+
+function sameEntityRef(left, right) {
+  return Boolean(left && right)
+    && normalizeEntityType(left.type) === normalizeEntityType(right.type)
+    && String(left.id) === String(right.id)
+    && String(left.revisionId || '') === String(right.revisionId || '');
 }
 
 function normalizeCreationPayload(payload = {}) {
@@ -461,7 +602,7 @@ function commandOutputStatusMap(actionId, processData = {}) {
     if (!sourceNodeIds.has(String(edge.source))) continue;
     const targetActionId = actionIdByNodeId.get(String(edge.target)) || String(edge.target);
     const targetAction = targetActionId ? processData.actions?.[targetActionId] : null;
-    if (targetAction?.actionKind !== 'changeStatus') continue;
+    if (targetAction?.actionKind !== 'updateEntity' || !(targetAction.status?.to || targetAction.access?.statusTo)) continue;
     const entityType = normalizeEntityType(
       targetAction.entityType
       || targetAction.inputs?.find(input => input.entityType)?.entityType
@@ -474,7 +615,7 @@ function commandOutputStatusMap(actionId, processData = {}) {
 }
 
 async function executeBakeCassetteDesign(action = {}, data = {}, organizationId, auth = {}, processData = {}, entities = {}) {
-  const templateId = data.templateId || data.cassetteId || data.data?.derivedFrom?.templateId
+  const templateId = data.templateId || data.cassetteId || data.provenance?.derivedFrom?.source?.id
     || entities.cassette
     || await defaultCassetteTemplateId(auth, organizationId, action);
   if (!templateId) throw createError({ statusCode: 400, message: 'Cassette template is required' });
@@ -503,13 +644,15 @@ async function executeBakeCassetteDesign(action = {}, data = {}, organizationId,
 }
 
 async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, organizationId, auth = {}, processData = {}, entities = {}) {
-  const created = await cassetteService.createDefaultOccsTemplate(
-    createActionPayload(action, data, entities),
+  const parentContext = await resolveParentCreationContext(action, entities, auth);
+  const createdTemplate = await cassetteService.createDefaultOccsTemplate(
+    createActionPayload(action, data, entities, parentContext),
     auth.userId,
     organizationId,
     auth.role,
     createActionExecutionAuth(auth, action)
   );
+  const created = await persistParentCreationContext('cassette', createdTemplate, parentContext);
   const targetState = action.status?.to;
   if (!targetState) return created;
   const targetId = created?._id || created?.identity?.uid;
@@ -670,7 +813,6 @@ function commandExecutionGrants(action = {}) {
 function executionActionsForAction(action = {}) {
   if (action.actionKind === 'runCommand') return { run: true };
   if (action.actionKind === 'updateEntity') return { update: true, edit: true };
-  if (action.actionKind === 'changeStatus') return { update: true };
   return { create: true };
 }
 
@@ -684,15 +826,21 @@ function appendExecutionGrant(permissions, feature, grant) {
 
 function constructionSourceGrants(action = {}) {
   const sources = [];
+  if (action.parentEntityType) {
+    sources.push({ entityType: action.parentEntityType, level: 'read', actions: { view: true } });
+  }
   if (action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-    sources.push({ entityType: 'cassette', level: 'write', actions: { view: true, update: true } });
+    sources.push({ entityType: 'cassette', level: 'read', actions: { view: true } });
+  }
+  if (action.construction?.mode === 'importCassetteDesignFromArtifact') {
+    sources.push({ entityType: 'artifact', level: 'read', actions: { view: true } });
   }
   for (const field of [
     ...(action.construction?.inputs || []),
     ...(action.inputPolicy?.fields || []),
     ...(action.inputs || [])
   ]) {
-    if (field?.type === 'entity' && field.entityType) {
+    if (field?.entityType && (field.type === 'entity' || field.kind === 'entity' || field.relationKey || field.id === 'parent')) {
       sources.push({ entityType: field.entityType, level: field.access?.level || 'read', actions: { view: true } });
     }
   }
@@ -714,22 +862,123 @@ function resolveEntityFeature(entityType = '') {
   entityType = normalizeEntityType(entityType);
   const domain = getDomain();
   const entity = (domain?.entities || []).find(item => item.type === entityType);
-  if (entity?.collection) return entity.collection;
   const fieldPolicy = getEntityFieldAccessPolicy(entityType) || domain?.fieldAccess?.[entityType];
   if (fieldPolicy?.feature) return fieldPolicy.feature;
+  if (entity?.feature) return entity.feature;
+  if (entity?.collection) return entity.collection;
   return entityType;
 }
 
-function pickMutationData(data = {}, action = {}) {
+function pickMutationData(data = {}, action = {}, entities = {}) {
   const fields = action.mutation?.fields || [];
-  if (!fields.length) return data || {};
+  if (!fields.length) return {};
   const picked = {};
   for (const field of fields) {
-    const value = getByPath(data, field);
+    const relationKey = field.startsWith('relations.') ? field.slice('relations.'.length) : '';
+    const value = getByPath(data, field)
+      ?? (relationKey ? (entities[`relation:${relationKey}`] ?? entities[relationKey]) : undefined);
     if (value !== undefined) setByPath(picked, field, value);
   }
-  if (picked.identity?.name && !picked.name) picked.name = picked.identity.name;
   return picked;
+}
+
+async function normalizeProcessMutation(entityType, mutation = {}, action = {}, auth = {}) {
+  const policy = getEntityFieldAccessPolicy(entityType) || getDomain().fieldAccess?.[entityType];
+  const writable = action.access?.level === 'admin'
+    ? [...(policy?.write || []), ...(policy?.admin || [])]
+    : [...(policy?.write || [])];
+  const fields = action.mutation?.fields || [];
+  for (const field of fields) {
+    if (!fieldPathAllowed(field, writable)) {
+      throw createError({ statusCode: 400, message: `Action cannot update protected field ${field}` });
+    }
+  }
+
+  if (!mutation.relations) return mutation;
+  const normalizedRelations = {};
+  for (const [key, value] of Object.entries(mutation.relations)) {
+    const relation = (getDomain().relations || []).find(item => item.ownerType === entityType && item.key === key);
+    const input = (action.inputs || []).find(item => item.relationKey === key || item.id === `relation:${key}`);
+    if (!relation || !input) {
+      throw createError({ statusCode: 400, message: `Action cannot write undeclared relation ${entityType}.${key}` });
+    }
+    const values = Array.isArray(value) ? value : [value];
+    const refs = [];
+    for (const item of values) {
+      const ref = normalizeRelationRef(item, relation.targetType);
+      await assertRelationTargetAvailable(ref, relation, auth);
+      refs.push(ref);
+    }
+    if (relation.cardinality === 'one' && refs.length !== 1) {
+      throw createError({ statusCode: 400, message: `Relation ${entityType}.${key} accepts exactly one entity` });
+    }
+    normalizedRelations[key] = relation.cardinality === 'many'
+      ? Array.from(new Map(refs.map(ref => [`${ref.type}:${ref.id}:${ref.revisionId || ''}`, ref])).values())
+      : refs[0];
+  }
+  return { ...mutation, relations: normalizedRelations };
+}
+
+async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
+  const service = getAppRegistry().getEntityService(relation.targetType);
+  const target = await service?.getById?.(ref.id, auth.userId, auth.organizationId, auth.role, auth);
+  if (!target) throw createError({ statusCode: 404, message: `${relation.targetType} relation target not found` });
+  const entity = target?.toJSON ? target.toJSON() : target;
+  const definition = (getDomain().entities || []).find(item => normalizeEntityType(item.type) === normalizeEntityType(relation.targetType));
+  assertEntityAccess({
+    entity,
+    entityType: relation.targetType,
+    feature: resolveEntityFeature(definition?.type || relation.targetType),
+    level: 'read',
+    action: 'view',
+    auth
+  });
+  if (!ref.revisionId) return;
+  const revision = await entityRevisionsService.getById(ref.revisionId, auth.userId, auth.role, auth);
+  const source = revision?.data?.source;
+  if (normalizeEntityType(source?.type) !== normalizeEntityType(relation.targetType) || String(source?.id) !== String(ref.id)) {
+    throw createError({ statusCode: 400, message: `Pinned revision does not belong to ${relation.targetType} ${ref.id}` });
+  }
+}
+
+function normalizeRelationRef(value, targetType) {
+  const ref = normalizeEntityRef(typeof value === 'object' ? value : { type: targetType, id: value });
+  if (!ref || normalizeEntityType(ref.type) !== normalizeEntityType(targetType)) {
+    throw createError({ statusCode: 400, message: `Relation target must be ${targetType}` });
+  }
+  return { ...ref, type: targetType };
+}
+
+function fieldPathAllowed(path, patterns = []) {
+  return patterns.some(pattern => pattern === path || (pattern.endsWith('.*') && (path === pattern.slice(0, -2) || path.startsWith(pattern.slice(0, -1)))));
+}
+
+async function persistProcessEntityPatch(entityType, targetId, patch, auth) {
+  const definition = (getDomain().entities || []).find(entity => normalizeEntityType(entity.type) === normalizeEntityType(entityType));
+  if (!definition?.collection) throw createError({ statusCode: 500, message: `Entity collection missing for ${entityType}` });
+  const entity = await repository.findEntityInCollection(definition.collection, targetId);
+  if (!entity) throw createError({ statusCode: 404, message: `${entityType} not found` });
+  assertEntityAccess({
+    entity,
+    entityType,
+    feature: resolveEntityFeature(entityType),
+    level: 'write',
+    action: 'update',
+    auth
+  });
+  return await repository.updateEntityPatchInCollection(definition.collection, entity._id, patch);
+}
+
+function flattenMutationPatch(source = {}, prefix = '', result = {}) {
+  for (const [key, value] of Object.entries(source || {})) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      flattenMutationPatch(value, path, result);
+    } else {
+      result[path] = value;
+    }
+  }
+  return result;
 }
 
 function getByPath(source, path) {

@@ -1,11 +1,12 @@
 import * as repository from './repository.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
 import * as entityRevisionsService from '../entity-revisions/service.js';
+import * as artifactsService from '../artifacts/service.js';
+import * as filesService from '../files/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
   createIdentity,
-  createStatus,
   createData
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
@@ -168,7 +169,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   }
 
   const slug = data.slug || `${standardSlugify(data.name || 'template', { keepCase: false })}-${generateRandomString(6)}`;
-  const origin = createStatus('ACTIVE', userId, { note: 'Template created' });
+  const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Template created' });
 
   const cassetteData = {
     identity: createIdentity(data.name || 'New Template', slug),
@@ -201,7 +202,7 @@ export async function createDefaultOccsTemplate(data = {}, userId, userOrg, user
   }, userId, userOrg, userRole, userPermissions);
 }
 
-export async function upload(fileBuffer, fileName, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {
+export async function importFromArtifact(artifactId, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {
   const targetOrgId = userOrg || userId;
   const lineage = { organizationId: toFlexibleId(targetOrgId) };
 
@@ -209,6 +210,14 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
+  const artifact = await artifactsService.getById(artifactId, userId, userOrg, userRole, userPermissions);
+  if (artifact.data?.type !== 'DXF_SOURCE' || !artifact.attachments?.primary?.fileId) {
+    throw createError({ statusCode: 400, message: 'Cassette import requires a DXF_SOURCE artifact with a file' });
+  }
+  const attachment = artifact.attachments.primary;
+  const bucketName = attachment.metadata?.bucketName || attachment.bucketName || 'userDxf';
+  const fileBuffer = await filesService.getFileBuffer(attachment.fileId, bucketName);
+  const fileName = attachment.name || artifact.identity?.name || 'cassette.dxf';
   const layerMapping = mapping || {};
   const polygonParts = extractNestingPolygons(fileBuffer, layerMapping, OCCS_LAYER_CUT_OUTER);
   if (!polygonParts.length) {
@@ -219,28 +228,16 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
   }
   const layerData = buildMappedLayerData(fileBuffer, layerMapping);
 
-  const db = await connectDB();
-  const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
-  const uploadStream = bucket.openUploadStream(fileName, {
-    metadata: { userId, organizationId: targetOrgId }
-  });
-
-  await new Promise((resolve, reject) => {
-    uploadStream.on('finish', resolve);
-    uploadStream.on('error', reject);
-    uploadStream.write(fileBuffer);
-    uploadStream.end();
-  });
-
   // 1. Create Template
   const slug = `${standardSlugify(name || fileName, { keepCase: false })}-${generateRandomString(6)}`;
-  const origin = createStatus('ACTIVE', userId, { note: 'Standard template uploaded' });
+  const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Standard template uploaded' });
 
   const templateData = {
     identity: createIdentity(name || fileName, slug),
     origin,
     status: origin,
     lineage,
+    relations: { sourceDxf: { type: 'artifact', id: artifact._id.toString() } },
     data: createData({
       type: 'STANDARD',
       definition: { mapping: layerMapping },
@@ -261,10 +258,10 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
       polygonParts,
       layerData
     },
-    dxfId: uploadStream.id,
     parameters: {},
-    derivedFrom: derivedFromGeometryRevision(revision, {})
-  }, userId);
+    relations: { sourceDxf: { type: 'artifact', id: artifact._id.toString() } },
+    provenance: { derivedFrom: derivedFromGeometryRevision(revision, {}) }
+  }, userId, userPermissions);
 
   return {
     template: toDTO(updatedTemplate),
@@ -430,23 +427,21 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
       ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : polygons })
       : generateSimpleDxf(polygons);
   } else {
-    const db = await connectDB();
     const design = await repository.findDesignByTemplateId(id);
-
-    if (!design?.data?.geometry?.dxfId) {
-      throw createError({ statusCode: 404, message: 'DXF not found for this template' });
-    }
-
-    const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
-    return bucket.openDownloadStream(toFlexibleId(design.data.geometry.dxfId));
+    if (!design) throw createError({ statusCode: 404, message: 'DXF not found for this template' });
+    return await cassetteDesignService.exportDxf(design._id, userId, userRole, userPermissions);
   }
 }
 
 export async function createDesignFromTemplate(id, parameters, userId, userOrg, userRole, userPermissions, options = {}) {
   const template = await getById(id, userId, userOrg, userRole, userPermissions);
 
-  if (!hasLineagePermission(userPermissions || {}, template.lineage, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions || {}, template.lineage, 'cassettes', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  const outputLineage = { organizationId: toFlexibleId(userOrg || template.lineage?.organizationId || userId) };
+  if (!hasLineagePermission(userPermissions || {}, outputLineage, 'cassette_designs', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied for cassette designs' });
   }
 
   if (template.data?.type === 'PARAMETRIC') {
@@ -506,7 +501,7 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
 
   return await cassetteDesignService.createFromTemplateUpload({
     name: options.name || `${templateName} Design`,
-    lineage: template.lineage,
+    lineage: outputLineage,
     templateId: id,
     polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]],
     layerData,
@@ -517,7 +512,7 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
     },
     dxfId,
     parameters: dimensions || constructionParameters,
-    derivedFrom
+    provenance: { derivedFrom }
   }, userId, userPermissions);
 }
 

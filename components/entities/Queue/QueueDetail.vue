@@ -102,7 +102,6 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
-import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
     queue: { type: Object, required: true }
@@ -124,7 +123,6 @@ function materialSourceEntityType(source = {}) {
 }
 
 const queueCommandActions = computed(() => {
-    if (getPrimaryState(props.queue.status) !== 'DRAFT') return [];
     return [{
         label: t('queues.runNesting'),
         icon: 'pi pi-play',

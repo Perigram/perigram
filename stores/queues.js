@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { getPrimaryState } from '~/packages/core/src/index.js';
 
 export const useQueuesStore = defineStore('queues', () => {
     const queues = ref([]);
@@ -21,10 +20,7 @@ export const useQueuesStore = defineStore('queues', () => {
     function hasActiveNestingRun(queueRuns = []) {
         const latest = sortQueueRuns(queueRuns).at(-1);
         if (!latest) return false;
-        const state = getPrimaryState(latest.status);
-        if (state === 'NESTING') return true;
-        if (['COMPLETE', 'CHOSEN', 'ERROR'].includes(state)) return false;
-        return !hasNestingResults(latest);
+        return !hasNestingResults(latest) && !latest.data?.error;
     }
 
     function hasNestingResults(run = {}) {
@@ -193,19 +189,6 @@ export const useQueuesStore = defineStore('queues', () => {
         }
     }
 
-    async function resetStatus(queueId) {
-        try {
-            const result = await $fetch(`/api/queue/${queueId}/reset-status`, {
-                method: 'POST'
-            });
-            stopPolling(queueId);
-            return result;
-        } catch (err) {
-            error.value = err.message;
-            throw err;
-        }
-    }
-
     async function chooseRun(queueId, runId) {
         try {
             const result = await $fetch(`/api/queue/${queueId}/choose-run`, {
@@ -268,7 +251,6 @@ export const useQueuesStore = defineStore('queues', () => {
         deleteQueue,
         startNesting,
         getArtifacts,
-        resetStatus,
         chooseRun,
         deleteRun,
         stopPolling,

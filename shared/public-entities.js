@@ -9,12 +9,15 @@ const PUBLIC_READ_ENTITY_TYPES = new Set([
   'pen_templates',
   'toolProfile',
   'tool_profile',
-  'tool_profiles'
+  'tool_profiles',
+  'machine',
+  'machines'
 ]);
 
 const PUBLIC_READ_FEATURES = new Set([
   'materials',
-  'layer_standards'
+  'layer_standards',
+  'machines'
 ]);
 
 export function isPublicReadEntity({ entity = null, entityType = '', feature = '' } = {}) {

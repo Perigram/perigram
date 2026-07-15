@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as materialPilesRepository from '../material-piles/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createStatus, getPrimaryState, inheritLineage } from '~/server/core/blocks/index.js';
+import { inheritLineage } from '~/server/core/blocks/index.js';
 import { Sheet } from './model.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
@@ -39,7 +39,14 @@ export async function createFromPile(pileId, count, userId, userRole, userPermis
       data: { serial, specs: pileRaw.data.specs || {} }
     });
     
-    sheet.applyStatus('AVAILABLE', userId, { note: 'Created from material pile' });
+    const initialStatus = await statusService.initialStatusForOrganization(
+      'sheet',
+      baseLineage.organizationId,
+      userId,
+      { note: 'Created from material pile' }
+    );
+    sheet.origin = initialStatus;
+    sheet.status = initialStatus;
     const createdRaw = await repository.create(sheet);
     created.push(new Sheet(createdRaw));
   }
@@ -56,38 +63,101 @@ export async function allocateFromPile(pileId, count, user) {
   return await createFromPile(pileId, count, user.userId, user.role, userPermissions);
 }
 
-export async function createCutSheetFromPile(pileId, { queue, run, source = {}, index = 0, userId = 'SYSTEM' } = {}) {
-  const pileRaw = await materialPilesRepository.findById(pileId);
-  if (!pileRaw) throw createError({ statusCode: 404, message: 'Material pile not found' });
+export async function createFromSheetDesign(design, count, { organizationId, userId = 'SYSTEM' } = {}) {
+  if (!design?._id) throw createError({ statusCode: 400, message: 'Sheet design is required' });
+  const quantity = Math.max(Number(count || design.data?.sheetCount || 0), 0);
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw createError({ statusCode: 400, message: 'Sheet design quantity must be a positive integer' });
+  }
+  const lineage = inheritLineage(design, 'sheetDesign');
+  const ownerOrganizationId = organizationId || lineage.organizationId;
+  const existing = await repository.find({ 'lineage.sheetDesignId': toFlexibleId(design._id) });
+  const byIndex = new Map(existing.map(sheet => [Number(sheet.data?.sheetIndex), sheet]));
+  const created = [];
+  for (let index = 0; index < quantity; index += 1) {
+    if (byIndex.has(index)) {
+      created.push(new Sheet(byIndex.get(index)).toJSON());
+      continue;
+    }
+    const uid = `${design._id.toString()}-sheet-${index + 1}`;
+    const serial = `${design.identity?.serial || 'SH'}-${index + 1}`;
+    const initialStatus = await statusService.initialStatusForOrganization(
+      'sheet',
+      ownerOrganizationId,
+      userId,
+      { note: 'Sheet twin created from nesting output' }
+    );
+    const raw = await repository.create(new Sheet({
+      identity: { uid, serial, name: `Sheet ${serial}` },
+      origin: initialStatus,
+      status: initialStatus,
+      lineage,
+      specs: design.specs || {},
+      provenance: design.data?.revisions?.geometry?.currentId ? {
+        parent: {
+          source: {
+            type: 'sheet_design',
+            id: design._id,
+            revisionId: design.data.revisions.geometry.currentId
+          }
+        }
+      } : {},
+      data: {
+        serial,
+        sheetIndex: index,
+        compositionHash: design.data?.compositionHash || '',
+        machineSnapshot: design.data?.machineSnapshot || null,
+        toolSnapshot: design.data?.toolSnapshot || null,
+        materialSnapshot: design.data?.materialSnapshot || null
+      }
+    }));
+    created.push(new Sheet(raw).toJSON());
+  }
+  return created;
+}
 
-  const serial = `CUT-${generateRandomString(8)}`;
-  const lineage = inheritLineage(pileRaw, 'pile')
-    .add('queue', queue?._id)
-    .add('run', run?._id);
-  if (queue?.lineage?.projectId) lineage.projectId = queue.lineage.projectId;
+export async function listForRunOutput(queueId, runId, ids = []) {
+  const idValues = ids.map(toFlexibleId).filter(Boolean);
+  const filter = {
+    ...(idValues.length ? { _id: { $in: idValues } } : {}),
+    'lineage.queueId': { $in: flexibleLookupValues(queueId) },
+    'lineage.runId': { $in: flexibleLookupValues(runId) }
+  };
+  const sheets = await repository.find(filter);
+  return sheets
+    .map(raw => new Sheet(raw).toJSON())
+    .sort((left, right) => {
+      const designOrder = String(left.lineage?.sheetDesignId || '').localeCompare(String(right.lineage?.sheetDesignId || ''));
+      return designOrder || Number(left.data?.sheetIndex || 0) - Number(right.data?.sheetIndex || 0);
+    });
+}
 
-  const specs = pileRaw.specs || pileRaw.data?.specs || source.dimensions || {};
-  const sheet = new Sheet({
-    identity: { uid: `sheet-${generateRandomString(8)}`, serial, name: `Cut sheet ${index + 1}` },
+export async function bindMaterialSource(id, source = {}) {
+  const raw = await repository.findById(id);
+  if (!raw) throw createError({ statusCode: 404, message: 'Sheet twin not found' });
+  const sourceId = source.id?.toString?.() || source.id;
+  if (!sourceId) throw createError({ statusCode: 400, message: 'Sheet material source is required' });
+  const existingSource = raw.data?.materialSource;
+  if (existingSource?.id && existingSource.id.toString() !== sourceId.toString()) {
+    throw createError({ statusCode: 409, message: 'Sheet twin is already bound to another material source' });
+  }
+  const lineage = {
+    ...(raw.lineage || {}),
+    ...(String(source.type || '').toUpperCase() === 'PILE' ? { pileId: toFlexibleId(sourceId) } : {}),
+    ...(source.warehouseId ? { warehouseId: toFlexibleId(source.warehouseId) } : {})
+  };
+  const updated = await repository.updateById(id, {
     lineage,
-    specs,
     data: {
-      serial,
-      specs,
-      source: 'QUEUE_CUT',
+      ...(raw.data || {}),
       materialSource: {
-        type: 'PILE',
-        id: pileId,
-        label: source.label || pileRaw.identity?.name || pileId
-      },
-      queueId: queue?._id?.toString?.() || queue?._id,
-      runId: run?._id?.toString?.() || run?._id
+        type: String(source.type || '').toUpperCase(),
+        id: sourceId,
+        label: source.label || sourceId
+      }
     }
   });
-
-  sheet.applyStatus('MILLED', userId, { note: 'Consumed by queue cut' });
-  const createdRaw = await repository.create(sheet);
-  return new Sheet(createdRaw).toJSON();
+  return new Sheet(updated).toJSON();
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
@@ -164,10 +234,6 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  if (getPrimaryState(raw.status) === 'MILLED') {
-    throw createError({ statusCode: 400, message: 'Cannot delete milled sheet' });
-  }
-  
   return await repository.deleteById(uid);
 }
 
@@ -175,20 +241,19 @@ export async function finishMilling(uid, cassetteInstanceIds = [], remnantIds = 
   const raw = await repository.findById(uid);
   if (!raw) throw createError({ statusCode: 404, message: 'Sheet not found' });
 
-  const currentState = getPrimaryState(raw.status);
-  if (currentState !== 'IN-CUTTING' && currentState !== 'in_cutting') {
-    throw createError({ statusCode: 400, message: 'Sheet must be in cutting status' });
-  }
-
-  const sheet = new Sheet(raw);
-  sheet.data = {
-    ...sheet.data,
+  const data = {
+    ...(raw.data || {}),
     cassetteInstanceIds,
     remnantIds
   };
-  sheet.applyStatus('MILLED', user.userId || 'SYSTEM', { note: 'Milling completed' });
-
-  await repository.updateById(uid, sheet);
+  await statusService.transitionWithResult({
+    entityType: 'sheet',
+    targetId: uid,
+    intent: 'completeMilling',
+    auth: createTransitionAuth(user.userId || 'SYSTEM', user.role, user),
+    context: { metadata: { note: 'Milling completed' } },
+    patch: { data }
+  });
 
   const warehouseId = raw.lineage?.warehouseId;
   if (warehouseId) {

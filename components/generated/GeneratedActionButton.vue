@@ -29,7 +29,7 @@ const action = computed(() => authStore.actionManifest.find(item => item.actionI
 const actionLabel = computed(() => generatedActionLabel(action.value || {}, props.actionId, { t, te }));
 const actionIcon = computed(() => {
   if (action.value?.actionKind === 'createEntity') return 'pi pi-plus';
-  if (action.value?.actionKind === 'changeStatus') return 'pi pi-arrow-right-arrow-left';
+  if (action.value?.actionKind === 'updateEntity' && action.value?.status?.to) return 'pi pi-arrow-right-arrow-left';
   if (action.value?.actionKind === 'updateEntity') return 'pi pi-pencil';
   if (action.value?.actionKind === 'sendToOrganization') return 'pi pi-send';
   return 'pi pi-play';

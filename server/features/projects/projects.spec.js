@@ -36,6 +36,7 @@ describe('Projects & Multi-tenant Ownership', () => {
 
   beforeEach(async () => {
     await db.collection('projects').deleteMany({});
+    await db.collection('libraries').deleteMany({});
   });
 
   const contractor1 = {
@@ -87,6 +88,46 @@ describe('Projects & Multi-tenant Ownership', () => {
     const list2 = await projectService.list(contractor2.userId, contractor2.organizationId, null, contractor2.permissions);
     expect(list2).toHaveLength(1);
     expect(list2[0].toJSON().identity.name).toBe('Org 2 Proj');
+  });
+
+  it('persists cassette libraries as canonical non-owning relations without changing lineage', async () => {
+    const libraryId = new ObjectId();
+    await db.collection('libraries').insertOne({
+      _id: libraryId,
+      identity: { uid: libraryId.toString(), name: 'Facade library' },
+      lineage: { organizationId: contractor1.organizationId },
+      status: { state: { primary: 'AVAILABLE' } },
+      relations: {},
+      provenance: {},
+      data: {},
+      summary: {}
+    });
+    const permissions = {
+      memberships: [{
+        organizationId: contractor1.organizationId,
+        permissions: { projects: 'admin', libraries: 'read' }
+      }]
+    };
+
+    const project = await projectService.create({
+      name: 'Related project',
+      relations: {
+        cassetteLibraries: [{ type: 'library', id: libraryId.toString() }]
+      }
+    }, contractor1.userId, contractor1.organizationId, null, permissions);
+
+    expect(project.toJSON()).toMatchObject({
+      lineage: { organizationId: contractor1.organizationId },
+      relations: {
+        cassetteLibraries: [{ type: 'library', id: libraryId.toString() }]
+      }
+    });
+    expect(project.lineage).not.toHaveProperty('libraryId');
+
+    const updated = await projectService.update(project._id, {
+      relations: { cassetteLibraries: [] }
+    }, contractor1.userId, contractor1.organizationId, null, permissions);
+    expect(updated.toJSON().relations).toEqual({});
   });
 
   it('should deny access to other organization projects', async () => {

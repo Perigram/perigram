@@ -17,7 +17,7 @@
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
-            <TraceChain v-if="effectivePopupShowTrace" :entity="entity" />
+            <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" />
                     <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
                         {{ inlineTypeLabel }}
                     </small>
@@ -118,7 +118,7 @@
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
-                    <TraceChain v-if="effectivePopupShowTrace" :entity="entity" />
+                    <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" />
                     <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
                         {{ inlineTypeLabel }}
                     </small>
@@ -183,7 +183,7 @@
                     <slot name="title" />
                 </template>
                 <template v-else>
-                    <TraceChain v-if="effectiveShowTrace" :entity="entity" variant="compact" expandable class="mb-2" />
+                    <TraceChain v-if="effectiveShowTrace" :entity="entity" :entity-type="entityType" variant="compact" expandable class="mb-2" />
                     <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />

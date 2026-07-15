@@ -38,10 +38,8 @@ const editableGeometry = ref(null);
 const selectedVertices = ref([]);
 const correctedDistance = ref(null);
 const photoUrl = computed(() => {
-  const attachment = props.capture.attachments?.primary || {};
-  const fileId = attachment.fileId?.$oid || attachment.fileId;
-  const bucketName = attachment.metadata?.bucketName || attachment.bucketName || 'capturePhotos';
-  return fileId ? `/api/files/download/${fileId}?bucket=${encodeURIComponent(bucketName)}` : '';
+  const artifactId = props.capture.relations?.sourcePhoto?.id;
+  return artifactId ? `/api/artifacts/${encodeURIComponent(artifactId)}` : '';
 });
 const editableCalibration = computed(() => props.capture.data?.calibration || {});
 const selectedVertexPair = computed(() => {

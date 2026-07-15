@@ -81,7 +81,7 @@ export function resolveNodePort(process = {}, node = {}, handle = '', direction 
   if (node.type === 'action' && direction === 'input' && record.actionKind === 'createEntity' && handleId === 'parent') {
     return normalizePortSpec({ id: 'parent', label: 'Parent entity', kind: 'entity', optional: true });
   }
-  if (node.type === 'action' && direction === 'input' && ['changeStatus', 'updateEntity'].includes(record.actionKind) && handleId === 'entity') {
+  if (node.type === 'action' && direction === 'input' && record.actionKind === 'updateEntity' && handleId === 'entity') {
     const entityInput = (record.inputs || []).find(port => port.id === 'entity' || port.entityType);
     return normalizePortSpec(entityInput || { id: 'entity', kind: 'entity' });
   }
@@ -159,6 +159,12 @@ function processNodeInputPorts(record = {}) {
   if (record.kind === 'blockRead') {
     return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '' })];
   }
+  if (record.kind === 'blockCompose') {
+    return [
+      normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', optional: true }),
+      normalizePortSpec({ id: 'value', label: record.path || 'value', kind: 'data', dataPath: record.path || '' })
+    ];
+  }
   if (record.kind === 'stringOp') {
     return [normalizePortSpec({ id: 'value', label: 'value', kind: 'data' })];
   }
@@ -183,7 +189,7 @@ function processNodeInputPorts(record = {}) {
 function processNodeOutputPorts(record = {}) {
   if (Array.isArray(record.outputs) && record.outputs.length) return record.outputs.map(port => normalizePortSpec(port));
   if (record.kind === 'entityRef') {
-    const outputType = record.mode === 'children' || record.mode === 'related' ? 'entity_list' : 'entity';
+    const outputType = record.mode === 'children' || (record.mode === 'related' && record.relationCardinality === 'many') ? 'entity_list' : 'entity';
     const entityType = record.relationEntityType || record.entityType || '';
     return [normalizePortSpec({ id: 'entity', label: entityType || outputType, kind: outputType, entityType })];
   }
@@ -192,6 +198,9 @@ function processNodeOutputPorts(record = {}) {
   }
   if (record.kind === 'blockRead') {
     return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: record.valueType || 'data', block: record.block || '', dataPath: record.path || '' })];
+  }
+  if (record.kind === 'blockCompose') {
+    return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', dataPath: record.path || '' })];
   }
   if (record.kind === 'collection' && record.operation === 'first') {
     return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
@@ -209,7 +218,7 @@ function processNodeOutputPorts(record = {}) {
 }
 
 function processBlockPorts() {
-  return ['identity', 'status', 'lineage', 'data', 'specs', 'summary', 'attachments']
+  return ['identity', 'status', 'lineage', 'relations', 'provenance', 'data', 'specs', 'summary', 'attachments']
     .map(block => normalizePortSpec({ id: block, label: block, kind: 'block', block }));
 }
 

@@ -42,7 +42,7 @@
           <small>{{ param }}</small>
           <InputNumber
             :model-value="entry.dimensions?.[param]"
-            :disabled="disabled"
+            :disabled="disabled || lockedParameters.includes(param)"
             size="small"
             :min="0"
             @update:model-value="value => emit('update-dimension', param, value)"
@@ -72,15 +72,12 @@ const props = defineProps({
   entry: { type: Object, required: true },
   cassette: { type: Object, default: null },
   parameters: { type: Array, default: () => [] },
+  lockedParameters: { type: Array, default: () => [] },
   disabled: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['update-quantity', 'update-dimension', 'remove']);
 
-const sourceId = computed(() => props.entry.cassetteTemplateId || props.entry.id);
-const sourceType = computed(() => {
-  if (props.entry.entityType === 'cassette_design') return 'cassetteDesign';
-  if (props.entry.entityType === 'cassette') return 'cassetteTemplate';
-  return props.cassette?.data?.geometry ? 'cassetteDesign' : 'cassetteTemplate';
-});
+const sourceId = computed(() => props.entry.id);
+const sourceType = computed(() => 'cassetteDesign');
 </script>

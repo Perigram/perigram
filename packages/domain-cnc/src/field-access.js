@@ -4,6 +4,8 @@ const COMMON_READ_FIELDS = [
   'origin.*',
   'status.*',
   'lineage.*',
+  'relations.*',
+  'provenance.*',
   'summary.*'
 ];
 
@@ -11,13 +13,13 @@ export const cncEntityFieldAccess = {
   project: {
     feature: 'projects',
     read: [...COMMON_READ_FIELDS, 'data.address', 'data.thumbnailUrl'],
-    write: ['data.metadata', 'data.name'],
+    write: ['data.metadata', 'data.name', 'relations.cassetteLibraries'],
     admin: ['data.*', 'attachments.*']
   },
   queue: {
     feature: 'queues',
     read: [...COMMON_READ_FIELDS, 'data.queueNumber', 'data.job.items', 'data.job.materialPool', 'data.materialConsumption', 'data.physicalOutputs'],
-    write: ['data.job.*', 'data.nestingParams'],
+    write: ['data.job.*', 'data.nestingSettings.*'],
     admin: ['data.*', 'attachments.*']
   },
   nestingRun: {
@@ -52,7 +54,7 @@ export const cncEntityFieldAccess = {
   },
   cassetteDesign: {
     feature: 'cassette_designs',
-    read: [...COMMON_READ_FIELDS, 'data.parameters', 'data.derivedFrom', 'data.geometry.*', 'data.layerData', 'data.polygonParts'],
+    read: [...COMMON_READ_FIELDS, 'data.parameters', 'data.geometry.*', 'data.layerData', 'data.polygonParts'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
@@ -163,13 +165,13 @@ export const cncEntityFieldAccess = {
   },
   entityRevision: {
     feature: 'cassettes',
-    read: [...COMMON_READ_FIELDS, 'data.entityType', 'data.entityId', 'data.scope', 'data.number', 'data.shortHash', 'data.contentHash', 'data.createdAt'],
+    read: [...COMMON_READ_FIELDS, 'data.source', 'data.scope', 'data.number', 'data.shortHash', 'data.contentHash', 'data.createdAt'],
     write: [],
     admin: ['data.*', 'attachments.*']
   },
   geometryCapture: {
     feature: 'materials',
-    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.mode', 'data.activeRevisionId', 'data.revisions.*', 'data.calibration.*', 'data.geometry.*', 'data.extraction.*', 'data.output.*', 'attachments.primary.*'],
+    read: [...COMMON_READ_FIELDS, 'specs.*', 'data.mode', 'data.activeRevisionId', 'data.revisions.*', 'data.calibration.*', 'data.geometry.*', 'data.extraction.*', 'data.output.*'],
     write: ['data.*', 'specs.*', 'attachments.*'],
     admin: ['data.*', 'specs.*', 'attachments.*']
   },
@@ -184,6 +186,12 @@ export const cncEntityFieldAccess = {
     read: [...COMMON_READ_FIELDS, 'data.diameter', 'data.kerf', 'data.angle'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
+  },
+  machine: {
+    feature: 'machines',
+    read: [...COMMON_READ_FIELDS, 'data.workingArea.*', 'data.boundaryOffset', 'data.description'],
+    write: ['identity.name', 'data.workingArea.*', 'data.boundaryOffset', 'data.description'],
+    admin: ['identity.*', 'data.*', 'attachments.*']
   },
   penTemplate: {
     feature: 'layer_standards',
@@ -211,6 +219,7 @@ const ENTITY_ALIASES = {
   geometry_capture: 'geometryCapture',
   profile_template: 'profileTemplate',
   process_definition: 'processDefinition',
+  machine: 'machine',
   tool_profile: 'toolProfile',
   pen_template: 'penTemplate',
   layer_standard: 'layerStandard'

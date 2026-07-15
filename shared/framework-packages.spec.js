@@ -8,6 +8,7 @@ describe('Framework package contracts', () => {
       BaseEntity,
       createRegistry,
       createEntityRef,
+      createProvenance,
       createCommandResult,
       createTaskResult
     } = await import('../packages/core/src/index.js');
@@ -78,6 +79,36 @@ describe('Framework package contracts', () => {
       commandId: 'runTest',
       entities: [{ type: 'test_entity', id: 'test-1' }]
     });
+    expect(createEntityRef('test_entity', 'test-1', 'revision-2')).toEqual({
+      type: 'test_entity',
+      id: 'test-1',
+      revisionId: 'revision-2'
+    });
+    expect(createProvenance(createEntityRef('test_entity', 'test-1', 'revision-2'), { scope: 'geometry' })).toEqual({
+      source: { type: 'test_entity', id: 'test-1', revisionId: 'revision-2' },
+      scope: 'geometry'
+    });
+    expect(new BaseEntity({
+      identity: { uid: 'derived-1', name: 'Derived' },
+      relations: {
+        library: { type: 'library', id: 'library-1' },
+        invalid: { entityType: 'library', entityId: 'legacy-library' }
+      },
+      provenance: {
+        derivedFrom: {
+          source: { type: 'test_entity', id: 'test-1', revisionId: 'revision-2' },
+          scope: 'geometry'
+        }
+      }
+    }).toJSON()).toMatchObject({
+      relations: { library: { type: 'library', id: 'library-1' } },
+      provenance: {
+        derivedFrom: {
+          source: { type: 'test_entity', id: 'test-1', revisionId: 'revision-2' },
+          scope: 'geometry'
+        }
+      }
+    });
     expect(createTaskResult({ taskId: 'test.task' })).toMatchObject({ taskId: 'test.task', ok: true });
 
     const isolated = createRegistry({ id: 'isolated-test' });
@@ -127,6 +158,8 @@ describe('Framework package contracts', () => {
       cncDesignSystemEntityContracts,
       cncDomain,
       cncEntities,
+      cncContainment,
+      cncRelations,
       cncFrontendEntities,
       cncCommands,
       cncTasks,
@@ -174,6 +207,9 @@ describe('Framework package contracts', () => {
     });
 
     expect(cncEntities.find(entity => entity.type === 'queue')?.collection).toBe('queues');
+    expect(cncEntities.every(entity => entity.blocks.includes('relations') && entity.blocks.includes('provenance'))).toBe(true);
+    expect(cncContainment).toContainEqual({ parentType: 'project', childType: 'queue', lineageKey: 'projectId' });
+    expect(cncRelations).toContainEqual({ ownerType: 'project', key: 'cassetteLibraries', targetType: 'library', cardinality: 'many' });
     expect(cncEntities.find(entity => entity.type === 'user')?.meta).toBe(true);
     expect(cncEntities).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'layer_standard', collection: 'layer_standards' }),

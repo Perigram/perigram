@@ -1,0 +1,249 @@
+import { connectDB } from '../db/mongo.js';
+import { cncDomain } from '../../packages/domain-cnc/src/index.js';
+
+const APPLY = process.argv.includes('--apply');
+
+function stringId(value) {
+  return value?.toString?.() || value || '';
+}
+
+function withoutKeys(value = {}, keys = []) {
+  const blocked = new Set(keys);
+  return Object.fromEntries(Object.entries(value || {}).filter(([key]) => !blocked.has(key)));
+}
+
+export function migrateLegacyRevisionData(data = {}) {
+  if (data.source?.type && data.source?.id) return { changed: false, data };
+  const type = data.entityType || '';
+  const id = data.entityId;
+  if (!type || !id) return { changed: false, data };
+  return {
+    changed: true,
+    data: {
+      ...withoutKeys(data, ['entityType', 'entityId']),
+      source: { type, id: stringId(id) }
+    }
+  };
+}
+
+export function migrateLegacyDerivedFrom(design = {}) {
+  const legacy = design.data?.derivedFrom;
+  const existing = design.provenance?.derivedFrom;
+  const templateId = design.lineage?.templateId;
+  const legacySource = legacy?.source || {
+    type: legacy?.entityType || legacy?.type,
+    id: legacy?.entityId || legacy?.id,
+    ...(legacy?.revisionId ? { revisionId: stringId(legacy.revisionId) } : {})
+  };
+  const source = existing?.source || legacySource;
+  if (!source?.type || !source?.id) {
+    return { changed: false, invalid: Boolean(legacy || templateId), design };
+  }
+  if (templateId && (source.type !== 'cassette' || stringId(source.id) !== stringId(templateId))) {
+    return { changed: false, invalid: true, design };
+  }
+  const derivedFrom = existing || {
+    ...withoutKeys(legacy, ['source', 'entityType', 'entityId', 'type', 'id', 'revisionId']),
+    source: {
+      type: source.type,
+      id: stringId(source.id),
+      ...(source.revisionId ? { revisionId: stringId(source.revisionId) } : {})
+    }
+  };
+  const data = { ...(design.data || {}) };
+  delete data.derivedFrom;
+  const lineage = { ...(design.lineage || {}) };
+  delete lineage.templateId;
+  return {
+    changed: Boolean(legacy || templateId),
+    invalid: false,
+    design: {
+      ...design,
+      data,
+      lineage,
+      provenance: {
+        ...(design.provenance || {}),
+        derivedFrom
+      }
+    }
+  };
+}
+
+export function migrateLegacyProjectLibraryRelations(project = {}) {
+  const legacyIds = [
+    ...(Array.isArray(project.data?.cassetteLibraryIds) ? project.data.cassetteLibraryIds : []),
+    ...(Array.isArray(project.data?.libraryIds) ? project.data.libraryIds : []),
+    project.data?.cassetteLibraryId,
+    project.data?.libraryId
+  ].filter(Boolean);
+  if (!legacyIds.length) return { changed: false, project };
+  const existing = project.relations?.cassetteLibraries;
+  const refs = [...(Array.isArray(existing) ? existing : [existing].filter(Boolean))];
+  for (const id of legacyIds) refs.push({ type: 'library', id: stringId(id) });
+  const unique = [...new Map(refs.map(ref => [`${ref.type}:${stringId(ref.id)}:${stringId(ref.revisionId)}`, {
+    type: ref.type,
+    id: stringId(ref.id),
+    ...(ref.revisionId ? { revisionId: stringId(ref.revisionId) } : {})
+  }])).values()];
+  const data = { ...(project.data || {}) };
+  for (const key of ['cassetteLibraryIds', 'libraryIds', 'cassetteLibraryId', 'libraryId']) delete data[key];
+  return {
+    changed: true,
+    project: {
+      ...project,
+      data,
+      relations: { ...(project.relations || {}), cassetteLibraries: unique }
+    }
+  };
+}
+
+export function migrateLegacyParentRevision(entity = {}, relation = {}, revision = null) {
+  const parentId = entity.lineage?.[relation.lineageKey];
+  if (!parentId || entity.provenance?.parent?.source) return { changed: false, entity, unsetKeys: [] };
+  const revisionKeys = parentRevisionKeys(relation);
+  const revisionId = revisionKeys.map(key => entity.lineage?.[key]).find(Boolean);
+  if (!revisionId || !revision?.data?.source) return { changed: false, entity, unsetKeys: [] };
+  const source = revision.data.source;
+  if (source.type !== relation.parentType || stringId(source.id) !== stringId(parentId)) {
+    return { changed: false, entity, unsetKeys: [] };
+  }
+  const lineage = { ...(entity.lineage || {}) };
+  for (const key of revisionKeys) delete lineage[key];
+  return {
+    changed: true,
+    unsetKeys: revisionKeys,
+    entity: {
+      ...entity,
+      lineage,
+      provenance: {
+        ...(entity.provenance || {}),
+        parent: {
+          source: { type: relation.parentType, id: stringId(parentId), revisionId: stringId(revisionId) },
+          scope: revision.data.scope || '',
+          revisionNumber: revision.data.number || 0,
+          contentHash: revision.data.contentHash || '',
+          sourceStatus: revision.data.sourceStatus || null
+        }
+      }
+    }
+  };
+}
+
+function parentRevisionKeys(relation = {}) {
+  const lineageStem = String(relation.lineageKey || '').replace(/Id$/, '');
+  return [...new Set([
+    `${relation.parentType}RevisionId`,
+    `${lineageStem}RevisionId`,
+    'parentRevisionId'
+  ].filter(Boolean))];
+}
+
+async function migrateCollection(db, collection, cursor, transform, selectValue) {
+  let scanned = 0;
+  let changed = 0;
+  let invalid = 0;
+  for await (const doc of cursor) {
+    scanned += 1;
+    const result = await transform(doc);
+    if (result.invalid) invalid += 1;
+    if (!result.changed) continue;
+    changed += 1;
+    if (APPLY) {
+      await db.collection(collection).replaceOne({ _id: doc._id }, selectValue(result));
+    }
+  }
+  return { scanned, changed, invalid };
+}
+
+async function main() {
+  const db = await connectDB();
+  const summary = {};
+  summary.entityRevisions = await migrateCollection(
+    db,
+    'entity_revisions',
+    db.collection('entity_revisions').find({
+      'data.source': { $exists: false },
+      'data.entityType': { $exists: true },
+      'data.entityId': { $exists: true }
+    }),
+    revision => {
+      const result = migrateLegacyRevisionData(revision.data || {});
+      return { changed: result.changed, revision: { ...revision, data: result.data } };
+    },
+    result => result.revision
+  );
+  summary.cassetteDesigns = await migrateCollection(
+    db,
+    'cassette_designs',
+    db.collection('cassette_designs').find({
+      $or: [
+        { 'data.derivedFrom': { $exists: true } },
+        { 'lineage.templateId': { $exists: true } }
+      ]
+    }),
+    migrateLegacyDerivedFrom,
+    result => result.design
+  );
+  summary.projects = await migrateCollection(
+    db,
+    'projects',
+    db.collection('projects').find({
+      $or: [
+        { 'data.cassetteLibraryIds': { $exists: true } },
+        { 'data.libraryIds': { $exists: true } },
+        { 'data.cassetteLibraryId': { $exists: true } },
+        { 'data.libraryId': { $exists: true } }
+      ]
+    }),
+    migrateLegacyProjectLibraryRelations,
+    result => result.project
+  );
+
+  const entityByType = new Map((cncDomain.entities || []).map(entity => [entity.type, entity]));
+  summary.parentRevisions = { scanned: 0, changed: 0, invalid: 0 };
+  for (const relation of cncDomain.containment || []) {
+    const collection = entityByType.get(relation.childType)?.collection;
+    if (!collection) continue;
+    const revisionKeys = parentRevisionKeys(relation);
+    const cursor = db.collection(collection).find({
+      [`lineage.${relation.lineageKey}`]: { $exists: true },
+      $or: revisionKeys.map(key => ({ [`lineage.${key}`]: { $exists: true } }))
+    });
+    for await (const entity of cursor) {
+      summary.parentRevisions.scanned += 1;
+      const revisionId = revisionKeys.map(key => entity.lineage?.[key]).find(Boolean);
+      const revision = revisionId ? await db.collection('entity_revisions').findOne({
+        $or: [{ _id: revisionId }, { _id: stringId(revisionId) }]
+      }) : null;
+      const result = migrateLegacyParentRevision(entity, relation, revision);
+      if (!result.changed) {
+        summary.parentRevisions.invalid += 1;
+        continue;
+      }
+      summary.parentRevisions.changed += 1;
+      if (APPLY) await db.collection(collection).replaceOne({ _id: entity._id }, result.entity);
+    }
+  }
+
+  if (APPLY) {
+    await db.collection('entity_revisions').dropIndex('entity_revision_content_hash').catch(() => {});
+    await db.collection('entity_revisions').dropIndex('entity_revision_latest').catch(() => {});
+    await db.collection('entity_revisions').createIndex(
+      { 'data.source.type': 1, 'data.source.id': 1, 'data.scope': 1, 'data.contentHash': 1 },
+      { unique: true, name: 'entity_revision_content_hash' }
+    );
+    await db.collection('entity_revisions').createIndex(
+      { 'data.source.type': 1, 'data.source.id': 1, 'data.scope': 1, 'data.number': -1 },
+      { name: 'entity_revision_latest' }
+    );
+  }
+  console.log(`${APPLY ? '[apply]' : '[dry-run]'} ${JSON.stringify(summary)}`);
+  if (summary.cassetteDesigns.invalid || summary.parentRevisions.invalid) process.exitCode = 1;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

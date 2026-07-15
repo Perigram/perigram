@@ -16,6 +16,33 @@ const COMMON_ENTITY_PROFILES = {
     fields: { read: ['identity.*', 'status.*', 'lineage.*', 'data.queueNumber'], write: ['data.job.*'], private: [] },
     stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
     allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
+  },
+  entity_nesting_run: {
+    id: 'entity_nesting_run',
+    entityType: 'nesting_run',
+    label: 'Nesting run',
+    lifecycle: { mode: 'domainDefault', workflow: null },
+    fields: { read: ['identity.*', 'status.*', 'lineage.*', 'data.results.*', 'data.sheetDesignIds'], write: [], private: [] },
+    stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
+    allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
+  },
+  entity_sheet_design: {
+    id: 'entity_sheet_design',
+    entityType: 'sheet_design',
+    label: 'Sheet design',
+    lifecycle: { mode: 'defaultCreated', workflow: null },
+    fields: { read: ['identity.*', 'lineage.*', 'provenance.*', 'specs.*', 'data.geometry.*', 'data.cassetteDesigns'], write: ['data.*'], private: [] },
+    stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
+    allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
+  },
+  entity_sheet: {
+    id: 'entity_sheet',
+    entityType: 'sheet',
+    label: 'Sheet',
+    lifecycle: { mode: 'domainDefault', workflow: null },
+    fields: { read: ['identity.*', 'status.*', 'lineage.*', 'provenance.*', 'specs.*', 'data.specs.*'], write: [], private: [] },
+    stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
+    allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
   }
 };
 
@@ -44,6 +71,7 @@ export const PROCESS_TEMPLATES = {
       projects: 'admin',
       queues: 'admin',
       nesting_runs: 'admin',
+      sheet_designs: 'admin',
       materials: 'admin',
       warehouses: 'admin',
       requisitions: 'write',

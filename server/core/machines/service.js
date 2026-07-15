@@ -117,33 +117,45 @@ export const statusService = {
   },
 
   async applyIntent(entityType, targetId, intent, authContext = {}, metadata = {}, transitionContext = {}) {
-    const normalizedEntityType = normalizeEntityType(entityType);
-    const { entity, machine } = await loadEntityForWorkflow(normalizedEntityType, targetId);
-    const normalizedMachine = normalizeWorkflow(machine);
-    const transitionScope = normalizeTransitionScope(transitionContext);
-    const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
-    const currentState = getRegionState(entity.status, regionId, getWorkflowRegion(normalizedMachine, regionId)?.initial);
-    const region = getWorkflowRegion(normalizedMachine, regionId);
-    const transition = (region?.transitions || []).find(item => item.intent === intent && item.from === currentState);
-    if (!transition) {
-      throw createError({
-        statusCode: 400,
-        message: `No transition intent "${intent}" defined for ${normalizedEntityType} from ${currentState}`
-      });
-    }
+    const resolved = await resolveIntentTransition({
+      entityType,
+      targetId,
+      intent,
+      authContext,
+      transitionContext
+    });
 
     return await performTransition(
-      normalizedEntityType,
+      resolved.entityType,
       targetId,
-      transition.to,
+      resolved.transition.to,
       authContext?.userId,
       authContext,
       {
         metadata,
-        region: regionId,
+        region: resolved.regionId,
         ...transitionContext
       }
     );
+  },
+
+  async assertIntentAvailable(entityType, targetId, intent, authContext = {}, transitionContext = {}) {
+    const resolved = await resolveIntentTransition({
+      entityType,
+      targetId,
+      intent,
+      authContext,
+      transitionContext,
+      preflight: true
+    });
+    return {
+      entityType: resolved.entityType,
+      targetId,
+      intent,
+      region: resolved.regionId,
+      from: resolved.currentState,
+      to: resolved.transition.to
+    };
   },
 
   async getActions(entityType, targetId, authContext) {
@@ -224,21 +236,93 @@ export const statusService = {
     return { entityType: normalizedEntityType, targetId, state: entity.status?.state || createWorkflowState(normalizedMachine), primaryState, actions };
   },
 
-  async transitionWithResult({ entityType, targetId, targetState, intent = null, auth, context = {} }) {
+  async transitionWithResult({ entityType, targetId, targetState, intent = null, auth, context = {}, patch = null }) {
     const normalizedEntityType = normalizeEntityType(entityType);
-    const { status, effects } = intent
-      ? await this.applyIntent(normalizedEntityType, targetId, intent, auth, context?.metadata || context, context)
-      : await performTransition(normalizedEntityType, targetId, targetState, auth?.userId, auth, context);
+    let transitionTarget = targetState;
+    let transitionContext = context;
+    if (intent) {
+      const resolved = await resolveIntentTransition({
+        entityType: normalizedEntityType,
+        targetId,
+        intent,
+        authContext: auth,
+        transitionContext: context
+      });
+      transitionTarget = resolved.transition.to;
+      transitionContext = { ...context, region: resolved.regionId };
+    }
+    const { status, effects } = await performTransition(
+      normalizedEntityType,
+      targetId,
+      transitionTarget,
+      auth?.userId,
+      auth,
+      transitionContext,
+      { entityPatch: patch }
+    );
     const { entity } = await loadEntityForWorkflow(normalizedEntityType, targetId);
     const actions = await this.getActions(normalizedEntityType, targetId, auth);
     return { entity, status, actions: actions.actions, effects };
   }
 };
 
+async function resolveIntentTransition({
+  entityType,
+  targetId,
+  intent,
+  authContext = {},
+  transitionContext = {},
+  preflight = false
+}) {
+  const normalizedEntityType = normalizeEntityType(entityType);
+  const auth = normalizeAuthContext(authContext?.userId, authContext, {});
+  const { entity, machine } = await loadEntityForWorkflow(normalizedEntityType, targetId);
+  const normalizedMachine = normalizeWorkflow(machine);
+  const transitionScope = normalizeTransitionScope(transitionContext);
+  const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
+  const region = getWorkflowRegion(normalizedMachine, regionId);
+  const currentState = getRegionState(entity.status, regionId, region?.initial);
+  const transition = (region?.transitions || []).find(item => item.intent === intent && item.from === currentState);
+  if (!transition) {
+    throw createError({
+      statusCode: 400,
+      message: `No transition intent "${intent}" defined for ${normalizedEntityType} from ${currentState}`
+    });
+  }
+
+  const validation = validateTransition({
+    workflow: normalizedMachine,
+    currentState,
+    targetState: transition.to,
+    region: regionId,
+    role: auth.role,
+    actorId: auth.userId,
+    currentStatus: entity.status,
+    lifecycle: entity.status?.lifecycle || normalizeLifecycle(),
+    requireLifecyclePayload: false
+  });
+  if (!validation.ok) {
+    throw createError({ statusCode: 400, message: `Transition intent "${intent}" is not available: ${validation.reason}` });
+  }
+  assertTransitionAccess({ transition, entity, auth });
+  if (preflight) {
+    await assertTransitionPreflight({
+      transition,
+      entity,
+      targetId,
+      targetType: normalizedEntityType,
+      currentState,
+      auth
+    });
+  }
+  return { entityType: normalizedEntityType, entity, transition, regionId, currentState };
+}
+
 function appendProcessStatusActions(actions = [], { auth = {}, entityType = '', primaryState = '' } = {}) {
   const existingTargets = new Set(actions.map(action => `${action.from || ''}->${action.to || ''}`));
   for (const action of auth.roleAssignments?.actions || []) {
-    if (action.actionKind !== 'changeStatus') continue;
+    if (action.actionKind !== 'updateEntity' || !(action.status?.to || action.access?.statusTo)) continue;
+    if ((action.mutation?.fields || []).length || (action.inputPolicy?.fields || []).length) continue;
     if (normalizeEntityType(action.entityType) !== entityType) continue;
     const from = action.status?.from || action.access?.statusFrom || '';
     const to = action.status?.to || action.access?.statusTo || '';
@@ -260,7 +344,7 @@ function appendProcessStatusActions(actions = [], { auth = {}, entityType = '', 
   }
 }
 
-async function performTransition(entityType, targetId, targetState, userId, userRole, metadata = {}) {
+async function performTransition(entityType, targetId, targetState, userId, userRole, metadata = {}, options = {}) {
     const normalizedEntityType = normalizeEntityType(entityType);
     const transitionContext = normalizeTransitionContext(metadata);
     const auth = normalizeAuthContext(userId, userRole, transitionContext.metadata);
@@ -370,13 +454,29 @@ async function performTransition(entityType, targetId, targetState, userId, user
       timestamp: new Date()
     };
     
-    await db.collection('status_events').insertOne(eventRecord);
-    
-    // 4. Update Entity Snapshot
-    await db.collection(collection).updateOne(
-      { _id: flexId },
-      { $set: { status: statusData, ...evidence.entityAttachmentSet } }
-    );
+    const entitySet = {
+      status: statusData,
+      ...evidence.entityAttachmentSet,
+      ...(options.entityPatch || {})
+    };
+    if (options.entityPatch && Object.keys(options.entityPatch).length) {
+      const session = db.client?.startSession?.();
+      if (!session) throw createError({ statusCode: 500, message: 'MongoDB transactions are required for combined entity updates' });
+      try {
+        await session.withTransaction(async () => {
+          await db.collection('status_events').insertOne(eventRecord, { session });
+          await db.collection(collection).updateOne({ _id: flexId }, { $set: entitySet }, { session });
+        });
+      } finally {
+        await session.endSession();
+      }
+    } else {
+      await db.collection('status_events').insertOne(eventRecord);
+      await db.collection(collection).updateOne(
+        { _id: flexId },
+        { $set: entitySet }
+      );
+    }
 
     const afterEffects = await runTransitionHooks(
       transition,

@@ -2,8 +2,8 @@
  * v24 DTO factories used by UI lab and lightweight component tests.
  *
  * Factories model API DTOs, not raw MongoDB documents. They keep only
- * canonical blocks (`identity`, `origin`, `status`, `lineage`, `attachments`,
- * `data`, `summary`, `specs`) plus root `_id`.
+ * canonical blocks (`identity`, `origin`, `status`, `lineage`, `relations`,
+ * `provenance`, `attachments`, `data`, `summary`, `specs`) plus root `_id`.
  */
 import { ObjectId } from 'bson';
 import { PERMISSION_TEMPLATES } from '#shared/permission-templates.js';
@@ -39,6 +39,8 @@ const createEntity = ({
   reference,
   state = 'DRAFT',
   lineage = {},
+  relations = {},
+  provenance = {},
   specs = null,
   attachments = {},
   data = {},
@@ -54,6 +56,8 @@ const createEntity = ({
     origin,
     status: origin,
     lineage,
+    relations,
+    provenance,
     specs,
     attachments,
     data,
@@ -182,7 +186,7 @@ export function createMockCassette(overrides = {}) {
       name: 'Cassette Type A',
       slug: 'cassette-type-a',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId, templateId: MOCK_IDS.cassetteTemplateId },
+      lineage: { organizationId: MOCK_IDS.organizationId },
       data: {
         type: 'PARAMETRIC',
         parameters: ['A', 'B', 'C'],
@@ -230,20 +234,24 @@ export function createMockCassetteDesign(overrides = {}) {
       uid: MOCK_IDS.cassetteDesignId,
       name: 'Standard Type A',
       serial: 'CD-FACADE-01',
-      state: 'APPROVED',
-      lineage: { projectId: MOCK_IDS.projectId, templateId: MOCK_IDS.cassetteTemplateId },
-      data: {
-        geometry,
-        parameters,
+      state: 'ACTIVE',
+      lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId },
+      provenance: {
         derivedFrom: {
-          entityType: 'cassette',
-          entityId: MOCK_IDS.cassetteTemplateId,
+          source: {
+            type: 'cassette',
+            id: MOCK_IDS.cassetteTemplateId,
+            revisionId: MOCK_IDS.entityRevisionId
+          },
           scope: 'geometry',
-          revisionId: MOCK_IDS.entityRevisionId,
           revisionNumber: 1,
           contentHash: 'sha256:demo1234567890',
           parameters
         }
+      },
+      data: {
+        geometry,
+        parameters
       }
     }),
     ...overrides
@@ -261,8 +269,7 @@ export function createMockEntityRevision(overrides = {}) {
         cassetteId: MOCK_IDS.cassetteTemplateId
       },
       data: {
-        entityType: 'cassette',
-        entityId: MOCK_IDS.cassetteTemplateId,
+        source: { type: 'cassette', id: MOCK_IDS.cassetteTemplateId },
         scope: 'geometry',
         number: 1,
         contentHash: 'sha256:demo1234567890',
@@ -460,13 +467,11 @@ export function createMockGeometryCapture(overrides = {}) {
         organizationId: MOCK_IDS.organizationId,
         warehouseId: MOCK_IDS.warehouseId
       },
-      specs: { width: 1200, height: 720, area: 0.8172 },
-      attachments: {
-        primary: createAttachmentEntry('CAPTURE_PHOTO', 'capture-photo-demo-001', 'remnant-photo.jpg', {
-          bucketName: 'capturePhotos',
-          mimeType: 'image/jpeg'
-        })
+      relations: {
+        sourcePhoto: { type: 'artifact', id: 'artifact-demo-capture-photo' }
       },
+      specs: { width: 1200, height: 720, area: 0.8172 },
+      attachments: {},
       data: {
         mode: 'REMNANT',
         calibration: { mode: 'knownDimension', knownWidth: 1200 },
@@ -698,10 +703,26 @@ export function createMockArtifact(overrides = {}) {
     ...createEntity({
       uid: 'artifact-demo-layout-dxf',
       name: 'Queue Q-001 - Layout DXF',
-      state: 'GENERATING',
+      state: 'AVAILABLE',
       lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
       attachments: { primary: attachment },
       data: { type: 'LAYOUT_DXF', metadata: { requestedBy: 'ui-lab' } }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockMachine(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: 'machine-system-default',
+      name: 'Default 3000 × 1500 machine',
+      lineage: { scope: 'system', public: true },
+      data: {
+        workingArea: { width: 3000, length: 1500 },
+        boundaryOffset: 0,
+        visibility: { public: true }
+      }
     }),
     ...overrides
   };
