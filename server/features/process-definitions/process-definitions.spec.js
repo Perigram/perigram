@@ -173,6 +173,77 @@ describe('process definitions access fallback', () => {
     });
   });
 
+  it('normalizes legacy status actions when assigning active process roles', async () => {
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-1',
+      identity: { uid: 'process-1', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: {
+        state: 'ACTIVE',
+        userId: 'creator',
+        timestamp: new Date('2026-01-01T00:00:00.000Z'),
+        metadata: { note: 'Process activated' }
+      },
+      data: {
+        schemaVersion: 1,
+        graph: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
+        roles: {
+          role_operator: { id: 'role_operator', label: 'Operator' }
+        },
+        assignments: {},
+        entityProfiles: {
+          queue_profile: {
+            id: 'queue_profile',
+            entityType: 'queue',
+            feature: 'queues',
+            access: { level: 'write', roleIds: ['role_operator'] }
+          }
+        },
+        actions: {
+          send_queue: {
+            id: 'send_queue',
+            actionKind: 'changeStatus',
+            entityType: 'queue',
+            status: { from: 'DRAFT', to: 'SENT' },
+            access: { level: 'write', roleIds: ['role_operator'] }
+          }
+        },
+        services: {},
+        sockets: {},
+        screens: {},
+        compiled: {
+          actions: {
+            send_queue: {
+              actionKind: 'changeStatus',
+              entityType: 'queue'
+            }
+          }
+        }
+      }
+    });
+    processRepository.updateById.mockImplementationOnce(async (id, process) => ({
+      ...process.toJSON(),
+      _id: id
+    }));
+
+    const result = await assignUserToActiveProcessInternal({
+      organizationId: 'org-1',
+      userId: 'user-1',
+      roleIds: ['role_operator'],
+      actorId: 'admin'
+    });
+
+    expect(result.data.actions.send_queue.actionKind).toBe('updateEntity');
+    expect(result.data.compiled.actions.send_queue).toMatchObject({
+      actionKind: 'updateEntity',
+      entityType: 'queue',
+      contracts: {
+        inputs: [expect.objectContaining({ entityType: 'queue' })],
+        outputs: [expect.objectContaining({ entityType: 'queue' })]
+      }
+    });
+  });
+
   it('keeps active team assignments when activating an edited process draft', async () => {
     const draft = {
       _id: 'process-draft',

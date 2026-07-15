@@ -28,6 +28,7 @@ import { toFlexibleId } from '~/server/utils/objectid.js';
 import { hasPermissionGrant, normalizePermissionGrants } from '#shared/access-control.js';
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
+import { normalizeLegacyProcessActions } from './action-migration.js';
 
 export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
@@ -202,6 +203,7 @@ export async function assignUserToActiveProcessInternal({
   if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
 
   const process = new ProcessDefinition(raw);
+  process.data = normalizeLegacyProcessActions(process.data).data;
   const normalizedRoleIds = normalizeRoleIds(roleIds, process.data.roles);
   process.data.assignments = {
     ...(process.data.assignments || {}),
