@@ -670,3 +670,27 @@
       and refreshed the queue row list with =E2E generated design 4=.
     - =node scripts/check-arch.js= passed with the existing non-blocking
       migration inventory.
+
+*** [2026-07-15] Queue composer visible add and legacy row display repair
+
+    Follow-up browser review showed the generated queue composer did have an
+    =Add Entry= action, but it was only a small panel-header control. In the
+    visible cassette grid this was too easy to miss and did not read as the
+    primary interface for adding cassettes/designs to the queue. The same queue
+    also contained an old explicit =entityType: cassette= parametric item, so
+    the row appeared as a raw id when the referenced template was not readable
+    to the process role.
+
+    Corrective implementation:
+    - =QueueEditor= now renders an in-grid =Add Entry= tile in addition to the
+      panel-header action whenever process/generated producers are available.
+    - Queue item resolution now hydrates explicit legacy
+      =entityType: cassette= rows from readable cassette templates while still
+      refusing to reinterpret untyped ids as templates.
+    - =QueueEntryCard= fallback chips now show a localized source type, for
+      example =Cassette: type-...=, instead of an internal
+      =cassette:type-...= string.
+
+    Validation:
+    - Added queue-item helper coverage for explicit legacy cassette-template
+      rows and preserved the no-untyped-template-reinterpretation guard.

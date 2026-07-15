@@ -38,4 +38,15 @@ describe('queue item helpers', () => {
 
     expect(canonicalQueueItem({ id: 'template-1' }, { cassettes })).toBeNull();
   });
+
+  it('resolves explicit legacy cassette-template queue items', () => {
+    const cassettes = [{ _id: 'template-1', data: { parameters: ['A'] } }];
+    const item = { id: 'template-1', entityType: 'cassette', type: 'PARAMETRIC' };
+
+    expect(resolveQueueItemEntity(item, { cassettes })?._id).toBe('template-1');
+    expect(canonicalQueueItem(item, { cassettes })).toMatchObject({
+      id: 'template-1',
+      entityType: 'cassette'
+    });
+  });
 });

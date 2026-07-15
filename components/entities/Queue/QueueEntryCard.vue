@@ -71,6 +71,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
@@ -89,7 +90,13 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update-quantity', 'update-dimension', 'remove']);
+const { t } = useI18n();
 
 const sourceId = computed(() => props.entry.id);
-const sourceLabel = computed(() => `${props.entry.entityType || 'cassette_design'}:${sourceId.value || 'unknown'}`);
+const sourceTypeLabel = computed(() => {
+  if (props.entry.entityType === 'cassette') return t('entities.cassette');
+  if (props.entry.entityType === 'cassette_design') return t('entities.cassetteDesign');
+  return props.entry.entityType || t('entities.cassetteDesign');
+});
+const sourceLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value || t('common.unknown')}`);
 </script>
