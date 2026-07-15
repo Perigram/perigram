@@ -35,12 +35,12 @@ export async function upsertSystemDefault(doc) {
   const db = await connectDB();
   const { _id, ...mutable } = doc;
   await db.collection(COLLECTION).updateOne(
-    { 'data.systemKey': doc.data.systemKey },
+    { _id: toFlexibleId(_id) },
     {
       $set: mutable,
       $setOnInsert: { _id }
     },
     { upsert: true }
   );
-  return await db.collection(COLLECTION).findOne({ 'data.systemKey': doc.data.systemKey });
+  return await findById(_id);
 }
