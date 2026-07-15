@@ -297,6 +297,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     const entityType = resolveActionEntityType(action);
     if (entityType === 'cassette_design' && action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
       const created = await executeBakeCassetteDesign(action, data, organizationId, auth, process.data, entities);
+      await appendProducedCassetteDesignToQueue({ action, data, entities, design: created, auth });
       await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
       return created;
     }
@@ -311,6 +312,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
         data.layerMapping || null,
         data.parameters || null
       );
+      await appendProducedCassetteDesignToQueue({ action, data, entities, design: imported.design, auth });
       await publishActionEntityEvent(auth, entityType, imported.design, 'created', 'process-create');
       return imported.design;
     }
@@ -412,6 +414,47 @@ function createActionPayload(action = {}, data = {}, entities = {}, parentContex
     }
   }
   return normalizeCreationPayload(payload);
+}
+
+async function appendProducedCassetteDesignToQueue({ action = {}, data = {}, entities = {}, design = null, auth = {} } = {}) {
+  if (!data?.queueAppend) return null;
+  if (resolveActionEntityType(action) !== 'cassette_design') {
+    throw createError({ statusCode: 400, message: 'Only cassette design producer actions can append queue items' });
+  }
+
+  const queueId = entityInputId(entities.queue);
+  if (!queueId) throw createError({ statusCode: 400, message: 'Queue context is required to append produced cassette design' });
+
+  const designId = entityInputId(design);
+  if (!designId) throw createError({ statusCode: 500, message: 'Produced cassette design has no id' });
+
+  const queueService = getAppRegistry().getEntityService('queue');
+  if (!queueService?.getById || !queueService?.processUpdate) {
+    throw createError({ statusCode: 500, message: 'Queue service cannot persist process queue items' });
+  }
+
+  const appendAuth = createQueueAppendExecutionAuth(auth, action);
+  const queueResult = await queueService.getById(queueId, auth.userId, auth.organizationId, auth.role, appendAuth);
+  const queue = queueResult?.toJSON ? queueResult.toJSON() : queueResult;
+  if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+
+  const append = data.queueAppend && typeof data.queueAppend === 'object' ? data.queueAppend : {};
+  const existingItems = Array.isArray(queue.data?.job?.items) ? queue.data.job.items : [];
+  const item = {
+    type: append.type || (Object.prototype.hasOwnProperty.call(design.data?.parameters || {}, 'T') ? 'PARAMETRIC' : 'STATIC'),
+    entityType: 'cassette_design',
+    id: designId,
+    quantity: Math.max(1, Number(append.quantity || 1)),
+    parameters: append.parameters && typeof append.parameters === 'object'
+      ? append.parameters
+      : { ...(design.data?.parameters || {}) }
+  };
+
+  const updated = await queueService.processUpdate(queueId, {
+    'data.job.items': [...existingItems, item]
+  }, appendAuth);
+  await publishActionEntityEvent(auth, 'queue', updated || { _id: queueId }, 'updated', 'process-queue-append');
+  return updated;
 }
 
 async function resolveParentCreationContext(action = {}, entities = {}, auth = {}) {
@@ -788,6 +831,21 @@ function createActionExecutionAuth(auth = {}, action = {}) {
   }
   return {
     ...auth,
+    effectivePermissions: permissions
+  };
+}
+
+function createQueueAppendExecutionAuth(auth = {}, action = {}) {
+  const executionAuth = createActionExecutionAuth(auth, action);
+  const permissions = {
+    ...(executionAuth.effectivePermissions || {})
+  };
+  appendExecutionGrant(permissions, 'queues', {
+    level: 'write',
+    actions: { update: true, edit: true }
+  });
+  return {
+    ...executionAuth,
     effectivePermissions: permissions
   };
 }

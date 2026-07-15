@@ -82,11 +82,8 @@ const resolvedActions = computed(() => resolveGeneratedEntityActions({
   entityType: props.entityType,
   excludedActionIds: props.excludedActions
 }));
-const screenScopedActions = computed(() => props.actions
-  .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
-  .filter(Boolean));
 const queueProducerActions = computed(() => props.entityType === 'queue'
-  ? screenScopedActions.value.filter(action => actionProducesEntityType(action, 'cassette_design'))
+  ? authStore.actionManifest.filter(action => actionProducesEntityType(action, 'cassette_design'))
   : []);
 const queueDetailActions = computed(() => uniqueActions([...resolvedActions.value, ...queueProducerActions.value]));
 const headerActionIds = computed(() => resolvedActions.value

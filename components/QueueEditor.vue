@@ -198,7 +198,7 @@
                         <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
                         <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
                         <Button
-                            v-if="canEditQueue && producerMenuItems.length"
+                            v-if="canAddQueueEntry && producerMenuItems.length"
                             :label="$t('queues.addEntry')"
                             icon="pi pi-plus"
                             text
@@ -461,10 +461,11 @@ const canEditQueue = computed(() => {
 });
 const cassetteDesignProducerActions = computed(() => props.processActions.filter(action => actionProducesEntityType(action, 'cassette_design')));
 const readableDesignSource = computed(() => authStore.hasPermission('cassette_designs', 'read'));
+const canAddQueueEntry = computed(() => canEditQueue.value || (isProcessMode.value && cassetteDesignProducerActions.value.length > 0));
 const availableProducers = computed(() => {
     if (isProcessMode.value) {
         return [
-            ...(readableDesignSource.value ? [systemProducer('selectExistingCassetteDesign')] : []),
+            ...(canEditQueue.value && readableDesignSource.value ? [systemProducer('selectExistingCassetteDesign')] : []),
             ...cassetteDesignProducerActions.value.map(action => ({
                 id: action.actionId || action.id,
                 actionId: action.actionId || action.id,
@@ -637,16 +638,33 @@ async function executeSelectedProducer() {
             produced = cassetteDesigns.value.find(design => design._id?.toString() === producerValues.value.designId?.toString());
         } else if (selectedProducer.value.actionId) {
             const data = producerData();
+            const request = buildProducerActionRequest({
+                action: selectedProducer.value.action,
+                fields: producerFields.value,
+                values: producerValues.value,
+                data: {
+                    ...data,
+                    ...(isProcessMode.value ? { queueAppend: { quantity: producerQuantity.value } } : {})
+                },
+                contextEntities: { queue: props.queue, project: project.value }
+            });
+            request.entities = {
+                ...(request.entities || {}),
+                queue: props.queue._id || props.queue.identity?.uid,
+                ...(project.value?._id ? { project: project.value._id } : {})
+            };
             produced = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(selectedProducer.value.actionId)}/execute`, {
                 method: 'POST',
-                body: buildProducerActionRequest({
-                    action: selectedProducer.value.action,
-                    fields: producerFields.value,
-                    values: producerValues.value,
-                    data,
-                    contextEntities: { queue: props.queue, project: project.value }
-                })
+                body: request
             });
+            if (isProcessMode.value) {
+                const design = await resolveProducedDesign(produced);
+                if (!design) throw new Error(t('queues.invalidCassetteEntry'));
+                await loadQueueData();
+                emit('updated');
+                showAddDialog.value = false;
+                return;
+            }
         } else if (selectedProducer.value.constructionMode === 'bakeCassetteDesignFromTemplate') {
             const data = producerData();
             produced = await $fetch(`/api/cassettes/${encodeURIComponent(data.templateId)}/designs`, {
