@@ -59,7 +59,10 @@ function canReadRevision(userPermissions, revision) {
 
 export function derivedFromRevision(revision, parameters = {}) {
   const data = revision?.data || revision || {};
-  const source = data.source || {};
+  const source = data.source || {
+    type: data.entityType,
+    id: data.entityId
+  };
   return createProvenance(
     createEntityRef(source.type, source.id, revision?._id || data.revisionId || data.id),
     {

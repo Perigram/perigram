@@ -42,4 +42,24 @@ describe('entity revision helpers', () => {
       parameters: { A: 500 }
     });
   });
+
+  it('builds derivedFrom provenance from legacy revision source fields', () => {
+    const revision = {
+      _id: 'rev-legacy',
+      data: {
+        entityType: 'cassette',
+        entityId: 'cassette-legacy',
+        scope: 'geometry',
+        number: 2,
+        contentHash: 'sha256:legacy'
+      }
+    };
+
+    expect(derivedFromRevision(revision)).toMatchObject({
+      source: { type: 'cassette', id: 'cassette-legacy', revisionId: 'rev-legacy' },
+      scope: 'geometry',
+      revisionNumber: 2,
+      contentHash: 'sha256:legacy'
+    });
+  });
 });
