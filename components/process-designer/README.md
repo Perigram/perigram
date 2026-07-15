@@ -46,10 +46,10 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   Update actions derive promptable editor fields from selected domain field
   policy entries, so a manual modify action collects values for concrete fields
   instead of free-form paths before it calls the active process action runtime.
-  Status-change actions use the target status definition label, or the target
-  state id when no label exists, as the node's primary title. Generic palette
-  labels such as `status` or stale `Action` values are ignored in this mode so
-  the canvas reads as the actual transition being authored.
+  Status-mutating update actions use the target status definition label, or the
+  target state id when no label exists, as the node's primary title. Generic
+  palette labels such as `status` or stale `Action` values are ignored in this
+  mode so the canvas reads as the actual transition being authored.
 - `ProcessStatusDefinitionNode.vue` represents an entity-agnostic reusable
   status value for the same canvas. The node renders the same PrimeVue status
   tag shape that the resulting status uses, and its inspector edits status id,
@@ -117,10 +117,10 @@ which runs automatically from another node's event edge. Service identities
 remain service access records, not manual trigger choices. Multi-socket command
 nodes derive handle ids from the socket contract.
 
-Status-change action grants edit access for the exact entity type carried by
-the incoming data edge, not generic entity access and not status access. During
-node sync the designer derives the entity type and existing status from the
-wired source socket, stores `action.access.statusFrom` and
+Status-mutating update action grants edit access for the exact entity type
+carried by the incoming data edge, not generic entity access and not status
+access. During node sync the designer derives the entity type and existing
+status from the wired source socket, stores `action.access.statusFrom` and
 `action.access.statusTo`, carries that same entity type to the output socket,
 and labels both data sockets with the concrete type. By default the node
 inherits role-level grants from the incoming entity-producing node; editing
@@ -173,10 +173,10 @@ polymorphic. For example, `generateAttachment` presents one `Attachment source`
 socket with `attachments.generate` capability and accepted source types instead
 of separate `sheet_design` and `nesting_run` sockets.
 
-New process behavior should use `createEntity`, `updateEntity`, `changeStatus`,
-`runCommand`, status-definition nodes, value-input nodes, and inbound/outbound
-socket nodes. Archive is represented as a `changeStatus`
-action targeting an archive status, not as a separate node type. Entity naming
+New process behavior should use `createEntity`, `updateEntity`, `runCommand`,
+status-definition nodes, value-input nodes, and inbound/outbound socket nodes.
+Archive is represented as an `updateEntity` action with a status target, not as
+a separate node type. Entity naming
 is a construction input: generated create actions prompt for the domain
 contract's name field or consume a connected block/value default. A block node
 wired to a named construction socket uses that socket's contract path (`name`,

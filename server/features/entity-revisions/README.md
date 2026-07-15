@@ -38,8 +38,8 @@ data.contentHash)`. Re-saving identical content reuses the existing revision.
   content and stores the source snapshot.
 - `getCurrentForEntity()` returns the latest revision for a source entity and
   scope.
-- `derivedFromRevision()` builds the provenance block stored on derived entities
-  such as `cassette_design.data.derivedFrom`.
+- `derivedFromRevision()` builds the canonical provenance fact stored on
+  derived entities such as `cassette_design.provenance.derivedFrom`.
 - Sheet designs use the same `geometry` scope. Their snapshot contains the
   nesting result/preview, cassette placement counts, nesting parameters, and
   sheet specs needed to reproduce the saved layout.
@@ -52,5 +52,6 @@ legacy cassette/project fallbacks for existing cassette-derived records.
 ## Related
 
 - [cassettes](../cassettes/README.md) - owns current geometry revision pointers.
-- [cassette-designs](../cassette-designs/README.md) - stores derivation refs.
+- [cassette-designs](../cassette-designs/README.md) - stores derived-from
+  provenance refs.
 - [sheet-designs](../sheet-designs/README.md) - stores revision-backed layouts.

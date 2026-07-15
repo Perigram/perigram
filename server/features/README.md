@@ -27,7 +27,7 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
+| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `machines`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
 | Capability modules | `billing`, `config-bot`, `entity-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
 
 ---
@@ -99,6 +99,7 @@ services must not self-register through hidden globals.
 | `users` | User accounts | `organizationId` (via memberships) |
 | `warehouses` | Material storage locations | `organizationId` |
 | `catalogs` | Material specifications | `organizationId` |
+| `machines` | CNC working-area presets | `organizationId` for custom machines; system machines use public system lineage |
 | `pen-templates` | Drawing pen/stroke template | `organizationId` or `userId` |
 | `process-definitions` | Organization process graph and compiled runtime contract | `organizationId` |
 | `profile-templates` | Reusable OCCS profile sketches for cassette hangers/extrusions | `organizationId` or `userId` |

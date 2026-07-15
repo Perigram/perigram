@@ -31,7 +31,10 @@ kinds declare how a file should be stored and previewed.
 
 The `solveNesting` command accepts virtual-sheet parameters or warehouse
 material context (`materialMode: WAREHOUSE`, `inventoryItems`, and normalized
-`materialPool`). `solveNesting` and the `nesting.solve` task produce
+`materialPool`), plus a selected machine and tool profile. The machine supplies
+the working-area preset and boundary offset; the selected material source still
+supplies the actual sheet size/thickness, and the tool profile supplies kerf.
+`solveNesting` and the `nesting.solve` task produce
 `nesting_run` and `sheet_design` entities only. DXF/SVG/PDF files are requested
 later through the artifacts service and `AttachmentKind` contracts, not as
 primary nesting-run outputs.
@@ -68,6 +71,10 @@ status names:
 Nesting run acceptance still declares a synchronous preflight hook and a
 synchronous application hook, but the hook now emits declared effects that the
 status runtime executes after the status snapshot is written.
+Machine entities store CNC working-area presets. The domain ships a public
+system default through the machines feature, while organization-owned machines
+use normal `machines` grants for writes/admin changes.
+
 Material pile and remnant workflows are also declared here: material piles use
 `STOCKED -> DEPLETED`, while remnants use `AVAILABLE -> USED`. `ui.js` contains
 matching status labels/icons so live cards and framework/UI-lab previews use the

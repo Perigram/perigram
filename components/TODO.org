@@ -13,7 +13,7 @@
      Docs updated: components/README.md, components/shared/README.md, components/entities/Cassette/README.md, components/entities/CassetteTemplate/README.md, components/entities/CassetteDesign/README.md, server/features/cassette-designs/README.md
      Notes:
      - Cassette and cassette-template cards no longer surface parameter counts because those entities own symbolic template definitions.
-     - Cassette-design generated surfaces render exact materialized parameter values from `data.parameters` as `A=1200, B=400`, with `data.derivedFrom.parameters` as a display fallback.
+     - Cassette-design generated surfaces render exact materialized parameter values from `data.parameters` as `A=1200, B=400`, with `provenance.derivedFrom.parameters` as a display fallback.
      - Added shared `parameterMap` formatting so generated screens keep using the domain field contract and `DataBlock`.
      - Regenerated `framework.manifest.json`; the generated snapshot also includes existing library metadata already present in the domain registry.
 

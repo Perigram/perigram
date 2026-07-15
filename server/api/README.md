@@ -31,6 +31,9 @@ Routes are grouped into sub-directories corresponding to features:
 - `libraries/`: Authenticated cassette library CRUD. Libraries are
   organization-scoped containers with material data; cassettes created under a
   library persist `lineage.libraryId`.
+- `machines/`: Authenticated machine preset CRUD. The collection returns the
+  immutable public `3000 x 1500` system default plus organization-owned custom
+  machines readable by the caller.
 - `admin/config-bot/`: Admin knowledge reindex route for ConfigBot.
 - `admin/tasks/`: Authenticated task definition and run listing for
   `task_runs`.

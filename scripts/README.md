@@ -24,12 +24,29 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
+- `server/scripts/migrate-process-update-actions.js`: Rewrites legacy
+  `changeStatus` process actions into canonical `updateEntity` actions with a
+  status mutation input and recompiles active runtime contracts. Run before
+  relying on the unified process action protocol.
 - `server/scripts/migrate-process-command-output-statuses.js`: Active-process
   data migration for command outputs. It reads graph edges from `runCommand`
-  action nodes into downstream `changeStatus` nodes, builds proper process
-  status snapshots from the compiled workflow, inserts status events, and
-  updates existing output entities that are outside the active process status
-  window. Supports `--dry-run`.
+  action nodes into downstream status-mutating `updateEntity` nodes, builds
+  proper process status snapshots from the compiled workflow, inserts status
+  events, and updates existing output entities that are outside the active
+  process status window. Supports `--dry-run`.
+- `server/scripts/migrate-entity-reference-contracts.js`: Moves legacy entity
+  reference fields into canonical `relations` and `provenance` blocks,
+  including cassette-design derived-from data and project library relations.
+- `server/scripts/migrate-queue-nesting-contracts.js`: Converts legacy queue
+  nesting params/items into the current `data.nestingSettings` and
+  `cassette_design` job-item contract, seeding the default machine id where
+  needed.
+- `server/scripts/migrate-sheet-design-compositions.js`: Backfills sheet-design
+  composition metadata so identical cassette-design multisets collapse into one
+  sheet design per run.
+- `server/scripts/migrate-artifact-sources.js`: Backfills artifact source
+  relations and cassette upload provenance for records created before artifact
+  sources were canonical entity refs.
 - `server/scripts/migrate-process-compiled-runtime.js`: Recompiles stored
   `data.compiled` contracts after process compiler changes. Use this after
   generated-screen synthesis changes so active organizations drop stale

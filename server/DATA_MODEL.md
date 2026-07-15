@@ -27,7 +27,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `data.derivedFrom` | String | derived from field |
+| `provenance.derivedFrom` | Object | source entity revision provenance |
 | `data.geometry` | String | geometry field |
 | `data.layerData` | String | layer data field |
 | `data.parameters` | Array | parameters field |
@@ -516,4 +516,3 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
-

@@ -40,12 +40,13 @@
 
    Note that there is Status object that handles some already
 
-* REVIEW Architecture repair execution plan
+* DONE Architecture repair execution plan
   :PROPERTIES:
   :ID: architecture-repair-execution-plan-2026-07-15
   :END:
 
-  Review status: decision-complete plan; implementation has not begun.
+  Review status: blocking relations/provenance feedback incorporated;
+  implementation completed and validated on 2026-07-15.
   This plan replaces the two reverted implementation attempts and treats the
   current =local= tree as the only implementation baseline.
 
@@ -66,11 +67,21 @@
 
 *** Entity relations and containment
 
-    - Add a canonical =relations= entity block. Each relation entry contains
-      one or more ={ entityType, entityId, revisionId? }= references.
+    - Extend =@cutkit/core= with one canonical =EntityRef= value:
+      ={ type, id, revisionId? }=. The optional revision ID identifies an
+      immutable =entity_revision= for that same source entity. Runtime results,
+      process ports, relations, and provenance use this exact value shape.
+    - Add canonical =relations= and =provenance= entity blocks. A relation entry
+      contains one =EntityRef= or a cardinality-declared list of =EntityRef=
+      values. A provenance entry contains a =source: EntityRef= plus immutable
+      derivation facts such as scope, revision number, content hash, source
+      status, and parameters.
     - Use =relations= for non-owning links such as a project using a cassette
       library. Relations must not affect ownership, access ancestry, top-level
       list placement, or breadcrumbs.
+    - Use =provenance= for immutable derivation evidence and for an optional
+      exact immediate-parent revision captured at child creation. Provenance is
+      never an editable relation and never changes containment or access.
     - Reserve =lineage= for containment and access ancestry.
     - Replace =cncSummaries= as the implicit parent/child registry with explicit
       containment declarations containing parent type, child type, lineage key,
@@ -81,31 +92,19 @@
 *** Revision-aware references
 
     - Keep scalar =lineage.<parentType>Id= fields for access and queries.
-    - Add optional =lineage.<parentType>RevisionId= fields when a child pins an
-      immutable parent revision. Do not encode composite IDs with delimiters.
-    - Use the same optional =revisionId= on ordinary relation references.
+    - When child creation pins the immediate parent revision, store
+      =provenance.parent.source = { type, id, revisionId }=. The =type= and =id=
+      must match the declared containment parent and the scalar lineage parent
+      ID. Never add revision keys to =lineage= and never encode composite IDs
+      with delimiters.
+    - Ordinary relations may independently pin a revision through the same
+      optional =EntityRef.revisionId= field.
     - No revision means follow the entity; a revision means reproduce the
       relationship against that exact immutable snapshot.
-
-*** Review feedback: keep relations and provenance separate (blocking)
-
-    - =relations= and =provenance= must be separate canonical blocks. Relations
-      describe current non-owning associations that may be traversed or edited,
-      while provenance records immutable derivation evidence needed to
-      reproduce or audit how an entity was produced.
-    - Do not migrate derivation records such as cassette-design
-      =derivedFrom= data into =relations=. Provenance may reuse the canonical
-      entity-reference value shape, including an optional revision ID, but it
-      retains derivation facts such as scope, parameters, and content hash and
-      is not an ordinary related-entity edge.
-    - Neither relations nor provenance affect containment, access ancestry,
-      top-level placement, or breadcrumbs. =lineage= remains the cumulative map
-      of ancestor entity IDs only; a revision pin must not be stored as a
-      =lineage.*RevisionId= access field.
-    - Define one shared entity-reference shape for relations, provenance, and
-      runtime results before implementation. Do not introduce a second
-      incompatible ={ entityType, entityId }= shape beside the current core
-      ={ type, id }= contract.
+    - Migrate cassette-design derivation from =data.derivedFrom= to
+      =provenance.derivedFrom= and entity-revision source metadata from sibling
+      =entityType/entityId= fields to =data.source: { type, id }=. Do not retain
+      dual-read compatibility paths after migration.
 
 *** Machine, tool, material, and queue settings
 
@@ -189,8 +188,8 @@
 *** Tasks 4 and 6: hierarchy and non-owning links
 
     - Make parent-bound creation require the parent, inherit complete ancestry,
-      optionally pin the configured parent revision, and publish the child via
-      normal entity events.
+      optionally record =provenance.parent= with the configured parent revision,
+      and publish the child via normal entity events.
     - Generated top-level sources exclude rows carrying a declared parent
       lineage key. The same entity type may still have both root records and
       child records.
@@ -203,16 +202,16 @@
     - Make related-entity traversal nodes select a declared relation key and
       cardinality rather than only an unconstrained target type.
 
-*** Task 5: revision-pinned lineage and relations
+*** Task 5: revision-pinned containment evidence and relations
 
-    - Extend lineage construction helpers with optional parent revision scope.
-      When configured, creation resolves the parent's current immutable revision
-      and stores its ID beside the scalar parent ID.
+    - Keep lineage construction unchanged as the cumulative ancestor-ID map.
+      When configured, parent-bound creation resolves the parent's current
+      immutable revision and records it in =provenance.parent.source=.
     - Expose revision pinning in process authoring and display pinned revisions
       through shared revision/entity reference UI.
-    - Move existing ad hoc template/provenance links to canonical relations with
-      revision IDs while retaining genuine derivation facts such as parameters
-      and content hash in provenance data.
+    - Move existing ad hoc derivation records to canonical provenance without
+      turning them into relations. Migrate editable non-owning links to canonical
+      relations separately.
 
 *** Task 7: composition-based sheet designs and sheet twins
 
@@ -261,8 +260,9 @@
       entity field policy.
     - Execute combined mutations atomically: resolve graph values, validate
       field policy/access/relation/transition contracts, persist allowed field
-      changes and the Status snapshot in one transaction, then write history
-      and publish invalidation after success.
+      changes plus the Status-engine snapshot/history in one Mongo transaction,
+      and publish invalidation only after commit. Status is never patched as
+      ordinary entity data.
     - Repair block algebra so entity decomposition emits every canonical block,
       field readers consume one typed block, block composers assemble typed
       block patches, and update actions assemble the final entity patch from
@@ -289,8 +289,10 @@
    - Add a dry-run/apply migration for artifact records backing existing
      geometry-capture photos and DXF uploads, then replace those consumers with
      artifact relations.
-   - Migrate ad hoc template/provenance links, explicit containment fields, and
-     optional lineage revision IDs.
+   - Migrate =data.derivedFrom= records into canonical provenance,
+     =entity_revision.data.entityType/entityId= into =data.source=, editable
+     non-owning links into relations, and any revision-like lineage fields into
+     =provenance.parent=. Remove the old shapes after apply.
    - Migrate =changeStatus= process actions to unified updates and recompile all
      active process contracts before removing the old compiled shape.
    - Collapse existing run layouts by cassette composition, rewrite run/output
@@ -312,7 +314,8 @@
 
     - Root and child records of the same type route to the correct generated
       source.
-    - Child creation inherits ancestry and an optional revision pin.
+    - Child creation inherits ancestry and optionally records an exact parent
+      revision in provenance without adding a lineage revision field.
     - Linked libraries do not become children or change access lineage.
     - Child regions, root filters, relation traversal, TraceChain, and route
       breadcrumbs use the same declarations.
@@ -375,3 +378,39 @@
    - =T= is the reserved material-thickness parameter and is material-bound.
    - Upload/camera creation produces an artifact before downstream processing.
    - Active-process queue inputs come only from the compiled process manifest.
+
+** Agent Notes
+
+*** [2026-07-15] Architecture repair implementation completed
+
+    Files changed: core DTO blocks, CNC domain contracts, process compiler and
+    runtime, process designer/generator components, queue/sheet/nesting/cassette
+    services, artifacts, machines, migrations, tests, framework manifest, and
+    related READMEs.
+
+    Docs updated: =server/README.md=, =server/api/README.md=,
+    =server/features/README.md=,
+    =server/features/machines/README.md=, queue/cassette/provenance/process
+    feature READMEs, component/process/composable/script docs, and TODO notes.
+
+    Key decisions:
+    - Canonical references are ={ type, id, revisionId? }=.
+    - =lineage= is containment/access ancestry only; ordinary links use
+      =relations=, and derivation/parent snapshots use =provenance=.
+    - Equal sheet designs collapse by exact cassette-design/count composition
+      only, without geometry comparison.
+    - Queue job items reference =cassette_design= entities only.
+    - Queue nesting uses machine/tool/material snapshots; tool kerf is the
+      only clearance value, and material thickness owns OCCS =T=.
+    - Process status mutation is unified under =updateEntity=; legacy
+      =changeStatus= records are migrated.
+    - Production run selection is gated by workflow intent/material/output
+      preflight, not hardcoded queue statuses.
+
+    Validation run:
+    - =node scripts/check-arch.js= passed.
+    - =npm run framework:validate= passed.
+    - =npm run framework:write-manifest= regenerated
+      =framework.manifest.json=.
+    - Focused Vitest sweep passed: 32 files, 288 tests.
+    - Changed Vue SFC parse check passed: 23 files.

@@ -47,7 +47,7 @@ or returns a `cassette_design` for the selected template.
 - Parametric templates are evaluated with the supplied concrete parameter map,
   generate a layer-aware DXF into the `cassettes` GridFS bucket, and create a
   design with `data.polygonParts`, `data.layerData`, `data.geometry.dxfId`, and
-  `data.derivedFrom` pointing to the source geometry revision.
+  `provenance.derivedFrom` pointing to the source geometry revision.
 - Standard uploaded templates already create their initial base design during
   upload. The route returns that existing design when available instead of
   duplicating the uploaded DXF.
@@ -56,7 +56,7 @@ The same constructor is used by process `createEntity` actions whose
 construction mode is `bakeCassetteDesignFromTemplate`. Process execution passes
 the prompted template id, parameter object, and optional design name into
 `createDesignFromTemplate()` so a process-created `cassette_design` has the
-same baked geometry, `data.derivedFrom`, DXF/gridfs references, and editor
+same baked geometry, `provenance.derivedFrom`, DXF/gridfs references, and editor
 contract as a design created from the cassette UI. Process runtime status is
 applied after construction by the process-definition service. Parametric
 templates must be construction-ready before this path runs: OCCS templates need

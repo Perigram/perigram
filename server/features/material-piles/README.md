@@ -20,10 +20,6 @@ The "Source of Truth" for physical material inventory. Replaces the legacy multi
   the pile has `lineage.warehouseId`, and performs a system-authored state
   change to `DEPLETED` when finished. Counts must be positive whole-sheet
   values.
-- `allocateSheets()`: Compatibility allocation helper used by tests/legacy
-  callers; increments `data.stock.used`, appends an `ALLOCATION` movement, and
-  returns placeholder sheet allocations. Counts must be positive whole-sheet
-  values.
 - `updateStatus()`: Standardized state transitions with audit trail/notes.
 - `create()`: Standardized block initialization for manual warehouse stock.
   It requires warehouse, catalog, and color lineage, generates a serial when

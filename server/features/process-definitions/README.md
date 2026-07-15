@@ -65,7 +65,7 @@ record is created, create actions apply `action.status.to` through the status
 runtime, treating it as the process initial state for that new record rather
 than a transition from the feature service default. When the compiled action
 status includes process-authored `label`, `color`/`severity`, or `icon`
-metadata, create and change-status execution stores that display contract under
+metadata, create and status-mutating update execution stores that display contract under
 `status.metadata.display` so generated screens and shared entity cards render
 the actual process status badge instead of falling back to global raw-state
 labels.
@@ -121,10 +121,11 @@ queue job, while queue job edits still require the separate `queues:write`
 entity grant. A queue write grant alone does not expose the command action, and
 a command action grant does not expose queue mutation controls.
 When a synchronous run-command action returns entity refs and the visual graph
-wires a typed output handle into a downstream `changeStatus` node, execution
-applies that target process status to each returned entity through the status
-runtime. Async command results that include task/job refs are not projected at
-command-return time; the task completion boundary owns final output status and
+wires a typed output handle into a downstream status-mutating `updateEntity`
+node, execution applies that target process status to each returned entity
+through the status runtime. Async command results that include task/job refs
+are not projected at command-return time; the task completion boundary owns
+final output status and
 child-output linking. This prevents commands such as `solveNesting` from
 moving a `nesting_run` out of its solver state before the `nesting.solve` task
 can apply the domain completion intent and attach generated `sheet_design`
@@ -132,21 +133,21 @@ records. The migration script
 `server/scripts/migrate-process-command-output-statuses.js` applies the same
 graph-derived status projection to existing active-process command outputs; it
 must not hardcode status names.
-Process create, update, change-status, and command-output status mutations
-publish typed invalidation events through `server/features/entity-events` after
-their canonical mutation succeeds. Generated screens consume those events
-through the shared browser-local entity sync contract and then reload their
-normal sources; process actions do not broadcast DTO replicas or bypass entity
-read access.
+Process create, update, status-mutating update, and command-output status
+mutations publish typed invalidation events through
+`server/features/entity-events` after their canonical mutation succeeds.
+Generated screens consume those events through the shared browser-local entity
+sync contract and then reload their normal sources; process actions do not
+broadcast DTO replicas or bypass entity read access.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.
-Compiled process access is windowed by graph state. Status-change nodes do not
-append permanent grants; they inherit the incoming entity access until edited,
-then replace the target-status role set with the node's selected grants. Parent
-lineage scopes are preserved by the compiler, so child actions created from a
-scoped parent branch emit lineage-scoped grants such as `scope.projectId`
-instead of global child-entity permissions.
+Compiled process access is windowed by graph state. Status-mutating update
+nodes do not append permanent grants; they inherit the incoming entity access
+until edited, then replace the target-status role set with the node's selected
+grants. Parent lineage scopes are preserved by the compiler, so child actions
+created from a scoped parent branch emit lineage-scoped grants such as
+`scope.projectId` instead of global child-entity permissions.
 
 Socket projection is exposed as a runtime operation for outbound sockets. The
 socket API loads the source entity through the app registry, enforces read
