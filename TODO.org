@@ -694,3 +694,9 @@
     Validation:
     - Added queue-item helper coverage for explicit legacy cassette-template
       rows and preserved the no-untyped-template-reinterpretation guard.
+    - Vue SFC parse check for =components/QueueEditor.vue= and
+      =components/entities/Queue/QueueEntryCard.vue= passed.
+    - Playwright against
+      =/screens/auto_queue_detail?entityId=q-EI1Vtn51= showed both the header
+      =Add Entry= action and the new in-grid =Add Entry= tile, with the legacy
+      explicit cassette row rendered as =Cassette: type-2-o3rCZZ=.
