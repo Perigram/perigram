@@ -568,3 +568,22 @@
       =outputs= shapes was added.
     - Queue item headers now render the hydrated cassette-design identity or a
       typed id chip, not an inline relation card.
+
+*** [2026-07-15] Existing cassette-design source append repair
+
+    Follow-up audit found the previous repair still left one Task 3 source
+    incomplete: process-scoped users could run generated cassette-design
+    producer actions, but selecting an existing readable =cassette_design=
+    still required raw =queues:write= and therefore did not satisfy the
+    readable entity-source path.
+
+    Corrective implementation:
+    - Added an active-process queue item endpoint for existing design sources.
+      It loads the readable queue and readable cassette design through their
+      owning feature services, then appends the canonical queue item through
+      queue =processUpdate()= with a narrow request-local queue write grant.
+    - =QueueEditor= now shows the existing-design source in process mode when
+      the user can read cassette designs, and posts that selection to the
+      active-process queue item endpoint before refreshing queue data.
+    - Updated stale queue UI docs that still described screen-scoped producers
+      and inline relation-card row headers.

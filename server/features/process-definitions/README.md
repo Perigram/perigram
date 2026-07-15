@@ -153,6 +153,15 @@ mutations publish typed invalidation events through
 Generated screens consume those events through the shared browser-local entity
 sync contract and then reload their normal sources; process actions do not
 broadcast DTO replicas or bypass entity read access.
+Generated queue composition has one additional active-process boundary for
+existing cassette-design sources. `POST
+/api/process-definitions/active/queues/:id/items` requires an active process,
+loads the queue through the queue feature, loads the selected cassette design
+through the cassette-design feature, checks read access for both, and then
+appends the canonical `data.job.items[]` row through queue `processUpdate()`
+with a narrow request-local queue write grant. It does not expose arbitrary
+queue patching and is separate from process producer actions that create a new
+`cassette_design` before appending it.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.
