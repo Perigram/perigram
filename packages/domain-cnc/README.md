@@ -125,6 +125,10 @@ unnamed shells.
 prompted `name`, a source `cassette` template, and typed `cassetteParameters`.
 The frontend must derive those parameter controls from the chosen cassette's
 OCCS definition instead of asking users to enter a raw object string.
+`producers.js` declares source categories that can provide derived entities to
+workspaces, including queue cassette-design composition. Queue UI resolves
+those domain producers and binds matching process actions at runtime instead
+of hardcoding page-local source buttons.
 `entity-create-inputs.js` projects those construction contracts into
 process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an

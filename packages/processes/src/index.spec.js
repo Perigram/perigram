@@ -129,6 +129,39 @@ const domain = {
 };
 
 describe('@cutkit/processes compiler', () => {
+  it('normalizes legacy changeStatus actions at the compiler boundary', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        operator: { id: 'operator' }
+      },
+      entityProfiles: {
+        queue: {
+          id: 'queue',
+          entityType: 'queue',
+          lifecycle: { mode: 'defaultCreated' }
+        }
+      },
+      actions: {
+        send_queue: {
+          id: 'send_queue',
+          actionKind: 'changeStatus',
+          entityType: 'queue',
+          status: { from: 'DRAFT', to: 'SENT' },
+          access: { roleIds: ['operator'], level: 'write' }
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.send_queue.actionKind).toBe('updateEntity');
+    expect(compiled.actions.send_queue.access).toMatchObject({
+      statusFrom: 'DRAFT',
+      statusTo: 'SENT'
+    });
+    expect(compiled.actions.send_queue.contracts.outputs).toContainEqual(expect.objectContaining({
+      entityType: 'queue'
+    }));
+  });
+
   it('compiles custom entity lifecycle directly to a v2 workflow', () => {
     const compiled = compileProcessDefinition({
       entityProfiles: {

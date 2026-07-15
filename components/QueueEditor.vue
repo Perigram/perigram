@@ -287,7 +287,7 @@
         </component>
 
 
-        <StandardDialog v-model:visible="showAddDialog" :header="selectedProducer?.label || $t('queues.addEntry')">
+        <StandardDialog v-model:visible="showAddDialog" :header="selectedProducer ? producerLabel(selectedProducer) : $t('queues.addEntry')">
             <div class="flex flex-col gap-4 py-4">
                 <div v-if="selectedProducer?.kind === 'entitySource'" class="flex flex-col gap-2">
                     <label>{{ $t('queues.cassette') }}</label>
@@ -337,7 +337,12 @@
             </template>
         </StandardDialog>
 
-        <CassetteEditorDialog v-model:modelValue="showUploadDialog" :producer-action-id="selectedProducer?.actionId || ''" @saved="onCassetteUploaded" />
+        <CassetteEditorDialog
+            v-model:modelValue="showUploadDialog"
+            :producer-action-id="selectedProducer?.actionId || ''"
+            :producer-action-body="uploadProducerActionBody"
+            @saved="onCassetteUploaded"
+        />
 
         <ConfirmDialog />
     </div>
@@ -386,11 +391,11 @@ import { occsParameterNames } from '~/utils/occs/parameters.js';
 import { canonicalQueueItem } from '~/utils/queue-items.js';
 import { currentQueueRun } from '~/utils/queue-runs.js';
 import {
-    actionProducesEntityType,
     buildProducerActionRequest,
     producerFieldsForAction,
     templatesAvailableToProject
 } from '~/utils/queue-producers.js';
+import { resolveQueueDesignProducers } from '~/utils/queue-design-producers.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { cncDomain } from '@cutkit/domain-cnc';
@@ -458,27 +463,19 @@ const canEditQueue = computed(() => {
         entityType: 'queue'
     });
 });
-const cassetteDesignProducerActions = computed(() => props.processActions.filter(action => actionProducesEntityType(action, 'cassette_design')));
-const readableDesignSource = computed(() => authStore.hasPermission('cassette_designs', 'read'));
-const canAddQueueEntry = computed(() => canEditQueue.value || (isProcessMode.value && (readableDesignSource.value || cassetteDesignProducerActions.value.length > 0)));
+const hasFeatureAccess = (feature, level) => authStore.hasPermission(feature, level);
+const canAddQueueEntry = computed(() => producerMenuItems.value.length > 0);
 const availableProducers = computed(() => {
-    if (isProcessMode.value) {
-        return [
-            ...(readableDesignSource.value ? [systemProducer('selectExistingCassetteDesign')] : []),
-            ...cassetteDesignProducerActions.value.map(action => ({
-                id: action.actionId || action.id,
-                actionId: action.actionId || action.id,
-                label: action.label || action.actionId || action.id,
-                kind: 'processAction',
-                constructionMode: action.construction?.mode || '',
-                action
-            }))
-        ].filter(Boolean);
-    }
-    return (cncDomain.producers || []).filter(producer => producer.output?.entityType === 'cassette_design');
+    return resolveQueueDesignProducers({
+        domain: cncDomain,
+        processMode: isProcessMode.value,
+        processActions: props.processActions,
+        canEditQueue: canEditQueue.value,
+        hasFeatureAccess
+    });
 });
 const producerMenuItems = computed(() => availableProducers.value.map(producer => ({
-    label: producer.label || producer.id,
+    label: producerLabel(producer),
     command: () => startProducer(producer)
 })));
 const producerFields = computed(() => {
@@ -500,6 +497,18 @@ const producerParameterNames = computed(() => {
     const template = templateForProducer();
     return template ? getCassetteParameters(template) : [];
 });
+const uploadProducerActionBody = computed(() => {
+    if (!selectedProducer.value?.actionId) return {};
+    return {
+        data: {
+            ...(isProcessMode.value ? { queueAppend: { quantity: 1 } } : {})
+        },
+        entities: {
+            queue: props.queue._id || props.queue.identity?.uid,
+            ...(project.value?._id ? { project: project.value._id } : {})
+        }
+    };
+});
 const producerReady = computed(() => {
     if (!selectedProducer.value) return false;
     if (selectedProducer.value.kind === 'entitySource') return Boolean(producerValues.value.designId);
@@ -511,8 +520,8 @@ const processRunNestingAction = computed(() => {
         .find(action => action?.actionKind === 'runCommand' && action.commandId === 'solveNesting') || null;
 });
 
-function systemProducer(id) {
-    return (cncDomain.producers || []).find(producer => producer.id === id) || null;
+function producerLabel(producer = {}) {
+    return producer.labelKey ? t(producer.labelKey) : (producer.label || producer.id);
 }
 
 function constructionFields(mode = '') {
@@ -1123,6 +1132,7 @@ const loadQueueData = async () => {
 
 const hydrateMissingEntryDesigns = async () => {
     const missingIds = Array.from(new Set(entries.value
+        .filter(entry => entry.entityType !== 'cassette')
         .map(entry => entry.id?.toString?.() || entry.id)
         .filter(Boolean)
         .filter(id => !cassetteDesigns.value.some(design => design._id?.toString?.() === id.toString()))));
@@ -1430,6 +1440,11 @@ const loadInstances = async () => {
 
 const onCassetteUploaded = async (newItem) => {
     showUploadDialog.value = false;
+    if (isProcessMode.value && selectedProducer.value?.actionId) {
+        await loadQueueData();
+        emit('updated');
+        return;
+    }
     const [cRes, dRes] = await Promise.all([
         optionalList(() => cassettesStore.fetchCassettes()),
         optionalList(() => $fetch('/api/cassette-designs'))

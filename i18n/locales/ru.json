@@ -1968,6 +1968,11 @@
     "noEntriesToNest": "Добавьте хотя бы одну запись перед запуском раскроя",
     "nestingFailed": "Не удалось запустить раскрой",
     "invalidCassetteEntry": "В очереди есть позиция кассеты, которой больше нет",
+    "producers": {
+      "existingDesign": "Из дизайна кассеты",
+      "libraryCassette": "Из кассеты библиотеки",
+      "uploadDxf": "Загрузить DXF"
+    },
     "markCompleteFailed": "Не удалось отметить очередь как завершённую",
     "sheetUploaded": "Свой лист успешно загружен",
     "noPolygonsInSheet": "В DXF файле листа не найдено подходящих полигонов",

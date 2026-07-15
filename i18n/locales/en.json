@@ -1968,6 +1968,11 @@
     "noEntriesToNest": "Add at least one entry before running nesting",
     "nestingFailed": "Failed to run nesting process",
     "invalidCassetteEntry": "Queue contains a cassette entry that no longer exists",
+    "producers": {
+      "existingDesign": "From cassette design",
+      "libraryCassette": "From library cassette",
+      "uploadDxf": "Upload DXF"
+    },
     "markCompleteFailed": "Failed to mark queue as complete",
     "sheetUploaded": "Custom sheet uploaded successfully",
     "noPolygonsInSheet": "No valid polygons found in sheet DXF",

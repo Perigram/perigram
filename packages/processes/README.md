@@ -99,6 +99,10 @@ construction modes. For example, `cassette_design` creation compiles as
 `bakeCassetteDesignFromTemplate` and runtime execution delegates to the
 cassette template construction service, preserving baked geometry and editor
 contracts instead of creating a generic row.
+Legacy stored `changeStatus` action records are normalized to status-mutating
+`updateEntity` actions at the compiler boundary so old activated processes can
+still compile during registration, assignment, auth hydration, and command
+execution.
 Graph edges are validated through exported typed port helpers:
 `normalizePortSpec()`, `portSpecsCompatible()`, `resolveNodePort()`, and
 `validateProcessEdges()`. The v1 contract covers existing process values only:
