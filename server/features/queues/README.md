@@ -102,6 +102,12 @@ Defines a specific nesting job, bridging the digital production intent with phys
 
 ## Notes
 - Nesting runs are stored in `nesting_runs` collection (linked by `lineage.queueId`), not embedded in the queue.
+- Queue production output points to one current run through
+  `data.materialConsumption.runId` and `data.physicalOutputs.runId`. UI
+  workspaces should treat that run as the queue's accepted output revision; if
+  no run has been accepted yet, the latest readable run is the active proposal.
+  Full run history remains queryable through `nesting_runs` APIs instead of
+  being rendered as the queue's primary production state.
 ## Data Structure
 ```typescript
 {

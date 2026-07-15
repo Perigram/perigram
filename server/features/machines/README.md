@@ -18,7 +18,10 @@ feature.
 The service seeds one public read-only default machine:
 `machine-system-default`, with a `3000 x 1500` working area and zero boundary
 offset. Listing machines always upserts this default before returning readable
-system and organization-owned machines.
+system and organization-owned machines. The upsert key is the stable `_id`, not
+`data.systemKey`, so old records that predate the system-key field are repaired
+in place instead of causing duplicate `_id` insert attempts during queue editor
+initialization.
 
 ## API
 

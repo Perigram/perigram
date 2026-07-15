@@ -268,25 +268,14 @@
                 </ScrollablePanel>
             </div>
             <template v-if="showNestingRunRegion" #[supportSlot]>
-                <Panel :header="`${$t('queue.runs')} (${readableQueueRuns.length})`">
-                    <div v-if="readableQueueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
-                        <Select
-                            :model-value="selectedRunId"
-                            :options="runOptions"
-                            option-label="name"
-                            option-value="id"
-                            class="w-full"
-                            size="small"
-                            @update:model-value="selectedRunId = $event"
-                        />
+                <Panel :header="$t('queue.runs')">
+                    <div v-if="activeRun" class="flex min-h-0 min-w-0 flex-col gap-3">
                         <NestingRunCard
-                            v-if="activeRun"
                             :key="activeRun._id"
                             :run="activeRun"
                             :sheet-designs="sheetDesigns"
                             :active="true"
                             :is-chosen="isAcceptedRun(activeRun)"
-                            @select="selectedRunId = $event.toString()"
                             @choose="chooseRunHandler"
                             @refresh="handleRunStatusChanged"
                             @delete="deleteRunHandler"
@@ -396,6 +385,7 @@ import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
 import { canonicalQueueItem } from '~/utils/queue-items.js';
+import { currentQueueRun } from '~/utils/queue-runs.js';
 import {
     buildProducerActionRequest,
     producerFieldsForAction,
@@ -452,7 +442,6 @@ const project = ref(null);
 const availableInventory = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
-const selectedRunId = ref(null);
 const instances = ref([]);
 const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
 const queueList = computed(() => [...props.queues].reverse());
@@ -964,13 +953,9 @@ const canReadNestingRun = (run = {}) => hasPermissionGrant({
     entityType: 'nesting_run'
 });
 const readableQueueRuns = computed(() => isProcessMode.value ? queueRuns.value.filter(canReadNestingRun) : queueRuns.value);
-const showNestingRunRegion = computed(() => !isProcessMode.value || readableQueueRuns.value.length > 0 || canRunNesting.value);
-const runOptions = computed(() => readableQueueRuns.value.map(run => ({
-    ...run,
-    id: run._id?.toString(),
-    name: entitySelectLabel(run, t('entities.nestingRun'))
-})));
-const activeRun = computed(() => readableQueueRuns.value.find(run => run._id?.toString() === selectedRunId.value?.toString()) || readableQueueRuns.value[0] || null);
+const currentRun = computed(() => currentQueueRun(readableQueueRuns.value, props.queue));
+const showNestingRunRegion = computed(() => !isProcessMode.value || Boolean(currentRun.value) || canRunNesting.value);
+const activeRun = computed(() => currentRun.value);
 const hasPhysicalOutputs = computed(() => Boolean(props.queue.data?.physicalOutputs?.cassetteInstanceIds?.length));
 const warehouseShortage = computed(() => {
     if (nestingOptions.value.materialMode !== 'WAREHOUSE') return null;
@@ -1064,7 +1049,6 @@ const onCustomSheetUpload = (event) => {
 
 const runSheetCount = (run = {}) => Number(run.data?.results?.sheetCount || run.summary?.sheetCount || run.layoutCount || 0);
 const runParams = (run = {}) => run.data?.params || run.params || {};
-const latestRunId = (runsForQueue = queueRuns.value) => runsForQueue.at(-1)?._id?.toString?.() || null;
 
 const loadQueueData = async () => {
     try {
@@ -1103,7 +1087,7 @@ const hydrateMissingEntryDesigns = async () => {
 
 const loadSheetDesigns = async () => {
     try {
-        const runIds = readableQueueRuns.value.map(run => run._id?.toString()).filter(Boolean);
+        const runIds = activeRun.value?._id ? [activeRun.value._id.toString()] : [];
         sheetDesigns.value = await $fetch('/api/sheet-designs', {
             query: runIds.length
                 ? { queueId: props.queue._id, runIds: runIds.join(',') }
@@ -1190,16 +1174,6 @@ watch(nestingCompleted, async (event) => {
         await loadSheetDesigns();
     }
 });
-
-watch(readableQueueRuns, (runsForQueue) => {
-    if (!runsForQueue.length) {
-        selectedRunId.value = null;
-        return;
-    }
-    if (!runsForQueue.some(run => run._id?.toString() === selectedRunId.value?.toString())) {
-        selectedRunId.value = runsForQueue[runsForQueue.length - 1]._id?.toString();
-    }
-}, { immediate: true });
 
 watch(() => props.queue._id, async () => {
     await loadQueueData();
@@ -1313,14 +1287,12 @@ const runNesting = async () => {
                 }
             });
             const refreshedRuns = await queuesStore.fetchRuns(queueId);
-            selectedRunId.value = latestRunId(refreshedRuns);
             queuesStore.pollQueueStatus(queueId);
             emit('updated');
         } else {
             await saveQueue();
             await queuesStore.startNesting(queueId);
-            const refreshedRuns = await queuesStore.fetchRuns(queueId);
-            selectedRunId.value = latestRunId(refreshedRuns);
+            await queuesStore.fetchRuns(queueId);
         }
         await loadSheetDesigns();
         toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
