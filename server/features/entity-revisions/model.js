@@ -6,10 +6,14 @@ import { BaseEntity, createEntityRef } from '../../core/blocks/index.js';
 export class EntityRevision extends BaseEntity {
   constructor(raw = {}) {
     super(raw);
+    const source = raw.data?.source || {
+      type: raw.data?.entityType,
+      id: raw.data?.entityId
+    };
 
     this.data = {
       ...this.data,
-      source: createEntityRef(raw.data?.source?.type, raw.data?.source?.id),
+      source: createEntityRef(source.type, source.id),
       scope: raw.data?.scope || '',
       number: Number(raw.data?.number || 0),
       contentHash: raw.data?.contentHash || '',
