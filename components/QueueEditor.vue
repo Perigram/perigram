@@ -205,12 +205,7 @@
                                 v-if="canAddQueueEntry && producerMenuItems.length"
                                 class="flex min-h-40 cursor-pointer items-center justify-center rounded-lg border border-dashed border-surface-300 p-6"
                                 data-entity-card-interactive="true"
-                                role="button"
-                                tabindex="0"
-                                :aria-label="$t('queues.addEntry')"
                                 @click="event => producerMenu.toggle(event)"
-                                @keydown.enter.prevent="event => producerMenu.toggle(event)"
-                                @keydown.space.prevent="event => producerMenu.toggle(event)"
                             >
                                 <Button
                                     :label="$t('queues.addEntry')"
