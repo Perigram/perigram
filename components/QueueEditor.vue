@@ -304,6 +304,7 @@
                             option-value="value"
                             class="w-full"
                             size="small"
+                            :disabled="field.id === 'templateId' && !producerValues.libraryId"
                             @change="onProducerFieldChange(field)"
                         />
                         <MultiSelect
@@ -676,6 +677,7 @@ function hasProducerValue(field = {}) {
 }
 
 function usesServerDefaultTemplate(field = {}) {
+    if (selectedProducer.value?.constructionMode === 'bakeCassetteDesignFromTemplate') return false;
     return isProcessMode.value
         && selectedProducer.value?.constructionMode === 'bakeCassetteDesignFromTemplate'
         && field.id === 'templateId'
