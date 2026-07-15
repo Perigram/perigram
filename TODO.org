@@ -529,3 +529,12 @@
       through compact inline refs instead of embedding a full cassette-design
       card in the row header.
     - Validation: =npx vitest run utils/queue-producers.spec.js utils/queue-items.spec.js utils/queue-runs.spec.js components/generated/action-visibility.spec.js= passed; Vue SFC parse check for =QueueEditor.vue=, =QueueEntryCard.vue=, and =GeneratedEntityDetail.vue= passed.
+    - Follow-up repair after browser validation: =GeneratedRegion= now passes
+      the union of region action ids and screen action ids into generated
+      details. This preserves direct region actions while allowing contextual
+      screen-level queue cassette producers to reach =QueueEditor= when the
+      main queue detail region already has its own action list.
+    - Validation: local =vitest= run for queue producer/item/run helpers and
+      generated action visibility passed; Vue SFC parse check for
+      =GeneratedRegion.vue=, =QueueEditor.vue=, =GeneratedEntityDetail.vue=,
+      and =QueueEntryCard.vue= passed.
