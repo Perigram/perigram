@@ -1,5 +1,6 @@
 import { createError } from 'h3';
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as projectsService from '../projects/service.js';
 import * as remnantsService from '../remnants/service.js';
 import * as warehousesService from '../warehouses/service.js';
@@ -725,3 +726,9 @@ function numberOrNull(value) {
 function defaultNameForMode(mode) {
   return mode === 'FACADE' ? 'Facade geometry capture' : 'Remnant geometry capture';
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'geometry_capture',
+  repository,
+  Model: GeometryCapture
+});

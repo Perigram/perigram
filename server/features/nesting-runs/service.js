@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { inheritLineage } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
@@ -293,3 +294,9 @@ function nestingRunPreview(run = {}, userPermissions = null) {
   };
   return serializeForAccess('nestingRun', preview, userPermissions);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'nesting_run',
+  repository,
+  Model: NestingRun
+});

@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as materialPilesRepository from '../material-piles/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
@@ -305,3 +306,9 @@ function sheetPreview(sheet = {}, userPermissions = null) {
   };
   return serializeForAccess('sheet', preview, userPermissions);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'sheet',
+  repository,
+  Model: Sheet
+});

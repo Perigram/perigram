@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { normalizePermissionGrants } from '#shared/access-control.js';
@@ -92,3 +93,9 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   }
   return await repository.deleteById(uid);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'catalog',
+  repository,
+  Model: Catalog
+});

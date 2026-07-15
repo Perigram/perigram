@@ -11,6 +11,7 @@ import * as cassetteService from '../cassettes/service.js';
 import { hasLineagePermission } from '../../utils/permissions.js';
 import { ProfileTemplate } from './model.js';
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 
 function dtoSource(profileTemplate = {}, scope = {}) {
   const ownerId = profileTemplate.lineage?.userId || null;
@@ -198,3 +199,9 @@ export async function remove(id, auth = {}) {
   await repository.deleteById(id);
   return { success: true };
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'profile_template',
+  repository,
+  Model: ProfileTemplate
+});

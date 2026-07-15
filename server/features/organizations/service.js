@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { hasPermission, resolveAuthPermissions } from '../../utils/auth-helpers.js';
 import { getLineageFilter } from '../../utils/permissions.js';
@@ -132,3 +133,9 @@ export async function getByIds(ids) {
   const raws = await repository.findByIds(ids);
   return raws.map(raw => new Organization(raw).toJSON());
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'organization',
+  repository,
+  Model: Organization
+});

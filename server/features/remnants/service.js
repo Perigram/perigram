@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as warehouseService from '../warehouses/service.js';
 import * as sheetsRepository from '../sheets/repository.js'; 
 import { createError } from 'h3';
@@ -7,6 +8,7 @@ import { createIdentity, inheritLineage, createData, createAttachment } from '~/
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
+import { Remnant } from './model.js';
 
 /**
  * Remnants Service - v24 Standardized
@@ -224,3 +226,9 @@ export async function markAsUsed(id, queueId, user) {
   const updated = await repository.findById(id);
   return toDTO(updated);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'remnant',
+  repository,
+  Model: Remnant
+});
