@@ -35,16 +35,25 @@ const COLLECTION_ENTITY_TYPES = Object.freeze({
 });
 
 const ROLE_ENTITY_TYPES = Object.freeze({
+  cassette: 'cassette',
   materialPile: 'material_pile',
   parentSheet: 'sheet',
   sheetDesign: 'sheet_design',
   cassetteDesign: 'cassette_design',
-  cassetteTemplate: 'cassette',
   geometryCapture: 'geometry_capture',
   toolProfile: 'tool_profile',
   penTemplate: 'pen_template',
   profileTemplate: 'profile_template',
   manufacturer: 'organization'
+});
+
+const LEGACY_LINEAGE_ROLE_ALIASES = Object.freeze({
+  cassetteTemplate: 'cassette',
+  originalCassette: 'cassette',
+  template: 'cassette',
+  design: 'cassetteDesign',
+  pile: 'materialPile',
+  sheet_design: 'sheetDesign'
 });
 
 const RELATION_TARGET_TYPES = Object.freeze({
@@ -80,7 +89,9 @@ export function migrateLineage(lineage = {}, { runRevisionById = new Map() } = {
     }
     if (isEntityReference(value)) {
       if (key === 'run') continue;
-      migrated[key] = toEntityReference(value.entityType, value.entityId, value.revisionId);
+      const role = canonicalLineageRole(key);
+      const entityType = ROLE_ENTITY_TYPES[role] || value.entityType;
+      assignLineageReference(migrated, role, toEntityReference(entityType, value.entityId, value.revisionId));
       continue;
     }
     migrated[key] = value;
@@ -90,7 +101,12 @@ export function migrateLineage(lineage = {}, { runRevisionById = new Map() } = {
   for (const [role, entityId] of legacyIds) {
     if (role === 'run') continue;
     const revisionId = legacyRevisionIds.get(role);
-    migrated[role] = toEntityReference(entityTypeForRole(role), entityId, revisionId);
+    const canonicalRole = canonicalLineageRole(role);
+    assignLineageReference(
+      migrated,
+      canonicalRole,
+      toEntityReference(entityTypeForRole(canonicalRole), entityId, revisionId)
+    );
   }
 
   if (legacyRunId) {
@@ -157,21 +173,66 @@ export function legacyNestingRevisionId(runId) {
   return `entity-revision-nesting-migrated-${String(runId)}`;
 }
 
+export function buildLegacyNestingAttempts({ runs = [], jobs = [], references = [] } = {}) {
+  const attempts = new Map();
+
+  for (const run of runs) {
+    const id = String(run._id);
+    attempts.set(id, {
+      ...run,
+      _legacySource: 'nesting_run',
+      _legacyTimestamp: run.origin?.timestamp || run.createdAt || run.status?.timestamp || null
+    });
+  }
+
+  for (const job of jobs) {
+    const normalized = legacyJobAttempt(job);
+    const id = String(normalized._id);
+    const existing = attempts.get(id);
+    if (!existing) {
+      attempts.set(id, normalized);
+      continue;
+    }
+    assertSameLegacyQueue(existing, normalized);
+    if (existing._legacySource === 'nesting_job') {
+      throw new Error(`Duplicate legacy nesting job run id ${id}`);
+    }
+    attempts.set(id, mergeLegacyRunAndJob(existing, normalized));
+  }
+
+  for (const reference of references) {
+    const id = String(reference.runId);
+    const existing = attempts.get(id);
+    if (existing) {
+      assertSameLegacyQueue(existing, reference);
+      continue;
+    }
+    attempts.set(id, legacyReferenceAttempt(reference));
+  }
+
+  return [...attempts.values()];
+}
+
 export function createLegacyNestingRevision(run, queue, number) {
   const runId = String(run._id);
   const queueId = queue?._id || run.lineage?.queue?.entityId || run.lineage?.queueId;
   if (!queueId) throw new Error(`Legacy nesting run ${runId} has no queue`);
   const revisionId = legacyNestingRevisionId(runId);
   const outcome = legacyRunOutcome(run);
-  const timestamp = run.status?.timestamp || run.origin?.timestamp || run.updatedAt || run.createdAt || new Date();
+  const timestamp = run._legacyTimestamp || run.origin?.timestamp || run.createdAt || run.status?.timestamp || run.updatedAt || new Date(0);
+  const legacySource = run._legacySource || 'nesting_run';
   const snapshot = {
     settings: run.data?.settingsSnapshot || run.data?.params || {},
     results: run.data?.results || run.summary || {},
     layoutData: run.data?.layoutData || run.data?.result || null,
     legacyRunId: runId,
-    legacyStatus: getPrimaryState(run.status, 'UNKNOWN')
+    legacyStatus: getPrimaryState(run.status, 'UNKNOWN'),
+    legacySource,
+    ...(run.data?.legacyJobId ? { legacyJobId: run.data.legacyJobId } : {}),
+    ...(run.data?.legacyReferences ? { legacyReferences: run.data.legacyReferences } : {}),
+    ...(run.data?.error ? { error: run.data.error } : {})
   };
-  const status = activeRevisionStatus(timestamp, `Migrated from nesting run ${runId}`);
+  const status = activeRevisionStatus(timestamp, `Migrated from ${legacySource.replace(/_/g, ' ')} ${runId}`);
   return {
     _id: revisionId,
     identity: {
@@ -195,10 +256,10 @@ export function createLegacyNestingRevision(run, queue, number) {
       number,
       contentHash: `sha256:${crypto.createHash('sha256').update(stableJson({ outcome, snapshot })).digest('hex')}`,
       outcome,
-      taskRunId: `legacy:${runId}`,
+      taskRunId: String(run.data?.taskRunId || `legacy:${runId}`),
       snapshot,
       sourceStatus: queue?.status || null,
-      reason: 'legacy-nesting-run-migration'
+      reason: `legacy-${legacySource.replace(/_/g, '-')}-migration`
     }
   };
 }
@@ -231,9 +292,24 @@ export function migrateQueueNestingStatus(queue, runs = []) {
 export async function runStructuredReferenceMigration({ apply = false, db = null, log = console.log } = {}) {
   const database = db || await connectDB();
   const legacyRuns = await database.collection('nesting_runs').find({}).sort({ createdAt: 1, _id: 1 }).toArray();
-  const runRevisionById = new Map(legacyRuns.map(run => [String(run._id), legacyNestingRevisionId(run._id)]));
-  const runsByQueue = groupRunsByQueue(legacyRuns);
-  const queueById = new Map((await database.collection('queues').find({}).toArray()).map(queue => [String(queue._id), queue]));
+  const legacyJobs = await database.collection('nesting_jobs').find({}).sort({ createdAt: 1, _id: 1 }).toArray();
+  const queues = await database.collection('queues').find({}).toArray();
+  const queueById = new Map(queues.map(queue => [String(queue._id), queue]));
+  const documentsByCollection = new Map();
+  for (const collection of Object.keys(COLLECTION_ENTITY_TYPES)) {
+    documentsByCollection.set(
+      collection,
+      collection === 'queues' ? queues : await database.collection(collection).find({}).toArray()
+    );
+  }
+  const legacyReferences = collectLegacyNestingReferences(documentsByCollection);
+  const legacyAttempts = buildLegacyNestingAttempts({
+    runs: legacyRuns,
+    jobs: legacyJobs,
+    references: legacyReferences
+  });
+  const runRevisionById = new Map(legacyAttempts.map(run => [String(run._id), legacyNestingRevisionId(run._id)]));
+  const runsByQueue = groupRunsByQueue(legacyAttempts);
 
   const revisions = [];
   for (const [queueId, runs] of runsByQueue) {
@@ -242,16 +318,26 @@ export async function runStructuredReferenceMigration({ apply = false, db = null
     runs.sort(compareRunTime).forEach((run, index) => revisions.push(createLegacyNestingRevision(run, queue, index + 1)));
   }
 
-  const summary = { apply, revisions: revisions.length, collections: {}, retiredRuns: legacyRuns.length };
+  const summary = {
+    apply,
+    revisions: revisions.length,
+    collections: {},
+    retiredRuns: legacyRuns.length,
+    retiredJobs: legacyJobs.length,
+    recoveredJobAttempts: legacyAttempts.filter(run => run._legacySource === 'nesting_job').length,
+    recoveredReferenceAttempts: legacyAttempts.filter(run => run._legacySource === 'nesting_reference').length
+  };
   for (const collection of Object.keys(COLLECTION_ENTITY_TYPES)) {
-    const documents = collection === 'queues' ? [...queueById.values()] : await database.collection(collection).find({}).toArray();
+    const documents = documentsByCollection.get(collection) || [];
     const operations = [];
     for (const doc of documents) {
       let migrated = migrateDocumentReferences(doc, { runRevisionById });
       if (collection === 'queues') migrated = {
         ...migrated,
         data: migrateQueueData(migrated.data),
-        status: migrateQueueNestingStatus(migrated, runsByQueue.get(String(doc._id)) || [])
+        status: shouldMigrateQueueNestingStatus(migrated, runsByQueue.get(String(doc._id)) || [])
+          ? migrateQueueNestingStatus(migrated, runsByQueue.get(String(doc._id)) || [])
+          : migrated.status
       };
       if (collection === 'process_definitions') migrated = {
         ...migrated,
@@ -291,6 +377,129 @@ export async function runStructuredReferenceMigration({ apply = false, db = null
   return summary;
 }
 
+function collectLegacyNestingReferences(documentsByCollection) {
+  const references = new Map();
+  for (const [collection, documents] of documentsByCollection) {
+    for (const doc of documents) {
+      const runId = doc.lineage?.runId || doc.lineage?.run?.entityId;
+      if (!runId) continue;
+      const queueId = doc.lineage?.queueId || doc.lineage?.queue?.entityId;
+      if (!queueId) throw new Error(`Legacy nesting run ${runId} on ${collection}/${doc._id} has no queue lineage`);
+      const key = String(runId);
+      const existing = references.get(key);
+      if (existing && String(existing.queueId) !== String(queueId)) {
+        throw new Error(`Legacy nesting run ${runId} references multiple queues: ${existing.queueId} and ${queueId}`);
+      }
+      const source = `${collection}/${doc._id}`;
+      references.set(key, {
+        runId: key,
+        queueId: String(queueId),
+        timestamp: existing?.timestamp || doc.status?.timestamp || doc.origin?.timestamp || doc.updatedAt || doc.createdAt || null,
+        legacyReferences: [...(existing?.legacyReferences || []), source]
+      });
+    }
+  }
+  return [...references.values()];
+}
+
+function legacyJobAttempt(job) {
+  const runId = job.runId || job._id;
+  const queueId = job.queueId || job.lineage?.queue?.entityId || job.lineage?.queueId;
+  if (!queueId) throw new Error(`Legacy nesting job ${runId} has no queue`);
+  const outcome = legacyJobSucceeded(job) ? 'SUCCESS' : 'FAILURE';
+  return {
+    _id: String(runId),
+    _legacySource: 'nesting_job',
+    _legacyOutcome: outcome,
+    _legacyTimestamp: job.finishedAt || job.updatedAt || job.createdAt || null,
+    lineage: { queueId: String(queueId) },
+    origin: { timestamp: job.createdAt || job.startedAt || null },
+    status: {
+      state: outcome === 'SUCCESS' ? 'COMPLETE' : 'ERROR',
+      timestamp: job.finishedAt || job.updatedAt || job.createdAt || null
+    },
+    createdAt: job.createdAt || null,
+    updatedAt: job.updatedAt || job.finishedAt || null,
+    data: {
+      settingsSnapshot: job.params || {},
+      results: legacyJobResults(job),
+      layoutData: job.result || null,
+      taskRunId: String(job.taskRunId || `legacy-job:${runId}`),
+      legacyJobId: String(job._id),
+      ...(job.error ? { error: job.error } : {})
+    }
+  };
+}
+
+function legacyReferenceAttempt(reference) {
+  return {
+    _id: String(reference.runId),
+    _legacySource: 'nesting_reference',
+    _legacyOutcome: 'FAILURE',
+    _legacyTimestamp: reference.timestamp || null,
+    lineage: { queueId: String(reference.queueId) },
+    origin: { timestamp: reference.timestamp || null },
+    status: { state: 'ERROR', timestamp: reference.timestamp || null },
+    data: {
+      settingsSnapshot: {},
+      results: {},
+      layoutData: null,
+      taskRunId: `legacy-reference:${reference.runId}`,
+      legacyReferences: reference.legacyReferences || []
+    }
+  };
+}
+
+function mergeLegacyRunAndJob(run, job) {
+  return {
+    ...run,
+    _legacySource: 'nesting_run',
+    _legacyOutcome: legacyRunOutcome(run) === 'SUCCESS' || job._legacyOutcome === 'SUCCESS' ? 'SUCCESS' : 'FAILURE',
+    _legacyTimestamp: job._legacyTimestamp || run._legacyTimestamp,
+    createdAt: run.createdAt || job.createdAt,
+    updatedAt: run.updatedAt || job.updatedAt,
+    data: {
+      ...(job.data || {}),
+      ...(run.data || {}),
+      settingsSnapshot: run.data?.settingsSnapshot || run.data?.params || job.data?.settingsSnapshot || {},
+      results: run.data?.results || job.data?.results || {},
+      layoutData: run.data?.layoutData || run.data?.result || job.data?.layoutData || null,
+      taskRunId: run.data?.taskRunId || job.data?.taskRunId,
+      legacyJobId: job.data?.legacyJobId
+    }
+  };
+}
+
+function assertSameLegacyQueue(left, right) {
+  const leftQueueId = legacyQueueId(left);
+  const rightQueueId = legacyQueueId(right);
+  if (!leftQueueId || !rightQueueId || String(leftQueueId) !== String(rightQueueId)) {
+    throw new Error(`Legacy nesting attempt ${left._id || right.runId} references conflicting queues: ${leftQueueId || 'missing'} and ${rightQueueId || 'missing'}`);
+  }
+}
+
+function legacyQueueId(value = {}) {
+  return value.queueId || value.lineage?.queue?.entityId || value.lineage?.queueId;
+}
+
+function legacyJobSucceeded(job = {}) {
+  return ['done', 'complete', 'completed', 'success', 'succeeded'].includes(String(job.status || '').toLowerCase());
+}
+
+function legacyJobResults(job = {}) {
+  const layouts = job.result?.solution?.layouts || [];
+  const values = {
+    efficiency: job.utilization ?? job.result?.solution?.density,
+    sheetCount: job.layoutCount ?? layouts.length,
+    placedCount: job.placed ?? layouts.reduce((total, layout) => total + (layout.placed_items?.length || 0), 0)
+  };
+  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined));
+}
+
+function shouldMigrateQueueNestingStatus(queue, runs) {
+  return runs.length > 0 || !queue.status?.state?.regions?.nesting;
+}
+
 function isEntityReference(value) {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value) && value.entityType && value.entityId);
 }
@@ -300,11 +509,33 @@ function entityTypeForRole(role) {
 }
 
 function legacyLineageRole(value) {
-  return String(value)
+  const role = String(value)
     .replace(/^lineage\./, '')
     .replace(/\.entityId$/, '')
     .replace(/Id$/, '')
     .replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
+  return canonicalLineageRole(role);
+}
+
+function canonicalLineageRole(role) {
+  return LEGACY_LINEAGE_ROLE_ALIASES[role] || role;
+}
+
+function assignLineageReference(lineage, role, reference) {
+  const existing = lineage[role];
+  if (!existing) {
+    lineage[role] = reference;
+    return;
+  }
+  if (!isEntityReference(existing)
+    || existing.entityType !== reference.entityType
+    || String(existing.entityId) !== String(reference.entityId)) {
+    throw new Error(`Conflicting lineage references for canonical role ${role}`);
+  }
+  if (existing.revisionId && reference.revisionId && String(existing.revisionId) !== String(reference.revisionId)) {
+    throw new Error(`Conflicting lineage revisions for canonical role ${role}`);
+  }
+  if (!existing.revisionId && reference.revisionId) lineage[role] = reference;
 }
 
 function normalizeEntityType(value) {
@@ -312,7 +543,17 @@ function normalizeEntityType(value) {
 }
 
 function legacyRunOutcome(run = {}) {
-  return ['COMPLETE', 'CHOSEN'].includes(getPrimaryState(run.status, 'UNKNOWN')) ? 'SUCCESS' : 'FAILURE';
+  if (run._legacyOutcome) return run._legacyOutcome;
+  if (['COMPLETE', 'CHOSEN'].includes(getPrimaryState(run.status, 'UNKNOWN'))) return 'SUCCESS';
+  const results = run.data?.results || {};
+  return run.data?.layoutData
+    || run.data?.result
+    || (run.data?.sheetDesignIds || []).length
+    || (run.data?.sheetDesignOutputs || []).length
+    || Number(results.sheetCount || 0) > 0
+    || Number(results.placedCount || 0) > 0
+    ? 'SUCCESS'
+    : 'FAILURE';
 }
 
 function stableJson(value) {
@@ -324,14 +565,15 @@ function stableJson(value) {
 }
 
 function compareRunTime(left, right) {
-  return new Date(left.createdAt || left.origin?.timestamp || 0) - new Date(right.createdAt || right.origin?.timestamp || 0)
+  return new Date(left._legacyTimestamp || left.origin?.timestamp || left.createdAt || left.status?.timestamp || left.updatedAt || 0)
+    - new Date(right._legacyTimestamp || right.origin?.timestamp || right.createdAt || right.status?.timestamp || right.updatedAt || 0)
     || String(left._id).localeCompare(String(right._id));
 }
 
 function groupRunsByQueue(runs = []) {
   const grouped = new Map();
   for (const run of runs) {
-    const queueId = run.lineage?.queue?.entityId || run.lineage?.queueId;
+    const queueId = legacyQueueId(run);
     if (!queueId) throw new Error(`Legacy nesting run ${run._id} has no queue lineage`);
     const key = String(queueId);
     grouped.set(key, [...(grouped.get(key) || []), run]);
@@ -369,4 +611,5 @@ async function migrateLegacyStatusEvents(db, runRevisionById) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   await runStructuredReferenceMigration({ apply: process.argv.includes('--apply') });
+  process.exit(0);
 }
