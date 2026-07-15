@@ -44,7 +44,11 @@ active process in place, and makes the new effective permissions, screens, and
 navigation available on the next auth hydration. Assignment updates preserve the
 process status value object and only touch its audit metadata, so repository
 serialization continues through the shared entity model. Memberships remain the
-tenant relationship; process assignments are the runtime role source.
+tenant relationship; process assignments are the runtime role source. Before
+that recompile, assignment applies the same feature-local legacy status-action
+normalization used by auth hydration, so stored `changeStatus` actions become
+canonical `updateEntity` actions in the semantic process source and do not
+break signup/team assignment paths.
 When a draft is activated, the service preserves the current active process
 assignments for the organization before compiling. Team Management owns user to
 process-role assignment, so an older designer draft cannot erase assignments
