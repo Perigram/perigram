@@ -1072,6 +1072,8 @@ const loadQueueData = async () => {
         if (data) {
             entries.value = (data.data?.job?.items || []).map(makeQueueEntry);
             entries.value.forEach(syncEntryWithCassette);
+            await hydrateMissingEntryDesigns();
+            entries.value.forEach(syncEntryWithCassette);
             nestingOptions.value = queueNestingSettings(data);
             if (nestingOptions.value.warehouseId) {
                 await loadWarehouseInventory();
@@ -1081,6 +1083,22 @@ const loadQueueData = async () => {
             if (hasPhysicalOutputs.value) loadInstances();
         }
     } catch (e) { console.error('Failed to load queue data:', e); }
+};
+
+const hydrateMissingEntryDesigns = async () => {
+    const missingIds = Array.from(new Set(entries.value
+        .map(entry => entry.id?.toString?.() || entry.id)
+        .filter(Boolean)
+        .filter(id => !cassetteDesigns.value.some(design => design._id?.toString?.() === id.toString()))));
+    if (!missingIds.length) return;
+    const loaded = await Promise.all(missingIds.map(id => (
+        $fetch(`/api/cassette-designs/${encodeURIComponent(id)}`).catch(() => null)
+    )));
+    for (const design of loaded.filter(Boolean)) {
+        if (!cassetteDesigns.value.some(item => item._id?.toString?.() === design._id?.toString())) {
+            cassetteDesigns.value.push(design);
+        }
+    }
 };
 
 const loadSheetDesigns = async () => {

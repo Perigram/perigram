@@ -192,4 +192,65 @@ describe('process runtime auth hydration', () => {
     expect(result.screens.find(screen => screen.template === 'home')).toBeFalsy();
     expect(result.navigation.find(item => item.screenKey === 'home_user-1')).toBeFalsy();
   });
+
+  it('hydrates stale compiled action manifests from semantic process definitions', async () => {
+    repository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-1',
+      data: {
+        roles: {
+          role_installer: { id: 'role_installer' }
+        },
+        actions: {
+          create_design: {
+            id: 'create_design',
+            actionKind: 'createEntity',
+            entityType: 'cassette_design',
+            construction: { mode: 'bakeCassetteDesignFromTemplate' },
+            status: { to: 'ACTIVE' },
+            trigger: { mode: 'manual' },
+            access: { level: 'write', roleIds: ['role_installer'] },
+            outputs: [{ id: 'created', entityType: 'cassette_design' }]
+          }
+        },
+        assignments: {
+          'user-1': { userId: 'user-1', roleIds: ['role_installer'], status: 'active' }
+        },
+        compiled: {
+          schemaVersion: 1,
+          actions: {
+            create_design: {
+              actionKind: 'createEntity',
+              entityType: 'cassette_design'
+            }
+          },
+          userAccess: {
+            'user-1': {
+              permissions: {},
+              navigation: [],
+              screens: [],
+              actions: [{
+                actionId: 'create_design',
+                actionKind: 'createEntity',
+                entityType: 'cassette_design'
+              }]
+            }
+          }
+        }
+      }
+    });
+
+    const result = await resolveProcessAuth({
+      userId: 'user-1',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {}, status: 'active' }]
+    });
+
+    expect(result.roleAssignments.actions.find(action => action.actionId === 'create_design')).toMatchObject({
+      actionKind: 'createEntity',
+      entityType: 'cassette_design',
+      contracts: {
+        outputs: [expect.objectContaining({ entityType: 'cassette_design' })]
+      }
+    });
+  });
 });
