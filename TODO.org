@@ -70,6 +70,18 @@
   :END:
 
 *** Agent Notes
+    [2026-07-15] Recover legacy nesting jobs during structured-reference migration
+    Files changed: server/scripts/migrate-structured-entity-references.js,
+      server/scripts/migrate-structured-entity-references.spec.js
+    Docs updated: scripts/README.md, server/scripts/README.md, TODO.org
+    Notes: The migration now coalesces matching run/job records, creates queue
+      revisions for job-only attempts, and converts output references whose
+      source record is missing into deterministic failed revisions. Queue
+      ownership conflicts still fail closed, already migrated queue Status is
+      not reset on a rerun, and historical cassette/design/pile/sheet-design
+      lineage aliases are canonicalized with collision checks. The development
+      database dry-run resolves all 92 historical attempts without writing data.
+
     [2026-07-15] Replace flat lineage and nesting-run architecture end to end
     Files changed: framework/domain/process packages; queue, nesting, artifact,
       machine, revision, sheet-design, sheet-instance, process-definition, and

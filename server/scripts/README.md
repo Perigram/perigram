@@ -209,10 +209,18 @@ Use `server/scripts/migrate-structured-entity-references.js` once when adopting
 the structured reference contract. Dry-run is the default; pass `--apply` only
 after reviewing its collection counts. The migration replaces every legacy
 `lineage.*Id`/`*RevisionId` pair with `{ entityType, entityId, revisionId? }`,
-normalizes root `relations`, converts legacy nesting runs into immutable queue
-`entity_revision` records, moves queue nesting selection into the Status
-lifecycle, rewrites process `lineageKey` declarations, and retires the
-`nesting_runs` collection. Runtime code intentionally has no dual-read fallback.
+canonicalizes historical role aliases (`template`/`originalCassette` to
+`cassette`, `design` to `cassetteDesign`, `pile` to `materialPile`, and
+`sheet_design` to `sheetDesign`), normalizes root `relations`, coalesces legacy
+nesting runs with their matching jobs, recovers job-only attempts and dangling
+output references as immutable queue `entity_revision` records, moves queue
+nesting selection into the Status lifecycle, rewrites process `lineageKey`
+declarations, and retires both legacy nesting collections. Alias collisions
+with different targets or revisions stop the migration instead of overwriting a
+relationship. A missing source record becomes an unselectable failed revision
+with its source document paths preserved; missing or conflicting queue ownership
+remains a hard error. Runtime code intentionally has no dual-read fallback, and
+rerunning the migration does not reset an already migrated queue Status region.
 
 ## Entity Revision Migration
 
