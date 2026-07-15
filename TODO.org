@@ -587,3 +587,26 @@
       active-process queue item endpoint before refreshing queue data.
     - Updated stale queue UI docs that still described screen-scoped producers
       and inline relation-card row headers.
+
+*** [2026-07-15] Process assignment legacy status-action compile repair
+
+    Browser/E2E setup exposed that registering or assigning a user into the
+    active process still failed when the semantic process source contained old
+    =changeStatus= actions. Auth hydration had an in-memory repair, but
+    =assignUserToActiveProcessInternal()= recompiled the active semantic source
+    directly and therefore raised unknown action-kind errors before Playwright
+    could exercise the generated queue detail UI.
+
+    Corrective implementation:
+    - Active process assignment now applies the feature-local
+      =changeStatus= -> =updateEntity= normalizer before validating role ids
+      and recompiling. Because assignment persists the active process, this
+      also stores the canonical semantic action kind instead of repeatedly
+      relying on runtime hydration repair.
+    - Added service coverage proving a legacy status action compiles into a
+      current =updateEntity= action with strict =contracts.inputs= and
+      =contracts.outputs= after assignment.
+
+    Validation:
+    - =npx vitest run server/features/process-definitions/process-definitions.spec.js=
+      passed: 1 file, 23 tests.
