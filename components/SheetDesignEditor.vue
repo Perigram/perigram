@@ -2,7 +2,7 @@
   <div class="flex min-h-0 flex-col gap-3">
     <ActionToolbar>
       <template #actions>
-        <Tag :value="$t('sheetDesign.snapSize', { size: snapSize })" severity="secondary" size="small" />
+        <Tag :value="$t('sheetDesign.snapSize', { size: toolGap })" severity="secondary" size="small" />
         <Button icon="pi pi-plus" size="small" :disabled="!editable" :aria-label="$t('sheetDesign.addCassette')" v-tooltip.top="$t('sheetDesign.addCassette')" @click="openAddDialog" />
         <Button icon="pi pi-upload" severity="secondary" text rounded size="small" :disabled="!editable" :aria-label="$t('common.upload')" v-tooltip.top="$t('common.upload')" @click="uploadVisible = true" />
         <Button icon="pi pi-refresh" severity="secondary" text rounded size="small" :disabled="!editable || selectedIndex < 0" :aria-label="$t('sheetDesign.rotate90')" v-tooltip.top="$t('sheetDesign.rotate90')" @click="rotateSelected" />
@@ -23,13 +23,7 @@
         @pointercancel="finishDrag"
         @keydown.esc.stop.prevent="selectedIndex = -1"
       >
-        <defs>
-          <pattern :id="gridPatternId" :width="majorGridSize" :height="majorGridSize" patternUnits="userSpaceOnUse">
-            <path :d="`M ${majorGridSize} 0 L 0 0 0 ${majorGridSize}`" fill="none" stroke="var(--p-text-muted-color)" stroke-opacity="0.28" :stroke-width="Math.max(majorGridSize / 80, 0.4)" />
-          </pattern>
-        </defs>
         <rect x="0" y="0" :width="sheetWidth" :height="sheetHeight" fill="var(--p-content-background)" />
-        <rect x="0" y="0" :width="sheetWidth" :height="sheetHeight" :fill="`url(#${gridPatternId})`" />
         <rect
           x="0"
           y="0"
@@ -42,10 +36,6 @@
           vector-effect="non-scaling-stroke"
         />
 
-        <g v-if="selectedSnapPoint" pointer-events="none">
-          <line :x1="selectedSnapPoint.x" y1="0" :x2="selectedSnapPoint.x" :y2="sheetHeight" stroke="var(--p-primary-color)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" />
-          <line x1="0" :y1="selectedSnapPoint.y" :x2="sheetWidth" :y2="selectedSnapPoint.y" stroke="var(--p-primary-color)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" />
-        </g>
         <g
           v-for="(placement, index) in placedItems"
           :key="placementKey(placement, index)"
@@ -176,7 +166,7 @@ const sheetWidth = computed(() => Math.max(Number(props.design.specs?.width) || 
 const sheetHeight = computed(() => Math.max(Number(props.design.specs?.length) || 2440, 1));
 const selectedToolProfileId = computed(() => props.design.data?.nestingParams?.toolProfileId || '');
 const selectedTool = computed(() => tools.value.find(tool => String(tool._id) === String(selectedToolProfileId.value)) || null);
-const snapSize = computed(() => Math.max(Number(
+const toolGap = computed(() => Math.max(Number(
   selectedTool.value?.data?.diameter ||
   selectedTool.value?.data?.kerf ||
   props.design.data?.nestingParams?.spacing ||
@@ -191,11 +181,6 @@ const editorViewBox = computed(() => [
   sheetWidth.value + editorPadding.value * 2,
   sheetHeight.value + editorPadding.value * 2
 ].join(' '));
-const majorGridSize = computed(() => {
-  const target = Math.max(sheetWidth.value, sheetHeight.value) / 28;
-  return snapSize.value * Math.max(1, Math.ceil(target / snapSize.value));
-});
-const gridPatternId = computed(() => `sheet-layout-grid-${String(props.design._id || 'sheet').replace(/[^A-Za-z0-9_-]/g, '-')}`);
 const layerCodes = computed(() => Array.from(new Set([
   'contour.material_sheet',
   'contour.cassette_face',
@@ -213,9 +198,6 @@ const resolvedLayerStyles = computed(() => {
 });
 const sheetBoundaryStyle = computed(() => resolvedStyle('contour.material_sheet'));
 const fallbackPlacementStyle = computed(() => resolvedStyle('contour.cassette_face'));
-const selectedSnapPoint = computed(() => selectedIndex.value >= 0
-  ? sheetPlacementTransform(placedItems.value[selectedIndex.value])
-  : null);
 const cassetteOptions = computed(() => cassetteDesigns.value.map(design => ({
   label: design.identity?.name || design.identity?.slug || design._id,
   value: design._id?.toString()
@@ -341,7 +323,7 @@ function dragPlacement(event) {
     placements: placedItems.value,
     items: items.value,
     currentIndex: drag.index,
-    gap: snapSize.value
+    gap: toolGap.value
   });
   const { x, y } = clampSheetPlacement({
     ...snapped,
@@ -373,9 +355,18 @@ function rotateSelected() {
   const rotated = rotateSheetPlacement90(placedItems.value[index]);
   const transform = sheetPlacementTransform(rotated);
   const source = sheetPlacementSource(items.value, rotated);
-  const position = clampSheetPlacement({
+  const snapped = snapSheetPlacementToNeighbors({
     x: transform.x,
     y: transform.y,
+    item: source,
+    rotation: rotated.transformation?.rotation,
+    placements: placedItems.value,
+    items: items.value,
+    currentIndex: index,
+    gap: toolGap.value
+  });
+  const position = clampSheetPlacement({
+    ...snapped,
     item: source,
     rotation: rotated.transformation?.rotation,
     sheetWidth: sheetWidth.value,
@@ -398,12 +389,11 @@ function addCassetteDesign(design) {
   if (!item) return;
   items.value.push(item);
   const start = clampSheetPlacement({
-    x: snapSize.value,
-    y: snapSize.value,
+    x: toolGap.value,
+    y: toolGap.value,
     item,
     sheetWidth: sheetWidth.value,
-    sheetHeight: sheetHeight.value,
-    snap: snapSize.value
+    sheetHeight: sheetHeight.value
   });
   placedItems.value.push({
     item_id: id,

@@ -44,7 +44,7 @@
 
             <div class="flex flex-col gap-8">
                 <Panel
-                  v-if="warehouseId || pileId || runId"
+                  v-if="warehouseId || pileId"
                   :header="$t('common.source')"
                 >
                     <div class="flex flex-col gap-3">
@@ -55,10 +55,6 @@
                         <div v-if="pileId" class="flex items-center justify-between gap-4">
                             <small class="text-muted-color">{{ $t('entities.materialPile') }}</small>
                             <EntityInlineRef type="materialPile" :id="pileId" />
-                        </div>
-                        <div v-if="runId" class="flex items-center justify-between gap-4">
-                            <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
-                            <EntityInlineRef type="nestingRun" :id="runId" />
                         </div>
                     </div>
                 </Panel>
@@ -91,9 +87,8 @@ const { t } = useI18n();
 const sheetSpecs = computed(() => props.sheet.specs || props.sheet.data?.specs || {});
 const sheetWidth = computed(() => sheetSpecs.value.width || 0);
 const sheetLength = computed(() => sheetSpecs.value.length || 0);
-const warehouseId = computed(() => props.sheet.lineage?.warehouseId || null);
-const pileId = computed(() => props.sheet.lineage?.pileId || props.sheet.lineage?.materialPileId || null);
-const runId = computed(() => props.sheet.lineage?.runId || props.sheet.lineage?.nestingRunId || null);
+const warehouseId = computed(() => props.sheet.lineage?.warehouse?.entityId || null);
+const pileId = computed(() => props.sheet.lineage?.materialPile?.entityId || null);
 
 const colorName = computed(() => props.sheet.specs?.color || t('common.unknown'));
 const materialName = computed(() => props.sheet.specs?.material || t('common.unknown'));

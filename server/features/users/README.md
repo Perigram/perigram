@@ -63,7 +63,7 @@ attach the first organization.
   same-organization users for pickers and chat lists.
 
 ## Permission System
-- Organization context via `user.lineage.organizationId`
+- Organization context via structured `user.lineage.organization`
 - Per-organization permissions in `memberships` are explicit stored grants used
   only by tenant-management recovery paths.
 - `membership.owner: true` is the ultimate tenant admin flag. Owner

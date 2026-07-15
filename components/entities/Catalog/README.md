@@ -12,7 +12,7 @@ sheet/foil options.
 
 ## Contract
 
-- Expects a `catalog` DTO with `identity`, `lineage.manufacturerId`, `data`,
+- Expects a `catalog` DTO with `identity`, structured `lineage.manufacturer`, `data`,
   and `summary.colorCount`.
 - Uses `DataBlock` for option/pricing facts and `EntityInlineRef` for the
   manufacturer relation.

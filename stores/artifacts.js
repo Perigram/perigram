@@ -6,7 +6,7 @@ export const useArtifactsStore = defineStore('artifacts', () => {
     const loading = ref(false);
     const error = ref(null);
 
-    async function fetchArtifacts(batchId, runId = null) {
+    async function fetchArtifacts(batchId, revisionId = null) {
         loading.value = true;
         error.value = null;
 
@@ -18,8 +18,8 @@ export const useArtifactsStore = defineStore('artifacts', () => {
         }
 
         try {
-            const url = runId 
-                ? `/api/queue/${batchId}/artifacts?runId=${runId}`
+            const url = revisionId
+                ? `/api/queue/${batchId}/artifacts?revisionId=${revisionId}`
                 : `/api/queue/${batchId}/artifacts`;
             const data = await $fetch(url);
             artifacts.value = data || [];

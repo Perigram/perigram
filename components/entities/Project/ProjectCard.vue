@@ -28,7 +28,7 @@ const handleCardClick = (event) => {
 };
 
 const queueCount = computed(() => props.project.summary?.queueCount || 0);
-const totalArea = computed(() => props.project.summary?.totalArea || 0);
+const libraryCount = computed(() => props.project.relations?.libraries?.length || 0);
 
 </script>
 
@@ -50,7 +50,7 @@ const totalArea = computed(() => props.project.summary?.totalArea || 0);
       <template #compact-content>
         <div class="mt-3 flex flex-wrap gap-2">
           <Tag :value="`${queueCount} ${$t('project.queues')}`" severity="secondary" size="small" />
-          <Tag :value="`${totalArea} m²`" severity="info" size="small" />
+          <Tag :value="`${libraryCount} ${$t('entities.library')}`" severity="info" size="small" />
         </div>
       </template>
       <div class="flex flex-col gap-3">

@@ -47,6 +47,6 @@ const props = defineProps({
 });
 
 const hexCode = computed(() => props.color.data?.visuals?.hexCode || null);
-const catalogId = computed(() => props.color.lineage?.catalogId || null);
+const catalogId = computed(() => props.color.lineage?.catalog?.entityId || null);
 const swatchStyle = computed(() => (hexCode.value ? { backgroundColor: hexCode.value } : undefined));
 </script>

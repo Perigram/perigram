@@ -24,6 +24,14 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
+- `server/scripts/migrate-structured-entity-references.js`: One-shot contract
+  replacement for entity references and nesting attempts. It converts flat
+  lineage ids to `{ entityType, entityId, revisionId? }`, normalizes root
+  relations, migrates legacy nesting-run records to terminal queue revisions,
+  rebuilds the queue nesting Status region/pointers, updates output lineage,
+  removes the retired collection, and rewrites stored process `lineageKey`
+  metadata to `lineageRole`. The default is dry-run; pass `--apply` only after
+  reviewing the counts and any missing run-to-queue mapping errors.
 - `server/scripts/migrate-process-command-output-statuses.js`: Active-process
   data migration for command outputs. It reads graph edges from `runCommand`
   action nodes into downstream status-targeting `mutateEntity` nodes, builds proper process

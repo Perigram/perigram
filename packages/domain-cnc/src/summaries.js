@@ -1,11 +1,16 @@
 export const cncSummaries = [
-  { sourceType: 'cassette', targetType: 'library', targetIdKey: 'libraryId', countField: 'cassetteCount' },
-  { sourceType: 'queue', targetType: 'project', targetIdKey: 'projectId', countField: 'queueCount' },
-  { sourceType: 'cassette_instance', targetType: 'project', targetIdKey: 'projectId', countField: 'instanceCount' },
-  { sourceType: 'nesting_run', targetType: 'queue', targetIdKey: 'queueId', countField: 'runCount' },
-  { sourceType: 'sheet_design', targetType: 'queue', targetIdKey: 'queueId', countField: 'sheetDesignCount' },
-  { sourceType: 'sheet', targetType: 'queue', targetIdKey: 'queueId', countField: 'sheetCount', sumFields: { area: 'totalArea' } },
-  { sourceType: 'color', targetType: 'catalog', targetIdKey: 'catalogId', countField: 'colorCount' }
+  { sourceType: 'cassette', targetType: 'library', lineageRole: 'library', countField: 'cassetteCount' },
+  { sourceType: 'queue', targetType: 'project', lineageRole: 'project', countField: 'queueCount' },
+  { sourceType: 'cassette_instance', targetType: 'project', lineageRole: 'project', countField: 'instanceCount' },
+  {
+    sourceType: 'entity_revision',
+    targetType: 'queue',
+    lineageRole: 'queue',
+    filter: { 'data.entityType': 'queue', 'data.scope': 'nesting' },
+    countField: 'revisionCount'
+  },
+  { sourceType: 'sheet_design', targetType: 'queue', lineageRole: 'queue', countField: 'sheetDesignCount' },
+  { sourceType: 'color', targetType: 'catalog', lineageRole: 'catalog', countField: 'colorCount' }
 ];
 
 export const cncFrontendEntities = [
@@ -25,7 +30,7 @@ export const cncFrontendEntities = [
   { type: 'cassetteInstance', collection: 'cassette-instances', routes: { single: '/api/cassette-instances/:id', list: '/api/cassette-instances' } },
   { type: 'cassetteDesign', collection: 'cassette-designs', routes: { single: '/api/cassette-designs/:id', list: '/api/cassette-designs' } },
   { type: 'sheetDesign', collection: 'sheet-designs', routes: { single: '/api/sheet-designs/:id', list: '/api/sheet-designs' } },
-  { type: 'artifact', collection: 'artifacts', routes: { single: '/api/artifacts/:id/metadata', download: '/api/artifacts/:id', list: '/api/artifacts' } },
+  { type: 'artifact', collection: 'artifacts', routes: { single: '/api/artifacts/:id', download: '/api/artifacts/:id/content', list: '/api/artifacts' } },
   { type: 'catalog', collection: 'catalogs', routes: { single: '/api/catalogs/:id', list: '/api/catalogs' } },
   { type: 'color', collection: 'colors', routes: { single: '/api/colors/:id', list: '/api/colors' } },
   { type: 'entityRevision', collection: 'entity-revisions', routes: { single: '/api/entity-revisions/:id', list: '/api/entity-revisions' } },
@@ -34,6 +39,5 @@ export const cncFrontendEntities = [
   { type: 'warehouse', collection: 'warehouses', routes: { single: '/api/warehouses/:id', list: '/api/warehouses' } },
   { type: 'layerStandard', collection: 'layer-standards', routes: { single: '/api/layer-standards/:id', list: '/api/layer-standards' } },
   { type: 'user', collection: 'users', routes: { single: '/api/users/:id', list: '/api/users' } },
-  { type: 'organization', collection: 'organizations', routes: { single: '/api/organizations/:id', list: '/api/organizations' } },
-  { type: 'nestingRun', collection: 'nesting-runs', routes: { single: '/api/nesting-runs/:id', list: '/api/nesting-runs' } }
+  { type: 'organization', collection: 'organizations', routes: { single: '/api/organizations/:id', list: '/api/organizations' } }
 ];

@@ -29,7 +29,7 @@ export async function find(filter = {}, options = {}) {
 
 export async function findDesignByTemplateId(templateId) {
   const db = await connectDB();
-  return await db.collection('cassette_designs').findOne({ 'lineage.templateId': toFlexibleId(templateId) });
+  return await db.collection('cassette_designs').findOne({ 'lineage.cassette.entityId': String(templateId) });
 }
 
 export async function updateById(id, updates) {

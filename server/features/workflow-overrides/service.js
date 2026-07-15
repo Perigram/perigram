@@ -47,14 +47,16 @@ export async function resolveActiveWorkflow({ entityType, organizationId }) {
     fallbackWorkflow: null
   });
   if (processWorkflow) {
-    return mergeSystemWorkflowTransitions({
-      processWorkflow: normalizeWorkflowPayload(processWorkflow),
+    return mergeSystemWorkflow({
+      authoredWorkflow: normalizeWorkflowPayload(processWorkflow),
       defaultWorkflow
     });
   }
 
   const override = await repository.findActiveByEntity({ organizationId, entityType: normalizedEntityType });
-  return override?.workflow ? normalizeWorkflowPayload(override.workflow) : defaultWorkflow;
+  return override?.workflow
+    ? mergeSystemWorkflow({ authoredWorkflow: normalizeWorkflowPayload(override.workflow), defaultWorkflow })
+    : defaultWorkflow;
 }
 
 export function resolveDefaultWorkflow(entityType) {
@@ -74,15 +76,24 @@ function normalizeWorkflowPayload(workflow) {
   }
 }
 
-function mergeSystemWorkflowTransitions({ processWorkflow, defaultWorkflow }) {
-  if (!processWorkflow || !defaultWorkflow) return processWorkflow || defaultWorkflow;
+function mergeSystemWorkflow({ authoredWorkflow, defaultWorkflow }) {
+  if (!authoredWorkflow || !defaultWorkflow) return authoredWorkflow || defaultWorkflow;
 
-  const merged = normalizeWorkflowPayload(processWorkflow);
+  const merged = normalizeWorkflowPayload(authoredWorkflow);
   const systemWorkflow = normalizeWorkflowPayload(defaultWorkflow);
   const primaryRegionId = merged.primaryRegion || 'main';
+  const systemPrimaryRegionId = systemWorkflow.primaryRegion || 'main';
 
   for (const [regionId, systemRegion] of Object.entries(systemWorkflow.regions || {})) {
-    const targetRegionId = merged.regions?.[regionId] ? regionId : primaryRegionId;
+    if (regionId !== systemPrimaryRegionId) {
+      // Parallel regions describe service-owned lifecycles. Process and workflow
+      // authors own the primary business lifecycle, but cannot erase or replace
+      // system state such as queue nesting execution.
+      merged.regions[regionId] = structuredClone(systemRegion);
+      continue;
+    }
+
+    const targetRegionId = primaryRegionId;
     const targetRegion = merged.regions?.[targetRegionId];
     if (!targetRegion) continue;
 
@@ -122,7 +133,7 @@ function assertKnownEntityType(entityType) {
 
 function assertWorkflowAdmin({ entityType, organizationId, auth }) {
   assertEntityAccess({
-    entity: { lineage: { organizationId } },
+    entity: { lineage: { organization: { entityType: 'organization', entityId: String(organizationId) } } },
     entityType,
     feature: entityTypeToFeature(entityType),
     level: 'admin',

@@ -391,17 +391,25 @@ function getFirstActiveState(active = {}) {
 export class Lineage {
   constructor(raw = {}) {
     for (const [key, value] of Object.entries(raw)) {
-      if (value) this[key] = value;
+      if (!value) continue;
+      if (isLegacyLineageKey(key)) {
+        throw new Error(`Lineage: legacy key ${key} must be migrated to a structured entity reference`);
+      }
+      this[key] = isEntityReference(value) ? normalizeEntityReference(value) : value;
     }
   }
 
-  add(type, id) {
-    if (id) this[`${type}Id`] = id;
+  add(type, id, revisionId = null) {
+    if (id) this[type] = createRelationRef(normalizeReferenceEntityType(type), id, revisionId);
     return this;
   }
 
   addRevision(type, revisionId) {
-    if (revisionId) this[`${type}RevisionId`] = revisionId;
+    if (revisionId && this[type]) this[type] = createRelationRef(
+      this[type].entityType,
+      this[type].entityId,
+      revisionId
+    );
     return this;
   }
 
@@ -499,18 +507,44 @@ export function createRelationRef(entityType, entityId, revisionId = null) {
   };
 }
 
+export function isEntityReference(value) {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    value.entityType &&
+    value.entityId
+  );
+}
+
+export function normalizeEntityReference(value) {
+  if (!isEntityReference(value)) throw new Error('Entity reference requires entityType and entityId');
+  return createRelationRef(value.entityType, value.entityId, value.revisionId);
+}
+
+export function getLineageReference(lineage = {}, role = '') {
+  const value = role ? lineage?.[role] : null;
+  return isEntityReference(value) ? normalizeEntityReference(value) : null;
+}
+
+export function getLineageEntityId(lineage = {}, role = '') {
+  return getLineageReference(lineage, role)?.entityId || null;
+}
+
+export function setLineageReference(lineage = {}, role, entityType, entityId, revisionId = null) {
+  if (!role) throw new Error('Lineage role is required');
+  if (!lineage || typeof lineage !== 'object' || Array.isArray(lineage)) throw new Error('Lineage must be an object');
+  lineage[role] = createRelationRef(entityType, entityId, revisionId);
+  return lineage;
+}
+
 export function normalizeRelations(raw = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
   return Object.fromEntries(Object.entries(raw).flatMap(([key, value]) => {
     const refs = (Array.isArray(value) ? value : [value])
       .filter(Boolean)
       .map(ref => {
-        if (!ref || typeof ref !== 'object') return null;
-        const entityType = ref.entityType || ref.type;
-        const entityId = ref.entityId || ref.id || ref._id;
-        return entityType && entityId
-          ? createRelationRef(entityType, entityId, ref.revisionId)
-          : null;
+        return isEntityReference(ref) ? normalizeEntityReference(ref) : null;
       })
       .filter(Boolean);
     return refs.length ? [[key, refs]] : [];
@@ -561,8 +595,7 @@ export const createStatus = (state, userId = 'SYSTEM', metadata = {}, eventId = 
 export const createSpecs = (data = {}) => new Specs(data);
 export const createData = (data = {}) => ({ ...data });
 export const inheritLineage = (parent, type, mapId = value => value, revisionId = null) => new Lineage(parent?.lineage || {})
-  .add(type, mapId(parent?.identity?.uid || parent?._id))
-  .addRevision(type, revisionId);
+  .add(type, mapId(parent?.identity?.uid || parent?._id), revisionId);
 export const createAttachment = (kind, fileId, name = '', metadata = {}) => ({ kind, fileId, name, metadata, timestamp: new Date() });
 
 export function validateDomain(domain) {
@@ -616,4 +649,12 @@ function deepFreeze(value) {
     if (nested && typeof nested === 'object' && !Object.isFrozen(nested)) deepFreeze(nested);
   }
   return value;
+}
+
+function isLegacyLineageKey(key = '') {
+  return /(?:Id|RevisionId)$/.test(key);
+}
+
+function normalizeReferenceEntityType(type = '') {
+  return String(type).replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
 }

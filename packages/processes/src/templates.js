@@ -27,7 +27,7 @@ const COMMON_SERVICES = {
     commandId: 'solveNesting',
     inputs: [{ id: 'queue', entityType: 'queue', required: true, multiple: false }],
     outputs: [
-      { id: 'nestingRun', entityType: 'nesting_run', multiple: false },
+      { id: 'revision', entityType: 'entity_revision', multiple: false },
       { id: 'sheetDesign', entityType: 'sheet_design', multiple: true },
       { id: 'sheetInstance', entityType: 'sheet_instance', multiple: true }
     ],
@@ -44,7 +44,7 @@ export const PROCESS_TEMPLATES = {
     grants: {
       projects: 'admin',
       queues: 'admin',
-      nesting_runs: 'admin',
+      entity_revisions: 'admin',
       sheet_designs: 'admin',
       sheet_instances: 'admin',
       artifacts: 'admin',
@@ -149,7 +149,9 @@ export function createProcessFromTemplate({ templateId = 'contractor', organizat
       name: template.label,
       slug: template.id
     },
-    lineage: { organizationId },
+    lineage: {
+      organization: { entityType: 'organization', entityId: String(organizationId) }
+    },
     data: definition
   };
 }

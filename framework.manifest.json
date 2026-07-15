@@ -137,7 +137,7 @@
       ],
       "label": "Solve nesting",
       "outputs": [
-        "nesting_run",
+        "entity_revision",
         "sheet_design",
         "sheet_instance"
       ],
@@ -239,8 +239,7 @@
         ],
         "entityType": "project",
         "fieldPaths": [
-          "summary.queueCount",
-          "summary.totalArea"
+          "summary.queueCount"
         ],
         "group": "production",
         "key": "project",
@@ -258,32 +257,13 @@
         "fieldPaths": [
           "data.job.items.length",
           "data.queueNumber",
-          "summary.runCount",
-          "summary.sheetCount",
-          "summary.totalArea"
+          "status.lifecycle.data.settings",
+          "summary.revisionCount"
         ],
         "group": "production",
         "key": "queue",
         "labelKey": "entities.queue",
         "propName": "queue",
-        "status": "interactive",
-        "trace": true
-      },
-      {
-        "componentPath": "components/entities/NestingRun/NestingRunCard.vue",
-        "docs": [
-          "server/features/nesting-runs/README.md"
-        ],
-        "entityType": "nesting_run",
-        "fieldPaths": [
-          "data.results.efficiency",
-          "data.results.remnantArea",
-          "data.results.sheetCount"
-        ],
-        "group": "production",
-        "key": "nestingRun",
-        "labelKey": "entities.nestingRun",
-        "propName": "run",
         "status": "interactive",
         "trace": true
       },
@@ -549,13 +529,19 @@
         "trace": true
       },
       {
-        "componentPath": null,
+        "componentPath": "components/entities/EntityRevision/EntityRevisionCard.vue",
         "docs": [
           "components/entities/EntityRevision/README.md",
           "server/features/entity-revisions/README.md"
         ],
         "entityType": "entity_revision",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.contentHash",
+          "data.number",
+          "data.outcome",
+          "data.scope",
+          "data.taskRunId"
+        ],
         "group": "system",
         "key": "entityRevision",
         "labelKey": "entities.entityRevision",
@@ -1069,7 +1055,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "artifacts",
       "lineage": {},
@@ -1082,7 +1069,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "cassettes",
       "lineage": {},
@@ -1095,7 +1083,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "cassette_designs",
       "lineage": {},
@@ -1108,7 +1097,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "cassette_instances",
       "lineage": {},
@@ -1122,7 +1112,8 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations"
       ],
       "collection": "catalogs",
       "lineage": {},
@@ -1135,7 +1126,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "colors",
       "lineage": {},
@@ -1148,7 +1140,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "entity_revisions",
       "lineage": {},
@@ -1163,7 +1156,8 @@
         "status",
         "attachments",
         "data",
-        "specs"
+        "specs",
+        "relations"
       ],
       "collection": "geometry_captures",
       "lineage": {},
@@ -1176,7 +1170,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "layer_standards",
       "lineage": {},
@@ -1191,7 +1186,8 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations"
       ],
       "collection": "libraries",
       "lineage": {},
@@ -1203,7 +1199,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "materials",
       "lineage": {},
@@ -1216,7 +1213,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "material_piles",
       "lineage": {},
@@ -1229,7 +1227,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "machines",
       "lineage": {},
@@ -1239,23 +1238,11 @@
     {
       "blocks": [
         "identity",
-        "lineage",
         "origin",
         "status",
         "attachments",
-        "data"
-      ],
-      "collection": "nesting_runs",
-      "lineage": {},
-      "type": "nesting_run"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
-        "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "organizations",
       "lineage": {},
@@ -1269,7 +1256,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "pen_templates",
       "lineage": {},
@@ -1283,7 +1271,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "process_definitions",
       "lineage": {},
@@ -1297,7 +1286,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "profile_templates",
       "lineage": {},
@@ -1312,7 +1302,8 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations"
       ],
       "collection": "projects",
       "lineage": {},
@@ -1326,7 +1317,8 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations"
       ],
       "collection": "queues",
       "lineage": {},
@@ -1339,7 +1331,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "remnants",
       "lineage": {},
@@ -1352,7 +1345,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "requisitions",
       "lineage": {},
@@ -1366,7 +1360,8 @@
         "status",
         "attachments",
         "data",
-        "specs"
+        "specs",
+        "relations"
       ],
       "collection": "sheets",
       "lineage": {},
@@ -1380,7 +1375,8 @@
         "status",
         "attachments",
         "data",
-        "specs"
+        "specs",
+        "relations"
       ],
       "collection": "sheet_instances",
       "lineage": {},
@@ -1393,7 +1389,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "sheet_designs",
       "lineage": {},
@@ -1406,7 +1403,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "tool_profiles",
       "lineage": {},
@@ -1420,7 +1418,8 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations"
       ],
       "collection": "users",
       "lineage": {},
@@ -1435,7 +1434,8 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations"
       ],
       "collection": "warehouses",
       "lineage": {},
@@ -1471,118 +1471,124 @@
   ],
   "relationships": [
     {
-      "kind": "lineage",
-      "source": "manufacturer",
-      "target": "requisition",
-      "via": "lineage.manufacturerId"
+      "kind": "containment",
+      "source": "cassette",
+      "target": "cassette_design",
+      "via": "lineage.cassette.entityId"
     },
     {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "catalog",
-      "via": "lineage.organizationId"
+      "kind": "containment",
+      "source": "catalog",
+      "target": "color",
+      "via": "lineage.catalog.entityId"
     },
     {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "process_definition",
-      "via": "lineage.organizationId"
+      "kind": "containment",
+      "source": "library",
+      "target": "cassette",
+      "via": "lineage.library.entityId"
     },
     {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "profile_template",
-      "via": "lineage.organizationId"
+      "kind": "containment",
+      "source": "material_pile",
+      "target": "sheet",
+      "via": "lineage.materialPile.entityId"
     },
     {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "project",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "requisition",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "user",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "workflow_override",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
+      "kind": "containment",
       "source": "project",
-      "target": "requisition",
-      "via": "lineage.projectId"
+      "target": "queue",
+      "via": "lineage.project.entityId"
     },
     {
-      "kind": "lineage",
-      "source": "user",
-      "target": "pen_template",
-      "via": "lineage.userId"
+      "kind": "containment",
+      "source": "queue",
+      "target": "cassette_instance",
+      "via": "lineage.queue.entityId"
     },
     {
-      "kind": "lineage",
-      "source": "user",
-      "target": "profile_template",
-      "via": "lineage.userId"
+      "kind": "containment",
+      "source": "queue",
+      "target": "entity_revision",
+      "via": "lineage.queue.entityId"
     },
     {
-      "kind": "lineage",
-      "source": "user",
-      "target": "tool_profile",
-      "via": "lineage.userId"
+      "kind": "containment",
+      "source": "queue",
+      "target": "sheet_design",
+      "via": "lineage.queue.entityId"
+    },
+    {
+      "kind": "containment",
+      "source": "sheet_design",
+      "target": "sheet_instance",
+      "via": "lineage.sheetDesign.entityId"
+    },
+    {
+      "kind": "containment",
+      "source": "sheet",
+      "target": "cassette_instance",
+      "via": "lineage.sheet.entityId"
+    },
+    {
+      "kind": "containment",
+      "source": "warehouse",
+      "target": "material_pile",
+      "via": "lineage.warehouse.entityId"
+    },
+    {
+      "kind": "containment",
+      "source": "warehouse",
+      "target": "remnant",
+      "via": "lineage.warehouse.entityId"
+    },
+    {
+      "kind": "link",
+      "source": "artifact",
+      "target": "*",
+      "via": "relations.source"
+    },
+    {
+      "kind": "link",
+      "source": "project",
+      "target": "library",
+      "via": "relations.libraries"
     },
     {
       "kind": "summary",
       "source": "catalog",
       "target": "color",
-      "via": "lineage.catalogId"
+      "via": "lineage.catalog.entityId"
     },
     {
       "kind": "summary",
       "source": "library",
       "target": "cassette",
-      "via": "lineage.libraryId"
+      "via": "lineage.library.entityId"
     },
     {
       "kind": "summary",
       "source": "project",
       "target": "cassette_instance",
-      "via": "lineage.projectId"
+      "via": "lineage.project.entityId"
     },
     {
       "kind": "summary",
       "source": "project",
       "target": "queue",
-      "via": "lineage.projectId"
+      "via": "lineage.project.entityId"
     },
     {
       "kind": "summary",
       "source": "queue",
-      "target": "nesting_run",
-      "via": "lineage.queueId"
-    },
-    {
-      "kind": "summary",
-      "source": "queue",
-      "target": "sheet",
-      "via": "lineage.queueId"
+      "target": "entity_revision",
+      "via": "lineage.queue.entityId"
     },
     {
       "kind": "summary",
       "source": "queue",
       "target": "sheet_design",
-      "via": "lineage.queueId"
+      "via": "lineage.queue.entityId"
     }
   ],
   "routes": [
@@ -1685,7 +1691,7 @@
     {
       "collection": "artifacts",
       "list": "/api/artifacts",
-      "single": "/api/artifacts/:id/metadata",
+      "single": "/api/artifacts/:id",
       "type": "artifact"
     },
     {
@@ -1741,65 +1747,59 @@
       "list": "/api/organizations",
       "single": "/api/organizations/:id",
       "type": "organization"
-    },
-    {
-      "collection": "nesting-runs",
-      "list": "/api/nesting-runs",
-      "single": "/api/nesting-runs/:id",
-      "type": "nestingRun"
     }
   ],
   "schemaVersion": 1,
   "summaries": [
     {
       "countField": "cassetteCount",
+      "filter": {},
+      "lineageRole": "library",
       "sourceType": "cassette",
       "sumFields": {},
-      "targetIdKey": "libraryId",
       "targetType": "library"
     },
     {
       "countField": "queueCount",
+      "filter": {},
+      "lineageRole": "project",
       "sourceType": "queue",
       "sumFields": {},
-      "targetIdKey": "projectId",
       "targetType": "project"
     },
     {
       "countField": "instanceCount",
+      "filter": {},
+      "lineageRole": "project",
       "sourceType": "cassette_instance",
       "sumFields": {},
-      "targetIdKey": "projectId",
       "targetType": "project"
     },
     {
-      "countField": "runCount",
-      "sourceType": "nesting_run",
+      "countField": "revisionCount",
+      "filter": {
+        "data.entityType": "queue",
+        "data.scope": "nesting"
+      },
+      "lineageRole": "queue",
+      "sourceType": "entity_revision",
       "sumFields": {},
-      "targetIdKey": "queueId",
       "targetType": "queue"
     },
     {
       "countField": "sheetDesignCount",
+      "filter": {},
+      "lineageRole": "queue",
       "sourceType": "sheet_design",
       "sumFields": {},
-      "targetIdKey": "queueId",
-      "targetType": "queue"
-    },
-    {
-      "countField": "sheetCount",
-      "sourceType": "sheet",
-      "sumFields": {
-        "area": "totalArea"
-      },
-      "targetIdKey": "queueId",
       "targetType": "queue"
     },
     {
       "countField": "colorCount",
+      "filter": {},
+      "lineageRole": "catalog",
       "sourceType": "color",
       "sumFields": {},
-      "targetIdKey": "catalogId",
       "targetType": "catalog"
     }
   ],
@@ -1864,8 +1864,9 @@
       "key": "nestingSolve",
       "label": "Solve nesting",
       "outputs": [
-        "nesting_run",
-        "sheet_design"
+        "entity_revision",
+        "sheet_design",
+        "sheet_instance"
       ],
       "service": "nesting",
       "tasks": [
@@ -1937,33 +1938,22 @@
     {
       "initial": "DRAFT",
       "regions": [
-        "main"
+        "main",
+        "nesting"
       ],
       "states": [
         "DRAFT",
-        "NESTING",
         "READY",
-        "ERROR",
         "CLOSED",
-        "ARCHIVED"
+        "ARCHIVED",
+        "IDLE",
+        "RUNNING",
+        "REVIEW",
+        "SELECTED",
+        "ERROR"
       ],
-      "transitionCount": 18,
+      "transitionCount": 21,
       "type": "queue"
-    },
-    {
-      "initial": "NESTING",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "NESTING",
-        "COMPLETE",
-        "ERROR",
-        "CHOSEN",
-        "REJECTED"
-      ],
-      "transitionCount": 8,
-      "type": "nesting_run"
     },
     {
       "initial": "ACTIVE",

@@ -128,7 +128,7 @@ export function validateDomainDraft(draft = {}) {
     const label = `Summary #${index + 1}`;
     if (!entityTypes.has(summary.sourceType)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown source type: ${summary.sourceType}` });
     if (!entityTypes.has(summary.targetType)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown target type: ${summary.targetType}` });
-    if (!summary.targetIdKey) issues.push({ area: 'summaries', severity: 'error', message: `${label} is missing targetIdKey` });
+    if (!summary.lineageRole) issues.push({ area: 'summaries', severity: 'error', message: `${label} is missing lineageRole` });
     if (!summary.countField) issues.push({ area: 'summaries', severity: 'error', message: `${label} is missing countField` });
     if (summary.sumFields && (typeof summary.sumFields !== 'object' || Array.isArray(summary.sumFields))) {
       issues.push({ area: 'summaries', severity: 'error', message: `${label} sumFields must be an object` });

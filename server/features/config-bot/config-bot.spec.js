@@ -21,13 +21,13 @@ describe('ConfigBot draft generation', () => {
 
   it('selects entities from the prompt and context without preset-name branching', () => {
     const manifest = createConfigBotManifest();
-    const entities = selectEntitiesForPrompt('Create a queue nesting run review page', manifest, {
+    const entities = selectEntitiesForPrompt('Create a queue entity revision review page', manifest, {
       entityType: 'sheet_design'
     });
 
     expect(entities.map(entity => entity.type)).toEqual(expect.arrayContaining([
       'queue',
-      'nesting_run',
+      'entity_revision',
       'sheet_design'
     ]));
   });

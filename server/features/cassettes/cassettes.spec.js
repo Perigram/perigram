@@ -66,7 +66,7 @@ describe('Cassette Management & Ownership', () => {
     expect(result.data.type).toBe('STANDARD');
     expect(result).not.toHaveProperty('name');
     expect(result).not.toHaveProperty('type');
-    expect(result.lineage.organizationId.toString()).toBe(user1.organizationId.toString());
+    expect(result.lineage.organization.entityId.toString()).toBe(user1.organizationId.toString());
   });
 
   it('should create a parametric cassette and extract params', async () => {
@@ -88,7 +88,9 @@ describe('Cassette Management & Ownership', () => {
     await db.collection('libraries').insertOne({
       _id: libraryId,
       identity: { name: 'Default Library', slug: 'default-library' },
-      lineage: { organizationId: user1.organizationId },
+      lineage: {
+        organization: { entityType: 'organization', entityId: user1.organizationId.toString() }
+      },
       summary: { cassetteCount: 0 }
     });
 
@@ -106,8 +108,8 @@ describe('Cassette Management & Ownership', () => {
       id: 'face_1',
       operation: 'face.trapezoid'
     });
-    expect(result.data.parameters).toEqual(['A', 'B', 'R']);
-    expect(result.lineage.libraryId.toString()).toBe(libraryId.toString());
+    expect(result.data.parameters).toEqual(['A', 'B', 'R', 'T']);
+    expect(result.lineage.library.entityId.toString()).toBe(libraryId.toString());
 
     const library = await db.collection('libraries').findOne({ _id: libraryId });
     expect(library.summary.cassetteCount).toBe(1);
@@ -192,7 +194,7 @@ describe('Cassette Management & Ownership', () => {
     );
     await db.collection('cassettes').updateOne(
       { _id: projectScoped._id },
-      { $set: { 'lineage.projectId': 'project-a', 'status.state.primary': 'DRAFT' } }
+      { $set: { 'lineage.project.entityId': 'project-a', 'status.state.primary': 'DRAFT' } }
     );
 
     const readOnlyActiveAuth = {
@@ -322,7 +324,9 @@ describe('Cassette Management & Ownership', () => {
     await db.collection('libraries').insertOne({
       _id: libraryId,
       identity: { name: 'Preview Library', slug: 'preview-library' },
-      lineage: { organizationId: user1.organizationId },
+      lineage: {
+        organization: { entityType: 'organization', entityId: user1.organizationId.toString() }
+      },
       summary: { cassetteCount: 0 }
     });
 

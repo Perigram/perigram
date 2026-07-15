@@ -12,7 +12,7 @@ export const aggregator = {
     const config = getAggregationMap()[entityType];
     if (!config) return;
 
-    const parentId = lineage[config.targetIdKey];
+    const parentId = lineage[config.lineageRole]?.entityId;
     if (!parentId) return;
 
     const db = await connectDB();
@@ -24,7 +24,12 @@ export const aggregator = {
 
     // 1. Run Aggregation
     const pipeline = [
-      { $match: { [`lineage.${config.targetIdKey}`]: flexParentId } },
+      {
+        $match: {
+          [`lineage.${config.lineageRole}.entityId`]: { $in: [flexParentId, parentId.toString()] },
+          ...(config.filter || {})
+        }
+      },
       {
         $group: {
           _id: null,
@@ -60,7 +65,8 @@ function getAggregationMap() {
     summary.sourceType,
     {
       targetType: summary.targetType,
-      targetIdKey: summary.targetIdKey,
+      lineageRole: summary.lineageRole,
+      filter: summary.filter || {},
       fields: {
         count: summary.countField,
         sum: summary.sumFields

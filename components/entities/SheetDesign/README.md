@@ -42,7 +42,7 @@
   not route those refs through `TraceLink` or cassette-template routes.
 - Cards and details show a compact material-source summary when
   `data.materialPool` is present on sheet designs generated from warehouse-mode
-  nesting runs.
+  queue revisions.
 - Sheet designs hide status controls because the current UI contract treats
   them as generated design outputs rather than direct lifecycle action targets.
 

@@ -53,7 +53,8 @@
                         <Divider />
                         <div class="flex justify-between items-center">
                             <small>{{ $t('common.project') }}</small>
-                            <span>{{ instance.lineage?.projectSlug || '—' }}</span>
+                            <EntityInlineRef v-if="projectId" type="project" :id="projectId" />
+                            <span v-else>—</span>
                         </div>
                     </div>
                 </Panel>
@@ -77,11 +78,12 @@ const props = defineProps({
     instance: { type: Object, required: true }
 });
 
-const designId = computed(() => props.instance.lineage?.cassetteDesignId || props.instance.lineage?.designId || props.instance.data?.cassetteDesignId || null);
+const designId = computed(() => props.instance.lineage?.cassetteDesign?.entityId || null);
 const designIdValue = computed(() => designId.value?.toString?.() || designId.value || '');
-const sheetId = computed(() => props.instance.lineage?.sheetId || null);
-const pileId = computed(() => props.instance.lineage?.pileId || null);
-const warehouseId = computed(() => props.instance.lineage?.warehouseId || null);
+const sheetId = computed(() => props.instance.lineage?.sheet?.entityId || null);
+const pileId = computed(() => props.instance.lineage?.materialPile?.entityId || null);
+const warehouseId = computed(() => props.instance.lineage?.warehouse?.entityId || null);
+const projectId = computed(() => props.instance.lineage?.project?.entityId || null);
 const design = ref(null);
 const template = ref(null);
 const sheet = ref(null);
@@ -100,7 +102,7 @@ watch(designId, async (id) => {
     if (!normalizedId) return;
     const loadedDesign = await designEntity.fetch(normalizedId, { silent: true }).catch(() => null);
     design.value = loadedDesign;
-    const templateId = loadedDesign?.lineage?.templateId || loadedDesign?.data?.templateId || null;
+    const templateId = loadedDesign?.lineage?.cassette?.entityId || null;
     const normalizedTemplateId = templateId?.toString?.() || templateId;
     if (normalizedTemplateId) {
         template.value = await templateEntity.fetch(normalizedTemplateId, { silent: true }).catch(() => null);

@@ -77,8 +77,12 @@ Shared frontend utility modules used by Vue pages/components.
   rotate source geometry around the nesting origin and clamp the complete shape
   inside the material sheet.
 - `entity-reference.js`: Parses and formats `entityType/entityId@revisionId`
-  references and converts them to paired lineage id/revision-id fields. The
-  revision suffix is optional.
+  references and converts them to the structured
+  `{ entityType, entityId, revisionId? }` contract. The revision suffix is
+  optional.
+- `entity-hierarchy.js`: Walks domain containment relations against structured
+  lineage to produce parent-first generated breadcrumb chains, preserving
+  optional revision ids.
 - `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency including multi-region workflows, builds automatic Vue Flow node/edge layout data with reciprocal-transition metadata used unless the page has browser-local manual node positions, and generates deterministic `@cutkit/domain-cnc` source for manual export.
 - `workflow-compiler.js`: Shared workbench/domain-builder compiler wrapper for live workflow drafts. It normalizes single-region and multi-region workflow shapes, validates draft machines, exposes state options for typed forms, and derives permission summaries used by fixture scenarios and workbench test access. If a caller has not loaded entity or hook definitions yet, it falls back to committed CNC contracts so workflow validation does not report every known workflow/hook as unknown.
 - `cassette.js` / `cassetteRenderer.js`: Browser cassette designer helpers. ID generation must work on plain HTTP LAN deployments where `crypto.randomUUID` may be unavailable; use local helpers that fall back to `crypto.getRandomValues` before non-cryptographic IDs.

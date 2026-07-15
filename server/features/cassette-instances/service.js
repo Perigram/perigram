@@ -1,4 +1,7 @@
 import * as repository from './repository.js';
+import * as cassetteDesignsRepository from '../cassette-designs/repository.js';
+import * as queuesRepository from '../queues/repository.js';
+import * as sheetsRepository from '../sheets/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
@@ -6,7 +9,8 @@ import {
   createStatus,
   inheritLineage,
   createData,
-  getPrimaryState
+  getPrimaryState,
+  Lineage
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
@@ -35,6 +39,55 @@ function serializeInstance(raw) {
   return instance;
 }
 
+export async function create(data, userId, userOrg, userRole, userPermissions) {
+  const cassetteDesignId = data.cassetteDesignId;
+  if (!cassetteDesignId) {
+    throw createError({ statusCode: 400, message: 'Cassette design is required' });
+  }
+  const design = await cassetteDesignsRepository.findById(cassetteDesignId);
+  if (!design) {
+    throw createError({ statusCode: 404, message: 'Cassette design not found' });
+  }
+
+  const lineage = await creationLineage(data, design, userOrg);
+  lineage.add('cassetteDesign', cassetteDesignId);
+  if (data.queueRevisionId && lineage.queue) lineage.addRevision('queue', data.queueRevisionId);
+
+  if (!hasLineagePermission(userPermissions, lineage, 'projects', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+
+  const uid = `ci-${new ObjectId().toString().slice(-12)}`;
+  const origin = createStatus('CUT', userId, { note: 'Cassette instance created' });
+  const raw = await repository.create({
+    identity: createIdentity(data.name || design.identity?.name || 'Cassette instance', uid, data.serial || '', data.reference || ''),
+    origin,
+    status: origin,
+    lineage,
+    data: createData({ source: data.source || 'PROCESS' })
+  });
+  aggregator.syncParentSummary('cassette_instance', lineage).catch(err => {
+    console.error('[Instance Service] Failed to sync parent summary:', err.message);
+  });
+  return serializeInstance(raw);
+}
+
+async function creationLineage(data, design, userOrg) {
+  if (data.queueId) {
+    const queue = await queuesRepository.findById(data.queueId);
+    if (!queue) throw createError({ statusCode: 404, message: 'Parent queue not found' });
+    return inheritLineage(queue, 'queue');
+  }
+  if (data.sheetId) {
+    const sheet = await sheetsRepository.findById(data.sheetId);
+    if (!sheet) throw createError({ statusCode: 404, message: 'Parent sheet not found' });
+    return inheritLineage(sheet, 'sheet');
+  }
+  const lineage = new Lineage(design.lineage || {});
+  if (!lineage.organization && userOrg) lineage.add('organization', userOrg);
+  return lineage;
+}
+
 
 export async function createFromSheet(sheet, designs, userId, userRole, userPermissions) {
   // 1. Permission Check
@@ -51,10 +104,7 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
     const origin = createStatus('CUT', userId, { note: 'Instantiated from cut sheet' });
 
     // Merge lineages: digital from design + physical from sheet
-    const instanceLineage = {
-      ...baseLineage,
-      designId: toFlexibleId(designEntry.designId)
-    };
+    const instanceLineage = new Lineage(baseLineage).add('cassetteDesign', designEntry.designId);
 
     const instanceData = {
       identity: createIdentity(`Cassette ${designEntry.instanceNumber}`, '', designEntry.instanceNumber, designEntry.reference || ''),
@@ -92,11 +142,9 @@ export async function createFromCutSheet(sheet, designs = [], userId = 'SYSTEM')
       const uid = `ci-${new ObjectId().toString().slice(-8)}-${instanceOffset}`;
       const serial = designEntry.serial || `${sheet.identity?.serial || 'CUT'}-${instanceOffset}`;
       const origin = createStatus('CUT', userId, { note: 'Produced from queue cut' });
-      const instanceLineage = {
-        ...(baseLineage.toJSON?.() || baseLineage),
-        designId: toFlexibleId(designEntry.designId || designEntry.cassetteDesignId),
-        sheetDesignId: toFlexibleId(designEntry.sheetDesignId)
-      };
+      const instanceLineage = new Lineage(baseLineage.toJSON?.() || baseLineage)
+        .add('cassetteDesign', designEntry.designId || designEntry.cassetteDesignId)
+        .add('sheetDesign', designEntry.sheetDesignId);
 
       const instanceData = {
         identity: createIdentity(`Cassette ${serial}`, uid, serial, designEntry.reference || ''),
@@ -104,9 +152,7 @@ export async function createFromCutSheet(sheet, designs = [], userId = 'SYSTEM')
         status: origin,
         lineage: instanceLineage,
         data: createData({
-          source: 'QUEUE_CUT',
-          sheetDesignId: designEntry.sheetDesignId,
-          cassetteDesignId: designEntry.designId || designEntry.cassetteDesignId
+          source: 'QUEUE_CUT'
         })
       };
 
@@ -132,7 +178,7 @@ export async function list(userId, userOrg, userRole, userPermissions, options =
 export async function listByQueue(queueId, userId, userOrg, userRole, userPermissions) {
   const filter = {
     ...getLineageFilter(userPermissions),
-    'lineage.queueId': toFlexibleId(queueId)
+    'lineage.queue.entityId': String(queueId)
   };
   const raws = await repository.find(filter);
   return raws.map(serializeInstance);

@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const body = await readBody(event) || {};
   const queueId = event.context.params.id;
-  const settingsUpdate = body.nestingSettings || body.nestingParams || rootNestingSettings(body);
+  const settingsUpdate = body.nestingSettings || null;
 
   if (body.job || settingsUpdate) {
     await queuesService.update(
@@ -38,43 +38,5 @@ export default defineEventHandler(async (event) => {
     entities: { queue: queueId },
     parameters
   }, auth);
-  const requestedAttachments = body.generateAttachments
-    ? (body.requestedAttachments || body.requestedArtifacts || queue.data?.nestingSettings?.requestedArtifacts || ['LAYOUT_DXF'])
-    : [];
-  const attachments = [];
-
-  for (const kind of requestedAttachments) {
-    const result = await executeCommand('generateAttachment', {
-      entities: { nestingRun: nestingResult.data.runId },
-      parameters: { kind, pdfTemplateId: body.pdfTemplateId }
-    }, auth);
-    attachments.push(result.data.attachmentId);
-  }
-
-  return {
-    ...nestingResult.data,
-    attachments
-  };
+  return nestingResult.data;
 });
-
-function rootNestingSettings(body = {}) {
-  const keys = [
-    'materialMode',
-    'virtualWidth',
-    'virtualLength',
-    'width',
-    'height',
-    'spacing',
-    'space',
-    'warehouseId',
-    'inventoryItems',
-    'toolProfileId',
-    'toolId',
-    'requestedArtifacts'
-  ];
-  const result = {};
-  for (const key of keys) {
-    if (body[key] !== undefined) result[key] = body[key];
-  }
-  return Object.keys(result).length ? result : null;
-}

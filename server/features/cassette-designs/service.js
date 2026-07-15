@@ -7,12 +7,14 @@ import {
   createIdentity,
   createStatus,
   inheritLineage,
-  createData
+  createData,
+  Lineage
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { GridFSBucket } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { mapLineageQuery } from '../../utils/query.js';
 import { CassetteDesign } from './model.js';
 import { generateRandomString } from '../../utils/strings.js';
 import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
@@ -57,7 +59,7 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
   // 2. Lineage Inheritance
   const lineage = inheritLineage(queue, 'queue');
   if (data.templateId) {
-      lineage.templateId = toFlexibleId(data.templateId);
+    lineage.add('cassette', data.templateId);
   }
 
   const origin = createStatus('DRAFT', userId, { note: 'Cassette design initialized' });
@@ -88,10 +90,7 @@ export async function createFromTemplateUpload(data, userId, userPermissions = n
     identity: createIdentity(data.name || 'Cassette Design', slug),
     origin,
     status: origin,
-    lineage: {
-      ...(data.lineage || {}),
-      templateId: toFlexibleId(data.templateId)
-    },
+    lineage: new Lineage(data.lineage || {}).add('cassette', data.templateId),
     data: createData({
       polygonParts: data.polygonParts || [],
       layerData: data.layerData || [],
@@ -153,7 +152,7 @@ export async function getById(id, userId, userRole, userPermissions) {
 export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
   const filter = {
     ...getLineageFilter(userPermissions || {}),
-    'lineage.templateId': toFlexibleId(templateId)
+    'lineage.cassette.entityId': String(templateId)
   };
 
   const designs = await repository.find(filter);
@@ -163,7 +162,7 @@ export async function getByTemplateId(templateId, userId, userOrg, userRole, use
 export async function exportDxf(id, userId, userRole, userPermissions) {
   const flexId = toFlexibleId(id);
   const raw = await repository.findById(flexId) ||
-    (await repository.find({ 'lineage.templateId': flexId }))[0];
+    (await repository.find({ 'lineage.cassette.entityId': String(id) }))[0];
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
@@ -193,15 +192,11 @@ export async function exportDxf(id, userId, userRole, userPermissions) {
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter(userPermissions);
 
-  const processedFilter = { ...filter };
-  if (processedFilter.queueId) {
-    processedFilter['lineage.queueId'] = toFlexibleId(processedFilter.queueId);
-    delete processedFilter.queueId;
-  }
-  if (processedFilter.templateId) {
-    processedFilter['lineage.templateId'] = toFlexibleId(processedFilter.templateId);
-    delete processedFilter.templateId;
-  }
+  const processedFilter = mapLineageQuery({
+    ...filter,
+    ...(filter.templateId !== undefined ? { cassetteId: filter.templateId } : {})
+  });
+  delete processedFilter.templateId;
   const statuses = normalizePrimaryStatuses(processedFilter.primaryStatuses);
   if (statuses.length) processedFilter['status.state.primary'] = { $in: statuses };
   else if (processedFilter.status || processedFilter.primaryStatus) {

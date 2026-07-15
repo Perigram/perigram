@@ -11,15 +11,26 @@
           class="min-w-0 flex-1"
           :class="galleryClass"
         >
-          <EntityInlineRef
+          <span
             v-for="item in relation.previewItems"
-            :key="`${relation.path}:${item.entityType}:${item.id}`"
+            :key="`${relation.path}:${item.entityType}:${item.id}:${item.revisionId || ''}`"
             :class="itemClass"
-            :type="item.entityType"
-            :id="item.id"
-            :entity="item.entity || null"
-            :variant="itemVariant"
-          />
+            class="inline-flex min-w-0 items-center gap-1"
+          >
+            <EntityInlineRef
+              :type="item.entityType"
+              :id="item.id"
+              :entity="item.entity || null"
+              :variant="itemVariant"
+            />
+            <EntityInlineRef
+              v-if="item.revisionId"
+              type="entityRevision"
+              :id="item.revisionId"
+              variant="inline"
+              class="max-w-24"
+            />
+          </span>
           <Button
             v-if="relation.hiddenCount && isCompactGallery"
             :label="`+${relation.hiddenCount}`"
@@ -45,15 +56,19 @@
     </div>
     <Popover ref="overflowPopover" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
       <div class="flex max-w-[min(22rem,calc(100vw-3rem))] flex-wrap gap-2 p-2">
-        <EntityInlineRef
+        <span
           v-for="item in overflowItems"
-          :key="`overflow:${item.entityType}:${item.id}`"
+          :key="`overflow:${item.entityType}:${item.id}:${item.revisionId || ''}`"
           class="max-w-[12rem]"
-          :type="item.entityType"
-          :id="item.id"
-          :entity="item.entity || null"
-          :variant="itemVariant"
-        />
+        >
+          <EntityInlineRef
+            :type="item.entityType"
+            :id="item.id"
+            :entity="item.entity || null"
+            :variant="itemVariant"
+          />
+          <EntityInlineRef v-if="item.revisionId" type="entityRevision" :id="item.revisionId" variant="inline" />
+        </span>
       </div>
     </Popover>
   </div>

@@ -38,6 +38,16 @@ export function getEntityCollection(type) {
   return definition?.collection || null;
 }
 
+export function getEntityFieldAccessPolicy(type) {
+  const normalized = normalizeEntityType(type);
+  const fieldAccess = getCutkitRegistry().getDomain('cnc')?.fieldAccess || {};
+  const candidates = createEntityTypeCandidates(normalized);
+  return Object.entries(fieldAccess).find(([key]) => {
+    const policyKeys = createEntityTypeCandidates(key);
+    return Array.from(policyKeys).some(candidate => candidates.has(candidate));
+  })?.[1] || null;
+}
+
 function createEntityTypeCandidates(value = '') {
   const raw = String(value || '');
   const snake = camelToSnake(raw).replace(/-/g, '_');

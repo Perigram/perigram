@@ -74,7 +74,7 @@ describe('Catalog Management', () => {
     await db.collection('catalogs').insertOne({
       _id: catalogId,
       identity: { uid: catalogId, name: 'Other Brand' },
-      lineage: { organizationId: otherManufacturerId }
+      lineage: { organization: { entityType: 'organization', entityId: otherManufacturerId.toString() } }
     });
 
     await expect(catalogService.remove(catalogId.toString(), mockUser.userId, mockUser.organizationId, null, mockUser.permissions))
@@ -87,12 +87,12 @@ describe('Catalog Management', () => {
       {
         _id: new ObjectId(),
         identity: { uid: 'own-catalog', name: 'Own Catalog' },
-        lineage: { organizationId: mockUser.organizationId }
+        lineage: { organization: { entityType: 'organization', entityId: mockUser.organizationId.toString() } }
       },
       {
         _id: new ObjectId(),
         identity: { uid: 'other-catalog', name: 'Other Catalog' },
-        lineage: { organizationId: otherManufacturerId }
+        lineage: { organization: { entityType: 'organization', entityId: otherManufacturerId.toString() } }
       }
     ]);
 

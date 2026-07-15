@@ -260,44 +260,38 @@
                     </div>
                 </ScrollablePanel>
 
-                <ScrollablePanel v-if="hasPhysicalOutputs" :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`" class="flex-1">
-                    <ResponsiveGrid>
-                        <CassetteInstanceCard
-                            v-for="instance in instances"
-                            :key="instance._id"
-                            :instance="instance"
-                            variant="compact"
-                        />
-                    </ResponsiveGrid>
-                </ScrollablePanel>
             </div>
-            <template v-if="showNestingRunRegion" #[supportSlot]>
-                <Panel :header="`${$t('queue.runs')} (${readableQueueRuns.length})`">
-                    <div v-if="readableQueueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
+            <template v-if="showNestingRevisionRegion" #[supportSlot]>
+                <Panel :header="`${$t('queue.revisions')} (${queueRevisions.length})`">
+                    <div v-if="queueRevisions.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
                         <Select
-                            :model-value="selectedRunId"
-                            :options="runOptions"
+                            v-model="inspectedRevisionId"
+                            :options="revisionOptions"
                             option-label="name"
                             option-value="id"
                             class="w-full"
                             size="small"
-                            @update:model-value="selectedRunId = $event"
                         />
-                        <NestingRunCard
-                            v-if="activeRun"
-                            :key="activeRun._id"
-                            :run="activeRun"
-                            :sheet-designs="activeRunSheetDesigns"
-                            :active="true"
-                            :is-chosen="getPrimaryState(activeRun.status) === 'CHOSEN'"
-                            @select="selectedRunId = $event.toString()"
-                            @choose="chooseRunHandler"
-                            @refresh="handleRunStatusChanged"
-                            @delete="deleteRunHandler"
-                            @convert-to-physical="handleConvertToPhysical"
+                        <EntityRevisionCard v-if="inspectedRevision" :revision="inspectedRevision" variant="compact" />
+                        <Button
+                            v-if="inspectedRevision?.data?.outcome === 'SUCCESS' && inspectedRevisionId !== selectedRevisionId"
+                            :label="$t('queue.chooseRevision')"
+                            icon="pi pi-check"
+                            size="small"
+                            @click="chooseRevisionHandler(inspectedRevisionId)"
                         />
+                        <div v-if="selectedRevisionId" class="flex flex-col gap-2">
+                            <small class="font-medium text-muted-color">{{ $t('queue.sheetDesigns') }}</small>
+                            <SheetDesignCard
+                                v-for="design in selectedSheetDesigns"
+                                :key="design._id"
+                                :design="design"
+                                variant="compact"
+                            />
+                            <StateBlock v-if="!selectedSheetDesigns.length" :message="$t('queues.noSheetDesigns')" icon="pi pi-file" />
+                        </div>
                     </div>
-                    <StateBlock v-else-if="canRunNesting" :message="$t('queue.nestingRuns')" icon="pi pi-list-check" />
+                    <StateBlock v-else-if="canRunNesting" :message="$t('queue.nestingRevisions')" icon="pi pi-list-check" />
                 </Panel>
             </template>
         </component>
@@ -330,8 +324,8 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import QueueEntryCard from '~/components/entities/Queue/QueueEntryCard.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import QueueSourceCard from '~/components/entities/Queue/QueueSourceCard.vue';
-import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
-import CassetteInstanceCard from '~/components/entities/CassetteInstance/CassetteInstanceCard.vue';
+import EntityRevisionCard from '~/components/entities/EntityRevision/EntityRevisionCard.vue';
+import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
@@ -343,7 +337,7 @@ import { onEntityChanged } from '~/utils/entity-events.js';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
 import { canonicalQueueItem } from '~/utils/queue-items.js';
-import { getPrimaryState } from '~/packages/core/src/index.js';
+import { getPrimaryState, getRegionState } from '~/packages/core/src/index.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
@@ -361,21 +355,27 @@ const { t, te } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
 const authStore = useAuthStore();
+const queuesStore = useQueuesStore();
+const cassettesStore = useCassettesStore();
+const toolProfilesStore = useToolProfilesStore();
 
-const queueState = computed(() => getPrimaryState(props.queue.status, 'UNKNOWN'));
+const effectiveQueue = computed(() => (
+    queuesStore.currentQueue?._id?.toString() === props.queue._id?.toString()
+        ? queuesStore.currentQueue
+        : props.queue
+));
+const queueState = computed(() => getPrimaryState(effectiveQueue.value.status, 'UNKNOWN'));
+const nestingState = computed(() => getRegionState(effectiveQueue.value.status, 'nesting', 'IDLE'));
 const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || t('common.unnamed'));
 const isProcessMode = computed(() => props.editMode === 'process');
 const showQueueNavigation = computed(() => props.showQueueNavigation);
 const workspaceComponent = computed(() => showQueueNavigation.value ? WorkspaceLanes : EntityWorkspace);
 const supportSlot = computed(() => showQueueNavigation.value ? 'right' : 'support');
 const producerActionLabel = action => generatedActionLabel(action, action.actionId || action.id, { t, te });
-
-const queuesStore = useQueuesStore();
-const cassettesStore = useCassettesStore();
-const toolProfilesStore = useToolProfilesStore();
+const formatDate = value => value ? new Date(value).toLocaleString() : '';
 
 const entries = ref([]);
-const { runs, nestingCompleted } = storeToRefs(queuesStore);
+const { revisions, nestingCompleted } = storeToRefs(queuesStore);
 const nestingInProgress = ref(false);
 const cassettes = ref([]);
 const cassetteDesigns = ref([]);
@@ -386,8 +386,7 @@ const materials = ref([]);
 const availableInventory = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
-const selectedRunId = ref(null);
-const instances = ref([]);
+const inspectedRevisionId = ref(null);
 const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
 const queueList = computed(() => [...props.queues].reverse());
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
@@ -659,7 +658,7 @@ const defaultNestingSettings = () => ({
 });
 
 const queueNestingSettings = (queue = {}) => {
-    const settings = queue.data?.nestingSettings || queue.data?.nestingParams || {};
+    const settings = queue.data?.nestingSettings || {};
     return {
         ...defaultNestingSettings(),
         ...settings,
@@ -671,37 +670,30 @@ const queueNestingSettings = (queue = {}) => {
 
 const nestingOptions = ref(queueNestingSettings(props.queue));
 
-const queueRuns = computed(() => runs.value[props.queue._id] || []);
-const canReadNestingRun = (run = {}) => hasPermissionGrant({
-    permissions: authStore.activePermissions,
-    feature: 'nesting_runs',
-    level: 'read',
-    entity: run,
-    entityType: 'nesting_run'
-});
-const readableQueueRuns = computed(() => isProcessMode.value ? queueRuns.value.filter(canReadNestingRun) : queueRuns.value);
-const showNestingRunRegion = computed(() => !isProcessMode.value || readableQueueRuns.value.length > 0 || canRunNesting.value);
-const runOptions = computed(() => readableQueueRuns.value.map(run => ({
-    ...run,
-    id: run._id?.toString(),
-    name: entitySelectLabel(run, t('entities.nestingRun'))
+const queueRevisions = computed(() => revisions.value[props.queue._id] || []);
+const statusNestingData = computed(() => effectiveQueue.value.status?.lifecycle?.data || {});
+const selectedRevisionId = computed(() => statusNestingData.value.selectedRevisionId || null);
+const showNestingRevisionRegion = computed(() => !isProcessMode.value || queueRevisions.value.length > 0 || canRunNesting.value);
+const revisionOptions = computed(() => queueRevisions.value.map(revision => ({
+    id: revision._id?.toString(),
+    name: `${revision.data?.outcome === 'SUCCESS' ? '✓' : '✕'} #${revision.data?.number || '?'} · ${formatDate(revision.status?.timestamp || revision.origin?.timestamp)}`
 })));
-const activeRun = computed(() => readableQueueRuns.value.find(run => run._id?.toString() === selectedRunId.value?.toString()) || readableQueueRuns.value[0] || null);
-const activeRunSheetDesigns = computed(() => sheetDesigns.value.filter(design =>
-    design.lineage?.runId?.toString?.() === activeRun.value?._id?.toString?.()
-));
-const hasPhysicalOutputs = computed(() => Boolean(props.queue.data?.physicalOutputs?.cassetteInstanceIds?.length));
+const inspectedRevision = computed(() => queueRevisions.value.find(revision => (
+    revision._id?.toString() === inspectedRevisionId.value?.toString()
+)) || null);
+const selectedSheetDesigns = computed(() => sheetDesigns.value.filter(design => (
+    design.lineage?.queue?.revisionId?.toString() === selectedRevisionId.value?.toString()
+)));
 const warehouseShortage = computed(() => {
     if (nestingOptions.value.materialMode !== 'WAREHOUSE') return null;
-    if (queueRuns.value.length === 0) return null;
+    if (queueRevisions.value.length === 0) return null;
 
-    const latestRun = queueRuns.value[queueRuns.value.length - 1];
-    const latestState = getPrimaryState(latestRun.status);
-    if (latestState !== 'COMPLETE' && latestState !== 'CHOSEN') return null;
+    const latestRevision = [...queueRevisions.value].reverse().find(revision => revision.data?.outcome === 'SUCCESS');
+    if (!latestRevision || !['REVIEW', 'SELECTED'].includes(nestingState.value)) return null;
 
     const totalAvailable = selectedMaterialPool.value.reduce((sum, item) => sum + (item.available || 1), 0);
 
-    const neededSheets = runSheetCount(latestRun);
+    const neededSheets = revisionSheetCount(latestRevision);
     if (neededSheets > totalAvailable) {
         return {
             needed: neededSheets,
@@ -730,9 +722,9 @@ const loadWarehouseInventory = async () => {
     try {
         const whId = nestingOptions.value.warehouseId;
         const [piles, sheets, remnants] = await Promise.all([
-            $fetch(`/api/material-piles?lineage.warehouseId=${whId}`),
-            $fetch(`/api/sheets?lineage.warehouseId=${whId}`),
-            $fetch(`/api/remnants?lineage.warehouseId=${whId}`)
+            $fetch(`/api/material-piles?lineage.warehouse.entityId=${whId}`),
+            $fetch(`/api/sheets?lineage.warehouse.entityId=${whId}`),
+            $fetch(`/api/remnants?lineage.warehouse.entityId=${whId}`)
         ]);
 
         availableInventory.value = [
@@ -778,9 +770,7 @@ const onCustomSheetUpload = (event) => {
     nestingOptions.value.inventoryItems.push(`file_${response.fileId}`);
 };
 
-const runSheetCount = (run = {}) => Number(run.data?.results?.sheetCount || run.summary?.sheetCount || run.layoutCount || 0);
-const runParams = (run = {}) => run.data?.params || run.params || {};
-const latestRunId = (runsForQueue = queueRuns.value) => runsForQueue.at(-1)?._id?.toString?.() || null;
+const revisionSheetCount = (revision = {}) => Number(revision.data?.snapshot?.results?.sheetCount || 0);
 
 const loadQueueData = async () => {
     try {
@@ -794,18 +784,18 @@ const loadQueueData = async () => {
             } else {
                 availableInventory.value = [];
             }
-            if (hasPhysicalOutputs.value) loadInstances();
         }
     } catch (e) { console.error('Failed to load queue data:', e); }
 };
 
 const loadSheetDesigns = async () => {
     try {
-        const runId = activeRun.value?._id?.toString();
+        if (!selectedRevisionId.value) {
+            sheetDesigns.value = [];
+            return;
+        }
         sheetDesigns.value = await $fetch('/api/sheet-designs', {
-            query: runId
-                ? { queueId: props.queue._id, runId }
-                : { queueId: props.queue._id }
+            query: { queueId: props.queue._id, revisionId: selectedRevisionId.value }
         });
     } catch (e) {
         console.error('Failed to load sheet designs:', e);
@@ -813,33 +803,22 @@ const loadSheetDesigns = async () => {
     }
 };
 
-let queueRunRefreshPromise = null;
-const refreshQueueAfterRunTransition = async () => {
-    if (queueRunRefreshPromise) return queueRunRefreshPromise;
+let queueRevisionRefreshPromise = null;
+const refreshQueueAfterRevisionTransition = async () => {
+    if (queueRevisionRefreshPromise) return queueRevisionRefreshPromise;
 
-    queueRunRefreshPromise = (async () => {
-        await queuesStore.fetchRuns(props.queue._id);
+    queueRevisionRefreshPromise = (async () => {
+        await queuesStore.fetchRevisions(props.queue._id);
         await Promise.all([
             loadQueueData(),
             loadSheetDesigns()
         ]);
-        if (hasPhysicalOutputs.value) {
-            await loadInstances();
-        }
         emit('updated');
     })().finally(() => {
-        queueRunRefreshPromise = null;
+        queueRevisionRefreshPromise = null;
     });
 
-    return queueRunRefreshPromise;
-};
-
-const handleRunStatusChanged = async () => {
-    try {
-        await refreshQueueAfterRunTransition();
-    } catch (e) {
-        toast.add({ severity: 'error', summary: t('common.error'), detail: e.message });
-    }
+    return queueRevisionRefreshPromise;
 };
 
 onMounted(async () => {
@@ -856,7 +835,7 @@ onMounted(async () => {
     machines.value = machineResult || [];
     materials.value = materialResult || [];
     await toolProfilesStore.fetchTools();
-    await queuesStore.fetchRuns(props.queue._id);
+    await queuesStore.fetchRevisions(props.queue._id);
     await loadSheetDesigns();
     loadQueueData();
 });
@@ -869,12 +848,8 @@ const stopEntityChangeListener = onEntityChanged(async ({ type, id, entity }) =>
         return;
     }
 
-    if (type !== 'nesting_run') return;
-
-    const runQueueId = entity?.lineage?.queueId?.toString?.() || entity?.lineage?.queueId;
-    const knownRun = queueRuns.value.some(run => run._id?.toString() === id?.toString());
-    if (runQueueId?.toString() === queueId || knownRun) {
-        await refreshQueueAfterRunTransition();
+    if (type === 'entity_revision' && entity?.data?.entityType === 'queue' && entity?.data?.entityId?.toString() === queueId) {
+        await refreshQueueAfterRevisionTransition();
     }
 });
 
@@ -890,25 +865,23 @@ watch(nestingCompleted, async (event) => {
     }
 });
 
-watch(readableQueueRuns, (runsForQueue) => {
-    if (!runsForQueue.length) {
-        selectedRunId.value = null;
+watch(queueRevisions, (queueRevisionRows) => {
+    if (!queueRevisionRows.length) {
+        inspectedRevisionId.value = null;
         return;
     }
-    if (!runsForQueue.some(run => run._id?.toString() === selectedRunId.value?.toString())) {
-        selectedRunId.value = runsForQueue[runsForQueue.length - 1]._id?.toString();
+    if (!queueRevisionRows.some(revision => revision._id?.toString() === inspectedRevisionId.value?.toString())) {
+        inspectedRevisionId.value = queueRevisionRows[queueRevisionRows.length - 1]._id?.toString();
     }
 }, { immediate: true });
 
-watch(selectedRunId, () => loadSheetDesigns());
+watch(selectedRevisionId, () => loadSheetDesigns());
 
 watch(() => props.queue._id, async () => {
     await loadQueueData();
-    await queuesStore.fetchRuns(props.queue._id);
+    await queuesStore.fetchRevisions(props.queue._id);
     await loadSheetDesigns();
 });
-
-const formatDate = (d) => new Date(d).toLocaleString();
 
 const syncEntryWithCassette = (entry) => {
     const canonical = canonicalQueueItem(entry, { cassettes: cassettes.value, cassetteDesigns: cassetteDesigns.value });
@@ -1003,15 +976,12 @@ const runNesting = async () => {
                     parameters: nestingCommandParameters.value
                 }
             });
-            const refreshedRuns = await queuesStore.fetchRuns(queueId);
-            selectedRunId.value = latestRunId(refreshedRuns);
+            await queuesStore.getQueue(queueId);
             queuesStore.pollQueueStatus(queueId);
             emit('updated');
         } else {
             await saveQueue();
             await queuesStore.startNesting(queueId);
-            const refreshedRuns = await queuesStore.fetchRuns(queueId);
-            selectedRunId.value = latestRunId(refreshedRuns);
         }
         await loadSheetDesigns();
         toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
@@ -1036,43 +1006,12 @@ const confirmDeleteQueue = (queueToDelete) => {
     });
 };
 
-const chooseRunHandler = async (id) => {
+const chooseRevisionHandler = async (id) => {
     try {
-        await queuesStore.chooseRun(props.queue._id, id);
-        await refreshQueueAfterRunTransition();
+        await queuesStore.chooseRevision(props.queue._id, id);
+        await refreshQueueAfterRevisionTransition();
     }
-    catch (e) { toast.add({ severity: 'error', summary: t('queue.chooseRunFailed'), detail: e.message }); }
-};
-
-const deleteRunHandler = async (id) => {
-    confirm.require({
-        message: t('queue.confirmDeleteRun'),
-        header: t('common.confirmation'),
-        icon: 'pi pi-exclamation-triangle',
-        accept: async () => {
-            try {
-                await queuesStore.deleteRun(props.queue._id, id);
-                toast.add({ severity: 'success', summary: t('common.success'), detail: t('queue.runDeleted'), life: 2000 });
-                emit('updated');
-            }
-            catch (e) { toast.add({ severity: 'error', summary: t('common.error'), detail: e.message }); }
-        }
-    });
-};
-
-const handleConvertToPhysical = async (runId) => {
-    const run = queueRuns.value.find(r => r._id.toString() === runId.toString());
-    if (!run) return;
-    const params = runParams(run);
-    nestingOptions.value.materialMode = 'WAREHOUSE';
-    nestingOptions.value.virtualWidth = params.width || 3000;
-    nestingOptions.value.virtualLength = params.height || 1500;
-    toast.add({
-        severity: 'info',
-        summary: t('queues.switchingToWarehouse'),
-        detail: t('queues.selectWarehouseHint'),
-        life: 5000
-    });
+    catch (e) { toast.add({ severity: 'error', summary: t('queue.chooseRevisionFailed'), detail: e.message }); }
 };
 
 const confirmDelete = (entry) => {
@@ -1089,10 +1028,5 @@ const confirmDelete = (entry) => {
 
 const onRowEditSave = async () => await saveQueue();
 
-const loadInstances = async () => {
-    try {
-        instances.value = await $fetch(`/api/cassette-instances?lineage.queueId=${props.queue._id}`);
-    } catch (e) { console.error('Failed to load instances:', e); }
-};
 
 </script>

@@ -15,7 +15,6 @@ import * as librariesService from '~/server/features/libraries/service.js';
 import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
 import * as machinesService from '~/server/features/machines/service.js';
-import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
 import * as penTemplatesService from '~/server/features/pen-templates/service.js';
 import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
@@ -90,7 +89,6 @@ const entityServices = {
   material: materialsService,
   material_pile: materialPilesService,
   machine: machinesService,
-  nesting_run: nestingRunsService,
   organization: organizationsService,
   pen_template: penTemplatesService,
   process_definition: processDefinitionsService,

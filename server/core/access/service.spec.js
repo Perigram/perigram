@@ -10,7 +10,8 @@ vi.mock('h3', () => ({
   })
 }));
 
-const entity = { lineage: { organizationId: 'org-1' } };
+const ref = (entityType, entityId) => ({ entityType, entityId });
+const entity = { lineage: { organization: ref('organization', 'org-1') } };
 const auth = {
   userId: 'u1',
   memberships: [{ organizationId: 'org-1', permissions: { queues: 'write', artifacts: 'read' } }]
@@ -100,7 +101,7 @@ describe('access engine', () => {
   });
 
   it('supports project-scoped permission grants', () => {
-    const scopedEntity = { lineage: { organizationId: 'org-1', projectId: 'project-a' } };
+    const scopedEntity = { lineage: { organization: ref('organization', 'org-1'), project: ref('project', 'project-a') } };
     const scopedAuth = {
       userId: 'u2',
       memberships: [{
@@ -113,7 +114,7 @@ describe('access engine', () => {
 
     expect(hasEntityAccess({ entity: scopedEntity, feature: 'queues', level: 'write', auth: scopedAuth })).toBe(true);
     expect(hasEntityAccess({
-      entity: { lineage: { organizationId: 'org-1', projectId: 'project-b' } },
+      entity: { lineage: { organization: ref('organization', 'org-1'), project: ref('project', 'project-b') } },
       feature: 'queues',
       level: 'write',
       auth: scopedAuth
@@ -123,7 +124,7 @@ describe('access engine', () => {
   it('keeps full entity facts available through lineage permission checks', () => {
     const project = {
       _id: 'project-a',
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: ref('organization', 'org-1') },
       status: { state: { primary: 'ACTIVE' } },
       data: { address: 'Factory Row' }
     };
@@ -163,12 +164,12 @@ describe('access engine', () => {
 
     expect(() => assertTransitionAccess({
       transition,
-      entity: { lineage: { organizationId: 'org-1', projectId: 'project-a' } },
+      entity: { lineage: { organization: ref('organization', 'org-1'), project: ref('project', 'project-a') } },
       auth: scopedAuth
     })).not.toThrow();
     expect(() => assertTransitionAccess({
       transition: { ...transition, to: 'INSTALLED' },
-      entity: { lineage: { organizationId: 'org-1', projectId: 'project-a' } },
+      entity: { lineage: { organization: ref('organization', 'org-1'), project: ref('project', 'project-a') } },
       auth: scopedAuth
     })).toThrow(/projects:write/);
   });

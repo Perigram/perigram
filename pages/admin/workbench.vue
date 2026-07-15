@@ -943,7 +943,7 @@ function buildCassetteV2TemplateEntity(payload = {}, existing = null) {
   };
   entity.lineage = {
     ...(entity.lineage || {}),
-    organizationId: entity.lineage?.organizationId || fixtureStore.access.organizationId
+    organizationId: entity.lineage?.organization?.entityId || fixtureStore.access.organizationId
   };
   entity.attachments ||= {};
   entity.data = {
@@ -1820,7 +1820,6 @@ function featureForEntity(type) {
   const featureMap = {
     artifact: 'artifacts',
     material_pile: 'materials',
-    nesting_run: 'nesting_runs',
     cassette_design: 'cassettes',
     cassette_instance: 'projects',
     sheet_design: 'projects'

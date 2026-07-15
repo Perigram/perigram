@@ -194,7 +194,7 @@ export default defineNuxtConfig({
                 {
                     hid: 'description',
                     name: 'description',
-                    content: 'CutKit manages CNC cassette templates, nesting runs, material inventory, generated artifacts, and production lifecycle tracking.'
+                    content: 'CutKit manages CNC cassette templates, revisioned nesting attempts, material inventory, generated artifacts, and production lifecycle tracking.'
                 },
                 {
                     hid: 'keywords',

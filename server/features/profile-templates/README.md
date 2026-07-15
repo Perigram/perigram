@@ -16,7 +16,7 @@ Collection: `profile_templates`
 
 Key fields:
 - `identity.name`: display name.
-- `lineage.userId` / `lineage.organizationId`: owner scope; both null means system profile.
+- `lineage.user` / `lineage.organization`: structured owner scope; both absent means system profile.
   Designer-created templates resolve `organizationId` from the active auth
   organization or the first organization membership so cassette-scoped grants
   can authorize list, save, update, and delete operations.

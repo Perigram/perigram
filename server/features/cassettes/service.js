@@ -6,7 +6,8 @@ import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.
 import {
   createIdentity,
   createStatus,
-  createData
+  createData,
+  Lineage
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
@@ -15,6 +16,7 @@ import { generateRandomString } from '../../utils/strings.js';
 import { GridFSBucket } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { mapLineageQuery } from '../../utils/query.js';
 import { Cassette } from './model.js';
 import { serializeForAccess } from '../../utils/entity-redaction.js';
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from '../../utils/dxf-extractor.js';
@@ -159,9 +161,9 @@ function normalizeConstructionParameters(template = {}, supplied = {}) {
 export async function create(data, userId, userOrg, userRole, userPermissions) {
   // Lineage: Templates belong to the organization
   const targetOrgId = userOrg || userId;
-  const lineage = { organizationId: toFlexibleId(targetOrgId) };
+  const lineage = new Lineage().add('organization', targetOrgId);
   const libraryId = data.libraryId || data.data?.libraryId;
-  if (libraryId) lineage.libraryId = toFlexibleId(libraryId);
+  if (libraryId) lineage.add('library', libraryId);
 
   if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
@@ -203,7 +205,7 @@ export async function createDefaultOccsTemplate(data = {}, userId, userOrg, user
 
 export async function upload(fileBuffer, fileName, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {
   const targetOrgId = userOrg || userId;
-  const lineage = { organizationId: toFlexibleId(targetOrgId) };
+  const lineage = new Lineage().add('organization', targetOrgId);
 
   if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -276,7 +278,7 @@ export async function list(userId, userOrg, userRole, userPermissions, query = {
   const { limit, skip, status, primaryStatus, primaryStatuses, ...rest } = query;
 
   const lineageFilter = getLineageFilter(userPermissions);
-  const processedFilter = normalizeLineageQuery(rest);
+  const processedFilter = mapLineageQuery(rest);
 
   const statuses = normalizePrimaryStatuses(primaryStatuses);
   if (statuses.length) processedFilter['status.state.primary'] = { $in: statuses };
@@ -301,7 +303,7 @@ export async function listPreviewByLibraries(libraryIds = [], userId, userOrg, u
   const limit = Math.max(Number(options.limit || 4), 1);
   const raws = await repository.find({
     ...getLineageFilter(userPermissions),
-    'lineage.libraryId': { $in: ids }
+    'lineage.library.entityId': { $in: ids }
   });
   const previews = {};
   const cassettes = raws
@@ -310,7 +312,7 @@ export async function listPreviewByLibraries(libraryIds = [], userId, userOrg, u
     .sort(sortByStatusTimestampDesc);
 
   for (const cassette of cassettes) {
-    const libraryId = cassette.lineage?.libraryId?.toString?.() || cassette.lineage?.libraryId;
+    const libraryId = cassette.lineage?.library?.entityId?.toString?.() || cassette.lineage?.library?.entityId;
     if (!libraryId) continue;
     previews[libraryId] ||= [];
     if (previews[libraryId].length >= limit) continue;
@@ -318,17 +320,6 @@ export async function listPreviewByLibraries(libraryIds = [], userId, userOrg, u
   }
 
   return previews;
-}
-
-function normalizeLineageQuery(query = {}) {
-  const normalized = { ...query };
-  for (const key of ['projectId', 'queueId', 'warehouseId', 'cassetteId', 'libraryId']) {
-    if (normalized[key] !== undefined) {
-      normalized[`lineage.${key}`] = toFlexibleId(normalized[key]);
-      delete normalized[key];
-    }
-  }
-  return normalized;
 }
 
 function normalizePrimaryStatuses(value) {
@@ -339,11 +330,7 @@ function normalizePrimaryStatuses(value) {
 
 function flexibleLookupValues(id) {
   if (id === null || id === undefined) return [];
-  const stringId = id?.toString?.() || id;
-  const flexibleId = toFlexibleId(id);
-  return [flexibleId, stringId].filter((value, index, values) => (
-    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
-  ));
+  return [String(id)];
 }
 
 function sortByStatusTimestampDesc(left = {}, right = {}) {
@@ -382,7 +369,7 @@ function cassettePreview(cassette = {}, userPermissions = null) {
 }
 
 async function syncParentSummary(cassette = {}) {
-  if (!cassette.lineage?.libraryId) return;
+  if (!cassette.lineage?.library?.entityId) return;
   await aggregator.syncParentSummary('cassette', cassette.lineage);
 }
 

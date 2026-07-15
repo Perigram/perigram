@@ -5,7 +5,6 @@ import * as catalogsService from '~/server/features/catalogs/service.js';
 import * as librariesService from '~/server/features/libraries/service.js';
 import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
-import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
 import * as projectsService from '~/server/features/projects/service.js';
 import * as queuesService from '~/server/features/queues/service.js';
 import * as remnantsService from '~/server/features/remnants/service.js';
@@ -30,7 +29,6 @@ const ENTITY_OPTION_LOADERS = {
     project: (auth, filters) => projectsService.list(auth.userId, auth.organizationId, auth.role, auth, filters),
     queue: (auth, filters) => queuesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
     material_pile: scopedList(materialPilesService),
-    nesting_run: scopedList(nestingRunsService),
     remnant: scopedList(remnantsService),
     requisition: (auth) => requisitionsService.list(auth.userId, auth.organizationId, auth.role, auth),
     sheet_design: scopedList(sheetDesignsService),
@@ -401,7 +399,6 @@ function normalizeEntityOptionType(type) {
     if (typeof type !== 'string') return '';
     const value = type.trim();
     const aliases = {
-        nestingRun: 'nesting_run',
         sheetDesign: 'sheet_design',
         cassetteDesign: 'cassette_design',
         cassetteTemplate: 'cassette',
@@ -609,11 +606,6 @@ function compactEntitySnapshot(type, entity) {
     };
     const data = { ...(dto.data || {}) };
 
-    if (type === 'nesting_run') {
-        snapshot.data = pickDefined(data, ['results', 'materialPool', 'sheetDesignOutputs']);
-        return snapshot;
-    }
-
     if (type === 'library') {
         snapshot.data = pickDefined(data, ['material', 'description']);
         return snapshot;
@@ -666,7 +658,7 @@ async function resolveConversationParticipantAuth(requesterAuth = {}, participan
 
     return await resolveProcessAuth({
         userId: recipient._id?.toString?.() || recipient._id || recipient.id,
-        organizationId: recipient.lineage?.organizationId?.toString?.() || recipient.lineage?.organizationId || recipient.data?.memberships?.[0]?.organizationId || null,
+        organizationId: recipient.lineage?.organization?.entityId?.toString?.() || recipient.lineage?.organization?.entityId || recipient.data?.memberships?.[0]?.organizationId || null,
         role: recipient.data?.role,
         permissions: recipient.data?.permissions || {},
         memberships: recipient.data?.memberships || [],

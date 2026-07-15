@@ -97,7 +97,7 @@ describe('Warehouse & Inventory Counting', () => {
     }, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
 
     expect(warehouse.identity.name).toBe('Auth Context Warehouse');
-    expect(warehouse.lineage.organizationId.toString()).toBe(mockUser.organizationId.toString());
+    expect(warehouse.lineage.organization.entityId.toString()).toBe(mockUser.organizationId.toString());
   });
 
   it('should prevent deletion of warehouse with inventory', async () => {

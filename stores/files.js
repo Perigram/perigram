@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { processingType } from '~/constants/files.constants';
-import { useGlobalStore } from '~/stores/global';
 import { API_ROUTES } from '~/composables/apiRoutes';
 
 export const useFilesStore = defineStore('files', () => {
@@ -219,38 +218,6 @@ export const useFilesStore = defineStore('files', () => {
         }
     }
 
-    async function nest(slug) {
-        const globalStore = useGlobalStore();
-        try {
-            try {
-                const data = await $fetch(API_ROUTES.NEST(slug), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: requestBody.value
-                });
-                globalStore.setModalNestData(data);
-                
-                // Assuming useInfoAboutNest is an auto-imported composable
-                const infoAboutNest = useInfoAboutNest();
-                if (infoAboutNest) infoAboutNest.value = true;
-
-            } catch (error) {
-                if (error?.response?.status === 402) {
-                    await navigateTo('/organization');
-                    return;
-                }
-            }
-
-            await Promise.all([globalStore.getProjects()]);
-
-            lastParams.value = requestBody.value;
-        } catch (err) {
-            console.error('Nest operation failed:', err);
-        }
-    }
-
     return {
         projectFiles,
         projectName,
@@ -272,7 +239,6 @@ export const useFilesStore = defineStore('files', () => {
         updateParams,
         increment,
         decrement,
-        updateCount,
-        nest
+        updateCount
     };
 });

@@ -62,13 +62,16 @@ describe('Material Batch & Sheet Allocation', () => {
     memberships: [{ organizationId: mockManufacturer.organizationId, permissions: { materials: 'admin', catalogs: 'admin' } }]
   };
 
+  const ref = (entityType, entityId) => ({ entityType, entityId: entityId.toString() });
+
   it('should create a material batch with piles', async () => {
     const warehouseId = new ObjectId();
     await db.collection('warehouses').insertOne({ 
       _id: warehouseId, 
       name: 'Main Wh', 
       totalBatches: 0,
-      organizationId: mockManufacturer.organizationId 
+      lineage: { organization: ref('organization', mockManufacturer.organizationId) },
+      data: { stats: { totalBatches: 0, totalSheets: 0 } }
     });
 
     const data = {
@@ -104,10 +107,10 @@ describe('Material Batch & Sheet Allocation', () => {
         _id: 'pile-a',
         identity: { uid: 'pile-a', name: 'A' },
         lineage: {
-          organizationId: mockManufacturer.organizationId,
-          warehouseId,
-          catalogId,
-          colorId
+          organization: ref('organization', mockManufacturer.organizationId),
+          warehouse: ref('warehouse', warehouseId),
+          catalog: ref('catalog', catalogId),
+          color: ref('color', colorId)
         },
         data: { stock: { total: 10, used: 0 }, specs: { width: 1500, length: 3000 } }
       },
@@ -115,10 +118,10 @@ describe('Material Batch & Sheet Allocation', () => {
         _id: 'pile-b',
         identity: { uid: 'pile-b', name: 'B' },
         lineage: {
-          organizationId: mockManufacturer.organizationId,
-          warehouseId: otherWarehouseId,
-          catalogId,
-          colorId
+          organization: ref('organization', mockManufacturer.organizationId),
+          warehouse: ref('warehouse', otherWarehouseId),
+          catalog: ref('catalog', catalogId),
+          color: ref('color', colorId)
         },
         data: { stock: { total: 8, used: 0 }, specs: { width: 1200, length: 2500 } }
       }
@@ -129,7 +132,7 @@ describe('Material Batch & Sheet Allocation', () => {
       mockManufacturer.organizationId,
       null,
       mockManufacturer.permissions,
-      { 'lineage.warehouseId': warehouseId.toString() }
+      { 'lineage.warehouse.entityId': warehouseId.toString() }
     );
 
     expect(result).toHaveLength(1);
@@ -192,10 +195,10 @@ describe('Material Batch & Sheet Allocation', () => {
       _id: pileId,
       identity: { uid: pileId, name: 'Guarded Pile' },
       lineage: {
-        organizationId: mockManufacturer.organizationId,
-        warehouseId: new ObjectId(),
-        catalogId: new ObjectId(),
-        colorId: new ObjectId()
+        organization: ref('organization', mockManufacturer.organizationId),
+        warehouse: ref('warehouse', new ObjectId()),
+        catalog: ref('catalog', new ObjectId()),
+        color: ref('color', new ObjectId())
       },
       data: { stock: { total: 5, used: 3 } }
     });
@@ -216,17 +219,17 @@ describe('Material Batch & Sheet Allocation', () => {
     await db.collection('warehouses').insertOne({
       _id: warehouseId,
       identity: { uid: 'warehouse-adjustment', name: 'Adjustment Warehouse' },
-      lineage: { organizationId: mockManufacturer.organizationId },
+      lineage: { organization: ref('organization', mockManufacturer.organizationId) },
       data: { stats: { totalBatches: 1, totalSheets: 5 } }
     });
     await db.collection('material_piles').insertOne({
       _id: pileId,
       identity: { uid: pileId, name: 'Adjustable Pile' },
       lineage: {
-        organizationId: mockManufacturer.organizationId,
-        warehouseId,
-        catalogId: new ObjectId(),
-        colorId: new ObjectId()
+        organization: ref('organization', mockManufacturer.organizationId),
+        warehouse: ref('warehouse', warehouseId),
+        catalog: ref('catalog', new ObjectId()),
+        color: ref('color', new ObjectId())
       },
       data: { stock: { total: 5, used: 1 } }
     });

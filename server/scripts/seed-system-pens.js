@@ -126,7 +126,7 @@ export const SYSTEM_PENS = [
 async function upsertSystemPen(db, penData) {
   const existing = await db.collection('pen_templates').findOne({
     'identity.name': penData.name,
-    'lineage.userId': null
+    'lineage.user': { $exists: false }
   });
   if (!existing) {
     await service.create(penData, null);

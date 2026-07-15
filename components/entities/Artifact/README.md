@@ -15,9 +15,9 @@ reports.
   `data.type`.
 - Uses `EntityCard` with status hidden because file lifecycle is not exposed as
   an operator workflow here.
-- Queue ancestry stays in shared trace chrome through `lineage.queueId`.
-  Nesting-run context still renders through `EntityInlineRef` because it is not
-  currently part of the compact trace contract.
+- Queue ancestry stays in shared trace chrome through the structured
+  `lineage.queue` reference, including its optional `revisionId` when the
+  artifact belongs to one immutable nesting attempt.
 - The card may own a custom preview click action and disables `EntityCard`
   expansion for that action.
 - Generated artifact construction uses the shared `AttachmentInput` for file

@@ -1,15 +1,14 @@
 # COMPONENT: Machines
 
-Machines are `meta` CNC-domain entities managed by organization/asset surfaces,
-not inferred work screens. Records contain `data.workArea` width/length and
-four `data.boundaryOffset` values. Reads include the immutable public system
-default plus machines owned by the active organization; writes never mutate
-the system record.
+Machines are CNC meta entities with `data.workArea` width/length and
+`data.boundaryOffset` top/right/bottom/left. Organization machines use normal
+`machines` grants. The immutable public system default has stable id and
+identity `machine-system-default`, so settings and snapshots never depend on a
+new seed id.
 
-Nesting resolves the selected machine or the seeded system default and embeds
-its complete work-area snapshot in task parameters. Sheets larger than the work
-area are rejected, and offsets clip the usable nesting polygon.
+Nesting loads the selected machine or calls `ensureSystemDefault()`. It rejects
+sheets larger than the work area, clips the usable sheet polygon to boundary
+offsets, and serializes the full machine snapshot into the task and terminal
+queue revision. Changing a machine later cannot change an existing attempt.
 
-`GET/POST /api/machines` and `GET/PUT /api/machines/:id` expose the entity
-service. Organization records require normal `machines` grants; the system
-default is public-read and immutable.
+`GET/POST /api/machines` and `GET/PUT /api/machines/:id` expose the service.

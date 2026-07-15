@@ -91,15 +91,13 @@
       </Panel>
 
       <section class="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <Panel :header="$t('uiConstructor.runs')">
+        <Panel :header="$t('uiConstructor.revisions')">
           <div class="grid grid-cols-1 gap-3">
-            <NestingRunCard
-              v-for="run in runs"
-              :key="run._id"
-              :run="run"
+            <EntityRevisionCard
+              v-for="revision in revisions"
+              :key="revision._id"
+              :revision="revision"
               variant="compact"
-              :sheet-designs="sheetDesigns"
-              :is-chosen="run._id === chosenRunId"
             />
           </div>
         </Panel>
@@ -165,7 +163,7 @@ import Divider from 'primevue/divider';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
 import PileCard from '~/components/entities/MaterialPile/PileCard.vue';
-import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
+import EntityRevisionCard from '~/components/entities/EntityRevision/EntityRevisionCard.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import RemnantCard from '~/components/entities/Remnant/RemnantCard.vue';
 import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
@@ -180,7 +178,7 @@ import { findEntityFieldPolicy } from '~/shared/entity-field-access.js';
 import { useAuthStore } from '~/stores/auth';
 import {
   MOCK_IDS,
-  createMockNestingRun,
+  createMockEntityRevision,
   createMockPile,
   createMockProject,
   createMockQueue,
@@ -198,7 +196,7 @@ if (!authStore.isUserSet) {
     ...demoUser.data,
     id: demoUser._id,
     userId: demoUser._id,
-    organizationId: demoUser.lineage?.organizationId,
+    organizationId: demoUser.lineage?.organization?.entityId,
     memberships: demoUser.data?.memberships,
     permissions: demoUser.data?.permissions
   };
@@ -234,7 +232,7 @@ const queues = [
       },
       physicalOutputs: [{ entityType: 'cassetteInstance', id: 'cassette-instance-a' }]
     },
-    summary: { runCount: 3, sheetCount: 9, totalArea: 62.4 }
+    summary: { revisionCount: 3, sheetCount: 9, totalArea: 62.4 }
   }),
   createMockQueue({
     _id: 'queue-demo-facade-b',
@@ -246,7 +244,7 @@ const queues = [
         materialPool: [{ type: 'REMNANT', id: 'remnant-demo-001', available: 7 }]
       }
     },
-    summary: { runCount: 1, sheetCount: 4, totalArea: 28.7 }
+    summary: { revisionCount: 1, sheetCount: 4, totalArea: 28.7 }
   }),
   createMockQueue({
     _id: 'queue-demo-service',
@@ -258,7 +256,7 @@ const queues = [
         materialPool: [{ type: 'PILE', id: 'pile-demo-001', available: 19 }]
       }
     },
-    summary: { runCount: 2, sheetCount: 5, totalArea: 31.9 }
+    summary: { revisionCount: 2, sheetCount: 5, totalArea: 31.9 }
   })
 ];
 
@@ -269,7 +267,10 @@ const sheetDesigns = [
   createMockSheetDesign({
     _id: 'sheet-design-demo-a',
     identity: { uid: 'sheet-design-demo-a', name: 'ACP 4mm sheet A', serial: 'SD-2406-A' },
-    lineage: { queueId: queues[0]._id, runId: 'run-demo-balanced', projectSlug: project.identity.slug },
+    lineage: {
+      queue: { entityType: 'queue', entityId: queues[0]._id, revisionId: 'revision-demo-balanced' },
+      project: { entityType: 'project', entityId: project._id }
+    },
     summary: { placedCount: 12, cassetteCount: 5 },
     data: {
       materialPool: [{ type: 'PILE', id: 'pile-demo-001' }],
@@ -279,7 +280,10 @@ const sheetDesigns = [
   createMockSheetDesign({
     _id: 'sheet-design-demo-b',
     identity: { uid: 'sheet-design-demo-b', name: 'ACP 4mm sheet B', serial: 'SD-2406-B' },
-    lineage: { queueId: queues[0]._id, runId: 'run-demo-balanced', projectSlug: project.identity.slug },
+    lineage: {
+      queue: { entityType: 'queue', entityId: queues[0]._id, revisionId: 'revision-demo-balanced' },
+      project: { entityType: 'project', entityId: project._id }
+    },
     summary: { placedCount: 10, cassetteCount: 4 },
     data: {
       materialPool: [{ type: 'REMNANT', id: 'remnant-demo-001' }],
@@ -288,28 +292,39 @@ const sheetDesigns = [
   })
 ];
 
-const runs = [
-  createMockNestingRun({
-    _id: 'run-demo-balanced',
-    identity: { uid: 'run-demo-balanced', name: 'Balanced yield', slug: 'balanced-yield' },
-    lineage: { projectId: project._id, queueId: queues[0]._id, projectSlug: project.identity.slug },
+const revisions = [
+  createMockEntityRevision({
+    _id: 'revision-demo-balanced',
+    identity: { uid: 'revision-demo-balanced', name: 'Balanced yield', slug: 'balanced-yield' },
+    lineage: { queue: { entityType: 'queue', entityId: queues[0]._id } },
     data: {
+      entityType: 'queue',
+      entityId: queues[0]._id,
+      scope: 'nesting',
+      number: 1,
+      outcome: 'SUCCESS',
       results: { efficiency: 93.8, sheetCount: 5, remnantArea: 0.8 },
-      materialPool: [{ type: 'PILE', id: 'pile-demo-001', available: 42 }],
-      sheetDesignOutputs: sheetDesigns.map(design => ({ sheetDesignId: design._id, quantity: 1, sheetInstanceIds: [] }))
+      snapshot: {
+        materialPool: [{ type: 'PILE', id: 'pile-demo-001', available: 42 }],
+        sheetDesignOutputs: sheetDesigns.map(design => ({ sheetDesignId: design._id, quantity: 1, sheetInstanceIds: [] }))
+      }
     }
   }),
-  createMockNestingRun({
-    _id: 'run-demo-fast',
-    identity: { uid: 'run-demo-fast', name: 'Fast setup', slug: 'fast-setup' },
-    lineage: { projectId: project._id, queueId: queues[0]._id, projectSlug: project.identity.slug },
+  createMockEntityRevision({
+    _id: 'revision-demo-fast',
+    identity: { uid: 'revision-demo-fast', name: 'Fast setup', slug: 'fast-setup' },
+    lineage: { queue: { entityType: 'queue', entityId: queues[0]._id } },
     data: {
+      entityType: 'queue',
+      entityId: queues[0]._id,
+      scope: 'nesting',
+      number: 2,
+      outcome: 'SUCCESS',
       results: { efficiency: 88.1, sheetCount: 6, remnantArea: 1.7 },
-      materialPool: [{ type: 'PILE', id: 'pile-demo-001', available: 34 }]
+      snapshot: { materialPool: [{ type: 'PILE', id: 'pile-demo-001', available: 34 }] }
     }
   })
 ];
-const chosenRunId = runs[0]._id;
 
 const materialPile = createMockPile({
   identity: { uid: 'pile-demo-001', name: 'ACP silver 4mm', serial: 'P-101' },

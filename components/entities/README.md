@@ -37,7 +37,7 @@ material data and cassette child counts from the domain field groups.
   using the field policies exported by `@cutkit/domain-cnc`. If a field is not
   declared in the policy, cards must not display it.
 - Relation refs should pass design-system UI keys (`materialPile`,
-  `nestingRun`, `cassetteDesign`, `entityRevision`) instead of backend
+  `cassetteDesign`, `entityRevision`) instead of backend
   snake-case names. The shared domain UI adapter still accepts backend aliases
   for compatibility, but component code should speak in surface keys.
 - Inline and compact variants may add `compact-content` or `inline-extra` only

@@ -396,10 +396,10 @@ const loadInventory = async (warehouseId) => {
   loading.value = true;
   try {
     const [piles, sheets, remnants, instances] = await Promise.all([
-      pileEntity.list({ 'lineage.warehouseId': warehouseId }),
-      sheetEntity.list({ 'lineage.warehouseId': warehouseId }),
-      remnantEntity.list({ 'lineage.warehouseId': warehouseId }),
-      cassetteInstanceEntity.list({ 'lineage.warehouseId': warehouseId })
+      pileEntity.list({ 'lineage.warehouse.entityId': warehouseId }),
+      sheetEntity.list({ 'lineage.warehouse.entityId': warehouseId }),
+      remnantEntity.list({ 'lineage.warehouse.entityId': warehouseId }),
+      cassetteInstanceEntity.list({ 'lineage.warehouse.entityId': warehouseId })
     ]);
     inventory.value = {
       piles,
@@ -454,8 +454,8 @@ const openPileDialog = async (pile = null) => {
   const stock = pile?.data?.stock || {};
   pileForm.value = {
     _id: pile?._id || null,
-    catalogId: pile?.lineage?.catalogId?.toString?.() || pile?.lineage?.catalogId || null,
-    colorId: pile?.lineage?.colorId?.toString?.() || pile?.lineage?.colorId || null,
+    catalogId: pile?.lineage?.catalog?.entityId?.toString?.() || pile?.lineage?.catalog?.entityId || null,
+    colorId: pile?.lineage?.color?.entityId?.toString?.() || pile?.lineage?.color?.entityId || null,
     materialName: pile?.data?.material || '',
     colorName: pile?.data?.color || '',
     serial: pile?.identity?.serial || pile?.data?.serial || '',
@@ -468,7 +468,7 @@ const openPileDialog = async (pile = null) => {
   };
   if (pileForm.value.catalogId) {
     await loadColorsForCatalog();
-    pileForm.value.colorId = pile?.lineage?.colorId?.toString?.() || pile?.lineage?.colorId || null;
+    pileForm.value.colorId = pile?.lineage?.color?.entityId?.toString?.() || pile?.lineage?.color?.entityId || null;
   }
   pileDialogVisible.value = true;
 };

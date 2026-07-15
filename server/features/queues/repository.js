@@ -36,18 +36,9 @@ export async function updateById(uid, updates) {
 export async function getNextQueueNumber({ projectId = null, organizationId = null } = {}) {
   const db = await connectDB();
   const filter = projectId
-    ? { 'lineage.projectId': toFlexibleId(projectId) }
-    : { 'lineage.organizationId': toFlexibleId(organizationId), 'lineage.projectId': { $exists: false } };
+    ? { 'lineage.project.entityId': String(projectId) }
+    : { 'lineage.organization.entityId': String(organizationId), 'lineage.project.entityId': { $exists: false } };
   return await db.collection(COLLECTION).countDocuments(filter) + 1;
-}
-
-export async function findChosenNestingRun(queueId) {
-  const db = await connectDB();
-  const flexibleId = toFlexibleId(queueId);
-  return await db.collection('nesting_runs').findOne({
-    'lineage.queueId': { $in: [flexibleId, queueId?.toString()] },
-    'status.state.primary': 'CHOSEN'
-  });
 }
 
 export async function deleteById(uid) {

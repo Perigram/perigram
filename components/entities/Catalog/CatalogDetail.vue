@@ -13,9 +13,9 @@
                     <div class="flex flex-col gap-4">
                         <p v-if="catalog.data?.description" class="m-0">{{ catalog.data.description }}</p>
                         <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
-                        <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
+                        <div v-if="manufacturerId" class="flex items-center justify-between gap-4">
                             <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
-                            <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
+                            <EntityInlineRef type="organization" :id="manufacturerId" />
                         </div>
                     </div>
                 </Panel>
@@ -84,6 +84,7 @@ const props = defineProps({
     catalog: { type: Object, required: true },
     colors: { type: Array, default: () => [] }
 });
+const manufacturerId = computed(() => props.catalog.lineage?.organization?.entityId || null);
 
 defineEmits(['edit', 'add-sheet-type', 'edit-sheet-type', 'remove-sheet-type']);
 

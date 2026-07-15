@@ -133,7 +133,45 @@
                 </template>
 
                 <template v-else-if="selectedNode.type === 'action'">
-                  <div></div>
+                  <div class="grid grid-cols-1 gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.actionKind') }}</label>
+                      <Select v-model="selectedAction.actionKind" :options="actionKindOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('common.label') }}</label>
+                      <InputText v-model="selectedAction.label" />
+                    </div>
+                    <div v-if="['createEntity', 'sendToOrganization'].includes(selectedAction.actionKind)" class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.entityType') }}</label>
+                      <Select v-model="selectedAction.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                    </div>
+                    <div v-if="selectedAction.actionKind === 'runCommand'" class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.commandId') }}</label>
+                      <Select v-model="selectedAction.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.trigger') }}</label>
+                      <Select v-model="selectedAction.trigger.mode" :options="localizedTriggerModeOptions()" option-label="label" option-value="value" @change="syncSelectedAction" />
+                    </div>
+                    <div class="grid grid-cols-[minmax(0,1fr)_9rem] gap-2">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.roles') }}</label>
+                        <MultiSelect :model-value="selectedActionAccessRoleIds" :options="roleOptions" option-label="label" option-value="value" display="chip" @update:model-value="updateSelectedActionRoles" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.access') }}</label>
+                        <Select v-model="selectedAction.access.level" :options="accessLevelOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                      </div>
+                    </div>
+                    <Panel v-if="selectedAction.actionKind === 'mutateEntity'" :header="$t('processDesigner.connectedMutations')">
+                      <div class="flex flex-wrap gap-1">
+                        <Tag v-for="field in selectedAction.mutation?.fields || []" :key="field" :value="field" size="small" />
+                        <Tag v-if="selectedAction.statusRef" :value="selectedAction.status?.to || selectedAction.statusRef" severity="warn" size="small" />
+                        <small v-if="!(selectedAction.mutation?.fields || []).length && !selectedAction.statusRef" class="text-muted-color">{{ $t('processDesigner.connectMutationSockets') }}</small>
+                      </div>
+                    </Panel>
+                  </div>
                 </template>
 
                 <template v-else-if="selectedNode.type === 'service'">
@@ -283,7 +321,7 @@
                         <div v-for="entry in selectedStatusSnapshotEntries" :key="entry.key" class="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2">
                           <InputText :model-value="entry.key" size="small" @update:model-value="value => renameStatusSnapshot(entry.key, value)" />
                           <Select v-model="entry.schema.entityType" :options="entityTypeOptions" option-label="label" option-value="value" size="small" />
-                          <InputText v-model="entry.schema.lineageKey" size="small" :placeholder="$t('processDesigner.lineageKey')" />
+                          <InputText v-model="entry.schema.lineageRole" size="small" :placeholder="$t('processDesigner.lineageRole')" />
                           <Button icon="pi pi-trash" :aria-label="$t('common.delete')" size="small" text severity="danger" @click="removeStatusSnapshot(entry.key)" />
                         </div>
                       </div>
@@ -331,7 +369,7 @@
                       <label>{{ processNodeResultEntityLabel(selectedProcessNode) }}</label>
                       <Select v-model="selectedProcessNode.relationEntityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
                     </div>
-                    <div v-if="selectedProcessNode.kind === 'blockRead'" class="flex flex-col gap-1">
+                    <div v-if="['blockAssemble', 'blockRead'].includes(selectedProcessNode.kind)" class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.block') }}</label>
                       <Select v-model="selectedProcessNode.block" :options="processBlockOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
                     </div>
@@ -574,6 +612,7 @@ const palette = [
   { type: 'processNode', kind: 'entityRef', icon: 'pi pi-share-alt', label: 'entity' },
   { type: 'processNode', kind: 'fieldRead', icon: 'pi pi-box', label: 'blocks' },
   { type: 'processNode', kind: 'entityAssemble', icon: 'pi pi-box', label: 'assemble' },
+  { type: 'processNode', kind: 'blockAssemble', icon: 'pi pi-object-group', label: 'block' },
   { type: 'processNode', kind: 'blockRead', icon: 'pi pi-search', label: 'field' },
   { type: 'processNode', kind: 'stringOp', icon: 'pi pi-align-left', label: 'text' },
   { type: 'processNode', kind: 'compare', icon: 'pi pi-equals', label: 'compare' },
@@ -706,6 +745,7 @@ const selectedRecord = computed(() => {
 });
 const selectedEntity = computed(() => selectedNode.value?.type === 'entity' ? ensureRecord('entityProfiles', selectedNode.value, createEntityProfile) : {});
 const selectedAction = computed(() => selectedNode.value?.type === 'action' ? ensureRecord('actions', selectedNode.value, createAction) : {});
+const selectedActionAccessRoleIds = computed(() => normalizeDesignerAccess(selectedAction.value.access).roleIds);
 const selectedService = computed(() => selectedNode.value?.type === 'service' ? ensureRecord('services', selectedNode.value, createService) : {});
 const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? ensureRecord('sockets', selectedNode.value, createSocket) : {});
 const selectedStatusDefinition = computed(() => selectedNode.value?.type === 'statusDefinition' ? ensureRecord('statusDefinitions', selectedNode.value, createStatusDefinition) : {});
@@ -993,6 +1033,7 @@ function deleteSelectedNode() {
   if (refId && draft.value?.data) delete draft.value.data[recordKeyForType(node.type)]?.[refId];
   selectedNodeId.value = null;
   selectedEdgeId.value = null;
+  syncInferredActionInputs();
 }
 
 function deleteSelectedEdge() {
@@ -1501,6 +1542,17 @@ function syncSelectedAction() {
   syncNodeData();
 }
 
+function updateSelectedActionRoles(roleIds = []) {
+  const access = normalizeDesignerAccess(selectedAction.value.access);
+  const levels = new Map(access.grants.map(grant => [grant.roleId, grant.level]));
+  selectedAction.value.access = normalizeDesignerAccess({
+    ...access,
+    grants: roleIds.map(roleId => ({ roleId, level: levels.get(roleId) || access.level || 'write' })),
+    modified: true
+  });
+  syncSelectedAction();
+}
+
 function syncActionIo(action = {}, node = null) {
   action.trigger ||= { mode: 'manual' };
   action.access = normalizeDesignerAccess(action.access);
@@ -1542,8 +1594,8 @@ function syncActionIo(action = {}, node = null) {
     action.status.from ||= action.access.statusFrom || '';
     action.entityType = '';
     action.mutation ||= { fields: [] };
+    if (node?.id) syncConnectedMutationContract(action, node, incomingEntityType);
     syncMutationInputPolicy(action);
-    action.status.to ||= '';
     if (node && !action.access.modified && inheritedAccess.grants?.length) {
       action.access = normalizeDesignerAccess({
         ...action.access,
@@ -1552,19 +1604,10 @@ function syncActionIo(action = {}, node = null) {
     }
     action.access.statusFrom = action.status.from || '';
     action.access.statusTo = action.status.to || '';
-    const fieldInputs = (action.mutation.fields || []).length
-      ? (action.mutation.fields || []).map(path => ({
-          id: `field:${path}`,
-          label: fieldLabel(incomingEntityType, path),
-          dataPath: path,
-          kind: 'data',
-          required: false
-        }))
-      : [{ id: 'field', label: t('processDesigner.field'), dataPath: '', kind: 'data', required: false }];
     action.inputs = [
       { id: 'entity', label: incomingEntityType || t('processDesigner.incomingEntity'), entityType: incomingEntityType, status: action.status.from || '' },
       { id: 'status', label: t('processDesigner.targetStatus'), kind: 'status', required: false },
-      ...fieldInputs
+      ...mutableEntityBlockSockets(incomingEntityType)
     ];
     action.outputs = [{ id: 'entity', label: incomingEntityType || t('processDesigner.sameEntity'), entityType: incomingEntityType, status: action.status.to || action.status.from || '' }];
     return;
@@ -1582,8 +1625,70 @@ function syncActionIo(action = {}, node = null) {
   }
 }
 
+function syncConnectedMutationContract(action = {}, node = {}, entityType = '') {
+  const connected = edges.value.filter(edge => edge.target === node.id);
+  const fields = [];
+  let statusRef = '';
+
+  for (const edge of connected) {
+    const targetId = normalizeGraphHandle(edge.targetHandle, 'input');
+    const source = nodes.value.find(item => item.id === edge.source);
+    const sourceRef = source?.data?.refId;
+    if (targetId === 'status' && source?.type === 'statusDefinition') {
+      statusRef = sourceRef || '';
+      continue;
+    }
+    if (!targetId || ['entity', 'status', 'parent', 'trigger'].includes(targetId)) continue;
+
+    const targetPath = targetId.startsWith('field:') ? targetId.slice('field:'.length) : targetId;
+    const sourceInput = source?.type === 'valueInput'
+      ? draft.value?.data?.valueInputs?.[sourceRef]
+      : null;
+    const sourcePath = String(sourceInput?.path || '').trim();
+    const targetRoot = targetPath.split('.')[0];
+    const sourceRoot = sourcePath.split('.')[0];
+    const path = sourcePath && (!targetRoot || targetRoot === sourceRoot) ? sourcePath : targetPath;
+    if (path && mutableEntityBlockIds(entityType).has(path.split('.')[0])) fields.push(path);
+  }
+
+  action.mutation = { fields: [...new Set(fields)] };
+  action.statusRef = statusRef || null;
+  if (statusRef) applyStatusDefinitionToAction(action);
+  else {
+    action.status.to = '';
+    action.access.statusTo = '';
+  }
+}
+
+function mutableEntityBlockSockets(entityType = '') {
+  return [...mutableEntityBlockIds(entityType)].map(block => ({
+    id: block,
+    label: block,
+    block,
+    dataPath: block,
+    kind: 'block',
+    required: false
+  }));
+}
+
+function mutableEntityBlockIds(entityType = '') {
+  const definition = cncDomain.entities?.find(entity => entity.type === entityType);
+  const blocks = definition?.blocks || ['identity', 'lineage', 'attachments', 'data', 'specs', 'summary'];
+  return new Set(blocks.filter(block => !['_id', 'origin', 'status'].includes(block)));
+}
+
+function normalizeGraphHandle(handle = '', direction = '') {
+  const value = String(handle || '');
+  if (!value || value === direction) return '';
+  return value.replace(/^(input|output|data):/, '');
+}
+
 function syncMutationInputPolicy(action = {}) {
-  const existingFields = new Map((action.inputPolicy?.fields || []).map(field => [field.id || field.path, field]));
+  const existingFields = new Map();
+  for (const field of action.inputPolicy?.fields || []) {
+    if (field.id) existingFields.set(field.id, field);
+    if (field.path) existingFields.set(field.path, field);
+  }
   const fields = (action.mutation?.fields || []).map(path => {
     const id = `field:${path}`;
     const existing = existingFields.get(id) || existingFields.get(path) || {};
@@ -1592,7 +1697,7 @@ function syncMutationInputPolicy(action = {}) {
       id,
       label: path,
       path,
-      type: existing.type || 'string',
+      type: existing.type || mutationInputType(path),
       prompt: existing.prompt !== false,
       required: false
     };
@@ -1602,6 +1707,10 @@ function syncMutationInputPolicy(action = {}) {
     prompt: fields.length > 0,
     fields
   };
+}
+
+function mutationInputType(path = '') {
+  return String(path).includes('.') ? 'string' : 'object';
 }
 
 function syncActionConstruction(action = {}) {
@@ -1775,7 +1884,7 @@ function ensureStatusSnapshots() {
 function addStatusSnapshot() {
   const snapshots = ensureStatusSnapshots();
   const key = uniqueName('snapshot', Object.keys(snapshots));
-  snapshots[key] = { entityType: defaultEntityType(), lineageKey: '', required: true };
+  snapshots[key] = { entityType: defaultEntityType(), lineageRole: '', required: true };
 }
 
 function renameStatusSnapshot(previous, value) {
@@ -1817,7 +1926,7 @@ function syncProcessNode(node = {}) {
   if (node.kind !== 'entityRef') node.mode = '';
   else node.mode ||= node.operation || 'current';
   if (node.kind === 'entityRef') node.operation = node.mode;
-  if (node.kind !== 'blockRead') node.block = '';
+  if (!['blockAssemble', 'blockRead'].includes(node.kind)) node.block = '';
   else node.block ||= 'identity';
   node.label = processNodeDisplayLabel(node);
   node.inputs = processNodeInputs(node);
@@ -1844,7 +1953,7 @@ function applyInferredProcessNodeInputs(record = {}, node = {}) {
 }
 
 function processNodeNeedsSourceEntity(node = {}) {
-  return node.kind === 'entityRef' || node.kind === 'fieldRead' || node.kind === 'entityAssemble' || node.kind === 'collection';
+  return node.kind === 'entityRef' || node.kind === 'fieldRead' || node.kind === 'entityAssemble' || node.kind === 'blockAssemble' || node.kind === 'collection';
 }
 
 function processNodeNeedsResultEntity(node = {}) {
@@ -1855,6 +1964,7 @@ function processNodeSourceEntityLabel(node = {}) {
   if (node.kind === 'collection') return t('processDesigner.collectionEntity');
   if (node.kind === 'fieldRead') return t('processDesigner.entityToDecompose');
   if (node.kind === 'entityAssemble') return t('processDesigner.resultEntity');
+  if (node.kind === 'blockAssemble') return t('processDesigner.resultEntity');
   if (node.kind === 'entityRef' && node.mode === 'children') return t('processDesigner.parentEntity');
   if (node.kind === 'entityRef' && node.mode === 'parent') return t('processDesigner.childEntity');
   return t('processDesigner.sourceEntity');
@@ -1900,6 +2010,14 @@ function processNodeInputs(node = {}) {
     return (definition?.blocks || processBlockOptions.map(option => option.value))
       .map(block => ({ id: block, label: block, kind: 'block', block, required: false }));
   }
+  if (node.kind === 'blockAssemble') {
+    const paths = fieldOptions(node.entityType)
+      .map(option => option.value)
+      .filter(path => path === node.block || path.startsWith(`${node.block}.`));
+    return paths.length
+      ? paths.map(path => ({ id: path, label: path.slice(node.block.length + 1) || path, kind: 'data', dataPath: path, required: false }))
+      : [{ id: 'value', label: node.block || 'value', kind: 'data', required: false }];
+  }
   if (node.kind === 'blockRead') {
     return [{ id: 'block', label: node.block || 'block', kind: 'block', block: node.block || '' }];
   }
@@ -1922,6 +2040,7 @@ function processNodeOutputs(node = {}) {
     return blocks.map(block => ({ id: block, label: block, kind: 'block', block }));
   }
   if (node.kind === 'entityAssemble') return [{ id: 'entity', label: node.entityType || 'entity', kind: 'entity', entityType: node.entityType || '' }];
+  if (node.kind === 'blockAssemble') return [{ id: 'block', label: node.block || 'block', kind: 'block', block: node.block || '' }];
   if (node.kind === 'blockRead') return [{ id: 'value', label: node.path || 'value', kind: node.valueType || 'data', block: node.block || '', dataPath: node.path || '' }];
   if (node.kind === 'collection' && node.operation === 'first') return [{ id: 'entity', label: node.entityType || 'entity', kind: 'entity', entityType: node.entityType || '' }];
   if (node.kind === 'collection' && node.operation === 'count') return [{ id: 'count', label: 'count', kind: 'number' }];
@@ -1937,6 +2056,7 @@ function processNodeSummary(node = {}) {
 function processNodeDisplayLabel(node = {}) {
   if (node.kind === 'fieldRead') return t('processDesigner.useDecomposeEntity');
   if (node.kind === 'entityAssemble') return t('processDesigner.useAssembleEntity');
+  if (node.kind === 'blockAssemble') return t('processDesigner.useAssembleBlock');
   if (node.kind === 'blockRead') return t('processDesigner.useReadField');
   return processNodeOperationLabels[node.kind === 'entityRef' ? (node.mode || node.operation || 'current') : node.operation] || node.kind || '';
 }
@@ -1946,6 +2066,7 @@ function iconForProcessNode(kind = '') {
     entityRef: 'pi pi-share-alt',
     fieldRead: 'pi pi-box',
     entityAssemble: 'pi pi-box',
+    blockAssemble: 'pi pi-object-group',
     blockRead: 'pi pi-search',
     stringOp: 'pi pi-align-left',
     compare: 'pi pi-equals',
@@ -1969,7 +2090,7 @@ function defaultPathForBlock(block = 'data') {
   return ({
     identity: 'identity.name',
     status: 'status.state.primary',
-    lineage: 'lineage.organizationId',
+    lineage: 'lineage.organization.entityId',
     data: 'data.value',
     specs: 'specs.value',
     summary: 'summary.value',
@@ -2685,6 +2806,7 @@ function syncInferredActionInputs() {
     const action = draft.value?.data?.actions?.[node.data?.refId];
     if (!action || action.actionKind !== 'mutateEntity') continue;
     const inferred = inferIncomingEntityContract(node.id);
+    syncActionIo(action, node);
     const entityInput = action.inputs?.find(input => input.id === 'entity');
     if (entityInput && inferred.entityType) entityInput.entityType = inferred.entityType;
     if (!action.status?.from && inferred.status) {
@@ -2696,7 +2818,7 @@ function syncInferredActionInputs() {
 }
 
 function inferIncomingEntityContract(nodeId) {
-  const edge = edges.value.find(item => item.target === nodeId && String(item.targetHandle || '').startsWith('input'));
+  const edge = edges.value.find(item => item.target === nodeId && ['entity', ''].includes(normalizeGraphHandle(item.targetHandle, 'input')));
   if (!edge) return {};
   const source = nodes.value.find(item => item.id === edge.source);
   const sourceRecord = source?.data?.refId ? draft.value?.data?.[recordKeyForType(source.type)]?.[source.data.refId] : null;

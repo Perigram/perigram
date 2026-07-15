@@ -41,12 +41,17 @@ export function createSummarySync({ connectDB, pluralize, toFlexibleId }) {
   return async function syncSummary(entityType, lineage, definition) {
     const summary = definition?.summaries?.find(item => item.sourceType === entityType || !item.sourceType);
     if (!summary) return null;
-    const parentId = lineage?.[summary.targetIdKey];
+    const parentId = lineage?.[summary.lineageRole]?.entityId;
     if (!parentId) return null;
 
     const db = await connectDB();
     const [result] = await db.collection(pluralize(entityType)).aggregate([
-      { $match: { [`lineage.${summary.targetIdKey}`]: toFlexibleId(parentId) } },
+      {
+        $match: {
+          [`lineage.${summary.lineageRole}.entityId`]: String(parentId),
+          ...(summary.filter || {})
+        }
+      },
       { $group: { _id: null, count: { $sum: 1 } } }
     ]).toArray();
 

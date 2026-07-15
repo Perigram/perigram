@@ -151,7 +151,7 @@ export async function switchOrganization(userId, organizationId) {
   const membership = user.memberships.find(m => m.organizationId.toString() === organizationId.toString());
   if (!membership) throw createError({ statusCode: 403, message: 'User is not a member of this organization' });
 
-  user.lineage.organizationId = toFlexibleId(organizationId);
+  user.lineage.add('organization', organizationId);
   user.data.role = membership.role;
   user.data.permissions = membership.owner ? mergeOwnerPermissions(membership.permissions || {}) : membership.permissions;
 
@@ -274,7 +274,7 @@ function uniqueIdValues(values) {
 export async function canManageUsersInOrganization(auth = {}, organizationId) {
   if (!organizationId) return false;
   if (hasEntityAccess({
-    entity: { lineage: { organizationId } },
+    entity: { lineage: { organization: { entityType: 'organization', entityId: String(organizationId) } } },
     feature: 'users',
     level: 'admin',
     auth

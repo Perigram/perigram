@@ -612,6 +612,7 @@ function compileRoles(process = {}, domain = {}) {
       if (!roles[roleId]) continue;
       const feature = exposedActionFeature(action, actionWindow, access, domain);
       const parentEntityType = effectiveActionParentEntityType(action, domain, graphContext.parentIncomingByActionId.get(actionId));
+      const parentRelation = parentRelationForChild(domain, action.entityType, parentEntityType);
       roles[roleId].actions.push({
         actionId: action.id || actionId,
         label: displayActionLabel(action, actionId, process),
@@ -621,6 +622,8 @@ function compileRoles(process = {}, domain = {}) {
         feature,
         entityType: action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || null,
         parentEntityType: parentEntityType || null,
+        parentInputKey: parentRelation?.filterKey || null,
+        parentLineageRole: parentRelation?.lineageRole || null,
         status: actionStatusForExposure(action, actionWindow, access, process),
         construction: normalizeConstruction(action.construction, action.entityType, domain),
         inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
@@ -1054,7 +1057,7 @@ function deriveActionWindowScope(action = {}, incoming = null, domain = {}) {
   if ((action.actionKind || 'createEntity') !== 'createEntity') return inheritedScope;
   const parentType = effectiveActionParentEntityType(action, domain, incoming);
   if (!parentType || !incoming) return inheritedScope;
-  const parentKey = `${parentType}Id`;
+  const parentKey = parentRelationForChild(domain, action.entityType, parentType)?.filterKey || `${parentType}Id`;
   if (inheritedScope?.entityId && !inheritedScope[parentKey]) {
     const { entityId, ...lineageScope } = inheritedScope;
     return { ...lineageScope, [parentKey]: entityId };
@@ -1072,9 +1075,9 @@ function deriveCommandOutputScope(outputEntityType = '', incoming = null, domain
   if (!incoming?.entityType) return inheritedScope;
   const relation = parentRelationForChild(domain, outputEntityType, incoming.entityType);
   if (!relation) return inheritedScope;
-  if (inheritedScope?.entityId && !inheritedScope[relation.parentIdKey]) {
+  if (inheritedScope?.entityId && !inheritedScope[relation.filterKey]) {
     const { entityId, ...lineageScope } = inheritedScope;
-    return { ...lineageScope, [relation.parentIdKey]: entityId };
+    return { ...lineageScope, [relation.filterKey]: entityId };
   }
   return inheritedScope;
 }
@@ -1182,6 +1185,12 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
   });
   return Object.fromEntries(Object.entries({ ...screens, ...inferredScreens }).map(([id, screen]) => {
     const normalized = normalizeScreenContract(screen);
+    const sources = normalized.template === 'entityList'
+      ? normalized.sources.map(source => ({
+          ...source,
+          filters: withTopLevelContainmentFilters(source.filters, source.entityType, domain)
+        }))
+      : normalized.sources;
     return [id, {
       id: normalized.id || id,
       label: normalized.label || normalized.id || id,
@@ -1195,11 +1204,21 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
       required: normalized.required || null,
       roleIds: normalized.roleIds || [],
       bindings: normalized.bindings || {},
-      sources: normalized.sources,
+      sources,
       regions: normalized.regions,
       actions: normalized.actions || []
     }];
   }));
+}
+
+function withTopLevelContainmentFilters(filters = {}, entityType = '', domain = {}) {
+  const result = { ...(filters || {}) };
+  for (const relation of domain.relations || []) {
+    if (relation.kind !== 'containment' || relation.childType !== entityType || !relation.lineageRole) continue;
+    const filterKey = relation.filterKey || `${relation.lineageRole}Id`;
+    if (result[filterKey] === undefined) result[filterKey] = '__top_level__';
+  }
+  return result;
 }
 
 function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {}, graph = {} } = {}) {
@@ -1314,7 +1333,8 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
   const grantsByFeature = groupGrantsByFeature(role.grants || []);
 
   for (const relation of domain.relations || []) {
-    if (relation.kind !== 'containment' || relation.parentType !== parentEntityType || !relation.childType || !relation.parentIdKey) continue;
+    if (relation.kind !== 'containment' || relation.parentType !== parentEntityType || !relation.childType || !relation.lineageRole) continue;
+    if (relation.display?.parentDetail === false) continue;
     const childFeature = featureFromEntityType(domain, relation.childType);
     if (!childFeature) continue;
     const childGrants = grantsByFeature.get(childFeature) || [];
@@ -1325,7 +1345,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
       childEntityType: relation.childType,
       childFeature,
       childGrants,
-      parentIdKey: relation.parentIdKey
+      filterKey: relation.filterKey
     });
   }
 
@@ -1339,6 +1359,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
     if (!childEntityType) continue;
     const parentRelation = parentRelationForChild(domain, childEntityType, parentEntityType);
     if (!parentRelation) continue;
+    if (parentRelation.display?.parentDetail === false) continue;
     const childFeature = featureFromEntityType(domain, childEntityType);
     if (!childFeature) continue;
     const childGrants = grantsByFeature.get(childFeature) || [];
@@ -1348,7 +1369,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
       childEntityType,
       childFeature,
       childGrants,
-      parentIdKey: parentRelation.parentIdKey
+      filterKey: parentRelation.filterKey
     });
     if (actionId && !region.actions.includes(actionId)) region.actions.push(actionId);
     if (actionId) actionIds.push(actionId);
@@ -1360,7 +1381,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
   };
 }
 
-function ensureChildRegion({ sourcesByEntity, regions, childEntityType, childFeature, childGrants = [], parentIdKey } = {}) {
+function ensureChildRegion({ sourcesByEntity, regions, childEntityType, childFeature, childGrants = [], filterKey } = {}) {
   const sourceId = `${childEntityType}_children`;
   if (!sourcesByEntity.has(sourceId)) {
     sourcesByEntity.set(sourceId, {
@@ -1369,7 +1390,7 @@ function ensureChildRegion({ sourcesByEntity, regions, childEntityType, childFea
       entityType: childEntityType,
       mode: 'list',
       required: aggregateScreenRequirement(childFeature, childGrants),
-      filters: { [parentIdKey]: '$screen.scope.entityId' }
+      filters: { [filterKey]: '$screen.scope.entityId' }
     });
   }
   let region = regions.find(item => item.sourceId === sourceId);
@@ -1391,7 +1412,7 @@ function parentRelationForChild(domain = {}, childEntityType = '', parentEntityT
     relation.kind === 'containment'
     && relation.childType === childEntityType
     && (!parentEntityType || relation.parentType === parentEntityType)
-    && relation.parentIdKey
+    && relation.lineageRole
   )) || null;
 }
 
@@ -1682,12 +1703,15 @@ function compileActions(actions = {}, process = {}, domain = {}) {
   const graphContext = buildActionGraphContext(process);
   return Object.fromEntries(Object.entries(actions).map(([id, action]) => {
     const parentEntityType = effectiveActionParentEntityType(action, domain, graphContext.parentIncomingByActionId.get(id));
+    const parentRelation = parentRelationForChild(domain, action.entityType, parentEntityType);
     return [id, {
       id: action.id || id,
       label: displayActionLabel(action, id, process),
       actionKind: action.actionKind || 'createEntity',
       entityType: action.entityType || null,
       parentEntityType: parentEntityType || null,
+      parentInputKey: parentRelation?.filterKey || null,
+      parentLineageRole: parentRelation?.lineageRole || null,
       commandId: action.commandId || null,
       status: compileActionStatus(action, process),
       mutation: action.mutation || { fields: [] },
@@ -1977,11 +2001,12 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
 
 function validateProcessNode(nodeId, node = {}, { entities, errors }) {
   const kind = node.kind || 'fieldRead';
-  if (!['entityRef', 'fieldRead', 'entityAssemble', 'blockRead', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
+  if (!['entityRef', 'fieldRead', 'entityAssemble', 'blockAssemble', 'blockRead', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
     errors.push(`Process node ${nodeId} uses unknown node kind ${kind}`);
     return;
   }
   if (kind === 'entityAssemble' && !node.entityType) errors.push(`Process node ${nodeId} must select an entity type`);
+  if (kind === 'blockAssemble' && (!node.entityType || !node.block)) errors.push(`Process node ${nodeId} must select an entity type and block`);
   for (const key of ['entityType', 'relationEntityType']) {
     if (node[key] && !entities.has(node[key])) {
       errors.push(`Process node ${nodeId} uses unknown ${key} ${node[key]}`);

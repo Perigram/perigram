@@ -1,16 +1,68 @@
-* DONE 2026-07-13 Entity, queue, sheet-design, and process architecture plan
-  - [X] Snap sheet placements to neighboring cassettes with the selected tool gap and rotate by 90 degrees.
-  - [X] Treat artifacts as normal entities with generated upload and camera inputs.
-  - [X] Replace hardcoded queue cassette creation controls with process actions that output cassette designs.
-  - [X] Separate containment relations from aggregate summaries and keep children on parent detail screens.
-  - [X] Add optional revision-qualified lineage references and lineage revision links in trace UI.
-  - [X] Add non-owning typed relations and render project-library and artifact-source links.
-  - [X] Deduplicate equivalent nesting layouts into one sheet design with planned sheet instances.
-  - [X] Add machine work area/boundary offsets and material/tool/thickness nesting snapshots.
-  - [X] Replace status/update process actions with block-driven mutateEntity and add entity assembly.
-  - [X] Preserve cassette designer Save As and Escape selection behavior without closing its dialog.
-  - [X] Keep sheet-design identity/boundary/layer styling visible and compact selected-run previews.
-  - [X] Prevent queue parameter edits from reloading their editor state.
+* DONE 2026-07-14 Repair entity, queue, nesting, and process architecture
+  The 2026-07-13 checklist was marked complete before its contracts worked
+  end-to-end.  The replacement plan below is executable and each item remains
+  open until its focused tests and relevant architecture validation pass.
+
+** DONE 1. Cassette-to-cassette sheet-editor snapping and rotation
+   Use neighbouring cassette bounds and the selected tool gap as the snap
+   contract; the visual grid must not influence placement.  Keep the explicit
+   90-degree rotate control and re-snap/clamp a placement after rotation.
+
+** DONE 2. Generic artifact entity creation and delivery
+   Keep artifact creation in the generated entity flow with attachment upload
+   and camera capture fields.  Return the entity DTO from the detail endpoint
+   and stream bytes only from the dedicated content endpoint.
+
+** DONE 3. Generated queue producers and revision-owned nesting attempts
+   Show a cassette-design producer only when an action that declares a
+   =cassette_design= output is explicitly placed in the queue screen region.
+   Bind outputs on the server.  Store terminal nesting attempts as immutable
+   queue =entity_revision= records, keep live execution in =task_run=, and show
+   sheet outputs only for the explicitly selected successful revision.  Queue
+   nesting lifecycle data and state belong to the Status object's parallel
+   region, not duplicated queue data or a =nesting_run= entity.
+
+** DONE 4. Consistent containment for parent and child entities
+   Define ownership once in domain containment relations.  Creation actions
+   must persist the structured parent lineage reference; generated top-level
+   lists must exclude contained rows, while parent details render their
+   children through the same relation contract.
+
+** DONE 5. Optional revision-qualified lineage references
+   Persist lineage roles as ={ entityType, entityId, revisionId? }=.  Use
+   =entityType/entityId@revisionId= at text boundaries and expose revision links
+   in trace/navigation UI.  Provide a dry-run/apply migration and reject flat
+   legacy lineage keys after migration.
+
+** DONE 6. Non-owning linked entity relationships
+   Persist typed references with the same structured shape under =relations=.
+   Render links separately from containment, including project-to-library and
+   artifact-to-source examples; linked entities remain top-level entities.
+
+** DONE 7. Equivalent sheet designs and physical sheet instances
+   Canonicalize and hash nesting layouts.  One queue revision creates one
+   =sheet_design= per equivalent layout plus the required quantity of
+   =sheet_instance= digital twins, all qualified to that queue revision.
+
+** DONE 8. Machine, material thickness, and immutable nesting settings
+   Use the seeded default machine's dimensions and boundary offsets when no
+   machine is chosen.  Snapshot machine, material, tool, gap, sheet dimensions,
+   and thickness into the task/revision.  Virtual materials accept thickness,
+   cassette OCCS preserves material thickness as parameter =T=, and queue input
+   snapshots carry the resolved thickness.
+
+** DONE 9. Unified process entity mutation and assembly nodes
+   Replace separate change/status nodes with one entity mutation action whose
+   sockets are derived from the live entity contract and only connected fields
+   are written; status changes must call the Status service.  Validate default
+   assemble/disassemble blocks against persisted lineage/relations and provide
+   the required construction nodes.  Refactor the designer to a compact graph
+   with a focused inspector instead of large in-node forms.
+
+** DONE 10. Hierarchy-aware navigation breadcrumbs
+   Resolve generated detail breadcrumbs through domain containment and
+   structured lineage, including revision-qualified parents, rather than
+   repeating the flat screen list.
 
 * WAITING Full Intent/Contract/Responsibility Audit And Refactor
   :PROPERTIES:
@@ -18,6 +70,24 @@
   :END:
 
 *** Agent Notes
+    [2026-07-15] Replace flat lineage and nesting-run architecture end to end
+    Files changed: framework/domain/process packages; queue, nesting, artifact,
+      machine, revision, sheet-design, sheet-instance, process-definition, and
+      relation services/APIs; generated/process-designer/shared entity UI;
+      navigation/stores/composables; migration, validation, and focused tests.
+    Docs updated: root, server, package, feature, component, page, worker,
+      utility, store, script, data-model, and TODO documentation.
+    Notes: Entity references now use structured, optionally revision-qualified
+      lineage and separate non-owning relations. Queue nesting attempts are
+      terminal entity revisions selected through the queue Status region; the
+      nesting-run entity and compatibility paths were removed. Generated queue
+      producers are compiler-bound, equivalent layouts create one sheet design
+      plus deterministic physical instances, nesting snapshots machine/material
+      thickness, and process mutation/navigation use the shared architecture.
+      Architecture/framework validation and all focused tests pass. The full
+      non-E2E suite passes 539/540 tests; the sole billing catalog assertion also
+      fails unchanged on the primary local checkout and is outside this task.
+
     [2026-07-01] Suppress dimension layers in sheet-design compact previews
     Files changed: components/shared/EntityPreview.vue,
       components/shared/GeometryPreview.vue, shared/design-system.spec.js

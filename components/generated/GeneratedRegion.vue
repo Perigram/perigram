@@ -8,7 +8,7 @@
     :screen-key="screenKey"
     :excluded-actions="excludedActions"
     @refresh="$emit('refresh')"
-    @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
+    @execute-action="forwardAction"
   >
     <slot />
   </GeneratedEntityDetail>
@@ -24,7 +24,7 @@
     :source="sourceState.source"
     :action-context="actionContext"
     @refresh="$emit('refresh')"
-    @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
+    @execute-action="forwardAction"
   />
 </template>
 
@@ -43,7 +43,15 @@ const props = defineProps({
   actionContext: { type: Object, default: () => ({}) }
 });
 
-defineEmits(['refresh', 'execute-action']);
+const emit = defineEmits(['refresh', 'execute-action']);
 
 const effectiveActions = computed(() => props.region.actions?.length ? props.region.actions : props.screenActions);
+
+function forwardAction(action, entity, context = {}) {
+  emit('execute-action', action, entity, {
+    ...context,
+    screenKey: props.screenKey,
+    regionId: props.region.id
+  });
+}
 </script>

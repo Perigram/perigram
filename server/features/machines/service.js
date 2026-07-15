@@ -1,9 +1,10 @@
 import { createError } from 'h3';
-import { createData, createIdentity, createStatus } from '../../core/blocks/index.js';
+import { createData, createIdentity, createStatus, Lineage } from '../../core/blocks/index.js';
 import { markPublicSystemData } from '#shared/public-entities.js';
 import { getLineageFilter, hasLineagePermission } from '../../utils/permissions.js';
 import * as repository from './repository.js';
 import { Machine } from './model.js';
+import { ObjectId } from 'mongodb';
 
 const DEFAULT_MACHINE_UID = 'machine-system-default';
 
@@ -11,7 +12,7 @@ const toDTO = raw => raw ? new Machine(raw).toJSON() : null;
 
 export async function create(data = {}, userId, userOrg, userRole, userPermissions = {}) {
   const organizationId = data.organizationId || userOrg;
-  const lineage = organizationId ? { organizationId } : {};
+  const lineage = organizationId ? new Lineage().add('organization', organizationId) : {};
   if (!organizationId || !hasLineagePermission(userPermissions, lineage, 'machines', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for machines' });
   }
@@ -31,10 +32,11 @@ export async function ensureSystemDefault() {
 }
 
 async function createRecord(data, userId, lineage, system = false) {
+  const uid = data._id?.toString?.() || data._id || new ObjectId().toString();
   const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Machine created' });
   const raw = {
-    _id: data._id,
-    identity: createIdentity(data.name || 'CNC machine', '', '', '', data._id),
+    _id: uid,
+    identity: createIdentity(data.name || 'CNC machine', data.slug || '', '', '', uid),
     origin,
     status: origin,
     lineage,
@@ -59,11 +61,11 @@ export async function getById(id, userId, userOrg, userRole, userPermissions = {
 export async function list(userId, userOrg, userRole, userPermissions = {}) {
   await ensureSystemDefault();
   const filter = getLineageFilter(userPermissions);
-  const organizationIds = filter['lineage.organizationId']?.$in || [];
+  const organizationIds = filter['lineage.organization.entityId']?.$in || [];
   const raws = await repository.find({
     $or: [
       { 'lineage.scope': 'system' },
-      ...(organizationIds.length ? [{ 'lineage.organizationId': { $in: organizationIds } }] : [])
+      ...(organizationIds.length ? [{ 'lineage.organization.entityId': { $in: organizationIds } }] : [])
     ]
   });
   return raws.map(toDTO).filter(machine => machine.data?.visibility?.public || hasLineagePermission(userPermissions, machine, 'machines', 'read'));

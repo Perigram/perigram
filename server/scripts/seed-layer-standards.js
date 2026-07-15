@@ -35,7 +35,7 @@ async function main() {
     const layerSeeds = await loadOccsLayerStandardSeeds();
     
     // Resolve system pen IDs by name
-    const systemPens = await db.collection('pen_templates').find({ 'lineage.userId': null }).toArray();
+    const systemPens = await db.collection('pen_templates').find({ 'lineage.user': { $exists: false } }).toArray();
     const penByName = Object.fromEntries(systemPens.map(p => [p.identity?.name, penTemplateDtoId(p)]));
 
     // Resolve defaultPenId from pen name

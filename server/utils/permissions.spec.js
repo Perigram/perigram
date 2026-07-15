@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { requireAuth, requirePermission, checkEntityAccess } from './permissions';
+import { requireAuth, requirePermission } from './permissions';
 
 // h3 createError returns an object that we throw
 // We want to test that it is called or that the function throws it
@@ -21,22 +21,6 @@ describe('Permissions Utility', () => {
     it('should throw 401 if auth context is missing', () => {
       const event = { context: {} };
       expect(() => requireAuth(event)).toThrow(/Authentication required/);
-    });
-  });
-
-  describe('checkEntityAccess', () => {
-    const user = { organizationId: 'org1' };
-
-    it('should allow user to access their own organization entity', () => {
-      expect(checkEntityAccess(user, {}, 'org1')).toBe(true);
-    });
-
-    it('should deny user from accessing other organization entity', () => {
-      expect(checkEntityAccess(user, {}, 'org2')).toBe(false);
-    });
-
-    it('should return false if entityOrgId is missing', () => {
-      expect(checkEntityAccess(user, {}, null)).toBe(false);
     });
   });
 
@@ -78,7 +62,7 @@ describe('Permissions Utility', () => {
           projects: [{ level: 'write', actions: { create: true } }]
         }
       };
-      const project = { lineage: { organizationId: 'org-1' } };
+      const project = { lineage: { organization: { entityType: 'organization', entityId: 'org-1' } } };
 
       expect(hasLineagePermission(auth, project, 'projects', 'write', { action: 'create' })).toBe(true);
       expect(hasLineagePermission({

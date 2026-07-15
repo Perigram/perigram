@@ -3,6 +3,7 @@ import { activate, assignUserToActiveProcessInternal, executeActiveProcessAction
 import * as processRepository from './repository.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
+import * as queuesService from '~/server/features/queues/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { statusService } from '~/server/core/machines/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
@@ -26,6 +27,11 @@ vi.mock('~/server/features/cassettes/service.js', async (importOriginal) => ({
   createDesignFromTemplate: vi.fn(),
   createDefaultOccsTemplate: vi.fn(),
   findDefaultConstructableTemplate: vi.fn()
+}));
+
+vi.mock('~/server/features/queues/service.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  appendGeneratedCassetteDesignOutputs: vi.fn()
 }));
 
 vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
@@ -100,7 +106,7 @@ describe('process definitions access fallback', () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-1',
       identity: { uid: 'process-1', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: {
         state: 'ACTIVE',
         userId: 'creator',
@@ -148,7 +154,7 @@ describe('process definitions access fallback', () => {
     const draft = {
       _id: 'process-draft',
       identity: { uid: 'process-draft', name: 'Draft process', slug: 'draft-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: {
         state: 'DRAFT',
         userId: 'creator',
@@ -224,7 +230,7 @@ describe('process definitions access fallback', () => {
       toJSON: () => ({
         _id: 'project-created',
         identity: { uid: 'project-created', name: 'Created project' },
-        lineage: { organizationId: 'org-1' },
+        lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
         status: { state: { primary: 'DRAFT' } }
       })
     }));
@@ -237,7 +243,7 @@ describe('process definitions access fallback', () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         actions: {},
@@ -321,7 +327,7 @@ describe('process definitions access fallback', () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         statusDefinitions: {
@@ -377,8 +383,8 @@ describe('process definitions access fallback', () => {
 
   it('executes synchronous run-command actions with action-scoped command access and output status projection', async () => {
     executeCommand.mockResolvedValueOnce({
-      entities: [{ type: 'nesting_run', id: 'nesting-run-1' }],
-      data: { runId: 'nesting-run-1' }
+      entities: [{ type: 'sheet_design', id: 'sheet-design-1' }],
+      data: { sheetDesignId: 'sheet-design-1' }
     });
     getAppRegistry.mockReturnValueOnce({
       getCommandDefinition: () => ({
@@ -393,7 +399,7 @@ describe('process definitions access fallback', () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         actions: {
@@ -405,14 +411,14 @@ describe('process definitions access fallback', () => {
           mark_cut: {
             id: 'mark_cut',
             actionKind: 'mutateEntity',
-            inputs: [{ id: 'entity', entityType: 'nesting_run' }],
+            inputs: [{ id: 'entity', entityType: 'sheet_design' }],
             status: { to: 'CUT' }
           }
         },
         graph: {
           nodes: [],
           edges: [
-            { source: 'run_nesting', target: 'mark_cut', sourceHandle: 'output:nesting_run', targetHandle: 'input:entity' }
+            { source: 'run_nesting', target: 'mark_cut', sourceHandle: 'output:sheet_design', targetHandle: 'input:entity' }
           ]
         },
         compiled: {
@@ -468,8 +474,8 @@ describe('process definitions access fallback', () => {
       })
     );
     expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
-      'nesting_run',
-      'nesting-run-1',
+      'sheet_design',
+      'sheet-design-1',
       'CUT',
       'org-1',
       'user-1',
@@ -479,9 +485,9 @@ describe('process definitions access fallback', () => {
 
   it('does not project process output status before async command tasks finish', async () => {
     executeCommand.mockResolvedValueOnce({
-      entities: [{ type: 'nesting_run', id: 'nesting-run-1' }],
+      entities: [{ type: 'sheet_design', id: 'sheet-design-1' }],
       jobs: [{ type: 'task_run', id: 'task-1' }],
-      data: { runId: 'nesting-run-1', taskRunId: 'task-1' }
+      data: { sheetDesignId: 'sheet-design-1', taskRunId: 'task-1' }
     });
     getAppRegistry.mockReturnValueOnce({
       getCommandDefinition: () => ({ access: { executionGrants: [] } })
@@ -489,7 +495,7 @@ describe('process definitions access fallback', () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         actions: {
@@ -501,14 +507,14 @@ describe('process definitions access fallback', () => {
           mark_cut: {
             id: 'mark_cut',
             actionKind: 'mutateEntity',
-            inputs: [{ id: 'entity', entityType: 'nesting_run' }],
+            inputs: [{ id: 'entity', entityType: 'sheet_design' }],
             status: { to: 'CUT' }
           }
         },
         graph: {
           nodes: [],
           edges: [
-            { source: 'run_nesting', target: 'mark_cut', sourceHandle: 'output:nesting_run', targetHandle: 'input:entity' }
+            { source: 'run_nesting', target: 'mark_cut', sourceHandle: 'output:sheet_design', targetHandle: 'input:entity' }
           ]
         },
         compiled: {
@@ -543,7 +549,10 @@ describe('process definitions access fallback', () => {
     cassetteService.createDesignFromTemplate.mockResolvedValueOnce({
       _id: 'design-created',
       identity: { uid: 'design-created', name: 'Facade A' },
-      lineage: { organizationId: 'org-1', templateId: 'cassette-template-1' },
+      lineage: {
+        organization: { entityType: 'organization', entityId: 'org-1' },
+        cassette: { entityType: 'cassette', entityId: 'cassette-template-1' }
+      },
       status: { state: { primary: 'DRAFT' } },
       data: { geometry: { dxfId: 'dxf-1' } }
     });
@@ -553,7 +562,7 @@ describe('process definitions access fallback', () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         actions: {},
@@ -621,14 +630,17 @@ describe('process definitions access fallback', () => {
     cassetteService.createDesignFromTemplate.mockResolvedValueOnce({
       _id: 'design-from-parent',
       identity: { uid: 'design-from-parent', name: 'Parent based' },
-      lineage: { organizationId: 'org-1', templateId: 'cassette-parent-1' },
+      lineage: {
+        organization: { entityType: 'organization', entityId: 'org-1' },
+        cassette: { entityType: 'cassette', entityId: 'cassette-parent-1' }
+      },
       status: { state: { primary: 'DRAFT' } },
       data: { geometry: { dxfId: 'dxf-1' } }
     });
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         actions: {},
@@ -682,14 +694,17 @@ describe('process definitions access fallback', () => {
     cassetteService.createDesignFromTemplate.mockResolvedValueOnce({
       _id: 'design-created',
       identity: { uid: 'design-created', name: 'Facade B' },
-      lineage: { organizationId: 'org-1', templateId: 'default-template' },
+      lineage: {
+        organization: { entityType: 'organization', entityId: 'org-1' },
+        cassette: { entityType: 'cassette', entityId: 'default-template' }
+      },
       status: { state: { primary: 'DRAFT' } },
       data: { geometry: { dxfId: 'dxf-1' } }
     });
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         actions: {},
@@ -746,7 +761,7 @@ describe('process definitions access fallback', () => {
     cassetteService.createDefaultOccsTemplate.mockResolvedValueOnce({
       _id: 'template-created',
       identity: { uid: 'template-created', name: 'Facade Template' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: { primary: 'DRAFT' } },
       data: { type: 'PARAMETRIC', definition: { occs: '0.4-draft', extensions: { cutkit: { graphTree: {} } } } }
     });
@@ -756,7 +771,7 @@ describe('process definitions access fallback', () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         actions: {},
@@ -810,7 +825,7 @@ describe('process definitions access fallback', () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         actions: {},
@@ -848,7 +863,10 @@ describe('process definitions access fallback', () => {
       toJSON: () => ({
         _id: 'queue-created',
         identity: { uid: 'queue-created', name: 'Queue A' },
-        lineage: { organizationId: 'org-1', projectId: 'project-1' },
+        lineage: {
+          organization: { entityType: 'organization', entityId: 'org-1' },
+          project: { entityType: 'project', entityId: 'project-1' }
+        },
         status: { state: { primary: 'DRAFT' } }
       })
     }));
@@ -862,7 +880,7 @@ describe('process definitions access fallback', () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
       identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
       status: { state: 'ACTIVE' },
       data: {
         actions: {},
@@ -900,5 +918,67 @@ describe('process definitions access fallback', () => {
       undefined,
       expect.any(Object)
     );
+  });
+
+  it('binds declared cassette-design outputs only from their compiled queue region', async () => {
+    const process = {
+      _id: 'process-queue-producer',
+      identity: { uid: 'process-queue-producer', name: 'Queue producers' },
+      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {},
+        compiled: {
+          actions: {
+            add_from_library: {
+              id: 'add_from_library',
+              actionKind: 'runCommand',
+              commandId: 'copyCassetteFromLibrary',
+              entityType: 'queue',
+              outputs: [{ id: 'design', entityType: 'cassette_design' }],
+              access: { level: 'write', roleIds: ['role_designer'] }
+            }
+          },
+          userAccess: {
+            'user-1': {
+              screens: [{
+                screenKey: 'queue-detail',
+                template: 'entityDetail',
+                sources: [{ id: 'queue', entityType: 'queue', mode: 'single' }],
+                regions: [{ id: 'queue-producers', sourceId: 'queue', actions: ['add_from_library'] }]
+              }]
+            }
+          }
+        }
+      }
+    };
+    processRepository.findActiveByOrganization.mockResolvedValue(process);
+    getAppRegistry.mockReturnValue({ getCommandDefinition: () => ({ access: {} }) });
+    executeCommand.mockResolvedValue({ entities: [{ entityType: 'cassette_design', id: 'design-1' }] });
+    queuesService.appendGeneratedCassetteDesignOutputs.mockResolvedValue({ _id: 'queue-1' });
+    const auth = {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: { actions: [{ actionId: 'add_from_library' }] }
+    };
+
+    await executeActiveProcessAction({
+      actionId: 'add_from_library',
+      entityId: 'queue-1',
+      context: { screenKey: 'queue-detail', regionId: 'queue-producers' }
+    }, auth);
+
+    expect(queuesService.appendGeneratedCassetteDesignOutputs).toHaveBeenCalledWith(
+      'queue-1',
+      [{ entityType: 'cassette_design', id: 'design-1' }],
+      auth
+    );
+
+    await expect(executeActiveProcessAction({
+      actionId: 'add_from_library',
+      entityId: 'queue-1',
+      context: { screenKey: 'queue-detail', regionId: 'unplaced-region' }
+    }, auth)).rejects.toMatchObject({ statusCode: 403 });
+    expect(queuesService.appendGeneratedCassetteDesignOutputs).toHaveBeenCalledTimes(1);
   });
 });

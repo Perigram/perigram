@@ -1,4 +1,4 @@
-export const cncEntities = [
+const entityDefinitions = [
   { type: 'artifact', collection: 'artifacts', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'cassette', collection: 'cassettes', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'cassette_design', collection: 'cassette_designs', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
@@ -12,7 +12,6 @@ export const cncEntities = [
   { type: 'material', collection: 'materials', blocks: ['identity', 'origin', 'status', 'attachments', 'data'] },
   { type: 'material_pile', collection: 'material_piles', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'machine', collection: 'machines', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
-  { type: 'nesting_run', collection: 'nesting_runs', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'organization', collection: 'organizations', meta: true, blocks: ['identity', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'pen_template', collection: 'pen_templates', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'process_definition', collection: 'process_definitions', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
@@ -28,3 +27,8 @@ export const cncEntities = [
   { type: 'user', collection: 'users', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'warehouse', collection: 'warehouses', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] }
 ];
+
+export const cncEntities = entityDefinitions.map(definition => ({
+  ...definition,
+  blocks: [...new Set([...(definition.blocks || []), 'relations'])]
+}));

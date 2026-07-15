@@ -45,7 +45,7 @@ export async function createBakedInstance(data) {
 export async function findExistingBakedInstance(originalId, dimensions) {
   const db = await connectDB();
   return await db.collection(BAKED_COLLECTION).findOne({
-    'lineage.originalCassetteId': toFlexibleId(originalId),
+    'lineage.cassette.entityId': String(originalId),
     'data.dimensions': dimensions
   });
 }

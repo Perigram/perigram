@@ -21,7 +21,7 @@ or other sheet processing.
   reuses the fetched DTO.
 - Source design and parent template context render as compact clickable
   `EntityInlineRef` rows because they are source/provenance relations. Queue
-  ancestry stays in shared trace chrome through `lineage.queueId` and is not
+  ancestry stays in shared trace chrome through `lineage.queue` and is not
   duplicated in the card body. Relation lookups are silent and tolerate stale
   ids by omitting the resolved row/falling back through shared inline-ref
   behavior.

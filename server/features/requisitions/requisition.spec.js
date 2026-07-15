@@ -66,7 +66,7 @@ describe('Requisition Lifecycle', () => {
     await db.collection('colors').insertOne({
       _id: colorId,
       identity: { uid: colorId, name: 'Silver' },
-      lineage: { catalogId },
+      lineage: { catalog: { entityType: 'catalog', entityId: catalogId.toString() } },
       data: { pricing: { pricePerSqm: 100 } }
     });
 
@@ -103,7 +103,7 @@ describe('Requisition Lifecycle', () => {
     await db.collection('colors').insertOne({
       _id: colorId,
       identity: { uid: colorId, name: 'Silver' },
-      lineage: { catalogId },
+      lineage: { catalog: { entityType: 'catalog', entityId: catalogId.toString() } },
       data: { pricing: { pricePerSqm: 100 } }
     });
 
@@ -135,13 +135,15 @@ describe('Requisition Lifecycle', () => {
     await db.collection('requisitions').insertMany([
       {
         identity: { uid: 'req-a', name: 'REQ-A' },
-        lineage: { organizationId: 'org-alpha', manufacturerId: 'org-beta' },
+        lineage: { organization: { entityType: 'organization', entityId: 'org-alpha' } },
+        relations: { manufacturer: [{ entityType: 'organization', entityId: 'org-beta' }] },
         status: { state: { primary: 'DRAFT' } },
         data: {}
       },
       {
         identity: { uid: 'req-b', name: 'REQ-B' },
-        lineage: { organizationId: new ObjectId(), manufacturerId: 'org-alpha' },
+        lineage: { organization: { entityType: 'organization', entityId: new ObjectId().toString() } },
+        relations: { manufacturer: [{ entityType: 'organization', entityId: 'org-alpha' }] },
         status: { state: { primary: 'SENT' } },
         data: {}
       }
@@ -160,7 +162,7 @@ describe('Requisition Lifecycle', () => {
     await db.collection('requisitions').insertOne({
       _id: reqId,
       identity: { uid: reqId, name: 'REQ' },
-      lineage: { organizationId: mockContractor.organizationId },
+      lineage: { organization: { entityType: 'organization', entityId: mockContractor.organizationId.toString() } },
       status: { state: 'DRAFT', userId: mockContractor.userId, timestamp: new Date(), metadata: {} },
       data: { items: [] }
     });

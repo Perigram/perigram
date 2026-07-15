@@ -52,7 +52,6 @@ export async function streamToString(readable) {
 
 export function pluralize(entityType) {
   if (!entityType) return '';
-  if (entityType === 'nesting_run') return 'nesting_runs';
   if (entityType === 'cassette_instance') return 'cassette_instances';
   if (entityType === 'sheet_design') return 'sheet_designs';
   if (entityType === 'cassette_design') return 'cassette_designs';

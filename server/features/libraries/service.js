@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb';
 import { createError } from 'h3';
 import * as repository from './repository.js';
 import { Library } from './model.js';
-import { createData, createIdentity, createStatus } from '~/server/core/blocks/index.js';
+import { createData, createIdentity, createStatus, Lineage } from '~/server/core/blocks/index.js';
 import { statusService, createTransitionAuth } from '~/server/core/machines/service';
 import { getLineageFilter, hasLineagePermission } from '~/server/utils/permissions';
 import { mapLineageQuery } from '~/server/utils/query';
@@ -16,7 +16,7 @@ export async function create(data = {}, userId, userOrg, userRole, userPermissio
   const organizationId = data.organizationId || userOrg;
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
 
-  const lineage = { organizationId };
+  const lineage = new Lineage().add('organization', organizationId);
   if (!hasLineagePermission(userPermissions, lineage, 'libraries', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for libraries' });
   }

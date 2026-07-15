@@ -138,7 +138,8 @@ function rangesOverlap(leftMin, leftMax, rightMin, rightMax) {
 
 export function rotateSheetPlacement90(placement = {}) {
   const current = Number(placement.transformation?.rotation ?? placement.rotation ?? 0) || 0;
-  const rotation = Math.abs(current) <= Math.PI * 2 ? current + Math.PI / 2 : current + 90;
+  const currentDegrees = Math.abs(current) <= Math.PI * 2 ? current * 180 / Math.PI : current;
+  const rotation = ((currentDegrees + 90) % 360 + 360) % 360;
   return {
     ...placement,
     transformation: {

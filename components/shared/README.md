@@ -124,7 +124,7 @@ The overflow popover passes the requested relation variant through to every
 Canonical entity-detail workspace layout for operational editors embedded
 inside `EntityPage`. Use it when an entity detail needs a primary working
 region plus a supporting/status/results region, such as queue composition with
-nesting runs. The layout uses one column on small screens and a stable 8/4
+nesting revisions. The layout uses one column on small screens and a stable 8/4
 main/support split on large screens. Route-level production pages that need
 navigation, center work area, and right rail still use `WorkspaceLanes`.
 
@@ -320,7 +320,7 @@ galleries use a bounded responsive grid instead of in-card horizontal
 scrolling; compact galleries show two refs and then an in-grid overflow tile so
 cropping remains visible inside the card.
 Use canonical design-system surface keys for new references, for example
-`materialPile`, `nestingRun`, `cassetteDesign`, `cassetteTemplate`, and
+`materialPile`, `entityRevision`, `cassetteDesign`, `cassetteTemplate`, and
 `entityRevision`. Backend snake-case aliases continue to resolve through the
 domain UI adapter for compatibility, but they should not appear in new entity
 component templates.
@@ -346,13 +346,12 @@ small localized entity-type label above the identity row so the operator can
 see both lineage context and exact entity kind without adding extra chrome to
 the collapsed chip or compact micro card itself. Their expanded body uses the
 card surface contract with compact data display, suppressed child counts, and
-compact relation galleries, so nested outputs such as nesting-run sheet designs
-or library cassette previews render the same way as in generated cards.
-Nesting-run inline refs may receive partial preview DTOs from queue cards; the
-popover hydrates the full run through `useEntity('nestingRun')` when output refs
-are missing, then loads access-filtered `sheetDesign` rows with `runId` so the
-sheet-design compact gallery is based on the canonical child lineage endpoint
-rather than queue-card-local child state.
+compact relation galleries, so project library links and library cassette
+previews render the same way as in generated cards.
+Structured refs may include `revisionId`. Relation galleries and `TraceChain`
+render the owning/linked entity and its immutable revision as separate inline
+references; trace ordering comes from domain containment rather than lineage
+object labels or a flat screen list.
 On mobile, detail-route buttons and lineage links inside inline-ref popovers
 dispatch the shared mobile transient-surface close event before navigation.
 `EntityCard`/`EntityInlineRef` hide their popovers and the app shell closes the
@@ -395,8 +394,9 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   Card title chrome uses compact trace mode: it shows the nearest parent
   lineage item and an ellipsis expander when more ancestry exists. Expanded
   popovers and detail pages render the full lineage breadcrumb chain. Supported
-  lineage parents include `organizationId`, `libraryId`, `templateId`,
-  `warehouseId`, `projectId`, and `queueId`.
+  lineage roles include `organization`, `library`, `cassette`, `warehouse`,
+  `project`, and `queue`. Every value is a typed entity reference and the queue
+  reference may also target an exact revision.
   Trace labels must resolve to entity display names from context or the entity
   store; raw lineage ids are link targets only and must not be shown as labels.
   Trace links must route through the represented entity surface. In active
