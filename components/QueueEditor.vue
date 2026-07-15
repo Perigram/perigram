@@ -304,7 +304,7 @@
                             option-value="value"
                             class="w-full"
                             size="small"
-                            @change="field.id === 'templateId' && syncProducerParameters()"
+                            @change="onProducerFieldChange(field)"
                         />
                         <MultiSelect
                             v-else-if="field.type === 'entityList'"
@@ -442,6 +442,7 @@ const cassettes = ref([]);
 const cassetteDesigns = ref([]);
 const sheetDesigns = ref([]);
 const warehouses = ref([]);
+const libraries = ref([]);
 const machines = ref([]);
 const project = ref(null);
 const availableInventory = ref([]);
@@ -493,6 +494,11 @@ const designOptions = computed(() => cassetteDesigns.value.map(design => ({
     value: design._id?.toString(),
     entity: design
 })));
+const libraryOptions = computed(() => libraries.value.map(library => ({
+    label: entitySelectLabel(library, t('entities.library')),
+    value: library._id?.toString(),
+    entity: library
+})));
 const producerParameterNames = computed(() => {
     const template = templateForProducer();
     return template ? getCassetteParameters(template) : [];
@@ -526,11 +532,67 @@ function producerLabel(producer = {}) {
 
 function constructionFields(mode = '') {
     const contract = cncDomain.construction?.cassette_design || {};
-    return contract.modeInputs?.[mode] || contract.inputs || [];
+    const fields = contract.modeInputs?.[mode] || contract.inputs || [];
+    if (mode !== 'bakeCassetteDesignFromTemplate') return fields;
+    return [
+        {
+            id: 'libraryId',
+            label: t('entities.library'),
+            type: 'entity',
+            entityType: 'library',
+            required: true,
+            prompt: true,
+            uiOnly: true
+        },
+        ...fields
+    ];
 }
 
 function availableTemplateEntities() {
+    const selectedLibraryId = producerValues.value.libraryId?.toString?.() || producerValues.value.libraryId;
+    if (selectedLibraryId) {
+        return cassettes.value.filter(template => {
+            const libraryId = template.lineage?.libraryId?.toString?.() || template.lineage?.libraryId;
+            return libraryId?.toString() === selectedLibraryId.toString();
+        });
+    }
     return templatesAvailableToProject(cassettes.value, project.value?.relations?.cassetteLibraries || []);
+}
+
+async function loadTemplatesForSelectedLibrary() {
+    const selectedLibraryId = producerValues.value.libraryId?.toString?.() || producerValues.value.libraryId;
+    if (!selectedLibraryId) {
+        producerFieldOptions.value.templateId = [];
+        producerValues.value.templateId = null;
+        syncProducerParameters();
+        return;
+    }
+    const scoped = await optionalList(() => $fetch('/api/cassettes', {
+        query: { libraryId: selectedLibraryId }
+    }));
+    const known = new Map(cassettes.value.map(template => [template._id?.toString?.() || template._id, template]));
+    for (const template of scoped) {
+        const id = template._id?.toString?.() || template._id;
+        if (id) known.set(id, template);
+    }
+    cassettes.value = Array.from(known.values());
+    producerFieldOptions.value.templateId = scoped.map(template => ({
+        label: entitySelectLabel(template, t('entities.cassette')),
+        value: template._id?.toString(),
+        entity: template
+    }));
+    producerValues.value.templateId = producerFieldOptions.value.templateId.length === 1
+        ? producerFieldOptions.value.templateId[0].value
+        : null;
+    syncProducerParameters();
+}
+
+async function onProducerFieldChange(field = {}) {
+    if (field.id === 'libraryId') {
+        await loadTemplatesForSelectedLibrary();
+        return;
+    }
+    if (field.id === 'templateId') syncProducerParameters();
 }
 
 async function startProducer(producer) {
@@ -559,7 +621,9 @@ async function startProducer(producer) {
 
 async function loadProducerEntityOptions(field = {}) {
     const entityType = field.entityType || field.accepts?.[0] || '';
-    const entities = entityType === 'cassette'
+    const entities = entityType === 'library'
+        ? libraries.value
+        : entityType === 'cassette'
         ? availableTemplateEntities()
         : entityType === 'cassette_design'
             ? cassetteDesigns.value
@@ -623,6 +687,7 @@ function syncProducerParameters() {
 function producerData() {
     const data = {};
     for (const field of producerFields.value) {
+        if (field.uiOnly) continue;
         let value = field.type === 'cassetteParameters' ? producerParameters.value : producerValues.value[field.id];
         if (field.type === 'object' && typeof value === 'string') {
             try { value = JSON.parse(value || '{}'); } catch { value = {}; }
@@ -1192,15 +1257,17 @@ const handleRunStatusChanged = async () => {
 
 onMounted(async () => {
     const projectId = props.queue.lineage?.projectId;
-    const [cassetteResult, designResult, whRes, machineResult, projectResult] = await Promise.all([
+    const [cassetteResult, designResult, libraryResult, whRes, machineResult, projectResult] = await Promise.all([
         optionalList(() => cassettesStore.fetchCassettes()),
         optionalList(() => $fetch('/api/cassette-designs')),
+        optionalList(() => $fetch('/api/libraries')),
         optionalList(() => $fetch('/api/warehouses')),
         optionalList(() => $fetch('/api/machines')),
         projectId ? $fetch(`/api/project/${encodeURIComponent(projectId)}`).catch(() => null) : null
     ]);
     cassettes.value = cassetteResult || [];
     cassetteDesigns.value = designResult || [];
+    libraries.value = libraryResult || [];
     warehouses.value = whRes || [];
     machines.value = machineResult || [];
     project.value = projectResult;

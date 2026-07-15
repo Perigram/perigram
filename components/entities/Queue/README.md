@@ -74,6 +74,10 @@ Production queue card and detail surface.
   queue context through the same process action execution body so the produced
   design is appended by the action boundary rather than by a generic queue
   patch.
+- The library cassette source prompts for the readable `library` container
+  first, then loads cassette templates scoped to that `lineage.libraryId`.
+  QueueEditor must not hide library templates behind project relation filters
+  when the active source is explicitly "from library".
 - Process cassette-design producers whose construction mode supports server
   default cassette-template resolution must not block the Add button on an
   unreadable or empty template selector. If no selectable template options are

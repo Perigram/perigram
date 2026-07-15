@@ -797,3 +797,22 @@
     - Locale JSON parse check for =i18n/locales/en.json= and
       =i18n/locales/ru.json= passed.
     - =git diff --check= passed.
+
+*** [2026-07-15] Queue library cassette producer selection repair
+
+    Browser review of the source-picker flow showed that the "From library
+    cassette" producer opened a template selector without an explicit library
+    container selection, and the options could be empty because it reused the
+    project relation filter instead of the selected library source.
+
+    Corrective implementation:
+    - The library cassette producer dialog now prompts for a readable library
+      first and then loads cassette templates scoped to that
+      =lineage.libraryId=.
+    - Selecting a library refreshes the template selector and cassette
+      parameter controls before the process action is executed.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
+    - =npx vitest run utils/queue-design-producers.spec.js utils/queue-producers.spec.js= passed: 2 files, 7 tests.
+    - =git diff --check= passed.
