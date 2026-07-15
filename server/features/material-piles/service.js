@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as warehouseService from '../warehouses/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
@@ -267,3 +268,9 @@ function appendStockMovement(pile, movement = {}) {
 function cleanMovementEntry(entry = {}) {
   return Object.fromEntries(Object.entries(entry).filter(([, value]) => value !== undefined));
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'material_pile',
+  repository,
+  Model: MaterialPile
+});

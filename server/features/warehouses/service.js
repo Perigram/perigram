@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as organizationsService from '../organizations/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
@@ -96,3 +97,9 @@ export async function updateInventoryCounts(uid, increments = {}) {
   await repository.updateById(uid, { data: { ...warehouse.data, stats } });
   return await getById(uid);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'warehouse',
+  repository,
+  Model: Warehouse
+});

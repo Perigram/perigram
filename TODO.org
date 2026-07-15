@@ -464,8 +464,10 @@
     - Non-status process =updateEntity= no longer disables the action path.
       Process definitions authorize and validate the action, then call the
       owning service's explicit =processUpdate(id, patch, auth)= handler.
-      Project and queue services expose that handler through their own
-      repository/model boundary for allowed canonical block paths.
+      Registered entity services that own repositories/models expose that
+      handler through their own feature boundary for allowed canonical block
+      paths, so process definitions do not call incompatible generic
+      =update()= signatures.
     - Sheet editor snapping now generates magnetic candidates from transformed
       cassette contour edges, filters with transformed polygon clearance, and
       clamps placements/rotations/additions against a usable sheet polygon when

@@ -6,6 +6,7 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import { markPublicSystemData } from '#shared/public-entities.js';
 import { Machine } from './model.js';
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 
 export const SYSTEM_DEFAULT_MACHINE_ID = 'machine-system-default';
 
@@ -100,3 +101,9 @@ export async function remove(id, userId, userOrg, userRole, auth) {
   await repository.deleteById(id);
   return { success: true };
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'machine',
+  repository,
+  Model: Machine
+});

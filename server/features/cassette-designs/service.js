@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as queuesRepository from '../queues/repository.js';
 import * as entityRevisionsService from '../entity-revisions/service.js';
 import * as artifactsService from '../artifacts/service.js';
@@ -314,3 +315,9 @@ export async function remove(id, userId, userRole, userPermissions) {
 
   return await repository.deleteById(id);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'cassette_design',
+  repository,
+  Model: CassetteDesign
+});

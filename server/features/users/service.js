@@ -1,5 +1,6 @@
 import * as usersRepository from './repository.js';
 import * as sessionsRepository from '../sessions/repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '../../utils/auth-helpers.js';
 import { createError } from 'h3';
 import { materializeRolePermissions } from './permission-templates.js';
@@ -233,6 +234,12 @@ export async function update(uid, updates, userId, userRole) {
   const updatedRaw = await usersRepository.findById(uid);
   return new User(updatedRaw);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'user',
+  repository: usersRepository,
+  Model: User
+});
 
 export async function remove(uid, deleterAuth = {}) {
   const userRaw = await usersRepository.findById(uid);

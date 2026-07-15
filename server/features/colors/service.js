@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as catalogService from '../catalogs/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
@@ -151,3 +152,9 @@ function colorPreview(color = {}, userPermissions = null) {
   };
   return serializeForAccess('color', preview, userPermissions);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'color',
+  repository,
+  Model: Color
+});

@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
@@ -195,3 +196,9 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 
   return await repository.deleteById(id);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'cassette_instance',
+  repository,
+  Model: CassetteInstance
+});

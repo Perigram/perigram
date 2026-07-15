@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as nestingRunsRepository from '../nesting-runs/repository.js';
 import { createError } from 'h3';
 import {
@@ -658,3 +659,9 @@ export async function listForRunOutput(queueId, runId, sheetDesignIds = []) {
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
   return await statusService.transition('sheet_design', id, newState, userId, createTransitionAuth(userId, userRole), metadata);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'sheet_design',
+  repository,
+  Model: SheetDesign
+});

@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as catalogRepository from '../catalogs/repository.js';
 import * as colorRepository from '../colors/repository.js';
 import { createError } from 'h3';
@@ -8,6 +9,7 @@ import { ObjectId } from 'mongodb';
 import { createIdentity, createData } from '~/server/core/blocks/index.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { toFlexibleId } from '~/server/utils/objectid.js';
+import { Requisition } from './model.js';
 
 /**
  * Requisitions Service - v24 Standardized
@@ -221,3 +223,9 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
     }
     return await repository.deleteById(id);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'requisition',
+  repository,
+  Model: Requisition
+});

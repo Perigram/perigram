@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { createError } from 'h3';
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { Library } from './model.js';
 import { createData, createIdentity } from '~/server/core/blocks/index.js';
 import { statusService, createTransitionAuth } from '~/server/core/machines/service';
@@ -98,3 +99,9 @@ function normalizePrimaryStatuses(value) {
   if (typeof value !== 'string') return [];
   return value.split(',').map(item => item.trim()).filter(Boolean);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'library',
+  repository,
+  Model: Library
+});

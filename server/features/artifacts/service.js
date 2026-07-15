@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import {
   createAttachment,
@@ -152,3 +153,9 @@ export function bucketNameForType(type) {
   if (type === 'DXF_SOURCE') return 'userDxf';
   return 'uploads';
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'artifact',
+  repository,
+  Model: Artifact
+});
