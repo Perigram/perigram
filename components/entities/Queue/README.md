@@ -45,6 +45,13 @@ Production queue card and detail surface.
   the queue but not the related design/template directly, `QueueEntryCard`
   renders a typed id chip and skips protected relation fetches instead of
   calling the wrong endpoint.
+- Queue editor cassette rows render related `cassette_design` records through
+  `EntityInlineRef variant="compact"` so a row shows a compact identity/preview
+  reference, not the full cassette-design card inside the row header.
+- In generated process queue details, cassette producer actions come from the
+  current screen/region action ids and must expose a current
+  `contracts.outputs[]` entry for `cassette_design`. QueueEditor does not scan
+  unrelated user-manifest actions or accept legacy output shapes.
 - Queue card summary labels describe `data.job.items` as "Items to Nest"
   (`Позиции раскроя`), meaning cassette/design quantities entering the nesting
   job, not commercial order lines.
