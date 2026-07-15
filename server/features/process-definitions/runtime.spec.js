@@ -253,4 +253,64 @@ describe('process runtime auth hydration', () => {
       }
     });
   });
+
+  it('hydrates stale compiled runtime after normalizing legacy changeStatus actions', async () => {
+    repository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-1',
+      data: {
+        roles: {
+          role_operator: { id: 'role_operator' }
+        },
+        actions: {
+          mark_queue_ready: {
+            id: 'mark_queue_ready',
+            actionKind: 'changeStatus',
+            entityType: 'queue',
+            status: { from: 'DRAFT', to: 'READY' },
+            trigger: { mode: 'manual' },
+            access: { level: 'write', roleIds: ['role_operator'] }
+          }
+        },
+        assignments: {
+          'user-1': { userId: 'user-1', roleIds: ['role_operator'], status: 'active' }
+        },
+        compiled: {
+          schemaVersion: 1,
+          actions: {
+            mark_queue_ready: {
+              actionKind: 'changeStatus',
+              entityType: 'queue'
+            }
+          },
+          userAccess: {
+            'user-1': {
+              permissions: {},
+              navigation: [],
+              screens: [],
+              actions: [{
+                actionId: 'mark_queue_ready',
+                actionKind: 'changeStatus',
+                entityType: 'queue'
+              }]
+            }
+          }
+        }
+      }
+    });
+
+    const result = await resolveProcessAuth({
+      userId: 'user-1',
+      organizationId: 'org-1',
+      memberships: [{ organizationId: 'org-1', permissions: {}, status: 'active' }]
+    });
+
+    expect(result.roleAssignments.actions.find(action => action.actionId === 'mark_queue_ready')).toMatchObject({
+      actionKind: 'updateEntity',
+      entityType: 'queue',
+      contracts: {
+        inputs: [expect.objectContaining({ entityType: 'queue' })],
+        outputs: [expect.objectContaining({ entityType: 'queue' })]
+      }
+    });
+  });
 });

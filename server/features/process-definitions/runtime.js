@@ -9,6 +9,7 @@ import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import * as repository from './repository.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
 import { applyOwnerPermissionsToAuth } from '../users/organization-owner.js';
+import { migrateProcessUpdateActions } from '../../scripts/migrate-process-update-actions.js';
 
 export async function getActiveProcessForOrganization(organizationId) {
   if (!organizationId) return null;
@@ -24,7 +25,8 @@ export async function getActiveCompiledProcess(organizationId) {
 function compiledProcessRuntime(data = null) {
   if (!data?.compiled) return null;
   if (!compiledRuntimeMissingActionContracts(data.compiled)) return data.compiled;
-  return compileProcessDefinition({ ...data, compiled: null }, cncDomain);
+  const migrated = migrateProcessUpdateActions({ ...data, compiled: null }).data;
+  return compileProcessDefinition({ ...migrated, compiled: null }, cncDomain);
 }
 
 function compiledRuntimeMissingActionContracts(compiled = {}) {
