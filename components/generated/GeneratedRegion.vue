@@ -45,5 +45,8 @@ const props = defineProps({
 
 defineEmits(['refresh', 'execute-action']);
 
-const effectiveActions = computed(() => props.region.actions?.length ? props.region.actions : props.screenActions);
+const effectiveActions = computed(() => [...new Set([
+  ...(props.region.actions || []),
+  ...(props.screenActions || [])
+])]);
 </script>
