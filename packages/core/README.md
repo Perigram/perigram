@@ -6,13 +6,15 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
 
 ## Public Contract
 
-- DTOs: `BaseEntity`, `Identity`, `Status`, `Lineage`, `Specs`
+- DTOs: `BaseEntity`, `Identity`, `Status`, `Lineage`, `Relations`,
+  `Provenance`, `Specs`
 - Registry: `createRegistry()` and `createCutkitRegistry()`
 - Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
   `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`
 - Runtime bindings: `registerEntityService`, `registerCommandHandler`,
   `registerTaskExecutor`, `registerHookHandler`, `registerAdapter`
-- Result refs: `createEntityRef`, `createAttachmentRef`,
+- Result refs: `createEntityRef`, `normalizeEntityRef`, `createProvenance`,
+  `createAttachmentRef`,
   `createCommandResult`, `createTaskResult`
 - Block helpers: `createIdentity`, `createStatus`, `createStatusState`,
   `normalizeStatusState`, `getPrimaryState`, `getRegionState`,
@@ -42,8 +44,10 @@ HTTP routes, MongoDB repositories, worker protocols, and file IO belong to app
 runtime packages and server modules.
 
 `BaseEntity.toJSON()` is strict: it emits root `_id` plus canonical blocks only.
-Identity fields stay under `identity`; feature-specific data stays under
-`data`, `specs`, `attachments`, or `summary`.
+Identity fields stay under `identity`; containment ancestry stays under
+`lineage`; non-owning links stay under `relations`; immutable derivation facts
+stay under `provenance`; feature-specific data stays under `data`, `specs`,
+`attachments`, or `summary`.
 
 `Status.state` is a v2 structured object with `primary`, `active`, and
 `regions`; compare states through `getPrimaryState()` or `getRegionState()`

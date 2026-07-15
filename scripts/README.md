@@ -41,9 +41,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   nesting params/items into the current `data.nestingSettings` and
   `cassette_design` job-item contract, seeding the default machine id where
   needed.
-- `server/scripts/migrate-sheet-design-compositions.js`: Backfills sheet-design
-  composition metadata so identical cassette-design multisets collapse into one
-  sheet design per run.
+- `server/scripts/migrate-sheet-design-compositions.js`: Non-destructively
+  backfills sheet-design composition metadata, sheet counts, and missing
+  physical sheet twins. It reports duplicate cassette-design multisets for
+  review but does not delete historical sheet designs, revisions, or layout
+  references.
 - `server/scripts/migrate-artifact-sources.js`: Backfills artifact source
   relations and cassette upload provenance for records created before artifact
   sources were canonical entity refs.
