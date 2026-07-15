@@ -14,7 +14,6 @@ node server/scripts/seed-all.js
 node server/scripts/seed-layer-standards.js  # OCCS layer standards from docs/specs/Cassette spec/layers.json
 node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
-node server/scripts/seed-system-machines.js  # Default public CNC work area and boundary offsets
 node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry revisions and design provenance
 node server/scripts/migrate-public-system-data.js # Mark system materials/layers/pens/tools public-read
 node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from stored organization type labels
@@ -25,11 +24,9 @@ node server/scripts/migrate-organization-owner-admins.js # Mark existing organiz
 node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
 node server/scripts/migrate-process-command-output-statuses.js # Apply graph-derived process statuses to existing command output entities
-node server/scripts/migrate-process-mutate-actions.js # Consolidate legacy update/status actions into mutateEntity
 node server/scripts/migrate-process-transition-role-access.js # Remove stale transition permission checks from process-role workflow transitions
 node server/scripts/migrate-queue-job-item-entity-types.js # Backfill queue job item entityType/id contract
-node server/scripts/migrate-structured-entity-references.js # Dry-run structured refs and queue-revision migration
-node server/scripts/migrate-structured-entity-references.js --apply # Apply the reviewed one-shot migration
+node server/scripts/repair-nesting-run-completions.js # Complete runs that already have solver results but were blocked by missing process system intents
 ```
 
 ## What Gets Created
@@ -68,19 +65,13 @@ node server/scripts/migrate-structured-entity-references.js --apply # Apply the 
 - Flat End Mill 3.15mm (Ø3.15mm, 0°)
 - Flat End Mill 5mm (Ø5mm, 0°)
 - V-Bit 90° 6mm (Ø6mm, 90°)
-
 - V-Bit 60° 6mm (Ø6mm, 60°)
 - Engraving Bit 0.2mm 30° (Ø0.2mm, 30°)
 - Drill 5mm (Ø5mm, 118°)
 
-### System Machine
-
-- Public immutable CNC 3000 x 1500 work area
-- 10 mm top/right/bottom/left boundary offsets
-
 ## System Data Characteristics
 
-- **Public read:** System materials, layer standards, pens, tools, and machines are marked
+- **Public read:** System materials, layer standards, pens, and tools are marked
   with `lineage.scope: "system"`, `lineage.public: true`, and
   `data.visibility.public: true`. The access engine reads that marker directly;
   no user or process role receives `materials` or `layer_standards` grants just
@@ -97,9 +88,9 @@ To reset system data:
 ```bash
 # In MongoDB shell
 use cutkit;
-db.layer_standards.deleteMany({ "lineage.user.entityId": null });
-db.pen_templates.deleteMany({ "lineage.user.entityId": null });
-db.tool_profiles.deleteMany({ "lineage.user.entityId": null });
+db.layer_standards.deleteMany({ "lineage.userId": null });
+db.pen_templates.deleteMany({ "lineage.userId": null });
+db.tool_profiles.deleteMany({ "lineage.userId": null });
 
 # Then re-run seed script
 node server/scripts/seed-all.js
@@ -187,7 +178,7 @@ against `cassette_designs` and `cassettes`, writes `entityType` plus canonical
 
 Use `server/scripts/migrate-process-command-output-statuses.js` after adding
 runtime projection from command output handles to downstream process status
-nodes. It scans active process graphs, finds `runCommand -> mutateEntity`
+nodes. It scans active process graphs, finds `runCommand -> changeStatus`
 edges, builds v2 status snapshots from the compiled workflow, and updates
 existing command output entities whose current status is outside the active
 process state window. It supports `--dry-run` and must remain graph-derived,
@@ -200,27 +191,11 @@ compiled workflow `access.permissions` from transitions that already have
 mirrors. It does not alter semantic action grants, user assignments, or
 status-scoped entity access windows.
 
-Use `server/scripts/migrate-process-mutate-actions.js` before activating process
-definitions created with the former split update/status node types. It converts
-both kinds to `mutateEntity`, retaining selected field sockets and an optional
-target status.
-
-Use `server/scripts/migrate-structured-entity-references.js` once when adopting
-the structured reference contract. Dry-run is the default; pass `--apply` only
-after reviewing its collection counts. The migration replaces every legacy
-`lineage.*Id`/`*RevisionId` pair with `{ entityType, entityId, revisionId? }`,
-canonicalizes historical role aliases (`template`/`originalCassette` to
-`cassette`, `design` to `cassetteDesign`, `pile` to `materialPile`, and
-`sheet_design` to `sheetDesign`), normalizes root `relations`, coalesces legacy
-nesting runs with their matching jobs, recovers job-only attempts and dangling
-output references as immutable queue `entity_revision` records, moves queue
-nesting selection into the Status lifecycle, rewrites process `lineageKey`
-declarations, and retires both legacy nesting collections. Alias collisions
-with different targets or revisions stop the migration instead of overwriting a
-relationship. A missing source record becomes an unselectable failed revision
-with its source document paths preserved; missing or conflicting queue ownership
-remains a hard error. Runtime code intentionally has no dual-read fallback, and
-rerunning the migration does not reset an already migrated queue Status region.
+Use `server/scripts/repair-nesting-run-completions.js` after fixing process
+workflow resolution for domain system intents. It finds `nesting_run` records
+that are still in `NESTING` but already have solver `data.results` and
+`data.sheetDesignIds`, then writes the normal `COMPLETE` status snapshot and
+status event without calling the nesting worker or recreating sheet designs.
 
 ## Entity Revision Migration
 
@@ -228,7 +203,7 @@ rerunning the migration does not reset an already migrated queue Status region.
 `entity_revisions` records for every cassette template's current geometry scope
 and writes `data.revisions.geometry` pointers back to the templates. It also
 backfills `cassette_design.data.derivedFrom` when a design has
-`lineage.cassette` reference but no recorded source revision. Backfilled design
+`lineage.templateId` but no recorded source revision. Backfilled design
 provenance is marked with `migration.inferred: true` because historical designs
 created before revision tracking cannot prove which old template geometry state
 was used.

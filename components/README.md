@@ -63,7 +63,7 @@ This directory contains Vue components used in the Cutkit-Demo application.
   entity list sources. The editor should present grants as editable filter
   expressions, for example "Related entity / Project / Status equals ACTIVE and
   Current entity / Status equals READY", not as opaque role/global chips, prose
-  summaries, or raw storage fields such as `lineage.project.entityId`. Do not replace
+  summaries, or raw storage fields such as `lineage.projectId`. Do not replace
   it with a flat role-only selector. When a feature has no grants, the detail
   area must show an explicit add-grant call to action; once a grant exists, the
   access level must be edited through a visible control before the filter
@@ -214,7 +214,7 @@ not display English verbs such as `Create` or raw target statuses such as
 and status-change actions show a localized operation label without exposing the
 state id in the button text.
 Generated non-status action surfaces, including detail header buttons and card
-footers, must not render `mutateEntity` actions. Lifecycle/status transitions
+footers, must not render `changeStatus` actions. Lifecycle/status transitions
 belong only in `EntityStatus`, which loads server-filtered actions and owns the
 status popover/history.
 Generated entity detail headers show the entity `TraceChain` instead of a
@@ -247,39 +247,32 @@ registered entity workspaces are not duplicated as generic detail-header
 buttons. Entity-local operational editors should use the canonical
 main/supporting proportions from
 `EntityWorkspace` rather than inventing local stacked or sidebar grids.
-
-Queue cassette producers are also manifest-driven. A generated queue detail
-offers an executable process action only when its declared output contains a
-`cassette_design` and that action is explicitly placed in the current queue
-region. The server revalidates that placement before binding returned designs
-to the queue. Attachment construction uses the shared
-camera/upload input rather than feature-local file controls.
-
-The sheet editor snaps placement edges to neighboring placements using the
-selected tool diameter as the clearance, clamps the rotated bounds to the
-material-sheet boundary, and supports explicit 90-degree rotation. Queue
-numeric edits debounce persistence and ignore their own entity-event echo so a
-partially entered value does not remount the workspace.
 Sheet-design details similarly mount `SheetDesignEditor` when the active user
 has a concrete `sheet_designs:write` grant. The editor mutates nesting source
 items and placements, resolves OCCS layer pens through the shared layer
-standards, snaps neighboring edges using the selected tool diameter as the
-clearance, clamps complete rotated
+standards, snaps moves to the selected tool diameter, clamps complete rotated
 geometry inside the visible material-sheet boundary, supports existing/uploaded
 cassette designs, and persists through immutable geometry revisions. Generated
 sheet-design details keep the sheet identity visible in `EntityPage`; read-only
 details keep the standard geometry display.
-The queue detail support region is revision-driven. Process mode separates
-command controls from result viewing. The nesting command/settings panel
-renders only when the opened queue detail receives a resolved manual
-`solveNesting` action. The revision selector lists terminal attempts, allows
-selection of successful revisions only, and fetches sheet designs with both
-the queue id and `status.lifecycle.data.selectedRevisionId`. Generic generated
-child regions must not render a union of all queue revisions or sheet designs.
+The queue detail support region for nesting runs follows the same contract:
+process mode separates command controls from result viewing. The nesting
+command/settings panel renders only when the opened queue detail receives a
+resolved manual `solveNesting` run-command action. The run result region may
+render for users who only have entity-scoped `nesting_runs:read` on concrete
+runs, but it must not expose command settings or a run button. Run cards gate
+destructive controls with `nesting_runs` grants for the concrete run, not with
+parent queue or global feature permissions. Process-authored result states
+such as organization-specific cut/done labels still render run metrics and
+sheet-design output when `data.results`, `data.sheetDesignIds`, or scoped
+sheet-design context exists. Queue details load sheet designs by the concrete
+readable run ids as well as queue lineage, so a run output card can display the
+layouts it owns without requiring a broad sheet-design list screen. Run cards
+must not treat only domain `COMPLETE/CHOSEN` as displayable output.
 Generated queue detail receives command actions from the compiled screen
 manifest. A queue command such as `solveNesting` must be present on that
 queue-detail screen because it is executed against the queue input; output
-entity grants for `entity_revisions` or `sheet_designs` must not be used to decide
+entity grants for `nesting_runs` or `sheet_designs` must not be used to decide
 where the command panel renders.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page, and generated cassette
@@ -503,9 +496,9 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 - `material`, `materialPile`, and `batchPile` are separate UI surfaces:
   material cards describe the base material record, material pile cards
   summarize general/manual warehouse stock, and batch pile cards show
-  requisition-sourced receipt context from structured `lineage.requisition`.
+  requisition-sourced receipt context from `lineage.requisitionId`.
 - Entity relation rows use `EntityInlineRef` with design-system surface keys
-  (`materialPile`, `entityRevision`, `cassetteDesign`, etc.). Do not use
+  (`materialPile`, `nestingRun`, `cassetteDesign`, etc.). Do not use
   `TraceLink` for relation summaries inside cards/details; reserve it for rows
   whose explicit purpose is route navigation.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.
@@ -517,10 +510,12 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `entityType` without leaking the UI key. Queue relation rows must not fetch a
   protected cassette/design endpoint when the surrounding queue DTO did not
   include that related DTO; render the typed id chip instead.
-  Legacy queue rows must be migrated before the UI loads them; `QueueEditor`
-  does not infer a cassette design from obsolete lineage fields. Rows that
-  cannot resolve their declared `entityType` and `id` are rejected before the
-  queue save so the nesting command never receives an ambiguous job item.
+  When older queue rows contain a baked cassette source id such as
+  `lineage.originalCassetteId`, `QueueEditor` resolves the matching loaded
+  `cassette_design` by parameter values and persists the canonical design id
+  before saving or running nesting. Rows that cannot be resolved to a loaded
+  cassette or cassette design are rejected before the queue save so the nesting
+  command never receives an unresolvable job item.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
   lane rendered newest-first as compact queue entity rows, a center lane for nesting settings and wide
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The

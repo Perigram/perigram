@@ -42,25 +42,6 @@ Command, task, and status handlers may return declared effects. Those effects
 are executed by the centralized effect runtime after validation so handlers
 can stay focused on local state and emitted intent.
 
-Process `mutateEntity` actions delegate exact block-field writes to
-`server/core/entities/mutation.js`. The runtime resolves the domain entity
-collection and declared action fields, rejects immutable or undeclared roots,
-and only then performs an optional status transition through the machine
-service.
-
-Ownership and links use typed references. Services persist lineage roles as
-`{ entityType, entityId, revisionId? }` and non-owning references under the root
-`relations` block. Flat `lineage.*Id` persistence is not a runtime compatibility
-contract; migrate it with `server/scripts/migrate-structured-entity-references.js`.
-Collection query aliases such as `projectId` are mapped at the HTTP/service
-boundary to `lineage.project.entityId`.
-
-Queue nesting progress is the `nesting` region of the queue Status object.
-`task_runs` own live retries; terminal attempts are immutable
-`entity_revisions` with `data.scope: "nesting"`. Queue data may store editable
-`data.nestingSettings`, but must not duplicate active task, selected revision,
-or nesting state outside `status.lifecycle.data` and the Status region.
-
 Workers must use `/api/tasks/*` and must never write `task_runs` directly.
 
 Server modules that need shared root utilities should import them through

@@ -12,8 +12,7 @@ Cards for requisition/batch-sourced `material_pile` entries. This is not the sam
 ## Contract
 
 - Uses the same backend entity type and API collection as `material_pile`.
-- Expects batch context in structured `lineage.requisition` plus normal
-  `lineage.warehouse` / `lineage.catalog` ancestry references.
+- Expects batch context in `lineage.requisitionId` plus normal `lineage.warehouseId` / `lineage.catalogId` ancestry.
 - Displays `data.serial`, `data.stock`, and `specs` directly; it does not use `MaterialSummary`, because the card is about a received batch pile rather than a manual material pile.
 
 ## Related

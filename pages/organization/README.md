@@ -45,8 +45,8 @@ operators can tell when the graph became the organization's active process.
 The route uses the
 authenticated app layout with a full canvas workspace and compact floating
 controls over it. The graph palette is a one-line icon button set that creates
-action nodes for entity creation, block-driven entity mutation, command runs,
-sending projected entity data to another organization, and inbound or
+action nodes for entity creation, entity data updates, status changes, command
+runs, sending projected entity data to another organization, and inbound or
 outbound organization socket nodes. It also creates non-effect process algebra
 nodes for entity references, entity block decomposition, block field reads,
 string operations, comparisons, logic, and basic collection transforms; those
@@ -89,15 +89,14 @@ The inspector edits compiler-owned fields directly:
 - the service access tab owns service runtime identities used by service run/view access;
 - the screens tab owns screen id, label, generated UI template, source entity/mode rows, display region rows, route, placement, required access, role ids, assignment binding, and screen action ids;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
-- action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, optional target status, mutation fields, projection fields, derived typed data sockets, and completion event socket;
+- action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket;
 - process algebra nodes own task-specific controls for their palette type:
   traversal for entity references, entity-to-block decomposition, block/path
   output selection, text transform, comparison condition, boolean composition,
   or collection result; the route derives kind, operation/mode, and typed
   sockets from those controls. Entity and block settings are recalculated from
   incoming wires during graph sync, so process nodes that read entities or
-  blocks follow the connected source contract in real time. Entity decomposition
-  and assembly expose only the blocks declared by that domain entity;
+  blocks follow the connected source contract in real time;
 - service nodes own command selection, run/view service identities, prepaid
   token billing metadata, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
@@ -120,14 +119,14 @@ parent contract from the incoming edge instead of a parent-type dropdown.
 The designer always renders that optional socket so a parent can be wired. Until
 an entity edge is connected it is a generic parent target and compiles as a root
 create; after wiring it relabels to the concrete parent entity type.
-`mutateEntity` actions consume their entity from the incoming edge, expose one
+Update-entity actions consume their entity from the incoming edge, expose one
 left-side data socket per selected mutable field, and compile those selected
 fields against the domain field policy for the concrete incoming entity type.
-The same node may configure a target status; only plugged field sockets are
-rewritten, and status remains unchanged when no target is selected. Archive is
-modeled as a target status, and cross-organization transfer is
+Change-status actions do not select an entity type; the entity arrives through
+the left data socket and only the target status is configured on the node.
+Archive is modeled as that target status, and cross-organization transfer is
 modeled as a send-to-organization action with projection fields.
-The node title for a status mutation is the actual target status label
+The node title for a change-status action is the actual target status label
 from the connected status definition, falling back only to the target state id.
 Designer sync treats generic action labels such as `Action` or `status` as
 empty for status actions so generated screens and the canvas do not show
@@ -166,7 +165,7 @@ same band. Action nodes expose only `manual` and `event` trigger modes.
 under `action.access` and decide which process roles see the user-facing
 action. `event` runs automatically from another node's event output. Service
 identities stay in service access controls rather than manual trigger
-selectors. Status mutation grants also store the status transition
+selectors. Change-status action grants also store the status transition
 condition under `action.access.statusFrom/statusTo`, derived from the incoming
 entity socket and target status.
 Status-definition nodes are entity agnostic. They render the final status tag

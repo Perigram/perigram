@@ -17,7 +17,7 @@ presentation data; runtime behavior must come from the semantic records.
 Process lifecycle profiles and action nodes compile directly to normalized
 `@cutkit/workflows` v2 state machines. Entity profiles may provide a full
 workflow, but action-only graphs also synthesize workflows: create actions add
-their target status as a state, and mutation actions with a status target add transitions with
+their target status as a state, and change-status actions add transitions with
 the process role ids and entity access requirements from the action grant.
 Runtime adapters must not treat lifecycle data as visual-only metadata.
 
@@ -60,7 +60,7 @@ rather than operational work. Their grants still compile into effective
 permissions, and an authored/system screen may expose them explicitly.
 
 Action records represent executable process steps on the visual canvas. The
-compiler validates `createEntity`, `mutateEntity`,
+compiler validates `createEntity`, `updateEntity`, `changeStatus`,
 `runCommand`, and `sendToOrganization` actions against the domain entity,
 construction, field-policy, status-definition, value-input, and command
 registries, preserves their typed inputs/outputs, preserves completion events,
@@ -73,10 +73,10 @@ actions, while `admin` includes write/read and is required for destructive or
 approval-style operations. `read` grants describe access to the resulting entity
 window but must not expose a runnable manual create/update/run action. Manual
 action availability uses the same
-status-scoped access window as grants: a status-targeting mutation with unmodified
+status-scoped access window as grants: a change-status action with unmodified
 access inherits role-level grants from the incoming action output, so a status
 step placed after a create step appears for users who received access to the
-created state. For status-targeting mutations, run availability is derived from the
+created state. For status-change actions, run availability is derived from the
 incoming entity window: roles with write/admin access to the current state can
 execute the transition, while the action's grant rows define access after the
 target state is reached. The compiled workflow transition uses those same
@@ -113,8 +113,8 @@ collection may feed same-entity row actions through `input:entity`; the entity
 type still has to match.
 Legacy saved edges that embedded handles only in the generated edge id are
 normalized back to explicit `sourceHandle` and `targetHandle` fields before
-validation or compilation. This preserves generated wires such as
-`...-output:entity_revision-...-input:entity-...` and prevents them from falling
+validation or compilation. This preserves old wires such as
+`...-output:nesting_run-...-input:entity-...` and prevents them from falling
 back to stale generic record ports.
 When a graph edge connects an action output to another action's `parent` input,
 that edge is authoritative over stale stored `parentEntityType` or parent input
@@ -183,21 +183,19 @@ runtime receives domain payload keys such as `name`, `templateId`, and
 path becomes a mutation field and a non-prompt `inputPolicy` field, so generated
 screens submit the graph-provided default without adding useless dialog chrome.
 Process algebra nodes are canonical non-effect records under `processNodes`.
-They cover `entityRef`, `fieldRead`, `blockRead`, `blockAssemble`,
-`entityAssemble`, `stringOp`, `compare`, `logic`, and `collection`.
-`fieldRead` consumes an entity and produces only its declared canonical block
-sockets; `blockRead` consumes one block and produces a typed field value.
-`blockAssemble` builds a validated block from typed fields and
-`entityAssemble` builds a canonical entity from declared blocks. These records preserve
+They cover the first source/transform layer from the process algebra note:
+`entityRef`, `fieldRead`, `blockRead`, `stringOp`, `compare`, `logic`, and
+`collection`. `fieldRead` is the entity decomposition node: it consumes an
+entity and produces canonical block sockets. `blockRead` consumes one canonical
+block and produces a scalar/json value from a field path. These records preserve
 kind, operation/mode, entity contracts, block ids, field paths, inputs, and
 outputs through `definitionToCanvas()`, `canvasToDefinition()`, validation, and
 compilation. They do not mutate persistent state and they do not replace effect
 actions; create/update/status/command/send behavior remains owned by action
 records. Runtime action execution may consume their typed edges only after an
 effect node declares the corresponding input contract.
-`mutateEntity` consumes its entity from the incoming data socket and derives
-the type from that connection. A target status is optional on the same action;
-there is no separate persisted change-status action kind.
+Change-status actions consume their entity from the incoming data socket and
+only require a target status; they do not need a separate entity-type selector.
 The target may be a literal `action.status.to` or a `statusRef` produced by a
 status-definition node. Status definitions compile into workflow state metadata
 (`label`, `color`, `severity`, `icon`) and into the compiled action target
@@ -230,11 +228,11 @@ conditioned by the created status in the same way, so `admin` on "create project
 as NEW" means admin over `project` entities whose current primary status is
 `NEW`, not global project admin.
 Action access compiles through status-scoped access windows. A create action
-opens the first window for the created entity state. A status-targeting mutation
+opens the first window for the created entity state. A status-change action
 inherits the incoming entity window until its `action.access.modified` flag is
 set; once modified, the selected role grant rows on that node become the
 complete grant set for the target state. Removing a role from a modified
-mutation node therefore removes that role's access to entities in the
+status-change node therefore removes that role's access to entities in the
 resulting status instead of leaving an older additive grant behind. Parent-scoped
 windows carry lineage scope forward: a queue created from a project window scoped to
 `$assignment.projectId` receives a `scope.projectId` grant, so access for one
@@ -245,9 +243,8 @@ grants or marks access as modified. Output entity types come from the domain
 command `output.entities` contract, not from frontend assumptions. When the
 domain summary registry declares an output as a child of the input entity, the
 compiler carries lineage scope through that parent relation; for example,
-`solveNesting` ultimately outputs a queue `entity_revision`, `sheet_design`,
-and `sheet_instance` records under the source queue, so those results receive
-the same role window as the queue unless
+`solveNesting` outputs `nesting_run` and `sheet_design` records under the
+source queue, so those results receive the same role window as the queue unless
 a later graph node changes it.
 Action graph compilation preserves all incoming edges for a node and uses the
 first already-resolved upstream output window. This matters for lifecycle loops:
@@ -255,14 +252,14 @@ a queue status node can have both a create input and a later reject/retry input,
 and the compiler must not let the loop edge overwrite the resolvable source
 edge that feeds downstream command output grants.
 Workflow synthesis also preserves those repeated incoming entity edges. If a
-single status-targeting mutation is reused from several source states, such as
+single change-status action is reused from several source states, such as
 `Создано -> Отправлено` and `Отклонено -> Отправлено`, the compiled workflow
 emits one transition per source state while keeping the same target status
 definition and using the executable role window from each source edge.
-At runtime, a command output wired into a downstream status-targeting mutation receives
+At runtime, a command output wired into a downstream change-status node receives
 that process-authored target state after the command returns its entity refs.
 The state projection is derived from graph edges and typed output handles such
-as `output:entity_revision`; it is not a domain-specific queue rule.
+as `output:nesting_run`; it is not a domain-specific queue rule.
 Manual command actions preserve `commandId` in each compiled user action
 manifest entry. Generated entity tools use that id to place domain-specific
 command panels, such as the queue nesting panel, while execution still goes
@@ -270,8 +267,8 @@ through the active process action endpoint.
 Manual command actions are placed on generated screens by their input entity
 feature, not by the command output feature. A `solveNesting` button belongs on
 the queue detail because the user executes it against a queue, while the same
-graph window still grants access to produced `entity_revision`, `sheet_design`,
-and `sheet_instance` records through command output windows.
+graph window still grants access to produced `nesting_run` and `sheet_design`
+records through command output windows.
 Stored active process definitions keep compiled runtime contracts in MongoDB.
 After compiler changes that alter generated screens, action exposure, workflow
 output, or grants, run
@@ -383,26 +380,3 @@ Compiled-only runtime contracts are not editable process sources. If a stored
 process definition has `data.compiled` but no canonical semantic records, the
 designer and activation path fail clearly instead of inferring a visual design
 from runtime output.
-## Mutation And Entity Blocks
-
-`mutateEntity` is the only process action that changes an existing entity. Its
-entity input determines the entity type, and only connected fields from the
-declared entity blocks are written. A status socket is optional and uses the
-same action to perform a workflow transition. Persisted `changeStatus` and
-`updateEntity` actions must be migrated with
-`server/scripts/migrate-process-mutate-actions.js`.
-
-`fieldRead` decomposes an entity into its domain-declared blocks.
-`blockRead` exposes a typed field from one block, `blockAssemble` reconstructs
-one canonical block, and `entityAssemble` performs the entity-level inverse.
-They expose only blocks declared by the selected entity definition. These sockets are the canonical way to pass
-identity, lineage, relations, data, specs, summary, and attachments through a
-process graph.
-
-Containment comes only from `domain.relations`. Child entity collections are
-generated as regions on their parent detail screen and are not independently
-inferred as top-level work screens merely because a summary exists.
-Relations may set `display.parentDetail: false` when a specialized detail
-surface owns stricter presentation. Queue revisions and revision-owned sheet
-designs use that flag so the queue editor can show only the selected successful
-revision instead of a generic union of every attempt.

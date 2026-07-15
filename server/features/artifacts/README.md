@@ -1,34 +1,42 @@
 # COMPONENT: Artifacts
 
-An `artifact` is an ordinary v24 entity for uploaded, camera-captured, or
-generated files. It has canonical identity/origin/status/lineage/relations/
-attachments/data blocks. File metadata belongs to `attachments.primary`; an
-optional revision-capable non-owning source belongs to `relations.source`.
+Persisted metadata entity for generated files and uploaded previews. The
+framework contract term for file behavior is `AttachmentKind`; `artifact` is the
+current app entity type that stores file metadata and GridFS references.
 
-## Creation And Delivery
+## Responsibilities
 
-The domain construction mode is `createArtifactFromAttachment`. Generated
-forms prompt for a name and shared `attachment` input. That input supports both
-file upload and device camera capture and passes the uploaded descriptor to the
-normal entity service.
+- Create generation requests through `generateAttachment`.
+- Store primary file metadata under `attachments.primary`.
+- Stream files from kind-specific GridFS buckets.
+- Return artifact DTOs for Workbench and preview UI.
 
-- `GET /api/artifacts/:id` returns the access-redacted artifact JSON DTO.
-- `GET /api/artifacts/:id/content` checks the same entity access/status and
-  streams bytes from the attachment's recorded GridFS bucket.
-- `DELETE /api/artifacts/:id` removes the entity and its primary file when
-  authorized.
+## Key Files
 
-Metadata and content are deliberately separate routes; entity detail requests
-must never become file streams.
+- `service.js` - artifact CRUD and ready/fail helpers.
+- `operations.js` - `generateAttachment` command handler.
+- `repository.js` - MongoDB access.
 
-## Generated Attachments
+## APIs
 
-`generateAttachment` accepts the abstract `source` capability socket. Current
-`LAYOUT_DXF` generation loads a sheet design, stores its generated DXF, and
-creates a ready artifact linked through `relations.source`. `PDF_PASSPORT`
-creates a generating artifact for the downstream generator.
+- `GET /api/artifacts/:id`
+- `GET /api/artifacts/:id/metadata`
+- `DELETE /api/artifacts/:id`
+
+## Generation Notes
+
+`generateAttachment()` handles `LAYOUT_DXF` for two source types:
+- `entities.sheetDesign` generates a DXF from the sheet design preview/layer
+  geometry, stores it in the `nestDxf` GridFS bucket, and creates a `READY`
+  artifact with `attachments.primary`.
+- `entities.nestingRun` attaches the latest completed worker DXF when the
+  nesting job already produced one; otherwise it creates a pending
+  `GENERATING` artifact.
+The command also accepts the standardized abstract source socket as
+`entities.source` when command runtime receives `{ type, id }` for a source
+whose type is accepted by the domain command contract.
 
 ## Related
 
-- [Domain attachment kinds](../../../packages/domain-cnc/README.md)
-- [Commands](../../core/commands/README.md)
+- [domain-cnc attachment kinds](../../../packages/domain-cnc/README.md)
+- [commands](../../core/commands/README.md)

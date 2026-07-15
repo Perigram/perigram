@@ -18,8 +18,6 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
   `normalizeStatusState`, `getPrimaryState`, `getRegionState`,
   `getStatusRegions`, `createSpecs`, `createData`, `inheritLineage`,
   `createAttachment`
-- References: `createRelationRef`, `normalizeEntityReference`,
-  `getLineageReference`, `setLineageReference`, and `normalizeRelations`
 
 ## Vocabulary
 
@@ -45,11 +43,7 @@ runtime packages and server modules.
 
 `BaseEntity.toJSON()` is strict: it emits root `_id` plus canonical blocks only.
 Identity fields stay under `identity`; feature-specific data stays under
-`data`, `specs`, `attachments`, or `summary`. Typed non-owning references live
-under the root `relations` block. `Lineage` stores each role as
-`{ entityType, entityId, revisionId? }`; `Lineage.add(role, id, revisionId)` and
-`Lineage.addRevision(role, revisionId)` preserve that single structured
-reference. Flat paired `<type>Id` / `<type>RevisionId` fields are not emitted.
+`data`, `specs`, `attachments`, or `summary`.
 
 `Status.state` is a v2 structured object with `primary`, `active`, and
 `regions`; compare states through `getPrimaryState()` or `getRegionState()`

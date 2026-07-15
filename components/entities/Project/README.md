@@ -49,9 +49,7 @@ Emits: `view`, `rename`, `delete`.
 
 Props: `project` (Object, required). Emits: `add-queue`.
 
-Fetches queues via the public `$fetch('/api/queues?projectId=...')` alias on
-mount and on `project._id` change; the API maps that alias to
-`lineage.project.entityId`.
+Fetches queues via `$fetch('/api/queues?lineage.projectId=...')` on mount and on `project._id` change.
 Renders queues as `QueueCard` (compact variant) and shows a `StatusHistory` sidebar panel.
 
 ## Related

@@ -46,21 +46,6 @@ flowchart LR
 | Adapter | App binding between pure domain definitions and infrastructure. |
 | Process Definition | Organization-owned graph that compiles abstract roles, entity workflows, field policy, services, sockets, screens, and navigation into runtime contracts. |
 
-Entities use structured ownership and link references. Owning ancestry lives in
-`lineage` as `{ role: { entityType, entityId, revisionId? } }`; non-owning
-references live in the root `relations` block with the same typed shape. Domain
-relations decide which entities are top level, which children appear on a
-parent detail screen, and how generated breadcrumbs are built. The text form
-for either reference is `entityType/entityId@revisionId`, with the revision
-suffix optional.
-
-Queue nesting is a Status-owned parallel lifecycle, not a separate business
-entity. Live work is a `task_run`; every terminal attempt creates an immutable
-queue `entity_revision` with scope `nesting`. Successful revisions own their
-`sheet_design` and `sheet_instance` outputs through revision-qualified queue
-lineage, and only the explicitly selected successful revision is exposed as
-the queue's current sheet output.
-
 Commands and tasks are not duplicates: commands decide "what business action is
 allowed and requested"; tasks execute retryable background work created by those
 commands.

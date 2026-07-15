@@ -24,22 +24,9 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
-- `server/scripts/migrate-structured-entity-references.js`: One-shot contract
-  replacement for entity references and nesting attempts. It converts flat
-  lineage ids to `{ entityType, entityId, revisionId? }`, canonicalizes old
-  role aliases such as `template`, `originalCassette`, `design`, `pile`, and
-  `sheet_design`, normalizes root relations, coalesces legacy nesting-run
-  records with matching nesting jobs,
-  recovers job-only attempts and dangling output references as terminal queue
-  revisions, rebuilds the queue nesting Status region/pointers, updates output
-  lineage, removes the retired collections, and rewrites stored process
-  `lineageKey` metadata to `lineageRole`. Unresolved source records become
-  deterministic failed revisions so their output provenance remains typed;
-  missing or conflicting queue ownership still stops the migration. The default
-  is dry-run; pass `--apply` only after reviewing the counts.
 - `server/scripts/migrate-process-command-output-statuses.js`: Active-process
   data migration for command outputs. It reads graph edges from `runCommand`
-  action nodes into downstream status-targeting `mutateEntity` nodes, builds proper process
+  action nodes into downstream `changeStatus` nodes, builds proper process
   status snapshots from the compiled workflow, inserts status events, and
   updates existing output entities that are outside the active process status
   window. Supports `--dry-run`.
@@ -71,11 +58,10 @@ server feature structure against `server/features/_template/README.md`, keeps
 repositories/services/API routes on their assigned layers, rejects Nuxt
 root-alias imports inside portable runtime modules under `shared/`,
 `test-data/`, and `packages/`, and rejects parent-relative cross-root imports
-from `shared/` and non-spec `test-data/` modules. It also rejects those imports
-from Nitro-bound feature modules when they target root `utils/`, `shared/`, or
-`packages/`; generated dev bundles relocate feature modules, so cross-root
-imports must use the package imports declared in `package.json`
-(`#shared/...`, `#packages/...`, `#utils/...`).
+from `shared/` and non-spec `test-data/` modules. Cross-root portable imports
+should use the package imports declared in `package.json` (`#shared/...`,
+`#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
+resolve the same graph.
 Entity feature directories are derived from domain entity metadata. Use an
 explicit `feature` field on a domain entity when English pluralization is
 irregular, such as `library -> libraries`; do not add script-local exceptions.

@@ -82,25 +82,17 @@ and `{ type: 'address', address }`.
 ---
 
 ### Lineage
-Structured, cumulative ancestor map enabling O(1) reverse lookups,
-revision-qualified provenance, and multi-tenant isolation.
+Flat, cumulative ancestor map enabling O(1) reverse lookups and multi-tenant isolation.
 
 ```
-Lineage {
-  organization: { entityType: 'organization', entityId: '...' },
-  project: { entityType: 'project', entityId: '...' },
-  queue: { entityType: 'queue', entityId: '...', revisionId?: '...' }
-}
+Lineage { organizationId, projectId, queueId, ... }  // keys depend on depth
 ```
 
-Keys are semantic roles. Values are `{ entityType, entityId, revisionId? }`.
-Every parent's lineage is copied in full before adding the current parent, so
-every descendant carries its complete ancestry. Flat `${type}Id` keys are
-rejected and must be migrated before runtime.
+Keys follow the convention `${type}Id` (e.g. `projectId`, `queueId`). Every parent's lineage is copied in full before adding the current parent — so every descendant carries its complete ancestry.
 
-**Factory:** `inheritLineage(parentEntity, 'queue')` — copies parent lineage and adds `queue: { entityType: 'queue', entityId }`.
+**Factory:** `inheritLineage(parentEntity, 'queue')` — copies parent.lineage and adds `queueId`.
 
-**Usage in queries:** `{ 'lineage.project.entityId': id }` — works at any depth in the tree. Public API aliases such as `projectId` are normalized to that storage path at the query boundary.
+**Usage in queries:** `{ 'lineage.projectId': id }` — works at any depth in the tree.
 
 ---
 
@@ -136,11 +128,7 @@ class BaseEntity {
 {
   "_id": "<ObjectId>",
   "identity": { "uid", "name", "slug", "serial", "reference" },
-  "lineage": {
-    "organization": { "entityType": "organization", "entityId": "..." },
-    "project": { "entityType": "project", "entityId": "..." },
-    "queue": { "entityType": "queue", "entityId": "...", "revisionId": "..." }
-  },
+  "lineage": { "organizationId", "projectId", "queueId", ... },
   "origin":  { "state", "userId", "timestamp", "metadata", "eventId", "lifecycle" },
   "status":  { "state", "userId", "timestamp", "metadata", "eventId", "lifecycle" },
   "specs":   { "sheetThickness", "foilThickness", "width", "length", "area" } | null,

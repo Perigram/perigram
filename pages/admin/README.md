@@ -37,8 +37,7 @@ the operator chooses them explicitly.
 
 Command output hydration includes both the synchronous command result and
 related task-run outputs. Async nesting completion therefore updates the
-in-memory queue `entity_revision`, `sheet_design`, and `sheet_instance`
-previews when the task finishes.
+in-memory `nesting_run` and `sheet_design` previews when the task finishes.
 Output previews resolve only from the workbench fixture context; the page does
 not fetch command output entity refs through normal protected entity APIs. Refs
 not present in context remain listed as missing output refs instead of producing

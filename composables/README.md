@@ -34,8 +34,7 @@ const result = useEntity(type, identifier?)
 | `statusMeta` | `ComputedRef<object>` | `entity.status.metadata` |
 | `statusLifecycle` | `ComputedRef<object>` | Normalized `entity.status.lifecycle` |
 | `lineage` | `ComputedRef<object>` | Full lineage block |
-| `getAncestorReference(role)` | `(role) => EntityReference \| null` | Structured `lineage[role]`, including optional `revisionId` |
-| `getAncestorId(role)` | `(role) => string` | `lineage[role].entityId`; flat legacy keys are not read |
+| `getAncestorId(type)` | `(type) => string` | `lineage[typeId]` |
 | `specs` | `ComputedRef<object>` | Full specs block |
 | `formattedDimensions` | `ComputedRef<string>` | `"1200×2400 mm"` |
 | `formattedArea` | `ComputedRef<string>` | `"2.88 m²"` |
@@ -76,13 +75,15 @@ onMounted(() => fetch());
 
 ```js
 const { items, list, loading } = useEntity('queue');
-onMounted(() => list({ projectId }));
+onMounted(() => list({ 'lineage.projectId': projectId }));
 // items is a ref<array> updated after each list() call
 // call list() again with new filters to refresh
 ```
 
 Use `list(filters, { silent: true })` only for optional enrichment where a
-protected collection may legitimately be unavailable. Ordinary collection screens should keep the default logging behavior
+protected collection may legitimately be unavailable, such as an inline
+nesting-run popup attempting to load readable sheet-design children by
+`runId`. Ordinary collection screens should keep the default logging behavior
 so access and endpoint errors remain visible during development.
 
 ### Endpoint map
@@ -114,7 +115,7 @@ server API routes.
 | `warehouse` | `/api/warehouses/:id` | `/api/warehouses` |
 | `user` | `/api/users/:id` | `/api/users` |
 | `organization` | `/api/organizations/:id` | `/api/organizations` |
-| `entityRevision` | `/api/entity-revisions/:id` | `/api/entity-revisions` |
+| `nestingRun` | `/api/nesting-runs/:id` | `/api/nesting-runs` |
 
 The domain UI adapter registers both design-system surface keys and backend
 entity aliases, so `materialPile` and `material_pile` resolve to the same
@@ -261,7 +262,7 @@ const mill = () => changeStatus('MILLED', {
 
 // List all queues in a project
 const { items: queues, list, loading } = useEntity('queue');
-onMounted(() => list({ projectId: project.value._id }));
+onMounted(() => list({ 'lineage.projectId': project.value._id }));
 
 // Read computed block values
 const { serial, specs, formattedArea } = useEntity('sheet', id);

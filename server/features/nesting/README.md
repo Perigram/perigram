@@ -1,74 +1,102 @@
 # COMPONENT: Nesting
 
-Nesting is a command/task capability, not an entity module. `operations.js`
-implements the `solveNesting` command and the registered `nesting.solve` task
-executor.
+Command handler and compatibility job metadata for queue nesting.
 
-## Execution Contract
+## Responsibilities
 
-1. `solveNesting()` validates the queue and resolves saved job/settings input.
-2. It loads the selected machine or the immutable public system default, plus
-   the selected tool and material.
-3. It resolves stock dimensions/count or virtual sheet dimensions, uses tool
-   diameter as item gap, clips usable material to machine offsets, and rejects
-   sheets outside the machine work area.
-4. It snapshots machine, tool, material, gap, sheet polygon/dimensions/count,
-   and material thickness into the task input.
-5. It creates a `task_run` and applies the queue `requestNesting` intent with
-   `activeTaskRunId` in Status lifecycle data.
-6. The task calls the HTTP nesting worker, enriches the returned layout with
-   request geometry/layers, persists terminal outputs, and returns declared
-   queue transition effects.
+- `operations.js` implements the `solveNesting` command.
+- The handler validates queue state, creates a `nesting_run`, enqueues
+  `nesting.solve`, writes a linked compatibility `nesting_jobs` record, and
+  returns a queue `requestNesting` effect only when the active queue workflow
+  exposes that intent for the queue's current state. Process-authored queue
+  lifecycles may use custom statuses without a `requestNesting` transition; in
+  that case the `nesting_job` lock plus linked `nesting_run`/task own execution
+  state and the command must not fail after successfully scheduling the worker.
+- Command output is initially the `nesting_run` plus task/job references.
+  `sheet_design` entities are created only after the worker returns, one entity
+  per physical sheet layout in `solution.layouts[]`. Generated files are
+  requested separately through artifact/attachment commands; the queue nesting
+  API does not request attachments unless explicitly told to. Because
+  `solveNesting` is asynchronous, active-process command-output status
+  projection must not move the returned `nesting_run` to a downstream process
+  status before the `nesting.solve` task completes; task completion owns the
+  final run status and the `sheetDesignIds` link.
+- The registered `nesting.solve` task executor builds the FastAPI payload from
+  cassette polygon parts or dimension fallback rectangles, carries baked OCCS
+  `layerData` as request-side source layers, calls `NESTING_WORKER_URL`,
+  enriches stripped worker responses with source request geometry, source
+  layers, and bin shape data, creates one `sheet_design` per returned layout,
+  stores their IDs on `nesting_run.data.sheetDesignIds`, updates the
+  compatibility job, and returns solver completion/failure effects for the task
+  runtime to apply. Queue lifecycle changes now happen through the declared
+  effect policy rather than directly inside the executor.
+  Active process workflows may add custom `nesting_run` statuses, but runtime
+  workflow resolution preserves the domain system completion/failure intents
+  required by this executor. A solver HTTP 200 is not the terminal business
+  state until the app-side `nesting.solveCompleted` event transitions the run.
+- Run summaries use explicit worker `efficiency`/`remnantArea` metrics when
+  present. Current `lbf` responses usually expose only `solution.density` and
+  layout placements, so `operations.js` falls back to density and then placed
+  source polygon area to derive card-visible utilization and remnant area.
+- Compatibility `nesting_jobs.projectSlug` is resolved from the parent project,
+  not the queue, so notification/statistics plugins can find the project.
+- Before rejecting a queue as already nesting, the handler checks the active
+  compatibility job's `taskRunId`; jobs whose task is `FAILED` or `CANCELLED`
+  are marked `error` and no longer block a new nesting request.
+- `statistics.js` supports both legacy `nesting_jobs.sheets` payloads and the
+  current worker result shape stored at `nesting_jobs.result.solution.layouts`.
+- `jobs.js` owns Mongo access for `nesting_jobs`.
+- Queue-local settings live on `queue.data.nestingSettings`. The queue nesting
+  API builds the `solveNesting` command parameters from those settings and
+  `queue.data.job.materialPool`; a `nesting_run` then stores the immutable
+  worker snapshot under `data.params`.
+- Warehouse-mode runs resolve sheet size and sheet count from
+  `queue.data.job.materialPool`. The FastAPI worker still receives only its
+  strict `{ width, height, space, sheetCount, sheet_polygon }` params, while the
+  nesting run/job keep `materialPool` context for downstream sheet-design and
+  inventory UI. Mixed stock sizes or stock entries without dimensions are
+  rejected before task creation. Remnant stock sources may carry
+  `sheetPolygon`/`geometryData`; `resolveNestingContext()` forwards that polygon
+  as FastAPI `sheet_polygon` using `{ outer, inner }` shape data when holes
+  exist. Remnant holes are container holes in jagua-rs, i.e. fixed
+  non-placeable material zones, not fake movable nesting items.
 
-There is no `nesting_run` entity, collection, API, compatibility job, or
-notification callback. A retry remains the same task execution boundary.
-Every terminal task id maps deterministically to one immutable queue nesting
-revision, making task completion idempotent.
+`buildJobFiles()` is exported for focused coverage of the handoff from queue
+items to worker files. Parametric queue entries must load the cassette template,
+bake it with the entry `parameters`, and pass the baked cassette ID plus baked
+`polygonParts` into `buildNestingWorkerRequest()`. The fetched cassette entity
+is the source of truth for whether an item is parametric; a stale queue item
+`type` must not make an OCCS template skip baking and fall back to a rectangle.
+Because `solveNesting` consumes saved queue item references, the command
+contract declares transient read execution grants for cassette templates and
+cassette designs. Process action execution applies those grants only for the
+command run, so generated queue users can run nesting without receiving
+standalone cassette-design list/detail access.
+The command's queue lifecycle event is optional by workflow capability, not a
+legacy fallback. Domain queues in `DRAFT` still emit `queue.nestingRequested`
+through the status API, while process queues whose active status machine does
+not allow `requestNesting` skip that event and rely on the generated
+`nesting_run` lifecycle for visible solver progress/result state.
+For OCCS templates with multiple `sheet` workpieces, baking stores one
+`polygonPart` per sheet workpiece. The FastAPI worker receives these as separate
+items with the same baked cassette ID, preserving the single template reference
+while allowing independent placement. Degenerate polygon parts with fewer than
+three unique points or zero area are skipped before the worker request, so
+legacy DXF imports that contain two-point closed curves do not produce worker
+geometry warnings. Each request item also carries only the
+source layers relevant to that workpiece (`cut.outer`, `fold.route`, dimensions,
+and other annotation layers); the worker is not expected to preserve those
+unknown fields, so the task merges them back from the request before sheet
+design preview projection. `enrichNestingResult()` also keeps request items that
+are absent from a partial worker `items` array, because layouts may still
+reference those request ids after demand expansion; the request copy remains the
+source for cassette design ids, source layers, and preview geometry.
 
-## Terminal Revision And Outputs
-
-On success, the task canonicalizes each layout before hashing. Equivalent
-layouts differ neither by worker bin id nor source ordering, so one
-`sheet_design` is created per distinct physical layout. Its output record is:
-
-```js
-{
-  sheetDesignId,
-  layoutHash,
-  quantity,
-  sheetInstanceIds
-}
-```
-
-One deterministic `sheet_instance` is created for every required copy. The
-sheet design and instances inherit `lineage.queue` with the terminal queue
-revision id; instances also have revision-qualified `lineage.sheetDesign`.
-The terminal `entity_revision` stores settings, results, layout data, and those
-outputs. The queue moves to `REVIEW`; selection is a separate explicit intent.
-
-On final failure, the task creates a failure revision containing the immutable
-settings/error snapshot and moves the queue nesting region to `ERROR`. Earlier
-retryable failures do not create competing terminal records.
-
-## OCCS And Material Thickness
-
-Queue items are resolved to cassette templates or baked cassette designs.
-Selected sheet thickness is injected into OCCS parameter `T` before parametric
-baking. A pre-baked design with a conflicting `T` is rejected rather than sent
-to the worker with physically inconsistent settings. Source semantic layers
-are restored after the geometry-only worker response so sheet previews and DXF
-export preserve production meaning.
-
-## Worker Boundary
-
-The algorithm service lives in
-[workers/nesting](../../../workers/nesting/README.md). It receives strict
-geometry and numeric parameters; persistence, access, Status transitions,
-revision creation, and output entity creation remain in the app task executor.
+The long-running execution contract is the `nesting.solve` task. The HTTP
+algorithm service lives in [workers/nesting](../../../workers/nesting/README.md).
 
 ## Related
 
-- [Queues](../queues/README.md)
-- [Tasks](../../core/tasks/README.md)
-- [Sheet designs](../sheet-designs/README.md)
-- [Machines](../machines/README.md)
+- [Command runtime](../../core/commands/README.md)
+- [Task runtime](../../core/tasks/README.md)
+- [Nesting runs](../nesting-runs/README.md)

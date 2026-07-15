@@ -9,10 +9,6 @@ This directory contains the Materials feature, managing the global collection of
 - `manufacturer`: Brand/Producer
 - `color`: Finish/Color description
 - `thickness`: Material thickness in mm
-
-`data.thickness` is also the virtual material thickness used by nesting. When a
-material is selected it overrides the queue's manual sheet thickness and is
-passed to cassette baking as the reserved regular OCCS parameter `T`.
 - `type`: Category (ACP, WOOD, STEEL, etc)
 
 ## Architecture

@@ -30,9 +30,9 @@ parametric/OCCS definitions.
   lacks that top-level snapshot, the display contract may fall back to
   `data.derivedFrom.parameters`; template parameter counts are not shown on
   design cards.
-- Parent template context belongs in structured `lineage.cassette` and is rendered by
+- Parent template context belongs in `lineage.templateId` and is rendered by
   the shared trace chrome as the nearest parent, matching how cassette cards
-  render their `lineage.library` parent. The card body does not duplicate that
+  render their `lineage.libraryId` parent. The card body does not duplicate that
   parent as a separate relation row.
 - Exact source geometry revision is loaded from `data.derivedFrom.revisionId`
   and rendered as a compact `EntityInlineRef` when present.

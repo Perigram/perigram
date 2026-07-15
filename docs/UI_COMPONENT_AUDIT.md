@@ -31,8 +31,8 @@ Every entry is inspected through the same ten questions:
   and sibling routes are not children of `/assets/index.vue`.
 - `CatalogDetail.vue` now uses `EntityPage` and hides status through the shared
   `showStatus` contract instead of rebuilding entity header chrome locally.
-- `SheetDetail.vue` renders source warehouse and material-pile context as
-  `EntityInlineRef` rows; revision-qualified queue context stays in trace chrome.
+- `SheetDetail.vue` now renders source warehouse, material pile, and nesting-run
+  context as `EntityInlineRef` rows when lineage ids are available.
 - `UserCard.vue` now owns card selection on its wrapper with
   `isInteractiveEventTarget`, matching other selectable cards.
 
@@ -40,7 +40,7 @@ Every entry is inspected through the same ten questions:
 
 Format per row: business job / frontend context / DTO blocks / status / relationships / actions / click-popover / density / responsive / decision.
 
-- `Artifact/ArtifactCard.vue`: file output preview / cards and artifact refs / identity, data, attachments, lineage / hidden / revision-qualified queue and source refs / preview open only / preview click must not trigger parent card / enough facts plus preview action / preview owns aspect / keep preview-owned click and no lifecycle chrome.
+- `Artifact/ArtifactCard.vue`: file output preview / cards and artifact refs / identity, data, attachments, lineage / hidden / queue and nesting-run refs / preview open only / preview click must not trigger parent card / enough facts plus preview action / preview owns aspect / keep preview-owned click and no lifecycle chrome.
 - `BatchPile/BatchPileCard.vue`: requisition-sourced stock batch / material receipt cards / identity, specs, data.stock, lineage / hidden for batch surface / requisition ref / no local lifecycle / inline ref popover must show requisition body / stock plus specs is enough / compact tags wrap / keep separate from manual `PileCard`.
 - `Cassette/CassetteCard.vue`: persisted cassette entity / base cassette cards and refs / identity, data, revisions / interactive only if workflow exists / geometry revision ref / no edit footer here / revision ref clickable / current facts enough / DataBlock wraps / keep distinct from template/design/instance.
 - `CassetteDesign/CassetteDesignCard.vue`: baked design from template and geometry version / design refs and sheet design placements / identity, data, lineage, revisions / hidden / template and revision refs / no local transitions / refs must not route to templates when design is intended / geometry summary should remain compact / relation chips wrap / keep source template and revision visible.
@@ -67,8 +67,8 @@ Format per row: business job / frontend context / DTO blocks / status / relation
 - `Remnant/RemnantDetail.vue`: remnant detail / drilldown detail page / identity, specs, geometry, lineage, status / interactive via EntityPage / pile, sheet, warehouse refs / page actions only / refs clickable / provenance plus geometry primary / sidebar grid / keep.
 - `Requisition/RequisitionCard.vue`: procurement request / requisition lists / identity, data.items, status / interactive with status actions / manufacturer and project refs / receive/transition through status / refs clickable / item count and totals enough / actions wrap / keep.
 - `Requisition/RequisitionDetail.vue`: procurement detail / requisition route / identity, items, status, history / interactive via EntityPage / item material refs when available / receive actions via status / rows clickable / item table primary / grid detail layout / keep.
-- `Sheet/SheetCard.vue`: physical sheet inventory / warehouse sheet tabs and queue material refs / identity, specs, status, lineage / interactive if workflow exists / warehouse, pile, revision-qualified queue trace / no local transitions / refs and status click safe / dimensions first / SpecsBlock handles compact / keep.
-- `Sheet/SheetDetail.vue`: sheet detail / drilldown detail page / identity, specs, status, history / interactive via EntityPage / source warehouse and pile refs use `EntityInlineRef`, queue revision uses trace / page actions only / refs clickable / physical facts primary / sidebar grid / refactored.
+- `Sheet/SheetCard.vue`: physical sheet inventory / warehouse sheet tabs and queue material refs / identity, specs, status, lineage / interactive if workflow exists / warehouse, pile, nesting run refs / no local transitions / refs and status click safe / dimensions first / SpecsBlock handles compact / keep.
+- `Sheet/SheetDetail.vue`: sheet detail / drilldown detail page / identity, specs, status, history / interactive via EntityPage / source warehouse, pile, and run refs use `EntityInlineRef` / page actions only / refs clickable / physical facts primary / sidebar grid / refactored.
 - `SheetDesign/SheetDesignCard.vue`: digital sheet design / design lists and queue planning / identity, specs, geometry / hidden / cassette design placements in detail / no local lifecycle / geometry click safe / geometry plus dimensions enough / preview aspect owned / keep.
 - `SheetDesign/SheetDesignDetail.vue`: design composition / sheet design route / identity, specs, geometry, placements / hidden or page status only if workflow exists / cassette design refs, not cassette template links / page actions elsewhere / placement refs clickable / geometry and placements primary / sidebar grid / keep relation key `cassetteDesign`.
 - `ToolProfile/ToolProfileCard.vue`: CNC tool profile / asset tool library / identity, data.tool / hidden / none / edit elsewhere / card popover body required / diameter/speed facts enough / compact tags wrap / keep.

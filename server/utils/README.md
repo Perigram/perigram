@@ -43,8 +43,7 @@ const user = requireAuth(event);
 ```
 
 ### `hasLineagePermission(user, lineage, entityType, level, options?)` → `boolean`
-Checks if user has the required access level for an entity based on its
-`lineage.organization.entityId` reference.
+Checks if user has the required access level for an entity based on its `lineage.organizationId`.
 
 ```js
 // entityType: 'projects' | 'queues' | 'sheets' | 'material-piles' | ...
@@ -71,7 +70,7 @@ const filter = { ...getLineageFilter(user), status: 'OPEN' };
 const results = await repository.findAll(filter);
 ```
 Users without memberships get an empty `$in` filter; users with memberships get
-`{ 'lineage.organization.entityId': { $in: [...orgIds] } }`.
+`{ 'lineage.organizationId': { $in: [...orgIds] } }`.
 
 ## entity-redaction.js
 
@@ -131,9 +130,7 @@ Generates the debug data-model inventory consumed by `/api/debug/data-models` an
 
 The extractor is code-aware but not a schema compiler. It reads feature `model.js`, `service.js`, and `repository.js`, then extracts:
 - standard v24 blocks from `BaseEntity`
-- structured lineage roles from literal lineage objects, `Lineage.add()`, and
-  `lineage.<role>.entityId` access paths; nested `entityId` is never reported as
-  a lineage role
+- `lineage.*` keys from literal lineage objects
 - `data.*` keys from `data`/`params` object literals and `this.data.*` assignments
 
 Extraction output includes `source` and `issues` fields so `/admin/data-model-review` can flag suspicious generated fields before refactoring. Treat `server/DATA_MODEL.md` as review input, not the final contract, when a field is marked with issues.

@@ -9,10 +9,7 @@ Material procurement system connecting contractors and manufacturers using v24 s
 ## Data Structure (v24)
 - **`identity`**: `{ name, serial }` (e.g., REQ-000451).
 - **`status`**: Managed by `requisition` state machine.
-- **`lineage`**: structured owning `organization` and optional containing
-  `project` references.
-- **`relations.manufacturer`**: non-owning typed link to the supplier
-  organization; the manufacturer is not a parent of the requisition.
+- **`lineage`**: `{ organizationId, manufacturerId, projectId? }`.
 - **`items`**: Array of ordered sheets with `specs` and `priceSnapshot`.
 
 ## Workflow & States
@@ -26,19 +23,16 @@ Governed by `server/core/machines/definitions.js`:
 ## Key Operations
 - **`create`**: Contractor-only operation. Snapshots prices from `catalogs` and `colors` to prevent historical price drift.
 - **`transition`**: Moves requisition through lifecycle via `statusService`.
-- **`list`**: Uses a dual relationship filter: either
-  `lineage.organization.entityId` matches the buyer or
-  `relations.manufacturer[].entityId` matches the seller.
+- **`list`**: Uses a dual-lineage filter (either `organizationId` matches as buyer, or `manufacturerId` matches as seller).
 
 ## ID Handling
 
-- Requisition entity references normalize ids to strings. Organization,
-  manufacturer, and project inputs may originate as string UIDs or Mongo
-  `ObjectId` values
+- Requisition lineage references use flexible ids. Organization, manufacturer,
+  and project ids may be stored as string UIDs or Mongo `ObjectId` values
   depending on how the organization and process were bootstrapped.
-- Build ownership through `Lineage` and non-owning supplier links through
-  `createRelationRef()`. Do not cast authenticated organization ids to
-  `ObjectId` in this feature.
+- Store lineage fields through `toFlexibleId()` and list by matching both the
+  flexible value and its string form. Do not cast authenticated organization
+  ids to `ObjectId` in this feature.
 
 ## Related
 - [catalogs](../catalogs/README.md) - Pricing source.
