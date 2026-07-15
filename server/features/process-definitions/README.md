@@ -175,3 +175,10 @@ process `home` screens may be synthesized from inferred `auto_*` list screens,
 so stored process definitions should still be recompiled with
 `server/scripts/migrate-process-compiled-runtime.js` whenever the compiler
 changes that contract.
+When an active process still carries a stale compiled runtime that predates
+action entity contracts, auth hydration recompiles the active process
+definition in memory from its semantic source before returning role action
+assignments. This preserves the strict current `contracts.inputs` /
+`contracts.outputs` protocol for generated workspaces such as queue cassette
+producers without adding UI fallbacks for older output shapes. The migration
+script remains the durable cleanup path for stored `data.compiled`.
