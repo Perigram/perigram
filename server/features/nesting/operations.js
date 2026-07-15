@@ -2,6 +2,7 @@ import { createError } from 'h3';
 import { getPrimaryState, inheritLineage } from '../../core/blocks/index.js';
 import * as queuesService from '../queues/service.js';
 import * as projectsService from '../projects/service.js';
+import * as cassetteService from '../cassettes/service.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
 import * as machinesService from '../machines/service.js';
 import * as toolProfilesService from '../tool-profiles/service.js';
@@ -133,13 +134,21 @@ async function queueNestingRequestedEvent(queue, settings, taskRun, runId, auth)
 
 export async function buildJobFiles(queue, auth) {
   const jobFiles = [];
+  const rebakedDesigns = new Map();
   for (const entry of queue.data.job.items) {
     try {
       const entryParameters = entry.parameters || entry.dimensions || {};
       if (entry.entityType !== 'cassette_design') {
         throw createError({ statusCode: 400, message: `Queue item ${entry.id} must reference a cassette_design` });
       }
-      const item = await cassetteDesignService.getById(entry.id, auth.userId, auth.role, auth).catch(() => null);
+      const sourceDesign = await cassetteDesignService.getById(entry.id, auth.userId, auth.role, auth).catch(() => null);
+      const item = await resolveQueueDesignGeometry({
+        entry,
+        sourceDesign,
+        parameters: entryParameters,
+        auth,
+        cache: rebakedDesigns
+      });
       if (!item) throw createError({ statusCode: 400, message: `Cassette design ${entry.id} not found` });
 
       jobFiles.push({
@@ -154,6 +163,79 @@ export async function buildJobFiles(queue, auth) {
     }
   }
   return jobFiles;
+}
+
+async function resolveQueueDesignGeometry({ entry, sourceDesign, parameters = {}, auth = {}, cache = new Map() } = {}) {
+  if (!sourceDesign) return null;
+  const sourceParameters = hasEntries(sourceDesign.data?.parameters)
+    ? sourceDesign.data.parameters
+    : (sourceDesign.provenance?.derivedFrom?.parameters || {});
+  const effectiveParameters = hasEntries(parameters) ? parameters : sourceParameters;
+  const canDeriveParametricGeometry = entry.type === 'PARAMETRIC' || hasEntries(sourceParameters);
+  if (!canDeriveParametricGeometry || sameParameterMap(effectiveParameters, sourceParameters)) return sourceDesign;
+
+  const sourceRef = sourceDesign.provenance?.derivedFrom?.source;
+  if (sourceRef?.type !== 'cassette' || !sourceRef.id) {
+    throw createError({ statusCode: 400, message: `Parametric cassette design ${entry.id} has no source cassette template provenance` });
+  }
+
+  const cacheKey = `${sourceRef.id}:${stableParameterKey(effectiveParameters)}`;
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  const rebaked = await cassetteService.createDesignFromTemplate(
+    sourceRef.id,
+    effectiveParameters,
+    auth.userId || 'SYSTEM',
+    auth.organizationId,
+    auth.role,
+    nestingDerivedDesignAuth(auth),
+    { name: `${sourceDesign.identity?.name || 'Cassette design'} (${stableParameterLabel(effectiveParameters)})` }
+  );
+  cache.set(cacheKey, rebaked);
+  return rebaked;
+}
+
+function stableParameterKey(parameters = {}) {
+  return JSON.stringify(Object.keys(parameters || {}).sort().map(key => [key, normalizeParameterValue(parameters[key])]));
+}
+
+function stableParameterLabel(parameters = {}) {
+  const entries = Object.keys(parameters || {}).sort().map(key => `${key}=${normalizeParameterValue(parameters[key])}`);
+  return entries.join(', ') || 'parameters';
+}
+
+function sameParameterMap(left = {}, right = {}) {
+  return stableParameterKey(left) === stableParameterKey(right);
+}
+
+function normalizeParameterValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : value;
+}
+
+function nestingDerivedDesignAuth(auth = {}) {
+  const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
+  const membership = organizationId
+    ? (auth.memberships || []).find(item => item.organizationId?.toString() === organizationId?.toString())
+    : (auth.memberships || [])[0];
+  const effectivePermissions = {
+    ...(auth.effectivePermissions || membership?.permissions || auth.permissions || {})
+  };
+  appendExecutionGrant(effectivePermissions, 'cassettes', { level: 'read', actions: { view: true } });
+  appendExecutionGrant(effectivePermissions, 'cassette_designs', { level: 'write', actions: { view: true, create: true } });
+  return {
+    ...auth,
+    effectivePermissions
+  };
+}
+
+function appendExecutionGrant(permissions, feature, grant) {
+  if (!feature) return;
+  const existing = permissions[feature];
+  permissions[feature] = [
+    ...(Array.isArray(existing) ? existing : existing ? [existing] : []),
+    grant
+  ];
 }
 
 export async function executeNestingSolveTask({ run, input, auth = {} }) {

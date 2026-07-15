@@ -250,9 +250,10 @@ main/supporting proportions from
 Sheet-design details similarly mount `SheetDesignEditor` when the active user
 has a concrete `sheet_designs:write` grant. The editor mutates nesting source
 items and placements, resolves OCCS layer pens through the shared layer
-standards, snaps moves to the selected tool diameter, clamps complete rotated
-geometry inside the visible material-sheet boundary, supports existing/uploaded
-cassette designs, and persists through immutable geometry revisions. Generated
+standards, snaps neighbor edges with tool-kerf clearance, checks transformed
+polygon clearance before accepting a placement, clamps complete rotated geometry
+inside the visible material-sheet boundary, supports existing/uploaded cassette
+designs, and persists through immutable geometry revisions. Generated
 sheet-design details keep the sheet identity visible in `EntityPage`; read-only
 details keep the standard geometry display.
 The queue detail support region for nesting runs follows the same contract:
@@ -274,6 +275,10 @@ manifest. A queue command such as `solveNesting` must be present on that
 queue-detail screen because it is executed against the queue input; output
 entity grants for `nesting_runs` or `sheet_designs` must not be used to decide
 where the command panel renders.
+Queue composition producers are resolved separately from queue-detail screen
+sources. Existing cassette designs require `cassette_designs:read`; process
+producer actions are accepted when their compiled action contract exposes a
+`cassette_design` output through current or legacy output shapes.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page, and generated cassette
 collection/home cards mirror that same editor action in their footers when the

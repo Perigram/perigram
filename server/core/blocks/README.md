@@ -9,8 +9,9 @@ flexible-ID lineage inheritance.
 
 **Import path (always use this, not `server/utils/blocks.js`):**
 ```js
-import { BaseEntity, Identity, Status, Lineage, Specs,
-         createIdentity, createStatus, createSpecs, createData, inheritLineage, createAttachment
+import { BaseEntity, Identity, Status, Lineage, Relations, Provenance, Specs,
+         createIdentity, createStatus, createSpecs, createData, inheritLineage,
+         createEntityRef, normalizeEntityRef, createProvenance, createAttachment
        } from '~/server/core/blocks/index.js';
 ```
 
@@ -96,6 +97,34 @@ Keys follow the convention `${type}Id` (e.g. `projectId`, `queueId`). Every pare
 
 ---
 
+### Relations
+
+Typed non-owning entity references that should not grant containment access.
+
+```
+Relations { linkedLibrary: { type, id, revisionId? }, relatedItems: [{ type, id, revisionId? }] }
+```
+
+Each relation value is normalized through `normalizeEntityRef()`. Use
+`relations` for cross-links such as a project pointing at a library. Do not add
+those links to `lineage`; lineage is only for containment ancestry.
+
+---
+
+### Provenance
+
+Immutable derivation or pinned-source evidence.
+
+```
+Provenance { derivedFrom: { source: { type, id, revisionId? }, ...facts } }
+```
+
+Use `createEntityRef()` and `createProvenance()` when recording source
+documents, revisions, or parent snapshots that must remain reproducible. Do not
+use `provenance` for mutable workflow facts; those belong in `status.lifecycle`.
+
+---
+
 ### Specs
 Standardized physical dimensions for sheet/material entities.
 
@@ -129,6 +158,8 @@ class BaseEntity {
   "_id": "<ObjectId>",
   "identity": { "uid", "name", "slug", "serial", "reference" },
   "lineage": { "organizationId", "projectId", "queueId", ... },
+  "relations": {},
+  "provenance": {},
   "origin":  { "state", "userId", "timestamp", "metadata", "eventId", "lifecycle" },
   "status":  { "state", "userId", "timestamp", "metadata", "eventId", "lifecycle" },
   "specs":   { "sheetThickness", "foilThickness", "width", "length", "area" } | null,
@@ -172,6 +203,9 @@ runtimes consume those registry definitions after access checks.
 | `createSpecs(rawObject)` | `Specs` | |
 | `createData(object)` | `object` | Shallow copy; documents intent |
 | `inheritLineage(parentEntity, type)` | `Lineage` | Copies parent.lineage + adds `${type}Id` |
+| `createEntityRef(type, id, revisionId)` | `object` | Canonical typed reference |
+| `normalizeEntityRef(value)` | `object \| null` | Validates and normalizes typed refs |
+| `createProvenance(source, facts)` | `object` | Source ref plus immutable derivation facts |
 | `createAttachment(type, fileId, name, metadata)` | `object` | Standard attachment entry for `attachments` |
 
 ## Related

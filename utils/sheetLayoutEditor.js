@@ -99,10 +99,114 @@ function boundsClear(left, right, clearance) {
     right.maxY + gap <= left.minY;
 }
 
+const GEOMETRY_EPSILON = 0.001;
+
+function transformedPlacementPoints(items = [], placement = {}) {
+  const transform = sheetPlacementTransform(placement);
+  const rotation = placement.transformation?.rotation ?? placement.rotation ?? 0;
+  const radians = workerRotationRadians(rotation);
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return sheetItemPoints(sheetPlacementSource(items, placement)).map(([x, y]) => [
+    transform.x + x * cos - y * sin,
+    transform.y + x * sin + y * cos
+  ]);
+}
+
+function polygonEdges(points = []) {
+  const clean = points.filter(point => Array.isArray(point) && Number.isFinite(point[0]) && Number.isFinite(point[1]));
+  if (clean.length < 2) return [];
+  return clean.map((point, index) => [point, clean[(index + 1) % clean.length]]);
+}
+
+function cross(a, b, c) {
+  return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+}
+
+function between(value, start, end) {
+  return value >= Math.min(start, end) - GEOMETRY_EPSILON && value <= Math.max(start, end) + GEOMETRY_EPSILON;
+}
+
+function pointOnSegment(point, start, end) {
+  return Math.abs(cross(start, end, point)) <= GEOMETRY_EPSILON &&
+    between(point[0], start[0], end[0]) &&
+    between(point[1], start[1], end[1]);
+}
+
+function segmentsProperlyIntersect(a, b, c, d) {
+  const abC = cross(a, b, c);
+  const abD = cross(a, b, d);
+  const cdA = cross(c, d, a);
+  const cdB = cross(c, d, b);
+  return (abC > GEOMETRY_EPSILON && abD < -GEOMETRY_EPSILON || abC < -GEOMETRY_EPSILON && abD > GEOMETRY_EPSILON) &&
+    (cdA > GEOMETRY_EPSILON && cdB < -GEOMETRY_EPSILON || cdA < -GEOMETRY_EPSILON && cdB > GEOMETRY_EPSILON);
+}
+
+function segmentsIntersect(a, b, c, d) {
+  if (segmentsProperlyIntersect(a, b, c, d)) return true;
+  return pointOnSegment(c, a, b) || pointOnSegment(d, a, b) || pointOnSegment(a, c, d) || pointOnSegment(b, c, d);
+}
+
+function pointInPolygon(point, polygon = []) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+    if (pointOnSegment(point, polygon[j], polygon[i])) return false;
+    const intersects = ((polygon[i][1] > point[1]) !== (polygon[j][1] > point[1])) &&
+      (point[0] < (polygon[j][0] - polygon[i][0]) * (point[1] - polygon[i][1]) / (polygon[j][1] - polygon[i][1]) + polygon[i][0]);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function pointSegmentDistance(point, start, end) {
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= GEOMETRY_EPSILON) return Math.hypot(point[0] - start[0], point[1] - start[1]);
+  const t = Math.max(0, Math.min(1, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / lengthSquared));
+  return Math.hypot(point[0] - (start[0] + t * dx), point[1] - (start[1] + t * dy));
+}
+
+function segmentDistance([a, b], [c, d]) {
+  if (segmentsIntersect(a, b, c, d)) return 0;
+  return Math.min(
+    pointSegmentDistance(a, c, d),
+    pointSegmentDistance(b, c, d),
+    pointSegmentDistance(c, a, b),
+    pointSegmentDistance(d, a, b)
+  );
+}
+
+function polygonsClear(leftPoints = [], rightPoints = [], clearance = 0) {
+  const gap = Math.max(Number(clearance) || 0, 0);
+  if (leftPoints.length < 3 || rightPoints.length < 3) return true;
+  const leftEdges = polygonEdges(leftPoints);
+  const rightEdges = polygonEdges(rightPoints);
+  for (const leftEdge of leftEdges) {
+    for (const rightEdge of rightEdges) {
+      if (segmentsProperlyIntersect(leftEdge[0], leftEdge[1], rightEdge[0], rightEdge[1])) {
+        return false;
+      }
+      if (segmentsIntersect(leftEdge[0], leftEdge[1], rightEdge[0], rightEdge[1])) {
+        return gap <= GEOMETRY_EPSILON;
+      }
+    }
+  }
+  if (leftPoints.some(point => pointInPolygon(point, rightPoints)) || rightPoints.some(point => pointInPolygon(point, leftPoints))) {
+    return false;
+  }
+  if (gap <= GEOMETRY_EPSILON) return true;
+  const minDistance = Math.min(...leftEdges.flatMap(leftEdge => rightEdges.map(rightEdge => segmentDistance(leftEdge, rightEdge))));
+  return minDistance + GEOMETRY_EPSILON >= gap;
+}
+
 export function placementHasClearance({ items = [], placements = [], placement, index = -1, clearance = 0 } = {}) {
   const candidate = sheetPlacementBounds(items, placement);
+  const candidatePoints = transformedPlacementPoints(items, placement);
   return placements.every((other, otherIndex) => (
-    otherIndex === index || boundsClear(candidate, sheetPlacementBounds(items, other), clearance)
+    otherIndex === index ||
+    boundsClear(candidate, sheetPlacementBounds(items, other), clearance) ||
+    polygonsClear(candidatePoints, transformedPlacementPoints(items, other), clearance)
   ));
 }
 
@@ -141,6 +245,10 @@ export function magneticSheetPlacement({
     ];
     const alignedX = [bounds.minX - moving.minX, bounds.maxX - moving.maxX];
     const alignedY = [bounds.minY - moving.minY, bounds.maxY - moving.maxY];
+    xCandidates.forEach(candidateX => candidates.push({ x: candidateX, y: bounded.y, snapped: true }));
+    yCandidates.forEach(candidateY => candidates.push({ x: bounded.x, y: candidateY, snapped: true }));
+    alignedX.forEach(candidateX => candidates.push({ x: candidateX, y: bounded.y, snapped: true }));
+    alignedY.forEach(candidateY => candidates.push({ x: bounded.x, y: candidateY, snapped: true }));
     xCandidates.forEach(candidateX => alignedY.forEach(candidateY => candidates.push({ x: candidateX, y: candidateY, snapped: true })));
     yCandidates.forEach(candidateY => alignedX.forEach(candidateX => candidates.push({ x: candidateX, y: candidateY, snapped: true })));
   });

@@ -46,8 +46,9 @@ function stableDesignOrder(left = {}, right = {}) {
   return created || stringId(left._id).localeCompare(stringId(right._id));
 }
 
-export function planSheetDesignCollapse(designs = []) {
-  const groups = new Map();
+export function planSheetDesignBackfill(designs = []) {
+  const compositionCounts = new Map();
+  const records = [];
   for (const design of [...designs].sort(stableDesignOrder)) {
     const sourceComposition = design.data?.cassetteDesigns || [];
     const composition = canonicalComposition(sourceComposition);
@@ -60,89 +61,83 @@ export function planSheetDesignCollapse(designs = []) {
       : '';
     const invalidReason = invalidComposition || invalidQuantity;
     const hash = invalidReason ? `invalid:${stringId(design._id)}` : compositionHash(composition);
-    const existing = groups.get(hash);
-    if (existing) {
-      existing.sheetCount += quantity;
-      existing.duplicateIds.push(stringId(design._id));
-      existing.duplicateDbIds.push(design._id);
-      existing.designs.push(design);
-      continue;
-    }
-    groups.set(hash, {
+    if (!invalidReason) compositionCounts.set(hash, (compositionCounts.get(hash) || 0) + 1);
+    records.push({
       composition,
       compositionHash: hash,
-      representative: design,
-      representativeId: stringId(design._id),
-      duplicateIds: [],
-      duplicateDbIds: [],
-      designs: [design],
+      design,
+      designId: stringId(design._id),
       sheetCount: quantity,
       invalidReason
     });
   }
-  return [...groups.values()];
+  return records.map(record => ({
+    ...record,
+    duplicateComposition: !record.invalidReason && compositionCounts.get(record.compositionHash) > 1
+  }));
 }
 
 async function planRunMigration(db, run, summary) {
   const runIds = [run._id, stringId(run._id)];
   const designs = await db.collection('sheet_designs').find({ 'lineage.runId': { $in: runIds } }).toArray();
   if (!designs.length) return null;
-  const groups = planSheetDesignCollapse(designs);
-  const plan = { run, runIds, representativeIds: [], groups: [] };
-  for (const group of groups) {
-    plan.representativeIds.push(group.representativeId);
-    const representative = group.representative;
+  const records = planSheetDesignBackfill(designs);
+  const plan = { run, runIds, sheetDesignIds: [], records: [] };
+  for (const record of records) {
+    plan.sheetDesignIds.push(record.designId);
+    const design = record.design;
     const nextData = {
-      ...(representative.data || {}),
-      cassetteDesigns: group.composition,
-      compositionHash: group.compositionHash,
-      sheetCount: group.sheetCount
+      ...(design.data || {}),
+      cassetteDesigns: record.composition,
+      compositionHash: record.compositionHash,
+      sheetCount: record.sheetCount
     };
     if (nextData.nestingParams && !nextData.solveParams) nextData.solveParams = nextData.nestingParams;
     delete nextData.nestingParams;
-    const nextSummary = { ...(representative.summary || {}), sheetCount: group.sheetCount };
-    const allDesignIds = [representative._id, group.representativeId, ...group.duplicateDbIds, ...group.duplicateIds];
+    const nextSummary = { ...(design.summary || {}), sheetCount: record.sheetCount };
+    const allDesignIds = [design._id, record.designId];
     const existingSheets = await db.collection('sheets')
       .find({ 'lineage.sheetDesignId': { $in: allDesignIds } })
       .sort({ 'data.sheetIndex': 1, _id: 1 })
       .toArray();
-    summary.groups += 1;
-    summary.duplicates += group.duplicateIds.length;
-    if (group.invalidReason) {
+    summary.designs += 1;
+    if (record.duplicateComposition) summary.duplicateCompositions += 1;
+    if (record.invalidReason) {
       summary.invalid.push({
         runId: stringId(run._id),
-        sheetDesignId: group.representativeId,
-        reason: group.invalidReason
+        sheetDesignId: record.designId,
+        reason: record.invalidReason
       });
-    } else if (existingSheets.length > group.sheetCount) {
+    } else if (existingSheets.length > record.sheetCount) {
       summary.invalid.push({
         runId: stringId(run._id),
-        compositionHash: group.compositionHash,
-        reason: `Found ${existingSheets.length} physical sheets for expected multiplicity ${group.sheetCount}`
+        sheetDesignId: record.designId,
+        compositionHash: record.compositionHash,
+        reason: `Found ${existingSheets.length} physical sheets for expected multiplicity ${record.sheetCount}`
       });
     } else {
-      summary.missingSheets += group.sheetCount - existingSheets.length;
+      summary.missingSheets += record.sheetCount - existingSheets.length;
     }
-    plan.groups.push({ ...group, nextData, nextSummary, existingSheets });
+    plan.records.push({ ...record, nextData, nextSummary, existingSheets });
   }
   return plan;
 }
 
 async function prepareSheetTwins(db, plan) {
-  for (const group of plan.groups) {
-    const currentRevisionId = group.nextData.revisions?.geometry?.currentId;
-    for (let index = 0; index < group.existingSheets.length; index += 1) {
-      const sheet = group.existingSheets[index];
+  for (const record of plan.records) {
+    const currentRevisionId = record.nextData.revisions?.geometry?.currentId;
+    for (let index = 0; index < record.existingSheets.length; index += 1) {
+      const sheet = record.existingSheets[index];
       const set = {
-        'lineage.sheetDesignId': group.representative._id,
+        'lineage.sheetDesignId': record.design._id,
         'data.sheetIndex': index,
-        'data.compositionHash': group.compositionHash
+        'data.compositionHash': record.compositionHash
       };
       if (currentRevisionId) {
         set['provenance.parent'] = {
           source: {
             type: 'sheet_design',
-            id: group.representativeId,
+            id: record.designId,
             revisionId: stringId(currentRevisionId)
           }
         };
@@ -152,10 +147,10 @@ async function prepareSheetTwins(db, plan) {
       await db.collection('sheets').updateOne({ _id: sheet._id }, update);
     }
     await sheetsService.createFromSheetDesign({
-      ...group.representative,
-      data: group.nextData,
-      summary: group.nextSummary
-    }, group.sheetCount, {
+      ...record.design,
+      data: record.nextData,
+      summary: record.nextSummary
+    }, record.sheetCount, {
       organizationId: plan.run.lineage?.organizationId,
       userId: 'SYSTEM'
     });
@@ -163,66 +158,30 @@ async function prepareSheetTwins(db, plan) {
 }
 
 async function finalizeRun(db, plan) {
-  const session = db.client.startSession();
-  try {
-    await session.withTransaction(async () => {
-      for (const group of plan.groups) {
-        await db.collection('sheet_designs').updateOne(
-          { _id: group.representative._id },
-          { $set: { data: group.nextData, summary: group.nextSummary } },
-          { session }
-        );
-        if (!group.duplicateIds.length) continue;
-        await db.collection('cassette_instances').updateMany(
-          { 'lineage.sheetDesignId': { $in: [...group.duplicateDbIds, ...group.duplicateIds] } },
-          { $set: { 'lineage.sheetDesignId': group.representative._id } },
-          { session }
-        );
-        await db.collection('entity_revisions').deleteMany({
-          'data.source.type': 'sheet_design',
-          'data.source.id': { $in: group.duplicateIds }
-        }, { session });
-        await db.collection('sheet_designs').deleteMany(
-          { _id: { $in: group.duplicateDbIds } },
-          { session }
-        );
+  for (const record of plan.records) {
+    await db.collection('sheet_designs').updateOne(
+      { _id: record.design._id },
+      { $set: { data: record.nextData, summary: record.nextSummary } }
+    );
+  }
+  const sheets = await db.collection('sheets')
+    .find({ 'lineage.runId': { $in: plan.runIds } })
+    .sort({ 'lineage.sheetDesignId': 1, 'data.sheetIndex': 1, _id: 1 })
+    .toArray();
+  await db.collection('nesting_runs').updateOne(
+    { _id: plan.run._id },
+    {
+      $set: {
+        'data.sheetDesignIds': plan.sheetDesignIds,
+        'data.sheetIds': sheets.map(sheet => stringId(sheet._id))
       }
-
-      const sheets = await db.collection('sheets')
-        .find({ 'lineage.runId': { $in: plan.runIds } }, { session })
-        .sort({ 'lineage.sheetDesignId': 1, 'data.sheetIndex': 1, _id: 1 })
-        .toArray();
-      await db.collection('nesting_runs').updateOne(
-        { _id: plan.run._id },
-        {
-          $set: {
-            'data.sheetDesignIds': plan.representativeIds,
-            'data.sheetIds': sheets.map(sheet => stringId(sheet._id))
-          }
-        },
-        { session }
-      );
-    });
-  } finally {
-    await session.endSession();
-  }
-}
-
-async function assertTransactionSupport(db) {
-  if (!db.client?.startSession) throw new Error('Apply mode requires MongoDB transaction support');
-  const session = db.client.startSession();
-  try {
-    await session.withTransaction(async () => {
-      await db.collection('nesting_runs').findOne({}, { session });
-    });
-  } finally {
-    await session.endSession();
-  }
+    }
+  );
 }
 
 async function main() {
   const db = await connectDB();
-  const summary = { runs: 0, groups: 0, duplicates: 0, missingSheets: 0, invalid: [] };
+  const summary = { runs: 0, designs: 0, duplicateCompositions: 0, missingSheets: 0, invalid: [] };
   const plans = [];
   for await (const run of db.collection('nesting_runs').find({})) {
     summary.runs += 1;
@@ -230,7 +189,6 @@ async function main() {
     if (plan) plans.push(plan);
   }
   if (APPLY && !summary.invalid.length) {
-    await assertTransactionSupport(db);
     for (const plan of plans) await prepareSheetTwins(db, plan);
     for (const plan of plans) await finalizeRun(db, plan);
   }

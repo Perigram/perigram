@@ -55,8 +55,40 @@ describe('sheet layout editor helpers', () => {
       { item_id: 1, transformation: { rotation: 0, translation: [33, 10] } }
     ];
     const snapped = magneticSheetPlacement({ items, placements, index: 1, x: 31, y: 11, sheetWidth: 100, sheetHeight: 100, clearance: 3 });
-    expect(snapped).toMatchObject({ x: 33, y: 10, snapped: true });
+    expect(snapped).toMatchObject({ x: 33, y: 11, snapped: true });
     expect(placementHasClearance({ items, placements, placement: { item_id: 1, transformation: { rotation: 0, translation: [33, 10] } }, index: 1, clearance: 3 })).toBe(true);
+  });
+
+  it('preserves the dragged axis when only one edge is near snapping distance', () => {
+    const items = [{ id: 1, shape: { data: [[0, 0], [20, 0], [20, 10], [0, 10]] } }];
+    const placements = [
+      { item_id: 1, transformation: { rotation: 0, translation: [10, 10] } },
+      { item_id: 1, transformation: { rotation: 0, translation: [31, 40] } }
+    ];
+    const snapped = magneticSheetPlacement({ items, placements, index: 1, x: 31, y: 40, sheetWidth: 100, sheetHeight: 100, clearance: 3 });
+    expect(snapped).toMatchObject({ x: 33, y: 40, snapped: true });
+  });
+
+  it('checks transformed polygon clearance instead of rejecting all overlapping bounds', () => {
+    const items = [
+      { id: 'l', shape: { data: [[0, 0], [30, 0], [30, 10], [10, 10], [10, 30], [0, 30]] } },
+      { id: 'square', shape: { data: [[0, 0], [10, 0], [10, 10], [0, 10]] } }
+    ];
+    const placements = [
+      { item_id: 'l', transformation: { rotation: 0, translation: [0, 0] } },
+      { item_id: 'square', transformation: { rotation: 0, translation: [20, 20] } }
+    ];
+    expect(placementHasClearance({ items, placements, placement: placements[1], index: 1, clearance: 5 })).toBe(true);
+    expect(placementHasClearance({ items, placements, placement: placements[1], index: 1, clearance: 12 })).toBe(false);
+  });
+
+  it('rejects polygon intersections even when zero clearance is allowed', () => {
+    const items = [{ id: 1, shape: { data: [[0, 0], [20, 0], [20, 20], [0, 20]] } }];
+    const placements = [
+      { item_id: 1, transformation: { rotation: 0, translation: [0, 0] } },
+      { item_id: 1, transformation: { rotation: 0, translation: [10, 10] } }
+    ];
+    expect(placementHasClearance({ items, placements, placement: placements[1], index: 1, clearance: 0 })).toBe(false);
   });
 
   it('rotates in worker radians and returns to the original rotation after four turns', () => {

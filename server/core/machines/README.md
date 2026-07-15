@@ -148,6 +148,13 @@ masked.
    boundary, or `POST /api/status/transition`.
 2. Transition is validated against the domain workflow, access requirements, lifecycle schema, and actor/capability assignments.
 3. Entity's structured `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged with `fromState`, `toState`, `fromStatePrimary`, `toStatePrimary`, and `region`.
+   When a status mutation also carries an entity patch, the service prefers a
+   Mongo transaction for the status event plus entity snapshot. Standalone
+   Mongo deployments that reject transactions fall back to the same ordered
+   writes: insert the `status_events` row first, then update the entity
+   snapshot; if the entity write fails, the fallback removes the inserted
+   status event before rethrowing. Non-topology transaction errors are not
+   swallowed.
 4. **Hook Execution**:
     - Engine executes any `phase: 'before'` hooks before writing the new status.
     - It writes the event and entity status snapshot.

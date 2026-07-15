@@ -62,16 +62,21 @@ Command handler and compatibility job metadata for queue nesting.
   non-placeable material zones, not fake movable nesting items.
 
 `buildJobFiles()` is exported for focused coverage of the handoff from queue
-items to worker files. Parametric queue entries must load the cassette template,
-bake it with the entry `parameters`, and pass the baked cassette ID plus baked
-`polygonParts` into `buildNestingWorkerRequest()`. The fetched cassette entity
-is the source of truth for whether an item is parametric; a stale queue item
-`type` must not make an OCCS template skip baking and fall back to a rectangle.
+items to worker files. Parametric queue entries load their saved
+`cassette_design` and compare queued parameters with that design's baked
+parameters. If material selection changed the material-bound `T` parameter or
+any other parameter differs, nesting resolves the source cassette template from
+`provenance.derivedFrom.source`, re-bakes a derived `cassette_design` for the
+effective parameters, and passes that new design id plus baked `polygonParts`
+into `buildNestingWorkerRequest()`. The fetched cassette design is the source
+of truth for whether an item is parametric; a stale queue item `type` must not
+make an OCCS-derived design skip baking and fall back to a rectangle.
 Because `solveNesting` consumes saved queue item references, the command
-contract declares transient read execution grants for cassette templates and
-cassette designs. Process action execution applies those grants only for the
-command run, so generated queue users can run nesting without receiving
-standalone cassette-design list/detail access.
+contract declares transient execution grants for cassette template reads and
+cassette-design creation. Process action execution applies those grants only
+for the command run, so generated queue users can run nesting and let the
+handler derive material-specific designs without receiving standalone
+cassette-design list/detail access.
 The command's queue lifecycle event is optional by workflow capability, not a
 legacy fallback. Domain queues in `DRAFT` still emit `queue.nestingRequested`
 through the status API, while process queues whose active status machine does

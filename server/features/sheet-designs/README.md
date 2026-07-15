@@ -71,6 +71,11 @@ previews.
 Sheet designs also store `data.cassetteDesigns`, a per-layout count of cassette
 design ids placed on that physical sheet. The summary mirrors this as
 `cassetteDesignCount` and `cassettePlacementCount` for compact UI display.
+Current nesting output collapses layouts with the same cassette-design/count
+composition into one sheet design and records the physical multiplicity in
+`data.sheetCount`. The historical composition migration only backfills this
+metadata and missing sheet twins; it does not delete existing sheet-design
+records or their geometry revisions.
 When the parent run used warehouse mode, `data.materialPool` keeps the selected
 stock source context so sheet design cards/details can show which warehouse
 stock was allowed for the generated layout.
@@ -87,8 +92,10 @@ The sheet design stores the current pointer under
 `sheet_designs:write` grant, rebuilds the preview and placement summaries, and
 creates or reuses the geometry revision. `data.nestingParams` preserves the
 solver settings. The editor resolves `toolProfileId` through the public tool
-catalogue and uses the tool diameter as its snap increment; saved solver spacing
-is the fallback for older layouts without a resolvable tool profile.
+catalogue and uses tool kerf as placement clearance. Snapping is neighbor-edge
+magnetism with transformed-polygon clearance checks and complete rotated
+geometry clamping inside the material-sheet boundary; saved solver spacing is
+only a legacy fallback for older layouts without a resolvable tool profile.
 
 GET/list APIs require authenticated lineage context. `queueId`, `projectId`,
 and `runId`/`runIds` query parameters are mapped to `lineage.queueId`,

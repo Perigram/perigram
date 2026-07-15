@@ -34,6 +34,10 @@ material context (`materialMode: WAREHOUSE`, `inventoryItems`, and normalized
 `materialPool`), plus a selected machine and tool profile. The machine supplies
 the working-area preset and boundary offset; the selected material source still
 supplies the actual sheet size/thickness, and the tool profile supplies kerf.
+For parametric queue items, material thickness updates the queued `T` parameter;
+the nesting handler uses the source cassette provenance to create a derived
+`cassette_design` when that parameter snapshot differs from the saved baked
+geometry.
 `solveNesting` and the `nesting.solve` task produce
 `nesting_run` and `sheet_design` entities only. DXF/SVG/PDF files are requested
 later through the artifacts service and `AttachmentKind` contracts, not as

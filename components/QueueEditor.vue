@@ -472,12 +472,7 @@ const canEditQueue = computed(() => {
 const cassetteDesignProducerActions = computed(() => authStore.actionManifest.filter(action => (
     actionOutputContracts(action).some(output => output.entityType === 'cassette_design')
 )));
-const readableDesignSource = computed(() => authStore.hasPermission('cassette_designs', 'read') && (
-    !isProcessMode.value || authStore.screenManifest.some(screen => (
-        screen.entityType === 'cassette_design'
-        || (screen.sources || []).some(source => source.entityType === 'cassette_design')
-    ))
-));
+const readableDesignSource = computed(() => authStore.hasPermission('cassette_designs', 'read'));
 const availableProducers = computed(() => {
     if (isProcessMode.value) {
         return [
@@ -528,7 +523,12 @@ const processRunNestingAction = computed(() => {
 });
 
 function actionOutputContracts(action = {}) {
-    return action.contracts?.outputs || [];
+    return [
+        ...(action.contracts?.outputs || []),
+        ...(action.outputs || []),
+        ...(Array.isArray(action.output?.entities) ? action.output.entities : []),
+        ...(action.output?.entityType ? [{ entityType: action.output.entityType }] : [])
+    ].map(output => typeof output === 'string' ? { entityType: output } : output);
 }
 
 function systemProducer(id) {
