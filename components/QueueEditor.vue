@@ -197,31 +197,27 @@
                     <template #actions>
                         <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
                         <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
-                        <Button
-                            v-if="canAddQueueEntry && producerMenuItems.length"
-                            :label="$t('queues.addEntry')"
-                            icon="pi pi-plus"
-                            text
-                            severity="secondary"
-                            size="small"
-                            @click="event => producerMenu.toggle(event)"
-                        />
                         <Menu ref="producerMenu" :model="producerMenuItems" popup />
                     </template>
                     <div class="flex flex-col gap-6">
                         <ResponsiveGrid v-if="viewMode === 'grid'" variant="wide">
                             <div
                                 v-if="canAddQueueEntry && producerMenuItems.length"
-                                class="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-surface-300 p-6"
+                                class="flex min-h-40 cursor-pointer items-center justify-center rounded-lg border border-dashed border-surface-300 p-6"
                                 data-entity-card-interactive="true"
+                                role="button"
+                                tabindex="0"
+                                :aria-label="$t('queues.addEntry')"
+                                @click="event => producerMenu.toggle(event)"
+                                @keydown.enter.prevent="event => producerMenu.toggle(event)"
+                                @keydown.space.prevent="event => producerMenu.toggle(event)"
                             >
                                 <Button
                                     :label="$t('queues.addEntry')"
                                     icon="pi pi-plus"
-                                    severity="secondary"
-                                    outlined
+                                    severity="primary"
                                     size="small"
-                                    @click="event => producerMenu.toggle(event)"
+                                    @click.stop="event => producerMenu.toggle(event)"
                                 />
                             </div>
                             <template v-for="entry in entries" :key="entry?._key">
