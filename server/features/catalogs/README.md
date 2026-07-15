@@ -15,9 +15,13 @@ Master material definitions provided by Manufacturers.
 ```typescript
 {
   identity: { name },
-  lineage: { organizationId }, // Manufacturer
-  material: String,
-  pricing: { pricePerSqm, currency },
-  options: { sheetThicknesses, foilThicknesses, widths, lengths }
+  lineage: {
+    organization: { entityType: 'organization', entityId } // Manufacturer
+  },
+  data: {
+    material: String,
+    pricing: { pricePerSqm, currency },
+    options: { sheetThicknesses, foilThicknesses, widths, lengths }
+  }
 }
 ```

@@ -17,8 +17,9 @@ Production queue card and detail surface.
   and `summary`.
 - `EntityCard`/`EntityPage` own identity, trace, and status placement.
 - Artifact and consumed material relations render through `EntityInlineRef`.
-- Available material source context is owned by nesting runs; queue cards do not
-  render material availability summaries.
+- Available material source context is snapshotted in each immutable queue
+  nesting revision; queue cards do not render a second material-availability
+  summary from mutable queue data.
 - Running nesting is a queue command action surfaced through page/header
   actions; material selection remains owned by `QueueEditor`.
 - Adding cassette designs is process-driven: the queue editor renders

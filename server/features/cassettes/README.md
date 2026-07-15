@@ -12,7 +12,8 @@ Manages cassette templates (Standard and Parametric) using standardized v24 arch
 - **`identity`**: `{ slug, name, serial, reference }`
 - **`status`**: Current snapshot [StatusBlock].
 - **`origin`**: Creation snapshot [StatusBlock].
-- **`lineage`**: `{ organizationId, libraryId? }`
+- **`lineage`**: role-keyed structured references such as
+  `{ organization, library? }`, each with `{ entityType, entityId, revisionId? }`.
 - **`data.type`**: `PARAMETRIC` | `STANDARD`
 - **`data.definition`**:
     - Parametric templates store either the legacy designer graph
@@ -77,7 +78,7 @@ process-created template therefore opens in `CassetteDesignerV2` with an
 editable OCCS document instead of `data.definition: null`.
 If the graph action has a `library` parent input, process execution passes
 `libraryId` into the typed constructor and the cassette service persists it
-under `lineage.libraryId`. A parent-scoped process action must provide that
+under `lineage.library`. A parent-scoped process action must provide that
 parent id; the process runtime rejects the action before calling this service
 when the compiled parent input is missing. After a library-owned template is
 created, the cassette service synchronizes the parent library summary through
@@ -91,10 +92,10 @@ saved design assets, use the cassette-design export endpoint.
 
 `GET /api/cassettes` is the generated-screen list boundary for cassette
 templates. It must forward lineage filters such as `libraryId` to
-`cassetteService.list()`; the service normalizes them to `lineage.*` repository
+`cassetteService.list()`; the service normalizes them to structured lineage repository
 filters and then applies per-entity access pruning. A library detail child
 region therefore requests `/api/cassettes?libraryId=<library-id>` and receives
-only templates whose `lineage.libraryId` matches that opened library.
+only templates whose `lineage.library.entityId` matches that opened library.
 `listPreviewByLibraries()` is the library-card summary snapshot path used by
 generated screens. Those `summary.cassettePreview[]` entries must include the
 thumbnail-critical cassette fields that `CassetteThumbnail` consumes:
@@ -135,7 +136,7 @@ not the template id.
   helper to backfill old templates.
 
 ### Permission Model
-Access is governed by `lineage.organizationId` and status-scoped process
+Access is governed by `lineage.organization.entityId` and status-scoped process
 grants. Multi-tenant isolation is enforced at the service layer using
 `hasLineagePermission` with the full cassette DTO, not only its lineage block,
 so rules such as `primaryStatus = ACTIVE` apply to both collection and detail
@@ -146,7 +147,7 @@ detail page would return 403. Single-template reads must also pass the full
 cassette entity to the access evaluator; passing only `cassette.lineage` drops
 status data and breaks process grants scoped to statuses such as `CREATED2`.
 Lineage query aliases such as `projectId`, `queueId`, `warehouseId`,
-`libraryId`, and `cassetteId` are normalized to `lineage.*` filters before
+`libraryId`, and `cassetteId` are normalized to `lineage.<role>.entityId` filters before
 repository access.
 This keeps generated or authored screen filters scoped to actual lineage
 fields instead of accidentally matching root-level compatibility fields.

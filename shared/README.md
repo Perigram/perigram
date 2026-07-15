@@ -31,7 +31,7 @@ parent-relative cross-root imports from `shared/` and `test-data/`.
 
 ## Permission Model
 Access uses feature keys such as `projects`, `queues`, `cassettes`,
-`nesting_runs`, `artifacts`, `warehouses`, `catalogs`, `requisitions`,
+`entity_revisions`, `sheet_designs`, `sheet_instances`, `artifacts`, `warehouses`, `catalogs`, `requisitions`,
 `materials`, `layer_standards`, `users`, and `organizations` with levels
 `none`, `read`, `write`, and `admin`.
 
@@ -56,8 +56,9 @@ arrays:
 }
 ```
 
-Scopes are matched against entity lineage (`organizationId`, `projectId`,
-`queueId`, `warehouseId`) or the entity id. Transition scopes match
+Permission-scope aliases (`organizationId`, `projectId`, `queueId`,
+`warehouseId`) are matched against the corresponding structured lineage role's
+`entityId`, or against the entity id where declared. Transition scopes match
 `from->to`, target state, or `{ from, to }`. Workbench test access uses the
 same permission object shape, so fixture ownership and per-run access overrides
 exercise production access code.
@@ -65,10 +66,10 @@ exercise production access code.
 Entity relation access is explicit rather than inherited. A `projects:admin`
 grant does not automatically imply `queues:admin` for child queues; the process
 compiler or caller must emit a separate `queues` grant, optionally scoped with
-`scope.projectId` so it applies only to queues under the intended project
+the permission alias `scope.projectId` so it applies only to queues under the intended project
 branch.
 
-Lineage ID facts such as `lineage.projectId` read directly from the checked
+Lineage ID facts such as `lineage.project.entityId` read directly from the checked
 entity. Lineage entity traits use facts such as
 `lineage.project.status.primary` and `lineage.project.type`; they require the
 caller to supply resolved ancestors through `context.lineageEntities` (for
@@ -85,7 +86,7 @@ after level/action/scope/transition checks:
     level: 'write',
     rule: {
       all: [
-        { fact: 'lineage.projectId', equals: 'project-a' },
+        { fact: 'lineage.project.entityId', equals: 'project-a' },
         { fact: 'status.primary', equals: 'ACTIVE' },
         { not: { fact: 'action', equals: 'delete' } }
       ]

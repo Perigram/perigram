@@ -4,7 +4,9 @@ This directory contains the Nitro server API routes for the Nuxt application. En
 
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
-- `artifacts/`: Entity list/create plus metadata, deletion, and streaming for generated or uploaded files.
+- `artifacts/`: Entity list/create/detail plus deletion and dedicated
+  `/artifacts/:id/content` byte streaming for generated, uploaded, or captured
+  files. Detail always returns a JSON entity DTO.
 - `machines/`: Public system and organization-owned CNC machine work-area settings.
 - `sheet-instances/`: Read APIs for planned physical sheet digital twins created by nesting.
 - `batch/`: Detailed batch operations.
@@ -32,7 +34,7 @@ Routes are grouped into sub-directories corresponding to features:
   worker-result callback.
 - `libraries/`: Authenticated cassette library CRUD. Libraries are
   organization-scoped containers with material data; cassettes created under a
-  library persist `lineage.libraryId`.
+  library persist structured `lineage.library`.
 - `admin/config-bot/`: Admin knowledge reindex route for ConfigBot.
 - `admin/tasks/`: Authenticated task definition and run listing for
   `task_runs`.
@@ -58,7 +60,12 @@ Routes are grouped into sub-directories corresponding to features:
   user-management access contract and support string organization ids.
 - `sheet-designs/`: Lineage-scoped sheet design list/detail, direct DXF export,
   and `PUT /api/sheet-designs/:id` for write-authorized, revision-backed manual
-  placement updates.
+  placement updates. Queue consumers combine `queueId` and `revisionId` so only
+  the selected nesting revision's layouts are returned.
+- `queue/:id/nest` and `queue/:id/choose-revision`: Start a live
+  `nesting.solve` task and explicitly select one successful terminal queue
+  revision. Attempt history is served by `entity-revisions`; there is no
+  nesting-run API.
 - `queue/:id` and `cassette-designs/:id`: Single-entity DELETE routes delegate
   to feature `remove()` services, which enforce admin/delete access. Generated
   process screens use these canonical routes through `useEntity().remove()`
@@ -88,6 +95,10 @@ Routes are grouped into sub-directories corresponding to features:
 ## Conventions
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).
 - **Thin Wrappers:** API handlers should be minimal, delegating all business logic to the corresponding [Server Features](../features/README.md).
+- **Structured references:** Entity DTOs use
+  `lineage.role = { entityType, entityId, revisionId? }` and root `relations`.
+  Friendly collection query aliases such as `projectId` are mapped to the
+  structured repository path; API responses never emit flat lineage aliases.
 ## Authentication
 Most routes require authentication, which is handled by `server/middleware/auth.js`.
 Responsibilities:

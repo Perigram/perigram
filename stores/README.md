@@ -8,7 +8,7 @@ Pinia stores for client state and API orchestration.
   `standard.data.code` / `standard.data.category` with root-field fallbacks only
   for migration compatibility, and pen overrides update `data.orgPenId`.
 - `penTemplates.js`: Loads system and user pen DTOs. System/user grouping is
-  based on `pen.lineage.userId`; stroke rendering data lives under
+  based on `pen.lineage.user.entityId`; stroke rendering data lives under
   `pen.data.stroke`.
 - `batches.js`: Batch list/current batch, nesting actions, status polling.
 - `artifacts.js`: Batch artifacts fetching and cache.
@@ -37,7 +37,7 @@ Pinia stores for client state and API orchestration.
   headers through `fetchProjectContext(slug, fetchOptions)` so protected project
   lookups use the same session cookie as auth middleware. Breadcrumb sibling
   options normalize canonical DTO labels before passing them to PrimeVue Select.
-  When auth includes an active process, hubs and breadcrumbs are built only from
+  When auth includes an active process, hubs are built only from
   the compiled process screen manifest plus the active permission evaluator, so
   a user's app menu follows their compiled process assignment and scoped
   bindings. Generated `/screens/:screenKey` breadcrumbs use
@@ -45,7 +45,9 @@ Pinia stores for client state and API orchestration.
   the same way as generated screen headers. Generated breadcrumb hub matching is
   exact for `/screens/:screenKey` routes, so a home screen does not duplicate
   itself as both hub and current screen and detail screens do not match a hub by
-  string prefix. Static hub/tab lists are used only when no active process is
+  string prefix. Detail breadcrumbs load the current entity and use
+  `utils/entity-hierarchy.js` plus domain containment to resolve parent-first
+  structured lineage, including optional revision links. Static hub/tab lists are used only when no active process is
   present. Organization management breadcrumbs are not generated operational
   screens; they use `hasTenantPermission()` so admins can still reach team
   management and process design while ordinary process roles only see their
@@ -65,16 +67,13 @@ Pinia stores for client state and API orchestration.
   terminal states. Queue nesting completion is emitted as an event object
   (`{ queueId, completedAt }`) rather than a bare queue id so repeated runs for
   the same queue still trigger component watchers and related entity refetches.
-  Queue nesting polling reads lifecycle state through `getPrimaryState()` so it
-  works for both legacy string statuses and v2 process/status-machine blocks.
-  Fetched queue runs are sorted by `data.runNumber` before being written into
-  the store so UI selectors can treat the last run as the newest run.
+  Queue nesting polling reads the queue's Status `nesting` region and refreshes
+  immutable queue `entity_revision` records. Revisions are ordered by
+  `data.number`; only successful revisions may become
+  `status.lifecycle.data.selectedRevisionId`.
   Generated process queue actions that run `solveNesting` must start the same
   queue polling path as `/api/queue/:id/nest`; otherwise the UI will keep the
-  freshly-created run snapshot and miss the asynchronous task completion update.
-  Process-authored run statuses can be applied before the async nesting worker
-  writes `data.results` and `data.sheetDesignOutputs`, so polling treats the latest
-  run as active until it has solver output, even when its primary status is no
-  longer the domain `NESTING` state. Older empty historical runs are ignored
-  when a newer run already has results.
+  live task and miss the asynchronous terminal revision. Selected sheet designs
+  are then loaded with both queue id and revision id; attempts are never merged
+  into one collection view.
 - Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.

@@ -16,6 +16,13 @@ icon-only PrimeVue `Menu` trigger next to that label. The sibling trigger must
 not render the selected item label because the preceding breadcrumb link already
 owns that text.
 
+Generated entity-detail breadcrumbs are hierarchy-aware. The navigation store
+loads the current entity, walks domain containment relations through its
+structured lineage, resolves each readable ancestor, and appends optional
+revision refs before the current entity. It does not repeat the flat generated
+screen list. Non-owning `relations` are intentionally excluded from ownership
+breadcrumbs.
+
 Project queue workspaces use a viewport-bounded main area so scrolling remains
 inside queue lanes and panels rather than the page body.
 

@@ -3,7 +3,9 @@
 Individual physical products cut from material sheets.
 
 ## v24 Architecture
-- **Digital/Physical Bridge**: Lineage traces both the production intent (`queueId`, `designId`) and the physical source (`sheetId`, `pileId`).
+- **Digital/Physical Bridge**: Structured lineage traces both the production
+  intent (`queue` with optional `revisionId`, `cassetteDesign`) and the physical
+  source (`sheet`, `materialPile`).
 - **Identity**: Uses `serial` for physical marking/barcoding and `reference` for project-specific IDs (e.g., "Wall-A-01").
 - **Status**: Governed by `InstanceMachine`. Queue-cut instances are created
   in `CUT` state because the production run acceptance already represents cut
@@ -23,13 +25,15 @@ Individual physical products cut from material sheets.
 5. **Queue Production Output**: `createFromCutSheet()` creates `CUT`
    physical cassette instances for each generated sheet design cassette count.
    For queue-cut output it can receive a non-persisted source sheet descriptor,
-   so instances carry pile, warehouse, queue, run, design, and sheet-design
-   lineage without requiring a saved `sheet` document for an already-cut sheet.
+   so instances carry material-pile, warehouse, revision-qualified queue,
+   cassette-design, and sheet-design lineage without requiring a saved `sheet`
+   document for an already-cut sheet.
 
 ## API Routes
 - `GET /api/cassette-instances`: Lists instances visible to the authenticated
-  user. Supports lineage filters such as `lineage.queueId` and
-  `lineage.warehouseId` for queue and warehouse inventory surfaces.
+  user. Supports public lineage aliases such as `queueId` and `warehouseId`,
+  which map to the structured `lineage.queue.entityId` and
+  `lineage.warehouse.entityId` storage paths.
 - `GET /api/cassette-instances/:id`: Loads a single cassette instance through lineage access checks.
 - `POST /api/cassette-instances/:id/status`: Transitions an instance through the status machine.
 
@@ -38,11 +42,18 @@ Individual physical products cut from material sheets.
 {
   identity: { serial, reference },
   status: StatusBlock,
-  lineage: { organizationId, projectId, queueId, designId, sheetDesignId, runId, sheetId, pileId, warehouseId },
+  lineage: {
+    organization?: EntityReference,
+    project?: EntityReference,
+    queue?: { entityType: 'queue', entityId, revisionId? },
+    cassetteDesign: EntityReference,
+    sheetDesign?: EntityReference,
+    sheet?: EntityReference,
+    materialPile?: EntityReference,
+    warehouse?: EntityReference
+  },
   data: {
-    source?: 'QUEUE_CUT',
-    sheetDesignId?,
-    cassetteDesignId?
+    source?: 'QUEUE_CUT' | 'PROCESS'
   }
 }
 ```

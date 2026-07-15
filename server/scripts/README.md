@@ -28,8 +28,8 @@ node server/scripts/migrate-process-command-output-statuses.js # Apply graph-der
 node server/scripts/migrate-process-mutate-actions.js # Consolidate legacy update/status actions into mutateEntity
 node server/scripts/migrate-process-transition-role-access.js # Remove stale transition permission checks from process-role workflow transitions
 node server/scripts/migrate-queue-job-item-entity-types.js # Backfill queue job item entityType/id contract
-node server/scripts/migrate-nesting-sheet-outputs.js # Group legacy sheet outputs and create planned instances
-node server/scripts/repair-nesting-run-completions.js # Complete runs that already have solver results but were blocked by missing process system intents
+node server/scripts/migrate-structured-entity-references.js # Dry-run structured refs and queue-revision migration
+node server/scripts/migrate-structured-entity-references.js --apply # Apply the reviewed one-shot migration
 ```
 
 ## What Gets Created
@@ -97,9 +97,9 @@ To reset system data:
 ```bash
 # In MongoDB shell
 use cutkit;
-db.layer_standards.deleteMany({ "lineage.userId": null });
-db.pen_templates.deleteMany({ "lineage.userId": null });
-db.tool_profiles.deleteMany({ "lineage.userId": null });
+db.layer_standards.deleteMany({ "lineage.user.entityId": null });
+db.pen_templates.deleteMany({ "lineage.user.entityId": null });
+db.tool_profiles.deleteMany({ "lineage.user.entityId": null });
 
 # Then re-run seed script
 node server/scripts/seed-all.js
@@ -205,17 +205,14 @@ definitions created with the former split update/status node types. It converts
 both kinds to `mutateEntity`, retaining selected field sockets and an optional
 target status.
 
-Use `server/scripts/migrate-nesting-sheet-outputs.js` after adopting grouped
-nesting outputs. It converts legacy `data.sheetDesignIds` into
-`data.sheetDesignOutputs` and creates one planned
-`sheet_instance` per historical output occurrence. Existing design hashes are
-preserved; otherwise the migration assigns a stable legacy output key.
-
-Use `server/scripts/repair-nesting-run-completions.js` after fixing process
-workflow resolution for domain system intents. It finds `nesting_run` records
-that are still in `NESTING` but already have solver `data.results` and
-sheet output data, then writes the normal `COMPLETE` status snapshot and
-status event without calling the nesting worker or recreating sheet designs.
+Use `server/scripts/migrate-structured-entity-references.js` once when adopting
+the structured reference contract. Dry-run is the default; pass `--apply` only
+after reviewing its collection counts. The migration replaces every legacy
+`lineage.*Id`/`*RevisionId` pair with `{ entityType, entityId, revisionId? }`,
+normalizes root `relations`, converts legacy nesting runs into immutable queue
+`entity_revision` records, moves queue nesting selection into the Status
+lifecycle, rewrites process `lineageKey` declarations, and retires the
+`nesting_runs` collection. Runtime code intentionally has no dual-read fallback.
 
 ## Entity Revision Migration
 
@@ -223,7 +220,7 @@ status event without calling the nesting worker or recreating sheet designs.
 `entity_revisions` records for every cassette template's current geometry scope
 and writes `data.revisions.geometry` pointers back to the templates. It also
 backfills `cassette_design.data.derivedFrom` when a design has
-`lineage.templateId` but no recorded source revision. Backfilled design
+`lineage.cassette` reference but no recorded source revision. Backfilled design
 provenance is marked with `migration.inferred: true` because historical designs
 created before revision tracking cannot prove which old template geometry state
 was used.

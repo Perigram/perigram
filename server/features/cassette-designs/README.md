@@ -13,7 +13,9 @@ Aligned with `@PROPOSED_DATA_MODEL.md` Section 5:
 - **`identity`**: `{ name, slug, serial, reference }`
 - **`origin`**: Creation snapshot [StatusBlock].
 - **`status`**: Current snapshot [StatusBlock] (Used for design approval lifecycle).
-- **`lineage`**: `{ organizationId, projectId, queueId, templateId? }`
+- **`lineage`**: role-keyed structured references such as
+  `{ organization, project, queue, cassette? }`; each value is
+  `{ entityType, entityId, revisionId? }`.
 - **`geometry`**: 
     - `data`: Object (Baked SVG/Polygons)
     - `dxfId`: ObjectId (Reference to GridFS `cassettes` bucket)
@@ -47,7 +49,7 @@ Aligned with `@PROPOSED_DATA_MODEL.md` Section 5:
   `polygonParts` before using `data.geometry.dxfId` from the `cassettes` GridFS
   bucket. This keeps exported designs aligned with stored semantic OCCS layers
   and lets older preview-only records export a DXF. If a template id is passed,
-  the service resolves the first design with `lineage.templateId` for standard
+  the service resolves the first design with `lineage.cassette.entityId` for standard
   upload/base-design flows.
 - `GET /api/cassette-designs/by-template/:id` remains a convenience lookup for
   standard templates that need their initial design.
@@ -74,9 +76,10 @@ creation path and assigns a generated `cassette-design-*` uid so the persisted
 entity id is stable and distinct from the human-readable design name.
 
 ### Relationship to Templates
-Every design optionally references its parent `templateId` via lineage. This
+Every design optionally references its parent cassette template through
+`lineage.cassette`. This
 allows tracing a production design back to its parametric or standard source.
-`lineage.templateId` remains the ancestry/access link. `data.derivedFrom` is
+`lineage.cassette` remains the ancestry/access link. `data.derivedFrom` is
 the reproducible source revision link and must be used when exact geometry
 provenance matters.
 `CassetteDesignCard` resolves that template and renders a compact embedded

@@ -6,7 +6,8 @@ The Nesting Worker is a Python-based HTTP service responsible for executing the 
 - `worker_service.py`: FastAPI application entry point.
 - `core/nesting_input_builder.py`: Prepares geometry and parameters for the nesting engine.
 - `worker_service.py` is the only runtime entry point. The old polling entry
-  point was removed; task/job orchestration belongs to the app.
+  point and direct Mongo/GridFS result writer were removed; task execution,
+  immutable queue revisions, artifacts, and sheet outputs belong to the app.
 
 ## Nesting Engine
 The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesting library written in Rust.
@@ -64,8 +65,8 @@ docker build -t nesting-worker:local -f workers/nesting/Dockerfile .
 # Run container
 docker run --rm -it nesting-worker:local
 
-# With host network (for local MongoDB)
-docker run --network host -it -v "$(pwd):/app" -w /app nesting-worker:local bash
+# Open an interactive shell against the pure HTTP worker image
+docker run --rm -it -v "$(pwd):/app" -w /app nesting-worker:local bash
 ```
 
 The Dockerfile expects the project root as build context so it can copy

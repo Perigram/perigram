@@ -13,11 +13,11 @@ reusable cassette templates that share material context.
 ## Data Structure
 
 - `identity`: library name and slug.
-- `lineage.organizationId`: owning organization.
+- `lineage.organization`: structured owning-organization reference.
 - `data.material`: material descriptor or material reference payload.
 - `data.description`: optional operator-facing description.
 - `summary.cassetteCount`: aggregate count of `cassette` children with matching
-  `lineage.libraryId`.
+  `lineage.library.entityId`.
 
 ## Relation Contract
 
@@ -26,7 +26,7 @@ that creates a `cassette` with a `library` parent emits `libraryId` in the
 create payload. The process runtime rejects parent-scoped create actions when
 the current screen or action payload does not provide the required library id,
 so a library-owned cassette cannot silently become a root cassette. The
-cassette service persists that parent as `lineage.libraryId` and synchronizes
+cassette service persists that parent as `lineage.library` and synchronizes
 `summary.cassetteCount` through the domain summary contract:
 `cassette -> library` via `libraryId`.
 

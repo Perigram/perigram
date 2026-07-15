@@ -12,7 +12,9 @@ Collection: `remnants`
 
 Key fields:
 - `identity`: Standard identity block with generated remnant number/name
-- `lineage`: Includes source `sheetId` or storage `warehouseId` plus inherited organization/project context
+- `lineage`: Includes structured source `sheet` or storage `warehouse`
+  references plus inherited organization/project context; a queue reference can
+  carry the exact nesting `revisionId`.
 - `status`: Standard status block (`AVAILABLE`, `USED`, etc.)
 - `data.geometry`: Geometry payload for future nesting reuse
 - `data.attachment`: Optional DXF attachment descriptor
@@ -53,7 +55,7 @@ Key fields:
    - Calculate area for each polygon
    - Create remnant records with geometry
    - Mark as reusable if area ≥ 0.1 m²
-2. When a completed nesting run is chosen for production:
+2. When a production flow consumes a selected queue nesting revision:
    - The selected sheet layout is converted into remnant geometry: the material
      sheet is the outer polygon, and placed cassette `cut.outer` polygons are
      stored as holes.

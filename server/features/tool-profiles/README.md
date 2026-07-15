@@ -12,7 +12,7 @@ Collection: `tool_profiles`
 
 Key fields:
 - `identity.name`: Display name.
-- `lineage.userId`: `null` for system tools, string user ID for user-owned tools.
+- `lineage.user`: absent for system tools; a structured user reference for user-owned tools.
 - `data.diameter`: Positive numeric tool diameter.
 - `data.angle`: Numeric angle; defaults to `0`.
 - `data.kerf`: Cut width; defaults to `diameter`.
@@ -29,7 +29,7 @@ Key fields:
 
 ## Access
 
-System tools use `lineage.userId: null` and are marked public-read with
+System tools omit `lineage.user` and are marked public-read with
 `lineage.scope: "system"`, `lineage.public: true`, and
 `data.visibility.public: true`. The shared access engine reads that marker
 directly, so users do not need material grants just to view system tools.

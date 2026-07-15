@@ -19,9 +19,9 @@ The system consists of three main parts: the transition engine, the dynamic hook
   validation, hooks, and audit events.
   Runtime resolution keeps domain-owned system intent transitions available
   when a process workflow overrides an entity lifecycle. Service-owned flows
-  such as `nesting_run` solver completion still need their hidden
-  `NESTING -> COMPLETE` / `NESTING -> ERROR` intents even when the user-facing
-  process adds custom statuses.
+  such as queue nesting still need their hidden parallel-region completion,
+  failure, and revision-selection intents even when the user-facing process
+  adds custom primary statuses.
   Process-authored user transitions are authorized by their compiled
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the
@@ -80,7 +80,7 @@ Uploaded proof files are persisted on the entity `attachments` block and
 referenced from `status.lifecycle.attachments`, so the current entity owns file
 metadata while `status_events.status.lifecycle` preserves which file proved the
 transition. Snapshot declarations are generic: a state can name a target entity
-type and lineage key, such as `cassette_design` by `queueId`; the status
+type and lineage role, such as `cassette_design` by `queue`; the status
 runtime captures readable entity refs/counts into
 `status.lifecycle.data.snapshots` during the transition.
 

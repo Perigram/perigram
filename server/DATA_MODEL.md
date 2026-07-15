@@ -12,10 +12,12 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.metadata` | String | metadata field |
 | `data.type` | String | type field |
+| `lineage.organization` | EntityReference | Structured organization reference |
+| `lineage.queue` | EntityReference | Structured queue reference |
 
 ### cassette_designs
 *Cassette-designs - manages cassette designs*
@@ -25,13 +27,14 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.derivedFrom` | String | derived from field |
 | `data.geometry` | String | geometry field |
 | `data.layerData` | String | layer data field |
 | `data.parameters` | Array | parameters field |
 | `data.polygonParts` | Array | polygon parts field |
+| `lineage.cassette` | EntityReference | Structured cassette reference |
 
 ### cassette_instances
 *Cassette-instances - manages cassette instances*
@@ -41,11 +44,12 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `data.cassetteDesignId` | String | cassette design id field |
-| `data.sheetDesignId` | String | sheet design id field |
 | `data.source` | String | source field |
+| `lineage.cassetteDesign` | EntityReference | Structured cassette design reference |
+| `lineage.organization` | EntityReference | Structured organization reference |
+| `lineage.queue` | EntityReference | Structured queue reference |
 
 ### cassettes
 *Cassettes - manages cassettes*
@@ -55,7 +59,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.definition` | String | definition field |
 | `data.geometry` | String | geometry field |
@@ -67,6 +71,9 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.templateId` | String | template id field |
 | `data.type` | String | type field |
 | `data.userId` | String | user id field |
+| `lineage.cassette` | EntityReference | Structured cassette reference |
+| `lineage.library` | EntityReference | Structured library reference |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### catalogs
 *Catalogs - manages catalogs*
@@ -76,12 +83,12 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.material` | String | material field |
 | `data.options` | Array | options field |
 | `data.pricing` | String | pricing field |
-| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### collection_name
 *_template - manages collection name*
@@ -91,9 +98,10 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.customField` | String | custom field field |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### colors
 *Colors - manages colors*
@@ -103,7 +111,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.code` | String | code field |
 | `data.visuals` | Array | visuals field |
@@ -116,16 +124,18 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.contentHash` | String | content hash field |
 | `data.entityId` | String | entity id field |
 | `data.entityType` | String | entity type field |
 | `data.number` | String | number field |
+| `data.outcome` | String | outcome field |
 | `data.reason` | String | reason field |
 | `data.scope` | String | scope field |
 | `data.snapshot` | String | snapshot field |
 | `data.sourceStatus` | Array | source status field |
+| `data.taskRunId` | String | task run id field |
 
 ### geometry_captures
 *Geometry-captures - manages geometry captures*
@@ -135,7 +145,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.activeRevisionId` | String | active revision id field |
 | `data.calibration` | String | calibration field |
@@ -154,7 +164,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 
 ### layer_standards
@@ -165,7 +175,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.aliases` | Array | aliases field |
 | `data.allowedGeometry` | String | allowed geometry field |
@@ -182,6 +192,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.production` | String | production field |
 | `data.purpose` | String | purpose field |
 | `data.source` | String | source field |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### libraries
 *Libraries - manages libraries*
@@ -191,10 +202,26 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.description` | String | description field |
 | `data.material` | String | material field |
+| `lineage.organization` | EntityReference | Structured organization reference |
+
+### machines
+*Machines - manages machines*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.boundaryOffset` | String | boundary offset field |
+| `data.default` | String | default field |
+| `data.workArea` | String | work area field |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### material_options
 *Material-options - manages material options*
@@ -204,7 +231,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 
 ### material_piles
@@ -215,7 +242,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.color` | String | color field |
 | `data.material` | String | material field |
@@ -223,6 +250,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.specs` | Array | specs field |
 | `data.stock` | String | stock field |
 | `data.stockMovements` | Array | stock movements field |
+| `lineage.warehouse` | EntityReference | Structured warehouse reference |
 
 ### materials
 *Materials - manages materials*
@@ -232,25 +260,11 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.code` | String | code field |
 | `data.description` | String | description field |
-
-### nesting_runs
-*Nesting-runs - manages nesting runs*
-
-| Field | Type | Description |
-|---|---|---|
-| `identity` | Object | Standard Identity Block (uid, name) |
-| `origin` | Object | Standard Origin Block (creation state) |
-| `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
-| `attachments` | Object | Standard Attachments Block (files) |
-| `data.artifactIds` | Array | artifact ids field |
-| `data.layoutData` | String | layout data field |
-| `data.note` | String | note field |
-| `data.results` | Array | results field |
+| `data.thickness` | String | thickness field |
 
 ### organizations
 *Organizations - manages organizations*
@@ -260,7 +274,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.address` | String | address field |
 | `data.email` | String | email field |
@@ -268,6 +282,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.processTemplateId` | String | process template id field |
 | `data.settings` | Array | settings field |
 | `data.type` | String | type field |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### pen_templates
 *Pen-templates - manages pen templates*
@@ -277,10 +292,10 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.stroke` | String | stroke field |
-| `lineage.userId` | ObjectId \| string | Lineage link to userId |
+| `lineage.user` | EntityReference | Structured user reference |
 
 ### process_definitions
 *Process-definitions - manages process definitions*
@@ -290,7 +305,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.activeProcessDefinitionId` | String | active process definition id field |
 | `data.assignments` | Array | assignments field |
@@ -303,7 +318,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.services` | Array | services field |
 | `data.sockets` | Array | sockets field |
 | `data.sourceTemplateId` | String | source template id field |
-| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### profile_templates
 *Profile-templates - manages profile templates*
@@ -313,10 +328,10 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
-| `lineage.userId` | ObjectId \| string | Lineage link to userId |
+| `lineage.organization` | EntityReference | Structured organization reference |
+| `lineage.user` | EntityReference | Structured user reference |
 
 ### projects
 *Projects - manages projects*
@@ -326,9 +341,9 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### queues
 *Queues - manages queues*
@@ -338,18 +353,15 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.job` | String | job field |
-| `data.materialSource` | String | material source field |
 | `data.nestingSettings` | Array | nesting settings field |
-| `data.queueId` | String | queue id field |
 | `data.queueNumber` | String | queue number field |
-| `data.runId` | String | run id field |
-| `data.sheetDesignId` | String | sheet design id field |
-| `data.source` | String | source field |
-| `data.specs` | Array | specs field |
-| `data.virtualSource` | String | virtual source field |
+| `data.selectedRevisionId` | String | selected revision id field |
+| `lineage.organization` | EntityReference | Structured organization reference |
+| `lineage.project` | EntityReference | Structured project reference |
+| `lineage.queue` | EntityReference | Structured queue reference |
 
 ### remnants
 *Remnants - manages remnants*
@@ -359,7 +371,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.attachment` | String | attachment field |
 | `data.geometry` | String | geometry field |
@@ -367,6 +379,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.serial` | String | serial field |
 | `data.source` | String | source field |
 | `data.specs` | Array | specs field |
+| `lineage.warehouse` | EntityReference | Structured warehouse reference |
 
 ### requisitions
 *Requisitions - manages requisitions*
@@ -376,16 +389,14 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.currency` | String | currency field |
 | `data.items` | Array | items field |
 | `data.notes` | Array | notes field |
 | `data.requisitionNumber` | String | requisition number field |
 | `data.totalPrice` | String | total price field |
-| `lineage.manufacturerId` | ObjectId \| string | Lineage link to manufacturerId |
-| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
-| `lineage.projectId` | ObjectId \| string | Lineage link to projectId |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### sessions
 *Sessions - manages sessions*
@@ -395,7 +406,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 
 ### sheet_designs
@@ -406,14 +417,31 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.cassetteDesigns` | Array | cassette designs field |
 | `data.geometry` | String | geometry field |
+| `data.layoutHash` | String | layout hash field |
 | `data.materialPool` | String | material pool field |
 | `data.nestingParams` | Array | nesting params field |
 | `data.revisions` | Array | revisions field |
 | `data.specs` | Array | specs field |
+| `lineage.project` | EntityReference | Structured project reference |
+| `lineage.queue` | EntityReference | Structured queue reference |
+
+### sheet_instances
+*Sheet-instances - manages sheet instances*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.layoutHash` | String | layout hash field |
+| `data.physicalSheetId` | String | physical sheet id field |
+| `data.sequence` | String | sequence field |
 
 ### sheets
 *Sheets - manages sheets*
@@ -423,14 +451,11 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `data.materialSource` | String | material source field |
-| `data.queueId` | String | queue id field |
-| `data.runId` | String | run id field |
 | `data.serial` | String | serial field |
-| `data.source` | String | source field |
 | `data.specs` | Array | specs field |
+| `lineage.queue` | EntityReference | Structured queue reference |
 
 ### status_events
 *Statuses - manages status events*
@@ -440,7 +465,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.note` | String | note field |
 
@@ -452,7 +477,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.geometry` | String | geometry field |
 
@@ -464,13 +489,13 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.angle` | String | angle field |
 | `data.description` | String | description field |
 | `data.diameter` | String | diameter field |
 | `data.kerf` | String | kerf field |
-| `lineage.userId` | ObjectId \| string | Lineage link to userId |
+| `lineage.user` | EntityReference | Structured user reference |
 
 ### users
 *Users - manages users*
@@ -480,7 +505,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.email` | String | email field |
 | `data.isActive` | String | is active field |
@@ -488,7 +513,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.passwordHash` | String | password hash field |
 | `data.permissions` | Array | permissions field |
 | `data.role` | String | role field |
-| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### warehouses
 *Warehouses - manages warehouses*
@@ -498,12 +523,13 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.address` | String | address field |
 | `data.contactPerson` | String | contact person field |
 | `data.stats` | Array | stats field |
 | `data.type` | String | type field |
+| `lineage.organization` | EntityReference | Structured organization reference |
 
 ### workflow_overrides
 *Workflow-overrides - manages workflow overrides*
@@ -513,7 +539,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `identity` | Object | Standard Identity Block (uid, name) |
 | `origin` | Object | Standard Origin Block (creation state) |
 | `status` | Object | Standard Status Block (current state) |
-| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `lineage` | Object | Standard Lineage Block (structured ancestor references) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
+| `lineage.organization` | EntityReference | Structured organization reference |
 

@@ -6,7 +6,7 @@ Cards for base `cassette` DTOs from the `cassettes` collection.
 
 - `CassetteCard.vue` renders inline, compact, and card variants through shared
   `EntityCard` chrome. It shows cassette identity/status, the nearest lineage
-  parent from `lineage.libraryId`, and a data-type-aware cassette thumbnail;
+  parent from structured `lineage.library`, and a data-type-aware cassette thumbnail;
   exact parameter values belong to baked cassette designs, not template/source
   cassette cards.
 
@@ -20,7 +20,7 @@ Cards for base `cassette` DTOs from the `cassettes` collection.
 - Template parameter names and defaults remain part of the cassette definition
   and constructor flow. Cards do not summarize them as a count because a source
   cassette does not represent one exact materialized size.
-- Parent library context belongs in `lineage.libraryId` and is rendered by the
+- Parent library context belongs in `lineage.library` and is rendered by the
   shared trace chrome, not as a duplicate body relation row.
 - Shows `data.revisions.geometry.currentId` as the current geometry revision via
   `EntityInlineRef` when the backend revision pointer is present.
