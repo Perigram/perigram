@@ -610,3 +610,25 @@
     Validation:
     - =npx vitest run server/features/process-definitions/process-definitions.spec.js=
       passed: 1 file, 23 tests.
+
+*** [2026-07-15] Generated queue producer default-template UI repair
+
+    Playwright against the generated queue detail showed that =Add Entry= was
+    visible and the manifest-generated =Create cassette design= option was
+    present, but the action dialog kept =Add= disabled when the process role
+    could not list cassette templates. The server-side
+    =bakeCassetteDesignFromTemplate= action already supports resolving the
+    default constructable cassette template, so the UI was stricter than the
+    process action contract.
+
+    Corrective implementation:
+    - In process mode, QueueEditor now omits an empty/unreadable
+      =templateId= selector for =bakeCassetteDesignFromTemplate= producers and
+      treats that field as satisfied, allowing the server action to resolve the
+      default template.
+    - When no template-specific parameter list is visible, QueueEditor still
+      sends current material thickness as =T= so material-bound generated
+      designs receive the queue nesting thickness.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
