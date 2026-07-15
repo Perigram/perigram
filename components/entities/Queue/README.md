@@ -52,6 +52,10 @@ Production queue card and detail surface.
   current screen/region action ids and must expose a current
   `contracts.outputs[]` entry for `cassette_design`. QueueEditor does not scan
   unrelated user-manifest actions or accept legacy output shapes.
+  Generated regions pass the union of region-level and screen-level action ids
+  into queue details, because contextual producer actions may be compiled on
+  the queue detail screen even when the main queue region has its own direct
+  action list.
 - Queue card summary labels describe `data.job.items` as "Items to Nest"
   (`Позиции раскроя`), meaning cassette/design quantities entering the nesting
   job, not commercial order lines.
