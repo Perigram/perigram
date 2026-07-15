@@ -142,9 +142,11 @@ Status-mutating `updateEntity` actions go through the status runtime with the
 connected entity patch attached to the status mutation. Non-status
 `updateEntity` actions are not executed through a generic service signature:
 after loading the target through its owning feature service and checking write
-access, the runtime rejects the action unless that feature provides an explicit
-process-update handler. Process definitions do not run generic Mongo
-collection writes for business entities.
+access, the runtime delegates the flattened canonical block patch to the
+feature's explicit `processUpdate()` handler. That handler persists the
+allowed `identity`, `data`, `specs`, `summary`, `attachments`, and `relations`
+paths through the owning feature repository/model boundary; process
+definitions do not run generic Mongo collection writes for business entities.
 Process create, update, status-mutating update, and command-output status
 mutations publish typed invalidation events through
 `server/features/entity-events` after their canonical mutation succeeds.

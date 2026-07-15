@@ -16,6 +16,7 @@ import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
 import { SYSTEM_DEFAULT_MACHINE_ID } from '../machines/service.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 
 /**
  * Queues Service - v24 Absolute Final
@@ -275,6 +276,12 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   const updatedRaw = await repository.findById(uid);
   return serializeForAccess('queue', new Queue(updatedRaw), userPermissions);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'queue',
+  repository,
+  Model: Queue
+});
 
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   const queue = await repository.findById(uid);

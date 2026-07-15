@@ -69,6 +69,54 @@ describe('sheet layout editor helpers', () => {
     expect(snapped).toMatchObject({ x: 33, y: 40, snapped: true });
   });
 
+  it('snaps transformed polygon edges one kerf apart on angled contours', () => {
+    const items = [{ id: 1, shape: { data: [[0, 0], [30, 30], [20, 40], [-10, 10]] } }];
+    const placements = [
+      { item_id: 1, transformation: { rotation: 0, translation: [40, 20] } },
+      { item_id: 1, transformation: { rotation: 0, translation: [62, 20] } }
+    ];
+    const snapped = magneticSheetPlacement({
+      items,
+      placements,
+      index: 1,
+      x: 64,
+      y: 18,
+      sheetWidth: 200,
+      sheetHeight: 120,
+      clearance: 5,
+      threshold: 20
+    });
+    expect(snapped.snapped).toBe(true);
+    expect(placementHasClearance({
+      items,
+      placements,
+      placement: { item_id: 1, transformation: { rotation: 0, translation: [snapped.x, snapped.y] } },
+      index: 1,
+      clearance: 5
+    })).toBe(true);
+  });
+
+  it('clamps placements into a non-rectangular usable sheet polygon', () => {
+    const item = { shape: { data: [[0, 0], [20, 0], [20, 20], [0, 20]] } };
+    const sheetPolygon = [[0, 0], [100, 0], [100, 50], [50, 100], [0, 50]];
+    const clamped = clampSheetPlacement({
+      x: 80,
+      y: 80,
+      item,
+      sheetWidth: 100,
+      sheetHeight: 100,
+      sheetPolygon
+    });
+    expect(clamped.x).toBeLessThan(80);
+    expect(clamped.y).toBeLessThan(80);
+    expect(placementHasClearance({
+      items: [{ id: 1, ...item }],
+      placements: [{ item_id: 1, transformation: { rotation: 0, translation: [clamped.x, clamped.y] } }],
+      placement: { item_id: 1, transformation: { rotation: 0, translation: [clamped.x, clamped.y] } },
+      index: 0
+    })).toBe(true);
+  });
+
   it('checks transformed polygon clearance instead of rejecting all overlapping bounds', () => {
     const items = [
       { id: 'l', shape: { data: [[0, 0], [30, 0], [30, 10], [10, 10], [10, 30], [0, 30]] } },

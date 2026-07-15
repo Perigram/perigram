@@ -94,11 +94,13 @@ The sheet design stores the current pointer under
 `sheet_designs:write` grant, rebuilds the preview and placement summaries, and
 creates or reuses the geometry revision. `data.nestingParams` preserves the
 solver settings. The editor resolves `toolProfileId` through the public tool
-catalogue and uses tool kerf as placement clearance. Snapping uses
-axis-aligned neighbor bounds plus transformed-polygon clearance checks and
-rectangular rotated-geometry clamping inside the visible sheet bounds; saved
-solver spacing is only a legacy fallback for older layouts without a resolvable
-tool profile.
+catalogue and uses tool kerf as placement clearance. Snapping generates
+magnetic candidates from transformed cassette production-contour edges, checks
+transformed polygon clearance before accepting a placement, clamps complete
+rotated geometry to the stored usable sheet polygon when present, and falls
+back to rectangular visible sheet bounds for virtual rectangle sheets. Saved
+solver spacing is only a legacy fallback for older layouts without a
+resolvable tool profile.
 
 GET/list APIs require authenticated lineage context. `queueId`, `projectId`,
 and `runId`/`runIds` query parameters are mapped to `lineage.queueId`,
