@@ -26,12 +26,17 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   the v2 structured status shape. Supports `--dry-run`.
 - `server/scripts/migrate-structured-entity-references.js`: One-shot contract
   replacement for entity references and nesting attempts. It converts flat
-  lineage ids to `{ entityType, entityId, revisionId? }`, normalizes root
-  relations, migrates legacy nesting-run records to terminal queue revisions,
-  rebuilds the queue nesting Status region/pointers, updates output lineage,
-  removes the retired collection, and rewrites stored process `lineageKey`
-  metadata to `lineageRole`. The default is dry-run; pass `--apply` only after
-  reviewing the counts and any missing run-to-queue mapping errors.
+  lineage ids to `{ entityType, entityId, revisionId? }`, canonicalizes old
+  role aliases such as `template`, `originalCassette`, `design`, `pile`, and
+  `sheet_design`, normalizes root relations, coalesces legacy nesting-run
+  records with matching nesting jobs,
+  recovers job-only attempts and dangling output references as terminal queue
+  revisions, rebuilds the queue nesting Status region/pointers, updates output
+  lineage, removes the retired collections, and rewrites stored process
+  `lineageKey` metadata to `lineageRole`. Unresolved source records become
+  deterministic failed revisions so their output provenance remains typed;
+  missing or conflicting queue ownership still stops the migration. The default
+  is dry-run; pass `--apply` only after reviewing the counts.
 - `server/scripts/migrate-process-command-output-statuses.js`: Active-process
   data migration for command outputs. It reads graph edges from `runCommand`
   action nodes into downstream status-targeting `mutateEntity` nodes, builds proper process
