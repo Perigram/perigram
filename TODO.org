@@ -492,7 +492,11 @@
       stale compiled user action manifests without =contracts.outputs=.
       Auth hydration now recompiles that active process runtime in memory from
       the semantic process source, so QueueEditor still receives strict current
-      action contracts without accepting legacy output shapes in the UI.
+      action contracts without accepting legacy output shapes in the UI. If the
+      semantic source still contains legacy =changeStatus= actions, hydration
+      first applies the existing =changeStatus= to =updateEntity= migration in
+      memory before compiling; the stored migration scripts remain the durable
+      cleanup path.
     - Saved queue item rows now hydrate missing referenced =cassette_design=
       DTOs through the canonical detail endpoint and let =EntityInlineRef=
       fetch when the row does not already have the design object. This fixes
@@ -502,3 +506,6 @@
     - =npx vitest run server/features/process-definitions/runtime.spec.js utils/queue-producers.spec.js utils/queue-items.spec.js= passed: 3 files, 9 tests.
     - Vue SFC parse check for =components/QueueEditor.vue= and
       =components/entities/Queue/QueueEntryCard.vue= passed.
+    - Follow-up log review found the app was still 500ing on legacy
+      =changeStatus= semantic actions during auth hydration. The runtime fix
+      was validated with =npx vitest run server/features/process-definitions/runtime.spec.js server/scripts/migrate-process-update-actions.spec.js= and =node scripts/check-arch.js=.
