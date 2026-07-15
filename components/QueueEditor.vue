@@ -461,11 +461,11 @@ const canEditQueue = computed(() => {
 });
 const cassetteDesignProducerActions = computed(() => props.processActions.filter(action => actionProducesEntityType(action, 'cassette_design')));
 const readableDesignSource = computed(() => authStore.hasPermission('cassette_designs', 'read'));
-const canAddQueueEntry = computed(() => canEditQueue.value || (isProcessMode.value && cassetteDesignProducerActions.value.length > 0));
+const canAddQueueEntry = computed(() => canEditQueue.value || (isProcessMode.value && (readableDesignSource.value || cassetteDesignProducerActions.value.length > 0)));
 const availableProducers = computed(() => {
     if (isProcessMode.value) {
         return [
-            ...(canEditQueue.value && readableDesignSource.value ? [systemProducer('selectExistingCassetteDesign')] : []),
+            ...(readableDesignSource.value ? [systemProducer('selectExistingCassetteDesign')] : []),
             ...cassetteDesignProducerActions.value.map(action => ({
                 id: action.actionId || action.id,
                 actionId: action.actionId || action.id,
@@ -636,6 +636,12 @@ async function executeSelectedProducer() {
         let produced;
         if (selectedProducer.value.kind === 'entitySource') {
             produced = cassetteDesigns.value.find(design => design._id?.toString() === producerValues.value.designId?.toString());
+            if (isProcessMode.value) {
+                if (!produced) throw new Error(t('queues.invalidCassetteEntry'));
+                await appendExistingDesignInProcessMode(produced);
+                showAddDialog.value = false;
+                return;
+            }
         } else if (selectedProducer.value.actionId) {
             const data = producerData();
             const request = buildProducerActionRequest({
@@ -681,6 +687,18 @@ async function executeSelectedProducer() {
     } finally {
         producerExecuting.value = false;
     }
+}
+
+async function appendExistingDesignInProcessMode(design) {
+    await $fetch(`/api/process-definitions/active/queues/${encodeURIComponent(props.queue._id || props.queue.identity?.uid)}/items`, {
+        method: 'POST',
+        body: {
+            designId: design._id,
+            quantity: producerQuantity.value
+        }
+    });
+    await loadQueueData();
+    emit('updated');
 }
 
 async function resolveProducedDesign(result) {

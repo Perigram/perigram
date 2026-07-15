@@ -8,6 +8,8 @@ import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
+import * as cassetteDesignsService from '~/server/features/cassette-designs/service.js';
+import * as queuesService from '~/server/features/queues/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import * as entityEventService from '~/server/features/entity-events/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -389,6 +391,50 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
 }
 
+export async function appendExistingCassetteDesignToActiveQueue({ queueId, designId, quantity = 1 } = {}, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  if (!queueId) throw createError({ statusCode: 400, message: 'Queue id is required' });
+  if (!designId) throw createError({ statusCode: 400, message: 'Cassette design id is required' });
+  const raw = await repository.findActiveByOrganization(organizationId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
+
+  const queue = await queuesService.getById(queueId, auth.userId, organizationId, auth.role, auth);
+  if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+  assertEntityAccess({
+    entity: queue,
+    entityType: 'queue',
+    feature: resolveEntityFeature('queue'),
+    level: 'read',
+    action: 'view',
+    auth
+  });
+
+  const design = await cassetteDesignsService.getById(designId, auth.userId, auth.role, auth);
+  if (!design) throw createError({ statusCode: 404, message: 'Cassette design not found' });
+  assertEntityAccess({
+    entity: design,
+    entityType: 'cassette_design',
+    feature: resolveEntityFeature('cassette_design'),
+    level: 'read',
+    action: 'view',
+    auth
+  });
+
+  const appendAuth = createQueueAppendExecutionAuth(auth, {
+    actionKind: 'updateEntity',
+    entityType: 'queue',
+    access: { level: 'write' }
+  });
+
+  return await appendCassetteDesignItemToQueue({
+    queue,
+    design,
+    quantity,
+    auth: appendAuth,
+    appendReason: 'process-existing-design-append'
+  });
+}
+
 function createActionPayload(action = {}, data = {}, entities = {}, parentContext = null) {
   const payload = { ...(data || {}) };
   if (action.parentEntityType) {
@@ -425,35 +471,43 @@ async function appendProducedCassetteDesignToQueue({ action = {}, data = {}, ent
   const queueId = entityInputId(entities.queue);
   if (!queueId) throw createError({ statusCode: 400, message: 'Queue context is required to append produced cassette design' });
 
-  const designId = entityInputId(design);
-  if (!designId) throw createError({ statusCode: 500, message: 'Produced cassette design has no id' });
-
-  const queueService = getAppRegistry().getEntityService('queue');
-  if (!queueService?.getById || !queueService?.processUpdate) {
-    throw createError({ statusCode: 500, message: 'Queue service cannot persist process queue items' });
-  }
-
   const appendAuth = createQueueAppendExecutionAuth(auth, action);
-  const queueResult = await queueService.getById(queueId, auth.userId, auth.organizationId, auth.role, appendAuth);
-  const queue = queueResult?.toJSON ? queueResult.toJSON() : queueResult;
+  const queue = await queuesService.getById(queueId, auth.userId, auth.organizationId, auth.role, appendAuth);
   if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
 
   const append = data.queueAppend && typeof data.queueAppend === 'object' ? data.queueAppend : {};
+  return await appendCassetteDesignItemToQueue({
+    queue,
+    design,
+    quantity: append.quantity,
+    parameters: append.parameters,
+    type: append.type,
+    auth: appendAuth,
+    appendReason: 'process-queue-append'
+  });
+}
+
+async function appendCassetteDesignItemToQueue({ queue = null, design = null, quantity = 1, parameters = null, type = '', auth = {}, appendReason = 'process-queue-append' } = {}) {
+  const queueId = entityInputId(queue);
+  const designId = entityInputId(design);
+  if (!queueId) throw createError({ statusCode: 500, message: 'Queue has no id' });
+  if (!designId) throw createError({ statusCode: 500, message: 'Cassette design has no id' });
+
   const existingItems = Array.isArray(queue.data?.job?.items) ? queue.data.job.items : [];
   const item = {
-    type: append.type || (Object.prototype.hasOwnProperty.call(design.data?.parameters || {}, 'T') ? 'PARAMETRIC' : 'STATIC'),
+    type: type || (Object.prototype.hasOwnProperty.call(design.data?.parameters || {}, 'T') ? 'PARAMETRIC' : 'STATIC'),
     entityType: 'cassette_design',
     id: designId,
-    quantity: Math.max(1, Number(append.quantity || 1)),
-    parameters: append.parameters && typeof append.parameters === 'object'
-      ? append.parameters
+    quantity: Math.max(1, Number(quantity || 1)),
+    parameters: parameters && typeof parameters === 'object'
+      ? parameters
       : { ...(design.data?.parameters || {}) }
   };
 
-  const updated = await queueService.processUpdate(queueId, {
+  const updated = await queuesService.processUpdate(queueId, {
     'data.job.items': [...existingItems, item]
-  }, appendAuth);
-  await publishActionEntityEvent(auth, 'queue', updated || { _id: queueId }, 'updated', 'process-queue-append');
+  }, auth);
+  await publishActionEntityEvent(auth, 'queue', updated || { _id: queueId }, 'updated', appendReason);
   return updated;
 }
 
