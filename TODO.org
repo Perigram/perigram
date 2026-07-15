@@ -87,6 +87,26 @@
     - No revision means follow the entity; a revision means reproduce the
       relationship against that exact immutable snapshot.
 
+*** Review feedback: keep relations and provenance separate (blocking)
+
+    - =relations= and =provenance= must be separate canonical blocks. Relations
+      describe current non-owning associations that may be traversed or edited,
+      while provenance records immutable derivation evidence needed to
+      reproduce or audit how an entity was produced.
+    - Do not migrate derivation records such as cassette-design
+      =derivedFrom= data into =relations=. Provenance may reuse the canonical
+      entity-reference value shape, including an optional revision ID, but it
+      retains derivation facts such as scope, parameters, and content hash and
+      is not an ordinary related-entity edge.
+    - Neither relations nor provenance affect containment, access ancestry,
+      top-level placement, or breadcrumbs. =lineage= remains the cumulative map
+      of ancestor entity IDs only; a revision pin must not be stored as a
+      =lineage.*RevisionId= access field.
+    - Define one shared entity-reference shape for relations, provenance, and
+      runtime results before implementation. Do not introduce a second
+      incompatible ={ entityType, entityId }= shape beside the current core
+      ={ type, id }= contract.
+
 *** Machine, tool, material, and queue settings
 
     - Add a =machine= entity with public system records and organization-owned
