@@ -88,9 +88,9 @@ Defines a specific nesting job, bridging the digital production intent with phys
   queue update/action.
   Material selection may update the queued `parameters.T` value for parametric
   items. The queue service persists that intended parameter snapshot only;
-  nesting is responsible for re-baking the source template into a derived
-  cassette design before worker execution when the queued parameters differ
-  from the saved design geometry.
+  nesting is responsible for evaluating the source template into request-local
+  worker geometry when the queued parameters differ from the saved design
+  geometry. That evaluation does not persist a new cassette design or DXF.
   Queue editor parameter and quantity changes use this same update boundary but
   do not request a generated-screen source refresh for each input value. The
   editor's local canonical rows remain visible until another entity change is

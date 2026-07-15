@@ -116,15 +116,15 @@ be present in the user's compiled action manifest, then the command executes
 with a temporary grant on the action's input entity feature so the command
 runtime can enforce its normal domain access contract. Domain command
 definitions may also declare `access.executionGrants` for records the handler
-must read or derive while executing the command but that should not become
+must read while executing the command but that should not become
 ordinary user list/detail access. For example, a manual `solveNesting` action
 on a queue can run from a generated queue detail only when that action id is
 present in the user's compiled action manifest for the opened queue entity. The
-action gets transient cassette read access and cassette-design create access
-required by the command handler to re-bake material-bound parametric queue
-entries, while queue job edits still require the separate `queues:write` entity
-grant. A queue write grant alone does not expose the command action, and a
-command action grant does not expose queue mutation controls.
+action gets transient cassette and cassette-design read access required by the
+command handler to evaluate material-bound parametric queue entries, while
+queue job edits still require the separate `queues:write` entity grant. A queue
+write grant alone does not expose the command action, and a command action
+grant does not expose queue mutation controls.
 When a synchronous run-command action returns entity refs and the visual graph
 wires a typed output handle into a downstream status-mutating `updateEntity`
 node, execution applies that target process status to each returned entity
@@ -138,12 +138,13 @@ records. The migration script
 `server/scripts/migrate-process-command-output-statuses.js` applies the same
 graph-derived status projection to existing active-process command outputs; it
 must not hardcode status names.
-Non-status `updateEntity` actions delegate their patch through the owning
-feature service's `update()` method after loading the target through that same
-feature service and checking feature write access. Status-mutating
-`updateEntity` actions go through the status runtime with the connected entity
-patch attached to the status mutation. Process definitions do not run generic
-Mongo collection writes for business entities.
+Status-mutating `updateEntity` actions go through the status runtime with the
+connected entity patch attached to the status mutation. Non-status
+`updateEntity` actions are not executed through a generic service signature:
+after loading the target through its owning feature service and checking write
+access, the runtime rejects the action unless that feature provides an explicit
+process-update handler. Process definitions do not run generic Mongo
+collection writes for business entities.
 Process create, update, status-mutating update, and command-output status
 mutations publish typed invalidation events through
 `server/features/entity-events` after their canonical mutation succeeds.

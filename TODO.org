@@ -261,9 +261,9 @@
     - Execute combined mutations through the status runtime boundary: resolve
       graph values, validate field policy/access/relation/transition contracts,
       persist allowed field changes plus the Status-engine snapshot/history in
-      one Mongo transaction when topology supports it, and use ordered
-      compensated writes on standalone Mongo. Status is never patched as
-      ordinary entity data.
+      one Mongo transaction. Reject combined mutations when the Mongo topology
+      cannot provide that transaction; do not fall back to partial ordered
+      writes. Status is never patched as ordinary entity data.
     - Repair block algebra so entity decomposition emits every canonical block,
       field readers consume one typed block, block composers assemble typed
       block patches, and update actions assemble the final entity patch from
@@ -349,8 +349,8 @@
     - Migrated status actions retain access, workflow, display, and evidence
       semantics.
     - Only connected fields change; validation failures leave entity and status
-      history unchanged, and standalone write failures compensate inserted
-      status events before surfacing the error.
+      history unchanged, and combined mutations require Mongo transaction
+      support before any status history/entity patch write is accepted.
     - Decompose/read/compose/update port combinations round-trip and reject
       incompatible connections.
     - =T= evaluates in OCCS templates/designs and changes with selected material
@@ -399,28 +399,56 @@
       metadata, reports duplicate compositions, and creates missing sheet twins
       without deleting historical designs, revisions, or references.
     - Parametric queue items whose queued parameters differ from saved baked
-      geometry are re-baked from the source cassette provenance during nesting,
-      including material-bound =T= changes.
+      geometry are evaluated from the source cassette provenance during nesting,
+      including material-bound =T= changes, without persisting duplicate
+      cassette designs or DXFs.
     - Process-definition runtime no longer performs generic collection reads or
       writes for business entities. Parent context is passed to owning feature
       create services, and non-status updates delegate to owning feature
       =update()= methods.
-    - Combined status/entity mutations use transactions when available and
-      ordered compensated writes on standalone Mongo topology.
+    - Combined status/entity mutations require Mongo transactions; standalone
+      Mongo rejects those combined mutations instead of using partial ordered
+      writes.
     - Machine contracts include required origin/status blocks, and public
       canonical block docs include relations/provenance.
     - Queue composition UI exposes existing cassette designs by real
-      =cassette_designs:read= permission and accepts process producers from
-      current and legacy compiled output shapes.
-    - Sheet-editor snapping uses neighbor-edge magnetism, kerf clearance,
-      transformed-polygon overlap checks, and full rotated-boundary clamping.
+      =cassette_designs:read= permission and accepts process producers only
+      from current =contracts.outputs= compiled output contracts.
+    - Sheet-editor snapping uses axis-aligned neighbor bounds, kerf clearance,
+      transformed-polygon overlap checks, and rectangular rotated-boundary
+      clamping.
+
+    Validation report superseded:
+    - Follow-up review found the claimed framework/package validation was not
+      reproducible. Treat the validation list from this note as invalidated;
+      see the subsequent repair note for the corrected validation record.
+
+*** [2026-07-15] Follow-up repair after review findings
+
+    Corrective implementation scope:
+    - Kept composition-based sheet-design collapse as the locked requirement
+      and corrected nesting/sheet-design docs that still described one design
+      per physical layout.
+    - Replaced persistent parametric nesting re-bake with request-local source
+      cassette evaluation, so material-bound =T= changes update worker geometry
+      without creating duplicate =cassette_design= rows or GridFS DXFs.
+    - Restored =solveNesting= execution grants to cassette/cassette-design read
+      access only.
+    - Removed QueueEditor's legacy output-shape fallback; process producers now
+      require current =contracts.outputs=.
+    - Removed the invalid generic non-status feature-service update call.
+      Non-status process updates now fail unless an owning feature
+      process-update handler is introduced.
+    - Removed standalone Mongo fallback for combined status/entity patches.
+      Combined mutations require transactions and fail before partial writes
+      when topology cannot provide them.
+    - Downgraded sheet-editor snapping documentation to the implemented
+      behavior: axis-aligned neighbor bounds, kerf clearance,
+      transformed-polygon overlap checks, and rectangular boundary clamping.
 
     Validation run:
-    - =npx vitest run server/features/nesting/operations.spec.js server/features/process-definitions/process-definitions.spec.js server/core/machines/service.spec.js server/scripts/migrate-sheet-design-compositions.spec.js utils/sheetLayoutEditor.spec.js shared/framework-packages.spec.js shared/design-system.spec.js= passed: 7 files, 123 tests.
-    - =npx vitest run server/features/process-definitions/runtime.spec.js= passed: 1 file, 3 tests.
-    - =npx vitest run server/features/queues/queues.spec.js server/features/cassettes/cassettes.spec.js server/features/cassette-designs/service.spec.js= passed: 3 files, 32 tests.
-    - =npx vitest run utils/occs/evaluate.spec.js utils/occs/parameters.spec.js server/features/parametric-cassettes/service.spec.js= passed: 3 files, 6 tests.
-    - =node scripts/check-arch.js= passed with the existing non-blocking migration inventory.
+    - =npx vitest run server/features/nesting/operations.spec.js server/features/process-definitions/process-definitions.spec.js server/core/machines/service.spec.js server/scripts/migrate-sheet-design-compositions.spec.js utils/sheetLayoutEditor.spec.js shared/framework-packages.spec.js shared/design-system.spec.js utils/occs/evaluate.spec.js utils/occs/parameters.spec.js server/features/parametric-cassettes/service.spec.js= passed: 10 files, 128 tests.
     - =npm run framework:write-manifest= regenerated =framework.manifest.json=; =npm run framework:manifest= and =npm run framework:validate= passed.
+    - =node scripts/check-arch.js= passed with the existing non-blocking migration inventory.
     - Changed Vue SFC parse check for =components/QueueEditor.vue= passed.
     - =git diff --check= passed.
