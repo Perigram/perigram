@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  actionProducesEntityType,
   buildProducerActionRequest,
   producerFieldsForAction,
   templatesAvailableToProject
@@ -56,6 +57,21 @@ describe('queue producer helpers', () => {
       },
       parameters: { A: 200, T: 18 }
     });
+  });
+
+  it('accepts only current compiled output contracts for producer actions', () => {
+    expect(actionProducesEntityType({
+      contracts: {
+        outputs: [
+          { id: 'created', entityType: 'cassette_design' },
+          'artifact'
+        ]
+      }
+    }, 'cassette_design')).toBe(true);
+
+    expect(actionProducesEntityType({
+      outputs: [{ entityType: 'cassette_design' }]
+    }, 'cassette_design')).toBe(false);
   });
 
   it('shows root templates and templates from linked libraries only', () => {

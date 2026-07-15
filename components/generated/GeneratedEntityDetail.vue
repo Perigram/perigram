@@ -11,7 +11,7 @@
       v-if="entityType === 'queue'"
       :queue="entity"
       :screen-key="screenKey"
-      :process-actions="resolvedActions"
+      :process-actions="queueDetailActions"
       @refresh="$emit('refresh')"
     />
     <SheetDesignEditor
@@ -56,6 +56,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
+import { actionProducesEntityType } from '~/utils/queue-producers.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
@@ -81,6 +82,13 @@ const resolvedActions = computed(() => resolveGeneratedEntityActions({
   entityType: props.entityType,
   excludedActionIds: props.excludedActions
 }));
+const screenScopedActions = computed(() => props.actions
+  .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+  .filter(Boolean));
+const queueProducerActions = computed(() => props.entityType === 'queue'
+  ? screenScopedActions.value.filter(action => actionProducesEntityType(action, 'cassette_design'))
+  : []);
+const queueDetailActions = computed(() => uniqueActions([...resolvedActions.value, ...queueProducerActions.value]));
 const headerActionIds = computed(() => resolvedActions.value
   .filter(isGeneratedSurfaceAction)
   .filter(action => !(props.entityType === 'queue' && action.actionKind === 'runCommand' && action.commandId === 'solveNesting'))
@@ -98,4 +106,11 @@ const canEditSheetDesign = computed(() => hasPermissionGrant({
   entity: props.entity,
   entityType: 'sheet_design'
 }));
+
+function uniqueActions(actions = []) {
+  return Array.from(new Map(actions
+    .filter(Boolean)
+    .map(action => [action.actionId || action.id, action])
+  ).values());
+}
 </script>
