@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import * as warehouseService from '../warehouses/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createSpecs, createStatus, Lineage } from '~/server/core/blocks/index.js';
+import { createSpecs, createStatus } from '~/server/core/blocks/index.js';
 import { MaterialPile } from './model.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
@@ -25,12 +25,13 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 400, message: 'quantity must be non-negative' });
   }
 
-  const lineage = new Lineage()
-    .add('organization', userOrg)
-    .add('warehouse', warehouseId)
-    .add('catalog', catalogId)
-    .add('color', colorId)
-    .add('requisition', data.requisitionId);
+  const lineage = {
+    organizationId: userOrg,
+    warehouseId: toFlexibleId(warehouseId),
+    catalogId: toFlexibleId(catalogId),
+    colorId: toFlexibleId(colorId),
+    requisitionId: data.requisitionId || null
+  };
 
   if (!hasLineagePermission(userPermissions, lineage, 'materials', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
@@ -147,8 +148,8 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   await repository.updateById(uid, pile);
   const nextTotal = Number(pile.data?.stock?.total || 0);
   const totalDelta = nextTotal - previousTotal;
-  if (totalDelta !== 0 && pile.lineage?.warehouse?.entityId) {
-    await warehouseService.updateInventoryCounts(pile.lineage.warehouse.entityId, { totalSheets: totalDelta });
+  if (totalDelta !== 0 && pile.lineage?.warehouseId) {
+    await warehouseService.updateInventoryCounts(pile.lineage.warehouseId, { totalSheets: totalDelta });
   }
   const updatedRaw = await repository.findById(uid);
   return new MaterialPile(updatedRaw).toJSON();
@@ -181,8 +182,8 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
   const stock = pileRaw.data?.stock || {};
   const remainingSheets = Math.max(Number(stock.total || 0) - Number(stock.used || 0), 0);
   const result = await repository.deleteById(id);
-  if (pileRaw.lineage?.warehouse?.entityId) {
-    await warehouseService.updateInventoryCounts(pileRaw.lineage.warehouse.entityId, {
+  if (pileRaw.lineage?.warehouseId) {
+    await warehouseService.updateInventoryCounts(pileRaw.lineage.warehouseId, {
       totalBatches: -1,
       totalSheets: -remainingSheets
     });
@@ -209,8 +210,8 @@ export async function allocate(uid, count, userId, userRole, meta = {}) {
   });
 
   await repository.updateById(uid, pile);
-  if (pile.lineage?.warehouse?.entityId) {
-    await warehouseService.updateInventoryCounts(pile.lineage.warehouse.entityId, { totalSheets: -allocationCount });
+  if (pile.lineage?.warehouseId) {
+    await warehouseService.updateInventoryCounts(pile.lineage.warehouseId, { totalSheets: -allocationCount });
   }
   
   if (pile.data.stock.used >= pile.data.stock.total) {
@@ -268,6 +269,7 @@ function appendStockMovement(pile, movement = {}) {
         userId: movement.userId,
         note: movement.note,
         queueId: movement.queueId,
+        runId: movement.runId,
         pileId: movement.pileId,
         stock: {
           total: Number(stock.total || 0),

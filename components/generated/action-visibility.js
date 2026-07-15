@@ -30,7 +30,7 @@ export function resolveGeneratedEntityActions({
 }
 
 export function isGeneratedSurfaceAction(action = {}) {
-  return action?.actionKind !== 'mutateEntity' || !action?.status?.to;
+  return action?.actionKind !== 'changeStatus';
 }
 
 export function parentBoundCreateAppliesToEntityType(action = {}, entityType = '') {

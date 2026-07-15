@@ -66,7 +66,7 @@ describe('UI Permission Matrix', () => {
                     level: 'write',
                     rule: {
                         all: [
-                            { fact: 'lineage.project.entityId', equals: 'project-a' },
+                            { fact: 'lineage.projectId', equals: 'project-a' },
                             { fact: 'status.primary', equals: 'ACTIVE' }
                         ]
                     }
@@ -77,14 +77,14 @@ describe('UI Permission Matrix', () => {
                 feature: 'projects',
                 level: 'write',
                 entityType: 'project',
-                entity: { lineage: { project: { entityType: 'project', entityId: 'project-a' } }, status: { state: { primary: 'ACTIVE' } } }
+                entity: { lineage: { projectId: 'project-a' }, status: { state: { primary: 'ACTIVE' } } }
             })).toBe(true);
             expect(hasPermissionGrant({
                 permissions,
                 feature: 'projects',
                 level: 'write',
                 entityType: 'project',
-                entity: { lineage: { project: { entityType: 'project', entityId: 'project-b' } }, status: { state: { primary: 'ACTIVE' } } }
+                entity: { lineage: { projectId: 'project-b' }, status: { state: { primary: 'ACTIVE' } } }
             })).toBe(false);
         });
 
@@ -117,10 +117,7 @@ describe('UI Permission Matrix', () => {
                     }
                 }
             };
-            const queue = {
-                lineage: { project: { entityType: 'project', entityId: 'project-a' } },
-                status: { state: { primary: 'READY' } }
-            };
+            const queue = { lineage: { projectId: 'project-a' }, status: { state: { primary: 'READY' } } };
             expect(hasPermissionGrant({
                 permissions,
                 feature: 'queues',

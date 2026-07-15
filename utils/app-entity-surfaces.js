@@ -3,11 +3,13 @@ export const appEntityDisplayExtensions = {
     project: {
       workspace: [
         { path: 'data.address', i18n: 'project.address', display: 'text', priority: 5 },
-        { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', priority: 10 }
+        { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', priority: 10 },
+        { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²', display: 'area', priority: 20 }
       ],
       detailFacts: [
         { path: 'data.address', i18n: 'project.address', display: 'text', priority: 10 },
         { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', priority: 20 },
+        { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²', display: 'area', priority: 30 },
         { path: 'origin.timestamp', i18n: 'common.created', display: 'date', priority: 40 }
       ]
     },
@@ -27,7 +29,7 @@ export const appEntityDisplayExtensions = {
       surfaces: {
         workspace: {
           preview: 'none',
-          fieldGroups: ['workspace', 'relations'],
+          fieldGroups: ['workspace'],
           dataDisplay: 'compact',
           relations: 'summary',
           actions: 'toolbar',
@@ -36,7 +38,7 @@ export const appEntityDisplayExtensions = {
         },
         detail: {
           preview: 'none',
-          fieldGroups: ['detailFacts', 'relations'],
+          fieldGroups: ['detailFacts'],
           dataDisplay: 'sectioned',
           relations: 'expanded',
           actions: 'toolbar',

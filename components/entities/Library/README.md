@@ -17,7 +17,7 @@ Cards for `library` DTOs from the `libraries` collection.
   `attachments`, `data`, and `summary`.
 - Uses `data.material`, `data.description`, `summary.cassetteCount`, and
   `summary.cassettePreview`.
-- Cassettes created with a library parent persist `lineage.library`; summary
+- Cassettes created with a library parent persist `lineage.libraryId`; summary
   sync treats those cassettes as children of the library.
 - Trace links to libraries resolve through generated entity-detail screens when
   an active process grants the user a matching library detail surface. They

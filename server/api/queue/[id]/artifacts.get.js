@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const id = event.context.params.id;
   
   const query = getQuery(event);
-  const revisionId = query.revisionId;
+  const runId = query.runId;
   
   const artifacts = await queuesService.getArtifacts(
     id, 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     auth.organizationId,
     auth.role,
     auth,
-    revisionId
+    runId
   );
   return serializeManyForAccess('artifact', artifacts, auth);
 });

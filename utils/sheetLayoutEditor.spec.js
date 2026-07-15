@@ -2,11 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   cassetteDesignSheetItem,
   clampSheetPlacement,
-  rotateSheetPlacement90,
   sheetItemBounds,
   sheetLayoutState,
   sheetPlacementTransform,
-  snapSheetPlacementToNeighbors,
   snapSheetCoordinate
 } from './sheetLayoutEditor.js';
 
@@ -27,7 +25,7 @@ describe('sheet layout editor helpers', () => {
       .toEqual({ x: 10, y: 20, rotation: 90 });
   });
 
-  it('keeps the complete rotated cassette inside the sheet boundary', () => {
+  it('keeps the complete rotated cassette inside the sheet on the snap grid', () => {
     const item = {
       shape: { data: [[0, 0], [40, 0], [40, 20], [0, 20], [0, 0]] }
     };
@@ -45,34 +43,6 @@ describe('sheet layout editor helpers', () => {
       sheetHeight: 100,
       snap: 5
     })).toEqual({ x: 20, y: 60 });
-  });
-
-  it('snaps cassette edges to neighboring cassettes with the tool gap', () => {
-    const item = { shape: { data: [[0, 0], [20, 0], [20, 10], [0, 10], [0, 0]] } };
-    const snapped = snapSheetPlacementToNeighbors({
-      x: 26,
-      y: 0,
-      item,
-      placements: [
-        { item_id: 'moving', transformation: { translation: [26, 0], rotation: 0 } },
-        { item_id: 'fixed', transformation: { translation: [0, 0], rotation: 0 } }
-      ],
-      items: [{ ...item, id: 'moving' }, { ...item, id: 'fixed' }],
-      currentIndex: 0,
-      gap: 5
-    });
-    expect(snapped).toMatchObject({ x: 25, y: 0, snappedX: true });
-  });
-
-  it('rotates placements by exactly 90 degrees', () => {
-    const initial = {
-      transformation: { translation: [10, 20], rotation: 0 }
-    };
-    const first = rotateSheetPlacement90(initial);
-    const fullTurn = Array.from({ length: 3 }).reduce(rotateSheetPlacement90, first);
-
-    expect(sheetPlacementTransform(first)).toEqual({ x: 10, y: 20, rotation: 90 });
-    expect(sheetPlacementTransform(fullTurn)).toEqual({ x: 10, y: 20, rotation: 0 });
   });
 
   it('creates a nesting source item from uploaded cassette geometry', () => {

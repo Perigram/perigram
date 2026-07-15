@@ -27,13 +27,8 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `machines`, `materials`, `material-piles`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheet-instances`, `sheets`, `tool-profiles`, `users`, `warehouses` |
+| Entity modules | `artifacts`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
 | Capability modules | `billing`, `config-bot`, `entity-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
-
-The `results` capability composes each queue with its explicitly selected
-nesting `entity_revision` and revision-qualified artifacts. It does not expose a
-latest-run fallback. Nesting task recovery belongs to `task_runs`; plugins do
-not poll or reset a parallel `nesting_jobs` lifecycle.
 
 ---
 
@@ -85,28 +80,27 @@ services must not self-register through hidden globals.
 
 | Module | Entity | Key lineage fields |
 |---|---|---|
-| `projects` | Root production container | `organization` |
-| `queues` | Production job plus Status-owned nesting lifecycle | `organization`, optional `project` |
-| `sheets` | Physical inventory sheet | `organization`, `warehouse`, optional production ancestry |
+| `projects` | Root production container | `organizationId` |
+| `queues` | Nesting job / batch | `organizationId`, `projectId` |
+| `sheets` | Physical sheet or digital design | `organizationId`, `projectId`, `queueId` |
 | `materials` | Base material catalog record | — |
-| `material-piles` | Inventory batch | `organization`, `warehouse` |
-| `machines` | CNC work area and boundary offsets | `organization`, or public system scope |
+| `material-piles` | Inventory batch | `organizationId`, `warehouseId` |
 | `entity-revisions` | Immutable scoped content snapshots | mirrors source lineage plus source entity id |
-| `geometry-captures` | Photo-derived draft geometry captures | `organization`, plus `warehouse` for remnants or `project` for facades |
-| `layer-standards` | Drawing layer contract | `organization` when overridden or system scope |
-| `libraries` | Material-scoped cassette template library | `organization` |
-| `cassette-designs` | Baked cassette design | inherited typed lineage |
-| `cassette-instances` | Manufactured part digital twin | revision-capable queue/design/sheet lineage |
-| `sheet-instances` | Planned physical sheet twin | queue revision plus revision-qualified `sheetDesign` lineage |
-| `remnants` | Leftover material | structured warehouse/sheet and production ancestry |
-| `requisitions` | Procurement workflow | `organization`, optional `project`; manufacturer is a non-owning relation |
+| `geometry-captures` | Photo-derived draft geometry captures | `organizationId`, plus `warehouseId` for remnants or `projectId` for facades |
+| `layer-standards` | Drawing layer contract | `organizationId` when overridden or scoped |
+| `libraries` | Material-scoped cassette template library | `organizationId` |
+| `cassette-designs` | Master CAD template | `organizationId` |
+| `cassette-instances` | Manufactured part (digital twin) | `organizationId`, `projectId`, `queueId`, `cassetteDesignId` |
+| `nesting-runs` | Nesting engine output | `organizationId`, `projectId`, `queueId` |
+| `remnants` | Leftover material | `organizationId`, `projectId`, `queueId` |
+| `requisitions` | Procurement workflow | `organizationId`, `projectId` |
 | `artifacts` | DXF/SVG/PDF files | mirrors parent lineage |
 | `organizations` | Tenant root | — |
 | `users` | User accounts | `organizationId` (via memberships) |
 | `warehouses` | Material storage locations | `organizationId` |
 | `catalogs` | Material specifications | `organizationId` |
 | `pen-templates` | Drawing pen/stroke template | `organizationId` or `userId` |
-| `process-definitions` | Organization process graph and compiled runtime contract | `organization` |
+| `process-definitions` | Organization process graph and compiled runtime contract | `organizationId` |
 | `profile-templates` | Reusable OCCS profile sketches for cassette hangers/extrusions | `organizationId` or `userId` |
 | `tool-profiles` | Milling tool parameters | `organizationId` or `userId` |
 
@@ -120,9 +114,6 @@ services must not self-register through hidden globals.
 - **toJSON() rules**: spread `super.toJSON()`; do not re-emit `name`, `slug`, `serial`, `reference`
 - **data vs identity**: `serial` and `reference` live in `identity` only; feature-specific state goes in `data`
 - **summary**: computed aggregates (counts, totals) — always a separate field, never mixed into `data`
-- **references**: ownership lives only in structured `lineage`; non-owning
-  typed refs live only in root `relations`. Do not duplicate either relationship
-  as `data.*Id`.
 - **entity synchronization**: successful mutations that should update other
   open sessions publish typed invalidation events through
   `server/features/entity-events`; do not create per-feature polling loops when

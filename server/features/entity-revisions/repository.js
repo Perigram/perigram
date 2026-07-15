@@ -7,7 +7,7 @@ export async function create(data) {
   const db = await connectDB();
   const doc = {
     ...data,
-    _id: data._id || data.identity?.uid
+    _id: data.identity?.uid || data._id
   };
   await db.collection(COLLECTION).insertOne(doc);
   return doc;
@@ -32,7 +32,7 @@ export async function findByHash(entityType, entityId, scope, contentHash) {
   const db = await connectDB();
   return await db.collection(COLLECTION).findOne({
     'data.entityType': entityType,
-    'data.entityId': String(entityId),
+    'data.entityId': toFlexibleId(entityId),
     'data.scope': scope,
     'data.contentHash': contentHash
   });
@@ -43,22 +43,12 @@ export async function findLatest(entityType, entityId, scope) {
   return await db.collection(COLLECTION)
     .find({
       'data.entityType': entityType,
-      'data.entityId': String(entityId),
+      'data.entityId': toFlexibleId(entityId),
       'data.scope': scope
     })
     .sort({ 'data.number': -1, _id: -1 })
     .limit(1)
     .next();
-}
-
-export async function findByTaskRun(entityType, entityId, scope, taskRunId) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({
-    'data.entityType': entityType,
-    'data.entityId': String(entityId),
-    'data.scope': scope,
-    'data.taskRunId': String(taskRunId)
-  });
 }
 
 export async function ensureIndexes() {
@@ -80,18 +70,5 @@ export async function ensureIndexes() {
       'data.number': -1
     },
     { name: 'entity_revision_latest' }
-  );
-  await db.collection(COLLECTION).createIndex(
-    {
-      'data.entityType': 1,
-      'data.entityId': 1,
-      'data.scope': 1,
-      'data.taskRunId': 1
-    },
-    {
-      unique: true,
-      partialFilterExpression: { 'data.taskRunId': { $type: 'string' } },
-      name: 'entity_revision_task_run'
-    }
   );
 }

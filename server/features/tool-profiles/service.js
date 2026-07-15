@@ -3,7 +3,7 @@
  */
 
 import * as repository from './repository.js';
-import { createIdentity, createStatus, createData, Lineage } from '../../core/blocks/index.js';
+import { createIdentity, createStatus, createData } from '../../core/blocks/index.js';
 import { createError } from 'h3';
 import { ToolProfile } from './model.js';
 import { markPublicSystemData } from '#shared/public-entities.js';
@@ -19,7 +19,7 @@ export async function getById(id, userId = null) {
     throw createError({ statusCode: 404, message: 'Tool profile not found' });
   }
   // Check ownership if not system tool
-  const toolOwnerId = tool.lineage?.user?.entityId;
+  const toolOwnerId = tool.lineage?.userId;
   if (toolOwnerId && userId && toolOwnerId.toString() !== userId.toString()) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
@@ -50,7 +50,9 @@ export async function create(data, userId) {
     identity: createIdentity(data.name),
     origin,
     status: origin,
-    lineage: userId ? new Lineage().add('user', userId) : {},
+    lineage: {
+      userId: userId ? userId : null
+    },
     data: createData({
       diameter: diameter,
       angle: isNaN(angle) ? 0 : angle,
@@ -66,7 +68,7 @@ export async function create(data, userId) {
 export async function update(id, updates, userId) {
   const tool = await repository.findById(id);
   if (!tool) throw createError({ statusCode: 404, message: 'Tool not found' });
-  if (!tool.lineage?.user?.entityId) {
+  if (!tool.lineage?.userId) {
     throw createError({ statusCode: 403, message: 'System tools cannot be modified' });
   }
   
@@ -87,7 +89,7 @@ export async function update(id, updates, userId) {
 
 export async function remove(id, userId) {
   const tool = await getById(id, userId);
-  if (!tool.lineage?.user?.entityId) {
+  if (!tool.lineage?.userId) {
     throw createError({ statusCode: 403, message: 'System tools cannot be deleted' });
   }
   await repository.deleteById(id);

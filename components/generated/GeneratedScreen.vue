@@ -152,12 +152,6 @@
             display="chip"
             class="w-full"
           />
-          <AttachmentInput
-            v-else-if="field.type === 'attachment'"
-            v-model="promptValues[field.id]"
-            :accept="field.accept || '*/*'"
-            :capture="field.capture === true"
-          />
           <InputText
             v-else
             v-model="promptValues[field.id]"
@@ -179,7 +173,6 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
-import AttachmentInput from '~/components/shared/AttachmentInput.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
@@ -241,7 +234,7 @@ async function executeAction(action, entity = null, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    if (['createEntity', 'mutateEntity', 'runCommand'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
+    if (['createEntity', 'updateEntity'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
       await openInputDialog(action, entity, context);
       return;
     }
@@ -298,20 +291,13 @@ async function postAction(action, entity = null, data = {}, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    const result = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
+    await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
       method: 'POST',
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
-        entities: {
-          ...actionEntities(action, entity, context),
-          ...promptEntityInputs(action, data)
-        },
+        entities: actionEntities(action, entity, context),
         data,
-        parameters: context?.parameters || data?.parameters || {},
-        context: {
-          screenKey: context?.screenKey || screen.value.screenKey || screen.value.id,
-          regionId: context?.regionId || null
-        }
+        parameters: context?.parameters || data?.parameters || {}
       }
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
@@ -319,17 +305,6 @@ async function postAction(action, entity = null, data = {}, context = {}) {
   } catch (err) {
     showActionError(err);
   }
-}
-
-function promptEntityInputs(action = {}, data = {}) {
-  return Object.fromEntries((action.inputs || [])
-    .filter(input => input.entityType)
-    .map(input => [input.id || input.name || input.entityType, getByPath(data, input.path || input.id)])
-    .filter(([, value]) => value));
-}
-
-function getByPath(source = {}, path = '') {
-  return String(path).split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
 }
 
 function actionEntities(action = {}, entity = null, context = {}) {
@@ -404,7 +379,6 @@ function contextWithSelectedParent(context = {}) {
 
 function initialPromptValue(field = {}) {
   if (field.type === 'entityList') return Array.isArray(field.default) ? field.default : [];
-  if (field.type === 'attachment') return field.default || null;
   if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
   const value = field.default ?? '';
   if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);

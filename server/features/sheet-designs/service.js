@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import * as nestingRunsRepository from '../nesting-runs/repository.js';
 import { createError } from 'h3';
 import {
   createStatus,
@@ -10,6 +11,7 @@ import { createTransitionAuth, statusService } from '../../core/machines/service
 import { mapLineageQuery } from '../../utils/query.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '../../utils/objectid.js';
 import { SheetDesign } from './model.js';
 import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
 import { generateLayeredDxf } from '../../utils/dxf-writer.js';
@@ -371,14 +373,12 @@ export function nestingResultToPreview(result = {}, params = {}, options = {}) {
   };
 }
 
-export async function createFromQueueRevision(queue, revisionId, data, userId) {
-  if (!revisionId) throw createError({ statusCode: 400, message: 'Queue revision id is required' });
-  const lineage = inheritLineage(queue, 'queue', value => value, revisionId);
-  const uid = data.uid || `sheet-design-${new ObjectId().toString().slice(-8)}`;
-  const existing = await repository.findById(uid);
-  if (existing) return toDTO(existing);
+export async function createFromRun(run, data, userId) {
+  // 1. Lineage Inheritance
+  const lineage = inheritLineage(run, 'run');
+  const uid = `sheet-design-${new ObjectId().toString().slice(-8)}`;
 
-  const origin = createStatus('READY', userId || 'SYSTEM', { note: 'Sheet design generated from queue nesting revision' });
+  const origin = createStatus('READY', userId || 'SYSTEM', { note: 'Sheet design generated from nesting run' });
   const geometryData = data.geometry?.data || data.geometryData || {};
   const cassetteDesigns = data.cassetteDesigns || cassetteDesignsForNestingResult(geometryData);
   const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
@@ -386,7 +386,7 @@ export async function createFromQueueRevision(queue, revisionId, data, userId) {
   const designData = {
     identity: {
       uid,
-      name: data.name || `Sheet Design for Queue ${queue._id}`,
+      name: data.name || `Sheet Design for Run ${run._id}`,
       slug: uid,
       serial: data.serial || uid.toUpperCase()
     },
@@ -399,9 +399,8 @@ export async function createFromQueueRevision(queue, revisionId, data, userId) {
         data: data.geometryData || null
       },
       cassetteDesigns,
-      materialPool: data.materialPool || [],
-      nestingParams: data.nestingParams || {},
-      layoutHash: data.layoutHash || '',
+      materialPool: data.materialPool || run.data?.materialPool || [],
+      nestingParams: data.nestingParams || run.data?.params || {},
       attachments: {
         svg: data.svgId ? createAttachment('SVG', data.svgId, 'Design SVG') : null,
         dxf: data.dxfId ? createAttachment('DXF', data.dxfId, 'Design DXF') : null
@@ -553,20 +552,21 @@ export async function generateAndStoreDxf(id, userId, userOrg, userRole, userPer
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
   const lineageFilter = getLineageFilter(userPermissions);
-  const rawFilter = { ...filter };
-  const revisionIds = normalizeQueryList(rawFilter.revisionIds || rawFilter.revisionId);
-  delete rawFilter.revisionIds;
-  delete rawFilter.revisionId;
-  const queryFilter = mapLineageQuery(rawFilter);
+  const queryFilter = mapLineageQuery(filter);
+  const runIds = normalizeQueryList(queryFilter.runIds || queryFilter.runId);
+  delete queryFilter.runIds;
+  delete queryFilter.runId;
   if (queryFilter.queueId) {
-    queryFilter['lineage.queue.entityId'] = String(queryFilter.queueId);
+    queryFilter['lineage.queueId'] = toFlexibleId(queryFilter.queueId);
     delete queryFilter.queueId;
   }
   if (queryFilter.projectId) {
-    queryFilter['lineage.project.entityId'] = String(queryFilter.projectId);
+    queryFilter['lineage.projectId'] = toFlexibleId(queryFilter.projectId);
     delete queryFilter.projectId;
   }
-  if (revisionIds.length) queryFilter['lineage.queue.revisionId'] = { $in: revisionIds };
+  if (runIds.length) {
+    queryFilter['lineage.runId'] = { $in: runIds.flatMap(id => [id, toFlexibleId(id)]) };
+  }
   const finalFilter = { ...queryFilter, ...lineageFilter };
   const designs = await repository.find(finalFilter);
   return serializeManyForAccess(
@@ -584,18 +584,19 @@ function normalizeQueryList(value) {
   return String(value).split(',').map(item => item.trim()).filter(Boolean);
 }
 
-export async function listForRevisionOutput(queueId, revisionId, sheetDesignIds = []) {
+export async function listForRunOutput(queueId, runId, sheetDesignIds = []) {
+  const flexibleQueueId = toFlexibleId(queueId);
   const ids = new Set((sheetDesignIds || []).map(String));
   const designs = await repository.find({
-    'lineage.queue.entityId': String(queueId)
+    'lineage.queueId': { $in: [flexibleQueueId, queueId?.toString()] }
   });
 
   return designs
     .map(design => new SheetDesign(design).toJSON())
     .filter(design => {
       const designId = design._id?.toString?.() || design._id;
-      const designRevisionId = design.lineage?.queue?.revisionId;
-      return designRevisionId?.toString() === revisionId?.toString() || ids.has(designId?.toString());
+      const designRunId = design.lineage?.runId?.toString?.() || design.lineage?.runId;
+      return designRunId?.toString() === runId?.toString() || ids.has(designId?.toString());
     })
     .sort((left, right) => String(left.identity?.serial || left._id).localeCompare(String(right.identity?.serial || right._id)));
 }

@@ -58,7 +58,7 @@ describe('Library Management', () => {
     expect(library.data.material).toEqual({ code: 'ACP', name: 'Aluminum Composite Panel' });
     expect(library.data.description).toBe('Reusable ACP cassette templates');
     expect(library.summary.cassetteCount).toBe(0);
-    expect(library.lineage.organization.entityId.toString()).toBe(organizationId.toString());
+    expect(library.lineage.organizationId.toString()).toBe(organizationId.toString());
   });
 
   it('filters libraries by organization access', async () => {
@@ -66,7 +66,7 @@ describe('Library Management', () => {
     await db.collection('libraries').insertOne({
       _id: new ObjectId(),
       identity: { name: 'Other library' },
-      lineage: { organization: { entityType: 'organization', entityId: new ObjectId().toString() } },
+      lineage: { organizationId: new ObjectId() },
       status: { state: { primary: 'ACTIVE' } },
       data: {},
       summary: {}

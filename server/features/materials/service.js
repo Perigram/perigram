@@ -44,8 +44,7 @@ export async function create(data) {
     status: origin,
     data: createData({
       code: data.code,
-      description: data.description || '',
-      thickness: Math.max(Number(data.thickness) || 0, 0)
+      description: data.description || ''
     })
   };
 
@@ -64,7 +63,6 @@ export async function update(id, updates) {
     material.identity.serial = updates.code;
     material.data.code = updates.code;
   }
-  if (updates.thickness !== undefined) material.data.thickness = Math.max(Number(updates.thickness) || 0, 0);
 
   const materialData = {
     ...material.data,

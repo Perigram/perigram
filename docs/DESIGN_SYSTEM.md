@@ -59,7 +59,7 @@ contracts. `material` covers the base material record, while `materialPile` and
 `batchPile` are different UI surfaces over the same backend `material_pile`
 entity type. `materialPile` is the general warehouse/manual stock surface;
 `batchPile` is a requisition-sourced received pile surface and must expose batch
-context through structured `lineage.requisition`, receipt serial, specs, and stock.
+context such as `lineage.requisitionId`, receipt serial, specs, and stock.
 
 `EntityStatus` owns lifecycle actions and current lifecycle context for entity
 types with real `cncWorkflows` definitions. Non-workflow cards hide status

@@ -1,6 +1,7 @@
 import { connectDB } from '../../db/mongo.js';
 import { createTransitionAuth, statusService } from './service.js';
 import { aggregator } from './aggregator.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 import { getEntityCollection } from '~/server/runtime/entities.js';
 
 /**
@@ -19,10 +20,10 @@ export const hooks = {
     const collection = getEntityCollection(childType);
     if (!collection) return;
     
-    const lineageRole = entityTypeToLineageRole(targetType);
-    const children = await db.collection(collection).find({
-      [`lineage.${lineageRole}.entityId`]: String(targetId)
-    }).toArray();
+    const lineageKey = `lineage.${targetType}Id`;
+    const flexId = toFlexibleId(targetId);
+    
+    const children = await db.collection(collection).find({ [lineageKey]: flexId }).toArray();
     
     for (const child of children) {
       try {
@@ -43,7 +44,3 @@ export const hooks = {
     await aggregator.syncParentSummary(targetType, lineage);
   }
 };
-
-function entityTypeToLineageRole(entityType = '') {
-  return String(entityType).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
-}

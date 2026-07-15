@@ -27,6 +27,7 @@ import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfa
 const CARD_COMPONENTS = {
   project: defineAsyncComponent(() => import('~/components/entities/Project/ProjectCard.vue')),
   queue: defineAsyncComponent(() => import('~/components/entities/Queue/QueueCard.vue')),
+  nestingRun: defineAsyncComponent(() => import('~/components/entities/NestingRun/NestingRunCard.vue')),
   sheetDesign: defineAsyncComponent(() => import('~/components/entities/SheetDesign/SheetDesignCard.vue')),
   cassette: defineAsyncComponent(() => import('~/components/entities/Cassette/CassetteCard.vue')),
   cassetteDesign: defineAsyncComponent(() => import('~/components/entities/CassetteDesign/CassetteDesignCard.vue')),
@@ -67,6 +68,7 @@ const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const { t } = useI18n();
 const entityApi = useEntity(props.type);
+const sheetDesignApi = useEntity('sheetDesign');
 const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
 const normalizedId = computed(() => props.id?.toString?.() || props.id || '');
@@ -84,13 +86,15 @@ const contextEntity = computed(() => {
   }
   return null;
 });
+const hydrated = ref(null);
+const relationSheetDesigns = ref([]);
 const relationFetchId = computed(() => normalizedId.value
   || entityId(props.entity)
   || entityId(contextEntity.value)
   || ''
 );
-const baseResolved = computed(() => props.entity || contextEntity.value || loaded.value);
-const resolved = computed(() => baseResolved.value);
+const baseResolved = computed(() => hydrated.value || props.entity || contextEntity.value || loaded.value);
+const resolved = computed(() => withNestingRunOutputRefs(baseResolved.value));
 const resolvedId = computed(() => normalizedId.value
   || resolved.value?._id?.toString?.()
   || resolved.value?.id?.toString?.()
@@ -172,13 +176,21 @@ watch(
   () => [props.entity, relationFetchId.value, props.type, entityId(contextEntity.value)],
   async () => {
     loaded.value = null;
+    hydrated.value = null;
+    relationSheetDesigns.value = [];
     if (!relationFetchId.value || !props.fetch) return;
 
     const provided = props.entity || contextEntity.value;
     if (!provided) {
       loaded.value = await entityApi.fetch(relationFetchId.value, { silent: true }).catch(() => null);
+      await hydrateNestingRunOutputs(loaded.value);
       return;
     }
+
+    if (needsNestingRunHydration(provided)) {
+      hydrated.value = await entityApi.fetch(relationFetchId.value, { silent: true }).catch(() => null);
+    }
+    await hydrateNestingRunOutputs(hydrated.value || provided);
   },
   { immediate: true }
 );
@@ -190,8 +202,37 @@ function entityId(entity) {
     || '';
 }
 
+function hasNestingRunOutputRefs(entity) {
+  return Array.isArray(entity?.data?.sheetDesignIds) && entity.data.sheetDesignIds.length > 0;
+}
+
+function needsNestingRunHydration(entity) {
+  return generatedEntityType.value === 'nesting_run' && !hasNestingRunOutputRefs(entity);
+}
+
+async function hydrateNestingRunOutputs(entity) {
+  if (generatedEntityType.value !== 'nesting_run' || !entity) return;
+  const runId = entityId(entity) || relationFetchId.value;
+  if (!runId) return;
+  relationSheetDesigns.value = await sheetDesignApi
+    .list({ runId }, { silent: true })
+    .catch(() => []);
+}
+
+function withNestingRunOutputRefs(entity) {
+  if (generatedEntityType.value !== 'nesting_run' || !entity || !relationSheetDesigns.value.length) return entity;
+  return {
+    ...entity,
+    data: {
+      ...(entity.data || {}),
+      sheetDesignIds: relationSheetDesigns.value
+    }
+  };
+}
+
 function contextTypeCandidates(type) {
   const aliases = {
+    nestingRun: 'nesting_run',
     sheetDesign: 'sheet_design',
     cassetteDesign: 'cassette_design',
     cassetteTemplate: 'cassette',
@@ -209,6 +250,7 @@ function contextTypeCandidates(type) {
 
 function generatedEntityTypeFor(type) {
   const aliases = {
+    nestingRun: 'nesting_run',
     sheetDesign: 'sheet_design',
     cassetteDesign: 'cassette_design',
     cassetteTemplate: 'cassette',
@@ -310,7 +352,7 @@ function entityToneStyle(type) {
 function entityFamilyAccent(type) {
   if (['project', 'queue'].includes(type)) return 'var(--p-blue-500)';
   if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance', 'profileTemplate'].includes(type)) return 'var(--p-orange-500)';
-  if (['sheet', 'sheetDesign', 'remnant'].includes(type)) return 'var(--p-teal-500)';
+  if (['sheet', 'sheetDesign', 'remnant', 'nestingRun'].includes(type)) return 'var(--p-teal-500)';
   if (['material', 'materialPile', 'batchPile', 'warehouse', 'catalog', 'color'].includes(type)) return 'var(--p-green-500)';
   if (['organization', 'library', 'requisition', 'artifact', 'entityRevision', 'toolProfile', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--p-purple-500)';
   return 'var(--p-surface-500)';

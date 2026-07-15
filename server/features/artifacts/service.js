@@ -2,49 +2,33 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import {
   createAttachment,
-  createRelationRef,
-  createStatus,
-  Lineage
+  createIdentity,
+  createStatus
 } from '../../core/blocks/index.js';
 import { Artifact } from './model.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { generateRandomString } from '../../utils/strings.js';
 import * as filesService from '../files/service.js';
-import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { mapLineageQuery } from '../../utils/query.js';
 
 /**
  * Artifacts Service - v24 Standardized
  */
 
 
-export async function create(data, userId, userOrg, userRole, userPermissions = {}) {
-  const organizationId = data.organizationId || userOrg;
-  const lineage = new Lineage(data.lineage || {});
-  if (organizationId) lineage.add('organization', organizationId);
-  if (data.queueId) lineage.add('queue', data.queueId, data.queueRevisionId);
-  if (!hasLineagePermission(userPermissions, lineage, 'artifacts', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied for artifacts' });
-  }
-  const file = data.file || data.attachments?.primary || null;
+export async function create(data, userId) {
   const origin = createStatus(data.status || 'READY', userId || 'SYSTEM', { note: 'Artifact record created' });
 
   const artifactData = {
     identity: { uid: generateRandomString(12), name: data.name || 'New Artifact' },
     origin,
     status: origin,
-    lineage,
-    relations: data.source?.entityType && data.source.entityId ? {
-      source: [createRelationRef(data.source.entityType, data.source.entityId, data.source.revisionId)]
-    } : {},
-    attachments: (file?.fileId || file?.id || data.fileId) ? {
-      primary: createArtifactAttachment(
-        data.type || file?.kind || 'UPLOAD',
-        file?.fileId || file?.id || data.fileId,
-        file?.name || file?.filename || data.name || 'New Artifact',
-        file?.mimeType || data.mimeType,
-        file?.bucketName || 'uploads'
-      )
+    lineage: {
+      ...(data.lineage || {}),
+      ...(data.queueId ? { queueId: toFlexibleId(data.queueId) } : {}),
+      ...(data.runId ? { runId: toFlexibleId(data.runId) } : {})
+    },
+    attachments: data.fileId ? {
+      primary: createArtifactAttachment(data.type, data.fileId, data.name || 'New Artifact', data.mimeType)
     } : {},
     data: {
       type: data.type,
@@ -56,32 +40,23 @@ export async function create(data, userId, userOrg, userRole, userPermissions = 
   return new Artifact(raw).toJSON();
 }
 
-export async function getById(id, userId, userOrg, userRole, userPermissions = {}) {
+export async function getById(id) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Artifact not found' });
-  const artifact = new Artifact(raw).toJSON();
-  if (userPermissions?.memberships && !hasLineagePermission(userPermissions, artifact, 'artifacts', 'read')) {
-    throw createError({ statusCode: 403, message: 'Permission denied for artifacts' });
-  }
-  return artifact;
+  return new Artifact(raw).toJSON();
 }
 
-export async function list(filter = {}, userPermissions = {}) {
-  filter = mapLineageQuery({ ...getLineageFilter(userPermissions), ...filter });
+export async function list(filter = {}) {
   // Normalize IDs in filters
-  if (filter['lineage.queue.entityId']) filter['lineage.queue.entityId'] = String(filter['lineage.queue.entityId']);
+  if (filter['lineage.queueId']) filter['lineage.queueId'] = toFlexibleId(filter['lineage.queueId']);
+  if (filter['lineage.runId']) filter['lineage.runId'] = toFlexibleId(filter['lineage.runId']);
 
   const raws = await repository.find(filter);
-  return raws
-    .map(raw => new Artifact(raw).toJSON())
-    .filter(artifact => !userPermissions?.memberships || hasLineagePermission(userPermissions, artifact, 'artifacts', 'read'));
+  return raws.map(raw => new Artifact(raw).toJSON());
 }
 
-export async function remove(id, userId, userOrg, userRole, userPermissions = {}) {
-  const artifact = await getById(id, userId, userOrg, userRole, userPermissions);
-  if (!hasLineagePermission(userPermissions, artifact, 'artifacts', 'admin', { action: 'delete' })) {
-    throw createError({ statusCode: 403, message: 'Permission denied for artifacts' });
-  }
+export async function remove(id) {
+  const artifact = await getById(id);
   const primary = artifact.attachments?.primary;
 
   if (primary?.fileId) {
@@ -91,10 +66,9 @@ export async function remove(id, userId, userOrg, userRole, userPermissions = {}
   return await repository.deleteById(toFlexibleId(id));
 }
 
-export async function markReadyByQueueRevision(queueId, queueRevisionId, type, fileId, mimeType, name = '') {
+export async function markReadyByRun(runId, type, fileId, mimeType, name = '') {
   const filter = {
-    'lineage.queue.entityId': String(queueId),
-    'lineage.queue.revisionId': String(queueRevisionId),
+    'lineage.runId': toFlexibleId(runId),
     'data.type': type
   };
 
@@ -114,10 +88,10 @@ export async function markReadyByQueueRevision(queueId, queueRevisionId, type, f
   return await getById(artifact._id);
 }
 
-function createArtifactAttachment(type, fileId, name, mimeType = '', bucketName = '') {
+function createArtifactAttachment(type, fileId, name, mimeType = '') {
   return createAttachment(type, fileId, name, {
     mimeType,
-    bucketName: bucketName || bucketNameForType(type)
+    bucketName: bucketNameForType(type)
   });
 }
 

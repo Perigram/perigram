@@ -24,48 +24,42 @@ const workflowDefinitions = {
     ]
   },
   queue: {
-    schemaVersion: 2,
-    primaryRegion: 'main',
-    regions: {
-      main: {
-        label: 'Lifecycle',
-        initial: 'DRAFT',
-        states: {
-          DRAFT: { canUpdateMeta: true, lifecycle: { data: true } },
-          READY: { canUpdateMeta: true, lifecycle: { data: true } },
-          CLOSED: { isTerminal: true, canUpdateMeta: false, lifecycle: { data: true } },
-          ARCHIVED: { isTerminal: true, canUpdateMeta: false, lifecycle: { data: true } }
-        },
-        transitions: [
-          { from: 'DRAFT', to: 'READY', intent: 'markQueueReady', display: 'hidden', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
-          { from: 'READY', to: 'CLOSED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-          { from: 'DRAFT', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-          { from: 'READY', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-          { from: 'CLOSED', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-          { from: 'READY', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-          { from: 'CLOSED', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-          { from: 'ARCHIVED', to: 'DRAFT', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-          { from: 'DRAFT', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
-          { from: 'READY', to: 'READY', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
-          { from: 'ARCHIVED', to: 'ARCHIVED', access: { permissions: [{ feature: 'queues', level: 'write' }] } }
-        ]
-      },
-      nesting: {
-        label: 'Nesting',
-        initial: 'IDLE',
-        states: Object.fromEntries(['IDLE', 'RUNNING', 'REVIEW', 'SELECTED', 'ERROR'].map(state => [state, {
-          canUpdateMeta: true,
-          canUpdateLifecycle: true,
-          lifecycle: { data: true }
-        }])),
-        transitions: [
-          ...['IDLE', 'REVIEW', 'SELECTED', 'ERROR'].map(from => ({ from, to: 'RUNNING', intent: 'requestNesting', access: { permissions: [{ feature: 'queues', level: 'write' }] } })),
-          { from: 'RUNNING', to: 'REVIEW', intent: 'nestingSolveCompleted', access: { system: true } },
-          { from: 'RUNNING', to: 'ERROR', intent: 'nestingSolveFailed', access: { system: true } },
-          ...['IDLE', 'REVIEW', 'SELECTED', 'ERROR'].map(from => ({ from, to: 'SELECTED', intent: 'selectNestingRevision', access: { permissions: [{ feature: 'queues', level: 'write' }] } }))
-        ]
-      }
-    }
+    initial: 'DRAFT',
+    states: { DRAFT: { canUpdateMeta: true }, NESTING: { canUpdateMeta: true }, READY: { canUpdateMeta: true }, ERROR: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
+    transitions: [
+      { from: 'DRAFT', to: 'NESTING', intent: 'requestNesting', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'DRAFT', to: 'READY', display: 'hidden', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'READY', intent: 'completeNestingProduction', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'ERROR', intent: 'nestingSolveFailed', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'READY', to: 'CLOSED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'DRAFT', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'READY', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'CLOSED', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'DRAFT', access: { system: true, permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'READY', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'CLOSED', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'ARCHIVED', to: 'DRAFT', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'admin' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'DRAFT', to: 'DRAFT', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
+      { from: 'NESTING', to: 'NESTING', access: { system: true } },
+      { from: 'READY', to: 'READY', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
+      { from: 'ERROR', to: 'ERROR', access: { system: true } },
+      { from: 'ARCHIVED', to: 'ARCHIVED', access: { permissions: [{ feature: 'queues', level: 'write' }] } }
+    ]
+  },
+  nesting_run: {
+    initial: 'NESTING',
+    states: { NESTING: { canUpdateMeta: true }, COMPLETE: { canUpdateMeta: true }, ERROR: { isTerminal: true, canUpdateMeta: true }, CHOSEN: { isTerminal: true, canUpdateMeta: false }, REJECTED: { isTerminal: true, canUpdateMeta: false } },
+    transitions: [
+      { from: 'NESTING', to: 'COMPLETE', intent: 'nestingSolveCompleted', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'ERROR', intent: 'nestingSolveFailed', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'COMPLETE', to: 'CHOSEN', intent: 'acceptNestingRun', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'preflightChosenNestingRun', phase: 'before' }, { handler: 'applyChosenNestingRun', mode: 'sync' }, { handler: 'triggerAggregator' }] },
+      { from: 'COMPLETE', to: 'REJECTED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'CHOSEN', to: 'COMPLETE', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'NESTING', to: 'NESTING', access: { system: true } },
+      { from: 'COMPLETE', to: 'COMPLETE', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
+      { from: 'ERROR', to: 'ERROR', access: { system: true } }
+    ]
   },
   cassette: {
     initial: 'ACTIVE',
@@ -173,5 +167,5 @@ const workflowDefinitions = {
 };
 
 export const cncWorkflows = Object.fromEntries(
-  Object.entries(workflowDefinitions).map(([entityType, workflow]) => [entityType, workflow.regions ? workflow : mainWorkflow(workflow)])
+  Object.entries(workflowDefinitions).map(([entityType, workflow]) => [entityType, mainWorkflow(workflow)])
 );

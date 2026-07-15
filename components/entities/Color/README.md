@@ -10,7 +10,7 @@ Color swatch card for catalog colors.
 
 ## Contract
 
-- Expects a `color` DTO with `identity`, structured `lineage.catalog`, and
+- Expects a `color` DTO with `identity`, `lineage.catalogId`, and
   `data.visuals.hexCode`.
 - The color swatch is real data-driven styling; other chrome remains owned by
   `EntityCard`.

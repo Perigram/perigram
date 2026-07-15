@@ -75,7 +75,7 @@ states: {
       },
       description: { required: true },
       snapshots: {
-        cassetteDesigns: { entityType: 'cassette_design', lineageRole: 'queue' }
+        cassetteDesigns: { entityType: 'cassette_design', lineageKey: 'queueId' }
       },
       data: true
     }

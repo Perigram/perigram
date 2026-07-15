@@ -6,7 +6,7 @@ describe('queue item helpers', () => {
     const cassetteDesigns = [
       {
         _id: 'design-200x200',
-        lineage: { cassette: { entityType: 'cassette', entityId: 'type-2-o3rCZZ' } },
+        lineage: { originalCassetteId: 'type-2-o3rCZZ' },
         data: {
           polygonParts: [{}],
           parameters: { A: 200, B: 200, R: 20 }
@@ -14,7 +14,7 @@ describe('queue item helpers', () => {
       },
       {
         _id: 'design-200x400',
-        lineage: { cassette: { entityType: 'cassette', entityId: 'type-2-o3rCZZ' } },
+        lineage: { originalCassetteId: 'type-2-o3rCZZ' },
         data: {
           polygonParts: [{}],
           parameters: { A: 200, B: 400, R: 20 }

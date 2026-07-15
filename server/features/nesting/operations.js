@@ -1,19 +1,18 @@
 import { createError } from 'h3';
-import { getRegionState } from '../../core/blocks/index.js';
+import { getPrimaryState, inheritLineage } from '../../core/blocks/index.js';
 import * as queuesService from '../queues/service.js';
+import * as projectsService from '../projects/service.js';
 import * as cassetteService from '../cassettes/service.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
 import { bakeTemplateInstance } from '../parametric-cassettes/service.js';
+import * as nestingRunsRepository from '../nesting-runs/repository.js';
+import * as nestingRunsService from '../nesting-runs/service.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
-import * as sheetInstancesService from '../sheet-instances/service.js';
-import * as entityRevisionsService from '../entity-revisions/service.js';
-import * as machinesService from '../machines/service.js';
-import * as toolProfilesService from '../tool-profiles/service.js';
-import * as materialsService from '../materials/service.js';
-import { cancelTaskRun, createTaskRun } from '../../core/tasks/service.js';
+import * as nestingJobs from './jobs.js';
+import { createTaskRun, getTaskRunById } from '../../core/tasks/service.js';
 import { statusService } from '../../core/machines/service.js';
+import { generateRandomString } from '../../utils/strings.js';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { occsParametersWithMaterialThickness } from '#utils/occs/parameters.js';
 
 const activeQueueNestLocks = new Set();
 
@@ -29,53 +28,79 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
   activeQueueNestLocks.add(queueId);
 
   try {
-    if (getRegionState(queue.status, 'nesting', 'IDLE') === 'RUNNING') {
+    await clearStaleActiveNestingJob(queue._id);
+    if (await nestingJobs.findActiveByQueue(queue._id) || getPrimaryState(queue.status) === 'NESTING') {
       throw createError({ statusCode: 400, message: 'Queue is already nesting' });
     }
     if (!queue.data?.job?.items || queue.data.job.items.length === 0) {
       throw createError({ statusCode: 400, message: 'Queue has no entries' });
     }
+    const jobFiles = await buildJobFiles(queue, auth);
+    const nestingSlug = `queue-${queue.data?.queueNumber ?? queue._id.toString().slice(-6)}-${generateRandomString(6)}`;
     const materialPool = resolveNestingMaterialPool(settings, queue);
-    const resources = await resolveNestingResources({ ...settings, materialPool }, auth);
     const params = resolveNestingParams({
       ...settings,
-      materialPool,
-      ...resources
+      materialPool
     });
     const nestingContext = resolveNestingContext({
       ...settings,
-      materialPool,
-      ...resources
+      materialPool
     });
-    const jobFiles = await buildJobFiles(queue, auth, { materialThickness: nestingContext.material?.sheetThickness });
-    const settingsSnapshot = nestingSettingsSnapshot(nestingContext, params);
+
+    const runNumber = await nestingRunsService.getNextRunNumber(queue._id);
+    const runUid = generateRandomString(12);
+    const run = await nestingRunsService.create({
+      identity: { uid: runUid, name: `Nesting run ${runNumber}`, serial: `RUN-${runNumber}` },
+      runNumber,
+      data: {
+        runNumber,
+        materialMode: nestingContext.materialMode,
+        params,
+        materialPool: nestingContext.materialPool
+      },
+      lineage: inheritLineage(queue, 'queue')
+    }, auth.userId);
+    const runId = toFlexibleId(run._id);
+
     const taskRun = await createTaskRun('nesting.solve', {
-      entities: { queue: queue._id?.toString() },
-      parameters: { ...params, jobFiles, settingsSnapshot }
+      entities: {
+        queue: queue._id?.toString(),
+        nestingRun: runId.toString()
+      },
+      parameters: params
     }, auth);
-    try {
-      await statusService.applyIntent(
-        'queue',
-        queue._id,
-        'requestNesting',
-        auth,
-        { note: 'Nesting task queued' },
-        {
-          region: 'nesting',
-          lifecycle: { data: { activeTaskRunId: taskRun._id.toString(), settings: settingsSnapshot } }
-        }
-      );
-    } catch (error) {
-      await cancelTaskRun(taskRun._id, 'Queue nesting status transition failed');
-      throw error;
-    }
+    const project = queue.lineage?.projectId ? await projectsService.getById(queue.lineage.projectId).catch(() => null) : null;
+    const projectSlug = project?.identity?.slug || project?.identity?.uid || '';
+    const job = await nestingJobs.create({
+      slug: nestingSlug,
+      projectSlug,
+      queueId: toFlexibleId(queue._id),
+      runId,
+      taskRunId: toFlexibleId(taskRun._id),
+      files: jobFiles,
+      params,
+      materialPool: nestingContext.materialPool,
+      status: 'pending',
+      createdAt: new Date(),
+      ownerId: auth.userId
+    });
+
+    const queueNestingEvent = await queueNestingRequestedEvent(queue, settings, taskRun, runId, auth);
 
     return {
-      entities: [],
-      jobs: [{ type: 'task_run', id: taskRun._id.toString() }],
+      entities: [
+        { type: 'nesting_run', id: runId.toString() }
+      ],
+      jobs: [
+        { type: 'task_run', id: taskRun._id.toString() },
+        { type: 'nesting_job', id: job._id.toString(), compatibility: true }
+      ],
+      events: queueNestingEvent ? [queueNestingEvent] : [],
       data: {
-        status: 'RUNNING',
-        taskRunId: taskRun._id.toString()
+        nestingSlug,
+        status: 'NESTING',
+        taskRunId: taskRun._id.toString(),
+        runId: runId.toString()
       }
     };
   } finally {
@@ -83,32 +108,27 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
   }
 }
 
-function nestingSettingsSnapshot(context = {}, params = {}) {
+async function queueNestingRequestedEvent(queue, settings, taskRun, runId, auth) {
+  const actions = await statusService.getActions('queue', queue._id, auth).catch(() => ({ actions: [] }));
+  const canRequestNesting = actions.actions?.some(action => action.intent === 'requestNesting');
+  if (!canRequestNesting) return null;
   return {
-    materialMode: context.materialMode,
-    materialPool: context.materialPool || [],
-    machine: params.machine || null,
-    tool: params.tool || null,
-    material: params.material || null,
-    itemGap: Number(params.itemGap ?? params.space) || 0,
-    sheet: {
-      width: Number(params.width) || 0,
-      length: Number(params.height) || 0,
-      thickness: Number(params.sheetThickness) || 0,
-      polygon: params.sheet_polygon || null,
-      count: Number(params.sheetCount) || 0
+    type: 'queue.nestingRequested',
+    source: { type: 'queue', id: queue._id?.toString() || queue._id },
+    entities: [{ type: 'nesting_run', id: runId.toString() }],
+    data: {
+      materialMode: settings.materialMode || 'VIRTUAL',
+      taskRunId: taskRun._id.toString(),
+      runId: runId.toString()
     }
   };
 }
 
-export async function buildJobFiles(queue, auth, { materialThickness = 0 } = {}) {
+export async function buildJobFiles(queue, auth) {
   const jobFiles = [];
   for (const entry of queue.data.job.items) {
     try {
-      const entryParameters = occsParametersWithMaterialThickness(
-        entry.parameters || entry.dimensions || {},
-        materialThickness
-      );
+      const entryParameters = entry.parameters || entry.dimensions || {};
       if (entry.type === 'PARAMETRIC') {
         const template = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth);
         const bakedCassette = await bakeTemplateInstance(toFlexibleId(template._id), entryParameters, auth.userId);
@@ -127,11 +147,6 @@ export async function buildJobFiles(queue, auth, { materialThickness = 0 } = {})
         item = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth).catch(() => null);
       }
       if (!item) throw createError({ statusCode: 400, message: `Cassette item ${entry.id} not found in any collection` });
-
-      const bakedThickness = Number(item.data?.parameters?.T ?? item.data?.dimensions?.T);
-      if (Number(materialThickness) > 0 && Number.isFinite(bakedThickness) && Math.abs(bakedThickness - Number(materialThickness)) > 0.001) {
-        throw createError({ statusCode: 400, message: `Cassette item ${entry.id} was baked for ${bakedThickness} mm material` });
-      }
 
       if (isParametricTemplate(item)) {
         const bakedCassette = await bakeTemplateInstance(toFlexibleId(item._id), entryParameters, auth.userId);
@@ -161,133 +176,87 @@ export async function buildJobFiles(queue, auth, { materialThickness = 0 } = {})
 
 export async function executeNestingSolveTask({ run, input, auth = {} }) {
   const queueId = input.entities?.queue;
+  const runId = input.entities?.nestingRun;
   const queue = await queuesService.getById(queueId);
   if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
-  const taskRunId = run?._id?.toString?.() || run?._id;
-  const existingRevision = await entityRevisionsService.getTerminalForTaskRun('queue', queueId, 'nesting', taskRunId);
-  if (existingRevision) return terminalNestingTaskResult(existingRevision, queueId);
+
+  const job = await nestingJobs.findLatestByRun(runId);
+  if (job) {
+    await nestingJobs.updateById(job._id, { status: 'processing', startedAt: new Date() });
+  }
 
   try {
-    const jobFiles = input.parameters?.jobFiles?.length ? input.parameters.jobFiles : await buildJobFiles(queue, auth);
+    const jobFiles = job?.files?.length ? job.files : await buildJobFiles(queue, auth);
     const request = buildNestingWorkerRequest(jobFiles, input.parameters || {});
     const result = enrichNestingResult(await callNestingWorker(request), request);
     if (result.status === 'error') throw createError({ statusCode: 500, message: result.message || 'Nesting worker failed' });
 
     const summary = summarizeNestingResult(result, input.parameters || {});
-    const revisionId = entityRevisionsService.terminalRevisionIdForTask(taskRunId);
-    const sheetDesignOutputs = await createSheetDesignsForLayouts(queue, revisionId, result, summary, input.parameters || {}, auth);
-    const sheetDesignIds = sheetDesignOutputs.map(output => output.sheetDesignId);
-    const sheetInstanceIds = sheetDesignOutputs.flatMap(output => output.sheetInstanceIds);
-    const revision = await entityRevisionsService.createTerminalSnapshot({
-      revisionId,
-      entityType: 'queue',
-      entity: queue,
-      scope: 'nesting',
-      outcome: 'SUCCESS',
-      taskRunId,
-      userId: auth.userId || 'SYSTEM',
-      reason: 'nesting-succeeded',
-      content: {
-        settings: input.parameters?.settingsSnapshot || {},
-        results: summary,
-        outputs: { sheetDesigns: sheetDesignOutputs }
-      },
-      snapshot: {
-        settings: input.parameters?.settingsSnapshot || {},
+    const currentRun = await nestingRunsRepository.findById(runId);
+    const sheetDesigns = await createSheetDesignsForLayouts(currentRun, result, summary, input.parameters || {}, auth);
+    const sheetDesignIds = sheetDesigns.map(design => design._id?.toString()).filter(Boolean);
+    await nestingRunsRepository.updateById(runId, {
+      data: {
+        ...(currentRun?.data || {}),
         results: summary,
         layoutData: result,
-        outputs: { sheetDesigns: sheetDesignOutputs }
+        sheetDesignIds
       }
     });
 
+    if (job) {
+      await nestingJobs.updateById(job._id, {
+        status: 'done',
+        finishedAt: new Date(),
+        result,
+        emailNotify: job.projectSlug ? 'need_notify' : 'not_required'
+      });
+    }
+
     return {
       entities: [
-        { type: 'entity_revision', id: revision._id },
-        ...sheetDesignIds.map(id => ({ type: 'sheet_design', id })),
-        ...sheetInstanceIds.map(id => ({ type: 'sheet_instance', id }))
+        { type: 'nesting_run', id: runId },
+        ...sheetDesignIds.map(id => ({ type: 'sheet_design', id }))
       ],
-      effects: [
-        nestingQueueTransitionEffect(queueId, 'nestingSolveCompleted', {
-          activeTaskRunId: null,
-          latestRevisionId: revision._id?.toString?.() || revision._id,
-          settings: input.parameters?.settingsSnapshot || {}
-        })
+      events: [
+        {
+          type: 'nesting.solveCompleted',
+          source: { type: 'nesting_run', id: runId },
+          entities: sheetDesignIds.map(id => ({ type: 'sheet_design', id })),
+          data: { taskRunId: run._id.toString(), results: summary }
+        }
       ],
       data: {
-        status: 'REVIEW',
-        revisionId: revision._id,
-        sheetDesignOutputs,
+        status: 'COMPLETE',
+        runId,
+        sheetDesignIds,
         results: summary
       }
     };
   } catch (error) {
     const finalFailure = isFinalTaskAttempt(run) || isNonRetryable(error);
-    if (finalFailure) {
-      const revision = await entityRevisionsService.createTerminalSnapshot({
-        revisionId: entityRevisionsService.terminalRevisionIdForTask(taskRunId),
-        entityType: 'queue',
-        entity: queue,
-        scope: 'nesting',
-        outcome: 'FAILURE',
-        taskRunId,
-        userId: auth.userId || 'SYSTEM',
-        reason: 'nesting-failed',
-        content: {
-          settings: input.parameters?.settingsSnapshot || {},
-          error: { message: error.message || 'Nesting failed' }
-        }
+    if (job) {
+      await nestingJobs.updateById(job._id, {
+        status: finalFailure ? 'error' : 'pending',
+        finishedAt: new Date(),
+        error: { message: error.message }
       });
-      error.effects = [
-        nestingQueueTransitionEffect(queueId, 'nestingSolveFailed', {
-          activeTaskRunId: null,
-          latestRevisionId: revision._id?.toString?.() || revision._id,
-          settings: input.parameters?.settingsSnapshot || {},
-          error: { message: error.message || 'Nesting failed' }
-        }, error.message || 'Nesting failed')
+    }
+    if (finalFailure) {
+      await markRunError(runId, run?._id, auth, error);
+    }
+    if (finalFailure) {
+      error.events = [
+        {
+          type: 'nesting.solveFailed',
+          source: { type: 'nesting_run', id: runId },
+          entities: [{ type: 'queue', id: queueId }],
+          data: { note: error.message || 'Nesting failed', runId, taskRunId: run?._id?.toString?.() || run?._id }
+        }
       ];
     }
     throw error;
   }
-}
-
-function terminalNestingTaskResult(revision, queueId) {
-  const outputs = revision.data?.snapshot?.outputs?.sheetDesigns || [];
-  const sheetDesignIds = outputs.map(output => output.sheetDesignId).filter(Boolean);
-  const sheetInstanceIds = outputs.flatMap(output => output.sheetInstanceIds || []);
-  const succeeded = revision.data?.outcome === 'SUCCESS';
-  return {
-    entities: [
-      { type: 'entity_revision', id: revision._id },
-      ...sheetDesignIds.map(id => ({ type: 'sheet_design', id })),
-      ...sheetInstanceIds.map(id => ({ type: 'sheet_instance', id }))
-    ],
-    effects: [nestingQueueTransitionEffect(
-      queueId,
-      succeeded ? 'nestingSolveCompleted' : 'nestingSolveFailed',
-      {
-        activeTaskRunId: null,
-        latestRevisionId: revision._id?.toString?.() || revision._id,
-        settings: revision.data?.snapshot?.settings || {}
-      }
-    )],
-    data: {
-      status: succeeded ? 'REVIEW' : 'ERROR',
-      revisionId: revision._id,
-      sheetDesignOutputs: outputs,
-      results: revision.data?.snapshot?.results || null
-    }
-  };
-}
-
-function nestingQueueTransitionEffect(queueId, intent, data, note = '') {
-  return {
-    type: 'transition',
-    entity: { type: 'queue', id: queueId },
-    intent,
-    region: 'nesting',
-    metadata: note ? { note } : {},
-    lifecycle: { data }
-  };
 }
 
 export function buildNestingWorkerRequest(jobFiles, settings = {}) {
@@ -307,45 +276,7 @@ export function resolveNestingParams(settings = {}) {
     height: context.height,
     space: context.space,
     sheetCount: context.sheetCount,
-    sheet_polygon: context.sheet_polygon,
-    machine: context.machine,
-    tool: context.tool,
-    material: context.material,
-    itemGap: context.space,
-    sheetThickness: context.material?.sheetThickness || 0
-  };
-}
-
-export async function resolveNestingResources(settings = {}, auth = {}) {
-  const [machine, tool, material] = await Promise.all([
-    settings.machineId
-      ? machinesService.getById(settings.machineId, auth.userId, auth.organizationId, auth.role, auth)
-      : machinesService.ensureSystemDefault(),
-    settings.toolProfileId ? toolProfilesService.getById(settings.toolProfileId, auth.userId) : null,
-    settings.materialId ? materialsService.getById(settings.materialId) : null
-  ]);
-  const poolThickness = (settings.materialPool || []).map(source => Number(
-    source.specs?.sheetThickness || source.dimensions?.sheetThickness || source.sheetThickness
-  )).find(value => Number.isFinite(value) && value > 0);
-  const sheetThickness = poolThickness || Number(material?.data?.thickness) || Number(settings.sheetThickness) || 0;
-  return {
-    machine: machine ? {
-      id: machine._id?.toString?.() || machine._id,
-      name: machine.identity?.name || '',
-      workArea: machine.data?.workArea || {},
-      boundaryOffset: machine.data?.boundaryOffset || {}
-    } : null,
-    tool: tool ? {
-      id: tool._id?.toString?.() || tool._id,
-      name: tool.identity?.name || '',
-      diameter: Number(tool.data?.diameter) || 0,
-      kerf: Number(tool.data?.kerf) || 0
-    } : null,
-    material: {
-      id: material?._id?.toString?.() || material?._id || settings.materialId || null,
-      name: material?.identity?.name || '',
-      sheetThickness
-    }
+    sheet_polygon: context.sheet_polygon
   };
 }
 
@@ -370,98 +301,27 @@ export function resolveNestingContext(settings = {}) {
       throw createError({ statusCode: 400, message: 'Selected warehouse stock must share one sheet size' });
     }
     const [source] = stockSources;
-    return withNestingResources({
+    return {
       width: source.width,
       height: source.height,
-      space: toolGap(settings),
+      space: settings.spacing || settings.space || 5,
       sheetCount: stockSources.reduce((sum, item) => sum + item.available, 0),
-      sheet_polygon: applyMachineBoundary(
-        normalizeSheetPolygonShape(settings.sheet_polygon) || source.sheetPolygon || null,
-        source.width,
-        source.height,
-        settings.machine
-      ),
+      sheet_polygon: normalizeSheetPolygonShape(settings.sheet_polygon) || source.sheetPolygon || null,
       materialMode: 'WAREHOUSE',
       materialPool: stockSources
-    }, settings);
+    };
   }
 
-  const width = settings.virtualWidth || settings.width || 1220;
-  const height = settings.virtualLength || settings.height || 2440;
-  return withNestingResources({
-    width,
-    height,
-    space: toolGap(settings),
+  return {
+    width: settings.virtualWidth || settings.width || 1220,
+    height: settings.virtualLength || settings.height || 2440,
+    space: settings.spacing || settings.space || 5,
     sheetCount: settings.sheetCount || 1000,
-    sheet_polygon: applyMachineBoundary(normalizeSheetPolygonShape(settings.sheet_polygon), width, height, settings.machine),
+    sheet_polygon: normalizeSheetPolygonShape(settings.sheet_polygon) || null,
     materialMode: settings.materialMode || 'VIRTUAL',
     inventoryItems: settings.inventoryItems || [],
     materialPool
-  }, settings);
-}
-
-function withNestingResources(context, settings) {
-  return { ...context, machine: settings.machine || null, tool: settings.tool || null, material: settings.material || null };
-}
-
-function toolGap(settings = {}) {
-  return Math.max(Number(settings.tool?.diameter || settings.spacing || settings.space || 5), 0);
-}
-
-function applyMachineBoundary(polygon, width, height, machine = null) {
-  if (!machine) return polygon || null;
-  const workWidth = Number(machine?.workArea?.width) || 0;
-  const workLength = Number(machine?.workArea?.length) || 0;
-  if (workWidth > 0 && workLength > 0 && (Number(width) > workWidth || Number(height) > workLength)) {
-    throw createError({ statusCode: 400, message: `Sheet ${width} x ${height} exceeds machine work area ${workWidth} x ${workLength}` });
-  }
-  const offsets = machine?.boundaryOffset || {};
-  const rect = {
-    minX: Math.max(Number(offsets.left) || 0, 0),
-    minY: Math.max(Number(offsets.top) || 0, 0),
-    maxX: Math.max(Number(width) - Math.max(Number(offsets.right) || 0, 0), 0),
-    maxY: Math.max(Number(height) - Math.max(Number(offsets.bottom) || 0, 0), 0)
   };
-  const source = polygon?.outer || [[0, 0], [width, 0], [width, height], [0, height], [0, 0]];
-  const outer = clipPolygonToRect(source, rect);
-  const inner = (polygon?.inner || [])
-    .map(ring => clipPolygonToRect(ring, rect))
-    .filter(ring => ring.length >= 4);
-  return outer.length >= 4 ? { outer, inner } : null;
-}
-
-function clipPolygonToRect(points = [], rect = {}) {
-  const open = points.length > 1 && sameCoordinate(points[0], points[points.length - 1]) ? points.slice(0, -1) : [...points];
-  const edges = [
-    { inside: p => p[0] >= rect.minX, intersect: (a, b) => intersectionAtX(a, b, rect.minX) },
-    { inside: p => p[0] <= rect.maxX, intersect: (a, b) => intersectionAtX(a, b, rect.maxX) },
-    { inside: p => p[1] >= rect.minY, intersect: (a, b) => intersectionAtY(a, b, rect.minY) },
-    { inside: p => p[1] <= rect.maxY, intersect: (a, b) => intersectionAtY(a, b, rect.maxY) }
-  ];
-  const clipped = edges.reduce((input, edge) => {
-    const output = [];
-    for (let index = 0; index < input.length; index += 1) {
-      const current = input[index];
-      const previous = input[(index + input.length - 1) % input.length];
-      const currentInside = edge.inside(current);
-      const previousInside = edge.inside(previous);
-      if (currentInside && !previousInside) output.push(edge.intersect(previous, current));
-      if (currentInside) output.push(current);
-      else if (previousInside) output.push(edge.intersect(previous, current));
-    }
-    return output;
-  }, open);
-  return clipped.length ? [...clipped, [...clipped[0]]] : [];
-}
-
-function intersectionAtX(a, b, x) {
-  const ratio = (x - a[0]) / ((b[0] - a[0]) || 1);
-  return [x, a[1] + (b[1] - a[1]) * ratio];
-}
-
-function intersectionAtY(a, b, y) {
-  const ratio = (y - a[1]) / ((b[1] - a[1]) || 1);
-  return [a[0] + (b[0] - a[0]) * ratio, y];
 }
 
 export function enrichNestingResult(result = {}, request = {}) {
@@ -518,88 +378,34 @@ export function enrichNestingResult(result = {}, request = {}) {
   };
 }
 
-async function createSheetDesignsForLayouts(queue, revisionId, result, summary, params, auth = {}) {
+async function createSheetDesignsForLayouts(run, result, summary, params, auth = {}) {
+  const layouts = result.solution?.layouts || result.layouts || [];
   const specs = {
     width: Number(params.width || params.virtualWidth || 1220),
     length: Number(params.height || params.virtualLength || 2440)
   };
   specs.area = (specs.width * specs.length) / 1000000;
 
-  const revisionLabel = String(revisionId).slice(-12);
-  const groups = groupEquivalentNestingLayouts(result, params, specs);
-  const outputs = [];
-  for (const group of groups) {
-    const design = await sheetDesignsService.createFromQueueRevision(queue, revisionId, {
-      uid: `sheet-design-${revisionLabel}-${group.layoutHash.replace(/^sha256:/, '').slice(0, 16)}`,
-      name: `${queue.identity?.name || 'Queue'} nesting ${revisionLabel} sheet ${group.sourceIndex + 1}`,
-      serial: `NEST-${revisionLabel}-S${group.sourceIndex + 1}`,
-      specs,
-      geometry: {
-        data: group.sheetResult,
-        preview: sheetDesignsService.nestingResultToPreview(result, params, { layoutIndex: group.sourceIndex }),
-        summary: group.sheetSummary
-      },
-      materialPool: params.settingsSnapshot?.materialPool || [],
-      nestingParams: nestingParamsSnapshot(params),
-      layoutHash: group.layoutHash,
-      summary: group.sheetSummary || summary
-    }, auth.userId || 'SYSTEM');
-    const instances = [];
-    for (let sequence = 1; sequence <= group.quantity; sequence += 1) {
-      instances.push(await sheetInstancesService.createFromDesign(design, {
-        layoutHash: group.layoutHash,
-        sequence
-      }, auth.userId || 'SYSTEM'));
-    }
-    outputs.push({
-      sheetDesignId: design._id?.toString?.() || design._id,
-      layoutHash: group.layoutHash,
-      quantity: group.quantity,
-      sheetInstanceIds: instances.map(instance => instance._id?.toString?.() || instance._id)
-    });
-  }
-  return outputs;
-}
-
-function nestingParamsSnapshot(params = {}) {
-  const { jobFiles, settingsSnapshot, ...workerParams } = params;
-  return { ...workerParams, settingsSnapshot: settingsSnapshot || {} };
-}
-
-export function groupEquivalentNestingLayouts(result = {}, params = {}, specs = {}) {
-  const layouts = result.solution?.layouts || result.layouts || [];
-  const groups = new Map();
+  const runName = run?.identity?.name || run?._id?.toString() || 'Nesting run';
+  const designs = [];
   for (let index = 0; index < layouts.length; index += 1) {
     const sheetResult = sheetDesignsService.nestingResultForLayout(result, index);
     const sheetSummary = summarizeNestingResult(sheetResult, params);
-    const layoutHash = entityRevisionsService.hashRevisionContent({
-      layout: comparableSheetLayout(sheetResult),
+    designs.push(await sheetDesignsService.createFromRun(run, {
+      name: `${runName} sheet ${index + 1}`,
+      serial: `${run?.identity?.serial || run?._id || 'RUN'}-S${index + 1}`,
       specs,
-      machine: params.machine || null,
-      tool: params.tool || null,
-      material: params.material || null,
-      sheetThickness: Number(params.sheetThickness) || 0
-    });
-    const group = groups.get(layoutHash) || { layoutHash, sheetResult, sheetSummary, sourceIndex: index, quantity: 0 };
-    group.quantity += 1;
-    groups.set(layoutHash, group);
+      geometry: {
+        data: sheetResult,
+        preview: sheetDesignsService.nestingResultToPreview(result, params, { layoutIndex: index }),
+        summary: sheetSummary
+      },
+      materialPool: run?.data?.materialPool || [],
+      nestingParams: params,
+      summary: sheetSummary || summary
+    }, auth.userId || 'SYSTEM'));
   }
-  return [...groups.values()];
-}
-
-function comparableSheetLayout(result = {}) {
-  const itemsById = new Map((result.items || []).map(item => [String(item.id), item]));
-  const layouts = result.solution?.layouts || result.layouts || [];
-  return layouts.map(layout => ({
-    placements: (layout.placed_items || layout.items || []).map(placement => {
-      const source = itemsById.get(String(placement.item_id ?? placement.itemId ?? placement.id)) || {};
-      return {
-        source: source.cassetteDesignId || source.data?.cassetteDesignId || source.shape || source.coords || null,
-        translation: placement.transformation?.translation || [placement.x || 0, placement.y || 0],
-        rotation: placement.transformation?.rotation ?? placement.rotation ?? 0
-      };
-    }).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
-  }));
+  return designs;
 }
 
 export function summarizeNestingResult(result = {}, params = {}) {
@@ -922,6 +728,30 @@ async function callNestingWorker(request) {
     throw createError({ statusCode: 502, message: `Nesting worker failed: ${body || response.statusText}` });
   }
   return await response.json();
+}
+
+async function clearStaleActiveNestingJob(queueId) {
+  const job = await nestingJobs.findActiveByQueue(queueId);
+  if (!job?.taskRunId) return;
+  const taskRun = await getTaskRunById(job.taskRunId);
+  if (!taskRun || ['FAILED', 'CANCELLED'].includes(taskRun.status)) {
+    await nestingJobs.updateById(job._id, {
+      status: 'error',
+      finishedAt: new Date(),
+      error: job.error || { message: 'Nesting task is no longer active' }
+    });
+  }
+}
+
+async function markRunError(runId, taskRunId, auth, error) {
+  const currentRun = await nestingRunsRepository.findById(runId);
+  if (!currentRun) return;
+  await nestingRunsRepository.updateById(runId, {
+    data: {
+      ...(currentRun?.data || {}),
+      error: error.message
+    }
+  });
 }
 
 function isFinalTaskAttempt(run = {}) {

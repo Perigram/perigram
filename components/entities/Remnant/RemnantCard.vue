@@ -15,7 +15,7 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const sheetId = computed(() => props.remnant.lineage?.sheet?.entityId || null);
+const sheetId = computed(() => props.remnant.lineage?.sheetId || null);
 const sheet = ref(null);
 const sheetEntity = useEntity('sheet');
 

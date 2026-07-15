@@ -16,7 +16,7 @@ export async function findById(id) {
 export async function findSystem() {
   const db = await connectDB();
   return await db.collection(COLLECTION)
-    .find({ 'lineage.user.entityId': null })
+    .find({ 'lineage.userId': null })
     .sort({ 'identity.name': 1 })
     .toArray();
 }
@@ -30,7 +30,7 @@ export async function findByOwner(ownerId) {
   
   // Handle OAuth userId strings (e.g., "google:12345") - use as-is, not as ObjectId
   return await db.collection(COLLECTION)
-    .find({ 'lineage.user.entityId': String(ownerId) })
+    .find({ 'lineage.userId': ownerId })
     .sort({ 'identity.name': 1 })
     .toArray();
 }

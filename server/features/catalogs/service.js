@@ -6,7 +6,6 @@ import { Catalog } from './model.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
-import { Lineage } from '~/server/core/blocks/index.js';
 
 /**
  * Catalogs Service - v24 Absolute Final
@@ -21,7 +20,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const catalog = new Catalog({
     identity: { uid: `cat-${new ObjectId().toString().substring(0, 8)}`, name: name || 'New Catalog' },
-    lineage: new Lineage().add('organization', targetOrgId),
+    lineage: { organizationId: targetOrgId },
     data: {
       material: material || 'ALUMINUM',
       pricing: pricing || { pricePerSqm: 0, currency: 'USD' },

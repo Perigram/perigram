@@ -1,22 +1,22 @@
 import { occsParameterNames, occsQueueParameters } from '#utils/occs/parameters.js';
 
 const LINEAGE_FIELDS = {
-  artifact: ['organizationId', 'queueId', 'queueRevisionId', 'sheetDesignId'],
+  artifact: ['organizationId', 'queueId', 'runId', 'sheetDesignId'],
   cassette: ['organizationId'],
   cassette_design: ['organizationId', 'projectId', 'templateId'],
-  cassette_instance: ['organizationId', 'projectId', 'queueId', 'queueRevisionId', 'cassetteDesignId'],
+  cassette_instance: ['organizationId', 'projectId', 'queueId', 'runId', 'cassetteDesignId'],
   catalog: ['organizationId', 'manufacturerId'],
   color: ['catalogId'],
   layer_standard: ['organizationId'],
   material_pile: ['organizationId', 'warehouseId', 'catalogId', 'requisitionId'],
-  entity_revision: ['organizationId', 'queueId'],
+  nesting_run: ['organizationId', 'projectId', 'queueId'],
   pen_template: ['userId'],
   project: ['organizationId'],
   queue: ['organizationId', 'projectId'],
   remnant: ['warehouseId', 'sheetId'],
   requisition: ['organizationId', 'projectId'],
-  sheet: ['organizationId', 'warehouseId', 'queueId', 'queueRevisionId'],
-  sheet_design: ['organizationId', 'projectId', 'queueId', 'queueRevisionId'],
+  sheet: ['organizationId', 'warehouseId', 'queueId', 'runId'],
+  sheet_design: ['organizationId', 'projectId', 'queueId', 'runId'],
   tool_profile: ['userId', 'organizationId'],
   user: ['organizationId'],
   warehouse: ['organizationId']
@@ -32,7 +32,7 @@ const ENTITY_ID_FIELD_TYPES = {
   projectId: 'project',
   queueId: 'queue',
   requisitionId: 'requisition',
-  queueRevisionId: 'entity_revision',
+  runId: 'nesting_run',
   sheetDesignId: 'sheet_design',
   sheetId: 'sheet',
   templateId: 'cassette',
@@ -40,7 +40,7 @@ const ENTITY_ID_FIELD_TYPES = {
   warehouseId: 'warehouse'
 };
 
-const OPTIONAL_LINEAGE_FIELDS = new Set(['manufacturerId', 'requisitionId', 'queueRevisionId', 'sheetDesignId']);
+const OPTIONAL_LINEAGE_FIELDS = new Set(['manufacturerId', 'requisitionId', 'runId', 'sheetDesignId']);
 
 export function manualEntityContextType(entityType) {
   return entityType === 'cassette_template' ? 'cassette' : entityType;
@@ -123,25 +123,12 @@ function manualStatus(state, access = {}) {
 
 function manualLineageFor(type, draft, access = {}) {
   const lineage = Object.fromEntries((LINEAGE_FIELDS[type] || [])
-    .filter(name => name !== 'queueRevisionId')
-    .map(name => [lineageRole(name), draft[name] ? {
-      entityType: ENTITY_ID_FIELD_TYPES[name],
-      entityId: String(draft[name]),
-      ...(name === 'queueId' && draft.queueRevisionId ? { revisionId: String(draft.queueRevisionId) } : {})
-    } : null])
+    .map(name => [name, draft[name]])
     .filter(([, value]) => value));
-  if (type === 'cassette' && access.organizationId && !lineage.organization) {
-    lineage.organization = { entityType: 'organization', entityId: String(access.organizationId) };
+  if (type === 'cassette' && access.organizationId && !lineage.organizationId) {
+    lineage.organizationId = access.organizationId;
   }
   return lineage;
-}
-
-function lineageRole(field = '') {
-  const role = String(field).replace(/Id$/, '');
-  if (role === 'template') return 'cassette';
-  if (role === 'pile') return 'materialPile';
-  if (role === 'queueRevision') return 'queue';
-  return role;
 }
 
 function manualDataFor(type, draft, context) {

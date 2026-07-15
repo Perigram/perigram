@@ -47,7 +47,7 @@ test.describe('entity action buttons', () => {
         body: JSON.stringify({
           _id: 'sheet-action-test',
           identity: { name: 'Action test sheet' },
-          lineage: { project: { entityType: 'project', entityId: 'project-action-test' } },
+          lineage: { projectId: 'project-action-test' },
           status: { state: 'READY' },
           data: {
             placements: [],
@@ -74,7 +74,7 @@ test.describe('entity action buttons', () => {
         })
       });
     });
-    await app.page.route('**/api/artifacts/artifact-action-test/content', async route => {
+    await app.page.route('**/api/artifacts/artifact-action-test', async route => {
       await route.fulfill({
         status: 200,
         headers: {
@@ -118,7 +118,7 @@ test.describe('entity action buttons', () => {
         body: JSON.stringify([{
           _id: 'template-action-test',
           identity: { name: 'Action test template', slug: 'action-test-template' },
-          lineage: { organization: { entityType: 'organization', entityId: 'org-action-test' } },
+          lineage: { organizationId: 'org-action-test' },
           status: { state: 'ACTIVE' },
           data: {
             type: 'PARAMETRIC',
@@ -137,7 +137,7 @@ test.describe('entity action buttons', () => {
         body: JSON.stringify({
           _id: 'design-action-test',
           identity: { name: 'Action test template Design' },
-          lineage: { cassette: { entityType: 'cassette', entityId: 'template-action-test' } },
+          lineage: { templateId: 'template-action-test' },
           data: { parameters: createBody.parameters }
         })
       });

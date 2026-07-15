@@ -159,7 +159,7 @@ const penMetrics = computed(() => [
   { key: 'averageWeight', label: t('assets.weight'), value: `${penStats.value.averageWeight} mm` }
 ]);
 
-const isUserOwnedPen = (pen) => Boolean(pen?.lineage?.user?.entityId);
+const isUserOwnedPen = (pen) => Boolean(pen?.lineage?.userId || pen?.ownerId);
 
 const showDialog = ref(false);
 const editingPen = ref(null);

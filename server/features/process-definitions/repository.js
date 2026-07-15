@@ -27,7 +27,7 @@ export async function find(filter = {}) {
 export async function findActiveByOrganization(organizationId) {
   const db = await connectDB();
   return await db.collection(COLLECTION).findOne({
-    'lineage.organization.entityId': String(organizationId),
+    'lineage.organizationId': toFlexibleId(organizationId),
     'status.state.primary': 'ACTIVE'
   });
 }
@@ -44,7 +44,7 @@ export async function archiveActiveByOrganization(organizationId, userId) {
   const db = await connectDB();
   return await db.collection(COLLECTION).updateMany(
     {
-      'lineage.organization.entityId': String(organizationId),
+      'lineage.organizationId': toFlexibleId(organizationId),
       'status.state.primary': 'ACTIVE'
     },
     {

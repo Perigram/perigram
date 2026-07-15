@@ -33,7 +33,8 @@
               <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
                 <span class="min-w-0 truncate">{{ queue.identity?.name || `${$t('queue.title')} ${queue.data?.queueNumber}` }}</span>
                 <div class="flex shrink-0 flex-wrap gap-2">
-                  <Tag :value="`${queue.summary?.revisionCount || 0} ${$t('queue.revisions')}`" severity="secondary" size="small" />
+                  <Tag :value="`${queue.summary?.runCount || 0} ${$t('queue.runs')}`" severity="secondary" size="small" />
+                  <Tag :value="`${queue.summary?.sheetCount || 0} ${$t('results.sheets')}`" severity="info" size="small" />
                 </div>
               </div>
             </AccordionHeader>
@@ -77,11 +78,15 @@ const queues = ref([]);
 const loading = ref(true);
 const artifactStats = computed(() => ({
   queues: queues.value.length,
-  revisions: queues.value.reduce((sum, queue) => sum + Number(queue.summary?.revisionCount || 0), 0)
+  runs: queues.value.reduce((sum, queue) => sum + Number(queue.summary?.runCount || 0), 0),
+  sheets: queues.value.reduce((sum, queue) => sum + Number(queue.summary?.sheetCount || 0), 0),
+  area: formatNumber(queues.value.reduce((sum, queue) => sum + Number(queue.summary?.totalArea || 0), 0))
 }));
 const artifactMetrics = computed(() => [
   { key: 'queues', label: t('project.queues'), value: artifactStats.value.queues },
-  { key: 'revisions', label: t('queue.revisions'), value: artifactStats.value.revisions }
+  { key: 'runs', label: t('queue.runs'), value: artifactStats.value.runs },
+  { key: 'sheets', label: t('results.sheets'), value: artifactStats.value.sheets },
+  { key: 'area', label: t('common.area'), value: `${artifactStats.value.area} m²` }
 ]);
 
 const loadQueues = async () => {
@@ -100,4 +105,8 @@ const loadQueues = async () => {
 
 onMounted(loadQueues);
 
+function formatNumber(value) {
+  const number = Number(value || 0);
+  return Number.isInteger(number) ? number : Number(number.toFixed(2));
+}
 </script>

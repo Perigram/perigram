@@ -13,9 +13,7 @@ frontend/shared utility layer.
   `A`, `B`, or `R`; evaluated design annotations store measured numeric values.
 - `parameters.js` extracts template parameters from both legacy cassette
   definitions and OCCS documents so queues and fixture scenarios share one
-  parameter path. CutKit uses document-scoped parameter `T` as its material
-  thickness convention and overrides it from selected material thickness at
-  nesting time; this is a CutKit registry convention, not a global OCCS name.
+  parameter path.
 - `expressions.js` evaluates the lightweight arithmetic/trig expression subset
   used by cassette templates.
 - `hardware.js` declares the OCCS hardware catalog used by Cassette Designer v2:

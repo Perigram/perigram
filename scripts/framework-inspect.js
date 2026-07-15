@@ -15,7 +15,6 @@ import {
   cncCommands,
   cncTasks,
   cncSummaries,
-  cncRelations,
   cncWorkflows
 } from '../packages/domain-cnc/src/index.js';
 import {
@@ -44,7 +43,7 @@ const PACKAGE_NAMES = [
 const UI_COMPONENT_PATHS = {
   project: 'components/entities/Project/ProjectCard.vue',
   queue: 'components/entities/Queue/QueueCard.vue',
-  entityRevision: 'components/entities/EntityRevision/EntityRevisionCard.vue',
+  nestingRun: 'components/entities/NestingRun/NestingRunCard.vue',
   sheetDesign: 'components/entities/SheetDesign/SheetDesignCard.vue',
   cassette: 'components/entities/Cassette/CassetteCard.vue',
   cassetteDesign: 'components/entities/CassetteDesign/CassetteDesignCard.vue',
@@ -258,7 +257,6 @@ function createManifest() {
     frontendEntities: cncFrontendEntities,
     workflows: cncWorkflows,
     summaries: cncSummaries,
-    relations: cncRelations,
     commands: cncCommands,
     tasks: cncTasks,
     attachmentKinds: cncAttachmentKinds,

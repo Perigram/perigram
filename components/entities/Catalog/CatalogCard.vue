@@ -28,7 +28,6 @@ const handleCardClick = (event) => {
 const material = computed(() => props.catalog.data?.material || '');
 const sheetOptionCount = computed(() => props.catalog.data?.options?.sheetThicknesses?.length || 0);
 const foilOptionCount = computed(() => props.catalog.data?.options?.foilThicknesses?.length || 0);
-const manufacturerId = computed(() => props.catalog.lineage?.organization?.entityId || null);
 
 const CATALOG_FIELDS = resolveEntityDisplayFields({ entityType: 'catalog', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
@@ -54,9 +53,9 @@ const CATALOG_FIELDS = resolveEntityDisplayFields({ entityType: 'catalog', surfa
         </div>
       </template>
       <Divider />
-      <div v-if="manufacturerId" class="flex items-center justify-between gap-4">
+      <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
         <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
-        <EntityInlineRef type="organization" :id="manufacturerId" />
+        <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
       </div>
       <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
       <template #footer>

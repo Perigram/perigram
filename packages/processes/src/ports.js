@@ -81,7 +81,7 @@ export function resolveNodePort(process = {}, node = {}, handle = '', direction 
   if (node.type === 'action' && direction === 'input' && record.actionKind === 'createEntity' && handleId === 'parent') {
     return normalizePortSpec({ id: 'parent', label: 'Parent entity', kind: 'entity', optional: true });
   }
-  if (node.type === 'action' && direction === 'input' && record.actionKind === 'mutateEntity' && handleId === 'entity') {
+  if (node.type === 'action' && direction === 'input' && ['changeStatus', 'updateEntity'].includes(record.actionKind) && handleId === 'entity') {
     const entityInput = (record.inputs || []).find(port => port.id === 'entity' || port.entityType);
     return normalizePortSpec(entityInput || { id: 'entity', kind: 'entity' });
   }
@@ -156,10 +156,6 @@ function processNodeInputPorts(record = {}) {
   if (record.kind === 'fieldRead') {
     return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
   }
-  if (record.kind === 'entityAssemble') return processBlockPorts();
-  if (record.kind === 'blockAssemble') {
-    return (record.inputs || []).map(port => normalizePortSpec(port));
-  }
   if (record.kind === 'blockRead') {
     return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '' })];
   }
@@ -193,12 +189,6 @@ function processNodeOutputPorts(record = {}) {
   }
   if (record.kind === 'fieldRead') {
     return processBlockPorts();
-  }
-  if (record.kind === 'entityAssemble') {
-    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
-  }
-  if (record.kind === 'blockAssemble') {
-    return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '' })];
   }
   if (record.kind === 'blockRead') {
     return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: record.valueType || 'data', block: record.block || '', dataPath: record.path || '' })];

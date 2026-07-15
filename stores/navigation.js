@@ -6,12 +6,6 @@ import { useI18n } from 'vue-i18n';
 import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
 import { processOperationalScreens, resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
 import { generatedScreenLabel } from '~/utils/generated-labels.js';
-import { createDomainUiAdapter } from '@cutkit/vue';
-import { cncDomain } from '@cutkit/domain-cnc';
-import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
-import { containmentBreadcrumbChain } from '~/utils/entity-hierarchy.js';
-
-const domainUi = createDomainUiAdapter(cncDomain);
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
@@ -20,8 +14,6 @@ export const useNavigationStore = defineStore('navigation', () => {
 
     // Store-managed state for project context
     const currentProject = ref(null);
-    const entityHierarchyBreadcrumbs = ref([]);
-    let hierarchyRequest = 0;
 
     const siblingOption = (name, id) => ({
         name: entitySelectLabel({ name }, id),
@@ -52,55 +44,6 @@ export const useNavigationStore = defineStore('navigation', () => {
             }
             console.error('Failed to fetch project context:', e);
         }
-    }
-
-    async function syncEntityHierarchy(path, query = {}, fetchOptions = {}) {
-        const request = ++hierarchyRequest;
-        entityHierarchyBreadcrumbs.value = [];
-        const match = String(path || '').match(/^\/screens\/([^/]+)/);
-        if (!match) return;
-        const screen = visibleProcessScreens.value.find(item => (item.screenKey || item.id) === match[1]);
-        const source = screen?.sources?.find(item => item.mode === 'single');
-        const entityId = query.entityId || (source?.entityType ? query[`${source.entityType}Id`] : null);
-        if (!screen || screen.template !== 'entityDetail' || !source?.entityType || !entityId) return;
-
-        const entity = await fetchBreadcrumbEntity(source.entityType, entityId, fetchOptions);
-        if (!entity || request !== hierarchyRequest) return;
-        const chain = containmentBreadcrumbChain(source.entityType, entity.lineage || {});
-        const entryGroups = await Promise.all(chain.map(async ({ entityType, entityId: parentId, revisionId }) => {
-            const parent = await fetchBreadcrumbEntity(entityType, parentId, fetchOptions);
-            const parentEntry = breadcrumbForEntity(entityType, parent || { _id: parentId }, screen);
-            if (!revisionId) return [parentEntry];
-            const revision = await fetchBreadcrumbEntity('entity_revision', revisionId, fetchOptions);
-            return [
-                parentEntry,
-                breadcrumbForEntity('entity_revision', revision || { _id: revisionId }, screen)
-            ];
-        }));
-        const entries = entryGroups.flat();
-        entries.push(breadcrumbForEntity(source.entityType, entity, screen, path, query));
-        if (request === hierarchyRequest) entityHierarchyBreadcrumbs.value = entries.filter(Boolean);
-    }
-
-    async function fetchBreadcrumbEntity(entityType, entityId, fetchOptions) {
-        try {
-            return await $fetch(domainUi.getSingleEndpoint(entityType, entityId), fetchOptions);
-        } catch {
-            return null;
-        }
-    }
-
-    function breadcrumbForEntity(entityType, entity, screen, currentPath = '', currentQuery = {}) {
-        const name = entitySelectLabel(entity, entity?._id || entity?.identity?.uid || entityType);
-        const to = currentPath
-            ? { path: currentPath, query: currentQuery }
-            : detailRouteForEntity({
-                entity,
-                entityType,
-                screenKey: screen?.screenKey || screen?.id || '',
-                manifest: authStore.screenManifest
-            });
-        return to ? { name, to, siblings: [] } : null;
     }
 
     // --- HUB DEFINITIONS (Level 1) ---
@@ -227,7 +170,6 @@ export const useNavigationStore = defineStore('navigation', () => {
                     });
                 }
             }
-            nav.push(...entityHierarchyBreadcrumbs.value);
         }
 
         // --- Level 2: Project Context ---
@@ -329,7 +271,6 @@ export const useNavigationStore = defineStore('navigation', () => {
         hubs,
         currentProject,
         fetchProjectContext,
-        syncEntityHierarchy,
         resolveBreadcrumbs,
         processAllowsRoute
     };

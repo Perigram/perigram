@@ -12,7 +12,7 @@ Collection: `warehouses`
 
 Key fields:
 - `identity.name`: Warehouse name
-- `lineage.organization`: Structured owner-organization reference
+- `lineage.organizationId`: Owner organization
 - `data.address`: Physical address
 - `data.contactPerson`: Contact information
 - `data.stats.totalBatches`: Cached count of material batches

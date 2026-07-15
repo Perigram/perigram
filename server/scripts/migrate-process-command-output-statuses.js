@@ -15,7 +15,8 @@ function normalizeEntityType(type = '') {
 }
 
 function processOrganizationId(process = {}) {
-  return process.lineage?.organization?.entityId
+  return process.lineage?.organizationId
+    || process.lineage?.organization
     || process.data?.organizationId
     || process.data?.organization
     || '';
@@ -49,7 +50,7 @@ function commandOutputStatusMappings(processData = {}) {
       if (!sourceNodeIds.has(String(edge.source))) continue;
       const targetActionId = nodeIdToActionId.get(String(edge.target)) || String(edge.target);
       const targetAction = processData.actions?.[targetActionId];
-      if (targetAction?.actionKind !== 'mutateEntity' || !targetAction.status?.to) continue;
+      if (targetAction?.actionKind !== 'changeStatus') continue;
       const entityType = normalizeEntityType(
         targetAction.entityType
         || targetAction.inputs?.find(input => input.entityType)?.entityType
@@ -112,7 +113,7 @@ async function migrateMapping({ db, process, organizationId, mapping }) {
   let scanned = 0;
   let updated = 0;
   let skipped = 0;
-  const cursor = db.collection(collection).find({ 'lineage.organization.entityId': String(organizationId) });
+  const cursor = db.collection(collection).find({ 'lineage.organizationId': organizationId });
 
   for await (const entity of cursor) {
     scanned++;

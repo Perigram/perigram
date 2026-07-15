@@ -262,16 +262,6 @@ jsFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
 
-  if (relFile.startsWith('server/features/') && !relFile.endsWith('.spec.js')) {
-    for (const match of content.matchAll(/(?:from\s*|import\s*\(\s*)['"]((?:\.\.\/)+(?:utils|shared|packages)\/[^'"]+)['"]/g)) {
-      const resolvedImport = path.normalize(path.join(path.dirname(relFile), match[1]));
-      if (/^(?:utils|shared|packages)\//.test(resolvedImport)) {
-        console.error(`❌ ${relFile} imports root runtime code through ${match[1]} — use #utils/#shared/#packages so Nitro preserves the workspace root`);
-        errors++;
-      }
-    }
-  }
-
   if (relFile.startsWith('server/core/') && !relFile.endsWith('README.md') && /(@cutkit\/domain-cnc|packages\/domain-cnc)/.test(content)) {
     console.error(`❌ ${relFile} imports CNC domain directly — use server/runtime/cutkit-registry.js`);
     errors++;
@@ -300,11 +290,12 @@ console.log('\nChecking command/task boundary leaks...');
 const intentFlowFile = 'packages/domain-cnc/src/workflows.js';
 const intentFlowContent = fs.readFileSync(intentFlowFile, 'utf8');
 [
-  { pattern: /nesting:\s*\{/, message: 'missing queue nesting status region' },
-  { pattern: /intent:\s*'requestNesting'/, message: 'missing queue requestNesting intent' },
-  { pattern: /intent:\s*'nestingSolveCompleted'/, message: 'missing queue nestingSolveCompleted intent' },
-  { pattern: /intent:\s*'nestingSolveFailed'/, message: 'missing queue nestingSolveFailed intent' },
-  { pattern: /intent:\s*'selectNestingRevision'/, message: 'missing queue selectNestingRevision intent' }
+  { pattern: /from:\s*'DRAFT',\s*to:\s*'NESTING'[\s\S]*?intent:\s*'requestNesting'/, message: 'missing queue requestNesting intent' },
+  { pattern: /from:\s*'NESTING',\s*to:\s*'READY'[\s\S]*?intent:\s*'completeNestingProduction'/, message: 'missing completeNestingProduction intent' },
+  { pattern: /from:\s*'NESTING',\s*to:\s*'ERROR'[\s\S]*?intent:\s*'nestingSolveFailed'/, message: 'missing nestingSolveFailed intent on queue' },
+  { pattern: /from:\s*'NESTING',\s*to:\s*'COMPLETE'[\s\S]*?intent:\s*'nestingSolveCompleted'/, message: 'missing nestingSolveCompleted intent' },
+  { pattern: /from:\s*'NESTING',\s*to:\s*'ERROR'[\s\S]*?intent:\s*'nestingSolveFailed'/, message: 'missing nestingSolveFailed intent on nesting_run' },
+  { pattern: /from:\s*'COMPLETE',\s*to:\s*'CHOSEN'[\s\S]*?intent:\s*'acceptNestingRun'/, message: 'missing acceptNestingRun intent' }
 ].forEach(check => {
   if (!check.pattern.test(intentFlowContent)) {
     console.error(`❌ ${intentFlowFile} ${check.message}`);
@@ -318,6 +309,10 @@ commandBoundaryFiles.forEach(file => {
   const relFile = path.relative('.', file);
   if (/statusService\.transition\(\s*['"]queue['"]/.test(content) || /transitionQueueIfState/.test(content)) {
     console.error(`❌ ${relFile} mutates queue status directly inside a command handler — return an effect instead`);
+    errors++;
+  }
+  if (/statusService\.transition\(\s*['"]nesting_run['"]/.test(content) && relFile.includes('/nesting/')) {
+    console.error(`❌ ${relFile} mutates nesting_run status directly inside a task/command handler — return a transition effect instead`);
     errors++;
   }
   if (/\bcreateStatus\s*\(/.test(content) || /import\s+\{[^}]*\bcreateStatus\b/.test(content)) {

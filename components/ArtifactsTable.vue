@@ -100,7 +100,7 @@ const props = defineProps({
   batchId: { type: String, required: false },
   artifacts: { type: Array, default: null },
   batch: { type: Object, default: null },
-  revisionId: { type: String, default: null }
+  runId: { type: String, default: null }
 });
 
 const { t } = useI18n();
@@ -121,7 +121,7 @@ const isPdf = computed(() => artifactPreviewMode(previewArtifactData.value) === 
 
 onMounted(async () => {
   if (props.batchId && !props.artifacts) {
-    artifactsStore.fetchArtifacts(props.batchId, props.revisionId);
+    artifactsStore.fetchArtifacts(props.batchId);
   }
 });
 

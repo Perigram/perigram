@@ -6,7 +6,7 @@ import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityRelationsBlock from '~/components/shared/EntityRelationsBlock.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
@@ -17,6 +17,7 @@ const props = defineProps({
 const emit = defineEmits(['click']);
 
 const artifactType = computed(() => props.artifact.data?.type || '');
+const runId = computed(() => props.artifact.lineage?.runId || null);
 
 const icon = computed(() => {
   const type = artifactType.value;
@@ -27,9 +28,8 @@ const icon = computed(() => {
   return 'pi-file';
 });
 
-const FIELDS = resolveEntityDisplayFields({ entityType: 'artifact', surface: 'card' });
-const ARTIFACT_FIELDS = FIELDS.filter(field => field.display !== 'entityRef' && field.display !== 'entityRefList');
-const RELATION_FIELDS = FIELDS.filter(field => field.display === 'entityRef' || field.display === 'entityRefList');
+const ARTIFACT_FIELDS = resolveEntityDisplayFields({ entityType: 'artifact', surface: 'card' })
+  .filter(field => field.display !== 'entityRef');
 
 const isChildControl = (event) => {
   const target = event?.target;
@@ -67,7 +67,10 @@ const onPreviewKeydown = (event) => {
       <Divider />
       <div class="flex flex-col gap-3">
         <DataBlock entity-type="artifact" :entity="artifact" :fields="ARTIFACT_FIELDS" />
-        <EntityRelationsBlock :entity="artifact" :fields="RELATION_FIELDS" item-variant="compact" />
+        <div v-if="runId" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
+          <EntityInlineRef type="nestingRun" :id="runId" />
+        </div>
       </div>
     </EntityCard>
   </div>

@@ -1,6 +1,6 @@
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { createIdentity, createData, createStatus, Lineage } from '../../core/blocks/index.js';
+import { createIdentity, createData, createStatus } from '../../core/blocks/index.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { LayerStandard } from './model.js';
 import { markPublicSystemData } from '#shared/public-entities.js';
@@ -33,7 +33,7 @@ function buildLayerStandardDocument(data, userId, userOrg) {
     description,
     source
   } = data;
-  const lineage = userOrg ? new Lineage().add('organization', userOrg) : {};
+  const lineage = userOrg ? { organizationId: toFlexibleId(userOrg) } : {};
   const origin = createStatus('ACTIVE', userId || 'SYSTEM', { note: 'Layer standard created' });
 
   const doc = {

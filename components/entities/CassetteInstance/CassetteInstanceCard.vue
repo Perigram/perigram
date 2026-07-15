@@ -48,7 +48,7 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const designId = computed(() => props.instance.lineage?.cassetteDesign?.entityId || null);
+const designId = computed(() => props.instance.lineage?.cassetteDesignId || props.instance.lineage?.designId || null);
 const designIdValue = computed(() => designId.value?.toString?.() || designId.value || '');
 const design = ref(null);
 const template = ref(null);
@@ -62,7 +62,7 @@ watch(designId, async (id) => {
   if (!normalizedId) return;
   const loadedDesign = await designEntity.fetch(normalizedId, { silent: true }).catch(() => null);
   design.value = loadedDesign;
-  const templateId = loadedDesign?.lineage?.cassette?.entityId || null;
+  const templateId = loadedDesign?.lineage?.templateId || loadedDesign?.data?.templateId || null;
   const normalizedTemplateId = templateId?.toString?.() || templateId;
   if (normalizedTemplateId) {
     template.value = await templateEntity.fetch(normalizedTemplateId, { silent: true }).catch(() => null);

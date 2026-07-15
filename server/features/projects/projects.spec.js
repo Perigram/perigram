@@ -72,23 +72,8 @@ describe('Projects & Multi-tenant Ownership', () => {
     expect(dto._id).toMatch(/high-rise-tower-/);
     expect(dto).not.toHaveProperty('id');
     expect(dto).not.toHaveProperty('name');
-    expect(result.lineage.organization.entityId.toString()).toBe(contractor1.organizationId.toString());
+    expect(result.lineage.organizationId.toString()).toBe(contractor1.organizationId.toString());
     expect(result.status.state.primary).toBe('DRAFT');
-  });
-
-  it('stores selected libraries as non-owning revision-capable links', async () => {
-    const result = await projectService.create({
-      name: 'Linked Project',
-      libraryIds: [
-        'library-1',
-        { id: 'library-2', revisionId: 'revision-2' }
-      ]
-    }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
-
-    expect(result.relations.libraries).toEqual([
-      { entityType: 'library', entityId: 'library-1' },
-      { entityType: 'library', entityId: 'library-2', revisionId: 'revision-2' }
-    ]);
   });
 
   it('should isolate project lists between organizations', async () => {

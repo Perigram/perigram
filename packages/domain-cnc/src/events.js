@@ -3,11 +3,6 @@ export const cncEvents = {
     id: 'cassette.templateSaved',
     label: 'Cassette template saved'
   },
-  cassetteDesignImported: {
-    id: 'cassette.designImported',
-    label: 'Cassette design imported',
-    informational: true
-  },
   queueNestingRequested: {
     id: 'queue.nestingRequested',
     label: 'Queue nesting requested'

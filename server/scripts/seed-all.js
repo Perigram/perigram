@@ -7,8 +7,7 @@ import { execSync } from 'child_process';
 const scripts = [
   'seed-system-pens.js',
   'seed-layer-standards.js',
-  'seed-system-tools.js',
-  'seed-system-machines.js'
+  'seed-system-tools.js'
 ];
 
 console.log('🌱 Seeding all system data...\n');

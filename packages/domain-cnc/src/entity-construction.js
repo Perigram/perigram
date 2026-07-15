@@ -1,19 +1,9 @@
 export const cncEntityConstruction = {
-  artifact: {
-    modes: ['createArtifactFromAttachment'],
-    defaultMode: 'createArtifactFromAttachment',
-    inputs: [
-      { id: 'name', label: 'Artifact name', path: 'name', type: 'string', required: true, prompt: true },
-      { id: 'file', label: 'File', path: 'file', type: 'attachment', required: true, prompt: true, capture: true },
-      { id: 'source', label: 'Source entity', path: 'source', type: 'entity', required: false, prompt: false }
-    ]
-  },
   project: {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',
     inputs: [
-      { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
-      { id: 'libraryIds', label: 'Libraries', path: 'libraryIds', type: 'entityList', accepts: ['library'], required: false, prompt: true }
+      { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }
     ]
   },
   queue: {
@@ -23,7 +13,7 @@ export const cncEntityConstruction = {
       { id: 'name', label: 'Queue name', path: 'name', type: 'string', required: true, prompt: true },
       { id: 'jobItems', label: 'Queue items', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: false },
       { id: 'materialPool', label: 'Material pool', path: 'job.materialPool', type: 'entityList', accepts: ['material_pile', 'sheet', 'remnant'], required: false },
-      { id: 'nestingSettings', label: 'Nesting settings', path: 'nestingSettings', type: 'object', required: false }
+      { id: 'nestingParams', label: 'Nesting parameters', path: 'nestingParams', type: 'object', required: false }
     ]
   },
   cassette: {
@@ -55,7 +45,7 @@ export const cncEntityConstruction = {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',
     inputs: [
-      { id: 'cassetteDesignId', label: 'Cassette design', path: 'cassetteDesignId', type: 'entity', entityType: 'cassette_design', required: true }
+      { id: 'cassetteDesignId', label: 'Cassette design', path: 'data.cassetteDesignId', type: 'entity', entityType: 'cassette_design', required: true }
     ]
   }
 };

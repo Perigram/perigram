@@ -26,7 +26,7 @@ const STANDARD_BLOCKS = [
   { name: 'identity', type: 'Object', description: 'Standard Identity Block (uid, name)' },
   { name: 'origin', type: 'Object', description: 'Standard Origin Block (creation state)' },
   { name: 'status', type: 'Object', description: 'Standard Status Block (current state)' },
-  { name: 'lineage', type: 'Object', description: 'Standard Lineage Block (structured ancestor references)' },
+  { name: 'lineage', type: 'Object', description: 'Standard Lineage Block (ancestor IDs)' },
   { name: 'attachments', type: 'Object', description: 'Standard Attachments Block (files)' }
 ];
 
@@ -214,32 +214,6 @@ function extractDataFields(featurePath) {
   }));
 }
 
-function extractLineageFields(content) {
-  const roles = new Set();
-
-  for (const inner of extractObjectBodies(content, [/lineage\s*:\s*\{/g])) {
-    for (const role of splitTopLevelProperties(inner).map(extractPropertyName)) {
-      if (role) roles.add(role);
-    }
-  }
-
-  for (const pattern of [
-    /(?:lineage|new\s+Lineage\([^)]*\))\.add\(\s*['"]([A-Za-z_$][\w$]*)['"]/g,
-    /lineage\.([A-Za-z_$][\w$]*)\.entityId/g
-  ]) {
-    let match;
-    while ((match = pattern.exec(content)) !== null) roles.add(match[1]);
-  }
-
-  return [...roles].sort().map(role => ({
-    name: `lineage.${role}`,
-    type: 'EntityReference',
-    description: `Structured ${camelToWords(role)} reference`,
-    source: 'structured-lineage',
-    issues: []
-  }));
-}
-
 function inferType(key) {
   if (key.endsWith('Id') || key === 'currency' || key === 'material' || key === 'code') return 'String';
   if (key.includes('Date') || key === 'timestamp') return 'Date';
@@ -281,7 +255,18 @@ export async function extractDataModels() {
         if (fs.existsSync(p)) fullContent += fs.readFileSync(p, 'utf-8');
     });
 
-    const lineageFields = extractLineageFields(stripComments(fullContent));
+    const lineageFields = [];
+    const lineageRegex = /lineage\s*:\s*\{([^}]+)\}/g;
+    let lmatch;
+    while ((lmatch = lineageRegex.exec(fullContent)) !== null) {
+        const inner = lmatch[1];
+        const props = inner.split(',').map(p => p.split(':')[0].trim());
+        for (const p of props) {
+            if (!p || p.startsWith('...')) continue;
+            if (lineageFields.find(f => f.name === `lineage.${p}`)) continue;
+            lineageFields.push({ name: `lineage.${p}`, type: 'ObjectId | string', description: `Lineage link to ${p}`, source: 'lineage-literal', issues: [] });
+        }
+    }
 
     const allFields = [...STANDARD_BLOCKS, ...lineageFields, ...entitySpecificFields];
     const issues = allFields.flatMap(field => (field.issues || []).map(issue => ({ field: field.name, issue })));
@@ -349,8 +334,8 @@ export function generateRelationshipDiagram(models) {
     
     // Look for lineage patterns
     for (const field of model.fields) {
-      if (field.name.startsWith('lineage.')) {
-        const parentType = field.name.replace('lineage.', '');
+      if (field.name.startsWith('lineage.') && field.name.endsWith('Id')) {
+        const parentType = field.name.replace('lineage.', '').replace('Id', '');
         const parentModel = models.find(m => m.collection.startsWith(parentType) || m.feature === parentType);
         if (parentModel) {
           const parentFeature = parentModel.feature.replace(/-/g, '_');

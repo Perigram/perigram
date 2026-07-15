@@ -14,9 +14,7 @@ This component manages the display styles (pens) for DXF layers, including color
 {
   "_id": "ObjectId",
   "identity": { "name": "string" },
-  "lineage": {
-    "user": { "entityType": "user", "entityId": "string" }
-  },
+  "lineage": { "userId": "string | null" },
   "data": {
     "stroke": {
       "color": "string",
@@ -35,7 +33,7 @@ This component manages the display styles (pens) for DXF layers, including color
 - `remove(id, userId)`: Deletes a user-owned pen.
 
 ## Patterns and Conventions
-- **System Pens:** Pens without a `lineage.user` reference are marked public-read with
+- **System Pens:** Pens with `lineage.userId: null` are marked public-read with
   `lineage.scope: "system"`, `lineage.public: true`, and
   `data.visibility.public: true`. They are read-only and available through the
   shared public-system-data access rule rather than copied permission grants.

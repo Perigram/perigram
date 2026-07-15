@@ -90,7 +90,7 @@ const commandActions = computed(() => [
         </template>
         <template #compact-content v-if="showSummary">
             <div class="mt-3 flex flex-wrap items-center gap-2">
-                <Tag v-if="queue.summary?.revisionCount" :value="`${queue.summary.revisionCount} ${$t('queue.revisions')}`" severity="info" size="small" />
+                <Tag v-if="queue.summary?.runCount" :value="`${queue.summary.runCount} ${$t('queue.runs')}`" severity="info" size="small" />
             </div>
         </template>
 

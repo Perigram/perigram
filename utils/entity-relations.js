@@ -13,6 +13,7 @@ const ENTITY_TYPE_ALIASES = {
   library: 'library',
   material: 'material',
   material_pile: 'materialPile',
+  nesting_run: 'nestingRun',
   organization: 'organization',
   pen_template: 'penTemplate',
   profile_template: 'profileTemplate',
@@ -22,7 +23,6 @@ const ENTITY_TYPE_ALIASES = {
   requisition: 'requisition',
   sheet: 'sheet',
   sheet_design: 'sheetDesign',
-  sheet_instance: 'sheetInstance',
   tool_profile: 'toolProfile',
   user: 'user',
   warehouse: 'warehouse'
@@ -37,6 +37,7 @@ const SOURCE_TYPE_MAP = {
   COLOR: 'color',
   LIBRARY: 'library',
   MATERIAL: 'material',
+  NESTING_RUN: 'nestingRun',
   ORGANIZATION: 'organization',
   PILE: 'materialPile',
   PROJECT: 'project',
@@ -59,7 +60,8 @@ const OBJECT_LIST_KEY_TYPES = {
   pileIds: 'materialPile',
   queueIds: 'queue',
   remnantIds: 'remnant',
-  sheetInstanceIds: 'sheetInstance',
+  runIds: 'nestingRun',
+  sheetDesignIds: 'sheetDesign',
   sheetIds: 'sheet'
 };
 
@@ -81,8 +83,6 @@ function appendRelationValue(refs, rawValue, fallbackEntityType = null) {
   }
 
   if (typeof rawValue === 'object') {
-    const direct = normalizeRelationRef(rawValue, fallbackEntityType);
-    if (direct) refs.push(direct);
     for (const [key, value] of Object.entries(rawValue)) {
       if (!Array.isArray(value) || !value.length) continue;
       appendRelationValue(refs, value, OBJECT_LIST_KEY_TYPES[key] || fallbackEntityType);
@@ -106,7 +106,6 @@ function normalizeRelationRef(value, fallbackEntityType = null) {
   return {
     entityType,
     id: String(id),
-    ...(value.revisionId ? { revisionId: String(value.revisionId) } : {}),
     entity: value.identity || value.data || value.status || value.lineage ? value : null
   };
 }
@@ -123,6 +122,6 @@ function normalizeEntityType(value) {
 function dedupeRelationRefs(refs = []) {
   return Array.from(new Map(refs
     .filter(ref => ref?.entityType && ref?.id)
-    .map(ref => [`${ref.entityType}:${ref.id}:${ref.revisionId || ''}`, ref])
+    .map(ref => [`${ref.entityType}:${ref.id}`, ref])
   ).values());
 }

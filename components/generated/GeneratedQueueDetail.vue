@@ -5,12 +5,10 @@
     :project-slug="projectId"
     :show-queue-navigation="false"
     :process-actions="processActions"
-    :producer-actions="cassetteProducerActions"
     edit-mode="process"
     @updated="$emit('refresh')"
     @select-queue="openQueue"
     @queue-deleted="$emit('refresh')"
-    @execute-producer="executeProducer"
   />
 </template>
 
@@ -27,18 +25,10 @@ const props = defineProps({
   processActions: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['refresh', 'execute-action']);
+defineEmits(['refresh']);
 
 const authStore = useAuthStore();
-const projectId = computed(() => props.queue?.lineage?.project?.entityId?.toString?.() || props.queue?.lineage?.project?.entityId || '');
-const cassetteProducerActions = computed(() => props.processActions.filter(action =>
-  (action.trigger?.mode || 'manual') === 'manual' &&
-  (action.outputs || []).some(output => output.entityType === 'cassette_design')
-));
-
-function executeProducer(action) {
-  emit('execute-action', action, props.queue);
-}
+const projectId = computed(() => props.queue?.lineage?.projectId?.toString?.() || props.queue?.lineage?.projectId || '');
 
 function openQueue(queueId) {
   const route = detailRouteForEntity({

@@ -33,14 +33,6 @@
                     :slug="item.slug"
                     class="max-w-[14rem]"
                 />
-                <TraceLink
-                    v-if="item.revisionId"
-                    type="entityRevision"
-                    :id="item.revisionId"
-                    :fallback-label="revisionLabel(item.revisionId)"
-                    :to="routeForRevision(item.revisionId)"
-                    class="max-w-[8rem]"
-                />
                 <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-[0.625rem] text-muted-color"></i>
             </li>
         </ol>
@@ -89,29 +81,19 @@ const FALLBACK_LABELS = {
 const activeLineage = computed(() => props.lineage || entityLineage.value);
 
 const items = computed(() => {
+    const list = [];
     const lin = activeLineage.value;
     if (!lin) return [];
-    const orderedRoles = ['organization', 'library', 'cassette', 'warehouse', 'project', 'queue', 'sheetDesign'];
-    return Object.entries(lin)
-        .filter(([, ref]) => ref?.entityType && ref?.entityId)
-        .sort(([left], [right]) => roleOrder(left, orderedRoles) - roleOrder(right, orderedRoles))
-        .map(([role, ref]) => ({
-            type: traceEntityType(ref.entityType, role),
-            id: ref.entityId,
-            revisionId: ref.revisionId || null,
-            slug: role === 'queue' ? lin.project?.entityId || null : null
-        }));
+
+    if (lin.organizationId) list.push({ type: 'organization', id: lin.organizationId });
+    if (lin.libraryId) list.push({ type: 'library', id: lin.libraryId });
+    if (lin.templateId) list.push({ type: 'cassetteTemplate', id: lin.templateId });
+    if (lin.warehouseId) list.push({ type: 'warehouse', id: lin.warehouseId });
+    if (lin.projectId) list.push({ type: 'project', id: lin.projectId });
+    if (lin.queueId) list.push({ type: 'queue', id: lin.queueId, slug: lin.projectId });
+    
+    return list;
 });
-
-const roleOrder = (role, orderedRoles) => {
-    const index = orderedRoles.indexOf(role);
-    return index === -1 ? orderedRoles.length : index;
-};
-
-const traceEntityType = (entityType, role) => {
-    if (role === 'cassette' || entityType === 'cassette') return 'cassetteTemplate';
-    return String(entityType).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
-};
 
 const findContextEntity = (type, id) => {
     const context = unref(entityContext);
@@ -142,12 +124,6 @@ const contextTypeCandidates = (type) => {
 const labelKey = (item) => `${item.type}:${item.id}`;
 
 const fallbackLabel = (item) => item?.label || FALLBACK_LABELS[item?.type] || '';
-const revisionLabel = id => `@${String(id).slice(-8)}`;
-const routeForRevision = id => detailRouteForEntity({
-    entity: { _id: id },
-    entityType: 'entity_revision',
-    manifest: authStore.screenManifest
-});
 
 const entityLabel = (entity) => {
     return entity?.identity?.name

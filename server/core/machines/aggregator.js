@@ -12,24 +12,19 @@ export const aggregator = {
     const config = getAggregationMap()[entityType];
     if (!config) return;
 
-    const parentId = lineage[config.lineageRole]?.entityId;
+    const parentId = lineage[config.parentIdKey];
     if (!parentId) return;
 
     const db = await connectDB();
     
     const targetCollection = getEntityCollection(entityType);
-    const summaryCollection = getEntityCollection(config.targetType);
-    if (!targetCollection || !summaryCollection) return;
+    const parentCollection = getEntityCollection(config.parentType);
+    if (!targetCollection || !parentCollection) return;
     const flexParentId = toFlexibleId(parentId);
 
     // 1. Run Aggregation
     const pipeline = [
-      {
-        $match: {
-          [`lineage.${config.lineageRole}.entityId`]: { $in: [flexParentId, parentId.toString()] },
-          ...(config.filter || {})
-        }
-      },
+      { $match: { [`lineage.${config.parentIdKey}`]: flexParentId } },
       {
         $group: {
           _id: null,
@@ -54,7 +49,7 @@ export const aggregator = {
       });
     }
     if (Object.keys(updateFields).length > 0) {
-      await db.collection(summaryCollection).updateOne({ _id: flexParentId }, { $set: updateFields });
+      await db.collection(parentCollection).updateOne({ _id: flexParentId }, { $set: updateFields });
     }
   }
 };
@@ -62,11 +57,10 @@ export const aggregator = {
 function getAggregationMap() {
   const summaries = getCutkitRegistry().getDomain('cnc')?.summaries || [];
   return Object.fromEntries(summaries.map(summary => [
-    summary.sourceType,
+    summary.entityType,
     {
-      targetType: summary.targetType,
-      lineageRole: summary.lineageRole,
-      filter: summary.filter || {},
+      parentType: summary.parentType,
+      parentIdKey: summary.parentIdKey,
       fields: {
         count: summary.countField,
         sum: summary.sumFields

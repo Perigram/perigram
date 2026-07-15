@@ -19,9 +19,9 @@ The system consists of three main parts: the transition engine, the dynamic hook
   validation, hooks, and audit events.
   Runtime resolution keeps domain-owned system intent transitions available
   when a process workflow overrides an entity lifecycle. Service-owned flows
-  such as queue nesting still need their hidden parallel-region completion,
-  failure, and revision-selection intents even when the user-facing process
-  adds custom primary statuses.
+  such as `nesting_run` solver completion still need their hidden
+  `NESTING -> COMPLETE` / `NESTING -> ERROR` intents even when the user-facing
+  process adds custom statuses.
   Process-authored user transitions are authorized by their compiled
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the
@@ -80,7 +80,7 @@ Uploaded proof files are persisted on the entity `attachments` block and
 referenced from `status.lifecycle.attachments`, so the current entity owns file
 metadata while `status_events.status.lifecycle` preserves which file proved the
 transition. Snapshot declarations are generic: a state can name a target entity
-type and lineage role, such as `cassette_design` by `queue`; the status
+type and lineage key, such as `cassette_design` by `queueId`; the status
 runtime captures readable entity refs/counts into
 `status.lifecycle.data.snapshots` during the transition.
 
@@ -115,7 +115,7 @@ Interactive UI status changes use the canonical status endpoints:
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. It also includes compiled manual process `mutateEntity` actions with a target status from the current role assignment when their entity type and source status match the target entity. |
+| `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. It also includes compiled manual process `changeStatus` actions from the current role assignment when their entity type and source status match the target entity. |
 | `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. Optional `statusMeta.region` / `statusMeta.path` scopes a transition to a non-primary region. `statusMeta.metadata.note` carries the operator description, and `statusMeta.lifecycle.attachments` carries uploaded proof refs for schema-declared slots. |
 
 Entity-specific PATCH routes must not be the primary status API for standard
@@ -154,7 +154,7 @@ masked.
     - It executes `after` hooks; async hooks run in the background, while
       `mode: 'sync'` hooks are awaited and may return declared effects for the
       centralized effect runtime.
-5. Parent's `summary` block is updated via `aggregator.js` (if `triggerAggregator` hook was called). Aggregate definitions explicitly declare `sourceType`, `targetType`, and `targetIdKey`; summary fields never imply containment or UI ownership.
+5. Parent's `summary` block is updated via `aggregator.js` (if `triggerAggregator` hook was called).
 
 ## Related
 - [server/core/blocks/](../core/blocks/) (Standard Block classes)

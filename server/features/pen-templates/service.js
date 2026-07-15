@@ -4,7 +4,7 @@
 
 import * as repository from './repository.js';
 import { createError } from 'h3';
-import { createIdentity, createStatus, createData, Lineage } from '../../core/blocks/index.js';
+import { createIdentity, createStatus, createData } from '../../core/blocks/index.js';
 import { PenTemplate } from './model.js';
 import { markPublicSystemData } from '#shared/public-entities.js';
 
@@ -18,7 +18,7 @@ export async function getById(id, userId = null) {
   if (!pen) {
     throw createError({ statusCode: 404, message: 'Pen template not found' });
   }
-  if (pen.lineage?.user?.entityId && userId && pen.lineage.user.entityId.toString() !== userId) {
+  if (pen.lineage?.userId && userId && pen.lineage.userId.toString() !== userId) {
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
   return toDTO(pen);
@@ -52,7 +52,9 @@ export async function create(data, userId) {
     identity: createIdentity(data.name),
     origin,
     status: origin,
-    lineage: userId ? new Lineage().add('user', userId) : {},
+    lineage: {
+      userId: userId ? userId : null
+    },
     data: createData({
       stroke: data.stroke
     })
@@ -65,7 +67,7 @@ export async function create(data, userId) {
 export async function update(id, updates, userId) {
   const pen = await repository.findById(id);
   if (!pen) throw createError({ statusCode: 404, message: 'Pen not found' });
-  if (!pen.lineage?.user?.entityId) {
+  if (!pen.lineage?.userId && !pen.ownerId) {
     throw createError({ statusCode: 403, message: 'System pens cannot be modified' });
   }
   
@@ -86,7 +88,7 @@ export async function update(id, updates, userId) {
 
 export async function remove(id, userId) {
   const pen = await getById(id, userId);
-  if (!pen.lineage?.user?.entityId) {
+  if (!pen.lineage?.userId && !pen.ownerId) {
     throw createError({ statusCode: 403, message: 'System pens cannot be deleted' });
   }
   await repository.deleteById(id);

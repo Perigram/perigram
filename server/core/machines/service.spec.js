@@ -46,6 +46,7 @@ describe('status service lifecycle payloads', () => {
     mockedConnectDB.mockReturnValue(db);
     await db.collection('cassette_instances').deleteMany({});
     await db.collection('cassettes').deleteMany({});
+    await db.collection('nesting_runs').deleteMany({});
     await db.collection('process_definitions').deleteMany({});
     await db.collection('projects').deleteMany({});
     await db.collection('queues').deleteMany({});
@@ -60,7 +61,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('cassettes').insertOne({
       _id: 'cassette-1',
       identity: { uid: 'cassette-1', name: 'Template' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      lineage: { organizationId: 'org-1' },
       status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
@@ -79,7 +80,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('cassettes').insertOne({
       _id: 'cassette-2',
       identity: { uid: 'cassette-2', name: 'Template' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      lineage: { organizationId: 'org-1' },
       status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
@@ -97,14 +98,14 @@ describe('status service lifecycle payloads', () => {
   });
 
   it('returns archive as a queue menu action from every queue lifecycle state', async () => {
-    const states = ['DRAFT', 'READY', 'CLOSED'];
+    const states = ['DRAFT', 'NESTING', 'READY', 'CLOSED'];
 
     for (const state of states) {
       const id = `queue-${state.toLowerCase()}`;
       await db.collection('queues').insertOne({
         _id: id,
         identity: { uid: id, name: `Queue ${state}` },
-        lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+        lineage: { organizationId: 'org-1' },
         status: { state, userId: 'creator', timestamp: new Date(), metadata: {} }
       });
 
@@ -121,37 +122,11 @@ describe('status service lifecycle payloads', () => {
     }
   });
 
-  it('propagates parent status through structured child lineage', async () => {
-    await db.collection('projects').insertOne({
-      _id: 'project-parent',
-      identity: { uid: 'project-parent', name: 'Parent project' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
-      status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} }
-    });
-    await db.collection('queues').insertOne({
-      _id: 'queue-child',
-      identity: { uid: 'queue-child', name: 'Child queue' },
-      lineage: {
-        organization: { entityType: 'organization', entityId: 'org-1' },
-        project: { entityType: 'project', entityId: 'project-parent' }
-      },
-      status: { state: 'READY', userId: 'creator', timestamp: new Date(), metadata: {} }
-    });
-
-    await statusService.transition('project', 'project-parent', 'CLOSED', 'admin-1', {
-      userId: 'admin-1',
-      memberships: [{ organizationId: 'org-1', permissions: { projects: 'admin', queues: 'write' } }]
-    });
-
-    const queue = await db.collection('queues').findOne({ _id: 'queue-child' });
-    expect(queue.status.state.primary).toBe('CLOSED');
-  });
-
   it('includes compiled process status actions for the matching entity status', async () => {
     await db.collection('projects').insertOne({
       _id: 'project-process-1',
       identity: { uid: 'project-process-1', name: 'Process Project' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      lineage: { organizationId: 'org-1' },
       status: {
         state: { primary: 'NEWS', active: { main: 'NEWS' }, regions: { main: { state: 'NEWS', path: ['NEWS'] } } },
         userId: 'creator',
@@ -168,7 +143,7 @@ describe('status service lifecycle payloads', () => {
         actions: [{
           actionId: 'move_old',
           label: 'Move project OLD',
-          actionKind: 'mutateEntity',
+          actionKind: 'changeStatus',
           entityType: 'project',
           status: { from: 'NEWS', to: 'OLD' }
         }]
@@ -189,7 +164,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('projects').insertOne({
       _id: 'project-process-current',
       identity: { uid: 'project-process-current', name: 'Current Project' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      lineage: { organizationId: 'org-1' },
       status: {
         state: { primary: 'CUT', active: { main: 'CUT' }, regions: { main: { state: 'CUT', path: ['CUT'] } } },
         userId: 'creator',
@@ -206,7 +181,7 @@ describe('status service lifecycle payloads', () => {
         actions: [{
           actionId: 'mark_cut',
           label: 'Mark cut',
-          actionKind: 'mutateEntity',
+          actionKind: 'changeStatus',
           entityType: 'project',
           status: { to: 'CUT' }
         }]
@@ -222,7 +197,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('process_definitions').insertOne({
       _id: 'process-active-transition-role',
       identity: { uid: 'process-active-transition-role', name: 'Process' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      lineage: { organizationId: 'org-1' },
       status: {
         state: {
           schemaVersion: 2,
@@ -262,7 +237,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('queues').insertOne({
       _id: 'queue-process-transition-1',
       identity: { uid: 'queue-process-transition-1', name: 'Queue' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      lineage: { organizationId: 'org-1' },
       status: {
         state: {
           schemaVersion: 2,
@@ -308,11 +283,11 @@ describe('status service lifecycle payloads', () => {
     expect(queue.status.state.primary).toBe('Отправлено');
   });
 
-  it('keeps the system nesting region when an active process defines a custom queue lifecycle', async () => {
+  it('keeps domain system intents available when an active process defines custom statuses', async () => {
     await db.collection('process_definitions').insertOne({
       _id: 'process-active-system-intents',
       identity: { uid: 'process-active-system-intents', name: 'Process' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      lineage: { organizationId: 'org-1' },
       status: {
         state: {
           schemaVersion: 2,
@@ -324,7 +299,7 @@ describe('status service lifecycle payloads', () => {
       data: {
         compiled: {
           workflows: {
-            queue: {
+            nesting_run: {
               schemaVersion: 2,
               primaryRegion: 'main',
               regions: {
@@ -344,19 +319,16 @@ describe('status service lifecycle payloads', () => {
         }
       }
     });
-    await db.collection('queues').insertOne({
-      _id: 'queue-process-system-intents',
-      identity: { uid: 'queue-process-system-intents', name: 'Queue 1' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+    await db.collection('nesting_runs').insertOne({
+      _id: 'run-process-system-intents',
+      identity: { uid: 'run-process-system-intents', name: 'Run 1' },
+      lineage: { organizationId: 'org-1', queueId: 'queue-1' },
       status: {
         state: {
           schemaVersion: 2,
-          primary: 'CUT',
-          active: { main: 'CUT', nesting: 'RUNNING' },
-          regions: {
-            main: { state: 'CUT', path: ['CUT'] },
-            nesting: { state: 'RUNNING', path: ['RUNNING'] }
-          }
+          primary: 'NESTING',
+          active: { main: 'NESTING' },
+          regions: { main: { state: 'NESTING', path: ['NESTING'] } }
         },
         userId: 'SYSTEM',
         timestamp: new Date(),
@@ -365,17 +337,14 @@ describe('status service lifecycle payloads', () => {
     });
 
     await statusService.applyIntent(
-      'queue',
-      'queue-process-system-intents',
+      'nesting_run',
+      'run-process-system-intents',
       'nestingSolveCompleted',
-      { userId: 'SYSTEM', role: 'SYSTEM', system: true },
-      {},
-      { region: 'nesting' }
+      { userId: 'SYSTEM', role: 'SYSTEM', system: true }
     );
 
-    const queue = await db.collection('queues').findOne({ _id: 'queue-process-system-intents' });
-    expect(queue.status.state.primary).toBe('CUT');
-    expect(queue.status.state.active.nesting).toBe('REVIEW');
+    const run = await db.collection('nesting_runs').findOne({ _id: 'run-process-system-intents' });
+    expect(run.status.state.primary).toBe('COMPLETE');
   });
 
   it('returns no actions for entity types without workflows', async () => {
@@ -399,7 +368,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('cassette_instances').insertOne({
       _id: id,
       identity: { uid: id, name: 'Cassette 1' },
-      lineage: { project: { entityType: 'project', entityId: projectId.toString() } },
+      lineage: { projectId },
       status: { state: 'PRODUCED', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
@@ -436,7 +405,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('cassette_instances').insertOne({
       _id: id,
       identity: { uid: id, name: 'Cassette 2' },
-      lineage: { project: { entityType: 'project', entityId: projectId.toString() } },
+      lineage: { projectId },
       status: { state: 'PRODUCED', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
@@ -474,7 +443,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('projects').insertOne({
       _id: id,
       identity: { uid: id, name: 'Project' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      lineage: { organizationId: 'org-1' },
       status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
@@ -511,7 +480,7 @@ describe('status service lifecycle payloads', () => {
                   proof: { required: true, multiple: false, kind: 'mounting-proof' }
                 },
                 snapshots: {
-                  designs: { entityType: 'cassette_design', lineageRole: 'queue', required: true }
+                  designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
                 }
               }
             }
@@ -524,16 +493,13 @@ describe('status service lifecycle payloads', () => {
     await db.collection('queues').insertOne({
       _id: queueId,
       identity: { uid: queueId, name: 'Evidence Queue' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+      lineage: { organizationId: 'org-1' },
       status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
     await db.collection('cassette_designs').insertOne({
       _id: 'design-1',
       identity: { uid: 'design-1', name: 'Design 1' },
-      lineage: {
-        organization: { entityType: 'organization', entityId: 'org-1' },
-        queue: { entityType: 'queue', entityId: queueId }
-      },
+      lineage: { organizationId: 'org-1', queueId },
       status: { state: 'READY', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
@@ -567,7 +533,7 @@ describe('status service lifecycle payloads', () => {
     expect(entity.attachments[proof.attachmentKey].kind).toBe('mounting-proof');
     expect(entity.status.lifecycle.data.snapshots.designs).toMatchObject({
       entityType: 'cassette_design',
-      lineageRole: 'queue',
+      lineageKey: 'queueId',
       count: 1,
       refs: [{ id: 'design-1', label: 'Design 1', status: 'READY' }]
     });
@@ -586,7 +552,7 @@ describe('status service lifecycle payloads', () => {
     await db.collection('cassette_instances').insertOne({
       _id: id,
       identity: { uid: id, name: 'Cassette 3' },
-      lineage: { project: { entityType: 'project', entityId: projectId.toString() } },
+      lineage: { projectId },
       status: {
         state: 'MILLED',
         userId: 'operator-1',

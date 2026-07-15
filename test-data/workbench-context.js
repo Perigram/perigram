@@ -137,13 +137,8 @@ function buildRefsFromEntities(entities) {
 function buildRelationships(entities) {
   const ids = new Set(Object.values(entities).flatMap(byId => Object.keys(byId)));
   return Object.entries(entities).flatMap(([type, byId]) => Object.values(byId).flatMap(entity => Object.entries(entity.lineage || {})
-    .filter(([, value]) => value?.entityId && ids.has(value.entityId.toString()))
-    .map(([key, value]) => ({
-      from: `${type}:${entity._id}`,
-      key,
-      to: value.entityId.toString(),
-      ...(value.revisionId ? { revisionId: value.revisionId.toString() } : {})
-    }))));
+    .filter(([key, value]) => key.endsWith('Id') && value && ids.has(value.toString()))
+    .map(([key, value]) => ({ from: `${type}:${entity._id}`, key, to: value.toString() }))));
 }
 
 function validateContextEntities(entities) {
@@ -154,8 +149,8 @@ function validateContextEntities(entities) {
       if (!entity.identity?.uid) issues.push(`${type}:${entity._id} missing identity.uid`);
       if (entity.identity?.name && entity.identity.name === entity._id) issues.push(`${type}:${entity._id} uses display name as id`);
       for (const [key, value] of Object.entries(entity.lineage || {})) {
-        if (value?.entityId && !isExternalRef(value.entityId) && !ids.has(value.entityId.toString())) {
-          issues.push(`${type}:${entity._id} lineage ${key} references missing ${value.entityId}`);
+        if (key.endsWith('Id') && value && !isExternalRef(value) && !ids.has(value.toString())) {
+          issues.push(`${type}:${entity._id} lineage ${key} references missing ${value}`);
         }
       }
     }

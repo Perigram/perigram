@@ -30,10 +30,9 @@ export function summarizeRoutes(definitions = []) {
 
 export function summarizeSummaries(summaries = []) {
   return summaries.map(summary => ({
-    sourceType: summary.sourceType,
-    targetType: summary.targetType,
-    lineageRole: summary.lineageRole,
-    filter: summary.filter || {},
+    entityType: summary.entityType,
+    parentType: summary.parentType,
+    parentIdKey: summary.parentIdKey,
     countField: summary.countField || null,
     sumFields: summary.sumFields || {}
   }));
@@ -88,28 +87,24 @@ export function summarizeAttachmentKinds(attachmentKinds = {}) {
   }));
 }
 
-export function summarizeRelationships({ relations = [], summaries = [] } = {}) {
-  const declaredRelationships = relations.map(relation => relation.kind === 'containment'
-    ? {
-        source: relation.parentType,
-        target: relation.childType,
-        via: `lineage.${relation.lineageRole}.entityId`,
-        kind: 'containment'
-      }
-    : {
-        source: relation.sourceType,
-        target: relation.targetType,
-        via: relation.path || `relations.${relation.key}`,
-        kind: 'link'
-      });
+export function summarizeRelationships({ summaries = [], dataModelFields = [] } = {}) {
   const summaryRelationships = summaries.map(summary => ({
-    source: summary.targetType,
-    target: summary.sourceType,
-    via: `lineage.${summary.lineageRole}.entityId`,
+    source: summary.parentType,
+    target: summary.entityType,
+    via: `lineage.${summary.parentIdKey}`,
     kind: 'summary'
   }));
 
-  return [...declaredRelationships, ...summaryRelationships]
+  const lineageRelationships = dataModelFields
+    .filter(field => field.name?.startsWith('lineage.') && field.name.endsWith('Id'))
+    .map(field => ({
+      source: field.name.replace(/^lineage\./, '').replace(/Id$/, ''),
+      target: field.entityType,
+      via: field.name,
+      kind: 'lineage'
+    }));
+
+  return [...summaryRelationships, ...lineageRelationships]
     .filter((relationship, index, all) => all.findIndex(item =>
       item.source === relationship.source &&
       item.target === relationship.target &&
@@ -195,7 +190,6 @@ export function createFrameworkManifest({
   tasks = {},
   attachmentKinds = {},
   summaries = [],
-  relations = [],
   designSystem = {},
   dataModelFields = [],
   compatibilityAliases = {}
@@ -215,7 +209,7 @@ export function createFrameworkManifest({
     commands: summarizeCommands(commands),
     tasks: summarizeTasks(tasks),
     attachmentKinds: summarizeAttachmentKinds(attachmentKinds),
-    relationships: summarizeRelationships({ relations, summaries }),
+    relationships: summarizeRelationships({ summaries, dataModelFields }),
     designSystem: {
       variants: designSystem.variants || [],
       groups: designSystem.groups || [],

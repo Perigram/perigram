@@ -15,7 +15,7 @@ describe('CNC fixture scenarios', () => {
     expect(scenario.refs.sheetDesign).toBeTruthy();
     expect(scenario.entities.queue[0].data.job.items[0].id).toBe(scenario.refs.cassetteTemplate);
     expect(scenario.entities.cassette[0].data.definition.occs).toBe('0.4-draft');
-    expect(scenario.entities.queue[0].data.job.items[0].parameters).toEqual({ A: 500, B: 400, R: 35, T: 4 });
+    expect(scenario.entities.queue[0].data.job.items[0].parameters).toEqual({ A: 500, B: 400, R: 35 });
     expect(scenario.entities.sheet_design[0].data.placements[0].cassetteDesignId).toBe(scenario.refs.cassetteDesign);
     expect(scenario.entities.layer_standard[0].data.defaultPenId).toBe(scenario.refs.penTemplate);
 
@@ -105,7 +105,7 @@ describe('CNC fixture scenarios', () => {
     expect(queueFields.find(field => field.name === 'cassetteId')?.entityType).toBe('cassette');
     expect(projectFields).not.toContain('address');
     expect(projectDraft.organizationId).toBeUndefined();
-    expect(queue.lineage.project.entityId).toBe(context.refs.project);
+    expect(queue.lineage.projectId).toBe(context.refs.project);
     expect(queue.data.job.items[0].id).toBe(context.refs.cassetteTemplate);
     expect(queue.data.job.items[0].quantity).toBe(2);
     expect(queue.data.queueNumber).toBeUndefined();

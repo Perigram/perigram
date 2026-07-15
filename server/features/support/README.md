@@ -57,7 +57,7 @@ The support service resolves the sender through the active process runtime
 before deriving those sources, so chat attachment pickers use the same
 generated auth window as the rest of the app instead of the raw session auth.
 Composer UIs should localize those returned type ids on the client instead of
-showing raw backend values such as `cassette_design` or `entity_revision`.
+showing raw backend values such as `cassette_design` or `nesting_run`.
 Concrete picker options are resolved separately through
 `GET /api/support/entity-options` using feature list services for entity types
 that expose a scoped list API. Chat option lists use those generated source
@@ -84,7 +84,7 @@ Cassette snapshots must retain preview-driving fields such as `data.type` and
 snapshot instead of refetching protected cassette endpoints.
 Message writes drop unsupported or unreadable refs instead of accepting
 arbitrary ids. Incoming refs normalize common frontend/entity-surface aliases
-such as `cassetteDesign`, `entityRevision`, and `materialPile` to their canonical
+such as `cassetteDesign`, `nestingRun`, and `materialPile` to their canonical
 backend snake-case types before that validation step, so status-history drafts
 and other UI-local relation refs do not disappear on send. Messages may contain
 only attachments; an empty body is valid as long as at least one entity ref
@@ -106,7 +106,7 @@ survives write-time validation.
 | `GET /api/support/admin/chatlist` | Admin support-thread list; excludes direct user conversations. |
 
 Concrete chat option loaders are registered for current domain list services
-such as projects, queues, cassettes, cassette designs, entity revisions, sheet
+such as projects, queues, cassettes, cassette designs, nesting runs, sheet
 designs, libraries, warehouses, catalogs, material piles, remnants,
 requisitions, sheets, materials, and users. Types without a concrete loader can
 still appear in `entity-types` when generated scope grants read access, but

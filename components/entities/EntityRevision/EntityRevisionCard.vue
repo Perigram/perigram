@@ -6,7 +6,7 @@
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
-        <DataBlock entity-type="entityRevision" :entity="revision" :fields="FIELDS" />
+        <DataBlock entity-type="entityRevision" :entity="revisionForDisplay" :fields="FIELDS" />
         <div v-if="sourceType && sourceId" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('revision.source') }}</small>
           <EntityInlineRef :type="sourceType" :id="sourceId" />
@@ -28,8 +28,7 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'entityRevision', surfac
   .filter(field => field.display !== 'entityRef');
 
 const ENTITY_TYPE_TO_UI_TYPE = {
-  cassette: 'cassetteTemplate',
-  queue: 'queue'
+  cassette: 'cassetteTemplate'
 };
 
 const props = defineProps({
@@ -39,4 +38,13 @@ const props = defineProps({
 
 const sourceType = computed(() => ENTITY_TYPE_TO_UI_TYPE[props.revision.data?.entityType] || null);
 const sourceId = computed(() => props.revision.data?.entityId || null);
+const revisionForDisplay = computed(() => ({
+  ...props.revision,
+  data: {
+    ...(props.revision.data || {}),
+    shortHash: props.revision.data?.contentHash
+      ? props.revision.data.contentHash.replace(/^sha256:/, '').slice(0, 12)
+      : ''
+  }
+}));
 </script>

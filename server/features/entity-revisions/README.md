@@ -1,48 +1,56 @@
 # COMPONENT: Entity Revisions
 
-`entity_revision` is an immutable, normal v24 entity used for reproducible
-content scopes. It versions cassette/sheet geometry and terminal queue nesting
-attempts; it is not a mutable execution record.
+Stores immutable content snapshots for versioned entity scopes such as cassette
+template geometry and manually edited sheet layouts.
+
+## Core Files
+
+| File | Purpose |
+|---|---|
+| `model.js` | Normalizes `entity_revision` DTOs through `BaseEntity`. |
+| `repository.js` | MongoDB access for `entity_revisions`, including hash and latest lookups. |
+| `service.js` | Canonical hash creation, revision dedupe, read access, and list APIs. |
+| `index.js` | Public service namespace export. |
 
 ## Data Contract
 
-```js
-{
-  identity,
-  origin,
-  status,
-  lineage,
-  data: {
-    entityType,
-    entityId,
-    scope,
-    number,
-    contentHash,
-    outcome?,
-    taskRunId?,
-    snapshot,
-    sourceStatus,
-    reason
-  }
-}
-```
+Revision records are normal v24 entities with immutable revision metadata under
+`data`:
 
-The unique content key is `(entityType, entityId, scope, contentHash)`.
-Ordinary geometry saves reuse identical content. Terminal task revisions also
-have a deterministic id derived from `taskRunId`, so task retries cannot create
-duplicate attempts.
+- `data.entityType`: source entity type, for example `cassette`.
+- `data.entityId`: source entity id.
+- `data.scope`: versioned content scope, for example `geometry`.
+- `data.number`: monotonically increasing number within
+  `(entityType, entityId, scope)`.
+- `data.contentHash`: `sha256:` hash of canonicalized content for dedupe.
+- `data.snapshot`: source identity and scoped content used to reproduce the
+  revision.
+- `data.sourceStatus`: source entity status at revision creation.
+- `data.reason`: creation reason such as `template-created`, `template-updated`,
+  or `migration`.
 
-Queue nesting uses `scope: "nesting"`, `outcome: "SUCCESS" | "FAILURE"`, and
-a snapshot containing settings, result/error, layout data, and output refs.
-Revision listing may be filtered by source entity and scope. Queue selection
-accepts successful nesting revisions only.
+The unique content index is `(data.entityType, data.entityId, data.scope,
+data.contentHash)`. Re-saving identical content reuses the existing revision.
 
-Revision records are read-only provenance. Domain lineage references may point
-to them through an optional `revisionId`, and UI renders that revision as a
-separate trace/detail link.
+## Workflows
+
+- `ensureForEntitySnapshot()` creates or reuses a revision from canonical scoped
+  content and stores the source snapshot.
+- `getCurrentForEntity()` returns the latest revision for a source entity and
+  scope.
+- `derivedFromRevision()` builds the provenance block stored on derived entities
+  such as `cassette_design.data.derivedFrom`.
+- Sheet designs use the same `geometry` scope. Their snapshot contains the
+  nesting result/preview, cassette placement counts, nesting parameters, and
+  sheet specs needed to reproduce the saved layout.
+
+Revisions are read-only provenance records. They are not updated or deleted by
+standard entity APIs.
+Read access checks use the source `data.entityType` permission first, with
+legacy cassette/project fallbacks for existing cassette-derived records.
 
 ## Related
 
-- [Queues](../queues/README.md)
-- [Cassettes](../cassettes/README.md)
-- [Sheet designs](../sheet-designs/README.md)
+- [cassettes](../cassettes/README.md) - owns current geometry revision pointers.
+- [cassette-designs](../cassette-designs/README.md) - stores derivation refs.
+- [sheet-designs](../sheet-designs/README.md) - stores revision-backed layouts.

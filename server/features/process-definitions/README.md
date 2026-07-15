@@ -54,11 +54,8 @@ Manual generated-screen actions execute through the active process definition,
 not through client-selected entity routes. `executeActiveProcessAction()` loads
 the active compiled action, verifies that the user's compiled role assignment
 contains that action id, and then delegates by action kind: entity creation,
-unified entity mutation, command execution, or outbound organization
-projection. A mutation may rewrite connected entity fields and/or reference a
-target Status; field writes go through the mutation boundary and status changes
-always go through the Status service. The process graph remains the source for
-whether the button exists;
+entity update, status transition, command execution, or outbound organization
+projection. The process graph remains the source for whether the button exists;
 the delegated entity/status/command service remains the access and business
 logic boundary. Create-entity actions are authorized as create operations by
 the process action itself before the created entity exists; the delegated
@@ -68,7 +65,7 @@ record is created, create actions apply `action.status.to` through the status
 runtime, treating it as the process initial state for that new record rather
 than a transition from the feature service default. When the compiled action
 status includes process-authored `label`, `color`/`severity`, or `icon`
-metadata, create and status-targeting mutation execution stores that display contract under
+metadata, create and change-status execution stores that display contract under
 `status.metadata.display` so generated screens and shared entity cards render
 the actual process status badge instead of falling back to global raw-state
 labels.
@@ -79,10 +76,9 @@ contract at runtime. This keeps existing active process definitions rendering
 the authored severity and icon without requiring an immediate compiled-runtime
 rebuild.
 Create actions also carry a construction contract. Generic construction passes
-prompted values to the registered entity service and derives the parent input
-key and lineage role from the domain containment relation. For example, a queue
-create action wired from a project output sends `projectId`, and the queue
-service persists structured `lineage.project`. The active action
+prompted values to the registered entity service and derives parent ids from
+the incoming graph entity input, for example a queue create action wired from a
+project output sends `projectId` to the queue service. The active action
 runtime requires that parent id when the compiled action declares
 `parentEntityType`; a missing parent is rejected before the domain constructor
 runs, rather than creating an unowned root record. The runtime normalizes
@@ -125,18 +121,18 @@ queue job, while queue job edits still require the separate `queues:write`
 entity grant. A queue write grant alone does not expose the command action, and
 a command action grant does not expose queue mutation controls.
 When a synchronous run-command action returns entity refs and the visual graph
-wires a typed output handle into a downstream `mutateEntity` node, execution
+wires a typed output handle into a downstream `changeStatus` node, execution
 applies that target process status to each returned entity through the status
 runtime. Async command results that include task/job refs are not projected at
 command-return time; the task completion boundary owns final output status and
 child-output linking. This prevents commands such as `solveNesting` from
-projecting terminal output state before the `nesting.solve` task creates the
-immutable queue revision and its revision-owned `sheet_design` and
-`sheet_instance` records. The migration script
+moving a `nesting_run` out of its solver state before the `nesting.solve` task
+can apply the domain completion intent and attach generated `sheet_design`
+records. The migration script
 `server/scripts/migrate-process-command-output-statuses.js` applies the same
 graph-derived status projection to existing active-process command outputs; it
 must not hardcode status names.
-Process create, entity mutation, and command-output status changes
+Process create, update, change-status, and command-output status mutations
 publish typed invalidation events through `server/features/entity-events` after
 their canonical mutation succeeds. Generated screens consume those events
 through the shared browser-local entity sync contract and then reload their
@@ -151,21 +147,6 @@ then replace the target-status role set with the node's selected grants. Parent
 lineage scopes are preserved by the compiler, so child actions created from a
 scoped parent branch emit lineage-scoped grants such as `scope.projectId`
 instead of global child-entity permissions.
-
-Manual actions that declare `cassette_design` output are queue producers only
-when the action id is explicitly placed in a compiled queue-detail region. The
-generated UI consumes that region's action set, and execution revalidates the
-same screen/region placement on the server before appending returned design
-refs to the queue. Output type alone never creates a global or randomly placed
-queue action.
-
-The designer stores one `mutateEntity` action kind for all existing-entity
-changes. Its sockets are derived from the selected entity's live field policy;
-only connected fields are compiled into `mutation.fields`. Canonical
-`fieldRead`/`blockRead` nodes disassemble entities and blocks, while
-`blockAssemble`/`entityAssemble` construct canonical blocks/entities. Whole
-blocks are JSON/object values, not text placeholders, and runtime normalization
-validates structured lineage and relations before writing them.
 
 Socket projection is exposed as a runtime operation for outbound sockets. The
 socket API loads the source entity through the app registry, enforces read

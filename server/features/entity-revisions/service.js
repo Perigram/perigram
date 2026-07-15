@@ -1,17 +1,15 @@
 import crypto from 'node:crypto';
-import { ObjectId } from 'mongodb';
 import * as repository from './repository.js';
 import { createError } from 'h3';
 import {
   createData,
   createIdentity,
-  createStatus,
-  Lineage
+  createStatus
 } from '../../core/blocks/index.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 import { pluralize } from '../../utils/strings.js';
 import { EntityRevision } from './model.js';
-import { aggregator } from '../../core/machines/aggregator.js';
 
 const DEFAULT_SCOPE = 'content';
 
@@ -41,8 +39,8 @@ export function hashRevisionContent(content = {}) {
     .digest('hex')}`;
 }
 
-function revisionIdentity(entityType, scope, number, revisionId = `entity-revision-${new ObjectId()}`) {
-  return createIdentity(`${entityType} ${scope} v${number}`, revisionId);
+function revisionIdentity(entityType, scope, number) {
+  return createIdentity(`${entityType} ${scope} v${number}`);
 }
 
 function canReadRevision(userPermissions, revision) {
@@ -86,7 +84,7 @@ export async function ensureForEntitySnapshot({
 
   await repository.ensureIndexes();
 
-  const entityId = String(entity._id);
+  const entityId = toFlexibleId(entity._id);
   const contentHash = hashRevisionContent(content);
   const existing = await repository.findByHash(entityType, entityId, scope, contentHash);
   if (existing) return toDTO(existing);
@@ -99,7 +97,10 @@ export async function ensureForEntitySnapshot({
     identity: revisionIdentity(entityType, scope, number),
     origin,
     status: origin,
-    lineage: new Lineage(entity.lineage || {}).add(entityType, entityId),
+    lineage: {
+      ...(entity.lineage || {}),
+      [`${entityType}Id`]: entityId
+    },
     data: createData({
       entityType,
       entityId,
@@ -116,9 +117,7 @@ export async function ensureForEntitySnapshot({
   };
 
   try {
-    const created = await repository.create(doc);
-    await aggregator.syncParentSummary('entity_revision', created.lineage);
-    return toDTO(created);
+    return toDTO(await repository.create(doc));
   } catch (error) {
     if (error?.code === 11000) {
       return toDTO(await repository.findByHash(entityType, entityId, scope, contentHash));
@@ -127,77 +126,8 @@ export async function ensureForEntitySnapshot({
   }
 }
 
-export function terminalRevisionIdForTask(taskRunId) {
-  if (!taskRunId) throw createError({ statusCode: 400, message: 'Task run id is required' });
-  return `entity-revision-nesting-${taskRunId}`;
-}
-
-export async function createTerminalSnapshot({
-  revisionId,
-  entityType,
-  entity,
-  scope,
-  outcome,
-  taskRunId,
-  content,
-  snapshot,
-  userId = 'SYSTEM',
-  reason = 'task-completed'
-} = {}) {
-  if (!entityType || !entity?._id || !scope || !outcome || !taskRunId) {
-    throw createError({ statusCode: 400, message: 'Terminal revision requires entity, scope, outcome, and task run' });
-  }
-  const entityId = String(entity._id);
-  await repository.ensureIndexes();
-  const existing = await repository.findByTaskRun(entityType, entityId, scope, taskRunId);
-  if (existing) return toDTO(existing);
-
-  const latest = await repository.findLatest(entityType, entityId, scope);
-  const number = Number(latest?.data?.number || 0) + 1;
-  const id = revisionId || terminalRevisionIdForTask(taskRunId);
-  const terminalContent = {
-    outcome,
-    taskRunId: String(taskRunId),
-    ...(content || {})
-  };
-  const origin = createStatus('ACTIVE', userId, { note: `Terminal ${scope} revision created` });
-  const doc = {
-    _id: id,
-    identity: revisionIdentity(entityType, scope, number, id),
-    origin,
-    status: origin,
-    lineage: new Lineage(entity.lineage || {}).add(entityType, entityId),
-    data: createData({
-      entityType,
-      entityId,
-      scope,
-      number,
-      contentHash: hashRevisionContent(terminalContent),
-      outcome,
-      taskRunId: String(taskRunId),
-      snapshot: snapshot || terminalContent,
-      sourceStatus: entity.status || null,
-      reason
-    })
-  };
-  try {
-    const created = await repository.create(doc);
-    await aggregator.syncParentSummary('entity_revision', created.lineage);
-    return toDTO(created);
-  } catch (error) {
-    if (error?.code === 11000) {
-      return toDTO(await repository.findByTaskRun(entityType, entityId, scope, taskRunId));
-    }
-    throw error;
-  }
-}
-
-export async function getTerminalForTaskRun(entityType, entityId, scope, taskRunId) {
-  return toDTO(await repository.findByTaskRun(entityType, String(entityId), scope, taskRunId));
-}
-
 export async function getCurrentForEntity(entityType, entityId, scope = DEFAULT_SCOPE) {
-  return toDTO(await repository.findLatest(entityType, String(entityId), scope));
+  return toDTO(await repository.findLatest(entityType, toFlexibleId(entityId), scope));
 }
 
 export async function getById(id, userId, userRole, userPermissions) {
@@ -215,7 +145,7 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     : {};
   const processed = { ...filter };
   if (processed.entityId) {
-    processed['data.entityId'] = String(processed.entityId);
+    processed['data.entityId'] = toFlexibleId(processed.entityId);
     delete processed.entityId;
   }
   if (processed.entityType) {
@@ -228,5 +158,5 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   }
 
   const revisions = await repository.find({ ...lineageFilter, ...processed });
-  return revisions.filter(revision => canReadRevision(userPermissions, revision)).map(toDTO);
+  return revisions.map(toDTO);
 }

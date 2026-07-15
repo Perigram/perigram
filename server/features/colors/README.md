@@ -5,8 +5,7 @@ Specific material variants (SKUs) linked to a parent Catalog.
 ## v24 Architecture
 - **SKU Identity**: Stores the manufacturer `code` and friendly finish name.
 - **Visual Mapping**: Stores `hexCode` and optional `textureUrl` for UI rendering.
-- **Lineage**: Strictly contains a structured `catalog` parent reference and
-  its inherited organization ancestry.
+- **Lineage**: Strictly links to a `catalogId`.
 - **Access Filtering**: `list()` combines caller lineage permissions with
   optional filters such as `catalogId`, so stock-management color selectors do
   not leak finishes from other organizations.
@@ -19,10 +18,7 @@ Specific material variants (SKUs) linked to a parent Catalog.
 ```typescript
 {
   identity: { name, code },
-  lineage: {
-    organization: { entityType: 'organization', entityId },
-    catalog: { entityType: 'catalog', entityId }
-  },
-  data: { code, visuals: { hexCode, textureUrl } }
+  visuals: { hexCode, textureUrl },
+  lineage: { organizationId, catalogId }
 }
 ```

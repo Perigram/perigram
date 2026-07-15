@@ -38,8 +38,7 @@ Handles the evaluation and "baking" of parametric cassette templates into static
 
 ### Baked Cassette (DB)
 Baked instances are stored in the `cassettes` collection with `type: "BAKED_PARAMETRIC"` and `isTemporary: true`.
-Template inputs use flexible ID handling (`toFlexibleId`) to support both
-string UIDs and ObjectIds; persisted lineage uses structured entity references.
+Template and lineage IDs use flexible ID handling (`toFlexibleId`) to support both string UIDs and ObjectIds.
 Generated DXF data uses layer standard codes by default. OCCS graph-tree baking
 uses the semantic `cut.outer` boundary layer from evaluated production data;
 legacy Nodi fallback output keeps `contour.flat_pattern.face_and_returns` for

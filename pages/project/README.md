@@ -18,15 +18,15 @@ Routes under `pages/project/` render the authenticated project workspace.
   inside the bounded workspace frame so the page preserves the same layout
   contract before and after queues exist.
 - `[slug]/sheet-designs.vue`: Project-level list of generated sheet designs for
-  selected queue revisions. It resolves project queues, reads each queue's
-  `status.lifecycle.data.selectedRevisionId`, and loads designs with both queue
-  and revision filters. The route
+  selected production runs. It resolves project queues, reads
+  `queue.data.materialConsumption.runId`, loads sheet designs by queue, and
+  keeps only designs whose `lineage.runId` matches the selected run. The route
   uses `ActionToolbar`, a sticky `MetricPanel` summary rail from the normal
   desktop breakpoint, and `ResponsiveGrid` with `SheetDesignCard` so the page
   owns workflow context while the entity card owns the reusable sheet-design
   display contract.
 - `[slug]/sheet-design/[sheetDesignId].vue`: Sheet-design detail route opened
-  from sheet design cards and queue revision results.
+  from sheet design cards and nesting run results.
 - `[slug]/details.vue`: Project identity/status through `EntityPage`, a visible
   metric strip for queues, area, status, and creation date, access-aware facts
   through `EntitySurfaceContent` using the app `detail` surface, quick action
@@ -44,10 +44,9 @@ Routes under `pages/project/` render the authenticated project workspace.
 
 ## Workflow Notes
 
-Queues are the production entry point. A successful nesting revision creates
-one `sheet_design` per equivalent layout and the required `sheet_instance`
-copies. Only designs owned by the explicitly selected revision are visible in
-the queue and project-level Sheet designs tab.
+Queues are the production entry point. A completed nesting run creates one
+`sheet_design` per physical worker layout; those designs are visible both inside
+the queue run cards and from the project-level Sheet designs tab.
 
 The project shell keeps `/sheet-designs` and `/sheet-design/:id` under the same
 Sheet designs navigation area. Project status, rename, and audit history live

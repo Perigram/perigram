@@ -498,7 +498,7 @@ function derivedRoleAccessSummary(roleIds = []) {
 
 function actionAccessSummary(action = {}) {
     const entityType = actionEntityType(action);
-    if (action.actionKind === 'mutateEntity' && !entityType) return '';
+    if (action.actionKind === 'changeStatus' && !entityType) return '';
     const status = actionTargetStatus(action);
     const subject = entityType || action.label || action.id || action.actionKind;
     return [

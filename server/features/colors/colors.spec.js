@@ -49,18 +49,12 @@ describe('Color Management', () => {
       {
         _id: new ObjectId(),
         identity: { uid: 'own-color', name: 'Own Color' },
-        lineage: {
-          organization: { entityType: 'organization', entityId: organizationId.toString() },
-          catalog: { entityType: 'catalog', entityId: new ObjectId().toString() }
-        }
+        lineage: { organizationId, catalogId: new ObjectId() }
       },
       {
         _id: new ObjectId(),
         identity: { uid: 'other-color', name: 'Other Color' },
-        lineage: {
-          organization: { entityType: 'organization', entityId: otherOrganizationId.toString() },
-          catalog: { entityType: 'catalog', entityId: new ObjectId().toString() }
-        }
+        lineage: { organizationId: otherOrganizationId, catalogId: new ObjectId() }
       }
     ]);
 
@@ -74,7 +68,7 @@ describe('Color Management', () => {
     await db.collection('catalogs').insertOne({
       _id: catalogId,
       identity: { uid: 'manual-catalog', name: 'Manual Catalog' },
-      lineage: { organization: { entityType: 'organization', entityId: organizationId.toString() } }
+      lineage: { organizationId }
     });
 
     const result = await colorService.create({

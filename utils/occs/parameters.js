@@ -20,10 +20,4 @@ export const occsQueueParameters = (definition = {}) => (
     .map(([key, value]) => [key, occsQueueParameterValue(value)]))
 );
 
-export const occsParametersWithMaterialThickness = (parameters = {}, thickness = 0) => ({
-  ...(parameters || {}),
-  ...(Number(thickness) > 0 ? { [OCCS_MATERIAL_THICKNESS_PARAMETER]: Number(thickness) } : {})
-});
-
 export const isOccsDocument = (definition = {}) => Boolean(definition?.occs && definition?.documentType);
-export const OCCS_MATERIAL_THICKNESS_PARAMETER = 'T';

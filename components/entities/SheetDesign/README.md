@@ -22,14 +22,13 @@
   `/api/artifacts/:id`.
 - Write-authorized detail surfaces mount `SheetDesignEditor`. It draws the
   physical sheet and cassette outlines in sheet coordinates, supports pointer
-  dragging with edge-to-edge neighbor snapping at the selected tool gap,
-  90-degree rotation, keyboard or toolbar deletion, adding
+  dragging with tool-diameter snapping, keyboard or toolbar deletion, adding
   existing cassette designs, and DXF upload through `CassetteEditorDialog`.
   The editor loads the same layer-standard and pen stores as `DrawingCanvas`,
   including canonical pen `identity.uid` references, and renders each source
   OCCS layer with its resolved stroke. A padded viewBox keeps the
-  `contour.material_sheet` boundary visible; adaptive major-grid lines are
-  visual guides and do not control placement. Drag
+  `contour.material_sheet` boundary visible; adaptive major-grid lines and
+  selected-placement crosshairs make the smaller snap increment visible. Drag
   clamping uses the complete rotated cassette bounds so no part can cross the
   physical sheet rectangle. Save sends source items and placements to the
   revision-backed update endpoint. Read-only users continue to receive
@@ -42,7 +41,7 @@
   not route those refs through `TraceLink` or cassette-template routes.
 - Cards and details show a compact material-source summary when
   `data.materialPool` is present on sheet designs generated from warehouse-mode
-  queue revisions.
+  nesting runs.
 - Sheet designs hide status controls because the current UI contract treats
   them as generated design outputs rather than direct lifecycle action targets.
 

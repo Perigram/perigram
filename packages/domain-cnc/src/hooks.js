@@ -7,10 +7,21 @@ export const cncHookContracts = {
   propagateToChildren: {
     id: 'propagateToChildren',
     label: 'Propagate status to child entities',
-    mode: 'sync',
     parameters: [
       { name: 'childType', label: 'Child type', type: 'entityType', required: true },
       { name: 'childState', label: 'Child state', type: 'workflowState', required: true, dependsOn: 'childType' }
     ]
+  },
+  preflightChosenNestingRun: {
+    id: 'preflightChosenNestingRun',
+    label: 'Preflight chosen nesting run',
+    mode: 'sync',
+    parameters: []
+  },
+  applyChosenNestingRun: {
+    id: 'applyChosenNestingRun',
+    label: 'Apply chosen nesting run',
+    mode: 'sync',
+    parameters: []
   }
 };

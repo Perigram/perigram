@@ -1,8 +1,8 @@
 # COMPONENT: Process Designer Nodes
 
 Vue Flow node components for the organization process designer. The canvas is
-centered on executable process steps: action nodes describe creation, unified
-entity mutation, and command runs. Entity contracts, transfer ports, abstract
+moving toward executable process steps: action nodes describe creation, status
+changes, and command runs. Entity contracts, transfer ports, abstract
 roles, and concrete user assignments are edited as process records in the
 route-level side panel, then assigned onto action nodes, service/socket access
 rules, and lifecycle transitions.
@@ -21,20 +21,20 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   right-side entity/block sockets that downstream action nodes can consume. The
   node summarizes lifecycle states, transition count, and the explicit
   public/write data contract exposed by the entity profile.
-- `ProcessActionNode.vue` represents a compact executable process step. It exposes
+- `ProcessActionNode.vue` represents an executable process step. It exposes
   event trigger input, data input/output, and completion event output handles on
-  the node sides. Detailed editing belongs to the focused route-level inspector;
-  the canvas node shows only its identity, typed sockets, access/status summary,
-  and trigger contract. The action kind is fixed by the
+  the node sides. The node owns inline editing for action access grants,
+  trigger mode, command selection,
+  creation target, update fields, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
-  `create`, `mutate`, or `service`. Create actions derive their parent from the incoming
+  `create`, `update`, or `service`. Create actions derive their parent from the incoming
   data socket instead of a parent-type selector. The optional parent socket is
   always visible so it can be connected; root create actions keep it generic and
-  compile without a parent until a concrete entity edge is wired. Mutation actions consume an
-  incoming entity and expose live domain fields as left-side sockets; only
-  connected sockets are persisted. An optional Status socket on the same action
-  performs the workflow transition through the Status runtime. Command actions
-  show command entity inputs/outputs. Create actions
+  compile without a parent until a concrete entity edge is wired. Update actions consume an
+  incoming entity and expose selected mutable data fields as left-side data
+  sockets, status-change actions consume
+  an incoming entity without selecting an entity type or editing the existing
+  status, and command actions show command entity inputs/outputs. Create actions
   derive their left-side data sockets from the domain construction contract:
   promptable constructor inputs become generated-screen dialog fields, and
   typed derived entities such as `cassette_design` keep their construction mode
@@ -43,10 +43,10 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   treats it as semantic when the connected entity is a valid domain lineage
   parent. Constructor entity inputs such as a cassette-design `templateId`
   remain data/constructor sockets, not create-action parents.
-  Mutation actions derive promptable editor fields from selected domain field
+  Update actions derive promptable editor fields from selected domain field
   policy entries, so a manual modify action collects values for concrete fields
   instead of free-form paths before it calls the active process action runtime.
-  Status-targeting mutations use the target status definition label, or the target
+  Status-change actions use the target status definition label, or the target
   state id when no label exists, as the node's primary title. Generic palette
   labels such as `status` or stale `Action` values are ignored in this mode so
   the canvas reads as the actual transition being authored.
@@ -57,7 +57,7 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   status nodes start from a neutral `STATUS` id and no label rather than
   inventing a domain state such as `Created`. Connecting it to an entity node
   adds the state to that entity lifecycle; connecting it to a create or
-  status-targeting mutation writes the action target state and lets the compiler
+  status-change action writes the action target state and lets the compiler
   apply status label/color/severity/icon metadata plus lifecycle evidence schema
   to the generated workflow, compiled action status, and runtime
   `status.metadata.display` payload used by generated screens. Evidence
@@ -79,10 +79,8 @@ are fuchsia, attachments are orange, and task outputs are neutral.
 - `ProcessNode.vue` represents non-effect process algebra records. Entity
   reference nodes traverse entity relations. Blocks nodes decompose an incoming
   entity into canonical DTO block sockets (`identity`, `status`, `lineage`,
-  `relations`, `data`, `specs`, `summary`, and `attachments`). Block/field read
-  nodes expose typed values; block/entity assemble nodes reconstruct canonical
-  values using the selected entity definition. Whole blocks use object/JSON
-  sockets, never free-text placeholders. Text, comparison, logic, and collection
+  `data`, `specs`, `summary`, and `attachments`). Field nodes read a scalar or
+  JSON value from one incoming block. Text, comparison, logic, and collection
   nodes transform typed values without mutating persistent state; mutations and
   external work stay on action nodes. Each node keeps the palette icon on the
   canvas, while socket handle colors come from the socket data type rather than
@@ -119,7 +117,7 @@ which runs automatically from another node's event edge. Service identities
 remain service access records, not manual trigger choices. Multi-socket command
 nodes derive handle ids from the socket contract.
 
-Status-targeting mutation grants edit access for the exact entity type carried by
+Status-change action grants edit access for the exact entity type carried by
 the incoming data edge, not generic entity access and not status access. During
 node sync the designer derives the entity type and existing status from the
 wired source socket, stores `action.access.statusFrom` and
@@ -130,7 +128,7 @@ the access controls marks the node as explicitly modified, and the reset button
 restores the inherited parent access. Each action access row is a process-role
 dropdown plus an access level (`read`, `write`, or `admin`), so one action can
 grant different levels to different roles without promoting all roles to the
-highest level. Unwired mutation nodes do not invent a generic access
+highest level. Unwired status-change nodes do not invent a generic access
 target. The compiler emits transition metadata plus a target-state rule on the
 entity grant. The role selector lists process roles directly because selecting
 a role on an action creates the entity grant;
@@ -156,11 +154,6 @@ template, regions, sources, filters, and actions from the normalized manifest,
 but it must not fetch live entities or mount the runtime generated-screen
 renderer.
 
-The canvas and inspector are deliberately separated: graph nodes stay compact
-enough to scan and wire, while one selected-node inspector owns forms for
-fields, access, construction, and lifecycle metadata. Large form controls must
-not be reintroduced inside every node.
-
 Canvas wires are selectable curved edges. `Delete` / `Backspace` removes the
 selected node or selected wire, and runtime edge selection styling is stripped
 before process serialization. Palette-created nodes are positioned at the
@@ -178,11 +171,11 @@ same-entity row actions through the standard `entity` input.
 Command sockets should expose abstract domain contracts when a command is
 polymorphic. For example, `generateAttachment` presents one `Attachment source`
 socket with `attachments.generate` capability and accepted source types instead
-of feature-specific source sockets.
+of separate `sheet_design` and `nesting_run` sockets.
 
-New process behavior should use `createEntity`, `mutateEntity`,
+New process behavior should use `createEntity`, `updateEntity`, `changeStatus`,
 `runCommand`, status-definition nodes, value-input nodes, and inbound/outbound
-socket nodes. Archive is represented as a `mutateEntity`
+socket nodes. Archive is represented as a `changeStatus`
 action targeting an archive status, not as a separate node type. Entity naming
 is a construction input: generated create actions prompt for the domain
 contract's name field or consume a connected block/value default. A block node
@@ -192,8 +185,7 @@ typed constructors such as cassette-design baking receive the domain payload
 they require. They should not create unnamed records unless the entity contract
 explicitly allows it.
 Generic process-algebra nodes now exist for the semantic records that
-`@cutkit/processes` can round-trip and type-check: entity references,
-entity/block disassembly, block/entity assembly, string operations,
-comparisons, logic, and basic collection transforms.
+`@cutkit/processes` can round-trip and type-check: entity references, field
+reads, string operations, comparisons, logic, and basic collection transforms.
 Guard and switch nodes are still not palette nodes because they need explicit
 runtime control-flow semantics rather than only value ports.

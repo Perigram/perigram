@@ -39,23 +39,18 @@ export function createStatusEventStore({ connectDB }) {
 
 export function createSummarySync({ connectDB, pluralize, toFlexibleId }) {
   return async function syncSummary(entityType, lineage, definition) {
-    const summary = definition?.summaries?.find(item => item.sourceType === entityType || !item.sourceType);
+    const summary = definition?.summaries?.find(item => item.entityType === entityType || !item.entityType);
     if (!summary) return null;
-    const parentId = lineage?.[summary.lineageRole]?.entityId;
+    const parentId = lineage?.[summary.parentIdKey];
     if (!parentId) return null;
 
     const db = await connectDB();
     const [result] = await db.collection(pluralize(entityType)).aggregate([
-      {
-        $match: {
-          [`lineage.${summary.lineageRole}.entityId`]: String(parentId),
-          ...(summary.filter || {})
-        }
-      },
+      { $match: { [`lineage.${summary.parentIdKey}`]: toFlexibleId(parentId) } },
       { $group: { _id: null, count: { $sum: 1 } } }
     ]).toArray();
 
-    await db.collection(pluralize(summary.targetType)).updateOne(
+    await db.collection(pluralize(summary.parentType)).updateOne(
       { _id: toFlexibleId(parentId) },
       { $set: { [`summary.${summary.countField}`]: result?.count || 0 } }
     );
