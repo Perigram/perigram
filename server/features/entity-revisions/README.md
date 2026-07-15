@@ -17,8 +17,8 @@ template geometry and manually edited sheet layouts.
 Revision records are normal v24 entities with immutable revision metadata under
 `data`:
 
-- `data.entityType`: source entity type, for example `cassette`.
-- `data.entityId`: source entity id.
+- `data.source.type`: source entity type, for example `cassette`.
+- `data.source.id`: source entity id.
 - `data.scope`: versioned content scope, for example `geometry`.
 - `data.number`: monotonically increasing number within
   `(entityType, entityId, scope)`.
@@ -29,8 +29,12 @@ Revision records are normal v24 entities with immutable revision metadata under
 - `data.reason`: creation reason such as `template-created`, `template-updated`,
   or `migration`.
 
-The unique content index is `(data.entityType, data.entityId, data.scope,
+The unique content index is `(data.source.type, data.source.id, data.scope,
 data.contentHash)`. Re-saving identical content reuses the existing revision.
+Runtime index creation drops and recreates the named content/latest indexes
+when an older database still has the same index names on the pre-source-key
+shape, so entity revision creation is idempotent across migrated development
+databases.
 
 ## Workflows
 

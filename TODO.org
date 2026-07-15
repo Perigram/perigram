@@ -632,3 +632,26 @@
 
     Validation:
     - Vue SFC parse check for =components/QueueEditor.vue= passed.
+
+*** [2026-07-15] Entity revision stale-index execution repair
+
+    Full Playwright execution of the generated cassette-design producer reached
+    the process action endpoint but failed while creating the cassette geometry
+    revision. The local database still had the old
+    =entity_revision_content_hash= index name on
+    =(data.entityType, data.entityId, data.scope, data.contentHash)=, while the
+    current repository creates the same named index on
+    =(data.source.type, data.source.id, data.scope, data.contentHash)=.
+    Mongo rejected the duplicate name/key mismatch before the design could be
+    persisted.
+
+    Corrective implementation:
+    - Entity revision index setup now compares existing named index keys and
+      drops/recreates the content/latest indexes when an older database has the
+      same index name on the pre-source-key shape.
+    - Entity revision docs now describe the current =data.source= index
+      contract instead of the old =data.entityType/entityId= fields.
+
+    Validation:
+    - Added repository coverage for replacing the stale index and keeping the
+      current one unchanged.
