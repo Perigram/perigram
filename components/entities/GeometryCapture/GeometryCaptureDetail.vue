@@ -26,8 +26,8 @@ const emit = defineEmits(['confirm', 'recalculate', 'activate-revision', 'save-m
 const state = computed(() => getPrimaryState(props.capture.status, 'DRAFT'));
 const mode = computed(() => props.capture.data?.mode || 'REMNANT');
 const hasGeometry = computed(() => Boolean(props.capture.data?.geometry?.polygon?.outer?.length));
-const warehouseId = computed(() => props.capture.lineage?.warehouse?.entityId || null);
-const projectId = computed(() => props.capture.lineage?.project?.entityId || null);
+const warehouseId = computed(() => props.capture.lineage?.warehouseId || null);
+const projectId = computed(() => props.capture.lineage?.projectId || null);
 const diagnostics = computed(() => props.capture.data?.extraction?.diagnostics || []);
 const output = computed(() => props.capture.data?.output || null);
 const revisions = computed(() => props.capture.data?.revisions || []);

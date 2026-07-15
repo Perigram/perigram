@@ -12,7 +12,6 @@ export default defineEventHandler(async (event) => {
     data: body?.data || {},
     parameters: body?.parameters || {},
     entities: body?.entities || {},
-    targetOrganizationId: body?.targetOrganizationId || null,
-    context: body?.context || {}
+    targetOrganizationId: body?.targetOrganizationId || null
   }, auth);
 });

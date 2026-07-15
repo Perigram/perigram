@@ -3,8 +3,7 @@ import { createError } from 'h3';
 import { 
   createIdentity, 
   createStatus, 
-  inheritLineage,
-  Lineage
+  inheritLineage 
 } from '../../core/blocks/index.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { statusService } from '../../core/machines/service.js';
@@ -51,7 +50,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   // 1. Lineage Building
   // const parent = await otherService.getById(data.parentId);
   // const lineage = inheritLineage(parent, 'parentType');
-  const lineage = new Lineage().add('organization', userOrg);
+  const lineage = { organizationId: userOrg };
 
   // 2. Permission Check
   if (!hasLineagePermission(userPermissions, lineage, 'feature_name', 'write')) {

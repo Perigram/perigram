@@ -16,7 +16,7 @@ export async function findById(id) {
 export async function findSystem() {
   const db = await connectDB();
   return await db.collection(COLLECTION)
-    .find({ 'lineage.user.entityId': null })
+    .find({ 'lineage.userId': null })
     .sort({ 'data.diameter': 1 })
     .toArray();
 }
@@ -25,7 +25,7 @@ export async function findByOwner(ownerId) {
   if (!ownerId) return [];
   const db = await connectDB();
   // Handle OAuth userId strings (e.g., "google:12345") - use as-is, not as ObjectId
-  const query = { 'lineage.user.entityId': String(ownerId) };
+  const query = { 'lineage.userId': ownerId };
   return await db.collection(COLLECTION)
     .find(query)
     .sort({ 'data.diameter': 1 })

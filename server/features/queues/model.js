@@ -12,3 +12,14 @@ export class Queue extends BaseEntity {
 
   get name() { return this.identity?.name || `Queue #${this.data?.queueNumber || '?'}`; }
 }
+
+/**
+ * Nesting Run Entity - v24 Absolute Final
+ */
+export class NestingRun extends BaseEntity {
+  constructor(raw = {}) {
+    super(raw);
+    
+    this.data = this.data || {};
+  }
+}

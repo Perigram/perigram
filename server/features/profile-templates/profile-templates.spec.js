@@ -75,7 +75,7 @@ describe('profile templates service', () => {
     mocks.cassetteService.getById.mockResolvedValue({
       _id: 'cassette-1',
       identity: { name: 'Cassette' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-cassette' } },
+      lineage: { organizationId: 'org-cassette' },
       data: {}
     });
   });
@@ -86,8 +86,8 @@ describe('profile templates service', () => {
     expect(mocks.permissions.hasLineagePermission).not.toHaveBeenCalled();
     expect(mocks.repository.create).toHaveBeenCalledWith(expect.objectContaining({
       lineage: {
-        user: { entityType: 'user', entityId: 'user-profile' },
-        organization: { entityType: 'organization', entityId: 'org-cassette' }
+        userId: 'user-profile',
+        organizationId: 'org-cassette'
       }
     }));
     expect(created._id.toString()).toBe(createdId.toString());
@@ -113,8 +113,8 @@ describe('profile templates service', () => {
     expect(created.identity.name).toBe('Owned profile');
     expect(mocks.repository.create).toHaveBeenCalledWith(expect.objectContaining({
       lineage: {
-        user: { entityType: 'user', entityId: 'user-profile' },
-        organization: { entityType: 'organization', entityId: 'org-cassette' }
+        userId: 'user-profile',
+        organizationId: 'org-cassette'
       }
     }));
   });
@@ -132,8 +132,8 @@ describe('profile templates service', () => {
     expect(created._id.toString()).toBe(createdId.toString());
     expect(mocks.repository.create).toHaveBeenCalledWith(expect.objectContaining({
       lineage: {
-        user: { entityType: 'user', entityId: 'user-profile' },
-        organization: { entityType: 'organization', entityId: 'org-cassette' }
+        userId: 'user-profile',
+        organizationId: 'org-cassette'
       }
     }));
   });
@@ -142,17 +142,17 @@ describe('profile templates service', () => {
     const readable = {
       _id: 'profile-readable',
       identity: { name: 'Readable' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-cassette' } },
+      lineage: { organizationId: 'org-cassette' },
       data: {}
     };
     const blocked = {
       _id: 'profile-blocked',
       identity: { name: 'Blocked' },
-      lineage: { organization: { entityType: 'organization', entityId: 'org-other' } },
+      lineage: { organizationId: 'org-other' },
       data: {}
     };
     mocks.repository.findByScope.mockResolvedValue([readable, blocked]);
-    mocks.permissions.hasLineagePermission.mockImplementation((_, entity) => entity.lineage.organization.entityId === 'org-cassette');
+    mocks.permissions.hasLineagePermission.mockImplementation((_, entity) => entity.lineage.organizationId === 'org-cassette');
 
     const profiles = await service.listAll(auth);
 
@@ -163,20 +163,20 @@ describe('profile templates service', () => {
     });
   });
 
-  it('keeps structured user-scoped profiles personal when no organization is linked', async () => {
-    const personalId = new ObjectId('665000000000000000000002');
+  it('normalizes legacy user-scoped profiles for cassette-rights redaction', async () => {
+    const legacyId = new ObjectId('665000000000000000000002');
     mocks.repository.findByScope.mockResolvedValue([{
-      _id: personalId,
-      identity: { name: 'Personal user profile' },
-      lineage: { user: { entityType: 'user', entityId: 'user-profile' } },
+      _id: legacyId,
+      identity: { name: 'Legacy user profile' },
+      lineage: { userId: 'user-profile' },
       data: { sketch }
     }]);
 
     const [profile] = await service.listAll(auth);
 
-    expect(profile._id.toString()).toBe(personalId.toString());
-    expect(profile.identity.name).toBe('Personal user profile');
-    expect(profile.lineage.organization).toBeUndefined();
+    expect(profile._id.toString()).toBe(legacyId.toString());
+    expect(profile.identity.name).toBe('Legacy user profile');
+    expect(profile.lineage.organizationId).toBe('org-cassette');
   });
 
   it('updates editable templates through cassette write permission', async () => {
@@ -184,13 +184,13 @@ describe('profile templates service', () => {
       .mockResolvedValueOnce({
         _id: 'profile-editable',
         identity: { name: 'Old' },
-        lineage: { organization: { entityType: 'organization', entityId: 'org-cassette' } },
+        lineage: { organizationId: 'org-cassette' },
         data: { sketch }
       })
       .mockResolvedValueOnce({
         _id: 'profile-editable',
         identity: { name: 'New' },
-        lineage: { organization: { entityType: 'organization', entityId: 'org-cassette' } },
+        lineage: { organizationId: 'org-cassette' },
         data: { sketch }
       });
 
@@ -198,9 +198,7 @@ describe('profile templates service', () => {
 
     expect(mocks.permissions.hasLineagePermission).toHaveBeenCalledWith(
       auth,
-      expect.objectContaining({
-        lineage: { organization: { entityType: 'organization', entityId: 'org-cassette' } }
-      }),
+      expect.objectContaining({ lineage: { organizationId: 'org-cassette' } }),
       'cassettes',
       'write'
     );

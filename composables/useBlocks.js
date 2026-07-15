@@ -79,14 +79,10 @@ export const useLineage = (entity) => {
     const e = unref(entity);
     return e?.lineage || {};
   });
-
-  const getAncestorReference = (role) => {
-    const reference = lineage.value[role];
-    return reference?.entityType && reference?.entityId ? reference : null;
-  };
-  const getAncestorId = (role) => getAncestorReference(role)?.entityId;
   
-  return { lineage, getAncestorReference, getAncestorId };
+  const getAncestorId = (type) => lineage.value[`${type}Id`];
+  
+  return { lineage, getAncestorId };
 };
 
 export const useSpecs = (entity) => {

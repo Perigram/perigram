@@ -14,9 +14,12 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const pileId = computed(() => props.sheet.lineage?.materialPile?.entityId || null);
+const pileId = computed(() => props.sheet.lineage?.pileId || null);
+const runId = computed(() => props.sheet.lineage?.runId || null);
 const pile = ref(null);
+const run = ref(null);
 const pileEntity = useEntity('materialPile');
+const runEntity = useEntity('nestingRun');
 
 watch(pileId, async (id) => {
   pile.value = null;
@@ -25,6 +28,12 @@ watch(pileId, async (id) => {
   pile.value = await pileEntity.fetch(normalizedId).catch(() => null);
 }, { immediate: true });
 
+watch(runId, async (id) => {
+  run.value = null;
+  const normalizedId = id?.toString?.() || id;
+  if (!normalizedId) return;
+  run.value = await runEntity.fetch(normalizedId).catch(() => null);
+}, { immediate: true });
 </script>
 
 <template>
@@ -42,6 +51,10 @@ watch(pileId, async (id) => {
         <div v-if="pile" class="flex items-center justify-between gap-4">
           <small class="text-muted-color">{{ $t('entities.materialPile') }}</small>
           <EntityInlineRef type="materialPile" :entity="pile" />
+        </div>
+        <div v-if="run" class="flex items-center justify-between gap-4">
+          <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
+          <EntityInlineRef type="nestingRun" :entity="run" />
         </div>
       </div>
     </EntityCard>

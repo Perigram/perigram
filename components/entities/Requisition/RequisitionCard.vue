@@ -34,7 +34,7 @@ const handleCardClick = (event) => {
 const items = computed(() => props.requisition.data?.items || []);
 const totalQuantity = computed(() => items.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0));
 const currency = computed(() => props.requisition.data?.currency || '');
-const manufacturerId = computed(() => props.requisition.relations?.manufacturer?.[0]?.entityId || null);
+const manufacturerId = computed(() => props.requisition.lineage?.manufacturerId || props.requisition.data?.manufacturerId || null);
 
 </script>
 

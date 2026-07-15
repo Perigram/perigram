@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
 
   const db = await connectDB();
   const queueCounts = await db.collection('queues').aggregate([
-    { $group: { _id: "$lineage.project.entityId", count: { $sum: 1 } } }
+    { $group: { _id: "$lineage.projectId", count: { $sum: 1 } } }
   ]).toArray();
 
   const countMap = Object.fromEntries(queueCounts.map(c => [c._id?.toString(), c.count]));

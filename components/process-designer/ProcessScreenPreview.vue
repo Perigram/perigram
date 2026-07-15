@@ -130,7 +130,8 @@ function actionLabel(actionId) {
 function actionIcon(actionId) {
   const kind = actionRecord(actionId).actionKind;
   if (kind === 'createEntity') return 'pi pi-plus';
-  if (kind === 'mutateEntity') return 'pi pi-pencil';
+  if (kind === 'changeStatus') return 'pi pi-sync';
+  if (kind === 'updateEntity') return 'pi pi-pencil';
   return 'pi pi-play';
 }
 </script>

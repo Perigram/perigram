@@ -3,7 +3,7 @@ import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { generateRandomString } from '../../utils/strings.js';
 import standardSlugify from 'standard-slugify';
-import { createRelationRef, Lineage } from '~/server/core/blocks/index.js';
+import { createStatus } from '~/server/core/blocks/index.js';
 import { Project } from './model.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
@@ -28,8 +28,9 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
 
   const project = new Project({
     identity: { uid, name },
-    lineage: new Lineage().add('organization', organizationId),
-    relations: normalizeProjectRelations(data.relations, data.libraryIds),
+    lineage: { 
+      organizationId: toFlexibleId(organizationId)
+    },
     data: {
       name,
       metadata: data.metadata || {}
@@ -93,7 +94,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
     return await getById(uid);
   }
 
-  const { identity, status, lineage, origin, relations, libraryIds, data: updatesData, ...clean } = updates;
+  const { identity, status, lineage, origin, data: updatesData, ...clean } = updates;
   
   project.data = {
     ...project.data,
@@ -102,24 +103,10 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   };
 
   if (updates.name) project.identity.name = updates.name;
-  if (relations !== undefined || libraryIds !== undefined) {
-    project.relations = normalizeProjectRelations(relations, libraryIds);
-  }
 
   await repository.updateById(project.id, project);
   const updatedRaw = await repository.findById(project.id);
   return new Project(updatedRaw);
-}
-
-function normalizeProjectRelations(relations = {}, libraryIds = undefined) {
-  const requested = libraryIds === undefined ? relations?.libraries : libraryIds;
-  const libraries = (Array.isArray(requested) ? requested : [requested].filter(Boolean))
-    .map(value => {
-      const entityId = value?.entityId || value?.id || value?._id || value;
-      return createRelationRef(value?.entityType || 'library', entityId, value?.revisionId);
-    })
-    .filter(Boolean);
-  return { libraries };
 }
 
 export async function remove(uid, userId, userOrg, userRole, userPermissions) {

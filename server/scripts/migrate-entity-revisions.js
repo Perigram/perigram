@@ -169,13 +169,13 @@ async function migrateCassetteDesignDerivedFrom(db, revisionsByTemplateId) {
   const designs = await db.collection('cassette_designs')
     .find({
       'data.derivedFrom': { $exists: false },
-      'lineage.cassette.entityId': { $exists: true, $ne: null }
+      'lineage.templateId': { $exists: true, $ne: null }
     })
     .toArray();
 
   let updated = 0;
   for (const design of designs) {
-    const templateId = design.lineage?.cassette?.entityId;
+    const templateId = design.lineage?.templateId;
     const revision = revisionsByTemplateId.get(templateId?.toString?.() || templateId);
     if (!revision) continue;
 

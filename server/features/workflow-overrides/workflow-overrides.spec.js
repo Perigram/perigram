@@ -26,10 +26,6 @@ vi.mock('~/server/core/access/service.js', () => ({
   assertEntityAccess: vi.fn(() => true)
 }));
 
-vi.mock('~/server/features/process-definitions/runtime.js', () => ({
-  resolveProcessWorkflow: vi.fn(async () => null)
-}));
-
 import * as repository from './repository.js';
 import * as service from './service.js';
 

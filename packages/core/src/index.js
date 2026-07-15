@@ -391,25 +391,12 @@ function getFirstActiveState(active = {}) {
 export class Lineage {
   constructor(raw = {}) {
     for (const [key, value] of Object.entries(raw)) {
-      if (!value) continue;
-      if (isLegacyLineageKey(key)) {
-        throw new Error(`Lineage: legacy key ${key} must be migrated to a structured entity reference`);
-      }
-      this[key] = isEntityReference(value) ? normalizeEntityReference(value) : value;
+      if (value) this[key] = value;
     }
   }
 
-  add(type, id, revisionId = null) {
-    if (id) this[type] = createRelationRef(normalizeReferenceEntityType(type), id, revisionId);
-    return this;
-  }
-
-  addRevision(type, revisionId) {
-    if (revisionId && this[type]) this[type] = createRelationRef(
-      this[type].entityType,
-      this[type].entityId,
-      revisionId
-    );
+  add(type, id) {
+    if (id) this[`${type}Id`] = id;
     return this;
   }
 
@@ -453,7 +440,6 @@ export class BaseEntity {
       raw.identity?.reference || ''
     );
     this.lineage = new Lineage(raw.lineage || {});
-    this.relations = normalizeRelations(raw.relations || {});
     this.origin = raw.origin?.state ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp, raw.origin.lifecycle) : null;
     this.status = raw.status?.state ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp, raw.status.lifecycle) : null;
     this.specs = raw.specs ? new Specs(raw.specs) : null;
@@ -482,7 +468,6 @@ export class BaseEntity {
       _id: this._id,
       identity: this.identity.toJSON(),
       lineage: this.lineage.toJSON(),
-      relations: this.relations,
       origin: this.origin?.toJSON() || null,
       status: this.status?.toJSON() || null,
       specs: this.specs?.toJSON() || null,
@@ -496,59 +481,6 @@ export class BaseEntity {
 export function createEntityRef(type, id) {
   if (!type || !id) throw new Error('EntityRef requires type and id');
   return { type, id: id.toString() };
-}
-
-export function createRelationRef(entityType, entityId, revisionId = null) {
-  if (!entityType || !entityId) throw new Error('RelationRef requires entityType and entityId');
-  return {
-    entityType,
-    entityId: entityId.toString(),
-    ...(revisionId ? { revisionId: revisionId.toString() } : {})
-  };
-}
-
-export function isEntityReference(value) {
-  return Boolean(
-    value &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    value.entityType &&
-    value.entityId
-  );
-}
-
-export function normalizeEntityReference(value) {
-  if (!isEntityReference(value)) throw new Error('Entity reference requires entityType and entityId');
-  return createRelationRef(value.entityType, value.entityId, value.revisionId);
-}
-
-export function getLineageReference(lineage = {}, role = '') {
-  const value = role ? lineage?.[role] : null;
-  return isEntityReference(value) ? normalizeEntityReference(value) : null;
-}
-
-export function getLineageEntityId(lineage = {}, role = '') {
-  return getLineageReference(lineage, role)?.entityId || null;
-}
-
-export function setLineageReference(lineage = {}, role, entityType, entityId, revisionId = null) {
-  if (!role) throw new Error('Lineage role is required');
-  if (!lineage || typeof lineage !== 'object' || Array.isArray(lineage)) throw new Error('Lineage must be an object');
-  lineage[role] = createRelationRef(entityType, entityId, revisionId);
-  return lineage;
-}
-
-export function normalizeRelations(raw = {}) {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
-  return Object.fromEntries(Object.entries(raw).flatMap(([key, value]) => {
-    const refs = (Array.isArray(value) ? value : [value])
-      .filter(Boolean)
-      .map(ref => {
-        return isEntityReference(ref) ? normalizeEntityReference(ref) : null;
-      })
-      .filter(Boolean);
-    return refs.length ? [[key, refs]] : [];
-  }));
 }
 
 export function createAttachmentRef({ entityId, kind, name = '', metadata = {} } = {}) {
@@ -594,8 +526,7 @@ export const createIdentity = (name, slug = '', serial = '', reference = '', uid
 export const createStatus = (state, userId = 'SYSTEM', metadata = {}, eventId = null, lifecycle = {}) => new Status(state, userId, metadata, eventId, null, lifecycle);
 export const createSpecs = (data = {}) => new Specs(data);
 export const createData = (data = {}) => ({ ...data });
-export const inheritLineage = (parent, type, mapId = value => value, revisionId = null) => new Lineage(parent?.lineage || {})
-  .add(type, mapId(parent?.identity?.uid || parent?._id), revisionId);
+export const inheritLineage = (parent, type, mapId = value => value) => new Lineage(parent?.lineage || {}).add(type, mapId(parent?.identity?.uid || parent?._id));
 export const createAttachment = (kind, fileId, name = '', metadata = {}) => ({ kind, fileId, name, metadata, timestamp: new Date() });
 
 export function validateDomain(domain) {
@@ -649,12 +580,4 @@ function deepFreeze(value) {
     if (nested && typeof nested === 'object' && !Object.isFrozen(nested)) deepFreeze(nested);
   }
   return value;
-}
-
-function isLegacyLineageKey(key = '') {
-  return /(?:Id|RevisionId)$/.test(key);
-}
-
-function normalizeReferenceEntityType(type = '') {
-  return String(type).replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
 }

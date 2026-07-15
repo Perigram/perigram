@@ -1,5 +1,6 @@
 import ProjectCard from '~/components/entities/Project/ProjectCard.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
+import NestingRunCard from '~/components/entities/NestingRun/NestingRunCard.vue';
 import SheetDesignCard from '~/components/entities/SheetDesign/SheetDesignCard.vue';
 import CassetteCard from '~/components/entities/Cassette/CassetteCard.vue';
 import CassetteDesignCard from '~/components/entities/CassetteDesign/CassetteDesignCard.vue';
@@ -37,6 +38,7 @@ import {
 const components = {
   project: ProjectCard,
   queue: QueueCard,
+  nestingRun: NestingRunCard,
   sheetDesign: SheetDesignCard,
   cassette: CassetteCard,
   cassetteDesign: CassetteDesignCard,

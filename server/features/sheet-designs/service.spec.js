@@ -257,29 +257,6 @@ describe('sheet design access', () => {
       .rejects.toThrow(/Permission denied/);
   });
 
-  it('filters queue outputs by the selected queue revision', async () => {
-    await db.collection('sheet_designs').insertMany([
-      sheetDesign({ id: 'sheet-revision-1', status: 'READY', revisionId: 'revision-1' }),
-      sheetDesign({ id: 'sheet-revision-2', status: 'READY', revisionId: 'revision-2' })
-    ]);
-    const auth = {
-      userId: 'operator',
-      organizationId: 'org-1',
-      memberships: [{ organizationId: 'org-1', permissions: {} }],
-      effectivePermissions: { sheet_designs: [{ level: 'read' }] }
-    };
-
-    const listed = await sheetDesignsService.list(
-      'operator',
-      'org-1',
-      null,
-      auth,
-      { queueId: 'queue-1', revisionId: 'revision-1' }
-    );
-
-    expect(listed.map(item => item._id)).toEqual(['sheet-revision-1']);
-  });
-
   it('saves manual placements as a new geometry revision', async () => {
     await db.collection('sheet_designs').insertOne(sheetDesign({ id: 'sheet-editable', status: 'READY' }));
     const auth = {
@@ -308,14 +285,11 @@ describe('sheet design access', () => {
   });
 });
 
-function sheetDesign({ id, status, revisionId = 'revision-1' }) {
+function sheetDesign({ id, status }) {
   return {
     _id: id,
     identity: { uid: id, name: id, slug: id },
-    lineage: {
-      organization: { entityType: 'organization', entityId: 'org-1' },
-      queue: { entityType: 'queue', entityId: 'queue-1', revisionId }
-    },
+    lineage: { organizationId: 'org-1', queueId: 'queue-1', runId: 'run-1' },
     status: {
       state: {
         schemaVersion: 2,

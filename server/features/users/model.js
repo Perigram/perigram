@@ -29,7 +29,7 @@ export class User extends BaseEntity {
   get restrictedTo() { return this.data.restrictedTo || this.lineage.restrictedTo; }
   
   get organizationId() { 
-    return this.lineage.organization?.entityId || this.memberships[0]?.organizationId || null;
+    return this.lineage.organizationId || this.memberships[0]?.organizationId || null; 
   }
 
   toJSON() {

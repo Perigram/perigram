@@ -1,38 +1,18 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useQueuesStore } from './queues.js';
 
-function queueWithNesting(state, lifecycle = {}) {
-    return {
-        _id: 'queue-1',
-        status: {
-            state: {
-                schemaVersion: 2,
-                primary: 'DRAFT',
-                active: { main: 'DRAFT', nesting: state },
-                regions: {
-                    main: { state: 'DRAFT', path: ['DRAFT'] },
-                    nesting: { state, path: [state] }
-                }
-            },
-            lifecycle: { actors: [], attachments: {}, data: lifecycle }
-        }
-    };
-}
-
-describe('queues store nesting revision polling', () => {
+describe('queues store nesting polling', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         vi.useFakeTimers();
         globalThis.$fetch = vi.fn(async (url) => {
-            if (url === '/api/queue/queue-1') {
-                return queueWithNesting('REVIEW', { latestRevisionId: 'revision-2' });
-            }
-            if (url === '/api/entity-revisions') {
-                return [
-                    { _id: 'revision-2', data: { number: 2, outcome: 'SUCCESS' } },
-                    { _id: 'revision-1', data: { number: 1, outcome: 'FAILURE' } }
-                ];
+            if (url.startsWith('/api/queue/')) return { _id: 'queue-1' };
+            if (url === '/api/nesting-runs') {
+                return [{
+                    _id: 'run-1',
+                    status: { state: { primary: 'COMPLETE', active: { main: 'COMPLETE' } } }
+                }];
             }
             return [];
         });
@@ -44,24 +24,28 @@ describe('queues store nesting revision polling', () => {
         delete globalThis.$fetch;
     });
 
-    it('polls a RUNNING queue until Status leaves the nesting execution state', async () => {
+    it('polls v2 nesting run statuses until completion', async () => {
         const store = useQueuesStore();
-        store.currentQueue = queueWithNesting('RUNNING', { activeTaskRunId: 'task-1' });
+        store.runs['queue-1'] = [{
+            _id: 'run-1',
+            status: { state: { primary: 'NESTING', active: { main: 'NESTING' } } }
+        }];
 
         await store.pollQueueStatus('queue-1');
         await vi.advanceTimersByTimeAsync(3000);
 
         expect(globalThis.$fetch).toHaveBeenCalledWith('/api/queue/queue-1');
-        expect(globalThis.$fetch).toHaveBeenCalledWith('/api/entity-revisions', {
-            query: { entityType: 'queue', entityId: 'queue-1', scope: 'nesting' }
-        });
-        expect(store.currentQueue.status.state.active.nesting).toBe('REVIEW');
+        expect(globalThis.$fetch).toHaveBeenCalledWith('/api/nesting-runs', { query: { queueId: 'queue-1' } });
         expect(store.nestingCompleted).toMatchObject({ queueId: 'queue-1' });
+        expect(store.runs['queue-1'][0].status.state.primary).toBe('COMPLETE');
     });
 
-    it('does not poll when the queue nesting region is idle', async () => {
+    it('does not start polling when no active nesting run exists', async () => {
         const store = useQueuesStore();
-        store.currentQueue = queueWithNesting('IDLE');
+        store.runs['queue-1'] = [{
+            _id: 'run-1',
+            status: { state: { primary: 'COMPLETE', active: { main: 'COMPLETE' } } }
+        }];
 
         await store.pollQueueStatus('queue-1');
         await vi.advanceTimersByTimeAsync(3000);
@@ -70,12 +54,65 @@ describe('queues store nesting revision polling', () => {
         expect(store.nestingCompleted).toBeNull();
     });
 
-    it('sorts immutable queue revisions by revision number', async () => {
+    it('polls process-status runs until solver results are written', async () => {
+        globalThis.$fetch = vi.fn(async (url) => {
+            if (url.startsWith('/api/queue/')) return { _id: 'queue-1' };
+            if (url === '/api/nesting-runs') {
+                return [{
+                    _id: 'run-1',
+                    status: { state: { primary: 'Порезано', active: { main: 'Порезано' } } },
+                    data: { results: { sheetCount: 1, placedCount: 2 } }
+                }];
+            }
+            return [];
+        });
+        const store = useQueuesStore();
+        store.runs['queue-1'] = [{
+            _id: 'run-1',
+            status: { state: { primary: 'Порезано', active: { main: 'Порезано' } } },
+            data: {}
+        }];
+
+        await store.pollQueueStatus('queue-1');
+        await vi.advanceTimersByTimeAsync(3000);
+
+        expect(globalThis.$fetch).toHaveBeenCalledWith('/api/queue/queue-1');
+        expect(store.nestingCompleted).toMatchObject({ queueId: 'queue-1' });
+    });
+
+    it('ignores stale empty runs when the latest run has results', async () => {
+        const store = useQueuesStore();
+        store.runs['queue-1'] = [
+            {
+                _id: 'run-1',
+                data: { runNumber: 1 },
+                status: { state: { primary: 'Порезано', active: { main: 'Порезано' } } }
+            },
+            {
+                _id: 'run-2',
+                data: { runNumber: 2, results: { sheetCount: 1 } },
+                status: { state: { primary: 'Порезано', active: { main: 'Порезано' } } }
+            }
+        ];
+
+        await store.pollQueueStatus('queue-1');
+        await vi.advanceTimersByTimeAsync(3000);
+
+        expect(globalThis.$fetch).not.toHaveBeenCalled();
+        expect(store.nestingCompleted).toBeNull();
+    });
+
+    it('sorts fetched queue runs by run number', async () => {
+        globalThis.$fetch = vi.fn(async () => [
+            { _id: 'run-3', data: { runNumber: 3 } },
+            { _id: 'run-1', data: { runNumber: 1 } },
+            { _id: 'run-2', data: { runNumber: 2 } }
+        ]);
         const store = useQueuesStore();
 
-        const revisions = await store.fetchRevisions('queue-1');
+        const runs = await store.fetchRuns('queue-1');
 
-        expect(revisions.map(revision => revision._id)).toEqual(['revision-1', 'revision-2']);
-        expect(store.revisions['queue-1'].map(revision => revision._id)).toEqual(['revision-1', 'revision-2']);
+        expect(runs.map(run => run._id)).toEqual(['run-1', 'run-2', 'run-3']);
+        expect(store.runs['queue-1'].map(run => run._id)).toEqual(['run-1', 'run-2', 'run-3']);
     });
 });

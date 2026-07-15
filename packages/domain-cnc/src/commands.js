@@ -3,14 +3,14 @@ export const cncServiceContracts = {
     service: 'nesting',
     label: 'Nesting service',
     inputs: ['queue', 'sheet', 'remnant', 'tool_profile'],
-    outputs: ['entity_revision', 'sheet_design', 'sheet_instance'],
+    outputs: ['nesting_run', 'sheet_design'],
     actions: ['solveNesting'],
     triggers: ['queue.nestingRequested']
   },
   artifacts: {
     service: 'artifacts',
     label: 'Attachments service',
-    inputs: ['sheet_design', 'cassette_design', 'cassette_instance'],
+    inputs: ['sheet_design', 'nesting_run', 'cassette_design', 'cassette_instance'],
     outputs: ['artifact'],
     actions: ['generateAttachment'],
     triggers: ['attachment.generationRequested']
@@ -20,7 +20,7 @@ export const cncServiceContracts = {
     label: 'Cassette template service',
     inputs: ['cassette'],
     outputs: ['cassette', 'cassette_design'],
-    actions: ['saveCassetteTemplate', 'importCassetteDesign'],
+    actions: ['saveCassetteTemplate'],
     triggers: ['cassette.templateSaved']
   },
   configBot: {
@@ -31,7 +31,7 @@ export const cncServiceContracts = {
     actions: ['generateConfigBotDraft', 'reindexConfigBotKnowledge'],
     triggers: []
   },
-  'geometry-captures': {
+  geometryCapture: {
     service: 'geometry-captures',
     label: 'Geometry capture vision service',
     inputs: ['geometry_capture'],
@@ -66,32 +66,6 @@ export const cncCommands = {
       permissions: [{ feature: 'cassettes', level: 'write' }]
     }
   },
-  importCassetteDesign: {
-    id: 'importCassetteDesign',
-    service: 'cassettes',
-    action: 'importDesign',
-    label: 'Import cassette design',
-    input: {
-      entities: [{ name: 'artifact', type: 'artifact', required: false }],
-      parameters: [
-        { name: 'name', label: 'Cassette name', type: 'string', required: true },
-        { name: 'file', label: 'DXF file', type: 'attachment', accept: '.dxf' },
-        { name: 'layerMapping', label: 'Layer mapping', type: 'object', required: true }
-      ]
-    },
-    triggers: [{ event: 'cassette.designImported' }],
-    output: {
-      entities: ['cassette', 'cassette_design'],
-      events: ['cassette.designImported']
-    },
-    access: {
-      permissions: [{ feature: 'cassettes', level: 'write' }],
-      executionGrants: [
-        { feature: 'artifacts', level: 'write', actions: { view: true, create: true } },
-        { feature: 'cassette_designs', level: 'write', actions: { view: true, edit: true } }
-      ]
-    }
-  },
   solveNesting: {
     id: 'solveNesting',
     service: 'nesting',
@@ -106,9 +80,6 @@ export const cncCommands = {
         { name: 'virtualWidth', label: 'Virtual sheet width', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
         { name: 'virtualLength', label: 'Virtual sheet length', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
         { name: 'spacing', label: 'Spacing', type: 'number', default: 5, min: 0, unit: 'mm' },
-        { name: 'machineId', label: 'Machine', type: 'entityId', entityType: 'machine' },
-        { name: 'materialId', label: 'Material', type: 'entityId', entityType: 'material' },
-        { name: 'sheetThickness', label: 'Sheet thickness', type: 'number', min: 0, unit: 'mm' },
         { name: 'sheet_polygon', label: 'Sheet polygon', type: 'object', display: 'hidden', source: 'scenario.sheetSource.geometry' },
         { name: 'inventoryItems', label: 'Inventory items', type: 'array', default: [], display: 'hidden', source: 'scenario.inventorySource.items' },
         { name: 'materialPool', label: 'Material pool', type: 'array', display: 'hidden', source: 'scenario.inventorySource.materialPool' },
@@ -117,7 +88,7 @@ export const cncCommands = {
     },
     triggers: [{ event: 'queue.nestingRequested' }],
     output: {
-      entities: ['entity_revision', 'sheet_design', 'sheet_instance'],
+      entities: ['nesting_run', 'sheet_design'],
       tasks: ['nesting.solve'],
       events: ['queue.nestingRequested', 'nesting.solveStarted']
     },
@@ -127,11 +98,7 @@ export const cncCommands = {
       ],
       executionGrants: [
         { feature: 'cassettes', level: 'read', actions: { view: true } },
-        { feature: 'cassette_designs', level: 'read', actions: { view: true } },
-        { feature: 'machines', level: 'read', actions: { view: true } },
-        { feature: 'materials', level: 'read', actions: { view: true } },
-        { feature: 'tool_profiles', level: 'read', actions: { view: true } },
-        { feature: 'sheet_instances', level: 'write', actions: { view: true, edit: true } }
+        { feature: 'cassette_designs', level: 'read', actions: { view: true } }
       ]
     }
   },
@@ -146,12 +113,13 @@ export const cncCommands = {
           name: 'source',
           label: 'Attachment source',
           capability: 'attachments.generate',
-          accepts: ['sheet_design'],
+          accepts: ['sheet_design', 'nesting_run'],
           required: true
         }
       ],
       entities: [
-        { name: 'sheetDesign', type: 'sheet_design' }
+        { name: 'sheetDesign', type: 'sheet_design' },
+        { name: 'nestingRun', type: 'nesting_run' }
       ],
       parameters: [
         { name: 'kind', label: 'Attachment kind', type: 'enum', options: ['LAYOUT_DXF', 'PDF_PASSPORT'], required: true },

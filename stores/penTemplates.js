@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
-const ownerId = (pen) => pen?.lineage?.user?.entityId || null;
+const ownerId = (pen) => pen?.lineage?.userId || pen?.ownerId || null;
 
 export const usePenTemplatesStore = defineStore('penTemplates', () => {
     const pens = ref([]);

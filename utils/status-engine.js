@@ -5,6 +5,8 @@
 export const ENTITY_UI = {
     project: { icon: 'pi pi-folder', route: (id) => `/project/${id}/queues` },
     queue: { icon: 'pi pi-list', route: (id, slug) => `/project/${slug}/queues` },
+    nestingRun: { icon: 'pi pi-list-check', route: (id) => `/nesting-runs/${id}` },
+    nesting_run: { icon: 'pi pi-list-check', route: (id) => `/nesting-runs/${id}` },
     sheetDesign: { icon: 'pi pi-map', route: (id) => `/design/sheet/${id}` },
     sheet_design: { icon: 'pi pi-map', route: (id) => `/design/sheet/${id}` },
     cassetteDesign: { icon: 'pi pi-pencil', route: () => `/assets/cassettes` },
@@ -62,10 +64,7 @@ export const STATUS_MAPPINGS = {
 
     // Queue (Production)
     DRAFT: { label: 'status.draft', severity: 'info', icon: 'pi pi-pencil' },
-    IDLE: { label: 'status.idle', severity: 'secondary', icon: 'pi pi-pause' },
-    RUNNING: { label: 'status.running', severity: 'warn', icon: 'pi pi-spin pi-cog' },
-    REVIEW: { label: 'status.review', severity: 'info', icon: 'pi pi-eye' },
-    SELECTED: { label: 'status.selected', severity: 'success', icon: 'pi pi-check-circle' },
+    NESTING: { label: 'status.nesting', severity: 'warn', icon: 'pi pi-cog' },
     READY: { label: 'status.ready', severity: 'success', icon: 'pi pi-check' },
     CUT: { label: 'status.cut', severity: 'success', icon: 'pi pi-scissors' },
     CLOSED: { label: 'status.closed', severity: 'secondary', icon: 'pi pi-lock' },

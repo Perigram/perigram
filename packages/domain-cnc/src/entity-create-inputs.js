@@ -11,8 +11,7 @@ export const cncEntityCreateInputs = {
   ],
   material: [
     { id: 'code', label: 'Material code', path: 'data.code', type: 'string', required: true },
-    { id: 'description', label: 'Description', path: 'data.description', type: 'string', required: false },
-    { id: 'thickness', label: 'Sheet thickness', path: 'data.thickness', type: 'number', required: false, min: 0, unit: 'mm' }
+    { id: 'description', label: 'Description', path: 'data.description', type: 'string', required: false }
   ],
   materialPile: [
     { id: 'material', label: 'Material', path: 'data.material', type: 'entity', entityType: 'material', required: true },
@@ -23,7 +22,10 @@ export const cncEntityCreateInputs = {
     { id: 'type', label: 'Warehouse type', path: 'data.type', type: 'string', required: true },
     { id: 'address', label: 'Address', path: 'data.address', type: 'string', required: false }
   ],
-  artifact: cncEntityConstruction.artifact.inputs
+  artifact: [
+    { id: 'source', label: 'Attachment source', path: 'lineage', type: 'entity', capability: 'attachments.generate', required: true },
+    { id: 'file', label: 'File', path: 'attachments.primary', type: 'attachment', required: true }
+  ]
 };
 
 export function getEntityCreateInputs(entityType) {

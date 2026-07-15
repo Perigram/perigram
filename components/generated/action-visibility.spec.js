@@ -9,7 +9,7 @@ import {
 describe('generated action visibility', () => {
   it('shows status actions only on entities in the source status', () => {
     const action = {
-      actionKind: 'mutateEntity',
+      actionKind: 'changeStatus',
       entityType: 'cassette',
       status: { from: 'CREATED', to: 'DELETED' }
     };
@@ -49,7 +49,7 @@ describe('generated action visibility', () => {
   });
 
   it('hides entity actions from other entity lists', () => {
-    expect(actionAppliesToEntity({ actionKind: 'mutateEntity', entityType: 'project' }, {}, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity({ actionKind: 'updateEntity', entityType: 'project' }, {}, 'cassette')).toBe(false);
   });
 
   it('resolves generated entity actions from region ids and user action manifest', () => {
@@ -66,7 +66,7 @@ describe('generated action visibility', () => {
         },
         {
           actionId: 'delete',
-          actionKind: 'mutateEntity',
+          actionKind: 'changeStatus',
           entityType: 'queue',
           status: { from: 'ARCHIVED', to: 'DELETED' }
         }
@@ -79,8 +79,8 @@ describe('generated action visibility', () => {
   });
 
   it('keeps lifecycle transitions out of generic action surfaces', () => {
-    expect(isGeneratedSurfaceAction({ actionKind: 'mutateEntity', status: { to: 'READY' } })).toBe(false);
+    expect(isGeneratedSurfaceAction({ actionKind: 'changeStatus' })).toBe(false);
     expect(isGeneratedSurfaceAction({ actionKind: 'runCommand' })).toBe(true);
-    expect(isGeneratedSurfaceAction({ actionKind: 'mutateEntity' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'updateEntity' })).toBe(true);
   });
 });

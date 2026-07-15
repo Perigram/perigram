@@ -32,7 +32,7 @@ async function main() {
     
     // Get all system pens
     const pens = await db.collection('pen_templates')
-      .find({ 'lineage.user': { $exists: false } })
+      .find({ 'lineage.userId': null })
       .toArray();
     
     if (pens.length === 0) {

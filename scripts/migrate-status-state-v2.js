@@ -4,6 +4,7 @@ import { normalizeStatusState, getPrimaryState } from '../packages/core/src/inde
 const ENTITY_COLLECTIONS = [
   'projects',
   'queues',
+  'nesting_runs',
   'cassettes',
   'cassette_instances',
   'material_piles',

@@ -16,7 +16,7 @@ export function getActivePermissionsFromAuth(auth = {}, entity = null) {
   if (auth.effectivePermissions) return auth.effectivePermissions;
   if (auth.permissions) return auth.permissions;
 
-  const entityOrgId = entity?.lineage?.organization?.entityId?.toString?.() || entity?.lineage?.organization?.entityId;
+  const entityOrgId = entity?.lineage?.organizationId?.toString?.() || entity?.lineage?.organizationId;
   const activeOrgId = entityOrgId || auth.organizationId?.toString?.() || auth.organizationId;
   const membership = activeOrgId
     ? (auth.memberships || []).find(item => item.organizationId?.toString?.() === activeOrgId.toString())

@@ -12,24 +12,37 @@ vi.mock('../parametric-cassettes/service.js', () => ({
   bakeTemplateInstance: vi.fn()
 }));
 
-vi.mock('../machines/service.js', () => ({
-  ensureSystemDefault: vi.fn(() => ({
-    _id: 'machine-default',
-    identity: { name: 'Test machine' },
-    data: { workArea: { width: 10000, length: 10000 }, boundaryOffset: {} }
-  })),
-  getById: vi.fn()
+vi.mock('./jobs.js', () => ({
+  findActiveByQueue: vi.fn(),
+  create: vi.fn()
 }));
 
-vi.mock('../tool-profiles/service.js', () => ({ getById: vi.fn() }));
-vi.mock('../materials/service.js', () => ({ getById: vi.fn() }));
+vi.mock('../nesting-runs/service.js', () => ({
+  getNextRunNumber: vi.fn(),
+  create: vi.fn()
+}));
+
+vi.mock('../../core/tasks/service.js', () => ({
+  createTaskRun: vi.fn(),
+  getTaskRunById: vi.fn()
+}));
+
+vi.mock('../../core/machines/service.js', () => ({
+  statusService: {
+    getActions: vi.fn()
+  }
+}));
 
 import * as cassetteService from '../cassettes/service.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
+import * as nestingJobs from './jobs.js';
+import * as nestingRunsService from '../nesting-runs/service.js';
+import { createTaskRun } from '../../core/tasks/service.js';
+import { statusService } from '../../core/machines/service.js';
 import { bakeTemplateInstance } from '../parametric-cassettes/service.js';
 import { cncCommands } from '../../../packages/domain-cnc/src/commands.js';
 import { cncWorkflows } from '../../../packages/domain-cnc/src/workflows.js';
-import { buildJobFiles, buildNestingWorkerRequest, enrichNestingResult, groupEquivalentNestingLayouts, resolveNestingContext, resolveNestingMaterialPool, resolveNestingParams, summarizeNestingResult } from './operations.js';
+import { buildJobFiles, buildNestingWorkerRequest, enrichNestingResult, resolveNestingContext, resolveNestingMaterialPool, resolveNestingParams, solveNesting, summarizeNestingResult } from './operations.js';
 
 describe('nesting operation worker payloads', () => {
   beforeEach(() => {
@@ -90,12 +103,7 @@ describe('nesting operation worker payloads', () => {
       height: 1500,
       space: 5,
       sheetCount: 5,
-      sheet_polygon: null,
-      machine: null,
-      tool: null,
-      material: null,
-      itemGap: 5,
-      sheetThickness: 0
+      sheet_polygon: null
     });
   });
 
@@ -123,58 +131,6 @@ describe('nesting operation worker payloads', () => {
     expect(resolveNestingParams(context).sheet_polygon).toEqual(expected);
   });
 
-  it('uses the tool diameter as item gap and clips the usable sheet to machine offsets', () => {
-    const context = resolveNestingContext({
-      width: 300,
-      height: 200,
-      tool: { id: 'tool-1', diameter: 6 },
-      machine: {
-        id: 'machine-1',
-        workArea: { width: 400, length: 300 },
-        boundaryOffset: { top: 10, right: 20, bottom: 30, left: 40 }
-      }
-    });
-
-    expect(context.space).toBe(6);
-    expect(context.sheet_polygon).toEqual({
-      outer: [[40, 170], [40, 10], [280, 10], [280, 170], [40, 170]],
-      inner: []
-    });
-    expect(() => resolveNestingContext({
-      width: 500,
-      height: 200,
-      machine: { workArea: { width: 400, length: 300 } }
-    })).toThrow(/exceeds machine work area/);
-  });
-
-  it('groups equivalent worker layouts into one canonical sheet design quantity', () => {
-    const placement = {
-      item_id: 0,
-      transformation: { translation: [10, 20], rotation: 90 }
-    };
-    const result = {
-      items: [{ id: 0, shape: { data: { outer: [[0, 0], [20, 0], [20, 10], [0, 10]] } } }],
-      solution: {
-        layouts: [
-          { bin: 0, placed_items: [placement] },
-          { bin: 1, placed_items: [placement] }
-        ]
-      }
-    };
-
-    const groups = groupEquivalentNestingLayouts(result, {
-      width: 100,
-      height: 100,
-      machine: { id: 'machine-1' },
-      tool: { id: 'tool-1', diameter: 4 },
-      material: { id: 'material-1', sheetThickness: 3 }
-    }, { width: 100, length: 100, area: 0.01 });
-
-    expect(groups).toHaveLength(1);
-    expect(groups[0]).toMatchObject({ sourceIndex: 0, quantity: 2 });
-    expect(groups[0].layoutHash).toBeTruthy();
-  });
-
   it('declares warehouse material pool as a solveNesting command input', () => {
     const fields = cncCommands.solveNesting.input.parameters;
     const materialMode = fields.find(field => field.name === 'materialMode');
@@ -195,23 +151,69 @@ describe('nesting operation worker payloads', () => {
     expect(resolveNestingMaterialPool({ materialMode: 'WAREHOUSE' }, queue)).toBe(savedPool);
   });
 
-  it('allows queue managers to select successful nesting revisions', () => {
-    const chosenTransition = cncWorkflows.queue.regions.nesting.transitions.find(transition => transition.from === 'REVIEW' && transition.to === 'SELECTED');
+  it('allows queue managers to choose nesting runs', () => {
+    const chosenTransition = cncWorkflows.nesting_run.regions.main.transitions.find(transition => transition.from === 'COMPLETE' && transition.to === 'CHOSEN');
 
     expect(chosenTransition.access.permissions).toEqual([
       { feature: 'queues', level: 'write' }
     ]);
   });
 
-  it('declares the parallel queue lifecycle used by solve and revision selection', () => {
-    const transitions = cncWorkflows.queue.regions.nesting.transitions;
-    const startTransition = transitions.find(transition => transition.from === 'IDLE' && transition.to === 'RUNNING');
-    const finishTransition = transitions.find(transition => transition.from === 'RUNNING' && transition.to === 'REVIEW');
-    const failTransition = transitions.find(transition => transition.from === 'RUNNING' && transition.to === 'ERROR');
+  it('declares queue lifecycle transitions used by nesting solve and run selection', () => {
+    const transitions = cncWorkflows.queue.regions.main.transitions;
+    const startTransition = transitions.find(transition => transition.from === 'DRAFT' && transition.to === 'NESTING');
+    const finishTransition = transitions.find(transition => transition.from === 'NESTING' && transition.to === 'READY');
+    const failTransition = transitions.find(transition => transition.from === 'NESTING' && transition.to === 'DRAFT');
 
     expect(startTransition.access.permissions).toEqual([{ feature: 'queues', level: 'write' }]);
     expect(finishTransition.access.system).toBe(true);
     expect(failTransition.access.system).toBe(true);
+  });
+
+  it('does not emit queue requestNesting events when the active workflow cannot accept them', async () => {
+    const queue = makeQueue();
+    cassetteDesignService.getById.mockResolvedValue(makeCassetteDesign());
+    nestingJobs.findActiveByQueue.mockResolvedValue(null);
+    nestingJobs.create.mockResolvedValue({ _id: 'job-1' });
+    nestingRunsService.getNextRunNumber.mockResolvedValue(1);
+    nestingRunsService.create.mockResolvedValue({ _id: 'run-1' });
+    createTaskRun.mockResolvedValue({ _id: 'task-1' });
+    statusService.getActions.mockResolvedValue({ actions: [] });
+
+    const result = await solveNesting({
+      entities: { queue },
+      parameters: { materialMode: 'VIRTUAL' },
+      auth: makeAuth()
+    });
+
+    expect(result.entities).toEqual([{ type: 'nesting_run', id: 'run-1' }]);
+    expect(result.events).toEqual([]);
+    expect(statusService.getActions).toHaveBeenCalledWith('queue', queue._id, makeAuth());
+  });
+
+  it('keeps the queue requestNesting event for workflows that expose the intent', async () => {
+    const queue = makeQueue();
+    cassetteDesignService.getById.mockResolvedValue(makeCassetteDesign());
+    nestingJobs.findActiveByQueue.mockResolvedValue(null);
+    nestingJobs.create.mockResolvedValue({ _id: 'job-1' });
+    nestingRunsService.getNextRunNumber.mockResolvedValue(1);
+    nestingRunsService.create.mockResolvedValue({ _id: 'run-1' });
+    createTaskRun.mockResolvedValue({ _id: 'task-1' });
+    statusService.getActions.mockResolvedValue({ actions: [{ intent: 'requestNesting' }] });
+
+    const result = await solveNesting({
+      entities: { queue },
+      parameters: { materialMode: 'VIRTUAL' },
+      auth: makeAuth()
+    });
+
+    expect(result.events).toEqual([
+      expect.objectContaining({
+        type: 'queue.nestingRequested',
+        source: { type: 'queue', id: queue._id },
+        entities: [{ type: 'nesting_run', id: 'run-1' }]
+      })
+    ]);
   });
 
   it('rejects mixed-size warehouse stock for a single nesting run', () => {
@@ -691,7 +693,7 @@ function makeQueue() {
         active: { main: 'Отправлено' }
       }
     },
-    lineage: { organization: { entityType: 'organization', entityId: 'org-1' } },
+    lineage: { organizationId: 'org-1' },
     data: {
       queueNumber: 7,
       job: {

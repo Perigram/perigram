@@ -25,7 +25,8 @@ const queuePreview = computed(() => cardProject.value.summary?.queuePreview || [
 const visibleQueues = computed(() => queuePreview.value.slice(0, 3));
 const queueCount = computed(() => Number(cardProject.value.summary?.queueCount || queuePreview.value.length || 0));
 const remainingQueueCount = computed(() => Math.max(queueCount.value - visibleQueues.value.length, 0));
-const libraryCount = computed(() => cardProject.value.relations?.libraries?.length || 0);
+const totalArea = computed(() => Number(cardProject.value.summary?.totalArea || 0));
+const totalSheets = computed(() => visibleQueues.value.reduce((sum, queue) => sum + Number(queue.sheetCount || 0), 0));
 
 function handleCardClick(event) {
   if (isInteractiveEventTarget(event)) return;
@@ -116,7 +117,8 @@ function queueState(queue) {
               <div class="mt-2 flex flex-wrap gap-2">
                 <Tag :value="`${queue.jobItemCount || 0} ${$t('queues.cassettes')}`" severity="secondary" size="small" />
                 <Tag :value="`${queue.totalQuantity || 0} ${$t('queues.quantity')}`" severity="secondary" size="small" />
-                <Tag :value="`${queue.revisionCount || 0} ${$t('queue.revisions')}`" severity="info" size="small" />
+                <Tag :value="`${queue.runCount || 0} ${$t('queue.runs')}`" severity="info" size="small" />
+                <Tag :value="`${queue.sheetCount || 0} ${$t('projectData.sheets')}`" severity="secondary" size="small" />
               </div>
             </div>
             <small v-if="remainingQueueCount" class="text-muted-color">
@@ -133,8 +135,12 @@ function queueState(queue) {
               <div class="text-xl font-semibold">{{ queueCount }}</div>
             </div>
             <div>
-              <small class="text-muted-color">{{ $t('entities.library') }}</small>
-              <div class="text-xl font-semibold">{{ libraryCount }}</div>
+              <small class="text-muted-color">{{ $t('results.sheets') }}</small>
+              <div class="text-xl font-semibold">{{ totalSheets }}</div>
+            </div>
+            <div>
+              <small class="text-muted-color">{{ $t('project.totalArea') }}</small>
+              <div class="text-xl font-semibold">{{ totalArea }} m²</div>
             </div>
           </div>
           <Divider />

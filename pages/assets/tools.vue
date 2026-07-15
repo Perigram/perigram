@@ -30,7 +30,7 @@
         <ResponsiveGrid>
           <div v-for="tool in tools" :key="tool._id" class="flex flex-col gap-2">
             <ToolProfileCard :tool="tool" variant="card" />
-            <div class="flex justify-end gap-2" v-if="tool.lineage?.user?.entityId">
+            <div class="flex justify-end gap-2" v-if="tool.lineage?.userId">
                 <Button
                   icon="pi pi-pencil"
                   severity="secondary"
@@ -125,7 +125,7 @@ const toolStats = computed(() => {
     : 0;
   return {
     total: rows.length,
-    userOwned: rows.filter(tool => tool.lineage?.user?.entityId).length,
+    userOwned: rows.filter(tool => tool.lineage?.userId).length,
     averageDiameter: Number(average.toFixed(2)),
     maxAngle: rows.reduce((max, tool) => Math.max(max, Number(tool.data?.angle || 0)), 0)
   };

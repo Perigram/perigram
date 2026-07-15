@@ -7,6 +7,7 @@ import { Color } from './model.js';
 import { statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
+import { toFlexibleId } from '~/server/utils/objectid.js';
 import { serializeForAccess } from '~/server/utils/entity-redaction.js';
 
 /**
@@ -76,7 +77,7 @@ export async function listPreviewByCatalogs(catalogIds = [], userId, userOrg, us
     .sort(sortByStatusTimestampDesc);
 
   for (const color of colors) {
-    const catalogId = color.lineage?.catalog?.entityId?.toString?.() || color.lineage?.catalog?.entityId;
+    const catalogId = color.lineage?.catalogId?.toString?.() || color.lineage?.catalogId;
     if (!catalogId) continue;
     previews[catalogId] ||= [];
     if (previews[catalogId].length >= limit) continue;
@@ -114,7 +115,11 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
 
 function flexibleLookupValues(id) {
   if (id === null || id === undefined) return [];
-  return [String(id)];
+  const stringId = id?.toString?.() || id;
+  const flexibleId = toFlexibleId(id);
+  return [flexibleId, stringId].filter((value, index, values) => (
+    value !== null && value !== undefined && values.findIndex(item => item?.toString?.() === value?.toString?.()) === index
+  ));
 }
 
 function sortByStatusTimestampDesc(left = {}, right = {}) {

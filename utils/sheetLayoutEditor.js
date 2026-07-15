@@ -64,89 +64,16 @@ export function sheetItemBounds(item = {}, rotation = 0) {
   return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
 }
 
-export function clampSheetPlacement({ x = 0, y = 0, item = {}, rotation = 0, sheetWidth = 0, sheetHeight = 0 } = {}) {
+export function clampSheetPlacement({ x = 0, y = 0, item = {}, rotation = 0, sheetWidth = 0, sheetHeight = 0, snap = 1 } = {}) {
   const bounds = sheetItemBounds(item, rotation);
-  const minX = -bounds.minX;
-  const minY = -bounds.minY;
-  const maxX = Math.max(Number(sheetWidth) || 0, bounds.width) - bounds.maxX;
-  const maxY = Math.max(Number(sheetHeight) || 0, bounds.height) - bounds.maxY;
+  const step = Math.max(Number(snap) || 1, 0.001);
+  const minX = Math.ceil((-bounds.minX) / step) * step;
+  const minY = Math.ceil((-bounds.minY) / step) * step;
+  const maxX = Math.floor((Math.max(Number(sheetWidth) || 0, bounds.width) - bounds.maxX) / step) * step;
+  const maxY = Math.floor((Math.max(Number(sheetHeight) || 0, bounds.height) - bounds.maxY) / step) * step;
   return {
-    x: Math.min(Math.max(Number(x) || 0, minX), Math.max(maxX, minX)),
-    y: Math.min(Math.max(Number(y) || 0, minY), Math.max(maxY, minY))
-  };
-}
-
-export function snapSheetPlacementToNeighbors({ x = 0, y = 0, item = {}, rotation = 0, placements = [], items = [], currentIndex = -1, gap = 0, threshold } = {}) {
-  const moving = sheetItemBounds(item, rotation);
-  const toolGap = Math.max(Number(gap) || 0, 0);
-  const snapThreshold = Math.max(Number(threshold) || toolGap || 5, 2);
-  let nextX = Number(x) || 0;
-  let nextY = Number(y) || 0;
-  let bestX = snapThreshold + 1;
-  let bestY = snapThreshold + 1;
-
-  placements.forEach((placement, index) => {
-    if (index === currentIndex) return;
-    const source = sheetPlacementSource(items, placement);
-    const transform = sheetPlacementTransform(placement);
-    const bounds = sheetItemBounds(source, placement.transformation?.rotation ?? placement.rotation ?? 0);
-    const other = absoluteBounds(bounds, transform.x, transform.y);
-    const candidate = absoluteBounds(moving, nextX, nextY);
-
-    if (rangesOverlap(candidate.minY, candidate.maxY, other.minY - toolGap, other.maxY + toolGap)) {
-      for (const candidateX of [
-        other.minX - toolGap - moving.maxX,
-        other.maxX + toolGap - moving.minX
-      ]) {
-        const distance = Math.abs(candidateX - nextX);
-        if (distance <= snapThreshold && distance < bestX) {
-          nextX = candidateX;
-          bestX = distance;
-        }
-      }
-    }
-
-    if (rangesOverlap(candidate.minX, candidate.maxX, other.minX - toolGap, other.maxX + toolGap)) {
-      for (const candidateY of [
-        other.minY - toolGap - moving.maxY,
-        other.maxY + toolGap - moving.minY
-      ]) {
-        const distance = Math.abs(candidateY - nextY);
-        if (distance <= snapThreshold && distance < bestY) {
-          nextY = candidateY;
-          bestY = distance;
-        }
-      }
-    }
-  });
-
-  return { x: nextX, y: nextY, snappedX: bestX <= snapThreshold, snappedY: bestY <= snapThreshold };
-}
-
-function absoluteBounds(bounds, x, y) {
-  return {
-    minX: x + bounds.minX,
-    minY: y + bounds.minY,
-    maxX: x + bounds.maxX,
-    maxY: y + bounds.maxY
-  };
-}
-
-function rangesOverlap(leftMin, leftMax, rightMin, rightMax) {
-  return leftMax >= rightMin && rightMax >= leftMin;
-}
-
-export function rotateSheetPlacement90(placement = {}) {
-  const current = Number(placement.transformation?.rotation ?? placement.rotation ?? 0) || 0;
-  const currentDegrees = Math.abs(current) <= Math.PI * 2 ? current * 180 / Math.PI : current;
-  const rotation = ((currentDegrees + 90) % 360 + 360) % 360;
-  return {
-    ...placement,
-    transformation: {
-      ...(placement.transformation || {}),
-      rotation,
-      translation: placement.transformation?.translation || [placement.x || 0, placement.y || 0]
-    }
+    x: Math.min(Math.max(snapSheetCoordinate(x, step), minX), Math.max(maxX, minX)),
+    y: Math.min(Math.max(snapSheetCoordinate(y, step), minY), Math.max(maxY, minY))
   };
 }
 

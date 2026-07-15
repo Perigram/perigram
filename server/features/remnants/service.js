@@ -173,8 +173,8 @@ export async function createFromCutSheet(sheet, { area = 0, width = 0, height = 
   };
 
   const remnant = await repository.create(remnantData);
-  if (lineage.warehouse?.entityId) {
-    await warehouseService.updateInventoryCounts(lineage.warehouse.entityId, { totalRemnants: 1 });
+  if (lineage.warehouseId) {
+    await warehouseService.updateInventoryCounts(lineage.warehouseId, { totalRemnants: 1 });
   }
   return toDTO(remnant);
 }
@@ -202,7 +202,7 @@ export async function markAsUsed(id, queueId, user) {
 
   await repository.updateById(id, { data, status });
 
-  const warehouseId = remnant.lineage?.warehouse?.entityId;
+  const warehouseId = remnant.lineage?.warehouseId || remnant.warehouseId;
   if (warehouseId) {
     await warehouseService.updateInventoryCounts(warehouseId, { totalRemnants: -1 });
   }

@@ -3,13 +3,11 @@ import standardSlugify from 'standard-slugify';
 import { ObjectId } from 'mongodb';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
-import { createStatusState, Lineage } from '~/server/core/blocks/index.js';
+import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
-import { mutateEntityFields } from '~/server/core/entities/mutation.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
 import * as entityEventService from '~/server/features/entity-events/service.js';
-import * as queuesService from '~/server/features/queues/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
@@ -30,7 +28,7 @@ import * as repository from './repository.js';
 export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'read');
-  const raws = await repository.find({ 'lineage.organization.entityId': String(organizationId) });
+  const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
   return raws.map(raw => new ProcessDefinition(raw).toJSON());
 }
 
@@ -56,7 +54,7 @@ export async function create(payload = {}, auth) {
       name,
       slug: standardSlugify(name, { keepCase: false })
     },
-    lineage: new Lineage().add('organization', organizationId),
+    lineage: { organizationId: toFlexibleId(organizationId) },
     data: normalizeProcessDefinition(payload.data || payload)
   });
   applyProcessStatus(process, 'DRAFT', auth.userId, 'Process draft created');
@@ -103,12 +101,12 @@ export async function activate(id, auth) {
     ...process.data,
     compiled: compileProcessDefinition(process.data, getDomain())
   };
-  await repository.archiveActiveByOrganization(process.lineage.organization.entityId, auth.userId);
+  await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
   applyProcessStatus(process, 'ACTIVE', auth.userId, 'Process activated');
   const updated = await repository.updateById(id, process);
-  await organizationsRepository.updateById(process.lineage.organization.entityId, {
+  await organizationsRepository.updateById(process.lineage.organizationId, {
     data: {
-      ...(await organizationsRepository.findById(process.lineage.organization.entityId))?.data,
+      ...(await organizationsRepository.findById(process.lineage.organizationId))?.data,
       activeProcessDefinitionId: updated._id
     }
   });
@@ -116,7 +114,7 @@ export async function activate(id, auth) {
 }
 
 async function preserveActiveAssignments(process) {
-  const activeRaw = await repository.findActiveByOrganization(process.lineage.organization.entityId);
+  const activeRaw = await repository.findActiveByOrganization(process.lineage.organizationId);
   if (!activeRaw || String(activeRaw._id) === String(process.id)) return;
   const active = new ProcessDefinition(activeRaw);
   process.data.assignments = { ...(active.data?.assignments || {}) };
@@ -247,7 +245,7 @@ export async function projectEntityThroughSocket({ socketId, entityId, targetOrg
   };
 }
 
-export async function executeActiveProcessAction({ actionId, entityId, data = {}, parameters = {}, entities = {}, targetOrganizationId = null, context = {} } = {}, auth = {}) {
+export async function executeActiveProcessAction({ actionId, entityId, data = {}, parameters = {}, entities = {}, targetOrganizationId = null } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   if (!actionId) throw createError({ statusCode: 400, message: 'Action id is required' });
   const raw = await repository.findActiveByOrganization(organizationId);
@@ -257,16 +255,6 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   const action = process.data.compiled?.actions?.[actionId] || process.data.actions?.[actionId];
   if (!action) throw createError({ statusCode: 404, message: 'Action not found in active process' });
   assertCompiledActionAvailable(actionId, auth);
-  const finalize = async result => await finalizeGeneratedActionResult({
-    actionId,
-    action,
-    result,
-    process,
-    auth,
-    context,
-    entityId,
-    entities
-  });
 
   if (action.actionKind === 'runCommand') {
     if (!action.commandId) throw createError({ statusCode: 400, message: `Action ${actionId} has no command` });
@@ -274,41 +262,31 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     if (!hasAsyncOutputBoundary(result)) {
       await applyProcessOutputStatuses({ actionId, result, processData: process.data, organizationId, auth });
     }
-    return await finalize(result);
+    return result;
   }
 
-  if (action.actionKind === 'mutateEntity') {
+  if (action.actionKind === 'changeStatus') {
     const targetId = entityId || entities?.entity || entities?.[action.entityType];
     if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
-    const entityType = resolveActionEntityType(action);
     const targetState = action.status?.to || action.access?.statusTo;
-    const mutationData = (action.mutation?.fields || []).length ? pickMutationData(data, action) : {};
-    let result = null;
-    if (Object.keys(mutationData || {}).length) {
-      result = await mutateEntityFields(entityType, targetId, action.mutation.fields, mutationData);
-      await publishActionEntityEvent(auth, entityType, result || { _id: targetId }, 'updated', 'process-mutate');
-    }
-    if (targetState) {
-      const statusResult = await statusService.transitionWithResult({
-        entityType,
-        targetId,
-        targetState,
-        auth,
-        context: processTransitionContext(action, data, process.data)
-      });
-      await publishStatusResultEvents(auth, entityType, targetId, statusResult, 'process-mutate');
-      result = { ...(result?.toJSON ? result.toJSON() : result || {}), status: statusResult.status || statusResult };
-    }
-    if (!result) throw createError({ statusCode: 400, message: `Action ${actionId} has no connected mutation blocks` });
-    return await finalize(result);
+    if (!targetState) throw createError({ statusCode: 400, message: `Action ${actionId} has no target status` });
+    const result = await statusService.transitionWithResult({
+      entityType: resolveActionEntityType(action),
+      targetId,
+      targetState,
+      auth,
+      context: processTransitionContext(action, data, process.data)
+    });
+    await publishStatusResultEvents(auth, resolveActionEntityType(action), targetId, result, 'process-status-action');
+    return result;
   }
 
   if (action.actionKind === 'sendToOrganization') {
-    return await finalize(await projectEntityThroughSocket({
+    return await projectEntityThroughSocket({
       socketId: action.socketId || action.projection?.socketId || action.targetSocketId,
       entityId,
       targetOrganizationId
-    }, auth));
+    }, auth);
   }
 
   if (action.actionKind === 'createEntity') {
@@ -316,12 +294,12 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     if (entityType === 'cassette_design' && action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
       const created = await executeBakeCassetteDesign(action, data, organizationId, auth, process.data, entities);
       await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
-      return await finalize(created);
+      return created;
     }
     if (entityType === 'cassette' && action.construction?.mode === 'createDefaultOccsTemplate') {
       const created = await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth, process.data, entities);
       await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
-      return await finalize(created);
+      return created;
     }
     if (entityType === 'cassette_design') {
       throw createError({ statusCode: 400, message: 'cassette_design requires typed construction' });
@@ -332,13 +310,13 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     const targetState = action.status?.to;
     if (!targetState) {
       await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
-      return await finalize(created);
+      return created;
     }
     const createdDto = created?.toJSON ? created.toJSON() : created;
     const targetId = createdDto?._id || createdDto?.identity?.uid;
     if (!targetId) {
       await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
-      return await finalize(created);
+      return created;
     }
     const status = await statusService.setInitialStateForOrganization(
       entityType,
@@ -353,7 +331,17 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       status
     };
     await publishActionEntityEvent(auth, entityType, result, 'created', 'process-create');
-    return await finalize(result);
+    return result;
+  }
+
+  if (action.actionKind === 'updateEntity') {
+    const targetId = entityId || entities?.entity || entities?.[action.entityType];
+    if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
+    const service = getEntityServiceForAction(action);
+    if (!service.update) throw createError({ statusCode: 500, message: `Entity service cannot update ${resolveActionEntityType(action)}` });
+    const updated = await service.update(targetId, pickMutationData(data, action), auth.userId, organizationId, auth.role, auth);
+    await publishActionEntityEvent(auth, resolveActionEntityType(action), updated || { _id: targetId }, 'updated', 'process-update');
+    return updated;
   }
 
   throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
@@ -369,7 +357,7 @@ function createActionPayload(action = {}, data = {}, entities = {}) {
         message: `${action.parentEntityType} parent is required`
       });
     }
-    payload[action.parentInputKey || `${camelCase(action.parentEntityType)}Id`] ||= parentId;
+    payload[`${camelCase(action.parentEntityType)}Id`] ||= parentId;
   }
   return normalizeCreationPayload(payload);
 }
@@ -389,59 +377,6 @@ function normalizeCreationPayload(payload = {}) {
 
 function camelCase(value = '') {
   return String(value).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
-}
-
-async function finalizeGeneratedActionResult({ actionId, action = {}, result, process, auth = {}, context = {}, entityId, entities = {} } = {}) {
-  if (!declaresEntityOutput(action, 'cassette_design')) return result;
-  const placement = resolveExplicitQueueProducerPlacement({ actionId, process, auth, context });
-  if (!placement) return result;
-
-  const queueId = entityId || entities.queue;
-  if (!queueId) {
-    throw createError({ statusCode: 400, message: 'Queue id is required for a queue producer action' });
-  }
-  const produced = normalizeDeclaredEntityOutputs(action, result)
-    .filter(reference => reference.entityType === 'cassette_design');
-  if (produced.length) {
-    await queuesService.appendGeneratedCassetteDesignOutputs(queueId, produced, auth);
-  }
-  return result;
-}
-
-function resolveExplicitQueueProducerPlacement({ actionId, process, auth = {}, context = {} } = {}) {
-  if (!context?.screenKey || !context?.regionId) return null;
-  const access = process?.data?.compiled?.userAccess?.[String(auth.userId)];
-  const screen = (access?.screens || []).find(candidate => (
-    candidate.screenKey === context.screenKey || candidate.id === context.screenKey
-  ));
-  const region = screen?.regions?.find(candidate => candidate.id === context.regionId);
-  const source = screen?.sources?.find(candidate => candidate.id === region?.sourceId);
-  if (
-    screen?.template !== 'entityDetail'
-    || source?.mode !== 'single'
-    || source?.entityType !== 'queue'
-    || !(region?.actions || []).includes(actionId)
-  ) {
-    throw createError({
-      statusCode: 403,
-      message: `Action ${actionId} is not placed in the requested queue screen region`
-    });
-  }
-  return { screen, region, source };
-}
-
-function declaresEntityOutput(action = {}, entityType = '') {
-  const normalized = normalizeEntityType(entityType);
-  return (action.outputs || []).some(output => normalizeEntityType(output.entityType || output.type) === normalized);
-}
-
-function normalizeDeclaredEntityOutputs(action = {}, result = {}) {
-  const directType = resolveActionEntityType(action);
-  const values = Array.isArray(result?.entities) ? result.entities : [result];
-  return values.map(value => ({
-    entityType: normalizeEntityType(value?.entityType || value?.type || directType),
-    id: value?.entityId || value?.id || value?._id || value?.identity?.uid
-  })).filter(reference => reference.entityType && reference.id && declaresEntityOutput(action, reference.entityType));
 }
 
 async function applyProcessOutputStatuses({ actionId, result = {}, processData = {}, organizationId, auth = {} } = {}) {
@@ -526,7 +461,7 @@ function commandOutputStatusMap(actionId, processData = {}) {
     if (!sourceNodeIds.has(String(edge.source))) continue;
     const targetActionId = actionIdByNodeId.get(String(edge.target)) || String(edge.target);
     const targetAction = targetActionId ? processData.actions?.[targetActionId] : null;
-    if (targetAction?.actionKind !== 'mutateEntity') continue;
+    if (targetAction?.actionKind !== 'changeStatus') continue;
     const entityType = normalizeEntityType(
       targetAction.entityType
       || targetAction.inputs?.find(input => input.entityType)?.entityType
@@ -734,7 +669,8 @@ function commandExecutionGrants(action = {}) {
 
 function executionActionsForAction(action = {}) {
   if (action.actionKind === 'runCommand') return { run: true };
-  if (action.actionKind === 'mutateEntity') return { update: true, edit: true };
+  if (action.actionKind === 'updateEntity') return { update: true, edit: true };
+  if (action.actionKind === 'changeStatus') return { update: true };
   return { create: true };
 }
 
@@ -778,9 +714,9 @@ function resolveEntityFeature(entityType = '') {
   entityType = normalizeEntityType(entityType);
   const domain = getDomain();
   const entity = (domain?.entities || []).find(item => item.type === entityType);
+  if (entity?.collection) return entity.collection;
   const fieldPolicy = getEntityFieldAccessPolicy(entityType) || domain?.fieldAccess?.[entityType];
   if (fieldPolicy?.feature) return fieldPolicy.feature;
-  if (entity?.collection) return entity.collection;
   return entityType;
 }
 
@@ -815,14 +751,14 @@ async function loadAuthorized(id, auth, level) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Process definition not found' });
   const process = new ProcessDefinition(raw);
-  await assertOrgAccess(auth, process.lineage.organization.entityId, level);
+  await assertOrgAccess(auth, process.lineage.organizationId, level);
   return process;
 }
 
 async function assertOrgAccess(auth, organizationId, level) {
   try {
     assertEntityAccess({
-      entity: { lineage: new Lineage().add('organization', organizationId) },
+      entity: { lineage: { organizationId } },
       entityType: 'organization',
       feature: 'organizations',
       level,

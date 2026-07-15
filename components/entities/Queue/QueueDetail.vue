@@ -80,8 +80,8 @@
                  <Panel :header="$t('project.overview')">
                     <div class="flex flex-col gap-4 py-2">
                         <div class="flex justify-between items-center">
-                            <span class="opacity-60">{{ $t('queue.revisions') }}</span>
-                            <span class="text-xl">{{ queue.summary?.revisionCount || 0 }}</span>
+                            <span class="opacity-60">{{ $t('queue.runs') }}</span>
+                            <span class="text-xl">{{ queue.summary?.runCount || 0 }}</span>
                         </div>
                     </div>
                 </Panel>

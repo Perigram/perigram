@@ -134,7 +134,7 @@ describe('cassette design DXF export', () => {
       }
     };
     await expect(db.collection('cassette_designs').find({
-      'lineage.organization.entityId': processOrgId,
+      'lineage.organizationId': processOrgId,
       'status.state.primary': { $in: ['RECEIVED', 'DRAFT'] }
     }).toArray()).resolves.toHaveLength(2);
 
@@ -159,8 +159,8 @@ function cassetteDesign({ _id, organizationId, templateId = new ObjectId(), laye
     _id,
     identity: { uid: _id, name: _id, slug: _id },
     lineage: {
-      organization: { entityType: 'organization', entityId: String(organizationId) },
-      cassette: { entityType: 'cassette', entityId: String(templateId) }
+      organizationId,
+      templateId
     },
     status: {
       state: {

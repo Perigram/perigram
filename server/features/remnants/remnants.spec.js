@@ -61,10 +61,7 @@ describe('Remnants & Reusability Logic', () => {
     await db.collection('sheets').insertOne({
       _id: sheetId,
       identity: { uid: sheetId, name: 'Sheet' },
-      lineage: {
-        organization: { entityType: 'organization', entityId: mockUser.organizationId.toString() },
-        warehouse: { entityType: 'warehouse', entityId: warehouseId.toString() }
-      },
+      lineage: { organizationId: mockUser.organizationId, warehouseId },
       data: { specs: { thickness: 4 } }
     });
     
@@ -91,17 +88,14 @@ describe('Remnants & Reusability Logic', () => {
       _id: warehouseId,
       identity: { uid: warehouseId, name: 'Warehouse' },
       data: { stats: { totalRemnants: 1 } },
-      lineage: { organization: { entityType: 'organization', entityId: mockUser.organizationId.toString() } }
+      lineage: { organizationId: mockUser.organizationId }
     });
 
     const remnantId = new ObjectId();
     await db.collection('remnants').insertOne({
       _id: remnantId,
       identity: { uid: remnantId, name: 'Remnant' },
-      lineage: {
-        organization: { entityType: 'organization', entityId: mockUser.organizationId.toString() },
-        warehouse: { entityType: 'warehouse', entityId: warehouseId.toString() }
-      },
+      lineage: { organizationId: mockUser.organizationId, warehouseId },
       status: { state: 'AVAILABLE' },
       data: { isReusable: true }
     });

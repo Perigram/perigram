@@ -110,12 +110,7 @@ async function processTransitionEffect(effect = {}, context = {}) {
 
   const metadata = effect.metadata || context.metadata || {};
   const auth = context.auth || {};
-  const transitionContext = {
-    ...(context.transitionContext || {}),
-    ...(effect.region ? { region: effect.region } : {}),
-    ...(effect.path ? { path: effect.path } : {}),
-    ...(effect.lifecycle ? { lifecycle: effect.lifecycle } : {})
-  };
+  const transitionContext = context.transitionContext || {};
   const targetState = effect.targetState || effect.state || null;
   const intent = effect.intent || null;
 
@@ -133,14 +128,7 @@ async function processTransitionEffect(effect = {}, context = {}) {
   if (!targetState) {
     throw createError({ statusCode: 400, message: 'transition effect requires targetState or intent' });
   }
-  const result = await statusService.transition(
-    entity.type,
-    entity.id,
-    targetState,
-    auth.userId,
-    auth,
-    { metadata, ...transitionContext }
-  );
+  const result = await statusService.transition(entity.type, entity.id, targetState, auth.userId, auth, metadata);
   return {
     type: 'transition',
     entity,

@@ -46,7 +46,7 @@ export async function addUserMembership(userId, membership, { role, permissions,
     {
       $push: { 'data.memberships': membership },
       $set: {
-        'lineage.organization.entityId': organizationId,
+        'lineage.organizationId': organizationId,
         'data.role': role,
         'data.permissions': permissions
       }

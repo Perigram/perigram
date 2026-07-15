@@ -61,7 +61,7 @@ describe('Sheet Lifecycle & Milling', () => {
       _id: sheetId,
       identity: { uid: sheetId, name: 'Sheet' },
       status: { state: 'IN-CUTTING' },
-      lineage: { warehouse: { entityType: 'warehouse', entityId: warehouseId.toString() } }
+      lineage: { warehouseId }
     });
 
     const cassetteIds = [new ObjectId(), new ObjectId()];

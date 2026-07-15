@@ -39,16 +39,9 @@ export const cncTasks = {
     service: 'nesting',
     label: 'Solve nesting',
     executor: { type: 'http', target: 'nesting-worker', endpoint: '/nest' },
-    input: {
-      entities: [{ name: 'queue', type: 'queue', required: true }],
-      parameters: [
-        ...cncCommands.solveNesting.input.parameters,
-        { name: 'jobFiles', label: 'Resolved nesting inputs', type: 'array', default: [], display: 'hidden' },
-        { name: 'settingsSnapshot', label: 'Nesting settings snapshot', type: 'object', default: {}, display: 'hidden' }
-      ]
-    },
+    input: cncCommands.solveNesting.input,
     output: {
-      entities: ['entity_revision', 'sheet_design', 'sheet_instance'],
+      entities: ['nesting_run', 'sheet_design'],
       tasks: ['nesting.solve'],
       events: ['nesting.solveStarted', 'nesting.solveCompleted', 'nesting.solveFailed']
     }

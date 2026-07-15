@@ -19,7 +19,7 @@ const props = defineProps({
 
 const route = useRoute();
 const router = useRouter();
-const projectSlug = computed(() => route.params.slug || null);
+const projectSlug = computed(() => route.params.slug || props.design.lineage?.projectSlug || null);
 const canOpen = computed(() => Boolean(projectSlug.value && props.design._id));
 const cassetteDesigns = computed(() => cassetteDesignCountsForSheetDesign(props.design));
 const cassettePlacementCount = computed(() => cassettePlacementCountForSheetDesign(props.design));

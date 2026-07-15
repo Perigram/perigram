@@ -21,6 +21,14 @@ export default defineNitroPlugin(async (nitroApp) => {
           },
           { $set: { processingStatus: "pending" } }
         );
+
+        await db.collection("nesting_jobs").updateMany(
+          {
+            processingStatus: "processing",
+            update_ts: { $lte: thresholdTime }
+          },
+          { $set: { processingStatus: "pending" } }
+        );
       } catch (error) {
         logger.error('Error in status-control plugin:', error);
       }

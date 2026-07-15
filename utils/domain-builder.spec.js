@@ -41,8 +41,8 @@ describe('domain builder utilities', () => {
 
     const messages = validateDomainDraft(draft).issues.map(issue => issue.message);
     expect(messages).toContain('Duplicate entity type: queue');
-    expect(messages).toContain('queue.main initial state does not exist: MISSING');
-    expect(messages).toContain('queue.main transition #1 has unknown to state: READY');
+    expect(messages).toContain('queue initial state does not exist: MISSING');
+    expect(messages).toContain('queue transition #1 has unknown to state: READY');
   });
 
   it('validates typed command parameters and hook params', () => {
@@ -78,7 +78,7 @@ describe('domain builder utilities', () => {
 
     const messages = validateDomainDraft(draft).issues.map(issue => issue.message);
     expect(messages).toContain('runQueue parameters field #1 has invalid type: invalid');
-    expect(messages).toContain('queue.main transition #1 propagateToChildren params missing required field: childState');
+    expect(messages).toContain('queue transition #1 propagateToChildren params missing required field: childState');
   });
 
   it('generates deterministic domain-cnc source exports', () => {
@@ -146,6 +146,6 @@ describe('domain builder utilities', () => {
       hookContracts: {}
     });
 
-    expect(compiled.issues.map(issue => issue.message)).not.toContain('queue.main transition #1 references unknown hook contract: triggerAggregator');
+    expect(compiled.issues.map(issue => issue.message)).not.toContain('queue transition #1 references unknown hook contract: triggerAggregator');
   });
 });
