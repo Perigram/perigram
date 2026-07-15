@@ -632,6 +632,11 @@
 
     Validation:
     - Vue SFC parse check for =components/QueueEditor.vue= passed.
+    - Playwright against
+      =/screens/auto_queue_detail?entityId=q-EI1Vtn51= as a process-role user
+      showed =Add Entry= enabled, the =Create cassette design= producer
+      option visible, the template selector omitted when unreadable, and the
+      final =Add= button enabled after entering a design name.
 
 *** [2026-07-15] Entity revision stale-index execution repair
 
@@ -659,3 +664,9 @@
     Validation:
     - Added repository coverage for replacing the stale index and keeping the
       current one unchanged, plus legacy revision source/provenance coverage.
+    - Full Playwright execution of the generated queue producer returned 200
+      from
+      =/api/process-definitions/active/actions/action_1782325155992/execute=
+      and refreshed the queue row list with =E2E generated design 4=.
+    - =node scripts/check-arch.js= passed with the existing non-blocking
+      migration inventory.
