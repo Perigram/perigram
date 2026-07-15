@@ -281,6 +281,10 @@ Queue composition producers are resolved separately from queue-detail screen
 sources. Existing cassette designs require `cassette_designs:read`; process
 producer actions are accepted only when their current compiled action contract
 exposes a `cassette_design` output through `contracts.outputs`.
+Queue item rows hydrate their referenced `cassette_design` records through the
+canonical detail endpoint when the collection list did not include a saved
+queue item. The row must render the cassette-design identity/preview from that
+canonical DTO, not a raw id-only fallback.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page, and generated cassette
 collection/home cards mirror that same editor action in their footers when the

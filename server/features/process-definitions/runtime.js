@@ -1,9 +1,11 @@
 import {
+  compileProcessDefinition,
   resolveEffectiveAccess,
   resolveNavigation,
   resolveScreens,
   resolveWorkflow
 } from '~/packages/processes/src/index.js';
+import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import * as repository from './repository.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
 import { applyOwnerPermissionsToAuth } from '../users/organization-owner.js';
@@ -16,7 +18,20 @@ export async function getActiveProcessForOrganization(organizationId) {
 
 export async function getActiveCompiledProcess(organizationId) {
   const active = await getActiveProcessForOrganization(organizationId);
-  return active?.data?.compiled || null;
+  return compiledProcessRuntime(active?.data || null);
+}
+
+function compiledProcessRuntime(data = null) {
+  if (!data?.compiled) return null;
+  if (!compiledRuntimeMissingActionContracts(data.compiled)) return data.compiled;
+  return compileProcessDefinition({ ...data, compiled: null }, cncDomain);
+}
+
+function compiledRuntimeMissingActionContracts(compiled = {}) {
+  return Object.values(compiled.actions || {}).some(action => !action.contracts) ||
+    Object.values(compiled.userAccess || {}).some(access => (
+      (access.actions || []).some(action => !action.contracts)
+    ));
 }
 
 export async function resolveProcessAuth(auth = {}) {

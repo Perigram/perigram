@@ -2,7 +2,7 @@
   <Panel>
     <template #header>
       <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
-        <EntityInlineRef :type="sourceType" :entity="cassette" :id="sourceId" :fetch="Boolean(cassette)" />
+        <EntityInlineRef :type="sourceType" :entity="cassette" :id="sourceId" :fetch="!cassette" />
         <div class="flex items-center gap-1" data-entity-card-interactive="true" @click.stop>
           <InputNumber
             :model-value="entry.quantity"

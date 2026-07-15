@@ -484,3 +484,21 @@
     - =npm run framework:validate= passed.
     - =node scripts/check-arch.js= passed with the existing non-blocking
       migration inventory.
+
+*** [2026-07-15] Queue cassette producer visibility and row display repair
+
+    Corrective implementation scope:
+    - Generated queue cassette producers were absent when an active process had
+      stale compiled user action manifests without =contracts.outputs=.
+      Auth hydration now recompiles that active process runtime in memory from
+      the semantic process source, so QueueEditor still receives strict current
+      action contracts without accepting legacy output shapes in the UI.
+    - Saved queue item rows now hydrate missing referenced =cassette_design=
+      DTOs through the canonical detail endpoint and let =EntityInlineRef=
+      fetch when the row does not already have the design object. This fixes
+      id-only/unknown cassette rows after reload or list redaction.
+
+    Validation run:
+    - =npx vitest run server/features/process-definitions/runtime.spec.js utils/queue-producers.spec.js utils/queue-items.spec.js= passed: 3 files, 9 tests.
+    - Vue SFC parse check for =components/QueueEditor.vue= and
+      =components/entities/Queue/QueueEntryCard.vue= passed.
