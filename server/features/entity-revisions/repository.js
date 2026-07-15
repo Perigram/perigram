@@ -30,9 +30,12 @@ export async function find(filter = {}, options = {}) {
 
 export async function findByHash(entityType, entityId, scope, contentHash) {
   const db = await connectDB();
+  const id = toFlexibleId(entityId).toString();
   return await db.collection(COLLECTION).findOne({
-    'data.source.type': entityType,
-    'data.source.id': toFlexibleId(entityId).toString(),
+    $or: [
+      { 'data.source.type': entityType, 'data.source.id': id },
+      { 'data.entityType': entityType, 'data.entityId': id }
+    ],
     'data.scope': scope,
     'data.contentHash': contentHash
   });
@@ -40,10 +43,13 @@ export async function findByHash(entityType, entityId, scope, contentHash) {
 
 export async function findLatest(entityType, entityId, scope) {
   const db = await connectDB();
+  const id = toFlexibleId(entityId).toString();
   return await db.collection(COLLECTION)
     .find({
-      'data.source.type': entityType,
-      'data.source.id': toFlexibleId(entityId).toString(),
+      $or: [
+        { 'data.source.type': entityType, 'data.source.id': id },
+        { 'data.entityType': entityType, 'data.entityId': id }
+      ],
       'data.scope': scope
     })
     .sort({ 'data.number': -1, _id: -1 })

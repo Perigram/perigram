@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ensureIndexes } from './repository.js';
+import { ensureIndexes, findByHash } from './repository.js';
 import { connectDB } from '../../db/mongo.js';
 
 vi.mock('../../db/mongo.js', () => ({
@@ -13,7 +13,8 @@ describe('entity revisions repository indexes', () => {
     collection = {
       indexes: vi.fn(),
       dropIndex: vi.fn(),
-      createIndex: vi.fn()
+      createIndex: vi.fn(),
+      findOne: vi.fn()
     };
     connectDB.mockResolvedValue({
       collection: vi.fn(() => collection)
@@ -74,5 +75,20 @@ describe('entity revisions repository indexes', () => {
     await ensureIndexes();
 
     expect(collection.dropIndex).not.toHaveBeenCalled();
+  });
+
+  it('looks up revisions by current or legacy source keys', async () => {
+    collection.findOne.mockResolvedValueOnce({ _id: 'rev-1' });
+
+    await findByHash('cassette', 'cassette-1', 'geometry', 'sha256:abc');
+
+    expect(collection.findOne).toHaveBeenCalledWith({
+      $or: [
+        { 'data.source.type': 'cassette', 'data.source.id': 'cassette-1' },
+        { 'data.entityType': 'cassette', 'data.entityId': 'cassette-1' }
+      ],
+      'data.scope': 'geometry',
+      'data.contentHash': 'sha256:abc'
+    });
   });
 });
