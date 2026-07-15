@@ -731,3 +731,25 @@
 
     Validation:
     - Vue SFC parse check for =components/QueueEditor.vue= passed.
+
+*** [2026-07-15] Queue composer header source-picker correction
+
+    Follow-up design review rejected the in-grid Add tile. Queue composition
+    already has a panel header action slot, and add/delete controls must follow
+    access-gated action placement instead of introducing page-local tiles or
+    special-case controls.
+
+    Corrective implementation:
+    - =QueueEditor= now exposes a single =Add Entry= source picker in the
+      cassette panel header, next to the grid/table view controls.
+    - The picker still keeps sources separated: readable existing
+      =cassette_design= records are one source, and each current
+      process/generated producer that outputs =cassette_design= is a separate
+      menu item.
+    - Removed the rejected in-grid Add tile. No delete special-case was added;
+      queue row deletion remains owned by the existing queue editor access and
+      action contract.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
+    - =git diff --check= passed.
