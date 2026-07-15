@@ -57,14 +57,23 @@ Production queue card and detail surface.
 - Queue editor cassette rows render the hydrated `cassette_design` identity in
   the panel header, or a typed id chip when the design cannot be read. They do
   not nest `EntityInlineRef` popovers or full relation cards inside the row
-  header.
+  header. Missing design hydration only probes rows that may be
+  `cassette_design`; explicit legacy `entityType: cassette` rows must not be
+  fetched from `/api/cassette-designs/:id`.
 - In generated process queue details, cassette producer actions come from the
   current user's compiled action manifest and must expose a current
   `contracts.outputs[]` entry for `cassette_design`. QueueEditor does not
-  accept legacy output shapes. Existing readable cassette designs are a
-  separate source producer: selecting one in process mode appends through the
+  accept legacy output shapes. The available Add menu is resolved from the
+  domain producer registry: existing readable cassette designs, readable
+  library cassette templates that can be baked, DXF/artifact import, and any
+  additional compiled process action that outputs `cassette_design` remain
+  separate menu sources. Existing readable cassette designs are a separate
+  source producer: selecting one in process mode appends through the
   active-process queue item endpoint, which delegates to queue `processUpdate()`
-  instead of using the generic queue PATCH path.
+  instead of using the generic queue PATCH path. Process DXF import receives
+  queue context through the same process action execution body so the produced
+  design is appended by the action boundary rather than by a generic queue
+  patch.
 - Process cassette-design producers whose construction mode supports server
   default cassette-template resolution must not block the Add button on an
   unreadable or empty template selector. If no selectable template options are

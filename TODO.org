@@ -753,3 +753,47 @@
     Validation:
     - Vue SFC parse check for =components/QueueEditor.vue= passed.
     - =git diff --check= passed.
+
+*** [2026-07-15] Queue legacy cassette row hydration cleanup
+
+    Browser validation of the header source picker surfaced one remaining
+    relation leak: explicit legacy =entityType: cassette= rows were displayed
+    correctly, but the missing-design hydration pass still tried to fetch their
+    ids from =/api/cassette-designs/:id= and logged avoidable 404s.
+
+    Corrective implementation:
+    - =QueueEditor= missing-design hydration now skips explicit cassette
+      template rows and only probes ids that may be cassette-design rows.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
+    - =git diff --check= passed.
+
+*** [2026-07-15] Queue cassette-design source producer architecture repair
+
+    Follow-up review clarified that the Add menu must not be a local list of
+    one available process action. It must expose the existing architectural
+    source pattern: every domain/process source capable of producing or
+    containing =cassette_design= should be a distinct option.
+
+    Corrective implementation:
+    - Added a queue design producer resolver that starts from
+      =cncDomain.producers=, filters direct sources by feature access, and
+      binds matching compiled process actions by construction mode.
+    - The queue Add menu now separates existing cassette designs, library
+      cassette templates, DXF import, and any other compiled process producer
+      whose current contract outputs =cassette_design=.
+    - DXF process import now receives queue context through the existing
+      process action execution body so the produced design is appended by the
+      process/queue boundary.
+    - Legacy =changeStatus= actions are normalized at the process compiler
+      boundary so registration, assignment, auth hydration, and run-nesting
+      paths cannot crash on stored legacy action records.
+
+    Validation:
+    - =npx vitest run utils/queue-design-producers.spec.js utils/queue-producers.spec.js packages/processes/src/index.spec.js server/features/process-definitions/process-definitions.spec.js= passed: 4 files, 98 tests.
+    - Vue SFC parse check for =components/QueueEditor.vue= and
+      =components/CassetteEditorDialog.vue= passed.
+    - Locale JSON parse check for =i18n/locales/en.json= and
+      =i18n/locales/ru.json= passed.
+    - =git diff --check= passed.

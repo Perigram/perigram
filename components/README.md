@@ -277,11 +277,14 @@ manifest. A queue command such as `solveNesting` must be present on that
 queue-detail screen because it is executed against the queue input; output
 entity grants for `nesting_runs` or `sheet_designs` must not be used to decide
 where the command panel renders.
-Queue composition producers are resolved from the current user's compiled
-process action manifest rather than from queue-detail screen action ids.
-Existing cassette designs are available only on ordinary queue-write surfaces;
-process-mode producer actions are accepted only when their current compiled
-action contract exposes a `cassette_design` output through `contracts.outputs`.
+Queue composition producers are resolved from the domain producer registry and
+then bound to the current user's compiled process action manifest where a
+process action provides the matching construction mode. Existing cassette
+designs, library cassette templates, DXF/artifact import, and additional
+process actions that output `cassette_design` remain distinct source menu
+items. Process-mode producer actions are accepted only when their current
+compiled action contract exposes a `cassette_design` output through
+`contracts.outputs`.
 When a process producer is executed from a queue detail, the queue id is sent as
 action context and the server appends the produced design through the queue
 feature's `processUpdate()` boundary. The browser does not rely on a generic
