@@ -52,6 +52,12 @@ Production queue card and detail surface.
   instead of embedding pile/sheet/remnant cards. It draws remnant polygons when
   present and rectangular sheet previews for stock sources without stored
   geometry.
+- Queue editor nesting output is a current-output surface, not a run-history
+  browser. It renders the accepted production run from
+  `queue.data.materialConsumption.runId` / `queue.data.physicalOutputs.runId`
+  when present, otherwise the latest readable run while a queue is still being
+  solved or reviewed. Historical runs stay in the `nesting_runs` collection but
+  are not all shown as selectable revisions in the production workspace.
 
 ## Related
 

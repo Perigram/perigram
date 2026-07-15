@@ -515,3 +515,10 @@
       as container-absolute =/packages/processes=. Runtime now uses a
       feature-local pure normalizer; the script imports that helper and remains
       the durable persistence path.
+    - Queue workspace repair: fixed default machine seeding so =/api/machines=
+      no longer attempts a duplicate =machine-system-default= insert when an
+      old system record lacks =data.systemKey=. The queue nesting output panel
+      now treats runs as current output/revision state: accepted queue output
+      run first, latest readable run otherwise, with no all-runs selector in
+      the production workspace.
+    - Validation: =npx vitest run server/features/machines/repository.spec.js server/features/machines/machines.spec.js utils/queue-runs.spec.js utils/queue-items.spec.js utils/queue-producers.spec.js= passed; =node scripts/check-arch.js= passed.
