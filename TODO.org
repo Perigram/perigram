@@ -633,6 +633,11 @@
     Validation:
     - Vue SFC parse check for =components/QueueEditor.vue= passed.
     - Playwright against
+      =/screens/auto_queue_detail?entityId=q-EI1Vtn51= found exactly one
+      accessible =Add Entry= button, verified it opened the
+      =Create cassette design Создано= producer menu, and captured the primary
+      in-grid button surface.
+    - Playwright against
       =/screens/auto_queue_detail?entityId=q-EI1Vtn51= as a process-role user
       showed =Add Entry= enabled, the =Create cassette design= producer
       option visible, the template selector omitted when unreadable, and the
