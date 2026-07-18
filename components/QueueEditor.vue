@@ -202,6 +202,8 @@
                             icon="pi pi-plus"
                             severity="primary"
                             size="small"
+                            :disabled="!producerResourcesReady"
+                            :loading="!producerResourcesReady"
                             @click="event => producerMenu.toggle(event)"
                         />
                         <Menu ref="producerMenu" :model="producerMenuItems" popup />
@@ -439,6 +441,7 @@ const producerFieldOptions = ref({});
 const producerParameters = ref({});
 const producerQuantity = ref(1);
 const producerExecuting = ref(false);
+const producerResourcesReady = ref(false);
 const cassettes = ref([]);
 const cassetteDesigns = ref([]);
 const sheetDesigns = ref([]);
@@ -625,6 +628,7 @@ async function onProducerFieldChange(field = {}) {
 }
 
 async function startProducer(producer) {
+    await loadProducerResources();
     selectedProducer.value = producer;
     producerValues.value = {};
     producerFieldOptions.value = {};
@@ -833,6 +837,24 @@ const optionalList = async (loader) => {
     } catch {
         return [];
     }
+};
+
+let producerResourcesPromise = null;
+const loadProducerResources = () => {
+    if (producerResourcesPromise) return producerResourcesPromise;
+    producerResourcesReady.value = false;
+    producerResourcesPromise = Promise.all([
+        optionalList(() => cassettesStore.fetchCassettes()),
+        optionalList(() => $fetch('/api/cassette-designs')),
+        optionalList(() => $fetch('/api/libraries'))
+    ]).then(([cassetteResult, designResult, libraryResult]) => {
+        cassettes.value = cassetteResult;
+        cassetteDesigns.value = designResult;
+        libraries.value = libraryResult;
+    }).finally(() => {
+        producerResourcesReady.value = true;
+    });
+    return producerResourcesPromise;
 };
 const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();
 const materialSourceOptions = computed(() => [
@@ -1287,17 +1309,12 @@ const handleRunStatusChanged = async () => {
 
 onMounted(async () => {
     const projectId = props.queue.lineage?.projectId;
-    const [cassetteResult, designResult, libraryResult, whRes, machineResult, projectResult] = await Promise.all([
-        optionalList(() => cassettesStore.fetchCassettes()),
-        optionalList(() => $fetch('/api/cassette-designs')),
-        optionalList(() => $fetch('/api/libraries')),
+    const [, whRes, machineResult, projectResult] = await Promise.all([
+        loadProducerResources(),
         optionalList(() => $fetch('/api/warehouses')),
         optionalList(() => $fetch('/api/machines')),
         projectId ? $fetch(`/api/project/${encodeURIComponent(projectId)}`).catch(() => null) : null
     ]);
-    cassettes.value = cassetteResult || [];
-    cassetteDesigns.value = designResult || [];
-    libraries.value = libraryResult || [];
     warehouses.value = whRes || [];
     machines.value = machineResult || [];
     project.value = projectResult;
