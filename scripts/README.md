@@ -49,6 +49,10 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 - `server/scripts/migrate-artifact-sources.js`: Backfills artifact source
   relations and cassette upload provenance for records created before artifact
   sources were canonical entity refs.
+- `server/scripts/migrate-artifact-template-command-inputs.js`: Reprojects
+  stored `generateAttachment` action inputs from the current command contract,
+  removing the inert `pdfTemplateId` copy and adding typed template/value
+  sockets. It is a dry run unless `APPLY=1` is set.
 - `server/scripts/migrate-process-compiled-runtime.js`: Recompiles stored
   `data.compiled` contracts after process compiler changes. Use this after
   generated-screen synthesis changes so active organizations drop stale
