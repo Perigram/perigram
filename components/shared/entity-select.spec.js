@@ -12,7 +12,7 @@ vi.mock('primevue/select', async () => {
       props: ['modelValue', 'options'],
       setup(props, { slots }) {
         return () => render('div', { 'data-prime-select': '' }, [
-          slots.value?.({ value: props.modelValue, placeholder: 'Choose' }),
+          render('div', { 'data-prime-value': '' }, slots.value?.({ value: props.modelValue, placeholder: 'Choose' })),
           ...(props.options || []).map(option => slots.option?.({ option }))
         ]);
       }
@@ -28,7 +28,7 @@ vi.mock('primevue/multiselect', async () => {
       props: ['modelValue', 'options'],
       setup(props, { slots }) {
         return () => render('div', { 'data-prime-multiselect': '' }, [
-          slots.value?.({ value: props.modelValue, placeholder: 'Choose' }),
+          render('div', { 'data-prime-value': '' }, slots.value?.({ value: props.modelValue, placeholder: 'Choose' })),
           ...(props.options || []).map(option => slots.option?.({ option }))
         ]);
       }
@@ -75,7 +75,7 @@ describe('entity Select wrappers', () => {
     expect(violations).toEqual([]);
   });
 
-  it('renders entity options and the selected value as compact entity refs', async () => {
+  it('renders the selected entity outside the Select control', async () => {
     const html = await render(EntitySelect, {
       modelValue: 'queue-2',
       options,
@@ -87,9 +87,11 @@ describe('entity Select wrappers', () => {
     expect(html).toContain('data-entity-id="queue-2"');
     expect(html.match(/data-variant="compact"/g)).toHaveLength(3);
     expect(html.match(/data-interactive="false"/g)).toHaveLength(3);
+    expect(html).toMatch(/data-prime-value[^>]*><span>Choose<\/span><\/div>/);
+    expect(html.indexOf('data-entity-selection')).toBeGreaterThan(html.indexOf('data-prime-select'));
   });
 
-  it('renders every selected entity as a compact card instead of chips', async () => {
+  it('renders every selected entity outside MultiSelect as compact cards instead of chips', async () => {
     const html = await render(EntityMultiSelect, {
       modelValue: ['queue-1', 'queue-2'],
       options,
@@ -101,6 +103,8 @@ describe('entity Select wrappers', () => {
 
     expect(html.match(/data-entity-id="queue-1"/g)).toHaveLength(2);
     expect(html.match(/data-entity-id="queue-2"/g)).toHaveLength(2);
+    expect(html).toMatch(/data-prime-value[^>]*><span>Choose<\/span><\/div>/);
+    expect(html.indexOf('data-entity-selection-list')).toBeGreaterThan(html.indexOf('data-prime-multiselect'));
   });
 
   it('delegates ordinary option slots without entity-card rendering', async () => {
