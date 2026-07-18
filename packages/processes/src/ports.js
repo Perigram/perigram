@@ -1,3 +1,5 @@
+import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
+
 const HANDLE_PREFIXES = ['input:', 'output:', 'data:'];
 
 export function normalizePortSpec(io = {}, fallback = {}) {
@@ -194,7 +196,7 @@ function processNodeOutputPorts(record = {}) {
     return [normalizePortSpec({ id: 'entity', label: entityType || outputType, kind: outputType, entityType })];
   }
   if (record.kind === 'fieldRead') {
-    return processBlockPorts();
+    return processBlockPorts(record.entityType);
   }
   if (record.kind === 'blockRead') {
     return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: record.valueType || 'data', block: record.block || '', dataPath: record.path || '' })];
@@ -217,9 +219,9 @@ function processNodeOutputPorts(record = {}) {
   return [];
 }
 
-function processBlockPorts() {
-  return ['identity', 'status', 'lineage', 'relations', 'provenance', 'data', 'specs', 'summary', 'attachments']
-    .map(block => normalizePortSpec({ id: block, label: block, kind: 'block', block }));
+function processBlockPorts(entityType = '') {
+  return CANONICAL_ENTITY_BLOCKS
+    .map(block => normalizePortSpec({ id: block, label: block, kind: 'block', block, entityType }));
 }
 
 function findPortForHandle(ports = [], handle = '', direction = 'output') {

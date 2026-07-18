@@ -41,61 +41,11 @@ const nodeFrameClass = computed(() => [
 ]);
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || []));
-const accent = computed(() => ({
-  entityRef: {
-    stripe: 'bg-blue-500',
-    icon: 'text-blue-600',
-    title: 'text-blue-700',
-    handle: '!border-blue-500 !bg-blue-500'
-  },
-  fieldRead: {
-    stripe: 'bg-cyan-500',
-    icon: 'text-cyan-600',
-    title: 'text-cyan-700',
-    handle: '!border-cyan-500 !bg-cyan-500'
-  },
-  blockRead: {
-    stripe: 'bg-teal-500',
-    icon: 'text-teal-600',
-    title: 'text-teal-700',
-    handle: '!border-teal-500 !bg-teal-500'
-  },
-  blockCompose: {
-    stripe: 'bg-lime-500',
-    icon: 'text-lime-600',
-    title: 'text-lime-700',
-    handle: '!border-lime-500 !bg-lime-500'
-  },
-  stringOp: {
-    stripe: 'bg-emerald-500',
-    icon: 'text-emerald-600',
-    title: 'text-emerald-700',
-    handle: '!border-emerald-500 !bg-emerald-500'
-  },
-  compare: {
-    stripe: 'bg-amber-500',
-    icon: 'text-amber-600',
-    title: 'text-amber-700',
-    handle: '!border-amber-500 !bg-amber-500'
-  },
-  logic: {
-    stripe: 'bg-violet-500',
-    icon: 'text-violet-600',
-    title: 'text-violet-700',
-    handle: '!border-violet-500 !bg-violet-500'
-  },
-  collection: {
-    stripe: 'bg-fuchsia-500',
-    icon: 'text-fuchsia-600',
-    title: 'text-fuchsia-700',
-    handle: '!border-fuchsia-500 !bg-fuchsia-500'
-  }
-}[props.data.kind] || {
-  stripe: 'bg-slate-500',
-  icon: 'text-slate-600',
-  title: 'text-slate-700',
-  handle: '!border-slate-500 !bg-slate-500'
-}));
+const accent = computed(() => (
+  ['entityRef', 'fieldRead', 'blockRead', 'blockCompose'].includes(props.data.kind)
+    ? { stripe: 'bg-cyan-500', icon: 'text-cyan-600', title: 'text-cyan-700' }
+    : { stripe: 'bg-violet-500', icon: 'text-violet-600', title: 'text-violet-700' }
+));
 
 function normalizeSpecs(items = []) {
   return items.map((item, index) => ({

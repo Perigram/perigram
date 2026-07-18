@@ -56,23 +56,9 @@
       />
     </div>
 
-    <div class="mt-3 grid grid-cols-2 gap-2">
-      <div class="rounded-ui border border-content-border p-2">
-        <small class="mb-1 block text-muted-color">{{ $t('processDesigner.publicFields') }}</small>
-        <div class="flex flex-wrap gap-1">
-          <Tag v-for="field in visibleReadFields" :key="field" :value="field" size="small" />
-          <Tag v-if="hiddenReadFieldCount > 0" :value="`+${hiddenReadFieldCount}`" size="small" />
-          <span v-if="!visibleReadFields.length" class="text-xs text-muted-color">{{ $t('common.notAvailable') }}</span>
-        </div>
-      </div>
-      <div class="rounded-ui border border-content-border p-2">
-        <small class="mb-1 block text-muted-color">{{ $t('processDesigner.writeFields') }}</small>
-        <div class="flex flex-wrap gap-1">
-          <Tag v-for="field in visibleWriteFields" :key="field" :value="field" size="small" severity="warning" />
-          <Tag v-if="hiddenWriteFieldCount > 0" :value="`+${hiddenWriteFieldCount}`" size="small" severity="warning" />
-          <span v-if="!visibleWriteFields.length" class="text-xs text-muted-color">{{ $t('common.notAvailable') }}</span>
-        </div>
-      </div>
+    <div class="mt-2 flex flex-wrap gap-1">
+      <Tag :value="$t('processDesigner.publicFieldsCount', { count: readFieldCount })" size="small" severity="secondary" />
+      <Tag :value="$t('processDesigner.writeFieldsCount', { count: writeFieldCount })" size="small" severity="secondary" />
     </div>
   </div>
 </template>
@@ -89,15 +75,13 @@ const props = defineProps({
 });
 
 const nodeFrameClass = computed(() => [
-  'relative min-w-72 rounded-ui border bg-content px-3 py-3 pt-4 shadow-card transition-colors',
+  'relative min-w-64 rounded-ui border bg-content px-2 py-2 pt-3 shadow-card transition-colors',
   props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
 ]);
 const visibleStates = computed(() => (props.data.stateLabels || []).slice(0, 4));
 const hiddenStateCount = computed(() => Math.max((props.data.stateLabels || []).length - visibleStates.value.length, 0));
-const visibleReadFields = computed(() => (props.data.fieldPolicy?.read || []).slice(0, 3));
-const visibleWriteFields = computed(() => (props.data.fieldPolicy?.write || []).slice(0, 3));
-const hiddenReadFieldCount = computed(() => Math.max((props.data.fieldPolicy?.read || []).length - visibleReadFields.value.length, 0));
-const hiddenWriteFieldCount = computed(() => Math.max((props.data.fieldPolicy?.write || []).length - visibleWriteFields.value.length, 0));
+const readFieldCount = computed(() => (props.data.fieldPolicy?.read || []).length);
+const writeFieldCount = computed(() => (props.data.fieldPolicy?.write || []).length);
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || []));
 

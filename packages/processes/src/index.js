@@ -1,4 +1,5 @@
 import { normalizeWorkflow } from '../../workflows/src/index.js';
+import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import {
   generatedScreenRoute,
   normalizeScreenContract,
@@ -30,6 +31,11 @@ export {
   resolveNodePort,
   validateProcessEdges
 } from './ports.js';
+
+export {
+  PROCESS_DESIGNER_PALETTE_GROUPS,
+  createProcessDesignerContract
+} from './designer.js';
 
 export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
   return normalizeWorkflow({
@@ -1869,8 +1875,7 @@ function compileProcessNodes(processNodes = {}) {
 
 function blockForValueInput(path = '') {
   const root = String(path || '').split('.')[0];
-  if (['identity', 'data', 'specs', 'summary', 'attachments'].includes(root)) return root;
-  if (String(path || '').startsWith('statusMeta')) return 'statusMeta';
+  if (CANONICAL_ENTITY_BLOCKS.includes(root)) return root;
   return '';
 }
 

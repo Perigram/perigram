@@ -6,6 +6,7 @@ describe('Framework package contracts', () => {
   it('registers entity definitions in @cutkit/core', async () => {
     const {
       BaseEntity,
+      CANONICAL_ENTITY_BLOCKS,
       createRegistry,
       createEntityRef,
       createProvenance,
@@ -34,6 +35,18 @@ describe('Framework package contracts', () => {
     });
     expect(entity.toJSON()).not.toHaveProperty('id');
     expect(entity.toJSON()).not.toHaveProperty('name');
+    expect(CANONICAL_ENTITY_BLOCKS).toEqual([
+      'identity',
+      'origin',
+      'status',
+      'lineage',
+      'relations',
+      'provenance',
+      'specs',
+      'attachments',
+      'data',
+      'summary'
+    ]);
 
     const command = registry.defineCommand({
       id: 'runTest',
