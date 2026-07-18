@@ -171,16 +171,10 @@
                         :options="globalMaterialOptions"
                         optionLabel="name"
                         optionValue="_id"
+                        entity-type="material"
                         class="w-full"
                         :placeholder="$t('projectData.chooseMaterial')"
-                    >
-                        <template #option="slotProps">
-                            <div class="flex flex-col">
-                                <span>{{ slotProps.option.name }}</span>
-                                <small>{{ slotProps.option.code }} • {{ slotProps.option.thickness }}mm</small>
-                            </div>
-                        </template>
-                    </Select>
+                    />
                 </div>
                 <StateBlock :message="$t('projectData.materialNotFound')" icon="pi pi-search">
                     <template #actions>
@@ -279,7 +273,7 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Chip from 'primevue/chip';

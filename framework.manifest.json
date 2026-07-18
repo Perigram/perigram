@@ -712,6 +712,26 @@
         "purpose": "Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots."
       },
       {
+        "componentPath": "components/shared/EntitySelect.vue",
+        "docs": [
+          "components/shared/README.md",
+          "docs/DESIGN_SYSTEM.md"
+        ],
+        "key": "EntitySelect",
+        "kind": "entity-input",
+        "purpose": "PrimeVue Select wrapper that renders canonical entity options and selected values as compact entity cards."
+      },
+      {
+        "componentPath": "components/shared/EntityMultiSelect.vue",
+        "docs": [
+          "components/shared/README.md",
+          "docs/DESIGN_SYSTEM.md"
+        ],
+        "key": "EntityMultiSelect",
+        "kind": "entity-input",
+        "purpose": "PrimeVue MultiSelect wrapper that renders entity options and every selected value as compact entity cards instead of chips."
+      },
+      {
         "componentPath": "components/shared/blocks/IdentityBlock.vue",
         "docs": [
           "components/shared/README.md"

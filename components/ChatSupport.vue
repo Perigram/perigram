@@ -58,6 +58,7 @@
                         :options="newChatUserOptions"
                         option-label="label"
                         option-value="value"
+                        entity-type="user"
                         filter
                         size="small"
                         class="w-full"
@@ -65,14 +66,7 @@
                         :placeholder="$t('common.user')"
                         :aria-label="$t('common.user')"
                         @update:model-value="openNewChatUser"
-                    >
-                        <template #option="{ option }">
-                            <div class="flex min-w-0 flex-col">
-                                <span class="truncate">{{ option.label }}</span>
-                                <small class="truncate text-muted-color">{{ option.value }}</small>
-                            </div>
-                        </template>
-                    </Select>
+                    />
                 </div>
                 <div class="flex flex-col gap-2">
                     <button
@@ -156,20 +150,14 @@
                             :options="entityOptions"
                             option-label="label"
                             option-value="value"
+                            :entity-type="entityDraft.type"
                             filter
                             size="small"
                             class="min-w-0"
                             :loading="entityOptionsLoading"
                             :placeholder="$t('support.entityId')"
                             :aria-label="$t('support.entityId')"
-                        >
-                            <template #option="{ option }">
-                                <div class="flex min-w-0 flex-col">
-                                    <span class="truncate">{{ option.label }}</span>
-                                    <small class="truncate text-muted-color">{{ option.value }}</small>
-                                </div>
-                            </template>
-                        </Select>
+                        />
                         <Button
                             icon="pi pi-plus"
                             size="small"
@@ -256,7 +244,7 @@
 import { ref, onMounted, onBeforeUnmount, unref, computed, nextTick, watch } from 'vue'
 import Avatar from 'primevue/avatar'
 import Button from 'primevue/button'
-import Select from 'primevue/select'
+import Select from '~/components/shared/EntitySelect.vue'
 import Textarea from 'primevue/textarea'
 import { useI18n } from 'vue-i18n'
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'

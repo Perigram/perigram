@@ -129,7 +129,8 @@ const editingCassette = ref(null);
 const creatingDesignId = ref(null);
 const cassetteTemplateOptions = computed(() => (cassettes.value || []).map(cassette => ({
   label: getCassetteName(cassette),
-  value: cassette._id?.toString()
+  value: cassette._id?.toString(),
+  entity: cassette
 })));
 const persistedTemplateIds = computed(() => (cassettes.value || [])
   .map(cassette => cassette._id?.toString())

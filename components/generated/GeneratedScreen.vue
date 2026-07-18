@@ -110,6 +110,7 @@
             :options="parentSelectionOptions"
             option-label="label"
             option-value="value"
+            :entity-type="parentSelectionType"
           />
         </label>
         <label v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
@@ -142,6 +143,7 @@
             :options="promptOptions[field.id] || []"
             option-label="label"
             option-value="value"
+            :entity-type="field.entityType || field.accepts?.[0] || ''"
           />
           <MultiSelect
             v-else-if="field.type === 'entityList'"
@@ -149,6 +151,7 @@
             :options="promptOptions[field.id] || []"
             option-label="label"
             option-value="value"
+            :entity-type="field.entityType || field.accepts?.[0] || ''"
             display="chip"
             class="w-full"
           />
@@ -166,8 +169,8 @@
 <script setup>
 import { computed, reactive, ref, toRef, watch } from 'vue';
 import InputText from 'primevue/inputtext';
-import MultiSelect from 'primevue/multiselect';
-import Select from 'primevue/select';
+import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
+import Select from '~/components/shared/EntitySelect.vue';
 import Textarea from 'primevue/textarea';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';

@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';

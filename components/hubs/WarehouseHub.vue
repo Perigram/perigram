@@ -49,6 +49,7 @@
           :options="warehouseOptions"
           option-label="name"
           option-value="id"
+          entity-type="warehouse"
           class="w-full"
         />
       </div>
@@ -170,6 +171,7 @@
             :options="catalogOptions"
             option-label="name"
             option-value="id"
+            entity-type="catalog"
             class="w-full"
             @change="loadColorsForCatalog"
           />
@@ -181,6 +183,7 @@
             :options="colorOptions"
             option-label="name"
             option-value="id"
+            entity-type="color"
             class="w-full"
             :disabled="!pileForm.catalogId"
           />
@@ -238,7 +241,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from '~/stores/auth';
 import Button from 'primevue/button';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Message from 'primevue/message';

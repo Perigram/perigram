@@ -196,7 +196,7 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
-import MultiSelect from 'primevue/multiselect';
+import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
 import Message from 'primevue/message';

@@ -44,7 +44,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';

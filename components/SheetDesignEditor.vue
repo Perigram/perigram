@@ -119,6 +119,7 @@
         :options="cassetteOptions"
         option-label="label"
         option-value="value"
+        entity-type="cassetteDesign"
         class="w-full"
         :placeholder="$t('sheetDesign.selectCassette')"
       />
@@ -138,7 +139,7 @@ import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
@@ -235,7 +236,8 @@ const selectedSnapPoint = computed(() => selectedIndex.value >= 0
   : null);
 const cassetteOptions = computed(() => cassetteDesigns.value.map(design => ({
   label: design.identity?.name || design.identity?.slug || design._id,
-  value: design._id?.toString()
+  value: design._id?.toString(),
+  entity: design
 })));
 
 onMounted(async () => {

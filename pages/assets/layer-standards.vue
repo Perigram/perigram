@@ -33,6 +33,7 @@
           :options="penOptions"
           option-label="name"
           option-value="_id"
+          entity-type="penTemplate"
           :placeholder="$t('layerStandard.selectPen')"
           class="w-full"
         />
@@ -53,7 +54,7 @@ import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { storeToRefs } from 'pinia';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
 import Message from 'primevue/message';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Button from 'primevue/button';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';

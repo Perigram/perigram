@@ -7,7 +7,7 @@ import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import StandardPage from '~/components/shared/StandardPage.vue';
@@ -81,10 +81,10 @@ const materialOptions = computed(() => materialEntity.items.value.map(material =
     material.data?.code || material.identity?.serial
   ].filter(Boolean).join(' · '),
   value: material._id,
-  material
+  entity: material
 })));
 
-const selectedMaterial = computed(() => materialOptions.value.find(option => option.value === form.value.materialId)?.material || null);
+const selectedMaterial = computed(() => materialOptions.value.find(option => option.value === form.value.materialId)?.entity || null);
 const hasCreatePrompt = computed(() => (createPrompt.value.outer || []).length >= 3);
 
 const canSubmit = computed(() => {
@@ -354,6 +354,7 @@ const confirmCapture = async (capture) => {
                   :options="materialOptions"
                   option-label="label"
                   option-value="value"
+                  entity-type="material"
                   :placeholder="$t('geometryCapture.selectMaterial')"
                   filter
                 />

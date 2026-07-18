@@ -166,7 +166,7 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import Checkbox from 'primevue/checkbox';
 import Textarea from 'primevue/textarea';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import { useEntity } from '~/composables/useEntity';

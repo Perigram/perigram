@@ -157,7 +157,7 @@ import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Panel from 'primevue/panel';
 import Avatar from 'primevue/avatar';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';

@@ -40,14 +40,11 @@
                         :options="queueOptions"
                         option-label="name"
                         option-value="_id"
+                        entity-type="queue"
                         class="w-full"
                         size="small"
                         @update:modelValue="$emit('select-queue', $event)"
-                    >
-                        <template #value>
-                            <span class="block truncate font-semibold">{{ queueName }}</span>
-                        </template>
-                    </Select>
+                    />
                     <Button
                         v-if="canCreateQueue"
                         icon="pi pi-plus"
@@ -78,6 +75,7 @@
                                 :options="machineOptions"
                                 optionLabel="name"
                                 optionValue="_id"
+                                entity-type="machine"
                                 :placeholder="$t('nesting.selectMachine')"
                                 class="min-w-48 flex-1"
                                 size="small"
@@ -88,6 +86,7 @@
                                 :options="toolOptions"
                                 optionLabel="name"
                                 optionValue="_id"
+                                entity-type="toolProfile"
                                 :placeholder="$t('nesting.selectTool')"
                                 class="min-w-48 flex-1"
                                 size="small"
@@ -291,7 +290,7 @@
             <div class="flex flex-col gap-4 py-4">
                 <div v-if="selectedProducer?.kind === 'entitySource'" class="flex flex-col gap-2">
                     <label>{{ $t('queues.cassette') }}</label>
-                    <Select v-model="producerValues.designId" :options="designOptions" optionLabel="label" optionValue="value" class="w-full" size="small" />
+                    <Select v-model="producerValues.designId" :options="designOptions" optionLabel="label" optionValue="value" entity-type="cassetteDesign" class="w-full" size="small" />
                 </div>
                 <template v-else>
                     <div v-for="field in visibleProducerFields" :key="field.id" class="flex flex-col gap-2">
@@ -302,6 +301,7 @@
                             :options="producerFieldOptions[field.id] || []"
                             option-label="label"
                             option-value="value"
+                            :entity-type="field.entityType || field.accepts?.[0] || ''"
                             class="w-full"
                             size="small"
                             :disabled="field.id === 'templateId' && !producerValues.libraryId"
@@ -313,6 +313,7 @@
                             :options="producerFieldOptions[field.id] || []"
                             option-label="label"
                             option-value="value"
+                            :entity-type="field.entityType || field.accepts?.[0] || ''"
                             class="w-full"
                             size="small"
                         />
@@ -363,8 +364,8 @@ import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import Select from 'primevue/select';
-import MultiSelect from 'primevue/multiselect';
+import Select from '~/components/shared/EntitySelect.vue';
+import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import SelectButton from 'primevue/selectbutton';
 import Message from 'primevue/message';
 import InputNumber from 'primevue/inputnumber';
@@ -417,7 +418,6 @@ const toast = useToast();
 const authStore = useAuthStore();
 
 const queueState = computed(() => getPrimaryState(props.queue.status, 'UNKNOWN'));
-const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || t('common.unnamed'));
 const isProcessMode = computed(() => props.editMode === 'process');
 const showQueueNavigation = computed(() => props.showQueueNavigation);
 const workspaceComponent = computed(() => showQueueNavigation.value ? WorkspaceLanes : EntityWorkspace);

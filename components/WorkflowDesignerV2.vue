@@ -213,7 +213,7 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import { buildWorkflowGraph } from '~/utils/domain-builder.js';
