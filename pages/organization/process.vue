@@ -25,16 +25,23 @@
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <div class="absolute left-3 top-3 z-10 flex gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
-        <Button
-          v-for="item in palette"
-          :key="`${item.type}-${item.actionKind || item.direction || item.kind}`"
-          :icon="item.icon"
-          :aria-label="paletteLabel(item)"
-          size="small"
-          text
-          @click="addNode(item)"
-        />
+      <div class="absolute left-3 top-3 z-10 flex w-52 flex-col gap-2 rounded-ui border border-content-border bg-content p-2 shadow-card">
+        <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1">
+          <span class="text-xs font-semibold text-muted-color">{{ $t(`processDesigner.paletteGroups.${group.id}`) }}</span>
+          <div class="grid grid-cols-2 gap-1">
+            <Button
+              v-for="item in group.items"
+              :key="`${item.type}-${item.actionKind || item.direction || item.kind}`"
+              :icon="item.icon"
+              :label="paletteLabel(item)"
+              :aria-label="paletteLabel(item)"
+              size="small"
+              text
+              class="min-w-0 justify-start"
+              @click="addNode(item)"
+            />
+          </div>
+        </div>
       </div>
 
       <div class="absolute right-[30rem] top-3 z-10 flex min-w-0 items-center justify-end gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
@@ -80,7 +87,7 @@
                   <Panel :header="$t('processDesigner.statusMachine')">
                     <div class="flex flex-col gap-3">
                       <div class="flex flex-wrap gap-2">
-                        <Tag v-for="state in lifecycleStateIds" :key="state" :value="state" size="small" />
+                        <Tag v-for="state in lifecycleStateEntries" :key="state.value" :value="state.label" size="small" />
                       </div>
                       <div class="flex gap-2">
                         <InputText v-model="newStateId" class="min-w-0 flex-1" :placeholder="$t('processDesigner.stateId')" />
@@ -137,6 +144,30 @@
                 </template>
 
                 <template v-else-if="selectedNode.type === 'action'">
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.label') }}</label>
+                    <InputText v-model="selectedAction.label" @update:model-value="syncNodeData" />
+                  </div>
+                  <div v-if="['createEntity', 'sendToOrganization'].includes(selectedAction.actionKind)" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.entityType') }}</label>
+                    <Select v-model="selectedAction.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                  </div>
+                  <div v-if="selectedAction.actionKind === 'runCommand'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.commandId') }}</label>
+                    <Select v-model="selectedAction.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.trigger') }}</label>
+                    <Select v-model="selectedAction.trigger.mode" :options="localizedTriggerModeOptions()" option-label="label" option-value="value" @change="syncSelectedAction" />
+                  </div>
+                  <div v-if="selectedAction.actionKind === 'updateEntity'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.writeFields') }}</label>
+                    <MultiSelect v-model="selectedAction.mutation.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
+                  </div>
+                  <div v-if="selectedAction.actionKind === 'sendToOrganization'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.projectedFields') }}</label>
+                    <MultiSelect v-model="selectedAction.projection.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
+                  </div>
                   <div v-if="selectedAction.actionKind === 'createEntity'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.constructionMode') }}</label>
                     <Select v-model="selectedAction.construction.mode" :options="constructionModeOptions(selectedAction.entityType)" option-label="label" option-value="value" @change="syncSelectedAction" />
@@ -161,6 +192,18 @@
                         @change="syncSelectedAction"
                       />
                     </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <label>{{ $t('processDesigner.roles') }}</label>
+                      <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRole')" text size="small" @click="addSelectedActionGrant" />
+                    </div>
+                    <div v-for="(grant, index) in selectedActionGrants" :key="`${grant.roleId}-${index}`" class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2">
+                      <Select :model-value="grant.roleId" :options="roleOptions" option-label="label" option-value="value" size="small" @update:model-value="value => updateSelectedActionGrant(index, { roleId: value })" />
+                      <Select :model-value="grant.level" :options="accessLevelOptions" option-label="label" option-value="value" size="small" @update:model-value="value => updateSelectedActionGrant(index, { level: value })" />
+                      <Button icon="pi pi-trash" :aria-label="$t('common.delete')" text severity="danger" size="small" @click="removeSelectedActionGrant(index)" />
+                    </div>
+                    <Button v-if="selectedAction.actionKind === 'updateEntity' && inheritedActionAccessLabels(selectedAction, selectedNode).length" icon="pi pi-refresh" :label="$t('common.reset')" text size="small" class="self-start" @click="resetActionAccess(selectedAction.id)" />
                   </div>
                 </template>
 
@@ -296,7 +339,7 @@
                         </div>
                         <div v-for="entry in selectedStatusAttachmentEntries" :key="entry.key" class="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-2">
                           <InputText :model-value="entry.key" size="small" @update:model-value="value => renameStatusAttachment(entry.key, value)" />
-                          <InputText v-model="entry.schema.kind" size="small" :placeholder="$t('processDesigner.attachmentKind')" />
+                          <Select v-model="entry.schema.kind" :options="designer.attachmentKindOptions" option-label="label" option-value="value" editable size="small" :placeholder="$t('processDesigner.attachmentKind')" />
                           <div class="flex items-center gap-2">
                             <Checkbox v-model="entry.schema.required" binary />
                             <span>{{ $t('processDesigner.required') }}</span>
@@ -331,7 +374,7 @@
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.path') }}</label>
-                      <InputText v-model="selectedValueInput.path" />
+                      <Select v-model="selectedValueInput.path" :options="selectedValueInputFieldOptions" option-label="label" option-value="value" editable @change="syncValueInput(selectedValueInput)" />
                     </div>
                     <div class="col-span-2 flex flex-col gap-1">
                       <label>{{ $t('common.default') }}</label>
@@ -369,7 +412,7 @@
                     </div>
                     <div v-if="['blockRead', 'blockCompose'].includes(selectedProcessNode.kind)" class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.path') }}</label>
-                      <InputText v-model="selectedProcessNode.path" @update:model-value="syncSelectedProcessNode" />
+                      <Select v-model="selectedProcessNode.path" :options="selectedProcessNodeFieldOptions" option-label="label" option-value="value" editable @change="syncSelectedProcessNode" />
                     </div>
                     <div v-if="selectedProcessNode.kind === 'blockRead'" class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.outputValue') }}</label>
@@ -557,10 +600,10 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { canvasToDefinition, compileProcessDefinition, definitionToCanvas, portSpecsCompatible, resolveNodePort } from '~/packages/processes/src/index.js';
+import { canvasToDefinition, compileProcessDefinition, createProcessDesignerContract, definitionToCanvas, portSpecsCompatible, resolveNodePort } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
-import { cncDomain, cncEntityConstruction, cncEntityFieldAccess, cncWorkflows } from '@cutkit/domain-cnc';
+import { cncDomain } from '@cutkit/domain-cnc';
 import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
 import ProcessEntityNode from '~/components/process-designer/ProcessEntityNode.vue';
 import ProcessServiceNode from '~/components/process-designer/ProcessServiceNode.vue';
@@ -597,28 +640,13 @@ const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
 const { getViewport } = useVueFlow();
 
-const palette = [
-  { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus-circle', label: 'create' },
-  { type: 'action', actionKind: 'updateEntity', icon: 'pi pi-pencil', label: 'modify' },
-  { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play-circle', label: 'service' },
-  { type: 'statusDefinition', icon: 'pi pi-circle-fill', label: 'status' },
-  { type: 'valueInput', icon: 'pi pi-id-card', label: 'block' },
-  { type: 'processNode', kind: 'entityRef', icon: 'pi pi-share-alt', label: 'entity' },
-  { type: 'processNode', kind: 'fieldRead', icon: 'pi pi-box', label: 'blocks' },
-  { type: 'processNode', kind: 'blockRead', icon: 'pi pi-search', label: 'field' },
-  { type: 'processNode', kind: 'blockCompose', icon: 'pi pi-pencil', label: 'compose' },
-  { type: 'processNode', kind: 'stringOp', icon: 'pi pi-align-left', label: 'text' },
-  { type: 'processNode', kind: 'compare', icon: 'pi pi-equals', label: 'compare' },
-  { type: 'processNode', kind: 'logic', icon: 'pi pi-code-branch', label: 'logic' },
-  { type: 'processNode', kind: 'collection', icon: 'pi pi-list', label: 'list' },
-  { type: 'socket', direction: 'inbound', icon: 'pi pi-sign-in', label: 'receive' },
-  { type: 'socket', direction: 'outbound', icon: 'pi pi-sign-out', label: 'send' }
-];
+const designer = createProcessDesignerContract(cncDomain);
+const paletteGroups = designer.paletteGroups;
 const actionKindOptions = [
-  { label: 'create', value: 'createEntity' },
-  { label: 'modify', value: 'updateEntity' },
-  { label: 'service', value: 'runCommand' },
-  { label: 'send', value: 'sendToOrganization' }
+  { label: t('processDesigner.paletteItems.create'), value: 'createEntity' },
+  { label: t('processDesigner.paletteItems.modify'), value: 'updateEntity' },
+  { label: t('processDesigner.paletteItems.service'), value: 'runCommand' },
+  { label: t('processDesigner.paletteItems.send'), value: 'sendToOrganization' }
 ];
 const genericActionLabels = new Set(['action', 'create', 'modify', 'status', 'service', 'send', 'update']);
 const triggerModeOptions = [
@@ -656,8 +684,7 @@ const accessLevelOptions = [
 ];
 const valueTypeOptions = ['string', 'number', 'object', 'entity'].map(value => ({ label: value, value }));
 const processValueTypeOptions = ['string', 'number', 'boolean', 'json'].map(value => ({ label: value, value }));
-const processBlockOptions = ['identity', 'status', 'lineage', 'data', 'specs', 'summary', 'attachments']
-  .map(value => ({ label: value, value }));
+const processBlockOptions = designer.blocks.map(block => ({ label: block.label, value: block.id }));
 const processNodeOperations = {
   entityRef: ['current', 'parent', 'children', 'related'],
   stringOp: ['concat', 'template', 'replace', 'lower', 'upper', 'trim'],
@@ -689,14 +716,7 @@ const processNodeOperationLabels = {
   first: t('processDesigner.useFirstItem'),
   count: t('processDesigner.useCountItems')
 };
-const blockOptions = [
-  { label: 'identity', value: 'identity' },
-  { label: 'data', value: 'data' },
-  { label: 'specs', value: 'specs' },
-  { label: 'summary', value: 'summary' },
-  { label: 'attachments', value: 'attachments' },
-  { label: 'status meta', value: 'statusMeta' }
-];
+const blockOptions = processBlockOptions;
 const statusSeverityOptions = [
   { label: 'info', value: 'info' },
   { label: 'success', value: 'success' },
@@ -762,9 +782,9 @@ const selectedScreenSource = computed(() => ensureSelectedScreenSource());
 const selectedScreenRegion = computed(() => ensureSelectedScreenRegion());
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const servicePrincipalOptions = computed(() => servicePrincipalList.value.map(principal => ({ label: principal.label || principal.id, value: principal.id })));
-const entityTypeOptions = computed(() => (cncDomain.entities || []).map(entity => ({ label: entity.type, value: entity.type })));
+const entityTypeOptions = computed(() => designer.entityOptions);
 const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
-const commandOptions = computed(() => Object.values(cncDomain.commands || {}).map(command => ({ label: command.label || command.id, value: command.id })));
+const commandOptions = computed(() => designer.commandOptions);
 const screenActionOptions = computed(() => Object.values(draft.value?.data?.actions || {}).map(action => ({
   label: action.label || action.id,
   value: action.id
@@ -778,12 +798,20 @@ const screenFeatureOptions = computed(() => (cncDomain.entities || []).map(entit
   value: featureForEntityType(entity.type)
 })));
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
-const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedAction.value.entityType));
+const selectedActionEntityType = computed(() => actionEntityType(selectedAction.value) || (selectedNode.value ? inferIncomingEntityContract(selectedNode.value.id).entityType : ''));
+const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedActionEntityType.value));
 const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
+const selectedActionGrants = computed(() => normalizeDesignerAccess(selectedAction.value.access).grants);
+const selectedValueInputFieldOptions = computed(() => fieldOptionsForBlock(selectedValueInput.value.block));
+const selectedProcessNodeFieldOptions = computed(() => fieldOptionsForBlock(selectedProcessNode.value.block, selectedProcessNode.value.entityType));
 const lifecycleWorkflow = computed(() => workflowForEntity(selectedEntity.value));
 const lifecycleRegion = computed(() => lifecycleWorkflow.value.regions?.main || lifecycleWorkflow.value.regions?.[lifecycleWorkflow.value.primaryRegion] || null);
 const lifecycleStateIds = computed(() => Object.keys(lifecycleRegion.value?.states || {}).filter(key => !key.includes('.')));
-const lifecycleStateOptions = computed(() => lifecycleStateIds.value.map(value => ({ label: value, value })));
+const lifecycleStateEntries = computed(() => lifecycleStateIds.value.map(value => ({
+  label: lifecycleRegion.value?.states?.[value]?.label || value,
+  value
+})));
+const lifecycleStateOptions = computed(() => lifecycleStateEntries.value);
 const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
 const selectedRoleAccessSummary = computed(() => selectedRoleId.value ? roleAccessSummary(selectedRoleId.value) : []);
 const compiledScreenPreview = computed(() => Object.values(compiledPreview.value?.screens || {})
@@ -1185,11 +1213,11 @@ function createServicePrincipal(id) {
 }
 
 function paletteLabel(item) {
-  return item.label?.startsWith('processDesigner.') ? t(item.label) : item.label;
+  return t(`processDesigner.paletteItems.${item.label}`);
 }
 
 function defaultEntityType() {
-  return (cncDomain.entities || [])[0]?.type || '';
+  return designer.entityOptions[0]?.value || '';
 }
 
 function defaultFeature() {
@@ -1228,7 +1256,7 @@ function createService(id) {
 function createAction(id, actionKind = 'createEntity') {
   const action = {
     id,
-    label: actionKindLabel(actionKind),
+    label: '',
     actionKind,
     entityType: ['runCommand', 'updateEntity'].includes(actionKind) ? '' : defaultEntityType(),
     commandId: '',
@@ -1563,7 +1591,7 @@ function syncActionIo(action = {}, node = null) {
     action.inputs = [
       parentInput,
       { id: 'status', label: t('processDesigner.targetStatus'), kind: 'status', required: true },
-      ...createInputSockets(action.entityType)
+      ...createInputSockets(action)
     ];
     action.outputs = [{ id: 'created', entityType: action.entityType, status: action.status.to }];
     return;
@@ -1717,11 +1745,7 @@ function applyStatusDefinitionToAction(action = {}) {
 }
 
 function constructionContractForEntity(entityType) {
-  return cncEntityConstruction[entityType] || {
-    modes: ['genericCreate'],
-    defaultMode: 'genericCreate',
-    inputs: []
-  };
+  return designer.construction(entityType);
 }
 
 function syncSocketIo(socket = {}) {
@@ -1775,17 +1799,7 @@ function standardBlockSockets(entityType = '', direction = 'output') {
 }
 
 function standardBlocksForEntity(entityType = '') {
-  const policy = fieldPolicyForEntity(entityType);
-  const roots = new Set(['identity', 'status', 'lineage', 'relations', 'provenance', 'data']);
-  for (const path of [...(policy.read || []), ...(policy.write || []), ...(policy.admin || [])]) {
-    const root = String(path || '').split('.')[0];
-    if (['identity', 'status', 'lineage', 'relations', 'provenance', 'data', 'specs', 'summary', 'attachments'].includes(root)) roots.add(root);
-  }
-  return [...roots].map(block => ({
-    id: block,
-    label: block,
-    defaultPath: defaultPathForBlock(block)
-  }));
+  return designer.blocksForEntity(entityType);
 }
 
 function initialStatusForProfile(profile = {}) {
@@ -1939,6 +1953,7 @@ function applyInferredProcessNodeInputs(record = {}, node = {}) {
   }
   if (['blockRead', 'blockCompose'].includes(record.kind) && incoming.block) {
     record.block = incoming.block;
+    record.entityType = incoming.entityType || record.entityType || '';
   }
 }
 
@@ -2015,7 +2030,13 @@ function processNodeOutputs(node = {}) {
     const multiple = node.mode === 'children' || (node.mode === 'related' && node.relationCardinality === 'many');
     return [{ id: 'entity', label: entityType || (multiple ? 'entities' : 'entity'), kind: multiple ? 'entity_list' : 'entity', entityType, multiple }];
   }
-  if (node.kind === 'fieldRead') return processBlockOptions.map(option => ({ id: option.value, label: option.label, kind: 'block', block: option.value }));
+  if (node.kind === 'fieldRead') return standardBlocksForEntity(node.entityType).map(block => ({
+    id: block.id,
+    label: block.label,
+    kind: 'block',
+    block: block.id,
+    entityType: node.entityType
+  }));
   if (node.kind === 'blockRead') return [{ id: 'value', label: node.path || 'value', kind: node.valueType || 'data', block: node.block || '', dataPath: node.path || '' }];
   if (node.kind === 'blockCompose') return [{ id: 'block', label: node.block || 'block', kind: 'block', block: node.block || '', dataPath: node.path || '' }];
   if (node.kind === 'collection' && node.operation === 'first') return [{ id: 'entity', label: node.entityType || 'entity', kind: 'entity', entityType: node.entityType || '' }];
@@ -2082,41 +2103,24 @@ function fieldLabel(entityType = '', path = '') {
 
 function blockForPath(path = '') {
   const root = String(path || '').split('.')[0];
-  if (['identity', 'data', 'specs', 'summary', 'attachments'].includes(root)) return root;
-  if (String(path || '').startsWith('statusMeta')) return 'statusMeta';
+  if (designer.blocks.some(block => block.id === root)) return root;
   return 'data';
 }
 
 function defaultPathForBlock(block = 'data') {
-  return ({
-    identity: 'identity.name',
-    status: 'status.state.primary',
-    lineage: 'lineage.organizationId',
-    data: 'data.value',
-    specs: 'specs.value',
-    summary: 'summary.value',
-    attachments: 'attachments.primary',
-    statusMeta: 'statusMeta.note'
-  })[block] || 'data.value';
+  return designer.blocks.find(item => item.id === block)?.defaultPath || 'data.value';
 }
 
 function normalizeBlockPath(block = 'data', path = '') {
   const clean = String(path || '').trim();
   if (!clean) return defaultPathForBlock(block);
-  if (clean.startsWith(`${block}.`) || (block === 'statusMeta' && clean.startsWith('statusMeta.'))) return clean;
-  if (['identity', 'data', 'specs', 'summary', 'attachments'].some(prefix => clean.startsWith(`${prefix}.`))) return clean;
+  if (clean.startsWith(`${block}.`)) return clean;
+  if (designer.blocks.some(item => clean.startsWith(`${item.id}.`))) return clean;
   return `${block}.${clean}`;
 }
 
 function iconForBlock(block = 'data') {
-  return ({
-    identity: 'pi pi-id-card',
-    data: 'pi pi-database',
-    specs: 'pi pi-list-check',
-    summary: 'pi pi-chart-bar',
-    attachments: 'pi pi-paperclip',
-    statusMeta: 'pi pi-comment'
-  })[block] || 'pi pi-database';
+  return designer.blocks.find(item => item.id === block)?.icon || 'pi pi-database';
 }
 
 function syncSelectedValueInputPath() {
@@ -2158,7 +2162,10 @@ function actionTitleLabel(action = {}) {
   const explicit = String(action.label || '').trim();
   if (explicit && !isGenericDesignerActionLabel(explicit, action.actionKind)) return explicit;
   if (isStatusUpdate(action)) return statusTargetLabel(action) || t('processDesigner.targetStatus');
-  return actionKindLabel(action.actionKind) || action.entityType || action.commandId || action.id || '';
+  if (action.actionKind === 'runCommand') {
+    return commandOptions.value.find(option => option.value === action.commandId)?.label || action.commandId || action.id || '';
+  }
+  return actionEntityType(action) || actionKindLabel(action.actionKind) || action.id || '';
 }
 
 function isStatusUpdate(action = {}) {
@@ -2219,9 +2226,41 @@ function normalizeDesignerAccess(access = {}) {
   };
 }
 
-function createInputSockets(entityType) {
-  const contract = constructionContractForEntity(entityType);
-  return (contract.inputs || []).map(input => ({
+function addSelectedActionGrant() {
+  const used = new Set(selectedActionGrants.value.map(grant => grant.roleId));
+  const role = roleOptions.value.find(option => !used.has(option.value));
+  if (!role) return;
+  setSelectedActionGrants([...selectedActionGrants.value, { roleId: role.value, level: 'write' }]);
+}
+
+function updateSelectedActionGrant(index, updates = {}) {
+  setSelectedActionGrants(selectedActionGrants.value.map((grant, grantIndex) => (
+    grantIndex === index ? { ...grant, ...updates } : grant
+  )));
+}
+
+function removeSelectedActionGrant(index) {
+  setSelectedActionGrants(selectedActionGrants.value.filter((_, grantIndex) => grantIndex !== index));
+}
+
+function setSelectedActionGrants(grants = []) {
+  const seen = new Set();
+  const normalized = grants.filter(grant => {
+    if (!grant.roleId || seen.has(grant.roleId)) return false;
+    seen.add(grant.roleId);
+    return true;
+  });
+  updateActionRecord(selectedAction.value.id, {
+    access: {
+      ...(selectedAction.value.access || {}),
+      grants: normalized
+    }
+  }, { syncIo: true });
+}
+
+function createInputSockets(action = {}) {
+  const contract = constructionContractForEntity(action.entityType);
+  return constructionInputsForMode(contract, action.construction?.mode).map(input => ({
     ...input,
     id: `data:${input.id || input.path}`,
     label: input.label || input.path,
@@ -2351,7 +2390,7 @@ function removeLifecycleTransition(index) {
 }
 
 function workflowForEntity(profile = {}) {
-  if (profile.lifecycle?.mode === 'domainDefault' && cncWorkflows[profile.entityType]) return normalizeWorkflow(cncWorkflows[profile.entityType]);
+  if (profile.lifecycle?.mode === 'domainDefault' && cncDomain.workflows?.[profile.entityType]) return normalizeWorkflow(cncDomain.workflows[profile.entityType]);
   if (profile.lifecycle?.workflow) return normalizeWorkflow(profile.lifecycle.workflow);
   return normalizeWorkflow(createCreatedWorkflow());
 }
@@ -2518,7 +2557,10 @@ function workflowStateLabels(record) {
   if (!record?.lifecycle) return [];
   const workflow = workflowForEntity(record);
   const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
-  return Object.keys(region?.states || {}).filter(key => !key.includes('.')).slice(0, 5);
+  return Object.entries(region?.states || {})
+    .filter(([key]) => !key.includes('.'))
+    .map(([key, state]) => state.label || key)
+    .slice(0, 5);
 }
 
 function workflowTransitionCount(record) {
@@ -2536,15 +2578,18 @@ function countFieldBindings(fields = {}) {
 }
 
 function fieldOptions(entityType) {
-  const policy = fieldPolicyForEntity(entityType);
-  const paths = [...(policy.read || []), ...(policy.write || []), ...(policy.admin || [])];
-  return [...new Set(paths)].map(path => ({ label: path, value: path }));
+  return designer.fieldsForEntity(entityType);
+}
+
+function fieldOptionsForBlock(block = '', entityType = '') {
+  if (entityType) return designer.fieldsForEntity(entityType, block).filter(option => !option.value.endsWith('.*'));
+  const options = designer.entityOptions.flatMap(option => designer.fieldsForEntity(option.value, block));
+  return [...new Map(options.map(option => [option.value, option])).values()]
+    .filter(option => !option.value.endsWith('.*'));
 }
 
 function fieldPolicyForEntity(entityType) {
-  if (!entityType) return {};
-  const camel = entityType.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
-  return cncEntityFieldAccess[entityType] || cncEntityFieldAccess[camel] || {};
+  return entityType ? designer.fieldPolicy(entityType) : {};
 }
 
 function syncEntityDefaults() {

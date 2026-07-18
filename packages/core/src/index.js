@@ -249,6 +249,19 @@ export function createRegistry({ id = 'app' } = {}) {
 
 export const createCutkitRegistry = createRegistry;
 
+export const CANONICAL_ENTITY_BLOCKS = Object.freeze([
+  'identity',
+  'origin',
+  'status',
+  'lineage',
+  'relations',
+  'provenance',
+  'specs',
+  'attachments',
+  'data',
+  'summary'
+]);
+
 export class Identity {
   constructor(uid = null, name = '', slug = '', serial = '', reference = '') {
     if (!uid) throw new Error('Identity: uid is required');
