@@ -32,6 +32,9 @@ Revision records are normal v24 entities with immutable revision metadata under
 
 The unique content index is `(data.source.type, data.source.id, data.scope,
 data.contentHash)`. Re-saving identical content reuses the existing revision.
+Revision entity identity is also source-scoped:
+`revision:<entityType>:<entityId>:<scope>:<number>`. Two source entities may
+therefore both own revision 1 of the same scope without colliding on `_id`.
 Runtime index creation drops and recreates the named content/latest indexes
 when an older database still has the same index names on the pre-source-key
 shape, so entity revision creation is idempotent across migrated development

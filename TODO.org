@@ -995,3 +995,15 @@
      =shared/localization.spec.js= retains only the three pre-existing missing
      keys outside this task: =nesting.selectMachine=, =nesting.thickness=, and
      =common.rotate=.
+
+** Follow-up repair
+
+   - Integrated the picker branch into the primary =local= checkout after
+     preserving both sides of the pre-existing additive TODO merge conflict.
+   - Fixed library-to-queue cassette design construction: immutable revision
+     identities now include the source entity id, so first geometry revisions
+     from different cassette templates cannot collide and leave provenance
+     without a source.
+   - Active process hydration now supplies its compiled workflows to shared
+     entity surfaces. Status chrome is hidden when the effective lifecycle has
+     exactly one unique state, while the canonical status block remains stored.
