@@ -29,6 +29,7 @@
     "copied": "Скопировано",
     "copy": "Копировать",
     "active": "Активно",
+    "recorded": "Зафиксировано",
     "pending": "Ожидает",
     "back": "Назад",
     "next": "Далее",
@@ -1877,7 +1878,28 @@
     "layerStandard": "Стандарт слоя",
     "user": "Профиль пользователя",
     "organization": "Организация",
-    "artifact": "Артефакт"
+    "artifact": "Артефакт",
+    "artifactTemplate": "Шаблон артефакта"
+  },
+  "artifactTemplates": {
+    "selectFile": "Выбрать DXF или PDF",
+    "empty": "Нет шаблонов артефактов",
+    "uploaded": "Шаблон загружен",
+    "saved": "Ревизия макета сохранена",
+    "layout": "Макет шаблона",
+    "editLayout": "Изменить макет",
+    "variables": "Переменные",
+    "page": "Страница {number}",
+    "moveX": "Смещение X",
+    "moveY": "Смещение Y",
+    "deleted": "Удалить элемент",
+    "parameterized": "Использовать как переменную",
+    "variableName": "Имя переменной",
+    "variableType": "Тип переменной",
+    "defaultValue": "Значение по умолчанию",
+    "string": "Текст",
+    "number": "Число",
+    "boolean": "Логическое"
   },
   "queue": {
     "title": "Очереди",

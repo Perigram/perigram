@@ -1027,6 +1027,9 @@ function parentSupportedByDomain(domain = {}, entityType = '', parentType = '') 
 }
 
 function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}) {
+  if (action.actionKind === 'runCommand') {
+    return commandActionInputs(domain.commands?.[action.commandId] || {});
+  }
   if ((action.actionKind || 'createEntity') !== 'createEntity') return action.inputs || [];
   const inputs = (action.inputs || []).map(input => {
     if (input.id !== 'parent') return input;
@@ -1063,6 +1066,50 @@ function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}
       constructionInputId: input.constructionInputId || constructionInput.id
     };
   });
+}
+
+function commandActionInputs(command = {}) {
+  const abstractInputs = command.input?.abstractEntities || [];
+  const acceptedTypes = new Set(abstractInputs.flatMap(input => input.accepts || []));
+  return [
+    ...abstractInputs.map(input => ({
+      id: input.name || input.type || input.capability,
+      label: input.label || input.name,
+      entityType: input.type || '',
+      capability: input.capability || '',
+      accepts: input.accepts || [],
+      required: Boolean(input.required),
+      multiple: Boolean(input.multiple),
+      abstract: true,
+      prompt: false
+    })),
+    ...(command.input?.entities || [])
+      .filter(input => !acceptedTypes.has(input.type))
+      .map(input => ({
+        id: input.name || input.type,
+        label: input.label || input.name || input.type,
+        entityType: input.type,
+        kind: 'entity',
+        required: Boolean(input.required),
+        prompt: true,
+        path: `entities.${input.name || input.type}`
+      })),
+    ...(command.input?.parameters || []).map(input => ({
+      id: input.name,
+      label: input.label || input.name,
+      kind: input.type === 'object' ? 'json' : input.type || 'data',
+      type: input.type || 'string',
+      options: input.options || [],
+      default: input.default ?? null,
+      required: Boolean(input.required),
+      prompt: input.display !== 'hidden',
+      path: `parameters.${input.name}`,
+      dataPath: `parameters.${input.name}`,
+      entityType: input.entityType || '',
+      editor: input.editor || '',
+      templateFieldId: input.templateFieldId || ''
+    }))
+  ];
 }
 
 function deriveActionWindowScope(action = {}, incoming = null, domain = {}) {

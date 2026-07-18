@@ -258,6 +258,15 @@ export const cncEntityFieldGroups = {
     relations: [
       { path: 'lineage.nestingRunId', i18n: 'entities.nestingRun', display: 'entityRef', entityType: 'nestingRun', priority: 40 }
     ]
+  },
+  artifactTemplate: {
+    summary: [
+      { path: 'data.format', i18n: 'file.type', display: 'text', priority: 10 },
+      { path: 'data.variables.length', i18n: 'artifactTemplates.variables', display: 'count', priority: 20 }
+    ],
+    provenance: [
+      { path: 'data.activeRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', entityType: 'entityRevision', priority: 30 }
+    ]
   }
 };
 

@@ -263,7 +263,7 @@ export function createMockEntityRevision(overrides = {}) {
     ...createEntity({
       uid: MOCK_IDS.entityRevisionId,
       name: 'cassette geometry v1',
-      state: 'ACTIVE',
+      state: 'RECORDED',
       lineage: {
         organizationId: MOCK_IDS.organizationId,
         cassetteId: MOCK_IDS.cassetteTemplateId
@@ -707,6 +707,29 @@ export function createMockArtifact(overrides = {}) {
       lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
       attachments: { primary: attachment },
       data: { type: 'LAYOUT_DXF', metadata: { requestedBy: 'ui-lab' } }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockArtifactTemplate(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: 'artifact-template-demo',
+      name: 'Production passport',
+      state: 'ACTIVE',
+      lineage: { organizationId: MOCK_IDS.organizationId },
+      attachments: {
+        source: createAttachmentEntry('ARTIFACT_TEMPLATE_SOURCE', 'file-artifact-template', 'passport.pdf', {
+          bucket: 'artifactTemplates'
+        })
+      },
+      data: {
+        format: 'PDF',
+        variables: [{ name: 'projectName', type: 'string', default: 'Project' }],
+        activeRevisionId: 'artifact-template-revision-1',
+        layout: { format: 'PDF', unit: 'pt', pages: [] }
+      }
     }),
     ...overrides
   };

@@ -3,6 +3,7 @@ import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import { hooks } from '~/server/core/machines/hooks.js';
 
 import * as artifactsService from '~/server/features/artifacts/service.js';
+import * as artifactTemplatesService from '~/server/features/artifact-templates/service.js';
 import * as cassetteDesignsService from '~/server/features/cassette-designs/service.js';
 import * as cassetteInstancesService from '~/server/features/cassette-instances/service.js';
 import * as cassettesService from '~/server/features/cassettes/service.js';
@@ -77,6 +78,7 @@ export const resetCutkitRegistryForTests = resetAppRegistryForTests;
 
 const entityServices = {
   artifact: artifactsService,
+  artifact_template: artifactTemplatesService,
   cassette_design: cassetteDesignsService,
   cassette_instance: cassetteInstancesService,
   cassette: cassettesService,

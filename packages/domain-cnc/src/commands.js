@@ -10,7 +10,7 @@ export const cncServiceContracts = {
   artifacts: {
     service: 'artifacts',
     label: 'Attachments service',
-    inputs: ['sheet_design', 'nesting_run', 'cassette_design', 'cassette_instance'],
+    inputs: ['sheet_design', 'nesting_run', 'cassette_design', 'cassette_instance', 'artifact_template'],
     outputs: ['artifact'],
     actions: ['generateAttachment'],
     triggers: ['attachment.generationRequested']
@@ -117,11 +117,12 @@ export const cncCommands = {
       ],
       entities: [
         { name: 'sheetDesign', type: 'sheet_design' },
-        { name: 'nestingRun', type: 'nesting_run' }
+        { name: 'nestingRun', type: 'nesting_run' },
+        { name: 'template', label: 'Artifact template', type: 'artifact_template', required: false }
       ],
       parameters: [
         { name: 'kind', label: 'Attachment kind', type: 'enum', options: ['LAYOUT_DXF', 'PDF_PASSPORT'], required: true },
-        { name: 'pdfTemplateId', label: 'PDF template', type: 'string', display: 'hidden', source: 'artifactTemplate' }
+        { name: 'values', label: 'Template values', type: 'object', default: {}, editor: 'artifactTemplateValues', templateFieldId: 'template' }
       ]
     },
     triggers: [{ event: 'attachment.generationRequested' }],
@@ -132,6 +133,9 @@ export const cncCommands = {
     access: {
       permissions: [
         { feature: 'artifacts', level: 'write' }
+      ],
+      executionGrants: [
+        { feature: 'artifact_templates', level: 'read', actions: { view: true } }
       ]
     }
   },

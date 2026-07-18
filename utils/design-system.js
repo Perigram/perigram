@@ -25,6 +25,7 @@ import LibraryCard from '~/components/entities/Library/LibraryCard.vue';
 import UserCard from '~/components/entities/User/UserCard.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
+import ArtifactTemplateCard from '~/components/entities/ArtifactTemplate/ArtifactTemplateCard.vue';
 
 import * as factories from '~/test-data/factories.js';
 import {
@@ -62,7 +63,8 @@ const components = {
   library: LibraryCard,
   user: UserCard,
   organization: OrganizationCard,
-  artifact: ArtifactCard
+  artifact: ArtifactCard,
+  artifactTemplate: ArtifactTemplateCard
 };
 
 export const DESIGN_SYSTEM_ENTITIES = DESIGN_SYSTEM_ENTITY_CONTRACTS.map((entry) => ({

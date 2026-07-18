@@ -29,6 +29,7 @@
     "copied": "Copied",
     "copy": "Copy",
     "active": "Active",
+    "recorded": "Recorded",
     "pending": "Pending",
     "back": "Back",
     "next": "Next",
@@ -1877,7 +1878,28 @@
     "layerStandard": "Layer Standard",
     "user": "User Profile",
     "organization": "Organization",
-    "artifact": "Artifact"
+    "artifact": "Artifact",
+    "artifactTemplate": "Artifact Template"
+  },
+  "artifactTemplates": {
+    "selectFile": "Choose DXF or PDF",
+    "empty": "No artifact templates",
+    "uploaded": "Template uploaded",
+    "saved": "Layout revision saved",
+    "layout": "Template layout",
+    "editLayout": "Edit layout",
+    "variables": "Variables",
+    "page": "Page {number}",
+    "moveX": "Move X",
+    "moveY": "Move Y",
+    "deleted": "Delete item",
+    "parameterized": "Use as variable",
+    "variableName": "Variable name",
+    "variableType": "Variable type",
+    "defaultValue": "Default value",
+    "string": "Text",
+    "number": "Number",
+    "boolean": "Boolean"
   },
   "queue": {
     "title": "Queues",

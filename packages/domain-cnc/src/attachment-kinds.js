@@ -1,4 +1,9 @@
 export const cncAttachmentKinds = {
+  ARTIFACT_TEMPLATE_SOURCE: {kind: 'ARTIFACT_TEMPLATE_SOURCE',
+    bucket: 'artifactTemplates',
+    mimeType: 'application/octet-stream',
+    preview: { mode: 'attachment' }
+  },
   DXF_SOURCE: {kind: 'DXF_SOURCE',
     bucket: 'userDxf',
     mimeType: 'application/dxf',
