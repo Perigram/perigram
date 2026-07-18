@@ -1,5 +1,25 @@
 # COMPONENT: @cutkit/processes
 
+## Designer Contract
+
+`createProcessDesignerContract(domain)` is the framework-owned projection used
+by visual process designers. A designer supplies one `defineDomain`-shaped
+implementation, such as `cncDomain`, and receives normalized entity, workflow,
+command, task, event, hook, effect, attachment-kind, construction, field-policy,
+field-group, canonical-block, and grouped-palette contracts. The generic
+designer package does not import a concrete domain.
+
+Canonical entity decomposition starts from
+`@cutkit/core/CANONICAL_ENTITY_BLOCKS` and is narrowed to blocks declared by the
+selected domain entity. Field selection combines core block entries with the
+domain's access policy and field groups. This keeps block/value composition
+reusable across domains while preventing a designer from inventing fields or
+blocks that the selected entity does not declare.
+
+The grouped palette is framework metadata. Applications localize its group and
+item ids and may change layout, but entity types, construction modes, commands,
+attachment kinds, and fields always come from the supplied domain contract.
+
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,
 navigation, entity workflows, field policies, action nodes, services, and

@@ -8,9 +8,10 @@ route-level side panel, then assigned onto action nodes, service/socket access
 rules, and lifecycle transitions.
 
 Each node type is visually and functionally distinct. All node components render
-the Vue Flow selected state as a primary border/ring, and each process node type
-uses a compact colored top stripe plus typed socket handles so the canvas can
-be scanned without adding explanatory chrome. Socket row backgrounds stay on
+the Vue Flow selected state as a primary border/ring. Node accents are assigned
+by palette group rather than by individual operation: actions are green,
+entity/block composition is cyan, logic/transforms are violet, entity resources
+are blue, services are amber, and transfers are violet. Socket row backgrounds stay on
 theme surfaces; handle colors carry the contract distinction: entity sockets
 are blue, canonical block sockets are cyan, data/value sockets are green,
 status sockets are amber, event sockets are violet, projected transfer payloads
@@ -23,8 +24,10 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   public/write data contract exposed by the entity profile.
 - `ProcessActionNode.vue` represents an executable process step. It exposes
   event trigger input, data input/output, and completion event output handles on
-  the node sides. The node owns inline editing for action access grants,
-  trigger mode, command selection,
+  the node sides. The canvas node is a compact semantic summary: it shows the
+  action kind, concrete entity/command/status label, typed ports, trigger mode,
+  and effective role grants. Detailed action editing lives in the selected-node
+  inspector, including access grants, trigger mode, command selection,
   creation target, update fields, and projection fields. The action kind is fixed by the
   palette item that created the node and is displayed as a compact verb such as
   `create`, `update`, or `service`. Create actions derive their parent from the incoming
@@ -68,8 +71,10 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   status-definition nodes; the explicit status label field is the only display
   label, and the node itself renders a single badge with no separate socket
   text.
-- `ProcessValueInputNode.vue` represents a canonical block value
-  (`identity`, `data`, `specs`, `summary`, `attachments`, or status metadata).
+- `ProcessValueInputNode.vue` represents a canonical block value. Its block and
+  field options come from `@cutkit/core` plus the active domain contract and
+  cover `identity`, `origin`, `status`, `lineage`, `relations`, `provenance`,
+  `specs`, `attachments`, `data`, and `summary` where declared by the entity.
   Wiring it into an entity node adds that canonical path to the entity field
   policy. Wiring it into a construction data socket binds that value to the
   matched construction field, while wiring it into an update action adds the
@@ -78,8 +83,8 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   exact mutation sockets using domain field labels.
 - `ProcessNode.vue` represents non-effect process algebra records. Entity
   reference nodes traverse entity relations. Blocks nodes decompose an incoming
-  entity into canonical DTO block sockets (`identity`, `status`, `lineage`,
-  `data`, `specs`, `summary`, and `attachments`). Field nodes read a scalar or
+  entity into the canonical DTO block sockets declared for that concrete domain
+  entity. Field nodes read a scalar or
   JSON value from one incoming block. Text, comparison, logic, and collection
   nodes transform typed values without mutating persistent state; mutations and
   external work stay on action nodes. Each node keeps the palette icon on the
@@ -96,9 +101,8 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   decides whether send-role or receive-role access is summarized as chips on
   the node; access is not a graph socket.
 
-Entity, service, and socket nodes remain process-resource surfaces, while
-action nodes are directly editable because most process behavior belongs on the
-executable step itself. The route-level designer still owns process record
+Entity, service, socket, and action nodes remain compact process-resource
+surfaces. The selected-node inspector owns process record
 mutation, role and user assignment records, inline lifecycle workflow mutation,
 compiler fields, and Vue Flow edge persistence. Role or user node components
 should not be added to the palette; roles stay reusable process metadata
@@ -133,7 +137,7 @@ target. The compiler emits transition metadata plus a target-state rule on the
 entity grant. The role selector lists process roles directly because selecting
 a role on an action creates the entity grant;
 entity-profile grants must not hide roles from action grant authoring. Action
-nodes also render compact role/level chips for inherited access and roles that
+nodes render compact role/level chips for inherited access and roles that
 already have matching entity access from entity profiles or other status/action
 grants.
 

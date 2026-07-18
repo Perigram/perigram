@@ -115,6 +115,12 @@ typed Vue Flow handles that match the process compiler contract: role access,
 service input/output, and socket projection/transfer. Do not reduce these nodes
 to generic cards; their surface should expose the entity/service/socket
 semantics that the active process runtime consumes.
+The canvas is intentionally a compact semantic overview. Palette controls are
+grouped and labeled, node accent colors identify those groups, and detailed
+action mutation/access/trigger controls belong to the selected-node inspector.
+Canonical entity block choices come from `@cutkit/core` through the generic
+`@cutkit/processes` designer contract; concrete entity, construction, workflow,
+field, and attachment choices come from the supplied domain implementation.
 The process designer also exposes non-effect process algebra nodes for typed
 source/transform work: entity references, field reads, string operations,
 comparisons, logic, and collection transforms. These nodes are semantic

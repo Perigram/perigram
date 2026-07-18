@@ -44,7 +44,11 @@ definition, and surfaces activation warnings/errors in the validation panel so
 operators can tell when the graph became the organization's active process.
 The route uses the
 authenticated app layout with a full canvas workspace and compact floating
-controls over it. The graph palette is a one-line icon button set that creates
+controls over it. The graph palette is a compact labeled control grouped into
+actions, entity data, logic, and transfer. Its framework metadata comes from
+`createProcessDesignerContract(cncDomain)`; the route supplies CNC as the active
+domain implementation rather than importing separate CNC field/construction
+registries. It creates
 action nodes for entity creation, entity data updates, status changes, command
 runs, sending projected entity data to another organization, and inbound or
 outbound organization socket nodes. It also creates non-effect process algebra
@@ -89,7 +93,7 @@ The inspector edits compiler-owned fields directly:
 - the service access tab owns service runtime identities used by service run/view access;
 - the screens tab owns screen id, label, generated UI template, source entity/mode rows, display region rows, route, placement, required access, role ids, assignment binding, and screen action ids;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
-- action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket;
+- the action-node inspector owns fixed action kind, trigger mode, per-role access level, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket; the canvas node shows only the accurate semantic summary and ports;
 - process algebra nodes own task-specific controls for their palette type:
   traversal for entity references, entity-to-block decomposition, block/path
   output selection, text transform, comparison condition, boolean composition,
@@ -168,6 +172,12 @@ identities stay in service access controls rather than manual trigger
 selectors. Change-status action grants also store the status transition
 condition under `action.access.statusFrom/statusTo`, derived from the incoming
 entity socket and target status.
+Entity decomposition and value composition use the complete canonical block
+vocabulary exported by `@cutkit/core`. The selected domain entity narrows which
+blocks exist, while core block entries plus domain field access/field groups
+drive the editable field choices. Typed construction modes expose their
+mode-specific inputs on create nodes, so derived constructors do not render an
+empty generic input contract.
 Status-definition nodes are entity agnostic. They render the final status tag
 directly on the node, edit status id, label, severity, icon, and lifecycle
 evidence requirements, and apply to whichever entity lifecycle or action target

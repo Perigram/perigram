@@ -8,6 +8,10 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
 
 - DTOs: `BaseEntity`, `Identity`, `Status`, `Lineage`, `Relations`,
   `Provenance`, `Specs`
+- Canonical block registry: `CANONICAL_ENTITY_BLOCKS` defines the ordered
+  framework block vocabulary used by domain definitions and generic design
+  tools: `identity`, `origin`, `status`, `lineage`, `relations`, `provenance`,
+  `specs`, `attachments`, `data`, and `summary`.
 - Registry: `createRegistry()` and `createCutkitRegistry()`
 - Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
   `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`
