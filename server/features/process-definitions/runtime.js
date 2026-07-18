@@ -56,7 +56,11 @@ export async function resolveProcessAuth(auth = {}) {
   const processNavigation = resolveNavigation({ compiled, userId });
   return {
     ...ownerAuth,
-    process: { active: true, schemaVersion: compiled.schemaVersion },
+    process: {
+      active: true,
+      schemaVersion: compiled.schemaVersion,
+      workflows: compiled.workflows || {}
+    },
     fieldPolicies: compiled.fieldPolicies || {},
     navigation: [...system.navigation, ...processNavigation],
     screens: [...system.screens, ...processScreens],

@@ -31,6 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
     const actionManifest = computed(() => user.value?.roleAssignments?.actions || []);
     const fieldPolicies = computed(() => user.value?.fieldPolicies || {});
     const processActive = computed(() => user.value?.process?.active === true);
+    const statusWorkflows = computed(() => user.value?.process?.workflows || null);
 
     const canManagePlatform = computed(() => hasTenantPermission('organizations', 'admin') || hasTenantPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
 
@@ -190,6 +191,7 @@ export const useAuthStore = defineStore('auth', () => {
         actionManifest,
         fieldPolicies,
         processActive,
+        statusWorkflows,
         canManagePlatform,
         setUser,
         fetchUserOrgs,

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   derivedFromRevision,
-  hashRevisionContent
+  hashRevisionContent,
+  revisionIdentity
 } from './service.js';
 import { EntityRevision } from './model.js';
 
@@ -20,6 +21,15 @@ describe('entity revision helpers', () => {
 
     expect(first).toBe(second);
     expect(first).toMatch(/^sha256:/);
+  });
+
+  it('creates revision identities unique to the source entity', () => {
+    const first = revisionIdentity('cassette', 'cassette-1', 'geometry', 1);
+    const second = revisionIdentity('cassette', 'cassette-2', 'geometry', 1);
+
+    expect(first.uid).toBe('revision:cassette:cassette-1:geometry:1');
+    expect(second.uid).toBe('revision:cassette:cassette-2:geometry:1');
+    expect(first.uid).not.toBe(second.uid);
   });
 
   it('builds derivedFrom provenance from a revision DTO', () => {

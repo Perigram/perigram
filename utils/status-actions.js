@@ -9,7 +9,7 @@ export function getWorkflowStatusActions({
   mappings = STATUS_MAPPINGS,
   t = value => value
 } = {}) {
-  const workflow = workflows[entityType];
+  const workflow = workflowForEntityType(entityType, workflows);
   if (!workflow || !state) return [];
   const normalized = normalizeWorkflow(workflow);
   const currentPrimary = getPrimaryState(state, state);
@@ -28,7 +28,30 @@ export function getWorkflowStatusActions({
 }
 
 export function hasWorkflow(entityType, workflows = cncWorkflows) {
-  return Boolean(workflows?.[entityType]);
+  return Boolean(workflowForEntityType(entityType, workflows));
+}
+
+export function workflowStateCount(entityType, workflows = cncWorkflows) {
+  const workflow = workflowForEntityType(entityType, workflows);
+  if (!workflow) return 0;
+  const states = Object.values(getWorkflowRegions(normalizeWorkflow(workflow)))
+    .flatMap(region => Object.keys(region.states || {}));
+  return new Set(states).size;
+}
+
+export function hasMeaningfulWorkflowStatus(entityType, workflows = cncWorkflows) {
+  return workflowStateCount(entityType, workflows) !== 1;
+}
+
+function workflowForEntityType(entityType, workflows = {}) {
+  if (workflows?.[entityType]) return workflows[entityType];
+  const normalizedType = normalizeEntityType(entityType);
+  const key = Object.keys(workflows || {}).find(candidate => normalizeEntityType(candidate) === normalizedType);
+  return key ? workflows[key] : null;
+}
+
+function normalizeEntityType(value) {
+  return String(value || '').replace(/[_-]/g, '').toLowerCase();
 }
 
 export function resolveActionDisplay(transition = {}) {

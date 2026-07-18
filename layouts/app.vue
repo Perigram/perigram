@@ -182,7 +182,7 @@
 </template>
 
 <script setup>
-    import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+    import { ref, computed, provide, watch, onMounted, onUnmounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
@@ -204,6 +204,7 @@
     const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
+    provide('statusWorkflows', computed(() => authStore.statusWorkflows))
     const supportChatStore = useSupportChatStore()
     const entityEventsStore = useEntityEventsStore()
     const navStore = useNavigationStore()
