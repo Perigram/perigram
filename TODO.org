@@ -869,3 +869,48 @@
     - =node scripts/check-arch.js= passed.
     - Locale JSON parse and =git diff --check= passed.
     - =shared/localization.spec.js= has only three pre-existing failures outside this task: =nesting.selectMachine=, =nesting.thickness=, and =common.rotate=.
+* DONE Overload primevue select and multiselect
+  [2026-07-18 Sat 12:12]
+  Everywhere in app, where dropdowns use cutkit entities, need to replace select element content with entity card (compact variant with preview), and selected items are displayed also as compact entity cards instead of having an input in select trigger with selected items as badges.
+
+** Implementation plan
+
+   1. Add shared =EntitySelect= and =EntityMultiSelect= wrappers around
+      PrimeVue controls. They must preserve the complete ordinary Select API
+      and slots for scalar options, but render canonical entity options and
+      selected values through =EntityInlineRef variant="compact"=.
+   2. Resolve entity DTOs from either raw canonical options or
+      ={ label, value, entity }= option records. Resolve entity type explicitly
+      from the picker contract or the option record; do not infer entity type
+      from mutable data/status values.
+   3. Replace direct PrimeVue Select/MultiSelect imports with the shared
+      wrappers throughout app UI so entity behavior is architectural rather
+      than page-specific. Mark every actual entity picker with its entity type;
+      leave scalar/enum/role/process-record selectors behaviorally unchanged.
+   4. Replace the existing =EntityRefInput= custom option/value markup with the
+      shared wrapper contract and add focused resolver/component-contract tests.
+   5. Document the picker pattern, validate all changed Vue SFCs, run focused
+      design-system/localization tests, synchronize the framework manifest when
+      required, and commit implementation/docs separately.
+
+** Execution notes
+
+   - Added shared =EntitySelect= and =EntityMultiSelect= primitives. They own
+     the only direct PrimeVue Select/MultiSelect imports in app UI, preserve
+     non-entity props/events/slots, and use non-interactive compact entity cards
+     for entity options and selected values.
+   - Migrated typed entity selectors for queues, machines, tools, cassette
+     designs/templates, profile templates, materials, layer standards, pens,
+     warehouses, catalogs, colors, users, process definitions, and generated
+     entity input fields. Scalar/enum/role selectors continue through the same
+     wrappers without entity rendering.
+   - Registered both primitives in the domain design-system contract and UI
+     lab, regenerated =framework.manifest.json=, and added resolver/component
+     contract coverage including an ownership scan that rejects direct app
+     PrimeVue Select/MultiSelect imports.
+   - Validation: 55 focused tests passed; all 180 app Vue SFCs compiled;
+     =npm run framework:validate=, =npm run framework:manifest=,
+     =node scripts/check-arch.js=, and =git diff --check= passed.
+     =shared/localization.spec.js= retains only the three pre-existing missing
+     keys outside this task: =nesting.selectMachine=, =nesting.thickness=, and
+     =common.rotate=.
