@@ -104,7 +104,7 @@
     import { ref, computed, onMounted } from 'vue'
     import Button from 'primevue/button'
     import InputText from 'primevue/inputtext'
-    import Select from 'primevue/select'
+    import Select from '~/components/shared/EntitySelect.vue'
     import ConfirmDialog from 'primevue/confirmdialog'
     import ProjectIndexCard from '~/components/entities/Project/ProjectIndexCard.vue'
     import StandardDialog from '~/components/shared/StandardDialog.vue'

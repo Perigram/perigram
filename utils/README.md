@@ -39,6 +39,10 @@ Shared frontend utility modules used by Vue pages/components.
 - `selectOptions.js`: Pure helpers for PrimeVue Select option arrays. Use it to
   normalize canonical DTOs (`identity.name`, `identity.slug`, `_id`) into flat
   string `name`/id values before passing them to `optionLabel="name"` controls.
+- `entity-select.js`: Pure option resolution for the shared entity Select and
+  MultiSelect wrappers. Entity rendering requires a canonical DTO plus an
+  explicit entity type from the control or option metadata; it never infers a
+  type from mutable entity data or lifecycle status.
 - `process-navigation.js`: Pure helpers for filtering process-compiled
   navigation and screen manifests by the active permission grants. Scoped
   screen requirements are matched against scoped grants structurally because

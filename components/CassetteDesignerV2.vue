@@ -42,6 +42,7 @@
           :options="templateOptions"
           option-label="label"
           option-value="value"
+          entity-type="cassette"
           :placeholder="$t('cassette.v2.loadTemplate')"
           class="w-full"
           @update:model-value="value => emit('load-template', value)"
@@ -767,6 +768,7 @@
           :options="profileTemplateOptions"
           option-label="label"
           option-value="value"
+          entity-type="profileTemplate"
           :placeholder="$t('cassette.v2.profileEditor.loadTemplate')"
           append-to="self"
           class="w-full"
@@ -812,7 +814,7 @@ import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import ScrollPanel from 'primevue/scrollpanel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import CassetteExpressionEditor from '~/components/CassetteExpressionEditor.vue';
@@ -827,7 +829,7 @@ import { useEntity } from '~/composables/useEntity.js';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { buildCassetteV2FoldedPreview } from '~/utils/cassetteV2FoldedPreview.js';
-import { labelValueSelectOptions } from '~/utils/selectOptions.js';
+import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions.js';
 import {
   addCassetteV2GraphChild,
   addCassetteV2HardwareWorkpiece,
@@ -1090,10 +1092,11 @@ const profileProcessOptions = computed(() => OCCS_PROFILE_PROCESSES.map(process 
 const profileTemplateItems = computed(() => (
   Array.isArray(profileTemplateEntity.items.value) ? profileTemplateEntity.items.value : []
 ));
-const profileTemplateOptions = computed(() => labelValueSelectOptions(
-  profileTemplateItems.value,
-  t('cassette.v2.profileEditor.defaultName')
-));
+const profileTemplateOptions = computed(() => profileTemplateItems.value.map(profile => ({
+  label: entitySelectLabel(profile, t('cassette.v2.profileEditor.defaultName')),
+  value: entitySelectValue(profile),
+  entity: profile
+})).filter(option => option.value));
 const profileTemplateListFilters = () => ({
   ...(selectedTemplateId.value ? { cassetteTemplateId: selectedTemplateId.value } : {})
 });

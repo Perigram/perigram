@@ -97,6 +97,7 @@ All entity-related components MUST use these patterns:
 | Dialog container | `<StandardDialog>` |
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
+| Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `entity-type` |
 | Public marketing animation | `components/marketing/CassetteMarketingAnimation.vue` |
 
 `WorkflowDesignerV2.vue` is the shared v2 state-machine editor used by the admin

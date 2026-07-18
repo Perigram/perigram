@@ -60,6 +60,7 @@ const props = defineProps({
   fetch: { type: Boolean, default: true },
   fields: { type: Array, default: () => ['serial'] },
   allowDetailRoute: { type: Boolean, default: true },
+  interactive: { type: Boolean, default: true },
   variant: { type: String, default: 'inline' }
 });
 
@@ -309,6 +310,7 @@ function isConsumedDetailAction(action = {}) {
 }
 
 function toggleCompactPopup(event) {
+  if (!props.interactive) return;
   if (isInteractiveEventTarget(event)) return;
   compactOp.value?.toggle(event);
 }
@@ -337,10 +339,12 @@ function closeCompactPopup() {
 }
 
 onMounted(() => {
+  if (!props.interactive) return;
   window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeCompactPopup);
 });
 
 onUnmounted(() => {
+  if (!props.interactive) return;
   window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeCompactPopup);
 });
 
@@ -424,12 +428,12 @@ function tonePalette(role) {
   >
     <span
       class="entity-inline-compact min-w-0 max-w-full"
-      :class="{ 'cursor-pointer': Boolean(resolved) }"
-      :role="resolved ? 'button' : undefined"
-      :tabindex="resolved ? 0 : undefined"
-      data-entity-card-interactive="true"
-      @click="resolved ? toggleCompactPopup($event) : undefined"
-      @keydown="resolved ? onCompactKeydown($event) : undefined"
+      :class="{ 'cursor-pointer': Boolean(resolved) && interactive }"
+      :role="resolved && interactive ? 'button' : undefined"
+      :tabindex="resolved && interactive ? 0 : undefined"
+      :data-entity-card-interactive="interactive ? 'true' : undefined"
+      @click="resolved && interactive ? toggleCompactPopup($event) : undefined"
+      @keydown="resolved && interactive ? onCompactKeydown($event) : undefined"
     >
       <span
         v-if="resolved && compactHasPreview"
@@ -477,7 +481,7 @@ function tonePalette(role) {
       </span>
     </span>
 
-    <Popover ref="compactOp" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+    <Popover v-if="interactive" ref="compactOp" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
       <div class="w-[min(34rem,calc(100vw-3rem))]">
         <div class="flex flex-col gap-4 p-4">
           <TraceChain v-if="resolved" :entity="resolved" :entity-type="type" />

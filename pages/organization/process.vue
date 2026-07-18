@@ -51,6 +51,7 @@
             :options="processOptions"
             option-label="label"
             option-value="value"
+            entity-type="processDefinition"
             class="w-64"
             size="small"
             @change="selectProcessDefinition"
@@ -586,9 +587,9 @@ import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import MultiSelect from 'primevue/multiselect';
+import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tab from 'primevue/tab';
 import TabList from 'primevue/tablist';
 import TabPanel from 'primevue/tabpanel';
@@ -744,7 +745,8 @@ const processOptions = computed(() => processDefinitions.value.map(process => ({
     process.identity?.name || process.identity?.uid || process._id,
     process.status?.state?.primary
   ].filter(Boolean).join(' · '),
-  value: String(process._id)
+  value: String(process._id),
+  entity: process
 })));
 const emptyCanvasMessage = computed(() => {
   if (loadingProcess.value) return t('common.loading');

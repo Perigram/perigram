@@ -230,6 +230,28 @@
               </EntityPage>
             </template>
 
+            <template v-else-if="primitive.key === 'EntitySelect'">
+              <EntitySelect
+                v-model="primitiveSelectedQueueId"
+                :options="primitiveQueueOptions"
+                option-label="label"
+                option-value="value"
+                entity-type="queue"
+                class="w-full"
+              />
+            </template>
+
+            <template v-else-if="primitive.key === 'EntityMultiSelect'">
+              <EntityMultiSelect
+                v-model="primitiveSelectedQueueIds"
+                :options="primitiveQueueOptions"
+                option-label="label"
+                option-value="value"
+                entity-type="queue"
+                class="w-full"
+              />
+            </template>
+
             <template v-else-if="primitive.key === 'IdentityBlock'">
             <IdentityBlock :entity="primitiveEntity" variant="header" :fields="['slug', 'serial', 'reference']" />
             <IdentityBlock :entity="primitiveEntity" variant="compact" :fields="['slug', 'serial']" />
@@ -403,7 +425,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -429,6 +451,8 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
+import EntitySelect from '~/components/shared/EntitySelect.vue';
+import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import {
@@ -458,6 +482,8 @@ const ENTITY_COLLECTION_BY_TYPE = new Map((frameworkManifest.entities || []).map
 const PRIMITIVE_EXAMPLE_KEYS = [
   'EntityCard',
   'EntityPage',
+  'EntitySelect',
+  'EntityMultiSelect',
   'IdentityBlock',
   'DataBlock',
   'SpecsBlock',
@@ -500,6 +526,22 @@ const activeRowsWithModels = computed(() => activeRows.value.map((row) => ({
 })));
 
 const primitiveEntity = createMockQueue();
+const primitiveAlternateQueue = createMockQueue({
+  _id: 'queue-demo-evening',
+  identity: {
+    ...primitiveEntity.identity,
+    uid: 'queue-demo-evening',
+    name: 'Evening Production Run',
+    slug: 'evening-production-run'
+  }
+});
+const primitiveQueueOptions = [primitiveEntity, primitiveAlternateQueue].map(entity => ({
+  label: entity.identity.name,
+  value: entity._id,
+  entity
+}));
+const primitiveSelectedQueueId = ref(primitiveEntity._id);
+const primitiveSelectedQueueIds = ref(primitiveQueueOptions.map(option => option.value));
 const pileEntity = createMockPile();
 const sheetEntity = createMockSheet();
 const sheetDesignEntity = createMockSheetDesign();

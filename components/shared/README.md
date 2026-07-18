@@ -456,7 +456,19 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 - **`EntityRefInput.vue`**: Typed entity reference selector used by
   `TypedSettingsForm` for `entityId` fields. It prefers workbench/scenario
   entity options and falls back to a manual id input only when no typed options
-  are available.
+  are available. Its typed picker delegates to `EntitySelect`.
+- **`EntitySelect.vue` / `EntityMultiSelect.vue`**: Application-wide wrappers
+  around PrimeVue Select/MultiSelect. Ordinary scalar, enum, role, and process
+  record options preserve PrimeVue rendering and caller slots unchanged. When
+  options contain either canonical entity DTOs or
+  `{ label, value, entity }` records and an explicit `entity-type`, option rows
+  and selected values render through `EntityInlineRef variant="compact"`,
+  including the registered preview, identity, status, and access-filtered
+  facts. Multi-select values render as compact entity cards rather than chips.
+  App components import these wrappers under their local `Select` /
+  `MultiSelect` names; direct PrimeVue imports are owned only by the wrappers.
+  Entity type comes from the picker prop or option record and is never inferred
+  from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
 - **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, so generated details do not need a second local history widget unless the workflow needs a dedicated sidebar timeline. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome.
 - **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title. PrimeVue `Card`/`Panel` roots are globally overflow-clipped in `assets/css/main.css` so header media and top-slot backgrounds cannot paint outside the token-backed rounded border.

@@ -56,7 +56,8 @@ const templateOptions = computed(() => {
   const source = cassettes.value.length ? cassettes.value : [entity.value].filter(Boolean);
   return source.map(cassette => ({
     label: cassette.identity?.name || cassette.identity?.slug || cassette._id,
-    value: cassette._id?.toString()
+    value: cassette._id?.toString(),
+    entity: cassette
   }));
 });
 const persistedTemplateIds = computed(() => templateOptions.value.map(item => item.value).filter(Boolean));

@@ -91,6 +91,7 @@
                   :options="layerStandards"
                   optionLabel="label"
                   optionValue="value"
+                  entity-type="layerStandard"
                   :placeholder="$t('cassette.selectLayerType')"
                   class="w-full"
                   size="small"
@@ -135,7 +136,7 @@ import { useI18n } from 'vue-i18n';
 import { useCassettesStore } from '~/stores/cassettes';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { storeToRefs } from 'pinia';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
 import InputText from 'primevue/inputtext';
@@ -219,7 +220,8 @@ const layerStandards = computed(() => {
     return {
       label: translatedName && translatedName !== code ? `${code} · ${translatedName}` : code,
       value: code,
-      category: data.category
+      category: data.category,
+      entity: standard
     };
   });
 

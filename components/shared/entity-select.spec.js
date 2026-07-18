@@ -1,0 +1,132 @@
+import { createSSRApp, h } from 'vue';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { renderToString } from '@vue/server-renderer';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('primevue/select', async () => {
+  const { defineComponent, h: render } = await import('vue');
+  return {
+    default: defineComponent({
+      inheritAttrs: false,
+      props: ['modelValue', 'options'],
+      setup(props, { slots }) {
+        return () => render('div', { 'data-prime-select': '' }, [
+          slots.value?.({ value: props.modelValue, placeholder: 'Choose' }),
+          ...(props.options || []).map(option => slots.option?.({ option }))
+        ]);
+      }
+    })
+  };
+});
+
+vi.mock('primevue/multiselect', async () => {
+  const { defineComponent, h: render } = await import('vue');
+  return {
+    default: defineComponent({
+      inheritAttrs: false,
+      props: ['modelValue', 'options'],
+      setup(props, { slots }) {
+        return () => render('div', { 'data-prime-multiselect': '' }, [
+          slots.value?.({ value: props.modelValue, placeholder: 'Choose' }),
+          ...(props.options || []).map(option => slots.option?.({ option }))
+        ]);
+      }
+    })
+  };
+});
+
+vi.mock('~/components/shared/EntityInlineRef.vue', async () => {
+  const { defineComponent, h: render } = await import('vue');
+  return {
+    default: defineComponent({
+      props: ['type', 'entity', 'variant', 'interactive'],
+      setup(props) {
+        return () => render('article', {
+          'data-entity-id': props.entity?._id,
+          'data-entity-type': props.type,
+          'data-variant': props.variant,
+          'data-interactive': String(props.interactive)
+        });
+      }
+    })
+  };
+});
+
+import EntitySelect from './EntitySelect.vue';
+import EntityMultiSelect from './EntityMultiSelect.vue';
+
+const entities = [
+  { _id: 'queue-1', identity: { uid: 'queue-1', name: 'Queue 1' }, data: {} },
+  { _id: 'queue-2', identity: { uid: 'queue-2', name: 'Queue 2' }, data: {} }
+];
+const options = entities.map(entity => ({ label: entity.identity.name, value: entity._id, entity }));
+
+async function render(component, props, slots = {}) {
+  return await renderToString(createSSRApp({ render: () => h(component, props, slots) }));
+}
+
+describe('entity Select wrappers', () => {
+  it('owns every direct PrimeVue Select and MultiSelect import in app UI', () => {
+    const violations = vueFiles(['components', 'pages', 'layouts'])
+      .filter(file => !['components/shared/EntitySelect.vue', 'components/shared/EntityMultiSelect.vue'].includes(file))
+      .filter(file => /from\s+['"]primevue\/(?:select|multiselect)['"]/.test(readFileSync(file, 'utf8')));
+
+    expect(violations).toEqual([]);
+  });
+
+  it('renders entity options and the selected value as compact entity refs', async () => {
+    const html = await render(EntitySelect, {
+      modelValue: 'queue-2',
+      options,
+      optionLabel: 'label',
+      optionValue: 'value',
+      entityType: 'queue'
+    });
+
+    expect(html).toContain('data-entity-id="queue-2"');
+    expect(html.match(/data-variant="compact"/g)).toHaveLength(3);
+    expect(html.match(/data-interactive="false"/g)).toHaveLength(3);
+  });
+
+  it('renders every selected entity as a compact card instead of chips', async () => {
+    const html = await render(EntityMultiSelect, {
+      modelValue: ['queue-1', 'queue-2'],
+      options,
+      optionLabel: 'label',
+      optionValue: 'value',
+      entityType: 'queue',
+      display: 'chip'
+    });
+
+    expect(html.match(/data-entity-id="queue-1"/g)).toHaveLength(2);
+    expect(html.match(/data-entity-id="queue-2"/g)).toHaveLength(2);
+  });
+
+  it('delegates ordinary option slots without entity-card rendering', async () => {
+    const html = await render(EntitySelect, {
+      modelValue: 'DRAFT',
+      options: [{ label: 'Draft', value: 'DRAFT' }],
+      optionLabel: 'label',
+      optionValue: 'value'
+    }, {
+      option: ({ option }) => h('strong', option.label)
+    });
+
+    expect(html).toContain('<strong>Draft</strong>');
+    expect(html).not.toContain('data-entity-id');
+  });
+});
+
+function vueFiles(roots) {
+  const files = [];
+  const visit = path => {
+    for (const name of readdirSync(path)) {
+      const absolute = join(path, name);
+      if (statSync(absolute).isDirectory()) visit(absolute);
+      else if (name.endsWith('.vue')) files.push(relative(process.cwd(), absolute));
+    }
+  };
+  roots.forEach(visit);
+  return files;
+}
