@@ -39,7 +39,9 @@ blocked by unrelated shell noise.
   nonexistent warehouse workflow actions.
 - `queue-workflow.spec.js`: project/queue creation opens the queue editor and
   `/api/queue/:id/nest` accepts `WAREHOUSE` material-pool command input before
-  returning the expected business validation error for an empty queue.
+  returning the expected business validation error for an empty queue. The
+  nesting request supplies a readable tool profile because `solveNesting`
+  validates required command entities before checking queue contents.
 - `entity-actions.spec.js`: verifies user clicks on entity action buttons send
   the expected command/API requests, verifies a generic shared `EntityStatus`
   transition against a project workflow, sheet-design DXF action downloads the
