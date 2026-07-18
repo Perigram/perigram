@@ -1,35 +1,16 @@
 <template>
-  <PrimeMultiSelect
-    v-if="entityMode"
-    v-bind="$attrs"
-    :model-value="modelValue"
-    :options="options"
-    :option-label="optionLabel"
-    :option-value="optionValue"
-    @update:model-value="emit('update:modelValue', $event)"
-  >
-    <template #option="{ option }">
-      <div v-if="entityFor(option) && typeFor(option)" class="pointer-events-none w-full min-w-0">
-        <EntityInlineRef
-          :type="typeFor(option)"
-          :entity="entityFor(option)"
-          :fetch="false"
-          :allow-detail-route="false"
-          :interactive="false"
-          variant="compact"
-        />
-      </div>
-      <span v-else>{{ labelFor(option) }}</span>
-    </template>
-    <template #value="{ value, placeholder }">
-      <div v-if="selectedOptions(value).length" class="grid w-full min-w-0 gap-2">
-        <div
-          v-for="option in selectedOptions(value)"
-          :key="optionKey(option)"
-          class="pointer-events-none min-w-0"
-        >
+  <div v-if="entityMode" class="grid min-w-0 gap-2">
+    <PrimeMultiSelect
+      v-bind="$attrs"
+      :model-value="modelValue"
+      :options="options"
+      :option-label="optionLabel"
+      :option-value="optionValue"
+      @update:model-value="emit('update:modelValue', $event)"
+    >
+      <template #option="{ option }">
+        <div v-if="entityFor(option) && typeFor(option)" class="pointer-events-none w-full min-w-0">
           <EntityInlineRef
-            v-if="entityFor(option) && typeFor(option)"
             :type="typeFor(option)"
             :entity="entityFor(option)"
             :fetch="false"
@@ -37,15 +18,35 @@
             :interactive="false"
             variant="compact"
           />
-          <span v-else>{{ labelFor(option) }}</span>
         </div>
+        <span v-else>{{ labelFor(option) }}</span>
+      </template>
+      <template #value="{ placeholder }">
+        <span>{{ placeholder }}</span>
+      </template>
+      <template v-for="slotName in forwardedSlotNames" #[slotName]="slotProps">
+        <slot :name="slotName" v-bind="slotProps || {}" />
+      </template>
+    </PrimeMultiSelect>
+    <div v-if="selectedOptions(modelValue).length" class="grid min-w-0 gap-2" data-entity-selection-list>
+      <div
+        v-for="option in selectedOptions(modelValue)"
+        :key="optionKey(option)"
+        class="pointer-events-none min-w-0"
+      >
+        <EntityInlineRef
+          v-if="entityFor(option) && typeFor(option)"
+          :type="typeFor(option)"
+          :entity="entityFor(option)"
+          :fetch="false"
+          :allow-detail-route="false"
+          :interactive="false"
+          variant="compact"
+        />
+        <span v-else>{{ labelFor(option) }}</span>
       </div>
-      <span v-else>{{ placeholder }}</span>
-    </template>
-    <template v-for="slotName in forwardedSlotNames" #[slotName]="slotProps">
-      <slot :name="slotName" v-bind="slotProps || {}" />
-    </template>
-  </PrimeMultiSelect>
+    </div>
+  </div>
   <PrimeMultiSelect
     v-else
     v-bind="$attrs"
