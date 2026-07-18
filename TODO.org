@@ -1007,3 +1007,11 @@
    - Active process hydration now supplies its compiled workflows to shared
      entity surfaces. Status chrome is hidden when the effective lifecycle has
      exactly one unique state, while the canonical status block remains stored.
+   - Corrected the entity-picker selection layout: Select and MultiSelect keep
+     only their chooser placeholder inside the PrimeVue control and render
+     selected compact entity refs in a separate region below it. This replaces
+     the previous value-slot implementation that still embedded selected cards
+     inside the input surface.
+   - Validation: 50 focused picker/design-system tests passed; both picker SFCs
+     compiled; =npm run framework:validate=, the regenerated manifest check,
+     and =git diff --check= passed.
