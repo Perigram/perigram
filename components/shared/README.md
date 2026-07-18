@@ -467,11 +467,12 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   record options preserve PrimeVue rendering and caller slots unchanged. When
   options contain either canonical entity DTOs or
   `{ label, value, entity }` records and an explicit `entity-type`, option rows
-  render through `EntityInlineRef variant="compact"`. Selected values render
-  in a separate region below the Select/MultiSelect control, never inside its
-  value/chip area, and include the registered preview, identity, status, and
-  access-filtered facts. Multi-select values render as a compact-card list
-  rather than chips.
+  render through `EntityInlineRef variant="compact"`. Once a value is selected,
+  the selected entity card or card list renders outside the PrimeVue
+  value/chip area and the PrimeVue control becomes a compact change trigger.
+  That keeps the selected preview, identity, status, and access-filtered facts
+  visible without embedding cards or empty value slots inside an input surface.
+  Multi-select values render as a compact-card list rather than chips.
   App components import these wrappers under their local `Select` /
   `MultiSelect` names; direct PrimeVue imports are owned only by the wrappers.
   Entity type comes from the picker prop or option record and is never inferred
