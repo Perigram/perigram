@@ -1,7 +1,25 @@
 <template>
-  <div v-if="entityMode" class="grid min-w-0 gap-2">
+  <div
+    v-if="entityMode"
+    :class="hasSelectedEntity ? 'flex min-w-0 items-start gap-2' : 'grid min-w-0 gap-2'"
+  >
+    <div
+      v-if="hasSelectedEntity"
+      class="pointer-events-none min-w-0 flex-1"
+      data-entity-selection
+    >
+      <EntityInlineRef
+        :type="typeFor(selectedOptionRef)"
+        :entity="selectedEntityRef"
+        :fetch="false"
+        :allow-detail-route="false"
+        :interactive="false"
+        variant="compact"
+      />
+    </div>
     <PrimeSelect
-      v-bind="$attrs"
+      v-bind="controlAttrs"
+      :class="hasSelectedEntity ? '!w-10 shrink-0 self-start' : null"
       :model-value="modelValue"
       :options="options"
       :option-label="optionLabel"
@@ -22,26 +40,13 @@
         <span v-else>{{ labelFor(option) }}</span>
       </template>
       <template #value="{ placeholder }">
-        <span>{{ placeholder }}</span>
+        <span v-if="hasSelectedEntity" class="pi pi-pencil" aria-hidden="true"></span>
+        <span v-else>{{ placeholder }}</span>
       </template>
       <template v-for="slotName in forwardedSlotNames" #[slotName]="slotProps">
         <slot :name="slotName" v-bind="slotProps || {}" />
       </template>
     </PrimeSelect>
-    <div
-      v-if="selectedEntity(modelValue) && typeFor(selectedOption(modelValue))"
-      class="pointer-events-none min-w-0"
-      data-entity-selection
-    >
-      <EntityInlineRef
-        :type="typeFor(selectedOption(modelValue))"
-        :entity="selectedEntity(modelValue)"
-        :fetch="false"
-        :allow-detail-route="false"
-        :interactive="false"
-        variant="compact"
-      />
-    </div>
   </div>
   <PrimeSelect
     v-else
@@ -59,7 +64,7 @@
 </template>
 
 <script setup>
-import { computed, useSlots } from 'vue';
+import { computed, useAttrs, useSlots } from 'vue';
 import PrimeSelect from 'primevue/select';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import {
@@ -81,16 +86,21 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue']);
 const slots = useSlots();
+const attrs = useAttrs();
 const entityMode = computed(() => entitySelectOptions(props.options, props.entityType).length > 0);
 const slotNames = computed(() => Object.keys(slots));
 const forwardedSlotNames = computed(() => slotNames.value.filter(name => !['option', 'value'].includes(name)));
+const selectedOptionRef = computed(() => selectedOption(props.modelValue));
+const selectedEntityRef = computed(() => entityFor(selectedOptionRef.value));
+const hasSelectedEntity = computed(() => Boolean(selectedEntityRef.value && typeFor(selectedOptionRef.value)));
+const selectedTriggerLabel = computed(() => labelFor(selectedOptionRef.value));
+const controlAttrs = computed(() => {
+  if (!hasSelectedEntity.value) return attrs;
+  return { ...attrs, 'aria-label': selectedTriggerLabel.value || attrs['aria-label'] };
+});
 
 function selectedOption(value) {
   return selectOptionForValue(props.options, value, props.optionValue);
-}
-
-function selectedEntity(value) {
-  return entityFor(selectedOption(value));
 }
 
 function entityFor(option) {

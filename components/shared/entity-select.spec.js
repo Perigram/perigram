@@ -10,8 +10,8 @@ vi.mock('primevue/select', async () => {
     default: defineComponent({
       inheritAttrs: false,
       props: ['modelValue', 'options'],
-      setup(props, { slots }) {
-        return () => render('div', { 'data-prime-select': '' }, [
+      setup(props, { slots, attrs }) {
+        return () => render('div', { ...attrs, 'data-prime-select': '' }, [
           render('div', { 'data-prime-value': '' }, slots.value?.({ value: props.modelValue, placeholder: 'Choose' })),
           ...(props.options || []).map(option => slots.option?.({ option }))
         ]);
@@ -26,8 +26,8 @@ vi.mock('primevue/multiselect', async () => {
     default: defineComponent({
       inheritAttrs: false,
       props: ['modelValue', 'options'],
-      setup(props, { slots }) {
-        return () => render('div', { 'data-prime-multiselect': '' }, [
+      setup(props, { slots, attrs }) {
+        return () => render('div', { ...attrs, 'data-prime-multiselect': '' }, [
           render('div', { 'data-prime-value': '' }, slots.value?.({ value: props.modelValue, placeholder: 'Choose' })),
           ...(props.options || []).map(option => slots.option?.({ option }))
         ]);
@@ -87,8 +87,25 @@ describe('entity Select wrappers', () => {
     expect(html).toContain('data-entity-id="queue-2"');
     expect(html.match(/data-variant="compact"/g)).toHaveLength(3);
     expect(html.match(/data-interactive="false"/g)).toHaveLength(3);
+    expect(html).toContain('class="!w-10 shrink-0 self-start"');
+    expect(html).toContain('aria-label="Queue 2"');
+    expect(html).toMatch(/data-prime-value[^>]*><span class="pi pi-pencil" aria-hidden="true"><\/span><\/div>/);
+    expect(html).not.toMatch(/data-prime-value[^>]*><span><\/span><\/div>/);
+    expect(html.indexOf('data-entity-selection')).toBeLessThan(html.indexOf('data-prime-select'));
+  });
+
+  it('keeps unselected entity Select controls as ordinary full chooser controls', async () => {
+    const html = await render(EntitySelect, {
+      modelValue: null,
+      options,
+      optionLabel: 'label',
+      optionValue: 'value',
+      entityType: 'queue'
+    });
+
     expect(html).toMatch(/data-prime-value[^>]*><span>Choose<\/span><\/div>/);
-    expect(html.indexOf('data-entity-selection')).toBeGreaterThan(html.indexOf('data-prime-select'));
+    expect(html).not.toContain('!w-10');
+    expect(html).not.toContain('data-entity-selection');
   });
 
   it('renders every selected entity outside MultiSelect as compact cards instead of chips', async () => {
@@ -103,8 +120,11 @@ describe('entity Select wrappers', () => {
 
     expect(html.match(/data-entity-id="queue-1"/g)).toHaveLength(2);
     expect(html.match(/data-entity-id="queue-2"/g)).toHaveLength(2);
-    expect(html).toMatch(/data-prime-value[^>]*><span>Choose<\/span><\/div>/);
-    expect(html.indexOf('data-entity-selection-list')).toBeGreaterThan(html.indexOf('data-prime-multiselect'));
+    expect(html).toContain('class="!w-10 shrink-0 self-start"');
+    expect(html).toContain('aria-label="Queue 1, Queue 2"');
+    expect(html).toMatch(/data-prime-value[^>]*><span class="pi pi-pencil" aria-hidden="true"><\/span><\/div>/);
+    expect(html).not.toMatch(/data-prime-value[^>]*><span><\/span><\/div>/);
+    expect(html.indexOf('data-entity-selection-list')).toBeLessThan(html.indexOf('data-prime-multiselect'));
   });
 
   it('delegates ordinary option slots without entity-card rendering', async () => {
