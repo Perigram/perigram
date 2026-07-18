@@ -40,6 +40,9 @@ Every template save resolves an `entity_revision` with `scope: "geometry"` from
 `data.type`, `data.definition`, and `data.parameters`. The template stores only
 the current pointer under `data.revisions.geometry`; the immutable source
 snapshot lives in `entity_revisions`.
+Revision identities include the cassette source id, so separate templates can
+each create geometry revision 1 without colliding before design provenance is
+built.
 
 ### Template-to-Design Creation
 `POST /api/cassettes/:id/designs` calls `createDesignFromTemplate()` and creates

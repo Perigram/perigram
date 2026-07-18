@@ -32,6 +32,10 @@ Entity lifecycle profiles and action nodes compile directly into normalized
 process workflow before organization workflow overrides and domain defaults, so
 action-only process graphs still define the statuses and transitions exposed by
 the status runtime.
+Authenticated runtime hydration includes those compiled workflows under
+`process.workflows`. Shared entity surfaces consume that same effective
+contract to suppress non-informative status chrome for one-state lifecycles;
+they do not infer visibility from status names or entity types.
 
 `createActiveFromTemplate()` is the organization-bootstrap path used by signup
 and organization creation. It creates the starter process, assigns the creator

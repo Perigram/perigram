@@ -19,6 +19,10 @@ owns that text.
 Project queue workspaces use a viewport-bounded main area so scrolling remains
 inside queue lanes and panels rather than the page body.
 
+The authenticated layout provides the active process `statusWorkflows` from
+the auth store to shared entity surfaces. This keeps card, page, inline-ref,
+and picker status presentation aligned with the organization lifecycle contract.
+
 On mobile, `app.vue` replaces the desktop header with a fixed bottom panel.
 The panel contains home, up to two user-captured generated-screen shortcuts, a
 generated-screen picker, chats, and a profile-menu button. The picker lists the

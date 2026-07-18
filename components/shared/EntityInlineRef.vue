@@ -22,6 +22,7 @@ import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const CARD_COMPONENTS = {
@@ -142,6 +143,7 @@ const compactPreviewHideDimensionLayer = computed(() =>
   ['cassette', 'cassette_design', 'sheet_design'].includes(generatedEntityType.value)
 );
 const compactStatusState = computed(() => {
+  if (!hasMeaningfulWorkflowStatus(generatedEntityType.value, authStore.statusWorkflows || undefined)) return '';
   const state = resolved.value?.status?.state;
   if (typeof state === 'string') return state;
   return state?.primary || state?.active?.main || '';

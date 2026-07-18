@@ -4,8 +4,8 @@ import { createError } from 'h3';
 import {
   createData,
   createEntityRef,
-  createIdentity,
-  createProvenance
+  createProvenance,
+  Identity
 } from '../../core/blocks/index.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -41,8 +41,12 @@ export function hashRevisionContent(content = {}) {
     .digest('hex')}`;
 }
 
-function revisionIdentity(entityType, scope, number) {
-  return createIdentity(`${entityType} ${scope} v${number}`);
+export function revisionIdentity(entityType, entityId, scope, number) {
+  const sourceId = toFlexibleId(entityId).toString();
+  return new Identity(
+    `revision:${entityType}:${sourceId}:${scope}:${number}`,
+    `${entityType} ${scope} v${number}`
+  );
 }
 
 function canReadRevision(userPermissions, revision) {
@@ -105,7 +109,7 @@ export async function ensureForEntitySnapshot({
   );
 
   const doc = {
-    identity: revisionIdentity(entityType, scope, number),
+    identity: revisionIdentity(entityType, entityId, scope, number),
     origin,
     status: origin,
     lineage: {
@@ -130,7 +134,8 @@ export async function ensureForEntitySnapshot({
     return toDTO(await repository.create(doc));
   } catch (error) {
     if (error?.code === 11000) {
-      return toDTO(await repository.findByHash(entityType, entityId, scope, contentHash));
+      const concurrent = await repository.findByHash(entityType, entityId, scope, contentHash);
+      if (concurrent) return toDTO(concurrent);
     }
     throw error;
   }

@@ -18,6 +18,12 @@ describe('process runtime auth hydration', () => {
       data: {
         compiled: {
           schemaVersion: 1,
+          workflows: {
+            project: {
+              primaryRegion: 'main',
+              regions: { main: { initial: 'ACTIVE', states: { ACTIVE: {} }, transitions: [] } }
+            }
+          },
           userAccess: {
             'user-1': {
               permissions: {
@@ -91,6 +97,7 @@ describe('process runtime auth hydration', () => {
       screenKey: 'home_user-1',
       route: '/screens/home_user-1'
     });
+    expect(result.process.workflows.project.regions.main.states).toEqual({ ACTIVE: {} });
   });
 
   it('keeps authored process home screens intact', async () => {

@@ -33,6 +33,9 @@ Pinia stores for client state and API orchestration.
   compiled permissions. Tenant-management chrome can also check
   `tenantPermissions` through `hasTenantPermission()`, which reads explicit
   active membership grants for organization/team/process management recovery.
+  It also exposes the active process's compiled lifecycle machines through
+  `statusWorkflows`; entity UI uses this contract for workflow-derived status
+  visibility and transitions.
 - `navigation.js` owns project breadcrumb context. SSR callers must pass request
   headers through `fetchProjectContext(slug, fetchOptions)` so protected project
   lookups use the same session cookie as auth middleware. Breadcrumb sibling

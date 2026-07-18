@@ -247,6 +247,7 @@ import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.
 import { ENTITY_UI } from '~/utils/status-engine';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const props = defineProps({
@@ -273,6 +274,7 @@ const inlineActionEntityTypeRef = inject('entityInlineActionEntityType', '');
 const inlineCanDeleteRef = inject('entityInlineCanDelete', false);
 const inlineShowCassetteDesignerRef = inject('entityInlineShowCassetteDesigner', false);
 const inlineExecuteActionRef = inject('entityInlineExecuteAction', null);
+const statusWorkflowsRef = inject('statusWorkflows', null);
 
 const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi pi-box' });
 const displayPlan = computed(() => resolveEntityDisplayContract({
@@ -283,6 +285,7 @@ const displayPlan = computed(() => resolveEntityDisplayContract({
     overrides: props.displayOverrides
 }));
 const effectiveShowStatus = computed(() => {
+    if (!hasMeaningfulWorkflowStatus(props.entityType, unref(statusWorkflowsRef) || undefined)) return false;
     if (props.showStatus !== null) return props.showStatus;
     return displayPlan.value.surfaceContract.status === 'interactive'
         || displayPlan.value.surfaceContract.status === 'readonly';

@@ -166,6 +166,11 @@ loaded from the canonical status API so access and preflight filtering stay
 server-side. When an action includes `intent`, `EntityStatus` posts that intent
 with the target state so frontend components do not infer business meaning from
 raw lifecycle state names.
+When the effective organization or domain workflow declares exactly one unique
+state, shared entity surfaces hide the status chrome because it carries no
+lifecycle information. The canonical `status` block remains persisted for
+audit and DTO consistency. Visibility derives from the supplied workflow
+contract, never a hardcoded entity or status list.
 `EntityStatus` renders the primary lifecycle badge from `status.state.primary`.
 Additional active workflow regions render as compact status chips and actions
 carry `region` / `path` metadata back to the status API so parallel machines can
