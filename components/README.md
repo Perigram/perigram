@@ -774,6 +774,13 @@ pre-auth request.
 
 ## Localization
 
+Artifact-template management lives at `pages/assets/templates.vue` and uses the
+`ArtifactTemplateCard` entity surface. `ArtifactLayoutEditor` edits normalized
+template and generated-artifact items and emits data only; owning surfaces call
+the canonical revision-backed APIs. Template and artifact deletion uses
+`GeneratedDeleteButton`, so visibility follows entity capability plus active
+process access rather than local role checks.
+
 - User-visible labels, headings, dialog headers, toast summaries/details, placeholders, and accessible labels must use `$t(...)` in templates or `t(...)` from `useI18n()` in script.
 - Keep `i18n/locales/en.json` and `i18n/locales/ru.json` structurally aligned whenever adding keys.
 - Run `npx vitest run shared/localization.spec.js` after adding frontend copy or translation keys; it catches locale key drift and missing static translation keys.

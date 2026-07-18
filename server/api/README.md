@@ -5,6 +5,9 @@ This directory contains the Nitro server API routes for the Nuxt application. En
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
 - `artifacts/`: Metadata, deletion, and streaming for generated files.
+- `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
+  replacement, authorized source streaming, and deletion. Template-generated
+  artifacts expose `PUT /api/artifacts/:id/layout` for revision-backed edits.
 - `batch/`: Detailed batch operations.
 - `cassette-instances/`: Authenticated cassette instance listing, detail, and status routes.
 - `cassettes/`: Upload and management of templates. The collection route

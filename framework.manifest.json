@@ -1,6 +1,15 @@
 {
   "attachmentKinds": [
     {
+      "bucket": "artifactTemplates",
+      "key": "ARTIFACT_TEMPLATE_SOURCE",
+      "kind": "ARTIFACT_TEMPLATE_SOURCE",
+      "mimeType": "application/octet-stream",
+      "preview": {
+        "mode": "attachment"
+      }
+    },
+    {
       "bucket": "userDxf",
       "key": "DXF_SOURCE",
       "kind": "DXF_SOURCE",
@@ -672,6 +681,20 @@
         "propName": "artifact",
         "status": "interactive",
         "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "server/features/artifact-templates/README.md"
+        ],
+        "entityType": "artifact_template",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "artifactTemplate",
+        "labelKey": "entities.artifactTemplate",
+        "propName": "artifactTemplate",
+        "status": "hidden",
+        "trace": false
       }
     ],
     "groups": [
@@ -1032,6 +1055,22 @@
       "collection": "artifacts",
       "lineage": {},
       "type": "artifact"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "artifact_templates",
+      "lineage": {},
+      "meta": true,
+      "type": "artifact_template"
     },
     {
       "blocks": [
@@ -1673,6 +1712,12 @@
       "type": "artifact"
     },
     {
+      "collection": "artifact-templates",
+      "list": "/api/artifact-templates",
+      "single": "/api/artifact-templates/:id",
+      "type": "artifactTemplate"
+    },
+    {
       "collection": "catalogs",
       "list": "/api/catalogs",
       "single": "/api/catalogs/:id",
@@ -2045,6 +2090,29 @@
       ],
       "transitionCount": 2,
       "type": "artifact"
+    },
+    {
+      "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 1,
+      "type": "artifact_template"
+    },
+    {
+      "initial": "RECORDED",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "RECORDED"
+      ],
+      "transitionCount": 0,
+      "type": "entity_revision"
     },
     {
       "initial": "AVAILABLE",

@@ -13,6 +13,8 @@ import * as filesService from '../files/service.js';
 import { assertEntityAccess, hasEntityAccess } from '../../core/access/service.js';
 import { getLineageFilter } from '../../utils/permissions.js';
 import { statusService, createTransitionAuth } from '../../core/machines/service.js';
+import * as entityRevisionsService from '../entity-revisions/service.js';
+import * as artifactTemplatesService from '../artifact-templates/service.js';
 
 /**
  * Artifacts Service - v24 Standardized
@@ -42,7 +44,11 @@ export async function create(data, userId = 'SYSTEM', userOrg = null, userRole =
     } : {},
     data: createData({
       type: data.type,
-      metadata: data.metadata || {}
+      metadata: data.metadata || {},
+      layout: data.layout || null,
+      values: data.values || {},
+      activeRevisionId: data.activeRevisionId || null,
+      revisions: data.revisions || {}
     })
   };
 
@@ -75,6 +81,91 @@ export async function createUploaded({ buffer, filename, mimeType, type, lineage
       relations,
       provenance
     }, auth.userId, auth.organizationId, auth.role, auth);
+  } catch (error) {
+    await filesService.deleteFile(stored.id, bucketName).catch(() => {});
+    throw error;
+  }
+}
+
+export async function createRendered({ buffer, filename, mimeType, type, lineage, metadata = {}, provenance = {}, layout, values = {} } = {}, auth = {}) {
+  if (!layout) throw createError({ statusCode: 400, message: 'Rendered artifact layout is required' });
+  const bucketName = bucketNameForType(type);
+  const stored = await filesService.uploadFile(buffer, filename, {
+    userId: auth.userId,
+    organizationId: auth.organizationId,
+    artifactType: type
+  }, bucketName);
+  let artifact = null;
+  try {
+    artifact = await create({
+      name: filename,
+      type,
+      fileId: stored.id,
+      mimeType,
+      bucketName,
+      lineage,
+      metadata,
+      provenance,
+      layout,
+      values
+    }, auth.userId, auth.organizationId, auth.role, auth);
+    const revision = await ensureLayoutRevision(artifact, auth.userId, 'artifact-generated');
+    const updated = await repository.updateById(artifact._id, {
+      'data.activeRevisionId': revision._id,
+      'data.revisions.layout': revisionPointer(revision)
+    });
+    if (!updated) throw createError({ statusCode: 409, message: 'Artifact changed before its generated layout revision was saved' });
+    return new Artifact(updated).toJSON();
+  } catch (error) {
+    if (artifact?._id) await repository.deleteById(artifact._id).catch(() => {});
+    await filesService.deleteFile(stored.id, bucketName).catch(() => {});
+    throw error;
+  }
+}
+
+export async function replaceLayout(id, layout, values = {}, auth = {}) {
+  const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
+  assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
+  const templateSource = artifact.provenance?.template?.source;
+  if (!templateSource?.id) throw createError({ statusCode: 409, message: 'Artifact has no editable template provenance' });
+  const rendered = await artifactTemplatesService.render(templateSource.id, {
+    revisionId: templateSource.revisionId,
+    values,
+    layout
+  }, auth);
+  const bucketName = bucketNameForType(artifact.data?.type);
+  const filename = artifact.attachments?.primary?.name || artifact.identity?.name || `artifact.${rendered.extension}`;
+  const stored = await filesService.uploadFile(rendered.buffer, filename, {
+    userId: auth.userId,
+    organizationId: auth.organizationId,
+    artifactType: artifact.data?.type
+  }, bucketName);
+  const candidate = {
+    ...artifact,
+    attachments: {
+      ...(artifact.attachments || {}),
+      primary: createArtifactAttachment(artifact.data?.type, stored.id, filename, rendered.mimeType, bucketName)
+    },
+    data: {
+      ...(artifact.data || {}),
+      layout: rendered.layout,
+      values
+    }
+  };
+  try {
+    const revision = await ensureLayoutRevision(candidate, auth.userId, 'artifact-layout-updated');
+    const updated = await repository.updateById(id, {
+      attachments: candidate.attachments,
+      'data.layout': rendered.layout,
+      'data.values': values,
+      'data.activeRevisionId': revision._id,
+      'data.revisions.layout': revisionPointer(revision),
+      updatedAt: new Date()
+    });
+    if (!updated) throw createError({ statusCode: 409, message: 'Artifact changed before its layout revision was saved' });
+    const oldFile = artifact.attachments?.primary;
+    if (oldFile?.fileId) await filesService.deleteFile(oldFile.fileId, oldFile.metadata?.bucketName || bucketName).catch(() => {});
+    return new Artifact(updated).toJSON();
   } catch (error) {
     await filesService.deleteFile(stored.id, bucketName).catch(() => {});
     throw error;
@@ -152,6 +243,29 @@ export function bucketNameForType(type) {
   if (type === 'CAPTURE_PHOTO') return 'capturePhotos';
   if (type === 'DXF_SOURCE') return 'userDxf';
   return 'uploads';
+}
+
+function revisionPointer(revision) {
+  return revision ? {
+    currentId: revision._id,
+    number: revision.data?.number || 0,
+    contentHash: revision.data?.contentHash || ''
+  } : null;
+}
+
+async function ensureLayoutRevision(artifact, userId, reason) {
+  return await entityRevisionsService.ensureForEntitySnapshot({
+    entityType: 'artifact',
+    entity: artifact,
+    scope: 'layout',
+    content: { layout: artifact.data?.layout || null, values: artifact.data?.values || {} },
+    snapshot: {
+      identity: artifact.identity || null,
+      data: { type: artifact.data?.type, layout: artifact.data?.layout || null, values: artifact.data?.values || {} }
+    },
+    userId,
+    reason
+  });
 }
 
 export const processUpdate = createProcessUpdateHandler({

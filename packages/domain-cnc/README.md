@@ -102,6 +102,11 @@ File behavior is declared by `AttachmentKind`.
 `generateAttachment` is a polymorphic command: its process-designer contract is
 one abstract `Attachment source` input with `attachments.generate` capability
 and accepted source types.
+`artifact_template` is separate organization-owned master data for DXF/PDF
+generation layouts. The command accepts it as an optional entity input and
+accepts typed assignments through `parameters.values`. Generated artifacts pin
+the selected template revision in provenance and keep a separate revision-backed
+editable layout.
 
 `entity-construction.js` declares create-time construction contracts. These are
 not authorization rules and not display fields. A construction contract names

@@ -64,7 +64,9 @@ export function entityIdentifier(entity = null) {
 
 function actionInputEntityType(action = {}) {
   if (action.actionKind === 'createEntity') return '';
-  return action.entityType || action.inputs?.find(input => input.entityType)?.entityType || '';
+  return action.entityType
+    || action.inputs?.find(input => input.id === 'entity' || (input.required && input.prompt !== true && input.entityType))?.entityType
+    || '';
 }
 
 function scopedParentId(parentType = '', screen = {}) {

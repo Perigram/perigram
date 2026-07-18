@@ -406,3 +406,10 @@ Compiled-only runtime contracts are not editable process sources. If a stored
 process definition has `data.compiled` but no canonical semantic records, the
 designer and activation path fail clearly instead of inferring a visual design
 from runtime output.
+
+Command action sockets are projected from the current command definition during
+designer synchronization and compilation. `generateAttachment` exposes its
+abstract attachment source, optional `artifact_template`, `kind`, and `values`
+inputs. This replaces stale stored command-input copies such as the former inert
+`pdfTemplateId`. Generated manual actions prompt for the same unconnected
+inputs; wired process values and manual values reach the same command contract.

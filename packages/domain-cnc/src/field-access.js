@@ -132,9 +132,15 @@ export const cncEntityFieldAccess = {
   },
   artifact: {
     feature: 'artifacts',
-    read: [...COMMON_READ_FIELDS, 'data.type', 'data.mimeType', 'data.size', 'data.filename', 'attachments.primary.*'],
+    read: [...COMMON_READ_FIELDS, 'data.type', 'data.mimeType', 'data.size', 'data.filename', 'data.layout.*', 'data.values.*', 'data.activeRevisionId', 'data.revisions.*', 'attachments.primary.*'],
     write: ['data.*', 'attachments.*'],
     admin: ['data.*', 'attachments.*']
+  },
+  artifactTemplate: {
+    feature: 'artifact_templates',
+    read: [...COMMON_READ_FIELDS, 'data.format', 'data.layout.*', 'data.variables.*', 'data.activeRevisionId', 'data.revisions.*', 'attachments.source.*'],
+    write: ['identity.name', 'data.layout.*', 'data.variables.*', 'data.activeRevisionId', 'data.revisions.*'],
+    admin: ['identity.*', 'data.*', 'attachments.*']
   },
   user: {
     feature: 'users',
@@ -211,6 +217,7 @@ const ENTITY_ALIASES = {
   nesting_run: 'nestingRun',
   sheet_design: 'sheetDesign',
   cassette_template: 'cassetteTemplate',
+  artifact_template: 'artifactTemplate',
   cassette_design: 'cassetteDesign',
   cassette_instance: 'cassetteInstance',
   material_pile: 'materialPile',

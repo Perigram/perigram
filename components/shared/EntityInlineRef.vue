@@ -49,7 +49,8 @@ const CARD_COMPONENTS = {
   layerStandard: defineAsyncComponent(() => import('~/components/entities/LayerStandard/LayerStandardCard.vue')),
   user: defineAsyncComponent(() => import('~/components/entities/User/UserCard.vue')),
   organization: defineAsyncComponent(() => import('~/components/entities/Organization/OrganizationCard.vue')),
-  artifact: defineAsyncComponent(() => import('~/components/entities/Artifact/ArtifactCard.vue'))
+  artifact: defineAsyncComponent(() => import('~/components/entities/Artifact/ArtifactCard.vue')),
+  artifactTemplate: defineAsyncComponent(() => import('~/components/entities/ArtifactTemplate/ArtifactTemplateCard.vue'))
 };
 
 const props = defineProps({

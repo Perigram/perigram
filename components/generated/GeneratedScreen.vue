@@ -130,6 +130,30 @@
               />
             </label>
           </div>
+          <div
+            v-else-if="field.editor === 'artifactTemplateValues'"
+            class="grid grid-cols-2 gap-2"
+          >
+            <label
+              v-for="variable in artifactTemplateVariableFields(field)"
+              :key="variable.name"
+              class="flex flex-col gap-1"
+            >
+              <span class="text-xs text-muted-color">{{ variable.name }}</span>
+              <Select
+                v-if="variable.type === 'boolean'"
+                v-model="promptValues[field.id][variable.name]"
+                :options="booleanOptions"
+                option-label="label"
+                option-value="value"
+              />
+              <InputText
+                v-else
+                v-model="promptValues[field.id][variable.name]"
+                :type="variable.type === 'number' ? 'number' : 'text'"
+              />
+            </label>
+          </div>
           <Textarea
             v-else-if="field.type === 'object'"
             v-model="promptValues[field.id]"
@@ -142,6 +166,11 @@
             :options="promptOptions[field.id] || []"
             option-label="label"
             option-value="value"
+          />
+          <Select
+            v-else-if="field.type === 'enum'"
+            v-model="promptValues[field.id]"
+            :options="field.options || []"
           />
           <MultiSelect
             v-else-if="field.type === 'entityList'"
@@ -228,13 +257,17 @@ const parentSelectionLabel = computed(() => parentSelectionType.value ? generate
 const parentSelectionOptions = computed(() => promptOptions[parentSelectionFieldId] || pendingEntity.value?.context?.parentOptions || []);
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
 const pageTitle = computed(() => screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
+const booleanOptions = computed(() => [
+  { label: t('common.yes'), value: true },
+  { label: t('common.no'), value: false }
+]);
 
 async function executeAction(action, entity = null, context = {}) {
   actionError.value = '';
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    if (['createEntity', 'updateEntity'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
+    if (['createEntity', 'updateEntity', 'runCommand'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
       await openInputDialog(action, entity, context);
       return;
     }
@@ -262,6 +295,7 @@ async function openInputDialog(action, entity = null, context = {}) {
   }
   await loadPromptOptions(promptedFields(action));
   syncCassetteParameterValues(promptedFields(action));
+  syncArtifactTemplateValues(promptedFields(action));
   inputDialogVisible.value = true;
 }
 
@@ -295,9 +329,9 @@ async function postAction(action, entity = null, data = {}, context = {}) {
       method: 'POST',
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
-        entities: actionEntities(action, entity, context),
+        entities: { ...actionEntities(action, entity, context), ...(data?.entities || {}) },
         data,
-        parameters: context?.parameters || data?.parameters || {}
+        parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }
       }
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
@@ -380,9 +414,36 @@ function contextWithSelectedParent(context = {}) {
 function initialPromptValue(field = {}) {
   if (field.type === 'entityList') return Array.isArray(field.default) ? field.default : [];
   if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
+  if (field.editor === 'artifactTemplateValues') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
+  if (field.type === 'enum') return field.default ?? field.options?.[0] ?? '';
   const value = field.default ?? '';
   if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);
   return value;
+}
+
+function artifactTemplateVariableFields(field = {}) {
+  const templateId = promptValues[field.templateFieldId || 'template'];
+  const option = (promptOptions[field.templateFieldId || 'template'] || [])
+    .find(item => String(item.value) === String(templateId));
+  return option?.entity?.data?.variables || [];
+}
+
+function syncArtifactTemplateValues(fields = promptedFields(pendingAction.value)) {
+  for (const field of fields.filter(item => item.editor === 'artifactTemplateValues')) {
+    const templateFieldId = field.templateFieldId || 'template';
+    const templateId = promptValues[templateFieldId];
+    const template = (promptOptions[templateFieldId] || [])
+      .find(item => String(item.value) === String(templateId))?.entity;
+    if (template?.data?.format === 'PDF') promptValues.kind = 'PDF_PASSPORT';
+    if (template?.data?.format === 'DXF') promptValues.kind = 'LAYOUT_DXF';
+    const current = promptValues[field.id] && typeof promptValues[field.id] === 'object' && !Array.isArray(promptValues[field.id])
+      ? promptValues[field.id]
+      : {};
+    promptValues[field.id] = Object.fromEntries(artifactTemplateVariableFields(field).map(variable => [
+      variable.name,
+      current[variable.name] ?? variable.default ?? ''
+    ]));
+  }
 }
 
 async function loadPromptOptions(fields = []) {
@@ -454,6 +515,15 @@ function entityOption(entity = {}, entityType = '') {
 }
 
 function collectActionInputFields(action = {}) {
+  if (action.actionKind === 'runCommand') {
+    return (action.inputs || [])
+      .filter(field => field.prompt !== false)
+      .map(field => ({
+        ...field,
+        type: field.entityType ? 'entity' : (field.type || (field.kind === 'json' ? 'object' : field.kind) || 'string'),
+        path: field.path || (field.entityType ? `entities.${field.id}` : `parameters.${field.id}`)
+      }));
+  }
   const policyFields = action.inputPolicy?.fields || [];
   const constructionFields = action.construction?.inputs || action.inputs || [];
   return [...policyFields, ...constructionFields]
@@ -506,6 +576,14 @@ watch(
   () => {
     if (!inputDialogVisible.value) return;
     syncCassetteParameterValues();
+  }
+);
+
+watch(
+  () => [promptValues.template, pendingAction.value?.actionId || pendingAction.value?.id || ''],
+  () => {
+    if (!inputDialogVisible.value) return;
+    syncArtifactTemplateValues();
   }
 );
 

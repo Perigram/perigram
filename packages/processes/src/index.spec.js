@@ -129,6 +129,55 @@ const domain = {
 };
 
 describe('@cutkit/processes compiler', () => {
+  it('reprojects attachment command sockets from the current typed template contract', () => {
+    const attachmentDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'artifact_template', collection: 'artifact_templates' }],
+      commands: {
+        ...domain.commands,
+        generateAttachment: {
+          id: 'generateAttachment',
+          input: {
+            abstractEntities: [{ name: 'source', capability: 'attachments.generate', accepts: ['sheet_design'], required: true }],
+            entities: [{ name: 'sheetDesign', type: 'sheet_design' }, { name: 'template', type: 'artifact_template' }],
+            parameters: [
+              { name: 'kind', type: 'enum', options: ['LAYOUT_DXF', 'PDF_PASSPORT'], required: true },
+              { name: 'values', type: 'object', default: {} }
+            ]
+          },
+          output: { attachments: ['LAYOUT_DXF', 'PDF_PASSPORT'] }
+        }
+      },
+      fieldAccess: {
+        ...domain.fieldAccess,
+        artifactTemplate: { feature: 'artifact_templates', read: ['identity.*'], write: ['data.*'], admin: ['data.*'] }
+      }
+    };
+    const compiled = compileProcessDefinition({
+      roles: { operator: { id: 'operator' } },
+      actions: {
+        generate: {
+          id: 'generate',
+          actionKind: 'runCommand',
+          commandId: 'generateAttachment',
+          access: { roleIds: ['operator'], level: 'write' },
+          inputs: [{ id: 'pdfTemplateId', kind: 'string' }]
+        }
+      }
+    }, attachmentDomain);
+
+    expect(compiled.actions.generate.inputs.map(input => input.id)).toEqual(['source', 'template', 'kind', 'values']);
+    expect(compiled.actions.generate.inputs.find(input => input.id === 'template')).toMatchObject({
+      entityType: 'artifact_template',
+      path: 'entities.template',
+      prompt: true
+    });
+    expect(compiled.actions.generate.inputs.find(input => input.id === 'values')).toMatchObject({
+      kind: 'json',
+      path: 'parameters.values'
+    });
+  });
+
   it('normalizes legacy changeStatus actions at the compiler boundary', () => {
     const compiled = compileProcessDefinition({
       roles: {

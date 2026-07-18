@@ -76,6 +76,8 @@ export const PROCESS_TEMPLATES = {
       warehouses: 'admin',
       requisitions: 'write',
       cassettes: 'admin',
+      artifacts: 'admin',
+      artifact_templates: 'admin',
       organizations: 'admin',
       users: 'admin',
       layer_standards: 'read'
@@ -92,6 +94,8 @@ export const PROCESS_TEMPLATES = {
       materials: 'admin',
       warehouses: 'admin',
       requisitions: 'admin',
+      artifacts: 'admin',
+      artifact_templates: 'admin',
       organizations: 'admin',
       users: 'admin',
       layer_standards: 'read'
@@ -118,6 +122,8 @@ export const PROCESS_TEMPLATES = {
       organizations: 'admin',
       users: 'admin',
       materials: 'read',
+      artifacts: 'admin',
+      artifact_templates: 'admin',
       layer_standards: 'read'
     },
     entities: {
@@ -138,6 +144,8 @@ export const PROCESS_TEMPLATES = {
       config_bot: 'admin',
       domain_builder: 'admin',
       workbench: 'admin',
+      artifacts: 'admin',
+      artifact_templates: 'admin',
       materials: 'read',
       layer_standards: 'read'
     },

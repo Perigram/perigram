@@ -40,7 +40,7 @@
 
    Note that there is Status object that handles some already
 
-* DONE Architecture repair execution plan
+* WAITING Architecture repair execution plan
   :PROPERTIES:
   :ID: architecture-repair-execution-plan-2026-07-15
   :END:
@@ -817,7 +817,7 @@
     - =npx vitest run utils/queue-design-producers.spec.js utils/queue-producers.spec.js= passed: 2 files, 7 tests.
     - =git diff --check= passed.
 
-* DONE Process designer rework
+* WAITING Process designer rework
   [2026-07-18 Sat 09:30]
 ** DONE Architecture rework
    Process designer must be a complete representation of cutkit-core, with cnc-domain as implementation; so just like core we should re-use it in different domains.
@@ -869,3 +869,87 @@
     - =node scripts/check-arch.js= passed.
     - Locale JSON parse and =git diff --check= passed.
     - =shared/localization.spec.js= has only three pre-existing failures outside this task: =nesting.selectMachine=, =nesting.thickness=, and =common.rotate=.
+* WAITING Template entity as actual template for generate typed artifacts with.
+  [2026-07-18 Sat 10:37]
+  Need to upload org-scoped templates in dxf/pdf and process them, store, and make artifact generation process to use optional template. Template needs to be customizable (different text fields should be parametrized and inserted in resulting artifacts); example: text field in uploaded one should be chosen as variable, and should be assigned, both automatic in process designer or by hand. Artifact geometry should be editable too, as revisions: move/delete placed items.
+
+** Implementation plan
+
+   1. Introduce =artifact_template= as an organization-scoped canonical entity.
+      Its source file remains an attachment; normalized pages/entities, declared
+      typed variables, and the active layout revision are entity data. Register
+      the entity, access policy, endpoints, runtime service, UI contract, and
+      entity-revision scope through the existing domain and Golden Path
+      registries.
+
+   2. Implement DXF/PDF template ingestion through the template-owning feature.
+      Validate the uploaded media type, persist the source safely, extract DXF
+      text/geometry or PDF page/text metadata into one normalized layout
+      contract, create the initial immutable layout revision, and clean up the
+      stored file if entity creation fails.
+
+   3. Implement template customization as revision-backed layout replacement.
+      Editors can mark extracted text items as named typed variables, change
+      their defaults, and move or delete layout items. Updates create/deduplicate
+      an =entity_revision= snapshot and move the template's active revision
+      pointer; revision records themselves remain immutable.
+
+   4. Replace the inert =pdfTemplateId= metadata field in
+      =generateAttachment= with an optional typed =artifact_template= input and
+      a values object. Validate values against the selected template's variable
+      declarations, render DXF/PDF output from the pinned template revision,
+      store the resulting file, and record source/template revision provenance
+      on the generated artifact. Generation without a template must keep the
+      existing native layout-DXF behavior.
+
+   5. Expose the command inputs consistently to process and manual execution.
+      Process-designer command sockets must include the optional template entity
+      and values data; generated manual action dialogs must render command
+      parameter/entity inputs instead of silently running with empty parameters.
+      Connected process data and manually entered values must reach the same
+      command contract without hardcoded status or entity-specific UI logic.
+
+   6. Replace the placeholder assets/templates page with the design-system
+      management surface: organization-scoped list, DXF/PDF upload, source
+      preview, variable selection/editing, item move/delete controls, revision
+      save, and access-controlled delete. Keep user-visible strings localized
+      and use shared page/dialog/entity primitives.
+
+   7. Migrate stored process action inputs from the removed =pdfTemplateId=
+      parameter to the new template entity/value contract, update architecture
+      documentation, and validate focused feature/API/rendering/process/UI
+      tests plus =node scripts/check-arch.js= and
+      =npm run framework:validate=.
+
+** Completion
+
+   - Added the organization-scoped =artifact_template= Golden Path feature,
+     DXF/PDF source ingestion, normalized editable layouts, typed text
+     variables, immutable template/artifact layout revisions, and pinned
+     template-revision provenance on generated artifacts.
+   - Replaced =pdfTemplateId= with typed command inputs for the optional
+     template entity and values. Process-designer sockets and generated manual
+     dialogs now project the same current command contract. The stored-process
+     migration was applied and its final dry run scanned 100 definitions with
+     =changed: 0=.
+   - Replaced the assets/templates placeholder with the design-system template
+     manager and reused the layout editor for generated artifacts. Create,
+     update, and delete controls derive visibility from process access grants.
+   - Revision creation now resolves its status through the workflow service;
+     the registered =entity_revision= fallback is the terminal system state
+     =RECORDED=, not a feature-service status literal.
+
+   Validation:
+   - Focused Vitest: 10 files, 140 tests passed.
+   - =node scripts/check-arch.js= passed.
+   - =npm run framework:validate= passed.
+   - =npm run framework:manifest= and the isolated manifest synchronization
+     spec passed.
+   - Six changed Vue SFCs, both locale JSON files, and =git diff --check=
+     passed.
+   - =shared/localization.spec.js= still reports seven pre-existing missing
+     keys in QueueEditor, SheetDesignEditor, and the process designer; none are
+     introduced by this task.
+* TODO Overload primevue select and multiselect
+  [2026-07-18 Sat 12:12]
+  Everywhere in app, where dropdowns use cutkit entities, need to replace select element content with entity card (compact variant with preview), and selected items are displayed also as compact entity cards instead of having an input in select trigger with selected items as badges.

@@ -110,6 +110,7 @@ server API routes.
 | `cassetteDesign` | `/api/cassette-designs/:id` | `/api/cassette-designs` |
 | `sheetDesign` | `/api/sheet-designs/:id` | `/api/sheet-designs` |
 | `artifact` | `/api/artifacts/:id` | `/api/artifacts` |
+| `artifactTemplate` | `/api/artifact-templates/:id` | `/api/artifact-templates` |
 | `catalog` | `/api/catalogs/:id` | `/api/catalogs` |
 | `color` | `/api/colors/:id` | `/api/colors` |
 | `warehouse` | `/api/warehouses/:id` | `/api/warehouses` |

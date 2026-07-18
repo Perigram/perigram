@@ -54,4 +54,21 @@ describe('generated action context', () => {
 
     expect(entities).toEqual({ queue: 'queue-1' });
   });
+
+  it('does not mistake an optional prompted command entity for the row source', () => {
+    const entities = resolveGeneratedActionEntities({
+      action: {
+        actionKind: 'runCommand',
+        commandId: 'generateAttachment',
+        inputs: [
+          { id: 'source', accepts: ['sheet_design'], required: true, prompt: false },
+          { id: 'template', entityType: 'artifact_template', prompt: true }
+        ]
+      },
+      entity: { _id: 'sheet-1', origin: { type: 'sheet_design' } },
+      context: { entityType: 'sheet_design' }
+    });
+
+    expect(entities).toEqual({ sheet_design: 'sheet-1' });
+  });
 });

@@ -14,6 +14,7 @@ export const cncStatusUi = {
   ERROR: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
   CHOSEN: { label: 'status.chosen', severity: 'success', icon: 'pi pi-star' },
   ACTIVE: { label: 'status.active', severity: 'success', icon: 'pi pi-check-circle' },
+  RECORDED: { label: 'status.recorded', severity: 'secondary', icon: 'pi pi-code-branch' },
   AVAILABLE: { label: 'status.available', severity: 'success', icon: 'pi pi-box' },
   STOCKED: { label: 'status.stocked', severity: 'success', icon: 'pi pi-database' },
   DEPLETED: { label: 'status.depleted', severity: 'secondary', icon: 'pi pi-inbox' },
@@ -93,7 +94,8 @@ export const cncDesignSystemEntityContracts = [
   ['layerStandard', 'layer_standard', 'master', 'entities.layerStandard', 'standard', 'createMockLayerStandard', 'hidden', false, ['server/features/layer-standards/README.md']],
   ['user', 'user', 'system', 'entities.user', 'user', 'createMockUser', workflowStatus('user'), false, ['server/features/users/README.md']],
   ['organization', 'organization', 'system', 'entities.organization', 'organization', 'createMockOrganization', 'hidden', false, ['server/features/organizations/README.md']],
-  ['artifact', 'artifact', 'system', 'entities.artifact', 'artifact', 'createMockArtifact', workflowStatus('artifact'), true, ['server/features/artifacts/README.md']]
+  ['artifact', 'artifact', 'system', 'entities.artifact', 'artifact', 'createMockArtifact', workflowStatus('artifact'), true, ['server/features/artifacts/README.md']],
+  ['artifactTemplate', 'artifact_template', 'master', 'entities.artifactTemplate', 'artifactTemplate', 'createMockArtifactTemplate', 'hidden', false, ['server/features/artifact-templates/README.md']]
 ].map(([key, entityType, group, labelKey, propName, factoryName, status, trace, docs]) => ({
   key,
   entityType,
@@ -141,6 +143,7 @@ function iconForType(type) {
     cassetteInstance: 'pi pi-box',
     library: 'pi pi-book',
     artifact: 'pi pi-file',
+    artifactTemplate: 'pi pi-file-edit',
     geometryCapture: 'pi pi-camera',
     warehouse: 'pi pi-building',
     machine: 'pi pi-cog',

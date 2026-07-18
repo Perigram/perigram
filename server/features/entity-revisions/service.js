@@ -5,13 +5,13 @@ import {
   createData,
   createEntityRef,
   createIdentity,
-  createProvenance,
-  createStatus
+  createProvenance
 } from '../../core/blocks/index.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { pluralize } from '../../utils/strings.js';
 import { EntityRevision } from './model.js';
+import { statusService } from '../../core/machines/service.js';
 
 const DEFAULT_SCOPE = 'content';
 
@@ -97,7 +97,12 @@ export async function ensureForEntitySnapshot({
 
   const latest = await repository.findLatest(entityType, entityId, scope);
   const number = Number(latest?.data?.number || 0) + 1;
-  const origin = createStatus('ACTIVE', userId, { note: 'Entity revision created' });
+  const origin = await statusService.initialStatusForOrganization(
+    'entity_revision',
+    entity.lineage?.organizationId,
+    userId,
+    { note: 'Entity revision created' }
+  );
 
   const doc = {
     identity: revisionIdentity(entityType, scope, number),

@@ -142,6 +142,23 @@ const workflowDefinitions = {
       { from: 'PENDING', to: 'FAILED', intent: 'artifactGenerationFailed', display: 'hidden', access: { system: true } }
     ]
   },
+  artifact_template: {
+    initial: 'ACTIVE',
+    states: {
+      ACTIVE: { canUpdateMeta: true },
+      ARCHIVED: { isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: [
+      { from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'artifact_templates', level: 'admin' }] } }
+    ]
+  },
+  entity_revision: {
+    initial: 'RECORDED',
+    states: {
+      RECORDED: { isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: []
+  },
   remnant: {
     initial: 'AVAILABLE',
     states: {

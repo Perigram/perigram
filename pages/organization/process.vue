@@ -2318,8 +2318,8 @@ function socketKind(io = {}) {
 
 function commandInputs(command = {}) {
   const abstractInputs = command?.input?.abstractEntities || [];
-  const source = abstractInputs.length ? abstractInputs : (command?.input?.entities || []);
-  return source.map(input => ({
+  const acceptedTypes = new Set(abstractInputs.flatMap(input => input.accepts || []));
+  const abstractPorts = abstractInputs.map(input => ({
     id: input.name || input.type || input.capability,
     label: input.label,
     entityType: input.type,
@@ -2327,8 +2327,36 @@ function commandInputs(command = {}) {
     accepts: input.accepts || [],
     required: Boolean(input.required),
     multiple: Boolean(input.multiple),
-    abstract: Boolean(input.capability || input.accepts?.length)
+    abstract: Boolean(input.capability || input.accepts?.length),
+    prompt: false
   }));
+  const entityPorts = (command?.input?.entities || [])
+    .filter(input => !acceptedTypes.has(input.type))
+    .map(input => ({
+      id: input.name || input.type,
+      label: input.label || input.name || input.type,
+      entityType: input.type,
+      kind: 'entity',
+      required: Boolean(input.required),
+      prompt: true,
+      path: `entities.${input.name || input.type}`
+    }));
+  const parameterPorts = (command?.input?.parameters || []).map(input => ({
+    id: input.name,
+    label: input.label || input.name,
+    kind: input.type === 'object' ? 'json' : input.type || 'data',
+    type: input.type || 'string',
+    options: input.options || [],
+    default: input.default ?? null,
+    required: Boolean(input.required),
+    prompt: input.display !== 'hidden',
+    path: `parameters.${input.name}`,
+    dataPath: `parameters.${input.name}`,
+    entityType: input.entityType || '',
+    editor: input.editor || '',
+    templateFieldId: input.templateFieldId || ''
+  }));
+  return [...abstractPorts, ...entityPorts, ...parameterPorts];
 }
 
 function commandOutputs(command = {}) {

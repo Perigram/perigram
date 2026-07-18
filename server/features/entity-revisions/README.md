@@ -1,7 +1,8 @@
 # COMPONENT: Entity Revisions
 
 Stores immutable content snapshots for versioned entity scopes such as cassette
-template geometry and manually edited sheet layouts.
+template geometry, manually edited sheet layouts, artifact-template layouts,
+and generated artifact layouts.
 
 ## Core Files
 
@@ -39,6 +40,9 @@ Hash/latest lookups, DTO serialization, and derived provenance also accept
 existing pre-source-key records with `data.entityType` and `data.entityId`,
 then emit current `EntityRef` provenance. New records are always written with
 `data.source`.
+Revision status is resolved through the registered `entity_revision` workflow.
+The domain fallback is the terminal system state `RECORDED`; an organization
+process remains free to register its own active revision workflow.
 
 ## Workflows
 
@@ -51,6 +55,9 @@ then emit current `EntityRef` provenance. New records are always written with
 - Sheet designs use the same `geometry` scope. Their snapshot contains the
   nesting result/preview, cassette placement counts, nesting parameters, and
   sheet specs needed to reproduce the saved layout.
+- Artifact templates use the `layout` scope for page/item placement and typed
+  variables. Generated artifacts use their own `layout` scope for placed-item
+  edits and values applied to the pinned template revision.
 
 Revisions are read-only provenance records. They are not updated or deleted by
 standard entity APIs.
