@@ -1015,3 +1015,16 @@
    - Validation: 50 focused picker/design-system tests passed; both picker SFCs
      compiled; =npm run framework:validate=, the regenerated manifest check,
      and =git diff --check= passed.
+
+** Follow-up repair
+
+   - Repaired the selected-state trigger layout for =EntitySelect= and
+     =EntityMultiSelect=. Selected compact entity refs now render outside and
+     before the PrimeVue control, while the bound PrimeVue control remains as a
+     compact change trigger with a real icon value and selected-label
+     accessibility text. This avoids empty value slots and prevents the selected
+     state from becoming a zero-height full-width input.
+   - Updated the focused wrapper spec to assert the compact trigger, outside
+     selection region, and unselected full chooser behavior.
+   - Updated shared component/design-system documentation and primitive
+     metadata to describe the compact change-trigger contract.

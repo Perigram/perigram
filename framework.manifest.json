@@ -742,7 +742,7 @@
         ],
         "key": "EntitySelect",
         "kind": "entity-input",
-        "purpose": "PrimeVue Select wrapper that renders canonical entity options as compact cards and the selected entity below the chooser."
+        "purpose": "PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger."
       },
       {
         "componentPath": "components/shared/EntityMultiSelect.vue",
@@ -752,7 +752,7 @@
         ],
         "key": "EntityMultiSelect",
         "kind": "entity-input",
-        "purpose": "PrimeVue MultiSelect wrapper that renders entity options as compact cards and selected entities below the chooser instead of chips."
+        "purpose": "PrimeVue MultiSelect wrapper that renders entity options as compact cards and selected entities outside the chip area with a compact change trigger."
       },
       {
         "componentPath": "components/shared/blocks/IdentityBlock.vue",

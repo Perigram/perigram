@@ -1,7 +1,29 @@
 <template>
-  <div v-if="entityMode" class="grid min-w-0 gap-2">
+  <div
+    v-if="entityMode"
+    :class="selectedOptionRefs.length ? 'flex min-w-0 items-start gap-2' : 'grid min-w-0 gap-2'"
+  >
+    <div v-if="selectedOptionRefs.length" class="grid min-w-0 flex-1 gap-2" data-entity-selection-list>
+      <div
+        v-for="option in selectedOptionRefs"
+        :key="optionKey(option)"
+        class="pointer-events-none min-w-0"
+      >
+        <EntityInlineRef
+          v-if="entityFor(option) && typeFor(option)"
+          :type="typeFor(option)"
+          :entity="entityFor(option)"
+          :fetch="false"
+          :allow-detail-route="false"
+          :interactive="false"
+          variant="compact"
+        />
+        <span v-else>{{ labelFor(option) }}</span>
+      </div>
+    </div>
     <PrimeMultiSelect
-      v-bind="$attrs"
+      v-bind="controlAttrs"
+      :class="selectedOptionRefs.length ? '!w-10 shrink-0 self-start' : null"
       :model-value="modelValue"
       :options="options"
       :option-label="optionLabel"
@@ -22,30 +44,13 @@
         <span v-else>{{ labelFor(option) }}</span>
       </template>
       <template #value="{ placeholder }">
-        <span>{{ placeholder }}</span>
+        <span v-if="selectedOptionRefs.length" class="pi pi-pencil" aria-hidden="true"></span>
+        <span v-else>{{ placeholder }}</span>
       </template>
       <template v-for="slotName in forwardedSlotNames" #[slotName]="slotProps">
         <slot :name="slotName" v-bind="slotProps || {}" />
       </template>
     </PrimeMultiSelect>
-    <div v-if="selectedOptions(modelValue).length" class="grid min-w-0 gap-2" data-entity-selection-list>
-      <div
-        v-for="option in selectedOptions(modelValue)"
-        :key="optionKey(option)"
-        class="pointer-events-none min-w-0"
-      >
-        <EntityInlineRef
-          v-if="entityFor(option) && typeFor(option)"
-          :type="typeFor(option)"
-          :entity="entityFor(option)"
-          :fetch="false"
-          :allow-detail-route="false"
-          :interactive="false"
-          variant="compact"
-        />
-        <span v-else>{{ labelFor(option) }}</span>
-      </div>
-    </div>
   </div>
   <PrimeMultiSelect
     v-else
@@ -63,7 +68,7 @@
 </template>
 
 <script setup>
-import { computed, useSlots } from 'vue';
+import { computed, useAttrs, useSlots } from 'vue';
 import PrimeMultiSelect from 'primevue/multiselect';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import {
@@ -86,9 +91,16 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue']);
 const slots = useSlots();
+const attrs = useAttrs();
 const entityMode = computed(() => entitySelectOptions(props.options, props.entityType).length > 0);
 const slotNames = computed(() => Object.keys(slots));
 const forwardedSlotNames = computed(() => slotNames.value.filter(name => !['option', 'value', 'chip'].includes(name)));
+const selectedOptionRefs = computed(() => selectedOptions(props.modelValue));
+const selectedTriggerLabel = computed(() => selectedOptionRefs.value.map(labelFor).filter(Boolean).join(', '));
+const controlAttrs = computed(() => {
+  if (!selectedOptionRefs.value.length) return attrs;
+  return { ...attrs, 'aria-label': selectedTriggerLabel.value || attrs['aria-label'] };
+});
 
 function selectedOptions(values) {
   return (Array.isArray(values) ? values : [])

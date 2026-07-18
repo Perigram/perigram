@@ -85,9 +85,10 @@ Shared ownership:
 - `EntityCard` owns card chrome and is the only non-legacy direct owner of PrimeVue `Card`.
 - `EntitySelect` and `EntityMultiSelect` own PrimeVue Select/MultiSelect in app
   components. Canonical entity options use compact `EntityInlineRef` cards with
-  previews. Selected entity refs render below the chooser instead of inside the
-  PrimeVue value/chip area; non-entity options delegate without changing
-  PrimeVue slots or behavior.
+  previews. Selected entity refs render outside the PrimeVue value/chip area;
+  the bound PrimeVue control stays present as a compact change trigger so
+  overlay, keyboard, and selection behavior remain owned by PrimeVue. Non-entity
+  options delegate without changing PrimeVue slots or behavior.
 - Entity-specific cards pass custom lifecycle commands through `EntityCard` `statusActions`; they should not rebuild identity/status title rows just to customize status buttons.
 - `StandardDialog` owns dialog chrome and is the only direct owner of PrimeVue `Dialog`.
 - `StandardPage` owns page shell width and spacing.
