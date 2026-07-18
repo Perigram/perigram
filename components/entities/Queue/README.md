@@ -77,7 +77,10 @@ Production queue card and detail surface.
 - The library cassette source prompts for the readable `library` container
   first, then loads cassette templates scoped to that `lineage.libraryId`.
   QueueEditor must not hide library templates behind project relation filters
-  when the active source is explicitly "from library".
+  when the active source is explicitly "from library". The cassette Add action
+  remains visible but loading/disabled until its library, template, and design
+  source collections are ready; opening the producer can therefore never
+  capture a transient empty option set during initial queue hydration.
 - Process cassette-design producers whose construction mode supports server
   default cassette-template resolution must not block the Add button on an
   unreadable or empty template selector. If no selectable template options are
