@@ -18,6 +18,15 @@
       v-else-if="screen.template === 'organizationOverview'"
       :screen="screen"
     />
+    <component
+      :is="screenOverload.component"
+      v-else-if="screenOverload"
+      :screen="screen"
+      :source-state="sourceState"
+      :screen-actions="screen.actions || []"
+      @refresh="load"
+      @execute-action="executeAction"
+    />
     <WorkspaceLanes v-else-if="screen.template === 'workspaceLanes'" class="min-h-[32rem]">
       <template v-if="regionBySlot.left" #left>
         <GeneratedRegion
@@ -217,6 +226,7 @@ import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
 import { generatedActionLabel, generatedEntityLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
+import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -260,6 +270,7 @@ const parentSelectionLabel = computed(() => parentSelectionType.value ? generate
 const parentSelectionOptions = computed(() => promptOptions[parentSelectionFieldId] || pendingEntity.value?.context?.parentOptions || []);
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
 const pageTitle = computed(() => screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
+const screenOverload = computed(() => resolveGeneratedScreenOverload(screen.value));
 const booleanOptions = computed(() => [
   { label: t('common.yes'), value: true },
   { label: t('common.no'), value: false }
