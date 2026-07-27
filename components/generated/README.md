@@ -30,27 +30,27 @@ The current default overloads are:
 `GeneratedProjectWorkspace.vue` renders project `entityDetail` screens as a
 bounded three-pane operational workspace:
 
-- the Explorer pane contains the opened project, generated child collection
-  sources, and domain-declared project relations. Child creation controls come
-  only from actions compiled onto the matching child region. Relation controls
-  come only from compiled project `updateEntity` actions whose writable fields
-  include that `relations.*` key.
+- the Explorer pane is a PrimeVue tree containing the opened project and the
+  child collections already loaded for the screen's list regions. Child
+  creation controls come only from `createEntity` actions compiled onto the
+  matching child region.
 - the editor pane contains the selected generated-source entity. It uses the
-  standard entity card and display surface contract; it does not repeat route
-  metrics or invent project-specific forms.
-- the Inspector pane contains non-lifecycle process operations, access-gated
-  deletion, and lifecycle history for the currently selected entity. Status
+  standard entity card and display surface contract. Relation fields are
+  rendered there only when the entity DTO and effective display contract expose
+  them.
+- the right lane contains non-lifecycle operations compiled onto the selected
+  entity's screen/region, access-gated deletion, and lifecycle history. Status
   mutations remain in `EntityStatus`; they are not duplicated in the operation
   rail.
 
-The overload uses `EntityPage variant="workspace"` so the app breadcrumb and
-editor tab carry project context without a second project header above the
-three panes. Aggregate queue/area summaries are not repeated in route chrome.
-The component does not fetch global child lists: selectable child rows come
-from the screen's source states, which are filtered by process grants and
-assignment scope before rendering. Relation refs come from the already-redacted
-project DTO and retain the normal generated-detail/access behavior of
-`EntityInlineRef`.
+The overload composes the canonical `EntityPage`, `WorkspaceLanes`, and
+`ScrollablePanel` primitives; it does not add an overload-only mode to a shared
+primitive. The component does not fetch global child lists or infer relation
+sections from domain metadata. Selectable child rows come from the screen's
+source states, which are filtered by process grants and assignment scope before
+rendering. Screen-level actions apply to the project, while child operations
+come from the selected child's region. The overload resolves only those
+compiled ids through the current user's action manifest.
 
 `GeneratedActionButton` supports an icon-only presentation for Explorer section
 toolbars. This changes presentation only: it still resolves the action from the
