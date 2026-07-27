@@ -613,7 +613,7 @@ import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
-import { normalizeProcessDisplayName } from '~/utils/processDesignerDisplay.js';
+import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 
 const { t } = useI18n();
 const toast = useToast();
@@ -747,7 +747,7 @@ const processOptions = computed(() => processDefinitions.value.map(process => ({
     process.status?.state?.primary
   ].filter(Boolean).join(' · '),
   value: String(process._id),
-  entity: process
+  entity: processDisplayEntity(process)
 })));
 const emptyCanvasMessage = computed(() => {
   if (loadingProcess.value) return t('common.loading');
