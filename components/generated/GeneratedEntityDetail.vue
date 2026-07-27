@@ -7,17 +7,11 @@
     :show-identity="entityType === 'sheet_design'"
     @refresh="$emit('refresh')"
   >
-    <GeneratedQueueDetail
-      v-if="entityType === 'queue'"
-      :queue="entity"
-      :screen-key="screenKey"
-      :process-actions="queueDetailActions"
+    <component
+      :is="detailOverload.component"
+      v-if="detailOverload"
+      v-bind="detailOverloadProps"
       @refresh="$emit('refresh')"
-    />
-    <SheetDesignEditor
-      v-else-if="entityType === 'sheet_design'"
-      :design="entity"
-      :editable="canEditSheetDesign"
       @saved="$emit('refresh')"
     />
     <EntitySurfaceContent v-else :entity="entity" :entity-type="entityType" :surface="surface" />
@@ -50,14 +44,13 @@ import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
-import GeneratedQueueDetail from '~/components/generated/GeneratedQueueDetail.vue';
-import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { actionProducesEntityType } from '~/utils/queue-producers.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
+import { resolveGeneratedEntityDetailOverload } from '~/components/generated/overloads.js';
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -86,6 +79,13 @@ const queueProducerActions = computed(() => props.entityType === 'queue'
   ? authStore.actionManifest.filter(action => actionProducesEntityType(action, 'cassette_design'))
   : []);
 const queueDetailActions = computed(() => uniqueActions([...resolvedActions.value, ...queueProducerActions.value]));
+const detailOverload = computed(() => resolveGeneratedEntityDetailOverload(props.entityType));
+const detailOverloadProps = computed(() => detailOverload.value?.props?.({
+  entity: props.entity,
+  screenKey: props.screenKey,
+  queueDetailActions: queueDetailActions.value,
+  canEditSheetDesign: canEditSheetDesign.value
+}) || {});
 const headerActionIds = computed(() => resolvedActions.value
   .filter(isGeneratedSurfaceAction)
   .filter(action => !(props.entityType === 'queue' && action.actionKind === 'runCommand' && action.commandId === 'solveNesting'))

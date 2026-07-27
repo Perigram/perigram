@@ -1028,3 +1028,23 @@
      selection region, and unselected full chooser behavior.
    - Updated shared component/design-system documentation and primitive
      metadata to describe the compact change-trigger contract.
+* DONE User-scoped generated project screen overloads
+  [2026-07-27 Mon]
+
+** Execution notes
+
+   - Added a generated overload registry in =components/generated/overloads.js=.
+     Default app overloads are resolved after the effective user screen manifest
+     is composed and source states are loaded, so overload components only see
+     screen sources/actions/regions available to the current user.
+   - Moved queue and sheet-design generated detail bodies into the registry
+     instead of hardcoded branches in =GeneratedEntityDetail=.
+   - Added =GeneratedProjectWorkspace.vue= for project =entityDetail= screens.
+     It renders an IDE-style three-pane project workspace: generated linked
+     entities/children on the left, selected entity pane in the center, and
+     project context plus lifecycle history on the right.
+   - Validation: generated overload/action/routing focused tests passed;
+     changed generated SFCs parsed successfully; =npm run framework:validate=
+     passed. =shared/localization.spec.js= still fails only on the known
+     pre-existing missing keys =nesting.selectMachine=, =nesting.thickness=,
+     and =common.rotate= outside this task.

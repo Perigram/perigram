@@ -294,7 +294,10 @@
     "updated": "Проект обновлён",
     "confirmDelete": "Вы уверены, что хотите удалить этот проект?",
     "deleted": "Проект удалён",
-    "cassetteLibraries": "Библиотеки кассет"
+    "cassetteLibraries": "Библиотеки кассет",
+    "linkedEntities": "Связанные сущности",
+    "selectedPane": "Выбранный объект",
+    "projectContext": "Контекст проекта"
   },
   "file": {
     "upload": "Загрузить файлы",
