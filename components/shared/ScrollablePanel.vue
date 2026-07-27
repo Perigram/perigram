@@ -25,19 +25,28 @@ import Panel from 'primevue/panel';
 const props = defineProps({
   header: { type: String, default: null },
   scrollContent: { type: Boolean, default: true },
+  density: { type: String, default: 'default' },
 });
 
 const computedPanelPt = computed(() => ({
-  header: { class: 'shrink-0' },
+  header: {
+    class: [
+      'shrink-0',
+      props.density === 'compact' ? '!px-2 !py-2' : '',
+    ],
+  },
   contentContainer: {
     class: props.scrollContent
       ? 'min-h-0 flex-1 overflow-hidden'
       : 'shrink-0 overflow-visible',
   },
   content: {
-    class: props.scrollContent
-      ? 'h-full overflow-y-auto'
-      : 'overflow-visible',
+    class: [
+      props.scrollContent
+        ? 'h-full overflow-y-auto'
+        : 'overflow-visible',
+      props.density === 'compact' ? '!p-1' : '',
+    ],
   },
 }));
 </script>

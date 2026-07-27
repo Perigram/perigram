@@ -1,5 +1,5 @@
 <template>
-  <StandardPage :title="pageTitle">
+  <StandardPage :title="pageTitle" :workspace="Boolean(screenOverload)">
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="error" state="error" :message="errorMessage" />
     <StateBlock v-else-if="actionError" state="error" :message="actionError" />
