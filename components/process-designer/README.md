@@ -163,8 +163,9 @@ scrollable overlays. The process selector and apply action stay in a centered
 toolbar with a constrained width so they cannot cover the palette. Cloned
 process names are normalized for display and new draft names remove any
 existing trailing `draft` suffix before appending one, preventing repeated
-`draft draft` labels from reaching process-definition chips while preserving
-the stored process identity.
+`draft draft` labels from reaching process-definition chips. The repair
+migration collapses repeated suffixes already stored in process identities to a
+single `draft`.
 
 Canvas wires are selectable curved edges. `Delete` / `Backspace` removes the
 selected node or selected wire, and runtime edge selection styling is stripped

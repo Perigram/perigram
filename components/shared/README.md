@@ -30,6 +30,11 @@ plus canonical blocks only. Display identity through `IdentityBlock` or
 ### `IdentityBlock.vue`
 Standardized identity display block. Always use this — never render `entity.identity.*` directly in templates.
 
+Inline identity chips are hard-bounded by their containing entity surface:
+their label is a shrinkable, ellipsized flex item, and entity picker selections
+clip overflow at the picker boundary. Arbitrarily long stored names must never
+expand a card, toolbar, or screen beyond its assigned width.
+
 **Variants:**
 
 | `variant` | Renders as | Use case |
