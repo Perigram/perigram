@@ -3,7 +3,7 @@
     v-if="project"
     :entity="project"
     entity-type="project"
-    show-trace
+    variant="workspace"
     @refresh="$emit('refresh')"
   >
     <div class="overflow-hidden rounded-panel border border-content-border bg-content">
