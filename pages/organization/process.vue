@@ -25,7 +25,7 @@
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <div class="absolute left-3 top-3 z-10 flex w-52 flex-col gap-2 rounded-ui border border-content-border bg-content p-2 shadow-card">
+      <div class="absolute left-3 top-3 z-10 flex max-h-[calc(100%-1.5rem)] w-56 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border bg-content p-2 shadow-card">
         <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1">
           <span class="text-xs font-semibold text-muted-color">{{ $t(`processDesigner.paletteGroups.${group.id}`) }}</span>
           <div class="grid grid-cols-2 gap-1">
@@ -44,7 +44,7 @@
         </div>
       </div>
 
-      <div class="absolute right-[30rem] top-3 z-10 flex min-w-0 items-center justify-end gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
+      <div class="absolute left-1/2 top-3 z-10 flex min-w-0 max-w-[calc(100%-32rem)] -translate-x-1/2 items-center justify-center gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
           <Select
             v-if="processOptions.length"
             v-model="selectedProcessId"
@@ -52,7 +52,7 @@
             option-label="label"
             option-value="value"
             entity-type="processDefinition"
-            class="w-64"
+            class="w-56 max-w-full"
             size="small"
             @change="selectProcessDefinition"
           />
@@ -60,7 +60,7 @@
           <Button icon="pi pi-check" :aria-label="$t('processDesigner.apply')" size="small" :loading="applyingProcess" :disabled="!draft?._id" @click="applyProcess" />
       </div>
 
-      <aside class="absolute bottom-3 right-3 top-3 z-10 flex w-[28rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
+      <aside class="absolute bottom-3 right-3 top-3 z-10 flex w-[26rem] max-w-[calc(100%-19rem)] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
         <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
@@ -613,6 +613,7 @@ import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
+import { normalizeProcessDisplayName } from '~/utils/processDesignerDisplay.js';
 
 const { t } = useI18n();
 const toast = useToast();
@@ -742,7 +743,7 @@ const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
 const processOptions = computed(() => processDefinitions.value.map(process => ({
   label: [
-    process.identity?.name || process.identity?.uid || process._id,
+    normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id),
     process.status?.state?.primary
   ].filter(Boolean).join(' · '),
   value: String(process._id),
@@ -905,7 +906,7 @@ function upsertProcessDefinition(process) {
 
 async function createDraft() {
   const sourceId = draft.value?._id || null;
-  const name = isActiveProcess.value && activeName.value ? `${activeName.value} draft` : 'Organization process';
+  const name = isActiveProcess.value && activeName.value ? `${normalizeProcessDisplayName(activeName.value)} draft` : 'Organization process';
   const created = await $fetch('/api/process-definitions', {
     method: 'POST',
     body: {
