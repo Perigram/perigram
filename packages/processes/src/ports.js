@@ -70,6 +70,13 @@ export function validateProcessEdges(process = {}) {
   return errors;
 }
 
+export function resolveProcessNodePorts(record = {}) {
+  return {
+    inputs: processNodeInputPorts(record),
+    outputs: processNodeOutputPorts(record)
+  };
+}
+
 export function resolveNodePort(process = {}, node = {}, handle = '', direction = 'output') {
   const record = recordForNode(process, node);
   if (!record) return null;
@@ -151,55 +158,72 @@ function outputPortsForRecord(type, record = {}) {
 }
 
 function processNodeInputPorts(record = {}) {
-  if (Array.isArray(record.inputs) && record.inputs.length) return record.inputs.map(port => normalizePortSpec(port));
   if (record.kind === 'entityRef' && ['parent', 'children', 'related'].includes(record.mode)) {
-    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
+    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '', required: true })];
   }
   if (record.kind === 'fieldRead') {
-    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
+    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '', required: true })];
   }
   if (record.kind === 'blockRead') {
-    return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '' })];
+    return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', required: true })];
   }
   if (record.kind === 'blockCompose') {
     return [
       normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', optional: true }),
-      normalizePortSpec({ id: 'value', label: record.path || 'value', kind: 'data', dataPath: record.path || '' })
+      normalizePortSpec({ id: 'value', label: record.path || 'value', kind: scalarValueKind(record), dataPath: record.path || '', required: true })
     ];
   }
   if (record.kind === 'stringOp') {
-    return [normalizePortSpec({ id: 'value', label: 'value', kind: 'data' })];
+    if (record.operation === 'concat') {
+      return [
+        normalizePortSpec({ id: 'value', label: 'left', kind: 'string', required: true }),
+        normalizePortSpec({ id: 'right', label: 'right', kind: 'string', required: true })
+      ];
+    }
+    if (record.operation === 'replace') return scalarPorts(['value', 'search', 'replacement'], 'string');
+    return scalarPorts(['value'], 'string');
   }
   if (record.kind === 'compare') {
+    if (record.operation === 'exists') {
+      return [normalizePortSpec({ id: 'left', label: 'value', kind: scalarValueKind(record), required: true })];
+    }
+    const kind = ['gt', 'lt'].includes(record.operation)
+      ? 'number'
+      : record.operation === 'contains' ? 'string' : scalarValueKind(record);
     return [
-      normalizePortSpec({ id: 'left', label: 'left', kind: 'data' }),
-      normalizePortSpec({ id: 'right', label: 'right', kind: 'data', optional: true })
+      normalizePortSpec({ id: 'left', label: 'left', kind, required: true }),
+      normalizePortSpec({ id: 'right', label: 'right', kind, required: true })
     ];
   }
   if (record.kind === 'logic') {
+    if (record.operation === 'not') {
+      return [normalizePortSpec({ id: 'left', label: 'value', kind: 'boolean', required: true })];
+    }
+    if (record.operation === 'coalesce') return scalarPorts(['left', 'right'], scalarValueKind(record));
     return [
-      normalizePortSpec({ id: 'left', label: 'left', kind: 'data' }),
-      normalizePortSpec({ id: 'right', label: 'right', kind: 'data', optional: record.operation === 'not' })
+      normalizePortSpec({ id: 'left', label: 'left', kind: 'boolean', required: true }),
+      normalizePortSpec({ id: 'right', label: 'right', kind: 'boolean', required: true })
     ];
   }
   if (record.kind === 'collection') {
-    return [normalizePortSpec({ id: 'items', label: record.entityType || 'items', kind: 'entity_list', entityType: record.entityType || '' })];
+    return [normalizePortSpec({ id: 'items', label: record.entityType || 'items', kind: 'entity_list', entityType: record.entityType || '', required: true })];
   }
   return [];
 }
 
 function processNodeOutputPorts(record = {}) {
-  if (Array.isArray(record.outputs) && record.outputs.length) return record.outputs.map(port => normalizePortSpec(port));
   if (record.kind === 'entityRef') {
     const outputType = record.mode === 'children' || (record.mode === 'related' && record.relationCardinality === 'many') ? 'entity_list' : 'entity';
     const entityType = record.relationEntityType || record.entityType || '';
     return [normalizePortSpec({ id: 'entity', label: entityType || outputType, kind: outputType, entityType })];
   }
   if (record.kind === 'fieldRead') {
+    const declaredBlocks = (record.outputs || []).filter(port => port.kind === 'block' && port.block);
+    if (declaredBlocks.length) return declaredBlocks.map(port => normalizePortSpec(port));
     return processBlockPorts(record.entityType);
   }
   if (record.kind === 'blockRead') {
-    return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: record.valueType || 'data', block: record.block || '', dataPath: record.path || '' })];
+    return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: scalarValueKind(record), block: record.block || '', dataPath: record.path || '' })];
   }
   if (record.kind === 'blockCompose') {
     return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', dataPath: record.path || '' })];
@@ -211,7 +235,10 @@ function processNodeOutputPorts(record = {}) {
     return [normalizePortSpec({ id: 'count', label: 'count', kind: 'number' })];
   }
   if (record.kind === 'compare' || record.kind === 'logic') {
-    return [normalizePortSpec({ id: 'result', label: 'result', kind: 'boolean' })];
+    const kind = record.kind === 'logic' && record.operation === 'coalesce'
+      ? scalarValueKind(record)
+      : 'boolean';
+    return [normalizePortSpec({ id: 'result', label: 'result', kind })];
   }
   if (record.kind === 'stringOp') {
     return [normalizePortSpec({ id: 'value', label: 'value', kind: 'string' })];
@@ -259,12 +286,11 @@ function recordForNode(process = {}, node = {}) {
 }
 
 function normalizePortKind(kind = '', io = {}, fallback = {}) {
-  if (['entity_list', 'entity', 'block', 'data', 'status', 'event', 'projection', 'attachment', 'task'].includes(kind)) return kind;
+  if (['entity_list', 'entity', 'block', 'data', 'string', 'number', 'boolean', 'json', 'status', 'event', 'projection', 'attachment', 'task'].includes(kind)) return kind;
   if (io.projection) return 'projection';
   if (io.block) return 'block';
   if (io.entityType) return io.multiple ? 'entity_list' : 'entity';
   if (kind === 'object') return 'data';
-  if (['string', 'number', 'boolean', 'json'].includes(kind)) return 'data';
   if (io.dataPath || io.path) return 'data';
   if (fallback.kind) return fallback.kind;
   return '';
@@ -277,9 +303,20 @@ function valueInputKind(input = {}) {
 }
 
 function dataCompatible(source, target) {
-  if (source.kind === 'data' && ['data', 'block'].includes(target.kind)) return { ok: true };
+  if (target.kind === 'data' && ['data', 'string', 'number', 'boolean', 'json'].includes(source.kind)) return { ok: true };
+  if (source.kind === 'data' && target.kind === 'data') return { ok: true };
   if (source.kind === 'block' && ['data', 'block'].includes(target.kind)) return blockCompatible(source, target);
   return incompatible(source, target);
+}
+
+function scalarPorts(ids = [], kind = 'string') {
+  return ids.map(id => normalizePortSpec({ id, label: id, kind, required: true }));
+}
+
+function scalarValueKind(record = {}) {
+  return ['string', 'number', 'boolean', 'json'].includes(record.valueType)
+    ? record.valueType
+    : 'string';
 }
 
 function blockCompatible(source, target) {

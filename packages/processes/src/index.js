@@ -5,7 +5,7 @@ import {
   normalizeScreenContract,
   validateScreenContract
 } from './screen-contract.js';
-import { validateProcessEdges } from './ports.js';
+import { resolveProcessNodePorts, validateProcessEdges } from './ports.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -28,6 +28,7 @@ export {
 export {
   normalizePortSpec,
   portSpecsCompatible,
+  resolveProcessNodePorts,
   resolveNodePort,
   validateProcessEdges
 } from './ports.js';
@@ -36,6 +37,8 @@ export {
   PROCESS_DESIGNER_PALETTE_GROUPS,
   createProcessDesignerContract
 } from './designer.js';
+
+export { resolveProcessActionInputContext } from './algebra.js';
 
 export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
   return normalizeWorkflow({
@@ -153,6 +156,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
   for (const [nodeId, node] of Object.entries(process.processNodes)) {
     validateProcessNode(nodeId, node, { entities, domain, errors });
   }
+  validateProcessNodeConnections(process, errors);
 
   for (const [statusId, status] of Object.entries(process.statusDefinitions)) {
     if (!status.statusId) errors.push(`Status definition ${statusId} must define statusId`);
@@ -173,6 +177,10 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
   }
 
   for (const [screenId, screen] of Object.entries(process.screens)) {
+    if (!screen || typeof screen !== 'object' || Array.isArray(screen)) {
+      validateScreenContract(screen, { screenId, entities, actions: process.actions, errors });
+      continue;
+    }
     if (!screen.route) errors.push(`Screen ${screenId} must define a route`);
     for (const roleId of screen.roleIds || []) {
       if (!process.roles[roleId]) errors.push(`Screen ${screenId} references missing role ${roleId}`);
@@ -1929,6 +1937,7 @@ function compileProcessNodes(processNodes = {}) {
     path: node.path || '',
     valueType: node.valueType || '',
     operation: node.operation || '',
+    template: node.template || '',
     inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
     outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : []
   }]));
@@ -2206,6 +2215,41 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   if (['blockRead', 'blockCompose'].includes(kind) && !node.path) errors.push(`Process node ${nodeId} must define a field path`);
   if (['stringOp', 'compare', 'logic', 'collection'].includes(kind) && !node.operation) {
     errors.push(`Process node ${nodeId} must define an operation`);
+  }
+  const operations = {
+    stringOp: ['concat', 'template', 'replace', 'lower', 'upper', 'trim'],
+    compare: ['eq', 'neq', 'gt', 'lt', 'contains', 'exists'],
+    logic: ['and', 'or', 'not', 'coalesce'],
+    collection: ['first', 'count']
+  };
+  if (operations[kind] && !operations[kind].includes(node.operation)) {
+    errors.push(`Process node ${nodeId} uses unknown ${kind} operation ${node.operation || '(empty)'}`);
+  }
+  if (kind === 'stringOp' && node.operation === 'template' && !String(node.template || '').includes('{value}')) {
+    errors.push(`Process node ${nodeId} template must contain {value}`);
+  }
+}
+
+function validateProcessNodeConnections(process = {}, errors = []) {
+  for (const graphNode of process.graph?.nodes || []) {
+    if (graphNode.type !== 'processNode') continue;
+    const nodeId = String(graphNode.data?.refId || graphNode.id || '');
+    const record = process.processNodes?.[nodeId];
+    if (!record) continue;
+    const contract = resolveProcessNodePorts(record);
+    const counts = new Map();
+    for (const edge of (process.graph?.edges || []).filter(item => String(item.target) === String(graphNode.id))) {
+      const handle = String(edge.targetHandle || '').replace(/^(input|data):/, '');
+      const inputId = (!handle || handle === 'input') && contract.inputs.length === 1
+        ? contract.inputs[0].id
+        : handle;
+      if (!inputId) continue;
+      counts.set(inputId, (counts.get(inputId) || 0) + 1);
+    }
+    for (const input of contract.inputs) {
+      if (input.required && !counts.has(input.id)) errors.push(`Process node ${nodeId} requires input ${input.id}`);
+      if ((counts.get(input.id) || 0) > 1) errors.push(`Process node ${nodeId} input ${input.id} has more than one connected value`);
+    }
   }
 }
 

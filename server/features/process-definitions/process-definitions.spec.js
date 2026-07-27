@@ -739,6 +739,71 @@ describe('process definitions access fallback', () => {
     );
   });
 
+  it('evaluates connected process programming nodes before executing an action', async () => {
+    executeCommand.mockResolvedValueOnce({ data: { ok: true } });
+    getAppRegistry.mockReturnValueOnce({
+      getCommandDefinition: () => ({ access: {} })
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {
+          run: {
+            id: 'run',
+            actionKind: 'runCommand',
+            commandId: 'calculate',
+            inputs: [{ id: 'label', kind: 'string' }]
+          }
+        },
+        valueInputs: {
+          prefix: { id: 'prefix', valueType: 'string', value: 'Part ' },
+          serial: { id: 'serial', valueType: 'string', value: '17' }
+        },
+        processNodes: {
+          label: { id: 'label', kind: 'stringOp', operation: 'concat' }
+        },
+        graph: {
+          nodes: [
+            { id: 'prefix', type: 'valueInput' },
+            { id: 'serial', type: 'valueInput' },
+            { id: 'label', type: 'processNode' },
+            { id: 'run', type: 'action' }
+          ],
+          edges: [
+            { source: 'prefix', sourceHandle: 'output', target: 'label', targetHandle: 'input:value' },
+            { source: 'serial', sourceHandle: 'output', target: 'label', targetHandle: 'input:right' },
+            { source: 'label', sourceHandle: 'output', target: 'run', targetHandle: 'input' }
+          ]
+        },
+        compiled: {
+          actions: {
+            run: {
+              id: 'run',
+              actionKind: 'runCommand',
+              commandId: 'calculate',
+              access: { level: 'write', roleIds: ['role_operator'] }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({ actionId: 'run' }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: { actions: [{ actionId: 'run' }] }
+    });
+
+    expect(executeCommand).toHaveBeenCalledWith(
+      'calculate',
+      { entities: {}, parameters: { label: 'Part 17' } },
+      expect.any(Object)
+    );
+  });
+
   it('does not project process output status before async command tasks finish', async () => {
     executeCommand.mockResolvedValueOnce({
       entities: [{ type: 'nesting_run', id: 'nesting-run-1' }],

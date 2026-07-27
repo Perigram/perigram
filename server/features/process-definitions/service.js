@@ -19,6 +19,7 @@ import {
   createProcessFromTemplate,
   hasCanonicalProcessSource,
   normalizeProcessDefinition,
+  resolveProcessActionInputContext,
   requiredEntityProfileTypes,
   validateProcessDefinition,
   validateRoundTrip
@@ -277,6 +278,17 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   const action = process.data.compiled?.actions?.[actionId] || process.data.actions?.[actionId];
   if (!action) throw createError({ statusCode: 404, message: 'Action not found in active process' });
   assertCompiledActionAvailable(actionId, auth);
+  try {
+    const resolved = await resolveProcessActionInputContext(process.data, actionId, { data, parameters, entities }, {
+      resolveEntity: (entityType, candidate) => resolveProcessGraphEntity(entityType, candidate, { entityId, entities, auth }),
+      resolveEntityReference: (record, source) => resolveProcessGraphEntityReference(record, source, auth)
+    });
+    data = resolved.data;
+    parameters = resolved.parameters;
+    entities = resolved.entities;
+  } catch (error) {
+    throw createError({ statusCode: 400, message: error.message });
+  }
 
   if (action.actionKind === 'runCommand') {
     if (!action.commandId) throw createError({ statusCode: 400, message: `Action ${actionId} has no command` });
@@ -359,7 +371,8 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   }
 
   if (action.actionKind === 'updateEntity') {
-    const targetId = entityId || entities?.entity || entities?.[action.entityType];
+    const targetValue = entityId || entities?.entity || entities?.[action.entityType];
+    const targetId = normalizeEntityRef(targetValue)?.id || targetValue;
     if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
     const entityType = resolveActionEntityType(action);
     const executionAuth = createActionExecutionAuth(auth, action);
@@ -389,6 +402,57 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   }
 
   throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
+}
+
+async function resolveProcessGraphEntity(entityType, candidate, { entityId = null, entities = {}, auth = {} } = {}) {
+  if (candidate && typeof candidate === 'object' && !Array.isArray(candidate) && !normalizeEntityRef(candidate)) {
+    return candidate;
+  }
+  const supplied = candidate ?? entities?.[entityType] ?? entities?.entity ?? entityId;
+  const ref = normalizeEntityRef(supplied);
+  const id = ref?.id || (typeof supplied === 'string' ? supplied : null);
+  if (!id) throw new Error(`No ${entityType} entity was supplied to the process graph`);
+  const service = getAppRegistry().getEntityService(entityType);
+  if (!service?.getById) throw new Error(`Entity service missing for ${entityType}`);
+  const entity = await service.getById(id, auth);
+  if (!entity) throw new Error(`${entityType} ${id} was not found`);
+  return entity?.toJSON ? entity.toJSON() : entity;
+}
+
+async function resolveProcessGraphEntityReference(record, source, auth = {}) {
+  if (!source || typeof source !== 'object') throw new Error(`Process node ${record.id} requires an entity input`);
+  let references;
+  if (record.mode === 'related') references = source.relations?.[record.relationKey];
+  if (record.mode === 'parent') {
+    const targetType = record.relationEntityType;
+    references = source.lineage?.[`${targetType}Id`];
+  }
+  if (record.mode === 'children') {
+    const domain = getAppRegistry().getDomain();
+    const containment = (domain.containment || []).find(item => (
+      item.parentType === record.entityType && item.childType === record.relationEntityType
+    ));
+    if (!containment?.lineageKey) {
+      throw new Error(`Process node ${record.id} has no declared ${record.entityType} to ${record.relationEntityType} containment`);
+    }
+    const parentId = source.identity?.uid || source._id || source.id;
+    const service = getAppRegistry().getEntityService(record.relationEntityType);
+    if (!service?.list) throw new Error(`Entity service cannot list ${record.relationEntityType}`);
+    const children = await service.list({ [containment.lineageKey]: String(parentId) }, auth);
+    return (children || [])
+      .map(child => child?.toJSON ? child.toJSON() : child)
+      .filter(child => String(child?.lineage?.[containment.lineageKey] || '') === String(parentId));
+  }
+  const values = Array.isArray(references) ? references : [references];
+  const resolved = [];
+  for (const value of values.filter(Boolean)) {
+    const ref = normalizeEntityRef(value);
+    const entityType = ref?.type || record.relationEntityType;
+    resolved.push(await resolveProcessGraphEntity(entityType, ref || value, { auth }));
+  }
+  if (!resolved.length) throw new Error(`Process node ${record.id} could not resolve ${record.mode} entity`);
+  const multiple = record.relationCardinality === 'many';
+  return multiple ? resolved : resolved[0];
 }
 
 export async function appendExistingCassetteDesignToActiveQueue({ queueId, designId, quantity = 1 } = {}, auth = {}) {

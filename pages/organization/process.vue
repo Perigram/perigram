@@ -415,9 +415,31 @@
                       <label>{{ $t('processDesigner.path') }}</label>
                       <Select v-model="selectedProcessNode.path" :options="selectedProcessNodeFieldOptions" option-label="label" option-value="value" editable @change="syncSelectedProcessNode" />
                     </div>
-                    <div v-if="selectedProcessNode.kind === 'blockRead'" class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.outputValue') }}</label>
+                    <div v-if="processNodeUsesValueType(selectedProcessNode)" class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.valueType') }}</label>
                       <Select v-model="selectedProcessNode.valueType" :options="processValueTypeOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
+                    </div>
+                    <div v-if="selectedProcessNode.kind === 'stringOp' && selectedProcessNode.operation === 'template'" class="col-span-2 flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.textTemplate') }}</label>
+                      <InputText v-model="selectedProcessNode.template" :placeholder="$t('processDesigner.textTemplatePlaceholder')" @change="syncSelectedProcessNode" />
+                    </div>
+                    <div class="col-span-2 rounded-ui border border-content-border bg-content p-2">
+                      <div class="mb-2 text-xs font-semibold uppercase text-muted-color">{{ $t('processDesigner.nodeContract') }}</div>
+                      <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <Tag
+                          v-for="input in selectedProcessNode.inputs || []"
+                          :key="`input-${input.id}`"
+                          :value="`${input.label}: ${input.kind}`"
+                          severity="secondary"
+                        />
+                        <i class="pi pi-arrow-right text-muted-color"></i>
+                        <Tag
+                          v-for="output in selectedProcessNode.outputs || []"
+                          :key="`output-${output.id}`"
+                          :value="`${output.label}: ${output.kind}`"
+                          severity="info"
+                        />
+                      </div>
                     </div>
                   </div>
                 </template>
@@ -601,7 +623,7 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { canvasToDefinition, compileProcessDefinition, createProcessDesignerContract, definitionToCanvas, portSpecsCompatible, requiredEntityProfileTypes, resolveNodePort } from '~/packages/processes/src/index.js';
+import { canvasToDefinition, compileProcessDefinition, createProcessDesignerContract, definitionToCanvas, portSpecsCompatible, requiredEntityProfileTypes, resolveNodePort, resolveProcessNodePorts } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain } from '@cutkit/domain-cnc';
@@ -818,12 +840,13 @@ const lifecycleStateOptions = computed(() => lifecycleStateEntries.value);
 const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
 const selectedRoleAccessSummary = computed(() => selectedRoleId.value ? roleAccessSummary(selectedRoleId.value) : []);
 const compiledScreenPreview = computed(() => Object.values(compiledPreview.value?.screens || {})
+  .filter(screen => screen && typeof screen === 'object' && !Array.isArray(screen))
   .map(screen => {
     const normalized = normalizeScreenContract(screen);
     return {
       ...normalized,
-      roleLabels: (screen.roleIds || []).map(roleId => roles.value[roleId]?.label || roleId),
-      requiredLabel: screen.required?.feature ? `${screen.required.feature}:${screen.required.level || 'read'}` : ''
+      roleLabels: (normalized.roleIds || []).map(roleId => roles.value[roleId]?.label || roleId),
+      requiredLabel: normalized.required?.feature ? `${normalized.required.feature}:${normalized.required.level || 'read'}` : ''
     };
   })
   .sort((left, right) => String(left.label || left.id).localeCompare(String(right.label || right.id))));
@@ -1310,8 +1333,9 @@ function createProcessNode(id, kind = 'fieldRead') {
     relationCardinality: '',
     block: ['blockRead', 'blockCompose'].includes(kind) ? 'identity' : '',
     path: ['blockRead', 'blockCompose'].includes(kind) ? 'name' : '',
-    valueType: kind === 'compare' || kind === 'logic' ? 'boolean' : 'string',
+    valueType: defaultProcessNodeValueType(kind, defaultProcessNodeOperation(kind)),
     operation: defaultProcessNodeOperation(kind),
+    template: kind === 'stringOp' ? '{value}' : '',
     icon: iconForProcessNode(kind),
     inputs: [],
     outputs: []
@@ -1967,7 +1991,8 @@ function syncValueInput(input = {}) {
 function syncProcessNode(node = {}) {
   node.kind ||= 'fieldRead';
   node.operation ||= defaultProcessNodeOperation(node.kind);
-  node.valueType ||= defaultProcessNodeValueType(node.kind);
+  node.valueType ||= defaultProcessNodeValueType(node.kind, node.operation);
+  if (node.kind === 'stringOp' && node.operation === 'template') node.template ||= '{value}';
   node.icon = iconForProcessNode(node.kind);
   if (node.kind !== 'entityRef') node.mode = '';
   else node.mode ||= node.operation || 'current';
@@ -2008,7 +2033,7 @@ function applyInferredProcessNodeInputs(record = {}, node = {}) {
 }
 
 function processNodeNeedsSourceEntity(node = {}) {
-  return node.kind === 'entityRef' || node.kind === 'fieldRead' || node.kind === 'collection';
+  return ['entityRef', 'fieldRead', 'blockRead', 'blockCompose', 'collection'].includes(node.kind);
 }
 
 function processNodeNeedsResultEntity(node = {}) {
@@ -2037,8 +2062,9 @@ function processNodeOperationLabel(kind = '') {
   return t('processDesigner.operation');
 }
 
-function defaultProcessNodeValueType(kind = '') {
-  if (kind === 'compare' || kind === 'logic') return 'boolean';
+function defaultProcessNodeValueType(kind = '', operation = '') {
+  if (kind === 'compare') return ['gt', 'lt'].includes(operation) ? 'number' : 'string';
+  if (kind === 'logic') return operation === 'coalesce' ? 'string' : 'boolean';
   if (kind === 'collection') return 'number';
   return 'string';
 }
@@ -2051,35 +2077,18 @@ function processNodeOperationOptions(kind = '') {
   return (processNodeOperations[kind] || []).map(value => ({ label: processNodeOperationLabels[value] || value, value }));
 }
 
+function processNodeUsesValueType(node = {}) {
+  return node.kind === 'blockRead'
+    || node.kind === 'blockCompose'
+    || (node.kind === 'compare' && ['eq', 'neq', 'exists'].includes(node.operation))
+    || (node.kind === 'logic' && node.operation === 'coalesce');
+}
+
 function processNodeInputs(node = {}) {
-  if (node.kind === 'entityRef' && ['parent', 'children', 'related'].includes(node.mode)) {
-    return [{ id: 'entity', label: node.entityType || t('processDesigner.incomingEntity'), kind: 'entity', entityType: node.entityType || '' }];
-  }
-  if (node.kind === 'fieldRead') {
-    return [{ id: 'entity', label: node.entityType || t('processDesigner.incomingEntity'), kind: 'entity', entityType: node.entityType || '' }];
-  }
-  if (node.kind === 'blockRead') {
-    return [{ id: 'block', label: node.block || 'block', kind: 'block', block: node.block || '' }];
-  }
-  if (node.kind === 'blockCompose') {
-    return [
-      { id: 'block', label: node.block || 'block', kind: 'block', block: node.block || '', required: false },
-      { id: 'value', label: node.path || 'value', kind: 'data', dataPath: node.path || '' }
-    ];
-  }
-  if (node.kind === 'stringOp') return [{ id: 'value', label: 'value', kind: 'data' }];
-  if (node.kind === 'compare') return [{ id: 'left', label: 'left', kind: 'data' }, { id: 'right', label: 'right', kind: 'data', required: false }];
-  if (node.kind === 'logic') return [{ id: 'left', label: 'left', kind: 'data' }, { id: 'right', label: 'right', kind: 'data', required: node.operation !== 'not' }];
-  if (node.kind === 'collection') return [{ id: 'items', label: node.entityType || 'items', kind: 'entity_list', entityType: node.entityType || '' }];
-  return [];
+  return resolveProcessNodePorts(node).inputs;
 }
 
 function processNodeOutputs(node = {}) {
-  if (node.kind === 'entityRef') {
-    const entityType = node.relationEntityType || node.entityType || '';
-    const multiple = node.mode === 'children' || (node.mode === 'related' && node.relationCardinality === 'many');
-    return [{ id: 'entity', label: entityType || (multiple ? 'entities' : 'entity'), kind: multiple ? 'entity_list' : 'entity', entityType, multiple }];
-  }
   if (node.kind === 'fieldRead') return standardBlocksForEntity(node.entityType).map(block => ({
     id: block.id,
     label: block.label,
@@ -2087,13 +2096,7 @@ function processNodeOutputs(node = {}) {
     block: block.id,
     entityType: node.entityType
   }));
-  if (node.kind === 'blockRead') return [{ id: 'value', label: node.path || 'value', kind: node.valueType || 'data', block: node.block || '', dataPath: node.path || '' }];
-  if (node.kind === 'blockCompose') return [{ id: 'block', label: node.block || 'block', kind: 'block', block: node.block || '', dataPath: node.path || '' }];
-  if (node.kind === 'collection' && node.operation === 'first') return [{ id: 'entity', label: node.entityType || 'entity', kind: 'entity', entityType: node.entityType || '' }];
-  if (node.kind === 'collection' && node.operation === 'count') return [{ id: 'count', label: 'count', kind: 'number' }];
-  if (node.kind === 'compare' || node.kind === 'logic') return [{ id: 'result', label: 'result', kind: 'boolean' }];
-  if (node.kind === 'stringOp') return [{ id: 'value', label: 'value', kind: 'string' }];
-  return [];
+  return resolveProcessNodePorts(node).outputs;
 }
 
 function processNodeSummary(node = {}) {
