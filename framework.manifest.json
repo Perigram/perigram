@@ -118,7 +118,8 @@
       "label": "Solve nesting",
       "outputs": [
         "nesting_run",
-        "sheet_design"
+        "sheet_design",
+        "sheet"
       ],
       "permissions": [
         {
