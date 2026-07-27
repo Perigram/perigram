@@ -28,39 +28,38 @@ The current default overloads are:
 ## Project Workspace
 
 `GeneratedProjectWorkspace.vue` renders project `entityDetail` screens as a
-bounded three-pane operational workspace:
+bounded IDE-style Explorer and file workspace:
 
-- the Explorer pane is a PrimeVue tree containing the opened project and the
-  child collections already loaded for the screen's list regions. Child
-  creation controls come only from `createEntity` actions compiled onto the
-  matching child region.
-- the editor pane contains the selected generated-source entity. It uses the
-  actual `GeneratedEntityDetail`, not an `EntityCard` preview. This preserves
-  the entity's registered detail-body overload, access-gated deletion, status
-  surface, and process operations compiled onto the selected screen/region.
-  Relation fields are rendered only when the entity DTO and effective display
-  contract expose them.
-- the right lane is the selected entity's dedicated lifecycle timeline.
+- the borderless Explorer is a dense PrimeVue tree containing the opened
+  project and only the child collections loaded by the screen's list regions.
+- each file is a `GeneratedEntityFile`: a single header line with entity icon,
+  identity, status, an ellipsis action menu, split controls, and a compact
+  pane-width-safe entity surface below it. It does not nest `EntityPage` or an
+  entity card inside the workspace.
+- PrimeVue splitters form a recursive split tree. A file can split right or
+  down, and nested horizontal/vertical splits keep independent entity
+  selections and scrolling. There is no reserved right inspector pane.
 
-The overload composes `WorkspaceLanes` and `ScrollablePanel`; its center mounts
-the canonical `GeneratedEntityDetail`, which in turn owns `EntityPage`. It does
-not add an overload-only mode to a shared primitive. The component does not
-fetch global child lists or infer relation sections from domain metadata.
-Selectable child rows come from the screen's source states, which are filtered
-by process grants and assignment scope before rendering. Screen-level actions
-apply to the project, while child operations come from the selected child's
-region. The overload resolves only those compiled ids through the current
-user's action manifest.
+The opened project file aggregates its runnable project operations from the
+compiled contract. Screen/main action ids provide project updates, relation
+links, uploads, and other process operations. Direct-child create actions come
+from the matching child list region and must declare `project` as their parent.
+The component resolves only those ids through the current user's action
+manifest; it does not scan the global manifest, import domain relation metadata,
+or call link/upload APIs directly. If the organization process does not compile
+an upload or relation action onto this screen, that control is intentionally
+absent.
+
+Selectable rows still come from access-filtered screen source states. Clicking
+an Explorer entity replaces the active file selection; splitting duplicates the
+current selection and subsequent navigation is pane-local.
 
 Registered screen overloads select the bounded workspace mode on
 `GeneratedScreen`/`StandardPage`, and the authenticated app layout resolves the
 same overload from the user's active screen manifest. The resulting frame is
 flush to the app boundary and body scrolling is disabled. Explorer, editor, and
-lifecycle lanes own their scrolling independently. Explorer and lifecycle use
-compact `ScrollablePanel` density; the center entity detail is not wrapped in
-page padding.
+file panes own their scrolling independently.
 
-`GeneratedActionButton` supports an icon-only presentation for Explorer section
-toolbars. This changes presentation only: it still resolves the action from the
-current user's action manifest and emits that compiled action to the generated
-screen executor.
+`GeneratedActionButton`, `GeneratedDeleteButton`, and
+`GeneratedCassetteDesignerAction` support menu-item presentation for entity
+ellipsis menus. Presentation does not change action resolution or access.
