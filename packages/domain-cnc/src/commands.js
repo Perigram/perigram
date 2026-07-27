@@ -3,7 +3,7 @@ export const cncServiceContracts = {
     service: 'nesting',
     label: 'Nesting service',
     inputs: ['queue', 'sheet', 'remnant', 'machine', 'tool_profile'],
-    outputs: ['nesting_run', 'sheet_design'],
+    outputs: ['nesting_run', 'sheet_design', 'sheet'],
     actions: ['solveNesting'],
     triggers: ['queue.nestingRequested']
   },
@@ -71,6 +71,7 @@ export const cncCommands = {
     service: 'nesting',
     action: 'solve',
     label: 'Solve nesting',
+    requiredEntityProfiles: ['nesting_run', 'sheet_design', 'sheet'],
     input: {
       entities: [{ name: 'queue', type: 'queue', required: true }],
       parameters: [
@@ -86,7 +87,7 @@ export const cncCommands = {
     },
     triggers: [{ event: 'queue.nestingRequested' }],
     output: {
-      entities: ['nesting_run', 'sheet_design'],
+      entities: ['nesting_run', 'sheet_design', 'sheet'],
       tasks: ['nesting.solve'],
       events: ['queue.nestingRequested', 'nesting.solveStarted']
     },

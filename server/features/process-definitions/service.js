@@ -19,6 +19,7 @@ import {
   createProcessFromTemplate,
   hasCanonicalProcessSource,
   normalizeProcessDefinition,
+  requiredEntityProfileTypes,
   validateProcessDefinition,
   validateRoundTrip
 } from '~/packages/processes/src/index.js';
@@ -160,13 +161,10 @@ export async function createActiveFromTemplate({ organizationId, userId, templat
 function validateActivatableProcess(data = {}, domain = {}) {
   const validation = validateProcessDefinition(data, domain);
   const process = validation.definition || normalizeProcessDefinition(data);
-  const exposesNesting = Object.values(process.actions || {}).some(action => (
-    action.actionKind === 'runCommand' && action.commandId === 'solveNesting'
-  )) || Object.values(process.services || {}).some(service => service.commandId === 'solveNesting');
-  if (!exposesNesting) return validation;
-
+  const requiredTypes = requiredEntityProfileTypes(process, domain);
+  if (!requiredTypes.length) return validation;
   const profiledTypes = new Set(Object.values(process.entityProfiles || {}).map(profile => profile.entityType));
-  const missing = ['nesting_run', 'sheet_design', 'sheet'].filter(entityType => !profiledTypes.has(entityType));
+  const missing = requiredTypes.filter(entityType => !profiledTypes.has(entityType));
   if (!missing.length) return validation;
   const errors = [
     ...(validation.errors || []),
