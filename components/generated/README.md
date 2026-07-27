@@ -28,15 +28,29 @@ The current default overloads are:
 ## Project Workspace
 
 `GeneratedProjectWorkspace.vue` renders project `entityDetail` screens as a
-three-pane workspace:
+bounded three-pane operational workspace:
 
-- left pane: the opened project plus generated child collection sources, such
-  as queues or cassette instances, and child create actions when the current
-  user manifest exposes them.
-- center pane: the selected project or child entity rendered through standard
-  entity cards and `EntitySurfaceContent`.
-- right pane: project context and lifecycle history.
+- the Explorer pane contains the opened project, generated child collection
+  sources, and domain-declared project relations. Child creation controls come
+  only from actions compiled onto the matching child region. Relation controls
+  come only from compiled project `updateEntity` actions whose writable fields
+  include that `relations.*` key.
+- the editor pane contains the selected generated-source entity. It uses the
+  standard entity card and display surface contract; it does not repeat route
+  metrics or invent project-specific forms.
+- the Inspector pane contains non-lifecycle process operations, access-gated
+  deletion, and lifecycle history for the currently selected entity. Status
+  mutations remain in `EntityStatus`; they are not duplicated in the operation
+  rail.
 
-The component does not fetch global child lists. Child rows come from the
-screen's source states, which are filtered by process grants and assignment
-scope before rendering.
+The workspace header contains canonical project identity, trace, and status
+only. Aggregate queue/area summaries are not repeated there. The component
+does not fetch global child lists: selectable child rows come from the screen's
+source states, which are filtered by process grants and assignment scope before
+rendering. Relation refs come from the already-redacted project DTO and retain
+the normal generated-detail/access behavior of `EntityInlineRef`.
+
+`GeneratedActionButton` supports an icon-only presentation for Explorer section
+toolbars. This changes presentation only: it still resolves the action from the
+current user's action manifest and emits that compiled action to the generated
+screen executor.
