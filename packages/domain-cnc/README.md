@@ -151,6 +151,11 @@ icons, docs, component paths, field groups, surface contracts, and field paths.
 It must not import Vue components. `@cutkit/vue` turns this metadata into
 frontend lookup helpers.
 
+Commands that persist an entity hierarchy beyond their immediate return refs
+declare `requiredEntityProfiles`. `solveNesting` requires `nesting_run`,
+`sheet_design`, and physical `sheet` profiles, and declares all three output
+entity types because task completion persists all three.
+
 Display constructor metadata is split from access policy:
 
 - `ui-fields.js` declares reusable entity field groups such as summary,

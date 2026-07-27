@@ -146,6 +146,10 @@ records. The migration script
 `server/scripts/migrate-process-command-output-statuses.js` applies the same
 graph-derived status projection to existing active-process command outputs; it
 must not hardcode status names.
+Activation resolves required entity profiles from command metadata. Nesting
+therefore cannot activate without profiles for the run, sheet design, and
+physical sheet records that the command persists; the validator does not
+hardcode that list independently of the domain command contract.
 Status-mutating `updateEntity` actions go through the status runtime with the
 connected entity patch attached to the status mutation. Non-status
 `updateEntity` actions are not executed through a generic service signature:
