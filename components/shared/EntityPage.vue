@@ -12,6 +12,7 @@ import { computed } from 'vue';
 const props = defineProps({
   entity: { type: Object, required: true },
   entityType: { type: String, required: true },
+  variant: { type: String, default: 'default' },
   title: { type: String, default: null },
   loading: { type: Boolean, default: false },
   showTrace: { type: Boolean, default: false },
@@ -22,11 +23,12 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 const effectiveTitle = computed(() => props.title || '');
+const workspace = computed(() => props.variant === 'workspace');
 </script>
 
 <template>
-  <div class="entity-page flex flex-col gap-6">
-    <div class="flex flex-col gap-4">
+  <div :class="['entity-page flex min-h-0 flex-col', workspace ? 'gap-0' : 'gap-6']">
+    <div v-if="!workspace" class="flex flex-col gap-4">
       <TraceChain v-if="showTrace" :entity="entity" :entity-type="entityType" />
 
       <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -55,14 +57,22 @@ const effectiveTitle = computed(() => props.title || '');
       </div>
     </div>
 
-    <Divider class="m-0" />
+    <Divider v-if="!workspace" class="m-0" />
 
-    <div :class="[ $slots.sidebar ? 'grid grid-cols-1 lg:grid-cols-12 gap-6' : 'flex flex-col gap-6' ]">
-      <div :class="[ $slots.sidebar ? 'lg:col-span-8 flex flex-col gap-6' : 'flex flex-col gap-6' ]">
+    <div :class="[
+      workspace
+        ? 'flex min-h-0 flex-col'
+        : ($slots.sidebar ? 'grid grid-cols-1 lg:grid-cols-12 gap-6' : 'flex flex-col gap-6')
+    ]">
+      <div :class="[
+        workspace
+          ? 'flex min-h-0 flex-col'
+          : ($slots.sidebar ? 'lg:col-span-8 flex flex-col gap-6' : 'flex flex-col gap-6')
+      ]">
         <slot></slot>
       </div>
 
-      <div v-if="$slots.sidebar" class="lg:col-span-4 flex flex-col gap-6">
+      <div v-if="$slots.sidebar && !workspace" class="lg:col-span-4 flex flex-col gap-6">
         <slot name="sidebar"></slot>
       </div>
     </div>
