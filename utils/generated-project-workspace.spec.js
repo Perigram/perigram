@@ -5,7 +5,7 @@ import {
   relationKeysForAction,
   relationValues,
   uniqueActionIds
-} from './project-workspace-contract.js';
+} from './generated-project-workspace.js';
 
 describe('project workspace contracts', () => {
   it('deduplicates action ids while preserving manifest order', () => {

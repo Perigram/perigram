@@ -183,7 +183,7 @@ import {
   relationKeysForAction,
   relationValues,
   uniqueActionIds
-} from '~/components/generated/project-workspace-contract.js';
+} from '~/utils/generated-project-workspace.js';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
