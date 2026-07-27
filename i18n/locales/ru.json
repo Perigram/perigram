@@ -297,7 +297,10 @@
     "cassetteLibraries": "Библиотеки кассет",
     "linkedEntities": "Связанные сущности",
     "selectedPane": "Выбранный объект",
-    "projectContext": "Контекст проекта"
+    "projectContext": "Контекст проекта",
+    "explorer": "Проводник",
+    "inspector": "Инспектор",
+    "operations": "Операции"
   },
   "file": {
     "upload": "Загрузить файлы",

@@ -1,11 +1,15 @@
 <template>
   <Button
     v-if="action"
-    :label="actionLabel"
+    :label="iconOnly ? undefined : actionLabel"
     :icon="actionIcon"
     size="small"
     severity="secondary"
-    outlined
+    :outlined="!iconOnly"
+    :rounded="iconOnly"
+    :text="iconOnly"
+    :aria-label="actionLabel"
+    :title="iconOnly ? actionLabel : undefined"
     @click="$emit('execute', action)"
   />
 </template>
@@ -18,7 +22,8 @@ import { useAuthStore } from '~/stores/auth';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
-  actionId: { type: String, required: true }
+  actionId: { type: String, required: true },
+  iconOnly: { type: Boolean, default: false }
 });
 
 defineEmits(['execute']);

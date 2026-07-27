@@ -297,7 +297,10 @@
     "cassetteLibraries": "Cassette libraries",
     "linkedEntities": "Linked entities",
     "selectedPane": "Selected item",
-    "projectContext": "Project context"
+    "projectContext": "Project context",
+    "explorer": "Explorer",
+    "inspector": "Inspector",
+    "operations": "Operations"
   },
   "file": {
     "upload": "Upload Files",
