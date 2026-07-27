@@ -87,7 +87,13 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   entity. Field nodes read a scalar or
   JSON value from one incoming block. Text, comparison, logic, and collection
   nodes transform typed values without mutating persistent state; mutations and
-  external work stay on action nodes. Each node keeps the palette icon on the
+  external work stay on action nodes. Operation selection changes the actual
+  sockets instead of leaving generic `data` ports: concatenate has two string
+  inputs, replace has value/search/replacement, numeric comparisons accept
+  numbers, `not` has one boolean input, and typed coalesce returns its selected
+  scalar/json type. The inspector renders this input-to-output contract and the
+  canvas prints each socket type beside its label. Text templates store a
+  required `{value}` placeholder. Each node keeps the palette icon on the
   canvas, while socket handle colors come from the socket data type rather than
   the node kind.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
@@ -156,7 +162,9 @@ the lower authored-screen editor. `ProcessScreenPreview.vue` renders those
 compiled screens as simplified role-grouped layouts: it shows the screen
 template, regions, sources, filters, and actions from the normalized manifest,
 but it must not fetch live entities or mount the runtime generated-screen
-renderer.
+renderer. The preview ignores non-object entries in a partially compiled screen
+map; package validation reports those entries as malformed screens instead of
+allowing a nullable entry to crash the designer.
 
 The designer shell keeps the palette and inspector in bounded, independently
 scrollable overlays. The process selector and apply action stay in a centered

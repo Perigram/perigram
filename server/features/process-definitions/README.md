@@ -61,7 +61,11 @@ that were changed after the draft was forked.
 Manual generated-screen actions execute through the active process definition,
 not through client-selected entity routes. `executeActiveProcessAction()` loads
 the active compiled action, verifies that the user's compiled role assignment
-contains that action id, and then delegates by action kind: entity creation,
+contains that action id, evaluates the connected value/process-node subgraph,
+and binds its outputs into the action's canonical `data`, `parameters`, and
+`entities` inputs. Entity nodes are resolved through the registered entity
+service with the caller's auth context; the evaluator does not read feature
+repositories or bypass entity access. It then delegates by action kind: entity creation,
 entity update, status transition, command execution, or outbound organization
 projection. The process graph remains the source for whether the button exists;
 the delegated entity/status/command service remains the access and business

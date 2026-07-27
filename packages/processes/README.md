@@ -217,8 +217,25 @@ kind, operation/mode, entity contracts, block ids, field paths, inputs, and
 outputs through `definitionToCanvas()`, `canvasToDefinition()`, validation, and
 compilation. They do not mutate persistent state and they do not replace effect
 actions; create/update/status mutation/command/send behavior remains owned by
-action records. Runtime action execution may consume their typed edges only after an
-effect node declares the corresponding input contract.
+action records.
+
+`resolveProcessNodePorts()` is the single operation-to-port contract used by
+edge validation and the designer. Scalar kinds remain concrete
+(`string`, `number`, `boolean`, or `json`) rather than collapsing to generic
+`data`. String operations expose their real arity; comparison inputs are typed
+by operation; boolean logic is boolean-only except typed `coalesce`; block
+composition consumes the selected field type. Activation validation requires
+every required process-node input to have exactly one incoming value.
+
+`resolveProcessActionInputContext()` evaluates the acyclic value subgraph that
+terminates at an action. It reads literal value inputs and authorized entity
+DTOs, decomposes canonical blocks, reads or composes block fields, executes
+string/comparison/logic/collection operations, and binds the result to the
+target action input. Action input metadata decides whether the evaluated value
+lands in `data`, `parameters`, or `entities`; persistent mutations and external
+effects still occur only when the action service executes. Missing ports,
+cycles, unresolved entities, unsupported traversal, and duplicate input values
+are hard errors rather than placeholder results.
 Status-mutating update actions consume their entity from the incoming data
 socket and only require a target status; they do not need a separate
 entity-type selector.
