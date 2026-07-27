@@ -2,12 +2,12 @@
   <div
     v-if="entityMode"
     :class="hasSelectedEntity
-      ? 'flex w-full min-w-0 max-w-full items-start gap-2 overflow-hidden'
+      ? 'flex w-full min-w-0 max-w-full items-start gap-2'
       : 'grid w-full min-w-0 max-w-full gap-2'"
   >
     <div
       v-if="hasSelectedEntity"
-      class="pointer-events-none min-w-0 flex-1 overflow-hidden"
+      class="pointer-events-none min-w-0 flex-1"
       data-entity-selection
     >
       <EntityInlineRef
