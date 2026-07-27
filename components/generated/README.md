@@ -43,12 +43,14 @@ bounded three-pane operational workspace:
   mutations remain in `EntityStatus`; they are not duplicated in the operation
   rail.
 
-The workspace header contains canonical project identity, trace, and status
-only. Aggregate queue/area summaries are not repeated there. The component
-does not fetch global child lists: selectable child rows come from the screen's
-source states, which are filtered by process grants and assignment scope before
-rendering. Relation refs come from the already-redacted project DTO and retain
-the normal generated-detail/access behavior of `EntityInlineRef`.
+The overload uses `EntityPage variant="workspace"` so the app breadcrumb and
+editor tab carry project context without a second project header above the
+three panes. Aggregate queue/area summaries are not repeated in route chrome.
+The component does not fetch global child lists: selectable child rows come
+from the screen's source states, which are filtered by process grants and
+assignment scope before rendering. Relation refs come from the already-redacted
+project DTO and retain the normal generated-detail/access behavior of
+`EntityInlineRef`.
 
 `GeneratedActionButton` supports an icon-only presentation for Explorer section
 toolbars. This changes presentation only: it still resolves the action from the
