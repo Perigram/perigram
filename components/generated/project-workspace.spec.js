@@ -5,11 +5,12 @@ const source = readFileSync(new URL('./GeneratedProjectWorkspace.vue', import.me
 const entityPageSource = readFileSync(new URL('../shared/EntityPage.vue', import.meta.url), 'utf8');
 
 describe('generated project workspace architecture', () => {
-  it('composes canonical detail and workspace primitives', () => {
-    expect(source).toContain('<EntityPage');
+  it('composes the generated entity detail inside canonical workspace primitives', () => {
+    expect(source).toContain('<GeneratedEntityDetail');
     expect(source).toContain('<WorkspaceLanes');
     expect(source).toContain('<ScrollablePanel');
     expect(source).toContain('<Tree');
+    expect(source).not.toContain('<EntityCard');
   });
 
   it('stays inside compiled screen sources and actions', () => {
