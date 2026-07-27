@@ -295,7 +295,9 @@
     "confirmDelete": "Are you sure you want to delete this project?",
     "deleted": "Project deleted",
     "cassetteLibraries": "Cassette libraries",
-    "explorer": "Explorer"
+    "explorer": "Explorer",
+    "splitRight": "Split right",
+    "splitDown": "Split down"
   },
   "file": {
     "upload": "Upload Files",

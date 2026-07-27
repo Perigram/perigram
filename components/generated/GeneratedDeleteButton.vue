@@ -1,11 +1,13 @@
 <template>
   <Button
     v-if="visible"
+    :label="menuItem ? t('common.delete') : undefined"
     icon="pi pi-trash"
     text
-    rounded
+    :rounded="!menuItem"
     severity="danger"
     size="small"
+    :class="menuItem ? 'w-full justify-start' : null"
     :aria-label="t('common.delete')"
     :loading="loading"
     @click.stop="removeEntity"
@@ -24,7 +26,8 @@ import { canDeleteGeneratedEntity, uiEntityType } from '~/components/generated/d
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true }
+  entityType: { type: String, required: true },
+  menuItem: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['deleted']);

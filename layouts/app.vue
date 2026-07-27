@@ -32,7 +32,7 @@
                                 {{ crumb.name }}
                             </NuxtLink>
                             <Button
-                                v-if="crumb.siblings && crumb.siblings.length > 1"
+                                v-if="breadcrumbAlternatives(crumb).length"
                                 icon="pi pi-chevron-down"
                                 text
                                 severity="secondary"
@@ -270,12 +270,14 @@
     const breadcrumbMenu = ref()
     const breadcrumbMenuItems = ref([])
     const openBreadcrumbMenu = (event, crumb) => {
-        breadcrumbMenuItems.value = (crumb.siblings || []).map((sibling) => ({
+        breadcrumbMenuItems.value = breadcrumbAlternatives(crumb).map((sibling) => ({
             label: sibling.name,
             command: () => router.push(sibling.id || sibling.to)
         }))
         breadcrumbMenu.value?.toggle(event)
     }
+    const breadcrumbAlternatives = (crumb = {}) => (crumb.siblings || [])
+        .filter(sibling => (sibling.id || sibling.to) && (sibling.id || sibling.to) !== crumb.to)
 
     const activeGeneratedScreen = computed(() => {
         if (!route.path.startsWith('/screens/')) return null

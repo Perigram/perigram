@@ -6,6 +6,7 @@
 import IdentityBlock from './blocks/IdentityBlock.vue';
 import EntityStatus from './status/EntityStatus.vue';
 import TraceChain from './links/TraceChain.vue';
+import EntityActionsPopover from './EntityActionsPopover.vue';
 import Divider from 'primevue/divider';
 import { computed } from 'vue';
 
@@ -50,7 +51,9 @@ const effectiveTitle = computed(() => props.title || '');
             @refresh="$emit('refresh')"
             @transitioned="$emit('refresh')"
           />
-          <slot name="actions"></slot>
+          <EntityActionsPopover v-if="$slots.actions">
+            <slot name="actions"></slot>
+          </EntityActionsPopover>
         </div>
       </div>
     </div>
