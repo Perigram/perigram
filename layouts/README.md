@@ -6,7 +6,7 @@ Nuxt layout shells for public and authenticated app surfaces.
 
 - `app.vue`: Authenticated workspace chrome with desktop sticky header, mobile
   bottom navigation, route breadcrumbs, theme toggle, user/profile entry,
-  support entry, and bounded workspace sizing for `/project/:slug/queues`.
+  support entry, and bounded workspace sizing for production workspace routes.
 
 ## Navigation Behavior
 
@@ -16,8 +16,12 @@ icon-only PrimeVue `Menu` trigger next to that label. The sibling trigger must
 not render the selected item label because the preceding breadcrumb link already
 owns that text.
 
-Project queue workspaces use a viewport-bounded main area so scrolling remains
-inside queue lanes and panels rather than the page body.
+Project queue workspaces and generated screens with a registered screen
+overload use a viewport-bounded main area so scrolling remains inside their
+lanes and panels rather than the page body. Generated overload workspaces are
+flush to the app content boundary and do not inherit ordinary route padding or
+maximum width. The layout resolves this from the current user's screen manifest
+and the generated overload registry instead of hardcoding screen ids.
 
 The authenticated layout provides the active process `statusWorkflows` from
 the auth store to shared entity surfaces. This keeps card, page, inline-ref,

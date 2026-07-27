@@ -164,6 +164,9 @@ same contract as their standalone generated page. The right lane is a dedicated
 lifecycle timeline. An overload must not discover extra sources or actions from
 domain registries or the global action manifest. Do not replace an entity detail
 with a card preview or add decorative project metrics outside its real surface.
+Registered screen overloads run in the app layout's flush bounded frame: the
+route body cannot scroll, and Explorer, editor, and inspector lanes own their
+scrolling independently.
 Role-prefixed compiled screens remain process/designer records, not separate
 operational navigation entries for a multi-role user. The auth store exposes
 that same effective screen manifest to frontend consumers, so stale
