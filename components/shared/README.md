@@ -31,9 +31,10 @@ plus canonical blocks only. Display identity through `IdentityBlock` or
 Standardized identity display block. Always use this — never render `entity.identity.*` directly in templates.
 
 Inline identity chips are hard-bounded by their containing entity surface:
-their label is a shrinkable, ellipsized flex item, and entity picker selections
-clip overflow at the picker boundary. Arbitrarily long stored names must never
-expand a card, toolbar, or screen beyond its assigned width.
+their label is a shrinkable, ellipsized flex item. Entity picker selections
+must not clip the whole card to enforce that boundary because status badges and
+other card content need to remain fully visible. Arbitrarily long stored names
+must never expand a card, toolbar, or screen beyond its assigned width.
 
 **Variants:**
 
