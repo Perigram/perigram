@@ -155,8 +155,14 @@ user-specific manifest has been composed and loaded. Do not hardcode new
 entity-specific generated branches in `GeneratedScreen` or `GeneratedEntityDetail`;
 register the overload there so it receives only the sources, regions, actions,
 and scope available to the current user. Project `entityDetail` screens use
-this path to render an IDE-style workspace over the generated project source
-and generated child collection sources.
+this path to render an IDE-style operational workspace over the generated
+project source and generated child collection sources. Its Explorer owns child
+creation controls from the matching region and relation controls from compiled
+project updates that declare the corresponding `relations.*` field. Its
+Inspector owns selected-entity process operations, access-gated deletion, and
+history. The center editor owns the selected entity surface. Do not add
+decorative project metrics to the header or duplicate project summary content
+in the Inspector.
 Role-prefixed compiled screens remain process/designer records, not separate
 operational navigation entries for a multi-role user. The auth store exposes
 that same effective screen manifest to frontend consumers, so stale

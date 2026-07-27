@@ -54,5 +54,6 @@ Renders queues as `QueueCard` (compact variant) and shows a `StatusHistory` side
 
 ## Related
 - [components/shared/README.md](../../shared/README.md) — EntityCard, DataBlock, EntityStatus
+- [components/generated/README.md](../../generated/README.md) — user-scoped operational project workspace
 - [composables/README.md](../../../composables/README.md) — useEntity, useEntityList
 - [server/DATA_MODEL.md](../../../server/DATA_MODEL.md) — Project schema (`summary.queueCount`, `summary.totalArea`)
