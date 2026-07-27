@@ -447,6 +447,15 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   left lane is hidden. By default the center lane scrolls as a lane; pass
   `:center-scroll="false"` when bounded child surfaces such as `ScrollablePanel`
   own their own body scrolling.
+- **`WorkspaceSplitNode.vue`**: Recursive PrimeVue splitter renderer for
+  IDE-style file workspaces. Split nodes select horizontal or vertical layout;
+  leaf nodes expose one scoped file slot and an active-pane marker. Split-tree
+  mutation remains pure state owned by the caller.
+- **`EntityActionsPopover.vue`**: Shared ellipsis trigger and compact action
+  popover for entity-local commands. `EntityPage`, full `EntityCard` footers,
+  inline-card popovers, and generated entity files place edit/process/delete
+  commands inside this surface instead of expanding action buttons beside
+  identity and status.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
   sections whose header remains fixed while the panel content scrolls. It
   supports an `actions` slot for header controls and `:scroll-content="false"`
@@ -488,8 +497,10 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   Entity type comes from the picker prop or option record and is never inferred
   from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
-- **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, so generated details do not need a second local history widget unless the workflow needs a dedicated sidebar timeline. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome. Operational overloads compose their workspace primitives inside this canonical shell instead of adding overload-specific layout modes to `EntityPage`.
+- **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, and collapse the `actions` slot into `EntityActionsPopover`; delete and secondary process commands do not expand the header row. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome. Operational overloads compose their workspace primitives inside this canonical shell instead of adding overload-specific layout modes to `EntityPage`.
 - **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title. PrimeVue `Card`/`Panel` roots are globally overflow-clipped in `assets/css/main.css` so header media and top-slot backgrounds cannot paint outside the token-backed rounded border.
+  Full-card footer actions and generated inline/compact popover actions render
+  through `EntityActionsPopover`, including access-gated deletion.
   Compact cards can opt into `density="dense"` for selector/list rows that need
   tighter padding while keeping the same identity/status contract.
 - **`NameEditPopover.vue`**: Compact single-field rename control for entity names and other one-field edits. Use it near identity or action clusters instead of opening a full dialog when the only editable field is a name.

@@ -1,10 +1,12 @@
 <template>
   <Button
     v-if="canEdit"
+    :label="menuItem ? $t('common.edit') : undefined"
     icon="pi pi-pencil"
     text
-    rounded
+    :rounded="!menuItem"
     size="small"
+    :class="menuItem ? 'w-full justify-start' : null"
     :aria-label="$t('common.edit')"
     @click="openDesigner"
   />
@@ -34,7 +36,8 @@ import { useAuthStore } from '~/stores/auth';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
-  entity: { type: Object, required: true }
+  entity: { type: Object, required: true },
+  menuItem: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['refresh']);

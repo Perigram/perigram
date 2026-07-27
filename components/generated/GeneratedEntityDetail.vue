@@ -20,17 +20,20 @@
       <GeneratedCassetteDesignerAction
         v-if="entityType === 'cassette'"
         :entity="entity"
+        menu-item
         @refresh="$emit('refresh')"
       />
       <GeneratedActionButton
         v-for="actionId in headerActionIds"
         :key="actionId"
         :action-id="actionId"
+        menu-item
         @execute="action => $emit('execute-action', action, entity)"
       />
       <GeneratedDeleteButton
         :entity="entity"
         :entity-type="entityType"
+        menu-item
         @deleted="$emit('refresh')"
       />
     </template>

@@ -157,16 +157,16 @@ register the overload there so it receives only the sources, regions, actions,
 and scope available to the current user. Project `entityDetail` screens use
 this path to render an IDE-style operational workspace over the generated
 project source and generated child collection sources. Its Explorer owns child
-creation controls from the matching region. The center editor mounts
-`GeneratedEntityDetail` for the current Explorer selection, so entity-specific
-detail overloads, process actions, status, and access-gated deletion retain the
-same contract as their standalone generated page. The right lane is a dedicated
-lifecycle timeline. An overload must not discover extra sources or actions from
-domain registries or the global action manifest. Do not replace an entity detail
-with a card preview or add decorative project metrics outside its real surface.
+rows from generated source regions. The active editor is a pane-native entity
+file rather than a nested page or card. Files can be recursively split right or
+down and retain pane-local selections. The project file aggregates compiled
+screen/main operations with direct-child creation actions from matching child
+regions. An overload must not discover extra sources or actions from domain
+registries or the global action manifest, and it must not invent upload/link
+controls outside compiled process actions.
 Registered screen overloads run in the app layout's flush bounded frame: the
-route body cannot scroll, and Explorer, editor, and inspector lanes own their
-scrolling independently.
+route body cannot scroll, and Explorer and file panes own their scrolling
+independently.
 Role-prefixed compiled screens remain process/designer records, not separate
 operational navigation entries for a multi-role user. The auth store exposes
 that same effective screen manifest to frontend consumers, so stale

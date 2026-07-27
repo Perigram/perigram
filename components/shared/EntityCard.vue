@@ -39,32 +39,38 @@
                         </slot>
                         <slot name="footer" />
                     </div>
-                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
+                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex justify-end" @click.stop>
+                      <EntityActionsPopover>
                         <GeneratedCassetteDesignerAction
                             v-if="inlineShowCassetteDesigner"
                             :entity="inlineActionEntity"
+                            menu-item
                         />
                         <GeneratedActionButton
                             v-for="actionId in inlineActionIds"
                             :key="actionId"
                             :action-id="actionId"
+                            menu-item
                             @execute="executeInlineAction"
                         />
                         <GeneratedDeleteButton
                             v-if="inlineCanDelete"
                             :entity="inlineActionEntity"
                             :entity-type="inlineActionEntityType"
+                            menu-item
                             @deleted="closePopup"
                         />
                         <Button
                             v-if="inlineDetailRoute"
+                            :label="$t('common.open')"
                             icon="pi pi-external-link"
                             text
-                            rounded
                             size="small"
+                            class="w-full justify-start"
                             :aria-label="$t('common.open')"
                             @click="openInlineDetail"
                         />
+                      </EntityActionsPopover>
                     </div>
                 </div>
             </div>
@@ -140,32 +146,38 @@
                         </slot>
                         <slot name="footer" />
                     </div>
-                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
+                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex justify-end" @click.stop>
+                      <EntityActionsPopover>
                         <GeneratedCassetteDesignerAction
                             v-if="inlineShowCassetteDesigner"
                             :entity="inlineActionEntity"
+                            menu-item
                         />
                         <GeneratedActionButton
                             v-for="actionId in inlineActionIds"
                             :key="actionId"
                             :action-id="actionId"
+                            menu-item
                             @execute="executeInlineAction"
                         />
                         <GeneratedDeleteButton
                             v-if="inlineCanDelete"
                             :entity="inlineActionEntity"
                             :entity-type="inlineActionEntityType"
+                            menu-item
                             @deleted="closePopup"
                         />
                         <Button
                             v-if="inlineDetailRoute"
+                            :label="$t('common.open')"
                             icon="pi pi-external-link"
                             text
-                            rounded
                             size="small"
+                            class="w-full justify-start"
                             :aria-label="$t('common.open')"
                             @click="openInlineDetail"
                         />
+                      </EntityActionsPopover>
                     </div>
                 </div>
             </div>
@@ -211,7 +223,11 @@
                 <slot />
             </template>
             <template #footer>
-                <slot name="footer" />
+                <div v-if="$slots.footer" class="flex justify-end" @click.stop>
+                  <EntityActionsPopover>
+                    <slot name="footer" />
+                  </EntityActionsPopover>
+                </div>
             </template>
         </Card>
     </template>
@@ -238,6 +254,7 @@ import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
+import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Popover from 'primevue/popover';

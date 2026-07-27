@@ -32,6 +32,11 @@ Shared frontend utility modules used by Vue pages/components.
   popovers, menus, and the chat drawer listen and close themselves. Chat open
   actions can dispatch the same event without viewport gating to close popups
   before the drawer opens.
+- `workspace-splits.js`: Pure recursive split-tree operations for IDE-style
+  workspaces. It creates leaves, splits a targeted leaf horizontally or
+  vertically, updates pane-local selection, collapses parents when a file
+  closes, and enumerates leaves without coupling state mutation to Vue or
+  PrimeVue.
 - `interactive-target.js`: Shared DOM guard for entity cards that have parent
   click/select actions. It detects nested links, buttons, form controls, status
   controls, geometry previews, and nested inline/compact entity cards so parent

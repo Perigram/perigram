@@ -5,9 +5,10 @@
     :icon="actionIcon"
     size="small"
     severity="secondary"
-    :outlined="!iconOnly"
+    :outlined="!iconOnly && !menuItem"
     :rounded="iconOnly"
-    :text="iconOnly"
+    :text="iconOnly || menuItem"
+    :class="menuItem ? 'w-full justify-start whitespace-normal text-left' : null"
     :aria-label="actionLabel"
     :title="iconOnly ? actionLabel : undefined"
     @click="$emit('execute', action)"
@@ -23,7 +24,8 @@ import { generatedActionLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
   actionId: { type: String, required: true },
-  iconOnly: { type: Boolean, default: false }
+  iconOnly: { type: Boolean, default: false },
+  menuItem: { type: Boolean, default: false }
 });
 
 defineEmits(['execute']);

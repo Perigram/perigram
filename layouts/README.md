@@ -14,7 +14,9 @@ Nuxt layout shells for public and authenticated app surfaces.
 renders its current label as the route link and, when sibling routes exist, an
 icon-only PrimeVue `Menu` trigger next to that label. The sibling trigger must
 not render the selected item label because the preceding breadcrumb link already
-owns that text.
+owns that text. Trigger visibility is based on alternatives after removing the
+current route, so one real alternative still produces a chooser while a
+current-only sibling list does not.
 
 Project queue workspaces and generated screens with a registered screen
 overload use a viewport-bounded main area so scrolling remains inside their
