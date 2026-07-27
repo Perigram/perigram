@@ -23,7 +23,6 @@
           >
             <template #default="{ node }">
               <div v-if="node.data?.entity" class="flex min-w-0 items-center gap-2">
-                <i :class="[node.icon, 'shrink-0']"></i>
                 <IdentityBlock :entity="node.data.entity" variant="compact" class="min-w-0 flex-1" />
               </div>
               <div v-else class="flex min-w-0 flex-1 items-center gap-2">
