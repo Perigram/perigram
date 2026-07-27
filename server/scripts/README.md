@@ -26,6 +26,7 @@ node server/scripts/migrate-process-compiled-runtime.js # Recompile active proce
 node server/scripts/migrate-process-update-actions.js # Replace legacy changeStatus actions with updateEntity status mutations
 node server/scripts/migrate-process-command-output-statuses.js # Apply graph-derived process statuses to existing command output entities
 node server/scripts/migrate-process-transition-role-access.js # Remove stale transition permission checks from process-role workflow transitions
+APPLY=1 node server/scripts/migrate-process-definition-draft-names.js # Collapse repeated trailing "draft" suffixes in process names
 node server/scripts/migrate-entity-reference-contracts.js # Move legacy refs into canonical relations/provenance blocks
 node server/scripts/migrate-queue-nesting-contracts.js # Backfill queue nesting settings, machine ids, and cassette-design item refs
 node server/scripts/migrate-sheet-design-compositions.js # Backfill sheet-design cassette composition collapse keys
@@ -217,6 +218,11 @@ compiled workflow `access.permissions` from transitions that already have
 `processRoleIds`, including both v2 region transitions and root transition
 mirrors. It does not alter semantic action grants, user assignments, or
 status-scoped entity access windows.
+
+Use `server/scripts/migrate-process-definition-draft-names.js` to repair process
+identities created by the old clone loop. It reports the number of names that
+would change by default; set `APPLY=1` to collapse any repeated trailing
+`draft` suffixes to one. It does not rename ordinary process names.
 
 Use `server/scripts/repair-nesting-run-completions.js` after fixing process
 workflow resolution for domain system intents. It finds `nesting_run` records
