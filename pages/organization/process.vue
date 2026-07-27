@@ -601,7 +601,7 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { canvasToDefinition, compileProcessDefinition, createProcessDesignerContract, definitionToCanvas, portSpecsCompatible, resolveNodePort } from '~/packages/processes/src/index.js';
+import { canvasToDefinition, compileProcessDefinition, createProcessDesignerContract, definitionToCanvas, portSpecsCompatible, requiredEntityProfileTypes, resolveNodePort } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain } from '@cutkit/domain-cnc';
@@ -1566,7 +1566,54 @@ function addLifecycleState() {
 
 function syncSelectedAction() {
   syncActionIo(selectedAction.value, selectedNode.value);
+  ensureRequiredEntityProfiles(selectedAction.value, selectedNode.value);
   syncNodeData();
+}
+
+function ensureRequiredEntityProfiles(action = {}, anchorNode = null) {
+  const requiredTypes = requiredEntityProfileTypes({ actions: { [action.id || 'action']: action } }, cncDomain);
+  const existingTypes = new Set(Object.values(draft.value?.data?.entityProfiles || {}).map(profile => profile.entityType));
+  const missingTypes = requiredTypes.filter(entityType => !existingTypes.has(entityType));
+  if (!missingTypes.length) return;
+
+  draft.value.data.entityProfiles ||= {};
+  const anchor = anchorNode?.position || { x: 0, y: 0 };
+  const grants = normalizeDesignerAccess(action.access).grants;
+  missingTypes.forEach((entityType, index) => {
+    const id = uniqueEntityProfileId(entityType);
+    const profile = createEntityProfileForType(id, entityType, grants);
+    draft.value.data.entityProfiles[id] = profile;
+    nodes.value.push(enrichNodeData({
+      id,
+      type: 'entity',
+      position: { x: anchor.x + 360, y: anchor.y + index * 160 },
+      data: { refId: id, label: profile.label, entityType }
+    }));
+  });
+}
+
+function uniqueEntityProfileId(entityType) {
+  const base = `entity_${entityType}`;
+  if (!draft.value?.data?.entityProfiles?.[base] && !nodes.value.some(node => node.id === base)) return base;
+  return `${base}_${Date.now()}`;
+}
+
+function createEntityProfileForType(id, entityType, grants = []) {
+  const profile = createEntityProfile(id);
+  profile.entityType = entityType;
+  profile.label = entityTypeOptions.value.find(option => option.value === entityType)?.label || entityType;
+  profile.lifecycle = cncDomain.workflows?.[entityType]
+    ? { mode: 'domainDefault', workflow: null }
+    : { mode: 'defaultCreated', workflow: createCreatedWorkflow() };
+  profile.relations = relationOptionsForEntity(entityType).map(option => option.value);
+  profile.allowedRoles = { read: [], write: [], admin: [] };
+  for (const grant of grants) {
+    if (profile.allowedRoles[grant.level] && !profile.allowedRoles[grant.level].includes(grant.roleId)) {
+      profile.allowedRoles[grant.level].push(grant.roleId);
+    }
+  }
+  syncEntityProfileIo(profile);
+  return profile;
 }
 
 function syncActionIo(action = {}, node = null) {
@@ -2642,6 +2689,13 @@ function syncServiceFromCommand() {
   selectedService.value.serviceType = command.service;
   selectedService.value.inputs = commandInputs(command);
   selectedService.value.outputs = commandOutputs(command);
+  ensureRequiredEntityProfiles({
+    id: selectedService.value.id,
+    actionKind: 'runCommand',
+    commandId: selectedService.value.commandId,
+    access: { grants: [] }
+  }, selectedNode.value);
+  syncNodeData();
 }
 
 function roleAccessSummary(roleId) {

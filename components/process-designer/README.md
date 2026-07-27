@@ -186,6 +186,12 @@ polymorphic. For example, `generateAttachment` presents one `Attachment source`
 socket with `attachments.generate` capability and accepted source types instead
 of separate `sheet_design` and `nesting_run` sockets.
 
+When a selected command declares `requiredEntityProfiles`, the designer creates
+missing entity-profile nodes beside the command and gives them domain-default
+workflows (or the standard created workflow when the domain has none). Their
+initial role grants come from the command action. Required profiles therefore
+remain visible and editable on the canvas.
+
 New process behavior should use `createEntity`, `updateEntity`, `runCommand`,
 status-definition nodes, value-input nodes, and inbound/outbound socket nodes.
 Archive is represented as an `updateEntity` action with a status target, not as

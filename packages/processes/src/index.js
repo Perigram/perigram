@@ -74,6 +74,20 @@ export function normalizeProcessDefinition(definition = {}) {
   };
 }
 
+export function requiredEntityProfileTypes(definition = {}, domain = {}) {
+  const process = normalizeProcessDefinition(definition);
+  const commandIds = [
+    ...Object.values(process.actions)
+      .filter(action => action?.actionKind === 'runCommand')
+      .map(action => action.commandId),
+    ...Object.values(process.services).map(service => service?.commandId)
+  ].filter(Boolean);
+
+  return [...new Set(commandIds.flatMap(commandId =>
+    domain.commands?.[commandId]?.requiredEntityProfiles || []
+  ))];
+}
+
 export function validateProcessDefinition(definition = {}, domain = {}) {
   const process = normalizeProcessDefinition(definition);
   const errors = [];

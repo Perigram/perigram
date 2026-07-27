@@ -7,6 +7,7 @@ import {
   definitionToCanvas,
   legacyTypeToTemplateId,
   portSpecsCompatible,
+  requiredEntityProfileTypes,
   resolveScreens,
   validateProcessDefinition,
   validateRoundTrip
@@ -2975,5 +2976,24 @@ describe('@cutkit/processes compiler', () => {
     expect(process.data.sourceTemplateId).toBe('manufacturer');
     expect(compiled.userAccess['user-1'].permissions.organizations[0].level).toBe('admin');
     expect(compiled.userAccess['user-1'].screens.length).toBeGreaterThan(0);
+  });
+
+  it('projects command-required entity profiles from actions and services', () => {
+    const commandDomain = {
+      commands: {
+        solveNesting: {
+          requiredEntityProfiles: ['nesting_run', 'sheet_design', 'sheet']
+        }
+      }
+    };
+
+    expect(requiredEntityProfileTypes({
+      actions: {
+        solve: { actionKind: 'runCommand', commandId: 'solveNesting' }
+      },
+      services: {
+        nesting: { commandId: 'solveNesting' }
+      }
+    }, commandDomain)).toEqual(['nesting_run', 'sheet_design', 'sheet']);
   });
 });

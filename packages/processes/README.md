@@ -253,6 +253,10 @@ role may access after the status change. Create-action access grants are
 conditioned by the created status in the same way, so `admin` on "create project
 as NEW" means admin over `project` entities whose current primary status is
 `NEW`, not global project admin.
+`requiredEntityProfileTypes(definition, domain)` projects command-declared
+profile requirements across `runCommand` actions and command-backed services.
+Activation validation and designer authoring consume that projection instead
+of embedding command-specific entity lists.
 Action access compiles through status-scoped access windows. A create action
 opens the first window for the created entity state. A status-mutating update
 action inherits the incoming entity window until its `action.access.modified`
