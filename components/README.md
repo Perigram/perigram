@@ -157,13 +157,13 @@ register the overload there so it receives only the sources, regions, actions,
 and scope available to the current user. Project `entityDetail` screens use
 this path to render an IDE-style operational workspace over the generated
 project source and generated child collection sources. Its Explorer owns child
-creation controls from the matching region. The right lane owns process
-operations compiled onto the selected entity's screen/region, access-gated
-deletion, and history. The center editor owns the selected entity surface,
-including relation fields already exposed by the redacted DTO and display
-contract. An overload must not discover extra sources or actions from domain
-registries or the global action manifest. Do not add decorative project metrics
-or duplicate project summary content outside the selected entity surface.
+creation controls from the matching region. The center editor mounts
+`GeneratedEntityDetail` for the current Explorer selection, so entity-specific
+detail overloads, process actions, status, and access-gated deletion retain the
+same contract as their standalone generated page. The right lane is a dedicated
+lifecycle timeline. An overload must not discover extra sources or actions from
+domain registries or the global action manifest. Do not replace an entity detail
+with a card preview or add decorative project metrics outside its real surface.
 Role-prefixed compiled screens remain process/designer records, not separate
 operational navigation entries for a multi-role user. The auth store exposes
 that same effective screen manifest to frontend consumers, so stale

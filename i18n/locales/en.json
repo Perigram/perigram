@@ -295,8 +295,7 @@
     "confirmDelete": "Are you sure you want to delete this project?",
     "deleted": "Project deleted",
     "cassetteLibraries": "Cassette libraries",
-    "explorer": "Explorer",
-    "operations": "Operations"
+    "explorer": "Explorer"
   },
   "file": {
     "upload": "Upload Files",

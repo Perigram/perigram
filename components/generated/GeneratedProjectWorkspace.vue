@@ -1,11 +1,5 @@
 <template>
-  <EntityPage
-    v-if="project"
-    :entity="project"
-    entity-type="project"
-    show-trace
-    @refresh="$emit('refresh')"
-  >
+  <div v-if="project" class="flex min-h-0 flex-col">
     <WorkspaceLanes class="min-h-[36rem]" :center-scroll="false">
       <template #left>
         <ScrollablePanel :header="$t('project.explorer')" class="h-full">
@@ -50,15 +44,8 @@
         </ScrollablePanel>
       </template>
 
-      <ScrollablePanel class="h-full">
-        <template #header>
-          <div v-if="selectedEntity" class="flex min-w-0 items-center gap-2">
-            <i :class="[domainUi.getIcon(selectedEntityType), 'shrink-0']"></i>
-            <IdentityBlock :entity="selectedEntity" variant="compact" class="min-w-0 flex-1" />
-          </div>
-        </template>
-
-        <template #actions>
+      <div class="flex h-full min-h-0 flex-col overflow-hidden">
+        <div class="mb-3 flex shrink-0 justify-end lg:hidden">
           <EntitySelect
             v-model="mobileSelectedKey"
             :options="mobileEntityOptions"
@@ -67,60 +54,33 @@
             class="lg:hidden"
             @update:model-value="selectByKey"
           />
-        </template>
-
-        <EntityCard
-          v-if="selectedEntity"
-          :entity="selectedEntity"
-          :entity-type="selectedEntityType"
-          variant="card"
-          :surface="selectedSurface"
-        >
-          <EntitySurfaceContent
+        </div>
+        <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+          <GeneratedEntityDetail
+            v-if="selectedEntity"
             :entity="selectedEntity"
             :entity-type="selectedEntityType"
-            :surface="selectedSurface"
-            :display-extensions="appEntityDisplayExtensions"
-            relation-variant="compact"
+            :screen-key="screen.screenKey || screen.id"
+            :actions="selectedActionIds"
+            @refresh="$emit('refresh')"
+            @execute-action="executeSelectedAction"
           />
-        </EntityCard>
-        <StateBlock v-else :message="$t('common.noResults')" icon="pi pi-inbox" />
-      </ScrollablePanel>
+          <StateBlock v-else :message="$t('common.noResults')" icon="pi pi-inbox" />
+        </div>
+      </div>
 
       <template #right>
-        <div class="flex h-full min-h-0 flex-col gap-3">
-          <ScrollablePanel
-            v-if="selectedOperations.length || selectedCanDelete"
-            :header="$t('project.operations')"
-            :scroll-content="false"
-          >
-            <div class="flex flex-wrap gap-2">
-              <GeneratedActionButton
-                v-for="action in selectedOperations"
-                :key="action.actionId"
-                :action-id="action.actionId"
-                @execute="selectedAction => $emit('execute-action', selectedAction, selectedEntity, selectedActionContext)"
-              />
-              <GeneratedDeleteButton
-                :entity="selectedEntity"
-                :entity-type="selectedEntityType"
-                @deleted="$emit('refresh')"
-              />
-            </div>
-          </ScrollablePanel>
-
-          <ScrollablePanel :header="$t('project.lifecycle')" class="min-h-0 flex-1">
-            <StatusHistory
-              :key="selectedKey"
-              :entity="selectedEntity"
-              :entity-type="selectedEntityType"
-              compact
-            />
-          </ScrollablePanel>
-        </div>
+        <ScrollablePanel :header="$t('project.lifecycle')" class="h-full">
+          <StatusHistory
+            :key="selectedKey"
+            :entity="selectedEntity"
+            :entity-type="selectedEntityType"
+            compact
+          />
+        </ScrollablePanel>
       </template>
     </WorkspaceLanes>
-  </EntityPage>
+  </div>
 </template>
 
 <script setup>
@@ -128,24 +88,18 @@ import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
-import EntityCard from '~/components/shared/EntityCard.vue';
-import EntityPage from '~/components/shared/EntityPage.vue';
 import EntitySelect from '~/components/shared/EntitySelect.vue';
-import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
-import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
-import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
+import GeneratedEntityDetail from '~/components/generated/GeneratedEntityDetail.vue';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
-import { appEntityDisplayExtensions } from '~/utils/app-entity-surfaces.js';
 
 const props = defineProps({
   screen: { type: Object, required: true },
@@ -223,7 +177,6 @@ const selectedEntity = computed(() => selected.value.entity || project.value);
 const selectedEntityType = computed(() => selected.value.entity ? selected.value.type : 'project');
 const selectedRegion = computed(() => selected.value.region || mainRegion.value);
 const selectedKey = computed(() => entityKey(selectedEntityType.value, selectedEntity.value));
-const selectedSurface = computed(() => selectedEntityType.value === 'project' ? 'detail' : 'card');
 const childActionIds = computed(() => new Set(childSections.value.flatMap(section => section.region.actions || [])));
 const selectedActionIds = computed(() => {
   const ids = selectedEntityType.value === 'project'
@@ -231,12 +184,6 @@ const selectedActionIds = computed(() => {
     : [...(selectedRegion.value?.actions || []), ...(props.screenActions || [])];
   return [...new Set(ids)];
 });
-const selectedOperations = computed(() => selectedActionIds.value
-  .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
-  .filter(Boolean)
-  .filter(isGeneratedSurfaceAction)
-  .filter(action => !isLifecycleMutation(action))
-  .filter(action => actionAppliesToEntity(action, selectedEntity.value, selectedEntityType.value)));
 const selectedActionContext = computed(() => selectedEntityType.value === 'project'
   ? projectActionContext.value
   : sectionActionContext({
@@ -245,12 +192,6 @@ const selectedActionContext = computed(() => selectedEntityType.value === 'proje
       entityType: selectedEntityType.value,
       items: []
     }));
-const selectedCanDelete = computed(() => canDeleteGeneratedEntity({
-  authStore,
-  domainUi,
-  entity: selectedEntity.value,
-  entityType: selectedEntityType.value
-}));
 
 watch(project, value => {
   if (!value) return;
@@ -306,6 +247,10 @@ function executeCollectionAction(action, section) {
   emit('execute-action', action, null, sectionActionContext(section));
 }
 
+function executeSelectedAction(action, entity) {
+  emit('execute-action', action, entity, selectedActionContext.value);
+}
+
 function sectionActionContext(section) {
   return mergeCollectionActionContext({
     incoming: projectActionContext.value,
@@ -314,10 +259,6 @@ function sectionActionContext(section) {
     entityType: section.entityType,
     items: section.items || []
   });
-}
-
-function isLifecycleMutation(action = {}) {
-  return action.actionKind === 'updateEntity' && Boolean(action.status?.to || action.access?.statusTo);
 }
 
 function entityKey(type, entity) {
