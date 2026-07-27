@@ -16,27 +16,32 @@ export function generatedScreenRoute(screenKey) {
 }
 
 export function normalizeScreenTemplate(screen = {}) {
-  if (SCREEN_TEMPLATES.includes(screen.template)) return screen.template;
-  if (screen.kind === 'entityDetail') return 'entityDetail';
-  if (screen.kind === 'workspace') return 'workspaceLanes';
-  return screen.entityType ? 'entityList' : 'formAction';
+  const source = isPlainObject(screen) ? screen : {};
+  if (SCREEN_TEMPLATES.includes(source.template)) return source.template;
+  if (source.kind === 'entityDetail') return 'entityDetail';
+  if (source.kind === 'workspace') return 'workspaceLanes';
+  return source.entityType ? 'entityList' : 'formAction';
 }
 
 export function normalizeScreenContract(screen = {}) {
-  const template = normalizeScreenTemplate(screen);
-  const sourceDefaults = defaultSourcesForScreen(screen, template);
-  const sources = normalizeSources(screen.sources?.length ? screen.sources : sourceDefaults, screen, template);
-  const regions = normalizeRegions(screen.regions?.length ? screen.regions : defaultRegionsForScreen(sources, template));
+  const source = isPlainObject(screen) ? screen : {};
+  const template = normalizeScreenTemplate(source);
+  const sourceDefaults = defaultSourcesForScreen(source, template);
+  const sources = normalizeSources(source.sources?.length ? source.sources : sourceDefaults, source, template);
+  const regions = normalizeRegions(source.regions?.length ? source.regions : defaultRegionsForScreen(sources, template));
   return {
-    ...screen,
+    ...source,
     template,
     sources,
     regions,
-    actions: Array.isArray(screen.actions) ? screen.actions : []
+    actions: Array.isArray(source.actions) ? source.actions : []
   };
 }
 
-export function validateScreenContract(screen = {}, { screenId = screen.id, entities = new Set(), actions = {}, errors = [] } = {}) {
+export function validateScreenContract(screen = {}, { screenId = isPlainObject(screen) ? screen.id : '', entities = new Set(), actions = {}, errors = [] } = {}) {
+  if (!isPlainObject(screen)) {
+    errors.push(`Screen ${screenId || '(unknown)'} must be an object`);
+  }
   const normalized = normalizeScreenContract(screen);
   if (!SCREEN_TEMPLATES.includes(normalized.template)) {
     errors.push(`Screen ${screenId} uses unknown template ${normalized.template}`);
@@ -57,6 +62,10 @@ export function validateScreenContract(screen = {}, { screenId = screen.id, enti
     if (!actions[actionId]) errors.push(`Screen ${screenId} references missing action ${actionId}`);
   }
   return normalized;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function defaultSourcesForScreen(screen = {}, template = 'entityList') {

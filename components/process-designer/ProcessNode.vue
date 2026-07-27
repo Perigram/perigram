@@ -13,13 +13,19 @@
       <div class="flex flex-col gap-1">
         <div v-for="(input, index) in inputSpecs" :key="input.id" :class="socketClass(input, 'left')">
           <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" />
-          <span class="block truncate text-xs">{{ input.label }}</span>
+          <span class="flex min-w-0 items-center gap-1 text-xs">
+            <span class="truncate">{{ input.label }}</span>
+            <span class="shrink-0 text-[10px] uppercase text-muted-color">{{ input.kind }}</span>
+          </span>
         </div>
       </div>
       <div class="flex flex-col gap-1">
         <div v-for="(output, index) in outputSpecs" :key="output.id" :class="socketClass(output, 'right')">
           <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" />
-          <span class="block truncate text-xs">{{ output.label }}</span>
+          <span class="flex min-w-0 items-center justify-end gap-1 text-xs">
+            <span class="shrink-0 text-[10px] uppercase text-muted-color">{{ output.kind }}</span>
+            <span class="truncate">{{ output.label }}</span>
+          </span>
         </div>
       </div>
     </div>
