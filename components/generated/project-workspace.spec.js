@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(new URL('./GeneratedProjectWorkspace.vue', import.meta.url), 'utf8');
 const entityPageSource = readFileSync(new URL('../shared/EntityPage.vue', import.meta.url), 'utf8');
+const generatedScreenSource = readFileSync(new URL('./GeneratedScreen.vue', import.meta.url), 'utf8');
+const standardPageSource = readFileSync(new URL('../shared/StandardPage.vue', import.meta.url), 'utf8');
+const scrollablePanelSource = readFileSync(new URL('../shared/ScrollablePanel.vue', import.meta.url), 'utf8');
+const appLayoutSource = readFileSync(new URL('../../layouts/app.vue', import.meta.url), 'utf8');
 
 describe('generated project workspace architecture', () => {
   it('composes the generated entity detail inside canonical workspace primitives', () => {
@@ -24,5 +28,16 @@ describe('generated project workspace architecture', () => {
     expect(source).not.toContain('variant="workspace"');
     expect(entityPageSource).not.toContain("variant: { type: String");
     expect(entityPageSource).not.toContain("props.variant === 'workspace'");
+  });
+
+  it('owns a flush bounded frame with independently scrolling panes', () => {
+    expect(source).toContain("class=\"flex h-full min-h-0 flex-1 flex-col overflow-hidden\"");
+    expect(source).toContain('class="!gap-0"');
+    expect(source).toContain('density="compact"');
+    expect(generatedScreenSource).toContain(':workspace="Boolean(screenOverload)"');
+    expect(standardPageSource).toContain("'h-full min-h-0 max-w-none flex-1 gap-0 overflow-hidden'");
+    expect(scrollablePanelSource).toContain("props.density === 'compact' ? '!p-1' : ''");
+    expect(appLayoutSource).toContain('isGeneratedWorkspaceRoute');
+    expect(appLayoutSource).toContain("'max-w-none overflow-hidden p-0");
   });
 });

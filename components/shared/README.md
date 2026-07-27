@@ -450,14 +450,18 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
   sections whose header remains fixed while the panel content scrolls. It
   supports an `actions` slot for header controls and `:scroll-content="false"`
-  for content-height panels.
+  for content-height panels. `density="compact"` reduces header and content
+  padding for IDE-style navigation and inspector lanes without changing the
+  global PrimeVue panel density.
 - **`StateBlock.vue`**: Standard loading/empty/error state block with icon, message, optional description, and action slot.
 - **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces; owns the token-backed DataTable header-cell background override.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Route-level page shell for title, subtitle,
   breadcrumbs, and page actions. The authenticated `app` layout owns outer
   route padding; `StandardPage` owns max width and header spacing only, so
-  pages do not accumulate nested padding.
+  pages do not accumulate nested padding. `workspace` turns off the normal
+  max-width and vertical gap and establishes a bounded `h-full/min-h-0`
+  propagation chain for registered full-screen workspaces.
 - **`TypedSettingsForm.vue`**: Contract-driven form for simple typed field
   descriptors (`string`, `number`, `boolean`, `enum`, `entityId`,
   `entityType`, `workflowState`, `array`, `object`). Used by admin operation

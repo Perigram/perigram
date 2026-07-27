@@ -1,8 +1,8 @@
 <template>
-  <div v-if="project" class="flex min-h-0 flex-col">
-    <WorkspaceLanes class="min-h-[36rem]" :center-scroll="false">
+  <div v-if="project" class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <WorkspaceLanes class="!gap-0" :center-scroll="false">
       <template #left>
-        <ScrollablePanel :header="$t('project.explorer')" class="h-full">
+        <ScrollablePanel :header="$t('project.explorer')" density="compact" class="h-full">
           <template #actions>
             <Button
               icon="pi pi-refresh"
@@ -54,7 +54,7 @@
             @update:model-value="selectByKey"
           />
         </div>
-        <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div class="min-h-0 flex-1 overflow-y-auto">
           <GeneratedEntityDetail
             v-if="selectedEntity"
             :entity="selectedEntity"
@@ -69,7 +69,7 @@
       </div>
 
       <template #right>
-        <ScrollablePanel :header="$t('project.lifecycle')" class="h-full">
+        <ScrollablePanel :header="$t('project.lifecycle')" density="compact" class="h-full">
           <StatusHistory
             :key="selectedKey"
             :entity="selectedEntity"

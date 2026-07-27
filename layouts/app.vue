@@ -89,7 +89,8 @@
             :class="[
                 'flex min-h-0 w-full flex-1 flex-col mx-auto',
                 isFlushMobileSurface ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-w-[var(--ck-page-max-width)] md:overflow-visible md:p-6 lg:p-8'
-                    : isBoundedWorkspaceRoute ? 'max-w-[var(--ck-page-max-width)] overflow-hidden px-3 pt-3 pb-24 md:p-4'
+                    : isGeneratedWorkspaceRoute ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
+                        : isBoundedWorkspaceRoute ? 'max-w-[var(--ck-page-max-width)] overflow-hidden px-3 pt-3 pb-24 md:p-4'
                         : 'max-w-[var(--ck-page-max-width)] px-4 pt-4 pb-24 md:p-6 lg:p-8'
             ]"
         >
@@ -198,6 +199,7 @@
     import { useGlobalStore } from '~/stores/global'
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
     import { generatedScreenLabel } from '~/utils/generated-labels.js'
+    import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js'
 
     const router = useRouter()
     const route = useRoute()
@@ -275,7 +277,21 @@
         breadcrumbMenu.value?.toggle(event)
     }
 
-    const isBoundedWorkspaceRoute = computed(() => /^\/project\/[^/]+\/queues\/?$/.test(route.path))
+    const activeGeneratedScreen = computed(() => {
+        if (!route.path.startsWith('/screens/')) return null
+        const rawKey = route.params.screenKey
+        const screenKey = Array.isArray(rawKey) ? rawKey.join('/') : rawKey
+        return authStore.screenManifest.find(screen => (
+            screen.screenKey === screenKey || screen.id === screenKey
+        )) || null
+    })
+    const isGeneratedWorkspaceRoute = computed(() => Boolean(
+        resolveGeneratedScreenOverload(activeGeneratedScreen.value)
+    ))
+    const isBoundedWorkspaceRoute = computed(() => (
+        isGeneratedWorkspaceRoute.value
+        || /^\/project\/[^/]+\/queues\/?$/.test(route.path)
+    ))
     const isAccountRoute = computed(() => route.path === '/profile' || route.path.startsWith('/organization'))
     const isFlushMobileSurface = computed(() => mobileActiveTab.value === 'chats' || isAccountRoute.value)
     const screenName = (screen) => generatedScreenLabel(screen, { t, te })

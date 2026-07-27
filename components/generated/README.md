@@ -52,6 +52,14 @@ apply to the project, while child operations come from the selected child's
 region. The overload resolves only those compiled ids through the current
 user's action manifest.
 
+Registered screen overloads select the bounded workspace mode on
+`GeneratedScreen`/`StandardPage`, and the authenticated app layout resolves the
+same overload from the user's active screen manifest. The resulting frame is
+flush to the app boundary and body scrolling is disabled. Explorer, editor, and
+lifecycle lanes own their scrolling independently. Explorer and lifecycle use
+compact `ScrollablePanel` density; the center entity detail is not wrapped in
+page padding.
+
 `GeneratedActionButton` supports an icon-only presentation for Explorer section
 toolbars. This changes presentation only: it still resolves the action from the
 current user's action manifest and emits that compiled action to the generated
