@@ -29,6 +29,8 @@ describe('generated overload registry', () => {
       template: 'entityDetail',
       entityType: 'queue'
     })).toBeNull();
+    expect(resolveGeneratedScreenOverload(null)).toBeNull();
+    expect(resolveGeneratedScreenOverload([])).toBeNull();
   });
 
   it('keeps entity detail body overloads in the registry', () => {

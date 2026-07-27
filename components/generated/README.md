@@ -13,7 +13,9 @@ manifest and after `useGeneratedScreen()` normalizes and loads only sources the
 user can read. This keeps overload behavior user-scoped: an app overload may
 change how a project or queue screen is presented, but it only receives the
 screen, source states, actions, and child regions already present in that
-user's compiled manifest.
+user's compiled manifest. Layout callers may pass `null` while the current
+route has no generated screen; the resolver treats non-object inputs as no
+overload instead of dereferencing a partial screen contract.
 
 Use the registry instead of adding entity checks directly inside
 `GeneratedScreen.vue`, `GeneratedEntityDetail.vue`, or generated collections.

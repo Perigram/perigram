@@ -31,6 +31,7 @@ export const generatedEntityDetailOverloads = [
 ];
 
 export function resolveGeneratedScreenOverload(screen = {}) {
+  if (!screen || typeof screen !== 'object' || Array.isArray(screen)) return null;
   return generatedScreenOverloads.find(overload => (
     overload.template === screen.template
     && overload.entityType === detailEntityType(screen)
@@ -42,6 +43,7 @@ export function resolveGeneratedEntityDetailOverload(entityType = '') {
 }
 
 function detailEntityType(screen = {}) {
+  if (!screen || typeof screen !== 'object' || Array.isArray(screen)) return '';
   if (screen.entityType) return screen.entityType;
   const singleSource = (screen.sources || []).find(source => source.mode === 'single');
   return singleSource?.entityType || '';
