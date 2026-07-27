@@ -295,11 +295,7 @@
     "confirmDelete": "Are you sure you want to delete this project?",
     "deleted": "Project deleted",
     "cassetteLibraries": "Cassette libraries",
-    "linkedEntities": "Linked entities",
-    "selectedPane": "Selected item",
-    "projectContext": "Project context",
     "explorer": "Explorer",
-    "inspector": "Inspector",
     "operations": "Operations"
   },
   "file": {

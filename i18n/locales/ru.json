@@ -295,11 +295,7 @@
     "confirmDelete": "Вы уверены, что хотите удалить этот проект?",
     "deleted": "Проект удалён",
     "cassetteLibraries": "Библиотеки кассет",
-    "linkedEntities": "Связанные сущности",
-    "selectedPane": "Выбранный объект",
-    "projectContext": "Контекст проекта",
     "explorer": "Проводник",
-    "inspector": "Инспектор",
     "operations": "Операции"
   },
   "file": {
