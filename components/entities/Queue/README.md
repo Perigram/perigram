@@ -79,6 +79,9 @@ Production queue card and detail surface.
   fitted inside the frame and spans the card's left column. The right column
   owns the template/quantity header and parameters below it. Each parameter
   label sits inline with its input rather than consuming a separate label row.
+  Because PrimeVue `Panel` always renders its header container, the entry card
+  hides that unused container so content begins at the card's top padding
+  instead of reserving an empty header band.
 - In generated process queue details, cassette producer actions come from the
   current user's compiled action manifest and must expose a current
   `contracts.outputs[]` entry for `cassette_design`. QueueEditor does not
