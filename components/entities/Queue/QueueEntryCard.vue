@@ -97,6 +97,7 @@ const props = defineProps({
 const emit = defineEmits(['update-quantity', 'update-dimension', 'remove']);
 const { t } = useI18n();
 const panelPt = {
+  header: { class: '!hidden' },
   content: { class: '!p-2' }
 };
 
