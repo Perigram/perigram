@@ -41,7 +41,7 @@
     <div class="queue-entry-card__body flex min-w-0 flex-col gap-2">
       <CassetteThumbnail
         v-if="cassette"
-        class="min-w-0"
+        class="queue-entry-card__preview min-w-0"
         :cassette-id="sourceId"
         :cassette="cassette"
         :dimensions="entry.dimensions"
@@ -61,6 +61,7 @@
       </div>
       <Tag
         v-else
+        class="justify-self-start"
         :value="$t('queue.static')"
         icon="pi pi-lock"
         severity="secondary"
@@ -115,7 +116,7 @@ const sourceLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value |
 @container (min-width: 28rem) {
   .queue-entry-card__body {
     display: grid;
-    grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
+    grid-template-columns: 8rem minmax(0, 1fr);
     align-items: start;
   }
 }
