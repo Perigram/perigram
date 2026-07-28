@@ -5,7 +5,8 @@
       <i :class="[record.icon || data.icon || 'pi pi-sitemap', accent.icon]"></i>
       <div class="min-w-0 flex-1">
         <strong :class="['block truncate text-sm', accent.title]">{{ data.kindLabel || record.kind }}</strong>
-        <span v-if="data.summary" class="block truncate text-xs text-muted-color">{{ data.summary }}</span>
+        <span v-if="data.purpose" class="block text-xs leading-snug text-muted-color">{{ data.purpose }}</span>
+        <span v-if="data.summary" class="block truncate text-[10px] text-muted-color">{{ data.summary }}</span>
       </div>
     </div>
 
@@ -19,18 +20,14 @@
         size="small"
         @update:model-value="value => update({ entityType: value })"
       />
-      <div v-if="showTypeEditor" class="grid grid-cols-2 gap-1">
+      <div v-if="showTypeEditor">
         <Select
           :model-value="record.type?.base"
           :options="baseTypeOptions"
+          option-label="label"
+          option-value="value"
           size="small"
           @update:model-value="value => update({ type: { ...(record.type || {}), base: value } })"
-        />
-        <Select
-          :model-value="record.type?.shape || 'item'"
-          :options="shapeOptions"
-          size="small"
-          @update:model-value="value => update({ type: { ...(record.type || {}), shape: value } })"
         />
       </div>
       <Select
@@ -62,10 +59,21 @@
         @update:model-value="value => update({ path: value })"
       />
       <InputText
-        v-if="record.kind === 'source.literalItem'"
+        v-if="record.kind === 'source.literalItem' && !['number', 'integer', 'boolean'].includes(record.type?.base)"
         :model-value="literalDisplay"
         size="small"
         @update:model-value="updateLiteral"
+      />
+      <InputNumber
+        v-if="record.kind === 'source.literalItem' && ['number', 'integer'].includes(record.type?.base)"
+        :model-value="Number(record.value) || 0"
+        size="small"
+        @update:model-value="value => update({ value })"
+      />
+      <ToggleSwitch
+        v-if="record.kind === 'source.literalItem' && record.type?.base === 'boolean'"
+        :model-value="Boolean(record.value)"
+        @update:model-value="value => update({ value })"
       />
       <Textarea
         v-if="['source.literalList', 'source.literalTree'].includes(record.kind)"
@@ -81,7 +89,6 @@
         <div v-for="input in inputSpecs" :key="input.id" :class="socketClass(input, 'left')">
           <Handle :id="socketHandleId(input)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" />
           <span class="flex min-w-0 items-center gap-1 text-xs">
-            <Badge v-if="input.required && !input.connected" value="!" severity="danger" size="small" />
             <span class="truncate">{{ input.label }}</span>
             <span class="shrink-0 text-[10px] text-muted-color">{{ input.typeLabel }}</span>
           </span>
@@ -103,21 +110,23 @@
 <script setup>
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
-import Badge from 'primevue/badge';
+import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import Textarea from 'primevue/textarea';
+import ToggleSwitch from 'primevue/toggleswitch';
+import { useI18n } from 'vue-i18n';
 import { formatProcessType } from '~/packages/processes/src/index.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
   selected: { type: Boolean, default: false }
 });
+const { t } = useI18n();
 
 const record = computed(() => props.data.processNodeRecord || props.data);
-const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
-const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || [], true));
-const outputSpecs = computed(() => normalizeSpecs(record.value.outputs || props.data.outputSpecs || [], false));
+const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || []));
+const outputSpecs = computed(() => normalizeSpecs(record.value.outputs || props.data.outputSpecs || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
 const fieldOptions = computed(() => props.data.processFieldOptions || []);
 const showEntitySelect = computed(() => (
@@ -126,10 +135,20 @@ const showEntitySelect = computed(() => (
 const showBlockSelect = computed(() => record.value.kind === 'record.getBlock' && (props.data.processBlockOptions || []).length);
 const showTypeEditor = computed(() => (
   record.value.kind?.startsWith('source.literal')
-  || ['value.cast', 'value.parse', 'value.convertUnit'].includes(record.value.kind)
 ));
-const baseTypeOptions = ['string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'entityRef', 'status'];
-const shapeOptions = ['item', 'list', 'tree'];
+const baseTypeOptions = computed(() => [
+  'string',
+  'number',
+  'integer',
+  'boolean',
+  'json',
+  'date',
+  'dateTime',
+  'duration',
+  'enum',
+  'entityRef',
+  'status'
+].map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
 const literalDisplay = computed(() => typeof record.value.value === 'string'
   ? record.value.value
   : JSON.stringify(record.value.value, null, 2));
@@ -175,14 +194,12 @@ function updateLiteral(value) {
   update({ value });
 }
 
-function normalizeSpecs(items, input) {
+function normalizeSpecs(items) {
   return items.map((item, index) => ({
     id: item.id || item.label || index,
     label: item.label || item.id || String(index),
     base: item.type?.base || 'json',
     role: item.role || 'data',
-    required: Boolean(item.required),
-    connected: input ? connectedInputs.value.has(item.id) : false,
     typeLabel: formatProcessType(item.type)
   }));
 }

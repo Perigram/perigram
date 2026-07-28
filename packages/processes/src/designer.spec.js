@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { createProcessDesignerContract } from './designer.js';
+import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
   const domain = {
@@ -91,16 +92,33 @@ describe('process designer domain contract', () => {
     });
   });
 
-  it('separates sources, values, collections, records, predicates, reads, effects, and control', () => {
+  it('presents authoring operations by concern without exposing runtime plumbing', () => {
     const contract = createProcessDesignerContract(domain);
     const groups = Object.fromEntries(contract.paletteGroups.map(group => [group.id, group.items]));
+    const items = contract.paletteGroups.flatMap(group => group.items);
 
-    expect(Object.keys(groups)).toEqual(['sources', 'values', 'collections', 'records', 'predicates', 'reads', 'effects', 'control']);
-    expect(groups.sources.map(item => item.kind)).toContain('source.literalTree');
-    expect(groups.collections.map(item => item.kind)).toContain('tree.cross');
-    expect(groups.records.map(item => item.kind)).toContain('record.fieldChange');
-    expect(groups.reads.map(item => item.kind)).toContain('read.queryEntities');
-    expect(groups.control.map(item => item.kind)).toContain('control.forEach');
+    expect(Object.keys(groups)).toEqual([
+      'startAndInput',
+      'values',
+      'entitiesAndFields',
+      'selection',
+      'actions',
+      'flow',
+      'dataStructures'
+    ]);
+    expect(groups.entitiesAndFields.map(item => item.kind)).toContain('record.fieldChange');
+    expect(groups.selection.map(item => item.kind)).toContain('read.filterRecords');
+    expect(groups.flow.map(item => item.kind)).toContain('control.forEach');
+    expect(items.map(item => item.kind)).not.toContain('value.cast');
+    expect(items.map(item => item.kind)).not.toContain('value.parse');
+    expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
+    expect(items.every(item => getProcessNodeDefinition(item.kind))).toBe(true);
+    expect(new Set(items.map(item => item.id)).size).toBe(items.length);
+    expect(items.every(item => item.description && item.preset)).toBe(true);
+    expect(items.find(item => item.id === 'numberValue')?.preset).toMatchObject({
+      type: { base: 'number', shape: 'item' },
+      value: 0
+    });
     expect(contract.fieldType('work_item', 'identity.name')).toMatchObject({ base: 'string', shape: 'item' });
   });
 });
