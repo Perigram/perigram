@@ -32,7 +32,7 @@ describe('project file operations and queue pane density', () => {
     expect(queueEntrySource).toContain('container-type: inline-size');
     expect(queueEntrySource).toContain('grid-template-columns: var(--ck-compact-preview-width) minmax(0, 1fr)');
     expect(queueEntrySource).toContain('max-width: var(--ck-bounded-grid-item-max-width)');
-    expect(queueEntrySource).toContain('hide-dimension-layer');
+    expect(queueEntrySource).not.toContain('hide-dimension-layer');
     expect(queueEntrySource).toContain("header: { class: '!p-2' }");
     expect(queueEntrySource).not.toContain('<Divider');
     expect(queueEntrySource).not.toContain('<StateBlock');
