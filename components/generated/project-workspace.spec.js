@@ -29,6 +29,7 @@ describe('generated project workspace architecture', () => {
     expect(detailBodySource).toContain('resolveGeneratedEntityDetailOverload');
     expect(detailBodySource).toContain('actionProducesEntityType');
     expect(queueDetailSource).toContain('<QueueEditor');
+    expect(queueDetailSource).toContain(':flush="flush"');
     expect(entityWorkspaceSource).toContain('container-type: inline-size');
     expect(entityWorkspaceSource).toContain('@container (min-width: 64rem)');
   });

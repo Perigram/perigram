@@ -57,7 +57,12 @@
                     />
                 </div>
 
-                <ScrollablePanel v-if="showNestingCommandRegion" class="shrink-0" :scroll-content="false">
+                <ScrollablePanel
+                    v-if="showNestingCommandRegion"
+                    class="shrink-0"
+                    :class="{ '!rounded-none !border-0': flush }"
+                    :scroll-content="false"
+                >
                     <template #header>
                         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                             <SelectButton
@@ -192,7 +197,11 @@
                     />
                 </ScrollablePanel>
 
-                <ScrollablePanel :header="$t('queues.cassettes')" class="min-h-0 flex-1">
+                <ScrollablePanel
+                    :header="$t('queues.cassettes')"
+                    class="min-h-0 flex-1"
+                    :class="{ '!rounded-none !border-0': flush }"
+                >
                     <template #actions>
                         <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
                         <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
@@ -256,7 +265,12 @@
                     </div>
                 </ScrollablePanel>
 
-                <ScrollablePanel v-if="hasPhysicalOutputs" :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`" class="flex-1">
+                <ScrollablePanel
+                    v-if="hasPhysicalOutputs"
+                    :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`"
+                    class="flex-1"
+                    :class="{ '!rounded-none !border-0': flush }"
+                >
                     <ResponsiveGrid responsive-context="container">
                         <CassetteInstanceCard
                             v-for="instance in instances"
@@ -268,7 +282,7 @@
                 </ScrollablePanel>
             </div>
             <template v-if="showNestingRunRegion" #[supportSlot]>
-                <Panel :header="$t('queue.runs')">
+                <Panel :header="$t('queue.runs')" :class="{ '!rounded-none !border-0': flush }">
                     <div v-if="activeRun" class="flex min-h-0 min-w-0 flex-col gap-3">
                         <NestingRunCard
                             :key="activeRun._id"
@@ -410,7 +424,8 @@ const props = defineProps({
     projectSlug: { type: String, required: true },
     showQueueNavigation: { type: Boolean, default: true },
     editMode: { type: String, default: 'workflow' },
-    processActions: { type: Array, default: () => [] }
+    processActions: { type: Array, default: () => [] },
+    flush: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted']);

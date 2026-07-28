@@ -161,7 +161,9 @@ rows from generated source regions. The active editor is a pane-native entity
 file rather than a nested page or card. File bodies reuse the registered
 entity-detail body overloads, so a queue file is the operational queue editor
 instead of a generic summary block; generic entities continue to use their
-contract-driven detail surface. Files can be recursively split right or down
+contract-driven detail surface. Operational bodies receive file mode and remove
+redundant rounded panel borders when the file pane already owns the boundary.
+Files can be recursively split right or down
 and retain pane-local selections. The project file aggregates compiled
 screen/main operations with direct-child creation actions from matching child
 regions. An overload must not discover extra sources or actions from domain

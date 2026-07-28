@@ -14,10 +14,11 @@ export const generatedEntityDetailOverloads = [
   {
     entityType: 'queue',
     component: GeneratedQueueDetail,
-    props: ({ entity, screenKey, queueDetailActions }) => ({
+    props: ({ entity, screenKey, queueDetailActions, mode }) => ({
       queue: entity,
       screenKey,
-      processActions: queueDetailActions
+      processActions: queueDetailActions,
+      flush: mode === 'file'
     })
   },
   {
