@@ -838,11 +838,13 @@
    create/filter/modify/status/service processes.
 ** WAITING Design rework
    Nodes layouts should be redesigned so that it looks good, minimal, with no bloat labels and with proper spacing; all labels and text should be true to data and nodes (there is much arbitrary stuff like "cassette" hardcoded labels, status ID instead of name, etc). Colors should be applied to groups, icons should not be slop.
-   The editor now uses the catalog palette, search, typed sockets, inline
-   essential configuration, a contextual inspector, separate status
-   definitions, visible inserted conversions, empty-canvas placement, and a
-   socket-drag palette filtered by compatible ports. Keep this WAITING until
-   the complete workflow is reviewed in the running UI.
+   The editor now uses a curated concern-based authoring palette instead of
+   exposing the exhaustive runtime catalog. Each visible operation explains
+   its job and starts with a meaningful preset; specialized operations require
+   an advanced reveal. Runtime casts/payload plumbing are connection-owned,
+   open sockets are not rendered as errors, and statuses use a dedicated
+   toolbar manager rather than the node inspector. Keep this WAITING until the
+   complete workflow is reviewed in the running UI.
 
 ** Agent Notes
 *** [2026-07-18] Core/domain projection, generic composition, and compact canvas
