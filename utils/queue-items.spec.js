@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalQueueItem, resolveQueueItemEntity } from './queue-items.js';
+import { canonicalQueueItem, queueItemTemplateId, resolveQueueItemEntity } from './queue-items.js';
 
 describe('queue item helpers', () => {
   it('resolves only direct cassette-design ids', () => {
@@ -48,5 +48,22 @@ describe('queue item helpers', () => {
       id: 'template-1',
       entityType: 'cassette'
     });
+  });
+
+  it('resolves the source cassette template from design provenance', () => {
+    expect(queueItemTemplateId(
+      { id: 'design-1', entityType: 'cassette_design' },
+      {
+        provenance: {
+          derivedFrom: {
+            source: { type: 'cassette', id: 'template-1' }
+          }
+        }
+      }
+    )).toBe('template-1');
+    expect(queueItemTemplateId(
+      { id: 'design-1', entityType: 'cassette_design' },
+      { provenance: { derivedFrom: { source: { type: 'artifact', id: 'file-1' } } } }
+    )).toBe('');
   });
 });

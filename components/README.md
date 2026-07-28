@@ -186,7 +186,9 @@ controls; narrow cards stack internally. Queue composition uses the bounded
 grid contract, so entry cards have finite token-backed track and preview widths
 while additional pane space produces more columns. Editable queue-item
 parameter snapshots render regardless of `STATIC`/`PARAMETRIC` nesting
-behavior; that behavior flag is not a field-visibility policy.
+behavior; that behavior flag is not a field-visibility policy. An entry's fixed
+fitted preview spans the left column; its source-template badge and row actions
+lead the right column, with inline-labeled parameter controls below.
 Registered screen overloads run in the app layout's flush bounded frame: the
 route body cannot scroll, and Explorer and file panes own their scrolling
 independently.

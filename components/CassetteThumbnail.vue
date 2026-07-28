@@ -1,7 +1,14 @@
 <template>
-  <div ref="container" class="w-full" data-entity-card-interactive="true" @click.stop>
+  <div
+    ref="container"
+    class="w-full"
+    :class="{ 'aspect-square': fixedFrame }"
+    data-entity-card-interactive="true"
+    @click.stop
+  >
     <DrawingCanvas
       v-if="canvasSource"
+      :class="{ '!h-full !aspect-auto': fixedFrame }"
       :source="canvasSource"
       :source-type="canvasSourceType"
       :layer-mapping="canvasLayerMapping"
@@ -9,7 +16,11 @@
       mode="thumbnail"
       @ready="handleDrawingReady"
     />
-    <div v-else class="flex aspect-[5/3] w-full items-center justify-center rounded-ui border border-content-border bg-subtle text-muted-color">
+    <div
+      v-else
+      class="flex w-full items-center justify-center rounded-ui border border-content-border bg-subtle text-muted-color"
+      :class="fixedFrame ? 'h-full' : 'aspect-[5/3]'"
+    >
       <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-image'" />
     </div>
   </div>
@@ -37,6 +48,10 @@ const props = defineProps({
     default: null
   },
   hideDimensionLayer: {
+    type: Boolean,
+    default: false
+  },
+  fixedFrame: {
     type: Boolean,
     default: false
   }

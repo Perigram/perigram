@@ -33,7 +33,11 @@ describe('project file operations and queue pane density', () => {
     expect(queueEntrySource).toContain('grid-template-columns: var(--ck-compact-preview-width) minmax(0, 1fr)');
     expect(queueEntrySource).toContain('max-width: var(--ck-bounded-grid-item-max-width)');
     expect(queueEntrySource).not.toContain('hide-dimension-layer');
-    expect(queueEntrySource).toContain("header: { class: '!p-2' }");
+    expect(queueEntrySource).toContain('fixed-frame');
+    expect(queueEntrySource).toContain('type="cassetteTemplate"');
+    expect(queueEntrySource).toContain('class="flex min-w-0 items-center gap-1"');
+    expect(queueEntrySource).not.toContain('<IdentityBlock');
+    expect(queueEditorSource).toContain('severity="secondary"');
     expect(queueEntrySource).not.toContain('<Divider');
     expect(queueEntrySource).not.toContain('<StateBlock');
     expect(queueEditorSource).toContain('variant="bounded"');

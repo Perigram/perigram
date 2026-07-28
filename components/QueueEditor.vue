@@ -213,7 +213,7 @@
                             v-if="canAddQueueEntry && producerMenuItems.length"
                             :label="$t('queues.addEntry')"
                             icon="pi pi-plus"
-                            severity="primary"
+                            severity="secondary"
                             size="small"
                             :disabled="!producerResourcesReady"
                             :loading="!producerResourcesReady"
@@ -228,6 +228,8 @@
                                     v-if="entry"
                                     :entry="entry"
                                     :cassette="getEntryEntityData(entry)"
+                                    :template="getEntryTemplateData(entry)"
+                                    :template-id="getEntryTemplateId(entry)"
                                     :parameters="getEntryParameters(entry)"
                                     :locked-parameters="['T']"
                                     :disabled="!canEditQueue"
@@ -410,7 +412,7 @@ import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
-import { canonicalQueueItem } from '~/utils/queue-items.js';
+import { canonicalQueueItem, queueItemTemplateId } from '~/utils/queue-items.js';
 import { currentQueueRun } from '~/utils/queue-runs.js';
 import { queueEntryParameterNames } from '~/utils/queue-entry-parameters.js';
 import {
@@ -1084,6 +1086,11 @@ const getCassetteParameters = (data) => {
     return occsParameterNames(data?.data?.definition || {});
 };
 const getEntryCassetteData = (entry) => getCassetteData(entry?.id);
+const getEntryTemplateId = (entry) => queueItemTemplateId(entry, getEntryEntityData(entry));
+const getEntryTemplateData = (entry) => {
+    const templateId = getEntryTemplateId(entry);
+    return cassettes.value.find(template => template._id?.toString() === templateId?.toString()) || null;
+};
 const getEntryParameters = (e) => {
     const data = getEntryEntityData(e);
     return queueEntryParameterNames(e, data ? getCassetteParameters(data) : []);

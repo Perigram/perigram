@@ -30,3 +30,10 @@ export function canonicalQueueItem(item = {}, sources = {}) {
     entityType: item.entityType || (isCassette ? 'cassette' : 'cassette_design')
   };
 }
+
+export function queueItemTemplateId(item = {}, sourceEntity = null) {
+  if (item.entityType === 'cassette') return stringId(item.id);
+  const source = sourceEntity?.provenance?.derivedFrom?.source;
+  if (source?.type !== 'cassette') return '';
+  return stringId(source.id);
+}

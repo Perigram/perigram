@@ -46,7 +46,9 @@ Production queue card and detail surface.
   stay separated by producer: existing readable `cassette_design` records use
   the existing-design source, and each process/generated action that currently
   outputs `cassette_design` appears as its own source. The grid contains queue
-  entries only; it must not add a fake in-grid Add tile.
+  entries only; it must not add a fake in-grid Add tile. Add Entry uses
+  secondary emphasis because queue composition, rather than source creation, is
+  the primary surface.
 - Inline quantity and parameter updates persist without emitting the route-level
   `updated` refresh event. The editor retains its local rows while the PUT
   completes, so typing a cassette parameter does not remount the generated
@@ -59,18 +61,24 @@ Production queue card and detail surface.
   `entityType: cassette` queue items hydrate from readable cassette templates
   and remain labeled as cassette-template entries; ids without an explicit
   entity type are not reinterpreted as templates.
-- Queue editor cassette rows render the hydrated `cassette_design` identity in
-  the panel header, or a typed id chip when the design cannot be read. They do
-  not nest `EntityInlineRef` popovers or full relation cards inside the row
-  header. Missing design hydration only probes rows that may be
-  `cassette_design`; explicit legacy `entityType: cassette` rows must not be
-  fetched from `/api/cassette-designs/:id`.
+- Queue editor cassette rows do not use the arbitrary baked
+  `cassette_design.identity.name` as their default header. The compact header
+  renders the canonical source cassette template from
+  `provenance.derivedFrom.source` as a non-interactive inline
+  `EntityInlineRef`, followed by quantity and remove controls. Designs without
+  cassette-template provenance fall back to their typed source id. Missing
+  design hydration only probes rows that may be `cassette_design`; explicit
+  legacy `entityType: cassette` rows must not be fetched from
+  `/api/cassette-designs/:id`.
 - Grid-mode queue entries use the bounded repeated-item grid. Each card has a
   finite maximum inline size, and additional container width creates more
   tracks instead of stretching existing cards indefinitely. The cassette
   thumbnail remains constrained but preserves the standard cassette preview
   layers, including dimension annotations; card sizing must not suppress
-  drawing information.
+  drawing information. It uses a fixed square frame whose complete SVG is
+  fitted inside the frame and spans the card's left column. The right column
+  owns the template/quantity header and parameters below it. Each parameter
+  label sits inline with its input rather than consuming a separate label row.
 - In generated process queue details, cassette producer actions come from the
   current user's compiled action manifest and must expose a current
   `contracts.outputs[]` entry for `cassette_design`. QueueEditor does not
