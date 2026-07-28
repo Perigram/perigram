@@ -11,10 +11,11 @@ designer package does not import a concrete domain.
 
 Canonical entity decomposition starts from
 `@cutkit/core/CANONICAL_ENTITY_BLOCKS` and is narrowed to blocks declared by the
-selected domain entity. Field selection combines core block entries with the
-domain's access policy and field groups. This keeps block/value composition
-reusable across domains while preventing a designer from inventing fields or
-blocks that the selected entity does not declare.
+selected domain entity. Field selection reads the domain's exact
+`fieldSchemas`; wildcard access patterns are authorization rules only. This
+keeps block/value composition reusable across domains while preventing a
+designer from inventing fields, types, or blocks that the selected entity does
+not declare.
 
 The grouped palette is framework metadata. Applications localize its group and
 item ids and may change layout, but entity types, construction modes, commands,
@@ -198,81 +199,62 @@ active domain field-access policy, and compile into write/admin grants on the
 concrete incoming entity feature. Manual generated screens prompt for the
 selected mutation fields through `action.inputPolicy`, while event-driven
 updates can receive the same field payload from wired value/data nodes.
-Process value inputs are path-free literals. They carry only a scalar type
-(`string`, `number`, `boolean`, `json`, or `date`), an `item`/`list` structure,
-and a value. The receiving action socket owns a construction or mutation field
-path; a clean literal never becomes a field declaration merely because it is
-wired into an entity-shaped node.
+`dataflowVersion: 3` is the sole current operation protocol. Every executable
+canvas record lives under `processNodes` and has a namespaced kind from the
+catalog: `source.*`, `value.*`, `collection.*`/`tree.*`, `record.*`,
+`predicate.*`, `read.*`, `effect.*`, or `control.*`. Roles, entity profiles,
+screens, assignments, and status definitions are definition-plane records and
+are not executable graph values.
 
-Process algebra nodes are canonical non-effect records under `processNodes`.
-Their families are separated by concern:
+Socket types are structured objects. `base` describes the value
+(`number`, `entity`, `predicate`, `patch`, and so on); `shape` independently
+describes `item`, `list`, or a path-addressed `tree`; nullable, entity type,
+schema, block, enum, unit, attachment, event, and capability qualifiers remain
+orthogonal. Connections may broadcast one item over an aligned list/tree.
+Non-singleton branches must have identical paths and lengths. Flatten, graft,
+simplify, branch selection, zip, cross, unzip, and transpose are explicit
+operations. Narrowing, reshaping, entity-to-reference conversion, nullable
+removal, and unit conversion never happen invisibly: the designer inserts the
+catalog conversion node onto the wire.
 
-- Values/modifiers: `cast`, `fallback`, `stringOp`, and `listLength`.
-- Value logic: typed `compare` operations and Boolean `logic` gates.
-- Entity predicates: `entityCondition` field comparisons and entity-typed
-  `predicateLogic` gates.
-- Entities: `entityQuery`, `entityRef`, `entityField`, `entityFilter`,
-  `entitySelect`, `entityDecompose`, `entityCompose`, and `entityModify`.
-- Blocks: `blockRead`, `blockCompose`, and `blockModify`.
+`data-tree.js` carries runtime packets as ordered `{ path, items }` branches.
+`evaluator.js` executes pure data nodes and authorized reads with the same
+broadcast-then-align rules. Entity filters consume an entity list and an
+entity-typed declarative predicate. Record modification is also pure:
+`record.fieldChange` produces a typed patch, `record.mergeChanges` composes
+patches, and `record.applyChanges` previews the result without persistence.
+Only `effect.*` nodes may create/update entities, change status, run commands,
+send entities, or generate attachments.
 
-Compose starts from empty data, modify requires existing data, and decompose
-only projects data. Entity and block composition nodes produce in-memory DTO
-values; persistence and external work remain action responsibilities.
-`entityQuery` returns the caller-visible list from the registered feature
-service. Filtering is an entity-predicate pipeline:
-`literal -> entityCondition -> predicateLogic -> entityFilter`, with the
-queried entity list connected separately to `entityFilter.entities`.
-An entity condition stores an exact domain-readable field path and scalar type,
-then produces a predicate tagged with its entity type. Predicate gates accept
-only predicates for the same entity type. The evaluator applies the composed
-predicate to each entity, so authors never align a Boolean array with a
-separate entity list.
+Selectable fields come exclusively from `domain.fieldSchemas`. Each entry has
+an exact path, canonical block, structured type, and read/write capability.
+Wildcard field-access entries remain authorization patterns and never become
+field choices or guessed sockets. Record construct/deconstruct nodes expose
+only their selected schema fields as dynamic ports.
 
-`resolveProcessNodePorts()` is the single operation-to-port contract used by
-edge validation and the designer. Port kinds preserve both value type and
-structure: for example, `number` and `number_list` are different contracts.
-List-capable modifiers preserve structure. Comparison and logic broadcast one
-scalar over a list; two list inputs must have equal lengths. `fallback`
-substitutes one scalar only for null/undefined elements.
-`inferProcessDataflowContracts()` derives item/list shape, compatible scalar
-types, entity types, and block types from graph edges during normalization,
-validation, compilation, and editor sync. Stored derived fields cannot override
-the wired contract. This is deliberately item/list algebra, not a hidden
-implementation of Grasshopper data trees: nested branches and automatic
-flatten/graft behavior are not part of this contract. Explicit cast nodes are
-required between unlike scalar types, and a cast declares only its output type
-because its input type comes from the wire. Activation validation requires
-every required process-node input to have exactly one incoming value.
+`orchestration.js` executes the full control plane: manual/domain-event/entity-
+change/schedule/webhook triggers; if/switch; fork; join-all/join-any;
+structured foreach; duration/until waits; and success/failure stops. Runs carry
+durable control tokens, foreach scopes, join arrivals, wake times, attempts,
+and step outputs. Data subgraphs are evaluated lazily for the operational node
+that consumes them. Arbitrary data or control cycles are rejected during
+activation.
 
-Scalar and list literals are distinct palette records. Their inline editors
-preserve typed values and never ask for a data path. Field-bearing nodes obtain
-paths and display metadata from domain field groups plus field-access policy.
-Known core fields have explicit types; fields without a descriptor or core
-declaration remain `json` instead of using name-based type guesses.
-Entity-condition operations are restricted by that field type.
+The v3 migration is a replacement, not a parallel interpretation. It moves
+literal/action/entity/service/socket graph nodes into the operation registry,
+keeps statuses in the definition plane, and expands old field-bearing actions
+into explicit entity-draft, field-change, patch-merge, and parameter-record
+nodes before their effect. Manual entry triggers preserve generated-screen
+actions. Required legacy casts are materialized as visible conversion nodes;
+legacy status-transition cycles become independent current-entity effects; and
+wildcard projections expand only to exact fields authorized by the domain read
+policy. Impossible optional-parent edges are discarded rather than assigned an
+unsafe type. Unknown or ambiguous node kinds stop migration, and no stale
+compiled runtime is retained when v3 compilation fails.
 
-`dataflowVersion: 2` replaces v1 entity-filter masks. The process data-flow
-migration rewrites the canonical
-`entityField -> compare/logic -> entityFilter.mask` shape into
-`entityCondition/predicateLogic -> entityFilter.predicate`, removes projection
-nodes that became redundant, clears obsolete cast input-type metadata, and
-invalidates the compiled snapshot. Ambiguous masks fail migration instead of
-being guessed.
-
-`resolveProcessActionInputContext()` evaluates the acyclic value subgraph that
-terminates at an action. It reads literal value inputs and authorized entity
-DTOs, queries authorized entity lists, decomposes/composes/modifies entity and
-block values, executes typed value/predicate/list operations, and binds the result to the
-target action input. Action input metadata decides whether the evaluated value
-lands in `data`, `parameters`, or `entities`; persistent mutations and external
-effects still occur only when the action service executes. Missing ports,
-cycles, unresolved entities, unsupported traversal, and duplicate input values
-are hard errors rather than placeholder results.
-Status-mutating update actions consume their entity from the incoming data
-socket and only require a target status; they do not need a separate
-entity-type selector.
-The target may be a literal `action.status.to` or a `statusRef` produced by a
-status-definition node. Status definitions compile into workflow state metadata
+`effect.changeStatus` consumes an entity reference, a typed status value, and
+an optional patch. The status may be supplied by a literal or configured from a
+definition-plane status record. Status definitions compile into workflow state metadata
 (`label`, `color`, `severity`, `icon`) and into the compiled action target
 state, so runtime execution and UI status rendering use the same value and
 visual metadata. They also carry lifecycle evidence schema

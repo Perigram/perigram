@@ -15,6 +15,36 @@ requires canonical semantic process records, validates the draft, verifies the
 process transpiler round-trip, compiles the runtime contract, archives the
 previous active process for the organization, marks the selected process
 `ACTIVE`, and stores its id on the organization.
+
+Activation and all write boundaries normalize the semantic source to
+`dataflowVersion: 3`. The migration replaces old graph node types with catalog
+operations and clears the old compiled snapshot; validation or compilation
+failure stops activation instead of retaining a v2 runtime beside a v3 graph.
+Starter templates pass through the same migration.
+
+## Durable orchestration
+
+The feature persists orchestration capability records in
+`orchestration_runs` and `orchestration_step_runs`. These are not domain
+entities and are not registered in the CNC entity catalog. A run owns its
+definition id, organization id, trigger payload, control tokens, foreach
+scopes, join arrivals, wake time, retry state, terminal result/error, and an
+optimistic `revision`. A step receipt owns one effect idempotency key and its
+running/succeeded/failed result. Unique step keys prevent a resumed request
+from applying the same external effect twice.
+
+`POST /api/process-definitions/:id/runs` starts a v3 trigger and advances one
+durable boundary. `POST /api/process-definitions/runs/:id/resume` resumes a
+running run or a due wait. `GET /api/process-definitions/runs/:id` reads the
+authorized run. Every route checks organization access through this feature's
+service; API handlers do not touch the orchestration collections.
+
+The pure scheduler lives in `@cutkit/processes`. This service supplies only
+authorized read adapters and effect adapters. Reads use registered entity
+services. Effects delegate to command, entity, status, projection, or
+attachment services and never write another feature's repository. Effect
+inputs are already composed entity drafts, entity refs, patches, statuses, or
+parameter records.
 Process definition management also accepts the active organization membership's
 stored `organizations` grants as a narrow recovery path. Membership role labels
 and sole-member status do not imply process management access; the recovery path
@@ -59,17 +89,13 @@ process-role assignment, so an older designer draft cannot erase assignments
 that were changed after the draft was forked.
 
 Manual generated-screen actions execute through the active process definition,
-not through client-selected entity routes. `executeActiveProcessAction()` loads
-the active compiled action, verifies that the user's compiled role assignment
-contains that action id, evaluates the connected value/process-node subgraph,
-and binds its outputs into the action's canonical `data`, `parameters`, and
-`entities` inputs. Entity nodes are resolved through the registered entity
-service with the caller's auth context; the evaluator does not read feature
-repositories or bypass entity access. It then delegates by action kind: entity creation,
-entity update, status transition, command execution, or outbound organization
-projection. The process graph remains the source for whether the button exists;
-the delegated entity/status/command service remains the access and business
-logic boundary. Create-entity actions are authorized as create operations by
+not through client-selected entity routes. For v3 definitions,
+`executeActiveProcessAction()` verifies the compiled role assignment, resolves
+the migrated effect's manual entry trigger, starts the durable run, and returns
+the effect result (or a run/wake reference for a persisted wait). It does not
+execute a second action algebra. The delegated entity/status/command service
+remains the access and business-logic boundary. Create-entity actions are
+authorized as create operations by
 the process action itself before the created entity exists; the delegated
 entity service receives a temporary action-scoped create grant for that feature
 instead of requiring an already-existing status-scoped entity grant. After the

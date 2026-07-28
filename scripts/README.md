@@ -28,14 +28,18 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   `changeStatus` process actions into canonical `updateEntity` actions with a
   status mutation input and recompiles active runtime contracts. Run before
   relying on the unified process action protocol.
-- `server/scripts/migrate-process-dataflow-nodes.js`: Replaces legacy mixed
-  process data-flow contracts with path-free literals and separated
-  entity/block/value nodes, rewrites affected graph handles, and recompiles
-  definitions that already had a compiled contract. It is a dry run unless
-  `APPLY=1` is set and stops on unknown node kinds instead of guessing. When
-  pre-existing disconnected nodes make a definition impossible to recompile,
-  the script reports it under `uncompiled`, migrates the semantic source, and
-  preserves its last compiled runtime until the invalid graph is repaired.
+- `server/scripts/migrate-process-dataflow-nodes.js`: Replaces every pre-v3
+  process graph with the namespaced operation protocol. It moves definitions
+  off the executable canvas, expands old field-bearing actions into explicit
+  drafts/patches/parameter records and durable effect entry triggers, rewrites
+  typed handles, and recompiles definitions that had a compiled contract. It is
+  a dry run unless `APPLY=1` is set. `STATUS=ACTIVE|DRAFT|ARCHIVED` limits a
+  run to one lifecycle group, and `COMPACT=1` caps diagnostic detail without
+  hiding failure counts. The migration inserts required conversion nodes,
+  separates legacy result data from success control flow, and expands wildcard
+  projections to authorized exact fields. Unknown nodes, ambiguous inputs, or
+  failed recompilation stop the migration; the script never preserves a stale
+  compiled runtime beside migrated v3 semantics.
 - `server/scripts/migrate-process-command-output-statuses.js`: Active-process
   data migration for command outputs. It reads graph edges from `runCommand`
   action nodes into downstream status-mutating `updateEntity` nodes, builds
