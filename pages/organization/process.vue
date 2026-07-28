@@ -48,16 +48,13 @@
             v-for="item in group.items"
             :key="item.id"
             :icon="item.icon"
+            :label="paletteLabel(item)"
+            v-tooltip.right="paletteDescription(item)"
             size="small"
             text
-            class="h-auto justify-start py-2 text-left"
+            class="justify-start"
             @click="addContextNode(item)"
-          >
-            <span class="flex min-w-0 flex-col items-start">
-              <span class="font-medium">{{ paletteLabel(item) }}</span>
-              <span class="text-xs font-normal text-muted-color">{{ paletteDescription(item) }}</span>
-            </span>
-          </Button>
+          />
         </div>
         <Message v-if="!contextPaletteGroups.length" severity="secondary" size="small">
           {{ $t('processDesigner.noCompatibleOperations') }}
@@ -82,22 +79,19 @@
         </div>
         <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1">
           <span class="text-xs font-semibold text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
-          <div class="flex flex-col gap-1">
+          <div class="grid grid-cols-2 gap-1">
             <Button
               v-for="item in group.items"
               :key="item.id"
               :icon="item.icon"
+              :label="paletteLabel(item)"
               :aria-label="paletteLabel(item)"
+              v-tooltip.right="paletteDescription(item)"
               size="small"
               text
-              class="h-auto min-w-0 justify-start py-2 text-left"
+              class="min-w-0 justify-start"
               @click="addNode(item)"
-            >
-              <span class="flex min-w-0 flex-col items-start">
-                <span class="font-medium">{{ paletteLabel(item) }}</span>
-                <span class="text-xs font-normal text-muted-color">{{ paletteDescription(item) }}</span>
-              </span>
-            </Button>
+            />
           </div>
         </div>
       </div>
