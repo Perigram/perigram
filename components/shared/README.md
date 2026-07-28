@@ -130,9 +130,13 @@ The overflow popover passes the requested relation variant through to every
 Canonical entity-detail workspace layout for operational editors embedded
 inside `EntityPage`. Use it when an entity detail needs a primary working
 region plus a supporting/status/results region, such as queue composition with
-nesting runs. The layout uses one column on small screens and a stable 8/4
-main/support split on large screens. Route-level production pages that need
-navigation, center work area, and right rail still use `WorkspaceLanes`.
+nesting runs. The layout is a CSS query container: it uses one column while its
+own allocated width is narrow and a stable 8/4 main/support split when the
+container is wide enough. This is intentionally independent from viewport
+breakpoints so entity workspaces remain usable inside recursively split file
+panes. `ResponsiveGrid` accepts `responsive-context="container"` for repeated
+content inside this layout. Route-level production pages that need navigation,
+center work area, and right rail still use `WorkspaceLanes`.
 
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.

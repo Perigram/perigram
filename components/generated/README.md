@@ -35,9 +35,12 @@ bounded IDE-style Explorer and file workspace:
 - the borderless Explorer is a dense PrimeVue tree containing the opened
   project and only the child collections loaded by the screen's list regions.
 - each file is a `GeneratedEntityFile`: a single header line with entity icon,
-  identity, status, an ellipsis action menu, split controls, and a compact
-  pane-width-safe entity surface below it. It does not nest `EntityPage` or an
-  entity card inside the workspace.
+  identity, status, an ellipsis action menu, and split controls. Its body
+  resolves through the same registered entity-detail overload registry as a
+  generated detail page, without nesting `EntityPage` or an entity card.
+  Operational entities therefore keep their real editor—queues render
+  `GeneratedQueueDetail`/`QueueEditor`—while entities without an overload fall
+  back to the pane-width-safe generic detail surface.
 - PrimeVue splitters form a recursive split tree. A file can split right or
   down, and nested horizontal/vertical splits keep independent entity
   selections and scrolling. There is no reserved right inspector pane.
@@ -55,6 +58,12 @@ absent.
 Selectable rows still come from access-filtered screen source states. Clicking
 an Explorer entity replaces the active file selection; splitting duplicates the
 current selection and subsequent navigation is pane-local.
+When a child file opens, its actions come from that entity type's compiled
+detail screen in the current user's effective screen manifest. Parent-workspace
+region actions are merged only when they also apply to the selected entity.
+This lets an embedded queue consume queue-detail commands and cassette-design
+producer actions without granting or discovering actions outside the user's
+compiled process access.
 
 Registered screen overloads select the bounded workspace mode on
 `GeneratedScreen`/`StandardPage`, and the authenticated app layout resolves the
