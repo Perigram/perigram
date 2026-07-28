@@ -55,6 +55,8 @@ planning and cannot be added as unexplained empty nodes. Advanced scheduling,
 control, collection, and tree operations remain available behind an explicit
 reveal. Palette rows explain the concrete job before adding the node, while
 text, number, and yes/no choices create correctly typed literals immediately.
+The persistent panel renders those operations as a compact two-column grid;
+the full job description is a tooltip, not permanent panel prose.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
 moving the canvas.

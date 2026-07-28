@@ -47,8 +47,10 @@ field, block, and operation. Larger configuration stays in the contextual
 inspector: command, relation, selected dynamic fields, retry policy, switch
 cases, and other operation-specific settings. The palette and inspector are
 independently scrollable. Palette search matches localized job names and
-descriptions as well as internal kinds. Right-clicking empty canvas opens the
-palette at that graph position.
+descriptions as well as internal kinds. The persistent palette stays a compact
+two-column grid; operation descriptions are available on hover instead of
+occupying canvas space. Right-clicking empty canvas opens the palette at that
+graph position.
 Dropping a socket wire on empty canvas opens the same palette filtered to
 operations with a compatible opposite socket; choosing one creates and
 connects it immediately.
