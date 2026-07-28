@@ -182,8 +182,11 @@ Within a queue file, `EntityWorkspace` gives the composition editor all twelve
 columns when no readable nesting-run/support region exists and uses the normal
 8/4 split only while that region is present. Queue entry cards use their own
 container width to place a bounded preview beside compact quantity/parameter
-controls; narrow cards stack internally. The surrounding wide card grid waits
-until the pane itself can provide two usable card columns.
+controls; narrow cards stack internally. Queue composition uses the bounded
+grid contract, so entry cards have finite token-backed track and preview widths
+while additional pane space produces more columns. Editable queue-item
+parameter snapshots render regardless of `STATIC`/`PARAMETRIC` nesting
+behavior; that behavior flag is not a field-visibility policy.
 Registered screen overloads run in the app layout's flush bounded frame: the
 route body cannot scroll, and Explorer and file panes own their scrolling
 independently.

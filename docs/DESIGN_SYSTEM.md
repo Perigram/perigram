@@ -93,6 +93,9 @@ Shared ownership:
 - `StandardDialog` owns dialog chrome and is the only direct owner of PrimeVue `Dialog`.
 - `StandardPage` owns page shell width and spacing.
 - `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, and `TableFrame` own repeated page-level layout patterns.
+- `ResponsiveGrid`'s `bounded` variant uses the shared bounded-item min/max
+  width tokens for operational cards that must not grow indefinitely; extra
+  width creates additional tracks.
 - `IdentityBlock`, `EntityStatus`, `StatusBadge`, `TraceChain`, `SpecsBlock`, and `DataBlock` own v24 block visualization.
 - `StatusLocation` renders typed mutable location facts from `status.lifecycle.data.location` so cards do not hardcode warehouse ids or coordinate text as static fields.
 - `DrawingCanvas` owns layer-aware SVG canvas rendering for DXF/SVG previews, cassette thumbnails, mapping previews, and cassette designer interactions. Sources must normalize into its `{ viewBox, layers }` contract and provide layer standard metadata explicitly; the shared canvas does not invent production layer codes.

@@ -139,6 +139,9 @@ breakpoints so entity workspaces remain usable inside recursively split file
 panes. `ResponsiveGrid` accepts `responsive-context="container"` for repeated
 content inside this layout. Its `wide` variant introduces a second column only
 at a 48rem container width, preserving useful card width inside split panes.
+The `bounded` variant uses token-defined minimum and maximum track widths with
+`auto-fill`: cards retain a finite readable width and extra container space
+creates additional tracks instead of enlarging existing cards without limit.
 Route-level production pages that need navigation, center work area, and right
 rail still use `WorkspaceLanes`.
 
@@ -445,7 +448,8 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   compact grid below the normal desktop breakpoint and become a stacked rail at
   `lg` and wider.
 - **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and
-  repeated item surfaces. Variants: `cards` (default), `dense`, `wide`. Grid
+  repeated item surfaces. Variants: `cards` (default), `dense`, `wide`,
+  `bounded`. Grid
   children align to the start of each row so cards and panels keep natural
   height instead of stretching to the tallest item.
 - **`WorkspaceLanes.vue`**: Three-lane production workspace shell. The parent

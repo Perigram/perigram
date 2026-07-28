@@ -1049,7 +1049,11 @@
      queue editor.
    - Queue files give the composition editor the full pane when no
      nesting-run/support region is visible. Queue-entry cards use compact,
-     card-container-responsive preview and control layouts.
+     card-container-responsive preview and control layouts. Canonical persisted
+     queue-item parameters remain editable for baked/static designs as well as
+     parametric items; the nesting behavior flag does not hide fields. Bounded
+     grid tracks and constrained drawing-only previews prevent entry cards from
+     stretching indefinitely.
    - Validation: generated overload/action/routing and project-file operation
      focused tests passed; changed SFCs parsed successfully; architecture,
      framework definition, and committed-manifest validation passed.
