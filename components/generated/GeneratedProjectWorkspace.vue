@@ -93,6 +93,7 @@ import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedEntityFile from '~/components/generated/GeneratedEntityFile.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
+import { isProjectFileLauncherAction } from '~/components/generated/project-file-actions.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
@@ -258,13 +259,19 @@ function actionEntriesForPane(pane) {
         .filter(actionId => !childActionIds.value.has(actionId)),
       item,
       projectActionContext.value
-    );
+    ).map(entry => ({
+      ...entry,
+      launcher: isProjectFileLauncherAction(
+        authStore.actionManifest.find(action => action.actionId === entry.actionId)
+      )
+    }));
     const childCreateEntries = childSections.value.flatMap(section => (
       collectionActions(section).map(action => ({
         key: `collection:${section.region.id}:${action.actionId}`,
         actionId: action.actionId,
         entity: null,
-        context: sectionActionContext(section)
+        context: sectionActionContext(section),
+        launcher: true
       }))
     ));
     return uniqueEntries([...projectEntries, ...childCreateEntries]);
