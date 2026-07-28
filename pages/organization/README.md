@@ -44,17 +44,17 @@ definition, and surfaces activation warnings/errors in the validation panel so
 operators can tell when the graph became the organization's active process.
 The route uses the
 authenticated app layout with a full canvas workspace and compact floating
-controls over it. The graph palette is a compact labeled control grouped into
-actions, entity data, logic, and transfer. Its framework metadata comes from
+controls over it. The graph palette is a compact, descriptive control grouped
+into start/input, values, entities/fields, selection/filtering, actions, flow,
+and advanced data structures. Its framework metadata comes from
 `createProcessDesignerContract(cncDomain)`; the route supplies CNC as the active
 domain implementation rather than importing separate CNC field/construction
-registries. It creates
-action nodes for entity creation, entity data updates, status changes, command
-runs, sending projected entity data to another organization, and inbound or
-outbound organization socket nodes. It also creates non-effect process algebra
-nodes for entity references, entity block decomposition, block field reads,
-string operations, comparisons, logic, and basic collection transforms; those
-nodes are typed source/transform records and do not execute mutations.
+registries. The palette is deliberately not the exhaustive runtime catalog:
+automatic conversions and trigger-payload plumbing are inserted by connection
+planning and cannot be added as unexplained empty nodes. Advanced scheduling,
+control, collection, and tree operations remain available behind an explicit
+reveal. Palette rows explain the concrete job before adding the node, while
+text, number, and yes/no choices create correctly typed literals immediately.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
 moving the canvas.
@@ -87,7 +87,9 @@ defaults are derived from the domain entity registry. The designer must not
 hardcode app navigation routes or concrete CNC entity names as generic process
 defaults; concrete starter graphs belong in process templates.
 
-The inspector edits compiler-owned fields directly:
+The inspector edits the selected canvas record only. Status definitions live
+in a dedicated toolbar manager, so definition-plane status metadata is not
+mixed into node inspection. The remaining inspector surfaces are:
 
 - the roles tab owns human process role labels and derived access summaries;
 - the service access tab owns service runtime identities used by service run/view access;
@@ -149,6 +151,8 @@ projection, attachment, and task ports, and the canvas keeps only the contract
 label visible so path/required metadata does not duplicate the socket name. New
 palette nodes are placed at the center of the current viewport, and wires use
 curved Vue Flow edges rather than orthogonal step routing.
+Open input sockets do not display error badges: they show where composition is
+possible. Required-input failures belong to explicit graph validation.
 The designer resolves the source and target handle contracts before saving a
 wire. Incompatible concrete ports are rejected immediately with a localized
 toast and are also reported by process compiler validation when stale persisted

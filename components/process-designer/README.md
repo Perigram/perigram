@@ -3,15 +3,27 @@
 The organization process designer authors the `@cutkit/processes`
 `dataflowVersion: 3` contract. The executable canvas contains only
 `processNode` records. Roles, entity profiles, screens, assignments, service
-principals, and statuses are definition-plane records edited in their own
-panels; a status definition is not a value node. Use a typed status literal
-with `effect.changeStatus` when a transition needs a data input.
+principals, and statuses are definition-plane records. Statuses have a
+dedicated manager opened from the canvas toolbar; they are not inspector tabs
+or executable value nodes. `effect.changeStatus` remains the explicit
+transition action on the graph.
 
 ## Palette and node concerns
 
-The searchable palette is generated from the process node catalog and is
-separated into sources, values, collections/trees, records, predicates, reads,
-effects, and control. These families are semantic:
+The runtime catalog remains exhaustive, but it is not the authoring palette.
+The searchable authoring projection is separated by user concern: start and
+inputs, values and modifiers, entities and fields, selection and filtering,
+actions, flow, and advanced data structures. Every palette choice has a
+plain-language job and a creation preset. Common literal choices create typed
+text, number, or yes/no values rather than an unconfigured generic literal.
+Specialized control and collection/tree operations require the explicit
+advanced reveal.
+
+Runtime-only payload extraction, casting, parsing, nullable removal,
+entity-reference conversion, JSON conversion, and unit conversion are never
+ordinary palette choices. The connection planner owns them and may place a
+clearly labeled automatic-conversion node when a compatible connection needs
+one. Runtime families remain semantic:
 
 - sources introduce values and trigger payloads;
 - values and collections transform data without entity meaning;
@@ -26,15 +38,17 @@ effects, and control. These families are semantic:
 `ProcessNode.vue` renders the catalog's resolved ports, not stored UI guesses.
 Each socket shows its structured type including shape and qualifier. Data
 handles and control handles are distinct; color communicates transported base
-type while the node stripe communicates operation concern. Required
-unconnected sockets show an error badge.
+type while the node stripe communicates operation concern. An open socket is a
+composition affordance, not an error. Missing required inputs are reported
+when validation is requested, not as warning badges on every new node.
 
-Meaningful configuration stays on the node: literal value/type/shape, entity,
+Meaningful configuration stays on the node: literal value/type, entity,
 field, block, and operation. Larger configuration stays in the contextual
 inspector: command, relation, selected dynamic fields, retry policy, switch
 cases, and other operation-specific settings. The palette and inspector are
-independently scrollable. Palette search matches kind, label, and operation
-level. Right-clicking empty canvas opens the palette at that graph position.
+independently scrollable. Palette search matches localized job names and
+descriptions as well as internal kinds. Right-clicking empty canvas opens the
+palette at that graph position.
 Dropping a socket wire on empty canvas opens the same palette filtered to
 operations with a compatible opposite socket; choosing one creates and
 connects it immediately.
@@ -49,7 +63,8 @@ attachment/event kinds are preserved on sockets.
 The designer checks the source and target socket contracts before persisting a
 wire. Safe item broadcasting is allowed. A connection that needs casting,
 nullable removal, entity-to-reference conversion, JSON conversion, or unit
-conversion inserts a visible conversion node at the wire midpoint. Narrowing
+conversion inserts a visible, automatically named conversion node at the wire
+midpoint. Narrowing
 or restructuring data is rejected until the author adds the appropriate
 collection/tree node.
 

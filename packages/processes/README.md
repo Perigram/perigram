@@ -17,9 +17,13 @@ keeps block/value composition reusable across domains while preventing a
 designer from inventing fields, types, or blocks that the selected entity does
 not declare.
 
-The grouped palette is framework metadata. Applications localize its group and
-item ids and may change layout, but entity types, construction modes, commands,
-attachment kinds, and fields always come from the supplied domain contract.
+The grouped authoring palette is a curated framework projection, separate from
+the exhaustive runtime catalog. It groups operations by user concern, provides
+stable localization/description ids and meaningful creation presets, and marks
+specialized operations for an explicit advanced reveal. Runtime-only
+conversions and trigger-payload plumbing are not palette entries. Applications
+may change layout, but entity types, construction modes, commands, attachment
+kinds, and fields always come from the supplied domain contract.
 
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,

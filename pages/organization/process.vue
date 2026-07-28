@@ -37,26 +37,30 @@
             v-model="contextPalette.query"
             size="small"
             class="min-w-0 flex-1"
-            :placeholder="contextPalette.socket ? 'Compatible operations' : 'Add operation'"
+            :placeholder="contextPalette.socket ? $t('processDesigner.compatibleOperations') : $t('processDesigner.addOperation')"
             @keydown.esc="closeContextPalette"
           />
-          <Button icon="pi pi-times" text size="small" aria-label="Close operation palette" @click="closeContextPalette" />
+          <Button icon="pi pi-times" text size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
         </div>
         <div v-for="group in contextPaletteGroups" :key="group.id" class="flex flex-col gap-1">
           <span class="text-xs font-semibold text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
           <Button
             v-for="item in group.items"
-            :key="item.kind"
+            :key="item.id"
             :icon="item.icon"
-            :label="paletteLabel(item)"
             size="small"
             text
-            class="justify-start"
+            class="h-auto justify-start py-2 text-left"
             @click="addContextNode(item)"
-          />
+          >
+            <span class="flex min-w-0 flex-col items-start">
+              <span class="font-medium">{{ paletteLabel(item) }}</span>
+              <span class="text-xs font-normal text-muted-color">{{ paletteDescription(item) }}</span>
+            </span>
+          </Button>
         </div>
         <Message v-if="!contextPaletteGroups.length" severity="secondary" size="small">
-          No compatible operation matches this search.
+          {{ $t('processDesigner.noCompatibleOperations') }}
         </Message>
       </div>
 
@@ -65,21 +69,35 @@
       </div>
 
       <div class="absolute left-3 top-3 z-10 flex max-h-[calc(100%-1.5rem)] w-56 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border bg-content p-2 shadow-card">
-        <InputText v-model="paletteQuery" size="small" placeholder="Search operations" />
+        <div class="flex items-center gap-1">
+          <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
+          <Button
+            :icon="showAdvancedOperations ? 'pi pi-eye-slash' : 'pi pi-sliders-h'"
+            text
+            size="small"
+            :severity="showAdvancedOperations ? 'primary' : 'secondary'"
+            :aria-label="showAdvancedOperations ? $t('processDesigner.hideAdvancedOperations') : $t('processDesigner.showAdvancedOperations')"
+            @click="showAdvancedOperations = !showAdvancedOperations"
+          />
+        </div>
         <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1">
           <span class="text-xs font-semibold text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
-          <div class="grid grid-cols-2 gap-1">
+          <div class="flex flex-col gap-1">
             <Button
               v-for="item in group.items"
-              :key="`${item.type}-${item.actionKind || item.direction || item.kind}`"
+              :key="item.id"
               :icon="item.icon"
-              :label="paletteLabel(item)"
               :aria-label="paletteLabel(item)"
               size="small"
               text
-              class="min-w-0 justify-start"
+              class="h-auto min-w-0 justify-start py-2 text-left"
               @click="addNode(item)"
-            />
+            >
+              <span class="flex min-w-0 flex-col items-start">
+                <span class="font-medium">{{ paletteLabel(item) }}</span>
+                <span class="text-xs font-normal text-muted-color">{{ paletteDescription(item) }}</span>
+              </span>
+            </Button>
           </div>
         </div>
       </div>
@@ -97,6 +115,7 @@
             @change="selectProcessDefinition"
           />
           <Button icon="pi pi-users" :aria-label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
+          <Button icon="pi pi-circle-fill" :label="$t('processDesigner.statuses')" size="small" severity="secondary" outlined @click="statusManagerOpen = true" />
           <Button icon="pi pi-check" :aria-label="$t('processDesigner.apply')" size="small" :loading="applyingProcess" :disabled="!draft?._id" @click="applyProcess" />
       </div>
 
@@ -104,7 +123,6 @@
         <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
-            <Tab value="definitions">Definitions</Tab>
             <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
             <Tab value="screens">{{ $t('organization.screens') }}</Tab>
           </TabList>
@@ -428,26 +446,30 @@
                       />
                     </div>
                   </div>
-                  <div v-if="['effect.runCommand', 'effect.generateAttachment'].includes(selectedProcessNode.kind)" class="flex flex-col gap-1">
+                  <div v-if="selectedProcessNode.kind === 'effect.runCommand'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.service') }}</label>
-                    <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter />
+                    <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
+                  </div>
+                  <div v-if="selectedProcessNode.kind === 'effect.generateAttachment'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.attachmentKind') }}</label>
+                    <Select v-model="selectedProcessNode.attachmentKind" :options="designer.attachmentKindOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
                   </div>
                   <div v-if="selectedProcessNode.kind === 'read.related'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.relation') }}</label>
-                    <Select v-model="selectedProcessNode.relation" :options="relationOptionsForEntity(selectedProcessNode.entityType)" option-label="label" option-value="value" filter />
+                    <Select v-model="selectedProcessNode.relationKey" :options="relationOptionsForEntity(selectedProcessNode.entityType)" option-label="label" option-value="value" filter @change="syncNodeData" />
                   </div>
                   <div v-if="['record.construct', 'record.deconstruct', 'record.entityDraft'].includes(selectedProcessNode.kind)" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.fields') }}</label>
-                    <MultiSelect v-model="selectedProcessNode.fields" :options="processNodeFieldOptions({ ...selectedProcessNode, kind: 'record.getField' })" option-label="label" option-value="value" filter />
+                    <MultiSelect v-model="selectedProcessNode.fields" :options="processNodeFieldOptions({ ...selectedProcessNode, kind: 'record.getField' })" option-label="label" option-value="value" filter @change="syncNodeData" />
                   </div>
-                  <Panel v-if="selectedProcessNode.kind?.startsWith('effect.')" header="Retry policy">
+                  <Panel v-if="selectedProcessNode.kind?.startsWith('effect.')" :header="$t('processDesigner.retryPolicy')">
                     <div class="grid grid-cols-2 gap-2">
                       <div class="flex flex-col gap-1">
-                        <label>Attempts</label>
+                        <label>{{ $t('processDesigner.retryAttempts') }}</label>
                         <InputNumber v-model="selectedProcessNode.retry.maxAttempts" :min="1" :max="10" />
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label>Delay (ms)</label>
+                        <label>{{ $t('processDesigner.retryDelay') }}</label>
                         <InputNumber v-model="selectedProcessNode.retry.delayMs" :min="0" />
                       </div>
                     </div>
@@ -457,41 +479,6 @@
                 <Button icon="pi pi-save" :label="$t('common.save')" size="small" @click="saveDraft" />
               </div>
               <StateBlock v-else :message="$t('processDesigner.selectNode')" />
-            </TabPanel>
-
-            <TabPanel value="definitions">
-              <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                  <strong>Status definitions</strong>
-                  <Button icon="pi pi-plus" size="small" text aria-label="Add status" @click="addStatusDefinition" />
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <Tag
-                    v-for="status in statusDefinitionList"
-                    :key="status.id"
-                    :value="status.label || status.statusId"
-                    :severity="selectedStatusDefinitionId === status.id ? 'success' : 'secondary'"
-                    class="cursor-pointer"
-                    @click="selectedStatusDefinitionId = status.id"
-                  />
-                </div>
-                <div v-if="selectedStatusDefinitionId" class="flex flex-col gap-3">
-                  <div class="flex flex-col gap-1">
-                    <label>Status ID</label>
-                    <InputText v-model="selectedStatusDefinition.statusId" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.label') }}</label>
-                    <InputText v-model="selectedStatusDefinition.label" />
-                  </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <Select v-model="selectedStatusDefinition.severity" :options="statusSeverityOptions" option-label="label" option-value="value" />
-                    <Select v-model="selectedStatusDefinition.icon" :options="statusIconOptions" option-label="label" option-value="value" />
-                  </div>
-                  <Button icon="pi pi-trash" severity="danger" outlined size="small" :label="$t('common.delete')" @click="removeSelectedStatusDefinition" />
-                </div>
-                <Message severity="info">Statuses are definition-plane metadata. Use a Change Status effect to execute a transition.</Message>
-              </div>
             </TabPanel>
 
             <TabPanel value="roles">
@@ -641,6 +628,74 @@
         </div>
       </Panel>
     </div>
+
+    <StandardDialog v-model:visible="statusManagerOpen" size="md" :header="$t('processDesigner.statuses')">
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-muted-color">{{ $t('processDesigner.statusManagerHelp') }}</span>
+          <Button icon="pi pi-plus" size="small" :label="$t('processDesigner.addStatus')" @click="addStatusDefinition" />
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <Tag
+            v-for="status in statusDefinitionList"
+            :key="status.id"
+            :value="status.label || status.statusId"
+            :severity="selectedStatusDefinitionId === status.id ? 'success' : 'secondary'"
+            class="cursor-pointer"
+            @click="selectedStatusDefinitionId = status.id"
+          />
+        </div>
+        <div v-if="selectedStatusDefinition" class="flex flex-col gap-3">
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.statusId') }}</label>
+            <InputText v-model="selectedStatusDefinition.statusId" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.label') }}</label>
+            <InputText v-model="selectedStatusDefinition.label" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <Select v-model="selectedStatusDefinition.severity" :options="statusSeverityOptions" option-label="label" option-value="value" />
+            <Select v-model="selectedStatusDefinition.icon" :options="statusIconOptions" option-label="label" option-value="value" />
+          </div>
+          <Panel :header="$t('processDesigner.evidence')">
+            <div class="flex flex-col gap-3">
+              <div class="flex items-center gap-2">
+                <Checkbox
+                  :model-value="Boolean(selectedStatusDefinition.lifecycle?.description?.required)"
+                  binary
+                  input-id="managed-status-description-required"
+                  @update:model-value="updateStatusDescriptionRequired"
+                />
+                <label for="managed-status-description-required">{{ $t('processDesigner.requireDescription') }}</label>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-medium">{{ $t('processDesigner.attachments') }}</span>
+                <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addAttachment')" size="small" text @click="addStatusAttachment" />
+              </div>
+              <div v-for="entry in selectedStatusAttachmentEntries" :key="entry.key" class="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-2">
+                <InputText :model-value="entry.key" size="small" @update:model-value="value => renameStatusAttachment(entry.key, value)" />
+                <Select v-model="entry.schema.kind" :options="designer.attachmentKindOptions" option-label="label" option-value="value" editable size="small" :placeholder="$t('processDesigner.attachmentKind')" />
+                <Checkbox v-model="entry.schema.required" binary />
+                <Button icon="pi pi-trash" :aria-label="$t('common.delete')" size="small" text severity="danger" @click="removeStatusAttachment(entry.key)" />
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-medium">{{ $t('processDesigner.snapshots') }}</span>
+                <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addSnapshot')" size="small" text @click="addStatusSnapshot" />
+              </div>
+              <div v-for="entry in selectedStatusSnapshotEntries" :key="entry.key" class="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2">
+                <InputText :model-value="entry.key" size="small" @update:model-value="value => renameStatusSnapshot(entry.key, value)" />
+                <Select v-model="entry.schema.entityType" :options="entityTypeOptions" option-label="label" option-value="value" size="small" />
+                <InputText v-model="entry.schema.lineageKey" size="small" :placeholder="$t('processDesigner.lineageKey')" />
+                <Button icon="pi pi-trash" :aria-label="$t('common.delete')" size="small" text severity="danger" @click="removeStatusSnapshot(entry.key)" />
+              </div>
+            </div>
+          </Panel>
+          <Button icon="pi pi-trash" severity="danger" outlined size="small" :label="$t('common.delete')" @click="removeSelectedStatusDefinition" />
+        </div>
+        <StateBlock v-else :message="$t('processDesigner.noStatuses')" />
+      </div>
+    </StandardDialog>
   </StandardPage>
 </template>
 
@@ -666,6 +721,7 @@ import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import {
@@ -716,11 +772,13 @@ const selectedRoleId = ref(null);
 const selectedPrincipalId = ref(null);
 const selectedScreenId = ref(null);
 const selectedStatusDefinitionId = ref(null);
+const statusManagerOpen = ref(false);
 const newStateId = ref('');
 const canvasFrame = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
 const paletteQuery = ref('');
+const showAdvancedOperations = ref(false);
 const contextPaletteSearch = ref(null);
 const contextPalette = ref({
   open: false,
@@ -735,11 +793,13 @@ const { getViewport } = useVueFlow();
 const designer = createProcessDesignerContract(cncDomain);
 const paletteGroups = computed(() => {
   const query = paletteQuery.value.trim().toLowerCase();
-  if (!query) return designer.paletteGroups;
   return designer.paletteGroups
     .map(group => ({
       ...group,
-      items: group.items.filter(item => `${item.kind} ${item.label} ${item.level}`.toLowerCase().includes(query))
+      items: group.items.filter(item => (
+        (showAdvancedOperations.value || !item.advanced)
+        && (!query || paletteSearchText(item).includes(query))
+      ))
     }))
     .filter(group => group.items.length);
 });
@@ -749,7 +809,8 @@ const contextPaletteGroups = computed(() => {
     .map(group => ({
       ...group,
       items: group.items.filter(item => (
-        (!query || `${item.kind} ${item.label} ${item.level}`.toLowerCase().includes(query))
+        (showAdvancedOperations.value || !item.advanced)
+        && (!query || paletteSearchText(item).includes(query))
         && contextItemCompatible(item)
       ))
     }))
@@ -807,6 +868,14 @@ const processNodeOperations = {
   'record.fieldChange': ['set', 'unset', 'append', 'remove']
 };
 const processNodeOperationLabels = {
+  add: t('processDesigner.operationLabels.add'),
+  subtract: t('processDesigner.operationLabels.subtract'),
+  multiply: t('processDesigner.operationLabels.multiply'),
+  divide: t('processDesigner.operationLabels.divide'),
+  modulo: t('processDesigner.operationLabels.modulo'),
+  power: t('processDesigner.operationLabels.power'),
+  min: t('processDesigner.operationLabels.min'),
+  max: t('processDesigner.operationLabels.max'),
   current: t('processDesigner.useCurrentEntity'),
   parent: t('processDesigner.useParentEntity'),
   children: t('processDesigner.useChildEntities'),
@@ -824,6 +893,10 @@ const processNodeOperationLabels = {
   lt: t('processDesigner.useLessThan'),
   lte: t('processDesigner.useLessOrEqual'),
   contains: t('processDesigner.useContains'),
+  startsWith: t('processDesigner.operationLabels.startsWith'),
+  endsWith: t('processDesigner.operationLabels.endsWith'),
+  isNull: t('processDesigner.operationLabels.isEmpty'),
+  isNotNull: t('processDesigner.operationLabels.isNotEmpty'),
   exists: t('processDesigner.useExists'),
   and: t('processDesigner.useAllConditions'),
   or: t('processDesigner.useAnyCondition'),
@@ -831,7 +904,13 @@ const processNodeOperationLabels = {
   not: t('processDesigner.useInvertCondition'),
   first: t('processDesigner.useFirstItem'),
   last: t('processDesigner.useLastItem'),
-  index: t('processDesigner.useIndexedItem')
+  index: t('processDesigner.useIndexedItem'),
+  asc: t('processDesigner.operationLabels.ascending'),
+  desc: t('processDesigner.operationLabels.descending'),
+  set: t('processDesigner.operationLabels.set'),
+  unset: t('processDesigner.operationLabels.clear'),
+  append: t('processDesigner.operationLabels.append'),
+  remove: t('processDesigner.operationLabels.remove')
 };
 const statusSeverityOptions = [
   { label: 'info', value: 'info' },
@@ -1130,6 +1209,9 @@ function addNode(item, position = activeViewportCenter()) {
   }
   if (type === 'processNode' && processNodeKind) {
     Object.assign(record, createProcessNode(refId, processNodeKind));
+    Object.assign(record, clonePalettePreset(item.preset));
+    record.label = paletteLabel(item);
+    syncProcessNode(record);
   }
   if (type === 'valueInput' && valueStructure) {
     Object.assign(record, createValueInput(refId, valueStructure));
@@ -1142,6 +1224,14 @@ function addNode(item, position = activeViewportCenter()) {
 }
 
 function selectNode(node) {
+  if (node.type === 'statusDefinition') {
+    selectedStatusDefinitionId.value = node.data?.refId || node.id;
+    statusManagerOpen.value = true;
+    selectedNodeId.value = null;
+    selectedEdgeId.value = null;
+    syncEdgeSelection();
+    return;
+  }
   selectedNodeId.value = node.id;
   selectedEdgeId.value = null;
   syncEdgeSelection();
@@ -1239,6 +1329,8 @@ function contextItemCompatible(item) {
   const existingRecord = draft.value?.data?.processNodes?.[existingNode?.data?.refId];
   if (!existingRecord) return false;
   const candidate = createProcessNode('__candidate__', item.kind);
+  Object.assign(candidate, clonePalettePreset(item.preset));
+  syncProcessNode(candidate);
   const existingPorts = resolveCatalogNodePorts(existingRecord, catalogContext(existingRecord));
   const candidatePorts = resolveCatalogNodePorts(candidate, catalogContext(candidate));
   if (socket.handleType === 'source') {
@@ -1425,7 +1517,6 @@ function syncNodeData() {
     node.data.processFieldOptions = node.type === 'processNode' ? processNodeFieldOptions(record) : [];
     node.data.processBlockOptions = node.type === 'processNode' ? processNodeBlockOptions(record) : [];
     node.data.processRelationOptions = node.type === 'processNode' ? relationOptionsForEntity(record.entityType) : [];
-    node.data.processConnectedInputIds = node.type === 'processNode' ? connectedProcessInputIds(node, record) : [];
     node.data.statusFrom = record.status?.from;
     node.data.statusTo = record.status?.to;
     node.data.direction = record.direction;
@@ -1457,6 +1548,7 @@ function syncNodeData() {
     node.data.kind = record.kind;
     node.data.kindLabel = node.type === 'processNode' ? processNodeDisplayLabel(record) : record.kind;
     node.data.summary = processNodeSummary(record);
+    node.data.purpose = node.type === 'processNode' ? processNodeDescription(record) : '';
   }
 }
 
@@ -1490,6 +1582,19 @@ function createServicePrincipal(id) {
 function paletteLabel(item) {
   const key = `processDesigner.paletteItems.${item.label}`;
   return te(key) ? t(key) : humanizeNodeLabel(item.label);
+}
+
+function paletteDescription(item) {
+  const key = `processDesigner.paletteDescriptions.${item.description || item.label}`;
+  return te(key) ? t(key) : '';
+}
+
+function paletteSearchText(item) {
+  return [item.kind, paletteLabel(item), paletteDescription(item)].join(' ').toLowerCase();
+}
+
+function clonePalettePreset(preset = {}) {
+  return JSON.parse(JSON.stringify(preset || {}));
 }
 
 function paletteGroupLabel(id) {
@@ -1592,7 +1697,12 @@ function removeSelectedStatusDefinition() {
   const used = Object.values(draft.value.data.processNodes || {})
     .some(node => node.kind === 'effect.changeStatus' && node.statusRef === id);
   if (used) {
-    toast.add({ severity: 'warn', summary: 'Status is in use', detail: 'Disconnect or reconfigure the Change Status effect first.', life: 3000 });
+    toast.add({
+      severity: 'warn',
+      summary: t('processDesigner.statusInUse'),
+      detail: t('processDesigner.statusInUseHelp'),
+      life: 3000
+    });
     return;
   }
   delete draft.value.data.statusDefinitions[id];
@@ -1635,6 +1745,21 @@ function createProcessNode(id, kind = 'source.literalItem') {
       .find(field => field[kind === 'record.fieldChange' ? 'writable' : 'readable'] !== false)?.value || '';
     node.fieldSchema = designer.fieldsForEntity(node.entityType).find(field => field.value === node.path) || null;
   }
+  if (['record.entityDraft', 'record.deconstruct'].includes(kind)) {
+    const access = kind === 'record.entityDraft' ? 'writable' : 'readable';
+    node.fields = designer.fieldsForEntity(node.entityType)
+      .filter(field => field[access] !== false)
+      .slice(0, 1)
+      .map(field => field.value);
+  }
+  if (kind === 'record.getBlock') {
+    node.block = designer.blocksForEntity(node.entityType)[0]?.id || '';
+  }
+  if (kind === 'read.related') {
+    node.relationKey = relationOptionsForEntity(node.entityType)[0]?.value || '';
+  }
+  if (kind === 'effect.runCommand') node.commandId = designer.commandOptions[0]?.value || '';
+  if (kind === 'effect.generateAttachment') node.attachmentKind = designer.attachmentKindOptions[0]?.value || '';
   syncProcessNode(node);
   return node;
 }
@@ -2297,6 +2422,14 @@ function syncProcessNode(node = {}) {
     node.path = '';
     node.fieldSchema = null;
   }
+  if (processNodeUsesBlock(node)) {
+    const blocks = designer.blocksForEntity(node.entityType);
+    if (!blocks.some(block => block.id === node.block)) node.block = blocks[0]?.id || '';
+  }
+  if (node.kind === 'read.related') {
+    const relations = relationOptionsForEntity(node.entityType);
+    if (!relations.some(relation => relation.value === node.relationKey)) node.relationKey = relations[0]?.value || '';
+  }
   if (['predicate.field', 'value.compare'].includes(node.kind)) {
     const allowed = processNodeOperationOptions(node).map(option => option.value);
     if (!allowed.includes(node.operation)) node.operation = allowed[0] || 'eq';
@@ -2353,11 +2486,13 @@ function processNodeUsesPath(node = {}) {
 }
 
 function processNodeInputs(node = {}) {
-  return resolveCatalogNodePorts(node, catalogContext(node)).inputs;
+  return resolveCatalogNodePorts(node, catalogContext(node)).inputs
+    .map(port => ({ ...port, label: processSocketLabel(port.label || port.id) }));
 }
 
 function processNodeOutputs(node = {}) {
-  return resolveCatalogNodePorts(node, catalogContext(node)).outputs;
+  return resolveCatalogNodePorts(node, catalogContext(node)).outputs
+    .map(port => ({ ...port, label: processSocketLabel(port.label || port.id) }));
 }
 
 function catalogContext(node = {}) {
@@ -2365,18 +2500,6 @@ function catalogContext(node = {}) {
     fieldSchema: designer.fieldsForEntity(node.entityType).find(field => field.value === node.path) || null,
     fieldSchemas: designer.fieldsForEntity(node.entityType)
   };
-}
-
-function connectedProcessInputIds(graphNode = {}, record = {}) {
-  const inputs = resolveCatalogNodePorts(record, catalogContext(record)).inputs;
-  return edges.value
-    .filter(edge => edge.target === graphNode.id)
-    .map(edge => {
-      const handle = String(edge.targetHandle || '');
-      if ((!handle || handle === 'input') && inputs.length === 1) return inputs[0].id;
-      return handle.replace(/^(input|data|control):/, '');
-    })
-    .filter(Boolean);
 }
 
 function processNodeSummary(node = {}) {
@@ -2416,7 +2539,25 @@ function declaredRelationsForEntity(entityType = '') {
 }
 
 function processNodeDisplayLabel(node = {}) {
-  return node.label || node.kind || '';
+  if (node.label && node.label !== node.kind) return node.label;
+  if (['value.cast', 'value.parse', 'value.convertUnit', 'value.toEntityRef', 'value.toJson'].includes(node.kind)) {
+    return t('processDesigner.automaticConversion', { type: node.type ? formatProcessType(node.type) : '' });
+  }
+  const item = designer.paletteGroups.flatMap(group => group.items).find(candidate => candidate.kind === node.kind);
+  return item ? paletteLabel(item) : humanizeNodeLabel(node.kind || '');
+}
+
+function processNodeDescription(node = {}) {
+  const items = designer.paletteGroups.flatMap(group => group.items);
+  const item = items.find(candidate => paletteLabel(candidate) === node.label)
+    || items.find(candidate => candidate.kind === node.kind);
+  return item ? paletteDescription(item) : '';
+}
+
+function processSocketLabel(value = '') {
+  const normalized = String(value).replace(/\s+/g, '');
+  const key = `processDesigner.socketLabels.${normalized}`;
+  return te(key) ? t(key) : humanizeNodeLabel(value);
 }
 
 function iconForProcessNode(kind = '') {
@@ -2805,7 +2946,6 @@ function enrichNodeData(node) {
       processFieldOptions: node.type === 'processNode' ? processNodeFieldOptions(record) : [],
       processBlockOptions: node.type === 'processNode' ? processNodeBlockOptions(record) : [],
       processRelationOptions: node.type === 'processNode' ? relationOptionsForEntity(record.entityType) : [],
-      processConnectedInputIds: node.type === 'processNode' ? connectedProcessInputIds(node, record) : [],
       triggerMode: record.trigger?.mode,
       eventLabel: node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null,
       direction: record.direction,
@@ -2834,7 +2974,8 @@ function enrichNodeData(node) {
       path: record.path,
       kind: record.kind,
       kindLabel: node.type === 'processNode' ? processNodeDisplayLabel(record) : record.kind,
-      summary: processNodeSummary(record)
+      summary: processNodeSummary(record),
+      purpose: node.type === 'processNode' ? processNodeDescription(record) : ''
     }
   };
 }
@@ -2922,8 +3063,7 @@ function stripRuntimeNodeData(node) {
     'processOperationOptions',
     'processFieldOptions',
     'processBlockOptions',
-    'processRelationOptions',
-    'processConnectedInputIds'
+    'processRelationOptions'
   ]) {
     delete data[key];
   }
