@@ -1,0 +1,347 @@
+import {
+  combineDataPackets,
+  createDataPacket,
+  crossDataPackets,
+  flattenDataPacket,
+  graftDataPacket,
+  mapDataPacket,
+  normalizeDataPacket,
+  packetValue,
+  selectDataBranch,
+  simplifyDataPacket,
+  transposeDataPacket
+} from './data-tree.js';
+
+export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
+  const kind = record.kind;
+  const packets = Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, normalizeDataPacket(packet)]));
+  if (kind.startsWith('source.')) return executeSource(record, context);
+  if (kind === 'value.cast' || kind === 'value.parse') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
+  if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
+  if (kind === 'value.toEntityRef') return mapDataPacket(required(packets, 'value', record), value => entityReference(value, record.entityType));
+  if (kind === 'value.toJson') return mapDataPacket(required(packets, 'value', record), value => structuredClone(value));
+  if (kind === 'value.required') return mapDataPacket(required(packets, 'value', record), value => {
+    if (value == null) throw new Error(`${record.id || kind} received a null required value`);
+    return value;
+  });
+  if (kind === 'value.coalesce') return combineDataPackets([required(packets, 'value', record), required(packets, 'fallback', record)], ([value, fallback]) => value ?? fallback);
+  if (kind === 'value.validate') return mapDataPacket(required(packets, 'value', record), value => validateValue(value, record));
+  if (kind === 'value.math') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => math(record.operation, left, right));
+  if (kind === 'value.string') return executeString(record, packets);
+  if (kind === 'value.dateTime') return executeDateTime(record, packets);
+  if (kind === 'value.enum') return mapDataPacket(required(packets, 'value', record), value => String(value));
+  if (kind === 'value.compare') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => compare(record.operation, left, right));
+  if (kind === 'value.logic') return executeLogic(record, packets);
+  if (kind === 'value.format') return mapDataPacket(required(packets, 'value', record), value => format(record, value));
+  if (kind === 'collection.makeList') return createDataPacket([packetValue(required(packets, 'value', record))], 'list');
+  if (kind === 'collection.concat') return createDataPacket([
+    ...flattenDataPacket(required(packets, 'left', record)).branches[0].items,
+    ...flattenDataPacket(required(packets, 'right', record)).branches[0].items
+  ], 'list');
+  if (kind === 'collection.itemAt') {
+    const values = flattenDataPacket(required(packets, 'items', record)).branches[0].items;
+    return createDataPacket(values.at(Number(packetValue(required(packets, 'index', record)))) ?? null);
+  }
+  if (kind === 'collection.slice') {
+    const values = flattenDataPacket(required(packets, 'items', record)).branches[0].items;
+    const start = packets.start ? Number(packetValue(packets.start)) : undefined;
+    const end = packets.end ? Number(packetValue(packets.end)) : undefined;
+    return createDataPacket(values.slice(start, end), 'list');
+  }
+  if (kind === 'collection.count') return createDataPacket(flattenDataPacket(required(packets, 'value', record)).branches[0].items.length);
+  if (kind === 'collection.distinct') return createDataPacket(distinct(flattenDataPacket(required(packets, 'value', record)).branches[0].items), 'list');
+  if (kind === 'collection.sort') return createDataPacket(sortValues(flattenDataPacket(required(packets, 'value', record)).branches[0].items, record), 'list');
+  if (kind === 'collection.groupBy') return groupByPackets(required(packets, 'items', record), required(packets, 'keys', record));
+  if (kind === 'collection.filter') return filterPackets(required(packets, 'items', record), required(packets, 'mask', record));
+  if (kind === 'tree.flatten') return flattenDataPacket(required(packets, 'value', record));
+  if (kind === 'tree.graft') return graftDataPacket(required(packets, 'value', record));
+  if (kind === 'tree.simplify') return simplifyDataPacket(required(packets, 'value', record));
+  if (kind === 'tree.branch') return selectDataBranch(required(packets, 'tree', record), packetValue(required(packets, 'path', record)));
+  if (kind === 'tree.zip') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], values => values);
+  if (kind === 'tree.unzip') return unzipPacket(required(packets, 'value', record));
+  if (kind === 'tree.cross') return crossDataPackets(required(packets, 'left', record), required(packets, 'right', record));
+  if (kind === 'tree.transpose') return transposeDataPacket(required(packets, 'value', record));
+  if (kind === 'record.getField') return mapDataPacket(required(packets, 'value', record), value => readPath(value, record.path));
+  if (kind === 'record.fieldChange') return mapDataPacket(required(packets, 'value', record), value => ({ entityType: record.entityType, changes: [{ path: record.path, operation: record.operation || 'set', value }] }));
+  if (kind === 'record.mergeChanges') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => mergePatches(left, right));
+  if (kind === 'record.applyChanges') return combineDataPackets([required(packets, 'record', record), required(packets, 'changes', record)], ([value, patch]) => applyPatch(value, patch));
+  if (kind === 'record.construct' || kind === 'record.entityDraft') return createDataPacket(constructRecord(record, packets));
+  if (kind === 'record.deconstruct') return mapDataPacket(required(packets, 'record', record), value => Object.fromEntries((record.fields || []).map(path => [path, readPath(value, path)])));
+  if (kind === 'record.getBlock') return mapDataPacket(required(packets, 'value', record), value => structuredClone(value?.[record.block]));
+  if (kind === 'predicate.field') return createDataPacket({ kind: 'field', entityType: record.entityType, path: record.path, operation: record.operation, value: packetValue(required(packets, 'value', record)) });
+  if (kind === 'predicate.logic') return createDataPacket({
+    kind: 'logic',
+    entityType: record.entityType,
+    operation: record.operation,
+    left: packetValue(required(packets, 'left', record)),
+    ...(packets.right ? { right: packetValue(packets.right) } : {})
+  });
+  if (kind.startsWith('read.')) return executeRead(record, packets, context);
+  throw new Error(`Node ${record.id || kind} is not a data/read operation`);
+}
+
+export function evaluateEntityPredicate(predicate, entity) {
+  if (!predicate) return true;
+  if (predicate.kind === 'field') return compare(predicate.operation, readPath(entity, predicate.path), predicate.value);
+  if (predicate.kind === 'logic') {
+    if (predicate.operation === 'not') return !evaluateEntityPredicate(predicate.left, entity);
+    const left = evaluateEntityPredicate(predicate.left, entity);
+    const right = evaluateEntityPredicate(predicate.right, entity);
+    if (predicate.operation === 'and') return left && right;
+    if (predicate.operation === 'or') return left || right;
+  }
+  throw new Error(`Unsupported entity predicate ${predicate.kind}:${predicate.operation}`);
+}
+
+export function applyPatch(record, patch) {
+  const result = structuredClone(record);
+  for (const change of patch?.changes || []) {
+    if (change.operation === 'unset') unsetPath(result, change.path);
+    else if (change.operation === 'append') writePath(result, change.path, [...(readPath(result, change.path) || []), structuredClone(change.value)]);
+    else if (change.operation === 'remove') writePath(result, change.path, (readPath(result, change.path) || []).filter(value => !same(value, change.value)));
+    else writePath(result, change.path, structuredClone(change.value));
+  }
+  return result;
+}
+
+async function executeSource(record, context) {
+  if (record.kind === 'source.currentTime') return createDataPacket((context.now || (() => new Date()))().toISOString());
+  if (record.kind === 'source.processInput') return createDataPacket(readPath(context.inputs || {}, record.path), record.type?.shape);
+  if (record.kind === 'source.triggerPayload') return createDataPacket(readPath(context.trigger || {}, record.path), record.type?.shape);
+  if (record.kind === 'source.secretRef') return createDataPacket({ secretRef: record.secretRef });
+  return createDataPacket(structuredClone(record.value), record.type?.shape || record.shape || 'item');
+}
+
+async function executeRead(record, packets, context) {
+  if (record.kind === 'read.currentEntity') return createDataPacket(await context.currentEntity?.(record.entityType));
+  if (record.kind === 'read.entityById') return createDataPacket(await context.entityById?.(record.entityType, packetValue(required(packets, 'id', record))));
+  if (record.kind === 'read.resolveEntityRef') return createDataPacket(await context.resolveEntityRef?.(packetValue(required(packets, 'value', record))));
+  if (record.kind === 'read.parent') return createDataPacket(await context.parentEntity?.(packetValue(required(packets, 'value', record)), record.entityType));
+  if (record.kind === 'read.children') return createDataPacket(await context.childEntities?.(packetValue(required(packets, 'value', record)), record.entityType) || [], 'list');
+  if (record.kind === 'read.related') return createDataPacket(await context.relatedEntities?.(packetValue(required(packets, 'value', record)), record.relation, record.entityType) || [], 'list');
+  if (record.kind === 'read.queryEntities') {
+    const predicate = packets.predicate ? packetValue(packets.predicate) : null;
+    return createDataPacket(await context.queryEntities?.(record.entityType, predicate) || [], 'list');
+  }
+  if (record.kind === 'read.filterRecords') {
+    const entities = flattenDataPacket(required(packets, 'entities', record)).branches[0].items;
+    const predicate = packetValue(required(packets, 'predicate', record));
+    return createDataPacket(entities.filter(entity => evaluateEntityPredicate(predicate, entity)), 'list');
+  }
+  throw new Error(`Unsupported read node ${record.kind}`);
+}
+
+function executeString(record, packets) {
+  const left = required(packets, 'left', record);
+  if (['upper', 'lower', 'trim'].includes(record.operation)) {
+    return mapDataPacket(left, value => record.operation === 'upper' ? String(value).toUpperCase()
+      : record.operation === 'lower' ? String(value).toLowerCase() : String(value).trim());
+  }
+  return combineDataPackets([left, required(packets, 'right', record)], ([leftValue, right]) => (
+    record.operation === 'replace'
+      ? String(leftValue).split(String(record.search || '')).join(String(right))
+      : `${leftValue ?? ''}${right ?? ''}`
+  ));
+}
+
+function executeLogic(record, packets) {
+  const left = required(packets, 'left', record);
+  if (record.operation === 'not') return mapDataPacket(left, value => !value);
+  return combineDataPackets([left, required(packets, 'right', record)], ([a, b]) => (
+    record.operation === 'and' ? Boolean(a && b)
+      : record.operation === 'or' ? Boolean(a || b)
+        : Boolean(a) !== Boolean(b)
+  ));
+}
+
+function executeDateTime(record, packets) {
+  const value = required(packets, 'value', record);
+  return mapDataPacket(value, item => {
+    const date = new Date(item);
+    if (Number.isNaN(date.getTime())) throw new Error(`Invalid date ${item}`);
+    if (record.operation === 'startOfDay') date.setUTCHours(0, 0, 0, 0);
+    return date.toISOString();
+  });
+}
+
+function required(inputs, id, record) {
+  if (!inputs[id]) throw new Error(`Node ${record.id || record.kind} requires input ${id}`);
+  return inputs[id];
+}
+
+function cast(value, base = 'json') {
+  if (base === 'string') return String(value);
+  if (base === 'number') {
+    const result = Number(value);
+    if (!Number.isFinite(result)) throw new Error(`Cannot cast ${value} to number`);
+    return result;
+  }
+  if (base === 'integer') {
+    const result = Number(value);
+    if (!Number.isInteger(result)) throw new Error(`Cannot cast ${value} to integer`);
+    return result;
+  }
+  if (base === 'boolean') {
+    if (value === true || value === 'true' || value === 1) return true;
+    if (value === false || value === 'false' || value === 0) return false;
+    throw new Error(`Cannot cast ${value} to boolean`);
+  }
+  if (base === 'date' || base === 'dateTime') {
+    const result = new Date(value);
+    if (Number.isNaN(result.getTime())) throw new Error(`Cannot cast ${value} to ${base}`);
+    return base === 'date' ? result.toISOString().slice(0, 10) : result.toISOString();
+  }
+  return structuredClone(value);
+}
+
+function math(operation, left, right) {
+  const a = Number(left);
+  const b = Number(right);
+  if (operation === 'add') return a + b;
+  if (operation === 'subtract') return a - b;
+  if (operation === 'multiply') return a * b;
+  if (operation === 'divide') {
+    if (b === 0) throw new Error('Division by zero');
+    return a / b;
+  }
+  if (operation === 'modulo') return a % b;
+  if (operation === 'power') return a ** b;
+  if (operation === 'min') return Math.min(a, b);
+  if (operation === 'max') return Math.max(a, b);
+  throw new Error(`Unsupported math operation ${operation}`);
+}
+
+function compare(operation, left, right) {
+  if (operation === 'eq') return same(left, right);
+  if (operation === 'neq') return !same(left, right);
+  if (operation === 'gt') return left > right;
+  if (operation === 'gte') return left >= right;
+  if (operation === 'lt') return left < right;
+  if (operation === 'lte') return left <= right;
+  if (operation === 'contains') return left?.includes?.(right) || false;
+  if (operation === 'startsWith') return String(left).startsWith(String(right));
+  if (operation === 'endsWith') return String(left).endsWith(String(right));
+  if (operation === 'isNull') return left == null;
+  if (operation === 'isNotNull') return left != null;
+  throw new Error(`Unsupported comparison ${operation}`);
+}
+
+function validateValue(value, record) {
+  if (record.required && value == null) throw new Error(record.message || 'Value is required');
+  if (record.pattern && !new RegExp(record.pattern).test(String(value))) throw new Error(record.message || 'Value does not match');
+  if (record.min != null && Number(value) < Number(record.min)) throw new Error(record.message || `Value is below ${record.min}`);
+  if (record.max != null && Number(value) > Number(record.max)) throw new Error(record.message || `Value is above ${record.max}`);
+  return value;
+}
+
+function convertUnit(value, from, to, custom = {}) {
+  if (!from || !to || from === to) return value;
+  const factors = { mm: 1, cm: 10, m: 1000, mm2: 1, cm2: 100, m2: 1_000_000, degree: 1, radian: 180 / Math.PI, ...custom };
+  if (!factors[from] || !factors[to]) throw new Error(`Unsupported unit conversion ${from} → ${to}`);
+  return Number(value) * factors[from] / factors[to];
+}
+
+function entityReference(value, entityType) {
+  if (!value || typeof value !== 'object') throw new Error('Entity reference conversion requires an entity');
+  return { type: entityType || value.type || value.entityType, id: String(value._id || value.id || value.identity?.uid) };
+}
+
+function format(record, value) {
+  if (record.template) return String(record.template).replaceAll('{value}', String(value ?? ''));
+  return new Intl.NumberFormat(record.locale || 'en', record.options || {}).format(value);
+}
+
+function distinct(values) {
+  const seen = new Set();
+  return values.filter(value => {
+    const key = JSON.stringify(value);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function sortValues(values, record) {
+  return [...values].sort((left, right) => {
+    const a = record.path ? readPath(left, record.path) : left;
+    const b = record.path ? readPath(right, record.path) : right;
+    const result = a < b ? -1 : a > b ? 1 : 0;
+    return record.direction === 'desc' ? -result : result;
+  });
+}
+
+function groupByPackets(itemsPacket, keysPacket) {
+  const combined = combineDataPackets([itemsPacket, keysPacket], values => values);
+  const groups = new Map();
+  for (const [item, key] of combined.branches[0].items) {
+    const serialized = JSON.stringify(key);
+    if (!groups.has(serialized)) groups.set(serialized, []);
+    groups.get(serialized).push(item);
+  }
+  return {
+    shape: 'tree',
+    branches: [...groups.values()].map((items, index) => ({ path: [index], items }))
+  };
+}
+
+function filterPackets(itemsPacket, maskPacket) {
+  const combined = combineDataPackets([itemsPacket, maskPacket], values => values);
+  return {
+    shape: combined.shape,
+    branches: combined.branches.map(branch => ({
+      path: branch.path,
+      items: branch.items.filter(([, include]) => include).map(([value]) => value)
+    }))
+  };
+}
+
+function unzipPacket(packet) {
+  const values = flattenDataPacket(packet).branches[0].items;
+  const width = Math.max(0, ...values.map(value => Array.isArray(value) ? value.length : 0));
+  return {
+    shape: 'tree',
+    branches: Array.from({ length: width }, (_, index) => ({
+      path: [index],
+      items: values.map(value => value[index])
+    }))
+  };
+}
+
+function constructRecord(record, packets) {
+  const result = {};
+  for (const path of record.fields || []) {
+    if (packets[path]) writePath(result, path, packetValue(packets[path]));
+  }
+  return result;
+}
+
+function mergePatches(left, right) {
+  if (left?.entityType && right?.entityType && left.entityType !== right.entityType) {
+    throw new Error(`Cannot merge ${left.entityType} and ${right.entityType} patches`);
+  }
+  return { entityType: left?.entityType || right?.entityType || '', changes: [...(left?.changes || []), ...(right?.changes || [])] };
+}
+
+function readPath(value, path = '') {
+  return String(path).split('.').filter(Boolean).reduce((current, key) => current?.[key], value);
+}
+
+function writePath(target, path, value) {
+  const parts = String(path).split('.').filter(Boolean);
+  let current = target;
+  parts.slice(0, -1).forEach(part => {
+    current[part] = current[part] && typeof current[part] === 'object' ? current[part] : {};
+    current = current[part];
+  });
+  if (parts.length) current[parts.at(-1)] = value;
+}
+
+function unsetPath(target, path) {
+  const parts = String(path).split('.').filter(Boolean);
+  const parent = parts.slice(0, -1).reduce((current, key) => current?.[key], target);
+  if (parent) delete parent[parts.at(-1)];
+}
+
+function same(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}

@@ -24,6 +24,12 @@ describe('process designer domain contract', () => {
         admin: ['attachments.*']
       }
     },
+    fieldSchemas: {
+      workItem: [
+        { path: 'identity.name', block: 'identity', label: 'Name', type: { base: 'string', shape: 'item', nullable: false }, readable: true, writable: true },
+        { path: 'relations.owner', block: 'relations', label: 'Owner', type: { base: 'entityRef', shape: 'item', nullable: true }, readable: true, writable: true }
+      ]
+    },
     construction: {
       work_item: {
         modes: ['genericCreate'],
@@ -63,8 +69,15 @@ describe('process designer domain contract', () => {
       'data'
     ]);
     expect(contract.fieldsForEntity('work_item', 'relations')).toEqual([
-      { label: 'relations.*', value: 'relations.*', type: 'json' },
-      { label: 'relations.owner', value: 'relations.owner', type: 'json' }
+      {
+        path: 'relations.owner',
+        block: 'relations',
+        label: 'Owner',
+        value: 'relations.owner',
+        type: { base: 'entityRef', shape: 'item', nullable: true },
+        readable: true,
+        writable: true
+      }
     ]);
   });
 
@@ -78,14 +91,16 @@ describe('process designer domain contract', () => {
     });
   });
 
-  it('separates value, logic, entity, and block programming concerns', () => {
+  it('separates sources, values, collections, records, predicates, reads, effects, and control', () => {
     const contract = createProcessDesignerContract(domain);
     const groups = Object.fromEntries(contract.paletteGroups.map(group => [group.id, group.items]));
 
-    expect(groups.values.map(item => item.label)).toEqual(['literal', 'literalList', 'cast', 'fallback', 'text', 'listLength']);
-    expect(groups.logic.map(item => item.label)).toEqual(['compare', 'logicGate', 'entityCondition', 'predicateLogic']);
-    expect(groups.entities.map(item => item.label)).toContain('filterEntities');
-    expect(groups.blocks.map(item => item.label)).toEqual(['field', 'composeBlock', 'modifyBlock']);
-    expect(contract.fieldType('work_item', 'identity.name')).toBe('string');
+    expect(Object.keys(groups)).toEqual(['sources', 'values', 'collections', 'records', 'predicates', 'reads', 'effects', 'control']);
+    expect(groups.sources.map(item => item.kind)).toContain('source.literalTree');
+    expect(groups.collections.map(item => item.kind)).toContain('tree.cross');
+    expect(groups.records.map(item => item.kind)).toContain('record.fieldChange');
+    expect(groups.reads.map(item => item.kind)).toContain('read.queryEntities');
+    expect(groups.control.map(item => item.kind)).toContain('control.forEach');
+    expect(contract.fieldType('work_item', 'identity.name')).toMatchObject({ base: 'string', shape: 'item' });
   });
 });
