@@ -1,6 +1,10 @@
 <template>
     <div class="flex h-full min-h-0 min-w-0 flex-col">
-        <component :is="workspaceComponent" :center-scroll="false">
+        <component
+            :is="workspaceComponent"
+            :center-scroll="false"
+            v-bind="workspaceLayoutProps"
+        >
             <template v-if="showQueueNavigation && queues?.length > 0" #left>
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
@@ -1148,6 +1152,10 @@ const canReadNestingRun = (run = {}) => hasPermissionGrant({
 const readableQueueRuns = computed(() => isProcessMode.value ? queueRuns.value.filter(canReadNestingRun) : queueRuns.value);
 const currentRun = computed(() => currentQueueRun(readableQueueRuns.value, props.queue));
 const showNestingRunRegion = computed(() => !isProcessMode.value || Boolean(currentRun.value) || canRunNesting.value);
+const workspaceLayoutProps = computed(() => showQueueNavigation.value
+    ? {}
+    : { mainSpan: showNestingRunRegion.value ? 8 : 12 }
+);
 const activeRun = computed(() => currentRun.value);
 const hasPhysicalOutputs = computed(() => Boolean(props.queue.data?.physicalOutputs?.cassetteInstanceIds?.length));
 const warehouseShortage = computed(() => {

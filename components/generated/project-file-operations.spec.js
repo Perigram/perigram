@@ -1,0 +1,34 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+const entityFileSource = readFileSync(new URL('./GeneratedEntityFile.vue', import.meta.url), 'utf8');
+const projectHomeSource = readFileSync(new URL('./GeneratedProjectFileHome.vue', import.meta.url), 'utf8');
+const queueEditorSource = readFileSync(new URL('../QueueEditor.vue', import.meta.url), 'utf8');
+const queueEntrySource = readFileSync(new URL('../entities/Queue/QueueEntryCard.vue', import.meta.url), 'utf8');
+const responsiveGridSource = readFileSync(new URL('../shared/ResponsiveGrid.vue', import.meta.url), 'utf8');
+
+describe('project file operations and queue pane density', () => {
+  it('uses the project file body as a compiled operation launcher', () => {
+    expect(entityFileSource).toContain('<GeneratedProjectFileHome');
+    expect(entityFileSource).toContain("v-if=\"item.type === 'project'\"");
+    expect(projectHomeSource).toContain('v-for="entry in actionEntries"');
+    expect(projectHomeSource).toContain('<GeneratedActionButton');
+    expect(projectHomeSource).not.toContain('/api/');
+    expect(projectHomeSource).not.toContain('actionKind');
+  });
+
+  it('lets the queue workspace consume the full pane when no support region renders', () => {
+    expect(queueEditorSource).toContain('workspaceLayoutProps');
+    expect(queueEditorSource).toContain('showNestingRunRegion.value ? 8 : 12');
+    expect(queueEditorSource).toContain('v-bind="workspaceLayoutProps"');
+  });
+
+  it('keeps queue entries compact and makes their grid respond to actual card width', () => {
+    expect(queueEntrySource).toContain('container-type: inline-size');
+    expect(queueEntrySource).toContain('grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr)');
+    expect(queueEntrySource).toContain("header: { class: '!p-2' }");
+    expect(queueEntrySource).not.toContain('<Divider');
+    expect(queueEntrySource).not.toContain('<StateBlock');
+    expect(responsiveGridSource).toContain('@container (min-width: 48rem)');
+  });
+});
