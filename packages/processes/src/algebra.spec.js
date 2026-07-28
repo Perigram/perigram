@@ -53,7 +53,7 @@ describe('process programming algebra', () => {
         queue: { id: 'queue', entityType: 'queue' }
       },
       processNodes: {
-        decompose: { id: 'decompose', kind: 'fieldRead', entityType: 'queue' },
+        decompose: { id: 'decompose', kind: 'entityDecompose', entityType: 'queue' },
         read: { id: 'read', kind: 'blockRead', block: 'identity', path: 'identity.name', valueType: 'string' },
         template: { id: 'template', kind: 'stringOp', operation: 'template', template: 'Queue: {value}' }
       },
@@ -103,6 +103,33 @@ describe('process programming algebra', () => {
       .rejects.toThrow('Process node join requires input right');
   });
 
+  it('casts explicitly and applies a scalar fallback element-wise without changing list structure', async () => {
+    const process = {
+      actions: { action: { id: 'action', actionKind: 'runCommand', inputs: [{ id: 'values', kind: 'data' }] } },
+      valueInputs: {
+        values: { id: 'values', valueType: 'json', structure: 'list', value: '[null,3]' },
+        fallback: { id: 'fallback', valueType: 'json', structure: 'item', value: '0' }
+      },
+      processNodes: {
+        defaulted: { id: 'defaulted', kind: 'fallback', valueType: 'json', structure: 'list' },
+        cast: { id: 'cast', kind: 'cast', sourceValueType: 'json', valueType: 'number', structure: 'list' }
+      },
+      graph: {
+        nodes: ['values', 'fallback'].map(id => ({ id, type: 'valueInput' }))
+          .concat(['defaulted', 'cast'].map(id => ({ id, type: 'processNode' })), [{ id: 'action', type: 'action' }]),
+        edges: [
+          { source: 'values', target: 'defaulted', targetHandle: 'input:value' },
+          { source: 'fallback', target: 'defaulted', targetHandle: 'input:fallback' },
+          { source: 'defaulted', target: 'cast' },
+          { source: 'cast', target: 'action' }
+        ]
+      }
+    };
+
+    const result = await resolveProcessActionInputContext(process, 'action');
+    expect(result.parameters.values).toEqual([0, 3]);
+  });
+
   it('leaves action-to-action runtime values in the submitted execution context', async () => {
     const process = {
       actions: {
@@ -127,5 +154,52 @@ describe('process programming algebra', () => {
       parameters: {},
       entities: { entity: 'queue-1' }
     });
+  });
+
+  it('queries entities, projects a typed field list, builds a predicate mask, filters, and selects', async () => {
+    const process = {
+      actions: {
+        command: {
+          id: 'command',
+          actionKind: 'runCommand',
+          inputs: [{ id: 'queue', kind: 'entity', entityType: 'queue' }]
+        }
+      },
+      valueInputs: {
+        target: { id: 'target', valueType: 'string', structure: 'item', value: 'READY' }
+      },
+      processNodes: {
+        query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
+        status: { id: 'status', kind: 'entityField', entityType: 'queue', path: 'status.state.primary', valueType: 'string', structure: 'list' },
+        equals: { id: 'equals', kind: 'compare', operation: 'eq', valueType: 'string', structure: 'list' },
+        filter: { id: 'filter', kind: 'entityFilter', entityType: 'queue' },
+        first: { id: 'first', kind: 'entitySelect', entityType: 'queue', operation: 'first' }
+      },
+      graph: {
+        nodes: [
+          { id: 'target', type: 'valueInput' },
+          ...['query', 'status', 'equals', 'filter', 'first'].map(id => ({ id, type: 'processNode' })),
+          { id: 'command', type: 'action' }
+        ],
+        edges: [
+          { source: 'query', target: 'status', targetHandle: 'input' },
+          { source: 'status', target: 'equals', targetHandle: 'input:left' },
+          { source: 'target', target: 'equals', targetHandle: 'input:right' },
+          { source: 'query', target: 'filter', targetHandle: 'input:entities' },
+          { source: 'equals', target: 'filter', targetHandle: 'input:mask' },
+          { source: 'filter', target: 'first', targetHandle: 'input' },
+          { source: 'first', target: 'command', targetHandle: 'input' }
+        ]
+      }
+    };
+
+    const result = await resolveProcessActionInputContext(process, 'command', {}, {
+      queryEntities: async () => [
+        { identity: { uid: 'q1' }, status: { state: { primary: 'DRAFT' } } },
+        { identity: { uid: 'q2' }, status: { state: { primary: 'READY' } } }
+      ]
+    });
+
+    expect(result.entities.queue).toEqual({ type: 'queue', id: 'q2' });
   });
 });

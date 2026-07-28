@@ -28,6 +28,14 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   `changeStatus` process actions into canonical `updateEntity` actions with a
   status mutation input and recompiles active runtime contracts. Run before
   relying on the unified process action protocol.
+- `server/scripts/migrate-process-dataflow-nodes.js`: Replaces legacy mixed
+  process data-flow contracts with path-free literals and separated
+  entity/block/value nodes, rewrites affected graph handles, and recompiles
+  definitions that already had a compiled contract. It is a dry run unless
+  `APPLY=1` is set and stops on unknown node kinds instead of guessing. When
+  pre-existing disconnected nodes make a definition impossible to recompile,
+  the script reports it under `uncompiled`, migrates the semantic source, and
+  preserves its last compiled runtime until the invalid graph is repaired.
 - `server/scripts/migrate-process-command-output-statuses.js`: Active-process
   data migration for command outputs. It reads graph edges from `runCommand`
   action nodes into downstream status-mutating `updateEntity` nodes, builds

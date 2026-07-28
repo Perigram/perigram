@@ -137,6 +137,13 @@ command handler to evaluate material-bound parametric queue entries, while
 queue job edits still require the separate `queues:write` entity grant. A queue
 write grant alone does not expose the command action, and a command action
 grant does not expose queue mutation controls.
+Entity query nodes also stay inside feature access boundaries. The application
+registry gives every registered entity service one explicit
+`processList(filters, auth)` adapter matching that feature's real list
+signature. Process evaluation calls only this adapter, serializes returned
+models, and then applies field projection/predicate masks in memory. It does
+not infer service signatures, read feature collections directly, or turn a
+designer predicate into an unchecked Mongo query.
 When a synchronous run-command action returns entity refs and the visual graph
 wires a typed output handle into a downstream status-mutating `updateEntity`
 node, execution applies that target process status to each returned entity

@@ -281,7 +281,8 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   try {
     const resolved = await resolveProcessActionInputContext(process.data, actionId, { data, parameters, entities }, {
       resolveEntity: (entityType, candidate) => resolveProcessGraphEntity(entityType, candidate, { entityId, entities, auth }),
-      resolveEntityReference: (record, source) => resolveProcessGraphEntityReference(record, source, auth)
+      resolveEntityReference: (record, source) => resolveProcessGraphEntityReference(record, source, auth),
+      queryEntities: entityType => queryProcessGraphEntities(entityType, auth)
     });
     data = resolved.data;
     parameters = resolved.parameters;
@@ -417,6 +418,13 @@ async function resolveProcessGraphEntity(entityType, candidate, { entityId = nul
   const entity = await service.getById(id, auth);
   if (!entity) throw new Error(`${entityType} ${id} was not found`);
   return entity?.toJSON ? entity.toJSON() : entity;
+}
+
+async function queryProcessGraphEntities(entityType, auth = {}) {
+  const service = getAppRegistry().getEntityService(entityType);
+  if (!service?.processList) throw new Error(`Entity service cannot query ${entityType} from a process`);
+  const entities = await service.processList({}, auth);
+  return (entities || []).map(entity => entity?.toJSON ? entity.toJSON() : entity);
 }
 
 async function resolveProcessGraphEntityReference(record, source, auth = {}) {

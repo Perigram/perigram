@@ -821,9 +821,14 @@
   [2026-07-18 Sat 09:30]
 ** DONE Architecture rework
    Process designer must be a complete representation of cutkit-core, with cnc-domain as implementation; so just like core we should re-use it in different domains.
-** DONE Node composition
+** WAITING Node composition
    It should contain "create entity", which creates every entity possible; "modify entity" which includes any edit, including status change.
    Need to investigate how entities are composed, and how standard blocks and their entries look like. For them, need to refactor node set so that it allows to create/modify any of it in any reasonable way. Nodes should be grouped and have labels in palette.
+   The current typed item/list implementation separates literals and modifiers,
+   predicates/gates, entity query/filter/select/compose/decompose/modify, and
+   block read/compose/modify. Keep this WAITING until the resulting authoring
+   workflow is accepted in actual process design; nested data trees and
+   control-flow guards are not claimed as complete.
 ** DONE Design rework
    Nodes layouts should be redesigned so that it looks good, minimal, with no bloat labels and with proper spacing; all labels and text should be true to data and nodes (there is much arbitrary stuff like "cassette" hardcoded labels, status ID instead of name, etc). Colors should be applied to groups, icons should not be slop.
 

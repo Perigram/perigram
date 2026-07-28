@@ -804,6 +804,85 @@ describe('process definitions access fallback', () => {
     );
   });
 
+  it('queries entity lists through the authorized service before process filtering and selection', async () => {
+    const processList = vi.fn().mockResolvedValue([
+      { identity: { uid: 'queue-1' }, status: { state: { primary: 'DRAFT' } } },
+      { identity: { uid: 'queue-2' }, status: { state: { primary: 'READY' } } }
+    ]);
+    executeCommand.mockResolvedValueOnce({ data: { ok: true } });
+    const registry = {
+      getCommandDefinition: () => ({ access: {} }),
+      getEntityService: entityType => entityType === 'queue' ? { processList } : null
+    };
+    getAppRegistry.mockReturnValueOnce(registry).mockReturnValueOnce(registry);
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      identity: { uid: 'process-active', name: 'Active process', slug: 'active-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        actions: {
+          run: {
+            id: 'run',
+            actionKind: 'runCommand',
+            commandId: 'calculate',
+            inputs: [{ id: 'queue', kind: 'entity', entityType: 'queue' }]
+          }
+        },
+        valueInputs: {
+          ready: { id: 'ready', valueType: 'string', structure: 'item', value: 'READY' }
+        },
+        processNodes: {
+          query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
+          status: { id: 'status', kind: 'entityField', entityType: 'queue', path: 'status.state.primary', valueType: 'string', structure: 'list' },
+          equals: { id: 'equals', kind: 'compare', operation: 'eq', valueType: 'string', structure: 'list' },
+          filter: { id: 'filter', kind: 'entityFilter', entityType: 'queue' },
+          first: { id: 'first', kind: 'entitySelect', operation: 'first', entityType: 'queue' }
+        },
+        graph: {
+          nodes: [
+            { id: 'ready', type: 'valueInput' },
+            ...['query', 'status', 'equals', 'filter', 'first'].map(id => ({ id, type: 'processNode' })),
+            { id: 'run', type: 'action' }
+          ],
+          edges: [
+            { source: 'query', target: 'status' },
+            { source: 'status', target: 'equals', targetHandle: 'input:left' },
+            { source: 'ready', target: 'equals', targetHandle: 'input:right' },
+            { source: 'query', target: 'filter', targetHandle: 'input:entities' },
+            { source: 'equals', target: 'filter', targetHandle: 'input:mask' },
+            { source: 'filter', target: 'first' },
+            { source: 'first', target: 'run' }
+          ]
+        },
+        compiled: {
+          actions: {
+            run: {
+              id: 'run',
+              actionKind: 'runCommand',
+              commandId: 'calculate',
+              access: { level: 'write', roleIds: ['role_operator'] }
+            }
+          }
+        }
+      }
+    });
+    const auth = {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: { actions: [{ actionId: 'run' }] }
+    };
+
+    await executeActiveProcessAction({ actionId: 'run' }, auth);
+
+    expect(processList).toHaveBeenCalledWith({}, auth);
+    expect(executeCommand).toHaveBeenCalledWith(
+      'calculate',
+      { entities: { queue: { type: 'queue', id: 'queue-2' } }, parameters: {} },
+      expect.any(Object)
+    );
+  });
+
   it('does not project process output status before async command tasks finish', async () => {
     executeCommand.mockResolvedValueOnce({
       entities: [{ type: 'nesting_run', id: 'nesting-run-1' }],

@@ -10,8 +10,8 @@ rules, and lifecycle transitions.
 Each node type is visually and functionally distinct. All node components render
 the Vue Flow selected state as a primary border/ring. Node accents are assigned
 by palette group rather than by individual operation: actions are green,
-entity/block composition is cyan, logic/transforms are violet, entity resources
-are blue, services are amber, and transfers are violet. Socket row backgrounds stay on
+entity data is cyan, block data is sky, logic is amber, value transforms are
+violet, entity resources are blue, services are amber, and transfers are violet. Socket row backgrounds stay on
 theme surfaces; handle colors carry the contract distinction: entity sockets
 are blue, canonical block sockets are cyan, data/value sockets are green,
 status sockets are amber, event sockets are violet, projected transfer payloads
@@ -71,31 +71,23 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   status-definition nodes; the explicit status label field is the only display
   label, and the node itself renders a single badge with no separate socket
   text.
-- `ProcessValueInputNode.vue` represents a canonical block value. Its block and
-  field options come from `@cutkit/core` plus the active domain contract and
-  cover `identity`, `origin`, `status`, `lineage`, `relations`, `provenance`,
-  `specs`, `attachments`, `data`, and `summary` where declared by the entity.
-  Wiring it into an entity node adds that canonical path to the entity field
-  policy. Wiring it into a construction data socket binds that value to the
-  matched construction field, while wiring it into an update action adds the
-  block path as a concrete mutation field. Empty update actions expose a generic
-  field socket until the first block is connected; after that the node displays
-  exact mutation sockets using domain field labels.
+- `ProcessValueInputNode.vue` represents a clean typed literal. It owns a
+  scalar type, `item`/`list` structure, and value, but no entity block or field
+  path. The receiving action or composition socket owns field meaning. List
+  literals display their declared element type and item count.
 - `ProcessNode.vue` represents non-effect process algebra records. Entity
-  reference nodes traverse entity relations. Blocks nodes decompose an incoming
-  entity into the canonical DTO block sockets declared for that concrete domain
-  entity. Field nodes read a scalar or
-  JSON value from one incoming block. Text, comparison, logic, and collection
-  nodes transform typed values without mutating persistent state; mutations and
-  external work stay on action nodes. Operation selection changes the actual
-  sockets instead of leaving generic `data` ports: concatenate has two string
-  inputs, replace has value/search/replacement, numeric comparisons accept
-  numbers, `not` has one boolean input, and typed coalesce returns its selected
-  scalar/json type. The inspector renders this input-to-output contract and the
-  canvas prints each socket type beside its label. Text templates store a
-  required `{value}` placeholder. Each node keeps the palette icon on the
-  canvas, while socket handle colors come from the socket data type rather than
-  the node kind.
+  query/reference/filter/select and entity compose/decompose/modify nodes are
+  distinct from block read/compose/modify nodes. Value modifiers, predicate
+  comparisons, and Boolean gates form separate palette families. Operation
+  selection changes actual typed sockets: scalar and list ports are visibly
+  different, casts are explicit, comparisons turn a projected list into a
+  parallel Boolean mask, and entity filtering consumes that mask. Compose nodes
+  start from empty data while modify nodes require the existing entity/block.
+  The inspector renders the exact input-to-output contract and only offers
+  domain field-policy paths; a literal never asks for a field path. Text
+  templates store a required `{value}` placeholder. Node stripes distinguish
+  value, logic, entity, and block concerns, while socket colors describe the
+  transported data type.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
@@ -211,8 +203,8 @@ wired to a named construction socket uses that socket's contract path (`name`,
 typed constructors such as cassette-design baking receive the domain payload
 they require. They should not create unnamed records unless the entity contract
 explicitly allows it.
-Generic process-algebra nodes now exist for the semantic records that
-`@cutkit/processes` can round-trip and type-check: entity references, field
-reads, string operations, comparisons, logic, and basic collection transforms.
-Guard and switch nodes are still not palette nodes because they need explicit
-runtime control-flow semantics rather than only value ports.
+The palette exposes the semantic records that `@cutkit/processes` can
+round-trip and execute: typed literals/modifiers, comparisons and logic gates,
+entity query/filter/select and entity/block composition. These are value-flow
+nodes; guard and switch control-flow nodes remain out of scope until their
+execution semantics are explicit.

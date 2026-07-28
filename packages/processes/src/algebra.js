@@ -54,7 +54,7 @@ export async function resolveProcessActionInputContext(definition = {}, actionId
     try {
       let value;
       if (node.type === 'valueInput') {
-        value = parseValue(record.value, record.valueType);
+        value = parseValue(record.value, record.valueType, record.structure);
       } else if (node.type === 'entity') {
         value = await options.resolveEntity?.(record.entityType, result.entities?.[record.entityType]);
         if (value == null) throw new Error(`Entity node ${record.id || node.id} could not resolve ${record.entityType}`);
@@ -94,39 +94,70 @@ export async function resolveProcessActionInputContext(definition = {}, actionId
 }
 
 async function executeNode(record, inputs, outputId, options) {
-  if (record.kind === 'fieldRead') return readPath(inputs.entity, outputId);
-  if (record.kind === 'blockRead') return readPath(inputs.block, relativePath(record.block, record.path));
+  if (record.kind === 'entityQuery') {
+    if (!options.queryEntities) throw new Error(`Process node ${record.id} requires entity query support`);
+    return await options.queryEntities(record.entityType);
+  }
+  if (record.kind === 'entityDecompose') return mapStructured(inputs.entity, entity => readPath(entity, outputId));
+  if (record.kind === 'entityField') return mapStructured(inputs.entity, entity => readPath(entity, record.path));
+  if (record.kind === 'entityFilter') {
+    assertParallelLists(inputs.entities, inputs.mask, record.id);
+    return inputs.entities.filter((_, index) => Boolean(inputs.mask[index]));
+  }
+  if (record.kind === 'entitySelect') {
+    if (!Array.isArray(inputs.entities)) throw new Error(`Process node ${record.id} requires an entity list`);
+    if (record.operation === 'last') return inputs.entities.at(-1);
+    if (record.operation === 'index') return inputs.entities.at(Number(inputs.index));
+    return inputs.entities[0];
+  }
+  if (record.kind === 'entityCompose') {
+    return Object.fromEntries(Object.entries(inputs).map(([block, value]) => [block, clone(value)]));
+  }
+  if (record.kind === 'entityModify') {
+    return { ...clone(inputs.entity), [record.block]: clone(inputs.block) };
+  }
+  if (record.kind === 'blockRead') {
+    return mapStructured(inputs.block, block => readPath(block, relativePath(record.block, record.path)));
+  }
   if (record.kind === 'blockCompose') {
-    const block = clone(inputs.block || {});
+    const block = {};
     writePath(block, relativePath(record.block, record.path), inputs.value);
     return block;
   }
+  if (record.kind === 'blockModify') {
+    const block = clone(inputs.block);
+    writePath(block, relativePath(record.block, record.path), inputs.value);
+    return block;
+  }
+  if (record.kind === 'cast') return mapStructured(inputs.value, value => castValue(value, record.valueType));
+  if (record.kind === 'fallback') return mapStructured(inputs.value, value => value ?? inputs.fallback);
   if (record.kind === 'stringOp') {
-    const value = String(inputs.value ?? '');
-    if (record.operation === 'concat') return `${inputs.value ?? ''}${inputs.right ?? ''}`;
-    if (record.operation === 'template') return String(record.template || '{value}').split('{value}').join(value);
-    if (record.operation === 'replace') return value.split(String(inputs.search ?? '')).join(String(inputs.replacement ?? ''));
-    if (record.operation === 'lower') return value.toLowerCase();
-    if (record.operation === 'upper') return value.toUpperCase();
-    if (record.operation === 'trim') return value.trim();
+    return mapStructured(inputs.value, input => {
+      const value = String(input ?? '');
+      if (record.operation === 'concat') return `${value}${inputs.right ?? ''}`;
+      if (record.operation === 'template') return String(record.template || '{value}').split('{value}').join(value);
+      if (record.operation === 'replace') return value.split(String(inputs.search ?? '')).join(String(inputs.replacement ?? ''));
+      if (record.operation === 'lower') return value.toLowerCase();
+      if (record.operation === 'upper') return value.toUpperCase();
+      if (record.operation === 'trim') return value.trim();
+      throw new Error(`Process node ${record.id} uses unsupported string operation ${record.operation}`);
+    });
   }
   if (record.kind === 'compare') {
-    if (record.operation === 'exists') return inputs.left !== null && inputs.left !== undefined && inputs.left !== '';
-    if (record.operation === 'eq') return inputs.left === inputs.right;
-    if (record.operation === 'neq') return inputs.left !== inputs.right;
-    if (record.operation === 'gt') return inputs.left > inputs.right;
-    if (record.operation === 'lt') return inputs.left < inputs.right;
-    if (record.operation === 'contains') return String(inputs.left).includes(String(inputs.right));
+    return mapStructured(inputs.left, left => compareValue(record.operation, left, inputs.right));
   }
   if (record.kind === 'logic') {
-    if (record.operation === 'and') return Boolean(inputs.left && inputs.right);
-    if (record.operation === 'or') return Boolean(inputs.left || inputs.right);
-    if (record.operation === 'not') return !inputs.left;
-    if (record.operation === 'coalesce') return inputs.left ?? inputs.right;
+    if (record.operation === 'not') return mapStructured(inputs.left, value => !value);
+    return combineStructured(inputs.left, inputs.right, (left, right) => {
+      if (record.operation === 'and') return Boolean(left && right);
+      if (record.operation === 'or') return Boolean(left || right);
+      if (record.operation === 'xor') return Boolean(left) !== Boolean(right);
+      throw new Error(`Process node ${record.id} uses unsupported logic operation ${record.operation}`);
+    }, record.id);
   }
-  if (record.kind === 'collection') {
-    if (!Array.isArray(inputs.items)) throw new Error(`Process node ${record.id} requires an entity list`);
-    return record.operation === 'count' ? inputs.items.length : inputs.items[0];
+  if (record.kind === 'listLength') {
+    if (!Array.isArray(inputs.items)) throw new Error(`Process node ${record.id} requires a list`);
+    return inputs.items.length;
   }
   if (record.kind === 'entityRef') {
     if (record.mode === 'current') {
@@ -160,7 +191,8 @@ function bindActionInput(result, action, input, value) {
 }
 
 function entityReference(value, fallbackType = '') {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  if (Array.isArray(value)) return value.map(item => entityReference(item, fallbackType));
+  if (!value || typeof value !== 'object') return value;
   if (value.type && value.id) return { ...value };
   const id = value.identity?.uid || value._id || value.id;
   return id ? { type: fallbackType || value.type || value.entityType || '', id: String(id) } : value;
@@ -187,15 +219,63 @@ function recordId(node) {
   return String(node?.data?.refId || node?.id || '');
 }
 
-function parseValue(value, kind) {
+function parseValue(value, kind, structure = 'item') {
+  if (structure === 'list') {
+    const values = Array.isArray(value) ? value : JSON.parse(String(value || '[]'));
+    if (!Array.isArray(values)) throw new Error('List value must be a JSON array');
+    return values.map(item => parseValue(item, kind));
+  }
+  return castValue(value, kind);
+}
+
+function castValue(value, kind) {
   if (kind === 'number') {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) throw new Error(`Cannot parse ${value} as number`);
     return parsed;
   }
-  if (kind === 'boolean') return value === true || value === 'true';
+  if (kind === 'boolean') {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    throw new Error(`Cannot parse ${value} as boolean`);
+  }
   if (kind === 'json' || kind === 'object') return typeof value === 'string' ? JSON.parse(value) : clone(value);
+  if (kind === 'date') {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) throw new Error(`Cannot parse ${value} as date`);
+    return parsed.toISOString();
+  }
   return value == null ? '' : String(value);
+}
+
+function compareValue(operation, left, right) {
+  if (operation === 'exists') return left !== null && left !== undefined && left !== '';
+  if (operation === 'eq') return left === right;
+  if (operation === 'neq') return left !== right;
+  if (operation === 'gt') return left > right;
+  if (operation === 'gte') return left >= right;
+  if (operation === 'lt') return left < right;
+  if (operation === 'lte') return left <= right;
+  if (operation === 'contains') return String(left).includes(String(right));
+  throw new Error(`Unsupported comparison operation ${operation}`);
+}
+
+function mapStructured(value, mapper) {
+  return Array.isArray(value) ? value.map(mapper) : mapper(value);
+}
+
+function combineStructured(left, right, mapper, nodeId) {
+  if (!Array.isArray(left) && !Array.isArray(right)) return mapper(left, right);
+  assertParallelLists(left, right, nodeId);
+  return left.map((value, index) => mapper(value, right[index]));
+}
+
+function assertParallelLists(left, right, nodeId) {
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+    throw new Error(`Process node ${nodeId} requires parallel lists with equal lengths`);
+  }
 }
 
 function relativePath(block, path) {

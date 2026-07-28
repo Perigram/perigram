@@ -55,7 +55,9 @@ export function getAppRegistry() {
 
 function registerAppBindings(registry) {
   for (const [type, service] of Object.entries(entityServices)) {
-    registry.registerEntityService(type, service);
+    const processList = entityProcessLists[type];
+    if (!processList) throw new Error(`Entity service ${type} requires an explicit processList binding`);
+    registry.registerEntityService(type, { ...service, processList });
   }
   for (const [id, handler] of Object.entries(commandHandlers)) {
     registry.registerCommandHandler(id, handler);
@@ -105,6 +107,45 @@ const entityServices = {
   tool_profile: toolProfilesService,
   user: usersService,
   warehouse: warehousesService
+};
+
+const authFirstList = service => (filters, auth) => service.list(
+  auth.userId,
+  auth.organizationId,
+  auth.role,
+  auth,
+  filters
+);
+
+const entityProcessLists = {
+  artifact: (filters, auth) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  artifact_template: (filters, auth) => artifactTemplatesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  cassette: authFirstList(cassettesService),
+  cassette_design: authFirstList(cassetteDesignsService),
+  cassette_instance: authFirstList(cassetteInstancesService),
+  catalog: authFirstList(catalogsService),
+  color: authFirstList(colorsService),
+  entity_revision: authFirstList(entityRevisionsService),
+  geometry_capture: authFirstList(geometryCapturesService),
+  layer_standard: filters => layerStandardsService.list(filters),
+  library: authFirstList(librariesService),
+  machine: (_filters, auth) => machinesService.list(auth.userId, auth.organizationId, auth.role, auth),
+  material: filters => materialsService.list(filters),
+  material_pile: authFirstList(materialPilesService),
+  nesting_run: authFirstList(nestingRunsService),
+  organization: authFirstList(organizationsService),
+  pen_template: (_filters, auth) => penTemplatesService.listAll(auth.userId),
+  process_definition: (_filters, auth) => processDefinitionsService.list(auth),
+  profile_template: (filters, auth) => profileTemplatesService.listAll(auth, filters),
+  project: authFirstList(projectsService),
+  queue: (filters, auth) => queuesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  remnant: authFirstList(remnantsService),
+  requisition: (_filters, auth) => requisitionsService.list(auth.userId, auth.organizationId, auth.role, auth),
+  sheet_design: authFirstList(sheetDesignsService),
+  sheet: authFirstList(sheetsService),
+  tool_profile: (_filters, auth) => toolProfilesService.listAll(auth.userId),
+  user: (_filters, auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth),
+  warehouse: authFirstList(warehousesService)
 };
 
 const commandHandlers = {

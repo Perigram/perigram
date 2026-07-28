@@ -1,11 +1,10 @@
 import { normalizeWorkflow } from '../../workflows/src/index.js';
-import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import {
   generatedScreenRoute,
   normalizeScreenContract,
   validateScreenContract
 } from './screen-contract.js';
-import { resolveProcessNodePorts, validateProcessEdges } from './ports.js';
+import { PROCESS_SCALAR_KINDS, PROCESS_STRUCTURES, resolveProcessNodePorts, validateProcessEdges } from './ports.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -26,6 +25,8 @@ export {
 } from './templates.js';
 
 export {
+  PROCESS_SCALAR_KINDS,
+  PROCESS_STRUCTURES,
   normalizePortSpec,
   portSpecsCompatible,
   resolveProcessNodePorts,
@@ -39,6 +40,7 @@ export {
 } from './designer.js';
 
 export { resolveProcessActionInputContext } from './algebra.js';
+export { migrateProcessDataflowDefinition } from './dataflow-migration.js';
 
 export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
   return normalizeWorkflow({
@@ -155,6 +157,10 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
 
   for (const [nodeId, node] of Object.entries(process.processNodes)) {
     validateProcessNode(nodeId, node, { entities, domain, errors });
+  }
+  for (const [inputId, input] of Object.entries(process.valueInputs)) {
+    if (!PROCESS_SCALAR_KINDS.includes(input.valueType)) errors.push(`Value input ${inputId} uses unknown type ${input.valueType || '(empty)'}`);
+    if (!PROCESS_STRUCTURES.includes(input.structure || 'item')) errors.push(`Value input ${inputId} uses unknown structure ${input.structure}`);
   }
   validateProcessNodeConnections(process, errors);
 
@@ -1915,9 +1921,8 @@ function compileValueInputs(valueInputs = {}) {
   return Object.fromEntries(Object.entries(valueInputs).map(([id, input]) => [id, {
     id: input.id || id,
     label: input.label || input.id || id,
-    block: input.block || blockForValueInput(input.path),
     valueType: input.valueType || 'string',
-    path: input.path || '',
+    structure: input.structure || 'item',
     value: input.value ?? '',
     icon: input.icon || ''
   }]));
@@ -1927,7 +1932,7 @@ function compileProcessNodes(processNodes = {}) {
   return Object.fromEntries(Object.entries(processNodes).map(([id, node]) => [id, {
     id: node.id || id,
     label: node.label || node.kind || id,
-    kind: node.kind || 'fieldRead',
+    kind: node.kind || 'entityDecompose',
     mode: node.mode || '',
     entityType: node.entityType || '',
     relationEntityType: node.relationEntityType || '',
@@ -1936,17 +1941,13 @@ function compileProcessNodes(processNodes = {}) {
     block: node.block || '',
     path: node.path || '',
     valueType: node.valueType || '',
+    sourceValueType: node.sourceValueType || '',
+    structure: node.structure || 'item',
     operation: node.operation || '',
     template: node.template || '',
     inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
     outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : []
   }]));
-}
-
-function blockForValueInput(path = '') {
-  const root = String(path || '').split('.')[0];
-  if (CANONICAL_ENTITY_BLOCKS.includes(root)) return root;
-  return '';
 }
 
 function normalizeConstruction(construction = {}, entityType = '', domain = {}) {
@@ -2195,8 +2196,13 @@ function inferConnectedActionEntityType(actionId, process = {}) {
 }
 
 function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
-  const kind = node.kind || 'fieldRead';
-  if (!['entityRef', 'fieldRead', 'blockRead', 'blockCompose', 'stringOp', 'compare', 'logic', 'collection'].includes(kind)) {
+  const kind = node.kind || 'entityDecompose';
+  const kinds = [
+    'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify',
+    'blockRead', 'blockCompose', 'blockModify',
+    'cast', 'fallback', 'stringOp', 'compare', 'logic', 'listLength'
+  ];
+  if (!kinds.includes(kind)) {
     errors.push(`Process node ${nodeId} uses unknown node kind ${kind}`);
     return;
   }
@@ -2205,6 +2211,19 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
       errors.push(`Process node ${nodeId} uses unknown ${key} ${node[key]}`);
     }
   }
+  if ([
+    'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify',
+    'blockRead', 'blockCompose', 'blockModify'
+  ].includes(kind) && !node.entityType) {
+    errors.push(`Process node ${nodeId} must select an entity type`);
+  }
+  if (['entityModify', 'blockRead', 'blockCompose', 'blockModify'].includes(kind) && !node.block) {
+    errors.push(`Process node ${nodeId} must select a canonical block`);
+  }
+  if (node.block && ['entityModify', 'blockRead', 'blockCompose', 'blockModify'].includes(kind)
+    && !entityBlocks(domain, node.entityType).includes(node.block)) {
+    errors.push(`Process node ${nodeId} uses block ${node.block} outside ${node.entityType}`);
+  }
   if (kind === 'entityRef' && node.mode === 'related') {
     const relation = (domain.relations || []).find(item => item.ownerType === node.entityType && item.key === node.relationKey);
     if (!relation) errors.push(`Process node ${nodeId} must select a declared relation for ${node.entityType}`);
@@ -2212,21 +2231,35 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
       errors.push(`Process node ${nodeId} relation ${node.relationKey} must target ${relation.targetType}`);
     }
   }
-  if (['blockRead', 'blockCompose'].includes(kind) && !node.path) errors.push(`Process node ${nodeId} must define a field path`);
-  if (['stringOp', 'compare', 'logic', 'collection'].includes(kind) && !node.operation) {
+  if (['entityField', 'blockRead', 'blockCompose', 'blockModify'].includes(kind) && !node.path) errors.push(`Process node ${nodeId} must define a field path`);
+  if (node.path && ['entityField', 'blockRead'].includes(kind)) {
+    validateFieldList([node.path], domain, node.entityType, `process node ${nodeId} field`, errors, 'read');
+  }
+  if (node.path && ['blockCompose', 'blockModify'].includes(kind)) {
+    validateFieldList([node.path], domain, node.entityType, `process node ${nodeId} field`, errors, 'write');
+  }
+  if (['stringOp', 'compare', 'logic', 'entitySelect'].includes(kind) && !node.operation) {
     errors.push(`Process node ${nodeId} must define an operation`);
   }
   const operations = {
     stringOp: ['concat', 'template', 'replace', 'lower', 'upper', 'trim'],
-    compare: ['eq', 'neq', 'gt', 'lt', 'contains', 'exists'],
-    logic: ['and', 'or', 'not', 'coalesce'],
-    collection: ['first', 'count']
+    compare: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists'],
+    logic: ['and', 'or', 'xor', 'not'],
+    entitySelect: ['first', 'last', 'index']
   };
   if (operations[kind] && !operations[kind].includes(node.operation)) {
     errors.push(`Process node ${nodeId} uses unknown ${kind} operation ${node.operation || '(empty)'}`);
   }
   if (kind === 'stringOp' && node.operation === 'template' && !String(node.template || '').includes('{value}')) {
     errors.push(`Process node ${nodeId} template must contain {value}`);
+  }
+  if (!PROCESS_STRUCTURES.includes(node.structure || 'item')) errors.push(`Process node ${nodeId} uses unknown structure ${node.structure}`);
+  if (['cast', 'fallback', 'entityField', 'blockRead', 'blockCompose', 'blockModify', 'compare'].includes(kind)
+    && !PROCESS_SCALAR_KINDS.includes(node.valueType)) {
+    errors.push(`Process node ${nodeId} uses unknown value type ${node.valueType || '(empty)'}`);
+  }
+  if (kind === 'cast' && !PROCESS_SCALAR_KINDS.includes(node.sourceValueType)) {
+    errors.push(`Process node ${nodeId} uses unknown source value type ${node.sourceValueType || '(empty)'}`);
   }
 }
 
@@ -2319,6 +2352,16 @@ function getFieldPolicy(fieldAccess, entityType) {
   const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
   const snake = key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
   return fieldAccess[key] || fieldAccess[camel] || fieldAccess[snake] || null;
+}
+
+function entityBlocks(domain = {}, entityType = '') {
+  const entity = (domain.entities || []).find(item => item.type === entityType);
+  const policy = getFieldPolicy(domain.fieldAccess || {}, entityType) || {};
+  const policyBlocks = ['read', 'write', 'admin']
+    .flatMap(access => policy[access] || [])
+    .map(path => String(path).split('.')[0])
+    .filter(Boolean);
+  return [...new Set([...(entity?.blocks || []), ...policyBlocks])];
 }
 
 function getByPath(source, path) {
