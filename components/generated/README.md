@@ -35,10 +35,13 @@ bounded IDE-style Explorer and file workspace:
 - the borderless Explorer is a dense PrimeVue tree containing the opened
   project and only the child collections loaded by the screen's list regions.
 - each file is a `GeneratedEntityFile`: a single header line with entity icon,
-  identity, status, an ellipsis action menu, and split controls. Its body
-  resolves through the same registered entity-detail overload registry as a
-  generated detail page, without nesting `EntityPage` or an entity card.
-  Operational entities therefore keep their real editor—queues render
+  identity, status, an ellipsis action menu, and split controls. A project file
+  is the workspace's operational home: its body contains only the runnable
+  project and direct-child actions compiled for the current user, rather than a
+  duplicate project summary. Child entity bodies resolve through the same
+  registered entity-detail overload registry as a generated detail page,
+  without nesting `EntityPage` or an entity card. Operational entities
+  therefore keep their real editor—queues render
   `GeneratedQueueDetail`/`QueueEditor`—while entities without an overload fall
   back to the pane-width-safe generic detail surface. The file rendering mode
   asks operational bodies for flush chrome; queue workspace panels remove
@@ -49,14 +52,15 @@ bounded IDE-style Explorer and file workspace:
   selections and scrolling. There is no reserved right inspector pane.
 
 The opened project file aggregates its runnable project operations from the
-compiled contract. Screen/main action ids provide project updates, relation
-links, uploads, and other process operations. Direct-child create actions come
-from the matching child list region and must declare `project` as their parent.
-The component resolves only those ids through the current user's action
-manifest; it does not scan the global manifest, import domain relation metadata,
-or call link/upload APIs directly. If the organization process does not compile
-an upload or relation action onto this screen, that control is intentionally
-absent.
+compiled contract and renders them as a compact launcher in the otherwise empty
+file body. Screen/main action ids provide project updates, relation links,
+uploads, and other process operations. Direct-child create actions come from
+the matching child list region and must declare `project` as their parent. The
+component resolves only those ids through the current user's action manifest;
+it does not scan the global manifest, import domain relation metadata, or call
+link/upload APIs directly. If the organization process does not compile an
+upload or relation action onto this screen, that control is intentionally
+absent; no generic project-information fallback replaces missing operations.
 
 Selectable rows still come from access-filtered screen source states. Clicking
 an Explorer entity replaces the active file selection; splitting duplicates the
