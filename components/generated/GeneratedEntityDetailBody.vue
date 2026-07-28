@@ -56,7 +56,8 @@ const detailOverloadProps = computed(() => detailOverload.value?.props?.({
   entity: props.entity,
   screenKey: props.screenKey,
   queueDetailActions: detailActions.value,
-  canEditSheetDesign: canEditSheetDesign.value
+  canEditSheetDesign: canEditSheetDesign.value,
+  mode: props.mode
 }) || {});
 const bodyClass = computed(() => {
   if (props.mode !== 'file') return '';
