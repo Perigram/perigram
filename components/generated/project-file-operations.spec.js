@@ -30,10 +30,16 @@ describe('project file operations and queue pane density', () => {
 
   it('keeps queue entries compact and makes their grid respond to actual card width', () => {
     expect(queueEntrySource).toContain('container-type: inline-size');
-    expect(queueEntrySource).toContain('grid-template-columns: 8rem minmax(0, 1fr)');
+    expect(queueEntrySource).toContain('grid-template-columns: var(--ck-compact-preview-width) minmax(0, 1fr)');
+    expect(queueEntrySource).toContain('max-width: var(--ck-bounded-grid-item-max-width)');
+    expect(queueEntrySource).toContain('hide-dimension-layer');
     expect(queueEntrySource).toContain("header: { class: '!p-2' }");
     expect(queueEntrySource).not.toContain('<Divider');
     expect(queueEntrySource).not.toContain('<StateBlock');
+    expect(queueEditorSource).toContain('variant="bounded"');
+    expect(queueEditorSource).toContain('queueEntryParameterNames');
+    expect(queueEditorSource).not.toContain('isParametricEntry');
+    expect(responsiveGridSource).toContain('.responsive-grid--bounded');
     expect(responsiveGridSource).toContain('@container (min-width: 48rem)');
   });
 });

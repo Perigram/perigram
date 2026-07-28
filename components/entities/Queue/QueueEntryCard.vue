@@ -45,6 +45,7 @@
         :cassette-id="sourceId"
         :cassette="cassette"
         :dimensions="entry.dimensions"
+        hide-dimension-layer
       />
 
       <div v-if="parameters.length" class="queue-entry-card__parameters grid grid-cols-2 gap-2">
@@ -55,6 +56,7 @@
             :disabled="disabled || lockedParameters.includes(param)"
             size="small"
             :min="0"
+            fluid
             @update:model-value="value => emit('update-dimension', param, value)"
           />
         </div>
@@ -107,6 +109,12 @@ const sourceLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value |
 <style scoped>
 .queue-entry-card {
   container-type: inline-size;
+  width: 100%;
+  max-width: var(--ck-bounded-grid-item-max-width);
+}
+
+.queue-entry-card__preview {
+  max-width: var(--ck-compact-preview-width);
 }
 
 .queue-entry-card__parameters {
@@ -116,7 +124,7 @@ const sourceLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value |
 @container (min-width: 28rem) {
   .queue-entry-card__body {
     display: grid;
-    grid-template-columns: 8rem minmax(0, 1fr);
+    grid-template-columns: var(--ck-compact-preview-width) minmax(0, 1fr);
     align-items: start;
   }
 }

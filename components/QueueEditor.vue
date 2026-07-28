@@ -222,7 +222,7 @@
                         <Menu ref="producerMenu" :model="producerMenuItems" popup />
                     </template>
                     <div class="flex flex-col gap-6">
-                        <ResponsiveGrid v-if="viewMode === 'grid'" variant="wide" responsive-context="container">
+                        <ResponsiveGrid v-if="viewMode === 'grid'" variant="bounded" responsive-context="container">
                             <template v-for="entry in entries" :key="entry?._key">
                                 <QueueEntryCard
                                     v-if="entry"
@@ -248,12 +248,12 @@
                                 </Column>
                                 <Column v-for="param in allParameters" :key="param" :header="param" :field="`dimensions.${param}`">
                                     <template #body="{ data }">
-                                        <span v-if="isParametricEntry(data)">{{ data.dimensions?.[param] || '-' }}</span>
+                                        <span v-if="hasEditableEntryParameters(data)">{{ data.dimensions?.[param] ?? '-' }}</span>
                                         <span v-else class="text-muted-color">-</span>
                                     </template>
                                     <template #editor="{ data }">
                                         <InputNumber
-                                            v-if="isParametricEntry(data)"
+                                            v-if="hasEditableEntryParameters(data)"
                                             v-model="data.dimensions[param]"
                                             :disabled="param === 'T'"
                                             fluid
@@ -412,6 +412,7 @@ import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
 import { canonicalQueueItem } from '~/utils/queue-items.js';
 import { currentQueueRun } from '~/utils/queue-runs.js';
+import { queueEntryParameterNames } from '~/utils/queue-entry-parameters.js';
 import {
     buildProducerActionRequest,
     producerFieldsForAction,
@@ -1083,22 +1084,16 @@ const getCassetteParameters = (data) => {
     return occsParameterNames(data?.data?.definition || {});
 };
 const getEntryCassetteData = (entry) => getCassetteData(entry?.id);
-const isParametricEntry = (entry) => {
-    return entry?.type === 'PARAMETRIC';
-};
-
 const getEntryParameters = (e) => {
     const data = getEntryEntityData(e);
-    return data && e?.type === 'PARAMETRIC' ? getCassetteParameters(data) : [];
+    return queueEntryParameterNames(e, data ? getCassetteParameters(data) : []);
 };
+const hasEditableEntryParameters = (entry) => getEntryParameters(entry).length > 0;
 
 const allParameters = computed(() => {
     const params = new Set();
     entries.value.forEach(e => {
-        const data = getEntryEntityData(e);
-        if (data) {
-            getCassetteParameters(data).forEach(p => params.add(p));
-        }
+        getEntryParameters(e).forEach(param => params.add(param));
     });
     return Array.from(params);
 });
@@ -1393,12 +1388,20 @@ const syncEntryWithCassette = (entry) => {
     entry.type = type;
     entry.entityType = queueItemEntityType(entry, data);
 
-    if (type === 'PARAMETRIC') {
-        entry.dimensions = entry.dimensions || {};
-        getCassetteParameters(data).forEach((param) => {
-            if (entry.dimensions[param] === undefined) entry.dimensions[param] = 0;
-        });
-    }
+    entry.dimensions = entry.dimensions || {};
+    const sourceParameterValues = (
+        data.data?.parameters
+        && !Array.isArray(data.data.parameters)
+        && typeof data.data.parameters === 'object'
+    ) ? data.data.parameters : {};
+    getCassetteParameters(data).forEach((param) => {
+        if (entry.dimensions[param] !== undefined) return;
+        if (sourceParameterValues[param] !== undefined) {
+            entry.dimensions[param] = sourceParameterValues[param];
+        } else if (type === 'PARAMETRIC') {
+            entry.dimensions[param] = 0;
+        }
+    });
 
     return entry;
 };
