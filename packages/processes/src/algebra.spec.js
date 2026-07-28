@@ -112,7 +112,7 @@ describe('process programming algebra', () => {
       },
       processNodes: {
         defaulted: { id: 'defaulted', kind: 'fallback', valueType: 'json', structure: 'list' },
-        cast: { id: 'cast', kind: 'cast', sourceValueType: 'json', valueType: 'number', structure: 'list' }
+        cast: { id: 'cast', kind: 'cast', valueType: 'number', structure: 'list' }
       },
       graph: {
         nodes: ['values', 'fallback'].map(id => ({ id, type: 'valueInput' }))
@@ -156,7 +156,7 @@ describe('process programming algebra', () => {
     });
   });
 
-  it('queries entities, projects a typed field list, builds a predicate mask, filters, and selects', async () => {
+  it('queries entities, builds a typed field predicate, filters, and selects', async () => {
     const process = {
       actions: {
         command: {
@@ -170,23 +170,20 @@ describe('process programming algebra', () => {
       },
       processNodes: {
         query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
-        status: { id: 'status', kind: 'entityField', entityType: 'queue', path: 'status.state.primary', valueType: 'string', structure: 'list' },
-        equals: { id: 'equals', kind: 'compare', operation: 'eq', valueType: 'string', structure: 'list' },
+        ready: { id: 'ready', kind: 'entityCondition', entityType: 'queue', path: 'status.state.primary', operation: 'eq', valueType: 'string' },
         filter: { id: 'filter', kind: 'entityFilter', entityType: 'queue' },
         first: { id: 'first', kind: 'entitySelect', entityType: 'queue', operation: 'first' }
       },
       graph: {
         nodes: [
           { id: 'target', type: 'valueInput' },
-          ...['query', 'status', 'equals', 'filter', 'first'].map(id => ({ id, type: 'processNode' })),
+          ...['query', 'ready', 'filter', 'first'].map(id => ({ id, type: 'processNode' })),
           { id: 'command', type: 'action' }
         ],
         edges: [
-          { source: 'query', target: 'status', targetHandle: 'input' },
-          { source: 'status', target: 'equals', targetHandle: 'input:left' },
-          { source: 'target', target: 'equals', targetHandle: 'input:right' },
+          { source: 'target', target: 'ready', targetHandle: 'input:value' },
           { source: 'query', target: 'filter', targetHandle: 'input:entities' },
-          { source: 'equals', target: 'filter', targetHandle: 'input:mask' },
+          { source: 'ready', target: 'filter', targetHandle: 'input:predicate' },
           { source: 'filter', target: 'first', targetHandle: 'input' },
           { source: 'first', target: 'command', targetHandle: 'input' }
         ]
@@ -201,5 +198,52 @@ describe('process programming algebra', () => {
     });
 
     expect(result.entities.queue).toEqual({ type: 'queue', id: 'q2' });
+  });
+
+  it('combines field predicates before filtering instead of aligning Boolean arrays', async () => {
+    const process = {
+      actions: {
+        command: { id: 'command', actionKind: 'runCommand', inputs: [{ id: 'queue', kind: 'entity', entityType: 'queue' }] }
+      },
+      valueInputs: {
+        readyValue: { id: 'readyValue', valueType: 'string', value: 'READY' },
+        minimumArea: { id: 'minimumArea', valueType: 'number', value: 10 }
+      },
+      processNodes: {
+        query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
+        ready: { id: 'ready', kind: 'entityCondition', entityType: 'queue', path: 'status.state.primary', operation: 'eq', valueType: 'string' },
+        large: { id: 'large', kind: 'entityCondition', entityType: 'queue', path: 'summary.totalArea', operation: 'gte', valueType: 'number' },
+        both: { id: 'both', kind: 'predicateLogic', entityType: 'queue', operation: 'and' },
+        filter: { id: 'filter', kind: 'entityFilter', entityType: 'queue' },
+        first: { id: 'first', kind: 'entitySelect', entityType: 'queue', operation: 'first' }
+      },
+      graph: {
+        nodes: [
+          ...['readyValue', 'minimumArea'].map(id => ({ id, type: 'valueInput' })),
+          ...['query', 'ready', 'large', 'both', 'filter', 'first'].map(id => ({ id, type: 'processNode' })),
+          { id: 'command', type: 'action' }
+        ],
+        edges: [
+          { source: 'readyValue', target: 'ready', targetHandle: 'input:value' },
+          { source: 'minimumArea', target: 'large', targetHandle: 'input:value' },
+          { source: 'ready', target: 'both', targetHandle: 'input:left' },
+          { source: 'large', target: 'both', targetHandle: 'input:right' },
+          { source: 'query', target: 'filter', targetHandle: 'input:entities' },
+          { source: 'both', target: 'filter', targetHandle: 'input:predicate' },
+          { source: 'filter', target: 'first' },
+          { source: 'first', target: 'command' }
+        ]
+      }
+    };
+
+    const result = await resolveProcessActionInputContext(process, 'command', {}, {
+      queryEntities: async () => [
+        { identity: { uid: 'q1' }, status: { state: { primary: 'READY' } }, summary: { totalArea: 4 } },
+        { identity: { uid: 'q2' }, status: { state: { primary: 'DRAFT' } }, summary: { totalArea: 20 } },
+        { identity: { uid: 'q3' }, status: { state: { primary: 'READY' } }, summary: { totalArea: 20 } }
+      ]
+    });
+
+    expect(result.entities.queue).toEqual({ type: 'queue', id: 'q3' });
   });
 });

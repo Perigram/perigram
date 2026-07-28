@@ -240,6 +240,7 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
     label,
     definition: {
       schemaVersion: 1,
+      dataflowVersion: 2,
       sourceTemplateId: id,
       graph,
       roles,

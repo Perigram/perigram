@@ -3,6 +3,7 @@ import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 const HANDLE_PREFIXES = ['input:', 'output:', 'data:'];
 export const PROCESS_SCALAR_KINDS = Object.freeze(['string', 'number', 'boolean', 'json', 'date']);
 export const PROCESS_STRUCTURES = Object.freeze(['item', 'list']);
+export const PROCESS_DATAFLOW_VERSION = 2;
 
 export function normalizePortSpec(io = {}, fallback = {}) {
   const source = io && typeof io === 'object' ? io : {};
@@ -48,6 +49,11 @@ export function portSpecsCompatible(source = {}, target = {}) {
       ? { ok: true }
       : incompatible(sourceSpec, targetSpec);
   }
+  if (sourceSpec.kind === 'predicate' || targetSpec.kind === 'predicate') {
+    return sourceSpec.kind === 'predicate' && targetSpec.kind === 'predicate'
+      ? entityTypeCompatible(sourceSpec, targetSpec)
+      : incompatible(sourceSpec, targetSpec);
+  }
   if (['block', 'block_list'].includes(sourceSpec.kind) || ['block', 'block_list'].includes(targetSpec.kind)) {
     return sourceSpec.kind === targetSpec.kind
       ? blockCompatible(sourceSpec, targetSpec)
@@ -78,11 +84,100 @@ export function validateProcessEdges(process = {}) {
   return errors;
 }
 
+export function inferProcessDataflowContracts(process = {}) {
+  const inferred = {
+    ...process,
+    processNodes: Object.fromEntries(Object.entries(process.processNodes || {})
+      .map(([id, record]) => [id, { ...record }]))
+  };
+  const graphNodes = new Map((inferred.graph?.nodes || []).map(node => [String(node.id), node]));
+  const processNodeIds = new Map((inferred.graph?.nodes || [])
+    .filter(node => node.type === 'processNode')
+    .map(node => [String(node.id), String(node.data?.refId || node.id)]));
+  const passes = Math.max(1, processNodeIds.size);
+
+  for (let pass = 0; pass < passes; pass += 1) {
+    let changed = false;
+    for (const [graphNodeId, recordId] of processNodeIds) {
+      const record = inferred.processNodes[recordId];
+      if (!record) continue;
+      const incoming = incomingContracts(inferred, graphNodeId, graphNodes);
+      const next = inferRecordContract(record, incoming);
+      if (JSON.stringify(next) !== JSON.stringify(record)) {
+        inferred.processNodes[recordId] = next;
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+  return inferred;
+}
+
 export function resolveProcessNodePorts(record = {}) {
   return {
     inputs: processNodeInputPorts(record),
     outputs: processNodeOutputPorts(record)
   };
+}
+
+function incomingContracts(process, targetNodeId, graphNodes) {
+  const contracts = {};
+  for (const edge of process.graph?.edges || []) {
+    if (String(edge.target) !== String(targetNodeId)) continue;
+    const sourceNode = graphNodes.get(String(edge.source));
+    if (!sourceNode) continue;
+    const source = resolveNodePort(process, sourceNode, edge.sourceHandle, 'output');
+    if (!source) continue;
+    const inputId = normalizeHandleId(edge.targetHandle, 'input') || 'input';
+    contracts[inputId] = source;
+  }
+  return contracts;
+}
+
+function inferRecordContract(record, incoming) {
+  const next = { ...record };
+  const primaryId = {
+    entityDecompose: 'entity',
+    entityField: 'entity',
+    entityFilter: 'entities',
+    entitySelect: 'entities',
+    entityModify: 'entity',
+    blockRead: 'block',
+    blockModify: 'block',
+    cast: 'value',
+    fallback: 'value',
+    stringOp: 'value',
+    compare: 'left',
+    logic: 'left',
+    predicateLogic: 'left',
+    listLength: 'items'
+  }[record.kind];
+  const primary = incoming[primaryId] || (Object.keys(incoming).length === 1 ? Object.values(incoming)[0] : null);
+  if (!primary) {
+    if ([
+      'entityDecompose', 'entityField', 'blockRead', 'cast', 'fallback',
+      'stringOp', 'compare', 'logic'
+    ].includes(record.kind)) next.structure = 'item';
+    return next;
+  }
+
+  if ([
+    'entityDecompose', 'entityField', 'blockRead', 'cast', 'fallback',
+    'stringOp', 'compare', 'logic'
+  ].includes(record.kind)) {
+    next.structure = isListKind(primary.kind) ? 'list' : 'item';
+  }
+  if (['fallback', 'compare'].includes(record.kind)) {
+    const valueType = scalarKindForPort(primary.kind);
+    if (valueType) next.valueType = valueType;
+  }
+  if (['entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityModify'].includes(record.kind)
+    && primary.entityType) {
+    next.entityType = primary.entityType;
+  }
+  if (record.kind === 'predicateLogic' && primary.entityType) next.entityType = primary.entityType;
+  if (record.kind === 'blockRead' && primary.block) next.block = primary.block;
+  return next;
 }
 
 export function resolveNodePort(process = {}, node = {}, handle = '', direction = 'output') {
@@ -181,7 +276,7 @@ function processNodeInputPorts(record = {}) {
   if (record.kind === 'entityFilter') {
     return [
       normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '', required: true }),
-      normalizePortSpec({ id: 'mask', label: 'mask', kind: 'boolean_list', required: true })
+      normalizePortSpec({ id: 'predicate', label: 'where', kind: 'predicate', entityType: record.entityType || '', required: true })
     ];
   }
   if (record.kind === 'entitySelect') {
@@ -214,7 +309,7 @@ function processNodeInputPorts(record = {}) {
     ];
   }
   if (record.kind === 'cast') {
-    return [normalizePortSpec({ id: 'value', label: 'value', kind: structureKind(record.sourceValueType || 'string', record.structure), required: true })];
+    return [normalizePortSpec({ id: 'value', label: 'value', kind: 'data', required: true })];
   }
   if (record.kind === 'fallback') {
     return [
@@ -260,6 +355,21 @@ function processNodeInputPorts(record = {}) {
       normalizePortSpec({ id: 'right', label: 'right', kind: structureKind('boolean', record.structure), required: true })
     ];
   }
+  if (record.kind === 'entityCondition') {
+    const kind = record.operation === 'contains' ? 'string' : scalarValueKind(record);
+    return record.operation === 'exists'
+      ? []
+      : [normalizePortSpec({ id: 'value', label: 'value', kind, required: true })];
+  }
+  if (record.kind === 'predicateLogic') {
+    if (record.operation === 'not') {
+      return [normalizePortSpec({ id: 'left', label: 'predicate', kind: 'predicate', entityType: record.entityType || '', required: true })];
+    }
+    return [
+      normalizePortSpec({ id: 'left', label: 'left', kind: 'predicate', entityType: record.entityType || '', required: true }),
+      normalizePortSpec({ id: 'right', label: 'right', kind: 'predicate', entityType: record.entityType || '', required: true })
+    ];
+  }
   if (record.kind === 'listLength') {
     return [normalizePortSpec({ id: 'items', label: 'items', kind: 'list', required: true })];
   }
@@ -285,6 +395,9 @@ function processNodeOutputPorts(record = {}) {
   }
   if (record.kind === 'entityFilter') {
     return [normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '' })];
+  }
+  if (record.kind === 'entityCondition' || record.kind === 'predicateLogic') {
+    return [normalizePortSpec({ id: 'predicate', label: 'predicate', kind: 'predicate', entityType: record.entityType || '' })];
   }
   if (record.kind === 'entitySelect') {
     return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
@@ -356,7 +469,7 @@ function recordForNode(process = {}, node = {}) {
 }
 
 function normalizePortKind(kind = '', io = {}, fallback = {}) {
-  if (['entity_list', 'entity', 'block', 'block_list', 'data', 'list', 'status', 'event', 'projection', 'attachment', 'task', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(kind)) return kind;
+  if (['entity_list', 'entity', 'block', 'block_list', 'data', 'list', 'predicate', 'status', 'event', 'projection', 'attachment', 'task', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(kind)) return kind;
   if (io.projection) return 'projection';
   if (io.block) return 'block';
   if (io.entityType) return io.multiple ? 'entity_list' : 'entity';
@@ -397,6 +510,11 @@ function structureKind(kind = 'string', structure = 'item') {
 
 function isListKind(kind = '') {
   return kind === 'list' || kind === 'entity_list' || kind === 'block_list' || kind.endsWith('_list');
+}
+
+function scalarKindForPort(kind = '') {
+  const scalar = kind.endsWith('_list') ? kind.slice(0, -5) : kind;
+  return PROCESS_SCALAR_KINDS.includes(scalar) ? scalar : '';
 }
 
 function blockCompatible(source, target) {

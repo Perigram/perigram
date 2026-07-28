@@ -1,7 +1,9 @@
+import { PROCESS_DATAFLOW_VERSION } from './ports.js';
+
 const CURRENT_KINDS = new Set([
   'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify',
   'blockRead', 'blockCompose', 'blockModify',
-  'cast', 'fallback', 'stringOp', 'compare', 'logic', 'listLength'
+  'cast', 'fallback', 'stringOp', 'compare', 'logic', 'entityCondition', 'predicateLogic', 'listLength'
 ]);
 
 export function migrateProcessDataflowDefinition(definition = {}) {
@@ -24,16 +26,21 @@ export function migrateProcessDataflowDefinition(definition = {}) {
     return [id, next];
   }));
 
-  const processNodes = Object.fromEntries(Object.entries(process.processNodes || {}).map(([id, record = {}]) => {
+  let processNodes = Object.fromEntries(Object.entries(process.processNodes || {}).map(([id, record = {}]) => {
     const next = migrateNode(id, record, graph, graphNodeIdsByRecord.get(String(id)));
     if (JSON.stringify(next) !== JSON.stringify(record)) changed = true;
     return [id, next];
   }));
-  const migratedGraph = migrateGraph(graph, process.processNodes || {}, graphNodeIdsByRecord);
+  let migratedGraph = migrateGraph(graph, process.processNodes || {}, graphNodeIdsByRecord);
+  const predicateMigration = migratePredicatePipelines(migratedGraph, processNodes);
+  migratedGraph = predicateMigration.graph;
+  processNodes = predicateMigration.processNodes;
+  if (predicateMigration.changed || process.dataflowVersion !== PROCESS_DATAFLOW_VERSION) changed = true;
   if (JSON.stringify(migratedGraph) !== JSON.stringify(graph)) changed = true;
 
   const migrated = {
     ...process,
+    dataflowVersion: PROCESS_DATAFLOW_VERSION,
     graph: migratedGraph,
     valueInputs,
     processNodes,
@@ -62,18 +69,110 @@ function migrateNode(id, record, graph, graphNodeId) {
     ? canonicalBlockPath(record.block, record.path)
     : (record.path || '');
 
+  const { sourceValueType: _sourceValueType, ...cleanRecord } = record;
   return {
-    ...record,
+    ...cleanRecord,
     id: record.id || id,
     kind,
     operation,
     path,
     structure: record.structure === 'list' ? 'list' : 'item',
     valueType: normalizeValueType(record.valueType),
-    sourceValueType: kind === 'cast' ? normalizeValueType(record.sourceValueType) : (record.sourceValueType || ''),
     inputs: [],
     outputs: []
   };
+}
+
+function migratePredicatePipelines(graph, records) {
+  const processNodes = Object.fromEntries(Object.entries(records).map(([id, record]) => [id, { ...record }]));
+  let nodes = [...(graph.nodes || [])];
+  let edges = [...(graph.edges || [])];
+  const recordIdByGraphId = new Map(nodes
+    .filter(node => node.type === 'processNode')
+    .map(node => [String(node.id), String(node.data?.refId || node.id)]));
+  let changed = false;
+
+  function recordForGraphNode(graphNodeId) {
+    return processNodes[recordIdByGraphId.get(String(graphNodeId))];
+  }
+
+  function incoming(graphNodeId, inputId) {
+    return edges.find(edge => (
+      String(edge.target) === String(graphNodeId)
+      && normalizedHandle(edge.targetHandle) === inputId
+    ));
+  }
+
+  function convert(graphNodeId, entityType) {
+    const recordId = recordIdByGraphId.get(String(graphNodeId));
+    const record = processNodes[recordId];
+    if (!record) throw new Error(`Cannot migrate entity predicate: missing process node ${graphNodeId}`);
+    if (record.kind === 'entityCondition' || record.kind === 'predicateLogic') return;
+
+    if (record.kind === 'logic') {
+      const left = incoming(graphNodeId, 'left');
+      const right = record.operation === 'not' ? null : incoming(graphNodeId, 'right');
+      if (!left || (record.operation !== 'not' && !right)) {
+        throw new Error(`Cannot migrate process node ${recordId}: predicate logic is incomplete`);
+      }
+      convert(left.source, entityType);
+      if (right) convert(right.source, entityType);
+      processNodes[recordId] = { ...record, kind: 'predicateLogic', entityType, structure: 'item' };
+      changed = true;
+      return;
+    }
+
+    if (record.kind !== 'compare') {
+      throw new Error(`Cannot migrate process node ${recordId}: Boolean masks are no longer entity predicates`);
+    }
+    const left = incoming(graphNodeId, 'left');
+    const fieldRecord = left && recordForGraphNode(left.source);
+    if (!left || fieldRecord?.kind !== 'entityField' || fieldRecord.entityType !== entityType) {
+      throw new Error(`Cannot migrate process node ${recordId}: comparison must read a ${entityType} field`);
+    }
+    processNodes[recordId] = {
+      ...record,
+      kind: 'entityCondition',
+      entityType,
+      path: fieldRecord.path,
+      valueType: fieldRecord.valueType,
+      structure: 'item'
+    };
+    edges = edges
+      .filter(edge => edge !== left)
+      .map(edge => (
+        String(edge.target) === String(graphNodeId) && normalizedHandle(edge.targetHandle) === 'right'
+          ? { ...edge, targetHandle: prefixedHandle(edge.targetHandle, 'value') }
+          : edge
+      ));
+    const otherFieldOutputs = edges.filter(edge => String(edge.source) === String(left.source));
+    if (!otherFieldOutputs.length) {
+      nodes = nodes.filter(node => String(node.id) !== String(left.source));
+      edges = edges.filter(edge => String(edge.source) !== String(left.source) && String(edge.target) !== String(left.source));
+      delete processNodes[recordIdByGraphId.get(String(left.source))];
+    }
+    changed = true;
+  }
+
+  for (const edge of [...edges]) {
+    const filter = recordForGraphNode(edge.target);
+    if (filter?.kind !== 'entityFilter' || !['mask', 'predicate'].includes(normalizedHandle(edge.targetHandle))) continue;
+    if (normalizedHandle(edge.targetHandle) === 'mask') {
+      convert(edge.source, filter.entityType);
+      const liveEdge = edges.find(item => item === edge);
+      if (liveEdge) liveEdge.targetHandle = prefixedHandle(liveEdge.targetHandle, 'predicate');
+      changed = true;
+    }
+  }
+  return { changed, graph: { ...graph, nodes, edges }, processNodes };
+}
+
+function normalizedHandle(handle = '') {
+  return String(handle || '').replace(/^(input|output|data):/, '') || 'input';
+}
+
+function prefixedHandle(handle = '', id) {
+  return String(handle || '').startsWith('input:') ? `input:${id}` : id;
 }
 
 function canonicalBlockPath(block, path) {

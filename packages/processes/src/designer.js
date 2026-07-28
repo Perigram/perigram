@@ -27,6 +27,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     id: 'values',
     items: [
       { type: 'valueInput', icon: 'pi pi-circle-fill', label: 'literal' },
+      { type: 'valueInput', structure: 'list', icon: 'pi pi-list', label: 'literalList' },
       { type: 'processNode', kind: 'cast', icon: 'pi pi-arrow-right-arrow-left', label: 'cast' },
       { type: 'processNode', kind: 'fallback', icon: 'pi pi-replay', label: 'fallback' },
       { type: 'processNode', kind: 'stringOp', icon: 'pi pi-align-left', label: 'text' },
@@ -37,7 +38,9 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     id: 'logic',
     items: [
       { type: 'processNode', kind: 'compare', icon: 'pi pi-equals', label: 'compare' },
-      { type: 'processNode', kind: 'logic', icon: 'pi pi-code', label: 'logicGate' }
+      { type: 'processNode', kind: 'logic', icon: 'pi pi-code', label: 'logicGate' },
+      { type: 'processNode', kind: 'entityCondition', icon: 'pi pi-filter', label: 'entityCondition' },
+      { type: 'processNode', kind: 'predicateLogic', icon: 'pi pi-sitemap', label: 'predicateLogic' }
     ]
   },
   {
@@ -111,7 +114,15 @@ export function createProcessDesignerContract(domain = {}) {
       .filter(Boolean);
     return [...new Set([...coreFields, ...allFieldPaths(fieldPolicy(entityType)), ...domainFields])]
       .filter(path => !block || path === block || path.startsWith(prefix))
-      .map(path => ({ label: path, value: path, type: fieldValueType(path, descriptorByPath.get(path)) }));
+      .map(path => {
+        const descriptor = descriptorByPath.get(path);
+        return {
+          label: path,
+          value: path,
+          type: fieldValueType(path, descriptor),
+          ...(descriptor?.i18n ? { i18n: descriptor.i18n } : {})
+        };
+      });
   }
 
   return {
@@ -136,14 +147,43 @@ export function createProcessDesignerContract(domain = {}) {
 }
 
 function fieldValueType(path = '', descriptor = {}) {
+  if (PROCESS_FIELD_TYPES[descriptor.type]) return PROCESS_FIELD_TYPES[descriptor.type];
   if (['count', 'area', 'percent', 'dimension', 'duration', 'money', 'number', 'angle'].includes(descriptor.display)) return 'number';
   if (['text', 'code'].includes(descriptor.display)) return 'string';
-  if (/(timestamp|At|Date)$/.test(path)) return 'date';
-  if (/(count|length|width|height|area|price|total|used|efficiency|angle|diameter|kerf)$/i.test(path)) return 'number';
-  if (/(enabled|required|public|active)$/i.test(path)) return 'boolean';
-  if (/identity\.(uid|name|slug|serial|reference)$/.test(path) || /state\.primary$/.test(path)) return 'string';
+  if (descriptor.display === 'date') return 'date';
+  if (descriptor.display === 'boolean') return 'boolean';
+  if (CORE_FIELD_TYPES[path]) return CORE_FIELD_TYPES[path];
   return 'json';
 }
+
+const PROCESS_FIELD_TYPES = {
+  string: 'string',
+  number: 'number',
+  boolean: 'boolean',
+  date: 'date',
+  object: 'json',
+  array: 'json'
+};
+
+const CORE_FIELD_TYPES = {
+  'identity.uid': 'string',
+  'identity.name': 'string',
+  'identity.slug': 'string',
+  'identity.serial': 'string',
+  'identity.reference': 'string',
+  'origin.state.primary': 'string',
+  'origin.userId': 'string',
+  'origin.timestamp': 'date',
+  'status.state.primary': 'string',
+  'status.userId': 'string',
+  'status.timestamp': 'date',
+  'lineage.organizationId': 'string',
+  'specs.width': 'number',
+  'specs.length': 'number',
+  'specs.area': 'number',
+  'specs.sheetThickness': 'number',
+  'specs.foilThickness': 'number'
+};
 
 function lookupEntityContract(contracts = {}, entityType = '') {
   const key = String(entityType || '');
