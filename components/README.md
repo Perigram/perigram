@@ -168,9 +168,11 @@ redundant rounded panel borders when the file pane already owns the boundary.
 Files can be recursively split right or down
 and retain pane-local selections. The project file aggregates compiled
 screen/main operations with direct-child creation actions from matching child
-regions. An overload must not discover extra sources or actions from domain
-registries or the global action manifest, and it must not invent upload/link
-controls outside compiled process actions.
+regions. Its body launcher includes those direct-child creates and compiled
+relation/attachment operations; ordinary entity and lifecycle actions remain
+in the file-header ellipsis. An overload must not discover extra sources or
+actions from domain registries or the global action manifest, and it must not
+invent upload/link controls outside compiled process actions.
 Child files resolve their own detail-screen actions from the same effective
 user screen manifest used by normal generated detail routes. Registered
 operational bodies may consume those actions—for example queue nesting and
