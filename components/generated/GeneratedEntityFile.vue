@@ -69,7 +69,7 @@
     <div class="min-h-0 flex-1 overflow-hidden">
       <GeneratedProjectFileHome
         v-if="item.type === 'project'"
-        :action-entries="resolvedActionEntries"
+        :action-entries="launcherActionEntries"
         @execute-action="(action, entry) => $emit('execute-action', action, entry)"
       />
       <GeneratedEntityDetailBody
@@ -147,7 +147,7 @@ const resolvedActionEntries = computed(() => {
     entity: props.item?.entity,
     context
   }));
-  return Array.from(new Map([...existing, ...ownEntries]
+  return Array.from(new Map([...ownEntries, ...existing]
     .filter(entry => {
       const action = authStore.actionManifest.find(item => item.actionId === entry.actionId);
       return action && actionAppliesToEntity(action, props.item?.entity, props.item?.type);
@@ -155,6 +155,7 @@ const resolvedActionEntries = computed(() => {
     .map(entry => [entry.actionId, entry])
   ).values());
 });
+const launcherActionEntries = computed(() => resolvedActionEntries.value.filter(entry => entry.launcher));
 const detailActions = computed(() => resolvedActionEntries.value
   .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
   .filter(Boolean));

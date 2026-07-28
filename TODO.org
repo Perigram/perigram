@@ -1042,9 +1042,11 @@
    - Added =GeneratedProjectWorkspace.vue= for project =entityDetail= screens.
      It renders a bounded IDE-style Explorer plus recursively split file panes;
      there is no permanently reserved inspector. The project file is an
-     operational launcher for current-user compiled project/direct-child
-     actions rather than a duplicate project summary. Child files render their
-     pane-native detail overload, including the real queue editor.
+     operational launcher for current-user compiled direct-child creation and
+     relation/attachment actions rather than a duplicate project summary.
+     Ordinary entity/lifecycle actions remain in the file-header ellipsis.
+     Child files render their pane-native detail overload, including the real
+     queue editor.
    - Queue files give the composition editor the full pane when no
      nesting-run/support region is visible. Queue-entry cards use compact,
      card-container-responsive preview and control layouts.

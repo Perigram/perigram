@@ -53,14 +53,16 @@ bounded IDE-style Explorer and file workspace:
 
 The opened project file aggregates its runnable project operations from the
 compiled contract and renders them as a compact launcher in the otherwise empty
-file body. Screen/main action ids provide project updates, relation links,
-uploads, and other process operations. Direct-child create actions come from
-the matching child list region and must declare `project` as their parent. The
-component resolves only those ids through the current user's action manifest;
-it does not scan the global manifest, import domain relation metadata, or call
-link/upload APIs directly. If the organization process does not compile an
-upload or relation action onto this screen, that control is intentionally
-absent; no generic project-information fallback replaces missing operations.
+file body. Direct-child create actions come from the matching child list region
+and must declare `project` as their parent. Screen/main action ids join the
+launcher only when their typed inputs mutate `relations`/`attachments` or
+consume an attachment; normal entity and lifecycle commands stay in the header
+ellipsis. The component resolves only those ids through the current user's
+action manifest; it does not scan the global manifest, import domain relation
+metadata, or call link/upload APIs directly. If the organization process does
+not compile an upload or relation action onto this screen, that control is
+intentionally absent; no generic project-information fallback replaces missing
+operations.
 
 Selectable rows still come from access-filtered screen source states. Clicking
 an Explorer entity replaces the active file selection; splitting duplicates the
