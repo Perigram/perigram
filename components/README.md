@@ -158,12 +158,20 @@ and scope available to the current user. Project `entityDetail` screens use
 this path to render an IDE-style operational workspace over the generated
 project source and generated child collection sources. Its Explorer owns child
 rows from generated source regions. The active editor is a pane-native entity
-file rather than a nested page or card. Files can be recursively split right or
-down and retain pane-local selections. The project file aggregates compiled
+file rather than a nested page or card. File bodies reuse the registered
+entity-detail body overloads, so a queue file is the operational queue editor
+instead of a generic summary block; generic entities continue to use their
+contract-driven detail surface. Files can be recursively split right or down
+and retain pane-local selections. The project file aggregates compiled
 screen/main operations with direct-child creation actions from matching child
 regions. An overload must not discover extra sources or actions from domain
 registries or the global action manifest, and it must not invent upload/link
 controls outside compiled process actions.
+Child files resolve their own detail-screen actions from the same effective
+user screen manifest used by normal generated detail routes. Registered
+operational bodies may consume those actions—for example queue nesting and
+cassette-design producer actions—while the file header keeps the remaining
+applicable commands in its ellipsis menu.
 Registered screen overloads run in the app layout's flush bounded frame: the
 route body cannot scroll, and Explorer and file panes own their scrolling
 independently.
@@ -272,6 +280,9 @@ registered entity workspaces are not duplicated as generic detail-header
 buttons. Entity-local operational editors should use the canonical
 main/supporting proportions from
 `EntityWorkspace` rather than inventing local stacked or sidebar grids.
+`EntityWorkspace` and queue card grids use container breakpoints, so the
+main/supporting split and repeated cards respond to the actual editor pane
+width after a workspace split instead of the browser viewport width.
 Sheet-design details similarly mount `SheetDesignEditor` when the active user
 has a concrete `sheet_designs:write` grant. The editor mutates nesting source
 items and placements, resolves OCCS layer pens through the shared layer
