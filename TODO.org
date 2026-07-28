@@ -1040,11 +1040,14 @@
    - Moved queue and sheet-design generated detail bodies into the registry
      instead of hardcoded branches in =GeneratedEntityDetail=.
    - Added =GeneratedProjectWorkspace.vue= for project =entityDetail= screens.
-     It renders an IDE-style three-pane project workspace: generated linked
-     entities/children on the left, selected entity pane in the center, and
-     project context plus lifecycle history on the right.
-   - Validation: generated overload/action/routing focused tests passed;
-     changed generated SFCs parsed successfully; =npm run framework:validate=
-     passed. =shared/localization.spec.js= still fails only on the known
-     pre-existing missing keys =nesting.selectMachine=, =nesting.thickness=,
-     and =common.rotate= outside this task.
+     It renders a bounded IDE-style Explorer plus recursively split file panes;
+     there is no permanently reserved inspector. The project file is an
+     operational launcher for current-user compiled project/direct-child
+     actions rather than a duplicate project summary. Child files render their
+     pane-native detail overload, including the real queue editor.
+   - Queue files give the composition editor the full pane when no
+     nesting-run/support region is visible. Queue-entry cards use compact,
+     card-container-responsive preview and control layouts.
+   - Validation: generated overload/action/routing and project-file operation
+     focused tests passed; changed SFCs parsed successfully; architecture,
+     framework definition, and committed-manifest validation passed.

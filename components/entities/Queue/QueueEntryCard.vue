@@ -1,8 +1,8 @@
 <template>
-  <Panel>
+  <Panel class="queue-entry-card" :pt="panelPt">
     <template #header>
-      <div class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
-        <div class="min-w-0">
+      <div class="flex min-w-0 flex-1 items-center justify-between gap-2">
+        <div class="min-w-0 flex-1">
           <IdentityBlock
             v-if="cassette"
             :entity="cassette"
@@ -14,13 +14,13 @@
             severity="secondary"
           />
         </div>
-        <div class="flex items-center gap-1" data-entity-card-interactive="true" @click.stop>
+        <div class="flex shrink-0 items-center gap-1" data-entity-card-interactive="true" @click.stop>
           <InputNumber
             :model-value="entry.quantity"
             :min="1"
             :disabled="disabled"
             size="small"
-            class="w-16"
+            class="w-14"
             @update:model-value="value => emit('update-quantity', value)"
           />
           <small>{{ $t('common.units') }}</small>
@@ -38,17 +38,16 @@
       </div>
     </template>
 
-    <div class="flex flex-col gap-4">
+    <div class="queue-entry-card__body flex min-w-0 flex-col gap-2">
       <CassetteThumbnail
         v-if="cassette"
+        class="min-w-0"
         :cassette-id="sourceId"
         :cassette="cassette"
         :dimensions="entry.dimensions"
       />
 
-      <Divider />
-
-      <div v-if="parameters.length" class="grid grid-cols-2 gap-4">
+      <div v-if="parameters.length" class="queue-entry-card__parameters grid grid-cols-2 gap-2">
         <div v-for="param in parameters" :key="param" class="flex flex-col gap-1">
           <small>{{ param }}</small>
           <InputNumber
@@ -60,10 +59,11 @@
           />
         </div>
       </div>
-      <StateBlock
+      <Tag
         v-else
-        :message="$t('queue.static')"
+        :value="$t('queue.static')"
         icon="pi pi-lock"
+        severity="secondary"
       />
     </div>
   </Panel>
@@ -74,12 +74,10 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
-import Divider from 'primevue/divider';
 import InputNumber from 'primevue/inputnumber';
 import Tag from 'primevue/tag';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import StateBlock from '~/components/shared/StateBlock.vue';
 
 const props = defineProps({
   entry: { type: Object, required: true },
@@ -91,6 +89,10 @@ const props = defineProps({
 
 const emit = defineEmits(['update-quantity', 'update-dimension', 'remove']);
 const { t } = useI18n();
+const panelPt = {
+  header: { class: '!p-2' },
+  content: { class: '!p-2 !pt-0' }
+};
 
 const sourceId = computed(() => props.entry.id);
 const sourceTypeLabel = computed(() => {
@@ -100,3 +102,21 @@ const sourceTypeLabel = computed(() => {
 });
 const sourceLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value || t('common.unknown')}`);
 </script>
+
+<style scoped>
+.queue-entry-card {
+  container-type: inline-size;
+}
+
+.queue-entry-card__parameters {
+  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
+}
+
+@container (min-width: 28rem) {
+  .queue-entry-card__body {
+    display: grid;
+    grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+</style>

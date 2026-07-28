@@ -49,16 +49,16 @@ const containerGridClass = computed(() => [
 }
 
 @container (min-width: 32rem) {
-  .responsive-grid--wide {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .responsive-grid--cards {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @container (min-width: 48rem) {
+  .responsive-grid--wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .responsive-grid--cards,
   .responsive-grid--dense {
     grid-template-columns: repeat(4, minmax(0, 1fr));

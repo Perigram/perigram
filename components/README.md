@@ -160,8 +160,10 @@ project source and generated child collection sources. Its Explorer owns child
 rows from generated source regions. The active editor is a pane-native entity
 file rather than a nested page or card. File bodies reuse the registered
 entity-detail body overloads, so a queue file is the operational queue editor
-instead of a generic summary block; generic entities continue to use their
-contract-driven detail surface. Operational bodies receive file mode and remove
+instead of a generic summary block; generic child entities continue to use
+their contract-driven detail surface. The project file itself is an operational
+launcher containing its compiled project and direct-child actions, not a
+project-information page. Operational bodies receive file mode and remove
 redundant rounded panel borders when the file pane already owns the boundary.
 Files can be recursively split right or down
 and retain pane-local selections. The project file aggregates compiled
@@ -174,6 +176,12 @@ user screen manifest used by normal generated detail routes. Registered
 operational bodies may consume those actions—for example queue nesting and
 cassette-design producer actions—while the file header keeps the remaining
 applicable commands in its ellipsis menu.
+Within a queue file, `EntityWorkspace` gives the composition editor all twelve
+columns when no readable nesting-run/support region exists and uses the normal
+8/4 split only while that region is present. Queue entry cards use their own
+container width to place a bounded preview beside compact quantity/parameter
+controls; narrow cards stack internally. The surrounding wide card grid waits
+until the pane itself can provide two usable card columns.
 Registered screen overloads run in the app layout's flush bounded frame: the
 route body cannot scroll, and Explorer and file panes own their scrolling
 independently.

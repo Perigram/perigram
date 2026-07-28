@@ -67,7 +67,13 @@
     </header>
 
     <div class="min-h-0 flex-1 overflow-hidden">
+      <GeneratedProjectFileHome
+        v-if="item.type === 'project'"
+        :action-entries="resolvedActionEntries"
+        @execute-action="(action, entry) => $emit('execute-action', action, entry)"
+      />
       <GeneratedEntityDetailBody
+        v-else
         :key="`${item.type}:${entityId}`"
         :entity="item.entity"
         :entity-type="item.type"
@@ -93,6 +99,7 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import GeneratedEntityDetailBody from '~/components/generated/GeneratedEntityDetailBody.vue';
+import GeneratedProjectFileHome from '~/components/generated/GeneratedProjectFileHome.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import {
   generatedDetailActionIds,

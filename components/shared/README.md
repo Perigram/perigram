@@ -132,11 +132,15 @@ inside `EntityPage`. Use it when an entity detail needs a primary working
 region plus a supporting/status/results region, such as queue composition with
 nesting runs. The layout is a CSS query container: it uses one column while its
 own allocated width is narrow and a stable 8/4 main/support split when the
-container is wide enough. This is intentionally independent from viewport
+container is wide enough. Callers whose support slot is conditional must pass a
+full-width `mainSpan` while that slot is absent; an invisible support region
+must not reserve four columns. This is intentionally independent from viewport
 breakpoints so entity workspaces remain usable inside recursively split file
 panes. `ResponsiveGrid` accepts `responsive-context="container"` for repeated
-content inside this layout. Route-level production pages that need navigation,
-center work area, and right rail still use `WorkspaceLanes`.
+content inside this layout. Its `wide` variant introduces a second column only
+at a 48rem container width, preserving useful card width inside split panes.
+Route-level production pages that need navigation, center work area, and right
+rail still use `WorkspaceLanes`.
 
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.
