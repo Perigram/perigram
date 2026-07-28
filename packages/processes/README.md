@@ -198,39 +198,46 @@ active domain field-access policy, and compile into write/admin grants on the
 concrete incoming entity feature. Manual generated screens prompt for the
 selected mutation fields through `action.inputPolicy`, while event-driven
 updates can receive the same field payload from wired value/data nodes.
-Process value inputs are canonical block values, not detached notes. A value
-input may identify `identity`, `data`, `specs`, `summary`, `attachments`, or
-status metadata, carries the exact path and optional default, and compiles that
-metadata for round-trip editing. When a value input is connected to a
-construction socket, the socket's construction field id/path wins so the active
-runtime receives domain payload keys such as `name`, `templateId`, and
-`parameters`. When a value input is connected to an update action, its block
-path becomes a mutation field and a non-prompt `inputPolicy` field, so generated
-screens submit the graph-provided default without adding useless dialog chrome.
+Process value inputs are path-free literals. They carry only a scalar type
+(`string`, `number`, `boolean`, `json`, or `date`), an `item`/`list` structure,
+and a value. The receiving action socket owns a construction or mutation field
+path; a clean literal never becomes a field declaration merely because it is
+wired into an entity-shaped node.
+
 Process algebra nodes are canonical non-effect records under `processNodes`.
-They cover the first source/transform layer from the process algebra note:
-`entityRef`, `fieldRead`, `blockRead`, `stringOp`, `compare`, `logic`, and
-`collection`. `fieldRead` is the entity decomposition node: it consumes an
-entity and produces canonical block sockets. `blockRead` consumes one canonical
-block and produces a scalar/json value from a field path. These records preserve
-kind, operation/mode, entity contracts, block ids, field paths, inputs, and
-outputs through `definitionToCanvas()`, `canvasToDefinition()`, validation, and
-compilation. They do not mutate persistent state and they do not replace effect
-actions; create/update/status mutation/command/send behavior remains owned by
-action records.
+Their families are separated by concern:
+
+- Values/modifiers: `cast`, `fallback`, `stringOp`, and `listLength`.
+- Logic: typed `compare` predicates and Boolean `logic` gates.
+- Entities: `entityQuery`, `entityRef`, `entityField`, `entityFilter`,
+  `entitySelect`, `entityDecompose`, `entityCompose`, and `entityModify`.
+- Blocks: `blockRead`, `blockCompose`, and `blockModify`.
+
+Compose starts from empty data, modify requires existing data, and decompose
+only projects data. Entity and block composition nodes produce in-memory DTO
+values; persistence and external work remain action responsibilities.
+`entityQuery` returns the caller-visible list from the registered feature
+service. Filtering is an explicit aligned-mask pipeline:
+`entityQuery -> entityField -> compare/logic -> entityFilter -> entitySelect`.
+The field projection and predicate preserve list order, and filter rejects
+masks whose length differs from the entity list.
 
 `resolveProcessNodePorts()` is the single operation-to-port contract used by
-edge validation and the designer. Scalar kinds remain concrete
-(`string`, `number`, `boolean`, or `json`) rather than collapsing to generic
-`data`. String operations expose their real arity; comparison inputs are typed
-by operation; boolean logic is boolean-only except typed `coalesce`; block
-composition consumes the selected field type. Activation validation requires
+edge validation and the designer. Port kinds preserve both value type and
+structure: for example, `number` and `number_list` are different contracts.
+List-capable modifiers preserve structure. Comparison broadcasts one scalar
+right operand across an item list and returns a parallel `boolean_list`; list
+logic combines equal-length Boolean lists. `fallback` substitutes one scalar
+only for null/undefined elements. This is deliberately item/list algebra, not
+a hidden implementation of Grasshopper data trees: nested branches and
+automatic flatten/graft behavior are not part of this contract. Explicit cast
+nodes are required between unlike scalar types. Activation validation requires
 every required process-node input to have exactly one incoming value.
 
 `resolveProcessActionInputContext()` evaluates the acyclic value subgraph that
 terminates at an action. It reads literal value inputs and authorized entity
-DTOs, decomposes canonical blocks, reads or composes block fields, executes
-string/comparison/logic/collection operations, and binds the result to the
+DTOs, queries authorized entity lists, decomposes/composes/modifies entity and
+block values, executes typed value/predicate/list operations, and binds the result to the
 target action input. Action input metadata decides whether the evaluated value
 lands in `data`, `parameters`, or `entities`; persistent mutations and external
 effects still occur only when the action service executes. Missing ports,
