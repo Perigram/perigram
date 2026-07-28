@@ -40,7 +40,10 @@ bounded IDE-style Explorer and file workspace:
   generated detail page, without nesting `EntityPage` or an entity card.
   Operational entities therefore keep their real editor—queues render
   `GeneratedQueueDetail`/`QueueEditor`—while entities without an overload fall
-  back to the pane-width-safe generic detail surface.
+  back to the pane-width-safe generic detail surface. The file rendering mode
+  asks operational bodies for flush chrome; queue workspace panels remove
+  rounded outer borders because the surrounding file already owns the pane
+  boundary.
 - PrimeVue splitters form a recursive split tree. A file can split right or
   down, and nested horizontal/vertical splits keep independent entity
   selections and scrolling. There is no reserved right inspector pane.
