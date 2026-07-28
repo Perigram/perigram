@@ -68,8 +68,9 @@ Production queue card and detail surface.
 - Grid-mode queue entries use the bounded repeated-item grid. Each card has a
   finite maximum inline size, and additional container width creates more
   tracks instead of stretching existing cards indefinitely. The cassette
-  thumbnail is a constrained geometry preview without the dimension annotation
-  layer; editable parameter controls carry the numeric dimensions beside it.
+  thumbnail remains constrained but preserves the standard cassette preview
+  layers, including dimension annotations; card sizing must not suppress
+  drawing information.
 - In generated process queue details, cassette producer actions come from the
   current user's compiled action manifest and must expose a current
   `contracts.outputs[]` entry for `cassette_design`. QueueEditor does not

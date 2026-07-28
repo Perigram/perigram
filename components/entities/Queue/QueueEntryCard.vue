@@ -45,7 +45,6 @@
         :cassette-id="sourceId"
         :cassette="cassette"
         :dimensions="entry.dimensions"
-        hide-dimension-layer
       />
 
       <div v-if="parameters.length" class="queue-entry-card__parameters grid grid-cols-2 gap-2">
