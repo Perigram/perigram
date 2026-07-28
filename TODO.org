@@ -1059,7 +1059,9 @@
      parametric items; the nesting behavior flag does not hide fields. Bounded
      grid tracks and constrained layered previews prevent entry cards from
      stretching indefinitely without suppressing dimension or production
-     drawing layers.
+     drawing layers. The fixed fitted preview spans the left column; canonical
+     source-template context and row actions lead the right column, with
+     inline-labeled parameters below. Add Entry uses secondary emphasis.
    - Validation: generated overload/action/routing and project-file operation
      focused tests passed; changed SFCs parsed successfully; architecture,
      framework definition, and committed-manifest validation passed.
