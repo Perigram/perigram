@@ -2502,7 +2502,7 @@
     "addOperation": "Add operation",
     "closeOperationPalette": "Close operation palette",
     "noCompatibleOperations": "No compatible operation matches this socket.",
-    "searchOperations": "Search by what you want to do",
+    "searchOperations": "Search nodes",
     "showAdvancedOperations": "Show advanced operations",
     "hideAdvancedOperations": "Hide advanced operations",
     "statuses": "Statuses",

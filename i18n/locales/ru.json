@@ -2502,7 +2502,7 @@
     "addOperation": "Добавить операцию",
     "closeOperationPalette": "Закрыть палитру операций",
     "noCompatibleOperations": "Для этого разъёма нет подходящей операции.",
-    "searchOperations": "Поиск по желаемому действию",
+    "searchOperations": "Поиск узлов",
     "showAdvancedOperations": "Показать сложные операции",
     "hideAdvancedOperations": "Скрыть сложные операции",
     "statuses": "Статусы",
