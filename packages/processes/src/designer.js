@@ -24,22 +24,41 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     ]
   },
   {
-    id: 'entities',
+    id: 'values',
     items: [
-      { type: 'valueInput', icon: 'pi pi-id-card', label: 'value' },
-      { type: 'processNode', kind: 'entityRef', icon: 'pi pi-share-alt', label: 'entity' },
-      { type: 'processNode', kind: 'fieldRead', icon: 'pi pi-box', label: 'blocks' },
-      { type: 'processNode', kind: 'blockRead', icon: 'pi pi-search', label: 'field' },
-      { type: 'processNode', kind: 'blockCompose', icon: 'pi pi-file-edit', label: 'compose' }
+      { type: 'valueInput', icon: 'pi pi-circle-fill', label: 'literal' },
+      { type: 'processNode', kind: 'cast', icon: 'pi pi-arrow-right-arrow-left', label: 'cast' },
+      { type: 'processNode', kind: 'fallback', icon: 'pi pi-replay', label: 'fallback' },
+      { type: 'processNode', kind: 'stringOp', icon: 'pi pi-align-left', label: 'text' },
+      { type: 'processNode', kind: 'listLength', icon: 'pi pi-hashtag', label: 'listLength' }
     ]
   },
   {
     id: 'logic',
     items: [
-      { type: 'processNode', kind: 'stringOp', icon: 'pi pi-align-left', label: 'text' },
       { type: 'processNode', kind: 'compare', icon: 'pi pi-equals', label: 'compare' },
-      { type: 'processNode', kind: 'logic', icon: 'pi pi-code', label: 'logic' },
-      { type: 'processNode', kind: 'collection', icon: 'pi pi-list', label: 'list' }
+      { type: 'processNode', kind: 'logic', icon: 'pi pi-code', label: 'logicGate' }
+    ]
+  },
+  {
+    id: 'entities',
+    items: [
+      { type: 'processNode', kind: 'entityQuery', icon: 'pi pi-database', label: 'queryEntities' },
+      { type: 'processNode', kind: 'entityRef', icon: 'pi pi-share-alt', label: 'entity' },
+      { type: 'processNode', kind: 'entityField', icon: 'pi pi-search', label: 'entityField' },
+      { type: 'processNode', kind: 'entityFilter', icon: 'pi pi-filter', label: 'filterEntities' },
+      { type: 'processNode', kind: 'entitySelect', icon: 'pi pi-check-square', label: 'selectEntity' },
+      { type: 'processNode', kind: 'entityDecompose', icon: 'pi pi-box', label: 'decomposeEntity' },
+      { type: 'processNode', kind: 'entityCompose', icon: 'pi pi-plus-circle', label: 'composeEntity' },
+      { type: 'processNode', kind: 'entityModify', icon: 'pi pi-pencil', label: 'modifyEntityData' }
+    ]
+  },
+  {
+    id: 'blocks',
+    items: [
+      { type: 'processNode', kind: 'blockRead', icon: 'pi pi-search', label: 'field' },
+      { type: 'processNode', kind: 'blockCompose', icon: 'pi pi-plus-circle', label: 'composeBlock' },
+      { type: 'processNode', kind: 'blockModify', icon: 'pi pi-file-edit', label: 'modifyBlock' }
     ]
   },
   {
@@ -82,13 +101,17 @@ export function createProcessDesignerContract(domain = {}) {
     const coreFields = block
       ? (BLOCK_PRESENTATION[block]?.fields || [])
       : Object.values(BLOCK_PRESENTATION).flatMap(item => item.fields || []);
-    const domainFields = Object.values(lookupEntityContract(domain.fieldGroups, entityType) || {})
+    const descriptors = Object.values(lookupEntityContract(domain.fieldGroups, entityType) || {})
       .flatMap(group => Array.isArray(group) ? group : [])
+    const descriptorByPath = new Map(descriptors.flatMap(field => (
+      [field.path, ...(field.fallbackPaths || [])].filter(Boolean).map(path => [path, field])
+    )));
+    const domainFields = descriptors
       .flatMap(field => [field.path, ...(field.fallbackPaths || [])])
       .filter(Boolean);
     return [...new Set([...coreFields, ...allFieldPaths(fieldPolicy(entityType)), ...domainFields])]
       .filter(path => !block || path === block || path.startsWith(prefix))
-      .map(path => ({ label: path, value: path }));
+      .map(path => ({ label: path, value: path, type: fieldValueType(path, descriptorByPath.get(path)) }));
   }
 
   return {
@@ -107,8 +130,19 @@ export function createProcessDesignerContract(domain = {}) {
     fieldPolicy,
     construction,
     blocksForEntity: blocks,
-    fieldsForEntity: fields
+    fieldsForEntity: fields,
+    fieldType: (entityType, path) => fields(entityType).find(field => field.value === path)?.type || 'json'
   };
+}
+
+function fieldValueType(path = '', descriptor = {}) {
+  if (['count', 'area', 'percent', 'dimension', 'duration', 'money', 'number', 'angle'].includes(descriptor.display)) return 'number';
+  if (['text', 'code'].includes(descriptor.display)) return 'string';
+  if (/(timestamp|At|Date)$/.test(path)) return 'date';
+  if (/(count|length|width|height|area|price|total|used|efficiency|angle|diameter|kerf)$/i.test(path)) return 'number';
+  if (/(enabled|required|public|active)$/i.test(path)) return 'boolean';
+  if (/identity\.(uid|name|slug|serial|reference)$/.test(path) || /state\.primary$/.test(path)) return 'string';
+  return 'json';
 }
 
 function lookupEntityContract(contracts = {}, entityType = '') {

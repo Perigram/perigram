@@ -63,8 +63,8 @@ describe('process designer domain contract', () => {
       'data'
     ]);
     expect(contract.fieldsForEntity('work_item', 'relations')).toEqual([
-      { label: 'relations.*', value: 'relations.*' },
-      { label: 'relations.owner', value: 'relations.owner' }
+      { label: 'relations.*', value: 'relations.*', type: 'json' },
+      { label: 'relations.owner', value: 'relations.owner', type: 'json' }
     ]);
   });
 
@@ -76,5 +76,16 @@ describe('process designer domain contract', () => {
       defaultMode: 'genericCreate',
       inputs: []
     });
+  });
+
+  it('separates value, logic, entity, and block programming concerns', () => {
+    const contract = createProcessDesignerContract(domain);
+    const groups = Object.fromEntries(contract.paletteGroups.map(group => [group.id, group.items]));
+
+    expect(groups.values.map(item => item.label)).toEqual(['literal', 'cast', 'fallback', 'text', 'listLength']);
+    expect(groups.logic.map(item => item.label)).toEqual(['compare', 'logicGate']);
+    expect(groups.entities.map(item => item.label)).toContain('filterEntities');
+    expect(groups.blocks.map(item => item.label)).toEqual(['field', 'composeBlock', 'modifyBlock']);
+    expect(contract.fieldType('work_item', 'identity.name')).toBe('string');
   });
 });

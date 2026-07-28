@@ -552,7 +552,7 @@ describe('@cutkit/processes compiler', () => {
       processNodes: {
         decompose_queue: {
           id: 'decompose_queue',
-          kind: 'fieldRead',
+          kind: 'entityDecompose',
           entityType: 'queue',
           inputs: [{ id: 'entity', kind: 'entity', entityType: 'queue' }],
           outputs: [{ id: 'identity', kind: 'block', block: 'identity' }]
@@ -560,16 +560,19 @@ describe('@cutkit/processes compiler', () => {
         read_name: {
           id: 'read_name',
           kind: 'blockRead',
+          entityType: 'queue',
           block: 'identity',
-          path: 'name',
+          path: 'identity.name',
           valueType: 'string',
           inputs: [{ id: 'block', kind: 'block', block: 'identity' }],
-          outputs: [{ id: 'value', kind: 'string', block: 'identity', dataPath: 'name' }]
+          outputs: [{ id: 'value', kind: 'string', block: 'identity', dataPath: 'identity.name' }]
         },
         name_exists: {
           id: 'name_exists',
           kind: 'compare',
           operation: 'exists',
+          valueType: 'string',
+          structure: 'item',
           inputs: [{ id: 'left', kind: 'data' }],
           outputs: [{ id: 'result', kind: 'boolean' }]
         }
@@ -583,6 +586,21 @@ describe('@cutkit/processes compiler', () => {
     expect(Object.keys(roundTripped.processNodes)).toEqual(['decompose_queue', 'read_name', 'name_exists']);
     expect(validation.errors.filter(error => error.includes('connects incompatible ports'))).toEqual([]);
     expect(validation.errors.join('\n')).not.toContain('Process node');
+  });
+
+  it('rejects block composition outside the selected entity contract', () => {
+    const validation = validateProcessDefinition({
+      processNodes: {
+        invalid_block: {
+          id: 'invalid_block',
+          kind: 'entityModify',
+          entityType: 'project',
+          block: 'summary'
+        }
+      }
+    }, domain);
+
+    expect(validation.errors).toContain('Process node invalid_block uses block summary outside project');
   });
 
   it('rejects fields outside the domain field policy', () => {
@@ -1921,8 +1939,6 @@ describe('@cutkit/processes compiler', () => {
       }
     });
     expect(compiled.valueInputs.design_name).toMatchObject({
-      block: 'identity',
-      path: 'identity.name',
       value: 'Named design',
       icon: 'pi pi-id-card'
     });

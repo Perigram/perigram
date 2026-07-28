@@ -1,6 +1,8 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 
 const HANDLE_PREFIXES = ['input:', 'output:', 'data:'];
+export const PROCESS_SCALAR_KINDS = Object.freeze(['string', 'number', 'boolean', 'json', 'date']);
+export const PROCESS_STRUCTURES = Object.freeze(['item', 'list']);
 
 export function normalizePortSpec(io = {}, fallback = {}) {
   const source = io && typeof io === 'object' ? io : {};
@@ -28,6 +30,7 @@ export function portSpecsCompatible(source = {}, target = {}) {
   const targetSpec = normalizePortSpec(target);
   if (!sourceSpec.kind || !targetSpec.kind) return { ok: true };
 
+  if (targetSpec.kind === 'list') return isListKind(sourceSpec.kind) ? { ok: true } : incompatible(sourceSpec, targetSpec);
   if (targetSpec.kind === 'data') return dataCompatible(sourceSpec, targetSpec);
   if (sourceSpec.kind === 'data') return dataCompatible(sourceSpec, targetSpec);
   if (sourceSpec.kind === 'projection' || targetSpec.kind === 'projection') {
@@ -43,6 +46,11 @@ export function portSpecsCompatible(source = {}, target = {}) {
   if (sourceSpec.kind === 'status' || targetSpec.kind === 'status') {
     return sourceSpec.kind === 'status' && targetSpec.kind === 'status'
       ? { ok: true }
+      : incompatible(sourceSpec, targetSpec);
+  }
+  if (['block', 'block_list'].includes(sourceSpec.kind) || ['block', 'block_list'].includes(targetSpec.kind)) {
+    return sourceSpec.kind === targetSpec.kind
+      ? blockCompatible(sourceSpec, targetSpec)
       : incompatible(sourceSpec, targetSpec);
   }
   if (['entity', 'entity_list'].includes(sourceSpec.kind) || ['entity', 'entity_list'].includes(targetSpec.kind)) {
@@ -161,94 +169,156 @@ function processNodeInputPorts(record = {}) {
   if (record.kind === 'entityRef' && ['parent', 'children', 'related'].includes(record.mode)) {
     return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '', required: true })];
   }
-  if (record.kind === 'fieldRead') {
-    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '', required: true })];
+  if (record.kind === 'entityDecompose' || record.kind === 'entityField') {
+    return [normalizePortSpec({
+      id: 'entity',
+      label: record.entityType || 'entity',
+      kind: structureKind('entity', record.structure),
+      entityType: record.entityType || '',
+      required: true
+    })];
+  }
+  if (record.kind === 'entityFilter') {
+    return [
+      normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '', required: true }),
+      normalizePortSpec({ id: 'mask', label: 'mask', kind: 'boolean_list', required: true })
+    ];
+  }
+  if (record.kind === 'entitySelect') {
+    return [
+      normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '', required: true }),
+      ...(record.operation === 'index' ? [normalizePortSpec({ id: 'index', label: 'index', kind: 'number', required: true })] : [])
+    ];
+  }
+  if (record.kind === 'entityCompose') {
+    const declaredBlocks = (record.inputs || []).filter(port => ['block', 'block_list'].includes(port.kind) && port.block);
+    if (declaredBlocks.length) return declaredBlocks.map(port => normalizePortSpec({ ...port, required: false }));
+    return processBlockPorts(record.entityType, 'item').map(port => normalizePortSpec({ ...port, required: false }));
+  }
+  if (record.kind === 'entityModify') {
+    return [
+      normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '', required: true }),
+      normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', required: true })
+    ];
   }
   if (record.kind === 'blockRead') {
-    return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', required: true })];
+    return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: structureKind('block', record.structure), block: record.block || '', required: true })];
   }
   if (record.kind === 'blockCompose') {
+    return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: scalarValueKind(record), dataPath: record.path || '', required: true })];
+  }
+  if (record.kind === 'blockModify') {
     return [
-      normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', optional: true }),
+      normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', required: true }),
       normalizePortSpec({ id: 'value', label: record.path || 'value', kind: scalarValueKind(record), dataPath: record.path || '', required: true })
     ];
   }
+  if (record.kind === 'cast') {
+    return [normalizePortSpec({ id: 'value', label: 'value', kind: structureKind(record.sourceValueType || 'string', record.structure), required: true })];
+  }
+  if (record.kind === 'fallback') {
+    return [
+      normalizePortSpec({ id: 'value', label: 'value', kind: structureKind(scalarValueKind(record), record.structure), required: true }),
+      normalizePortSpec({ id: 'fallback', label: 'fallback', kind: scalarValueKind(record), required: true })
+    ];
+  }
   if (record.kind === 'stringOp') {
+    const inputKind = structureKind('string', record.structure);
     if (record.operation === 'concat') {
       return [
-        normalizePortSpec({ id: 'value', label: 'left', kind: 'string', required: true }),
+        normalizePortSpec({ id: 'value', label: 'left', kind: inputKind, required: true }),
         normalizePortSpec({ id: 'right', label: 'right', kind: 'string', required: true })
       ];
     }
-    if (record.operation === 'replace') return scalarPorts(['value', 'search', 'replacement'], 'string');
-    return scalarPorts(['value'], 'string');
+    if (record.operation === 'replace') {
+      return [
+        normalizePortSpec({ id: 'value', label: 'value', kind: inputKind, required: true }),
+        ...scalarPorts(['search', 'replacement'], 'string')
+      ];
+    }
+    return [normalizePortSpec({ id: 'value', label: 'value', kind: inputKind, required: true })];
   }
   if (record.kind === 'compare') {
+    const leftKind = structureKind(scalarValueKind(record), record.structure);
     if (record.operation === 'exists') {
-      return [normalizePortSpec({ id: 'left', label: 'value', kind: scalarValueKind(record), required: true })];
+      return [normalizePortSpec({ id: 'left', label: 'value', kind: leftKind, required: true })];
     }
-    const kind = ['gt', 'lt'].includes(record.operation)
+    const kind = ['gt', 'gte', 'lt', 'lte'].includes(record.operation)
       ? 'number'
       : record.operation === 'contains' ? 'string' : scalarValueKind(record);
     return [
-      normalizePortSpec({ id: 'left', label: 'left', kind, required: true }),
+      normalizePortSpec({ id: 'left', label: 'left', kind: structureKind(kind, record.structure), required: true }),
       normalizePortSpec({ id: 'right', label: 'right', kind, required: true })
     ];
   }
   if (record.kind === 'logic') {
     if (record.operation === 'not') {
-      return [normalizePortSpec({ id: 'left', label: 'value', kind: 'boolean', required: true })];
+      return [normalizePortSpec({ id: 'left', label: 'value', kind: structureKind('boolean', record.structure), required: true })];
     }
-    if (record.operation === 'coalesce') return scalarPorts(['left', 'right'], scalarValueKind(record));
     return [
-      normalizePortSpec({ id: 'left', label: 'left', kind: 'boolean', required: true }),
-      normalizePortSpec({ id: 'right', label: 'right', kind: 'boolean', required: true })
+      normalizePortSpec({ id: 'left', label: 'left', kind: structureKind('boolean', record.structure), required: true }),
+      normalizePortSpec({ id: 'right', label: 'right', kind: structureKind('boolean', record.structure), required: true })
     ];
   }
-  if (record.kind === 'collection') {
-    return [normalizePortSpec({ id: 'items', label: record.entityType || 'items', kind: 'entity_list', entityType: record.entityType || '', required: true })];
+  if (record.kind === 'listLength') {
+    return [normalizePortSpec({ id: 'items', label: 'items', kind: 'list', required: true })];
   }
   return [];
 }
 
 function processNodeOutputPorts(record = {}) {
+  if (record.kind === 'entityQuery') {
+    return [normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '' })];
+  }
   if (record.kind === 'entityRef') {
     const outputType = record.mode === 'children' || (record.mode === 'related' && record.relationCardinality === 'many') ? 'entity_list' : 'entity';
     const entityType = record.relationEntityType || record.entityType || '';
     return [normalizePortSpec({ id: 'entity', label: entityType || outputType, kind: outputType, entityType })];
   }
-  if (record.kind === 'fieldRead') {
-    const declaredBlocks = (record.outputs || []).filter(port => port.kind === 'block' && port.block);
+  if (record.kind === 'entityDecompose') {
+    const declaredBlocks = (record.outputs || []).filter(port => ['block', 'block_list'].includes(port.kind) && port.block);
     if (declaredBlocks.length) return declaredBlocks.map(port => normalizePortSpec(port));
-    return processBlockPorts(record.entityType);
+    return processBlockPorts(record.entityType, record.structure);
   }
-  if (record.kind === 'blockRead') {
-    return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: scalarValueKind(record), block: record.block || '', dataPath: record.path || '' })];
+  if (record.kind === 'entityField') {
+    return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: structureKind(scalarValueKind(record), record.structure), dataPath: record.path || '' })];
   }
-  if (record.kind === 'blockCompose') {
-    return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', dataPath: record.path || '' })];
+  if (record.kind === 'entityFilter') {
+    return [normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '' })];
   }
-  if (record.kind === 'collection' && record.operation === 'first') {
+  if (record.kind === 'entitySelect') {
     return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
   }
-  if (record.kind === 'collection' && record.operation === 'count') {
+  if (record.kind === 'entityCompose' || record.kind === 'entityModify') {
+    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
+  }
+  if (record.kind === 'blockRead') {
+    return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: structureKind(scalarValueKind(record), record.structure), block: record.block || '', dataPath: record.path || '' })];
+  }
+  if (record.kind === 'blockCompose' || record.kind === 'blockModify') {
+    return [normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', dataPath: record.path || '' })];
+  }
+  if (record.kind === 'cast') {
+    return [normalizePortSpec({ id: 'value', label: record.valueType || 'value', kind: structureKind(scalarValueKind(record), record.structure) })];
+  }
+  if (record.kind === 'fallback') {
+    return [normalizePortSpec({ id: 'value', label: record.valueType || 'value', kind: structureKind(scalarValueKind(record), record.structure) })];
+  }
+  if (record.kind === 'listLength') {
     return [normalizePortSpec({ id: 'count', label: 'count', kind: 'number' })];
   }
   if (record.kind === 'compare' || record.kind === 'logic') {
-    const kind = record.kind === 'logic' && record.operation === 'coalesce'
-      ? scalarValueKind(record)
-      : 'boolean';
-    return [normalizePortSpec({ id: 'result', label: 'result', kind })];
+    return [normalizePortSpec({ id: 'result', label: 'result', kind: structureKind('boolean', record.structure) })];
   }
   if (record.kind === 'stringOp') {
-    return [normalizePortSpec({ id: 'value', label: 'value', kind: 'string' })];
+    return [normalizePortSpec({ id: 'value', label: 'value', kind: structureKind('string', record.structure) })];
   }
   return [];
 }
 
-function processBlockPorts(entityType = '') {
+function processBlockPorts(entityType = '', structure = 'item') {
   return CANONICAL_ENTITY_BLOCKS
-    .map(block => normalizePortSpec({ id: block, label: block, kind: 'block', block, entityType }));
+    .map(block => normalizePortSpec({ id: block, label: block, kind: structureKind('block', structure), block, entityType }));
 }
 
 function findPortForHandle(ports = [], handle = '', direction = 'output') {
@@ -286,7 +356,7 @@ function recordForNode(process = {}, node = {}) {
 }
 
 function normalizePortKind(kind = '', io = {}, fallback = {}) {
-  if (['entity_list', 'entity', 'block', 'data', 'string', 'number', 'boolean', 'json', 'status', 'event', 'projection', 'attachment', 'task'].includes(kind)) return kind;
+  if (['entity_list', 'entity', 'block', 'block_list', 'data', 'list', 'status', 'event', 'projection', 'attachment', 'task', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(kind)) return kind;
   if (io.projection) return 'projection';
   if (io.block) return 'block';
   if (io.entityType) return io.multiple ? 'entity_list' : 'entity';
@@ -297,13 +367,12 @@ function normalizePortKind(kind = '', io = {}, fallback = {}) {
 }
 
 function valueInputKind(input = {}) {
-  if (input.block) return input.block === 'statusMeta' ? 'data' : 'block';
-  if (['string', 'number', 'boolean', 'object', 'json'].includes(input.valueType)) return 'data';
-  return input.valueType || 'data';
+  const kind = input.valueType === 'object' ? 'json' : scalarValueKind(input);
+  return structureKind(kind, input.structure);
 }
 
 function dataCompatible(source, target) {
-  if (target.kind === 'data' && ['data', 'string', 'number', 'boolean', 'json'].includes(source.kind)) return { ok: true };
+  if (target.kind === 'data' && ['data', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(source.kind)) return { ok: true };
   if (source.kind === 'data' && target.kind === 'data') return { ok: true };
   if (source.kind === 'block' && ['data', 'block'].includes(target.kind)) return blockCompatible(source, target);
   return incompatible(source, target);
@@ -314,9 +383,20 @@ function scalarPorts(ids = [], kind = 'string') {
 }
 
 function scalarValueKind(record = {}) {
-  return ['string', 'number', 'boolean', 'json'].includes(record.valueType)
+  return PROCESS_SCALAR_KINDS.includes(record.valueType)
     ? record.valueType
     : 'string';
+}
+
+function structureKind(kind = 'string', structure = 'item') {
+  if (structure !== 'list') return kind;
+  if (kind === 'entity') return 'entity_list';
+  if (kind === 'block') return 'block_list';
+  return `${kind}_list`;
+}
+
+function isListKind(kind = '') {
+  return kind === 'list' || kind === 'entity_list' || kind === 'block_list' || kind.endsWith('_list');
 }
 
 function blockCompatible(source, target) {
