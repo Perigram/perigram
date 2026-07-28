@@ -30,7 +30,7 @@ describe('project file operations and queue pane density', () => {
 
   it('keeps queue entries compact and makes their grid respond to actual card width', () => {
     expect(queueEntrySource).toContain('container-type: inline-size');
-    expect(queueEntrySource).toContain('grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr)');
+    expect(queueEntrySource).toContain('grid-template-columns: 8rem minmax(0, 1fr)');
     expect(queueEntrySource).toContain("header: { class: '!p-2' }");
     expect(queueEntrySource).not.toContain('<Divider');
     expect(queueEntrySource).not.toContain('<StateBlock');
