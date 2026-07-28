@@ -834,23 +834,20 @@ describe('process definitions access fallback', () => {
         },
         processNodes: {
           query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
-          status: { id: 'status', kind: 'entityField', entityType: 'queue', path: 'status.state.primary', valueType: 'string', structure: 'list' },
-          equals: { id: 'equals', kind: 'compare', operation: 'eq', valueType: 'string', structure: 'list' },
+          readyCondition: { id: 'readyCondition', kind: 'entityCondition', entityType: 'queue', path: 'status.state.primary', operation: 'eq', valueType: 'string' },
           filter: { id: 'filter', kind: 'entityFilter', entityType: 'queue' },
           first: { id: 'first', kind: 'entitySelect', operation: 'first', entityType: 'queue' }
         },
         graph: {
           nodes: [
             { id: 'ready', type: 'valueInput' },
-            ...['query', 'status', 'equals', 'filter', 'first'].map(id => ({ id, type: 'processNode' })),
+            ...['query', 'readyCondition', 'filter', 'first'].map(id => ({ id, type: 'processNode' })),
             { id: 'run', type: 'action' }
           ],
           edges: [
-            { source: 'query', target: 'status' },
-            { source: 'status', target: 'equals', targetHandle: 'input:left' },
-            { source: 'ready', target: 'equals', targetHandle: 'input:right' },
+            { source: 'ready', target: 'readyCondition', targetHandle: 'input:value' },
             { source: 'query', target: 'filter', targetHandle: 'input:entities' },
-            { source: 'equals', target: 'filter', targetHandle: 'input:mask' },
+            { source: 'readyCondition', target: 'filter', targetHandle: 'input:predicate' },
             { source: 'filter', target: 'first' },
             { source: 'first', target: 'run' }
           ]

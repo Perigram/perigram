@@ -51,4 +51,46 @@ describe('process data-flow migration', () => {
       processNodes: { mystery: { id: 'mystery', kind: 'placeholder' } }
     })).toThrow('Cannot migrate process node mystery');
   });
+
+  it('replaces entity mask bookkeeping with a field predicate', () => {
+    const result = migrateProcessDataflowDefinition({
+      processNodes: {
+        query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
+        status: { id: 'status', kind: 'entityField', entityType: 'queue', path: 'status.state.primary', valueType: 'string', structure: 'list' },
+        equals: { id: 'equals', kind: 'compare', operation: 'eq', valueType: 'string', structure: 'list' },
+        filter: { id: 'filter', kind: 'entityFilter', entityType: 'queue' }
+      },
+      valueInputs: {
+        ready: { id: 'ready', valueType: 'string', value: 'READY' }
+      },
+      graph: {
+        nodes: [
+          ...['query', 'status', 'equals', 'filter'].map(id => ({ id, type: 'processNode' })),
+          { id: 'ready', type: 'valueInput' }
+        ],
+        edges: [
+          { source: 'query', target: 'status', targetHandle: 'input:entity' },
+          { source: 'status', target: 'equals', targetHandle: 'input:left' },
+          { source: 'ready', target: 'equals', targetHandle: 'input:right' },
+          { source: 'query', target: 'filter', targetHandle: 'input:entities' },
+          { source: 'equals', target: 'filter', targetHandle: 'input:mask' }
+        ]
+      }
+    });
+
+    expect(result.value.dataflowVersion).toBe(2);
+    expect(result.value.processNodes.equals).toMatchObject({
+      kind: 'entityCondition',
+      entityType: 'queue',
+      path: 'status.state.primary',
+      operation: 'eq',
+      structure: 'item'
+    });
+    expect(result.value.processNodes.status).toBeUndefined();
+    expect(result.value.graph.nodes.map(node => node.id)).not.toContain('status');
+    expect(result.value.graph.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({ source: 'ready', target: 'equals', targetHandle: 'input:value' }),
+      expect.objectContaining({ source: 'equals', target: 'filter', targetHandle: 'input:predicate' })
+    ]));
+  });
 });

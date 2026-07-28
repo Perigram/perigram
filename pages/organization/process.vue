@@ -364,86 +364,27 @@
                 </template>
 
                 <template v-else-if="selectedNode.type === 'valueInput'">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('common.type') }}</label>
-                      <Select v-model="selectedValueInput.valueType" :options="processValueTypeOptions" option-label="label" option-value="value" @change="syncValueInput(selectedValueInput)" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.structure') }}</label>
-                      <Select v-model="selectedValueInput.structure" :options="processStructureOptions" option-label="label" option-value="value" @change="syncValueInput(selectedValueInput)" />
-                    </div>
-                    <div class="col-span-2 flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.literalValue') }}</label>
-                      <Textarea v-if="selectedValueInput.structure === 'list' || selectedValueInput.valueType === 'json'" v-model="selectedValueInput.value" rows="3" auto-resize />
-                      <InputText v-else v-model="selectedValueInput.value" />
-                    </div>
-                  </div>
+                  <Tag :value="processPortTypeLabel(selectedValueInput.outputs?.[0]?.kind || selectedValueInput.valueType)" severity="info" size="small" />
                 </template>
 
                 <template v-else-if="selectedNode.type === 'processNode'">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div v-if="selectedProcessNode.kind === 'entityRef'" class="col-span-2 flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.traversal') }}</label>
-                      <Select v-model="selectedProcessNode.mode" :options="processNodeOperationOptions('entityRef')" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div v-if="['stringOp', 'compare', 'logic', 'entitySelect'].includes(selectedProcessNode.kind)" class="col-span-2 flex flex-col gap-1">
-                      <label>{{ processNodeOperationLabel(selectedProcessNode.kind) }}</label>
-                      <Select v-model="selectedProcessNode.operation" :options="processNodeOperationOptions(selectedProcessNode.kind)" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div v-if="processNodeNeedsSourceEntity(selectedProcessNode)" class="col-span-2 flex flex-col gap-1">
-                      <label>{{ processNodeSourceEntityLabel(selectedProcessNode) }}</label>
-                      <Select v-model="selectedProcessNode.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div v-if="processNodeUsesStructure(selectedProcessNode)" class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.structure') }}</label>
-                      <Select v-model="selectedProcessNode.structure" :options="processStructureOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div v-if="selectedProcessNode.kind === 'cast'" class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.sourceValueType') }}</label>
-                      <Select v-model="selectedProcessNode.sourceValueType" :options="processValueTypeOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div v-if="selectedProcessNode.kind === 'entityRef' && selectedProcessNode.mode === 'related'" class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.relation') }}</label>
-                      <Select v-model="selectedProcessNode.relationKey" :options="relationOptionsForEntity(selectedProcessNode.entityType)" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div v-if="processNodeNeedsResultEntity(selectedProcessNode) && selectedProcessNode.mode !== 'related'" class="flex flex-col gap-1">
-                      <label>{{ processNodeResultEntityLabel(selectedProcessNode) }}</label>
-                      <Select v-model="selectedProcessNode.relationEntityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div v-if="processNodeUsesBlock(selectedProcessNode)" class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.block') }}</label>
-                      <Select v-model="selectedProcessNode.block" :options="selectedProcessNodeBlockOptions" option-label="label" option-value="value" @change="syncSelectedProcessNodeBlock" />
-                    </div>
-                    <div v-if="processNodeUsesPath(selectedProcessNode)" class="col-span-2 flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.path') }}</label>
-                      <Select v-model="selectedProcessNode.path" :options="selectedProcessNodeFieldOptions" option-label="label" option-value="value" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div v-if="processNodeUsesValueType(selectedProcessNode)" class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.valueType') }}</label>
-                      <Select v-model="selectedProcessNode.valueType" :options="processValueTypeOptions" option-label="label" option-value="value" :disabled="processNodeValueTypeIsInferred(selectedProcessNode)" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div v-if="selectedProcessNode.kind === 'stringOp' && selectedProcessNode.operation === 'template'" class="col-span-2 flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.textTemplate') }}</label>
-                      <InputText v-model="selectedProcessNode.template" :placeholder="$t('processDesigner.textTemplatePlaceholder')" @change="syncSelectedProcessNode" />
-                    </div>
-                    <div class="col-span-2 rounded-ui border border-content-border bg-content p-2">
-                      <div class="mb-2 text-xs font-semibold uppercase text-muted-color">{{ $t('processDesigner.nodeContract') }}</div>
-                      <div class="flex flex-wrap items-center gap-2 text-xs">
-                        <Tag
-                          v-for="input in selectedProcessNode.inputs || []"
-                          :key="`input-${input.id}`"
-                          :value="`${input.label}: ${processPortTypeLabel(input.kind)}`"
-                          severity="secondary"
-                        />
-                        <i class="pi pi-arrow-right text-muted-color"></i>
-                        <Tag
-                          v-for="output in selectedProcessNode.outputs || []"
-                          :key="`output-${output.id}`"
-                          :value="`${output.label}: ${processPortTypeLabel(output.kind)}`"
-                          severity="info"
-                        />
-                      </div>
+                  <div class="rounded-ui border border-content-border bg-content p-2">
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                      <Tag
+                        v-for="input in selectedProcessNode.inputs || []"
+                        :key="`input-${input.id}`"
+                        :value="`${input.label}: ${processPortTypeLabel(input.kind)}`"
+                        severity="secondary"
+                        size="small"
+                      />
+                      <i class="pi pi-arrow-right text-muted-color"></i>
+                      <Tag
+                        v-for="output in selectedProcessNode.outputs || []"
+                        :key="`output-${output.id}`"
+                        :value="`${output.label}: ${processPortTypeLabel(output.kind)}`"
+                        severity="info"
+                        size="small"
+                      />
                     </div>
                   </div>
                 </template>
@@ -627,7 +568,7 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { canvasToDefinition, compileProcessDefinition, createProcessDesignerContract, definitionToCanvas, portSpecsCompatible, requiredEntityProfileTypes, resolveNodePort, resolveProcessNodePorts } from '~/packages/processes/src/index.js';
+import { canvasToDefinition, compileProcessDefinition, createProcessDesignerContract, definitionToCanvas, portSpecsCompatible, PROCESS_DATAFLOW_VERSION, requiredEntityProfileTypes, resolveNodePort, resolveProcessNodePorts } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain } from '@cutkit/domain-cnc';
@@ -711,15 +652,13 @@ const accessLevelOptions = [
   { label: t('processDesigner.accessAdmin'), value: 'admin' }
 ];
 const processValueTypeOptions = ['string', 'number', 'boolean', 'json', 'date'].map(value => ({ label: value, value }));
-const processStructureOptions = [
-  { label: t('processDesigner.itemStructure'), value: 'item' },
-  { label: t('processDesigner.listStructure'), value: 'list' }
-];
 const processNodeOperations = {
   entityRef: ['current', 'parent', 'children', 'related'],
   stringOp: ['concat', 'template', 'replace', 'lower', 'upper', 'trim'],
   compare: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists'],
   logic: ['and', 'or', 'xor', 'not'],
+  entityCondition: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists'],
+  predicateLogic: ['and', 'or', 'xor', 'not'],
   entitySelect: ['first', 'last', 'index']
 };
 const processNodeOperationLabels = {
@@ -835,16 +774,6 @@ const selectedActionEntityType = computed(() => actionEntityType(selectedAction.
 const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedActionEntityType.value));
 const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
 const selectedActionGrants = computed(() => normalizeDesignerAccess(selectedAction.value.access).grants);
-const selectedProcessNodeFieldOptions = computed(() => {
-  const node = selectedProcessNode.value;
-  const access = ['blockCompose', 'blockModify'].includes(node.kind) ? 'write' : 'read';
-  return fieldOptionsForBlock(node.block, node.entityType)
-    .filter(option => fieldPathAllowed(node.entityType, option.value, access));
-});
-const selectedProcessNodeBlockOptions = computed(() => (
-  designer.blocksForEntity(selectedProcessNode.value.entityType)
-    .map(block => ({ label: block.label, value: block.id }))
-));
 const lifecycleWorkflow = computed(() => workflowForEntity(selectedEntity.value));
 const lifecycleRegion = computed(() => lifecycleWorkflow.value.regions?.main || lifecycleWorkflow.value.regions?.[lifecycleWorkflow.value.primaryRegion] || null);
 const lifecycleStateIds = computed(() => Object.keys(lifecycleRegion.value?.states || {}).filter(key => !key.includes('.')));
@@ -1031,6 +960,7 @@ function addNode(item) {
   const actionKind = typeof item === 'object' ? item.actionKind : null;
   const socketDirection = typeof item === 'object' ? item.direction : null;
   const processNodeKind = typeof item === 'object' ? item.kind : null;
+  const valueStructure = typeof item === 'object' ? item.structure : null;
   const id = `${type}_${Date.now()}`;
   const refId = id;
   const node = {
@@ -1048,6 +978,9 @@ function addNode(item) {
   }
   if (type === 'processNode' && processNodeKind) {
     Object.assign(record, createProcessNode(refId, processNodeKind));
+  }
+  if (type === 'valueInput' && valueStructure) {
+    Object.assign(record, createValueInput(refId, valueStructure));
   }
   nodes.value.push(enrichNodeData(node));
   selectedNodeId.value = id;
@@ -1142,10 +1075,13 @@ function serializeProcess() {
 }
 
 function processDefinitionSnapshot() {
-  return canvasToDefinition(
-    { nodes: nodes.value.map(stripRuntimeNodeData), edges: edges.value.map(stripRuntimeEdgeData), viewport: draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 } },
-    draft.value?.data || {}
-  );
+  return {
+    ...canvasToDefinition(
+      { nodes: nodes.value.map(stripRuntimeNodeData), edges: edges.value.map(stripRuntimeEdgeData), viewport: draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 } },
+      draft.value?.data || {}
+    ),
+    dataflowVersion: PROCESS_DATAFLOW_VERSION
+  };
 }
 
 function recomputeProcessPreview() {
@@ -1195,6 +1131,17 @@ function syncNodeData() {
     node.data.fieldOptions = node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [];
     node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
     node.data.onActionResetAccess = node.type === 'action' ? () => resetActionAccess(record.id || node.data.refId) : null;
+    node.data.valueInputRecord = node.type === 'valueInput' ? record : null;
+    node.data.onValueInputUpdate = node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data.refId, updates) : null;
+    node.data.processNodeRecord = node.type === 'processNode' ? record : null;
+    node.data.onProcessNodeUpdate = node.type === 'processNode' ? updates => updateProcessNodeRecord(record.id || node.data.refId, updates) : null;
+    node.data.processValueTypeOptions = ['valueInput', 'processNode'].includes(node.type) ? processValueTypeOptions : [];
+    node.data.processEntityTypeOptions = node.type === 'processNode' ? entityTypeOptions.value : [];
+    node.data.processOperationOptions = node.type === 'processNode' ? processNodeOperationOptions(record) : [];
+    node.data.processFieldOptions = node.type === 'processNode' ? processNodeFieldOptions(record) : [];
+    node.data.processBlockOptions = node.type === 'processNode' ? processNodeBlockOptions(record) : [];
+    node.data.processRelationOptions = node.type === 'processNode' ? relationOptionsForEntity(record.entityType) : [];
+    node.data.processConnectedInputIds = node.type === 'processNode' ? connectedProcessInputIds(node, record) : [];
     node.data.statusFrom = record.status?.from;
     node.data.statusTo = record.status?.to;
     node.data.direction = record.direction;
@@ -1335,16 +1282,22 @@ function createStatusDefinition(id) {
   return { id, label: '', statusId: 'STATUS', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
 }
 
-function createValueInput(id) {
-  return { id, label: t('processDesigner.paletteItems.literal'), valueType: 'string', structure: 'item', value: '' };
+function createValueInput(id, structure = 'item') {
+  return {
+    id,
+    label: t(`processDesigner.paletteItems.${structure === 'list' ? 'literalList' : 'literal'}`),
+    valueType: 'string',
+    structure,
+    value: structure === 'list' ? '[]' : ''
+  };
 }
 
 function createProcessNode(id, kind = 'entityDecompose') {
   const blockKind = ['blockRead', 'blockCompose', 'blockModify', 'entityModify'].includes(kind);
-  const pathKind = ['entityField', 'blockRead', 'blockCompose', 'blockModify'].includes(kind);
+  const pathKind = ['entityField', 'entityCondition', 'blockRead', 'blockCompose', 'blockModify'].includes(kind);
   const entityKind = [
     'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify',
-    'blockRead', 'blockCompose', 'blockModify'
+    'entityCondition', 'predicateLogic', 'blockRead', 'blockCompose', 'blockModify'
   ].includes(kind);
   const node = {
     id,
@@ -1358,7 +1311,6 @@ function createProcessNode(id, kind = 'entityDecompose') {
     block: blockKind ? 'identity' : '',
     path: pathKind ? 'identity.name' : '',
     valueType: defaultProcessNodeValueType(kind, defaultProcessNodeOperation(kind)),
-    sourceValueType: kind === 'cast' ? 'string' : '',
     structure: 'item',
     operation: defaultProcessNodeOperation(kind),
     template: kind === 'stringOp' ? '{value}' : '',
@@ -1368,7 +1320,7 @@ function createProcessNode(id, kind = 'entityDecompose') {
   };
   if (pathKind) {
     const access = ['blockCompose', 'blockModify'].includes(kind) ? 'write' : 'read';
-    node.path = designer.fieldsForEntity(node.entityType, kind === 'entityField' ? '' : node.block)
+    node.path = designer.fieldsForEntity(node.entityType, ['entityField', 'entityCondition'].includes(kind) ? '' : node.block)
       .find(field => !field.value.endsWith('.*') && fieldPathAllowed(node.entityType, field.value, access))?.value || '';
   }
   syncProcessNode(node);
@@ -2020,7 +1972,6 @@ function syncProcessNode(node = {}) {
   node.kind ||= 'entityDecompose';
   node.operation ||= defaultProcessNodeOperation(node.kind);
   node.valueType ||= defaultProcessNodeValueType(node.kind, node.operation);
-  node.sourceValueType ||= node.kind === 'cast' ? 'string' : '';
   node.structure = node.structure === 'list' ? 'list' : 'item';
   if (node.kind === 'stringOp' && node.operation === 'template') node.template ||= '{value}';
   node.icon = iconForProcessNode(node.kind);
@@ -2040,39 +1991,46 @@ function syncProcessNode(node = {}) {
     const availableBlocks = designer.blocksForEntity(node.entityType);
     if (!availableBlocks.some(block => block.id === node.block)) node.block = availableBlocks[0]?.id || '';
   }
-  if (!['entityField', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind)) node.path = '';
+  if (!['entityField', 'entityCondition', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind)) node.path = '';
   else {
     const access = ['blockCompose', 'blockModify'].includes(node.kind) ? 'write' : 'read';
-    const available = designer.fieldsForEntity(node.entityType, node.kind === 'entityField' ? '' : node.block)
+    const available = designer.fieldsForEntity(node.entityType, ['entityField', 'entityCondition'].includes(node.kind) ? '' : node.block)
       .filter(field => !field.value.endsWith('.*') && fieldPathAllowed(node.entityType, field.value, access));
     if (!available.some(field => field.value === node.path)) node.path = available[0]?.value || '';
   }
-  if (node.path && node.entityType && ['entityField', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind)) {
+  if (node.path && node.entityType && ['entityField', 'entityCondition', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind)) {
     node.valueType = designer.fieldType(node.entityType, node.path);
+  }
+  if (node.kind === 'entityCondition') {
+    const allowed = processNodeOperationOptions(node).map(option => option.value);
+    if (!allowed.includes(node.operation)) node.operation = allowed[0] || 'exists';
   }
   node.label = processNodeDisplayLabel(node);
   node.inputs = processNodeInputs(node);
   node.outputs = processNodeOutputs(node);
 }
 
-function syncSelectedProcessNode() {
-  syncProcessNode(selectedProcessNode.value);
-  syncNodeData();
-}
-
-function syncSelectedProcessNodeBlock() {
-  const node = selectedProcessNode.value;
-  node.path = designer.blocks.find(block => block.id === node.block)?.defaultPath || `${node.block}.value`;
-  syncSelectedProcessNode();
-}
-
 function applyInferredProcessNodeInputs(record = {}, node = {}) {
-  const incoming = inferIncomingPortContract(node.id);
-  if (!incoming) return;
+  const primaryInput = ({
+    entityFilter: 'entities',
+    predicateLogic: 'left',
+    compare: 'left',
+    logic: 'left',
+    fallback: 'value',
+    stringOp: 'value',
+    cast: 'value'
+  })[record.kind] || '';
+  const incoming = inferIncomingPortContract(node.id, primaryInput);
+  if (!incoming) {
+    if (['entityDecompose', 'entityField', 'blockRead', 'cast', 'fallback', 'stringOp', 'compare', 'logic'].includes(record.kind)) {
+      record.structure = 'item';
+    }
+    return;
+  }
   const incomingKind = String(incoming.kind || '');
   const listInput = incomingKind.endsWith('_list');
   const scalarKind = incomingKind.replace(/_list$/, '');
-  if (['entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityModify'].includes(record.kind) && incoming.entityType) {
+  if (['entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityModify', 'predicateLogic'].includes(record.kind) && incoming.entityType) {
     record.entityType = incoming.entityType;
   }
   if (['entityDecompose', 'entityField'].includes(record.kind)) {
@@ -2086,45 +2044,9 @@ function applyInferredProcessNodeInputs(record = {}, node = {}) {
   if (['cast', 'fallback', 'stringOp', 'compare', 'logic'].includes(record.kind)) {
     record.structure = listInput ? 'list' : 'item';
   }
-  if (record.kind === 'cast' && processValueTypeOptions.some(option => option.value === scalarKind)) {
-    record.sourceValueType = scalarKind;
-  }
-  if (record.kind === 'compare' && processValueTypeOptions.some(option => option.value === scalarKind)) {
+  if (['compare', 'fallback'].includes(record.kind) && processValueTypeOptions.some(option => option.value === scalarKind)) {
     record.valueType = scalarKind;
   }
-}
-
-function processNodeNeedsSourceEntity(node = {}) {
-  return [
-    'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify',
-    'blockRead', 'blockCompose', 'blockModify'
-  ].includes(node.kind);
-}
-
-function processNodeNeedsResultEntity(node = {}) {
-  return node.kind === 'entityRef' && ['parent', 'children', 'related'].includes(node.mode || node.operation);
-}
-
-function processNodeSourceEntityLabel(node = {}) {
-  if (['entityQuery', 'entityFilter', 'entitySelect'].includes(node.kind)) return t('processDesigner.collectionEntity');
-  if (node.kind === 'entityDecompose') return t('processDesigner.entityToDecompose');
-  if (node.kind === 'entityRef' && node.mode === 'children') return t('processDesigner.parentEntity');
-  if (node.kind === 'entityRef' && node.mode === 'parent') return t('processDesigner.childEntity');
-  return t('processDesigner.sourceEntity');
-}
-
-function processNodeResultEntityLabel(node = {}) {
-  if (node.kind === 'entityRef' && node.mode === 'children') return t('processDesigner.childEntity');
-  if (node.kind === 'entityRef' && node.mode === 'parent') return t('processDesigner.parentEntity');
-  return t('processDesigner.relatedEntity');
-}
-
-function processNodeOperationLabel(kind = '') {
-  if (kind === 'stringOp') return t('processDesigner.textTransform');
-  if (kind === 'compare') return t('processDesigner.condition');
-  if (kind === 'logic') return t('processDesigner.booleanRule');
-  if (kind === 'entitySelect') return t('processDesigner.collectionResult');
-  return t('processDesigner.operation');
 }
 
 function defaultProcessNodeValueType(kind = '', operation = '') {
@@ -2137,25 +2059,37 @@ function defaultProcessNodeOperation(kind = '') {
 }
 
 function processNodeOperationOptions(kind = '') {
-  return (processNodeOperations[kind] || []).map(value => ({ label: processNodeOperationLabels[value] || value, value }));
+  const record = typeof kind === 'object' ? kind : { kind };
+  let operations = processNodeOperations[record.kind] || [];
+  if (record.kind === 'entityCondition') {
+    operations = ({
+      string: ['eq', 'neq', 'contains', 'exists'],
+      number: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'exists'],
+      date: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'exists'],
+      boolean: ['eq', 'neq', 'exists'],
+      json: ['exists']
+    })[record.valueType] || ['exists'];
+  }
+  return operations.map(value => ({ label: processNodeOperationLabels[value] || value, value }));
 }
 
-function processNodeUsesValueType(node = {}) {
-  return node.kind === 'cast'
-    || node.kind === 'fallback'
-    || node.kind === 'entityField'
-    || node.kind === 'blockRead'
-    || node.kind === 'blockCompose'
-    || node.kind === 'blockModify'
-    || (node.kind === 'compare' && ['eq', 'neq', 'exists'].includes(node.operation))
+function processNodeFieldOptions(node = {}) {
+  if (!processNodeUsesPath(node)) return [];
+  const access = ['blockCompose', 'blockModify'].includes(node.kind) ? 'write' : 'read';
+  const block = ['entityField', 'entityCondition'].includes(node.kind) ? '' : node.block;
+  return designer.fieldsForEntity(node.entityType, block)
+    .filter(field => !field.value.endsWith('.*') && fieldPathAllowed(node.entityType, field.value, access))
+    .map(field => ({
+      label: field.i18n ? `${t(field.i18n)} · ${field.value}` : field.label,
+      value: field.value,
+      type: field.type
+    }));
 }
 
-function processNodeValueTypeIsInferred(node = {}) {
-  return ['entityField', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind);
-}
-
-function processNodeUsesStructure(node = {}) {
-  return ['cast', 'fallback', 'stringOp', 'compare', 'logic', 'entityDecompose', 'entityField', 'blockRead'].includes(node.kind);
+function processNodeBlockOptions(node = {}) {
+  if (!processNodeUsesBlock(node)) return [];
+  return designer.blocksForEntity(node.entityType)
+    .map(block => ({ label: block.label, value: block.id }));
 }
 
 function processNodeUsesBlock(node = {}) {
@@ -2163,7 +2097,7 @@ function processNodeUsesBlock(node = {}) {
 }
 
 function processNodeUsesPath(node = {}) {
-  return ['entityField', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind);
+  return ['entityField', 'entityCondition', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind);
 }
 
 function processNodeInputs(node = {}) {
@@ -2187,6 +2121,18 @@ function processNodeOutputs(node = {}) {
     entityType: node.entityType
   }));
   return resolveProcessNodePorts(node).outputs;
+}
+
+function connectedProcessInputIds(graphNode = {}, record = {}) {
+  const inputs = resolveProcessNodePorts(record).inputs;
+  return edges.value
+    .filter(edge => edge.target === graphNode.id)
+    .map(edge => {
+      const handle = String(edge.targetHandle || '');
+      if ((!handle || handle === 'input') && inputs.length === 1) return inputs[0].id;
+      return handle.replace(/^input:/, '');
+    })
+    .filter(Boolean);
 }
 
 function processNodeSummary(node = {}) {
@@ -2231,6 +2177,8 @@ function processNodeDisplayLabel(node = {}) {
   if (node.kind === 'entityDecompose') return t('processDesigner.useDecomposeEntity');
   if (node.kind === 'entityField') return t('processDesigner.useReadEntityField');
   if (node.kind === 'entityFilter') return t('processDesigner.useFilterEntities');
+  if (node.kind === 'entityCondition') return t('processDesigner.useEntityCondition');
+  if (node.kind === 'predicateLogic') return t('processDesigner.usePredicateLogic');
   if (node.kind === 'entityCompose') return t('processDesigner.useComposeEntity');
   if (node.kind === 'entityModify') return t('processDesigner.useModifyEntityData');
   if (node.kind === 'blockRead') return t('processDesigner.useReadField');
@@ -2260,6 +2208,8 @@ function iconForProcessNode(kind = '') {
     stringOp: 'pi pi-align-left',
     compare: 'pi pi-equals',
     logic: 'pi pi-code-branch',
+    entityCondition: 'pi pi-filter',
+    predicateLogic: 'pi pi-sitemap',
     listLength: 'pi pi-hashtag'
   })[kind] || 'pi pi-sitemap';
 }
@@ -2629,6 +2579,17 @@ function enrichNodeData(node) {
       fieldOptions: node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [],
       onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
       onActionResetAccess: node.type === 'action' ? () => resetActionAccess(record.id || node.data?.refId) : null,
+      valueInputRecord: node.type === 'valueInput' ? record : null,
+      onValueInputUpdate: node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data?.refId, updates) : null,
+      processNodeRecord: node.type === 'processNode' ? record : null,
+      onProcessNodeUpdate: node.type === 'processNode' ? updates => updateProcessNodeRecord(record.id || node.data?.refId, updates) : null,
+      processValueTypeOptions: ['valueInput', 'processNode'].includes(node.type) ? processValueTypeOptions : [],
+      processEntityTypeOptions: node.type === 'processNode' ? entityTypeOptions.value : [],
+      processOperationOptions: node.type === 'processNode' ? processNodeOperationOptions(record) : [],
+      processFieldOptions: node.type === 'processNode' ? processNodeFieldOptions(record) : [],
+      processBlockOptions: node.type === 'processNode' ? processNodeBlockOptions(record) : [],
+      processRelationOptions: node.type === 'processNode' ? relationOptionsForEntity(record.entityType) : [],
+      processConnectedInputIds: node.type === 'processNode' ? connectedProcessInputIds(node, record) : [],
       triggerMode: record.trigger?.mode,
       eventLabel: node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null,
       direction: record.direction,
@@ -2679,6 +2640,33 @@ function updateActionRecord(actionId, updates = {}, options = {}) {
   syncNodeData();
 }
 
+function updateValueInputRecord(inputId, updates = {}) {
+  const input = draft.value?.data?.valueInputs?.[inputId];
+  if (!input) return;
+  Object.assign(input, updates);
+  syncValueInput(input);
+  syncNodeData();
+}
+
+function updateProcessNodeRecord(nodeId, updates = {}) {
+  const node = draft.value?.data?.processNodes?.[nodeId];
+  if (!node) return;
+  if (updates.entityType && updates.entityType !== node.entityType) {
+    node.block = '';
+    node.path = '';
+    node.relationKey = '';
+  }
+  if (updates.block && updates.block !== node.block) node.path = '';
+  Object.assign(node, updates);
+  if (updates.mode) node.operation = updates.mode;
+  if (updates.operation && node.kind === 'compare') {
+    if (['gt', 'gte', 'lt', 'lte'].includes(updates.operation)) node.valueType = 'number';
+    if (updates.operation === 'contains') node.valueType = 'string';
+  }
+  syncProcessNode(node);
+  syncNodeData();
+}
+
 function resetActionAccess(actionId) {
   const action = draft.value?.data?.actions?.[actionId];
   if (!action || action.actionKind !== 'updateEntity') return;
@@ -2708,7 +2696,18 @@ function stripRuntimeNodeData(node) {
     'triggerModeOptions',
     'fieldOptions',
     'onActionUpdate',
-    'onActionResetAccess'
+    'onActionResetAccess',
+    'valueInputRecord',
+    'onValueInputUpdate',
+    'processNodeRecord',
+    'onProcessNodeUpdate',
+    'processValueTypeOptions',
+    'processEntityTypeOptions',
+    'processOperationOptions',
+    'processFieldOptions',
+    'processBlockOptions',
+    'processRelationOptions',
+    'processConnectedInputIds'
   ]) {
     delete data[key];
   }
@@ -3114,8 +3113,19 @@ function inferIncomingEntityContract(nodeId) {
   };
 }
 
-function inferIncomingPortContract(nodeId) {
-  const edge = edges.value.find(item => item.target === nodeId && String(item.targetHandle || '').startsWith('input'));
+function inferIncomingPortContract(nodeId, inputId = '') {
+  const targetNode = nodes.value.find(item => item.id === nodeId);
+  const targetRecord = targetNode?.data?.refId
+    ? draft.value?.data?.[recordKeyForType(targetNode.type)]?.[targetNode.data.refId]
+    : null;
+  const singleInput = targetRecord ? resolveProcessNodePorts(targetRecord).inputs.length === 1 : false;
+  const edge = edges.value.find(item => {
+    if (item.target !== nodeId || !String(item.targetHandle || '').startsWith('input')) return false;
+    if (!inputId) return true;
+    const handle = String(item.targetHandle || '');
+    if (handle === 'input' && singleInput) return true;
+    return handle.replace(/^input:/, '') === inputId;
+  });
   if (!edge) return null;
   const source = nodes.value.find(item => item.id === edge.source);
   const sourceRecord = source?.data?.refId ? draft.value?.data?.[recordKeyForType(source.type)]?.[source.data.refId] : null;

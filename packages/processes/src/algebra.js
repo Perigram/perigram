@@ -101,13 +101,17 @@ async function executeNode(record, inputs, outputId, options) {
   if (record.kind === 'entityDecompose') return mapStructured(inputs.entity, entity => readPath(entity, outputId));
   if (record.kind === 'entityField') return mapStructured(inputs.entity, entity => readPath(entity, record.path));
   if (record.kind === 'entityFilter') {
-    assertParallelLists(inputs.entities, inputs.mask, record.id);
-    return inputs.entities.filter((_, index) => Boolean(inputs.mask[index]));
+    if (!Array.isArray(inputs.entities)) throw new Error(`Process node ${record.id} requires an entity list`);
+    return inputs.entities.filter(entity => evaluatePredicate(inputs.predicate, entity));
   }
   if (record.kind === 'entitySelect') {
     if (!Array.isArray(inputs.entities)) throw new Error(`Process node ${record.id} requires an entity list`);
     if (record.operation === 'last') return inputs.entities.at(-1);
-    if (record.operation === 'index') return inputs.entities.at(Number(inputs.index));
+    if (record.operation === 'index') {
+      const index = Number(inputs.index);
+      if (!Number.isInteger(index)) throw new Error(`Process node ${record.id} requires an integer index`);
+      return inputs.entities.at(index);
+    }
     return inputs.entities[0];
   }
   if (record.kind === 'entityCompose') {
@@ -154,6 +158,24 @@ async function executeNode(record, inputs, outputId, options) {
       if (record.operation === 'xor') return Boolean(left) !== Boolean(right);
       throw new Error(`Process node ${record.id} uses unsupported logic operation ${record.operation}`);
     }, record.id);
+  }
+  if (record.kind === 'entityCondition') {
+    return {
+      kind: 'comparison',
+      entityType: record.entityType,
+      path: record.path,
+      operation: record.operation,
+      value: inputs.value
+    };
+  }
+  if (record.kind === 'predicateLogic') {
+    return {
+      kind: 'logic',
+      entityType: record.entityType,
+      operation: record.operation,
+      left: inputs.left,
+      right: inputs.right
+    };
   }
   if (record.kind === 'listLength') {
     if (!Array.isArray(inputs.items)) throw new Error(`Process node ${record.id} requires a list`);
@@ -268,6 +290,8 @@ function mapStructured(value, mapper) {
 
 function combineStructured(left, right, mapper, nodeId) {
   if (!Array.isArray(left) && !Array.isArray(right)) return mapper(left, right);
+  if (Array.isArray(left) && !Array.isArray(right)) return left.map(value => mapper(value, right));
+  if (!Array.isArray(left) && Array.isArray(right)) return right.map(value => mapper(left, value));
   assertParallelLists(left, right, nodeId);
   return left.map((value, index) => mapper(value, right[index]));
 }
@@ -276,6 +300,22 @@ function assertParallelLists(left, right, nodeId) {
   if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
     throw new Error(`Process node ${nodeId} requires parallel lists with equal lengths`);
   }
+}
+
+function evaluatePredicate(predicate, entity) {
+  if (!predicate || typeof predicate !== 'object') throw new Error('Entity filter requires a predicate');
+  if (predicate.kind === 'comparison') {
+    return compareValue(predicate.operation, readPath(entity, predicate.path), predicate.value);
+  }
+  if (predicate.kind === 'logic') {
+    if (predicate.operation === 'not') return !evaluatePredicate(predicate.left, entity);
+    const left = evaluatePredicate(predicate.left, entity);
+    const right = evaluatePredicate(predicate.right, entity);
+    if (predicate.operation === 'and') return left && right;
+    if (predicate.operation === 'or') return left || right;
+    if (predicate.operation === 'xor') return left !== right;
+  }
+  throw new Error(`Unsupported entity predicate ${predicate.kind}:${predicate.operation || ''}`);
 }
 
 function relativePath(block, path) {

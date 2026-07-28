@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { portSpecsCompatible, resolveProcessNodePorts } from './ports.js';
+import { inferProcessDataflowContracts, portSpecsCompatible, resolveProcessNodePorts } from './ports.js';
 
 describe('process programming node ports', () => {
   it('gives every string operation its actual input arity and scalar types', () => {
@@ -67,7 +67,56 @@ describe('process programming node ports', () => {
     expect(resolveProcessNodePorts({ kind: 'entityFilter', entityType: 'queue' }).inputs)
       .toEqual([
         expect.objectContaining({ id: 'entities', kind: 'entity_list' }),
-        expect.objectContaining({ id: 'mask', kind: 'boolean_list' })
+        expect.objectContaining({ id: 'predicate', kind: 'predicate', entityType: 'queue' })
       ]);
+  });
+
+  it('models entity filtering as typed predicates instead of parallel masks', () => {
+    expect(resolveProcessNodePorts({
+      kind: 'entityCondition',
+      entityType: 'queue',
+      path: 'status.state.primary',
+      operation: 'eq',
+      valueType: 'string'
+    })).toEqual({
+      inputs: [expect.objectContaining({ id: 'value', kind: 'string' })],
+      outputs: [expect.objectContaining({ id: 'predicate', kind: 'predicate', entityType: 'queue' })]
+    });
+    expect(resolveProcessNodePorts({
+      kind: 'predicateLogic',
+      entityType: 'queue',
+      operation: 'and'
+    }).inputs).toEqual([
+      expect.objectContaining({ id: 'left', kind: 'predicate', entityType: 'queue' }),
+      expect.objectContaining({ id: 'right', kind: 'predicate', entityType: 'queue' })
+    ]);
+    expect(portSpecsCompatible(
+      { kind: 'predicate', entityType: 'queue' },
+      { kind: 'predicate', entityType: 'project' }
+    ).ok).toBe(false);
+  });
+
+  it('derives list shape and scalar type from graph wiring', () => {
+    const process = inferProcessDataflowContracts({
+      valueInputs: {},
+      processNodes: {
+        query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
+        field: { id: 'field', kind: 'entityField', entityType: 'queue', path: 'summary.totalArea', valueType: 'number', structure: 'item' },
+        compare: { id: 'compare', kind: 'compare', operation: 'gte', valueType: 'string', structure: 'item' },
+        cast: { id: 'cast', kind: 'cast', valueType: 'string', structure: 'item' }
+      },
+      graph: {
+        nodes: ['query', 'field', 'compare', 'cast'].map(id => ({ id, type: 'processNode' })),
+        edges: [
+          { source: 'query', target: 'field' },
+          { source: 'field', target: 'compare', targetHandle: 'input:left' },
+          { source: 'compare', target: 'cast' }
+        ]
+      }
+    });
+
+    expect(process.processNodes.field.structure).toBe('list');
+    expect(process.processNodes.compare).toMatchObject({ structure: 'list', valueType: 'number' });
+    expect(process.processNodes.cast.structure).toBe('list');
   });
 });

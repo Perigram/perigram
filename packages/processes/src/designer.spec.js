@@ -82,8 +82,8 @@ describe('process designer domain contract', () => {
     const contract = createProcessDesignerContract(domain);
     const groups = Object.fromEntries(contract.paletteGroups.map(group => [group.id, group.items]));
 
-    expect(groups.values.map(item => item.label)).toEqual(['literal', 'cast', 'fallback', 'text', 'listLength']);
-    expect(groups.logic.map(item => item.label)).toEqual(['compare', 'logicGate']);
+    expect(groups.values.map(item => item.label)).toEqual(['literal', 'literalList', 'cast', 'fallback', 'text', 'listLength']);
+    expect(groups.logic.map(item => item.label)).toEqual(['compare', 'logicGate', 'entityCondition', 'predicateLogic']);
     expect(groups.entities.map(item => item.label)).toContain('filterEntities');
     expect(groups.blocks.map(item => item.label)).toEqual(['field', 'composeBlock', 'modifyBlock']);
     expect(contract.fieldType('work_item', 'identity.name')).toBe('string');

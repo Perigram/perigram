@@ -4,7 +4,14 @@ import {
   normalizeScreenContract,
   validateScreenContract
 } from './screen-contract.js';
-import { PROCESS_SCALAR_KINDS, PROCESS_STRUCTURES, resolveProcessNodePorts, validateProcessEdges } from './ports.js';
+import {
+  PROCESS_SCALAR_KINDS,
+  PROCESS_DATAFLOW_VERSION,
+  PROCESS_STRUCTURES,
+  inferProcessDataflowContracts,
+  resolveProcessNodePorts,
+  validateProcessEdges
+} from './ports.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -26,7 +33,9 @@ export {
 
 export {
   PROCESS_SCALAR_KINDS,
+  PROCESS_DATAFLOW_VERSION,
   PROCESS_STRUCTURES,
+  inferProcessDataflowContracts,
   normalizePortSpec,
   portSpecsCompatible,
   resolveProcessNodePorts,
@@ -59,8 +68,9 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
 
 export function normalizeProcessDefinition(definition = {}) {
   const data = definition.data || definition;
-  return {
+  return inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
+    dataflowVersion: data.dataflowVersion || 1,
     sourceTemplateId: data.sourceTemplateId || null,
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
     graph: normalizeGraph(data.graph),
@@ -76,7 +86,7 @@ export function normalizeProcessDefinition(definition = {}) {
     screens: normalizeRecord(data.screens),
     assignments: normalizeRecord(data.assignments),
     compiled: data.compiled || null
-  };
+  });
 }
 
 export function requiredEntityProfileTypes(definition = {}, domain = {}) {
@@ -1941,7 +1951,6 @@ function compileProcessNodes(processNodes = {}) {
     block: node.block || '',
     path: node.path || '',
     valueType: node.valueType || '',
-    sourceValueType: node.sourceValueType || '',
     structure: node.structure || 'item',
     operation: node.operation || '',
     template: node.template || '',
@@ -2200,7 +2209,7 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   const kinds = [
     'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify',
     'blockRead', 'blockCompose', 'blockModify',
-    'cast', 'fallback', 'stringOp', 'compare', 'logic', 'listLength'
+    'cast', 'fallback', 'stringOp', 'compare', 'logic', 'entityCondition', 'predicateLogic', 'listLength'
   ];
   if (!kinds.includes(kind)) {
     errors.push(`Process node ${nodeId} uses unknown node kind ${kind}`);
@@ -2212,7 +2221,7 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
     }
   }
   if ([
-    'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify',
+    'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify', 'entityCondition', 'predicateLogic',
     'blockRead', 'blockCompose', 'blockModify'
   ].includes(kind) && !node.entityType) {
     errors.push(`Process node ${nodeId} must select an entity type`);
@@ -2238,28 +2247,43 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   if (node.path && ['blockCompose', 'blockModify'].includes(kind)) {
     validateFieldList([node.path], domain, node.entityType, `process node ${nodeId} field`, errors, 'write');
   }
-  if (['stringOp', 'compare', 'logic', 'entitySelect'].includes(kind) && !node.operation) {
+  if (['stringOp', 'compare', 'logic', 'entityCondition', 'predicateLogic', 'entitySelect'].includes(kind) && !node.operation) {
     errors.push(`Process node ${nodeId} must define an operation`);
   }
   const operations = {
     stringOp: ['concat', 'template', 'replace', 'lower', 'upper', 'trim'],
     compare: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists'],
     logic: ['and', 'or', 'xor', 'not'],
+    entityCondition: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists'],
+    predicateLogic: ['and', 'or', 'xor', 'not'],
     entitySelect: ['first', 'last', 'index']
   };
   if (operations[kind] && !operations[kind].includes(node.operation)) {
     errors.push(`Process node ${nodeId} uses unknown ${kind} operation ${node.operation || '(empty)'}`);
   }
+  if (kind === 'entityCondition') {
+    const allowed = {
+      string: ['eq', 'neq', 'contains', 'exists'],
+      number: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'exists'],
+      date: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'exists'],
+      boolean: ['eq', 'neq', 'exists'],
+      json: ['exists']
+    }[node.valueType] || [];
+    if (node.operation && !allowed.includes(node.operation)) {
+      errors.push(`Process node ${nodeId} cannot use ${node.operation} with ${node.valueType || 'unknown'} fields`);
+    }
+  }
   if (kind === 'stringOp' && node.operation === 'template' && !String(node.template || '').includes('{value}')) {
     errors.push(`Process node ${nodeId} template must contain {value}`);
   }
   if (!PROCESS_STRUCTURES.includes(node.structure || 'item')) errors.push(`Process node ${nodeId} uses unknown structure ${node.structure}`);
-  if (['cast', 'fallback', 'entityField', 'blockRead', 'blockCompose', 'blockModify', 'compare'].includes(kind)
+  if (['cast', 'fallback', 'entityField', 'blockRead', 'blockCompose', 'blockModify', 'compare', 'entityCondition'].includes(kind)
     && !PROCESS_SCALAR_KINDS.includes(node.valueType)) {
     errors.push(`Process node ${nodeId} uses unknown value type ${node.valueType || '(empty)'}`);
   }
-  if (kind === 'cast' && !PROCESS_SCALAR_KINDS.includes(node.sourceValueType)) {
-    errors.push(`Process node ${nodeId} uses unknown source value type ${node.sourceValueType || '(empty)'}`);
+  if (kind === 'entityCondition' && !node.path) errors.push(`Process node ${nodeId} must select a field`);
+  if (kind === 'entityCondition' && node.path) {
+    validateFieldList([node.path], domain, node.entityType, `process node ${nodeId} field`, errors, 'read');
   }
 }
 

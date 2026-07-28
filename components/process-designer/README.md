@@ -72,22 +72,30 @@ are fuchsia, attachments are orange, and task outputs are neutral.
   label, and the node itself renders a single badge with no separate socket
   text.
 - `ProcessValueInputNode.vue` represents a clean typed literal. It owns a
-  scalar type, `item`/`list` structure, and value, but no entity block or field
-  path. The receiving action or composition socket owns field meaning. List
-  literals display their declared element type and item count.
+  scalar type and value, but no entity block or field path. Scalar and list
+  literals are separate palette items rather than a hidden structure mode.
+  Their values are edited directly on the node; list literals expose typed item
+  rows with explicit add/remove controls. The receiving action, condition, or
+  composition socket owns field meaning.
 - `ProcessNode.vue` represents non-effect process algebra records. Entity
   query/reference/filter/select and entity compose/decompose/modify nodes are
-  distinct from block read/compose/modify nodes. Value modifiers, predicate
-  comparisons, and Boolean gates form separate palette families. Operation
-  selection changes actual typed sockets: scalar and list ports are visibly
-  different, casts are explicit, comparisons turn a projected list into a
-  parallel Boolean mask, and entity filtering consumes that mask. Compose nodes
-  start from empty data while modify nodes require the existing entity/block.
-  The inspector renders the exact input-to-output contract and only offers
-  domain field-policy paths; a literal never asks for a field path. Text
-  templates store a required `{value}` placeholder. Node stripes distinguish
-  value, logic, entity, and block concerns, while socket colors describe the
-  transported data type.
+  distinct from block read/compose/modify nodes. Value modifiers, value
+  comparisons, and Boolean gates form separate palette families. Entity
+  conditions are a separate concern: a condition owns one domain field and
+  produces an entity-typed predicate; predicate gates compose those predicates
+  before `entityFilter` evaluates them for each queried entity. No parallel
+  Boolean-mask bookkeeping is exposed to the author.
+
+  Configuration that determines a node's meaning—entity, relation, field,
+  block, operation, cast target, or text template—is edited directly on the
+  node. Domain field descriptors provide the human label and exact path;
+  unknown field types stay JSON rather than being guessed from path names.
+  Required unconnected sockets show an error badge on the canvas. Scalar/list
+  shape is derived from incoming wires and displayed on typed sockets; it is
+  not an editable mode. Compose nodes start from empty data while modify nodes
+  require the existing entity/block. Text templates store a required `{value}`
+  placeholder. Node stripes distinguish value, logic, entity, and block
+  concerns, while socket colors describe the transported data type.
 - `ProcessServiceNode.vue` represents a command-backed service. It exposes
   service-identity access, typed input, and output handles and summarizes
   exact command inputs and outputs as labeled sockets in the same
