@@ -24,6 +24,9 @@ const gridClass = computed(() => {
   if (props.variant === 'wide') {
     return 'grid grid-cols-1 items-start gap-[var(--ck-grid-gap)] lg:grid-cols-2';
   }
+  if (props.variant === 'bounded') {
+    return 'responsive-grid responsive-grid--bounded grid items-start gap-[var(--ck-grid-gap)]';
+  }
   return 'grid grid-cols-1 items-start gap-[var(--ck-grid-gap)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6';
 });
 const containerGridClass = computed(() => [
@@ -31,7 +34,8 @@ const containerGridClass = computed(() => [
   props.variant === 'dense' ? 'responsive-grid--dense gap-4' : 'gap-[var(--ck-grid-gap)]',
   {
     'responsive-grid--wide': props.variant === 'wide',
-    'responsive-grid--cards': props.variant !== 'wide' && props.variant !== 'dense'
+    'responsive-grid--bounded': props.variant === 'bounded',
+    'responsive-grid--cards': !['wide', 'dense', 'bounded'].includes(props.variant)
   }
 ]);
 </script>
@@ -39,6 +43,17 @@ const containerGridClass = computed(() => [
 <style scoped>
 .responsive-grid-container {
   container-type: inline-size;
+}
+
+.responsive-grid--bounded {
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(
+      min(100%, var(--ck-bounded-grid-item-min-width)),
+      var(--ck-bounded-grid-item-max-width)
+    )
+  );
+  justify-content: start;
 }
 
 @container (min-width: 24rem) {
