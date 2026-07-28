@@ -21,7 +21,7 @@
           @refresh="$emit('refresh')"
         />
         <GeneratedActionButton
-          v-for="entry in actionEntries"
+          v-for="entry in headerActionEntries"
           :key="entry.key"
           :action-id="entry.actionId"
           menu-item
@@ -66,13 +66,18 @@
       />
     </header>
 
-    <div class="min-h-0 flex-1 overflow-y-auto p-2">
-      <EntitySurfaceContent
+    <div class="min-h-0 flex-1 overflow-hidden">
+      <GeneratedEntityDetailBody
+        :key="`${item.type}:${entityId}`"
         :entity="item.entity"
         :entity-type="item.type"
         surface="detail"
+        :screen-key="detailScreen?.screenKey || detailScreen?.id || ''"
+        :actions="detailActions"
+        mode="file"
         :display-overrides="fileDisplayOverrides"
         relation-variant="compact"
+        @refresh="$emit('refresh')"
       />
     </div>
   </section>
@@ -82,12 +87,17 @@
 import { computed, provide } from 'vue';
 import Button from 'primevue/button';
 import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
-import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
+import GeneratedEntityDetailBody from '~/components/generated/GeneratedEntityDetailBody.vue';
+import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
+import {
+  generatedDetailActionIds,
+  generatedDetailScreenForEntityType
+} from '~/components/generated/detail-screen-actions.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
@@ -109,6 +119,42 @@ const fileDisplayOverrides = {
   actions: 'menu',
   trace: 'hidden'
 };
+const entityId = computed(() => (
+  props.item?.entity?._id || props.item?.entity?.identity?.uid || ''
+));
+const detailScreen = computed(() => generatedDetailScreenForEntityType({
+  screens: authStore.screenManifest,
+  entityType: props.item?.type
+}));
+const ownDetailActionIds = computed(() => generatedDetailActionIds({
+  screens: authStore.screenManifest,
+  entityType: props.item?.type,
+  preferredRoute: detailScreen.value?.route || ''
+}));
+const resolvedActionEntries = computed(() => {
+  const existing = props.actionEntries || [];
+  const context = existing[0]?.context || {};
+  const ownEntries = ownDetailActionIds.value.map(actionId => ({
+    key: `detail:${props.item?.type}:${entityId.value}:${actionId}`,
+    actionId,
+    entity: props.item?.entity,
+    context
+  }));
+  return Array.from(new Map([...existing, ...ownEntries]
+    .filter(entry => {
+      const action = authStore.actionManifest.find(item => item.actionId === entry.actionId);
+      return action && actionAppliesToEntity(action, props.item?.entity, props.item?.type);
+    })
+    .map(entry => [entry.actionId, entry])
+  ).values());
+});
+const detailActions = computed(() => resolvedActionEntries.value
+  .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
+  .filter(Boolean));
+const headerActionEntries = computed(() => resolvedActionEntries.value.filter(entry => {
+  const action = authStore.actionManifest.find(item => item.actionId === entry.actionId);
+  return isGeneratedSurfaceAction(action) && !isConsumedDetailAction(action);
+}));
 const canDelete = computed(() => canDeleteGeneratedEntity({
   authStore,
   domainUi,
@@ -123,10 +169,16 @@ const canEditCassette = computed(() => props.item?.type === 'cassette' && hasPer
   entityType: 'cassette'
 }));
 const hasEntityActions = computed(() => (
-  props.actionEntries.length
+  headerActionEntries.value.length
   || canEditCassette.value
   || canDelete.value
 ));
+
+function isConsumedDetailAction(action = {}) {
+  return props.item?.type === 'queue'
+    && action.actionKind === 'runCommand'
+    && action.commandId === 'solveNesting';
+}
 
 provide('generatedExecuteAction', (action, entity, context = {}) => {
   emit('execute-action', action, { entity, context });

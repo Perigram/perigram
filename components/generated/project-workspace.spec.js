@@ -6,8 +6,11 @@ const entityPageSource = readFileSync(new URL('../shared/EntityPage.vue', import
 const generatedScreenSource = readFileSync(new URL('./GeneratedScreen.vue', import.meta.url), 'utf8');
 const standardPageSource = readFileSync(new URL('../shared/StandardPage.vue', import.meta.url), 'utf8');
 const entityFileSource = readFileSync(new URL('./GeneratedEntityFile.vue', import.meta.url), 'utf8');
+const detailBodySource = readFileSync(new URL('./GeneratedEntityDetailBody.vue', import.meta.url), 'utf8');
+const queueDetailSource = readFileSync(new URL('./GeneratedQueueDetail.vue', import.meta.url), 'utf8');
 const entityCardSource = readFileSync(new URL('../shared/EntityCard.vue', import.meta.url), 'utf8');
 const splitNodeSource = readFileSync(new URL('../shared/WorkspaceSplitNode.vue', import.meta.url), 'utf8');
+const entityWorkspaceSource = readFileSync(new URL('../shared/EntityWorkspace.vue', import.meta.url), 'utf8');
 const appLayoutSource = readFileSync(new URL('../../layouts/app.vue', import.meta.url), 'utf8');
 
 describe('generated project workspace architecture', () => {
@@ -20,7 +23,14 @@ describe('generated project workspace architecture', () => {
     expect(source).not.toContain('<ScrollablePanel');
     expect(source).not.toContain('project.lifecycle');
     expect(splitNodeSource).toContain(":layout=\"node.orientation\"");
-    expect(entityFileSource).toContain('<EntitySurfaceContent');
+    expect(entityFileSource).toContain('<GeneratedEntityDetailBody');
+    expect(entityFileSource).toContain('generatedDetailActionIds');
+    expect(entityFileSource).not.toContain('<EntitySurfaceContent');
+    expect(detailBodySource).toContain('resolveGeneratedEntityDetailOverload');
+    expect(detailBodySource).toContain('actionProducesEntityType');
+    expect(queueDetailSource).toContain('<QueueEditor');
+    expect(entityWorkspaceSource).toContain('container-type: inline-size');
+    expect(entityWorkspaceSource).toContain('@container (min-width: 64rem)');
   });
 
   it('stays inside compiled screen sources and actions', () => {

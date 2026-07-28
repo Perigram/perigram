@@ -14,6 +14,7 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
+import { generatedDetailActionIds } from '~/components/generated/detail-screen-actions.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
@@ -149,7 +150,11 @@ const compactStatusState = computed(() => {
   return state?.primary || state?.active?.main || '';
 });
 const compactStatusDisplay = computed(() => resolved.value?.status?.metadata?.display || null);
-const popupDetailActionIds = computed(() => detailActionIdsForEntityType(generatedEntityType.value));
+const popupDetailActionIds = computed(() => generatedDetailActionIds({
+  screens: authStore.screenManifest,
+  entityType: generatedEntityType.value,
+  preferredRoute: typeof detailRoute.value === 'string' ? detailRoute.value : detailRoute.value?.path
+}));
 const hasGeneratedActionExecutor = computed(() => typeof unref(generatedExecuteAction) === 'function');
 const popupActions = computed(() => {
   if (!hasGeneratedActionExecutor.value) return [];
@@ -268,41 +273,6 @@ function generatedEntityTypeFor(type) {
     layerStandard: 'layer_standard'
   };
   return aliases[type] || type;
-}
-
-function detailActionIdsForEntityType(entityType) {
-  const screen = detailScreenForEntityType(entityType);
-  if (!screen) return [];
-  const mainRegion = detailMainRegion(screen, entityType);
-  const actionIds = mainRegion?.actions?.length ? mainRegion.actions : screen.actions;
-  return Array.isArray(actionIds) ? actionIds : [];
-}
-
-function detailScreenForEntityType(entityType) {
-  const screens = Array.isArray(authStore.screenManifest) ? authStore.screenManifest : [];
-  const candidates = screens.filter(screen => (
-    screen?.template === 'entityDetail'
-    && screenHasSingleEntitySource(screen, entityType)
-  ));
-  if (!candidates.length) return null;
-  const routePath = typeof detailRoute.value === 'string' ? detailRoute.value : detailRoute.value?.path;
-  return candidates.find(screen => screen.route === routePath) || candidates[0];
-}
-
-function detailMainRegion(screen = {}, entityType = '') {
-  const regions = Array.isArray(screen.regions) ? screen.regions : [];
-  return regions.find(region => (
-    region?.sourceId
-    && (screen.sources || []).some(source => (
-      source.id === region.sourceId
-      && source.entityType === entityType
-      && source.mode === 'single'
-    ))
-  )) || regions.find(region => region.actions?.length) || null;
-}
-
-function screenHasSingleEntitySource(screen = {}, entityType = '') {
-  return (screen.sources || []).some(source => source.entityType === entityType && source.mode === 'single');
 }
 
 function isConsumedDetailAction(action = {}) {

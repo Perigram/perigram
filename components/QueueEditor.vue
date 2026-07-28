@@ -109,7 +109,7 @@
                         <div class="flex flex-col gap-4">
                             <!-- Virtual Mode -->
                             <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="flex flex-col gap-3">
-                                <div class="grid grid-cols-3 gap-4">
+                                <div class="queue-editor__nesting-inputs grid grid-cols-1 gap-4">
                                     <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" size="small" />
                                     <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" size="small" />
                                     <InputNumber v-model="nestingOptions.virtualThickness" :min="0.01" :min-fraction-digits="1" :max-fraction-digits="3" :placeholder="$t('nesting.thickness')" size="small" />
@@ -127,7 +127,7 @@
 
                             <!-- Warehouse Mode -->
                             <div v-else class="flex flex-col gap-4">
-                                <div class="flex flex-col gap-2 sm:flex-row">
+                                <div class="queue-editor__inventory-controls flex flex-col gap-2">
                                     <Select
                                         :model-value="null"
                                         :options="unselectedInventoryOptions"
@@ -209,7 +209,7 @@
                         <Menu ref="producerMenu" :model="producerMenuItems" popup />
                     </template>
                     <div class="flex flex-col gap-6">
-                        <ResponsiveGrid v-if="viewMode === 'grid'" variant="wide">
+                        <ResponsiveGrid v-if="viewMode === 'grid'" variant="wide" responsive-context="container">
                             <template v-for="entry in entries" :key="entry?._key">
                                 <QueueEntryCard
                                     v-if="entry"
@@ -257,7 +257,7 @@
                 </ScrollablePanel>
 
                 <ScrollablePanel v-if="hasPhysicalOutputs" :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`" class="flex-1">
-                    <ResponsiveGrid>
+                    <ResponsiveGrid responsive-context="container">
                         <CassetteInstanceCard
                             v-for="instance in instances"
                             :key="instance._id"
@@ -1569,3 +1569,17 @@ const onCassetteUploaded = async (newItem) => {
     if (queueItem) await addEntry(queueItem, 1);
 };
 </script>
+
+<style scoped>
+@container (min-width: 36rem) {
+    .queue-editor__inventory-controls {
+        flex-direction: row;
+    }
+}
+
+@container (min-width: 48rem) {
+    .queue-editor__nesting-inputs {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+</style>
