@@ -10,6 +10,9 @@
         @node-click="event => selectNode(event.node)"
         @edge-click="event => selectEdge(event.edge)"
         @pane-click="clearGraphSelection"
+        @pane-context-menu="openPanePalette"
+        @connect-start="beginSocketConnection"
+        @connect-end="endSocketConnection"
         @connect="onConnect"
       >
         <template #node-entity="props"><ProcessEntityNode v-bind="props" /></template>
@@ -21,13 +24,50 @@
         <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
       </VueFlow>
 
+      <div
+        v-if="contextPalette.open"
+        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border bg-content p-2 shadow-card"
+        :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
+        @mousedown.stop
+        @click.stop
+      >
+        <div class="flex items-center gap-2">
+          <InputText
+            ref="contextPaletteSearch"
+            v-model="contextPalette.query"
+            size="small"
+            class="min-w-0 flex-1"
+            :placeholder="contextPalette.socket ? 'Compatible operations' : 'Add operation'"
+            @keydown.esc="closeContextPalette"
+          />
+          <Button icon="pi pi-times" text size="small" aria-label="Close operation palette" @click="closeContextPalette" />
+        </div>
+        <div v-for="group in contextPaletteGroups" :key="group.id" class="flex flex-col gap-1">
+          <span class="text-xs font-semibold text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
+          <Button
+            v-for="item in group.items"
+            :key="item.kind"
+            :icon="item.icon"
+            :label="paletteLabel(item)"
+            size="small"
+            text
+            class="justify-start"
+            @click="addContextNode(item)"
+          />
+        </div>
+        <Message v-if="!contextPaletteGroups.length" severity="secondary" size="small">
+          No compatible operation matches this search.
+        </Message>
+      </div>
+
       <div v-if="!nodes.length" class="absolute left-[15rem] right-[30rem] top-24 z-10 flex justify-center">
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
       <div class="absolute left-3 top-3 z-10 flex max-h-[calc(100%-1.5rem)] w-56 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border bg-content p-2 shadow-card">
+        <InputText v-model="paletteQuery" size="small" placeholder="Search operations" />
         <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1">
-          <span class="text-xs font-semibold text-muted-color">{{ $t(`processDesigner.paletteGroups.${group.id}`) }}</span>
+          <span class="text-xs font-semibold text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
           <div class="grid grid-cols-2 gap-1">
             <Button
               v-for="item in group.items"
@@ -64,6 +104,7 @@
         <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
+            <Tab value="definitions">Definitions</Tab>
             <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
             <Tab value="screens">{{ $t('organization.screens') }}</Tab>
           </TabList>
@@ -373,7 +414,7 @@
                       <Tag
                         v-for="input in selectedProcessNode.inputs || []"
                         :key="`input-${input.id}`"
-                        :value="`${input.label}: ${processPortTypeLabel(input.kind)}`"
+                        :value="`${input.label}: ${processPortTypeLabel(input.type)}`"
                         severity="secondary"
                         size="small"
                       />
@@ -381,17 +422,76 @@
                       <Tag
                         v-for="output in selectedProcessNode.outputs || []"
                         :key="`output-${output.id}`"
-                        :value="`${output.label}: ${processPortTypeLabel(output.kind)}`"
+                        :value="`${output.label}: ${processPortTypeLabel(output.type)}`"
                         severity="info"
                         size="small"
                       />
                     </div>
                   </div>
+                  <div v-if="['effect.runCommand', 'effect.generateAttachment'].includes(selectedProcessNode.kind)" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.service') }}</label>
+                    <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter />
+                  </div>
+                  <div v-if="selectedProcessNode.kind === 'read.related'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.relation') }}</label>
+                    <Select v-model="selectedProcessNode.relation" :options="relationOptionsForEntity(selectedProcessNode.entityType)" option-label="label" option-value="value" filter />
+                  </div>
+                  <div v-if="['record.construct', 'record.deconstruct', 'record.entityDraft'].includes(selectedProcessNode.kind)" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.fields') }}</label>
+                    <MultiSelect v-model="selectedProcessNode.fields" :options="processNodeFieldOptions({ ...selectedProcessNode, kind: 'record.getField' })" option-label="label" option-value="value" filter />
+                  </div>
+                  <Panel v-if="selectedProcessNode.kind?.startsWith('effect.')" header="Retry policy">
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="flex flex-col gap-1">
+                        <label>Attempts</label>
+                        <InputNumber v-model="selectedProcessNode.retry.maxAttempts" :min="1" :max="10" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>Delay (ms)</label>
+                        <InputNumber v-model="selectedProcessNode.retry.delayMs" :min="0" />
+                      </div>
+                    </div>
+                  </Panel>
                 </template>
 
                 <Button icon="pi pi-save" :label="$t('common.save')" size="small" @click="saveDraft" />
               </div>
               <StateBlock v-else :message="$t('processDesigner.selectNode')" />
+            </TabPanel>
+
+            <TabPanel value="definitions">
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                  <strong>Status definitions</strong>
+                  <Button icon="pi pi-plus" size="small" text aria-label="Add status" @click="addStatusDefinition" />
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <Tag
+                    v-for="status in statusDefinitionList"
+                    :key="status.id"
+                    :value="status.label || status.statusId"
+                    :severity="selectedStatusDefinitionId === status.id ? 'success' : 'secondary'"
+                    class="cursor-pointer"
+                    @click="selectedStatusDefinitionId = status.id"
+                  />
+                </div>
+                <div v-if="selectedStatusDefinitionId" class="flex flex-col gap-3">
+                  <div class="flex flex-col gap-1">
+                    <label>Status ID</label>
+                    <InputText v-model="selectedStatusDefinition.statusId" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.label') }}</label>
+                    <InputText v-model="selectedStatusDefinition.label" />
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <Select v-model="selectedStatusDefinition.severity" :options="statusSeverityOptions" option-label="label" option-value="value" />
+                    <Select v-model="selectedStatusDefinition.icon" :options="statusIconOptions" option-label="label" option-value="value" />
+                  </div>
+                  <Button icon="pi pi-trash" severity="danger" outlined size="small" :label="$t('common.delete')" @click="removeSelectedStatusDefinition" />
+                </div>
+                <Message severity="info">Statuses are definition-plane metadata. Use a Change Status effect to execute a transition.</Message>
+              </div>
             </TabPanel>
 
             <TabPanel value="roles">
@@ -545,7 +645,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -568,7 +668,19 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { canvasToDefinition, compileProcessDefinition, createProcessDesignerContract, definitionToCanvas, portSpecsCompatible, PROCESS_DATAFLOW_VERSION, requiredEntityProfileTypes, resolveNodePort, resolveProcessNodePorts } from '~/packages/processes/src/index.js';
+import {
+  canvasToDefinition,
+  compileProcessDefinition,
+  createProcessDesignerContract,
+  definitionToCanvas,
+  formatProcessType,
+  migrateProcessDataflowDefinition,
+  PROCESS_DATAFLOW_VERSION,
+  processSocketsCompatible,
+  processType,
+  requiredEntityProfileTypes,
+  resolveCatalogNodePorts
+} from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain } from '@cutkit/domain-cnc';
@@ -582,7 +694,7 @@ import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessSt
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const toast = useToast();
 definePageMeta({
   layout: 'app',
@@ -603,14 +715,46 @@ const applyingProcess = ref(false);
 const selectedRoleId = ref(null);
 const selectedPrincipalId = ref(null);
 const selectedScreenId = ref(null);
+const selectedStatusDefinitionId = ref(null);
 const newStateId = ref('');
 const canvasFrame = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
+const paletteQuery = ref('');
+const contextPaletteSearch = ref(null);
+const contextPalette = ref({
+  open: false,
+  x: 0,
+  y: 0,
+  graphPosition: { x: 0, y: 0 },
+  query: '',
+  socket: null
+});
 const { getViewport } = useVueFlow();
 
 const designer = createProcessDesignerContract(cncDomain);
-const paletteGroups = designer.paletteGroups;
+const paletteGroups = computed(() => {
+  const query = paletteQuery.value.trim().toLowerCase();
+  if (!query) return designer.paletteGroups;
+  return designer.paletteGroups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => `${item.kind} ${item.label} ${item.level}`.toLowerCase().includes(query))
+    }))
+    .filter(group => group.items.length);
+});
+const contextPaletteGroups = computed(() => {
+  const query = contextPalette.value.query.trim().toLowerCase();
+  return designer.paletteGroups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => (
+        (!query || `${item.kind} ${item.label} ${item.level}`.toLowerCase().includes(query))
+        && contextItemCompatible(item)
+      ))
+    }))
+    .filter(group => group.items.length);
+});
 const actionKindOptions = [
   { label: t('processDesigner.paletteItems.create'), value: 'createEntity' },
   { label: t('processDesigner.paletteItems.modify'), value: 'updateEntity' },
@@ -651,15 +795,16 @@ const accessLevelOptions = [
   { label: t('processDesigner.accessWrite'), value: 'write' },
   { label: t('processDesigner.accessAdmin'), value: 'admin' }
 ];
-const processValueTypeOptions = ['string', 'number', 'boolean', 'json', 'date'].map(value => ({ label: value, value }));
+const processValueTypeOptions = ['string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'entityRef', 'status'].map(value => ({ label: value, value }));
 const processNodeOperations = {
-  entityRef: ['current', 'parent', 'children', 'related'],
-  stringOp: ['concat', 'template', 'replace', 'lower', 'upper', 'trim'],
-  compare: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists'],
-  logic: ['and', 'or', 'xor', 'not'],
-  entityCondition: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'exists'],
-  predicateLogic: ['and', 'or', 'xor', 'not'],
-  entitySelect: ['first', 'last', 'index']
+  'value.math': ['add', 'subtract', 'multiply', 'divide', 'modulo', 'power', 'min', 'max'],
+  'value.string': ['concat', 'replace', 'lower', 'upper', 'trim'],
+  'value.compare': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'],
+  'value.logic': ['and', 'or', 'xor', 'not'],
+  'predicate.field': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'],
+  'predicate.logic': ['and', 'or', 'not'],
+  'collection.sort': ['asc', 'desc'],
+  'record.fieldChange': ['set', 'unset', 'append', 'remove']
 };
 const processNodeOperationLabels = {
   current: t('processDesigner.useCurrentEntity'),
@@ -732,7 +877,11 @@ const selectedEntity = computed(() => selectedNode.value?.type === 'entity' ? en
 const selectedAction = computed(() => selectedNode.value?.type === 'action' ? ensureRecord('actions', selectedNode.value, createAction) : {});
 const selectedService = computed(() => selectedNode.value?.type === 'service' ? ensureRecord('services', selectedNode.value, createService) : {});
 const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? ensureRecord('sockets', selectedNode.value, createSocket) : {});
-const selectedStatusDefinition = computed(() => selectedNode.value?.type === 'statusDefinition' ? ensureRecord('statusDefinitions', selectedNode.value, createStatusDefinition) : {});
+const selectedStatusDefinition = computed(() => {
+  if (selectedNode.value?.type === 'statusDefinition') return ensureRecord('statusDefinitions', selectedNode.value, createStatusDefinition);
+  return draft.value?.data?.statusDefinitions?.[selectedStatusDefinitionId.value] || {};
+});
+const statusDefinitionList = computed(() => Object.values(draft.value?.data?.statusDefinitions || {}));
 const selectedValueInput = computed(() => selectedNode.value?.type === 'valueInput' ? ensureRecord('valueInputs', selectedNode.value, createValueInput) : {});
 const selectedProcessNode = computed(() => selectedNode.value?.type === 'processNode' ? ensureRecord('processNodes', selectedNode.value, createProcessNode) : {});
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
@@ -935,7 +1084,9 @@ async function applyProcess() {
 }
 
 function setDraft(value) {
-  draft.value = value;
+  const migration = migrateProcessDataflowDefinition(value || {}, cncDomain);
+  draft.value = migration.value;
+  value = migration.value;
   selectedProcessId.value = value?._id ? String(value._id) : null;
   let canvas;
   try {
@@ -950,12 +1101,13 @@ function setDraft(value) {
   nodes.value = canvas.nodes.map(enrichNodeData);
   edges.value = decorateEdges(canvas.edges);
   selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
+  selectedStatusDefinitionId.value = Object.keys(value?.data?.statusDefinitions || {})[0] || null;
   selectedPrincipalId.value = Object.keys(value?.data?.servicePrincipals || {})[0] || null;
   selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
   recomputeProcessPreview();
 }
 
-function addNode(item) {
+function addNode(item, position = activeViewportCenter()) {
   const type = typeof item === 'string' ? item : item.type;
   const actionKind = typeof item === 'object' ? item.actionKind : null;
   const socketDirection = typeof item === 'object' ? item.direction : null;
@@ -966,7 +1118,7 @@ function addNode(item) {
   const node = {
     id,
     type,
-    position: activeViewportCenter(),
+    position,
     data: { refId, label: refId }
   };
   const record = ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
@@ -986,6 +1138,7 @@ function addNode(item) {
   selectedNodeId.value = id;
   selectedEdgeId.value = null;
   syncEdgeSelection();
+  return node;
 }
 
 function selectNode(node) {
@@ -1001,9 +1154,140 @@ function selectEdge(edge) {
 }
 
 function clearGraphSelection() {
+  closeContextPalette();
   selectedNodeId.value = null;
   selectedEdgeId.value = null;
   syncEdgeSelection();
+}
+
+function openPanePalette(event) {
+  event?.preventDefault?.();
+  openContextPalette(event, null);
+}
+
+function beginSocketConnection(connection = {}) {
+  closeContextPalette();
+  contextPalette.value.socket = {
+    nodeId: connection.nodeId,
+    handleId: connection.handleId,
+    handleType: connection.handleType
+  };
+}
+
+function endSocketConnection(event) {
+  const socket = contextPalette.value.socket;
+  if (!socket) return;
+  const target = event?.target;
+  const endedOnPane = target?.classList?.contains('vue-flow__pane')
+    || target?.classList?.contains('vue-flow__transformationpane');
+  if (endedOnPane) openContextPalette(event, socket);
+  else contextPalette.value.socket = null;
+}
+
+function openContextPalette(event, socket) {
+  const rect = canvasFrame.value?.getBoundingClientRect?.();
+  const point = clientPoint(event);
+  const x = Math.max(8, Math.min((rect?.width || 1200) - 304, point.x - (rect?.left || 0)));
+  const y = Math.max(8, Math.min((rect?.height || 720) - 336, point.y - (rect?.top || 0)));
+  contextPalette.value = {
+    open: true,
+    x,
+    y,
+    graphPosition: clientToGraphPosition(point),
+    query: '',
+    socket
+  };
+  nextTick(() => {
+    const element = contextPaletteSearch.value?.$el;
+    (element?.querySelector?.('input') || element)?.focus?.();
+  });
+}
+
+function closeContextPalette() {
+  contextPalette.value = {
+    open: false,
+    x: 0,
+    y: 0,
+    graphPosition: { x: 0, y: 0 },
+    query: '',
+    socket: null
+  };
+}
+
+function clientPoint(event = {}) {
+  const touch = event.changedTouches?.[0] || event.touches?.[0];
+  return {
+    x: Number(touch?.clientX ?? event.clientX ?? 0),
+    y: Number(touch?.clientY ?? event.clientY ?? 0)
+  };
+}
+
+function clientToGraphPosition(point) {
+  const viewport = getViewport?.() || { x: 0, y: 0, zoom: 1 };
+  const rect = canvasFrame.value?.getBoundingClientRect?.();
+  const zoom = Number(viewport.zoom) || 1;
+  return {
+    x: Math.round((point.x - (rect?.left || 0) - Number(viewport.x || 0)) / zoom),
+    y: Math.round((point.y - (rect?.top || 0) - Number(viewport.y || 0)) / zoom)
+  };
+}
+
+function contextItemCompatible(item) {
+  const socket = contextPalette.value.socket;
+  if (!socket) return true;
+  const existingNode = nodes.value.find(node => node.id === socket.nodeId);
+  const existingRecord = draft.value?.data?.processNodes?.[existingNode?.data?.refId];
+  if (!existingRecord) return false;
+  const candidate = createProcessNode('__candidate__', item.kind);
+  const existingPorts = resolveCatalogNodePorts(existingRecord, catalogContext(existingRecord));
+  const candidatePorts = resolveCatalogNodePorts(candidate, catalogContext(candidate));
+  if (socket.handleType === 'source') {
+    const output = portForHandle(existingPorts.outputs, socket.handleId, 'output');
+    return candidatePorts.inputs.some(input => socketPairCompatible(output, input));
+  }
+  const input = portForHandle(existingPorts.inputs, socket.handleId, 'input');
+  return candidatePorts.outputs.some(output => socketPairCompatible(output, input));
+}
+
+function socketPairCompatible(source, target) {
+  if (!source || !target) return false;
+  const result = processSocketsCompatible(source, target);
+  return result.ok || (result.convertible && result.conversion?.nodeKind);
+}
+
+function addContextNode(item) {
+  const socket = contextPalette.value.socket;
+  const position = contextPalette.value.graphPosition;
+  const node = addNode(item, position);
+  if (!socket || !node) {
+    closeContextPalette();
+    return;
+  }
+  const candidate = draft.value?.data?.processNodes?.[node.data?.refId];
+  const candidatePorts = resolveCatalogNodePorts(candidate, catalogContext(candidate));
+  const existingNode = nodes.value.find(value => value.id === socket.nodeId);
+  const existingRecord = draft.value?.data?.processNodes?.[existingNode?.data?.refId];
+  const existingPorts = resolveCatalogNodePorts(existingRecord, catalogContext(existingRecord));
+  if (socket.handleType === 'source') {
+    const output = portForHandle(existingPorts.outputs, socket.handleId, 'output');
+    const input = candidatePorts.inputs.find(port => socketPairCompatible(output, port));
+    if (input) onConnect({
+      source: socket.nodeId,
+      sourceHandle: socket.handleId,
+      target: node.id,
+      targetHandle: `${input.role}:${input.id}`
+    });
+  } else {
+    const input = portForHandle(existingPorts.inputs, socket.handleId, 'input');
+    const output = candidatePorts.outputs.find(port => socketPairCompatible(port, input));
+    if (output) onConnect({
+      source: node.id,
+      sourceHandle: `${output.role}:${output.id}`,
+      target: socket.nodeId,
+      targetHandle: socket.handleId
+    });
+  }
+  closeContextPalette();
 }
 
 function handleCanvasKeydown(event) {
@@ -1204,7 +1488,20 @@ function createServicePrincipal(id) {
 }
 
 function paletteLabel(item) {
-  return t(`processDesigner.paletteItems.${item.label}`);
+  const key = `processDesigner.paletteItems.${item.label}`;
+  return te(key) ? t(key) : humanizeNodeLabel(item.label);
+}
+
+function paletteGroupLabel(id) {
+  const key = `processDesigner.paletteGroups.${id}`;
+  return te(key) ? t(key) : humanizeNodeLabel(id);
+}
+
+function humanizeNodeLabel(value = '') {
+  return String(value)
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[._]/g, ' ')
+    .replace(/^./, letter => letter.toUpperCase());
 }
 
 function defaultEntityType() {
@@ -1282,6 +1579,26 @@ function createStatusDefinition(id) {
   return { id, label: '', statusId: 'STATUS', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
 }
 
+function addStatusDefinition() {
+  draft.value.data.statusDefinitions ||= {};
+  const id = `status_${Date.now()}`;
+  draft.value.data.statusDefinitions[id] = createStatusDefinition(id);
+  selectedStatusDefinitionId.value = id;
+}
+
+function removeSelectedStatusDefinition() {
+  const id = selectedStatusDefinitionId.value;
+  if (!id) return;
+  const used = Object.values(draft.value.data.processNodes || {})
+    .some(node => node.kind === 'effect.changeStatus' && node.statusRef === id);
+  if (used) {
+    toast.add({ severity: 'warn', summary: 'Status is in use', detail: 'Disconnect or reconfigure the Change Status effect first.', life: 3000 });
+    return;
+  }
+  delete draft.value.data.statusDefinitions[id];
+  selectedStatusDefinitionId.value = Object.keys(draft.value.data.statusDefinitions)[0] || null;
+}
+
 function createValueInput(id, structure = 'item') {
   return {
     id,
@@ -1292,36 +1609,31 @@ function createValueInput(id, structure = 'item') {
   };
 }
 
-function createProcessNode(id, kind = 'entityDecompose') {
-  const blockKind = ['blockRead', 'blockCompose', 'blockModify', 'entityModify'].includes(kind);
-  const pathKind = ['entityField', 'entityCondition', 'blockRead', 'blockCompose', 'blockModify'].includes(kind);
-  const entityKind = [
-    'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify',
-    'entityCondition', 'predicateLogic', 'blockRead', 'blockCompose', 'blockModify'
-  ].includes(kind);
+function createProcessNode(id, kind = 'source.literalItem') {
+  const entityKind = ['record.', 'predicate.', 'read.', 'effect.'].some(prefix => kind.startsWith(prefix));
+  const fieldKind = ['record.getField', 'record.fieldChange', 'predicate.field'].includes(kind);
   const node = {
     id,
     label: kind,
     kind,
-    mode: kind === 'entityRef' ? 'current' : '',
     entityType: entityKind ? defaultEntityType() : '',
-    relationEntityType: '',
-    relationKey: '',
-    relationCardinality: '',
-    block: blockKind ? 'identity' : '',
-    path: pathKind ? 'identity.name' : '',
-    valueType: defaultProcessNodeValueType(kind, defaultProcessNodeOperation(kind)),
-    structure: 'item',
+    path: '',
+    type: processType(kind === 'source.currentTime' ? 'dateTime' : 'json'),
     operation: defaultProcessNodeOperation(kind),
-    template: kind === 'stringOp' ? '{value}' : '',
+    value: kind === 'source.literalList' ? [] : kind === 'source.literalTree' ? { branches: [] } : null,
+    fields: [],
+    cases: [],
+    retry: { maxAttempts: 1, delayMs: 0 },
     icon: iconForProcessNode(kind),
     inputs: [],
     outputs: []
   };
-  if (pathKind) {
-    const access = ['blockCompose', 'blockModify'].includes(kind) ? 'write' : 'read';
-    node.path = designer.fieldsForEntity(node.entityType, ['entityField', 'entityCondition'].includes(kind) ? '' : node.block)
-      .find(field => !field.value.endsWith('.*') && fieldPathAllowed(node.entityType, field.value, access))?.value || '';
+  if (kind === 'source.literalList') node.type = processType('json', { shape: 'list' });
+  if (kind === 'source.literalTree') node.type = processType('json', { shape: 'tree' });
+  if (fieldKind) {
+    node.path = designer.fieldsForEntity(node.entityType)
+      .find(field => field[kind === 'record.fieldChange' ? 'writable' : 'readable'] !== false)?.value || '';
+    node.fieldSchema = designer.fieldsForEntity(node.entityType).find(field => field.value === node.path) || null;
   }
   syncProcessNode(node);
   return node;
@@ -1969,41 +2281,25 @@ function syncValueInput(input = {}) {
 }
 
 function syncProcessNode(node = {}) {
-  node.kind ||= 'entityDecompose';
+  node.kind ||= 'source.literalItem';
   node.operation ||= defaultProcessNodeOperation(node.kind);
-  node.valueType ||= defaultProcessNodeValueType(node.kind, node.operation);
-  node.structure = node.structure === 'list' ? 'list' : 'item';
-  if (node.kind === 'stringOp' && node.operation === 'template') node.template ||= '{value}';
+  node.type = node.type?.base ? node.type : processType('json', {
+    shape: node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : 'item'
+  });
   node.icon = iconForProcessNode(node.kind);
-  if (node.kind !== 'entityRef') node.mode = '';
-  else node.mode ||= node.operation || 'current';
-  if (node.kind === 'entityRef') node.operation = node.mode;
-  if (node.kind === 'entityRef' && node.mode === 'related') {
-    const relation = relationForNode(node);
-    node.relationEntityType = relation?.targetType || '';
-    node.relationCardinality = relation?.cardinality || '';
-  } else {
-    node.relationKey = '';
-    node.relationCardinality = '';
-  }
-  if (!['blockRead', 'blockCompose', 'blockModify', 'entityModify'].includes(node.kind)) node.block = '';
-  else {
-    const availableBlocks = designer.blocksForEntity(node.entityType);
-    if (!availableBlocks.some(block => block.id === node.block)) node.block = availableBlocks[0]?.id || '';
-  }
-  if (!['entityField', 'entityCondition', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind)) node.path = '';
-  else {
-    const access = ['blockCompose', 'blockModify'].includes(node.kind) ? 'write' : 'read';
-    const available = designer.fieldsForEntity(node.entityType, ['entityField', 'entityCondition'].includes(node.kind) ? '' : node.block)
-      .filter(field => !field.value.endsWith('.*') && fieldPathAllowed(node.entityType, field.value, access));
+  if (node.kind.startsWith('effect.')) node.retry ||= { maxAttempts: 1, delayMs: 0 };
+  if (processNodeUsesPath(node)) {
+    const access = node.kind === 'record.fieldChange' ? 'writable' : 'readable';
+    const available = designer.fieldsForEntity(node.entityType).filter(field => field[access] !== false);
     if (!available.some(field => field.value === node.path)) node.path = available[0]?.value || '';
+    node.fieldSchema = available.find(field => field.value === node.path) || null;
+  } else {
+    node.path = '';
+    node.fieldSchema = null;
   }
-  if (node.path && node.entityType && ['entityField', 'entityCondition', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind)) {
-    node.valueType = designer.fieldType(node.entityType, node.path);
-  }
-  if (node.kind === 'entityCondition') {
+  if (['predicate.field', 'value.compare'].includes(node.kind)) {
     const allowed = processNodeOperationOptions(node).map(option => option.value);
-    if (!allowed.includes(node.operation)) node.operation = allowed[0] || 'exists';
+    if (!allowed.includes(node.operation)) node.operation = allowed[0] || 'eq';
   }
   node.label = processNodeDisplayLabel(node);
   node.inputs = processNodeInputs(node);
@@ -2011,42 +2307,8 @@ function syncProcessNode(node = {}) {
 }
 
 function applyInferredProcessNodeInputs(record = {}, node = {}) {
-  const primaryInput = ({
-    entityFilter: 'entities',
-    predicateLogic: 'left',
-    compare: 'left',
-    logic: 'left',
-    fallback: 'value',
-    stringOp: 'value',
-    cast: 'value'
-  })[record.kind] || '';
-  const incoming = inferIncomingPortContract(node.id, primaryInput);
-  if (!incoming) {
-    if (['entityDecompose', 'entityField', 'blockRead', 'cast', 'fallback', 'stringOp', 'compare', 'logic'].includes(record.kind)) {
-      record.structure = 'item';
-    }
-    return;
-  }
-  const incomingKind = String(incoming.kind || '');
-  const listInput = incomingKind.endsWith('_list');
-  const scalarKind = incomingKind.replace(/_list$/, '');
-  if (['entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityModify', 'predicateLogic'].includes(record.kind) && incoming.entityType) {
-    record.entityType = incoming.entityType;
-  }
-  if (['entityDecompose', 'entityField'].includes(record.kind)) {
-    record.structure = incoming.kind === 'entity_list' ? 'list' : 'item';
-  }
-  if (['blockRead', 'blockModify'].includes(record.kind) && incoming.block) {
-    record.block = incoming.block;
-    record.entityType = incoming.entityType || record.entityType || '';
-    record.structure = incoming.kind === 'block_list' ? 'list' : 'item';
-  }
-  if (['cast', 'fallback', 'stringOp', 'compare', 'logic'].includes(record.kind)) {
-    record.structure = listInput ? 'list' : 'item';
-  }
-  if (['compare', 'fallback'].includes(record.kind) && processValueTypeOptions.some(option => option.value === scalarKind)) {
-    record.valueType = scalarKind;
-  }
+  if (!record?.kind || !node?.id) return;
+  syncProcessNode(record);
 }
 
 function defaultProcessNodeValueType(kind = '', operation = '') {
@@ -2060,25 +2322,15 @@ function defaultProcessNodeOperation(kind = '') {
 
 function processNodeOperationOptions(kind = '') {
   const record = typeof kind === 'object' ? kind : { kind };
-  let operations = processNodeOperations[record.kind] || [];
-  if (record.kind === 'entityCondition') {
-    operations = ({
-      string: ['eq', 'neq', 'contains', 'exists'],
-      number: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'exists'],
-      date: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'exists'],
-      boolean: ['eq', 'neq', 'exists'],
-      json: ['exists']
-    })[record.valueType] || ['exists'];
-  }
+  const operations = processNodeOperations[record.kind] || [];
   return operations.map(value => ({ label: processNodeOperationLabels[value] || value, value }));
 }
 
 function processNodeFieldOptions(node = {}) {
   if (!processNodeUsesPath(node)) return [];
-  const access = ['blockCompose', 'blockModify'].includes(node.kind) ? 'write' : 'read';
-  const block = ['entityField', 'entityCondition'].includes(node.kind) ? '' : node.block;
-  return designer.fieldsForEntity(node.entityType, block)
-    .filter(field => !field.value.endsWith('.*') && fieldPathAllowed(node.entityType, field.value, access))
+  const access = node.kind === 'record.fieldChange' ? 'writable' : 'readable';
+  return designer.fieldsForEntity(node.entityType)
+    .filter(field => field[access] !== false)
     .map(field => ({
       label: field.i18n ? `${t(field.i18n)} · ${field.value}` : field.label,
       value: field.value,
@@ -2093,56 +2345,47 @@ function processNodeBlockOptions(node = {}) {
 }
 
 function processNodeUsesBlock(node = {}) {
-  return ['entityModify', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind);
+  return node.kind === 'record.getBlock';
 }
 
 function processNodeUsesPath(node = {}) {
-  return ['entityField', 'entityCondition', 'blockRead', 'blockCompose', 'blockModify'].includes(node.kind);
+  return ['record.getField', 'record.fieldChange', 'predicate.field'].includes(node.kind);
 }
 
 function processNodeInputs(node = {}) {
-  if (node.kind === 'entityCompose') return standardBlocksForEntity(node.entityType).map(block => ({
-    id: block.id,
-    label: block.label,
-    kind: 'block',
-    block: block.id,
-    entityType: node.entityType,
-    required: false
-  }));
-  return resolveProcessNodePorts(node).inputs;
+  return resolveCatalogNodePorts(node, catalogContext(node)).inputs;
 }
 
 function processNodeOutputs(node = {}) {
-  if (node.kind === 'entityDecompose') return standardBlocksForEntity(node.entityType).map(block => ({
-    id: block.id,
-    label: block.label,
-    kind: node.structure === 'list' ? 'block_list' : 'block',
-    block: block.id,
-    entityType: node.entityType
-  }));
-  return resolveProcessNodePorts(node).outputs;
+  return resolveCatalogNodePorts(node, catalogContext(node)).outputs;
+}
+
+function catalogContext(node = {}) {
+  return {
+    fieldSchema: designer.fieldsForEntity(node.entityType).find(field => field.value === node.path) || null,
+    fieldSchemas: designer.fieldsForEntity(node.entityType)
+  };
 }
 
 function connectedProcessInputIds(graphNode = {}, record = {}) {
-  const inputs = resolveProcessNodePorts(record).inputs;
+  const inputs = resolveCatalogNodePorts(record, catalogContext(record)).inputs;
   return edges.value
     .filter(edge => edge.target === graphNode.id)
     .map(edge => {
       const handle = String(edge.targetHandle || '');
       if ((!handle || handle === 'input') && inputs.length === 1) return inputs[0].id;
-      return handle.replace(/^input:/, '');
+      return handle.replace(/^(input|data|control):/, '');
     })
     .filter(Boolean);
 }
 
 function processNodeSummary(node = {}) {
-  return [node.relationKey, node.relationEntityType || node.entityType, node.block, node.path, node.structure === 'list' ? '[]' : ''].filter(Boolean).join(' · ');
+  return [node.entityType, node.path, node.type ? formatProcessType(node.type) : '', node.operation].filter(Boolean).join(' · ');
 }
 
-function processPortTypeLabel(kind = 'data') {
-  if (kind === 'entity_list') return 'entity[]';
-  if (kind === 'block_list') return 'block[]';
-  return kind.endsWith('_list') ? `${kind.slice(0, -5)}[]` : kind;
+function processPortTypeLabel(type = 'data') {
+  if (type?.base) return formatProcessType(type);
+  return String(type || 'data');
 }
 
 function relationOptionsForEntity(entityType = '') {
@@ -2173,45 +2416,18 @@ function declaredRelationsForEntity(entityType = '') {
 }
 
 function processNodeDisplayLabel(node = {}) {
-  if (node.kind === 'entityQuery') return t('processDesigner.useQueryEntities');
-  if (node.kind === 'entityDecompose') return t('processDesigner.useDecomposeEntity');
-  if (node.kind === 'entityField') return t('processDesigner.useReadEntityField');
-  if (node.kind === 'entityFilter') return t('processDesigner.useFilterEntities');
-  if (node.kind === 'entityCondition') return t('processDesigner.useEntityCondition');
-  if (node.kind === 'predicateLogic') return t('processDesigner.usePredicateLogic');
-  if (node.kind === 'entityCompose') return t('processDesigner.useComposeEntity');
-  if (node.kind === 'entityModify') return t('processDesigner.useModifyEntityData');
-  if (node.kind === 'blockRead') return t('processDesigner.useReadField');
-  if (node.kind === 'blockCompose') return t('processDesigner.useComposeBlock');
-  if (node.kind === 'blockModify') return t('processDesigner.useModifyBlock');
-  if (node.kind === 'cast') return t('processDesigner.useCastValue');
-  if (node.kind === 'fallback') return t('processDesigner.useFallbackValue');
-  if (node.kind === 'listLength') return t('processDesigner.useListLength');
-  return processNodeOperationLabels[node.kind === 'entityRef' ? (node.mode || node.operation || 'current') : node.operation] || node.kind || '';
+  return node.label || node.kind || '';
 }
 
 function iconForProcessNode(kind = '') {
-  return ({
-    entityRef: 'pi pi-share-alt',
-    entityQuery: 'pi pi-database',
-    entityDecompose: 'pi pi-box',
-    entityField: 'pi pi-search',
-    entityFilter: 'pi pi-filter',
-    entitySelect: 'pi pi-check-square',
-    entityCompose: 'pi pi-plus-circle',
-    entityModify: 'pi pi-pencil',
-    blockRead: 'pi pi-search',
-    blockCompose: 'pi pi-plus-circle',
-    blockModify: 'pi pi-file-edit',
-    cast: 'pi pi-arrow-right-arrow-left',
-    fallback: 'pi pi-replay',
-    stringOp: 'pi pi-align-left',
-    compare: 'pi pi-equals',
-    logic: 'pi pi-code-branch',
-    entityCondition: 'pi pi-filter',
-    predicateLogic: 'pi pi-sitemap',
-    listLength: 'pi pi-hashtag'
-  })[kind] || 'pi pi-sitemap';
+  if (kind.startsWith('source.')) return 'pi pi-circle-fill';
+  if (kind.startsWith('value.')) return 'pi pi-sliders-h';
+  if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
+  if (kind.startsWith('record.')) return 'pi pi-box';
+  if (kind.startsWith('predicate.')) return 'pi pi-filter';
+  if (kind.startsWith('read.')) return 'pi pi-database';
+  if (kind.startsWith('effect.')) return 'pi pi-bolt';
+  return 'pi pi-directions';
 }
 
 function fieldLabel(entityType = '', path = '') {
@@ -2826,9 +3042,14 @@ function roleAccessSummary(roleId) {
 }
 
 function onConnect(connection) {
+  contextPalette.value.socket = null;
   syncNodeData();
   const compatibility = connectionCompatibility(connection);
   if (!compatibility.ok) {
+    if (compatibility.convertible && compatibility.conversion?.nodeKind) {
+      insertConversionNode(connection, compatibility.conversion);
+      return;
+    }
     toast.add({
       severity: 'warn',
       summary: t('processDesigner.incompatiblePorts'),
@@ -2845,7 +3066,8 @@ function onConnect(connection) {
     ...connection,
     id: `${connection.source}-${connection.sourceHandle}-${connection.target}-${connection.targetHandle}-${Date.now()}`,
     type: 'default',
-    data: { kind: connection.sourceHandle || connection.targetHandle || 'link' }
+    role: compatibility.source?.role === 'data' ? 'data' : 'control',
+    data: { kind: compatibility.source?.role || 'data' }
   }));
   applySemanticConnection(connection);
   syncEdgeSelection();
@@ -2856,15 +3078,71 @@ function connectionCompatibility(connection = {}) {
   const source = nodes.value.find(item => item.id === connection.source);
   const target = nodes.value.find(item => item.id === connection.target);
   if (!source || !target) return { ok: true };
-  const process = processDefinitionSnapshot();
-  const sourcePort = resolveNodePort(process, source, connection.sourceHandle, 'output');
-  const targetPort = resolveNodePort(process, target, connection.targetHandle, 'input');
+  const sourceRecord = draft.value?.data?.processNodes?.[source.data?.refId];
+  const targetRecord = draft.value?.data?.processNodes?.[target.data?.refId];
+  if (!sourceRecord || !targetRecord) return { ok: false, reason: 'Only v3 operation nodes can be connected' };
+  const sourcePort = portForHandle(resolveCatalogNodePorts(sourceRecord, catalogContext(sourceRecord)).outputs, connection.sourceHandle, 'output');
+  const targetPort = portForHandle(resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs, connection.targetHandle, 'input');
   if (!sourcePort || !targetPort) return { ok: true };
   return {
-    ...portSpecsCompatible(sourcePort, targetPort),
+    ...processSocketsCompatible(sourcePort, targetPort),
     source: sourcePort,
     target: targetPort
   };
+}
+
+function portForHandle(ports, handle, direction) {
+  const clean = String(handle || '').replace(/^(input|output|data|control|success|failure):/, '');
+  if ((!clean || clean === direction) && ports.length === 1) return ports[0];
+  return ports.find(port => port.id === clean) || null;
+}
+
+function insertConversionNode(connection, conversion) {
+  const source = nodes.value.find(node => node.id === connection.source);
+  const target = nodes.value.find(node => node.id === connection.target);
+  if (!source || !target) return;
+  const id = `conversion_${Date.now()}`;
+  const record = createProcessNode(id, conversion.nodeKind);
+  record.type = conversion.targetType;
+  record.outputType = conversion.targetType;
+  record.sourceType = conversion.sourceType;
+  record.entityType = conversion.targetType?.entityType || conversion.sourceType?.entityType || record.entityType;
+  draft.value.data.processNodes[id] = record;
+  const node = enrichNodeData({
+    id,
+    type: 'processNode',
+    position: {
+      x: Math.round((source.position.x + target.position.x) / 2),
+      y: Math.round((source.position.y + target.position.y) / 2)
+    },
+    data: { refId: id, label: record.label }
+  });
+  nodes.value.push(node);
+  syncNodeData();
+  const ports = resolveCatalogNodePorts(record, catalogContext(record));
+  const input = ports.inputs.find(port => port.role === 'data');
+  const output = ports.outputs.find(port => port.role === 'data');
+  if (!input || !output) return;
+  edges.value.push(decorateEdge({
+    id: `${connection.source}-${id}-${Date.now()}`,
+    source: connection.source,
+    sourceHandle: connection.sourceHandle,
+    target: id,
+    targetHandle: `data:${input.id}`,
+    role: 'data',
+    type: 'default'
+  }));
+  edges.value.push(decorateEdge({
+    id: `${id}-${connection.target}-${Date.now()}`,
+    source: id,
+    sourceHandle: `data:${output.id}`,
+    target: connection.target,
+    targetHandle: connection.targetHandle,
+    role: 'data',
+    type: 'default'
+  }));
+  selectedNodeId.value = id;
+  syncEdgeSelection();
 }
 
 function applySemanticConnection(connection = {}) {

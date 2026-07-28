@@ -1,4 +1,5 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
+import { PROCESS_NODE_FAMILIES, processNodeDefinitionsForFamily } from './node-catalog.js';
 
 const BLOCK_PRESENTATION = {
   identity: { defaultPath: 'identity.name', icon: 'pi pi-id-card', fields: ['identity.uid', 'identity.name', 'identity.slug', 'identity.serial', 'identity.reference'] },
@@ -13,65 +14,17 @@ const BLOCK_PRESENTATION = {
   summary: { defaultPath: 'summary.value', icon: 'pi pi-chart-bar' }
 };
 
-export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
-  {
-    id: 'actions',
-    items: [
-      { type: 'action', actionKind: 'createEntity', icon: 'pi pi-plus', label: 'create' },
-      { type: 'action', actionKind: 'updateEntity', icon: 'pi pi-pencil', label: 'modify' },
-      { type: 'action', actionKind: 'runCommand', icon: 'pi pi-play', label: 'service' },
-      { type: 'statusDefinition', icon: 'pi pi-circle-fill', label: 'status' }
-    ]
-  },
-  {
-    id: 'values',
-    items: [
-      { type: 'valueInput', icon: 'pi pi-circle-fill', label: 'literal' },
-      { type: 'valueInput', structure: 'list', icon: 'pi pi-list', label: 'literalList' },
-      { type: 'processNode', kind: 'cast', icon: 'pi pi-arrow-right-arrow-left', label: 'cast' },
-      { type: 'processNode', kind: 'fallback', icon: 'pi pi-replay', label: 'fallback' },
-      { type: 'processNode', kind: 'stringOp', icon: 'pi pi-align-left', label: 'text' },
-      { type: 'processNode', kind: 'listLength', icon: 'pi pi-hashtag', label: 'listLength' }
-    ]
-  },
-  {
-    id: 'logic',
-    items: [
-      { type: 'processNode', kind: 'compare', icon: 'pi pi-equals', label: 'compare' },
-      { type: 'processNode', kind: 'logic', icon: 'pi pi-code', label: 'logicGate' },
-      { type: 'processNode', kind: 'entityCondition', icon: 'pi pi-filter', label: 'entityCondition' },
-      { type: 'processNode', kind: 'predicateLogic', icon: 'pi pi-sitemap', label: 'predicateLogic' }
-    ]
-  },
-  {
-    id: 'entities',
-    items: [
-      { type: 'processNode', kind: 'entityQuery', icon: 'pi pi-database', label: 'queryEntities' },
-      { type: 'processNode', kind: 'entityRef', icon: 'pi pi-share-alt', label: 'entity' },
-      { type: 'processNode', kind: 'entityField', icon: 'pi pi-search', label: 'entityField' },
-      { type: 'processNode', kind: 'entityFilter', icon: 'pi pi-filter', label: 'filterEntities' },
-      { type: 'processNode', kind: 'entitySelect', icon: 'pi pi-check-square', label: 'selectEntity' },
-      { type: 'processNode', kind: 'entityDecompose', icon: 'pi pi-box', label: 'decomposeEntity' },
-      { type: 'processNode', kind: 'entityCompose', icon: 'pi pi-plus-circle', label: 'composeEntity' },
-      { type: 'processNode', kind: 'entityModify', icon: 'pi pi-pencil', label: 'modifyEntityData' }
-    ]
-  },
-  {
-    id: 'blocks',
-    items: [
-      { type: 'processNode', kind: 'blockRead', icon: 'pi pi-search', label: 'field' },
-      { type: 'processNode', kind: 'blockCompose', icon: 'pi pi-plus-circle', label: 'composeBlock' },
-      { type: 'processNode', kind: 'blockModify', icon: 'pi pi-file-edit', label: 'modifyBlock' }
-    ]
-  },
-  {
-    id: 'transfer',
-    items: [
-      { type: 'socket', direction: 'inbound', icon: 'pi pi-sign-in', label: 'receive' },
-      { type: 'socket', direction: 'outbound', icon: 'pi pi-sign-out', label: 'send' }
-    ]
-  }
-]);
+export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze(PROCESS_NODE_FAMILIES.map(id => ({
+  id,
+  items: processNodeDefinitionsForFamily(id).map(definition => Object.freeze({
+    type: 'processNode',
+    kind: definition.kind,
+    label: definition.label,
+    level: definition.level,
+    pure: definition.pure,
+    icon: iconForNode(definition.kind)
+  }))
+})));
 
 export function createProcessDesignerContract(domain = {}) {
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
@@ -100,29 +53,14 @@ export function createProcessDesignerContract(domain = {}) {
   }
 
   function fields(entityType = '', block = '') {
-    const prefix = block ? `${block}.` : '';
-    const coreFields = block
-      ? (BLOCK_PRESENTATION[block]?.fields || [])
-      : Object.values(BLOCK_PRESENTATION).flatMap(item => item.fields || []);
-    const descriptors = Object.values(lookupEntityContract(domain.fieldGroups, entityType) || {})
-      .flatMap(group => Array.isArray(group) ? group : [])
-    const descriptorByPath = new Map(descriptors.flatMap(field => (
-      [field.path, ...(field.fallbackPaths || [])].filter(Boolean).map(path => [path, field])
-    )));
-    const domainFields = descriptors
-      .flatMap(field => [field.path, ...(field.fallbackPaths || [])])
-      .filter(Boolean);
-    return [...new Set([...coreFields, ...allFieldPaths(fieldPolicy(entityType)), ...domainFields])]
-      .filter(path => !block || path === block || path.startsWith(prefix))
-      .map(path => {
-        const descriptor = descriptorByPath.get(path);
-        return {
-          label: path,
-          value: path,
-          type: fieldValueType(path, descriptor),
-          ...(descriptor?.i18n ? { i18n: descriptor.i18n } : {})
-        };
-      });
+    const schemas = lookupEntityContract(domain.fieldSchemas, entityType) || [];
+    return schemas
+      .filter(schema => !block || schema.block === block)
+      .map(schema => ({
+        ...schema,
+        label: schema.label || schema.path,
+        value: schema.path
+      }));
   }
 
   return {
@@ -142,48 +80,13 @@ export function createProcessDesignerContract(domain = {}) {
     construction,
     blocksForEntity: blocks,
     fieldsForEntity: fields,
-    fieldType: (entityType, path) => fields(entityType).find(field => field.value === path)?.type || 'json'
+    fieldType: (entityType, path) => fields(entityType).find(field => field.value === path)?.type || {
+      base: 'json',
+      shape: 'item',
+      nullable: true
+    }
   };
 }
-
-function fieldValueType(path = '', descriptor = {}) {
-  if (PROCESS_FIELD_TYPES[descriptor.type]) return PROCESS_FIELD_TYPES[descriptor.type];
-  if (['count', 'area', 'percent', 'dimension', 'duration', 'money', 'number', 'angle'].includes(descriptor.display)) return 'number';
-  if (['text', 'code'].includes(descriptor.display)) return 'string';
-  if (descriptor.display === 'date') return 'date';
-  if (descriptor.display === 'boolean') return 'boolean';
-  if (CORE_FIELD_TYPES[path]) return CORE_FIELD_TYPES[path];
-  return 'json';
-}
-
-const PROCESS_FIELD_TYPES = {
-  string: 'string',
-  number: 'number',
-  boolean: 'boolean',
-  date: 'date',
-  object: 'json',
-  array: 'json'
-};
-
-const CORE_FIELD_TYPES = {
-  'identity.uid': 'string',
-  'identity.name': 'string',
-  'identity.slug': 'string',
-  'identity.serial': 'string',
-  'identity.reference': 'string',
-  'origin.state.primary': 'string',
-  'origin.userId': 'string',
-  'origin.timestamp': 'date',
-  'status.state.primary': 'string',
-  'status.userId': 'string',
-  'status.timestamp': 'date',
-  'lineage.organizationId': 'string',
-  'specs.width': 'number',
-  'specs.length': 'number',
-  'specs.area': 'number',
-  'specs.sheetThickness': 'number',
-  'specs.foilThickness': 'number'
-};
 
 function lookupEntityContract(contracts = {}, entityType = '') {
   const key = String(entityType || '');
@@ -204,4 +107,15 @@ function definitionOptions(definitions = {}, idKey = 'id') {
       value: definition[idKey] || definition.id
     }))
     .filter(option => option.value);
+}
+
+function iconForNode(kind = '') {
+  if (kind.startsWith('source.')) return 'pi pi-circle-fill';
+  if (kind.startsWith('value.')) return kind.includes('logic') || kind.includes('compare') ? 'pi pi-sitemap' : 'pi pi-sliders-h';
+  if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
+  if (kind.startsWith('record.')) return 'pi pi-box';
+  if (kind.startsWith('predicate.')) return 'pi pi-filter';
+  if (kind.startsWith('read.')) return 'pi pi-database';
+  if (kind.startsWith('effect.')) return 'pi pi-bolt';
+  return 'pi pi-directions';
 }

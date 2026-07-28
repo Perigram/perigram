@@ -18,13 +18,23 @@ import {
   compileProcessDefinition,
   createProcessFromTemplate,
   hasCanonicalProcessSource,
+  migrateProcessDataflowDefinition,
   normalizeProcessDefinition,
+  advanceProcessRun,
+  applyPatch,
+  createProcessRun,
+  evaluateEntityPredicate,
   resolveProcessActionInputContext,
   requiredEntityProfileTypes,
   validateProcessDefinition,
   validateRoundTrip
 } from '~/packages/processes/src/index.js';
-import { getEntityFieldAccessPolicy } from '~/packages/domain-cnc/src/index.js';
+import {
+  cncDomain,
+  getEntityFieldAccessPolicy,
+  getEntityFieldSchema,
+  getEntityFieldSchemas
+} from '~/packages/domain-cnc/src/index.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { hasPermissionGrant, normalizePermissionGrants } from '#shared/access-control.js';
@@ -62,7 +72,7 @@ export async function create(payload = {}, auth) {
       slug: standardSlugify(name, { keepCase: false })
     },
     lineage: { organizationId: toFlexibleId(organizationId) },
-    data: normalizeProcessDefinition(payload.data || payload)
+    data: normalizeCurrentProcessDefinition(payload.data || payload)
   });
   applyProcessStatus(process, 'DRAFT', auth.userId, 'Process draft created');
   const created = await repository.create(process);
@@ -79,7 +89,7 @@ export async function update(id, payload = {}, auth) {
   }
   process.data = {
     ...process.data,
-    ...normalizeProcessDefinition(payload.data || payload)
+    ...normalizeCurrentProcessDefinition(payload.data || payload)
   };
   process.data.compiled = null;
   const updated = await repository.updateById(id, process);
@@ -88,12 +98,14 @@ export async function update(id, payload = {}, auth) {
 
 export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
+  process.data = normalizeCurrentProcessDefinition(process.data);
   assertCanonicalProcessSource(process.data);
   return validateActivatableProcess(process.data, getDomain());
 }
 
 export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
+  process.data = normalizeCurrentProcessDefinition(process.data);
   assertCanonicalProcessSource(process.data);
   await preserveActiveAssignments(process);
   const validation = validateActivatableProcess(process.data, getDomain());
@@ -135,6 +147,7 @@ export async function createActiveFromTemplate({ organizationId, userId, templat
     organizationId: toFlexibleId(organizationId),
     userId
   }));
+  process.data = normalizeCurrentProcessDefinition(process.data);
 
   const validation = validateActivatableProcess(process.data, getDomain());
   if (!validation.ok) {
@@ -172,6 +185,11 @@ function validateActivatableProcess(data = {}, domain = {}) {
     `Nesting exposure requires entity profiles and workflows for: ${missing.join(', ')}`
   ];
   return { ...validation, ok: false, errors };
+}
+
+function normalizeCurrentProcessDefinition(data = {}) {
+  const normalized = normalizeProcessDefinition(data);
+  return migrateProcessDataflowDefinition(normalized, cncDomain).value;
 }
 
 export async function assignUserToActiveProcess({ userId, roleIds = [], bindings = {}, status = 'active' } = {}, auth = {}) {
@@ -227,6 +245,47 @@ export async function archive(id, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
+export async function startRun(id, payload = {}, auth = {}) {
+  const process = await loadAuthorized(id, auth, 'read');
+  const definition = process.toJSON();
+  if (Number(definition.data?.dataflowVersion) !== 3) {
+    throw createError({ statusCode: 409, message: 'Process must be migrated to dataflow version 3 before it can run' });
+  }
+  const organizationId = resolveOrganizationId(auth);
+  const run = createProcessRun(definition, payload.trigger || {}, {
+    processDefinitionId: definition._id || definition.id,
+    context: {
+      inputs: payload.inputs || {},
+      actor: { userId: auth.userId, organizationId }
+    }
+  });
+  const created = await repository.createRun({ ...run, organizationId });
+  return await resumeRun(created._id, auth);
+}
+
+export async function getRun(id, auth = {}) {
+  const run = await loadAuthorizedRun(id, auth);
+  return serializeRun(run);
+}
+
+export async function resumeRun(id, auth = {}) {
+  let run = await loadAuthorizedRun(id, auth, 'write');
+  const definitionRaw = await repository.findById(run.processDefinitionId);
+  if (!definitionRaw) throw createError({ statusCode: 404, message: 'Process definition for run not found' });
+  const before = JSON.stringify(run);
+  const advanced = await advanceProcessRun(serializeRun(run), definitionRaw.data, {
+    executeEffect: request => executeDurableEffect(request, auth, run, definitionRaw.data),
+    catalogContext: record => ({
+      fieldSchema: getEntityFieldSchema(record.entityType, record.path),
+      fieldSchemas: getEntityFieldSchemas(record.entityType)
+    }),
+    data: processDataEnvironment(auth, run)
+  });
+  if (JSON.stringify(advanced) === before) return serializeRun(run);
+  run = await repository.updateRun({ ...run, ...advanced, _id: run._id, revision: run.revision });
+  return serializeRun(run);
+}
+
 export async function projectEntityThroughSocket({ socketId, entityId, targetOrganizationId } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'read');
@@ -278,6 +337,17 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   const action = process.data.compiled?.actions?.[actionId] || process.data.actions?.[actionId];
   if (!action) throw createError({ statusCode: 404, message: 'Action not found in active process' });
   assertCompiledActionAvailable(actionId, auth);
+  if (Number(process.data.dataflowVersion) === 3) {
+    return await executeV3ActionRun({
+      process,
+      actionId,
+      entityId,
+      data,
+      parameters,
+      entities,
+      targetOrganizationId
+    }, auth);
+  }
   try {
     const resolved = await resolveProcessActionInputContext(process.data, actionId, { data, parameters, entities }, {
       resolveEntity: (entityType, candidate) => resolveProcessGraphEntity(entityType, candidate, { entityId, entities, auth }),
@@ -403,6 +473,35 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   }
 
   throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
+}
+
+async function executeV3ActionRun({ process, actionId, entityId, data, parameters, entities, targetOrganizationId }, auth) {
+  const effect = Object.values(process.data.processNodes || {})
+    .find(node => node.legacyActionId === actionId && node.kind?.startsWith('effect.'));
+  if (!effect?.entryTriggerId) {
+    throw createError({ statusCode: 409, message: `Action ${actionId} has no v3 entry trigger` });
+  }
+  let run = await startRun(process.id, {
+    trigger: { nodeId: effect.entryTriggerId },
+    inputs: {
+      entity: entityId || entities?.entity || null,
+      entities,
+      data,
+      parameters,
+      targetOrganizationId
+    }
+  }, auth);
+  for (let index = 0; index < 100 && run.status === 'running'; index += 1) {
+    run = await resumeRun(run.id, auth);
+  }
+  if (run.status === 'failed') {
+    throw createError({ statusCode: 400, message: run.error?.message || `Action ${actionId} failed`, data: { runId: run.id } });
+  }
+  if (run.status === 'waiting') {
+    return { runId: run.id, status: run.status, wakeAt: run.wakeAt };
+  }
+  const effectStep = [...(run.steps || [])].reverse().find(step => step.kind?.startsWith('effect.'));
+  return effectStep?.output ?? run.result;
 }
 
 async function resolveProcessGraphEntity(entityType, candidate, { entityId = null, entities = {}, auth = {} } = {}) {
@@ -1171,6 +1270,172 @@ function setByPath(target, path, value) {
     cursor = cursor[key];
   }
   if (parts[0]) cursor[parts[0]] = value;
+}
+
+async function loadAuthorizedRun(id, auth, level = 'read') {
+  const run = await repository.findRunById(id);
+  if (!run) throw createError({ statusCode: 404, message: 'Process run not found' });
+  await assertOrgAccess(auth, run.organizationId, level);
+  return run;
+}
+
+function serializeRun(run = {}) {
+  return {
+    ...run,
+    id: String(run._id || run.id),
+    processDefinitionId: String(run.processDefinitionId || ''),
+    organizationId: String(run.organizationId || '')
+  };
+}
+
+function processDataEnvironment(auth, run) {
+  return {
+    currentEntity: async entityType => {
+      const candidate = run.context?.inputs?.entities?.[entityType] || run.context?.inputs?.entity;
+      return candidate ? resolveProcessGraphEntity(entityType, candidate, { auth }) : null;
+    },
+    entityById: (entityType, id) => resolveProcessGraphEntity(entityType, id, { auth }),
+    resolveEntityRef: ref => resolveProcessGraphEntity(ref.type, ref, { auth }),
+    queryEntities: async (entityType, predicate) => {
+      const values = await queryProcessGraphEntities(entityType, auth);
+      if (!predicate) return values;
+      return values.filter(entity => evaluateEntityPredicate(predicate, entity));
+    }
+  };
+}
+
+async function executeDurableEffect(request, auth, run, processData) {
+  const claimed = await repository.claimStep({
+    runId: run._id,
+    nodeId: request.record.id,
+    idempotencyKey: request.idempotencyKey,
+    kind: request.kind,
+    attempt: request.attempt || 1
+  });
+  if (!claimed.claimed) {
+    if (claimed.step?.status === 'succeeded') return claimed.step.result;
+    throw new Error(`Effect ${request.idempotencyKey} is already ${claimed.step?.status || 'running'}`);
+  }
+  try {
+    const result = await performDurableEffect(request, auth, processData);
+    await repository.completeStep(request.idempotencyKey, { status: 'succeeded', result });
+    return result;
+  } catch (error) {
+    await repository.completeStep(request.idempotencyKey, {
+      status: 'failed',
+      error: { name: error?.name || 'Error', message: error?.message || String(error) }
+    });
+    throw error;
+  }
+}
+
+async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {
+  if (kind === 'effect.runCommand') {
+    if (!record.commandId) throw new Error('Command effect requires commandId');
+    return await executeCommand(record.commandId, {
+      entities: inputs.entities || {},
+      parameters: inputs.parameters || {}
+    }, auth);
+  }
+  const entityType = normalizeEntityType(record.entityType || inputs.entity?.type || inputs.draft?.type || '');
+  if (!entityType) throw new Error(`${kind} requires entityType`);
+  const service = getAppRegistry().getEntityService(entityType);
+  if (!service) throw new Error(`Entity service missing for ${entityType}`);
+  if (kind === 'effect.createEntity') {
+    const parentEntities = record.parentEntityType && inputs.parent
+      ? { [record.parentEntityType]: inputs.parent }
+      : {};
+    if (entityType === 'cassette_design' && record.construction?.mode === 'bakeCassetteDesignFromTemplate') {
+      return await executeBakeCassetteDesign(record, inputs.draft || {}, resolveOrganizationId(auth), auth, processData, parentEntities);
+    }
+    if (entityType === 'cassette_design' && record.construction?.mode === 'importCassetteDesignFromArtifact') {
+      const data = inputs.draft || {};
+      const imported = await cassetteService.importFromArtifact(
+        data.artifactId,
+        data.name || data.identity?.name,
+        auth.userId,
+        resolveOrganizationId(auth),
+        auth.role,
+        createActionExecutionAuth(auth, record),
+        data.layerMapping || null,
+        data.parameters || null
+      );
+      return imported.design;
+    }
+    if (entityType === 'cassette' && record.construction?.mode === 'createDefaultOccsTemplate') {
+      return await executeCreateDefaultCassetteTemplate(record, inputs.draft || {}, resolveOrganizationId(auth), auth, processData, parentEntities);
+    }
+    if (!service.create) throw new Error(`Entity service cannot create ${entityType}`);
+    const parentContext = await resolveParentCreationContext(record, parentEntities, auth);
+    const created = await service.create(
+      createActionPayload(record, inputs.draft || {}, parentEntities, parentContext),
+      auth.userId,
+      resolveOrganizationId(auth),
+      auth.role,
+      createActionExecutionAuth(auth, record)
+    );
+    const targetState = record.status?.to;
+    const dto = created?.toJSON ? created.toJSON() : created;
+    const targetId = dto?._id || dto?.identity?.uid;
+    if (!targetState || !targetId) return dto;
+    const status = await statusService.setInitialStateForOrganization(
+      entityType,
+      targetId,
+      targetState,
+      resolveOrganizationId(auth),
+      auth.userId,
+      processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
+    );
+    return { ...dto, status };
+  }
+  const target = normalizeEntityRef(inputs.entity);
+  if (!target?.id) throw new Error(`${kind} requires an entity reference`);
+  if (kind === 'effect.updateEntity') {
+    const changes = inputs.changes?.changes || [];
+    let patch;
+    if (changes.every(change => (change.operation || 'set') === 'set')) {
+      patch = Object.fromEntries(changes.map(change => [change.path, change.value]));
+    } else {
+      const current = await resolveProcessGraphEntity(entityType, target, { auth });
+      const updated = applyPatch(current, inputs.changes);
+      patch = Object.fromEntries(changes.map(change => {
+        const value = getByPath(updated, change.path);
+        if (value === undefined) throw new Error(`Persisted entity updates cannot unset ${change.path}`);
+        return [change.path, value];
+      }));
+    }
+    if (!service.processUpdate) throw new Error(`Entity service cannot update ${entityType}`);
+    return await service.processUpdate(target.id, patch, auth);
+  }
+  if (kind === 'effect.changeStatus') {
+    const patch = Object.fromEntries((inputs.changes?.changes || []).map(change => {
+      if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
+      return [change.path, change.value];
+    }));
+    return await statusService.transitionWithResult({
+      entityType,
+      targetId: target.id,
+      targetState: typeof inputs.status === 'string' ? inputs.status : inputs.status?.id,
+      auth,
+      context: { source: 'process-run' },
+      patch: Object.keys(patch).length ? patch : null
+    });
+  }
+  if (kind === 'effect.sendEntity') {
+    return await projectEntityThroughSocket({
+      socketId: record.socketId,
+      entityId: target.id,
+      targetOrganizationId: record.targetOrganizationId
+    }, auth);
+  }
+  if (kind === 'effect.generateAttachment') {
+    if (!record.commandId) throw new Error('Attachment effect requires commandId');
+    return await executeCommand(record.commandId, {
+      entities: { [entityType]: target },
+      parameters: inputs.parameters || {}
+    }, auth);
+  }
+  throw new Error(`Unsupported process effect ${kind}`);
 }
 
 async function loadAuthorized(id, auth, level) {

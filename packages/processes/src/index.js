@@ -12,6 +12,8 @@ import {
   resolveProcessNodePorts,
   validateProcessEdges
 } from './ports.js';
+import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
+import { normalizeProcessType, processSocketsCompatible } from './types.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -50,6 +52,42 @@ export {
 
 export { resolveProcessActionInputContext } from './algebra.js';
 export { migrateProcessDataflowDefinition } from './dataflow-migration.js';
+export {
+  PROCESS_PROTOCOL_VERSION,
+  PROCESS_OPERATION_LEVELS,
+  PROCESS_BASE_TYPES,
+  PROCESS_DATA_SHAPES,
+  PROCESS_SOCKET_ROLES,
+  formatProcessType,
+  legacyProcessType,
+  normalizeProcessSocket,
+  normalizeProcessType,
+  processSocketsCompatible,
+  processType,
+  processTypesCompatible,
+  withProcessShape
+} from './types.js';
+export * from './data-tree.js';
+export {
+  PROCESS_NODE_CATALOG,
+  PROCESS_NODE_FAMILIES,
+  getProcessNodeDefinition,
+  processNodeDefinitionsForFamily,
+  requireProcessNodeDefinition,
+  resolveCatalogNodePorts
+} from './node-catalog.js';
+export {
+  applyPatch,
+  evaluateEntityPredicate,
+  executeProcessDataNode
+} from './evaluator.js';
+export {
+  PROCESS_RUN_STATUSES,
+  PROCESS_STEP_STATUSES,
+  advanceProcessRun,
+  createProcessRun,
+  runProcessUntilSettled
+} from './orchestration.js';
 
 export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
   return normalizeWorkflow({
@@ -116,6 +154,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     if (!nodeIds.has(edge.target)) errors.push(`Edge ${edge.id} references missing target node ${edge.target}`);
   }
   errors.push(...validateProcessEdges(process));
+  if (Number(process.dataflowVersion) === 3) errors.push(...validateV3Edges(process, domain));
 
   for (const node of process.graph.nodes) {
     const refId = node.data?.refId;
@@ -2205,7 +2244,11 @@ function inferConnectedActionEntityType(actionId, process = {}) {
 }
 
 function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
-  const kind = node.kind || 'entityDecompose';
+  const kind = node.kind || '';
+  if (kind.includes('.')) {
+    validateV3ProcessNode(nodeId, node, { entities, domain, errors });
+    return;
+  }
   const kinds = [
     'entityQuery', 'entityRef', 'entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityCompose', 'entityModify',
     'blockRead', 'blockCompose', 'blockModify',
@@ -2287,16 +2330,170 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   }
 }
 
+function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
+  const definition = getProcessNodeDefinition(node.kind);
+  if (!definition) {
+    errors.push(`Process node ${nodeId} uses unknown node kind ${node.kind}`);
+    return;
+  }
+  if (node.entityType && !entities.has(node.entityType)) {
+    errors.push(`Process node ${nodeId} uses unknown entityType ${node.entityType}`);
+  }
+  if (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => node.kind.startsWith(prefix))
+    && !['record.construct', 'record.deconstruct'].includes(node.kind)
+    && !node.entityType && !['effect.runCommand'].includes(node.kind)) {
+    errors.push(`Process node ${nodeId} must select an entity type`);
+  }
+  if (['record.getField', 'record.fieldChange', 'predicate.field'].includes(node.kind)) {
+    if (!node.path) errors.push(`Process node ${nodeId} must select a field`);
+    const schema = entityFieldSchema(domain, node.entityType, node.path);
+    if (node.path && !schema) errors.push(`Process node ${nodeId} uses undeclared field ${node.entityType}.${node.path}`);
+    if (schema && node.kind === 'record.fieldChange' && schema.writable === false) {
+      errors.push(`Process node ${nodeId} cannot modify read-only field ${node.entityType}.${node.path}`);
+    }
+  }
+  if (node.type) {
+    try {
+      normalizeProcessType(node.type);
+    } catch (error) {
+      errors.push(`Process node ${nodeId} has invalid type: ${error.message}`);
+    }
+  }
+  if (node.kind === 'read.related') {
+    const relation = (domain.relations || []).find(item => item.ownerType === node.entityType && item.key === node.relation);
+    if (!relation) errors.push(`Process node ${nodeId} must select a declared relation for ${node.entityType}`);
+  }
+  if (node.kind === 'effect.runCommand' && (!node.commandId || !domain.commands?.[node.commandId])) {
+    errors.push(`Process node ${nodeId} must select a registered command`);
+  }
+  try {
+    resolveCatalogNodePorts(node, {
+      fieldSchema: entityFieldSchema(domain, node.entityType, node.path),
+      fieldSchemas: entityFieldSchemas(domain, node.entityType)
+    });
+  } catch (error) {
+    errors.push(`Process node ${nodeId} has invalid sockets: ${error.message}`);
+  }
+}
+
+function validateV3Edges(process, domain) {
+  const errors = [];
+  const graphNodes = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
+  for (const edge of process.graph?.edges || []) {
+    const sourceNode = graphNodes.get(String(edge.source));
+    const targetNode = graphNodes.get(String(edge.target));
+    const sourceRecord = process.processNodes?.[String(sourceNode?.data?.refId || sourceNode?.id || '')];
+    const targetRecord = process.processNodes?.[String(targetNode?.data?.refId || targetNode?.id || '')];
+    if (!sourceRecord || !targetRecord) continue;
+    const sourcePorts = resolveCatalogNodePorts(sourceRecord, v3CatalogContext(domain, sourceRecord)).outputs;
+    const targetPorts = resolveCatalogNodePorts(targetRecord, v3CatalogContext(domain, targetRecord)).inputs;
+    const sourcePort = catalogPortForHandle(sourcePorts, edge.sourceHandle);
+    const targetPort = catalogPortForHandle(targetPorts, edge.targetHandle);
+    if (!sourcePort) {
+      errors.push(`Edge ${edge.id} references missing output ${edge.sourceHandle} on ${sourceRecord.id}`);
+      continue;
+    }
+    if (!targetPort) {
+      errors.push(`Edge ${edge.id} references missing input ${edge.targetHandle} on ${targetRecord.id}`);
+      continue;
+    }
+    const compatibility = processSocketsCompatible(sourcePort, targetPort);
+    if (!compatibility.ok) errors.push(`Edge ${edge.id} is incompatible: ${compatibility.reason}`);
+  }
+  for (const role of ['data', 'control']) {
+    const cycle = findGraphCycle(process, role);
+    if (cycle.length) errors.push(`${role === 'data' ? 'Data' : 'Control'} graph contains a cycle: ${cycle.join(' → ')}`);
+  }
+  const triggers = (process.graph?.nodes || []).filter(node => (
+    process.processNodes?.[String(node.data?.refId || node.id)]?.kind?.endsWith('Trigger')
+  ));
+  const reachable = reachableControlNodes(process, triggers.map(node => String(node.id)));
+  for (const node of process.graph?.nodes || []) {
+    const record = process.processNodes?.[String(node.data?.refId || node.id)];
+    if ((record?.kind?.startsWith('effect.') || record?.kind?.startsWith('control.'))
+      && !record.kind.endsWith('Trigger') && !reachable.has(String(node.id))) {
+      errors.push(`Operational node ${record.id || node.id} is not reachable from a trigger`);
+    }
+  }
+  return errors;
+}
+
+function v3CatalogContext(domain, record) {
+  return {
+    fieldSchema: entityFieldSchema(domain, record.entityType, record.path),
+    fieldSchemas: entityFieldSchemas(domain, record.entityType)
+  };
+}
+
+function catalogPortForHandle(ports, handle) {
+  const clean = String(handle || '').replace(/^(input|output|data|control|success|failure):/, '');
+  return ports.find(port => port.id === clean)
+    || ((!clean || ['input', 'output'].includes(clean)) && ports.length === 1 ? ports[0] : null);
+}
+
+function findGraphCycle(process, role) {
+  const adjacency = new Map();
+  for (const edge of process.graph?.edges || []) {
+    const edgeRole = edge.role || (String(edge.sourceHandle || '').startsWith('control:') ? 'control' : 'data');
+    if (edgeRole !== role) continue;
+    const list = adjacency.get(String(edge.source)) || [];
+    list.push(String(edge.target));
+    adjacency.set(String(edge.source), list);
+  }
+  const visiting = new Set();
+  const visited = new Set();
+  const path = [];
+  function visit(node) {
+    if (visiting.has(node)) return [...path.slice(path.indexOf(node)), node];
+    if (visited.has(node)) return [];
+    visiting.add(node);
+    path.push(node);
+    for (const target of adjacency.get(node) || []) {
+      const cycle = visit(target);
+      if (cycle.length) return cycle;
+    }
+    path.pop();
+    visiting.delete(node);
+    visited.add(node);
+    return [];
+  }
+  for (const node of adjacency.keys()) {
+    const cycle = visit(node);
+    if (cycle.length) return cycle;
+  }
+  return [];
+}
+
+function reachableControlNodes(process, starts) {
+  const reached = new Set(starts);
+  const pending = [...starts];
+  while (pending.length) {
+    const source = pending.shift();
+    for (const edge of process.graph?.edges || []) {
+      const role = edge.role || (String(edge.sourceHandle || '').startsWith('control:') ? 'control' : 'data');
+      if (role !== 'control' || String(edge.source) !== source || reached.has(String(edge.target))) continue;
+      reached.add(String(edge.target));
+      pending.push(String(edge.target));
+    }
+  }
+  return reached;
+}
+
 function validateProcessNodeConnections(process = {}, errors = []) {
   for (const graphNode of process.graph?.nodes || []) {
     if (graphNode.type !== 'processNode') continue;
     const nodeId = String(graphNode.data?.refId || graphNode.id || '');
     const record = process.processNodes?.[nodeId];
     if (!record) continue;
-    const contract = resolveProcessNodePorts(record);
+    const contract = record.kind?.includes('.')
+      ? resolveCatalogNodePorts(record, {
+          fieldSchema: entityFieldSchema({}, record.entityType, record.path),
+          fieldSchemas: []
+        })
+      : resolveProcessNodePorts(record);
     const counts = new Map();
     for (const edge of (process.graph?.edges || []).filter(item => String(item.target) === String(graphNode.id))) {
-      const handle = String(edge.targetHandle || '').replace(/^(input|data):/, '');
+      const handle = String(edge.targetHandle || '').replace(/^(input|data|control):/, '');
       const inputId = (!handle || handle === 'input') && contract.inputs.length === 1
         ? contract.inputs[0].id
         : handle;
@@ -2305,9 +2502,19 @@ function validateProcessNodeConnections(process = {}, errors = []) {
     }
     for (const input of contract.inputs) {
       if (input.required && !counts.has(input.id)) errors.push(`Process node ${nodeId} requires input ${input.id}`);
-      if ((counts.get(input.id) || 0) > 1) errors.push(`Process node ${nodeId} input ${input.id} has more than one connected value`);
+      if ((counts.get(input.id) || 0) > 1 && !input.multiple) errors.push(`Process node ${nodeId} input ${input.id} has more than one connected value`);
     }
   }
+}
+
+function entityFieldSchemas(domain = {}, entityType = '') {
+  const key = String(entityType || '');
+  const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
+  return domain.fieldSchemas?.[key] || domain.fieldSchemas?.[camel] || [];
+}
+
+function entityFieldSchema(domain, entityType, path) {
+  return entityFieldSchemas(domain, entityType).find(field => field.path === path) || null;
 }
 
 function validateConstruction(actionId, action = {}, domain = {}, errors = []) {

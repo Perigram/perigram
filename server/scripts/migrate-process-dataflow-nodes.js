@@ -1,24 +1,22 @@
 import { MongoClient } from 'mongodb';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { compileProcessDefinition, migrateProcessDataflowDefinition } from '../../packages/processes/src/index.js';
 import { cncDomain } from '../../packages/domain-cnc/src/index.js';
 
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/cutkit_dev';
 const apply = process.env.APPLY === '1';
+const status = process.env.STATUS || '';
+const compact = process.env.COMPACT === '1';
 const client = new MongoClient(uri);
 
 export function migrateStoredProcessDataflow(data = {}) {
-  const migrated = migrateProcessDataflowDefinition(data);
+  const migrated = migrateProcessDataflowDefinition(data, cncDomain);
   if (!migrated.changed) return migrated;
   let compiled = null;
   let warnings = [];
   if (data.compiled) {
-    try {
-      compiled = compileProcessDefinition({ ...migrated.value, compiled: null }, cncDomain);
-    } catch (error) {
-      if (!error.validation) throw error;
-      compiled = data.compiled;
-      warnings = error.validation.errors;
-    }
+    compiled = compileProcessDefinition({ ...migrated.value, compiled: null }, cncDomain);
   }
   return {
     changed: true,
@@ -34,12 +32,11 @@ async function main() {
   await client.connect();
   try {
     const collection = client.db().collection('process_definitions');
-    const cursor = collection.find({
-      $or: [
-        { 'data.valueInputs': { $type: 'object' } },
-        { 'data.processNodes': { $type: 'object' } }
-      ]
-    });
+    const filter = {
+      'data.dataflowVersion': { $ne: 3 },
+      ...(status ? { 'status.state.primary': status } : {})
+    };
+    const cursor = collection.find(filter);
     let scanned = 0;
     const updates = [];
     const invalid = [];
@@ -59,19 +56,43 @@ async function main() {
       }
     }
     if (invalid.length) {
-      console.error(JSON.stringify({ apply, scanned, changed: updates.length, uncompiled, invalid }, null, 2));
+      console.error(JSON.stringify(migrationReport({ scanned, updates, uncompiled, invalid }), null, 2));
       process.exitCode = 1;
       return;
     }
-    if (apply) {
-      for (const update of updates) {
-        await collection.updateOne({ _id: update._id }, { $set: { data: update.data } });
-      }
+    if (apply && updates.length) {
+      await collection.bulkWrite(updates.map(update => ({
+        updateOne: {
+          filter: { _id: update._id, 'data.dataflowVersion': { $ne: 3 } },
+          update: { $set: { data: update.data } }
+        }
+      })), { ordered: true });
     }
-    console.log(JSON.stringify({ apply, scanned, changed: updates.length, uncompiled, invalid: [] }, null, 2));
+    console.log(JSON.stringify(migrationReport({ scanned, updates, uncompiled, invalid: [] }), null, 2));
   } finally {
     await client.close();
   }
+}
+
+function migrationReport({ scanned, updates, uncompiled, invalid }) {
+  const report = { apply, status: status || 'ALL', scanned, changed: updates.length, uncompiled, invalid };
+  if (!compact) return report;
+  return {
+    ...report,
+    uncompiled: summarizeFailures(uncompiled),
+    invalid: summarizeFailures(invalid)
+  };
+}
+
+function summarizeFailures(items = []) {
+  return {
+    count: items.length,
+    processes: items.slice(0, 20).map(item => ({
+      ...item,
+      errors: (item.errors || []).slice(0, 5)
+    })),
+    omitted: Math.max(0, items.length - 20)
+  };
 }
 
 function processSummary(process, errors) {
@@ -84,7 +105,7 @@ function processSummary(process, errors) {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(resolve(process.argv[1] || '')).href) {
   main().catch(error => {
     console.error(error);
     process.exit(1);

@@ -1,9 +1,10 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
+import { PROCESS_PROTOCOL_VERSION } from './types.js';
 
 const HANDLE_PREFIXES = ['input:', 'output:', 'data:'];
 export const PROCESS_SCALAR_KINDS = Object.freeze(['string', 'number', 'boolean', 'json', 'date']);
-export const PROCESS_STRUCTURES = Object.freeze(['item', 'list']);
-export const PROCESS_DATAFLOW_VERSION = 2;
+export const PROCESS_STRUCTURES = Object.freeze(['item', 'list', 'tree']);
+export const PROCESS_DATAFLOW_VERSION = PROCESS_PROTOCOL_VERSION;
 
 export function normalizePortSpec(io = {}, fallback = {}) {
   const source = io && typeof io === 'object' ? io : {};

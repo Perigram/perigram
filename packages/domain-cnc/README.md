@@ -18,6 +18,8 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
 - `summaries.js` - aggregate summary contracts and frontend route metadata.
 - `field-access.js` - per-entity field visibility policy consumed by backend
   DTO redaction and frontend shared blocks.
+- `field-schemas.js` - exact process-programming field paths with canonical
+  blocks, structured value/shape/domain/unit types, and read/write capability.
 - `entity-construction.js` - create-time construction contracts used by process
   action nodes and generated action dialogs.
 - `ui.js` - design-system policy metadata, not Vue components.
@@ -150,6 +152,15 @@ This package may declare UI policy: entity surface keys, status visibility,
 icons, docs, component paths, field groups, surface contracts, and field paths.
 It must not import Vue components. `@cutkit/vue` turns this metadata into
 frontend lookup helpers.
+
+`cncEntityFieldSchemas` is also the process designer/runtime schema boundary.
+It materializes exact selectable paths for every registered entity and keeps
+base type, item/list/tree shape, entity type, and unit as separate qualifiers.
+`field-access.js` wildcards authorize families of fields but never generate a
+selectable field or a guessed type. A new process-visible field must therefore
+be added to the schema registry (normally through its UI descriptor or an
+explicit exact access entry) before record, predicate, or patch nodes can use
+it.
 
 Commands that persist an entity hierarchy beyond their immediate return refs
 declare `requiredEntityProfiles`. `solveNesting` requires `nesting_run`,
