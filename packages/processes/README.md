@@ -208,7 +208,9 @@ Process algebra nodes are canonical non-effect records under `processNodes`.
 Their families are separated by concern:
 
 - Values/modifiers: `cast`, `fallback`, `stringOp`, and `listLength`.
-- Logic: typed `compare` predicates and Boolean `logic` gates.
+- Value logic: typed `compare` operations and Boolean `logic` gates.
+- Entity predicates: `entityCondition` field comparisons and entity-typed
+  `predicateLogic` gates.
 - Entities: `entityQuery`, `entityRef`, `entityField`, `entityFilter`,
   `entitySelect`, `entityDecompose`, `entityCompose`, and `entityModify`.
 - Blocks: `blockRead`, `blockCompose`, and `blockModify`.
@@ -217,22 +219,45 @@ Compose starts from empty data, modify requires existing data, and decompose
 only projects data. Entity and block composition nodes produce in-memory DTO
 values; persistence and external work remain action responsibilities.
 `entityQuery` returns the caller-visible list from the registered feature
-service. Filtering is an explicit aligned-mask pipeline:
-`entityQuery -> entityField -> compare/logic -> entityFilter -> entitySelect`.
-The field projection and predicate preserve list order, and filter rejects
-masks whose length differs from the entity list.
+service. Filtering is an entity-predicate pipeline:
+`literal -> entityCondition -> predicateLogic -> entityFilter`, with the
+queried entity list connected separately to `entityFilter.entities`.
+An entity condition stores an exact domain-readable field path and scalar type,
+then produces a predicate tagged with its entity type. Predicate gates accept
+only predicates for the same entity type. The evaluator applies the composed
+predicate to each entity, so authors never align a Boolean array with a
+separate entity list.
 
 `resolveProcessNodePorts()` is the single operation-to-port contract used by
 edge validation and the designer. Port kinds preserve both value type and
 structure: for example, `number` and `number_list` are different contracts.
-List-capable modifiers preserve structure. Comparison broadcasts one scalar
-right operand across an item list and returns a parallel `boolean_list`; list
-logic combines equal-length Boolean lists. `fallback` substitutes one scalar
-only for null/undefined elements. This is deliberately item/list algebra, not
-a hidden implementation of Grasshopper data trees: nested branches and
-automatic flatten/graft behavior are not part of this contract. Explicit cast
-nodes are required between unlike scalar types. Activation validation requires
+List-capable modifiers preserve structure. Comparison and logic broadcast one
+scalar over a list; two list inputs must have equal lengths. `fallback`
+substitutes one scalar only for null/undefined elements.
+`inferProcessDataflowContracts()` derives item/list shape, compatible scalar
+types, entity types, and block types from graph edges during normalization,
+validation, compilation, and editor sync. Stored derived fields cannot override
+the wired contract. This is deliberately item/list algebra, not a hidden
+implementation of Grasshopper data trees: nested branches and automatic
+flatten/graft behavior are not part of this contract. Explicit cast nodes are
+required between unlike scalar types, and a cast declares only its output type
+because its input type comes from the wire. Activation validation requires
 every required process-node input to have exactly one incoming value.
+
+Scalar and list literals are distinct palette records. Their inline editors
+preserve typed values and never ask for a data path. Field-bearing nodes obtain
+paths and display metadata from domain field groups plus field-access policy.
+Known core fields have explicit types; fields without a descriptor or core
+declaration remain `json` instead of using name-based type guesses.
+Entity-condition operations are restricted by that field type.
+
+`dataflowVersion: 2` replaces v1 entity-filter masks. The process data-flow
+migration rewrites the canonical
+`entityField -> compare/logic -> entityFilter.mask` shape into
+`entityCondition/predicateLogic -> entityFilter.predicate`, removes projection
+nodes that became redundant, clears obsolete cast input-type metadata, and
+invalidates the compiled snapshot. Ambiguous masks fail migration instead of
+being guessed.
 
 `resolveProcessActionInputContext()` evaluates the acyclic value subgraph that
 terminates at an action. It reads literal value inputs and authorized entity
