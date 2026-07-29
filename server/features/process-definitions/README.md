@@ -38,8 +38,9 @@ it until success, failure, or a wait boundary.
 `POST /api/process-definitions/runs/:id/resume` provides an explicit recovery
 resume, and `GET /api/process-definitions/runs/:id` reads the authorized run.
 The process-orchestration Nitro plugin registers entity/domain event handlers
-and polls due `wakeAt` records; automatic triggers and absolute-date
-continuations therefore use the same persisted run path as manual execution.
+and polls due `wakeAt` records. Matching automatic start modes live on effect
+nodes, and connected-date effect starts persist the same wake boundary as
+manual execution.
 The originating actor/access snapshot is stored with the run so a due
 continuation re-enters the normal feature access boundary. API handlers do not
 touch orchestration collections.
@@ -98,7 +99,7 @@ that were changed after the draft was forked.
 Manual generated-screen actions execute through the active process definition,
 not through client-selected entity routes. For v3 definitions,
 `executeActiveProcessAction()` verifies the compiled role assignment, resolves
-the migrated effect's manual entry trigger, starts the durable run, and returns
+the authored effect's manual start, starts the durable run, and returns
 the effect result (or a run/wake reference for a persisted wait). It does not
 execute a second action algebra. The delegated entity/status/command service
 remains the access and business-logic boundary. Create-entity actions are

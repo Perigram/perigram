@@ -4,16 +4,18 @@ The organization process designer authors the `@cutkit/processes`
 `dataflowVersion: 3` contract. The executable canvas contains only
 `processNode` records. Roles, entity profiles, screens, assignments, service
 principals, and statuses are definition-plane records. Statuses have a
-dedicated manager opened from the canvas toolbar; they are not inspector tabs
-or executable value nodes. `effect.changeStatus` remains the explicit
-transition action on the graph.
+definition item in the Entities palette and render as inline-editable canvas
+nodes; they are not inspector tabs, process-selector controls, or executable
+values. Modify Entity applies a selected status through its
+`status.state.primary` input.
 
 ## Palette and node concerns
 
 The runtime catalog remains exhaustive, but it is not the authoring palette.
-The palette has exactly four non-overlapping concerns:
+The palette has three non-overlapping operation concerns:
 
-- **Entities** creates or modifies an entity directly and reads/deconstructs
+- **Entities** defines lifecycle statuses, creates or modifies an entity
+  directly, and reads/deconstructs
   its declared blocks and fields. Create/modify nodes expose one typed socket
   per selected writable field; there is no intermediate draft, patch, current
   entity, or related-entity plumbing. Create also exposes the selected
@@ -24,14 +26,15 @@ The palette has exactly four non-overlapping concerns:
 - **Lists and trees** contains the Grasshopper-style structure operations:
   list construction/concatenation/index/slice/count/filter/sort/distinct/group,
   and tree flatten/graft/simplify/branch/zip/unzip/cross/transpose.
-- **Events** contains manual, entity-change, and registered domain-event
-  triggers plus the date continuation boundary.
 
-Manual trigger payloads become entity-typed when connected to an entity
-read/modify operation; the trigger then shows that entity scope explicitly.
-This replaces the unexplained ambient “Current entity” node. Entity-change
-triggers always expose the changed entity, while domain-event triggers expose
-their registered event data.
+Events are not data operations and therefore are not a palette family.
+Executable effect nodes select their own start mode: manual, previous-node
+event, entity change, registered domain event, or connected date. Immediate
+and date-delayed automatic nodes expose an event input in the footer; every
+effect exposes its completion event there. Event handles use the same
+left-to-right direction as data sockets instead of pointing out of the bottom
+of the card. Pure value, list/tree, read, and deconstruct nodes do not render
+event chrome.
 
 There is no advanced reveal and no separate “starts and inputs”, “process
 flow”, or “selection and filtering” taxonomy. Filtering is ordinary dataflow:
@@ -46,8 +49,8 @@ instead of creating an unexplained empty conversion node.
 
 `ProcessNode.vue` renders the catalog's resolved ports, not stored UI guesses.
 Each socket shows its structured type including shape and qualifier. Data
-handles stay at the left/right edges; event/control handles occupy a separate
-band at the bottom. Color communicates transported base type while the thin
+handles stay at the left/right edges; effect event/control handles use a
+left-to-right footer row. Color communicates transported base type while the thin
 node stripe communicates operation concern. An unconnected primitive input has
 an inline typed fallback editor on the node. It is therefore immediately
 runnable without creating a separate constant node, while a connected wire
@@ -58,8 +61,8 @@ badges on every new node.
 Meaningful configuration stays on the node: value/type, entity, field, block,
 operation, trigger entity/event, and socket fallback. Selected dynamic entity
 fields are also summarized in the node header and exposed as named sockets.
-The contextual inspector edits the selected field set and other record-level
-configuration without turning definition-plane statuses into node settings.
+The contextual inspector edits secondary record-level configuration without
+moving status authoring out of its canvas node.
 The palette and inspector are independently scrollable. Palette search matches
 localized job names and descriptions as well as internal kinds. The persistent
 palette uses a readable two-column grid with grouped headings; operation
@@ -84,6 +87,12 @@ operations infer list/tree shape so operations map over structured input and
 can produce a Boolean mask for Filter without a separate “entity filter”
 language. Narrowing or restructuring data is rejected until the author adds
 the appropriate list/tree node.
+
+Deconstruct Entity consumes one typed entity or aligned entity structure and
+renders a multi-field selector on the node. Each selected readable field
+becomes one exact typed output socket. The evaluator resolves only the output
+that a downstream node consumes, so deconstruction is a real lazy data
+operation rather than a visual summary.
 
 Field selectors consume `cncDomain.fieldSchemas`. Every selectable field has an
 exact path, block, structured type, and readable/writable capability. Wildcard

@@ -106,11 +106,12 @@ workflows into a `regions` contract, edits the selected region's states and
 transitions, and keeps lifecycle metadata, transition capabilities, access JSON,
 and hooks JSON editable.
 The organization process designer keeps lifecycle design inside the same Vue
-Flow workspace: entity node inspectors edit inline status-machine states and
-transitions, and entity nodes summarize those states directly on the canvas.
-Entity lifecycle data must save as a workflow draft that compiles into a runtime
+Flow workspace: status definitions are created from the Entities palette and
+edited on their own definition nodes, while Modify Entity applies those states
+through a typed field input. Entity lifecycle data compiles into the runtime
 status machine. Abstract roles and user assignments are process-panel records,
-not graph nodes; roles are assigned onto nodes and lifecycle transitions.
+not graph nodes; roles are assigned onto executable nodes and lifecycle
+transitions.
 Process designer nodes live under `components/process-designer/` and must show
 typed Vue Flow handles that match the process compiler contract: role access,
 service input/output, and socket projection/transfer. Do not reduce these nodes

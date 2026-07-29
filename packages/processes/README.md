@@ -18,12 +18,12 @@ designer from inventing fields, types, or blocks that the selected entity does
 not declare.
 
 The grouped authoring palette is a curated framework projection, separate from
-the exhaustive runtime catalog. It exposes exactly Entities, Values, Lists and
-trees, and Events, with stable localization/description ids and meaningful
-creation presets. Runtime-only conversions, predicates, patches, and
-trigger-payload plumbing are not palette entries. Applications may change
-layout, but entity types, construction modes, commands, attachment kinds, and
-fields always come from the supplied domain contract.
+the exhaustive runtime catalog. It exposes Entities, Values, and Lists and
+trees, with stable localization/description ids and meaningful creation
+presets. Runtime-only conversions, predicates, patches, standalone trigger
+nodes, and trigger-payload plumbing are not palette entries. Applications may
+change layout, but entity types, construction modes, commands, attachment
+kinds, and fields always come from the supplied domain contract.
 
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,
@@ -203,6 +203,11 @@ active domain field-access policy, and compile into write/admin grants on the
 concrete incoming entity feature. Manual generated screens prompt for the
 selected mutation fields through `action.inputPolicy`, while event-driven
 updates can receive the same field payload from wired value/data nodes.
+V3 effect records also derive the semantic action manifest consumed by screen
+and access compilation. Their selected process-role grants, trigger mode,
+entity type, fields, construction contract, command, and status target are
+therefore the same contract used by durable execution and generated UI; a new
+canvas effect is not a runtime-only box.
 `dataflowVersion: 3` is the sole current operation protocol. Every executable
 canvas record lives under `processNodes` and has a namespaced kind from the
 catalog: `source.*`, `value.*`, `collection.*`/`tree.*`, `record.*`,
@@ -244,20 +249,23 @@ fields as its transition patch. Create additionally projects the selected
 domain construction mode as typed sockets and resolves entity/entity-list
 construction references at the effect boundary.
 
-`orchestration.js` executes the full runtime control plane. The authoring
-projection exposes manual, registered domain-event, and entity-change starts,
-plus an absolute-date continuation boundary. Runs carry
+`orchestration.js` executes the full runtime control plane. Start behavior is
+owned by executable effect nodes rather than separate event-source nodes. An
+effect can start manually, from the previous node's completion event, from a
+registered domain event, from an entity change, or at a connected absolute
+date. A date-triggered effect persists its wake boundary before executing.
+Runs carry
 durable control tokens, foreach scopes, join arrivals, wake times, attempts,
 and step outputs. Data subgraphs are evaluated lazily for the operational node
 that consumes them. Arbitrary data or control cycles are rejected during
 activation.
 
-An entity-scoped manual trigger exposes the triggering entity as its typed
-payload. The designer infers that scope when its payload is wired to an entity
-read/modify node, and migration rewires old `read.currentEntity` plus
-entity-reference plumbing to that payload. Automatic entity triggers use the
-same payload contract. Entity access remains resolved from persisted run input
-through the authorized feature service.
+Manual and entity-change effect inputs resolve the supplied entity from the
+persisted run context when no data wire overrides that socket. Migration
+embeds old standalone trigger records into their target effects, removes the
+old control node, and rewrites any retained payload use as an ordinary process
+input. Entity access remains resolved from persisted run input through the
+authorized feature service.
 
 The v3 migration is a replacement, not a parallel interpretation. It moves
 literal/action/entity/service/socket graph nodes into the operation registry,

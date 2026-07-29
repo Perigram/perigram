@@ -27,10 +27,10 @@ the persisted audit source.
 
 The bus also exposes an in-process automatic-handler registration boundary.
 The process orchestration plugin registers the active-process entity trigger
-handler there. A normalized invalidation starts every matching
-`control.entityChangedTrigger` in the organization's active process and passes
-the entity reference as run input; the process runtime reloads the entity
-through its authorized feature service before field evaluation. Handler
+handler there. A normalized invalidation starts every effect whose start mode
+is `entityChanged` for that entity type and passes the entity reference as run
+input; the process runtime reloads the entity through its authorized feature
+service before field evaluation. Handler
 failures are logged and do not retroactively fail the mutation that already
 produced the invalidation.
 
