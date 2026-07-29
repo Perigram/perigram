@@ -13,6 +13,7 @@ Nuxt/Nitro backend for the CutKit modular monolith.
 | Workflows | `server/core/machines/` | Status transitions, hook dispatch, summaries. |
 | Commands | `server/core/commands/` | Command execution and `command_runs`. |
 | Tasks | `server/core/tasks/` | Async queue and `task_runs`. |
+| Domain events | `server/core/events/` | Validated in-process event dispatch to automatic consumers. |
 | Effects | `server/core/effects/` | Declared cross-entity effect execution. |
 | Runtime registry | `server/runtime/` | Explicit app registry binding domain contracts to services/handlers. |
 | Process definitions | `server/features/process-definitions/` | Organization-owned process graph drafts and compiled active runtime contracts. |

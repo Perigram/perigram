@@ -20,6 +20,9 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
   DTO redaction and frontend shared blocks.
 - `field-schemas.js` - exact process-programming field paths with canonical
   blocks, structured value/shape/domain/unit types, and read/write capability.
+  `origin.timestamp` and `status.timestamp` are date-time values, so process
+  date operations preserve their time component when scheduling from a
+  lifecycle entry.
 - `entity-construction.js` - create-time construction contracts used by process
   action nodes and generated action dialogs.
 - `ui.js` - design-system policy metadata, not Vue components.

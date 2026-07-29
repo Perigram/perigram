@@ -44,19 +44,19 @@ definition, and surfaces activation warnings/errors in the validation panel so
 operators can tell when the graph became the organization's active process.
 The route uses the
 authenticated app layout with a full canvas workspace and compact floating
-controls over it. The graph palette is a compact, descriptive control grouped
-into start/input, values, entities/fields, selection/filtering, actions, flow,
-and advanced data structures. Its framework metadata comes from
-`createProcessDesignerContract(cncDomain)`; the route supplies CNC as the active
-domain implementation rather than importing separate CNC field/construction
-registries. The palette is deliberately not the exhaustive runtime catalog:
-automatic conversions and trigger-payload plumbing are inserted by connection
-planning and cannot be added as unexplained empty nodes. Advanced scheduling,
-control, collection, and tree operations remain available behind an explicit
-reveal. Palette rows explain the concrete job before adding the node, while
-text, number, and yes/no choices create correctly typed literals immediately.
-The persistent panel renders those operations as a compact two-column grid;
-the full job description is a tooltip, not permanent panel prose.
+controls over it. The graph palette is a compact, descriptive control with four
+concerns only: Entities, Values, Lists and trees, and Events. Its framework
+metadata comes from `createProcessDesignerContract(cncDomain)`; the route
+supplies CNC as the active domain implementation rather than importing
+separate CNC field/construction registries. The palette is deliberately not
+the exhaustive runtime catalog: casts, patches, predicates, ambient current
+entity reads, and trigger-payload plumbing cannot be added as unexplained empty
+nodes. Value input selects its type in one node. Logic/comparison, text, math,
+and date each select their operation in one node. Grasshopper-style list/tree
+operations provide selection and structure work without a second entity-query
+language. The persistent panel renders those operations as a readable
+two-column grid; the full job description is a tooltip, not permanent panel
+prose.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
 moving the canvas.
@@ -98,13 +98,12 @@ mixed into node inspection. The remaining inspector surfaces are:
 - the screens tab owns screen id, label, generated UI template, source entity/mode rows, display region rows, route, placement, required access, role ids, assignment binding, and screen action ids;
 - entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
 - the action-node inspector owns fixed action kind, trigger mode, per-role access level, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket; the canvas node shows only the accurate semantic summary and ports;
-- process algebra nodes own task-specific controls for their palette type:
-  traversal for entity references, entity-to-block decomposition, block/path
-  output selection, text transform, comparison condition, boolean composition,
-  or collection result; the route derives kind, operation/mode, and typed
-  sockets from those controls. Entity and block settings are recalculated from
-  incoming wires during graph sync, so process nodes that read entities or
-  blocks follow the connected source contract in real time;
+- process algebra nodes own their entity/field/block/type/operation controls
+  and typed inline fallbacks. Create/modify/deconstruct expose selected domain
+  fields directly as sockets. Generic value/list/tree nodes infer transported
+  type and structure from incoming wires, so reading a field across an entity
+  list, producing a logic mask, and filtering the original list is ordinary
+  aligned dataflow rather than a special query-node language;
 - service nodes own command selection, run/view service identities, prepaid
   token billing metadata, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;

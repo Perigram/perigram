@@ -33,18 +33,25 @@ optimistic `revision`. A step receipt owns one effect idempotency key and its
 running/succeeded/failed result. Unique step keys prevent a resumed request
 from applying the same external effect twice.
 
-`POST /api/process-definitions/:id/runs` starts a v3 trigger and advances one
-durable boundary. `POST /api/process-definitions/runs/:id/resume` resumes a
-running run or a due wait. `GET /api/process-definitions/runs/:id` reads the
-authorized run. Every route checks organization access through this feature's
-service; API handlers do not touch the orchestration collections.
+`POST /api/process-definitions/:id/runs` starts a manual v3 trigger and drives
+it until success, failure, or a wait boundary.
+`POST /api/process-definitions/runs/:id/resume` provides an explicit recovery
+resume, and `GET /api/process-definitions/runs/:id` reads the authorized run.
+The process-orchestration Nitro plugin registers entity/domain event handlers
+and polls due `wakeAt` records; automatic triggers and absolute-date
+continuations therefore use the same persisted run path as manual execution.
+The originating actor/access snapshot is stored with the run so a due
+continuation re-enters the normal feature access boundary. API handlers do not
+touch orchestration collections.
 
 The pure scheduler lives in `@cutkit/processes`. This service supplies only
 authorized read adapters and effect adapters. Reads use registered entity
 services. Effects delegate to command, entity, status, projection, or
-attachment services and never write another feature's repository. Effect
-inputs are already composed entity drafts, entity refs, patches, statuses, or
-parameter records.
+attachment services and never write another feature's repository. Create and
+update effects consume their selected schema field sockets directly. The
+service constructs the nested create DTO or flat update set at the effect
+boundary; legacy draft/patch composition is migrated out of stored v3 graphs
+rather than supported as a second execution contract.
 Process definition management also accepts the active organization membership's
 stored `organizations` grants as a narrow recovery path. Membership role labels
 and sole-member status do not imply process management access; the recovery path

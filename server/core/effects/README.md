@@ -10,6 +10,8 @@ consequences.
 - Resolves entity services and status transitions through the runtime registry.
 - Keeps cross-entity orchestration out of command, task, and hook handlers.
 - Returns normalized effect summaries for API responses and run history.
+- Publishes each validated domain event through `server/core/events` so
+  matching active-process domain-event triggers can start automatically.
 
 ## Related
 
