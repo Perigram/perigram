@@ -1,4 +1,4 @@
-import { normalizeProcessSocket, processType } from './types.js';
+import { legacyProcessType, normalizeProcessSocket, processType } from './types.js';
 
 const DATA = 'data';
 const CONTROL = 'control';
@@ -199,7 +199,7 @@ function catalogPorts(record = {}, context = {}) {
   }
   if (kind === 'value.cast' || kind === 'value.parse' || kind === 'value.convertUnit'
     || kind === 'value.toJson' || kind === 'value.required' || kind === 'value.validate'
-    || kind === 'value.dateTime' || kind === 'value.enum' || kind === 'value.format') {
+    || kind === 'value.enum' || kind === 'value.format') {
     return unary(
       processTypeFrom(record.sourceType, configured),
       processTypeFrom(record.outputType, configured)
@@ -215,16 +215,89 @@ function catalogPorts(record = {}, context = {}) {
     inputs: [socket('value', { ...configured, nullable: true }, DATA, true), socket('fallback', configured, DATA, true)],
     outputs: [socket('value', { ...configured, nullable: false })]
   };
-  if (kind === 'value.math') return binary(sameShape('number'), sameShape('number'));
-  if (kind === 'value.string') return binary(sameShape('string'), sameShape('string'));
+  if (kind === 'value.math') {
+    if (['absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt'].includes(record.operation)) {
+      return unary(sameShape('number'), sameShape('number'));
+    }
+    if (record.operation === 'clamp') return {
+      inputs: [
+        socket('value', sameShape('number'), DATA, true),
+        socket('min', sameShape('number'), DATA, true),
+        socket('max', sameShape('number'), DATA, true)
+      ],
+      outputs: [socket('value', sameShape('number'))]
+    };
+    return binary(sameShape('number'), sameShape('number'));
+  }
+  if (kind === 'value.string') {
+    if (['lower', 'upper', 'trim'].includes(record.operation)) return unary(sameShape('string'), sameShape('string'));
+    if (record.operation === 'substring') return {
+      inputs: [
+        socket('text', sameShape('string'), DATA, true),
+        socket('start', sameShape('integer'), DATA, true),
+        socket('end', sameShape('integer'))
+      ],
+      outputs: [socket('value', sameShape('string'))]
+    };
+    if (record.operation === 'split') return {
+      inputs: [socket('text', sameShape('string'), DATA, true), socket('separator', sameShape('string'), DATA, true)],
+      outputs: [socket('value', processType('string', { shape: 'list' }))]
+    };
+    if (record.operation === 'join') return {
+      inputs: [socket('items', processType('string', { shape: 'list' }), DATA, true), socket('separator', sameShape('string'), DATA, true)],
+      outputs: [socket('value', sameShape('string'))]
+    };
+    if (record.operation === 'length') return {
+      inputs: [socket('value', sameShape('string'), DATA, true)],
+      outputs: [socket('value', sameShape('integer'))]
+    };
+    if (record.operation === 'replace') return {
+      inputs: [
+        socket('text', sameShape('string'), DATA, true),
+        socket('search', sameShape('string'), DATA, true),
+        socket('replacement', sameShape('string'), DATA, true)
+      ],
+      outputs: [socket('value', sameShape('string'))]
+    };
+    return binary(sameShape('string'), sameShape('string'));
+  }
+  if (kind === 'value.dateTime') {
+    if (['startOfDay', 'endOfDay'].includes(record.operation)) {
+      return unary(sameShape('dateTime'), sameShape('dateTime'));
+    }
+    if (['differenceDays', 'differenceHours', 'differenceMinutes'].includes(record.operation)) {
+      return {
+        inputs: [socket('left', sameShape('dateTime'), DATA, true), socket('right', sameShape('dateTime'), DATA, true)],
+        outputs: [socket('value', sameShape('number'))]
+      };
+    }
+    if (['addDuration', 'subtractDuration'].includes(record.operation)) {
+      return {
+        inputs: [socket('date', sameShape('dateTime'), DATA, true), socket('duration', sameShape('duration'), DATA, true)],
+        outputs: [socket('value', sameShape('dateTime'))]
+      };
+    }
+    return {
+      inputs: [socket('date', sameShape('dateTime'), DATA, true), socket('amount', sameShape('number'), DATA, true)],
+      outputs: [socket('value', sameShape('dateTime'))]
+    };
+  }
   if (kind === 'value.compare') return {
     inputs: [socket('left', configured, DATA, true), socket('right', configured, DATA, true)],
     outputs: [socket('result', sameShape('boolean'))]
   };
-  if (kind === 'value.logic') return {
-    inputs: [socket('left', sameShape('boolean'), DATA, true), socket('right', sameShape('boolean'))],
-    outputs: [socket('result', sameShape('boolean'))]
-  };
+  if (kind === 'value.logic') {
+    const comparison = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'].includes(record.operation);
+    const unaryOperation = ['not', 'isNull', 'isNotNull'].includes(record.operation);
+    const inputType = comparison ? configured : sameShape('boolean');
+    return {
+      inputs: [
+        socket('left', inputType, DATA, true),
+        ...(!unaryOperation ? [socket('right', inputType, DATA, true)] : [])
+      ],
+      outputs: [socket('result', sameShape('boolean'))]
+    };
+  }
   if (kind === 'collection.makeList') return unary({ ...configured, shape: 'item' }, { ...configured, shape: 'list' });
   if (kind === 'collection.concat') return binary({ ...configured, shape: 'list' }, { ...configured, shape: 'list' });
   if (kind === 'collection.itemAt') return {
@@ -257,7 +330,7 @@ function catalogPorts(record = {}, context = {}) {
   if (kind === 'tree.transpose') return unary({ ...configured, shape: 'tree' }, { ...configured, shape: 'tree' });
   if (kind === 'record.getField') {
     const field = context.fieldSchema || record.fieldSchema;
-    return unary(entity, processTypeFrom(field?.type, configured));
+    return unary(entity, { ...processTypeFrom(field?.type, configured), shape: entity.shape });
   }
   if (kind === 'record.fieldChange') return {
     inputs: [socket('value', processTypeFrom(context.fieldSchema?.type || record.fieldSchema?.type, configured), DATA, true)],
@@ -279,7 +352,7 @@ function catalogPorts(record = {}, context = {}) {
     const fields = dynamicFields(record, context);
     return {
       inputs: [socket('record', entity, DATA, true)],
-      outputs: fields.map(field => socket(field.path, field.type))
+      outputs: fields.map(field => socket(field.path, { ...field.type, shape: entity.shape }))
     };
   }
   if (kind === 'record.getBlock') return unary(entity, processType('block', { block: record.block, shape: entity.shape }));
@@ -306,14 +379,23 @@ function catalogPorts(record = {}, context = {}) {
     outputs: [socket('entities', entityList)]
   };
   if (kind.startsWith('effect.')) {
-    const specific = effectInputs(kind, { entity, entityRef, patch, configured, parentEntityType: record.parentEntityType });
+    const specific = effectInputs(kind, {
+      entity,
+      entityRef,
+      patch,
+      configured,
+      parentEntityType: record.parentEntityType,
+      dynamicFields: dynamicFields(record, context),
+      constructionInputs: constructionInputs(record)
+    });
     return {
       inputs: [...controlInput, ...specific],
       outputs: [...successFailure, socket('result', effectResultType(kind, record))]
     };
   }
   if (kind.endsWith('Trigger')) {
-    return { inputs: [], outputs: [socket('start', event, CONTROL), socket('payload', processType('json'))] };
+    const payload = record.entityType ? entity : processType('json');
+    return { inputs: [], outputs: [socket('start', event, CONTROL), socket('payload', payload)] };
   }
   if (kind === 'control.if') return {
     inputs: [...controlInput, socket('condition', processType('boolean'), DATA, true)],
@@ -378,10 +460,17 @@ function dynamicFields(record, context) {
 
 function effectInputs(kind, types) {
   if (kind === 'effect.createEntity') return [
-    socket('draft', types.entity, DATA, true),
+    ...types.constructionInputs.map(input => ({
+      ...socket(input.id, input.type, DATA, input.required),
+      label: input.label || input.id
+    })),
+    ...types.dynamicFields.map(field => socket(field.path, field.type, DATA, true)),
     socket('parent', processType('entityRef', { entityType: types.parentEntityType }))
   ];
-  if (kind === 'effect.updateEntity') return [socket('entity', types.entityRef, DATA, true), socket('changes', types.patch, DATA, true)];
+  if (kind === 'effect.updateEntity') return [
+    socket('entity', types.entityRef, DATA, true),
+    ...types.dynamicFields.map(field => socket(field.path, field.type, DATA, true))
+  ];
   if (kind === 'effect.changeStatus') return [
     socket('entity', types.entityRef, DATA, true),
     socket('status', processType('status', { entityType: types.entity.entityType }), DATA, true),
@@ -391,6 +480,20 @@ function effectInputs(kind, types) {
   if (kind === 'effect.sendEntity') return [socket('entity', types.entityRef, DATA, true)];
   if (kind === 'effect.generateAttachment') return [socket('entity', types.entityRef, DATA, true), socket('parameters', processType('record'))];
   return [];
+}
+
+function constructionInputs(record = {}) {
+  return (record.construction?.inputs || []).map(input => {
+    const multiple = input.type === 'entityList';
+    const type = input.type === 'entity' || multiple
+      ? processType('entityRef', {
+          entityType: input.entityType,
+          accepts: input.accepts,
+          shape: multiple ? 'list' : 'item'
+        })
+      : legacyProcessType(input.type || 'json');
+    return { ...input, id: input.id || input.path, type };
+  }).filter(input => input.id);
 }
 
 function effectResultType(kind, record) {

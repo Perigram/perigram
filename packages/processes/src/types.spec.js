@@ -29,30 +29,30 @@ describe('process v3 type algebra', () => {
     )).toMatchObject({ ok: false, convertible: false });
   });
 
-  it('requires visible conversions for safe type changes', () => {
+  it('performs safe scalar and entity-reference coercions without plumbing nodes', () => {
     expect(processTypesCompatible(
       processType('integer'),
       processType('number')
     )).toMatchObject({
-      ok: false,
-      convertible: true,
-      conversion: { nodeKind: 'value.cast' }
+      ok: true,
+      implicit: true,
+      coercion: 'integerToNumber'
     });
     expect(processTypesCompatible(
       processType('entity', { entityType: 'queue' }),
       processType('entityRef', { entityType: 'queue' })
     )).toMatchObject({
-      ok: false,
-      convertible: true,
-      conversion: { nodeKind: 'value.toEntityRef' }
+      ok: true,
+      implicit: true,
+      coercion: 'entityToReference'
     });
   });
 
-  it('rejects nullable values and unlike entity types without a visible operation', () => {
+  it('rejects nullable values and unlike entity types that require author intent', () => {
     expect(processTypesCompatible(
       processType('string', { nullable: true }),
       processType('string')
-    )).toMatchObject({ convertible: true, conversion: { nodeKind: 'value.required' } });
+    )).toMatchObject({ ok: false, convertible: false });
     expect(processTypesCompatible(
       processType('entity', { entityType: 'project' }),
       processType('entity', { entityType: 'queue' })

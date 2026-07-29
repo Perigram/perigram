@@ -20,7 +20,6 @@ const paletteItem = (id, kind, options = {}) => Object.freeze({
   label: id,
   description: id,
   icon: iconForNode(kind),
-  advanced: false,
   preset: {},
   ...options
 });
@@ -30,92 +29,60 @@ const paletteItem = (id, kind, options = {}) => Object.freeze({
 // those operations and may insert them when two compatible sockets are joined.
 export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
-    id: 'startAndInput',
+    id: 'entities',
     items: [
-      paletteItem('whenStarted', 'control.manualTrigger'),
-      paletteItem('currentTime', 'source.currentTime')
+      paletteItem('createEntity', 'effect.createEntity'),
+      paletteItem('modifyEntity', 'effect.updateEntity'),
+      paletteItem('deconstructEntity', 'record.deconstruct'),
+      paletteItem('readBlock', 'record.getBlock'),
+      paletteItem('readField', 'record.getField')
     ]
   },
   {
     id: 'values',
     items: [
-      paletteItem('textValue', 'source.literalItem', { preset: { type: { base: 'string', shape: 'item', nullable: false }, value: '' } }),
-      paletteItem('numberValue', 'source.literalItem', { preset: { type: { base: 'number', shape: 'item', nullable: false }, value: 0 } }),
-      paletteItem('yesNoValue', 'source.literalItem', { preset: { type: { base: 'boolean', shape: 'item', nullable: false }, value: false } }),
-      paletteItem('listValue', 'source.literalList', { preset: { type: { base: 'json', shape: 'list', nullable: false }, value: [] }, advanced: true }),
-      paletteItem('fallbackValue', 'value.coalesce'),
+      paletteItem('valueInput', 'source.literalItem', { preset: { type: { base: 'string', shape: 'item', nullable: false }, value: '' } }),
+      paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', shape: 'item', nullable: true }, operation: 'eq' } }),
+      paletteItem('text', 'value.string', { preset: { type: { base: 'string', shape: 'item', nullable: false }, operation: 'concat' } }),
       paletteItem('calculate', 'value.math', { preset: { type: { base: 'number', shape: 'item', nullable: false } } }),
-      paletteItem('editText', 'value.string', { preset: { type: { base: 'string', shape: 'item', nullable: false } } }),
-      paletteItem('compareValues', 'value.compare', { preset: { type: { base: 'string', shape: 'item', nullable: true } } }),
-      paletteItem('combineConditions', 'value.logic'),
-      paletteItem('formatValue', 'value.format', { advanced: true })
+      paletteItem('date', 'value.dateTime', {
+        preset: {
+          type: { base: 'dateTime', shape: 'item', nullable: false },
+          operation: 'addDays',
+          inputDefaults: { amount: 30 }
+        }
+      })
     ]
   },
   {
-    id: 'entitiesAndFields',
+    id: 'listTree',
     items: [
-      paletteItem('currentEntity', 'read.currentEntity'),
-      paletteItem('findEntityById', 'read.entityById'),
-      paletteItem('findEntities', 'read.queryEntities'),
-      paletteItem('relatedEntities', 'read.related'),
-      paletteItem('readField', 'record.getField'),
-      paletteItem('readBlock', 'record.getBlock'),
-      paletteItem('setField', 'record.fieldChange'),
-      paletteItem('combineFieldChanges', 'record.mergeChanges'),
-      paletteItem('applyFieldChanges', 'record.applyChanges'),
-      paletteItem('composeEntityData', 'record.entityDraft'),
-      paletteItem('decomposeEntity', 'record.deconstruct', { advanced: true }),
-      paletteItem('parentEntity', 'read.parent', { advanced: true }),
-      paletteItem('childEntities', 'read.children', { advanced: true })
+      paletteItem('makeList', 'collection.makeList'),
+      paletteItem('joinLists', 'collection.concat'),
+      paletteItem('itemAtPosition', 'collection.itemAt'),
+      paletteItem('sliceList', 'collection.slice'),
+      paletteItem('listCount', 'collection.count'),
+      paletteItem('filterList', 'collection.filter'),
+      paletteItem('sortItems', 'collection.sort'),
+      paletteItem('removeDuplicates', 'collection.distinct'),
+      paletteItem('groupItems', 'collection.groupBy'),
+      paletteItem('flattenTree', 'tree.flatten'),
+      paletteItem('graftTree', 'tree.graft'),
+      paletteItem('simplifyTree', 'tree.simplify'),
+      paletteItem('treeBranch', 'tree.branch'),
+      paletteItem('zipLists', 'tree.zip'),
+      paletteItem('unzipLists', 'tree.unzip'),
+      paletteItem('crossLists', 'tree.cross'),
+      paletteItem('transposeTree', 'tree.transpose')
     ]
   },
   {
-    id: 'selection',
+    id: 'events',
     items: [
-      paletteItem('fieldCondition', 'predicate.field'),
-      paletteItem('combineFilters', 'predicate.logic'),
-      paletteItem('filterEntities', 'read.filterRecords')
-    ]
-  },
-  {
-    id: 'actions',
-    items: [
-      paletteItem('createEntity', 'effect.createEntity'),
-      paletteItem('updateEntity', 'effect.updateEntity'),
-      paletteItem('changeStatus', 'effect.changeStatus'),
-      paletteItem('runService', 'effect.runCommand'),
-      paletteItem('sendEntity', 'effect.sendEntity'),
-      paletteItem('generateAttachment', 'effect.generateAttachment', { advanced: true })
-    ]
-  },
-  {
-    id: 'flow',
-    items: [
-      paletteItem('choosePath', 'control.if'),
-      paletteItem('forEachEntity', 'control.forEach'),
-      paletteItem('waitForTime', 'control.waitDuration'),
-      paletteItem('waitUntilTime', 'control.waitUntil', { advanced: true }),
-      paletteItem('stopProcess', 'control.stopSuccess'),
-      paletteItem('stopWithError', 'control.stopFailure', { advanced: true }),
-      paletteItem('parallelPaths', 'control.fork', { advanced: true }),
-      paletteItem('joinAllPaths', 'control.joinAll', { advanced: true }),
-      paletteItem('joinAnyPath', 'control.joinAny', { advanced: true })
-    ]
-  },
-  {
-    id: 'dataStructures',
-    items: [
-      paletteItem('makeList', 'collection.makeList', { advanced: true }),
-      paletteItem('joinLists', 'collection.concat', { advanced: true }),
-      paletteItem('itemAtPosition', 'collection.itemAt', { advanced: true }),
-      paletteItem('listCount', 'collection.count', { advanced: true }),
-      paletteItem('sortItems', 'collection.sort', { advanced: true }),
-      paletteItem('removeDuplicates', 'collection.distinct', { advanced: true }),
-      paletteItem('groupItems', 'collection.groupBy', { advanced: true }),
-      paletteItem('flattenTree', 'tree.flatten', { advanced: true }),
-      paletteItem('graftTree', 'tree.graft', { advanced: true }),
-      paletteItem('treeBranch', 'tree.branch', { advanced: true }),
-      paletteItem('zipLists', 'tree.zip', { advanced: true })
+      paletteItem('manualEvent', 'control.manualTrigger'),
+      paletteItem('entityEvent', 'control.entityChangedTrigger'),
+      paletteItem('domainEvent', 'control.domainEventTrigger'),
+      paletteItem('continueAtDate', 'control.waitUntil')
     ]
   }
 ].map(group => Object.freeze({

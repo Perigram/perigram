@@ -104,25 +104,25 @@ export function processTypesCompatible(sourceType, targetType) {
   const shape = shapeCompatibility(source.shape, target.shape);
   if (!shape.ok) return incompatible(shape.reason, source, target);
   if (source.nullable && !target.nullable) {
-    return convertible('value.required', 'Nullable values require an explicit required/coalesce conversion', source, target);
+    return incompatible('A nullable value cannot satisfy a required socket; handle the empty case first', source, target);
   }
   if (sameQualifiedType(source, target)) {
     return { ok: true, implicit: true, source, target, broadcast: shape.broadcast };
   }
   if (source.base === 'integer' && target.base === 'number') {
-    return convertible('value.cast', 'Integer to number conversion must remain visible', source, target);
+    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'integerToNumber' };
   }
   if (source.base === 'entity' && target.base === 'entityRef' && sameEntityType(source, target)) {
-    return convertible('value.toEntityRef', 'Entity to reference conversion must remain visible', source, target);
+    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'entityToReference' };
   }
   if (source.base === 'date' && target.base === 'dateTime') {
-    return convertible('value.cast', 'Date to date-time conversion must remain visible', source, target);
+    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'dateToDateTime' };
   }
   if (source.base === 'number' && target.base === 'number' && source.unit && target.unit && source.unit !== target.unit) {
     return convertible('value.convertUnit', `Unit conversion ${source.unit} → ${target.unit} must remain visible`, source, target);
   }
   if (target.base === 'json') {
-    return convertible('value.toJson', 'Structured values require a visible JSON conversion', source, target);
+    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'toJson' };
   }
   return incompatible(`Expected ${formatProcessType(target)}, received ${formatProcessType(source)}`, source, target);
 }

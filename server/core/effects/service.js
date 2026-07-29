@@ -2,6 +2,7 @@ import { createError } from 'h3';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import { statusService } from '../machines/service.js';
 import { enqueueTask } from '../tasks/service.js';
+import { publishDomainEvent } from '../events/service.js';
 import { getPrimaryState } from '~/server/core/blocks/index.js';
 
 export async function processEffects(effects = [], context = {}) {
@@ -55,6 +56,7 @@ export async function processEvents(events = [], context = {}) {
       });
       mergeProcessedEffects(processed, result);
     }
+    await publishDomainEvent(normalizedEvent, context.auth || {});
   }
 
   return processed;

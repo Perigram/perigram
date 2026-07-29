@@ -83,6 +83,15 @@ export async function findRunById(id) {
   return await db.collection(RUNS_COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
+export async function findDueRuns(now = new Date(), limit = 50) {
+  const db = await connectDB();
+  return await db.collection(RUNS_COLLECTION)
+    .find({ status: 'waiting', wakeAt: { $lte: new Date(now).toISOString() } })
+    .sort({ wakeAt: 1 })
+    .limit(limit)
+    .toArray();
+}
+
 export async function updateRun(run) {
   const db = await connectDB();
   const id = toFlexibleId(run._id || run.id);
