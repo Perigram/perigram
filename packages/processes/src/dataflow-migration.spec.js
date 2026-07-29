@@ -36,7 +36,7 @@ describe('process v3 data-flow migration', () => {
           { id: 'change-update', source: 'change', sourceHandle: 'change', target: 'update', targetHandle: 'input:data' }
         ]
       }
-    });
+    }, cncDomain);
 
     expect(result.changed).toBe(true);
     expect(result.value.dataflowVersion).toBe(3);
@@ -47,18 +47,22 @@ describe('process v3 data-flow migration', () => {
       type: { base: 'string', shape: 'item' }
     });
     expect(result.value.processNodes.query).toBeUndefined();
-    expect(result.value.processNodes.change).toMatchObject({
-      kind: 'record.fieldChange',
-      path: 'identity.name'
+    expect(result.value.processNodes.change).toBeUndefined();
+    expect(result.value.processNodes['effect:update']).toMatchObject({
+      kind: 'effect.updateEntity',
+      fields: ['identity.name']
     });
-    expect(result.value.processNodes['effect:update'].kind).toBe('effect.updateEntity');
-    expect(result.value.processNodes['trigger:update'].kind).toBe('control.manualTrigger');
+    expect(result.value.processNodes['trigger:update']).toMatchObject({
+      kind: 'control.manualTrigger',
+      entityType: 'queue'
+    });
+    expect(result.value.processNodes['current:entity:update']).toBeUndefined();
+    expect(result.value.processNodes['ref:entity:update']).toBeUndefined();
     expect(result.value.processNodes['effect:update'].entryTriggerId).toBe('trigger:update');
     expect(result.value.graph.nodes.every(node => node.type === 'processNode')).toBe(true);
     expect(result.value.graph.edges).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'literal-change', sourceHandle: 'data:value', targetHandle: 'data:value', role: 'data' }),
-      expect.objectContaining({ id: 'change-update', target: 'change:update:1', targetHandle: 'data:value', role: 'data' }),
-      expect.objectContaining({ source: 'change:update:1', target: 'update', targetHandle: 'data:changes', role: 'data' })
+      expect.objectContaining({ source: 'name', sourceHandle: 'data:value', target: 'update', targetHandle: 'data:identity.name', role: 'data' }),
+      expect.objectContaining({ source: 'trigger:update', sourceHandle: 'data:payload', target: 'update', targetHandle: 'data:entity', role: 'data' })
     ]));
   });
 
@@ -132,6 +136,59 @@ describe('process v3 data-flow migration', () => {
       graph: { nodes: [{ id: 'source', type: 'processNode' }], edges: [] }
     };
     expect(migrateProcessDataflowDefinition(definition)).toEqual({ changed: false, value: definition });
+  });
+
+  it('replaces v3 draft composition with direct create field sockets', () => {
+    const definition = {
+      dataflowVersion: 3,
+      processNodes: {
+        name: { id: 'name', kind: 'source.literalItem', value: 'Project', type: { base: 'string', shape: 'item' } },
+        draft: {
+          id: 'draft',
+          kind: 'record.entityDraft',
+          entityType: 'project',
+          fields: ['identity.name'],
+          fieldSchemas: [{ path: 'identity.name', type: { base: 'string', shape: 'item' } }]
+        },
+        create: { id: 'create', kind: 'effect.createEntity', entityType: 'project' }
+      },
+      graph: {
+        nodes: ['name', 'draft', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'name-draft', source: 'name', sourceHandle: 'data:value', target: 'draft', targetHandle: 'data:identity.name', role: 'data' },
+          { id: 'draft-create', source: 'draft', sourceHandle: 'data:record', target: 'create', targetHandle: 'data:draft', role: 'data' }
+        ]
+      }
+    };
+
+    const migrated = migrateProcessDataflowDefinition(definition).value;
+    expect(migrated.processNodes.draft).toBeUndefined();
+    expect(migrated.processNodes.create.fields).toEqual(['identity.name']);
+    expect(migrated.graph.edges).toContainEqual(expect.objectContaining({
+      source: 'name',
+      target: 'create',
+      targetHandle: 'data:identity.name'
+    }));
+  });
+
+  it('stops on ambiguous hybrid direct and composed field wiring', () => {
+    expect(() => migrateProcessDataflowDefinition({
+      dataflowVersion: 3,
+      processNodes: {
+        name: { id: 'name', kind: 'source.literalItem', type: { base: 'string' }, value: 'Direct' },
+        legacyName: { id: 'legacyName', kind: 'source.literalItem', type: { base: 'string' }, value: 'Legacy' },
+        draft: { id: 'draft', kind: 'record.entityDraft', entityType: 'queue', fields: ['identity.name'] },
+        create: { id: 'create', kind: 'effect.createEntity', entityType: 'queue', fields: ['identity.name'] }
+      },
+      graph: {
+        nodes: ['name', 'legacyName', 'draft', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'legacy-name-draft', source: 'legacyName', sourceHandle: 'data:value', target: 'draft', targetHandle: 'data:identity.name', role: 'data' },
+          { id: 'draft-create', source: 'draft', sourceHandle: 'data:record', target: 'create', targetHandle: 'data:draft', role: 'data' },
+          { id: 'name-create', source: 'name', sourceHandle: 'data:value', target: 'create', targetHandle: 'data:identity.name', role: 'data' }
+        ]
+      }
+    }, cncDomain)).toThrow(/wired both directly and through legacy composition/);
   });
 
   it('migrates every starter template into an activatable v3 graph', () => {

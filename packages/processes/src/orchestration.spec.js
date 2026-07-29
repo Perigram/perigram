@@ -119,4 +119,76 @@ describe('durable process orchestration', () => {
     expect(completed.status).toBe('succeeded');
     expect(executeEffect.mock.calls.map(call => call[0].inputs.parameters)).toEqual([{ n: 1 }, { n: 2 }]);
   });
+
+  it('routes a typed automatic entity event payload into entity data operations', async () => {
+    const definition = process([
+      { id: 'trigger', kind: 'control.entityChangedTrigger', entityType: 'project' },
+      { id: 'field', kind: 'record.getField', entityType: 'project', path: 'status.timestamp', fieldSchema: { type: { base: 'dateTime' } } },
+      { id: 'date', kind: 'value.dateTime', operation: 'addDays', inputDefaults: { amount: 30 } },
+      { id: 'wait', kind: 'control.waitUntil' },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['trigger', 'field', 'date', 'wait', 'stop'], [
+      control('trigger', 'start', 'wait'),
+      {
+        id: 'payload-field',
+        source: 'trigger',
+        sourceHandle: 'data:payload',
+        target: 'field',
+        targetHandle: 'data:value',
+        role: 'data'
+      },
+      data('field', 'date', 'date'),
+      data('date', 'wait', 'at'),
+      control('wait', 'out', 'stop')
+    ]);
+    const currentEntity = vi.fn().mockResolvedValue({ status: { timestamp: '2026-01-01T10:00:00.000Z' } });
+    const now = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:00.000Z'));
+    const waiting = await advanceProcessRun(
+      createProcessRun(definition, { kind: 'control.entityChangedTrigger', entityType: 'project' }, { now }),
+      definition,
+      { now, data: { currentEntity } }
+    );
+    expect(waiting.status).toBe('waiting');
+    expect(waiting.wakeAt).toBe('2026-01-31T10:00:00.000Z');
+    expect(currentEntity).toHaveBeenCalledWith('project');
+  });
+
+  it('uses a typed manual event payload instead of an ambient current-entity node', async () => {
+    const definition = process([
+      { id: 'trigger', kind: 'control.manualTrigger', entityType: 'project' },
+      {
+        id: 'modify',
+        kind: 'effect.updateEntity',
+        entityType: 'project',
+        fields: ['identity.name'],
+        fieldSchemas: [{ path: 'identity.name', type: { base: 'string' } }],
+        inputDefaults: { 'identity.name': 'Renamed' }
+      }
+    ], ['trigger', 'modify'], [
+      control('trigger', 'start', 'modify'),
+      {
+        id: 'payload-modify',
+        source: 'trigger',
+        sourceHandle: 'data:payload',
+        target: 'modify',
+        targetHandle: 'data:entity',
+        role: 'data'
+      }
+    ]);
+    const entity = { _id: 'project-1', identity: { name: 'Original' } };
+    const executeEffect = vi.fn().mockResolvedValue({ ...entity, identity: { name: 'Renamed' } });
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { kind: 'control.manualTrigger' }),
+      definition,
+      { executeEffect, data: { currentEntity: vi.fn().mockResolvedValue(entity) } }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      inputs: {
+        entity,
+        'identity.name': 'Renamed'
+      }
+    }));
+  });
 });

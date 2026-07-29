@@ -85,4 +85,85 @@ describe('process v3 node catalog', () => {
       entityType: 'sheet'
     });
   });
+
+  it('derives entity create/modify sockets from selected domain fields', () => {
+    const context = {
+      fieldSchemas: [
+        { path: 'identity.name', type: { base: 'string', shape: 'item' } },
+        { path: 'status.state.primary', type: { base: 'status', shape: 'item' } }
+      ]
+    };
+    const create = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      entityType: 'project',
+      fields: ['identity.name']
+    }, context);
+    const modify = resolveCatalogNodePorts({
+      kind: 'effect.updateEntity',
+      entityType: 'project',
+      fields: ['identity.name', 'status.state.primary']
+    }, context);
+
+    expect(create.inputs.map(input => input.id)).toEqual(['in', 'identity.name', 'parent']);
+    expect(modify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity.name', 'status.state.primary']);
+  });
+
+  it('exposes typed construction inputs directly on create nodes', () => {
+    const create = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      entityType: 'cassette_design',
+      fields: [],
+      construction: {
+        mode: 'bakeCassetteDesignFromTemplate',
+        inputs: [
+          { id: 'name', label: 'Design name', path: 'name', type: 'string', required: true },
+          { id: 'templateId', label: 'Cassette template', path: 'templateId', type: 'entity', entityType: 'cassette', required: true }
+        ]
+      }
+    });
+
+    expect(create.inputs.find(input => input.id === 'name')).toMatchObject({
+      required: true,
+      type: { base: 'string' }
+    });
+    expect(create.inputs.find(input => input.id === 'templateId')).toMatchObject({
+      required: true,
+      type: { base: 'entityRef', entityType: 'cassette' }
+    });
+  });
+
+  it('changes unified logic and date sockets with the selected operation', () => {
+    expect(resolveCatalogNodePorts({ kind: 'value.logic', operation: 'not' }).inputs.map(input => input.id)).toEqual(['left']);
+    expect(resolveCatalogNodePorts({ kind: 'value.logic', operation: 'gte', type: { base: 'dateTime' } }).inputs.map(input => input.type.base))
+      .toEqual(['dateTime', 'dateTime']);
+    expect(resolveCatalogNodePorts({ kind: 'value.dateTime', operation: 'addDays' }).inputs.map(input => [input.id, input.type.base]))
+      .toEqual([['date', 'dateTime'], ['amount', 'number']]);
+    expect(resolveCatalogNodePorts({ kind: 'value.dateTime', operation: 'differenceDays' }).outputs[0].type.base).toBe('number');
+  });
+
+  it('changes math and text sockets with the selected operation', () => {
+    expect(resolveCatalogNodePorts({ kind: 'value.math', operation: 'sqrt' }).inputs.map(port => port.id)).toEqual(['value']);
+    expect(resolveCatalogNodePorts({ kind: 'value.math', operation: 'clamp' }).inputs.map(port => port.id)).toEqual(['value', 'min', 'max']);
+    expect(resolveCatalogNodePorts({ kind: 'value.string', operation: 'substring' }).inputs.map(port => port.id)).toEqual(['text', 'start', 'end']);
+    expect(resolveCatalogNodePorts({ kind: 'value.string', operation: 'split' }).outputs[0].type.shape).toBe('list');
+  });
+
+  it('propagates entity list shape through field reads and deconstruction', () => {
+    const context = {
+      fieldSchema: { path: 'identity.name', type: { base: 'string', shape: 'item' } },
+      fieldSchemas: [{ path: 'identity.name', type: { base: 'string', shape: 'item' } }]
+    };
+    expect(resolveCatalogNodePorts({
+      kind: 'record.getField',
+      entityType: 'project',
+      shape: 'list',
+      path: 'identity.name'
+    }, context).outputs[0].type).toMatchObject({ base: 'string', shape: 'list' });
+    expect(resolveCatalogNodePorts({
+      kind: 'record.deconstruct',
+      entityType: 'project',
+      shape: 'list',
+      fields: ['identity.name']
+    }, context).outputs[0].type).toMatchObject({ base: 'string', shape: 'list' });
+  });
 });

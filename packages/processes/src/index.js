@@ -2352,6 +2352,32 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
       errors.push(`Process node ${nodeId} cannot modify read-only field ${node.entityType}.${node.path}`);
     }
   }
+  if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
+    if (node.kind === 'effect.updateEntity' && !node.fields?.length) {
+      errors.push(`Process node ${nodeId} must select at least one writable field`);
+    }
+    if (node.kind === 'effect.createEntity') {
+      const construction = normalizeConstruction(node.construction, node.entityType, domain);
+      const contract = constructionContract(domain, node.entityType);
+      if (!contract.modes.includes(construction.mode)) {
+        errors.push(`Process node ${nodeId} cannot create ${node.entityType} with construction mode ${construction.mode}`);
+      }
+      if (contract.derived && construction.mode === 'genericCreate') {
+        errors.push(`Process node ${nodeId} must use a typed construction mode for derived entity ${node.entityType}`);
+      }
+      if (!node.fields?.length && !construction.inputs.length) {
+        errors.push(`Process node ${nodeId} must select a writable field or declared construction input`);
+      }
+    }
+    validateFieldList(node.fields, domain, node.entityType, `process node ${nodeId} fields`, errors, 'write');
+  }
+  if (node.kind === 'control.entityChangedTrigger' && !node.entityType) {
+    errors.push(`Process node ${nodeId} must select an entity type`);
+  }
+  if (node.kind === 'control.domainEventTrigger') {
+    const events = new Set(Object.values(domain.events || {}).map(event => event.id).filter(Boolean));
+    if (!node.eventId || !events.has(node.eventId)) errors.push(`Process node ${nodeId} must select a registered event`);
+  }
   if (node.type) {
     try {
       normalizeProcessType(node.type);
@@ -2501,7 +2527,8 @@ function validateProcessNodeConnections(process = {}, errors = []) {
       counts.set(inputId, (counts.get(inputId) || 0) + 1);
     }
     for (const input of contract.inputs) {
-      if (input.required && !counts.has(input.id)) errors.push(`Process node ${nodeId} requires input ${input.id}`);
+      const hasDefault = Object.hasOwn(record.inputDefaults || {}, input.id);
+      if (input.required && !counts.has(input.id) && !hasDefault) errors.push(`Process node ${nodeId} requires input ${input.id}`);
       if ((counts.get(input.id) || 0) > 1 && !input.multiple) errors.push(`Process node ${nodeId} input ${input.id} has more than one connected value`);
     }
   }

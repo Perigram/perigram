@@ -193,6 +193,10 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
   for (const port of dataInputs) {
     const edge = incomingData(process, node.id, port.id);
     if (!edge) {
+      if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
+        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.type?.shape);
+        continue;
+      }
       if (port.required) throw new Error(`Node ${record.id || node.id} requires input ${port.id}`);
       continue;
     }
@@ -209,11 +213,23 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   resolving.add(cacheKey);
   const node = processNode(process, nodeId);
   const record = process.processNodes[recordId(node)];
+  if (record.kind?.endsWith('Trigger') && outputId === 'payload') {
+    const value = record.entityType
+      ? await environment.data?.currentEntity?.(record.entityType)
+      : (run.trigger?.payload ?? run.trigger);
+    const packet = createDataPacket(structuredClone(value));
+    resolving.delete(cacheKey);
+    return packet;
+  }
   const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
   const inputs = {};
   for (const port of ports.inputs.filter(item => item.role === 'data')) {
     const edge = incomingData(process, node.id, port.id);
     if (!edge) {
+      if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
+        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.type?.shape);
+        continue;
+      }
       if (port.required) throw new Error(`Node ${record.id || node.id} requires input ${port.id}`);
       continue;
     }
@@ -223,7 +239,8 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
     ...(environment.data || {}),
     inputs: run.context?.inputs,
     trigger: run.trigger,
-    now: environment.now
+    now: environment.now,
+    outputId
   });
   resolving.delete(cacheKey);
   return packet;
@@ -244,7 +261,10 @@ function findTriggerNode(process, trigger) {
     ? nodes.find(node => String(node.id) === String(trigger.nodeId))
     : nodes.find(node => {
       const record = process.processNodes[recordId(node)];
-      return !trigger.kind || record.kind === trigger.kind;
+      if (trigger.kind && record.kind !== trigger.kind) return false;
+      if (record.kind === 'control.domainEventTrigger' && record.eventId && trigger.eventId !== record.eventId) return false;
+      if (record.kind === 'control.entityChangedTrigger' && record.entityType && trigger.entityType !== record.entityType) return false;
+      return true;
     });
   if (!match) throw new Error(`Process trigger ${trigger.nodeId || trigger.kind || '(default)'} not found`);
   return match;

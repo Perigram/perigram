@@ -98,26 +98,41 @@ describe('process designer domain contract', () => {
     const items = contract.paletteGroups.flatMap(group => group.items);
 
     expect(Object.keys(groups)).toEqual([
-      'startAndInput',
+      'entities',
       'values',
-      'entitiesAndFields',
-      'selection',
-      'actions',
-      'flow',
-      'dataStructures'
+      'listTree',
+      'events'
     ]);
-    expect(groups.entitiesAndFields.map(item => item.kind)).toContain('record.fieldChange');
-    expect(groups.selection.map(item => item.kind)).toContain('read.filterRecords');
-    expect(groups.flow.map(item => item.kind)).toContain('control.forEach');
+    expect(groups.entities.map(item => item.kind)).toEqual([
+      'effect.createEntity',
+      'effect.updateEntity',
+      'record.deconstruct',
+      'record.getBlock',
+      'record.getField'
+    ]);
+    expect(groups.values.map(item => item.kind)).toEqual([
+      'source.literalItem',
+      'value.logic',
+      'value.string',
+      'value.math',
+      'value.dateTime'
+    ]);
+    expect(groups.listTree.map(item => item.kind)).toContain('tree.cross');
+    expect(groups.events.map(item => item.kind)).toEqual([
+      'control.manualTrigger',
+      'control.entityChangedTrigger',
+      'control.domainEventTrigger',
+      'control.waitUntil'
+    ]);
     expect(items.map(item => item.kind)).not.toContain('value.cast');
     expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
     expect(items.every(item => getProcessNodeDefinition(item.kind))).toBe(true);
     expect(new Set(items.map(item => item.id)).size).toBe(items.length);
     expect(items.every(item => item.description && item.preset)).toBe(true);
-    expect(items.find(item => item.id === 'numberValue')?.preset).toMatchObject({
-      type: { base: 'number', shape: 'item' },
-      value: 0
+    expect(items.find(item => item.id === 'date')?.preset).toMatchObject({
+      operation: 'addDays',
+      inputDefaults: { amount: 30 }
     });
     expect(contract.fieldType('work_item', 'identity.name')).toMatchObject({ base: 'string', shape: 'item' });
   });

@@ -14,7 +14,12 @@ import {
 
 export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
   const kind = record.kind;
-  const packets = Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, normalizeDataPacket(packet)]));
+  const defaultPackets = Object.fromEntries(Object.entries(record.inputDefaults || {})
+    .map(([id, value]) => [id, createDataPacket(structuredClone(value))]));
+  const packets = {
+    ...defaultPackets,
+    ...Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, normalizeDataPacket(packet)]))
+  };
   if (kind.startsWith('source.')) return executeSource(record, context);
   if (kind === 'value.cast' || kind === 'value.parse') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
   if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
@@ -26,7 +31,7 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   });
   if (kind === 'value.coalesce') return combineDataPackets([required(packets, 'value', record), required(packets, 'fallback', record)], ([value, fallback]) => value ?? fallback);
   if (kind === 'value.validate') return mapDataPacket(required(packets, 'value', record), value => validateValue(value, record));
-  if (kind === 'value.math') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => math(record.operation, left, right));
+  if (kind === 'value.math') return executeMath(record, packets);
   if (kind === 'value.string') return executeString(record, packets);
   if (kind === 'value.dateTime') return executeDateTime(record, packets);
   if (kind === 'value.enum') return mapDataPacket(required(packets, 'value', record), value => String(value));
@@ -66,7 +71,17 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'record.mergeChanges') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => mergePatches(left, right));
   if (kind === 'record.applyChanges') return combineDataPackets([required(packets, 'record', record), required(packets, 'changes', record)], ([value, patch]) => applyPatch(value, patch));
   if (kind === 'record.construct' || kind === 'record.entityDraft') return createDataPacket(constructRecord(record, packets));
-  if (kind === 'record.deconstruct') return mapDataPacket(required(packets, 'record', record), value => Object.fromEntries((record.fields || []).map(path => [path, readPath(value, path)])));
+  if (kind === 'record.deconstruct') {
+    if (context.outputId) {
+      if (!(record.fields || []).includes(context.outputId)) {
+        throw new Error(`Node ${record.id || kind} does not expose field ${context.outputId}`);
+      }
+      return mapDataPacket(required(packets, 'record', record), value => readPath(value, context.outputId));
+    }
+    return mapDataPacket(required(packets, 'record', record), value => (
+      Object.fromEntries((record.fields || []).map(path => [path, readPath(value, path)]))
+    ));
+  }
   if (kind === 'record.getBlock') return mapDataPacket(required(packets, 'value', record), value => structuredClone(value?.[record.block]));
   if (kind === 'predicate.field') return createDataPacket({ kind: 'field', entityType: record.entityType, path: record.path, operation: record.operation, value: packetValue(required(packets, 'value', record)) });
   if (kind === 'predicate.logic') return createDataPacket({
@@ -132,36 +147,133 @@ async function executeRead(record, packets, context) {
 }
 
 function executeString(record, packets) {
-  const left = required(packets, 'left', record);
+  if (record.operation === 'replace') {
+    return combineDataPackets([
+      required(packets, 'text', record),
+      required(packets, 'search', record),
+      required(packets, 'replacement', record)
+    ], ([text, search, replacement]) => String(text).split(String(search)).join(String(replacement)));
+  }
+  if (record.operation === 'substring') {
+    return combineDataPackets([
+      required(packets, 'text', record),
+      required(packets, 'start', record),
+      ...(packets.end ? [packets.end] : [])
+    ], values => String(values[0]).slice(Number(values[1]), values.length > 2 ? Number(values[2]) : undefined));
+  }
+  if (record.operation === 'split') {
+    return createDataPacket(String(packetValue(required(packets, 'text', record)))
+      .split(String(packetValue(required(packets, 'separator', record)))), 'list');
+  }
+  if (record.operation === 'join') {
+    return createDataPacket(
+      flattenDataPacket(required(packets, 'items', record)).branches[0].items
+        .join(String(packetValue(required(packets, 'separator', record))))
+    );
+  }
+  if (record.operation === 'length') {
+    return mapDataPacket(required(packets, 'value', record), value => String(value).length);
+  }
+  const left = required(packets, ['upper', 'lower', 'trim'].includes(record.operation) ? 'value' : 'left', record);
   if (['upper', 'lower', 'trim'].includes(record.operation)) {
     return mapDataPacket(left, value => record.operation === 'upper' ? String(value).toUpperCase()
       : record.operation === 'lower' ? String(value).toLowerCase() : String(value).trim());
   }
-  return combineDataPackets([left, required(packets, 'right', record)], ([leftValue, right]) => (
-    record.operation === 'replace'
-      ? String(leftValue).split(String(record.search || '')).join(String(right))
-      : `${leftValue ?? ''}${right ?? ''}`
-  ));
+  return combineDataPackets([left, required(packets, 'right', record)], ([leftValue, right]) => `${leftValue ?? ''}${right ?? ''}`);
 }
 
 function executeLogic(record, packets) {
   const left = required(packets, 'left', record);
+  if (['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'].includes(record.operation)) {
+    return combineDataPackets([left, required(packets, 'right', record)], ([a, b]) => compare(record.operation, a, b));
+  }
+  if (['isNull', 'isNotNull'].includes(record.operation)) {
+    return mapDataPacket(left, value => compare(record.operation, value, null));
+  }
   if (record.operation === 'not') return mapDataPacket(left, value => !value);
-  return combineDataPackets([left, required(packets, 'right', record)], ([a, b]) => (
-    record.operation === 'and' ? Boolean(a && b)
-      : record.operation === 'or' ? Boolean(a || b)
-        : Boolean(a) !== Boolean(b)
-  ));
+  if (!['and', 'or', 'xor', 'nand', 'nor', 'xnor'].includes(record.operation)) {
+    throw new Error(`Unsupported logic operation ${record.operation}`);
+  }
+  return combineDataPackets([left, required(packets, 'right', record)], ([a, b]) => {
+    if (record.operation === 'and') return Boolean(a && b);
+    if (record.operation === 'or') return Boolean(a || b);
+    if (record.operation === 'xor') return Boolean(a) !== Boolean(b);
+    if (record.operation === 'nand') return !Boolean(a && b);
+    if (record.operation === 'nor') return !Boolean(a || b);
+    return Boolean(a) === Boolean(b);
+  });
 }
 
 function executeDateTime(record, packets) {
-  const value = required(packets, 'value', record);
-  return mapDataPacket(value, item => {
-    const date = new Date(item);
-    if (Number.isNaN(date.getTime())) throw new Error(`Invalid date ${item}`);
-    if (record.operation === 'startOfDay') date.setUTCHours(0, 0, 0, 0);
+  if (['differenceDays', 'differenceHours', 'differenceMinutes'].includes(record.operation)) {
+    return combineDataPackets([
+      required(packets, 'left', record),
+      required(packets, 'right', record)
+    ], ([left, right]) => {
+      const divisor = record.operation === 'differenceDays' ? 86_400_000
+        : record.operation === 'differenceHours' ? 3_600_000 : 60_000;
+      return (dateValue(left).getTime() - dateValue(right).getTime()) / divisor;
+    });
+  }
+  const sourceId = ['addDuration', 'subtractDuration', 'addDays', 'addHours', 'addMinutes', 'addMonths'].includes(record.operation) ? 'date' : 'value';
+  const source = required(packets, sourceId, record);
+  if (['startOfDay', 'endOfDay'].includes(record.operation)) {
+    return mapDataPacket(source, item => {
+      const date = dateValue(item);
+      if (record.operation === 'startOfDay') date.setUTCHours(0, 0, 0, 0);
+      else date.setUTCHours(23, 59, 59, 999);
+      return date.toISOString();
+    });
+  }
+  const adjustmentId = ['addDuration', 'subtractDuration'].includes(record.operation) ? 'duration' : 'amount';
+  return combineDataPackets([source, required(packets, adjustmentId, record)], ([item, adjustment]) => {
+    const date = dateValue(item);
+    const direction = record.operation.startsWith('subtract') ? -1 : 1;
+    if (record.operation === 'addMonths') {
+      date.setUTCMonth(date.getUTCMonth() + direction * Number(adjustment));
+      return date.toISOString();
+    }
+    const milliseconds = record.operation === 'addDays'
+      ? Number(adjustment) * 86_400_000
+      : record.operation === 'addHours'
+        ? Number(adjustment) * 3_600_000
+        : record.operation === 'addMinutes'
+          ? Number(adjustment) * 60_000
+          : durationMilliseconds(adjustment);
+    date.setTime(date.getTime() + direction * milliseconds);
     return date.toISOString();
   });
+}
+
+function executeMath(record, packets) {
+  if (['absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt'].includes(record.operation)) {
+    return mapDataPacket(required(packets, 'value', record), value => math(record.operation, value));
+  }
+  if (record.operation === 'clamp') {
+    return combineDataPackets([
+      required(packets, 'value', record),
+      required(packets, 'min', record),
+      required(packets, 'max', record)
+    ], ([value, min, max]) => Math.min(Number(max), Math.max(Number(min), Number(value))));
+  }
+  return combineDataPackets([
+    required(packets, 'left', record),
+    required(packets, 'right', record)
+  ], ([left, right]) => math(record.operation, left, right));
+}
+
+function dateValue(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw new Error(`Invalid date ${value}`);
+  return date;
+}
+
+function durationMilliseconds(value) {
+  if (typeof value === 'number') return value;
+  const match = String(value || '').match(/^P(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/);
+  if (!match) throw new Error(`Invalid duration ${value}`);
+  return (Number(match[1] || 0) * 86_400 + Number(match[2] || 0) * 3_600
+    + Number(match[3] || 0) * 60 + Number(match[4] || 0)) * 1_000;
 }
 
 function required(inputs, id, record) {
@@ -197,6 +309,15 @@ function cast(value, base = 'json') {
 function math(operation, left, right) {
   const a = Number(left);
   const b = Number(right);
+  if (operation === 'absolute') return Math.abs(a);
+  if (operation === 'negate') return -a;
+  if (operation === 'round') return Math.round(a);
+  if (operation === 'floor') return Math.floor(a);
+  if (operation === 'ceil') return Math.ceil(a);
+  if (operation === 'sqrt') {
+    if (a < 0) throw new Error('Square root requires a non-negative value');
+    return Math.sqrt(a);
+  }
   if (operation === 'add') return a + b;
   if (operation === 'subtract') return a - b;
   if (operation === 'multiply') return a * b;

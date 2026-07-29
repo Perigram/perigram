@@ -256,11 +256,83 @@ export async function startRun(id, payload = {}, auth = {}) {
     processDefinitionId: definition._id || definition.id,
     context: {
       inputs: payload.inputs || {},
-      actor: { userId: auth.userId, organizationId }
+      actor: orchestrationActor(auth, organizationId)
     }
   });
   const created = await repository.createRun({ ...run, organizationId });
-  return await resumeRun(created._id, auth);
+  return await resumeRunUntilBoundary(created._id, auth);
+}
+
+export async function handleEntityChangedEvent(event = {}, auth = {}) {
+  return await startMatchingAutomaticRuns({
+    kind: 'control.entityChangedTrigger',
+    entityType: event.type,
+    payload: event,
+    inputs: {
+      entity: { type: event.type, id: event.id },
+      entities: { [event.type]: { type: event.type, id: event.id } }
+    }
+  }, auth);
+}
+
+export async function handleDomainEvent(event = {}, auth = {}) {
+  return await startMatchingAutomaticRuns({
+    kind: 'control.domainEventTrigger',
+    eventId: event.id || event.type,
+    payload: event
+  }, auth);
+}
+
+export async function resumeDueRuns(now = new Date()) {
+  const due = await repository.findDueRuns(now);
+  const results = [];
+  for (const run of due) {
+    try {
+      results.push(await resumeRunUntilBoundary(run._id, authFromRun(run)));
+    } catch (error) {
+      results.push({ id: String(run._id), status: 'failed-to-resume', error: error.message });
+    }
+  }
+  return results;
+}
+
+async function startMatchingAutomaticRuns(trigger = {}, auth = {}) {
+  const organizationId = trigger.payload?.organizationId || resolveOrganizationId(auth);
+  if (!organizationId) return [];
+  const automaticAuth = { ...auth, organizationId };
+  const raw = await repository.findActiveByOrganization(organizationId);
+  if (!raw) return [];
+  const data = raw.data || {};
+  const matches = (data.graph?.nodes || []).filter(node => {
+    const record = data.processNodes?.[String(node.data?.refId || node.id)];
+    if (record?.kind !== trigger.kind) return false;
+    if (trigger.entityType && record.entityType !== trigger.entityType) return false;
+    if (trigger.eventId && record.eventId !== trigger.eventId) return false;
+    return true;
+  });
+  const results = [];
+  for (const node of matches) {
+    results.push(await startRun(raw._id, {
+      trigger: {
+        nodeId: node.id,
+        kind: trigger.kind,
+        entityType: trigger.entityType,
+        eventId: trigger.eventId,
+        payload: trigger.payload
+      },
+      inputs: trigger.inputs || {}
+    }, automaticAuth));
+  }
+  return results;
+}
+
+async function resumeRunUntilBoundary(id, auth = {}) {
+  let run = await resumeRun(id, auth);
+  for (let index = 0; run.status === 'running' && index < 999; index += 1) {
+    run = await resumeRun(id, auth);
+  }
+  if (run.status === 'running') throw new Error(`Process run ${run.id || id} exceeded 1000 steps`);
+  return run;
 }
 
 export async function getRun(id, auth = {}) {
@@ -1288,6 +1360,25 @@ function serializeRun(run = {}) {
   };
 }
 
+function orchestrationActor(auth = {}, organizationId = null) {
+  return {
+    userId: auth.userId,
+    organizationId,
+    role: auth.role,
+    isAdmin: Boolean(auth.isAdmin),
+    memberships: auth.memberships || [],
+    roleAssignments: auth.roleAssignments || {},
+    permissions: auth.permissions || []
+  };
+}
+
+function authFromRun(run = {}) {
+  return {
+    ...(run.context?.actor || {}),
+    organizationId: run.organizationId?.toString?.() || run.organizationId
+  };
+}
+
 function processDataEnvironment(auth, run) {
   return {
     currentEntity: async entityType => {
@@ -1337,19 +1428,25 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
       parameters: inputs.parameters || {}
     }, auth);
   }
-  const entityType = normalizeEntityType(record.entityType || inputs.entity?.type || inputs.draft?.type || '');
+  const entityType = normalizeEntityType(record.entityType || inputs.entity?.type || '');
   if (!entityType) throw new Error(`${kind} requires entityType`);
   const service = getAppRegistry().getEntityService(entityType);
   if (!service) throw new Error(`Entity service missing for ${entityType}`);
   if (kind === 'effect.createEntity') {
+    const draft = processFieldInputRecord(record, inputs);
+    const targetState = getByPath(draft, 'status.state.primary') || record.status?.to;
+    const statusMetadata = draft.status?.metadata && typeof draft.status.metadata === 'object'
+      ? draft.status.metadata
+      : {};
+    delete draft.status;
     const parentEntities = record.parentEntityType && inputs.parent
       ? { [record.parentEntityType]: inputs.parent }
       : {};
     if (entityType === 'cassette_design' && record.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-      return await executeBakeCassetteDesign(record, inputs.draft || {}, resolveOrganizationId(auth), auth, processData, parentEntities);
+      return await executeBakeCassetteDesign(record, draft, resolveOrganizationId(auth), auth, processData, parentEntities);
     }
     if (entityType === 'cassette_design' && record.construction?.mode === 'importCassetteDesignFromArtifact') {
-      const data = inputs.draft || {};
+      const data = draft;
       const imported = await cassetteService.importFromArtifact(
         data.artifactId,
         data.name || data.identity?.name,
@@ -1363,18 +1460,17 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
       return imported.design;
     }
     if (entityType === 'cassette' && record.construction?.mode === 'createDefaultOccsTemplate') {
-      return await executeCreateDefaultCassetteTemplate(record, inputs.draft || {}, resolveOrganizationId(auth), auth, processData, parentEntities);
+      return await executeCreateDefaultCassetteTemplate(record, draft, resolveOrganizationId(auth), auth, processData, parentEntities);
     }
     if (!service.create) throw new Error(`Entity service cannot create ${entityType}`);
     const parentContext = await resolveParentCreationContext(record, parentEntities, auth);
     const created = await service.create(
-      createActionPayload(record, inputs.draft || {}, parentEntities, parentContext),
+      createActionPayload(record, draft, parentEntities, parentContext),
       auth.userId,
       resolveOrganizationId(auth),
       auth.role,
       createActionExecutionAuth(auth, record)
     );
-    const targetState = record.status?.to;
     const dto = created?.toJSON ? created.toJSON() : created;
     const targetId = dto?._id || dto?.identity?.uid;
     if (!targetState || !targetId) return dto;
@@ -1384,21 +1480,43 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
       targetState,
       resolveOrganizationId(auth),
       auth.userId,
-      processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
+      {
+        ...statusMetadata,
+        ...processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
+      }
     );
     return { ...dto, status };
   }
   const target = normalizeEntityRef(inputs.entity);
   if (!target?.id) throw new Error(`${kind} requires an entity reference`);
   if (kind === 'effect.updateEntity') {
-    const changes = inputs.changes?.changes || [];
+    const changes = (record.fields || [])
+      .filter(path => Object.hasOwn(inputs, path))
+      .map(path => ({ path, operation: 'set', value: inputs[path] }));
+    const statusChange = changes.find(change => change.path === 'status.state.primary');
+    const persistedChanges = changes.filter(change => change.path !== 'status.state.primary');
+    if (statusChange) {
+      const patch = Object.fromEntries(persistedChanges.map(change => {
+        if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
+        return [change.path, change.value];
+      }));
+      return await statusService.transitionWithResult({
+        entityType,
+        targetId: target.id,
+        targetState: typeof statusChange.value === 'string' ? statusChange.value : statusChange.value?.id,
+        auth,
+        context: { source: 'process-run' },
+        patch: Object.keys(patch).length ? patch : null
+      });
+    }
     let patch;
-    if (changes.every(change => (change.operation || 'set') === 'set')) {
-      patch = Object.fromEntries(changes.map(change => [change.path, change.value]));
+    if (persistedChanges.every(change => (change.operation || 'set') === 'set')) {
+      patch = Object.fromEntries(persistedChanges.map(change => [change.path, change.value]));
     } else {
       const current = await resolveProcessGraphEntity(entityType, target, { auth });
-      const updated = applyPatch(current, inputs.changes);
-      patch = Object.fromEntries(changes.map(change => {
+      const changeSet = { entityType, changes: persistedChanges };
+      const updated = applyPatch(current, changeSet);
+      patch = Object.fromEntries(persistedChanges.map(change => {
         const value = getByPath(updated, change.path);
         if (value === undefined) throw new Error(`Persisted entity updates cannot unset ${change.path}`);
         return [change.path, value];
@@ -1436,6 +1554,24 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
     }, auth);
   }
   throw new Error(`Unsupported process effect ${kind}`);
+}
+
+function processFieldInputRecord(record = {}, inputs = {}) {
+  const result = {};
+  for (const path of record.fields || []) {
+    if (Object.hasOwn(inputs, path)) setByPath(result, path, inputs[path]);
+  }
+  for (const input of record.construction?.inputs || []) {
+    const id = input.id || input.path;
+    if (!id || !Object.hasOwn(inputs, id)) continue;
+    const value = input.type === 'entity'
+      ? entityInputId(inputs[id])
+      : input.type === 'entityList'
+        ? (Array.isArray(inputs[id]) ? inputs[id] : [inputs[id]]).map(entityInputId).filter(Boolean)
+        : inputs[id];
+    setByPath(result, input.path || id, value);
+  }
+  return result;
 }
 
 async function loadAuthorized(id, auth, level) {

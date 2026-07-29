@@ -18,12 +18,12 @@ designer from inventing fields, types, or blocks that the selected entity does
 not declare.
 
 The grouped authoring palette is a curated framework projection, separate from
-the exhaustive runtime catalog. It groups operations by user concern, provides
-stable localization/description ids and meaningful creation presets, and marks
-specialized operations for an explicit advanced reveal. Runtime-only
-conversions and trigger-payload plumbing are not palette entries. Applications
-may change layout, but entity types, construction modes, commands, attachment
-kinds, and fields always come from the supplied domain contract.
+the exhaustive runtime catalog. It exposes exactly Entities, Values, Lists and
+trees, and Events, with stable localization/description ids and meaningful
+creation presets. Runtime-only conversions, predicates, patches, and
+trigger-payload plumbing are not palette entries. Applications may change
+layout, but entity types, construction modes, commands, attachment kinds, and
+fields always come from the supplied domain contract.
 
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,
@@ -217,39 +217,55 @@ schema, block, enum, unit, attachment, event, and capability qualifiers remain
 orthogonal. Connections may broadcast one item over an aligned list/tree.
 Non-singleton branches must have identical paths and lengths. Flatten, graft,
 simplify, branch selection, zip, cross, unzip, and transpose are explicit
-operations. Narrowing, reshaping, entity-to-reference conversion, nullable
-removal, and unit conversion never happen invisibly: the designer inserts the
-catalog conversion node onto the wire.
+operations. Safe integer-to-number, date-to-date-time,
+entity-to-entity-reference, and JSON transport coercions are implicit wire
+semantics and do not create graph nodes. Nullable-to-required, unit-changing,
+narrowing, and restructuring connections require explicit author intent and
+are rejected when the selected node contract cannot express that intent.
 
 `data-tree.js` carries runtime packets as ordered `{ path, items }` branches.
 `evaluator.js` executes pure data nodes and authorized reads with the same
-broadcast-then-align rules. Entity filters consume an entity list and an
-entity-typed declarative predicate. Record modification is also pure:
-`record.fieldChange` produces a typed patch, `record.mergeChanges` composes
-patches, and `record.applyChanges` previews the result without persistence.
-Only `effect.*` nodes may create/update entities, change status, run commands,
-send entities, or generate attachments.
+broadcast-then-align rules. The authoring projection filters any typed list
+with the same data algebra: read/deconstruct the compared field over the list,
+evaluate it through the polymorphic Logic node to obtain an aligned Boolean
+mask, and pass the original list plus mask to `collection.filter`. The runtime
+retains lower-level predicate and patch operations for execution/migration,
+but they are not separate authoring concepts. Only `effect.*` nodes may
+persist changes or invoke external work.
 
 Selectable fields come exclusively from `domain.fieldSchemas`. Each entry has
 an exact path, canonical block, structured type, and read/write capability.
 Wildcard field-access entries remain authorization patterns and never become
-field choices or guessed sockets. Record construct/deconstruct nodes expose
-only their selected schema fields as dynamic ports.
+field choices or guessed sockets. Create/update/deconstruct nodes expose only
+their selected schema fields as dynamic ports. Create and update consume those
+ports directly. An update that selects `status.state.primary` delegates that
+value to the status transition runtime and persists the remaining selected
+fields as its transition patch. Create additionally projects the selected
+domain construction mode as typed sockets and resolves entity/entity-list
+construction references at the effect boundary.
 
-`orchestration.js` executes the full control plane: manual/domain-event/entity-
-change/schedule/webhook triggers; if/switch; fork; join-all/join-any;
-structured foreach; duration/until waits; and success/failure stops. Runs carry
+`orchestration.js` executes the full runtime control plane. The authoring
+projection exposes manual, registered domain-event, and entity-change starts,
+plus an absolute-date continuation boundary. Runs carry
 durable control tokens, foreach scopes, join arrivals, wake times, attempts,
 and step outputs. Data subgraphs are evaluated lazily for the operational node
 that consumes them. Arbitrary data or control cycles are rejected during
 activation.
 
+An entity-scoped manual trigger exposes the triggering entity as its typed
+payload. The designer infers that scope when its payload is wired to an entity
+read/modify node, and migration rewires old `read.currentEntity` plus
+entity-reference plumbing to that payload. Automatic entity triggers use the
+same payload contract. Entity access remains resolved from persisted run input
+through the authorized feature service.
+
 The v3 migration is a replacement, not a parallel interpretation. It moves
 literal/action/entity/service/socket graph nodes into the operation registry,
-keeps statuses in the definition plane, and expands old field-bearing actions
-into explicit entity-draft, field-change, patch-merge, and parameter-record
-nodes before their effect. Manual entry triggers preserve generated-screen
-actions. Required legacy casts are materialized as visible conversion nodes;
+keeps statuses in the definition plane, and collapses old entity-draft,
+field-change, and patch-merge chains into direct typed create/update field
+sockets while preserving their wires and inline defaults. Manual entry
+triggers preserve generated-screen actions. Required legacy unit conversions
+remain explicit runtime operations;
 legacy status-transition cycles become independent current-entity effects; and
 wildcard projections expand only to exact fields authorized by the domain read
 policy. Impossible optional-parent edges are discarded rather than assigned an

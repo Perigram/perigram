@@ -29,7 +29,14 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
   const wrapped = Boolean(definition?.data?.graph);
   const process = wrapped ? definition.data : definition;
   if (Number(process.dataflowVersion) === PROCESS_DATAFLOW_VERSION && isV3Graph(process)) {
-    return { changed: false, value: definition };
+    const composed = replaceComposedEntityEffects(process, domain);
+    const ambient = replaceAmbientEntityEffectInputs(composed.process);
+    if (!composed.changed && !ambient.changed) return { changed: false, value: definition };
+    const migrated = { ...process, ...ambient.process, compiled: null };
+    return {
+      changed: true,
+      value: wrapped ? { ...definition, data: migrated } : migrated
+    };
   }
   const records = {};
   const nodeMappings = new Map();
@@ -83,7 +90,16 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
     return migrated ? [migrated] : [];
   });
   const expanded = expandLegacyActionInputs(process, nodes, records, edges);
-  const pruned = pruneDeadDataNodes(expanded.nodes, records, expanded.edges);
+  const replaced = replaceComposedEntityEffects({
+    graph: { nodes: expanded.nodes, edges: expanded.edges },
+    processNodes: records
+  }, domain);
+  const ambient = replaceAmbientEntityEffectInputs(replaced.process);
+  for (const key of Object.keys(records)) {
+    if (!ambient.process.processNodes[key]) delete records[key];
+  }
+  Object.assign(records, ambient.process.processNodes);
+  const pruned = pruneDeadDataNodes(ambient.process.graph.nodes, records, ambient.process.graph.edges);
   edges = pruned.edges;
   inferMigratedEntityTypes(records, pruned.nodes, [...edges, ...entryEdges]);
   const converted = insertVisibleConversions(pruned.nodes, records, edges, domain);
@@ -99,6 +115,213 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
   };
   const value = wrapped ? { ...definition, data: migrated } : migrated;
   return { changed: JSON.stringify(value) !== JSON.stringify(definition), value };
+}
+
+function replaceAmbientEntityEffectInputs(process = {}) {
+  const records = structuredClone(process.processNodes || {});
+  const nodes = [...(process.graph?.nodes || [])];
+  let edges = [...(process.graph?.edges || [])];
+  const nodeById = new Map(nodes.map(node => [String(node.id), node]));
+  const nodeForRecord = recordId => nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
+  const recordForNode = nodeId => {
+    const node = nodeById.get(String(nodeId));
+    return records[String(node?.data?.refId || node?.id || '')];
+  };
+  const removable = new Set();
+  let changed = false;
+
+  for (const effectNode of nodes) {
+    const effect = recordForNode(effectNode.id);
+    if (!effect?.kind?.startsWith('effect.') || !effect.entryTriggerId || !effect.entityType) continue;
+    const entityEdge = edges.find(edge => (
+      String(edge.target) === String(effectNode.id)
+      && cleanHandle(edge.targetHandle) === 'entity'
+    ));
+    if (!entityEdge) continue;
+    const sourceRecord = recordForNode(entityEdge.source);
+    const referenceEdge = sourceRecord?.kind === 'value.toEntityRef'
+      ? edges.find(edge => String(edge.target) === String(entityEdge.source) && cleanHandle(edge.targetHandle) === 'value')
+      : null;
+    const ambientNodeId = referenceEdge?.source || entityEdge.source;
+    if (recordForNode(ambientNodeId)?.kind !== 'read.currentEntity') continue;
+    const triggerNode = nodeForRecord(effect.entryTriggerId);
+    const trigger = triggerNode ? recordForNode(triggerNode.id) : null;
+    if (!triggerNode || trigger?.kind !== 'control.manualTrigger') continue;
+
+    trigger.entityType = effect.entityType;
+    edges = edges.filter(edge => edge.id !== entityEdge.id && edge.id !== referenceEdge?.id);
+    edges.push({
+      id: `${triggerNode.id}-payload-${effectNode.id}-entity`,
+      source: triggerNode.id,
+      sourceHandle: 'data:payload',
+      target: effectNode.id,
+      targetHandle: 'data:entity',
+      role: 'data'
+    });
+    removable.add(String(ambientNodeId));
+    if (referenceEdge) removable.add(String(entityEdge.source));
+    changed = true;
+  }
+
+  if (!changed) return { changed: false, process };
+  for (const nodeId of [...removable]) {
+    if (edges.some(edge => String(edge.source) === nodeId || String(edge.target) === nodeId)) removable.delete(nodeId);
+  }
+  const retainedNodes = nodes.filter(node => !removable.has(String(node.id)));
+  const retainedIds = new Set(retainedNodes.map(node => String(node.id)));
+  edges = edges.filter(edge => retainedIds.has(String(edge.source)) && retainedIds.has(String(edge.target)));
+  for (const nodeId of removable) {
+    const node = nodeById.get(nodeId);
+    delete records[String(node?.data?.refId || node?.id || '')];
+  }
+  return {
+    changed: true,
+    process: {
+      ...process,
+      processNodes: records,
+      graph: { ...(process.graph || {}), nodes: retainedNodes, edges }
+    }
+  };
+}
+
+function replaceComposedEntityEffects(process = {}, domain = {}) {
+  const records = structuredClone(process.processNodes || {});
+  const nodes = [...(process.graph?.nodes || [])];
+  let edges = [...(process.graph?.edges || [])];
+  const nodeById = new Map(nodes.map(node => [String(node.id), node]));
+  const recordForNode = nodeId => {
+    const node = nodeById.get(String(nodeId));
+    return records[String(node?.data?.refId || node?.id || '')];
+  };
+  const removedNodeIds = new Set();
+  let changed = false;
+
+  for (const effectNode of nodes) {
+    const effect = recordForNode(effectNode.id);
+    if (!['effect.createEntity', 'effect.updateEntity'].includes(effect?.kind)) continue;
+    const targetHandle = effect.kind === 'effect.createEntity' ? 'draft' : 'changes';
+    const compositionEdge = edges.find(edge => (
+      String(edge.target) === String(effectNode.id)
+      && cleanHandle(edge.targetHandle) === targetHandle
+    ));
+    if (!compositionEdge) continue;
+    const collected = collectComposedFields(compositionEdge.source, {
+      edges,
+      recordForNode,
+      visited: new Set()
+    });
+    if (!collected.fields.length) continue;
+    const duplicate = collected.fields.find(field => edges.some(edge => (
+      String(edge.target) === String(effectNode.id)
+      && cleanHandle(edge.targetHandle) === field.path
+    )));
+    if (duplicate) {
+      throw new Error(`Cannot migrate ${effect.id}: field ${duplicate.path} is wired both directly and through legacy composition`);
+    }
+
+    effect.fields = [...new Set([
+      ...(effect.fields || []),
+      ...collected.fields.map(field => field.path)
+    ])];
+    effect.fieldSchemas = effect.fields
+      .map(path => (
+        (effect.fieldSchemas || []).find(field => field.path === path)
+        || collected.fields.find(field => field.path === path)?.schema
+        || migrationFieldSchema(domain, effect.entityType, path)
+      ))
+      .filter(Boolean);
+    effect.inputDefaults = {
+      ...(effect.inputDefaults || {}),
+      ...Object.fromEntries(collected.fields
+        .filter(field => field.hasDefault)
+        .map(field => [field.path, field.defaultValue]))
+    };
+    edges = edges
+      .filter(edge => edge.id !== compositionEdge.id)
+      .concat(collected.fields
+        .filter(field => field.edge)
+        .map(field => ({
+          ...field.edge,
+          id: `${field.edge.id}:to:${effectNode.id}:${field.path}`,
+          target: effectNode.id,
+          targetHandle: `data:${field.path}`,
+          role: 'data'
+        })));
+    collected.nodeIds.forEach(id => {
+      const outgoing = edges.filter(edge => String(edge.source) === String(id));
+      const internalTargets = new Set([...collected.nodeIds].map(String).concat(String(effectNode.id)));
+      if (outgoing.every(edge => internalTargets.has(String(edge.target)))) removedNodeIds.add(String(id));
+    });
+    changed = true;
+  }
+
+  if (!changed) return { changed: false, process };
+  const retainedNodes = nodes.filter(node => !removedNodeIds.has(String(node.id)));
+  const retainedIds = new Set(retainedNodes.map(node => String(node.id)));
+  edges = edges.filter(edge => retainedIds.has(String(edge.source)) && retainedIds.has(String(edge.target)));
+  for (const nodeId of removedNodeIds) {
+    const node = nodeById.get(nodeId);
+    delete records[String(node?.data?.refId || node?.id || '')];
+  }
+  return {
+    changed: true,
+    process: {
+      ...process,
+      processNodes: records,
+      graph: { ...(process.graph || {}), nodes: retainedNodes, edges }
+    }
+  };
+}
+
+function collectComposedFields(nodeId, { edges, recordForNode, visited }) {
+  const id = String(nodeId);
+  if (visited.has(id)) return { fields: [], nodeIds: new Set() };
+  visited.add(id);
+  const record = recordForNode(id);
+  if (!record) return { fields: [], nodeIds: new Set() };
+
+  if (['record.entityDraft', 'record.construct'].includes(record.kind)) {
+    const fields = (record.fields || []).map(path => {
+      const edge = edges.find(item => String(item.target) === id && cleanHandle(item.targetHandle) === path);
+      return {
+        path,
+        edge,
+        schema: (record.fieldSchemas || []).find(field => field.path === path),
+        hasDefault: Object.hasOwn(record.inputDefaults || {}, path),
+        defaultValue: record.inputDefaults?.[path]
+      };
+    });
+    return { fields, nodeIds: new Set([id]) };
+  }
+  if (record.kind === 'record.fieldChange') {
+    const edge = edges.find(item => String(item.target) === id && cleanHandle(item.targetHandle) === 'value');
+    const sourceRecord = edge ? recordForNode(edge.source) : null;
+    if (['record.fieldChange', 'record.mergeChanges'].includes(sourceRecord?.kind)) {
+      const child = collectComposedFields(edge.source, { edges, recordForNode, visited });
+      child.nodeIds.add(id);
+      return child;
+    }
+    return {
+      fields: [{
+        path: record.path,
+        edge,
+        schema: record.fieldSchema,
+        hasDefault: Object.hasOwn(record.inputDefaults || {}, 'value'),
+        defaultValue: record.inputDefaults?.value
+      }],
+      nodeIds: new Set([id])
+    };
+  }
+  if (record.kind === 'record.mergeChanges') {
+    const result = { fields: [], nodeIds: new Set([id]) };
+    for (const edge of edges.filter(item => String(item.target) === id)) {
+      const child = collectComposedFields(edge.source, { edges, recordForNode, visited });
+      result.fields.push(...child.fields);
+      child.nodeIds.forEach(childId => result.nodeIds.add(childId));
+    }
+    return result;
+  }
+  return { fields: [], nodeIds: new Set() };
 }
 
 function insertVisibleConversions(initialNodes, records, initialEdges, domain) {
