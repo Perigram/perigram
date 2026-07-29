@@ -41,7 +41,27 @@
         @update:model-value="value => update({ operation: value })"
       />
       <Select
-        v-if="record.kind === 'control.domainEventTrigger'"
+        v-if="record.kind?.startsWith('effect.')"
+        :model-value="record.trigger?.mode || 'manual'"
+        :options="data.processTriggerModeOptions || []"
+        option-label="label"
+        option-value="value"
+        size="small"
+        @update:model-value="value => update({ trigger: { ...(record.trigger || {}), mode: value } })"
+      />
+      <MultiSelect
+        v-if="record.kind?.startsWith('effect.')"
+        :model-value="effectRoleIds"
+        :options="data.processRoleOptions || []"
+        option-label="label"
+        option-value="value"
+        filter
+        size="small"
+        :placeholder="$t('processDesigner.roles')"
+        @update:model-value="updateEffectRoles"
+      />
+      <Select
+        v-if="record.kind === 'control.domainEventTrigger' || (record.kind?.startsWith('effect.') && record.trigger?.mode === 'domainEvent')"
         :model-value="record.eventId"
         :options="data.processEventOptions || []"
         option-label="label"
@@ -59,7 +79,7 @@
         @update:model-value="value => update({ block: value })"
       />
       <Select
-        v-if="fieldOptions.length"
+        v-if="fieldOptions.length && !showsFieldSet"
         :model-value="record.path"
         :options="fieldOptions"
         option-label="label"
@@ -67,6 +87,17 @@
         size="small"
         filter
         @update:model-value="value => update({ path: value })"
+      />
+      <MultiSelect
+        v-if="showsFieldSet"
+        :model-value="record.fields || []"
+        :options="fieldOptions"
+        option-label="label"
+        option-value="value"
+        filter
+        size="small"
+        :placeholder="$t('processDesigner.fields')"
+        @update:model-value="value => update({ fields: value })"
       />
       <InputText
         v-if="record.kind === 'source.literalItem' && !['number', 'integer', 'boolean', 'date', 'dateTime', 'status'].includes(record.type?.base)"
@@ -141,7 +172,7 @@
               option-label="label"
               option-value="value"
               size="small"
-              @update:model-value="value => updateInputDefault(input.id, value)"
+              @update:model-value="value => updateStatusInputDefault(input.id, value)"
             />
             <DatePicker
               v-else-if="['date', 'dateTime'].includes(input.base)"
@@ -175,13 +206,13 @@
     <div v-if="eventInputs.length || eventOutputs.length" class="mt-2 flex items-end justify-between gap-4 border-t border-content-border pt-2">
       <div class="flex flex-wrap gap-2">
         <div v-for="input in eventInputs" :key="input.id" class="relative rounded-ui bg-subtle px-2 py-1">
-          <Handle :id="socketHandleId(input)" type="target" :position="Position.Bottom" class="!bottom-0 !border-orange-500 !bg-orange-500" />
+          <Handle :id="socketHandleId(input)" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-orange-500 !bg-orange-500" />
           <span class="text-xs">{{ input.label }}</span>
         </div>
       </div>
       <div class="flex flex-wrap justify-end gap-2">
         <div v-for="output in eventOutputs" :key="output.id" class="relative rounded-ui bg-subtle px-2 py-1 text-right">
-          <Handle :id="socketHandleId(output)" type="source" :position="Position.Bottom" class="!bottom-0 !border-orange-500 !bg-orange-500" />
+          <Handle :id="socketHandleId(output)" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-orange-500 !bg-orange-500" />
           <span class="text-xs">{{ output.label }}</span>
         </div>
       </div>
@@ -195,6 +226,7 @@ import { Handle, Position } from '@vue-flow/core';
 import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
+import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
@@ -217,6 +249,14 @@ const eventOutputs = computed(() => outputSpecs.value.filter(output => output.ro
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
 const fieldOptions = computed(() => props.data.processFieldOptions || []);
+const effectRoleIds = computed(() => (record.value.access?.grants || []).map(grant => grant.roleId).filter(Boolean));
+const showsFieldSet = computed(() => [
+  'record.construct',
+  'record.deconstruct',
+  'record.entityDraft',
+  'effect.createEntity',
+  'effect.updateEntity'
+].includes(record.value.kind));
 const showEntitySelect = computed(() => (
   ['record.', 'predicate.', 'read.', 'effect.'].some(prefix => record.value.kind?.startsWith(prefix))
   || record.value.kind === 'control.entityChangedTrigger'
@@ -257,6 +297,7 @@ const hasInlineConfiguration = computed(() => (
   showEntitySelect.value
   || showTypeEditor.value
   || operationOptions.value.length
+  || record.value.kind?.startsWith('effect.')
   || record.value.kind === 'control.domainEventTrigger'
   || showBlockSelect.value
   || fieldOptions.value.length
@@ -279,6 +320,16 @@ const accent = computed(() => {
 
 function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
+}
+
+function updateEffectRoles(roleIds) {
+  update({
+    access: {
+      ...(record.value.access || {}),
+      level: 'write',
+      grants: roleIds.map(roleId => ({ roleId, level: 'write' }))
+    }
+  });
 }
 
 function updateValueType(base) {
@@ -394,6 +445,15 @@ function updateInputDefault(id, value) {
   if (value == null || value === '') delete inputDefaults[id];
   else inputDefaults[id] = value;
   update({ inputDefaults });
+}
+
+function updateStatusInputDefault(id, value) {
+  const option = (props.data.processStatusOptions || []).find(item => item.value === value);
+  update({
+    inputDefaults: { ...(record.value.inputDefaults || {}), [id]: value },
+    statusRef: option?.refId || '',
+    status: { ...(record.value.status || {}), to: value }
+  });
 }
 
 function socketHandleId(item) {

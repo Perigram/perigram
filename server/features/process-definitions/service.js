@@ -265,7 +265,7 @@ export async function startRun(id, payload = {}, auth = {}) {
 
 export async function handleEntityChangedEvent(event = {}, auth = {}) {
   return await startMatchingAutomaticRuns({
-    kind: 'control.entityChangedTrigger',
+    mode: 'entityChanged',
     entityType: event.type,
     payload: event,
     inputs: {
@@ -277,9 +277,10 @@ export async function handleEntityChangedEvent(event = {}, auth = {}) {
 
 export async function handleDomainEvent(event = {}, auth = {}) {
   return await startMatchingAutomaticRuns({
-    kind: 'control.domainEventTrigger',
+    mode: 'domainEvent',
     eventId: event.id || event.type,
-    payload: event
+    payload: event,
+    inputs: { payload: event }
   }, auth);
 }
 
@@ -305,7 +306,7 @@ async function startMatchingAutomaticRuns(trigger = {}, auth = {}) {
   const data = raw.data || {};
   const matches = (data.graph?.nodes || []).filter(node => {
     const record = data.processNodes?.[String(node.data?.refId || node.id)];
-    if (record?.kind !== trigger.kind) return false;
+    if (!record?.kind?.startsWith('effect.') || record.trigger?.mode !== trigger.mode) return false;
     if (trigger.entityType && record.entityType !== trigger.entityType) return false;
     if (trigger.eventId && record.eventId !== trigger.eventId) return false;
     return true;
@@ -315,7 +316,7 @@ async function startMatchingAutomaticRuns(trigger = {}, auth = {}) {
     results.push(await startRun(raw._id, {
       trigger: {
         nodeId: node.id,
-        kind: trigger.kind,
+        mode: trigger.mode,
         entityType: trigger.entityType,
         eventId: trigger.eventId,
         payload: trigger.payload
@@ -550,11 +551,14 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
 async function executeV3ActionRun({ process, actionId, entityId, data, parameters, entities, targetOrganizationId }, auth) {
   const effect = Object.values(process.data.processNodes || {})
     .find(node => node.legacyActionId === actionId && node.kind?.startsWith('effect.'));
-  if (!effect?.entryTriggerId) {
+  if (!effect || (effect.trigger?.mode || 'manual') !== 'manual') {
     throw createError({ statusCode: 409, message: `Action ${actionId} has no v3 entry trigger` });
   }
+  const graphNode = (process.data.graph?.nodes || [])
+    .find(node => String(node.data?.refId || node.id) === String(effect.id));
+  if (!graphNode) throw createError({ statusCode: 409, message: `Action ${actionId} has no v3 graph node` });
   let run = await startRun(process.id, {
-    trigger: { nodeId: effect.entryTriggerId },
+    trigger: { nodeId: graphNode.id },
     inputs: {
       entity: entityId || entities?.entity || null,
       entities,

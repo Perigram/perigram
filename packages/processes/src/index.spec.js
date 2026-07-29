@@ -130,6 +130,42 @@ const domain = {
 };
 
 describe('@cutkit/processes compiler', () => {
+  it('derives runnable action contracts from authored v3 effect nodes', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 3,
+      roles: { operator: { id: 'operator', label: 'Operator' } },
+      processNodes: {
+        create_queue: {
+          id: 'create_queue',
+          legacyActionId: 'create_queue',
+          kind: 'effect.createEntity',
+          label: 'Create queue',
+          entityType: 'queue',
+          construction: domain.construction.queue,
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE },
+          inputDefaults: { name: 'Queue' },
+          fields: [],
+          inputs: [],
+          outputs: []
+        }
+      },
+      graph: {
+        nodes: [{ id: 'create_queue', type: 'processNode', data: { refId: 'create_queue' } }],
+        edges: []
+      }
+    }, domain);
+
+    expect(compiled.actions.create_queue).toMatchObject({
+      id: 'create_queue',
+      actionKind: 'createEntity',
+      entityType: 'queue',
+      trigger: { mode: 'manual' }
+    });
+    expect(compiled.roles.operator.actions).toContainEqual(expect.objectContaining({ actionId: 'create_queue' }));
+  });
+
   it('reprojects attachment command sockets from the current typed template contract', () => {
     const attachmentDomain = {
       ...domain,

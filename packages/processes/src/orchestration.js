@@ -16,7 +16,7 @@ export function createProcessRun(definition = {}, trigger = {}, options = {}) {
     status: 'running',
     trigger: structuredClone(trigger),
     context: structuredClone(options.context || {}),
-    tokens: outgoingControl(process, triggerNode.id, 'start').map(edge => token(edge.target, edge.targetHandle)),
+    tokens: [token(triggerNode.id)],
     joins: {},
     steps: [],
     wakeAt: null,
@@ -102,6 +102,16 @@ export async function runProcessUntilSettled(run, definition, environment = {}, 
 async function executeOperationalNode({ run, process, node, record, current, step, environment }) {
   const inputs = await resolveNodeInputs(process, node, run, environment, current);
   if (record.kind.startsWith('effect.')) {
+    if (record.trigger?.mode === 'date' && !current.dateReady) {
+      const wakeAt = new Date(packetValue(inputs.at)).toISOString();
+      if (new Date(wakeAt) > new Date(instant(environment.now))) {
+        run.tokens.unshift({ ...current, dateReady: true });
+        run.status = 'waiting';
+        run.wakeAt = wakeAt;
+        step.status = 'waiting';
+        return;
+      }
+    }
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
     const result = await environment.executeEffect({
       kind: record.kind,
@@ -197,12 +207,33 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
         inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.type?.shape);
         continue;
       }
+      const runValue = processRunInput(run.context?.inputs || {}, record, port.id);
+      if (runValue !== undefined) {
+        inputs[port.id] = createDataPacket(structuredClone(runValue), port.type?.shape);
+        continue;
+      }
       if (port.required) throw new Error(`Node ${record.id || node.id} requires input ${port.id}`);
       continue;
     }
     inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, new Set());
   }
   return inputs;
+}
+
+function processRunInput(inputs = {}, record = {}, portId = '') {
+  if (portId === 'entity') {
+    return inputs.entity ?? inputs.entities?.[record.entityType];
+  }
+  if (Object.hasOwn(inputs.data || {}, portId)) return inputs.data[portId];
+  const nested = readInputPath(inputs.data, portId);
+  if (nested !== undefined) return nested;
+  if (Object.hasOwn(inputs.parameters || {}, portId)) return inputs.parameters[portId];
+  return undefined;
+}
+
+function readInputPath(value, path = '') {
+  return String(path).split('.').filter(Boolean)
+    .reduce((current, key) => current == null ? undefined : current[key], value);
 }
 
 async function evaluateNodeOutput(process, nodeId, outputId, run, environment, tokenContext, resolving) {
@@ -213,14 +244,6 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   resolving.add(cacheKey);
   const node = processNode(process, nodeId);
   const record = process.processNodes[recordId(node)];
-  if (record.kind?.endsWith('Trigger') && outputId === 'payload') {
-    const value = record.entityType
-      ? await environment.data?.currentEntity?.(record.entityType)
-      : (run.trigger?.payload ?? run.trigger);
-    const packet = createDataPacket(structuredClone(value));
-    resolving.delete(cacheKey);
-    return packet;
-  }
   const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
   const inputs = {};
   for (const port of ports.inputs.filter(item => item.role === 'data')) {
@@ -254,16 +277,18 @@ function processData(definition) {
 
 function findTriggerNode(process, trigger) {
   const nodes = (process.graph?.nodes || []).filter(node => {
-    const kind = process.processNodes?.[recordId(node)]?.kind || '';
-    return kind.endsWith('Trigger');
+    const record = process.processNodes?.[recordId(node)] || {};
+    return record.kind?.startsWith('effect.')
+      && ['manual', 'entityChanged', 'domainEvent'].includes(record.trigger?.mode || 'manual');
   });
   const match = trigger.nodeId
     ? nodes.find(node => String(node.id) === String(trigger.nodeId))
     : nodes.find(node => {
       const record = process.processNodes[recordId(node)];
       if (trigger.kind && record.kind !== trigger.kind) return false;
-      if (record.kind === 'control.domainEventTrigger' && record.eventId && trigger.eventId !== record.eventId) return false;
-      if (record.kind === 'control.entityChangedTrigger' && record.entityType && trigger.entityType !== record.entityType) return false;
+      if (trigger.mode && record.trigger?.mode !== trigger.mode) return false;
+      if (record.trigger?.mode === 'domainEvent' && record.eventId && trigger.eventId !== record.eventId) return false;
+      if (record.trigger?.mode === 'entityChanged' && record.entityType && trigger.entityType !== record.entityType) return false;
       return true;
     });
   if (!match) throw new Error(`Process trigger ${trigger.nodeId || trigger.kind || '(default)'} not found`);
