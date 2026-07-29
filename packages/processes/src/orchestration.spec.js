@@ -28,15 +28,121 @@ const data = (source, target, targetHandle) => ({
 });
 
 describe('durable process orchestration', () => {
+  it('starts a manual effect directly and feeds a selected deconstructed field into an automatic effect', async () => {
+    const definition = process([
+      {
+        id: 'create',
+        kind: 'effect.createEntity',
+        entityType: 'project',
+        trigger: { mode: 'manual' },
+        fields: ['identity.name'],
+        inputDefaults: { 'identity.name': 'Original' }
+      },
+      {
+        id: 'deconstruct',
+        kind: 'record.deconstruct',
+        entityType: 'project',
+        fields: ['identity.name'],
+        fieldSchemas: [{ path: 'identity.name', type: { base: 'string', shape: 'item' } }]
+      },
+      {
+        id: 'update',
+        kind: 'effect.updateEntity',
+        entityType: 'project',
+        trigger: { mode: 'event' },
+        fields: ['identity.name'],
+        fieldSchemas: [{ path: 'identity.name', type: { base: 'string', shape: 'item' } }]
+      }
+    ], ['create', 'deconstruct', 'update'], [
+      {
+        id: 'created-deconstruct',
+        source: 'create',
+        sourceHandle: 'data:result',
+        target: 'deconstruct',
+        targetHandle: 'data:record',
+        role: 'data'
+      },
+      {
+        id: 'created-update',
+        source: 'create',
+        sourceHandle: 'data:result',
+        target: 'update',
+        targetHandle: 'data:entity',
+        role: 'data'
+      },
+      {
+        id: 'name-update',
+        source: 'deconstruct',
+        sourceHandle: 'data:identity.name',
+        target: 'update',
+        targetHandle: 'data:identity.name',
+        role: 'data'
+      },
+      control('create', 'success', 'update')
+    ]);
+    const executeEffect = vi.fn()
+      .mockResolvedValueOnce({ type: 'project', id: 'project-1', identity: { name: 'Original' } })
+      .mockResolvedValueOnce({ type: 'project', id: 'project-1', identity: { name: 'Original' } });
+
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'create' }),
+      definition,
+      { executeEffect }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      inputs: {
+        entity: { type: 'project', id: 'project-1', identity: { name: 'Original' } },
+        'identity.name': 'Original'
+      }
+    }));
+  });
+
+  it('delays a date-triggered effect until the connected date', async () => {
+    const definition = process([
+      { id: 'create', kind: 'effect.createEntity', entityType: 'project', trigger: { mode: 'manual' }, fields: [] },
+      { id: 'at', kind: 'source.literalItem', value: '2026-02-01T00:00:00.000Z', type: { base: 'dateTime', shape: 'item' } },
+      { id: 'update', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'date' }, fields: [] }
+    ], ['create', 'at', 'update'], [
+      {
+        id: 'create-update-entity',
+        source: 'create',
+        sourceHandle: 'data:result',
+        target: 'update',
+        targetHandle: 'data:entity',
+        role: 'data'
+      },
+      data('at', 'update', 'at'),
+      control('create', 'success', 'update')
+    ]);
+    const executeEffect = vi.fn().mockResolvedValue({ type: 'project', id: 'project-1' });
+    const before = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:00.000Z'));
+    const waiting = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'create' }, { now: before }),
+      definition,
+      { now: before, executeEffect }
+    );
+
+    expect(waiting.status).toBe('waiting');
+    expect(waiting.wakeAt).toBe('2026-02-01T00:00:00.000Z');
+    expect(executeEffect).toHaveBeenCalledOnce();
+
+    const after = vi.fn().mockReturnValue(new Date('2026-02-01T00:00:01.000Z'));
+    const completed = await runProcessUntilSettled(waiting, definition, { now: after, executeEffect });
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledTimes(2);
+  });
+
   it('branches, executes an effect once with an idempotency key, and stops', async () => {
     const definition = process([
-      { id: 'trigger', kind: 'control.manualTrigger' },
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'condition', kind: 'source.literalItem', value: true, type: { base: 'boolean', shape: 'item' } },
       { id: 'branch', kind: 'control.if' },
       { id: 'effect', kind: 'effect.runCommand', commandId: 'test' },
       { id: 'stop', kind: 'control.stopSuccess' }
-    ], ['trigger', 'condition', 'branch', 'effect', 'stop'], [
-      control('trigger', 'start', 'branch'),
+    ], ['start', 'condition', 'branch', 'effect', 'stop'], [
+      control('start', 'success', 'branch'),
       data('condition', 'branch', 'condition'),
       control('branch', 'true', 'effect'),
       control('effect', 'success', 'stop')
@@ -44,42 +150,41 @@ describe('durable process orchestration', () => {
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
     const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
     expect(completed.status).toBe('succeeded');
-    expect(executeEffect).toHaveBeenCalledOnce();
-    expect(executeEffect.mock.calls[0][0].idempotencyKey).toContain(completed.id);
+    expect(executeEffect).toHaveBeenCalledTimes(2);
+    expect(executeEffect.mock.calls[1][0].idempotencyKey).toContain(completed.id);
   });
 
   it('persists a wait boundary and resumes after its wake time', async () => {
     const definition = process([
-      { id: 'trigger', kind: 'control.manualTrigger' },
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'duration', kind: 'source.literalItem', value: 'PT5S', type: { base: 'duration', shape: 'item' } },
       { id: 'wait', kind: 'control.waitDuration' },
       { id: 'stop', kind: 'control.stopSuccess' }
-    ], ['trigger', 'duration', 'wait', 'stop'], [
-      control('trigger', 'start', 'wait'),
+    ], ['start', 'duration', 'wait', 'stop'], [
+      control('start', 'success', 'wait'),
       data('duration', 'wait', 'duration'),
       control('wait', 'out', 'stop')
     ]);
-    const now = vi.fn()
-      .mockReturnValueOnce(new Date('2026-01-01T00:00:00Z'))
-      .mockReturnValueOnce(new Date('2026-01-01T00:00:00Z'))
-      .mockReturnValueOnce(new Date('2026-01-01T00:00:00Z'))
-      .mockReturnValue(new Date('2026-01-01T00:00:06Z'));
-    const waiting = await advanceProcessRun(createProcessRun(definition, {}, { now }), definition, { now });
+    const now = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:00Z'));
+    const executeEffect = vi.fn().mockResolvedValue({ ok: true });
+    const started = await advanceProcessRun(createProcessRun(definition, {}, { now }), definition, { now, executeEffect });
+    const waiting = await advanceProcessRun(started, definition, { now, executeEffect });
     expect(waiting.status).toBe('waiting');
-    const completed = await runProcessUntilSettled(waiting, definition, { now });
+    const after = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:06Z'));
+    const completed = await runProcessUntilSettled(waiting, definition, { now: after, executeEffect });
     expect(completed.status).toBe('succeeded');
   });
 
   it('waits for every fork branch at join-all', async () => {
     const definition = process([
-      { id: 'trigger', kind: 'control.manualTrigger' },
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'fork', kind: 'control.fork', branches: 2 },
       { id: 'left', kind: 'effect.runCommand', commandId: 'left' },
       { id: 'right', kind: 'effect.runCommand', commandId: 'right' },
       { id: 'join', kind: 'control.joinAll' },
       { id: 'stop', kind: 'control.stopSuccess' }
-    ], ['trigger', 'fork', 'left', 'right', 'join', 'stop'], [
-      control('trigger', 'start', 'fork'),
+    ], ['start', 'fork', 'left', 'right', 'join', 'stop'], [
+      control('start', 'success', 'fork'),
       control('fork', 'branch1', 'left'),
       control('fork', 'branch2', 'right'),
       control('left', 'success', 'join'),
@@ -89,19 +194,19 @@ describe('durable process orchestration', () => {
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
     const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
     expect(completed.status).toBe('succeeded');
-    expect(executeEffect.mock.calls.map(call => call[0].record.commandId).sort()).toEqual(['left', 'right']);
+    expect(executeEffect.mock.calls.map(call => call[0].record.commandId).sort()).toEqual(['left', 'right', 'start']);
     expect(completed.steps.filter(step => step.nodeId === 'join')).toHaveLength(2);
   });
 
   it('executes a structured foreach body with an item scoped to each token', async () => {
     const definition = process([
-      { id: 'trigger', kind: 'control.manualTrigger' },
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
       { id: 'items', kind: 'source.literalList', value: [{ n: 1 }, { n: 2 }], type: { base: 'json', shape: 'list' } },
       { id: 'loop', kind: 'control.forEach', type: { base: 'json', shape: 'item' } },
       { id: 'effect', kind: 'effect.runCommand', commandId: 'each' },
       { id: 'stop', kind: 'control.stopSuccess' }
-    ], ['trigger', 'items', 'loop', 'effect', 'stop'], [
-      control('trigger', 'start', 'loop'),
+    ], ['start', 'items', 'loop', 'effect', 'stop'], [
+      control('start', 'success', 'loop'),
       data('items', 'loop', 'items'),
       control('loop', 'each', 'effect'),
       {
@@ -117,22 +222,23 @@ describe('durable process orchestration', () => {
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
     const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
     expect(completed.status).toBe('succeeded');
-    expect(executeEffect.mock.calls.map(call => call[0].inputs.parameters)).toEqual([{ n: 1 }, { n: 2 }]);
+    expect(executeEffect.mock.calls.slice(1).map(call => call[0].inputs.parameters)).toEqual([{ n: 1 }, { n: 2 }]);
   });
 
   it('routes a typed automatic entity event payload into entity data operations', async () => {
     const definition = process([
-      { id: 'trigger', kind: 'control.entityChangedTrigger', entityType: 'project' },
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', entityType: 'project', trigger: { mode: 'entityChanged' } },
+      { id: 'entity', kind: 'source.processInput', path: 'entity', type: { base: 'entity', shape: 'item', entityType: 'project' } },
       { id: 'field', kind: 'record.getField', entityType: 'project', path: 'status.timestamp', fieldSchema: { type: { base: 'dateTime' } } },
       { id: 'date', kind: 'value.dateTime', operation: 'addDays', inputDefaults: { amount: 30 } },
       { id: 'wait', kind: 'control.waitUntil' },
       { id: 'stop', kind: 'control.stopSuccess' }
-    ], ['trigger', 'field', 'date', 'wait', 'stop'], [
-      control('trigger', 'start', 'wait'),
+    ], ['start', 'entity', 'field', 'date', 'wait', 'stop'], [
+      control('start', 'success', 'wait'),
       {
         id: 'payload-field',
-        source: 'trigger',
-        sourceHandle: 'data:payload',
+        source: 'entity',
+        sourceHandle: 'data:value',
         target: 'field',
         targetHandle: 'data:value',
         role: 'data'
@@ -141,46 +247,41 @@ describe('durable process orchestration', () => {
       data('date', 'wait', 'at'),
       control('wait', 'out', 'stop')
     ]);
-    const currentEntity = vi.fn().mockResolvedValue({ status: { timestamp: '2026-01-01T10:00:00.000Z' } });
     const now = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:00.000Z'));
-    const waiting = await advanceProcessRun(
-      createProcessRun(definition, { kind: 'control.entityChangedTrigger', entityType: 'project' }, { now }),
+    const executeEffect = vi.fn().mockResolvedValue({ ok: true });
+    const run = createProcessRun(definition, { mode: 'entityChanged', entityType: 'project' }, {
+      now,
+      context: { inputs: { entity: { status: { timestamp: '2026-01-01T10:00:00.000Z' } } } }
+    });
+    const waiting = await runProcessUntilSettled(
+      run,
       definition,
-      { now, data: { currentEntity } }
+      { now, executeEffect }
     );
     expect(waiting.status).toBe('waiting');
     expect(waiting.wakeAt).toBe('2026-01-31T10:00:00.000Z');
-    expect(currentEntity).toHaveBeenCalledWith('project');
   });
 
   it('uses a typed manual event payload instead of an ambient current-entity node', async () => {
     const definition = process([
-      { id: 'trigger', kind: 'control.manualTrigger', entityType: 'project' },
       {
         id: 'modify',
         kind: 'effect.updateEntity',
         entityType: 'project',
+        trigger: { mode: 'manual' },
         fields: ['identity.name'],
         fieldSchemas: [{ path: 'identity.name', type: { base: 'string' } }],
         inputDefaults: { 'identity.name': 'Renamed' }
       }
-    ], ['trigger', 'modify'], [
-      control('trigger', 'start', 'modify'),
-      {
-        id: 'payload-modify',
-        source: 'trigger',
-        sourceHandle: 'data:payload',
-        target: 'modify',
-        targetHandle: 'data:entity',
-        role: 'data'
-      }
-    ]);
+    ], ['modify'], []);
     const entity = { _id: 'project-1', identity: { name: 'Original' } };
     const executeEffect = vi.fn().mockResolvedValue({ ...entity, identity: { name: 'Renamed' } });
     const completed = await runProcessUntilSettled(
-      createProcessRun(definition, { kind: 'control.manualTrigger' }),
+      createProcessRun(definition, { nodeId: 'modify' }, {
+        context: { inputs: { entity } }
+      }),
       definition,
-      { executeEffect, data: { currentEntity: vi.fn().mockResolvedValue(entity) } }
+      { executeEffect }
     );
 
     expect(completed.status).toBe('succeeded');

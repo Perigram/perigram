@@ -24,6 +24,16 @@ const paletteItem = (id, kind, options = {}) => Object.freeze({
   ...options
 });
 
+const definitionPaletteItem = (id, type, options = {}) => Object.freeze({
+  id,
+  type,
+  label: id,
+  description: id,
+  icon: 'pi pi-circle-fill',
+  preset: {},
+  ...options
+});
+
 // This is an authoring catalog, not the runtime operation catalog. Runtime-only
 // coercions and plumbing are deliberately absent: the connection planner owns
 // those operations and may insert them when two compatible sockets are joined.
@@ -33,6 +43,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('createEntity', 'effect.createEntity'),
       paletteItem('modifyEntity', 'effect.updateEntity'),
+      definitionPaletteItem('defineStatus', 'statusDefinition'),
       paletteItem('deconstructEntity', 'record.deconstruct'),
       paletteItem('readBlock', 'record.getBlock'),
       paletteItem('readField', 'record.getField')
@@ -74,15 +85,6 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('unzipLists', 'tree.unzip'),
       paletteItem('crossLists', 'tree.cross'),
       paletteItem('transposeTree', 'tree.transpose')
-    ]
-  },
-  {
-    id: 'events',
-    items: [
-      paletteItem('manualEvent', 'control.manualTrigger'),
-      paletteItem('entityEvent', 'control.entityChangedTrigger'),
-      paletteItem('domainEvent', 'control.domainEventTrigger'),
-      paletteItem('continueAtDate', 'control.waitUntil')
     ]
   }
 ].map(group => Object.freeze({

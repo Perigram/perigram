@@ -100,12 +100,12 @@ describe('process designer domain contract', () => {
     expect(Object.keys(groups)).toEqual([
       'entities',
       'values',
-      'listTree',
-      'events'
+      'listTree'
     ]);
-    expect(groups.entities.map(item => item.kind)).toEqual([
+    expect(groups.entities.map(item => item.kind || item.type)).toEqual([
       'effect.createEntity',
       'effect.updateEntity',
+      'statusDefinition',
       'record.deconstruct',
       'record.getBlock',
       'record.getField'
@@ -118,16 +118,13 @@ describe('process designer domain contract', () => {
       'value.dateTime'
     ]);
     expect(groups.listTree.map(item => item.kind)).toContain('tree.cross');
-    expect(groups.events.map(item => item.kind)).toEqual([
-      'control.manualTrigger',
-      'control.entityChangedTrigger',
-      'control.domainEventTrigger',
-      'control.waitUntil'
-    ]);
+    expect(items.map(item => item.kind)).not.toContain('control.manualTrigger');
+    expect(items.map(item => item.kind)).not.toContain('control.entityChangedTrigger');
+    expect(items.map(item => item.kind)).not.toContain('control.domainEventTrigger');
     expect(items.map(item => item.kind)).not.toContain('value.cast');
     expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
-    expect(items.every(item => getProcessNodeDefinition(item.kind))).toBe(true);
+    expect(items.every(item => item.type === 'statusDefinition' || getProcessNodeDefinition(item.kind))).toBe(true);
     expect(new Set(items.map(item => item.id)).size).toBe(items.length);
     expect(items.every(item => item.description && item.preset)).toBe(true);
     expect(items.find(item => item.id === 'date')?.preset).toMatchObject({

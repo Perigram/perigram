@@ -106,6 +106,7 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
 
 export function normalizeProcessDefinition(definition = {}) {
   const data = definition.data || definition;
+  const processNodes = normalizeRecord(data.processNodes);
   return inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
     dataflowVersion: data.dataflowVersion || 1,
@@ -115,16 +116,64 @@ export function normalizeProcessDefinition(definition = {}) {
     roles: normalizeRecord(data.roles),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
-    actions: normalizeActions(data.actions),
+    actions: normalizeActions(deriveV3EffectActions(data.actions, processNodes)),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
     statusDefinitions: normalizeRecord(data.statusDefinitions),
     valueInputs: normalizeRecord(data.valueInputs),
-    processNodes: normalizeRecord(data.processNodes),
+    processNodes,
     screens: normalizeRecord(data.screens),
     assignments: normalizeRecord(data.assignments),
     compiled: data.compiled || null
   });
+}
+
+function deriveV3EffectActions(actions = {}, processNodes = {}) {
+  const derived = { ...(actions || {}) };
+  for (const [nodeId, node] of Object.entries(processNodes)) {
+    if (!node.kind?.startsWith('effect.')) continue;
+    const actionId = String(node.legacyActionId || node.id || nodeId);
+    const actionKind = ({
+      'effect.createEntity': 'createEntity',
+      'effect.updateEntity': 'updateEntity',
+      'effect.runCommand': 'runCommand',
+      'effect.sendEntity': 'sendToOrganization',
+      'effect.generateAttachment': 'runCommand'
+    })[node.kind];
+    if (!actionKind) continue;
+    const fields = Array.isArray(node.fields) ? node.fields : [];
+    const statusTo = node.inputDefaults?.['status.state.primary'] || node.status?.to || '';
+    derived[actionId] = {
+      ...(derived[actionId] || {}),
+      id: actionId,
+      label: node.label || derived[actionId]?.label || actionKind,
+      actionKind,
+      entityType: node.entityType || derived[actionId]?.entityType || '',
+      commandId: node.commandId || derived[actionId]?.commandId || '',
+      construction: node.construction || derived[actionId]?.construction || {},
+      mutation: { ...(derived[actionId]?.mutation || {}), fields },
+      inputPolicy: {
+        ...(derived[actionId]?.inputPolicy || {}),
+        prompt: fields.some(path => !Object.hasOwn(node.inputDefaults || {}, path)),
+        fields: fields.map(path => ({
+          id: `field:${path}`,
+          path,
+          type: node.fieldSchemas?.find(field => field.path === path)?.type?.base || 'string',
+          prompt: !Object.hasOwn(node.inputDefaults || {}, path),
+          required: false,
+          ...(Object.hasOwn(node.inputDefaults || {}, path) ? { default: node.inputDefaults[path] } : {})
+        }))
+      },
+      access: node.access || derived[actionId]?.access || { level: 'write', grants: [] },
+      trigger: node.trigger || derived[actionId]?.trigger || { mode: 'manual' },
+      status: { ...(derived[actionId]?.status || {}), ...(statusTo ? { to: statusTo } : {}) },
+      statusRef: node.statusRef || derived[actionId]?.statusRef || '',
+      inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
+      outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : [],
+      events: [{ id: 'completed', label: `${node.label || actionKind} completed`, kind: 'event' }]
+    };
+  }
+  return derived;
 }
 
 export function requiredEntityProfileTypes(definition = {}, domain = {}) {
@@ -899,8 +948,10 @@ function buildActionGraphContext(process = {}) {
   const actionNodeById = new Map();
   const actionIdByNodeId = new Map();
   for (const node of process.graph?.nodes || []) {
-    if (node.type !== 'action') continue;
-    const actionId = String(node.data?.refId || node.id || '');
+    const refId = String(node.data?.refId || node.id || '');
+    const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
+    if (node.type !== 'action' && !processNode?.kind?.startsWith('effect.')) continue;
+    const actionId = String(processNode?.legacyActionId || refId);
     if (!actionId) continue;
     actionNodeById.set(actionId, node);
     actionIdByNodeId.set(String(node.id), actionId);
@@ -2198,7 +2249,7 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     validateFieldList(action.projection?.excludeFields, domain, action.entityType, `action ${actionId} excluded fields`, errors);
   }
   const triggerMode = action.trigger?.mode || 'manual';
-  if (!['manual', 'event'].includes(triggerMode)) {
+  if (!['manual', 'event', 'date', 'entityChanged', 'domainEvent'].includes(triggerMode)) {
     errors.push(`Action ${actionId} uses unknown trigger mode ${triggerMode}`);
   }
   for (const roleId of normalizedAccess.roleIds) {
@@ -2230,12 +2281,21 @@ function validateParentRevision(actionId, action = {}, domain = {}, errors = [],
 
 function inferConnectedActionEntityType(actionId, process = {}) {
   const actionNodeIds = new Set((process.graph?.nodes || [])
-    .filter(node => node.type === 'action' && String(node.data?.refId || node.id) === String(actionId))
+    .filter(node => {
+      const refId = String(node.data?.refId || node.id);
+      const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
+      return (node.type === 'action' && refId === String(actionId))
+        || (processNode?.kind?.startsWith('effect.') && String(processNode.legacyActionId || refId) === String(actionId));
+    })
     .map(node => String(node.id)));
   for (const edge of process.graph?.edges || []) {
     if (!actionNodeIds.has(String(edge.target)) || !isEntityTargetHandle(edge.targetHandle)) continue;
     const sourceNode = (process.graph?.nodes || []).find(node => String(node.id) === String(edge.source));
-    const sourceActionId = sourceNode?.type === 'action' ? String(sourceNode.data?.refId || sourceNode.id) : '';
+    const sourceRefId = String(sourceNode?.data?.refId || sourceNode?.id || '');
+    const sourceRecord = sourceNode?.type === 'processNode' ? process.processNodes?.[sourceRefId] : null;
+    const sourceActionId = sourceNode?.type === 'action'
+      ? sourceRefId
+      : sourceRecord?.kind?.startsWith('effect.') ? String(sourceRecord.legacyActionId || sourceRefId) : '';
     const sourceAction = process.actions?.[sourceActionId];
     const sourceType = sourceAction && actionEntityType(sourceAction);
     if (sourceType) return sourceType;
@@ -2371,6 +2431,9 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
     }
     validateFieldList(node.fields, domain, node.entityType, `process node ${nodeId} fields`, errors, 'write');
   }
+  if (node.kind.startsWith('effect.') && !['manual', 'event', 'date', 'entityChanged', 'domainEvent'].includes(node.trigger?.mode || 'manual')) {
+    errors.push(`Process node ${nodeId} uses unknown trigger mode ${node.trigger?.mode}`);
+  }
   if (node.kind === 'control.entityChangedTrigger' && !node.entityType) {
     errors.push(`Process node ${nodeId} must select an entity type`);
   }
@@ -2430,9 +2493,11 @@ function validateV3Edges(process, domain) {
     const cycle = findGraphCycle(process, role);
     if (cycle.length) errors.push(`${role === 'data' ? 'Data' : 'Control'} graph contains a cycle: ${cycle.join(' → ')}`);
   }
-  const triggers = (process.graph?.nodes || []).filter(node => (
-    process.processNodes?.[String(node.data?.refId || node.id)]?.kind?.endsWith('Trigger')
-  ));
+  const triggers = (process.graph?.nodes || []).filter(node => {
+    const record = process.processNodes?.[String(node.data?.refId || node.id)];
+    return record?.kind?.startsWith('effect.')
+      && ['manual', 'entityChanged', 'domainEvent'].includes(record.trigger?.mode || 'manual');
+  });
   const reachable = reachableControlNodes(process, triggers.map(node => String(node.id)));
   for (const node of process.graph?.nodes || []) {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];

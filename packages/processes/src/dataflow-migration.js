@@ -31,8 +31,9 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
   if (Number(process.dataflowVersion) === PROCESS_DATAFLOW_VERSION && isV3Graph(process)) {
     const composed = replaceComposedEntityEffects(process, domain);
     const ambient = replaceAmbientEntityEffectInputs(composed.process);
-    if (!composed.changed && !ambient.changed) return { changed: false, value: definition };
-    const migrated = { ...process, ...ambient.process, compiled: null };
+    const triggers = embedEffectTriggers(ambient.process);
+    if (!composed.changed && !ambient.changed && !triggers.changed) return { changed: false, value: definition };
+    const migrated = { ...process, ...triggers.process, compiled: null };
     return {
       changed: true,
       value: wrapped ? { ...definition, data: migrated } : migrated
@@ -56,6 +57,14 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
       data: { ...(node.data || {}), refId: migrated.refId }
     });
     if (node.type === 'action' || node.type === 'service') {
+      const triggerMode = node.type === 'action'
+        ? (process.actions?.[sourceRef]?.trigger?.mode || 'manual')
+        : 'manual';
+      if (triggerMode === 'event') {
+        migrated.record.trigger = { mode: 'event' };
+        migrated.record.entryTriggerId = migrated.record.id;
+        continue;
+      }
       const triggerId = `trigger:${sourceRef}`;
       records[triggerId] = normalizeRecord({
         kind: 'control.manualTrigger',
@@ -99,22 +108,109 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
     if (!ambient.process.processNodes[key]) delete records[key];
   }
   Object.assign(records, ambient.process.processNodes);
-  const pruned = pruneDeadDataNodes(ambient.process.graph.nodes, records, ambient.process.graph.edges);
+  const triggers = embedEffectTriggers({
+    ...ambient.process,
+    processNodes: records,
+    graph: { ...ambient.process.graph, edges: [...ambient.process.graph.edges, ...entryEdges] }
+  });
+  for (const key of Object.keys(records)) {
+    if (!triggers.process.processNodes[key]) delete records[key];
+  }
+  Object.assign(records, triggers.process.processNodes);
+  const pruned = pruneDeadDataNodes(triggers.process.graph.nodes, records, triggers.process.graph.edges);
   edges = pruned.edges;
-  inferMigratedEntityTypes(records, pruned.nodes, [...edges, ...entryEdges]);
+  inferMigratedEntityTypes(records, pruned.nodes, edges);
   const converted = insertVisibleConversions(pruned.nodes, records, edges, domain);
   const actions = migrateLegacyActionMetadata(process.actions, records, domain);
   const migrated = {
     ...process,
     actions,
     dataflowVersion: PROCESS_DATAFLOW_VERSION,
-    graph: { ...(process.graph || {}), nodes: converted.nodes, edges: [...converted.edges, ...entryEdges] },
+    graph: { ...(process.graph || {}), nodes: converted.nodes, edges: converted.edges },
     processNodes: records,
     valueInputs: {},
     compiled: null
   };
   const value = wrapped ? { ...definition, data: migrated } : migrated;
   return { changed: JSON.stringify(value) !== JSON.stringify(definition), value };
+}
+
+function embedEffectTriggers(process = {}) {
+  const records = structuredClone(process.processNodes || {});
+  let nodes = [...(process.graph?.nodes || [])];
+  let edges = [...(process.graph?.edges || [])];
+  const nodeById = new Map(nodes.map(node => [String(node.id), node]));
+  const recordForNode = nodeId => {
+    const node = nodeById.get(String(nodeId));
+    return records[String(node?.data?.refId || node?.id || '')];
+  };
+  const removed = new Set();
+  let changed = false;
+
+  for (const node of nodes) {
+    const trigger = recordForNode(node.id);
+    const mode = ({
+      'control.manualTrigger': 'manual',
+      'control.entityChangedTrigger': 'entityChanged',
+      'control.domainEventTrigger': 'domainEvent'
+    })[trigger?.kind];
+    if (!mode) continue;
+    const controlEdges = edges.filter(edge => (
+      String(edge.source) === String(node.id)
+      && (edge.role === 'control' || String(edge.sourceHandle || '').startsWith('control:'))
+    ));
+    const targetEffects = controlEdges
+      .map(edge => recordForNode(edge.target))
+      .filter(record => record?.kind?.startsWith('effect.'));
+    if (!targetEffects.length) continue;
+
+    for (const effect of targetEffects) {
+      effect.trigger = {
+        ...(effect.trigger || {}),
+        mode,
+        ...(trigger.eventId ? { eventId: trigger.eventId } : {})
+      };
+      if (trigger.eventId) effect.eventId = trigger.eventId;
+      if (trigger.entityType && !effect.entityType) effect.entityType = trigger.entityType;
+      effect.entryTriggerId = effect.id;
+      effect.legacyActionId ||= effect.id;
+    }
+    edges = edges.filter(edge => !controlEdges.includes(edge));
+
+    const payloadEdges = edges.filter(edge => (
+      String(edge.source) === String(node.id)
+      && cleanHandle(edge.sourceHandle) === 'payload'
+    ));
+    const removablePayloadEdges = payloadEdges.filter(edge => (
+      recordForNode(edge.target)?.kind?.startsWith('effect.')
+      && cleanHandle(edge.targetHandle) === 'entity'
+    ));
+    edges = edges.filter(edge => !removablePayloadEdges.includes(edge));
+    const retainedPayloadEdges = payloadEdges.filter(edge => !removablePayloadEdges.includes(edge));
+    if (retainedPayloadEdges.length) {
+      trigger.kind = 'source.processInput';
+      trigger.path = mode === 'domainEvent' ? 'payload' : 'entity';
+      trigger.type = mode === 'domainEvent'
+        ? { base: 'json', shape: 'item', nullable: false }
+        : { base: 'entity', shape: 'item', nullable: false, entityType: trigger.entityType };
+    } else {
+      removed.add(String(node.id));
+      delete records[String(node.data?.refId || node.id)];
+    }
+    changed = true;
+  }
+
+  if (!changed) return { changed: false, process };
+  nodes = nodes.filter(node => !removed.has(String(node.id)));
+  edges = edges.filter(edge => !removed.has(String(edge.source)) && !removed.has(String(edge.target)));
+  return {
+    changed: true,
+    process: {
+      ...process,
+      processNodes: records,
+      graph: { ...(process.graph || {}), nodes, edges }
+    }
+  };
 }
 
 function replaceAmbientEntityEffectInputs(process = {}) {

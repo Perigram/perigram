@@ -2301,6 +2301,7 @@
     },
     "paletteItems": {
       "modifyEntity": "Modify entity",
+      "defineStatus": "Define status",
       "deconstructEntity": "Deconstruct entity",
       "valueInput": "Value input",
       "logic": "Logic",
@@ -2400,6 +2401,7 @@
     },
     "paletteDescriptions": {
       "modifyEntity": "Changes selected fields or status on an existing entity.",
+      "defineStatus": "Defines a reusable entity lifecycle state and its evidence requirements.",
       "deconstructEntity": "Exposes selected entity fields as separate typed outputs.",
       "valueInput": "Produces one editable value of the selected type.",
       "logic": "Compares values or combines Boolean conditions.",
@@ -2580,11 +2582,7 @@
     "searchOperations": "Search nodes",
     "showAdvancedOperations": "Show advanced operations",
     "hideAdvancedOperations": "Hide advanced operations",
-    "statuses": "Statuses",
-    "statusManagerHelp": "Define the statuses this process may use. Status changes remain actions on the canvas.",
-    "addStatus": "Add status",
     "statusId": "Status ID",
-    "noStatuses": "No statuses are defined yet.",
     "statusInUse": "Status is in use",
     "statusInUseHelp": "Disconnect or reconfigure the Change Status action first.",
     "automaticConversion": "Automatic conversion to {type}",

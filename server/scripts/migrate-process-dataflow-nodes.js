@@ -33,7 +33,6 @@ async function main() {
   try {
     const collection = client.db().collection('process_definitions');
     const filter = {
-      'data.dataflowVersion': { $ne: 3 },
       ...(status ? { 'status.state.primary': status } : {})
     };
     const cursor = collection.find(filter);
@@ -63,7 +62,7 @@ async function main() {
     if (apply && updates.length) {
       await collection.bulkWrite(updates.map(update => ({
         updateOne: {
-          filter: { _id: update._id, 'data.dataflowVersion': { $ne: 3 } },
+          filter: { _id: update._id },
           update: { $set: { data: update.data } }
         }
       })), { ordered: true });

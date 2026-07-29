@@ -50,19 +50,17 @@ describe('process v3 data-flow migration', () => {
     expect(result.value.processNodes.change).toBeUndefined();
     expect(result.value.processNodes['effect:update']).toMatchObject({
       kind: 'effect.updateEntity',
-      fields: ['identity.name']
+      fields: ['identity.name'],
+      trigger: { mode: 'manual' },
+      entryTriggerId: 'effect:update'
     });
-    expect(result.value.processNodes['trigger:update']).toMatchObject({
-      kind: 'control.manualTrigger',
-      entityType: 'queue'
-    });
+    expect(result.value.processNodes['trigger:update']).toBeUndefined();
     expect(result.value.processNodes['current:entity:update']).toBeUndefined();
     expect(result.value.processNodes['ref:entity:update']).toBeUndefined();
-    expect(result.value.processNodes['effect:update'].entryTriggerId).toBe('trigger:update');
+    expect(result.value.processNodes['effect:update'].entryTriggerId).toBe('effect:update');
     expect(result.value.graph.nodes.every(node => node.type === 'processNode')).toBe(true);
     expect(result.value.graph.edges).toEqual(expect.arrayContaining([
-      expect.objectContaining({ source: 'name', sourceHandle: 'data:value', target: 'update', targetHandle: 'data:identity.name', role: 'data' }),
-      expect.objectContaining({ source: 'trigger:update', sourceHandle: 'data:payload', target: 'update', targetHandle: 'data:entity', role: 'data' })
+      expect.objectContaining({ source: 'name', sourceHandle: 'data:value', target: 'update', targetHandle: 'data:identity.name', role: 'data' })
     ]));
   });
 
@@ -125,8 +123,10 @@ describe('process v3 data-flow migration', () => {
     expect(migrated.graph.edges.some(edge => edge.id === 'a-b' || edge.id === 'b-a')).toBe(false);
     expect(migrated.processNodes['status:statusA'].value).toBe('CLOSED');
     expect(migrated.processNodes['status:statusB'].value).toBe('OPEN');
-    expect(migrated.graph.edges.filter(edge => edge.target === 'statusA' && edge.targetHandle === 'data:entity')).toHaveLength(1);
-    expect(migrated.graph.edges.filter(edge => edge.target === 'statusB' && edge.targetHandle === 'data:entity')).toHaveLength(1);
+    expect(migrated.graph.edges.filter(edge => edge.target === 'statusA' && edge.targetHandle === 'data:entity')).toHaveLength(0);
+    expect(migrated.graph.edges.filter(edge => edge.target === 'statusB' && edge.targetHandle === 'data:entity')).toHaveLength(0);
+    expect(migrated.processNodes['effect:statusA']).toMatchObject({ trigger: { mode: 'manual' }, entryTriggerId: 'effect:statusA' });
+    expect(migrated.processNodes['effect:statusB']).toMatchObject({ trigger: { mode: 'manual' }, entryTriggerId: 'effect:statusB' });
   });
 
   it('is idempotent after migration', () => {
