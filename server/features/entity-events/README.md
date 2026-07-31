@@ -25,14 +25,10 @@ same active organization, to the actor's own sessions, and to admins. This is a
 runtime synchronization channel, not a durable audit log. Status history remains
 the persisted audit source.
 
-The bus also exposes an in-process automatic-handler registration boundary.
-The process orchestration plugin registers the active-process entity trigger
-handler there. A normalized invalidation starts every effect whose start mode
-is `entityChanged` for that entity type and passes the entity reference as run
-input; the process runtime reloads the entity through its authorized feature
-service before field evaluation. Handler
-failures are logged and do not retroactively fail the mutation that already
-produced the invalidation.
+The bus also exposes an in-process automatic-handler registration boundary for
+explicit consumers. Process effects are not registered implicitly from node
+configuration; entity-event process entry requires its own declared binding
+contract.
 
 ## Producers
 

@@ -31,10 +31,11 @@ The palette has three non-overlapping operation concerns:
   and tree flatten/graft/simplify/branch/zip/unzip/cross/transpose.
 
 Events are not data operations and therefore are not a palette family.
-Executable effect nodes select their own start mode: manual, previous-node
-event, entity change, registered domain event, or connected date. Immediate
-and date-delayed automatic nodes expose an event input in the footer; every
-effect exposes its completion event there. Event handles use the same
+Every effect has one bottom execution switch: Manual exposes the operation to
+authorized users, while Automatic exposes an incoming event socket. Date
+scheduling is composed explicitly with date values and a wait-until control
+before that socket; entity and domain subscriptions are process-entry concerns,
+not effect modes. Every effect exposes its completion event there. Event handles use the same
 left-to-right direction as data sockets instead of pointing out of the bottom
 of the card. Pure value, list/tree, read, and deconstruct nodes do not render
 event chrome.
@@ -100,8 +101,10 @@ operation rather than a visual summary.
 Field selectors consume `cncDomain.fieldSchemas`. Every selectable field has an
 exact path, block, structured type, and readable/writable capability. Wildcard
 access rules do not appear as fields. Construct/deconstruct nodes expose only
-the selected field set as dynamic sockets; a literal never asks for a field
-path.
+the explicitly selected field set as dynamic sockets; a new create/modify
+effect does not select an arbitrary first writable field. A literal never asks
+for a field path. Effect access is edited as explicit role plus access-level
+rows rather than flattening every selected role into a write grant.
 
 ## Canvas behavior and diagnostics
 

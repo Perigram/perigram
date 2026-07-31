@@ -52,7 +52,8 @@ bootstrap. They create process graphs and role assignments; runtime behavior is
 driven only by the activated process definition, not by organization type
 branching.
 
-Role access is compositional. Process role records represent human
+Role access is compositional. Effect grants retain explicit `{ roleId, level }`
+rows; authoring never coerces every selected role to `write`. Process role records represent human
 responsibilities and may store explicit access grants, but they do not own
 navigation routes. The compiler combines explicit role grants with grants
 derived from entity-profile `allowedRoles`, action access grants, and screen
@@ -197,6 +198,7 @@ entity-specific constructor such as baked cassette designs or OCCS template
 creation must be declared by the domain construction registry. This keeps the
 process compiler reusable and prevents hidden domain behavior from living in the
 generic package.
+New create/update effects begin with no optional mutation field selected.
 Update actions consume an entity from the incoming data socket, expose one data
 input socket per selected mutable field plus a dedicated typed status socket,
 validate ordinary fields against the
@@ -252,19 +254,21 @@ fields as its transition patch. Create additionally projects the selected
 domain construction mode as typed sockets and resolves entity/entity-list
 construction references at the effect boundary.
 
-`orchestration.js` executes the full runtime control plane. Start behavior is
-owned by executable effect nodes rather than separate event-source nodes. An
-effect can start manually, from the previous node's completion event, from a
-registered domain event, from an entity change, or at a connected absolute
-date. A date-triggered effect persists its wake boundary before executing.
+`orchestration.js` executes the full runtime control plane. Effect nodes have
+only two execution modes: `manual`, which is exposed through authorized UI, and
+`event`, which requires an incoming control socket. Date scheduling is an
+explicit `control.waitUntil` step fed by date algebra before an automatic
+effect. Entity-change and domain-event subscriptions are process-entry
+concerns and are not stored as effect modes. Older multi-mode effect records
+migrate to the automatic socket contract.
 Runs carry
 durable control tokens, foreach scopes, join arrivals, wake times, attempts,
 and step outputs. Data subgraphs are evaluated lazily for the operational node
 that consumes them. Arbitrary data or control cycles are rejected during
 activation.
 
-Manual and entity-change effect inputs resolve the supplied entity from the
-persisted run context when no data wire overrides that socket. Migration
+Manual effect inputs resolve the supplied entity from the persisted run context
+when no data wire overrides that socket. Migration
 embeds old standalone trigger records into their target effects, removes the
 old control node, and rewrites any retained payload use as an ordinary process
 input. Entity access remains resolved from persisted run input through the
