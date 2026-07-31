@@ -71,38 +71,52 @@ describe('durable process orchestration', () => {
     }));
   });
 
-  it('starts a manual effect directly and feeds a selected deconstructed field into an automatic effect', async () => {
+  it('starts a manual effect and feeds a deconstructed block into an automatic effect', async () => {
     const definition = process([
+      {
+        id: 'identity',
+        kind: 'record.composeBlock',
+        entityType: 'project',
+        block: 'identity',
+        fields: ['identity.name'],
+        fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }],
+        inputDefaults: { 'identity.name': 'Original' }
+      },
       {
         id: 'create',
         kind: 'effect.createEntity',
         entityType: 'project',
         trigger: { mode: 'manual' },
-        fields: ['identity.name'],
-        inputDefaults: { 'identity.name': 'Original' }
+        blocks: ['identity']
       },
       {
         id: 'deconstruct',
         kind: 'record.deconstruct',
         entityType: 'project',
-        fields: ['identity.name'],
-        fieldSchemas: [{ path: 'identity.name', type: { base: 'string', shape: 'item' } }]
+        blocks: ['identity']
       },
       {
         id: 'update',
         kind: 'effect.updateEntity',
         entityType: 'project',
         trigger: { mode: 'event' },
-        fields: ['identity.name'],
-        fieldSchemas: [{ path: 'identity.name', type: { base: 'string', shape: 'item' } }]
+        blocks: ['identity']
       }
-    ], ['create', 'deconstruct', 'update'], [
+    ], ['identity', 'create', 'deconstruct', 'update'], [
+      {
+        id: 'identity-create',
+        source: 'identity',
+        sourceHandle: 'data:block',
+        target: 'create',
+        targetHandle: 'data:identity',
+        role: 'data'
+      },
       {
         id: 'created-deconstruct',
         source: 'create',
         sourceHandle: 'data:result',
         target: 'deconstruct',
-        targetHandle: 'data:record',
+        targetHandle: 'data:entity',
         role: 'data'
       },
       {
@@ -114,14 +128,14 @@ describe('durable process orchestration', () => {
         role: 'data'
       },
       {
-        id: 'name-update',
+        id: 'identity-update',
         source: 'deconstruct',
-        sourceHandle: 'data:identity.name',
+        sourceHandle: 'data:identity',
         target: 'update',
-        targetHandle: 'data:identity.name',
+        targetHandle: 'data:identity',
         role: 'data'
       },
-      control('create', 'success', 'update')
+      control('create', 'completed', 'update')
     ]);
     const executeEffect = vi.fn()
       .mockResolvedValueOnce({ type: 'project', id: 'project-1', identity: { name: 'Original' } })
@@ -137,7 +151,7 @@ describe('durable process orchestration', () => {
     expect(executeEffect).toHaveBeenNthCalledWith(2, expect.objectContaining({
       inputs: {
         entity: { type: 'project', id: 'project-1', identity: { name: 'Original' } },
-        'identity.name': 'Original'
+        identity: { name: 'Original' }
       }
     }));
   });
@@ -158,7 +172,7 @@ describe('durable process orchestration', () => {
         role: 'data'
       },
       data('at', 'wait', 'at'),
-      control('create', 'success', 'wait'),
+      control('create', 'completed', 'wait'),
       control('wait', 'out', 'update')
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ type: 'project', id: 'project-1' });
@@ -187,10 +201,10 @@ describe('durable process orchestration', () => {
       { id: 'effect', kind: 'effect.runCommand', commandId: 'test' },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'condition', 'branch', 'effect', 'stop'], [
-      control('start', 'success', 'branch'),
+      control('start', 'completed', 'branch'),
       data('condition', 'branch', 'condition'),
       control('branch', 'true', 'effect'),
-      control('effect', 'success', 'stop')
+      control('effect', 'completed', 'stop')
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
     const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
@@ -206,7 +220,7 @@ describe('durable process orchestration', () => {
       { id: 'wait', kind: 'control.waitDuration' },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'duration', 'wait', 'stop'], [
-      control('start', 'success', 'wait'),
+      control('start', 'completed', 'wait'),
       data('duration', 'wait', 'duration'),
       control('wait', 'out', 'stop')
     ]);
@@ -220,6 +234,33 @@ describe('durable process orchestration', () => {
     expect(completed.status).toBe('succeeded');
   });
 
+  it('terminates a failed effect after retry instead of emitting completion', async () => {
+    const definition = process([
+      {
+        id: 'start',
+        kind: 'effect.runCommand',
+        commandId: 'start',
+        trigger: { mode: 'manual' },
+        retry: { maxAttempts: 2, delayMs: 0 }
+      },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['start', 'stop'], [
+      control('start', 'completed', 'stop')
+    ]);
+    const executeEffect = vi.fn().mockRejectedValue(new Error('command failed'));
+
+    const failed = await runProcessUntilSettled(
+      createProcessRun(definition, {}),
+      definition,
+      { executeEffect }
+    );
+
+    expect(failed.status).toBe('failed');
+    expect(failed.error.message).toBe('command failed');
+    expect(executeEffect).toHaveBeenCalledTimes(2);
+    expect(failed.steps.some(step => step.nodeId === 'stop')).toBe(false);
+  });
+
   it('waits for every fork branch at join-all', async () => {
     const definition = process([
       { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
@@ -229,11 +270,11 @@ describe('durable process orchestration', () => {
       { id: 'join', kind: 'control.joinAll' },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'fork', 'left', 'right', 'join', 'stop'], [
-      control('start', 'success', 'fork'),
+      control('start', 'completed', 'fork'),
       control('fork', 'branch1', 'left'),
       control('fork', 'branch2', 'right'),
-      control('left', 'success', 'join'),
-      control('right', 'success', 'join'),
+      control('left', 'completed', 'join'),
+      control('right', 'completed', 'join'),
       control('join', 'out', 'stop')
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
@@ -251,7 +292,7 @@ describe('durable process orchestration', () => {
       { id: 'effect', kind: 'effect.runCommand', commandId: 'each' },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'items', 'loop', 'effect', 'stop'], [
-      control('start', 'success', 'loop'),
+      control('start', 'completed', 'loop'),
       data('items', 'loop', 'items'),
       control('loop', 'each', 'effect'),
       {
@@ -274,18 +315,27 @@ describe('durable process orchestration', () => {
     const definition = process([
       { id: 'start', kind: 'effect.runCommand', commandId: 'start', entityType: 'project', trigger: { mode: 'manual' } },
       { id: 'entity', kind: 'source.processInput', path: 'entity', type: { base: 'entity', shape: 'item', entityType: 'project' } },
-      { id: 'field', kind: 'record.getField', entityType: 'project', path: 'status.timestamp', fieldSchema: { type: { base: 'dateTime' } } },
+      { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'project', blocks: ['status'] },
+      { id: 'field', kind: 'record.getField', entityType: 'project', block: 'status', path: 'status.timestamp', fieldSchema: { block: 'status', type: { base: 'dateTime' } } },
       { id: 'date', kind: 'value.dateTime', operation: 'addDays', inputDefaults: { amount: 30 } },
       { id: 'wait', kind: 'control.waitUntil' },
       { id: 'stop', kind: 'control.stopSuccess' }
-    ], ['start', 'entity', 'field', 'date', 'wait', 'stop'], [
-      control('start', 'success', 'wait'),
+    ], ['start', 'entity', 'deconstruct', 'field', 'date', 'wait', 'stop'], [
+      control('start', 'completed', 'wait'),
       {
-        id: 'payload-field',
+        id: 'payload-deconstruct',
         source: 'entity',
         sourceHandle: 'data:value',
+        target: 'deconstruct',
+        targetHandle: 'data:entity',
+        role: 'data'
+      },
+      {
+        id: 'status-field',
+        source: 'deconstruct',
+        sourceHandle: 'data:status',
         target: 'field',
-        targetHandle: 'data:value',
+        targetHandle: 'data:block',
         role: 'data'
       },
       data('field', 'date', 'date'),
@@ -310,15 +360,29 @@ describe('durable process orchestration', () => {
   it('uses a typed manual event payload instead of an ambient current-entity node', async () => {
     const definition = process([
       {
+        id: 'identity',
+        kind: 'record.composeBlock',
+        entityType: 'project',
+        block: 'identity',
+        fields: ['identity.name'],
+        fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string' } }],
+        inputDefaults: { 'identity.name': 'Renamed' }
+      },
+      {
         id: 'modify',
         kind: 'effect.updateEntity',
         entityType: 'project',
         trigger: { mode: 'manual' },
-        fields: ['identity.name'],
-        fieldSchemas: [{ path: 'identity.name', type: { base: 'string' } }],
-        inputDefaults: { 'identity.name': 'Renamed' }
+        blocks: ['identity']
       }
-    ], ['modify'], []);
+    ], ['identity', 'modify'], [{
+      id: 'identity-modify',
+      source: 'identity',
+      sourceHandle: 'data:block',
+      target: 'modify',
+      targetHandle: 'data:identity',
+      role: 'data'
+    }]);
     const entity = { _id: 'project-1', identity: { name: 'Original' } };
     const executeEffect = vi.fn().mockResolvedValue({ ...entity, identity: { name: 'Renamed' } });
     const completed = await runProcessUntilSettled(
@@ -333,7 +397,7 @@ describe('durable process orchestration', () => {
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
       inputs: {
         entity,
-        'identity.name': 'Renamed'
+        identity: { name: 'Renamed' }
       }
     }));
   });

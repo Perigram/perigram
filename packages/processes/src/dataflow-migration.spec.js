@@ -50,17 +50,22 @@ describe('process v3 data-flow migration', () => {
     expect(result.value.processNodes.change).toBeUndefined();
     expect(result.value.processNodes['effect:update']).toMatchObject({
       kind: 'effect.updateEntity',
-      fields: ['identity.name'],
+      fields: [],
+      blocks: ['identity'],
       trigger: { mode: 'manual' },
       entryTriggerId: 'effect:update'
     });
+    const identityComposer = Object.values(result.value.processNodes)
+      .find(node => node.kind === 'record.composeBlock' && node.block === 'identity');
+    expect(identityComposer).toMatchObject({ fields: ['identity.name'], entityType: 'queue' });
     expect(result.value.processNodes['trigger:update']).toBeUndefined();
     expect(result.value.processNodes['current:entity:update']).toBeUndefined();
     expect(result.value.processNodes['ref:entity:update']).toBeUndefined();
     expect(result.value.processNodes['effect:update'].entryTriggerId).toBe('effect:update');
     expect(result.value.graph.nodes.every(node => node.type === 'processNode')).toBe(true);
     expect(result.value.graph.edges).toEqual(expect.arrayContaining([
-      expect.objectContaining({ source: 'name', sourceHandle: 'data:value', target: 'update', targetHandle: 'data:identity.name', role: 'data' })
+      expect.objectContaining({ source: 'name', sourceHandle: 'data:value', targetHandle: 'data:identity.name', role: 'data' }),
+      expect.objectContaining({ sourceHandle: 'data:block', target: 'update', targetHandle: 'data:identity', role: 'data' })
     ]));
   });
 
@@ -196,7 +201,7 @@ describe('process v3 data-flow migration', () => {
     expect(migrateProcessDataflowDefinition(definition)).toEqual({ changed: false, value: definition });
   });
 
-  it('replaces v3 draft composition with direct create field sockets', () => {
+  it('replaces v3 draft composition with a typed block composer', () => {
     const definition = {
       dataflowVersion: 3,
       processNodes: {
@@ -221,12 +226,50 @@ describe('process v3 data-flow migration', () => {
 
     const migrated = migrateProcessDataflowDefinition(definition).value;
     expect(migrated.processNodes.draft).toBeUndefined();
-    expect(migrated.processNodes.create.fields).toEqual(['identity.name']);
+    expect(migrated.processNodes.create).toMatchObject({ fields: [], blocks: ['identity'] });
+    const identityComposer = Object.values(migrated.processNodes)
+      .find(node => node.kind === 'record.composeBlock' && node.block === 'identity');
+    expect(identityComposer).toMatchObject({ fields: ['identity.name'] });
     expect(migrated.graph.edges).toContainEqual(expect.objectContaining({
       source: 'name',
-      target: 'create',
       targetHandle: 'data:identity.name'
     }));
+    expect(migrated.graph.edges).toContainEqual(expect.objectContaining({
+      sourceHandle: 'data:block',
+      target: 'create',
+      targetHandle: 'data:identity'
+    }));
+  });
+
+  it('migrates domain constructors out of generic create effects into producer services', () => {
+    const definition = {
+      dataflowVersion: 3,
+      processNodes: {
+        create: {
+          id: 'create',
+          kind: 'effect.createEntity',
+          entityType: 'cassette_design',
+          construction: {
+            mode: 'bakeCassetteDesignFromTemplate',
+            inputs: [{ id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true }]
+          },
+          trigger: { mode: 'manual' }
+        }
+      },
+      graph: {
+        nodes: [{ id: 'create', type: 'processNode', data: { refId: 'create' } }],
+        edges: []
+      }
+    };
+
+    const migrated = migrateProcessDataflowDefinition(definition, cncDomain).value;
+
+    expect(migrated.processNodes.create).toMatchObject({
+      kind: 'effect.runProducer',
+      producerId: 'bakeCassetteDesignFromTemplate',
+      entityType: 'cassette_design',
+      construction: { mode: 'bakeCassetteDesignFromTemplate' }
+    });
   });
 
   it('stops on ambiguous hybrid direct and composed field wiring', () => {

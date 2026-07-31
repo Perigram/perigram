@@ -93,17 +93,37 @@ describe('process v3 data execution', () => {
     expect(substring.branches[0].items).toEqual(['roc']);
   });
 
-  it('returns the requested typed output from entity deconstruction', async () => {
+  it('returns the requested typed block from entity deconstruction', async () => {
     const result = await executeProcessDataNode(
       {
         id: 'deconstruct',
         kind: 'record.deconstruct',
-        fields: ['identity.name', 'status.timestamp']
+        blocks: ['identity', 'status']
       },
-      { record: createDataPacket({ identity: { name: 'Queue' }, status: { timestamp: '2026-01-01T00:00:00.000Z' } }) },
-      { outputId: 'status.timestamp' }
+      { entity: createDataPacket({ identity: { name: 'Queue' }, status: { timestamp: '2026-01-01T00:00:00.000Z' } }) },
+      { outputId: 'status' }
     );
 
-    expect(result.branches[0].items).toEqual(['2026-01-01T00:00:00.000Z']);
+    expect(result.branches[0].items).toEqual([{ timestamp: '2026-01-01T00:00:00.000Z' }]);
+  });
+
+  it('composes and modifies typed blocks without entity field paths leaking into their values', async () => {
+    const composed = await executeProcessDataNode(
+      { kind: 'record.composeBlock', block: 'identity', fields: ['identity.name', 'identity.slug'] },
+      {
+        'identity.name': createDataPacket('Queue'),
+        'identity.slug': createDataPacket('queue')
+      }
+    );
+    const modified = await executeProcessDataNode(
+      { kind: 'record.modifyBlock', block: 'identity', fields: ['identity.name'] },
+      {
+        block: composed,
+        'identity.name': createDataPacket('Cut queue')
+      }
+    );
+
+    expect(composed.branches[0].items).toEqual([{ name: 'Queue', slug: 'queue' }]);
+    expect(modified.branches[0].items).toEqual([{ name: 'Cut queue', slug: 'queue' }]);
   });
 });

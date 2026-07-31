@@ -33,8 +33,9 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
     const ambient = replaceAmbientEntityEffectInputs(composed.process);
     const triggers = embedEffectTriggers(ambient.process);
     const modes = collapseEffectTriggerModes(triggers.process);
-    if (!composed.changed && !ambient.changed && !triggers.changed && !modes.changed) return { changed: false, value: definition };
-    const migrated = { ...process, ...modes.process, compiled: null };
+    const blocks = migrateEntityBlockContract(modes.process, domain);
+    if (!composed.changed && !ambient.changed && !triggers.changed && !modes.changed && !blocks.changed) return { changed: false, value: definition };
+    const migrated = { ...process, ...blocks.process, compiled: null };
     return {
       changed: true,
       value: wrapped ? { ...definition, data: migrated } : migrated
@@ -133,8 +134,251 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
     compiled: null
   };
   const modes = collapseEffectTriggerModes(migrated);
-  const value = wrapped ? { ...definition, data: modes.process } : modes.process;
+  const blocks = migrateEntityBlockContract(modes.process, domain);
+  const value = wrapped ? { ...definition, data: blocks.process } : blocks.process;
   return { changed: JSON.stringify(value) !== JSON.stringify(definition), value };
+}
+
+function migrateEntityBlockContract(process = {}, domain = {}) {
+  const records = structuredClone(process.processNodes || {});
+  const nodes = structuredClone(process.graph?.nodes || []);
+  let edges = structuredClone(process.graph?.edges || []);
+  const nodeById = new Map(nodes.map(node => [String(node.id), node]));
+  const graphNodeForRecord = recordId => nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
+  let changed = false;
+
+  for (const [recordId, record] of Object.entries(records)) {
+    if (!['effect.createEntity', 'effect.updateEntity'].includes(record.kind)) continue;
+    const effectNode = graphNodeForRecord(recordId);
+    if (!effectNode) continue;
+    if (record.kind === 'effect.createEntity' && record.construction?.mode && record.construction.mode !== 'genericCreate') {
+      const producer = (domain.producers || []).find(item => (
+        item.kind === 'construction'
+        && item.constructionMode === record.construction.mode
+        && item.output?.entityType === record.entityType
+      ));
+      if (!producer) {
+        throw new Error(`Cannot migrate ${recordId}: construction mode ${record.construction.mode} has no declared producer service`);
+      }
+      record.kind = 'effect.runProducer';
+      record.producerId = producer.id;
+      changed = true;
+      continue;
+    }
+    const schemas = migrationFieldSchemas(domain, record.entityType);
+    const hadFieldContract = Array.isArray(record.fields) && record.fields.length > 0;
+    const selectedFields = [...new Set(record.fields || [])]
+      .filter(path => path !== 'status.state.primary');
+    const grouped = new Map();
+    for (const path of selectedFields) {
+      const block = schemas.find(field => field.path === path)?.block || String(path).split('.')[0];
+      grouped.set(block, [...(grouped.get(block) || []), path]);
+    }
+    const blocks = new Set(record.blocks || []);
+    let offset = 0;
+    for (const [block, fields] of grouped) {
+      if (!block || ['origin', 'status', 'provenance', 'summary'].includes(block)) continue;
+      blocks.add(block);
+      const alreadyConnected = edges.some(edge => (
+        String(edge.target) === String(effectNode.id)
+        && cleanHandle(edge.targetHandle) === block
+      ));
+      if (alreadyConnected) continue;
+      const composeId = uniqueMigrationId(records, `${recordId}:compose:${block}`);
+      const composeNodeId = uniqueGraphNodeId(nodeById, composeId);
+      const inputDefaults = Object.fromEntries(fields
+        .filter(path => Object.hasOwn(record.inputDefaults || {}, path))
+        .map(path => [path, structuredClone(record.inputDefaults[path])]));
+      records[composeId] = {
+        id: composeId,
+        kind: 'record.composeBlock',
+        entityType: record.entityType,
+        block,
+        fields,
+        fieldSchemas: fields.map(path => schemas.find(field => field.path === path)).filter(Boolean),
+        inputDefaults,
+        type: { base: 'block', shape: 'item', entityType: record.entityType, block }
+      };
+      const graphNode = {
+        id: composeNodeId,
+        type: 'processNode',
+        position: {
+          x: Number(effectNode.position?.x || 0) - 320,
+          y: Number(effectNode.position?.y || 0) + offset
+        },
+        data: { refId: composeId }
+      };
+      offset += 120;
+      nodes.push(graphNode);
+      nodeById.set(String(composeNodeId), graphNode);
+      edges = edges.map(edge => {
+        if (String(edge.target) !== String(effectNode.id)) return edge;
+        const path = cleanHandle(edge.targetHandle);
+        if (!fields.includes(path)) return edge;
+        return {
+          ...edge,
+          target: composeNodeId,
+          targetHandle: `data:${path}`,
+          role: 'data'
+        };
+      });
+      edges.push({
+        id: `${composeNodeId}:block:${effectNode.id}`,
+        source: composeNodeId,
+        sourceHandle: 'data:block',
+        target: effectNode.id,
+        targetHandle: `data:${block}`,
+        role: 'data'
+      });
+    }
+    record.blocks = [...blocks];
+    record.fields = [];
+    record.fieldSchemas = [];
+    record.inputDefaults = Object.fromEntries(Object.entries(record.inputDefaults || {})
+      .filter(([id]) => id === 'status.state.primary' || !selectedFields.includes(id)));
+    changed ||= hadFieldContract;
+  }
+
+  for (const [recordId, record] of Object.entries(records)) {
+    const graphNode = graphNodeForRecord(recordId);
+    if (!graphNode) continue;
+    if (record.kind === 'record.getField' && !record.block && record.path) {
+      const schema = migrationFieldSchema(domain, record.entityType, record.path);
+      const block = schema?.block || String(record.path).split('.')[0];
+      const incoming = edges.find(edge => (
+        String(edge.target) === String(graphNode.id)
+        && edgeRoleForMigration(edge) === 'data'
+        && ['value', 'block'].includes(cleanHandle(edge.targetHandle))
+      ));
+      record.block = block;
+      record.fieldSchema ||= schema;
+      if (incoming) {
+        const getBlockId = uniqueMigrationId(records, `${recordId}:block:${block}`);
+        const getBlockNodeId = uniqueGraphNodeId(nodeById, getBlockId);
+        records[getBlockId] = {
+          id: getBlockId,
+          kind: 'record.getBlock',
+          entityType: record.entityType,
+          block,
+          type: { base: 'block', shape: record.shape || 'item', entityType: record.entityType, block }
+        };
+        const addedNode = {
+          id: getBlockNodeId,
+          type: 'processNode',
+          position: { x: Number(graphNode.position?.x || 0) - 320, y: Number(graphNode.position?.y || 0) },
+          data: { refId: getBlockId }
+        };
+        nodes.push(addedNode);
+        nodeById.set(String(getBlockNodeId), addedNode);
+        incoming.target = getBlockNodeId;
+        incoming.targetHandle = 'data:entity';
+        edges.push({
+          id: `${getBlockNodeId}:block:${graphNode.id}`,
+          source: getBlockNodeId,
+          sourceHandle: 'data:block',
+          target: graphNode.id,
+          targetHandle: 'data:block',
+          role: 'data'
+        });
+      }
+      changed = true;
+    }
+    if (record.kind === 'record.deconstruct' && (record.fields || []).length) {
+      const schemas = migrationFieldSchemas(domain, record.entityType);
+      const blocks = [...new Set((record.fields || []).map(path => (
+        schemas.find(field => field.path === path)?.block || String(path).split('.')[0]
+      )).filter(Boolean))];
+      for (const path of record.fields) {
+        const outgoing = edges.filter(edge => String(edge.source) === String(graphNode.id) && cleanHandle(edge.sourceHandle) === path);
+        if (!outgoing.length) continue;
+        const schema = schemas.find(field => field.path === path);
+        const block = schema?.block || String(path).split('.')[0];
+        const getId = uniqueMigrationId(records, `${recordId}:field:${path.replaceAll('.', '_')}`);
+        const getNodeId = uniqueGraphNodeId(nodeById, getId);
+        records[getId] = {
+          id: getId,
+          kind: 'record.getField',
+          entityType: record.entityType,
+          block,
+          path,
+          fieldSchema: schema,
+          type: schema?.type || { base: 'json', shape: 'item', nullable: true }
+        };
+        const addedNode = {
+          id: getNodeId,
+          type: 'processNode',
+          position: { x: Number(graphNode.position?.x || 0) + 320, y: Number(graphNode.position?.y || 0) },
+          data: { refId: getId }
+        };
+        nodes.push(addedNode);
+        nodeById.set(String(getNodeId), addedNode);
+        edges = edges.map(edge => outgoing.includes(edge) ? {
+          ...edge,
+          source: getNodeId,
+          sourceHandle: 'data:value'
+        } : edge);
+        edges.push({
+          id: `${graphNode.id}:${block}:${getNodeId}`,
+          source: graphNode.id,
+          sourceHandle: `data:${block}`,
+          target: getNodeId,
+          targetHandle: 'data:block',
+          role: 'data'
+        });
+      }
+      record.blocks = blocks;
+      record.fields = [];
+      edges = edges.map(edge => (
+        String(edge.target) === String(graphNode.id)
+        && ['record', 'value'].includes(cleanHandle(edge.targetHandle))
+          ? { ...edge, targetHandle: 'data:entity', role: 'data' }
+          : edge
+      ));
+      changed = true;
+    }
+  }
+
+  edges = edges.filter(edge => {
+    if (edgeRoleForMigration(edge) !== 'control') return true;
+    const handle = cleanHandle(edge.sourceHandle);
+    if (handle === 'failure') {
+      changed = true;
+      return false;
+    }
+    return true;
+  }).map(edge => {
+    if (edgeRoleForMigration(edge) !== 'control' || cleanHandle(edge.sourceHandle) !== 'success') return edge;
+    changed = true;
+    return { ...edge, sourceHandle: 'control:completed', role: 'control' };
+  });
+
+  return {
+    changed,
+    process: changed ? {
+      ...process,
+      processNodes: records,
+      graph: { ...(process.graph || {}), nodes, edges }
+    } : process
+  };
+}
+
+function uniqueMigrationId(records, preferred) {
+  let id = preferred;
+  let index = 2;
+  while (records[id]) id = `${preferred}:${index++}`;
+  return id;
+}
+
+function uniqueGraphNodeId(nodeById, preferred) {
+  let id = preferred;
+  let index = 2;
+  while (nodeById.has(String(id))) id = `${preferred}:${index++}`;
+  return id;
+}
+
+function edgeRoleForMigration(edge = {}) {
+  return edge.role || (String(edge.sourceHandle || '').startsWith('control:')
+    || String(edge.targetHandle || '').startsWith('control:') ? 'control' : 'data');
 }
 
 function collapseEffectTriggerModes(process = {}) {

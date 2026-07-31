@@ -15,15 +15,17 @@ authored status id updates the referenced value without breaking the wire.
 The runtime catalog remains exhaustive, but it is not the authoring palette.
 The palette has three non-overlapping operation concerns:
 
-- **Entities** defines lifecycle statuses, creates or modifies an entity
-  directly, and reads/deconstructs
-  its declared blocks and fields. Create/modify nodes expose one typed socket
-  per selected writable field; Modify Entity additionally owns a dedicated
-  typed status socket because lifecycle changes cross the status runtime rather
-  than ordinary field policy. There is no intermediate draft, patch, current
-  entity, or related-entity plumbing. Create also exposes the selected
-  domain-declared construction mode inputs, so derived entities remain
-  constructable without generic placeholder fields.
+- **Entities** owns typed block assembly and persistence. Compose Block creates
+  one canonical block from selected fields. Modify Block copies a connected
+  block and replaces only its connected selected fields. Deconstruct Entity
+  exposes declared blocks, Get Block extracts one block, and Get Field reads
+  one field from a block. Create Entity accepts constructible blocks plus lifecycle
+  status; Modify Entity accepts the current entity, replacement blocks, and
+  status, and changes only connected blocks. Neither persistence node exposes
+  leaf constructor fields.
+- Registered commands and domain construction producers are effect operations
+  in the same group. A derived constructor is a fixed producer service with its
+  declared typed inputs, never a mode hidden inside generic Create Entity.
 - **Values** contains one typed value input and one operation-switching node
   each for logic/comparison, text, math, and date-time work.
 - **Lists and trees** contains the Grasshopper-style structure operations:
@@ -35,7 +37,9 @@ Every effect has one bottom execution switch: Manual exposes the operation to
 authorized users, while Automatic exposes an incoming event socket. Date
 scheduling is composed explicitly with date values and a wait-until control
 before that socket; entity and domain subscriptions are process-entry concerns,
-not effect modes. Every effect exposes its completion event there. Event handles use the same
+not effect modes. Every effect exposes one `completed` event there. A failed
+effect follows its retry policy and then fails the run; it is not a second
+graph branch. Event handles use the same
 left-to-right direction as data sockets instead of pointing out of the bottom
 of the card. Pure value, list/tree, read, and deconstruct nodes do not render
 event chrome.
@@ -93,18 +97,18 @@ language. Narrowing or restructuring data is rejected until the author adds
 the appropriate list/tree node.
 
 Deconstruct Entity consumes one typed entity or aligned entity structure and
-renders a multi-field selector on the node. Each selected readable field
-becomes one exact typed output socket. The evaluator resolves only the output
-that a downstream node consumes, so deconstruction is a real lazy data
-operation rather than a visual summary.
+emits one typed socket per declared canonical block. Field-level work is an
+explicit Get Field operation over a block. Entity decomposition, block
+composition, and leaf value operations therefore remain separate concerns.
 
 Field selectors consume `cncDomain.fieldSchemas`. Every selectable field has an
 exact path, block, structured type, and readable/writable capability. Wildcard
-access rules do not appear as fields. Construct/deconstruct nodes expose only
-the explicitly selected field set as dynamic sockets; a new create/modify
-effect does not select an arbitrary first writable field. A literal never asks
-for a field path. Effect access is edited as explicit role plus access-level
-rows rather than flattening every selected role into a write grant.
+access rules do not appear as fields. Compose/Modify Block expose only the
+explicitly selected field set as dynamic sockets; Create/Modify Entity never
+select leaf fields. Origin, provenance, status history, and summary are not
+generic writable block inputs. A literal never asks for a field path. Effect
+access is edited as explicit role plus access-level rows rather than flattening
+every selected role into a write grant.
 
 ## Canvas behavior and diagnostics
 

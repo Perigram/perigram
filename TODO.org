@@ -829,10 +829,12 @@
    It should contain "create entity", which creates every entity possible; "modify entity" which includes any edit, including status change.
    Need to investigate how entities are composed, and how standard blocks and their entries look like. For them, need to refactor node set so that it allows to create/modify any of it in any reasonable way. Nodes should be grouped and have labels in palette.
    The authoring set now has three data/operation concerns: Entities, Values,
-   and Lists and trees. Create/modify/deconstruct expose exact CNC field
-   schemas directly; Deconstruct renders its selected readable fields as real
-   typed outputs. The migrator removes old draft/field-change/patch chains and
-   standalone trigger nodes. One
+   and Lists and trees. Entity persistence is block-based: Compose/Modify Block
+   own exact field schemas, Deconstruct Entity exposes canonical blocks, Get
+   Field consumes a block, and Create/Modify Entity accept blocks plus the
+   dedicated lifecycle status socket. Derived constructors are fixed producer
+   services rather than Create modes. The migrator replaces old direct-field,
+   draft, constructor-mode, and success/failure contracts. One
    typed input and one operation-switching node each for logic, text, math, and
    date replace modifier variants. Grasshopper-style aligned masks and
    list/tree operations replace the separate query/predicate palette model.
@@ -845,11 +847,14 @@
 ** WAITING Design rework
    Nodes layouts should be redesigned so that it looks good, minimal, with no bloat labels and with proper spacing; all labels and text should be true to data and nodes (there is much arbitrary stuff like "cassette" hardcoded labels, status ID instead of name, etc). Colors should be applied to groups, icons should not be slop.
    The editor now uses the three-group operation palette without an advanced reveal.
-   Create/modify effects no longer select an arbitrary first writable field,
-   field-set selectors receive the actual domain options, and access grants
-   preserve explicit role plus level rows. Primitive required sockets provide typed inline fallbacks, safe type
+   Create/modify effects no longer contain field selectors, constructor forms,
+   parent controls, or attachment leaf inputs. Block composer field selectors
+   receive the actual domain options, and access grants preserve explicit role
+   plus level rows. Primitive required sockets provide typed inline fallbacks, safe type
    coercions stay on wires instead of generating empty conversion nodes, and
-   effect event inputs and completion outputs occupy a left-to-right footer row.
+   effect event inputs and the single =completed= output occupy a left-to-right
+   footer row. Exhausted retries fail the run rather than exposing a misleading
+   =if failed= branch.
    Status definitions are created from the Entities palette and edited on
    their canvas nodes rather than in the inspector or process selector. Each
    definition exposes a typed status output backed by its stable definition
@@ -857,6 +862,42 @@
    WAITING until the complete workflow is reviewed in the running UI.
 
 ** Agent Notes
+*** [2026-07-31] Typed block entity flow and producer-service replacement
+
+    Implementation:
+    - Replaced leaf-field Create/Modify sockets with canonical block sockets.
+      Compose Block and Modify Block own typed field inputs; Deconstruct Entity
+      exposes blocks; Get Field consumes a block.
+    - Kept lifecycle status as its own typed socket and excluded origin,
+      provenance, status history, and summary from generic block persistence.
+    - Projected commands and CNC construction producers into the Entities
+      palette. Derived entities are excluded from generic Create and use fixed
+      producer-service nodes.
+    - Replaced =then=/=if failed= with one =completed= event. Retry exhaustion
+      fails the durable run.
+    - Migrated old field effects, deconstruction reads, constructors, and effect
+      event handles into the new contract.
+
+    Files changed:
+    - =packages/processes/src/=
+    - =packages/domain-cnc/src/producers.js=
+    - =components/process-designer/ProcessNode.vue=
+    - =pages/organization/process.vue=
+    - =server/features/process-definitions/service.js=
+    - =i18n/locales/en.json= and =i18n/locales/ru.json=
+
+    Documentation updated:
+    - =components/process-designer/README.md=
+    - =packages/processes/README.md=
+    - =packages/domain-cnc/README.md=
+    - =server/features/process-definitions/README.md=
+
+    Validation:
+    - Process package and process-definition suites pass.
+    - Backend architecture verification passes.
+    - Vue SFC parse and script compilation pass.
+    - Localization still reports three unrelated pre-existing missing keys.
+
 *** [2026-07-18] Core/domain projection, generic composition, and compact canvas
 
     Implementation:

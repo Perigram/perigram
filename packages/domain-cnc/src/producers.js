@@ -1,5 +1,13 @@
 export const cncEntityProducers = [
   {
+    id: 'createDefaultOccsTemplate',
+    label: 'Create cassette template',
+    labelKey: 'processDesigner.paletteItems.createDefaultOccsTemplate',
+    kind: 'construction',
+    constructionMode: 'createDefaultOccsTemplate',
+    output: { entityType: 'cassette' }
+  },
+  {
     id: 'selectExistingCassetteDesign',
     label: 'Select existing cassette design',
     labelKey: 'queues.producers.existingDesign',
