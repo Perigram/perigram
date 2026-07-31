@@ -142,12 +142,13 @@ describe('durable process orchestration', () => {
     }));
   });
 
-  it('delays a date-triggered effect until the connected date', async () => {
+  it('keeps date scheduling in an explicit wait node before an automatic effect', async () => {
     const definition = process([
       { id: 'create', kind: 'effect.createEntity', entityType: 'project', trigger: { mode: 'manual' }, fields: [] },
       { id: 'at', kind: 'source.literalItem', value: '2026-02-01T00:00:00.000Z', type: { base: 'dateTime', shape: 'item' } },
-      { id: 'update', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'date' }, fields: [] }
-    ], ['create', 'at', 'update'], [
+      { id: 'wait', kind: 'control.waitUntil' },
+      { id: 'update', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'event' }, fields: [] }
+    ], ['create', 'at', 'wait', 'update'], [
       {
         id: 'create-update-entity',
         source: 'create',
@@ -156,8 +157,9 @@ describe('durable process orchestration', () => {
         targetHandle: 'data:entity',
         role: 'data'
       },
-      data('at', 'update', 'at'),
-      control('create', 'success', 'update')
+      data('at', 'wait', 'at'),
+      control('create', 'success', 'wait'),
+      control('wait', 'out', 'update')
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ type: 'project', id: 'project-1' });
     const before = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:00.000Z'));
@@ -268,9 +270,9 @@ describe('durable process orchestration', () => {
     expect(executeEffect.mock.calls.slice(1).map(call => call[0].inputs.parameters)).toEqual([{ n: 1 }, { n: 2 }]);
   });
 
-  it('routes a typed automatic entity event payload into entity data operations', async () => {
+  it('routes a typed process input payload into date operations and an explicit wait', async () => {
     const definition = process([
-      { id: 'start', kind: 'effect.runCommand', commandId: 'start', entityType: 'project', trigger: { mode: 'entityChanged' } },
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', entityType: 'project', trigger: { mode: 'manual' } },
       { id: 'entity', kind: 'source.processInput', path: 'entity', type: { base: 'entity', shape: 'item', entityType: 'project' } },
       { id: 'field', kind: 'record.getField', entityType: 'project', path: 'status.timestamp', fieldSchema: { type: { base: 'dateTime' } } },
       { id: 'date', kind: 'value.dateTime', operation: 'addDays', inputDefaults: { amount: 30 } },
@@ -292,7 +294,7 @@ describe('durable process orchestration', () => {
     ]);
     const now = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:00.000Z'));
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
-    const run = createProcessRun(definition, { mode: 'entityChanged', entityType: 'project' }, {
+    const run = createProcessRun(definition, { nodeId: 'start' }, {
       now,
       context: { inputs: { entity: { status: { timestamp: '2026-01-01T10:00:00.000Z' } } } }
     });

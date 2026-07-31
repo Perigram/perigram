@@ -32,8 +32,9 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
     const composed = replaceComposedEntityEffects(process, domain);
     const ambient = replaceAmbientEntityEffectInputs(composed.process);
     const triggers = embedEffectTriggers(ambient.process);
-    if (!composed.changed && !ambient.changed && !triggers.changed) return { changed: false, value: definition };
-    const migrated = { ...process, ...triggers.process, compiled: null };
+    const modes = collapseEffectTriggerModes(triggers.process);
+    if (!composed.changed && !ambient.changed && !triggers.changed && !modes.changed) return { changed: false, value: definition };
+    const migrated = { ...process, ...modes.process, compiled: null };
     return {
       changed: true,
       value: wrapped ? { ...definition, data: migrated } : migrated
@@ -131,8 +132,31 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
     valueInputs: {},
     compiled: null
   };
-  const value = wrapped ? { ...definition, data: migrated } : migrated;
+  const modes = collapseEffectTriggerModes(migrated);
+  const value = wrapped ? { ...definition, data: modes.process } : modes.process;
   return { changed: JSON.stringify(value) !== JSON.stringify(definition), value };
+}
+
+function collapseEffectTriggerModes(process = {}) {
+  const records = structuredClone(process.processNodes || {});
+  let changed = false;
+  for (const record of Object.values(records)) {
+    if (!record.kind?.startsWith('effect.')) continue;
+    const currentMode = record.trigger?.mode;
+    const mode = !currentMode || currentMode === 'manual' ? 'manual' : 'event';
+    if (record.trigger?.mode !== mode || Object.keys(record.trigger || {}).length !== 1) {
+      record.trigger = { mode };
+      changed = true;
+    }
+    if (record.eventId) {
+      delete record.eventId;
+      changed = true;
+    }
+  }
+  return {
+    changed,
+    process: changed ? { ...process, processNodes: records } : process
+  };
 }
 
 function embedEffectTriggers(process = {}) {

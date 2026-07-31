@@ -40,28 +40,54 @@
         size="small"
         @update:model-value="value => update({ operation: value })"
       />
-      <Select
+      <div
         v-if="record.kind?.startsWith('effect.')"
-        :model-value="record.trigger?.mode || 'manual'"
-        :options="data.processTriggerModeOptions || []"
-        option-label="label"
-        option-value="value"
-        size="small"
-        @update:model-value="value => update({ trigger: { ...(record.trigger || {}), mode: value } })"
-      />
-      <MultiSelect
-        v-if="record.kind?.startsWith('effect.')"
-        :model-value="effectRoleIds"
-        :options="data.processRoleOptions || []"
-        option-label="label"
-        option-value="value"
-        filter
-        size="small"
-        :placeholder="$t('processDesigner.roles')"
-        @update:model-value="updateEffectRoles"
-      />
+        class="flex flex-col gap-1"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-medium">{{ $t('processDesigner.roles') }}</span>
+          <Button
+            icon="pi pi-plus"
+            text
+            size="small"
+            :aria-label="$t('processDesigner.addRole')"
+            :disabled="!nextRoleId"
+            @click="addEffectGrant"
+          />
+        </div>
+        <div
+          v-for="(grant, index) in effectGrants"
+          :key="`${grant.roleId}-${index}`"
+          class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-1"
+        >
+          <Select
+            :model-value="grant.roleId"
+            :options="roleOptionsForGrant(index)"
+            option-label="label"
+            option-value="value"
+            size="small"
+            @update:model-value="value => updateEffectGrant(index, { roleId: value })"
+          />
+          <Select
+            :model-value="grant.level || 'write'"
+            :options="data.processAccessLevelOptions || []"
+            option-label="label"
+            option-value="value"
+            size="small"
+            @update:model-value="value => updateEffectGrant(index, { level: value })"
+          />
+          <Button
+            icon="pi pi-trash"
+            text
+            severity="danger"
+            size="small"
+            :aria-label="$t('common.delete')"
+            @click="removeEffectGrant(index)"
+          />
+        </div>
+      </div>
       <Select
-        v-if="record.kind === 'control.domainEventTrigger' || (record.kind?.startsWith('effect.') && record.trigger?.mode === 'domainEvent')"
+        v-if="record.kind === 'control.domainEventTrigger'"
         :model-value="record.eventId"
         :options="data.processEventOptions || []"
         option-label="label"
@@ -89,7 +115,7 @@
         @update:model-value="value => update({ path: value })"
       />
       <MultiSelect
-        v-if="showsFieldSet"
+        v-if="showsFieldSet && fieldOptions.length"
         :model-value="record.fields || []"
         :options="fieldOptions"
         option-label="label"
@@ -203,17 +229,31 @@
       </div>
     </div>
 
-    <div v-if="eventInputs.length || eventOutputs.length" class="mt-2 flex items-end justify-between gap-4 border-t border-content-border pt-2">
-      <div class="flex flex-wrap gap-2">
-        <div v-for="input in eventInputs" :key="input.id" class="relative rounded-ui bg-subtle px-2 py-1">
-          <Handle :id="socketHandleId(input)" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-orange-500 !bg-orange-500" />
-          <span class="text-xs">{{ input.label }}</span>
+    <div v-if="eventInputs.length || eventOutputs.length" class="mt-2 border-t border-content-border pt-2">
+      <SelectButton
+        v-if="record.kind?.startsWith('effect.')"
+        :model-value="record.trigger?.mode === 'event' ? 'event' : 'manual'"
+        :options="data.processTriggerModeOptions || []"
+        option-label="label"
+        option-value="value"
+        size="small"
+        class="nodrag nowheel mb-2"
+        @mousedown.stop
+        @click.stop
+        @update:model-value="updateEffectTriggerMode"
+      />
+      <div class="flex items-end justify-between gap-4">
+        <div class="flex flex-wrap gap-2">
+          <div v-for="input in eventInputs" :key="input.id" class="relative rounded-ui bg-subtle px-2 py-1">
+            <Handle :id="socketHandleId(input)" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-orange-500 !bg-orange-500" />
+            <span class="text-xs">{{ input.label }}</span>
+          </div>
         </div>
-      </div>
-      <div class="flex flex-wrap justify-end gap-2">
-        <div v-for="output in eventOutputs" :key="output.id" class="relative rounded-ui bg-subtle px-2 py-1 text-right">
-          <Handle :id="socketHandleId(output)" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-orange-500 !bg-orange-500" />
-          <span class="text-xs">{{ output.label }}</span>
+        <div class="flex flex-wrap justify-end gap-2">
+          <div v-for="output in eventOutputs" :key="output.id" class="relative rounded-ui bg-subtle px-2 py-1 text-right">
+            <Handle :id="socketHandleId(output)" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-orange-500 !bg-orange-500" />
+            <span class="text-xs">{{ output.label }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -223,11 +263,13 @@
 <script setup>
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
+import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
+import SelectButton from 'primevue/selectbutton';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
@@ -249,7 +291,11 @@ const eventOutputs = computed(() => outputSpecs.value.filter(output => output.ro
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
 const fieldOptions = computed(() => props.data.processFieldOptions || []);
-const effectRoleIds = computed(() => (record.value.access?.grants || []).map(grant => grant.roleId).filter(Boolean));
+const effectGrants = computed(() => record.value.access?.grants || []);
+const nextRoleId = computed(() => {
+  const selected = new Set(effectGrants.value.map(grant => grant.roleId));
+  return (props.data.processRoleOptions || []).find(option => !selected.has(option.value))?.value || '';
+});
 const showsFieldSet = computed(() => [
   'record.construct',
   'record.deconstruct',
@@ -322,14 +368,40 @@ function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
 }
 
-function updateEffectRoles(roleIds) {
+function updateEffectGrants(grants) {
   update({
     access: {
       ...(record.value.access || {}),
-      level: 'write',
-      grants: roleIds.map(roleId => ({ roleId, level: 'write' }))
+      grants
     }
   });
+}
+
+function addEffectGrant() {
+  if (!nextRoleId.value) return;
+  updateEffectGrants([...effectGrants.value, { roleId: nextRoleId.value, level: 'write' }]);
+}
+
+function roleOptionsForGrant(index) {
+  const selectedByOthers = new Set(effectGrants.value
+    .filter((_, grantIndex) => grantIndex !== index)
+    .map(grant => grant.roleId));
+  return (props.data.processRoleOptions || []).filter(option => !selectedByOthers.has(option.value));
+}
+
+function updateEffectGrant(index, updates) {
+  updateEffectGrants(effectGrants.value.map((grant, grantIndex) => (
+    grantIndex === index ? { ...grant, ...updates } : grant
+  )));
+}
+
+function removeEffectGrant(index) {
+  updateEffectGrants(effectGrants.value.filter((_, grantIndex) => grantIndex !== index));
+}
+
+function updateEffectTriggerMode(mode) {
+  if (!mode) return;
+  update({ trigger: { mode: mode === 'event' ? 'event' : 'manual' } });
 }
 
 function updateValueType(base) {

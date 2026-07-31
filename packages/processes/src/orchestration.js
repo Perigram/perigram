@@ -102,16 +102,6 @@ export async function runProcessUntilSettled(run, definition, environment = {}, 
 async function executeOperationalNode({ run, process, node, record, current, step, environment }) {
   const inputs = await resolveNodeInputs(process, node, run, environment, current);
   if (record.kind.startsWith('effect.')) {
-    if (record.trigger?.mode === 'date' && !current.dateReady) {
-      const wakeAt = new Date(packetValue(inputs.at)).toISOString();
-      if (new Date(wakeAt) > new Date(instant(environment.now))) {
-        run.tokens.unshift({ ...current, dateReady: true });
-        run.status = 'waiting';
-        run.wakeAt = wakeAt;
-        step.status = 'waiting';
-        return;
-      }
-    }
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
     const result = await environment.executeEffect({
       kind: record.kind,
@@ -286,7 +276,7 @@ function findTriggerNode(process, trigger) {
   const nodes = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[recordId(node)] || {};
     return record.kind?.startsWith('effect.')
-      && ['manual', 'entityChanged', 'domainEvent'].includes(record.trigger?.mode || 'manual');
+      && (record.trigger?.mode || 'manual') === 'manual';
   });
   const match = trigger.nodeId
     ? nodes.find(node => String(node.id) === String(trigger.nodeId))
@@ -294,8 +284,6 @@ function findTriggerNode(process, trigger) {
       const record = process.processNodes[recordId(node)];
       if (trigger.kind && record.kind !== trigger.kind) return false;
       if (trigger.mode && record.trigger?.mode !== trigger.mode) return false;
-      if (record.trigger?.mode === 'domainEvent' && record.eventId && trigger.eventId !== record.eventId) return false;
-      if (record.trigger?.mode === 'entityChanged' && record.entityType && trigger.entityType !== record.entityType) return false;
       return true;
     });
   if (!match) throw new Error(`Process trigger ${trigger.nodeId || trigger.kind || '(default)'} not found`);

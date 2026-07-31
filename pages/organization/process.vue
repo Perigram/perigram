@@ -680,10 +680,7 @@ const actionKindOptions = [
 const genericActionLabels = new Set(['action', 'create', 'modify', 'status', 'service', 'send', 'update']);
 const triggerModeOptions = [
   { label: 'Manual', value: 'manual' },
-  { label: 'Event', value: 'event' },
-  { label: 'At date', value: 'date' },
-  { label: 'Entity changed', value: 'entityChanged' },
-  { label: 'Domain event', value: 'domainEvent' }
+  { label: 'Automatic', value: 'event' }
 ];
 const serviceBillingModeOptions = [
   { label: t('processDesigner.serviceBillingNone'), value: 'none' },
@@ -1404,6 +1401,7 @@ function syncNodeData() {
     node.data.processStatusOptions = node.type === 'processNode' ? processStatusOptions.value : [];
     node.data.processTriggerModeOptions = node.type === 'processNode' ? localizedTriggerModeOptions() : [];
     node.data.processRoleOptions = node.type === 'processNode' ? roleOptions.value : [];
+    node.data.processAccessLevelOptions = node.type === 'processNode' ? accessLevelOptions : [];
     node.data.processConnectedInputIds = node.type === 'processNode' ? connectedProcessInputIds(node, record) : [];
     node.data.statusFrom = record.status?.from;
     node.data.statusTo = record.status?.to;
@@ -1641,14 +1639,12 @@ function createProcessNode(id, kind = 'source.literalItem') {
   }
   if (kind === 'effect.createEntity') syncProcessNodeConstruction(node);
   if (kind === 'effect.createEntity') node.status = { to: initialStatusForEntity(node.entityType) };
-  if (['record.entityDraft', 'record.deconstruct', 'effect.createEntity', 'effect.updateEntity'].includes(kind)) {
+  if (['record.entityDraft', 'record.deconstruct'].includes(kind)) {
     const access = kind === 'record.deconstruct' ? 'readable' : 'writable';
-    node.fields = kind === 'effect.createEntity' && node.construction?.inputs?.length
-      ? []
-      : designer.fieldsForEntity(node.entityType)
-        .filter(field => field[access] !== false)
-        .slice(0, 1)
-        .map(field => field.value);
+    node.fields = designer.fieldsForEntity(node.entityType)
+      .filter(field => field[access] !== false)
+      .slice(0, 1)
+      .map(field => field.value);
   }
   if (kind === 'record.getBlock') {
     node.block = designer.blocksForEntity(node.entityType)[0]?.id || '';
@@ -2263,7 +2259,7 @@ function syncProcessNode(node = {}) {
   if (node.kind.startsWith('effect.')) node.retry ||= { maxAttempts: 1, delayMs: 0 };
   if (node.kind.startsWith('effect.')) {
     node.trigger ||= { mode: 'manual' };
-    if (!['manual', 'event', 'date', 'entityChanged', 'domainEvent'].includes(node.trigger.mode)) node.trigger.mode = 'manual';
+    if (!['manual', 'event'].includes(node.trigger.mode)) node.trigger.mode = 'event';
     node.access = normalizeDesignerAccess(node.access);
     node.legacyActionId ||= node.id;
     node.entryTriggerId = node.id;
@@ -2295,7 +2291,7 @@ function syncProcessNode(node = {}) {
     const available = designer.fieldsForEntity(node.entityType).filter(field => field[access] !== false);
     node.fields = (node.fields || []).filter(path => available.some(field => field.value === path));
     if (!node.fields.length && available[0]
-      && (node.kind !== 'effect.createEntity' || !node.construction?.inputs?.length)) {
+      && !['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
       node.fields = [available[0].value];
     }
   }
@@ -2347,8 +2343,11 @@ function processNodeOperationOptions(kind = '') {
 }
 
 function processNodeFieldOptions(node = {}) {
-  if (!processNodeUsesPath(node)) return [];
-  const access = node.kind === 'record.fieldChange' ? 'writable' : 'readable';
+  const fieldSetKind = ['record.construct', 'record.deconstruct', 'record.entityDraft', 'effect.createEntity', 'effect.updateEntity'].includes(node.kind);
+  if (!processNodeUsesPath(node) && !fieldSetKind) return [];
+  const access = ['record.fieldChange', 'record.construct', 'record.entityDraft', 'effect.createEntity', 'effect.updateEntity'].includes(node.kind)
+    ? 'writable'
+    : 'readable';
   return designer.fieldsForEntity(node.entityType)
     .filter(field => field[access] !== false)
     .map(field => ({
@@ -2560,16 +2559,13 @@ function localizedTriggerModeOptions() {
     ...option,
     label: ({
       manual: t('processDesigner.manualTrigger'),
-      event: t('processDesigner.eventTrigger'),
-      date: t('processDesigner.paletteItems.continueAtDate'),
-      entityChanged: t('processDesigner.paletteItems.entityEvent'),
-      domainEvent: t('processDesigner.paletteItems.domainEvent')
+      event: t('processDesigner.automaticTrigger')
     })[option.value] || option.label
   }));
 }
 
 function normalizeTriggerMode(mode) {
-  if (['event', 'date', 'entityChanged', 'domainEvent'].includes(mode)) return mode;
+  if (mode === 'event') return 'event';
   return 'manual';
 }
 
@@ -2880,6 +2876,7 @@ function enrichNodeData(node) {
       processStatusOptions: node.type === 'processNode' ? processStatusOptions.value : [],
       processTriggerModeOptions: node.type === 'processNode' ? localizedTriggerModeOptions() : [],
       processRoleOptions: node.type === 'processNode' ? roleOptions.value : [],
+      processAccessLevelOptions: node.type === 'processNode' ? accessLevelOptions : [],
       processConnectedInputIds: node.type === 'processNode' ? connectedProcessInputIds(node, record) : [],
       triggerMode: record.trigger?.mode,
       eventLabel: node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null,
@@ -2958,6 +2955,13 @@ function updateProcessNodeRecord(nodeId, updates = {}) {
   }
   if (updates.block && updates.block !== node.block) node.path = '';
   Object.assign(node, updates);
+  if (updates.trigger?.mode === 'manual') {
+    const graphNodeId = nodes.value.find(item => item.type === 'processNode' && item.data?.refId === nodeId)?.id;
+    edges.value = edges.value.filter(edge => !(
+      edge.target === graphNodeId
+      && String(edge.targetHandle || '').startsWith('control:')
+    ));
+  }
   if (updates.mode) node.operation = updates.mode;
   if (updates.operation && node.kind === 'compare') {
     if (['gt', 'gte', 'lt', 'lte'].includes(updates.operation)) node.valueType = 'number';
@@ -3018,6 +3022,7 @@ function stripRuntimeNodeData(node) {
     'processStatusOptions',
     'processTriggerModeOptions',
     'processRoleOptions',
+    'processAccessLevelOptions',
     'processConnectedInputIds'
   ]) {
     delete data[key];
