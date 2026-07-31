@@ -848,7 +848,9 @@
    coercions stay on wires instead of generating empty conversion nodes, and
    effect event inputs and completion outputs occupy a left-to-right footer row.
    Status definitions are created from the Entities palette and edited on
-   their canvas nodes rather than in the inspector or process selector. Keep this
+   their canvas nodes rather than in the inspector or process selector. Each
+   definition exposes a typed status output backed by its stable definition
+   reference, so status renames do not break Modify Entity wiring. Keep this
    WAITING until the complete workflow is reviewed in the running UI.
 
 ** Agent Notes

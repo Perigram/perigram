@@ -198,7 +198,8 @@ creation must be declared by the domain construction registry. This keeps the
 process compiler reusable and prevents hidden domain behavior from living in the
 generic package.
 Update actions consume an entity from the incoming data socket, expose one data
-input socket per selected mutable field, validate those fields against the
+input socket per selected mutable field plus a dedicated typed status socket,
+validate ordinary fields against the
 active domain field-access policy, and compile into write/admin grants on the
 concrete incoming entity feature. Manual generated screens prompt for the
 selected mutation fields through `action.inputPolicy`, while event-driven
@@ -213,7 +214,9 @@ canvas record lives under `processNodes` and has a namespaced kind from the
 catalog: `source.*`, `value.*`, `collection.*`/`tree.*`, `record.*`,
 `predicate.*`, `read.*`, `effect.*`, or `control.*`. Roles, entity profiles,
 screens, assignments, and status definitions are definition-plane records and
-are not executable graph values.
+are not executable operations. Status definitions alone may project a typed
+status value socket; orchestration resolves that socket from the referenced
+definition without treating the definition as an executable step.
 
 Socket types are structured objects. `base` describes the value
 (`number`, `entity`, `predicate`, `patch`, and so on); `shape` independently
@@ -282,7 +285,10 @@ compiled runtime is retained when v3 compilation fails.
 
 `effect.changeStatus` consumes an entity reference, a typed status value, and
 an optional patch. The status may be supplied by a literal or configured from a
-definition-plane status record. Status definitions compile into workflow state metadata
+definition-plane status record. A status definition projects one typed `status`
+output into the authoring graph; the persisted wire stores the stable
+definition reference while execution resolves its current status id. Status
+definitions compile into workflow state metadata
 (`label`, `color`, `severity`, `icon`) and into the compiled action target
 state, so runtime execution and UI status rendering use the same value and
 visual metadata. They also carry lifecycle evidence schema

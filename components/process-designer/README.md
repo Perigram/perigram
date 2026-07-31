@@ -1,13 +1,14 @@
 # COMPONENT: Process Designer
 
 The organization process designer authors the `@cutkit/processes`
-`dataflowVersion: 3` contract. The executable canvas contains only
-`processNode` records. Roles, entity profiles, screens, assignments, service
-principals, and statuses are definition-plane records. Statuses have a
+`dataflowVersion: 3` contract. Executable canvas records are `processNode`
+operations. Roles, entity profiles, screens, assignments, service principals,
+and statuses are definition-plane records. Statuses have a
 definition item in the Entities palette and render as inline-editable canvas
-nodes; they are not inspector tabs, process-selector controls, or executable
-values. Modify Entity applies a selected status through its
-`status.state.primary` input.
+nodes; they are not inspector tabs or process-selector controls. A status node
+exposes one typed `status` output backed by its stable definition reference.
+Modify Entity consumes that output through `status.state.primary`; changing the
+authored status id updates the referenced value without breaking the wire.
 
 ## Palette and node concerns
 
@@ -17,7 +18,9 @@ The palette has three non-overlapping operation concerns:
 - **Entities** defines lifecycle statuses, creates or modifies an entity
   directly, and reads/deconstructs
   its declared blocks and fields. Create/modify nodes expose one typed socket
-  per selected writable field; there is no intermediate draft, patch, current
+  per selected writable field; Modify Entity additionally owns a dedicated
+  typed status socket because lifecycle changes cross the status runtime rather
+  than ordinary field policy. There is no intermediate draft, patch, current
   entity, or related-entity plumbing. Create also exposes the selected
   domain-declared construction mode inputs, so derived entities remain
   constructable without generic placeholder fields.

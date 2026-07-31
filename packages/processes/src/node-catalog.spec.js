@@ -101,7 +101,7 @@ describe('process v3 node catalog', () => {
     const modify = resolveCatalogNodePorts({
       kind: 'effect.updateEntity',
       entityType: 'project',
-      fields: ['identity.name', 'status.state.primary']
+      fields: ['identity.name']
     }, context);
 
     expect(create.inputs.map(input => input.id)).toEqual(['identity.name', 'parent']);
@@ -112,7 +112,7 @@ describe('process v3 node catalog', () => {
       trigger: { mode: 'event' },
       fields: ['identity.name']
     }, context);
-    expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity.name']);
+    expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity.name', 'status.state.primary']);
   });
 
   it('exposes typed construction inputs directly on create nodes', () => {
