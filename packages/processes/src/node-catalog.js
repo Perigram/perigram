@@ -2,8 +2,6 @@ import { legacyProcessType, normalizeProcessSocket, processType } from './types.
 
 const DATA = 'data';
 const CONTROL = 'control';
-const SUCCESS = 'success';
-const FAILURE = 'failure';
 
 const definitions = [
   source('source.literalItem', 'literalItem'),
@@ -52,6 +50,8 @@ const definitions = [
   data('record.fieldChange', 'fieldChange'),
   data('record.mergeChanges', 'mergeChanges'),
   data('record.applyChanges', 'applyChanges'),
+  data('record.composeBlock', 'composeBlock'),
+  data('record.modifyBlock', 'modifyBlock'),
   data('record.construct', 'constructRecord'),
   data('record.deconstruct', 'deconstructRecord'),
   data('record.getBlock', 'getBlock'),
@@ -69,6 +69,7 @@ const definitions = [
   data('read.filterRecords', 'filterRecords'),
 
   effect('effect.createEntity', 'createEntity'),
+  effect('effect.runProducer', 'runProducer'),
   effect('effect.updateEntity', 'updateEntity'),
   effect('effect.changeStatus', 'changeStatus'),
   effect('effect.runCommand', 'runCommand'),
@@ -186,10 +187,7 @@ function catalogPorts(record = {}, context = {}) {
   const patch = processType('patch', { entityType: record.entityType });
   const event = processType('event');
   const controlInput = [{ ...socket('in', event, CONTROL, true), multiple: true }];
-  const successFailure = [
-    socket('success', event, SUCCESS),
-    socket('failure', processType('error'), FAILURE)
-  ];
+  const completed = socket('completed', event, CONTROL);
 
   if (kind.startsWith('source.')) {
     const output = kind === 'source.currentTime' ? processType('dateTime')
@@ -330,7 +328,14 @@ function catalogPorts(record = {}, context = {}) {
   if (kind === 'tree.transpose') return unary({ ...configured, shape: 'tree' }, { ...configured, shape: 'tree' });
   if (kind === 'record.getField') {
     const field = context.fieldSchema || record.fieldSchema;
-    return unary(entity, { ...processTypeFrom(field?.type, configured), shape: entity.shape });
+    return {
+      inputs: [socket('block', processType('block', {
+        entityType: record.entityType,
+        block: record.block,
+        shape: entity.shape
+      }), DATA, true)],
+      outputs: [socket('value', { ...processTypeFrom(field?.type, configured), shape: entity.shape })]
+    };
   }
   if (kind === 'record.fieldChange') return {
     inputs: [socket('value', processTypeFrom(context.fieldSchema?.type || record.fieldSchema?.type, configured), DATA, true)],
@@ -341,6 +346,22 @@ function catalogPorts(record = {}, context = {}) {
     inputs: [socket('record', entity, DATA, true), socket('changes', patch, DATA, true)],
     outputs: [socket('record', entity)]
   };
+  if (kind === 'record.composeBlock' || kind === 'record.modifyBlock') {
+    const fields = dynamicFields(record, context)
+      .filter(field => field.block === record.block || field.path?.startsWith(`${record.block}.`));
+    const block = processType('block', {
+      entityType: record.entityType,
+      block: record.block,
+      shape: entity.shape
+    });
+    return {
+      inputs: [
+        ...(kind === 'record.modifyBlock' ? [socket('block', block, DATA, true)] : []),
+        ...fields.map(field => socket(field.path, field.type, DATA, Boolean(field.required)))
+      ],
+      outputs: [socket('block', block)]
+    };
+  }
   if (kind === 'record.construct' || kind === 'record.entityDraft') {
     const fields = dynamicFields(record, context);
     return {
@@ -349,13 +370,24 @@ function catalogPorts(record = {}, context = {}) {
     };
   }
   if (kind === 'record.deconstruct') {
-    const fields = dynamicFields(record, context);
+    const blocks = dynamicBlocks(record, context);
     return {
-      inputs: [socket('record', entity, DATA, true)],
-      outputs: fields.map(field => socket(field.path, { ...field.type, shape: entity.shape }))
+      inputs: [socket('entity', entity, DATA, true)],
+      outputs: blocks.map(block => socket(block, processType('block', {
+        entityType: record.entityType,
+        block,
+        shape: entity.shape
+      })))
     };
   }
-  if (kind === 'record.getBlock') return unary(entity, processType('block', { block: record.block, shape: entity.shape }));
+  if (kind === 'record.getBlock') return {
+    inputs: [socket('entity', entity, DATA, true)],
+    outputs: [socket('block', processType('block', {
+      entityType: record.entityType,
+      block: record.block,
+      shape: entity.shape
+    }))]
+  };
   if (kind === 'predicate.field') return {
     inputs: [socket('value', processTypeFrom(context.fieldSchema?.type || record.fieldSchema?.type, configured), DATA, true)],
     outputs: [socket('predicate', predicate)]
@@ -384,14 +416,13 @@ function catalogPorts(record = {}, context = {}) {
       entityRef,
       patch,
       configured,
-      parentEntityType: record.parentEntityType,
-      dynamicFields: dynamicFields(record, context),
+      blocks: dynamicBlocks(record, context),
       constructionInputs: constructionInputs(record)
     });
     const eventInput = record.trigger?.mode === 'event' ? controlInput : [];
     return {
       inputs: [...eventInput, ...specific],
-      outputs: [...successFailure, socket('result', effectResultType(kind, record))]
+      outputs: [completed, socket('result', effectResultType(kind, record))]
     };
   }
   if (kind.endsWith('Trigger')) {
@@ -459,20 +490,36 @@ function dynamicFields(record, context) {
   });
 }
 
+function dynamicBlocks(record, context) {
+  const selected = Array.isArray(record.blocks) ? record.blocks : [];
+  if (selected.length) return selected;
+  return [...new Set([
+    ...(Array.isArray(record.fieldSchemas) ? record.fieldSchemas : []),
+    ...(Array.isArray(context.fieldSchemas) ? context.fieldSchemas : [])
+  ]
+    .filter(field => field.writable !== false)
+    .map(field => field.block || String(field.path || '').split('.')[0])
+    .filter(block => block && !['origin', 'status', 'provenance', 'summary'].includes(block)))];
+}
+
 function effectInputs(kind, types) {
+  if (kind === 'effect.runProducer') return types.constructionInputs.map(input => ({
+    ...socket(input.id, input.type, DATA, input.required),
+    label: input.label || input.id
+  }));
   if (kind === 'effect.createEntity') return [
-    ...types.constructionInputs.map(input => ({
-      ...socket(input.id, input.type, DATA, input.required),
-      label: input.label || input.id
-    })),
-    ...types.dynamicFields.map(field => socket(field.path, field.type, DATA, true)),
-    socket('parent', processType('entityRef', { entityType: types.parentEntityType }))
+    ...types.blocks.map(block => socket(block, processType('block', {
+      entityType: types.entity.entityType,
+      block
+    }), DATA, block === 'identity')),
+    socket('status.state.primary', processType('status', { entityType: types.entity.entityType }))
   ];
   if (kind === 'effect.updateEntity') return [
     socket('entity', types.entityRef, DATA, true),
-    ...types.dynamicFields
-      .filter(field => field.path !== 'status.state.primary')
-      .map(field => socket(field.path, field.type, DATA, true)),
+    ...types.blocks.map(block => socket(block, processType('block', {
+      entityType: types.entity.entityType,
+      block
+    }))),
     socket('status.state.primary', processType('status', { entityType: types.entity.entityType }))
   ];
   if (kind === 'effect.changeStatus') return [
@@ -501,7 +548,7 @@ function constructionInputs(record = {}) {
 }
 
 function effectResultType(kind, record) {
-  if (['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'].includes(kind)) {
+  if (['effect.createEntity', 'effect.runProducer', 'effect.updateEntity', 'effect.changeStatus'].includes(kind)) {
     return processType('entity', { entityType: record.entityType, nullable: false });
   }
   if (kind === 'effect.generateAttachment') {

@@ -4,26 +4,26 @@ import { cncEntityFieldGroups } from './ui-fields.js';
 
 const CORE_FIELDS = [
   field('_id', 'json', { writable: false }),
-  field('identity.uid', 'string'),
+  field('identity.uid', 'string', { constructible: false }),
   field('identity.name', 'string'),
   field('identity.slug', 'string'),
   field('identity.serial', 'string'),
   field('identity.reference', 'string'),
-  field('origin.state.primary', 'status', { writable: false }),
-  field('origin.userId', 'string', { writable: false }),
-  field('origin.timestamp', 'dateTime', { writable: false }),
-  field('origin.metadata', 'json', { writable: false }),
-  field('origin.eventId', 'string', { writable: false }),
-  field('origin.lifecycle', 'json', { writable: false }),
-  field('status.state.primary', 'status'),
-  field('status.userId', 'string', { writable: false }),
-  field('status.timestamp', 'dateTime', { writable: false }),
-  field('status.metadata', 'json'),
-  field('status.eventId', 'string', { writable: false }),
-  field('status.lifecycle', 'json', { writable: false }),
-  field('lineage.organizationId', 'entityRef', { entityType: 'organization' }),
+  field('origin.state.primary', 'status', { writable: false, constructible: false }),
+  field('origin.userId', 'string', { writable: false, constructible: false }),
+  field('origin.timestamp', 'dateTime', { writable: false, constructible: false }),
+  field('origin.metadata', 'json', { writable: false, constructible: false }),
+  field('origin.eventId', 'string', { writable: false, constructible: false }),
+  field('origin.lifecycle', 'json', { writable: false, constructible: false }),
+  field('status.state.primary', 'status', { constructible: false }),
+  field('status.userId', 'string', { writable: false, constructible: false }),
+  field('status.timestamp', 'dateTime', { writable: false, constructible: false }),
+  field('status.metadata', 'json', { constructible: false }),
+  field('status.eventId', 'string', { writable: false, constructible: false }),
+  field('status.lifecycle', 'json', { writable: false, constructible: false }),
+  field('lineage.organizationId', 'entityRef', { entityType: 'organization', constructible: false }),
   field('relations.value', 'json'),
-  field('provenance.source', 'entityRef'),
+  field('provenance.source', 'entityRef', { constructible: false }),
   field('specs.width', 'number', { unit: 'mm' }),
   field('specs.length', 'number', { unit: 'mm' }),
   field('specs.area', 'number', { unit: 'm2' }),
@@ -31,7 +31,7 @@ const CORE_FIELDS = [
   field('specs.foilThickness', 'number', { unit: 'mm' }),
   field('attachments.primary', 'json'),
   field('data.value', 'json'),
-  field('summary.value', 'json', { writable: false })
+  field('summary.value', 'json', { writable: false, constructible: false })
 ];
 
 export const cncEntityFieldSchemas = Object.freeze(Object.fromEntries(cncEntities.map(entity => {
@@ -48,7 +48,8 @@ export const cncEntityFieldSchemas = Object.freeze(Object.fromEntries(cncEntitie
     .map(schema => Object.freeze({
       ...schema,
       readable: hasAccess(access, schema.path, 'read'),
-      writable: schema.writable !== false && hasAccess(access, schema.path, 'write')
+      writable: schema.writable !== false && hasAccess(access, schema.path, 'write'),
+      constructible: schema.constructible !== false
     }));
   return [entityType, Object.freeze(fields)];
 })));
@@ -68,7 +69,7 @@ export function getEntityFieldSchema(entityType = '', path = '') {
 
 function field(path, base, qualifiers = {}) {
   const block = path === '_id' ? 'identity' : String(path).split('.')[0];
-  const { writable = true, ...typeQualifiers } = qualifiers;
+  const { writable = true, constructible = true, ...typeQualifiers } = qualifiers;
   return {
     path,
     block,
@@ -80,7 +81,8 @@ function field(path, base, qualifiers = {}) {
       ...(typeQualifiers.entityType ? { entityType: typeQualifiers.entityType } : {}),
       ...(typeQualifiers.unit ? { unit: typeQualifiers.unit } : {})
     },
-    writable
+    writable,
+    constructible
   };
 }
 

@@ -297,19 +297,20 @@ const nextRoleId = computed(() => {
   return (props.data.processRoleOptions || []).find(option => !selected.has(option.value))?.value || '';
 });
 const showsFieldSet = computed(() => [
-  'record.construct',
-  'record.deconstruct',
-  'record.entityDraft',
-  'effect.createEntity',
-  'effect.updateEntity'
+  'record.composeBlock',
+  'record.modifyBlock'
 ].includes(record.value.kind));
 const showEntitySelect = computed(() => (
-  ['record.', 'predicate.', 'read.', 'effect.'].some(prefix => record.value.kind?.startsWith(prefix))
+  (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => record.value.kind?.startsWith(prefix))
+    && record.value.kind !== 'effect.runProducer')
   || record.value.kind === 'control.entityChangedTrigger'
   || (record.value.kind === 'control.manualTrigger' && record.value.entityType)
   || (record.value.kind === 'source.literalItem' && record.value.type?.base === 'entityRef')
 ));
-const showBlockSelect = computed(() => record.value.kind === 'record.getBlock' && (props.data.processBlockOptions || []).length);
+const showBlockSelect = computed(() => (
+  ['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.value.kind)
+  && (props.data.processBlockOptions || []).length
+));
 const showTypeEditor = computed(() => (
   record.value.kind?.startsWith('source.literal')
   || (record.value.kind === 'value.logic'

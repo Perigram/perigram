@@ -66,23 +66,39 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'tree.unzip') return unzipPacket(required(packets, 'value', record));
   if (kind === 'tree.cross') return crossDataPackets(required(packets, 'left', record), required(packets, 'right', record));
   if (kind === 'tree.transpose') return transposeDataPacket(required(packets, 'value', record));
-  if (kind === 'record.getField') return mapDataPacket(required(packets, 'value', record), value => readPath(value, record.path));
+  if (kind === 'record.getField') {
+    return mapDataPacket(required(packets, 'block', record), value => readPath(value, blockLocalPath(record.block, record.path)));
+  }
   if (kind === 'record.fieldChange') return mapDataPacket(required(packets, 'value', record), value => ({ entityType: record.entityType, changes: [{ path: record.path, operation: record.operation || 'set', value }] }));
   if (kind === 'record.mergeChanges') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => mergePatches(left, right));
   if (kind === 'record.applyChanges') return combineDataPackets([required(packets, 'record', record), required(packets, 'changes', record)], ([value, patch]) => applyPatch(value, patch));
+  if (kind === 'record.composeBlock' || kind === 'record.modifyBlock') {
+    const inputIds = [
+      ...(kind === 'record.modifyBlock' ? ['block'] : []),
+      ...(record.fields || []).filter(path => packets[path])
+    ];
+    return combineDataPackets(inputIds.map(id => required(packets, id, record)), values => {
+      const initial = kind === 'record.modifyBlock' ? structuredClone(values[0] || {}) : {};
+      const offset = kind === 'record.modifyBlock' ? 1 : 0;
+      inputIds.slice(offset).forEach((path, index) => {
+        writePath(initial, blockLocalPath(record.block, path), structuredClone(values[index + offset]));
+      });
+      return initial;
+    });
+  }
   if (kind === 'record.construct' || kind === 'record.entityDraft') return createDataPacket(constructRecord(record, packets));
   if (kind === 'record.deconstruct') {
     if (context.outputId) {
-      if (!(record.fields || []).includes(context.outputId)) {
-        throw new Error(`Node ${record.id || kind} does not expose field ${context.outputId}`);
+      if (!(record.blocks || []).includes(context.outputId)) {
+        throw new Error(`Node ${record.id || kind} does not expose block ${context.outputId}`);
       }
-      return mapDataPacket(required(packets, 'record', record), value => readPath(value, context.outputId));
+      return mapDataPacket(required(packets, 'entity', record), value => structuredClone(value?.[context.outputId]));
     }
-    return mapDataPacket(required(packets, 'record', record), value => (
-      Object.fromEntries((record.fields || []).map(path => [path, readPath(value, path)]))
+    return mapDataPacket(required(packets, 'entity', record), value => (
+      Object.fromEntries((record.blocks || []).map(block => [block, structuredClone(value?.[block])]))
     ));
   }
-  if (kind === 'record.getBlock') return mapDataPacket(required(packets, 'value', record), value => structuredClone(value?.[record.block]));
+  if (kind === 'record.getBlock') return mapDataPacket(required(packets, 'entity', record), value => structuredClone(value?.[record.block]));
   if (kind === 'predicate.field') return createDataPacket({ kind: 'field', entityType: record.entityType, path: record.path, operation: record.operation, value: packetValue(required(packets, 'value', record)) });
   if (kind === 'predicate.logic') return createDataPacket({
     kind: 'logic',
@@ -93,6 +109,11 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   });
   if (kind.startsWith('read.')) return executeRead(record, packets, context);
   throw new Error(`Node ${record.id || kind} is not a data/read operation`);
+}
+
+function blockLocalPath(block, path) {
+  const prefix = `${block}.`;
+  return String(path || '').startsWith(prefix) ? String(path).slice(prefix.length) : String(path || '');
 }
 
 export function evaluateEntityPredicate(predicate, entity) {

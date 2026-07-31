@@ -74,12 +74,8 @@ export async function advanceProcessRun(runInput, definition, environment = {}) 
         run.wakeAt = new Date(new Date(step.completedAt).getTime() + retry.delayMs).toISOString();
       }
     } else {
-      const failureEdges = outgoingControl(process, node.id, 'failure');
-      if (failureEdges.length) enqueueEdges(run, failureEdges, current);
-      else {
-        run.status = 'failed';
-        run.error = step.error;
-      }
+      run.status = 'failed';
+      run.error = step.error;
     }
   }
   if (run.status === 'running' && !run.tokens.length) run.status = 'succeeded';
@@ -112,7 +108,7 @@ async function executeOperationalNode({ run, process, node, record, current, ste
       run
     });
     step.output = structuredClone(result);
-    enqueueEdges(run, outgoingControl(process, node.id, 'success'), {
+    enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {
       ...current,
       values: {
         ...(current.values || {}),
@@ -217,6 +213,11 @@ function processRunInput(inputs = {}, record = {}, portId = '') {
   if (Object.hasOwn(inputs.data || {}, portId)) return inputs.data[portId];
   const nested = readInputPath(inputs.data, portId);
   if (nested !== undefined) return nested;
+  const field = (record.fieldSchemas || []).find(schema => schema.path === portId);
+  const relatedType = field?.type?.entityType;
+  if (relatedType && Object.hasOwn(inputs.entities || {}, relatedType)) {
+    return inputs.entities[relatedType];
+  }
   if (Object.hasOwn(inputs.parameters || {}, portId)) return inputs.parameters[portId];
   return undefined;
 }
@@ -248,6 +249,11 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
     if (!edge) {
       if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
         inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.type?.shape);
+        continue;
+      }
+      const runValue = processRunInput(run.context?.inputs || {}, record, port.id);
+      if (runValue !== undefined) {
+        inputs[port.id] = createDataPacket(structuredClone(runValue), port.type?.shape);
         continue;
       }
       if (port.required) throw new Error(`Node ${record.id || node.id} requires input ${port.id}`);

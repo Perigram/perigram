@@ -1385,16 +1385,16 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
   if (!entityType) throw new Error(`${kind} requires entityType`);
   const service = getAppRegistry().getEntityService(entityType);
   if (!service) throw new Error(`Entity service missing for ${entityType}`);
-  if (kind === 'effect.createEntity') {
-    const draft = processFieldInputRecord(record, inputs);
-    const targetState = getByPath(draft, 'status.state.primary') || record.status?.to;
+  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
+    const draft = kind === 'effect.createEntity'
+      ? processBlockInputRecord(record, inputs)
+      : processConstructionInputRecord(record, inputs);
+    const targetState = inputs['status.state.primary'] || record.status?.to;
     const statusMetadata = draft.status?.metadata && typeof draft.status.metadata === 'object'
       ? draft.status.metadata
       : {};
     delete draft.status;
-    const parentEntities = record.parentEntityType && inputs.parent
-      ? { [record.parentEntityType]: inputs.parent }
-      : {};
+    const parentEntities = {};
     if (entityType === 'cassette_design' && record.construction?.mode === 'bakeCassetteDesignFromTemplate') {
       return await executeBakeCassetteDesign(record, draft, resolveOrganizationId(auth), auth, processData, parentEntities);
     }
@@ -1443,11 +1443,13 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
   const target = normalizeEntityRef(inputs.entity);
   if (!target?.id) throw new Error(`${kind} requires an entity reference`);
   if (kind === 'effect.updateEntity') {
-    const changes = (record.fields || [])
-      .filter(path => Object.hasOwn(inputs, path))
-      .map(path => ({ path, operation: 'set', value: inputs[path] }));
-    const statusChange = changes.find(change => change.path === 'status.state.primary');
-    const persistedChanges = changes.filter(change => change.path !== 'status.state.primary');
+    const persistedChanges = processBlockInputChanges(record, inputs);
+    const statusValue = inputs['status.state.primary'];
+    const statusChange = statusValue == null ? null : {
+      path: 'status.state.primary',
+      operation: 'set',
+      value: statusValue
+    };
     if (statusChange) {
       const patch = Object.fromEntries(persistedChanges.map(change => {
         if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
@@ -1509,11 +1511,28 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
   throw new Error(`Unsupported process effect ${kind}`);
 }
 
-function processFieldInputRecord(record = {}, inputs = {}) {
+function processBlockInputRecord(record = {}, inputs = {}) {
   const result = {};
-  for (const path of record.fields || []) {
-    if (Object.hasOwn(inputs, path)) setByPath(result, path, inputs[path]);
+  const schemas = getEntityFieldSchemas(record.entityType);
+  for (const block of record.blocks || []) {
+    if (!Object.hasOwn(inputs, block)) continue;
+    result[block] = {};
+    for (const field of schemas.filter(item => item.block === block && item.constructible !== false)) {
+      const localPath = field.path.slice(block.length + 1);
+      const value = getByPath(inputs[block], localPath);
+      if (value !== undefined) setByPath(result[block], localPath, normalizeBlockFieldValue(field, value));
+    }
+    if (block === 'lineage') {
+      for (const [key, value] of Object.entries(result.lineage || {})) {
+        if (key !== 'organizationId' && result[key] === undefined) result[key] = value;
+      }
+    }
   }
+  return result;
+}
+
+function processConstructionInputRecord(record = {}, inputs = {}) {
+  const result = {};
   for (const input of record.construction?.inputs || []) {
     const id = input.id || input.path;
     if (!id || !Object.hasOwn(inputs, id)) continue;
@@ -1525,6 +1544,34 @@ function processFieldInputRecord(record = {}, inputs = {}) {
     setByPath(result, input.path || id, value);
   }
   return result;
+}
+
+function processBlockInputChanges(record = {}, inputs = {}) {
+  const schemas = getEntityFieldSchemas(record.entityType);
+  const changes = [];
+  for (const block of record.blocks || []) {
+    if (!Object.hasOwn(inputs, block)) continue;
+    const value = inputs[block];
+    for (const field of schemas.filter(item => item.block === block && item.writable !== false)) {
+      const localPath = field.path.slice(block.length + 1);
+      const fieldValue = getByPath(value, localPath);
+      if (fieldValue !== undefined) {
+        changes.push({
+          path: field.path,
+          operation: 'set',
+          value: normalizeBlockFieldValue(field, fieldValue)
+        });
+      }
+    }
+  }
+  return changes;
+}
+
+function normalizeBlockFieldValue(field = {}, value) {
+  if (field.block === 'lineage' && field.type?.base === 'entityRef') {
+    return entityInputId(value);
+  }
+  return value;
 }
 
 async function loadAuthorized(id, auth, level) {

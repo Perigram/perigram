@@ -105,8 +105,11 @@ describe('process designer domain contract', () => {
     expect(groups.entities.map(item => item.kind || item.type)).toEqual([
       'effect.createEntity',
       'effect.updateEntity',
+      'effect.runCommand',
       'statusDefinition',
       'record.deconstruct',
+      'record.composeBlock',
+      'record.modifyBlock',
       'record.getBlock',
       'record.getField'
     ]);
@@ -132,5 +135,38 @@ describe('process designer domain contract', () => {
       inputDefaults: { amount: 30 }
     });
     expect(contract.fieldType('work_item', 'identity.name')).toMatchObject({ base: 'string', shape: 'item' });
+  });
+
+  it('projects domain construction producers as fixed service operations', () => {
+    const contract = createProcessDesignerContract({
+      ...domain,
+      producers: [{
+        id: 'buildResult',
+        label: 'Build result',
+        kind: 'construction',
+        constructionMode: 'buildResult',
+        output: { entityType: 'result' }
+      }],
+      construction: {
+        ...domain.construction,
+        result: {
+          modes: ['buildResult'],
+          defaultMode: 'buildResult',
+          derived: true,
+          inputs: [{ id: 'source', path: 'source', type: 'entity', entityType: 'work_item', required: true }]
+        }
+      }
+    });
+    const producer = contract.paletteGroups.flatMap(group => group.items)
+      .find(item => item.id === 'buildResult');
+
+    expect(producer).toMatchObject({
+      kind: 'effect.runProducer',
+      preset: {
+        producerId: 'buildResult',
+        entityType: 'result',
+        construction: { mode: 'buildResult' }
+      }
+    });
   });
 });

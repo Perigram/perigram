@@ -43,8 +43,11 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('createEntity', 'effect.createEntity'),
       paletteItem('modifyEntity', 'effect.updateEntity'),
+      paletteItem('runService', 'effect.runCommand'),
       definitionPaletteItem('defineStatus', 'statusDefinition'),
       paletteItem('deconstructEntity', 'record.deconstruct'),
+      paletteItem('composeBlock', 'record.composeBlock'),
+      paletteItem('modifyBlock', 'record.modifyBlock'),
       paletteItem('readBlock', 'record.getBlock'),
       paletteItem('readField', 'record.getField')
     ]
@@ -129,9 +132,35 @@ export function createProcessDesignerContract(domain = {}) {
       }));
   }
 
+  const paletteGroups = PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
+    ...group,
+    items: group.id === 'entities'
+      ? [
+          ...group.items,
+          ...(domain.producers || [])
+            .filter(producer => producer.kind === 'construction' && producer.output?.entityType)
+            .map(producer => paletteItem(producer.id, 'effect.runProducer', {
+              label: producer.id,
+              description: producer.id,
+              labelKey: producer.labelKey || '',
+              preset: {
+                producerId: producer.id,
+                entityType: producer.output.entityType,
+                construction: {
+                  mode: producer.constructionMode,
+                  inputs: construction(producer.output.entityType).modeInputs?.[producer.constructionMode]
+                    || construction(producer.output.entityType).inputs
+                    || []
+                }
+              }
+            }))
+        ]
+      : group.items
+  }));
+
   return {
     domain,
-    paletteGroups: PROCESS_DESIGNER_PALETTE_GROUPS,
+    paletteGroups,
     blocks: CANONICAL_ENTITY_BLOCKS.map(id => ({ id, label: id, ...BLOCK_PRESENTATION[id] })),
     entityOptions: entities.map(entity => ({ label: entity.label || entity.type, value: entity.type })),
     workflowOptions: Object.entries(domain.workflows || {}).map(([entityType, workflow]) => ({ label: workflow.label || entityType, value: entityType })),

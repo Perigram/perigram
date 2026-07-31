@@ -116,7 +116,7 @@ export function normalizeProcessDefinition(definition = {}) {
     roles: normalizeRecord(data.roles),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
-    actions: normalizeActions(deriveV3EffectActions(data.actions, processNodes)),
+    actions: normalizeActions(deriveV3EffectActions(data.actions, processNodes, data.graph)),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
     statusDefinitions: normalizeRecord(data.statusDefinitions),
@@ -128,20 +128,22 @@ export function normalizeProcessDefinition(definition = {}) {
   });
 }
 
-function deriveV3EffectActions(actions = {}, processNodes = {}) {
+function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}) {
   const derived = { ...(actions || {}) };
   for (const [nodeId, node] of Object.entries(processNodes)) {
     if (!node.kind?.startsWith('effect.')) continue;
     const actionId = String(node.legacyActionId || node.id || nodeId);
     const actionKind = ({
       'effect.createEntity': 'createEntity',
+      'effect.runProducer': 'createEntity',
       'effect.updateEntity': 'updateEntity',
       'effect.runCommand': 'runCommand',
       'effect.sendEntity': 'sendToOrganization',
       'effect.generateAttachment': 'runCommand'
     })[node.kind];
     if (!actionKind) continue;
-    const fields = Array.isArray(node.fields) ? node.fields : [];
+    const promptContract = effectPromptContract(nodeId, node, processNodes, graph);
+    const fields = promptContract.fields;
     const statusTo = node.inputDefaults?.['status.state.primary'] || node.status?.to || '';
     derived[actionId] = {
       ...(derived[actionId] || {}),
@@ -150,18 +152,21 @@ function deriveV3EffectActions(actions = {}, processNodes = {}) {
       actionKind,
       entityType: node.entityType || derived[actionId]?.entityType || '',
       commandId: node.commandId || derived[actionId]?.commandId || '',
-      construction: node.construction || derived[actionId]?.construction || {},
-      mutation: { ...(derived[actionId]?.mutation || {}), fields },
+      parentEntityType: promptContract.parentEntityType || derived[actionId]?.parentEntityType || '',
+      construction: node.kind === 'effect.createEntity' && node.blocks?.length
+        ? { mode: 'genericCreate', inputs: [], blockComposed: true }
+        : (node.construction || derived[actionId]?.construction || {}),
+      mutation: { ...(derived[actionId]?.mutation || {}), fields, blocks: [...(node.blocks || [])] },
       inputPolicy: {
         ...(derived[actionId]?.inputPolicy || {}),
-        prompt: fields.some(path => !Object.hasOwn(node.inputDefaults || {}, path)),
+        prompt: fields.some(path => !Object.hasOwn(promptContract.defaults, path)),
         fields: fields.map(path => ({
           id: `field:${path}`,
           path,
-          type: node.fieldSchemas?.find(field => field.path === path)?.type?.base || 'string',
-          prompt: !Object.hasOwn(node.inputDefaults || {}, path),
+          type: promptContract.schemas.find(field => field.path === path)?.type?.base || 'string',
+          prompt: !Object.hasOwn(promptContract.defaults, path),
           required: false,
-          ...(Object.hasOwn(node.inputDefaults || {}, path) ? { default: node.inputDefaults[path] } : {})
+          ...(Object.hasOwn(promptContract.defaults, path) ? { default: promptContract.defaults[path] } : {})
         }))
       },
       access: node.access || derived[actionId]?.access || { level: 'write', grants: [] },
@@ -174,6 +179,40 @@ function deriveV3EffectActions(actions = {}, processNodes = {}) {
     };
   }
   return derived;
+}
+
+function effectPromptContract(nodeId, node, processNodes, graph) {
+  if (Array.isArray(node.fields) && node.fields.length) {
+    return {
+      fields: node.fields,
+      defaults: node.inputDefaults || {},
+      schemas: node.fieldSchemas || [],
+      parentEntityType: node.parentEntityType || ''
+    };
+  }
+  const graphNode = (graph?.nodes || []).find(item => String(item.data?.refId || item.id) === String(nodeId));
+  if (!graphNode) return { fields: [], defaults: {}, schemas: [], parentEntityType: '' };
+  const recordByGraphNode = new Map((graph.nodes || []).map(item => [
+    String(item.id),
+    processNodes[String(item.data?.refId || item.id)]
+  ]));
+  const composers = (graph.edges || [])
+    .filter(edge => String(edge.target) === String(graphNode.id))
+    .map(edge => recordByGraphNode.get(String(edge.source)))
+    .filter(record => ['record.composeBlock', 'record.modifyBlock'].includes(record?.kind));
+  const parentTypes = [...new Set(composers
+    .filter(record => record.block === 'lineage')
+    .flatMap(record => (record.fieldSchemas || [])
+      .filter(field => (record.fields || []).includes(field.path)))
+    .filter(field => field.type?.entityType !== 'organization')
+    .map(field => field.type?.entityType)
+    .filter(Boolean))];
+  return {
+    fields: [...new Set(composers.flatMap(record => record.fields || []))],
+    defaults: Object.assign({}, ...composers.map(record => record.inputDefaults || {})),
+    schemas: composers.flatMap(record => record.fieldSchemas || []),
+    parentEntityType: parentTypes.length === 1 ? parentTypes[0] : ''
+  };
 }
 
 export function requiredEntityProfileTypes(definition = {}, domain = {}) {
@@ -2057,7 +2096,9 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
     ? requestedMode
     : (contract.defaultMode || modes[0] || defaultConstructionMode(entityType));
   const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
-  const contractInputs = contract.modeInputs?.[mode] || contract.inputs || [];
+  const contractInputs = construction.blockComposed
+    ? []
+    : (contract.modeInputs?.[mode] || contract.inputs || []);
   const inputsById = new Map(contractInputs.map(input => [input.id || input.path, { ...input }]));
   for (const input of declaredInputs) {
     const key = input.id || input.path;
@@ -2069,6 +2110,7 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
   }
   return {
     mode,
+    ...(construction.blockComposed ? { blockComposed: true } : {}),
     inputs: [...inputsById.values()]
   };
 }
@@ -2400,7 +2442,7 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
     errors.push(`Process node ${nodeId} uses unknown entityType ${node.entityType}`);
   }
   if (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => node.kind.startsWith(prefix))
-    && !['record.construct', 'record.deconstruct'].includes(node.kind)
+    && !['record.construct'].includes(node.kind)
     && !node.entityType && !['effect.runCommand'].includes(node.kind)) {
     errors.push(`Process node ${nodeId} must select an entity type`);
   }
@@ -2412,10 +2454,37 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
       errors.push(`Process node ${nodeId} cannot modify read-only field ${node.entityType}.${node.path}`);
     }
   }
+  if (['record.composeBlock', 'record.modifyBlock'].includes(node.kind)) {
+    if (!node.block) errors.push(`Process node ${nodeId} must select a block`);
+    if (!node.fields?.length) errors.push(`Process node ${nodeId} must select at least one block field`);
+    validateFieldList(
+      node.fields,
+      domain,
+      node.entityType,
+      `process node ${nodeId} fields`,
+      errors,
+      node.kind === 'record.composeBlock' ? 'construct' : 'write'
+    );
+    for (const path of node.fields || []) {
+      const schema = entityFieldSchema(domain, node.entityType, path);
+      if (schema && schema.block !== node.block) {
+        errors.push(`Process node ${nodeId} field ${path} does not belong to block ${node.block}`);
+      }
+    }
+  }
+  if (node.kind === 'record.getField') {
+    const schema = entityFieldSchema(domain, node.entityType, node.path);
+    if (schema && schema.block !== node.block) {
+      errors.push(`Process node ${nodeId} field ${node.path} does not belong to block ${node.block}`);
+    }
+  }
+  if (node.kind === 'record.deconstruct' && !node.blocks?.length) {
+    errors.push(`Process node ${nodeId} must expose at least one declared block`);
+  }
   if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
     const statusTarget = node.inputDefaults?.['status.state.primary'] || node.status?.to || node.statusRef;
-    if (node.kind === 'effect.updateEntity' && !node.fields?.length && !statusTarget) {
-      errors.push(`Process node ${nodeId} must select at least one writable field or status`);
+    if (node.kind === 'effect.updateEntity' && !node.blocks?.length && !statusTarget) {
+      errors.push(`Process node ${nodeId} must accept at least one writable block or status`);
     }
     if (node.kind === 'effect.createEntity') {
       const construction = normalizeConstruction(node.construction, node.entityType, domain);
@@ -2426,11 +2495,27 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
       if (contract.derived && construction.mode === 'genericCreate') {
         errors.push(`Process node ${nodeId} must use a typed construction mode for derived entity ${node.entityType}`);
       }
-      if (!node.fields?.length && !construction.inputs.length) {
-        errors.push(`Process node ${nodeId} must select a writable field or declared construction input`);
+    }
+    const allowedBlocks = new Set(entityFieldSchemas(domain, node.entityType)
+      .filter(field => node.kind === 'effect.createEntity'
+        ? field.constructible !== false
+        : field.writable !== false)
+      .map(field => field.block));
+    for (const block of node.blocks || []) {
+      if (!allowedBlocks.has(block) || ['origin', 'status', 'provenance', 'summary'].includes(block)) {
+        errors.push(`Process node ${nodeId} cannot persist block ${block}`);
       }
     }
-    validateFieldList(node.fields, domain, node.entityType, `process node ${nodeId} fields`, errors, 'write');
+  }
+  if (node.kind === 'effect.runProducer') {
+    const construction = normalizeConstruction(node.construction, node.entityType, domain);
+    const contract = constructionContract(domain, node.entityType);
+    if (!(domain.producers || []).some(producer => producer.id === node.producerId)) {
+      errors.push(`Process node ${nodeId} must select a registered producer`);
+    }
+    if (!contract.modes.includes(construction.mode) || construction.mode === 'genericCreate') {
+      errors.push(`Process node ${nodeId} must use a declared service construction mode for ${node.entityType}`);
+    }
   }
   if (node.kind.startsWith('effect.') && !['manual', 'event'].includes(node.trigger?.mode || 'manual')) {
     errors.push(`Process node ${nodeId} uses unknown trigger mode ${node.trigger?.mode}`);
@@ -2621,6 +2706,7 @@ function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
     errors.push(`Action ${actionId} must use a typed construction mode for derived entity ${entityType}`);
   }
   const contractInputs = contract.modeInputs?.[construction.mode] || contract.inputs || [];
+  if (construction.blockComposed) return;
   const requiredIds = new Set(contractInputs.filter(input => input.required).map(input => input.id));
   const presentIds = new Set([...(construction.inputs || []), ...(action.inputs || [])].map(input => input.id));
   for (const inputId of requiredIds) {
@@ -2638,6 +2724,16 @@ function constructionContract(domain = {}, entityType = '') {
 
 function validateFieldList(fields = [], domain = {}, entityType, label, errors, access = 'read') {
   if (!Array.isArray(fields)) return;
+  if (access === 'construct') {
+    const schemas = entityFieldSchemas(domain, entityType);
+    for (const field of fields) {
+      const schema = schemas.find(item => item.path === field);
+      if (!schema || schema.constructible === false) {
+        errors.push(`${label} contains non-constructible field: ${field}`);
+      }
+    }
+    return;
+  }
   const policy = getFieldPolicy(domain.fieldAccess || {}, entityType);
   if (!policy) {
     if (fields.length) errors.push(`${label} cannot be checked because ${entityType} has no field-access policy`);

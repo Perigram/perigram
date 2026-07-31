@@ -86,57 +86,80 @@ describe('process v3 node catalog', () => {
     });
   });
 
-  it('derives entity create/modify sockets from selected domain fields', () => {
+  it('derives entity create/modify sockets from writable canonical blocks', () => {
     const context = {
       fieldSchemas: [
-        { path: 'identity.name', type: { base: 'string', shape: 'item' } },
-        { path: 'status.state.primary', type: { base: 'status', shape: 'item' } }
+        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } },
+        { path: 'data.note', block: 'data', type: { base: 'string', shape: 'item' } },
+        { path: 'status.state.primary', block: 'status', type: { base: 'status', shape: 'item' } }
       ]
     };
     const create = resolveCatalogNodePorts({
       kind: 'effect.createEntity',
       entityType: 'project',
-      fields: ['identity.name']
+      blocks: ['identity', 'data']
     }, context);
     const modify = resolveCatalogNodePorts({
       kind: 'effect.updateEntity',
       entityType: 'project',
-      fields: ['identity.name']
+      blocks: ['identity', 'data']
     }, context);
 
-    expect(create.inputs.map(input => input.id)).toEqual(['identity.name', 'parent']);
-    expect(modify.inputs.map(input => input.id)).toEqual(['entity', 'identity.name', 'status.state.primary']);
+    expect(create.inputs.map(input => input.id)).toEqual(['identity', 'data', 'status.state.primary']);
+    expect(create.inputs.find(input => input.id === 'identity')?.required).toBe(true);
+    expect(modify.inputs.map(input => input.id)).toEqual(['entity', 'identity', 'data', 'status.state.primary']);
+    expect(create.outputs.map(output => output.id)).toEqual(['completed', 'result']);
     const automaticModify = resolveCatalogNodePorts({
       kind: 'effect.updateEntity',
       entityType: 'project',
       trigger: { mode: 'event' },
-      fields: ['identity.name']
+      blocks: ['identity']
     }, context);
-    expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity.name', 'status.state.primary']);
+    expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'status.state.primary']);
   });
 
-  it('exposes typed construction inputs directly on create nodes', () => {
-    const create = resolveCatalogNodePorts({
-      kind: 'effect.createEntity',
+  it('composes and modifies one selected block from its own fields', () => {
+    const context = {
+      fieldSchemas: [
+        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } },
+        { path: 'data.note', block: 'data', type: { base: 'string', shape: 'item' } }
+      ]
+    };
+    const compose = resolveCatalogNodePorts({
+      kind: 'record.composeBlock',
+      entityType: 'project',
+      block: 'identity',
+      fields: ['identity.name']
+    }, context);
+    const modify = resolveCatalogNodePorts({
+      kind: 'record.modifyBlock',
+      entityType: 'project',
+      block: 'identity',
+      fields: ['identity.name']
+    }, context);
+
+    expect(compose.inputs.map(input => input.id)).toEqual(['identity.name']);
+    expect(compose.outputs[0]).toMatchObject({ id: 'block', type: { base: 'block', block: 'identity' } });
+    expect(modify.inputs.map(input => input.id)).toEqual(['block', 'identity.name']);
+  });
+
+  it('keeps domain producer inputs on a fixed service effect', () => {
+    const producer = resolveCatalogNodePorts({
+      kind: 'effect.runProducer',
+      producerId: 'bakeCassetteDesignFromTemplate',
       entityType: 'cassette_design',
-      fields: [],
       construction: {
         mode: 'bakeCassetteDesignFromTemplate',
         inputs: [
-          { id: 'name', label: 'Design name', path: 'name', type: 'string', required: true },
-          { id: 'templateId', label: 'Cassette template', path: 'templateId', type: 'entity', entityType: 'cassette', required: true }
+          { id: 'name', path: 'name', type: 'string', required: true },
+          { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true }
         ]
       }
     });
 
-    expect(create.inputs.find(input => input.id === 'name')).toMatchObject({
-      required: true,
-      type: { base: 'string' }
-    });
-    expect(create.inputs.find(input => input.id === 'templateId')).toMatchObject({
-      required: true,
-      type: { base: 'entityRef', entityType: 'cassette' }
-    });
+    expect(producer.inputs.map(input => input.id)).toEqual(['name', 'templateId']);
+    expect(producer.inputs[1].type).toMatchObject({ base: 'entityRef', entityType: 'cassette' });
+    expect(producer.outputs.map(output => output.id)).toEqual(['completed', 'result']);
   });
 
   it('changes unified logic and date sockets with the selected operation', () => {
@@ -164,13 +187,17 @@ describe('process v3 node catalog', () => {
       kind: 'record.getField',
       entityType: 'project',
       shape: 'list',
+      block: 'identity',
       path: 'identity.name'
-    }, context).outputs[0].type).toMatchObject({ base: 'string', shape: 'list' });
+    }, context)).toMatchObject({
+      inputs: [{ id: 'block', type: { base: 'block', block: 'identity', shape: 'list' } }],
+      outputs: [{ id: 'value', type: { base: 'string', shape: 'list' } }]
+    });
     expect(resolveCatalogNodePorts({
       kind: 'record.deconstruct',
       entityType: 'project',
       shape: 'list',
-      fields: ['identity.name']
-    }, context).outputs[0].type).toMatchObject({ base: 'string', shape: 'list' });
+      blocks: ['identity']
+    }, context).outputs[0].type).toMatchObject({ base: 'block', block: 'identity', shape: 'list' });
   });
 });

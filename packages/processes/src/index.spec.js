@@ -77,7 +77,7 @@ const domain = {
     queue: {
       feature: 'queues',
       read: ['identity.*', 'status.*', 'lineage.*'],
-      write: ['data.*'],
+      write: ['identity.name', 'data.*'],
       admin: ['attachments.*']
     },
     cassette_design: {
@@ -98,6 +98,25 @@ const domain = {
       write: ['data.*'],
       admin: ['attachments.*']
     }
+  },
+  fieldSchemas: {
+    queue: [
+      {
+        path: 'identity.name',
+        block: 'identity',
+        type: { base: 'string', shape: 'item', nullable: false },
+        readable: true,
+        writable: true
+      },
+      {
+        path: 'lineage.projectId',
+        block: 'lineage',
+        type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'project' },
+        readable: true,
+        writable: false,
+        constructible: true
+      }
+    ]
   },
   construction: {
     queue: {
@@ -135,6 +154,23 @@ describe('@cutkit/processes compiler', () => {
       dataflowVersion: 3,
       roles: { operator: { id: 'operator', label: 'Operator' } },
       processNodes: {
+        queue_identity: {
+          id: 'queue_identity',
+          kind: 'record.composeBlock',
+          entityType: 'queue',
+          block: 'identity',
+          fields: ['identity.name'],
+          fieldSchemas: domain.fieldSchemas.queue,
+          inputDefaults: { 'identity.name': 'Queue' }
+        },
+        queue_lineage: {
+          id: 'queue_lineage',
+          kind: 'record.composeBlock',
+          entityType: 'queue',
+          block: 'lineage',
+          fields: ['lineage.projectId'],
+          fieldSchemas: [domain.fieldSchemas.queue[1]]
+        },
         create_queue: {
           id: 'create_queue',
           legacyActionId: 'create_queue',
@@ -145,15 +181,32 @@ describe('@cutkit/processes compiler', () => {
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
           status: { to: SOURCE_STATE },
-          inputDefaults: { name: 'Queue' },
+          blocks: ['identity', 'lineage'],
           fields: [],
           inputs: [],
           outputs: []
         }
       },
       graph: {
-        nodes: [{ id: 'create_queue', type: 'processNode', data: { refId: 'create_queue' } }],
-        edges: []
+        nodes: ['queue_identity', 'queue_lineage', 'create_queue'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          {
+            id: 'queue-identity-create',
+            source: 'queue_identity',
+            sourceHandle: 'data:block',
+            target: 'create_queue',
+            targetHandle: 'data:identity',
+            role: 'data'
+          },
+          {
+            id: 'queue-lineage-create',
+            source: 'queue_lineage',
+            sourceHandle: 'data:block',
+            target: 'create_queue',
+            targetHandle: 'data:lineage',
+            role: 'data'
+          }
+        ]
       }
     }, domain);
 
@@ -161,8 +214,15 @@ describe('@cutkit/processes compiler', () => {
       id: 'create_queue',
       actionKind: 'createEntity',
       entityType: 'queue',
+      parentEntityType: 'project',
       trigger: { mode: 'manual' }
     });
+    expect(compiled.actions.create_queue.inputPolicy.fields).toContainEqual(expect.objectContaining({
+      path: 'identity.name',
+      type: 'string',
+      prompt: false,
+      default: 'Queue'
+    }));
     expect(compiled.roles.operator.actions).toContainEqual(expect.objectContaining({ actionId: 'create_queue' }));
   });
 
