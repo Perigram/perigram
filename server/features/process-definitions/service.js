@@ -263,27 +263,6 @@ export async function startRun(id, payload = {}, auth = {}) {
   return await resumeRunUntilBoundary(created._id, auth);
 }
 
-export async function handleEntityChangedEvent(event = {}, auth = {}) {
-  return await startMatchingAutomaticRuns({
-    mode: 'entityChanged',
-    entityType: event.type,
-    payload: event,
-    inputs: {
-      entity: { type: event.type, id: event.id },
-      entities: { [event.type]: { type: event.type, id: event.id } }
-    }
-  }, auth);
-}
-
-export async function handleDomainEvent(event = {}, auth = {}) {
-  return await startMatchingAutomaticRuns({
-    mode: 'domainEvent',
-    eventId: event.id || event.type,
-    payload: event,
-    inputs: { payload: event }
-  }, auth);
-}
-
 export async function resumeDueRuns(now = new Date()) {
   const due = await repository.findDueRuns(now);
   const results = [];
@@ -293,36 +272,6 @@ export async function resumeDueRuns(now = new Date()) {
     } catch (error) {
       results.push({ id: String(run._id), status: 'failed-to-resume', error: error.message });
     }
-  }
-  return results;
-}
-
-async function startMatchingAutomaticRuns(trigger = {}, auth = {}) {
-  const organizationId = trigger.payload?.organizationId || resolveOrganizationId(auth);
-  if (!organizationId) return [];
-  const automaticAuth = { ...auth, organizationId };
-  const raw = await repository.findActiveByOrganization(organizationId);
-  if (!raw) return [];
-  const data = raw.data || {};
-  const matches = (data.graph?.nodes || []).filter(node => {
-    const record = data.processNodes?.[String(node.data?.refId || node.id)];
-    if (!record?.kind?.startsWith('effect.') || record.trigger?.mode !== trigger.mode) return false;
-    if (trigger.entityType && record.entityType !== trigger.entityType) return false;
-    if (trigger.eventId && record.eventId !== trigger.eventId) return false;
-    return true;
-  });
-  const results = [];
-  for (const node of matches) {
-    results.push(await startRun(raw._id, {
-      trigger: {
-        nodeId: node.id,
-        mode: trigger.mode,
-        entityType: trigger.entityType,
-        eventId: trigger.eventId,
-        payload: trigger.payload
-      },
-      inputs: trigger.inputs || {}
-    }, automaticAuth));
   }
   return results;
 }

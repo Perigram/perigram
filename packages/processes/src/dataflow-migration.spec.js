@@ -115,8 +115,32 @@ describe('process v3 data-flow migration', () => {
     };
 
     const result = migrateProcessDataflowDefinition(source);
-    expect(result.changed).toBe(false);
+    expect(result.changed).toBe(true);
     expect(result.value.graph).toEqual(source.graph);
+    expect(result.value.processNodes.update.trigger).toEqual({ mode: 'manual' });
+  });
+
+  it('collapses effect start modes to manual or automatic socket input', () => {
+    const result = migrateProcessDataflowDefinition({
+      dataflowVersion: 3,
+      processNodes: {
+        changed: {
+          id: 'changed',
+          kind: 'effect.updateEntity',
+          entityType: 'project',
+          trigger: { mode: 'entityChanged' },
+          eventId: 'project.updated'
+        }
+      },
+      graph: {
+        nodes: [{ id: 'changed', type: 'processNode', data: { refId: 'changed' } }],
+        edges: []
+      }
+    });
+
+    expect(result.changed).toBe(true);
+    expect(result.value.processNodes.changed.trigger).toEqual({ mode: 'event' });
+    expect(result.value.processNodes.changed.eventId).toBeUndefined();
   });
 
   it('turns legacy status-transition wiring into independent current-entity effects', () => {

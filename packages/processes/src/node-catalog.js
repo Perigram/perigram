@@ -388,12 +388,9 @@ function catalogPorts(record = {}, context = {}) {
       dynamicFields: dynamicFields(record, context),
       constructionInputs: constructionInputs(record)
     });
-    const eventInput = ['event', 'date'].includes(record.trigger?.mode) ? controlInput : [];
-    const dateInput = record.trigger?.mode === 'date'
-      ? [socket('at', processType('dateTime'), DATA, true)]
-      : [];
+    const eventInput = record.trigger?.mode === 'event' ? controlInput : [];
     return {
-      inputs: [...eventInput, ...dateInput, ...specific],
+      inputs: [...eventInput, ...specific],
       outputs: [...successFailure, socket('result', effectResultType(kind, record))]
     };
   }

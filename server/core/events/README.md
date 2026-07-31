@@ -2,9 +2,9 @@
 
 This module is the in-process dispatch boundary for validated registered
 domain events. Effect processing publishes an event only after normalizing it
-against the runtime domain registry. The process orchestration plugin registers
-one handler that starts matching effect nodes whose start mode is
-`domainEvent` in the active organization process.
+against the runtime domain registry. Domain dispatch does not inspect
+effect-node configuration; external subscriptions require an explicit
+process-entry contract rather than a hidden effect start mode.
 
 The dispatcher does not own persistence, policies, or entity mutation. Domain
 effect policies remain in `server/core/effects`; durable process state remains

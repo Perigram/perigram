@@ -2432,7 +2432,7 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
     }
     validateFieldList(node.fields, domain, node.entityType, `process node ${nodeId} fields`, errors, 'write');
   }
-  if (node.kind.startsWith('effect.') && !['manual', 'event', 'date', 'entityChanged', 'domainEvent'].includes(node.trigger?.mode || 'manual')) {
+  if (node.kind.startsWith('effect.') && !['manual', 'event'].includes(node.trigger?.mode || 'manual')) {
     errors.push(`Process node ${nodeId} uses unknown trigger mode ${node.trigger?.mode}`);
   }
   if (node.kind === 'control.entityChangedTrigger' && !node.entityType) {
@@ -2497,7 +2497,7 @@ function validateV3Edges(process, domain) {
   const triggers = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
     return record?.kind?.startsWith('effect.')
-      && ['manual', 'entityChanged', 'domainEvent'].includes(record.trigger?.mode || 'manual');
+      && record.trigger?.mode === 'manual';
   });
   const reachable = reachableControlNodes(process, triggers.map(node => String(node.id)));
   for (const node of process.graph?.nodes || []) {

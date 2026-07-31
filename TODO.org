@@ -836,15 +836,18 @@
    typed input and one operation-switching node each for logic, text, math, and
    date replace modifier variants. Grasshopper-style aligned masks and
    list/tree operations replace the separate query/predicate palette model.
-   Manual, previous-event, entity-change, domain-event, and connected-date
-   starts are configured on executable nodes and have durable runtime
-   contracts.
+   Effect nodes expose only Manual or Automatic-from-socket execution. Date
+   scheduling is composed with date algebra and an explicit wait step; external
+   entity/domain subscriptions are separate process-entry concerns rather than
+   effect modes.
    Keep this WAITING for hands-on usability acceptance with representative
    create/filter/modify/status/service processes.
 ** WAITING Design rework
    Nodes layouts should be redesigned so that it looks good, minimal, with no bloat labels and with proper spacing; all labels and text should be true to data and nodes (there is much arbitrary stuff like "cassette" hardcoded labels, status ID instead of name, etc). Colors should be applied to groups, icons should not be slop.
    The editor now uses the three-group operation palette without an advanced reveal.
-   Primitive required sockets provide typed inline fallbacks, safe type
+   Create/modify effects no longer select an arbitrary first writable field,
+   field-set selectors receive the actual domain options, and access grants
+   preserve explicit role plus level rows. Primitive required sockets provide typed inline fallbacks, safe type
    coercions stay on wires instead of generating empty conversion nodes, and
    effect event inputs and completion outputs occupy a left-to-right footer row.
    Status definitions are created from the Entities palette and edited on

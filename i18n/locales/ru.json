@@ -2730,6 +2730,7 @@
     "actionsJson": "JSON действий",
     "trigger": "Триггер",
     "manualTrigger": "Ручной триггер",
+    "automaticTrigger": "Автоматически",
     "userTrigger": "Пользовательский триггер",
     "systemTrigger": "Системный триггер",
     "eventTrigger": "Событийный триггер",

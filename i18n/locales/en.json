@@ -2730,6 +2730,7 @@
     "actionsJson": "Actions JSON",
     "trigger": "Trigger",
     "manualTrigger": "Manual trigger",
+    "automaticTrigger": "Automatic",
     "userTrigger": "User trigger",
     "systemTrigger": "System trigger",
     "eventTrigger": "Event trigger",

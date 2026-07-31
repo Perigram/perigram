@@ -37,10 +37,11 @@ from applying the same external effect twice.
 it until success, failure, or a wait boundary.
 `POST /api/process-definitions/runs/:id/resume` provides an explicit recovery
 resume, and `GET /api/process-definitions/runs/:id` reads the authorized run.
-The process-orchestration Nitro plugin registers entity/domain event handlers
-and polls due `wakeAt` records. Matching automatic start modes live on effect
-nodes, and connected-date effect starts persist the same wake boundary as
-manual execution.
+The process-orchestration Nitro plugin polls due `wakeAt` records. Effect nodes
+are either manual or automatic-from-socket. Date algebra feeds an explicit
+wait-until control step, which persists the wake boundary before forwarding its
+event to the automatic effect. Entity/domain subscriptions require a separate
+process-entry contract and are not inferred from effect configuration.
 The originating actor/access snapshot is stored with the run so a due
 continuation re-enters the normal feature access boundary. API handlers do not
 touch orchestration collections.
