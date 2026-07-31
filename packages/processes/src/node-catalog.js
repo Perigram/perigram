@@ -473,7 +473,10 @@ function effectInputs(kind, types) {
   ];
   if (kind === 'effect.updateEntity') return [
     socket('entity', types.entityRef, DATA, true),
-    ...types.dynamicFields.map(field => socket(field.path, field.type, DATA, true))
+    ...types.dynamicFields
+      .filter(field => field.path !== 'status.state.primary')
+      .map(field => socket(field.path, field.type, DATA, true)),
+    socket('status.state.primary', processType('status', { entityType: types.entity.entityType }))
   ];
   if (kind === 'effect.changeStatus') return [
     socket('entity', types.entityRef, DATA, true),

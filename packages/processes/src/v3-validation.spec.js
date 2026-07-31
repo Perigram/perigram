@@ -42,4 +42,17 @@ describe('process v3 validation', () => {
     }), domain);
     expect(result.errors).toContain('Process node node uses undeclared field project.data.guessed');
   });
+
+  it('accepts a status-only entity update through its dedicated lifecycle input', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'effect.updateEntity',
+      entityType: 'project',
+      fields: [],
+      trigger: { mode: 'manual' },
+      statusRef: 'ready',
+      inputDefaults: { 'status.state.primary': 'READY' }
+    }), domain);
+
+    expect(result.errors).not.toContain('Process node node must select at least one writable field or status');
+  });
 });

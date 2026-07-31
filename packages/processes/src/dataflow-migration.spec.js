@@ -85,6 +85,40 @@ describe('process v3 data-flow migration', () => {
     expect(result.value.statusDefinitions.ready.statusId).toBe('READY');
   });
 
+  it('preserves typed status value nodes in an existing v3 graph', () => {
+    const source = {
+      dataflowVersion: 3,
+      statusDefinitions: { ready: { id: 'ready', statusId: 'READY' } },
+      processNodes: {
+        update: {
+          id: 'update',
+          kind: 'effect.updateEntity',
+          entityType: 'project',
+          fields: [],
+          statusRef: 'ready'
+        }
+      },
+      graph: {
+        nodes: [
+          { id: 'ready', type: 'statusDefinition', data: { refId: 'ready' } },
+          { id: 'update', type: 'processNode', data: { refId: 'update' } }
+        ],
+        edges: [{
+          id: 'ready-update',
+          source: 'ready',
+          sourceHandle: 'data:status',
+          target: 'update',
+          targetHandle: 'data:status.state.primary',
+          role: 'data'
+        }]
+      }
+    };
+
+    const result = migrateProcessDataflowDefinition(source);
+    expect(result.changed).toBe(false);
+    expect(result.value.graph).toEqual(source.graph);
+  });
+
   it('turns legacy status-transition wiring into independent current-entity effects', () => {
     const source = {
       dataflowVersion: 2,

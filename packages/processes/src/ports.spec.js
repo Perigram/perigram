@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inferProcessDataflowContracts, portSpecsCompatible, resolveProcessNodePorts } from './ports.js';
+import { inferProcessDataflowContracts, portSpecsCompatible, resolveNodePort, resolveProcessNodePorts } from './ports.js';
 
 describe('process programming node ports', () => {
   it('gives every string operation its actual input arity and scalar types', () => {
@@ -49,6 +49,26 @@ describe('process programming node ports', () => {
   it('rejects wiring unlike scalar types while allowing typed values into generic data inputs', () => {
     expect(portSpecsCompatible({ kind: 'string' }, { kind: 'number' }).ok).toBe(false);
     expect(portSpecsCompatible({ kind: 'string' }, { kind: 'data' }).ok).toBe(true);
+  });
+
+  it('exposes a status definition as a typed status output', () => {
+    const output = resolveNodePort({
+      statusDefinitions: {
+        ready: { id: 'ready', statusId: 'READY', label: 'Ready' }
+      }
+    }, {
+      id: 'ready',
+      type: 'statusDefinition',
+      data: { refId: 'ready' }
+    }, 'data:status', 'output');
+
+    expect(output).toMatchObject({
+      id: 'status',
+      label: 'Ready',
+      kind: 'status'
+    });
+    expect(portSpecsCompatible(output, { id: 'target', kind: 'status' }).ok).toBe(true);
+    expect(portSpecsCompatible(output, { id: 'target', kind: 'number' }).ok).toBe(false);
   });
 
   it('preserves list structure through entity projection, predicates, and filtering', () => {

@@ -242,6 +242,13 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   if (tokenContext.values?.[`${nodeId}:${outputId}`]) return tokenContext.values[`${nodeId}:${outputId}`];
   if (resolving.has(cacheKey)) throw new Error(`Data cycle detected at ${nodeId}:${outputId}`);
   resolving.add(cacheKey);
+  const graphNode = (process.graph?.nodes || []).find(item => String(item.id) === String(nodeId));
+  if (graphNode?.type === 'statusDefinition') {
+    const definition = process.statusDefinitions?.[recordId(graphNode)];
+    if (!definition?.statusId) throw new Error(`Status definition ${recordId(graphNode)} does not exist`);
+    resolving.delete(cacheKey);
+    return createDataPacket(definition.statusId);
+  }
   const node = processNode(process, nodeId);
   const record = process.processNodes[recordId(node)];
   const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});

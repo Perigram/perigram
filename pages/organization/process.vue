@@ -1268,6 +1268,10 @@ function isTextEditingTarget(target) {
 function deleteSelectedNode() {
   const node = selectedNode.value;
   if (!node) return;
+  if (node.type === 'statusDefinition') {
+    removeStatusDefinition(node.data?.refId || node.id);
+    return;
+  }
   const refId = node.data?.refId;
   nodes.value = nodes.value.filter(item => item.id !== node.id);
   edges.value = edges.value.filter(edge => edge.source !== node.id && edge.target !== node.id);
@@ -1279,6 +1283,8 @@ function deleteSelectedNode() {
 
 function deleteSelectedEdge() {
   if (!selectedEdgeId.value) return;
+  const edge = edges.value.find(item => item.id === selectedEdgeId.value);
+  clearSemanticConnection(edge);
   edges.value = edges.value.filter(edge => edge.id !== selectedEdgeId.value);
   selectedEdgeId.value = null;
   syncInferredActionInputs();
@@ -3224,6 +3230,21 @@ function connectionCompatibility(connection = {}) {
   if (!source || !target) return { ok: true };
   const sourceRecord = draft.value?.data?.processNodes?.[source.data?.refId];
   const targetRecord = draft.value?.data?.processNodes?.[target.data?.refId];
+  if (source.type === 'statusDefinition' && targetRecord) {
+    const targetPort = portForHandle(resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs, connection.targetHandle, 'input');
+    if (!targetPort) return { ok: false };
+    const sourcePort = {
+      id: 'status',
+      label: draft.value?.data?.statusDefinitions?.[source.data?.refId]?.label || t('processDesigner.socketLabels.status'),
+      role: 'data',
+      type: processType('status')
+    };
+    return {
+      ...processSocketsCompatible(sourcePort, targetPort),
+      source: sourcePort,
+      target: targetPort
+    };
+  }
   if (!sourceRecord || !targetRecord) return { ok: false, reason: 'Only v3 operation nodes can be connected' };
   const sourcePort = portForHandle(resolveCatalogNodePorts(sourceRecord, catalogContext(sourceRecord)).outputs, connection.sourceHandle, 'output');
   const targetPort = portForHandle(resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs, connection.targetHandle, 'input');
@@ -3247,11 +3268,22 @@ function applySemanticConnection(connection = {}) {
   if (!source || !target) return;
   const action = target.type === 'action' ? draft.value?.data?.actions?.[target.data?.refId] : null;
   const entityProfile = target.type === 'entity' ? draft.value?.data?.entityProfiles?.[target.data?.refId] : null;
+  const processNode = target.type === 'processNode' ? draft.value?.data?.processNodes?.[target.data?.refId] : null;
 
   if (source.type === 'statusDefinition') {
     const status = draft.value?.data?.statusDefinitions?.[source.data?.refId];
     if (!status) return;
     syncStatusDefinition(status);
+    if (processNode) {
+      const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
+      if (targetInput !== 'status.state.primary') return;
+      processNode.statusRef = status.id || source.data?.refId;
+      processNode.inputDefaults ||= {};
+      processNode.inputDefaults[targetInput] = status.statusId;
+      processNode.status = { ...(processNode.status || {}), to: status.statusId };
+      syncProcessNode(processNode);
+      return;
+    }
     if (entityProfile) {
       applyStatusDefinitionToEntity(status, entityProfile);
       syncEntityProfileIo(entityProfile);
@@ -3294,6 +3326,21 @@ function applySemanticConnection(connection = {}) {
   if (source.type === 'entity' && action) {
     syncActionIo(action, target);
   }
+}
+
+function clearSemanticConnection(edge = {}) {
+  const source = nodes.value.find(item => item.id === edge.source);
+  const target = nodes.value.find(item => item.id === edge.target);
+  if (source?.type !== 'statusDefinition' || target?.type !== 'processNode') return;
+  const targetInput = String(edge.targetHandle || '').replace(/^(input|data):/, '');
+  if (targetInput !== 'status.state.primary') return;
+  const processNode = draft.value?.data?.processNodes?.[target.data?.refId];
+  const status = draft.value?.data?.statusDefinitions?.[source.data?.refId];
+  if (!processNode || processNode.statusRef !== (status?.id || source.data?.refId)) return;
+  delete processNode.statusRef;
+  if (processNode.inputDefaults) delete processNode.inputDefaults[targetInput];
+  if (processNode.status?.to === status?.statusId) delete processNode.status.to;
+  syncProcessNode(processNode);
 }
 
 function applyStatusDefinitionToEntity(status = {}, profile = {}) {

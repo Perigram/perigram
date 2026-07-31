@@ -121,11 +121,24 @@
         </div>
       </div>
     </div>
+
+    <div class="relative mt-2 rounded-ui border border-content-border py-1 pl-2 pr-3 text-right">
+      <Handle
+        id="data:status"
+        type="source"
+        :position="Position.Right"
+        class="!right-0 !translate-x-1/2"
+        :style="{ backgroundColor: toneColor, borderColor: toneColor }"
+      />
+      <span class="block truncate text-xs">{{ record.label || record.statusId || $t('processDesigner.socketLabels.status') }}</span>
+      <span class="block text-[10px] text-muted-color">{{ $t('processDesigner.socketLabels.status') }}</span>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue';
+import { Handle, Position } from '@vue-flow/core';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';

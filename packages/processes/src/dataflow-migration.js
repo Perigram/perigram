@@ -1094,8 +1094,10 @@ function cleanHandle(handle = '') {
 
 function isV3Graph(process) {
   return (process.graph?.nodes || []).every(node => (
-    node.type === 'processNode'
-    && getProcessNodeDefinition(process.processNodes?.[String(node.data?.refId || node.id)]?.kind)
+    (node.type === 'processNode'
+      && getProcessNodeDefinition(process.processNodes?.[String(node.data?.refId || node.id)]?.kind))
+    || (node.type === 'statusDefinition'
+      && process.statusDefinitions?.[String(node.data?.refId || node.id)])
   ));
 }
 

@@ -2413,8 +2413,9 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
     }
   }
   if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
-    if (node.kind === 'effect.updateEntity' && !node.fields?.length) {
-      errors.push(`Process node ${nodeId} must select at least one writable field`);
+    const statusTarget = node.inputDefaults?.['status.state.primary'] || node.status?.to || node.statusRef;
+    if (node.kind === 'effect.updateEntity' && !node.fields?.length && !statusTarget) {
+      errors.push(`Process node ${nodeId} must select at least one writable field or status`);
     }
     if (node.kind === 'effect.createEntity') {
       const construction = normalizeConstruction(node.construction, node.entityType, domain);
