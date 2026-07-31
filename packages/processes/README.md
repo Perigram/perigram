@@ -20,10 +20,13 @@ not declare.
 The grouped authoring palette is a curated framework projection, separate from
 the exhaustive runtime catalog. It exposes Entities, Values, and Lists and
 trees, with stable localization/description ids and meaningful creation
-presets. Runtime-only conversions, predicates, patches, standalone trigger
-nodes, and trigger-payload plumbing are not palette entries. Applications may
-change layout, but entity types, construction modes, commands, attachment
-kinds, and fields always come from the supplied domain contract.
+presets. Entities includes block compose/modify/read operations, entity
+create/modify/deconstruct operations, registered commands, lifecycle statuses,
+and fixed domain producer services. Runtime-only conversions, predicates,
+patches, standalone trigger nodes, and trigger-payload plumbing are not palette
+entries. Applications may change layout, but entity types, producers, commands,
+attachment kinds, blocks, and fields always come from the supplied domain
+contract.
 
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,
@@ -115,16 +118,14 @@ as the execution permission: a status node can grant admin access after the
 transition without requiring admin access before it. Designers select from process roles directly when authoring
 action grants; pre-existing
 entity-profile grants are an independent grant source, not a filter for action
-grant creation. Entity creation exposes an
-optional parent input socket plus domain-declared construction sockets from
-`cncEntityConstruction`; the visual designer derives the parent from the
-incoming edge instead of a parent-type selector. Generated screens prompt for
-construction fields declared by `action.inputPolicy` and post those values to
-the active process action endpoint. Derived entities must use typed
-construction modes. For example, `cassette_design` creation compiles as
-`bakeCassetteDesignFromTemplate` and runtime execution delegates to the
-cassette template construction service, preserving baked geometry and editor
-contracts instead of creating a generic row.
+grant creation. Generic Entity creation accepts typed canonical block values.
+Parentage is a field of a composed Lineage block, not an extra Create socket.
+The compiler recognizes one declared lineage entity reference as contextual
+parent scope while the effect boundary persists its normalized id. Derived
+entities are not selectable in generic Create. Domain constructors project as
+fixed producer-service effects; for example,
+`bakeCassetteDesignFromTemplate` delegates to the cassette template
+construction service with its own typed inputs.
 Legacy stored `changeStatus` action records are normalized to status-mutating
 `updateEntity` actions at the compiler boundary so old activated processes can
 still compile during registration, assignment, auth hydration, and command
@@ -198,14 +199,13 @@ entity-specific constructor such as baked cassette designs or OCCS template
 creation must be declared by the domain construction registry. This keeps the
 process compiler reusable and prevents hidden domain behavior from living in the
 generic package.
-New create/update effects begin with no optional mutation field selected.
-Update actions consume an entity from the incoming data socket, expose one data
-input socket per selected mutable field plus a dedicated typed status socket,
-validate ordinary fields against the
-active domain field-access policy, and compile into write/admin grants on the
-concrete incoming entity feature. Manual generated screens prompt for the
-selected mutation fields through `action.inputPolicy`, while event-driven
-updates can receive the same field payload from wired value/data nodes.
+Create and update effects never own leaf mutation fields. Create consumes
+constructible typed blocks plus a dedicated status value. Update consumes an entity,
+connected replacement blocks, and status; only values present in connected
+blocks reach the owning feature update boundary. Compose and Modify Block own
+field selection and inline primitive fallbacks. Manual screen input policy is
+traced from connected block composers, so generated forms and graph execution
+use the same field contract.
 V3 effect records also derive the semantic action manifest consumed by screen
 and access compilation. Their selected process-role grants, trigger mode,
 entity type, fields, construction contract, command, and status target are
@@ -246,13 +246,11 @@ persist changes or invoke external work.
 Selectable fields come exclusively from `domain.fieldSchemas`. Each entry has
 an exact path, canonical block, structured type, and read/write capability.
 Wildcard field-access entries remain authorization patterns and never become
-field choices or guessed sockets. Create/update/deconstruct nodes expose only
-their selected schema fields as dynamic ports. Create and update consume those
-ports directly. An update that selects `status.state.primary` delegates that
-value to the status transition runtime and persists the remaining selected
-fields as its transition patch. Create additionally projects the selected
-domain construction mode as typed sockets and resolves entity/entity-list
-construction references at the effect boundary.
+field choices or guessed sockets. Compose/Modify Block expose selected fields;
+Deconstruct Entity exposes blocks; Get Field reads one selected field from a
+block. Status remains a dedicated lifecycle socket and never travels through a
+generic mutable block. Producer services resolve their declared
+entity/entity-list construction references at the effect boundary.
 
 `orchestration.js` executes the full runtime control plane. Effect nodes have
 only two execution modes: `manual`, which is exposed through authorized UI, and
@@ -277,8 +275,11 @@ authorized feature service.
 The v3 migration is a replacement, not a parallel interpretation. It moves
 literal/action/entity/service/socket graph nodes into the operation registry,
 keeps statuses in the definition plane, and collapses old entity-draft,
-field-change, and patch-merge chains into direct typed create/update field
-sockets while preserving their wires and inline defaults. Manual entry
+field-change, and patch-merge chains into typed block composers while
+preserving their wires and inline defaults. It inserts Get Block/Get Field
+operations for old leaf reads, moves typed constructors to producer services,
+rewrites successful effect edges to `completed`, and removes obsolete failure
+branches because exhausted retries fail the run. Manual entry
 triggers preserve generated-screen actions. Required legacy unit conversions
 remain explicit runtime operations;
 legacy status-transition cycles become independent current-entity effects; and

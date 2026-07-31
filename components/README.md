@@ -108,7 +108,7 @@ and hooks JSON editable.
 The organization process designer keeps lifecycle design inside the same Vue
 Flow workspace: status definitions are created from the Entities palette and
 edited on their own definition nodes, while Modify Entity applies those states
-through a typed field input. Entity lifecycle data compiles into the runtime
+through a dedicated typed status socket. Entity lifecycle data compiles into the runtime
 status machine. Abstract roles and user assignments are process-panel records,
 not graph nodes; roles are assigned onto executable nodes and lifecycle
 transitions.
@@ -118,11 +118,14 @@ service input/output, and socket projection/transfer. Do not reduce these nodes
 to generic cards; their surface should expose the entity/service/socket
 semantics that the active process runtime consumes.
 The canvas is intentionally a compact semantic overview. Palette controls are
-grouped and labeled, node accent colors identify those groups, and detailed
-action mutation/access/trigger controls belong to the selected-node inspector.
+grouped and labeled, node accent colors identify those groups, and executable
+nodes keep role access and Manual/Automatic execution visible on the node.
+Retry policy remains secondary inspector configuration.
 Canonical entity block choices come from `@cutkit/core` through the generic
-`@cutkit/processes` designer contract; concrete entity, construction, workflow,
-field, and attachment choices come from the supplied domain implementation.
+`@cutkit/processes` designer contract; concrete entity, producer-service,
+workflow, field, and attachment choices come from the supplied domain
+implementation. Compose/Modify Block own leaf fields. Create/Modify Entity
+consume blocks and lifecycle status rather than recreating CRUD forms.
 The process designer also exposes non-effect process algebra nodes for typed
 source/transform work: entity references, field reads, string operations,
 comparisons, logic, and collection transforms. These nodes are semantic

@@ -48,12 +48,13 @@ touch orchestration collections.
 
 The pure scheduler lives in `@cutkit/processes`. This service supplies only
 authorized read adapters and effect adapters. Reads use registered entity
-services. Effects delegate to command, entity, status, projection, or
-attachment services and never write another feature's repository. Create and
-update effects consume their selected schema field sockets directly. The
-service constructs the nested create DTO or flat update set at the effect
-boundary; legacy draft/patch composition is migrated out of stored v3 graphs
-rather than supported as a second execution contract.
+services. Effects delegate to command, entity, status, projection, producer, or
+attachment services and never write another feature's repository. Generic
+Create consumes connected canonical blocks. Update flattens only writable
+fields present in connected replacement blocks. Lineage entity references are
+normalized to stored ids at this boundary, while lifecycle status remains a
+dedicated status-runtime input. Legacy leaf-field effects migrate to explicit
+block composers rather than remaining a second execution contract.
 Process definition management also accepts the active organization membership's
 stored `organizations` grants as a narrow recovery path. Membership role labels
 and sole-member status do not imply process management access; the recovery path
@@ -122,24 +123,20 @@ the semantic `data.statusDefinitions` record and writes the same display
 contract at runtime. This keeps existing active process definitions rendering
 the authored severity and icon without requiring an immediate compiled-runtime
 rebuild.
-Create actions also carry a construction contract. Generic construction passes
-prompted values to the registered entity service and derives parent ids from
-the incoming graph entity input, for example a queue create action wired from a
-project output sends `projectId` to the queue service. The active action
-runtime requires that parent id when the compiled action declares
-`parentEntityType`; a missing parent is rejected before the domain constructor
-runs, rather than creating an unowned root record. The runtime normalizes
-canonical creation blocks before delegating: `identity.name` and
-`identity.slug` become the service `name`/`slug` fields, and `data`, `specs`,
-and `summary` entries are projected to top-level constructor keys when that key
-is not already present. This keeps block/value nodes aligned with the entity
-service contracts without adding compatibility routes or generic blob creation.
+Generic Create receives block-composed data. `identity.name` and
+`identity.slug` are projected to the owning service's `name`/`slug` inputs;
+`data` and `specs` values are projected only where the service has no explicit
+top-level value. A composed Lineage block owns parent ids. The compiler may use
+one declared lineage entity reference for contextual screen placement, and the
+effect boundary converts its entity reference to the canonical stored id.
+Origin, provenance, status history, and summary are not accepted as generic
+constructible blocks.
 Parent-scoped create actions also pass declared containment lineage and pinned
 parent revision provenance in the initial create payload. The owning feature
 service must persist that context during create; process definitions do not
 write child rows directly or patch another feature's collection after creation.
-Typed construction modes delegate to the domain constructor instead of generic
-entity creation:
+Typed constructors are producer-service effects rather than modes on generic
+Create. They delegate to the domain constructor:
 `createDefaultOccsTemplate` calls the cassette template service to create a
 named OCCS `cassette` template with the default graph-tree document;
 `bakeCassetteDesignFromTemplate` calls the cassette template service, requires a
