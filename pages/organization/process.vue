@@ -2118,7 +2118,7 @@ function createProcessNode(id, kind = 'source.literalItem') {
         : 'readable';
     const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind);
     const availableFields = (structural ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType))
-      .filter(field => structural || field[access] !== false);
+      .filter(field => field[access] !== false);
     node.block = availableFields[0]?.block || designer.blocksForEntity(node.entityType)[0]?.id || designer.blocks[0]?.id || '';
     if (kind === 'record.getField') {
       node.path = availableFields.find(field => field.block === node.block)?.value || '';
@@ -2825,7 +2825,8 @@ function syncProcessNode(node = {}) {
       delete node.compositionMode;
       delete node.compositionValueBase;
       delete node.entries;
-      const available = designer.fieldsForBlock(node.block);
+      const access = node.kind === 'record.composeBlock' ? 'constructible' : 'writable';
+      const available = designer.fieldsForBlock(node.block).filter(field => field[access] !== false);
       const inBlock = available.filter(field => field.block === node.block);
       node.fields = (node.fields || []).filter(path => inBlock.some(field => field.value === path));
       if (!node.fields.length && inBlock[0]) node.fields = [inBlock[0].value];
@@ -2896,7 +2897,7 @@ function processNodeFieldOptions(node = {}) {
       : 'readable';
   const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(node.kind);
   return (structural ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(node.entityType))
-    .filter(field => structural || field[access] !== false)
+    .filter(field => field[access] !== false)
     .filter(field => !node.block || field.block === node.block)
     .map(field => ({
       label: field.i18n ? `${t(field.i18n)} · ${field.value}` : field.label,

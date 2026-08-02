@@ -29,6 +29,12 @@ describe('CNC entity field schemas', () => {
     expect(getBlockFieldSchema('data.description')).toBeNull();
     expect(getEntityFieldSchema('library', 'data.description')?.type).toMatchObject({ base: 'string', shape: 'item' });
     expect(cncBlockFieldSchemas.lineage.map(field => field.path)).toEqual(['lineage']);
+    expect(getBlockFieldSchema('identity.uid')).toMatchObject({
+      readable: true,
+      writable: false,
+      constructible: false,
+      type: { base: 'string' }
+    });
     expect(cncBlockComposition).toMatchObject({
       lineage: { mode: 'ancestors', valueBase: 'entityRef' },
       relations: { mode: 'relations', valueBase: 'entityRef' },

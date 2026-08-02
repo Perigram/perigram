@@ -206,6 +206,29 @@ describe('process v3 validation', () => {
     expect(rejected.errors).toContain('Edge compose-create cannot send lineage.projectId to queue: composed entry type does not match the entity field');
     expect(accepted.errors).not.toContain('Edge compose-create cannot send lineage.projectId to queue: composed entry type does not match the entity field');
   });
+
+  it('rejects service-owned identity uid in block authoring', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'record.composeBlock',
+      block: 'identity',
+      fields: ['identity.uid'],
+      inputDefaults: { 'identity.uid': 'user-supplied-id' }
+    }), {
+      ...domain,
+      blockSchemas: {
+        identity: [{
+          path: 'identity.uid',
+          block: 'identity',
+          type: { base: 'string', shape: 'item', nullable: true },
+          readable: true,
+          writable: false,
+          constructible: false
+        }]
+      }
+    });
+
+    expect(result.errors).toContain('Process node node cannot compose managed field identity.uid');
+  });
 });
 
 function entityBlockProcess(entityType) {

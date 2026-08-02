@@ -1568,12 +1568,14 @@ function processConstructionInputRecord(record = {}, inputs = {}) {
   const result = {};
   for (const input of record.construction?.inputs || []) {
     const id = input.id || input.path;
-    if (!id || !Object.hasOwn(inputs, id)) continue;
+    if (!id) continue;
+    const supplied = Object.hasOwn(inputs, id) ? inputs[id] : input.default;
+    if (supplied === undefined) continue;
     const value = input.type === 'entity'
-      ? entityInputId(inputs[id])
+      ? entityInputId(supplied)
       : input.type === 'entityList'
-        ? (Array.isArray(inputs[id]) ? inputs[id] : [inputs[id]]).map(entityInputId).filter(Boolean)
-        : inputs[id];
+        ? (Array.isArray(supplied) ? supplied : [supplied]).map(entityInputId).filter(Boolean)
+        : supplied;
     setByPath(result, input.path || id, value);
   }
   return result;

@@ -2486,6 +2486,10 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
       if (schema && schema.block !== node.block) {
         errors.push(`Process node ${nodeId} field ${path} does not belong to block ${node.block}`);
       }
+      const requiredAccess = node.kind === 'record.composeBlock' ? 'constructible' : 'writable';
+      if (schema && schema[requiredAccess] === false) {
+        errors.push(`Process node ${nodeId} cannot ${node.kind === 'record.composeBlock' ? 'compose' : 'modify'} managed field ${path}`);
+      }
     }
   }
   if (node.kind === 'record.getField') {

@@ -582,12 +582,12 @@ function dynamicBlocks(record, context) {
 
 function effectInputs(kind, types) {
   if (kind === 'effect.runProducer') return types.constructionInputs.map(input => ({
-    ...socket(input.id, input.type, DATA, input.required),
+    ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
     label: input.label || input.id
   }));
   if (kind === 'effect.createEntity' && types.constructionMode !== 'genericCreate') {
     return types.constructionInputs.map(input => ({
-      ...socket(input.id, input.type, DATA, input.required),
+      ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
       label: input.label || input.id
     }));
   }

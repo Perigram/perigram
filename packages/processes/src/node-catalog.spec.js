@@ -212,6 +212,19 @@ describe('process v3 node catalog', () => {
     expect(create.inputs[1].type).toMatchObject({ base: 'entityRef', entityType: 'cassette' });
   });
 
+  it('does not require a wire when a construction input declares its own default', () => {
+    const create = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      entityType: 'result',
+      construction: {
+        mode: 'buildResult',
+        inputs: [{ id: 'quality', path: 'data.quality', type: 'string', required: true, default: 'standard' }]
+      }
+    });
+
+    expect(create.inputs[0]).toMatchObject({ id: 'quality', required: false });
+  });
+
   it('projects Run Service sockets from the selected command contract', () => {
     const ports = resolveCatalogNodePorts({ kind: 'effect.runCommand', commandId: 'solve' }, {
       command: {
