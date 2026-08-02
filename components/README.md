@@ -124,10 +124,13 @@ on fixed left/right rails; exact structured types are exposed by hover and
 assistive metadata rather than repeated beside every socket. Role access and
 retry policy remain secondary inspector configuration.
 Canonical entity block choices come from `@cutkit/core` through the generic
-`@cutkit/processes` designer contract; concrete entity, producer-service,
-workflow, field, and attachment choices come from the supplied domain
+`@cutkit/processes` designer contract; concrete entity, workflow, field,
+lineage-slot, and attachment choices come from the supplied domain
 implementation. Compose/Modify Block own leaf fields. Create/Modify Entity
 consume blocks and lifecycle status rather than recreating CRUD forms.
+Open canonical blocks expose inspector-authored typed entry rows rather than a
+global union of entity fields or a raw map input. Entry ids own wire stability;
+keys and qualifiers own the stored block shape.
 The process designer also exposes non-effect process algebra nodes for typed
 source/transform work: entity references, field reads, string operations,
 comparisons, logic, and collection transforms. These nodes are semantic

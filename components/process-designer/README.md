@@ -23,9 +23,9 @@ The palette has three non-overlapping operation concerns:
   status; Modify Entity accepts the current entity, replacement blocks, and
   status, and changes only connected blocks. Neither persistence node exposes
   leaf constructor fields.
-- Registered commands and domain construction producers are effect operations
-  in the same group. A derived constructor is a fixed producer service with its
-  declared typed inputs, never a mode hidden inside generic Create Entity.
+- Registered commands use the single Run Service operation. Domain construction
+  producers remain runtime/domain contracts and do not leak into the palette as
+  one-off upload/source nodes.
 - **Values** contains one typed value input and one operation-switching node
   each for logic/comparison, text, math, and date-time work.
 - **Lists and trees** contains the Grasshopper-style structure operations:
@@ -110,13 +110,21 @@ explicit Get Field operation over a block. Entity decomposition, block
 composition, and leaf value operations therefore remain separate concerns.
 
 Compose Block, Modify Block, and Get Field consume entity-independent
-`cncDomain.blockSchemas`; they have a block selector but no entity selector.
-The schemas are explicit canonical contracts, not a union of observed entity
-fields. Open blocks such as Lineage and Data expose one whole typed value;
-Lineage therefore never lists entity-specific ancestry keys from unrelated DTOs.
+`cncDomain.blockSchemas` and `blockComposition`; they have a block selector but
+no entity selector. The schemas are explicit canonical contracts, not a union
+of observed entity fields. Fixed blocks expose fixed field sockets. Open blocks
+use inspector-authored typed rows with stable socket ids: Lineage selects a
+declared lineage slot and consumes its typed ancestor reference; Relations
+selects a declared named typed entity reference and preserves one/many
+cardinality; Attachments uses a named attachment kind; and
+Data, Summary, and Provenance use a named value type. The composed map is the
+single block output, never an unexplained map input. Get Field mirrors those
+same concerns, including restoring stored lineage ids to typed references.
 Entity decomposition/read nodes use `fieldSchemas` for entity membership, and
 Create/Modify Entity apply constructible/writable policy when accepting a
-connected block. Persisted nodes keep selected paths, not schema snapshots.
+connected block. Persisted fixed nodes keep selected paths, while open nodes
+keep stable entry ids plus their authored key/type qualifiers; neither stores
+schema snapshots.
 Wildcard access rules do not appear as fields. Compose/Modify Block expose only
 the explicitly selected field set as dynamic sockets; Create/Modify Entity never
 select leaf fields. Origin, provenance, status history, and summary are not
