@@ -31,6 +31,8 @@ import {
 } from '~/packages/processes/src/index.js';
 import {
   cncDomain,
+  getBlockFieldSchema,
+  getBlockFieldSchemas,
   getEntityFieldAccessPolicy,
   getEntityFieldSchema,
   getEntityFieldSchemas
@@ -297,10 +299,17 @@ export async function resumeRun(id, auth = {}) {
   const before = JSON.stringify(run);
   const advanced = await advanceProcessRun(serializeRun(run), definitionRaw.data, {
     executeEffect: request => executeDurableEffect(request, auth, run, definitionRaw.data),
-    catalogContext: record => ({
-      fieldSchema: getEntityFieldSchema(record.entityType, record.path),
-      fieldSchemas: getEntityFieldSchemas(record.entityType)
-    }),
+    catalogContext: record => {
+      const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
+      return {
+        fieldSchema: structural
+          ? getBlockFieldSchema(record.path)
+          : getEntityFieldSchema(record.entityType, record.path),
+        fieldSchemas: structural
+          ? getBlockFieldSchemas(record.block)
+          : getEntityFieldSchemas(record.entityType)
+      };
+    },
     data: processDataEnvironment(auth, run)
   });
   if (JSON.stringify(advanced) === before) return serializeRun(run);

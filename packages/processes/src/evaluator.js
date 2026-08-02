@@ -39,6 +39,14 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'value.logic') return executeLogic(record, packets);
   if (kind === 'value.format') return mapDataPacket(required(packets, 'value', record), value => format(record, value));
   if (kind === 'collection.makeList') return createDataPacket([packetValue(required(packets, 'value', record))], 'list');
+  if (kind === 'collection.packArray') {
+    return createDataPacket(structuredClone(flattenDataPacket(required(packets, 'value', record)).branches[0].items));
+  }
+  if (kind === 'collection.unpackArray') {
+    const value = packetValue(required(packets, 'value', record));
+    if (!Array.isArray(value)) throw new Error(`${record.id || kind} requires an array value`);
+    return createDataPacket(structuredClone(value), 'list');
+  }
   if (kind === 'collection.concat') return createDataPacket([
     ...flattenDataPacket(required(packets, 'left', record)).branches[0].items,
     ...flattenDataPacket(required(packets, 'right', record)).branches[0].items

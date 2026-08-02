@@ -72,6 +72,8 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     id: 'listTree',
     items: [
       paletteItem('makeList', 'collection.makeList'),
+      paletteItem('packArray', 'collection.packArray'),
+      paletteItem('unpackArray', 'collection.unpackArray'),
       paletteItem('joinLists', 'collection.concat'),
       paletteItem('itemAtPosition', 'collection.itemAt'),
       paletteItem('sliceList', 'collection.slice'),
@@ -132,6 +134,17 @@ export function createProcessDesignerContract(domain = {}) {
       }));
   }
 
+  function blockFields(block = '') {
+    const schemas = block
+      ? (domain.blockSchemas?.[block] || [])
+      : Object.values(domain.blockSchemas || {}).flat();
+    return schemas.map(schema => ({
+      ...schema,
+      label: schema.label || schema.path,
+      value: schema.path
+    }));
+  }
+
   const paletteGroups = PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
     ...group,
     items: group.id === 'entities'
@@ -175,6 +188,13 @@ export function createProcessDesignerContract(domain = {}) {
     construction,
     blocksForEntity: blocks,
     fieldsForEntity: fields,
+    fieldsForBlock: blockFields,
+    blockFieldType: path => blockFields(String(path || '').split('.')[0])
+      .find(field => field.value === path)?.type || {
+        base: 'json',
+        shape: 'item',
+        nullable: true
+      },
     fieldType: (entityType, path) => fields(entityType).find(field => field.value === path)?.type || {
       base: 'json',
       shape: 'item',

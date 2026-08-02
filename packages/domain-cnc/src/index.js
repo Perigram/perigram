@@ -29,7 +29,10 @@ export {
 } from './ui.js';
 export { cncEntityFieldGroups, getEntityFieldGroups } from './ui-fields.js';
 export {
+  cncBlockFieldSchemas,
   cncEntityFieldSchemas,
+  getBlockFieldSchema,
+  getBlockFieldSchemas,
   getEntityFieldSchema,
   getEntityFieldSchemas
 } from './field-schemas.js';
@@ -60,7 +63,7 @@ import { cncEntityConstruction } from './entity-construction.js';
 import { cncEntityFieldAccess } from './field-access.js';
 import { cncDesignSystem, cncStatusUi, cncUiSurfaces, cncEntitySurfaceContracts } from './ui.js';
 import { cncEntityFieldGroups } from './ui-fields.js';
-import { cncEntityFieldSchemas } from './field-schemas.js';
+import { cncBlockFieldSchemas, cncEntityFieldSchemas } from './field-schemas.js';
 
 export const cncDomain = {
   id: 'cnc',
@@ -84,6 +87,7 @@ export const cncDomain = {
   fieldAccess: cncEntityFieldAccess,
   designSystem: cncDesignSystem,
   fieldGroups: cncEntityFieldGroups,
+  blockSchemas: cncBlockFieldSchemas,
   fieldSchemas: cncEntityFieldSchemas,
   surfaceContracts: cncEntitySurfaceContracts,
   uiSurfaces: cncUiSurfaces,

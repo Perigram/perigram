@@ -26,6 +26,11 @@ const data = (source, target, targetHandle) => ({
   targetHandle: `data:${targetHandle}`,
   role: 'data'
 });
+const catalogContext = record => ({
+  fieldSchemas: record.block === 'identity'
+    ? [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
+    : []
+});
 
 describe('durable process orchestration', () => {
   it('resolves a connected status definition at execution time', async () => {
@@ -59,7 +64,7 @@ describe('durable process orchestration', () => {
         context: { inputs: { entity: { type: 'project', id: 'project-1' } } }
       }),
       definition,
-      { executeEffect }
+      { executeEffect, catalogContext }
     );
 
     expect(completed.status).toBe('succeeded');
@@ -76,10 +81,8 @@ describe('durable process orchestration', () => {
       {
         id: 'identity',
         kind: 'record.composeBlock',
-        entityType: 'project',
         block: 'identity',
         fields: ['identity.name'],
-        fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }],
         inputDefaults: { 'identity.name': 'Original' }
       },
       {
@@ -144,7 +147,7 @@ describe('durable process orchestration', () => {
     const completed = await runProcessUntilSettled(
       createProcessRun(definition, { nodeId: 'create' }),
       definition,
-      { executeEffect }
+      { executeEffect, catalogContext }
     );
 
     expect(completed.status).toBe('succeeded');
@@ -316,7 +319,7 @@ describe('durable process orchestration', () => {
       { id: 'start', kind: 'effect.runCommand', commandId: 'start', entityType: 'project', trigger: { mode: 'manual' } },
       { id: 'entity', kind: 'source.processInput', path: 'entity', type: { base: 'entity', shape: 'item', entityType: 'project' } },
       { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'project', blocks: ['status'] },
-      { id: 'field', kind: 'record.getField', entityType: 'project', block: 'status', path: 'status.timestamp', fieldSchema: { block: 'status', type: { base: 'dateTime' } } },
+      { id: 'field', kind: 'record.getField', block: 'status', path: 'status.timestamp', type: { base: 'dateTime' } },
       { id: 'date', kind: 'value.dateTime', operation: 'addDays', inputDefaults: { amount: 30 } },
       { id: 'wait', kind: 'control.waitUntil' },
       { id: 'stop', kind: 'control.stopSuccess' }
@@ -362,10 +365,8 @@ describe('durable process orchestration', () => {
       {
         id: 'identity',
         kind: 'record.composeBlock',
-        entityType: 'project',
         block: 'identity',
         fields: ['identity.name'],
-        fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string' } }],
         inputDefaults: { 'identity.name': 'Renamed' }
       },
       {
@@ -390,7 +391,7 @@ describe('durable process orchestration', () => {
         context: { inputs: { entity } }
       }),
       definition,
-      { executeEffect }
+      { executeEffect, catalogContext }
     );
 
     expect(completed.status).toBe('succeeded');

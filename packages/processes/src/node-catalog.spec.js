@@ -140,7 +140,9 @@ describe('process v3 node catalog', () => {
 
     expect(compose.inputs.map(input => input.id)).toEqual(['identity.name']);
     expect(compose.outputs[0]).toMatchObject({ id: 'block', type: { base: 'block', block: 'identity' } });
+    expect(compose.outputs[0].type).not.toHaveProperty('entityType');
     expect(modify.inputs.map(input => input.id)).toEqual(['block', 'identity.name']);
+    expect(modify.inputs[0].type).not.toHaveProperty('entityType');
   });
 
   it('keeps domain producer inputs on a fixed service effect', () => {
@@ -178,6 +180,21 @@ describe('process v3 node catalog', () => {
     expect(resolveCatalogNodePorts({ kind: 'value.string', operation: 'split' }).outputs[0].type.shape).toBe('list');
   });
 
+  it('makes packet-list and intrinsic-array conversion explicit', () => {
+    const packed = resolveCatalogNodePorts({
+      kind: 'collection.packArray',
+      type: { base: 'entityRef', entityType: 'queue', shape: 'list' }
+    });
+    expect(packed.inputs[0].type).toMatchObject({ base: 'entityRef', entityType: 'queue', shape: 'list' });
+    expect(packed.outputs[0].type).toMatchObject({
+      base: 'array',
+      shape: 'item',
+      itemType: { base: 'entityRef', entityType: 'queue', shape: 'item' }
+    });
+    const unpacked = resolveCatalogNodePorts({ kind: 'collection.unpackArray', type: packed.outputs[0].type });
+    expect(unpacked.outputs[0].type).toMatchObject({ base: 'entityRef', entityType: 'queue', shape: 'list' });
+  });
+
   it('propagates entity list shape through field reads and deconstruction', () => {
     const context = {
       fieldSchema: { path: 'identity.name', type: { base: 'string', shape: 'item' } },
@@ -185,7 +202,6 @@ describe('process v3 node catalog', () => {
     };
     expect(resolveCatalogNodePorts({
       kind: 'record.getField',
-      entityType: 'project',
       shape: 'list',
       block: 'identity',
       path: 'identity.name'

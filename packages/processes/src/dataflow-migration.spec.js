@@ -57,7 +57,9 @@ describe('process v3 data-flow migration', () => {
     });
     const identityComposer = Object.values(result.value.processNodes)
       .find(node => node.kind === 'record.composeBlock' && node.block === 'identity');
-    expect(identityComposer).toMatchObject({ fields: ['identity.name'], entityType: 'queue' });
+    expect(identityComposer).toMatchObject({ fields: ['identity.name'] });
+    expect(identityComposer).not.toHaveProperty('entityType');
+    expect(identityComposer).not.toHaveProperty('fieldSchemas');
     expect(result.value.processNodes['trigger:update']).toBeUndefined();
     expect(result.value.processNodes['current:entity:update']).toBeUndefined();
     expect(result.value.processNodes['ref:entity:update']).toBeUndefined();
@@ -270,6 +272,28 @@ describe('process v3 data-flow migration', () => {
       entityType: 'cassette_design',
       construction: { mode: 'bakeCassetteDesignFromTemplate' }
     });
+  });
+
+  it('removes obsolete entity qualification and copied schemas from structural nodes', () => {
+    const migrated = migrateProcessDataflowDefinition({
+      dataflowVersion: 3,
+      processNodes: {
+        compose: {
+          id: 'compose',
+          kind: 'record.composeBlock',
+          entityType: 'queue',
+          block: 'identity',
+          fields: ['identity.name'],
+          fieldSchemas: [{ path: 'identity.name', type: { base: 'string' } }],
+          type: { base: 'block', block: 'identity', entityType: 'queue' }
+        }
+      },
+      graph: { nodes: [{ id: 'compose', type: 'processNode', data: { refId: 'compose' } }], edges: [] }
+    }, cncDomain).value.processNodes.compose;
+
+    expect(migrated).not.toHaveProperty('entityType');
+    expect(migrated).not.toHaveProperty('fieldSchemas');
+    expect(migrated.type).toEqual({ base: 'block', block: 'identity' });
   });
 
   it('stops on ambiguous hybrid direct and composed field wiring', () => {

@@ -147,6 +147,21 @@ function migrateEntityBlockContract(process = {}, domain = {}) {
   const graphNodeForRecord = recordId => nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
   let changed = false;
 
+  for (const record of Object.values(records)) {
+    if (canonicalizeProcessTypes(record)) changed = true;
+    if (['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind)) {
+      if (record.entityType) {
+        delete record.entityType;
+        changed = true;
+      }
+      if (record.fieldSchema || record.fieldSchemas) {
+        delete record.fieldSchema;
+        delete record.fieldSchemas;
+        changed = true;
+      }
+    }
+  }
+
   for (const [recordId, record] of Object.entries(records)) {
     if (!['effect.createEntity', 'effect.updateEntity'].includes(record.kind)) continue;
     const effectNode = graphNodeForRecord(recordId);
@@ -192,12 +207,10 @@ function migrateEntityBlockContract(process = {}, domain = {}) {
       records[composeId] = {
         id: composeId,
         kind: 'record.composeBlock',
-        entityType: record.entityType,
         block,
         fields,
-        fieldSchemas: fields.map(path => schemas.find(field => field.path === path)).filter(Boolean),
         inputDefaults,
-        type: { base: 'block', shape: 'item', entityType: record.entityType, block }
+        type: { base: 'block', shape: 'item', block }
       };
       const graphNode = {
         id: composeNodeId,
@@ -251,7 +264,6 @@ function migrateEntityBlockContract(process = {}, domain = {}) {
         && ['value', 'block'].includes(cleanHandle(edge.targetHandle))
       ));
       record.block = block;
-      record.fieldSchema ||= schema;
       if (incoming) {
         const getBlockId = uniqueMigrationId(records, `${recordId}:block:${block}`);
         const getBlockNodeId = uniqueGraphNodeId(nodeById, getBlockId);
@@ -260,7 +272,7 @@ function migrateEntityBlockContract(process = {}, domain = {}) {
           kind: 'record.getBlock',
           entityType: record.entityType,
           block,
-          type: { base: 'block', shape: record.shape || 'item', entityType: record.entityType, block }
+          type: { base: 'block', shape: record.shape || 'item', block }
         };
         const addedNode = {
           id: getBlockNodeId,
@@ -298,10 +310,8 @@ function migrateEntityBlockContract(process = {}, domain = {}) {
         records[getId] = {
           id: getId,
           kind: 'record.getField',
-          entityType: record.entityType,
           block,
           path,
-          fieldSchema: schema,
           type: schema?.type || { base: 'json', shape: 'item', nullable: true }
         };
         const addedNode = {
@@ -360,6 +370,24 @@ function migrateEntityBlockContract(process = {}, domain = {}) {
       graph: { ...(process.graph || {}), nodes, edges }
     } : process
   };
+}
+
+function canonicalizeProcessTypes(value) {
+  if (!value || typeof value !== 'object') return false;
+  let changed = false;
+  if (value.base && value.entityType
+    && !['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(value.base)) {
+    delete value.entityType;
+    changed = true;
+  }
+  if (value.base && value.base !== 'block' && value.block) {
+    delete value.block;
+    changed = true;
+  }
+  for (const nested of Object.values(value)) {
+    if (nested && typeof nested === 'object' && canonicalizeProcessTypes(nested)) changed = true;
+  }
+  return changed;
 }
 
 function uniqueMigrationId(records, preferred) {

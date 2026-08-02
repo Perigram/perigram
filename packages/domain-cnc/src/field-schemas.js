@@ -34,7 +34,7 @@ const CORE_FIELDS = [
   field('summary.value', 'json', { writable: false, constructible: false })
 ];
 
-export const cncEntityFieldSchemas = Object.freeze(Object.fromEntries(cncEntities.map(entity => {
+const rawEntityFieldSchemas = Object.fromEntries(cncEntities.map(entity => {
   const entityType = entity.type;
   const access = fieldAccessFor(entityType);
   const descriptorFields = descriptorsFor(entityType).map(descriptor => descriptorField(descriptor));
@@ -52,7 +52,20 @@ export const cncEntityFieldSchemas = Object.freeze(Object.fromEntries(cncEntitie
       constructible: schema.constructible !== false
     }));
   return [entityType, Object.freeze(fields)];
-})));
+}));
+
+export const cncBlockFieldSchemas = Object.freeze(buildBlockFieldSchemas(rawEntityFieldSchemas));
+
+export const cncEntityFieldSchemas = Object.freeze(Object.fromEntries(
+  Object.entries(rawEntityFieldSchemas).map(([entityType, schemas]) => [
+    entityType,
+    Object.freeze(schemas.map(schema => Object.freeze({
+      ...schema,
+      type: cncBlockFieldSchemas[schema.block]
+        ?.find(fieldSchema => fieldSchema.path === schema.path)?.type || schema.type
+    })))
+  ])
+));
 
 export function getEntityFieldSchemas(entityType = '', options = {}) {
   const normalized = normalizeFieldAccessEntityType(entityType);
@@ -67,6 +80,17 @@ export function getEntityFieldSchema(entityType = '', path = '') {
   return getEntityFieldSchemas(entityType).find(schema => schema.path === path) || null;
 }
 
+export function getBlockFieldSchemas(block = '') {
+  return block
+    ? [...(cncBlockFieldSchemas[block] || [])]
+    : Object.values(cncBlockFieldSchemas).flat();
+}
+
+export function getBlockFieldSchema(path = '') {
+  const block = path === '_id' ? 'identity' : String(path).split('.')[0];
+  return getBlockFieldSchemas(block).find(schema => schema.path === path) || null;
+}
+
 function field(path, base, qualifiers = {}) {
   const block = path === '_id' ? 'identity' : String(path).split('.')[0];
   const { writable = true, constructible = true, ...typeQualifiers } = qualifiers;
@@ -79,7 +103,8 @@ function field(path, base, qualifiers = {}) {
       shape: typeQualifiers.shape || 'item',
       nullable: true,
       ...(typeQualifiers.entityType ? { entityType: typeQualifiers.entityType } : {}),
-      ...(typeQualifiers.unit ? { unit: typeQualifiers.unit } : {})
+      ...(typeQualifiers.unit ? { unit: typeQualifiers.unit } : {}),
+      ...(typeQualifiers.itemType ? { itemType: typeQualifiers.itemType } : {})
     },
     writable,
     constructible
@@ -87,11 +112,12 @@ function field(path, base, qualifiers = {}) {
 }
 
 function descriptorField(descriptor = {}) {
-  const { base, shape } = descriptorType(descriptor);
+  const { base, shape, itemType } = descriptorType(descriptor);
   return {
     ...field(descriptor.path, base, {
       shape,
-      entityType: descriptor.entityType || '',
+      entityType: base === 'entityRef' ? descriptor.entityType || '' : '',
+      itemType,
       unit: descriptorUnit(descriptor)
     }),
     label: descriptor.i18n || descriptor.path,
@@ -103,14 +129,23 @@ function descriptorField(descriptor = {}) {
 
 function descriptorType(descriptor = {}) {
   if (descriptor.display === 'entityRef') return { base: 'entityRef', shape: 'item' };
-  if (descriptor.display === 'entityRefList') return { base: 'entityRef', shape: 'list' };
+  if (descriptor.display === 'entityRefList') return {
+    base: 'array',
+    shape: 'item',
+    itemType: {
+      base: 'entityRef',
+      shape: 'item',
+      nullable: false,
+      ...(descriptor.entityType ? { entityType: descriptor.entityType } : {})
+    }
+  };
   if (['count', 'area', 'percent', 'dimension', 'duration', 'money', 'number', 'angle'].includes(descriptor.display)) {
     return { base: 'number', shape: 'item' };
   }
   if (descriptor.display === 'boolean') return { base: 'boolean', shape: 'item' };
   if (descriptor.display === 'date') return { base: 'date', shape: 'item' };
   if (['text', 'code'].includes(descriptor.display)) return { base: 'string', shape: 'item' };
-  return { base: 'json', shape: descriptor.display?.endsWith('List') ? 'list' : 'item' };
+  return { base: 'json', shape: 'item' };
 }
 
 function descriptorUnit(descriptor = {}) {
@@ -157,4 +192,48 @@ function uniqueByPath(fields) {
     byPath.set(schema.path, existing && existing.type?.base !== 'json' ? existing : schema);
   }
   return [...byPath.values()];
+}
+
+function buildBlockFieldSchemas(entitySchemas) {
+  const byPath = new Map();
+  for (const schemas of Object.values(entitySchemas)) {
+    for (const schema of schemas) {
+      const existing = byPath.get(schema.path);
+      if (!existing) {
+        byPath.set(schema.path, schema);
+        continue;
+      }
+      byPath.set(schema.path, {
+        ...existing,
+        type: canonicalFieldType(existing.type, schema.type, schema.path),
+        readable: existing.readable || schema.readable,
+        writable: existing.writable || schema.writable,
+        constructible: existing.constructible || schema.constructible
+      });
+    }
+  }
+  const blocks = {};
+  for (const schema of byPath.values()) {
+    (blocks[schema.block] ||= []).push(Object.freeze({
+      path: schema.path,
+      block: schema.block,
+      label: schema.label,
+      i18n: schema.i18n || '',
+      display: schema.display || '',
+      role: schema.role || '',
+      type: Object.freeze(structuredClone(schema.type))
+    }));
+  }
+  return Object.fromEntries(Object.entries(blocks).map(([block, schemas]) => [block, Object.freeze(schemas)]));
+}
+
+function canonicalFieldType(left, right, path) {
+  if (sameFieldType(left, right)) return left;
+  if (left.base === 'json') return right;
+  if (right.base === 'json') return left;
+  throw new Error(`Conflicting structural types for block field ${path}`);
+}
+
+function sameFieldType(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
