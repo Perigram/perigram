@@ -1,83 +1,314 @@
-* TODO Process designer architecture and UX acceptance blockers
+* TODO Process designer architecture and UX acceptance
   [2026-08-02 Sun]
 
-  Review scope: current organization process designer, the process compiler and
-  evaluator boundary, and the latest canonical/open-block commits through
-  =5cbb33c5=.
+  This is the current plan for the organization process designer. Presence in
+  the runtime catalog or a source-code assertion does not make a node usable.
+  A capability is accepted only when a user can build, understand, validate,
+  save, and run its complete process in the UI.
 
-** TODO Enforce open-block field types at persistence consumers
-   Compose/Modify Block may author entity-independent Lineage and Relations
-   entries, but Create/Modify Entity must validate every connected entry against
-   the consuming entity field schema, not only its path and access flag.
+  Use domain and project vocabulary in the UI. In particular, do not introduce
+  entity categories such as "normal" and "derived". Some entity types have
+  more than one domain-declared way to create them; that is a Create Entity
+  configuration concern, not a new kind of entity. "Select Entities" means
+  obtaining existing readable entities as data. "Run Service" means running a
+  registered command and must show that command's actual inputs.
 
-   - Reject a Lineage entry when its authored =entityType= differs from the
-     target schema's entity reference type.
-   - Reject a Relations entry when its target entity type or one/many
-     cardinality differs from the target schema.
-   - Apply the same qualifier checks to other typed open entries where the
-     consuming schema declares a narrower type.
-   - Add a regression test proving that a =warehouse= reference cannot be sent
-     to =lineage.projectId= while creating a queue.
+** Required system boundaries
 
-   Acceptance: process validation must reject the mismatched graph before
-   activation; matching generic open-block graphs must continue to compile and
-   evaluate.
+   The node set must remain separated by what data it handles:
 
-** TODO Complete the draft, validation, and activation UX
-   Saving is currently available only from the Inspector while a node is
-   selected. Roles and Screens can be edited without a visible draft-save
-   action, and the existing =createDraft()= and =validateDraft()= operations are
-   not exposed as controls.
+   - value nodes create or transform primitive values;
+   - list/tree nodes reshape or align collections without knowing about
+     entities;
+   - entity and block nodes read, compose, or persist canonical entity data;
+   - execution connections decide when state-changing nodes run.
 
-   - Provide persistent, global New draft, Save draft, Validate, and Apply /
-     Activate actions with distinct labels and state feedback.
-   - Keep Save available from Roles, Screens, and an empty canvas selection.
-   - Show dirty, saving, saved, validating, validation-failed, and activating
-     states without requiring the user to infer them from the selected panel.
-   - Require successful validation before activation or make the combined
-     validation-and-activation behavior explicit.
+   The primary palette has exactly three understandable families: Entities,
+   Values, and Lists and trees. Logic, Text, Math, and Date belong to Values.
+   Status definitions and entity persistence belong to Entities. Execution
+   controls are presented in the execution context they control, not collected
+   into a miscellaneous fourth family.
 
-   Acceptance: a user can edit each designer plane, save without activation,
-   validate, fix errors, and activate without selecting an arbitrary node.
+   Item, list, and tree are transport shapes, independent from the underlying
+   value type. Safe widening may happen on a connection. Narrowing, parsing,
+   nullable removal, and structural changes must be explicit and must never
+   create unexplained Cast, Convert, Trigger Payload, predicate, patch, or
+   other internal nodes in the authoring palette.
 
-** TODO Make the workspace responsive and adaptable
-   The persistent fixed-width palette and inspector leave too little usable
-   canvas on narrow laptops and overlap on tablet/mobile widths.
+   Each public node must have a documented purpose, input contract, output
+   contract, inline fallback behavior, inspector configuration, validation
+   behavior, and runtime behavior. Empty nodes and settings without an effect
+   are defects.
 
-   - Add collapse/drawer behavior for the palette and inspector.
-   - Preserve a usable canvas and reachable primary actions at supported
-     breakpoints.
-   - Replace fixed empty-state offsets with layout derived from the visible
-     rails.
-   - Verify keyboard focus order, zoom controls, context palette placement, and
-     validation messages at each supported size.
+** TODO Publish and enforce the authoring capability matrix
 
-** TODO Add behavioral process-designer UI coverage
-   Existing UI checks primarily assert source-code strings. Add mounted or
-   browser-level coverage for:
+   Audit the curated palette against the compiler and evaluator. For every
+   supported user operation, record the exact authoring path and identify any
+   runtime-only operations that must remain hidden.
 
-   - compatible and rejected connections, including no record mutation after a
-     rejected wire;
+   The matrix must cover at least:
+
+   - creating every domain entity type through Create Entity;
+   - selecting existing entities and filtering them using their data;
+   - reading, composing, and modifying every supported canonical block;
+   - changing entity status;
+   - running every registered service with its declared inputs;
+   - starting an effect manually or from an execution connection;
+   - calculating a future date and continuing execution on that date;
+   - applying item, list, and tree operations with defined alignment rules.
+
+   Remove authoring entries that cannot participate in one of the documented
+   paths. Add only operations required to complete a path; do not expose the
+   exhaustive runtime catalog as a second or advanced palette.
+
+   Acceptance: every matrix row has one understandable graph, passes process
+   validation, and has a focused evaluator/compiler test plus a mounted or
+   browser-level UI test.
+
+** TODO Complete Select Entities and field-based filtering
+
+   Provide one clear source for existing entities. Select Entities chooses an
+   entity type, respects process access and organization scope, and outputs a
+   typed entity list. It must not hide a second predicate language inside the
+   node.
+
+   Filtering remains ordinary dataflow:
+
+   1. Select Entities produces the original entity list.
+   2. Deconstruct Entity, Get Block, or Get Field reads the compared value over
+      that list.
+   3. Logic produces an aligned Boolean mask.
+   4. Filter List receives the original list and mask.
+
+   Define empty-list behavior, item broadcasting, list alignment, tree paths,
+   missing fields, nullable values, and access failures. Reject incompatible
+   masks without changing the saved graph.
+
+   Acceptance: author and run examples that select entities by status, compare
+   a text/number/date field, combine multiple Boolean conditions, and filter by
+   a relation or lineage reference.
+
+** TODO Make Create Entity cover every declared creation path
+
+   Create Entity first selects the entity type. The selected domain entity then
+   determines its supported creation choices and their real inputs. If an
+   entity has several creation choices, choose among them inside Create Entity;
+   do not add one-off palette nodes such as Upload DXF, From library cassette,
+   or Create cassette template, and do not invent a second entity category.
+
+   Reconcile every domain-declared creation choice with canonical block
+   composition. The node must expose only inputs that the selected creation
+   choice actually consumes. It must not expose arbitrary leaf fields such as
+   name or parent, unexplained null selectors, or guessed attachment inputs.
+   Constructed blocks connect as blocks. Specialized service inputs appear only
+   when that domain creation choice genuinely requires them.
+
+   Manual access is configured as explicit process-role and access-level rows
+   in the inspector. Role assignment must not disappear, be flattened into a
+   generic selector, or be moved into an unrelated panel.
+
+   Acceptance: each registered entity type and each of its creation choices can
+   be configured, validated, and executed from a fresh graph. Generated manual
+   forms and automatic execution use the same declared input contract.
+
+** TODO Finish entity and block composition semantics
+
+   Keep the responsibilities explicit:
+
+   - Deconstruct Entity accepts an entity and outputs its declared blocks.
+   - Get Block accepts an entity and outputs one selected block.
+   - Get Field accepts a block and outputs one selected field value.
+   - Compose Block creates one block from connected values or inline fallbacks.
+   - Modify Block accepts a block and replaces only connected fields.
+   - Create Entity accepts constructible blocks and status.
+   - Modify Entity accepts an entity, writable replacement blocks, and status.
+
+   Compose Block, Modify Block, and Get Field select a canonical block, not an
+   entity. A block value does not acquire an artificial owning entity type.
+   Fixed blocks obtain fields from their canonical block schema. Open blocks
+   author stable entries according to the block's own contract: for example a
+   Lineage entry has a key and referenced entity type, while a Relations entry
+   additionally declares one/many cardinality. Do not aggregate fields from all
+   entities and do not derive a block node's fields from a connected consumer.
+
+   Design a schema-backed discovery UI so users do not have to memorize field
+   keys. It may show where a canonical entry is accepted, but it must preserve
+   the block's independent meaning and must not mutate sockets according to an
+   incidental downstream connection.
+
+   At Create/Modify Entity, validate every connected block entry against the
+   selected entity schema:
+
+   - path membership and constructible/writable access;
+   - referenced entity type for Lineage and Relations;
+   - one/many cardinality for Relations;
+   - narrower enum, attachment, array-item, unit, or other declared qualifiers.
+
+   Acceptance: validation rejects a =warehouse= reference connected to
+   =lineage.projectId= while creating a queue, before activation. Matching
+   entity-independent blocks continue to compile and evaluate.
+
+** TODO Restore status definition authoring
+
+   Create Status remains an Entities-palette operation and creates a visible
+   status definition on the canvas. The node edits the status identity and
+   exposes one status output socket that can connect to Create Entity or Modify
+   Entity. Renaming the visible status must preserve its stable reference and
+   existing wires.
+
+   Do not move status creation into the inspector, process selector, Roles, or
+   another unrelated plane. The inspector may hold secondary presentation and
+   lifecycle evidence settings, but it must not hide the definition itself or
+   remove its output.
+
+   Acceptance: create, rename, connect, save, reload, and use a status in both
+   Create Entity and Modify Entity. The status output and wires survive reload.
+
+** TODO Finish Value, Logic, Text, Math, and Date nodes
+
+   Value Input is one node with a type selector and the correct compact editor
+   for that type. Logic, Text, Math, and Date are one node each with an operation
+   selector. Each selector lists only operations valid for the connected or
+   selected types and gives the sockets meaningful names.
+
+   Every unconnected input that can sensibly accept a literal has a compact
+   inline fallback. A connection overrides that fallback. Required unresolved
+   inputs are reported during validation, not as warnings on every new node.
+   Complex secondary configuration belongs in the inspector.
+
+   Date operations must support useful entity-based automation, including:
+
+   - reading a lifecycle/status entry timestamp from an entity;
+   - adding or subtracting a duration such as 30 days;
+   - comparing dates and date-times with explicit timezone behavior;
+   - feeding the calculated result to the execution wait described below.
+
+   Acceptance: build and run a graph that reads an entity's status-entry date,
+   adds 30 days, and continues an effect on the resulting date.
+
+** TODO Make Run Service expose the selected service contract
+
+   Run Service selects one registered command/service. Its sockets must be
+   projected from that command's current declared input contract, including
+   required/optional state, value type, entity type, and item/list shape. Do not
+   replace these inputs with one unexplained =parameters= record socket.
+
+   Primitive inputs receive inline fallbacks where appropriate; entity, block,
+   list, attachment, and other structured inputs remain typed connections or
+   use the corresponding shared picker when manual input is supported.
+
+   Acceptance: every registered service can either be configured from a fresh
+   graph or is explicitly excluded from process authoring with a documented
+   reason. At least one service with multiple typed inputs must be exercised
+   through both manual and automatic execution.
+
+** TODO Restore a coherent execution and event model
+
+   Every state-changing node has one compact execution section at the bottom:
+
+   - Manual makes the operation available to authorized users.
+   - Automatic exposes one incoming execution socket.
+
+   The switch chooses only between those two modes. It must not list webhook,
+   schedule, entity-change, domain-event, or other trigger implementations as
+   if they were equivalent effect modes. A successful effect exposes one
+   clearly placed completion output. Retry exhaustion fails the run; it is not
+   an arbitrary =if failed= graph branch.
+
+   Separately define how a process receives an external event and turns it into
+   an execution connection. Include only domain-declared, usable event sources
+   and label their payload data explicitly. Do not restore a miscellaneous
+   Events palette group or expose internal trigger-payload plumbing.
+
+   Provide an explicit Wait Until operation that accepts a date/date-time and
+   continues execution when it is reached. Its placement and connections must
+   follow the same left-to-right socket rules as the rest of the graph.
+
+   Acceptance: demonstrate manual execution, one effect following another, one
+   domain/entity event starting a process, and the calculated 30-day wait flow.
+
+** TODO Complete draft, validation, and activation UX
+
+   Provide persistent New Draft, Save Draft, Validate, and Activate actions.
+   They must remain reachable while editing Nodes, Roles, Screens, or an empty
+   canvas, rather than appearing only when an arbitrary node is selected.
+
+   Show dirty, saving, saved, validating, validation-failed, and activating
+   states. Activation requires successful validation, and the UI must make the
+   boundary between saving a draft and applying it to the organization clear.
+
+   Acceptance: edit each designer plane, save without activation, validate,
+   locate and fix errors, and activate without selecting a node.
+
+** TODO Make the workspace compact, consistent, and responsive
+
+   Reduce node chrome and use consistent socket rows. Socket dots belong on
+   stable outer rails beside their labels; do not print full data-type strings
+   beside every socket. Type, shape, qualifiers, and help remain available by
+   hover/focus and assistive text. Node headers, icons, colors, spacing, and
+   execution sections must communicate concern consistently.
+
+   Make palette and inspector independently collapsible. Preserve a useful
+   canvas and reachable primary actions on narrow laptops and supported tablet
+   widths. Derive empty-state and toolbar placement from visible rails instead
+   of fixed offsets.
+
+   Preserve Blender-like canvas behavior already required by the design:
+
+   - two-finger touchpad pan and pointer-centered pinch zoom;
+   - Space plus left drag as an alternative pan control;
+   - zoom from 0.1x to 4x, frame-all, and frame-selection;
+   - box selection, additive selection, and Delete/Backspace for every selected
+     node and edge;
+   - right-click canvas palette and compatible-node creation after dropping a
+     socket on empty canvas.
+
+   Entity selectors follow the shared picker contract: selected entity cards
+   render outside the input, while the compact chevron remains a separate
+   trigger. Scalar schema, operation, role, and enum selectors remain ordinary
+   controls and must not masquerade as entity pickers.
+
+   Acceptance: run the complete scenario suite at supported wide and narrow
+   layouts, using mouse, touchpad, and keyboard paths where applicable.
+
+** TODO Add behavioral acceptance coverage
+
+   Replace source-string checks as the primary UI evidence with mounted or
+   browser-level tests for complete workflows. Cover:
+
+   - compatible and rejected wires, with no graph mutation after rejection;
    - socket-drop compatible-node creation;
-   - multi-selection deletion and keyboard navigation;
-   - open-block entry editing and stable socket ids;
-   - saving Roles and Screens, draft forking, validation, and activation;
-   - narrow-layout palette and inspector behavior.
+   - selection, multi-delete, navigation, pan, zoom, and framing;
+   - fixed and open block entry editing with stable socket ids;
+   - status creation, output wiring, rename stability, and reload;
+   - Select Entities, field extraction, Logic masks, and Filter List;
+   - every entity creation choice, Modify Entity, and status changes;
+   - Run Service with real typed inputs;
+   - manual, chained, event-started, and date-wait execution;
+   - Roles and Screens edits, draft forking, saving, validation, and activation;
+   - collapsed and narrow palette/inspector layouts.
 
-** TODO Synchronize the committed framework manifest
-   =shared/framework-packages.spec.js= currently fails because
-   =framework.manifest.json= does not match generated source metadata, including
-   lineage relationships changed by the recent domain/schema work.
+   Acceptance requires runtime assertions, not only rendered labels or source
+   text. Keep focused compiler/evaluator tests for every matching graph.
 
-   Acceptance: regenerate the manifest through the documented script and make
-   the framework package contract test pass without weakening the equality
-   assertion.
+** TODO Synchronize documentation and generated contracts after implementation
 
-** Review evidence
-   - Focused process/designer suites: 60 tests passed.
-   - =node scripts/check-arch.js=: passed.
-   - =npm run framework:validate=: passed.
-   - =shared/framework-packages.spec.js=: failed on committed manifest drift.
-   - A focused validator reproduction accepted a Queue create graph that wired
-     a =warehouse= reference into =lineage.projectId=, confirming the missing
-     consumer-side type-qualifier check.
+   Update the process-designer and process-package READMEs to describe only the
+   implemented, tested contract. Remove or explicitly supersede historical
+   claims that contradict the current palette or socket model.
+
+   Regenerate =framework.manifest.json= through the documented command after
+   the implementation changes. =shared/framework-packages.spec.js= must pass
+   without weakening its equality assertion.
+
+** Current review evidence
+
+   - The focused designer/validation spot check passed 16 tests, but the UI
+     suite primarily checks source strings and is not acceptance evidence.
+   - =npm run framework:manifest= reports that the committed manifest differs
+     from current generated metadata while source validation succeeds.
+   - Consumer validation currently checks open-block paths and access but not
+     all declared type qualifiers.
+   - The authoring palette currently lacks complete fresh-graph paths for
+     selecting entities, some domain-declared creation choices, automatic
+     event/date execution, and services requiring structured inputs.

@@ -820,130 +820,29 @@
 * WAITING Process designer rework
   [2026-07-18 Sat 09:30]
 ** WAITING Architecture rework
-   Process designer must be a complete representation of cutkit-core, with cnc-domain as implementation; so just like core we should re-use it in different domains.
-   Dataflow v3 now defines structured socket types, item/list/path-addressed
-   trees, an exhaustive namespaced catalog, schema-driven fields, pure
-   drafts/patches/predicates, effects, and durable control execution. Keep this
-   WAITING until the architecture is accepted through real process authoring.
+   The process designer must be a reusable representation of CutKit core with a
+   supplied domain implementation, not a CNC-specific canvas and not a visual
+   editor for internal runtime operations. Keep this WAITING until every
+   supported capability has one documented and tested authoring path.
 ** WAITING Node composition
-   It should contain "create entity", which creates every entity possible; "modify entity" which includes any edit, including status change.
-   Need to investigate how entities are composed, and how standard blocks and their entries look like. For them, need to refactor node set so that it allows to create/modify any of it in any reasonable way. Nodes should be grouped and have labels in palette.
-   The authoring set now has three data/operation concerns: Entities, Values,
-   and Lists and trees. Entity persistence is block-based: Compose/Modify Block
-   own exact field schemas, Deconstruct Entity exposes canonical blocks, Get
-   Field consumes a block, and Create/Modify Entity accept blocks plus the
-   dedicated lifecycle status socket. Fixed canonical blocks expose fixed
-   fields. Open blocks expose authored typed rows with stable sockets: named
-   typed lineage entries, named entity relations with explicit cardinality,
-   named attachments, or named typed
-   values. The map is only the block output. Domain construction producers no
-   longer leak into the palette as one-off Upload/From library/Create-template
-   node types. The migrator replaces old direct-field,
-   draft, constructor-mode, and success/failure contracts. One
-   typed input and one operation-switching node each for logic, text, math, and
-   date replace modifier variants. Grasshopper-style aligned masks and
-   list/tree operations replace the separate query/predicate palette model.
-   Effect nodes expose only Manual or Automatic-from-socket execution. Date
-   scheduling is composed with date algebra and an explicit wait step; external
-   entity/domain subscriptions are separate process-entry concerns rather than
-   effect modes.
-   Keep this WAITING for hands-on usability acceptance with representative
-   create/filter/modify/status/service processes.
+   The public node set must completely support creating and modifying entities,
+   selecting existing entities, reading/composing/modifying blocks, filtering
+   through list/tree dataflow, changing status, running services, and manual or
+   automatic execution. Node names, sockets, fallbacks, and configuration must
+   describe real data and behavior. Keep this WAITING until the scenario-based
+   acceptance plan is complete.
 ** WAITING Design rework
-   Nodes layouts should be redesigned so that it looks good, minimal, with no bloat labels and with proper spacing; all labels and text should be true to data and nodes (there is much arbitrary stuff like "cassette" hardcoded labels, status ID instead of name, etc). Colors should be applied to groups, icons should not be slop.
-   The editor now uses the three-group operation palette without an advanced reveal.
-   Create/modify effects no longer contain field selectors, constructor forms,
-   parent controls, or attachment leaf inputs. Block composer field selectors
-   receive the actual domain options, and access grants preserve explicit role
-   plus level rows. Primitive required sockets provide typed inline fallbacks, safe type
-   coercions stay on wires instead of generating empty conversion nodes, and
-   effect event inputs and the single =completed= output occupy a left-to-right
-   footer row. Exhausted retries fail the run rather than exposing a misleading
-   =if failed= branch.
-   Status definitions are created from the Entities palette and edited on
-   their canvas nodes rather than in the inspector or process selector. Each
-   definition exposes a typed status output backed by its stable definition
-   reference, so status renames do not break Modify Entity wiring. Keep this
-   WAITING until the complete workflow is reviewed in the running UI.
+   Nodes and panels must be compact, consistent, responsive, and understandable
+   without exposing internal data types as label clutter. Palette, touchpad,
+   keyboard, selection, wiring, validation, draft, and activation behavior must
+   be verified interactively, not inferred from source strings. Keep this
+   WAITING until the full workflow is accepted in the running UI.
 
-** Agent Notes
-*** [2026-07-31] Typed block entity flow and producer-service replacement
-
-    Implementation:
-    - Replaced leaf-field Create/Modify sockets with canonical block sockets.
-      Compose Block and Modify Block own typed field inputs; Deconstruct Entity
-      exposes blocks; Get Field consumes a block.
-    - Kept lifecycle status as its own typed socket and excluded origin,
-      provenance, status history, and summary from generic block persistence.
-    - Projected commands and CNC construction producers into the Entities
-      palette. Derived entities are excluded from generic Create and use fixed
-      producer-service nodes.
-    - Replaced =then=/=if failed= with one =completed= event. Retry exhaustion
-      fails the durable run.
-    - Migrated old field effects, deconstruction reads, constructors, and effect
-      event handles into the new contract.
-
-    Files changed:
-    - =packages/processes/src/=
-    - =packages/domain-cnc/src/producers.js=
-    - =components/process-designer/ProcessNode.vue=
-    - =pages/organization/process.vue=
-    - =server/features/process-definitions/service.js=
-    - =i18n/locales/en.json= and =i18n/locales/ru.json=
-
-    Documentation updated:
-    - =components/process-designer/README.md=
-    - =packages/processes/README.md=
-    - =packages/domain-cnc/README.md=
-    - =server/features/process-definitions/README.md=
-
-    Validation:
-    - Process package and process-definition suites pass.
-    - Backend architecture verification passes.
-    - Vue SFC parse and script compilation pass.
-    - Localization still reports three unrelated pre-existing missing keys.
-
-*** [2026-07-18] Core/domain projection, generic composition, and compact canvas
-
-    Implementation:
-    - Added =CANONICAL_ENTITY_BLOCKS= to =@cutkit/core= and a reusable
-      =createProcessDesignerContract(domain)= projection in =@cutkit/processes=.
-      The projection covers core blocks and domain entities, workflows,
-      commands, tasks, events, hooks, effects, attachment kinds, construction,
-      field access, and field groups without importing CNC.
-    - The organization route now supplies =cncDomain= as the implementation,
-      derives entity/command/field/construction/attachment choices from the
-      generic projection, and exposes mode-specific constructor sockets.
-    - Entity decomposition and block value composition now cover every
-      canonical core block declared by the concrete entity. Field readers carry
-      the originating entity type so downstream block entries stay domain-true.
-    - The palette is grouped and labeled. Action editing moved to the inspector;
-      action/entity nodes are compact semantic summaries, operation colors are
-      group-based, and lifecycle nodes display authored state labels before ids.
-
-    Files changed:
-    - =packages/core/src/index.js=
-    - =packages/processes/src/designer.js=, =packages/processes/src/ports.js=,
-      =packages/processes/src/index.js=, and focused package tests
-    - =pages/organization/process.vue=
-    - =components/process-designer/ProcessActionNode.vue=,
-      =ProcessEntityNode.vue=, and =ProcessNode.vue=
-    - =i18n/locales/en.json= and =i18n/locales/ru.json=
-
-    Documentation updated:
-    - =packages/core/README.md=
-    - =packages/processes/README.md=
-    - =components/README.md=
-    - =components/process-designer/README.md=
-    - =pages/organization/README.md=
-
-    Validation:
-    - =npx vitest run packages/processes/src/designer.spec.js packages/processes/src/index.spec.js= passed: 2 files, 71 tests.
-    - Vue SFC parse and script/template compile checks passed for the route and changed node components.
-    - =npm run framework:validate= passed.
-    - =node scripts/check-arch.js= passed.
-    - Locale JSON parse and =git diff --check= passed.
-    - =shared/localization.spec.js= has only three pre-existing failures outside this task: =nesting.selectMachine=, =nesting.thickness=, and =common.rotate=.
+** Current acceptance plan
+   The detailed, prioritized tasks and evidence live in
+   [[file:components/process-designer/TODO.org][components/process-designer/TODO.org]].
+   Earlier implementation notes were removed from this summary because they
+   described intermediate contracts that no longer match the current palette.
 * WAITING Template entity as actual template for generate typed artifacts with.
   [2026-07-18 Sat 10:37]
   Need to upload org-scoped templates in dxf/pdf and process them, store, and make artifact generation process to use optional template. Template needs to be customizable (different text fields should be parametrized and inserted in resulting artifacts); example: text field in uploaded one should be chosen as variable, and should be assigned, both automatic in process designer or by hand. Artifact geometry should be editable too, as revisions: move/delete placed items.
