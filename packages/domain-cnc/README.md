@@ -136,13 +136,10 @@ prompted `name`, a source `cassette` template, and typed `cassetteParameters`.
 The frontend must derive those parameter controls from the chosen cassette's
 OCCS definition instead of asking users to enter a raw object string.
 `producers.js` declares source categories that can provide derived entities to
-workspaces and fixed construction services for the process designer. The
-designer projects `createDefaultOccsTemplate`,
-`bakeCassetteDesignFromTemplate`, and
-`importCassetteDesignFromArtifact` as named producer-service nodes with their
-typed construction inputs. They are not selectable modes on generic Create
-Entity. Queue UI resolves the same domain producers and binds matching process
-actions at runtime instead of hardcoding page-local source buttons.
+workspaces and fixed construction services at runtime. These declarations do
+not become one-off process palette nodes. Queue UI resolves the domain
+producers and binds matching process actions at runtime instead of hardcoding
+page-local source buttons.
 `entity-create-inputs.js` projects those construction contracts into
 process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an
@@ -162,8 +159,14 @@ frontend lookup helpers.
 
 `cncBlockFieldSchemas` projects the explicit framework-owned
 `CANONICAL_BLOCK_SCHEMAS`; it is not generated from entity field inventories.
-Fixed blocks expose their fixed fields. Open blocks expose one whole map/object
-value, so entity-specific paths never accumulate into a global selector.
+Fixed blocks expose their fixed fields. `cncBlockComposition` declares how open
+blocks are authored as typed named entries, so entity-specific paths never
+accumulate into a global selector and users never have to manufacture a raw
+map. Lineage choices come only from declared containment `lineageKey` metadata
+and explicit typed lineage fields; they are not derived from entity names.
+Each entity field schema includes its cumulative declared containment ancestry,
+so a consumer can validate a generic Lineage block without teaching the block
+composer about that consumer.
 `cncEntityFieldSchemas` separately declares which of those fields belong to an
 entity and whether they are readable, writable, or constructible. The registry
 keeps intrinsic arrays (`base: array` plus `itemType`) separate from process

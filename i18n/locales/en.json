@@ -2600,6 +2600,8 @@
     "inlineValue": "Value or fallback",
     "entityIdFallback": "{entity} ID or connect a wire",
     "fields": "Fields",
+    "blockEntries": "Block entries",
+    "entryKey": "Entry key",
     "retryPolicy": "Retry policy",
     "retryAttempts": "Attempts",
     "retryDelay": "Delay (ms)",

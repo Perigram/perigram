@@ -306,6 +306,15 @@ export const CANONICAL_BLOCK_SCHEMAS = Object.freeze({
   summary: Object.freeze([canonicalBlockField('summary', 'json')])
 });
 
+export const CANONICAL_BLOCK_COMPOSITION = Object.freeze({
+  lineage: Object.freeze({ mode: 'ancestors', valueBase: 'entityRef' }),
+  relations: Object.freeze({ mode: 'relations', valueBase: 'entityRef' }),
+  provenance: Object.freeze({ mode: 'entries', valueBase: 'json' }),
+  attachments: Object.freeze({ mode: 'attachments', valueBase: 'attachmentRef' }),
+  data: Object.freeze({ mode: 'entries', valueBase: 'json' }),
+  summary: Object.freeze({ mode: 'entries', valueBase: 'json' })
+});
+
 function canonicalBlockField(path, base, qualifiers = {}) {
   return Object.freeze({
     path,

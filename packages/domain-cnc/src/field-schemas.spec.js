@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cncEntities } from './entities.js';
-import { cncBlockFieldSchemas, cncEntityFieldSchemas, getBlockFieldSchema, getEntityFieldSchema } from './field-schemas.js';
+import { cncBlockComposition, cncBlockFieldSchemas, cncEntityFieldSchemas, getBlockFieldSchema, getEntityFieldSchema } from './field-schemas.js';
 
 describe('CNC entity field schemas', () => {
   it('covers every entity with exact selectable field paths', () => {
@@ -29,10 +29,28 @@ describe('CNC entity field schemas', () => {
     expect(getBlockFieldSchema('data.description')).toBeNull();
     expect(getEntityFieldSchema('library', 'data.description')?.type).toMatchObject({ base: 'string', shape: 'item' });
     expect(cncBlockFieldSchemas.lineage.map(field => field.path)).toEqual(['lineage']);
+    expect(cncBlockComposition).toMatchObject({
+      lineage: { mode: 'ancestors', valueBase: 'entityRef' },
+      relations: { mode: 'relations', valueBase: 'entityRef' },
+      attachments: { mode: 'attachments', valueBase: 'attachmentRef' },
+      data: { mode: 'entries', valueBase: 'json' }
+    });
   });
 
   it('does not mistake wildcard authorization for a field', () => {
     expect(getEntityFieldSchema('queue', 'data.job.*')).toBeNull();
+  });
+
+  it('declares cumulative lineage slots from containment relationships', () => {
+    expect(getEntityFieldSchema('nesting_run', 'lineage.queueId')).toMatchObject({
+      type: { base: 'entityRef', entityType: 'queue' },
+      constructible: true,
+      writable: false
+    });
+    expect(getEntityFieldSchema('nesting_run', 'lineage.projectId')?.type).toMatchObject({
+      base: 'entityRef',
+      entityType: 'project'
+    });
   });
 
   it('separates create-time composition from update permission', () => {

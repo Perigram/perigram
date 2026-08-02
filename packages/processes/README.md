@@ -12,8 +12,10 @@ designer package does not import a concrete domain.
 Canonical entity decomposition starts from
 `@cutkit/core/CANONICAL_ENTITY_BLOCKS` and is narrowed to blocks declared by the
 selected domain entity. Structural block operations instead read the domain's
-explicit canonical `blockSchemas`. These schemas are never inferred by unioning
-entity fields; open canonical blocks use one whole map/object socket. Entity
+explicit canonical `blockSchemas` plus `blockComposition`. These contracts are
+never inferred by unioning entity fields. Open canonical blocks use authored,
+typed entries with stable socket ids while the resulting block remains one
+map/object value. Entity
 `fieldSchemas` own membership plus
 read/write/construct policy, while wildcard access patterns remain
 authorization rules only. Compose Block, Modify Block, and Get Field therefore
@@ -25,7 +27,8 @@ the exhaustive runtime catalog. It exposes Entities, Values, and Lists and
 trees, with stable localization/description ids and meaningful creation
 presets. Entities includes block compose/modify/read operations, entity
 create/modify/deconstruct operations, registered commands, lifecycle statuses,
-and fixed domain producer services. Runtime-only conversions, predicates,
+and registered commands. Domain construction producers remain runtime/domain
+contracts and do not become one-off palette node kinds. Runtime-only conversions, predicates,
 patches, standalone trigger nodes, and trigger-payload plumbing are not palette
 entries. Applications may change layout, but entity types, producers, commands,
 attachment kinds, blocks, and fields always come from the supplied domain
@@ -246,13 +249,23 @@ retains lower-level predicate and patch operations for execution/migration,
 but they are not separate authoring concepts. Only `effect.*` nodes may
 persist changes or invoke external work.
 
-Structural selectors come from `domain.blockSchemas`; entity readers and
+Structural selectors come from `domain.blockSchemas`; open-block entry behavior
+comes from `domain.blockComposition`; entity readers and
 effect boundaries use `domain.fieldSchemas`. Each entry has an exact path,
 canonical block, and structured type, while entity schemas additionally own
 read/write/construct capability. Intrinsic collection values use
 `array<itemType>` and do not overload the outer list/tree packet shape.
 Wildcard field-access entries remain authorization patterns and never become
-field choices or guessed sockets. Compose/Modify Block expose selected fields;
+field choices or guessed sockets. Fixed-block Compose/Modify expose selected
+fields. Open-block Compose/Modify expose stable `entry:<id>` sockets: Lineage
+entries select declared containment slots and accept typed entity references,
+Relations select declared named typed entity references (including intrinsic
+many-value cardinality), Attachments accept named typed
+attachment references, and Data/Summary/Provenance accept named typed values.
+Renaming an entry does not break its wire. The evaluator lowers Lineage entity
+references to the declared stored id key and Get Field restores that id as the
+declared typed reference. Get Field on other open blocks authors the local key
+and output type explicitly rather than selecting invented global fields;
 Deconstruct Entity exposes blocks; Get Field reads one selected field from a
 block. Status remains a dedicated lifecycle socket and never travels through a
 generic mutable block. Producer services resolve their declared
@@ -284,6 +297,7 @@ keeps statuses in the definition plane, and collapses old entity-draft,
 field-change, and patch-merge chains into typed block composers while
 preserving their wires and inline defaults. It inserts Get Block/Get Field
 operations for old leaf reads, moves typed constructors to producer services,
+rewrites legacy open-block field handles to stable entry handles,
 rewrites successful effect edges to `completed`, and removes obsolete failure
 branches because exhausted retries fail the run. Manual entry
 triggers preserve generated-screen actions. Required legacy unit conversions

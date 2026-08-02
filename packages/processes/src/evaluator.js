@@ -75,12 +75,33 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'tree.cross') return crossDataPackets(required(packets, 'left', record), required(packets, 'right', record));
   if (kind === 'tree.transpose') return transposeDataPacket(required(packets, 'value', record));
   if (kind === 'record.getField') {
-    return mapDataPacket(required(packets, 'block', record), value => readPath(value, blockLocalPath(record.block, record.path)));
+    return mapDataPacket(required(packets, 'block', record), value => {
+      const fieldValue = readPath(value, blockLocalPath(record.block, record.path));
+      if (record.compositionMode === 'ancestors' && fieldValue != null) {
+        return { type: record.type?.entityType, id: fieldValue };
+      }
+      return fieldValue;
+    });
   }
   if (kind === 'record.fieldChange') return mapDataPacket(required(packets, 'value', record), value => ({ entityType: record.entityType, changes: [{ path: record.path, operation: record.operation || 'set', value }] }));
   if (kind === 'record.mergeChanges') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => mergePatches(left, right));
   if (kind === 'record.applyChanges') return combineDataPackets([required(packets, 'record', record), required(packets, 'changes', record)], ([value, patch]) => applyPatch(value, patch));
   if (kind === 'record.composeBlock' || kind === 'record.modifyBlock') {
+    if (record.compositionMode && Array.isArray(record.entries)) {
+      const entries = record.entries;
+      const inputIds = [
+        ...(kind === 'record.modifyBlock' ? ['block'] : []),
+        ...entries.map(entry => `entry:${entry.id}`)
+      ];
+      return combineDataPackets(inputIds.map(id => required(packets, id, record)), values => {
+        const initial = kind === 'record.modifyBlock' ? structuredClone(values[0] || {}) : {};
+        const offset = kind === 'record.modifyBlock' ? 1 : 0;
+        entries.forEach((entry, index) => {
+          writeOpenBlockEntry(initial, record.compositionMode, entry, values[index + offset]);
+        });
+        return initial;
+      });
+    }
     const inputIds = [
       ...(kind === 'record.modifyBlock' ? ['block'] : []),
       ...(record.fields || []).filter(path => packets[path])
@@ -123,6 +144,18 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   });
   if (kind.startsWith('read.')) return executeRead(record, packets, context);
   throw new Error(`Node ${record.id || kind} is not a data/read operation`);
+}
+
+function writeOpenBlockEntry(block, mode, entry, value) {
+  if (mode === 'ancestors') {
+    const id = value?.id || value?._id || value?.identity?.uid;
+    if (!entry.key || !entry.entityType || !id) throw new Error(`Lineage entry ${entry.id} requires a declared lineage slot and typed entity reference`);
+    block[entry.key] = id;
+    return;
+  }
+  const key = String(entry.key || '').trim();
+  if (!key) throw new Error(`Block entry ${entry.id} requires a key`);
+  writePath(block, key, structuredClone(value));
 }
 
 function blockLocalPath(block, path) {

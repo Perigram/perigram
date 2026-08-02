@@ -143,12 +143,58 @@ describe('process v3 data execution', () => {
     expect(unpacked.branches[0].items).toEqual(refs);
   });
 
-  it('composes an open canonical block from one whole map value', async () => {
-    const lineage = { organizationId: 'org-1', projectId: 'project-1' };
+  it('composes lineage keys from typed ancestor references', async () => {
     const composed = await executeProcessDataNode(
-      { kind: 'record.composeBlock', block: 'lineage', fields: ['lineage'] },
-      { lineage: createDataPacket(lineage) }
+      {
+        kind: 'record.composeBlock',
+        block: 'lineage',
+        compositionMode: 'ancestors',
+        entries: [
+          { id: 'organization', key: 'organizationId', entityType: 'organization' },
+          { id: 'nesting-run', key: 'runId', entityType: 'nesting_run' }
+        ]
+      },
+      {
+        'entry:organization': createDataPacket({ type: 'organization', id: 'org-1' }),
+        'entry:nesting-run': createDataPacket({ type: 'nesting_run', id: 'run-1' })
+      }
     );
-    expect(composed.branches[0].items).toEqual([lineage]);
+    expect(composed.branches[0].items).toEqual([{
+      organizationId: 'org-1',
+      runId: 'run-1'
+    }]);
+  });
+
+  it('reads a lineage id back as the declared typed entity reference', async () => {
+    const result = await executeProcessDataNode(
+      {
+        kind: 'record.getField',
+        block: 'lineage',
+        path: 'lineage.queueId',
+        compositionMode: 'ancestors',
+        type: { base: 'entityRef', shape: 'item', entityType: 'queue' }
+      },
+      { block: createDataPacket({ queueId: 'queue-1' }) }
+    );
+    expect(result.branches[0].items).toEqual([{ type: 'queue', id: 'queue-1' }]);
+  });
+
+  it('composes typed named entries for open data blocks', async () => {
+    const composed = await executeProcessDataNode(
+      {
+        kind: 'record.composeBlock',
+        block: 'data',
+        compositionMode: 'entries',
+        entries: [
+          { id: 'note', key: 'note', type: { base: 'string', shape: 'item' } },
+          { id: 'quantity', key: 'metrics.quantity', type: { base: 'number', shape: 'item' } }
+        ]
+      },
+      {
+        'entry:note': createDataPacket('Ready'),
+        'entry:quantity': createDataPacket(12)
+      }
+    );
+    expect(composed.branches[0].items).toEqual([{ note: 'Ready', metrics: { quantity: 12 } }]);
   });
 });

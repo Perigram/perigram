@@ -147,9 +147,53 @@ function migrateEntityBlockContract(process = {}, domain = {}) {
   const graphNodeForRecord = recordId => nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
   let changed = false;
 
-  for (const record of Object.values(records)) {
+  for (const [recordId, record] of Object.entries(records)) {
     if (canonicalizeProcessTypes(record)) changed = true;
     if (['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind)) {
+      const composition = domain.blockComposition?.[record.block];
+      if (composition && ['record.composeBlock', 'record.modifyBlock'].includes(record.kind) && !record.compositionMode) {
+        const graphNode = graphNodeForRecord(recordId);
+        const inputDefaults = { ...(record.inputDefaults || {}) };
+        const entries = [];
+        for (const path of record.fields || []) {
+          if (path === record.block) continue;
+          const key = String(path).replace(`${record.block}.`, '');
+          const schema = migrationStructuralFieldSchema(domain, path);
+          const entry = {
+            id: uniqueOpenEntryId(entries, key),
+            ...(composition.mode === 'ancestors'
+              ? { key, entityType: schema?.type?.entityType || lineageEntityType(domain, key) }
+              : composition.mode === 'relations'
+                ? {
+                    key,
+                    entityType: schema?.type?.entityType || relationDefinition(domain, key)?.targetType || '',
+                    cardinality: relationDefinition(domain, key)?.cardinality || 'one'
+                  }
+                : composition.mode === 'attachments'
+                  ? { key, attachmentKind: schema?.type?.attachmentKind || '' }
+                  : { key, type: schema?.type || { base: composition.valueBase || 'json', shape: 'item', nullable: true } })
+          };
+          entries.push(entry);
+          const nextId = `entry:${entry.id}`;
+          if (Object.hasOwn(inputDefaults, path)) {
+            inputDefaults[nextId] = inputDefaults[path];
+            delete inputDefaults[path];
+          }
+          if (graphNode) {
+            edges = edges.map(edge => (
+              String(edge.target) === String(graphNode.id) && cleanHandle(edge.targetHandle) === path
+                ? { ...edge, targetHandle: `data:${nextId}` }
+                : edge
+            ));
+          }
+        }
+        record.compositionMode = composition.mode;
+        record.compositionValueBase = composition.valueBase;
+        record.entries = entries;
+        record.fields = [];
+        record.inputDefaults = inputDefaults;
+        changed = true;
+      }
       if (record.entityType) {
         delete record.entityType;
         changed = true;
@@ -370,6 +414,33 @@ function migrateEntityBlockContract(process = {}, domain = {}) {
       graph: { ...(process.graph || {}), nodes, edges }
     } : process
   };
+}
+
+function migrationStructuralFieldSchema(domain = {}, path = '') {
+  const block = String(path).split('.')[0];
+  const canonical = (domain.blockSchemas?.[block] || []).find(schema => schema.path === path);
+  if (canonical) return canonical;
+  for (const schemas of Object.values(domain.fieldSchemas || {})) {
+    const schema = (schemas || []).find(item => item.path === path);
+    if (schema) return schema;
+  }
+  return null;
+}
+
+function lineageEntityType(domain = {}, key = '') {
+  return (domain.containment || []).find(relation => relation.lineageKey === key)?.parentType || '';
+}
+
+function relationDefinition(domain = {}, key = '') {
+  return (domain.relations || []).find(relation => relation.key === key) || null;
+}
+
+function uniqueOpenEntryId(entries = [], key = '') {
+  const prefix = `entry_${String(key || 'value').replace(/[^a-zA-Z0-9_-]+/g, '_')}`;
+  let id = prefix;
+  let index = 2;
+  while (entries.some(entry => entry.id === id)) id = `${prefix}_${index++}`;
+  return id;
 }
 
 function canonicalizeProcessTypes(value) {

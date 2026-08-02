@@ -2600,6 +2600,8 @@
     "inlineValue": "Значение или резерв",
     "entityIdFallback": "ID {entity} или подключите провод",
     "fields": "Поля",
+    "blockEntries": "Элементы блока",
+    "entryKey": "Ключ элемента",
     "retryPolicy": "Повторные попытки",
     "retryAttempts": "Попытки",
     "retryDelay": "Задержка (мс)",

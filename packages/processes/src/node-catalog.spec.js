@@ -145,6 +145,37 @@ describe('process v3 node catalog', () => {
     expect(modify.inputs[0].type).not.toHaveProperty('entityType');
   });
 
+  it('uses authored stable sockets for open block entries', () => {
+    const compose = resolveCatalogNodePorts({
+      kind: 'record.composeBlock',
+      block: 'lineage',
+      compositionMode: 'ancestors',
+      entries: [
+        { id: 'org', key: 'organizationId', entityType: 'organization' },
+        { id: 'run', key: 'runId', entityType: 'nesting_run' }
+      ]
+    });
+
+    expect(compose.inputs).toMatchObject([
+      { id: 'entry:org', label: 'organizationId', type: { base: 'entityRef', entityType: 'organization' } },
+      { id: 'entry:run', label: 'runId', type: { base: 'entityRef', entityType: 'nesting_run' } }
+    ]);
+    expect(compose.outputs[0]).toMatchObject({ id: 'block', type: { base: 'block', block: 'lineage' } });
+  });
+
+  it('preserves relation cardinality as an intrinsic array value', () => {
+    const compose = resolveCatalogNodePorts({
+      kind: 'record.composeBlock',
+      block: 'relations',
+      compositionMode: 'relations',
+      entries: [{ id: 'libraries', key: 'cassetteLibraries', entityType: 'library', cardinality: 'many' }]
+    });
+    expect(compose.inputs[0]).toMatchObject({
+      id: 'entry:libraries',
+      type: { base: 'array', itemType: { base: 'entityRef', entityType: 'library' } }
+    });
+  });
+
   it('keeps domain producer inputs on a fixed service effect', () => {
     const producer = resolveCatalogNodePorts({
       kind: 'effect.runProducer',

@@ -832,8 +832,12 @@
    and Lists and trees. Entity persistence is block-based: Compose/Modify Block
    own exact field schemas, Deconstruct Entity exposes canonical blocks, Get
    Field consumes a block, and Create/Modify Entity accept blocks plus the
-   dedicated lifecycle status socket. Derived constructors are fixed producer
-   services rather than Create modes. The migrator replaces old direct-field,
+   dedicated lifecycle status socket. Fixed canonical blocks expose fixed
+   fields. Open blocks expose authored typed rows with stable sockets: declared
+   lineage slots, named entity relations, named attachments, or named typed
+   values. The map is only the block output. Domain construction producers no
+   longer leak into the palette as one-off Upload/From library/Create-template
+   node types. The migrator replaces old direct-field,
    draft, constructor-mode, and success/failure contracts. One
    typed input and one operation-switching node each for logic, text, math, and
    date replace modifier variants. Grasshopper-style aligned masks and

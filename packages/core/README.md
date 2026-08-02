@@ -58,6 +58,12 @@ Identity fields stay under `identity`; containment ancestry stays under
 stay under `provenance`; feature-specific data stays under `data`, `specs`,
 `attachments`, or `summary`.
 
+`CANONICAL_BLOCK_SCHEMAS` owns fixed structural fields.
+`CANONICAL_BLOCK_COMPOSITION` separately classifies open blocks as lineage
+ancestors, named relations, named attachments, or named typed values. This is
+composition behavior, not a registry of entity-specific fields; domains supply
+declared lineage slots, entity types, and attachment kinds.
+
 `Status.state` is a v2 structured object with `primary`, `active`, and
 `regions`; compare states through `getPrimaryState()` or `getRegionState()`
 rather than reading `status.state` as a string.
