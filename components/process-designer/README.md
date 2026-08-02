@@ -111,6 +111,9 @@ composition, and leaf value operations therefore remain separate concerns.
 
 Compose Block, Modify Block, and Get Field consume entity-independent
 `cncDomain.blockSchemas`; they have a block selector but no entity selector.
+The schemas are explicit canonical contracts, not a union of observed entity
+fields. Open blocks such as Lineage and Data expose one whole typed value;
+Lineage therefore never lists entity-specific ancestry keys from unrelated DTOs.
 Entity decomposition/read nodes use `fieldSchemas` for entity membership, and
 Create/Modify Entity apply constructible/writable policy when accepting a
 connected block. Persisted nodes keep selected paths, not schema snapshots.

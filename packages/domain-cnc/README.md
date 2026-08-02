@@ -160,8 +160,10 @@ icons, docs, component paths, field groups, surface contracts, and field paths.
 It must not import Vue components. `@cutkit/vue` turns this metadata into
 frontend lookup helpers.
 
-`cncBlockFieldSchemas` is the process designer's structural value registry. It
-defines each canonical block path and value type independently from an entity.
+`cncBlockFieldSchemas` projects the explicit framework-owned
+`CANONICAL_BLOCK_SCHEMAS`; it is not generated from entity field inventories.
+Fixed blocks expose their fixed fields. Open blocks expose one whole map/object
+value, so entity-specific paths never accumulate into a global selector.
 `cncEntityFieldSchemas` separately declares which of those fields belong to an
 entity and whether they are readable, writable, or constructible. The registry
 keeps intrinsic arrays (`base: array` plus `itemType`) separate from process
