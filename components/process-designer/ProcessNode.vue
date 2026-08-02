@@ -243,7 +243,7 @@ const showsFieldSet = computed(() => [
 ].includes(record.value.kind));
 const showEntitySelect = computed(() => (
   (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => record.value.kind?.startsWith(prefix))
-    && record.value.kind !== 'effect.runProducer')
+    && !['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand', 'effect.runProducer'].includes(record.value.kind))
   || record.value.kind === 'control.entityChangedTrigger'
   || (record.value.kind === 'control.manualTrigger' && record.value.entityType)
   || (record.value.kind === 'source.literalItem' && record.value.type?.base === 'entityRef')

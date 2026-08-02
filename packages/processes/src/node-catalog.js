@@ -29,6 +29,8 @@ const definitions = [
   data('value.format', 'format'),
 
   data('collection.makeList', 'makeList'),
+  data('collection.packArray', 'packArray'),
+  data('collection.unpackArray', 'unpackArray'),
   data('collection.concat', 'concatLists'),
   data('collection.itemAt', 'itemAt'),
   data('collection.slice', 'slice'),
@@ -171,11 +173,13 @@ function socket(id, type, role = DATA, required = false) {
 
 function catalogPorts(record = {}, context = {}) {
   const kind = record.kind;
-  const configured = processTypeFrom(record.type, processType(record.base || 'json', {
+  const configuredBase = record.base || 'json';
+  const configured = processTypeFrom(record.type, processType(configuredBase, {
     shape: record.shape || 'item',
     nullable: record.nullable,
-    entityType: record.entityType,
-    block: record.block,
+    ...(['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(configuredBase)
+      && record.entityType ? { entityType: record.entityType } : {}),
+    ...(configuredBase === 'block' && record.block ? { block: record.block } : {}),
     unit: record.unit,
     enumId: record.enumId
   }));
@@ -297,6 +301,22 @@ function catalogPorts(record = {}, context = {}) {
     };
   }
   if (kind === 'collection.makeList') return unary({ ...configured, shape: 'item' }, { ...configured, shape: 'list' });
+  if (kind === 'collection.packArray') {
+    const itemType = { ...configured, shape: 'item' };
+    return unary(
+      { ...itemType, shape: 'list' },
+      processType('array', { itemType })
+    );
+  }
+  if (kind === 'collection.unpackArray') {
+    const itemType = configured.base === 'array'
+      ? configured.itemType
+      : processType('json');
+    return unary(
+      configured.base === 'array' ? configured : processType('array', { itemType }),
+      { ...itemType, shape: 'list' }
+    );
+  }
   if (kind === 'collection.concat') return binary({ ...configured, shape: 'list' }, { ...configured, shape: 'list' });
   if (kind === 'collection.itemAt') return {
     inputs: [socket('items', { ...configured, shape: 'list' }, DATA, true), socket('index', processType('integer'), DATA, true)],
@@ -330,11 +350,10 @@ function catalogPorts(record = {}, context = {}) {
     const field = context.fieldSchema || record.fieldSchema;
     return {
       inputs: [socket('block', processType('block', {
-        entityType: record.entityType,
         block: record.block,
-        shape: entity.shape
+        shape: configured.shape
       }), DATA, true)],
-      outputs: [socket('value', { ...processTypeFrom(field?.type, configured), shape: entity.shape })]
+      outputs: [socket('value', { ...processTypeFrom(field?.type, configured), shape: configured.shape })]
     };
   }
   if (kind === 'record.fieldChange') return {
@@ -350,9 +369,8 @@ function catalogPorts(record = {}, context = {}) {
     const fields = dynamicFields(record, context)
       .filter(field => field.block === record.block || field.path?.startsWith(`${record.block}.`));
     const block = processType('block', {
-      entityType: record.entityType,
       block: record.block,
-      shape: entity.shape
+      shape: configured.shape
     });
     return {
       inputs: [
@@ -374,7 +392,6 @@ function catalogPorts(record = {}, context = {}) {
     return {
       inputs: [socket('entity', entity, DATA, true)],
       outputs: blocks.map(block => socket(block, processType('block', {
-        entityType: record.entityType,
         block,
         shape: entity.shape
       })))
@@ -383,7 +400,6 @@ function catalogPorts(record = {}, context = {}) {
   if (kind === 'record.getBlock') return {
     inputs: [socket('entity', entity, DATA, true)],
     outputs: [socket('block', processType('block', {
-      entityType: record.entityType,
       block: record.block,
       shape: entity.shape
     }))]
@@ -509,7 +525,6 @@ function effectInputs(kind, types) {
   }));
   if (kind === 'effect.createEntity') return [
     ...types.blocks.map(block => socket(block, processType('block', {
-      entityType: types.entity.entityType,
       block
     }), DATA, block === 'identity')),
     socket('status.state.primary', processType('status', { entityType: types.entity.entityType }))
@@ -517,7 +532,6 @@ function effectInputs(kind, types) {
   if (kind === 'effect.updateEntity') return [
     socket('entity', types.entityRef, DATA, true),
     ...types.blocks.map(block => socket(block, processType('block', {
-      entityType: types.entity.entityType,
       block
     }))),
     socket('status.state.primary', processType('status', { entityType: types.entity.entityType }))

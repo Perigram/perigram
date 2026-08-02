@@ -12,6 +12,9 @@ const domain = {
       writable: true
     }]
   },
+  blockSchemas: {
+    identity: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item', nullable: false } }]
+  },
   commands: {}
 };
 
@@ -36,11 +39,10 @@ describe('process v3 validation', () => {
   it('rejects field paths that are not in the domain schema', () => {
     const result = validateProcessDefinition(definition({
       kind: 'record.getField',
-      entityType: 'project',
       path: 'data.guessed',
       type: { base: 'json', shape: 'item' }
     }), domain);
-    expect(result.errors).toContain('Process node node uses undeclared field project.data.guessed');
+    expect(result.errors).toContain('Process node node uses undeclared field data.guessed');
   });
 
   it('accepts a status-only entity update through its dedicated lifecycle input', () => {
@@ -54,5 +56,45 @@ describe('process v3 validation', () => {
     }), domain);
 
     expect(result.errors).not.toContain('Process node node must select at least one writable field or status');
+  });
+
+  it('enforces entity policy where a structural block enters an effect', () => {
+    const result = validateProcessDefinition({
+      dataflowVersion: 3,
+      processNodes: {
+        compose: {
+          id: 'compose',
+          kind: 'record.composeBlock',
+          block: 'data',
+          fields: ['data.note']
+        },
+        create: {
+          id: 'create',
+          kind: 'effect.createEntity',
+          entityType: 'project',
+          blocks: ['data'],
+          trigger: { mode: 'manual' }
+        }
+      },
+      graph: {
+        nodes: ['compose', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [{
+          id: 'compose-create',
+          source: 'compose',
+          sourceHandle: 'data:block',
+          target: 'create',
+          targetHandle: 'data:data',
+          role: 'data'
+        }]
+      }
+    }, {
+      ...domain,
+      blockSchemas: {
+        ...domain.blockSchemas,
+        data: [{ path: 'data.note', block: 'data', type: { base: 'string', shape: 'item' } }]
+      }
+    });
+
+    expect(result.errors).toContain('Edge compose-create cannot send data.note to project: field is not constructible');
   });
 });

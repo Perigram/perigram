@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cncEntities } from './entities.js';
-import { cncEntityFieldSchemas, getEntityFieldSchema } from './field-schemas.js';
+import { cncBlockFieldSchemas, cncEntityFieldSchemas, getBlockFieldSchema, getEntityFieldSchema } from './field-schemas.js';
 
 describe('CNC entity field schemas', () => {
   it('covers every entity with exact selectable field paths', () => {
@@ -12,15 +12,22 @@ describe('CNC entity field schemas', () => {
 
   it('preserves type, shape, domain and unit independently', () => {
     expect(getEntityFieldSchema('project', 'summary.queuePreview')?.type).toMatchObject({
-      base: 'entityRef',
-      shape: 'list',
-      entityType: 'queue'
+      base: 'array',
+      shape: 'item',
+      itemType: { base: 'entityRef', entityType: 'queue', shape: 'item' }
     });
     expect(getEntityFieldSchema('project', 'summary.totalArea')?.type).toMatchObject({
       base: 'number',
       shape: 'item',
       unit: 'm2'
     });
+  });
+
+  it('defines structural block fields once, independently from entity policy', () => {
+    expect(cncBlockFieldSchemas.identity).toBeTruthy();
+    expect(getBlockFieldSchema('data.description')?.type).toMatchObject({ base: 'string', shape: 'item' });
+    expect(getEntityFieldSchema('library', 'data.description')?.type)
+      .toEqual(getBlockFieldSchema('data.description')?.type);
   });
 
   it('does not mistake wildcard authorization for a field', () => {

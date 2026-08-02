@@ -126,4 +126,24 @@ describe('process v3 data execution', () => {
     expect(composed.branches[0].items).toEqual([{ name: 'Queue', slug: 'queue' }]);
     expect(modified.branches[0].items).toEqual([{ name: 'Cut queue', slug: 'queue' }]);
   });
+
+  it('packs packet lists into one array-valued block field and unpacks them explicitly', async () => {
+    const refs = [{ type: 'queue', id: 'q1' }, { type: 'queue', id: 'q2' }];
+    const packed = await executeProcessDataNode(
+      { kind: 'collection.packArray' },
+      { value: createDataPacket(refs, 'list') }
+    );
+    const composed = await executeProcessDataNode(
+      { kind: 'record.composeBlock', block: 'summary', fields: ['summary.queuePreview'] },
+      { 'summary.queuePreview': packed }
+    );
+    const unpacked = await executeProcessDataNode(
+      { kind: 'collection.unpackArray' },
+      { value: packed }
+    );
+
+    expect(composed.branches[0].items).toEqual([{ queuePreview: refs }]);
+    expect(unpacked.shape).toBe('list');
+    expect(unpacked.branches[0].items).toEqual(refs);
+  });
 });

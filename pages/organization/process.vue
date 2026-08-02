@@ -1880,8 +1880,7 @@ function createValueInput(id, structure = 'item') {
 }
 
 function createProcessNode(id, kind = 'source.literalItem') {
-  const entityKind = ['record.', 'predicate.', 'read.', 'effect.'].some(prefix => kind.startsWith(prefix))
-    || kind === 'control.entityChangedTrigger';
+  const entityKind = processNodeRequiresEntitySelection(kind);
   const fieldKind = ['record.getField', 'record.fieldChange', 'predicate.field'].includes(kind);
   const node = {
     id,
@@ -1912,9 +1911,9 @@ function createProcessNode(id, kind = 'source.literalItem') {
   if (kind === 'source.literalList') node.type = processType('json', { shape: 'list' });
   if (kind === 'source.literalTree') node.type = processType('json', { shape: 'tree' });
   if (fieldKind) {
-    node.path = designer.fieldsForEntity(node.entityType)
+    const fields = kind === 'record.getField' ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType);
+    node.path = fields
       .find(field => field[kind === 'record.fieldChange' ? 'writable' : 'readable'] !== false)?.value || '';
-    node.fieldSchema = designer.fieldsForEntity(node.entityType).find(field => field.value === node.path) || null;
   }
   if (['effect.createEntity', 'effect.runProducer'].includes(kind)) node.status = { to: initialStatusForEntity(node.entityType) };
   if (kind === 'record.deconstruct') {
@@ -1924,12 +1923,12 @@ function createProcessNode(id, kind = 'source.literalItem') {
     const access = kind === 'record.composeBlock' ? 'constructible'
       : kind === 'record.modifyBlock' ? 'writable'
         : 'readable';
-    const availableFields = designer.fieldsForEntity(node.entityType)
-      .filter(field => field[access] !== false);
-    node.block = availableFields[0]?.block || designer.blocksForEntity(node.entityType)[0]?.id || '';
+    const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind);
+    const availableFields = (structural ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType))
+      .filter(field => structural || field[access] !== false);
+    node.block = availableFields[0]?.block || designer.blocksForEntity(node.entityType)[0]?.id || designer.blocks[0]?.id || '';
     if (kind === 'record.getField') {
       node.path = availableFields.find(field => field.block === node.block)?.value || '';
-      node.fieldSchema = availableFields.find(field => field.value === node.path) || null;
     }
     if (['record.composeBlock', 'record.modifyBlock'].includes(kind)) {
       node.fields = availableFields.filter(field => field.block === node.block).slice(0, 1).map(field => field.value);
@@ -2523,6 +2522,12 @@ function syncValueInput(input = {}) {
 
 function syncProcessNode(node = {}) {
   node.kind ||= 'source.literalItem';
+  if (['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(node.kind)) {
+    delete node.entityType;
+    delete node.fieldSchema;
+    delete node.fieldSchemas;
+  }
+  if (node.type?.base === 'block') delete node.type.entityType;
   node.operation ||= defaultProcessNodeOperation(node.kind);
   node.type = node.type?.base ? node.type : processType('json', {
     shape: node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : 'item'
@@ -2557,23 +2562,20 @@ function syncProcessNode(node = {}) {
   }
   if (processNodeUsesPath(node)) {
     const access = node.kind === 'record.fieldChange' ? 'writable' : 'readable';
-    const available = designer.fieldsForEntity(node.entityType)
+    const available = (node.kind === 'record.getField' ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(node.entityType))
       .filter(field => field[access] !== false)
       .filter(field => !node.block || field.block === node.block);
     if (!available.some(field => field.value === node.path)) node.path = available[0]?.value || '';
-    node.fieldSchema = available.find(field => field.value === node.path) || null;
   } else {
     node.path = '';
-    node.fieldSchema = null;
   }
+  delete node.fieldSchema;
   if (processNodeUsesBlock(node)) {
     const blocks = processNodeBlockOptions(node);
     if (!blocks.some(block => block.value === node.block)) node.block = blocks[0]?.value || '';
     if (node.kind === 'record.getField') {
-      const fields = designer.fieldsForEntity(node.entityType)
-        .filter(field => field.readable !== false && field.block === node.block);
+      const fields = designer.fieldsForBlock(node.block);
       if (!fields.some(field => field.value === node.path)) node.path = fields[0]?.value || '';
-      node.fieldSchema = fields.find(field => field.value === node.path) || null;
     }
   }
   if (node.kind === 'read.related') {
@@ -2585,12 +2587,12 @@ function syncProcessNode(node = {}) {
     node.fields = [];
   }
   if (['record.composeBlock', 'record.modifyBlock'].includes(node.kind)) {
-    const access = node.kind === 'record.composeBlock' ? 'constructible' : 'writable';
-    const available = designer.fieldsForEntity(node.entityType).filter(field => field[access] !== false);
+    delete node.entityType;
+    const available = designer.fieldsForBlock(node.block);
     const inBlock = available.filter(field => field.block === node.block);
     node.fields = (node.fields || []).filter(path => inBlock.some(field => field.value === path));
     if (!node.fields.length && inBlock[0]) node.fields = [inBlock[0].value];
-    node.fieldSchemas = node.fields.map(path => inBlock.find(field => field.value === path)).filter(Boolean);
+    delete node.fieldSchemas;
   }
   if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
     node.blocks = node.kind === 'effect.createEntity'
@@ -2651,8 +2653,9 @@ function processNodeFieldOptions(node = {}) {
   const access = node.kind === 'record.composeBlock' ? 'constructible'
     : ['record.fieldChange', 'record.modifyBlock'].includes(node.kind) ? 'writable'
       : 'readable';
-  return designer.fieldsForEntity(node.entityType)
-    .filter(field => field[access] !== false)
+  const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(node.kind);
+  return (structural ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(node.entityType))
+    .filter(field => structural || field[access] !== false)
     .filter(field => !node.block || field.block === node.block)
     .map(field => ({
       label: field.i18n ? `${t(field.i18n)} · ${field.value}` : field.label,
@@ -2663,6 +2666,12 @@ function processNodeFieldOptions(node = {}) {
 
 function processNodeBlockOptions(node = {}) {
   if (!processNodeUsesBlock(node)) return [];
+  if (['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(node.kind)) {
+    const available = new Set(designer.fieldsForBlock().map(field => field.block));
+    return designer.blocks
+      .filter(block => available.has(block.id))
+      .map(block => ({ label: block.label, value: block.id }));
+  }
   const access = node.kind === 'record.composeBlock' ? 'constructible'
     : node.kind === 'record.modifyBlock' ? 'writable'
       : 'readable';
@@ -2693,10 +2702,19 @@ function processNodeOutputs(node = {}) {
 }
 
 function catalogContext(node = {}) {
+  const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(node.kind);
   return {
-    fieldSchema: designer.fieldsForEntity(node.entityType).find(field => field.value === node.path) || null,
-    fieldSchemas: designer.fieldsForEntity(node.entityType)
+    fieldSchema: structural
+      ? designer.fieldsForBlock(node.block).find(field => field.value === node.path) || null
+      : designer.fieldsForEntity(node.entityType).find(field => field.value === node.path) || null,
+    fieldSchemas: structural ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(node.entityType)
   };
+}
+
+function processNodeRequiresEntitySelection(kind = '') {
+  if (['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand'].includes(kind)) return false;
+  return ['record.', 'predicate.', 'read.', 'effect.'].some(prefix => kind.startsWith(prefix))
+    || kind === 'control.entityChangedTrigger';
 }
 
 function connectedProcessInputIds(graphNode = {}, record = {}) {
@@ -3628,6 +3646,8 @@ function inferGenericNodeTypeFromConnection(connection = {}) {
   const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
   const genericKinds = new Set([
     'collection.makeList',
+    'collection.packArray',
+    'collection.unpackArray',
     'collection.concat',
     'collection.itemAt',
     'collection.slice',

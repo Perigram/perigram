@@ -11,11 +11,12 @@ designer package does not import a concrete domain.
 
 Canonical entity decomposition starts from
 `@cutkit/core/CANONICAL_ENTITY_BLOCKS` and is narrowed to blocks declared by the
-selected domain entity. Field selection reads the domain's exact
-`fieldSchemas`; wildcard access patterns are authorization rules only. This
-keeps block/value composition reusable across domains while preventing a
-designer from inventing fields, types, or blocks that the selected entity does
-not declare.
+selected domain entity. Structural block operations instead read the domain's
+entity-independent `blockSchemas`. Entity `fieldSchemas` own membership plus
+read/write/construct policy, while wildcard access patterns remain
+authorization rules only. Compose Block, Modify Block, and Get Field therefore
+never select or encode an entity type. Create and Update validate connected
+block fields against their target entity policy at the consumer boundary.
 
 The grouped authoring palette is a curated framework projection, separate from
 the exhaustive runtime catalog. It exposes Entities, Values, and Lists and
@@ -222,7 +223,7 @@ definition without treating the definition as an executable step.
 
 Socket types are structured objects. `base` describes the value
 (`number`, `entity`, `predicate`, `patch`, and so on); `shape` independently
-describes `item`, `list`, or a path-addressed `tree`; nullable, entity type,
+describes the wire packet as `item`, `list`, or a path-addressed `tree`; nullable, entity type,
 schema, block, enum, unit, attachment, event, and capability qualifiers remain
 orthogonal. Connections may broadcast one item over an aligned list/tree.
 Non-singleton branches must have identical paths and lengths. Flatten, graft,
@@ -243,8 +244,11 @@ retains lower-level predicate and patch operations for execution/migration,
 but they are not separate authoring concepts. Only `effect.*` nodes may
 persist changes or invoke external work.
 
-Selectable fields come exclusively from `domain.fieldSchemas`. Each entry has
-an exact path, canonical block, structured type, and read/write capability.
+Structural selectors come from `domain.blockSchemas`; entity readers and
+effect boundaries use `domain.fieldSchemas`. Each entry has an exact path,
+canonical block, and structured type, while entity schemas additionally own
+read/write/construct capability. Intrinsic collection values use
+`array<itemType>` and do not overload the outer list/tree packet shape.
 Wildcard field-access entries remain authorization patterns and never become
 field choices or guessed sockets. Compose/Modify Block expose selected fields;
 Deconstruct Entity exposes blocks; Get Field reads one selected field from a

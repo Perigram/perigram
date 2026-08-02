@@ -31,6 +31,10 @@ describe('process designer domain contract', () => {
         { path: 'relations.owner', block: 'relations', label: 'Owner', type: { base: 'entityRef', shape: 'item', nullable: true }, readable: true, writable: true }
       ]
     },
+    blockSchemas: {
+      identity: [{ path: 'identity.name', block: 'identity', label: 'Name', type: { base: 'string', shape: 'item', nullable: false } }],
+      relations: [{ path: 'relations.owner', block: 'relations', label: 'Owner', type: { base: 'entityRef', shape: 'item', nullable: true } }]
+    },
     construction: {
       work_item: {
         modes: ['genericCreate'],
@@ -79,6 +83,9 @@ describe('process designer domain contract', () => {
         readable: true,
         writable: true
       }
+    ]);
+    expect(contract.fieldsForBlock('relations')).toEqual([
+      expect.objectContaining({ value: 'relations.owner', type: { base: 'entityRef', shape: 'item', nullable: true } })
     ]);
   });
 

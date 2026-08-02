@@ -27,6 +27,13 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('addSelectedProcessNodeGrant');
   });
 
+  it('keeps structural block operations independent from entity selection', () => {
+    expect(nodeSource).toContain("'record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct'");
+    expect(designerSource).toContain('designer.fieldsForBlock(node.block)');
+    expect(designerSource).toContain("delete node.entityType");
+    expect(designerSource).toContain('delete node.fieldSchemas');
+  });
+
   it('owns multi-selection deletion and broad canvas navigation bounds', () => {
     expect(designerSource).toContain(':delete-key-code="null"');
     expect(designerSource).toContain(':selection-key-code="true"');

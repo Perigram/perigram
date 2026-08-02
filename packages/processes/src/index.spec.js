@@ -118,6 +118,18 @@ const domain = {
       }
     ]
   },
+  blockSchemas: {
+    identity: [{
+      path: 'identity.name',
+      block: 'identity',
+      type: { base: 'string', shape: 'item', nullable: false }
+    }],
+    lineage: [{
+      path: 'lineage.projectId',
+      block: 'lineage',
+      type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'project' }
+    }]
+  },
   construction: {
     queue: {
       modes: ['genericCreate'],
@@ -157,19 +169,15 @@ describe('@cutkit/processes compiler', () => {
         queue_identity: {
           id: 'queue_identity',
           kind: 'record.composeBlock',
-          entityType: 'queue',
           block: 'identity',
           fields: ['identity.name'],
-          fieldSchemas: domain.fieldSchemas.queue,
           inputDefaults: { 'identity.name': 'Queue' }
         },
         queue_lineage: {
           id: 'queue_lineage',
           kind: 'record.composeBlock',
-          entityType: 'queue',
           block: 'lineage',
           fields: ['lineage.projectId'],
-          fieldSchemas: [domain.fieldSchemas.queue[1]]
         },
         create_queue: {
           id: 'create_queue',

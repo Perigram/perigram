@@ -21,6 +21,7 @@ export const PROCESS_BASE_TYPES = Object.freeze([
   'id',
   'json',
   'record',
+  'array',
   'map',
   'entity',
   'entityRef',
@@ -76,6 +77,7 @@ export function normalizeProcessType(type = {}) {
   if (type.itemType) normalized.itemType = normalizeProcessType(type.itemType);
   if (type.keyType) normalized.keyType = normalizeProcessType(type.keyType);
   if (type.valueType) normalized.valueType = normalizeProcessType(type.valueType);
+  validateTypeQualifiers(normalized);
   return normalized;
 }
 
@@ -188,12 +190,13 @@ export function legacyProcessType(kind = 'data', metadata = {}) {
     task: 'taskRef'
   })[clean] || clean;
   const supported = PROCESS_BASE_TYPES.includes(base) ? base : 'opaque';
+  const supportsEntityType = ['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(supported);
   return normalizeProcessType({
     base: supported,
     shape,
     nullable: Boolean(metadata.optional),
-    entityType: metadata.entityType,
-    block: metadata.block,
+    entityType: supportsEntityType ? metadata.entityType : undefined,
+    block: supported === 'block' ? metadata.block : undefined,
     capability: metadata.capability,
     accepts: metadata.accepts,
     opaqueType: supported === 'opaque' ? clean : undefined
@@ -212,9 +215,36 @@ function sameQualifiedType(source, target) {
     if (target[qualifier] && source[qualifier] !== target[qualifier]) return false;
   }
   if (['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(source.base)) {
-    return sameEntityType(source, target);
+    if (!sameEntityType(source, target)) return false;
+  }
+  if (source.base === 'array') return nestedTypeMatches(source.itemType, target.itemType);
+  if (source.base === 'map') {
+    return nestedTypeMatches(source.keyType, target.keyType)
+      && nestedTypeMatches(source.valueType, target.valueType);
   }
   return true;
+}
+
+function nestedTypeMatches(source, target) {
+  if (!target) return true;
+  if (!source) return false;
+  return processTypesCompatible(source, target).ok;
+}
+
+function validateTypeQualifiers(type) {
+  const entityBases = new Set(['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status']);
+  if (type.entityType && !entityBases.has(type.base)) {
+    throw new Error(`Process type ${type.base} cannot carry entityType`);
+  }
+  if (type.block && type.base !== 'block') {
+    throw new Error(`Process type ${type.base} cannot carry block`);
+  }
+  if (type.base === 'array' && !type.itemType) {
+    throw new Error('Process array type requires itemType');
+  }
+  if (type.base === 'map' && (!type.keyType || !type.valueType)) {
+    throw new Error('Process map type requires keyType and valueType');
+  }
 }
 
 function sameEntityType(source, target) {

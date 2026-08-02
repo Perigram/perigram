@@ -104,7 +104,7 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
   });
 }
 
-export function normalizeProcessDefinition(definition = {}) {
+export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const data = definition.data || definition;
   const processNodes = normalizeRecord(data.processNodes);
   return inferProcessDataflowContracts({
@@ -116,7 +116,7 @@ export function normalizeProcessDefinition(definition = {}) {
     roles: normalizeRecord(data.roles),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
-    actions: normalizeActions(deriveV3EffectActions(data.actions, processNodes, data.graph)),
+    actions: normalizeActions(deriveV3EffectActions(data.actions, processNodes, data.graph, domain)),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
     statusDefinitions: normalizeRecord(data.statusDefinitions),
@@ -128,7 +128,7 @@ export function normalizeProcessDefinition(definition = {}) {
   });
 }
 
-function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}) {
+function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}) {
   const derived = { ...(actions || {}) };
   for (const [nodeId, node] of Object.entries(processNodes)) {
     if (!node.kind?.startsWith('effect.')) continue;
@@ -142,7 +142,7 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}) {
       'effect.generateAttachment': 'runCommand'
     })[node.kind];
     if (!actionKind) continue;
-    const promptContract = effectPromptContract(nodeId, node, processNodes, graph);
+    const promptContract = effectPromptContract(nodeId, node, processNodes, graph, domain);
     const fields = promptContract.fields;
     const statusTo = node.inputDefaults?.['status.state.primary'] || node.status?.to || '';
     derived[actionId] = {
@@ -163,7 +163,7 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}) {
         fields: fields.map(path => ({
           id: `field:${path}`,
           path,
-          type: promptContract.schemas.find(field => field.path === path)?.type?.base || 'string',
+          type: promptContract.schemas.find(field => field.path === path)?.type?.base || 'json',
           prompt: !Object.hasOwn(promptContract.defaults, path),
           required: false,
           ...(Object.hasOwn(promptContract.defaults, path) ? { default: promptContract.defaults[path] } : {})
@@ -181,12 +181,12 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}) {
   return derived;
 }
 
-function effectPromptContract(nodeId, node, processNodes, graph) {
+function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
   if (Array.isArray(node.fields) && node.fields.length) {
     return {
       fields: node.fields,
       defaults: node.inputDefaults || {},
-      schemas: node.fieldSchemas || [],
+      schemas: (node.fields || []).map(path => blockFieldSchema(domain, path)).filter(Boolean),
       parentEntityType: node.parentEntityType || ''
     };
   }
@@ -200,18 +200,18 @@ function effectPromptContract(nodeId, node, processNodes, graph) {
     .filter(edge => String(edge.target) === String(graphNode.id))
     .map(edge => recordByGraphNode.get(String(edge.source)))
     .filter(record => ['record.composeBlock', 'record.modifyBlock'].includes(record?.kind));
-  const parentTypes = [...new Set(composers
-    .filter(record => record.block === 'lineage')
-    .flatMap(record => (record.fieldSchemas || [])
-      .filter(field => (record.fields || []).includes(field.path)))
-    .filter(field => field.type?.entityType !== 'organization')
+  const schemas = composers
+    .flatMap(record => (record.fields || []).map(path => blockFieldSchema(domain, path)))
+    .filter(Boolean);
+  const parentTypes = [...new Set(schemas
+    .filter(field => field.block === 'lineage' && field.type?.entityType !== 'organization')
     .map(field => field.type?.entityType)
     .filter(Boolean))];
   return {
     fields: [...new Set(composers.flatMap(record => record.fields || []))],
     defaults: Object.assign({}, ...composers.map(record => record.inputDefaults || {})),
-    schemas: composers.flatMap(record => record.fieldSchemas || []),
-    parentEntityType: parentTypes.length === 1 ? parentTypes[0] : ''
+    schemas,
+    parentEntityType: node.parentEntityType || (parentTypes.length === 1 ? parentTypes[0] : '')
   };
 }
 
@@ -230,7 +230,7 @@ export function requiredEntityProfileTypes(definition = {}, domain = {}) {
 }
 
 export function validateProcessDefinition(definition = {}, domain = {}) {
-  const process = normalizeProcessDefinition(definition);
+  const process = normalizeProcessDefinition(definition, domain);
   const errors = [];
   const warnings = [];
   const nodeIds = new Set(process.graph.nodes.map(node => node.id));
@@ -299,7 +299,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     if (!PROCESS_SCALAR_KINDS.includes(input.valueType)) errors.push(`Value input ${inputId} uses unknown type ${input.valueType || '(empty)'}`);
     if (!PROCESS_STRUCTURES.includes(input.structure || 'item')) errors.push(`Value input ${inputId} uses unknown structure ${input.structure}`);
   }
-  validateProcessNodeConnections(process, errors);
+  validateProcessNodeConnections(process, errors, domain);
 
   for (const [statusId, status] of Object.entries(process.statusDefinitions)) {
     if (!status.statusId) errors.push(`Status definition ${statusId} must define statusId`);
@@ -2441,15 +2441,15 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
   if (node.entityType && !entities.has(node.entityType)) {
     errors.push(`Process node ${nodeId} uses unknown entityType ${node.entityType}`);
   }
-  if (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => node.kind.startsWith(prefix))
-    && !['record.construct'].includes(node.kind)
-    && !node.entityType && !['effect.runCommand'].includes(node.kind)) {
+  if (processNodeRequiresEntityType(node.kind) && !node.entityType) {
     errors.push(`Process node ${nodeId} must select an entity type`);
   }
   if (['record.getField', 'record.fieldChange', 'predicate.field'].includes(node.kind)) {
     if (!node.path) errors.push(`Process node ${nodeId} must select a field`);
-    const schema = entityFieldSchema(domain, node.entityType, node.path);
-    if (node.path && !schema) errors.push(`Process node ${nodeId} uses undeclared field ${node.entityType}.${node.path}`);
+    const schema = node.kind === 'record.getField'
+      ? blockFieldSchema(domain, node.path)
+      : entityFieldSchema(domain, node.entityType, node.path);
+    if (node.path && !schema) errors.push(`Process node ${nodeId} uses undeclared field ${node.path}`);
     if (schema && node.kind === 'record.fieldChange' && schema.writable === false) {
       errors.push(`Process node ${nodeId} cannot modify read-only field ${node.entityType}.${node.path}`);
     }
@@ -2457,23 +2457,16 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
   if (['record.composeBlock', 'record.modifyBlock'].includes(node.kind)) {
     if (!node.block) errors.push(`Process node ${nodeId} must select a block`);
     if (!node.fields?.length) errors.push(`Process node ${nodeId} must select at least one block field`);
-    validateFieldList(
-      node.fields,
-      domain,
-      node.entityType,
-      `process node ${nodeId} fields`,
-      errors,
-      node.kind === 'record.composeBlock' ? 'construct' : 'write'
-    );
     for (const path of node.fields || []) {
-      const schema = entityFieldSchema(domain, node.entityType, path);
+      const schema = blockFieldSchema(domain, path);
+      if (!schema) errors.push(`Process node ${nodeId} uses undeclared block field ${path}`);
       if (schema && schema.block !== node.block) {
         errors.push(`Process node ${nodeId} field ${path} does not belong to block ${node.block}`);
       }
     }
   }
   if (node.kind === 'record.getField') {
-    const schema = entityFieldSchema(domain, node.entityType, node.path);
+    const schema = blockFieldSchema(domain, node.path);
     if (schema && schema.block !== node.block) {
       errors.push(`Process node ${nodeId} field ${node.path} does not belong to block ${node.block}`);
     }
@@ -2543,8 +2536,12 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
   }
   try {
     resolveCatalogNodePorts(node, {
-      fieldSchema: entityFieldSchema(domain, node.entityType, node.path),
-      fieldSchemas: entityFieldSchemas(domain, node.entityType)
+      fieldSchema: processNodeUsesStructuralFields(node.kind)
+        ? blockFieldSchema(domain, node.path)
+        : entityFieldSchema(domain, node.entityType, node.path),
+      fieldSchemas: processNodeUsesStructuralFields(node.kind)
+        ? blockFieldSchemas(domain, node.block)
+        : entityFieldSchemas(domain, node.entityType)
     });
   } catch (error) {
     errors.push(`Process node ${nodeId} has invalid sockets: ${error.message}`);
@@ -2574,6 +2571,17 @@ function validateV3Edges(process, domain) {
     }
     const compatibility = processSocketsCompatible(sourcePort, targetPort);
     if (!compatibility.ok) errors.push(`Edge ${edge.id} is incompatible: ${compatibility.reason}`);
+    if (compatibility.ok
+      && ['record.composeBlock', 'record.modifyBlock'].includes(sourceRecord.kind)
+      && ['effect.createEntity', 'effect.updateEntity'].includes(targetRecord.kind)) {
+      const requiredAccess = targetRecord.kind === 'effect.createEntity' ? 'constructible' : 'writable';
+      for (const path of sourceRecord.fields || []) {
+        const targetSchema = entityFieldSchema(domain, targetRecord.entityType, path);
+        if (!targetSchema || targetSchema[requiredAccess] === false) {
+          errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: field is not ${requiredAccess}`);
+        }
+      }
+    }
   }
   for (const role of ['data', 'control']) {
     const cycle = findGraphCycle(process, role);
@@ -2597,8 +2605,12 @@ function validateV3Edges(process, domain) {
 
 function v3CatalogContext(domain, record) {
   return {
-    fieldSchema: entityFieldSchema(domain, record.entityType, record.path),
-    fieldSchemas: entityFieldSchemas(domain, record.entityType)
+    fieldSchema: processNodeUsesStructuralFields(record.kind)
+      ? blockFieldSchema(domain, record.path)
+      : entityFieldSchema(domain, record.entityType, record.path),
+    fieldSchemas: processNodeUsesStructuralFields(record.kind)
+      ? blockFieldSchemas(domain, record.block)
+      : entityFieldSchemas(domain, record.entityType)
   };
 }
 
@@ -2656,17 +2668,14 @@ function reachableControlNodes(process, starts) {
   return reached;
 }
 
-function validateProcessNodeConnections(process = {}, errors = []) {
+function validateProcessNodeConnections(process = {}, errors = [], domain = {}) {
   for (const graphNode of process.graph?.nodes || []) {
     if (graphNode.type !== 'processNode') continue;
     const nodeId = String(graphNode.data?.refId || graphNode.id || '');
     const record = process.processNodes?.[nodeId];
     if (!record) continue;
     const contract = record.kind?.includes('.')
-      ? resolveCatalogNodePorts(record, {
-          fieldSchema: entityFieldSchema({}, record.entityType, record.path),
-          fieldSchemas: []
-        })
+      ? resolveCatalogNodePorts(record, v3CatalogContext(domain, record))
       : resolveProcessNodePorts(record);
     const counts = new Map();
     for (const edge of (process.graph?.edges || []).filter(item => String(item.target) === String(graphNode.id))) {
@@ -2693,6 +2702,25 @@ function entityFieldSchemas(domain = {}, entityType = '') {
 
 function entityFieldSchema(domain, entityType, path) {
   return entityFieldSchemas(domain, entityType).find(field => field.path === path) || null;
+}
+
+function blockFieldSchemas(domain = {}, block = '') {
+  if (block) return domain.blockSchemas?.[block] || [];
+  return Object.values(domain.blockSchemas || {}).flat();
+}
+
+function blockFieldSchema(domain, path) {
+  return blockFieldSchemas(domain, String(path || '').split('.')[0])
+    .find(field => field.path === path) || null;
+}
+
+function processNodeUsesStructuralFields(kind = '') {
+  return ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind);
+}
+
+function processNodeRequiresEntityType(kind = '') {
+  if (['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand'].includes(kind)) return false;
+  return ['record.', 'predicate.', 'read.', 'effect.'].some(prefix => kind.startsWith(prefix));
 }
 
 function validateConstruction(actionId, action = {}, domain = {}, errors = []) {

@@ -70,4 +70,22 @@ describe('process v3 type algebra', () => {
       type: { base: 'error', shape: 'item' }
     });
   });
+
+  it('keeps intrinsic arrays separate from packet lists', () => {
+    const array = processType('array', {
+      itemType: processType('entityRef', { entityType: 'queue' })
+    });
+    expect(array).toMatchObject({ base: 'array', shape: 'item', itemType: { base: 'entityRef' } });
+    expect(processTypesCompatible(
+      array,
+      processType('array', { itemType: processType('entityRef', { entityType: 'project' }) })
+    ).ok).toBe(false);
+  });
+
+  it('rejects qualifiers owned by another value family', () => {
+    expect(() => processType('block', { block: 'identity', entityType: 'project' }))
+      .toThrow('block cannot carry entityType');
+    expect(() => processType('string', { block: 'identity' }))
+      .toThrow('string cannot carry block');
+  });
 });

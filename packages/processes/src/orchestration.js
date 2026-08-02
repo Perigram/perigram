@@ -193,7 +193,7 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
         inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.type?.shape);
         continue;
       }
-      const runValue = processRunInput(run.context?.inputs || {}, record, port.id);
+      const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment);
       if (runValue !== undefined) {
         inputs[port.id] = createDataPacket(structuredClone(runValue), port.type?.shape);
         continue;
@@ -206,14 +206,15 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
   return inputs;
 }
 
-function processRunInput(inputs = {}, record = {}, portId = '') {
+function processRunInput(inputs = {}, record = {}, portId = '', environment = {}) {
   if (portId === 'entity') {
     return inputs.entity ?? inputs.entities?.[record.entityType];
   }
   if (Object.hasOwn(inputs.data || {}, portId)) return inputs.data[portId];
   const nested = readInputPath(inputs.data, portId);
   if (nested !== undefined) return nested;
-  const field = (record.fieldSchemas || []).find(schema => schema.path === portId);
+  const field = (environment.catalogContext?.(record)?.fieldSchemas || [])
+    .find(schema => schema.path === portId);
   const relatedType = field?.type?.entityType;
   if (relatedType && Object.hasOwn(inputs.entities || {}, relatedType)) {
     return inputs.entities[relatedType];
