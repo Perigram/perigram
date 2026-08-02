@@ -307,7 +307,9 @@ export async function resumeRun(id, auth = {}) {
           : getEntityFieldSchema(record.entityType, record.path),
         fieldSchemas: structural
           ? getBlockFieldSchemas(record.block)
-          : getEntityFieldSchemas(record.entityType)
+          : getEntityFieldSchemas(record.entityType),
+        blockComposition: cncDomain.blockComposition?.[record.block] || null,
+        command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null
       };
     },
     data: processDataEnvironment(auth, run)
@@ -1385,17 +1387,14 @@ async function executeDurableEffect(request, auth, run, processData) {
 async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {
   if (kind === 'effect.runCommand') {
     if (!record.commandId) throw new Error('Command effect requires commandId');
-    return await executeCommand(record.commandId, {
-      entities: inputs.entities || {},
-      parameters: inputs.parameters || {}
-    }, auth);
+    return await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), auth);
   }
   const entityType = normalizeEntityType(record.entityType || inputs.entity?.type || '');
   if (!entityType) throw new Error(`${kind} requires entityType`);
   const service = getAppRegistry().getEntityService(entityType);
   if (!service) throw new Error(`Entity service missing for ${entityType}`);
   if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
-    const draft = kind === 'effect.createEntity'
+    const draft = kind === 'effect.createEntity' && (record.construction?.mode || 'genericCreate') === 'genericCreate'
       ? processBlockInputRecord(record, inputs)
       : processConstructionInputRecord(record, inputs);
     const targetState = inputs['status.state.primary'] || record.status?.to;
@@ -1518,6 +1517,31 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
     }, auth);
   }
   throw new Error(`Unsupported process effect ${kind}`);
+}
+
+function commandEffectPayload(commandId, inputs = {}) {
+  const command = getAppRegistry().getCommandDefinition(commandId);
+  if (!command) throw new Error(`Unknown command: ${commandId}`);
+  const entities = {};
+  for (const input of command.input?.abstractEntities || []) {
+    const id = input.name || input.type || input.capability;
+    if (Object.hasOwn(inputs, id)) entities[id] = inputs[id];
+  }
+  const acceptedTypes = new Set((command.input?.abstractEntities || []).flatMap(input => input.accepts || []));
+  for (const input of command.input?.entities || []) {
+    if (acceptedTypes.has(input.type)) continue;
+    const socketId = input.name || input.type;
+    if (!Object.hasOwn(inputs, socketId)) continue;
+    const value = inputs[socketId];
+    entities[input.name || input.type] = input.multiple
+      ? (Array.isArray(value) ? value : [value]).map(entityInputId).filter(Boolean)
+      : entityInputId(value);
+  }
+  const parameters = {};
+  for (const input of command.input?.parameters || []) {
+    if (Object.hasOwn(inputs, input.name)) parameters[input.name] = inputs[input.name];
+  }
+  return { entities, parameters };
 }
 
 function processBlockInputRecord(record = {}, inputs = {}) {

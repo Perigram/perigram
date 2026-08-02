@@ -195,6 +195,45 @@ describe('process v3 node catalog', () => {
     expect(producer.outputs.map(output => output.id)).toEqual(['completed', 'result']);
   });
 
+  it('uses declared construction inputs inside Create Entity for typed creation modes', () => {
+    const create = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      entityType: 'cassette_design',
+      construction: {
+        mode: 'bakeCassetteDesignFromTemplate',
+        inputs: [
+          { id: 'name', path: 'name', type: 'string', required: true },
+          { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true }
+        ]
+      }
+    });
+
+    expect(create.inputs.map(input => input.id)).toEqual(['name', 'templateId']);
+    expect(create.inputs[1].type).toMatchObject({ base: 'entityRef', entityType: 'cassette' });
+  });
+
+  it('projects Run Service sockets from the selected command contract', () => {
+    const ports = resolveCatalogNodePorts({ kind: 'effect.runCommand', commandId: 'solve' }, {
+      command: {
+        input: {
+          entities: [{ name: 'queue', type: 'queue', required: true }],
+          parameters: [
+            { name: 'machineId', type: 'entityId', entityType: 'machine', required: true },
+            { name: 'materialMode', type: 'enum', options: ['VIRTUAL', 'WAREHOUSE'] }
+          ]
+        },
+        output: { entities: ['nesting_run', 'sheet'] }
+      }
+    });
+
+    expect(ports.inputs).toMatchObject([
+      { id: 'queue', required: true, type: { base: 'entityRef', entityType: 'queue' } },
+      { id: 'machineId', required: true, type: { base: 'entityRef', entityType: 'machine' } },
+      { id: 'materialMode', type: { base: 'enum' } }
+    ]);
+    expect(ports.outputs.map(output => output.id)).toEqual(['completed', 'nesting_run', 'sheet']);
+  });
+
   it('changes unified logic and date sockets with the selected operation', () => {
     expect(resolveCatalogNodePorts({ kind: 'value.logic', operation: 'not' }).inputs.map(input => input.id)).toEqual(['left']);
     expect(resolveCatalogNodePorts({ kind: 'value.logic', operation: 'gte', type: { base: 'dateTime' } }).inputs.map(input => input.type.base))

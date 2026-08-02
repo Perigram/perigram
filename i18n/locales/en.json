@@ -2292,6 +2292,13 @@
     "validate": "Validate",
     "activate": "Activate",
     "apply": "Apply",
+    "saved": "Saved",
+    "saving": "Saving",
+    "unsaved": "Unsaved changes",
+    "validating": "Validating",
+    "activating": "Activating",
+    "validationFailed": "Validation failed",
+    "event": "Event",
     "palette": "Palette",
     "frameAll": "Frame all nodes",
     "frameSelection": "Frame selected nodes",
@@ -2300,7 +2307,8 @@
       "entities": "Entities",
       "values": "Values",
       "listTree": "Lists and trees",
-      "events": "Events"
+      "events": "Events",
+      "automation": "Automation"
     },
     "paletteItems": {
       "modifyEntity": "Modify entity",

@@ -57,4 +57,21 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('delete runtimeFreeNode.selected');
     expect(designerSource).toContain('setViewport(canvas.viewport');
   });
+
+  it('keeps draft lifecycle and responsive rails independent from node selection', () => {
+    expect(designerSource).toContain('v-if="paletteOpen"');
+    expect(designerSource).toContain('v-if="inspectorOpen"');
+    expect(designerSource).toContain('@click="paletteOpen = !paletteOpen"');
+    expect(designerSource).toContain('@click="inspectorOpen = !inspectorOpen"');
+    expect(designerSource).toContain(':label="$t(\'processDesigner.newDraft\')"');
+    expect(designerSource).toContain('@click="saveDraft"');
+    expect(designerSource).toContain('@click="validateDraft"');
+    expect(designerSource).toContain('@click="applyProcess"');
+    expect(designerSource).toContain('if (!result.ok) throw new Error');
+  });
+
+  it('restores inferred node records when a proposed wire is rejected', () => {
+    expect(designerSource).toContain('const processNodeSnapshot = structuredClone');
+    expect(designerSource).toContain('draft.value.data.processNodes = processNodeSnapshot');
+  });
 });

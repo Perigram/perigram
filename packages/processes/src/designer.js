@@ -45,6 +45,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('modifyEntity', 'effect.updateEntity'),
       paletteItem('runService', 'effect.runCommand'),
       definitionPaletteItem('defineStatus', 'statusDefinition'),
+      paletteItem('selectEntities', 'read.queryEntities'),
       paletteItem('deconstructEntity', 'record.deconstruct'),
       paletteItem('composeBlock', 'record.composeBlock'),
       paletteItem('modifyBlock', 'record.modifyBlock'),
@@ -90,6 +91,14 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('unzipLists', 'tree.unzip'),
       paletteItem('crossLists', 'tree.cross'),
       paletteItem('transposeTree', 'tree.transpose')
+    ]
+  },
+  {
+    id: 'automation',
+    items: [
+      paletteItem('entityEvent', 'control.entityChangedTrigger'),
+      paletteItem('domainEvent', 'control.domainEventTrigger'),
+      paletteItem('waitUntilTime', 'control.waitUntil')
     ]
   }
 ].map(group => Object.freeze({

@@ -361,4 +361,33 @@ describe('process v3 data-flow migration', () => {
       expect(validateProcessDefinition(migrated, cncDomain).errors, template.id).toEqual([]);
     }
   });
+
+  it('preserves explicit event entries and restores formerly embedded event modes', () => {
+    const explicit = {
+      dataflowVersion: 3,
+      processNodes: {
+        event: { id: 'event', kind: 'control.domainEventTrigger', eventId: 'queue.nestingRequested' },
+        effect: { id: 'effect', kind: 'effect.runCommand', commandId: 'solveNesting', trigger: { mode: 'event' } }
+      },
+      graph: {
+        nodes: ['event', 'effect'].map(id => ({ id, type: 'processNode', position: { x: 0, y: 0 }, data: { refId: id } })),
+        edges: [{ id: 'start', source: 'event', sourceHandle: 'control:start', target: 'effect', targetHandle: 'control:in', role: 'control' }]
+      }
+    };
+    const preserved = migrateProcessDataflowDefinition(explicit, cncDomain).value;
+    expect(preserved.processNodes.event.kind).toBe('control.domainEventTrigger');
+    expect(preserved.graph.edges).toContainEqual(expect.objectContaining({ source: 'event', target: 'effect' }));
+
+    const embedded = structuredClone(explicit);
+    delete embedded.processNodes.event;
+    embedded.graph.nodes = embedded.graph.nodes.filter(node => node.id !== 'event');
+    embedded.graph.edges = [];
+    embedded.processNodes.effect.trigger = { mode: 'domainEvent', eventId: 'queue.nestingRequested' };
+    const restored = migrateProcessDataflowDefinition(embedded, cncDomain).value;
+    expect(Object.values(restored.processNodes)).toContainEqual(expect.objectContaining({
+      kind: 'control.domainEventTrigger',
+      eventId: 'queue.nestingRequested'
+    }));
+    expect(restored.graph.edges).toContainEqual(expect.objectContaining({ target: 'effect', role: 'control' }));
+  });
 });
