@@ -258,9 +258,9 @@ read/write/construct capability. Intrinsic collection values use
 Wildcard field-access entries remain authorization patterns and never become
 field choices or guessed sockets. Fixed-block Compose/Modify expose selected
 fields. Open-block Compose/Modify expose stable `entry:<id>` sockets: Lineage
-entries select declared containment slots and accept typed entity references,
-Relations select declared named typed entity references (including intrinsic
-many-value cardinality), Attachments accept named typed
+entries author a storage key plus typed entity reference, Relations author a
+storage key, referenced entity type, and intrinsic one/many cardinality,
+Attachments accept named typed
 attachment references, and Data/Summary/Provenance accept named typed values.
 Renaming an entry does not break its wire. The evaluator lowers Lineage entity
 references to the declared stored id key and Get Field restores that id as the

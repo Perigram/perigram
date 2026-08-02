@@ -162,11 +162,11 @@ frontend lookup helpers.
 Fixed blocks expose their fixed fields. `cncBlockComposition` declares how open
 blocks are authored as typed named entries, so entity-specific paths never
 accumulate into a global selector and users never have to manufacture a raw
-map. Lineage choices come only from declared containment `lineageKey` metadata
-and explicit typed lineage fields; they are not derived from entity names.
-Each entity field schema includes its cumulative declared containment ancestry,
-so a consumer can validate a generic Lineage block without teaching the block
-composer about that consumer.
+map. Lineage and Relations rows do not aggregate domain relationship names into
+global selectors: their key, referenced entity type, and relation cardinality
+are authored locally. Each entity field schema still includes its cumulative
+declared containment ancestry, so a consuming Create/Modify node can validate a
+generic Lineage block without teaching the block composer about that consumer.
 `cncEntityFieldSchemas` separately declares which of those fields belong to an
 entity and whether they are readable, writable, or constructible. The registry
 keeps intrinsic arrays (`base: array` plus `itemType`) separate from process

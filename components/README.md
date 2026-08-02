@@ -124,8 +124,8 @@ on fixed left/right rails; exact structured types are exposed by hover and
 assistive metadata rather than repeated beside every socket. Role access and
 retry policy remain secondary inspector configuration.
 Canonical entity block choices come from `@cutkit/core` through the generic
-`@cutkit/processes` designer contract; concrete entity, workflow, field,
-lineage-slot, and attachment choices come from the supplied domain
+`@cutkit/processes` designer contract; concrete entity, workflow, field, and
+attachment choices come from the supplied domain
 implementation. Compose/Modify Block own leaf fields. Create/Modify Entity
 consume blocks and lifecycle status rather than recreating CRUD forms.
 Open canonical blocks expose inspector-authored typed entry rows rather than a
