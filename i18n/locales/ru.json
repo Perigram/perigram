@@ -2293,6 +2293,9 @@
     "activate": "Активировать",
     "apply": "Применить",
     "palette": "Палитра",
+    "frameAll": "Показать все узлы",
+    "frameSelection": "Показать выбранные узлы",
+    "resetZoom": "Сбросить масштаб",
     "paletteGroups": {
       "entities": "Сущности",
       "values": "Значения",

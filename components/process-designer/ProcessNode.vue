@@ -1,17 +1,14 @@
 <template>
-  <div :class="nodeFrameClass">
+  <div :class="nodeFrameClass" :title="data.purpose || data.summary || ''">
     <div :class="['absolute inset-x-0 top-0 h-0.5 rounded-t-ui', accent.stripe]"></div>
-    <div class="flex items-center gap-2">
-      <span :class="['flex h-7 w-7 shrink-0 items-center justify-center rounded-ui bg-subtle', accent.icon]">
-        <i :class="record.icon || data.icon || 'pi pi-sitemap'"></i>
+    <div class="flex items-center gap-1.5">
+      <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-xs', accent.icon]">
+        <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
       </span>
-      <div class="min-w-0 flex-1">
-        <strong class="block truncate text-sm text-color">{{ data.kindLabel || record.kind }}</strong>
-        <span v-if="data.summary" class="block truncate text-xs text-muted-color">{{ data.summary }}</span>
-      </div>
+      <strong class="min-w-0 flex-1 truncate text-xs text-color">{{ data.kindLabel || record.kind }}</strong>
     </div>
 
-    <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-2" @mousedown.stop @click.stop>
+    <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-1.5 flex flex-col gap-1.5" @mousedown.stop @click.stop>
       <Select
         v-if="showEntitySelect"
         :model-value="record.entityType"
@@ -40,52 +37,6 @@
         size="small"
         @update:model-value="value => update({ operation: value })"
       />
-      <div
-        v-if="record.kind?.startsWith('effect.')"
-        class="flex flex-col gap-1"
-      >
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-xs font-medium">{{ $t('processDesigner.roles') }}</span>
-          <Button
-            icon="pi pi-plus"
-            text
-            size="small"
-            :aria-label="$t('processDesigner.addRole')"
-            :disabled="!nextRoleId"
-            @click="addEffectGrant"
-          />
-        </div>
-        <div
-          v-for="(grant, index) in effectGrants"
-          :key="`${grant.roleId}-${index}`"
-          class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-1"
-        >
-          <Select
-            :model-value="grant.roleId"
-            :options="roleOptionsForGrant(index)"
-            option-label="label"
-            option-value="value"
-            size="small"
-            @update:model-value="value => updateEffectGrant(index, { roleId: value })"
-          />
-          <Select
-            :model-value="grant.level || 'write'"
-            :options="data.processAccessLevelOptions || []"
-            option-label="label"
-            option-value="value"
-            size="small"
-            @update:model-value="value => updateEffectGrant(index, { level: value })"
-          />
-          <Button
-            icon="pi pi-trash"
-            text
-            severity="danger"
-            size="small"
-            :aria-label="$t('common.delete')"
-            @click="removeEffectGrant(index)"
-          />
-        </div>
-      </div>
       <Select
         v-if="record.kind === 'control.domainEventTrigger'"
         :model-value="record.eventId"
@@ -113,17 +64,6 @@
         size="small"
         filter
         @update:model-value="value => update({ path: value })"
-      />
-      <MultiSelect
-        v-if="showsFieldSet && fieldOptions.length"
-        :model-value="record.fields || []"
-        :options="fieldOptions"
-        option-label="label"
-        option-value="value"
-        filter
-        size="small"
-        :placeholder="$t('processDesigner.fields')"
-        @update:model-value="value => update({ fields: value })"
       />
       <InputText
         v-if="record.kind === 'source.literalItem' && !['number', 'integer', 'boolean', 'date', 'dateTime', 'status'].includes(record.type?.base)"
@@ -168,68 +108,76 @@
       />
     </div>
 
-    <div v-if="dataInputs.length || dataOutputs.length" class="mt-2 grid grid-cols-2 gap-2">
-      <div class="flex flex-col gap-1">
-        <div v-for="input in dataInputs" :key="input.id" class="flex flex-col gap-1">
-          <div :class="socketClass(input, 'left')">
-            <Handle :id="socketHandleId(input)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" />
-            <span class="flex min-w-0 items-center gap-1 text-xs">
-              <span class="truncate">{{ input.label }}</span>
-              <span class="shrink-0 text-[10px] text-muted-color">{{ input.typeLabel }}</span>
-            </span>
-          </div>
-          <div v-if="!input.connected && supportsInlineValue(input)" class="nodrag nowheel pl-2" @mousedown.stop @click.stop>
+    <div v-if="socketRows.length" class="mt-1.5 flex flex-col gap-1">
+      <div v-for="row in socketRows" :key="row.key" class="grid min-h-6 grid-cols-2 gap-2">
+        <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
+          <Handle
+            :id="socketHandleId(row.input)"
+            type="target"
+            :position="Position.Left"
+            :class="handleClass(row.input, 'left')"
+            :aria-label="socketTitle(row.input)"
+          />
+          <span class="block truncate text-[11px] leading-5">{{ row.input.label }}</span>
+          <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
             <ToggleSwitch
-              v-if="input.base === 'boolean'"
-              :model-value="Boolean(inputDefault(input.id))"
-              @update:model-value="value => updateInputDefault(input.id, value)"
+              v-if="row.input.base === 'boolean'"
+              :model-value="Boolean(inputDefault(row.input.id))"
+              @update:model-value="value => updateInputDefault(row.input.id, value)"
             />
             <InputNumber
-              v-else-if="['number', 'integer'].includes(input.base)"
-              :model-value="numericInputDefault(input.id)"
+              v-else-if="['number', 'integer'].includes(row.input.base)"
+              :model-value="numericInputDefault(row.input.id)"
               size="small"
+              class="w-full min-w-0"
               :placeholder="$t('processDesigner.inlineValue')"
-              @update:model-value="value => updateInputDefault(input.id, value)"
+              @update:model-value="value => updateInputDefault(row.input.id, value)"
             />
             <Select
-              v-else-if="input.base === 'status'"
-              :model-value="inputDefault(input.id)"
+              v-else-if="row.input.base === 'status'"
+              :model-value="inputDefault(row.input.id)"
               :options="data.processStatusOptions || []"
               option-label="label"
               option-value="value"
               size="small"
-              @update:model-value="value => updateStatusInputDefault(input.id, value)"
+              class="w-full min-w-0"
+              @update:model-value="value => updateStatusInputDefault(row.input.id, value)"
             />
             <DatePicker
-              v-else-if="['date', 'dateTime'].includes(input.base)"
-              :model-value="dateInputDefault(input.id)"
-              :show-time="input.base === 'dateTime'"
+              v-else-if="['date', 'dateTime'].includes(row.input.base)"
+              :model-value="dateInputDefault(row.input.id)"
+              :show-time="row.input.base === 'dateTime'"
               hour-format="24"
               size="small"
-              @update:model-value="value => updateInputDefault(input.id, serializeDateInput(input, value))"
+              class="w-full min-w-0"
+              @update:model-value="value => updateInputDefault(row.input.id, serializeDateInput(row.input, value))"
             />
             <InputText
               v-else
-              :model-value="displayInputDefault(input.id)"
+              :model-value="displayInputDefault(row.input.id)"
               size="small"
-              :placeholder="inputPlaceholder(input)"
-              @update:model-value="value => updateInputDefault(input.id, parseInputDefault(input, value))"
+              class="w-full min-w-0"
+              :placeholder="inputPlaceholder(row.input)"
+              @update:model-value="value => updateInputDefault(row.input.id, parseInputDefault(row.input, value))"
             />
           </div>
         </div>
-      </div>
-      <div class="flex flex-col gap-1">
-        <div v-for="output in dataOutputs" :key="output.id" :class="socketClass(output, 'right')">
-          <Handle :id="socketHandleId(output)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" />
-          <span class="flex min-w-0 items-center justify-end gap-1 text-xs">
-            <span class="shrink-0 text-[10px] text-muted-color">{{ output.typeLabel }}</span>
-            <span class="truncate">{{ output.label }}</span>
-          </span>
+        <div v-else></div>
+        <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
+          <Handle
+            :id="socketHandleId(row.output)"
+            type="source"
+            :position="Position.Right"
+            :class="handleClass(row.output, 'right')"
+            :aria-label="socketTitle(row.output)"
+          />
+          <span class="block truncate text-[11px] leading-5">{{ row.output.label }}</span>
         </div>
+        <div v-else></div>
       </div>
     </div>
 
-    <div v-if="eventInputs.length || eventOutputs.length" class="mt-2 border-t border-content-border pt-2">
+    <div v-if="eventSocketRows.length" class="mt-1.5 border-t border-content-border pt-1.5">
       <SelectButton
         v-if="record.kind?.startsWith('effect.')"
         :model-value="record.trigger?.mode === 'event' ? 'event' : 'manual'"
@@ -237,24 +185,22 @@
         option-label="label"
         option-value="value"
         size="small"
-        class="nodrag nowheel mb-2"
+        class="nodrag nowheel mb-1.5"
         @mousedown.stop
         @click.stop
         @update:model-value="updateEffectTriggerMode"
       />
-      <div class="flex items-end justify-between gap-4">
-        <div class="flex flex-wrap gap-2">
-          <div v-for="input in eventInputs" :key="input.id" class="relative rounded-ui bg-subtle px-2 py-1">
-            <Handle :id="socketHandleId(input)" type="target" :position="Position.Left" class="!left-0 !-translate-x-1/2 !border-orange-500 !bg-orange-500" />
-            <span class="text-xs">{{ input.label }}</span>
-          </div>
+      <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-5 grid-cols-2 gap-2">
+        <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
+          <Handle :id="socketHandleId(row.input)" type="target" :position="Position.Left" :class="handleClass(row.input, 'left')" />
+          <span class="block truncate text-[11px] leading-5">{{ row.input.label }}</span>
         </div>
-        <div class="flex flex-wrap justify-end gap-2">
-          <div v-for="output in eventOutputs" :key="output.id" class="relative rounded-ui bg-subtle px-2 py-1 text-right">
-            <Handle :id="socketHandleId(output)" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-orange-500 !bg-orange-500" />
-            <span class="text-xs">{{ output.label }}</span>
-          </div>
+        <div v-else></div>
+        <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
+          <Handle :id="socketHandleId(row.output)" type="source" :position="Position.Right" :class="handleClass(row.output, 'right')" />
+          <span class="block truncate text-[11px] leading-5">{{ row.output.label }}</span>
         </div>
+        <div v-else></div>
       </div>
     </div>
   </div>
@@ -263,11 +209,9 @@
 <script setup>
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
-import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
-import MultiSelect from 'primevue/multiselect';
 import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
 import Textarea from 'primevue/textarea';
@@ -288,14 +232,11 @@ const dataInputs = computed(() => inputSpecs.value.filter(input => input.role ==
 const dataOutputs = computed(() => outputSpecs.value.filter(output => output.role === 'data'));
 const eventInputs = computed(() => inputSpecs.value.filter(input => input.role !== 'data'));
 const eventOutputs = computed(() => outputSpecs.value.filter(output => output.role !== 'data'));
+const socketRows = computed(() => alignSockets(dataInputs.value, dataOutputs.value, 'data'));
+const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
 const fieldOptions = computed(() => props.data.processFieldOptions || []);
-const effectGrants = computed(() => record.value.access?.grants || []);
-const nextRoleId = computed(() => {
-  const selected = new Set(effectGrants.value.map(grant => grant.roleId));
-  return (props.data.processRoleOptions || []).find(option => !selected.has(option.value))?.value || '';
-});
 const showsFieldSet = computed(() => [
   'record.composeBlock',
   'record.modifyBlock'
@@ -344,14 +285,13 @@ const hasInlineConfiguration = computed(() => (
   showEntitySelect.value
   || showTypeEditor.value
   || operationOptions.value.length
-  || record.value.kind?.startsWith('effect.')
   || record.value.kind === 'control.domainEventTrigger'
   || showBlockSelect.value
-  || fieldOptions.value.length
+  || (fieldOptions.value.length && !showsFieldSet.value)
   || record.value.kind?.startsWith('source.literal')
 ));
 const nodeFrameClass = computed(() => [
-  'relative min-w-72 rounded-ui border bg-content p-3 pt-3.5 shadow-card transition-colors',
+  'relative w-64 rounded-ui border bg-content p-2 pt-2.5 shadow-card transition-colors',
   props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
 ]);
 const accent = computed(() => {
@@ -367,37 +307,6 @@ const accent = computed(() => {
 
 function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
-}
-
-function updateEffectGrants(grants) {
-  update({
-    access: {
-      ...(record.value.access || {}),
-      grants
-    }
-  });
-}
-
-function addEffectGrant() {
-  if (!nextRoleId.value) return;
-  updateEffectGrants([...effectGrants.value, { roleId: nextRoleId.value, level: 'write' }]);
-}
-
-function roleOptionsForGrant(index) {
-  const selectedByOthers = new Set(effectGrants.value
-    .filter((_, grantIndex) => grantIndex !== index)
-    .map(grant => grant.roleId));
-  return (props.data.processRoleOptions || []).filter(option => !selectedByOthers.has(option.value));
-}
-
-function updateEffectGrant(index, updates) {
-  updateEffectGrants(effectGrants.value.map((grant, grantIndex) => (
-    grantIndex === index ? { ...grant, ...updates } : grant
-  )));
-}
-
-function removeEffectGrant(index) {
-  updateEffectGrants(effectGrants.value.filter((_, grantIndex) => grantIndex !== index));
 }
 
 function updateEffectTriggerMode(mode) {
@@ -447,6 +356,7 @@ function serializeLiteralDate(value) {
 
 function normalizeSpecs(items) {
   return items.map((item, index) => ({
+    ...item,
     id: item.id || item.label || index,
     label: item.label || item.id || String(index),
     base: item.type?.base || 'json',
@@ -455,6 +365,24 @@ function normalizeSpecs(items) {
     connected: connectedInputs.value.has(item.id),
     typeLabel: formatProcessType(item.type)
   }));
+}
+
+function alignSockets(inputs, outputs, prefix) {
+  return Array.from({ length: Math.max(inputs.length, outputs.length) }, (_, index) => ({
+    key: `${prefix}-${inputs[index]?.id || ''}-${outputs[index]?.id || ''}-${index}`,
+    input: inputs[index] || null,
+    output: outputs[index] || null
+  }));
+}
+
+function socketTitle(item) {
+  return [item.label, item.typeLabel, item.description].filter(Boolean).join(' · ');
+}
+
+function showInlineFallback(input) {
+  return !input.connected
+    && supportsInlineValue(input)
+    && (input.required !== false || props.selected);
 }
 
 function supportsInlineValue(input) {
@@ -535,14 +463,16 @@ function socketHandleId(item) {
 
 function socketClass(item, side) {
   return [
-    'relative min-w-0 rounded-ui bg-subtle px-2 py-1',
-    side === 'left' ? 'pl-3' : 'pr-3 text-right',
+    'relative min-w-0 rounded-ui bg-subtle px-1.5',
+    side === 'left' ? 'pl-2.5' : 'pr-2.5 text-right',
     socketTone(item).row
   ];
 }
 
 function handleClass(item, side) {
   return [
+    '!top-1/2 !h-2.5 !w-2.5 !-translate-y-1/2',
+    item.type?.shape === 'tree' ? '!rounded-none' : item.type?.shape === 'list' ? '!rounded-sm' : '!rounded-full',
     side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
     socketTone(item).handle
   ];

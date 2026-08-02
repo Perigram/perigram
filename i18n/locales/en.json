@@ -2293,6 +2293,9 @@
     "activate": "Activate",
     "apply": "Apply",
     "palette": "Palette",
+    "frameAll": "Frame all nodes",
+    "frameSelection": "Frame selected nodes",
+    "resetZoom": "Reset zoom",
     "paletteGroups": {
       "entities": "Entities",
       "values": "Values",
