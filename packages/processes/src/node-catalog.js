@@ -446,13 +446,24 @@ function catalogPorts(record = {}, context = {}) {
     outputs: [socket('entities', entityList)]
   };
   if (kind.startsWith('effect.')) {
+    if (kind === 'effect.runCommand') {
+      const command = context.command || {};
+      return {
+        inputs: [
+          ...(record.trigger?.mode === 'event' ? controlInput : []),
+          ...commandInputSockets(command)
+        ],
+        outputs: [completed, ...commandOutputSockets(command)]
+      };
+    }
     const specific = effectInputs(kind, {
       entity,
       entityRef,
       patch,
       configured,
       blocks: dynamicBlocks(record, context),
-      constructionInputs: constructionInputs(record)
+      constructionInputs: constructionInputs(record),
+      constructionMode: record.construction?.mode || 'genericCreate'
     });
     const eventInput = record.trigger?.mode === 'event' ? controlInput : [];
     return {
@@ -571,9 +582,15 @@ function dynamicBlocks(record, context) {
 
 function effectInputs(kind, types) {
   if (kind === 'effect.runProducer') return types.constructionInputs.map(input => ({
-    ...socket(input.id, input.type, DATA, input.required),
+    ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
     label: input.label || input.id
   }));
+  if (kind === 'effect.createEntity' && types.constructionMode !== 'genericCreate') {
+    return types.constructionInputs.map(input => ({
+      ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
+      label: input.label || input.id
+    }));
+  }
   if (kind === 'effect.createEntity') return [
     ...types.blocks.map(block => socket(block, processType('block', {
       block
@@ -592,10 +609,83 @@ function effectInputs(kind, types) {
     socket('status', processType('status', { entityType: types.entity.entityType }), DATA, true),
     socket('changes', types.patch)
   ];
-  if (kind === 'effect.runCommand') return [socket('parameters', processType('record'))];
   if (kind === 'effect.sendEntity') return [socket('entity', types.entityRef, DATA, true)];
   if (kind === 'effect.generateAttachment') return [socket('entity', types.entityRef, DATA, true), socket('parameters', processType('record'))];
   return [];
+}
+
+function commandInputSockets(command = {}) {
+  const abstractInputs = command.input?.abstractEntities || [];
+  const acceptedTypes = new Set(abstractInputs.flatMap(input => input.accepts || []));
+  return [
+    ...abstractInputs.map(input => socket(
+      input.name || input.type || input.capability,
+      processType('entityRef', {
+        entityType: input.type || undefined,
+        accepts: input.accepts || [],
+        shape: input.multiple ? 'list' : 'item'
+      }),
+      DATA,
+      Boolean(input.required)
+    )),
+    ...(command.input?.entities || [])
+      .filter(input => !acceptedTypes.has(input.type))
+      .map(input => socket(
+        input.name || input.type,
+        processType('entityRef', {
+          entityType: input.type,
+          shape: input.multiple ? 'list' : 'item'
+        }),
+        DATA,
+        Boolean(input.required)
+      )),
+    ...(command.input?.parameters || []).map(input => socket(
+      input.name,
+      commandParameterType(input),
+      DATA,
+      Boolean(input.required && input.default === undefined)
+    ))
+  ].map(port => ({
+    ...port,
+    label: commandInputLabel(command, port.id)
+  }));
+}
+
+function commandOutputSockets(command = {}) {
+  const outputs = [
+    ...(command.output?.entities || []).map(entityType => socket(
+      entityType,
+      processType('entity', { entityType, shape: 'list' })
+    )),
+    ...(command.output?.attachments || []).map(kind => socket(
+      `attachment:${kind}`,
+      processType('attachmentRef', { attachmentKind: kind, shape: 'list' })
+    ))
+  ];
+  return outputs.length ? outputs : [socket('result', processType('json', { nullable: true }))];
+}
+
+function commandInputLabel(command = {}, id = '') {
+  const inputs = [
+    ...(command.input?.abstractEntities || []),
+    ...(command.input?.entities || []),
+    ...(command.input?.parameters || [])
+  ];
+  const input = inputs.find(item => (item.name || item.type || item.capability) === id);
+  return input?.label || input?.name || input?.type || input?.capability || id;
+}
+
+function commandParameterType(input = {}) {
+  if (input.entityType) return processType('entityRef', { entityType: input.entityType });
+  const base = input.type === 'object' ? 'json'
+    : input.type === 'array' ? 'array'
+      : input.type || 'string';
+  if (base === 'array') return processType('array', {
+    itemType: processType(input.itemType || 'json')
+  });
+  return processType(base, {
+    ...(input.options?.length ? { enumId: input.name } : {})
+  });
 }
 
 function constructionInputs(record = {}) {

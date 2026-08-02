@@ -13,7 +13,7 @@ import {
   validateProcessEdges
 } from './ports.js';
 import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
-import { normalizeProcessType, processSocketsCompatible } from './types.js';
+import { normalizeProcessType, processSocketsCompatible, processType } from './types.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -2486,6 +2486,10 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
       if (schema && schema.block !== node.block) {
         errors.push(`Process node ${nodeId} field ${path} does not belong to block ${node.block}`);
       }
+      const requiredAccess = node.kind === 'record.composeBlock' ? 'constructible' : 'writable';
+      if (schema && schema[requiredAccess] === false) {
+        errors.push(`Process node ${nodeId} cannot ${node.kind === 'record.composeBlock' ? 'compose' : 'modify'} managed field ${path}`);
+      }
     }
   }
   if (node.kind === 'record.getField') {
@@ -2551,7 +2555,7 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
     }
   }
   if (node.kind === 'read.related') {
-    const relation = (domain.relations || []).find(item => item.ownerType === node.entityType && item.key === node.relation);
+    const relation = (domain.relations || []).find(item => item.ownerType === node.entityType && item.key === (node.relationKey || node.relation));
     if (!relation) errors.push(`Process node ${nodeId} must select a declared relation for ${node.entityType}`);
   }
   if (node.kind === 'effect.runCommand' && (!node.commandId || !domain.commands?.[node.commandId])) {
@@ -2565,7 +2569,8 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
       fieldSchemas: processNodeUsesStructuralFields(node.kind)
         ? blockFieldSchemas(domain, node.block)
         : entityFieldSchemas(domain, node.entityType),
-      blockComposition: domain.blockComposition?.[node.block] || null
+      blockComposition: domain.blockComposition?.[node.block] || null,
+      command: domain.commands?.[node.commandId] || null
     });
   } catch (error) {
     errors.push(`Process node ${nodeId} has invalid sockets: ${error.message}`);
@@ -2649,6 +2654,14 @@ function validateV3Edges(process, domain) {
         if (!wholeBlockAccepted && (!targetSchema || targetSchema[requiredAccess] === false)) {
           errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: field is not ${requiredAccess}`);
         }
+        if (sourceRecord.compositionMode && targetSchema) {
+          const key = path.slice(sourceRecord.block.length + 1);
+          const entry = (sourceRecord.entries || []).find(item => item.key === key);
+          const sourceType = openCompositionEntryType(entry, sourceRecord.compositionMode, sourceRecord.compositionValueBase);
+          if (sourceType && !processTypesEquivalent(sourceType, targetSchema.type)) {
+            errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: composed entry type does not match the entity field`);
+          }
+        }
       }
     }
   }
@@ -2658,8 +2671,8 @@ function validateV3Edges(process, domain) {
   }
   const triggers = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
-    return record?.kind?.startsWith('effect.')
-      && record.trigger?.mode === 'manual';
+    return record?.kind?.endsWith('Trigger')
+      || (record?.kind?.startsWith('effect.') && record.trigger?.mode === 'manual');
   });
   const reachable = reachableControlNodes(process, triggers.map(node => String(node.id)));
   for (const node of process.graph?.nodes || []) {
@@ -2679,8 +2692,33 @@ function v3CatalogContext(domain, record) {
       : entityFieldSchema(domain, record.entityType, record.path),
     fieldSchemas: processNodeUsesStructuralFields(record.kind)
       ? blockFieldSchemas(domain, record.block)
-      : entityFieldSchemas(domain, record.entityType)
+      : entityFieldSchemas(domain, record.entityType),
+    blockComposition: domain.blockComposition?.[record.block] || null,
+    command: domain.commands?.[record.commandId] || null
   };
+}
+
+function openCompositionEntryType(entry = {}, mode = '', valueBase = 'json') {
+  if (!entry) return null;
+  if (mode === 'relations' && entry.cardinality === 'many') {
+    return processType('array', { itemType: processType('entityRef', { entityType: entry.entityType }) });
+  }
+  if (mode === 'ancestors' || mode === 'relations') {
+    return processType('entityRef', { entityType: entry.entityType });
+  }
+  if (mode === 'attachments') {
+    return processType('attachmentRef', { attachmentKind: entry.attachmentKind });
+  }
+  return processType(entry.type?.base || valueBase, entry.type || {});
+}
+
+function processTypesEquivalent(left = {}, right = {}) {
+  if (left.base !== right.base || (left.shape || 'item') !== (right.shape || 'item')) return false;
+  for (const qualifier of ['entityType', 'attachmentKind', 'enumId', 'unit']) {
+    if ((left[qualifier] || '') !== (right[qualifier] || '')) return false;
+  }
+  if (left.base === 'array') return processTypesEquivalent(left.itemType || {}, right.itemType || {});
+  return true;
 }
 
 function catalogPortForHandle(ports, handle) {

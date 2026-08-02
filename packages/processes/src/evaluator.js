@@ -201,7 +201,7 @@ async function executeRead(record, packets, context) {
   if (record.kind === 'read.resolveEntityRef') return createDataPacket(await context.resolveEntityRef?.(packetValue(required(packets, 'value', record))));
   if (record.kind === 'read.parent') return createDataPacket(await context.parentEntity?.(packetValue(required(packets, 'value', record)), record.entityType));
   if (record.kind === 'read.children') return createDataPacket(await context.childEntities?.(packetValue(required(packets, 'value', record)), record.entityType) || [], 'list');
-  if (record.kind === 'read.related') return createDataPacket(await context.relatedEntities?.(packetValue(required(packets, 'value', record)), record.relation, record.entityType) || [], 'list');
+  if (record.kind === 'read.related') return createDataPacket(await context.relatedEntities?.(packetValue(required(packets, 'value', record)), record.relationKey || record.relation, record.entityType) || [], 'list');
   if (record.kind === 'read.queryEntities') {
     const predicate = packets.predicate ? packetValue(packets.predicate) : null;
     return createDataPacket(await context.queryEntities?.(record.entityType, predicate) || [], 'list');

@@ -21,14 +21,17 @@ export function definitionToCanvas(definition = {}) {
   assertEditableSource(process);
 
   const projectedNodes = projectRecordNodes(process);
-  const projectedById = new Map(projectedNodes.map(node => [node.id, node]));
+  const projectedBySemanticId = new Map(projectedNodes.map(node => [semanticNodeId(node), node]));
   const savedNodes = (process.graph.nodes || [])
     .filter(node => RECORD_NODE_TYPES.includes(node.type))
-    .filter(node => projectedById.has(node.id))
-    .map(node => mergeProjectedNode(projectedById.get(node.id), node));
+    .filter(node => projectedBySemanticId.has(semanticNodeId(node)))
+    .map(node => mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node));
 
-  const savedIds = new Set(savedNodes.map(node => node.id));
-  const missingProjectedNodes = projectedNodes.filter(node => !savedIds.has(node.id));
+  const savedSemanticIds = new Set(savedNodes.map(semanticNodeId));
+  const occupiedNodeIds = new Set(savedNodes.map(node => node.id));
+  const missingProjectedNodes = projectedNodes
+    .filter(node => !savedSemanticIds.has(semanticNodeId(node)))
+    .map(node => withUniqueCanvasNodeId(node, occupiedNodeIds));
   const nodes = [...savedNodes, ...missingProjectedNodes];
   const nodeIds = new Set(nodes.map(node => node.id));
   const edges = (process.graph.edges || [])
@@ -40,6 +43,20 @@ export function definitionToCanvas(definition = {}) {
     edges,
     viewport: process.graph.viewport || { x: 0, y: 0, zoom: 1 }
   };
+}
+
+function semanticNodeId(node = {}) {
+  return `${node.type}:${String(node.data?.refId || node.id || '')}`;
+}
+
+function withUniqueCanvasNodeId(node, occupiedNodeIds) {
+  let id = String(node.id);
+  if (occupiedNodeIds.has(id)) id = semanticNodeId(node);
+  let suffix = 2;
+  const base = id;
+  while (occupiedNodeIds.has(id)) id = `${base}:${suffix++}`;
+  occupiedNodeIds.add(id);
+  return id === node.id ? node : { ...node, id };
 }
 
 export function canvasToDefinition(canvas = {}, previousDefinition = {}) {

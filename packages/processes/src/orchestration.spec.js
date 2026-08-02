@@ -309,7 +309,12 @@ describe('durable process orchestration', () => {
       control('loop', 'done', 'stop')
     ]);
     const executeEffect = vi.fn().mockResolvedValue({ ok: true });
-    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
+    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect,
+      catalogContext: record => record.commandId === 'each'
+        ? { command: { input: { parameters: [{ name: 'parameters', type: 'object' }] } } }
+        : {}
+    });
     expect(completed.status).toBe('succeeded');
     expect(executeEffect.mock.calls.slice(1).map(call => call[0].inputs.parameters)).toEqual([{ n: 1 }, { n: 2 }]);
   });
@@ -358,6 +363,83 @@ describe('durable process orchestration', () => {
     );
     expect(waiting.status).toBe('waiting');
     expect(waiting.wakeAt).toBe('2026-01-31T10:00:00.000Z');
+  });
+
+  it('starts from a declared domain event and exposes its payload to the graph', async () => {
+    const definition = process([
+      { id: 'event', kind: 'control.domainEventTrigger', eventId: 'queue.requested' },
+      { id: 'effect', kind: 'effect.runCommand', commandId: 'handle', trigger: { mode: 'event' } },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['event', 'effect', 'stop'], [
+      control('event', 'start', 'effect'),
+      {
+        id: 'event-payload-effect',
+        source: 'event',
+        sourceHandle: 'data:payload',
+        target: 'effect',
+        targetHandle: 'data:payload',
+        role: 'data'
+      },
+      control('effect', 'completed', 'stop')
+    ]);
+    const executeEffect = vi.fn().mockResolvedValue({ ok: true });
+    const catalogContext = record => record.commandId === 'handle'
+      ? { command: { input: { parameters: [{ name: 'payload', type: 'object', required: true }] } } }
+      : {};
+    const run = createProcessRun(definition, {
+      kind: 'control.domainEventTrigger',
+      eventId: 'queue.requested',
+      payload: { queueId: 'queue-1' }
+    });
+    const completed = await runProcessUntilSettled(run, definition, { executeEffect, catalogContext });
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      inputs: { payload: { queueId: 'queue-1' } }
+    }));
+  });
+
+  it('hydrates declared command entity outputs before downstream entity operations', async () => {
+    const definition = process([
+      { id: 'service', kind: 'effect.runCommand', commandId: 'createProject', trigger: { mode: 'manual' } },
+      { id: 'loop', kind: 'control.forEach', type: { base: 'entity', entityType: 'project', shape: 'item' } },
+      { id: 'modify', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'event' }, blocks: [] },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['service', 'loop', 'modify', 'stop'], [
+      control('service', 'completed', 'loop'),
+      {
+        id: 'service-project-loop',
+        source: 'service',
+        sourceHandle: 'data:project',
+        target: 'loop',
+        targetHandle: 'data:items',
+        role: 'data'
+      },
+      control('loop', 'each', 'modify'),
+      {
+        id: 'loop-project-modify',
+        source: 'loop',
+        sourceHandle: 'data:item',
+        target: 'modify',
+        targetHandle: 'data:entity',
+        role: 'data'
+      },
+      control('loop', 'done', 'stop')
+    ]);
+    const executeEffect = vi.fn()
+      .mockResolvedValueOnce({ entities: [{ type: 'project', id: 'project-1' }] })
+      .mockResolvedValueOnce({ ok: true });
+    const catalogContext = record => record.commandId === 'createProject'
+      ? { command: { output: { entities: ['project'] } } }
+      : {};
+    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect,
+      catalogContext,
+      data: { resolveEntityRef: async ref => ({ _id: ref.id, type: ref.type, identity: { name: 'Project' } }) }
+    });
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect.mock.calls[1][0].inputs.entity).toMatchObject({ _id: 'project-1', type: 'project' });
   });
 
   it('uses a typed manual event payload instead of an ambient current-entity node', async () => {

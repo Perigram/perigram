@@ -16,7 +16,10 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
   fixed-shape blocks. Open blocks are represented by one whole typed value:
   Lineage is a map of ancestry keys to ids, while Relations, Provenance,
   Attachments, Data, and Summary are structured objects. Domain entity field
-  inventories must not be unioned into these schemas.
+  inventories must not be unioned into these schemas. Structural fields also
+  declare readable, writable, and constructible authoring capabilities.
+  `identity.uid` is readable but never writable or constructible: the owning
+  entity service creates stable identity.
 - Registry: `createRegistry()` and `createCutkitRegistry()`
 - Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
   `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`

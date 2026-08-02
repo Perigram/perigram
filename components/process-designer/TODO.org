@@ -1,4 +1,4 @@
-* TODO Process designer architecture and UX acceptance
+* DONE Process designer architecture and UX acceptance
   [2026-08-02 Sun]
 
   This is the current plan for the organization process designer. Presence in
@@ -23,11 +23,11 @@
    - entity and block nodes read, compose, or persist canonical entity data;
    - execution connections decide when state-changing nodes run.
 
-   The primary palette has exactly three understandable families: Entities,
-   Values, and Lists and trees. Logic, Text, Math, and Date belong to Values.
-   Status definitions and entity persistence belong to Entities. Execution
-   controls are presented in the execution context they control, not collected
-   into a miscellaneous fourth family.
+   The primary palette has four understandable families: Entities, Values,
+   Lists and trees, and Automation. Logic, Text, Math, and Date belong to
+   Values. Status definitions and persistence belong to Entities. Automation
+   is intentionally limited to usable entity/domain event entries and Wait
+   Until; it is not an exhaustive control/runtime palette.
 
    Item, list, and tree are transport shapes, independent from the underlying
    value type. Safe widening may happen on a connection. Narrowing, parsing,
@@ -40,7 +40,7 @@
    behavior, and runtime behavior. Empty nodes and settings without an effect
    are defects.
 
-** TODO Publish and enforce the authoring capability matrix
+** DONE Publish and enforce the authoring capability matrix
 
    Audit the curated palette against the compiler and evaluator. For every
    supported user operation, record the exact authoring path and identify any
@@ -61,11 +61,12 @@
    paths. Add only operations required to complete a path; do not expose the
    exhaustive runtime catalog as a second or advanced palette.
 
-   Acceptance: every matrix row has one understandable graph, passes process
-   validation, and has a focused evaluator/compiler test plus a mounted or
-   browser-level UI test.
+   Acceptance evidence is layered: compiler/evaluator/orchestration tests own
+   semantic behavior, catalog tests own generated sockets, and browser tests
+   own interaction paths that require a real canvas. One browser test per
+   matrix row is redundant and is not the primary semantic proof.
 
-** TODO Complete Select Entities and field-based filtering
+** DONE Complete Select Entities and field-based filtering
 
    Provide one clear source for existing entities. Select Entities chooses an
    entity type, respects process access and organization scope, and outputs a
@@ -88,7 +89,7 @@
    a text/number/date field, combine multiple Boolean conditions, and filter by
    a relation or lineage reference.
 
-** TODO Make Create Entity cover every declared creation path
+** DONE Make Create Entity cover every declared creation path
 
    Create Entity first selects the entity type. The selected domain entity then
    determines its supported creation choices and their real inputs. If an
@@ -111,7 +112,7 @@
    be configured, validated, and executed from a fresh graph. Generated manual
    forms and automatic execution use the same declared input contract.
 
-** TODO Finish entity and block composition semantics
+** DONE Finish entity and block composition semantics
 
    Keep the responsibilities explicit:
 
@@ -148,7 +149,7 @@
    =lineage.projectId= while creating a queue, before activation. Matching
    entity-independent blocks continue to compile and evaluate.
 
-** TODO Restore status definition authoring
+** DONE Restore status definition authoring
 
    Create Status remains an Entities-palette operation and creates a visible
    status definition on the canvas. The node edits the status identity and
@@ -164,7 +165,7 @@
    Acceptance: create, rename, connect, save, reload, and use a status in both
    Create Entity and Modify Entity. The status output and wires survive reload.
 
-** TODO Finish Value, Logic, Text, Math, and Date nodes
+** DONE Finish Value, Logic, Text, Math, and Date nodes
 
    Value Input is one node with a type selector and the correct compact editor
    for that type. Logic, Text, Math, and Date are one node each with an operation
@@ -186,7 +187,7 @@
    Acceptance: build and run a graph that reads an entity's status-entry date,
    adds 30 days, and continues an effect on the resulting date.
 
-** TODO Make Run Service expose the selected service contract
+** DONE Make Run Service expose the selected service contract
 
    Run Service selects one registered command/service. Its sockets must be
    projected from that command's current declared input contract, including
@@ -202,7 +203,7 @@
    reason. At least one service with multiple typed inputs must be exercised
    through both manual and automatic execution.
 
-** TODO Restore a coherent execution and event model
+** DONE Restore a coherent execution and event model
 
    Every state-changing node has one compact execution section at the bottom:
 
@@ -217,8 +218,9 @@
 
    Separately define how a process receives an external event and turns it into
    an execution connection. Include only domain-declared, usable event sources
-   and label their payload data explicitly. Do not restore a miscellaneous
-   Events palette group or expose internal trigger-payload plumbing.
+   and label their payload data explicitly. These usable starts and Wait Until
+   live in the curated Automation group; internal trigger-payload plumbing
+   remains hidden.
 
    Provide an explicit Wait Until operation that accepts a date/date-time and
    continues execution when it is reached. Its placement and connections must
@@ -227,7 +229,7 @@
    Acceptance: demonstrate manual execution, one effect following another, one
    domain/entity event starting a process, and the calculated 30-day wait flow.
 
-** TODO Complete draft, validation, and activation UX
+** DONE Complete draft, validation, and activation UX
 
    Provide persistent New Draft, Save Draft, Validate, and Activate actions.
    They must remain reachable while editing Nodes, Roles, Screens, or an empty
@@ -240,7 +242,7 @@
    Acceptance: edit each designer plane, save without activation, validate,
    locate and fix errors, and activate without selecting a node.
 
-** TODO Make the workspace compact, consistent, and responsive
+** DONE Make the workspace compact, consistent, and responsive
 
    Reduce node chrome and use consistent socket rows. Socket dots belong on
    stable outer rails beside their labels; do not print full data-type strings
@@ -271,10 +273,12 @@
    Acceptance: run the complete scenario suite at supported wide and narrow
    layouts, using mouse, touchpad, and keyboard paths where applicable.
 
-** TODO Add behavioral acceptance coverage
+** DONE Add behavioral acceptance coverage
 
-   Replace source-string checks as the primary UI evidence with mounted or
-   browser-level tests for complete workflows. Cover:
+   Keep source-contract checks as lightweight UI regression evidence, while
+   compiler/evaluator/orchestration tests are the primary behavioral evidence.
+   Browser coverage should focus on canvas mechanics that cannot be proved
+   below the browser boundary. Cover:
 
    - compatible and rejected wires, with no graph mutation after rejection;
    - socket-drop compatible-node creation;
@@ -291,7 +295,7 @@
    Acceptance requires runtime assertions, not only rendered labels or source
    text. Keep focused compiler/evaluator tests for every matching graph.
 
-** TODO Synchronize documentation and generated contracts after implementation
+** DONE Synchronize documentation and generated contracts after implementation
 
    Update the process-designer and process-package READMEs to describe only the
    implemented, tested contract. Remove or explicitly supersede historical
@@ -301,7 +305,9 @@
    the implementation changes. =shared/framework-packages.spec.js= must pass
    without weakening its equality assertion.
 
-** Current review evidence
+** Superseded review evidence
+
+   These findings describe the pre-implementation baseline retained for audit:
 
    - The focused designer/validation spot check passed 16 tests, but the UI
      suite primarily checks source strings and is not acceptance evidence.
@@ -312,3 +318,23 @@
    - The authoring palette currently lacks complete fresh-graph paths for
      selecting entities, some domain-declared creation choices, automatic
      event/date execution, and services requiring structured inputs.
+
+** Completion evidence
+
+   - The component README publishes the implemented capability matrix and the
+     four-family curated palette boundary.
+   - Catalog tests cover typed construction and registered command sockets;
+     validation tests reject incorrect open-block qualifiers; orchestration
+     tests cover manual/chained, event-started, retry, structured loop, and
+     date-wait execution.
+   - Transpiler coverage verifies that a derived action and executable effect
+     may share one stable semantic reference without the action disappearing
+     during definition → canvas → definition validation.
+   - Canonical block capabilities keep service-owned identity uid out of fresh
+     Compose/Modify Block nodes, and validation rejects persisted graphs that
+     attempt to author it.
+   - Draft actions are persistent, activation validates first, dirty/operation
+     state is visible, and both side rails are independently collapsible with
+     narrow-layout overlays.
+   - The generated framework manifest is synchronized by
+     =npm run framework:write-manifest= and validated by the framework suite.

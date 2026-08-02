@@ -23,16 +23,24 @@ never select or encode an entity type. Create and Update validate connected
 block fields against their target entity policy at the consumer boundary.
 
 The grouped authoring palette is a curated framework projection, separate from
-the exhaustive runtime catalog. It exposes Entities, Values, and Lists and
-trees, with stable localization/description ids and meaningful creation
-presets. Entities includes block compose/modify/read operations, entity
-create/modify/deconstruct operations, registered commands, lifecycle statuses,
-and registered commands. Domain construction producers remain runtime/domain
-contracts and do not become one-off palette node kinds. Runtime-only conversions, predicates,
-patches, standalone trigger nodes, and trigger-payload plumbing are not palette
-entries. Applications may change layout, but entity types, producers, commands,
-attachment kinds, blocks, and fields always come from the supplied domain
-contract.
+the exhaustive runtime catalog. It exposes Entities, Values, Lists and trees,
+and a deliberately small Automation group, with stable localization and
+description ids. Automation contains only declared entity/domain event entries
+and Wait Until. Create Entity resolves either canonical block sockets or the
+selected domain construction mode's typed inputs. Run Service resolves the
+selected command definition into typed entity/parameter inputs and typed
+command-result outputs. Producer effects, conversions, predicates, patches,
+and trigger-payload plumbing remain runtime-only. Applications may change
+layout, but entity types, construction modes, commands, attachment kinds,
+blocks, and fields always come from the supplied domain contract.
+Legacy service cards that only registered access/billing configuration and had
+no graph edges are removed from the canvas during v3 migration; the service
+definition remains in the definition plane. Connected legacy service cards are
+migrated to Run Service and must satisfy the current command socket contract.
+V3 migration preserves explicit entity/domain event entry nodes. Definitions
+from the short-lived embedded-event contract are rewritten back to an entry
+node plus an automatic effect connection; entity-change payloads are wired to
+the effect's entity input.
 
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,
@@ -47,6 +55,11 @@ assignment records.
 `validateRoundTrip()` verifies that `definition -> canvas -> definition` does
 not change process semantics before activation. Vue Flow node positions are
 presentation data; runtime behavior must come from the semantic records.
+Canvas projection identifies records by both node type and stable semantic
+reference. When a derived action and its executable effect share an id, the
+saved executable node keeps its graph id and the missing definition-plane node
+receives a namespaced canvas id. Both retain the same `data.refId`, so neither
+record shadows or deletes the other during round-trip validation.
 
 Process lifecycle profiles and action nodes compile directly to normalized
 `@cutkit/workflows` v2 state machines. Entity profiles may provide a full

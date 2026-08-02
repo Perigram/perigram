@@ -97,6 +97,17 @@ export async function runProcessUntilSettled(run, definition, environment = {}, 
 
 async function executeOperationalNode({ run, process, node, record, current, step, environment }) {
   const inputs = await resolveNodeInputs(process, node, run, environment, current);
+  if (record.kind.endsWith('Trigger')) {
+    const payload = run.trigger?.payload ?? run.trigger?.entity ?? run.trigger;
+    enqueueEdges(run, outgoingControl(process, node.id, 'start'), {
+      ...current,
+      values: {
+        ...(current.values || {}),
+        [`${node.id}:payload`]: createDataPacket(structuredClone(payload))
+      }
+    });
+    return;
+  }
   if (record.kind.startsWith('effect.')) {
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
     const result = await environment.executeEffect({
@@ -108,11 +119,12 @@ async function executeOperationalNode({ run, process, node, record, current, ste
       run
     });
     step.output = structuredClone(result);
+    const outputValues = await effectOutputValues(node.id, record, result, environment);
     enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {
       ...current,
       values: {
         ...(current.values || {}),
-        [`${node.id}:result`]: createDataPacket(result)
+        ...outputValues
       }
     });
     return;
@@ -179,6 +191,26 @@ async function executeOperationalNode({ run, process, node, record, current, ste
     return;
   }
   throw new Error(`Token reached non-operational node ${record.kind}`);
+}
+
+async function effectOutputValues(nodeId, record, result, environment) {
+  const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
+  const values = {};
+  for (const port of ports.outputs.filter(item => item.role === 'data')) {
+    let value = result;
+    if (record.kind === 'effect.runCommand' && port.id !== 'result') {
+      if (port.id.startsWith('attachment:')) {
+        value = (result?.attachments || []).filter(item => item.kind === port.id.slice('attachment:'.length));
+      } else {
+        const refs = (result?.entities || []).filter(item => item.type === port.id);
+        value = environment.data?.resolveEntityRef
+          ? await Promise.all(refs.map(ref => environment.data.resolveEntityRef(ref)))
+          : refs;
+      }
+    }
+    values[`${nodeId}:${port.id}`] = createDataPacket(value, port.type?.shape);
+  }
+  return values;
 }
 
 async function resolveNodeInputs(process, node, run, environment, tokenContext) {
@@ -282,14 +314,16 @@ function processData(definition) {
 function findTriggerNode(process, trigger) {
   const nodes = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[recordId(node)] || {};
-    return record.kind?.startsWith('effect.')
-      && (record.trigger?.mode || 'manual') === 'manual';
+    return record.kind?.endsWith('Trigger')
+      || (record.kind?.startsWith('effect.') && (record.trigger?.mode || 'manual') === 'manual');
   });
   const match = trigger.nodeId
     ? nodes.find(node => String(node.id) === String(trigger.nodeId))
     : nodes.find(node => {
       const record = process.processNodes[recordId(node)];
       if (trigger.kind && record.kind !== trigger.kind) return false;
+      if (trigger.eventId && record.eventId !== trigger.eventId) return false;
+      if (trigger.entityType && record.entityType !== trigger.entityType) return false;
       if (trigger.mode && record.trigger?.mode !== trigger.mode) return false;
       return true;
     });

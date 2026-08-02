@@ -2292,6 +2292,13 @@
     "validate": "Проверить",
     "activate": "Активировать",
     "apply": "Применить",
+    "saved": "Сохранено",
+    "saving": "Сохранение",
+    "unsaved": "Есть несохранённые изменения",
+    "validating": "Проверка",
+    "activating": "Активация",
+    "validationFailed": "Проверка не пройдена",
+    "event": "Событие",
     "palette": "Палитра",
     "frameAll": "Показать все узлы",
     "frameSelection": "Показать выбранные узлы",
@@ -2300,7 +2307,8 @@
       "entities": "Сущности",
       "values": "Значения",
       "listTree": "Списки и деревья",
-      "events": "События"
+      "events": "События",
+      "automation": "Автоматизация"
     },
     "paletteItems": {
       "modifyEntity": "Изменить сущность",

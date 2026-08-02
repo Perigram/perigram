@@ -31,10 +31,11 @@ export function migrateProcessDataflowDefinition(definition = {}, domain = {}) {
   if (Number(process.dataflowVersion) === PROCESS_DATAFLOW_VERSION && isV3Graph(process)) {
     const composed = replaceComposedEntityEffects(process, domain);
     const ambient = replaceAmbientEntityEffectInputs(composed.process);
-    const triggers = embedEffectTriggers(ambient.process);
+    const restored = restoreEmbeddedEventTriggers(ambient.process);
+    const triggers = embedEffectTriggers(restored.process);
     const modes = collapseEffectTriggerModes(triggers.process);
     const blocks = migrateEntityBlockContract(modes.process, domain);
-    if (!composed.changed && !ambient.changed && !triggers.changed && !modes.changed && !blocks.changed) return { changed: false, value: definition };
+    if (!composed.changed && !ambient.changed && !restored.changed && !triggers.changed && !modes.changed && !blocks.changed) return { changed: false, value: definition };
     const migrated = { ...process, ...blocks.process, compiled: null };
     return {
       changed: true,
@@ -517,9 +518,7 @@ function embedEffectTriggers(process = {}) {
   for (const node of nodes) {
     const trigger = recordForNode(node.id);
     const mode = ({
-      'control.manualTrigger': 'manual',
-      'control.entityChangedTrigger': 'entityChanged',
-      'control.domainEventTrigger': 'domainEvent'
+      'control.manualTrigger': 'manual'
     })[trigger?.kind];
     if (!mode) continue;
     const controlEdges = edges.filter(edge => (
@@ -578,6 +577,56 @@ function embedEffectTriggers(process = {}) {
       graph: { ...(process.graph || {}), nodes, edges }
     }
   };
+}
+
+function restoreEmbeddedEventTriggers(process = {}) {
+  const records = structuredClone(process.processNodes || {});
+  const nodes = structuredClone(process.graph?.nodes || []);
+  const edges = structuredClone(process.graph?.edges || []);
+  let changed = false;
+  for (const node of nodes.filter(item => item.type === 'processNode')) {
+    const effect = records[String(node.data?.refId || node.id)];
+    if (!effect?.kind?.startsWith('effect.') || !['entityChanged', 'domainEvent'].includes(effect.trigger?.mode)) continue;
+    const triggerId = uniqueMigrationId(records, `trigger:${effect.id || node.id}`);
+    const entityChanged = effect.trigger.mode === 'entityChanged';
+    records[triggerId] = normalizeRecord({
+      kind: entityChanged ? 'control.entityChangedTrigger' : 'control.domainEventTrigger',
+      ...(entityChanged && effect.entityType ? { entityType: effect.entityType } : {}),
+      ...(!entityChanged && (effect.eventId || effect.trigger.eventId)
+        ? { eventId: effect.eventId || effect.trigger.eventId }
+        : {})
+    }, triggerId);
+    nodes.push({
+      id: triggerId,
+      type: 'processNode',
+      position: { x: Number(node.position?.x || 0) - 300, y: Number(node.position?.y || 0) },
+      data: { refId: triggerId }
+    });
+    edges.push({
+      id: `${triggerId}-${node.id}-start`,
+      source: triggerId,
+      sourceHandle: 'control:start',
+      target: node.id,
+      targetHandle: 'control:in',
+      role: 'control'
+    });
+    if (entityChanged) {
+      edges.push({
+        id: `${triggerId}-${node.id}-payload`,
+        source: triggerId,
+        sourceHandle: 'data:payload',
+        target: node.id,
+        targetHandle: 'data:entity',
+        role: 'data'
+      });
+    }
+    effect.trigger = { mode: 'event' };
+    delete effect.eventId;
+    changed = true;
+  }
+  return changed
+    ? { changed: true, process: { ...process, processNodes: records, graph: { ...(process.graph || {}), nodes, edges } } }
+    : { changed: false, process };
 }
 
 function replaceAmbientEntityEffectInputs(process = {}) {
@@ -1316,6 +1365,10 @@ function migrateGraphNode(node, sourceRef, process) {
   if (node.type === 'service') {
     const service = process.services?.[sourceRef];
     if (!service) throw new Error(`Cannot migrate service ${sourceRef}: record is missing`);
+    const participatesInDataflow = (process.graph?.edges || []).some(edge => (
+      String(edge.source) === String(node.id) || String(edge.target) === String(node.id)
+    ));
+    if (!participatesInDataflow) return null;
     return {
       refId: `effect:${sourceRef}`,
       record: normalizeRecord({ ...service, kind: 'effect.runCommand', legacyServiceId: sourceRef }, `effect:${sourceRef}`)

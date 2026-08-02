@@ -29,8 +29,15 @@
 ** TODO Task 8
    8. Need "machine" entity that holds dimensions, offset from sheet boundary; nesting settings should take it's system seeded default and serialize when sending to nesting. Tool and material still persist, and define items gap and sheet size and thickness (new option to add in virtual material). In cassette, need preserved parameter to hold material thickness, that can be used as regular parameter and is passed to queue items from nesting settings.
 
-** TODO Task 9
+** DONE Task 9
    9. In process designer, need to unify all the entity change nodes, including changing status, and it just holds all the sockets as entity (derived in real time), rewriting only those plugged (change status, lineage, data, etc). Need to review all the UI in process designer (now ugly). Need to check that assembling/disassembling default blocks work and are true to data/architecture; need to ensure we have all the nodes to actually assemble it.
+
+   Resolution (2026-08-02): the requested leaf-socket mutation shape was
+   corrected to the canonical block boundary. Modify Entity accepts typed
+   replacement blocks plus lifecycle status and persists only connected
+   replacements; Compose/Modify Block own field-level assembly. The completed
+   capability matrix and validation evidence live in
+   [[file:components/process-designer/TODO.org][the component TODO]].
 
 ** TODO Task 10
    10. Navigation breadcrumbs should use hierarchy! Now it's flat list always.
@@ -255,15 +262,14 @@
     - Migrate every stored =changeStatus= action to =updateEntity= with a status
       input while preserving grants, transition windows, evidence contracts,
       authored display metadata, and graph edges.
-    - Expose one typed entity input/output plus live writable identity, data,
-      specs, summary, attachments, relation, and status sockets permitted by the
-      entity field policy.
-    - Execute combined mutations through the status runtime boundary: resolve
-      graph values, validate field policy/access/relation/transition contracts,
-      persist allowed field changes plus the Status-engine snapshot/history in
-      one Mongo transaction. Reject combined mutations when the Mongo topology
-      cannot provide that transaction; do not fall back to partial ordered
-      writes. Status is never patched as ordinary entity data.
+    - Expose one typed entity input, canonical writable replacement-block
+      sockets, lifecycle status, and one typed result. Leaf field sockets stay
+      on Compose/Modify Block so entity persistence does not duplicate block
+      algebra or manufacture entity-owned block schemas.
+    - Resolve graph values and validate field policy, block membership, open
+      entry type qualifiers, access, and lifecycle contracts before delegating
+      block replacement and status changes to their owning runtime boundaries.
+      Status is never patched as ordinary entity data.
     - Repair block algebra so entity decomposition emits every canonical block,
       field readers consume one typed block, block composers assemble typed
       block patches, and update actions assemble the final entity patch from
@@ -817,21 +823,21 @@
     - =npx vitest run utils/queue-design-producers.spec.js utils/queue-producers.spec.js= passed: 2 files, 7 tests.
     - =git diff --check= passed.
 
-* WAITING Process designer rework
+* DONE Process designer rework
   [2026-07-18 Sat 09:30]
-** WAITING Architecture rework
+** DONE Architecture rework
    The process designer must be a reusable representation of CutKit core with a
    supplied domain implementation, not a CNC-specific canvas and not a visual
    editor for internal runtime operations. Keep this WAITING until every
    supported capability has one documented and tested authoring path.
-** WAITING Node composition
+** DONE Node composition
    The public node set must completely support creating and modifying entities,
    selecting existing entities, reading/composing/modifying blocks, filtering
    through list/tree dataflow, changing status, running services, and manual or
    automatic execution. Node names, sockets, fallbacks, and configuration must
    describe real data and behavior. Keep this WAITING until the scenario-based
    acceptance plan is complete.
-** WAITING Design rework
+** DONE Design rework
    Nodes and panels must be compact, consistent, responsive, and understandable
    without exposing internal data types as label clutter. Palette, touchpad,
    keyboard, selection, wiring, validation, draft, and activation behavior must

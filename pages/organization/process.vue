@@ -86,11 +86,11 @@
         </Message>
       </div>
 
-      <div v-if="!nodes.length" class="absolute left-[20rem] right-[28rem] top-24 z-10 flex justify-center">
+      <div v-if="!nodes.length" class="absolute inset-x-4 top-24 z-10 flex justify-center lg:left-[20rem] lg:right-[28rem]">
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <div class="absolute left-3 top-3 z-10 flex max-h-[calc(100%-1.5rem)] w-72 flex-col gap-3 overflow-y-auto rounded-ui border border-content-border bg-content/95 p-3 shadow-card backdrop-blur">
+      <div v-if="paletteOpen" class="absolute left-3 top-16 z-20 flex max-h-[calc(100%-5rem)] w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 overflow-y-auto rounded-ui border border-content-border bg-content/95 p-3 shadow-card backdrop-blur lg:top-3">
         <div class="flex items-center gap-1">
           <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
         </div>
@@ -113,7 +113,8 @@
         </div>
       </div>
 
-      <div class="absolute left-1/2 top-3 z-10 flex min-w-0 max-w-[calc(100%-32rem)] -translate-x-1/2 items-center justify-center gap-1 rounded-ui border border-content-border bg-content p-1 shadow-card">
+      <div class="absolute left-3 right-3 top-3 z-30 flex min-w-0 items-center justify-center gap-1 overflow-x-auto rounded-ui border border-content-border bg-content p-1 shadow-card lg:left-1/2 lg:right-auto lg:max-w-[calc(100%-8rem)] lg:-translate-x-1/2">
+          <Button icon="pi pi-bars" text size="small" :aria-label="$t('processDesigner.palette')" :aria-pressed="paletteOpen" @click="paletteOpen = !paletteOpen" />
           <Select
             v-if="processOptions.length"
             v-model="selectedProcessId"
@@ -125,11 +126,16 @@
             size="small"
             @change="selectProcessDefinition"
           />
+          <Tag :value="draftStateLabel" :severity="isDirty ? 'warn' : 'secondary'" size="small" />
+          <Button icon="pi pi-file-plus" :label="$t('processDesigner.newDraft')" size="small" severity="secondary" outlined @click="createDraft" />
+          <Button icon="pi pi-save" :label="$t('common.save')" size="small" :loading="savingDraft" :disabled="!isDirty && !isActiveProcess" @click="saveDraft" />
+          <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :loading="validatingDraft" @click="validateDraft" />
           <Button icon="pi pi-users" :aria-label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
           <Button icon="pi pi-check" :aria-label="$t('processDesigner.apply')" size="small" :loading="applyingProcess" :disabled="!draft?._id" @click="applyProcess" />
+          <Button icon="pi pi-sliders-h" text size="small" :aria-label="$t('processDesigner.inspector')" :aria-pressed="inspectorOpen" @click="inspectorOpen = !inspectorOpen" />
       </div>
 
-      <aside class="absolute bottom-3 right-3 top-3 z-10 flex w-[26rem] max-w-[calc(100%-19rem)] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
+      <aside v-if="inspectorOpen" class="absolute bottom-3 right-3 top-16 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card lg:top-3 lg:max-w-[calc(100%-19rem)]">
         <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
@@ -471,6 +477,14 @@
                     <label>{{ $t('processDesigner.service') }}</label>
                     <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
                   </div>
+                  <div v-if="selectedProcessNode.kind === 'effect.createEntity'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.constructionMode') }}</label>
+                    <Select v-model="selectedProcessNode.construction.mode" :options="constructionModeOptions(selectedProcessNode.entityType)" option-label="label" option-value="value" @change="syncNodeData" />
+                  </div>
+                  <div v-if="selectedProcessNode.kind === 'control.domainEventTrigger'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.event') }}</label>
+                    <Select v-model="selectedProcessNode.eventId" :options="designer.eventOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
+                  </div>
                   <div v-if="selectedProcessNode.kind === 'effect.generateAttachment'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.attachmentKind') }}</label>
                     <Select v-model="selectedProcessNode.attachmentKind" :options="designer.attachmentKindOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
@@ -680,7 +694,6 @@
                   </Panel>
                 </template>
 
-                <Button icon="pi pi-save" :label="$t('common.save')" size="small" @click="saveDraft" />
               </div>
               <StateBlock v-else :message="$t('processDesigner.selectNode')" />
             </TabPanel>
@@ -905,6 +918,11 @@ const selectedNodeId = ref(null);
 const selectedEdgeId = ref(null);
 const validation = ref(null);
 const applyingProcess = ref(false);
+const savingDraft = ref(false);
+const validatingDraft = ref(false);
+const savedDraftSignature = ref('');
+const paletteOpen = ref(true);
+const inspectorOpen = ref(true);
 const selectedRoleId = ref(null);
 const selectedPrincipalId = ref(null);
 const selectedScreenId = ref(null);
@@ -1097,6 +1115,13 @@ const defaultEdgeOptions = { type: 'default' };
 
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
+const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
+const draftStateLabel = computed(() => {
+  if (applyingProcess.value) return t('processDesigner.activating');
+  if (savingDraft.value) return t('processDesigner.saving');
+  if (validatingDraft.value) return t('processDesigner.validating');
+  return isDirty.value ? t('processDesigner.unsaved') : t('processDesigner.saved');
+});
 const processOptions = computed(() => processDefinitions.value.map(process => ({
   label: [
     normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id),
@@ -1288,23 +1313,38 @@ async function createDraft() {
 }
 
 async function saveDraft() {
-  syncNodeData();
-  if (!draft.value?._id || isActiveProcess.value) return createDraft();
-  const updated = await $fetch(`/api/process-definitions/${draft.value._id}`, {
-    method: 'PATCH',
-    body: { data: serializeProcess() }
-  });
-  upsertProcessDefinition(updated);
-  setDraft(updated);
+  savingDraft.value = true;
+  try {
+    syncNodeData();
+    if (!draft.value?._id || isActiveProcess.value) return await createDraft();
+    const updated = await $fetch(`/api/process-definitions/${draft.value._id}`, {
+      method: 'PATCH',
+      body: { data: serializeProcess() }
+    });
+    upsertProcessDefinition(updated);
+    setDraft(updated);
+    return updated;
+  } finally {
+    savingDraft.value = false;
+  }
 }
 
 async function validateDraft() {
-  await saveDraft();
-  validation.value = await $fetch(`/api/process-definitions/${draft.value._id}/validate`, { method: 'POST' });
+  validatingDraft.value = true;
+  try {
+    await saveDraft();
+    validation.value = await $fetch(`/api/process-definitions/${draft.value._id}/validate`, { method: 'POST' });
+    return validation.value;
+  } finally {
+    validatingDraft.value = false;
+  }
 }
 
 async function activateDraft() {
   await saveDraft();
+  const result = await $fetch(`/api/process-definitions/${draft.value._id}/validate`, { method: 'POST' });
+  validation.value = result;
+  if (!result.ok) throw new Error(result.errors?.[0] || t('processDesigner.validationFailed'));
   const activated = await $fetch(`/api/process-definitions/${draft.value._id}/activate`, { method: 'POST' });
   upsertProcessDefinition(activated);
   setDraft(activated);
@@ -1352,8 +1392,24 @@ function setDraft(value) {
   selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
   selectedPrincipalId.value = Object.keys(value?.data?.servicePrincipals || {})[0] || null;
   selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
+  savedDraftSignature.value = designerSignature();
   nextTick(() => setViewport(canvas.viewport || { x: 0, y: 0, zoom: 1 }, { duration: 0 }));
   recomputeProcessPreview();
+}
+
+function designerSignature() {
+  return JSON.stringify({
+    data: draft.value?.data || null,
+    nodes: nodes.value.map(node => ({ id: node.id, type: node.type, position: node.position, data: { refId: node.data?.refId } })),
+    edges: edges.value.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
+      role: edge.role
+    }))
+  });
 }
 
 function addNode(item, position = activeViewportCenter()) {
@@ -2037,8 +2093,7 @@ function createProcessNode(id, kind = 'source.literalItem') {
     outputs: []
   };
   if (kind === 'effect.createEntity') {
-    node.entityType = entityTypeOptions.value
-      .find(option => !designer.construction(option.value).derived)?.value || '';
+    node.entityType = entityTypeOptions.value[0]?.value || '';
   }
   if (kind.startsWith('effect.')) {
     node.trigger = { mode: 'manual' };
@@ -2063,7 +2118,7 @@ function createProcessNode(id, kind = 'source.literalItem') {
         : 'readable';
     const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind);
     const availableFields = (structural ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType))
-      .filter(field => structural || field[access] !== false);
+      .filter(field => field[access] !== false);
     node.block = availableFields[0]?.block || designer.blocksForEntity(node.entityType)[0]?.id || designer.blocks[0]?.id || '';
     if (kind === 'record.getField') {
       node.path = availableFields.find(field => field.block === node.block)?.value || '';
@@ -2693,7 +2748,7 @@ function syncProcessNode(node = {}) {
     node.legacyActionId ||= node.id;
     node.entryTriggerId = node.id;
   }
-  if (node.kind === 'effect.runProducer') syncProcessNodeConstruction(node);
+  if (['effect.createEntity', 'effect.runProducer'].includes(node.kind)) syncProcessNodeConstruction(node);
   if (['effect.createEntity', 'effect.runProducer'].includes(node.kind)) {
     node.status ||= {};
     node.status.to ||= initialStatusForEntity(node.entityType);
@@ -2770,7 +2825,8 @@ function syncProcessNode(node = {}) {
       delete node.compositionMode;
       delete node.compositionValueBase;
       delete node.entries;
-      const available = designer.fieldsForBlock(node.block);
+      const access = node.kind === 'record.composeBlock' ? 'constructible' : 'writable';
+      const available = designer.fieldsForBlock(node.block).filter(field => field[access] !== false);
       const inBlock = available.filter(field => field.block === node.block);
       node.fields = (node.fields || []).filter(path => inBlock.some(field => field.value === path));
       if (!node.fields.length && inBlock[0]) node.fields = [inBlock[0].value];
@@ -2778,7 +2834,9 @@ function syncProcessNode(node = {}) {
     delete node.fieldSchemas;
   }
   if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
-    node.blocks = node.kind === 'effect.createEntity'
+    node.blocks = node.kind === 'effect.createEntity' && node.construction?.mode !== 'genericCreate'
+      ? []
+      : node.kind === 'effect.createEntity'
       ? constructibleEntityBlocks(node.entityType)
       : writableEntityBlocks(node.entityType);
     node.fields = [];
@@ -2839,7 +2897,7 @@ function processNodeFieldOptions(node = {}) {
       : 'readable';
   const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(node.kind);
   return (structural ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(node.entityType))
-    .filter(field => structural || field[access] !== false)
+    .filter(field => field[access] !== false)
     .filter(field => !node.block || field.block === node.block)
     .map(field => ({
       label: field.i18n ? `${t(field.i18n)} · ${field.value}` : field.label,
@@ -2900,7 +2958,8 @@ function catalogContext(node = {}) {
       ? designer.fieldsForBlock(node.block).find(field => field.value === node.path) || null
       : designer.fieldsForEntity(node.entityType).find(field => field.value === node.path) || null,
     fieldSchemas: structural ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(node.entityType),
-    blockComposition: openBlockComposition(node)
+    blockComposition: openBlockComposition(node),
+    command: designer.domain.commands?.[node.commandId] || null
   };
 }
 
@@ -2955,8 +3014,7 @@ function writableEntityBlocks(entityType = '') {
 }
 
 function processEntityTypeOptions(node = {}) {
-  if (node.kind !== 'effect.createEntity') return entityTypeOptions.value;
-  return entityTypeOptions.value.filter(option => !designer.construction(option.value).derived);
+  return entityTypeOptions.value;
 }
 
 function processPortTypeLabel(type = 'data') {
@@ -3908,9 +3966,12 @@ function roleAccessSummary(roleId) {
 function onConnect(connection) {
   contextPalette.value.socket = null;
   syncNodeData();
+  const processNodeSnapshot = structuredClone(draft.value?.data?.processNodes || {});
   inferGenericNodeTypeFromConnection(connection);
   const compatibility = connectionCompatibility(connection);
   if (!compatibility.ok) {
+    draft.value.data.processNodes = processNodeSnapshot;
+    syncNodeData();
     toast.add({
       severity: 'warn',
       summary: t('processDesigner.incompatiblePorts'),

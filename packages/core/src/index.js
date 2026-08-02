@@ -264,7 +264,7 @@ export const CANONICAL_ENTITY_BLOCKS = Object.freeze([
 
 export const CANONICAL_BLOCK_SCHEMAS = Object.freeze({
   identity: Object.freeze([
-    canonicalBlockField('identity.uid', 'string'),
+    canonicalBlockField('identity.uid', 'string', { writable: false, constructible: false }),
     canonicalBlockField('identity.name', 'string'),
     canonicalBlockField('identity.slug', 'string'),
     canonicalBlockField('identity.serial', 'string'),
@@ -316,11 +316,20 @@ export const CANONICAL_BLOCK_COMPOSITION = Object.freeze({
 });
 
 function canonicalBlockField(path, base, qualifiers = {}) {
+  const {
+    readable = true,
+    writable = true,
+    constructible = true,
+    ...typeQualifiers
+  } = qualifiers;
   return Object.freeze({
     path,
     block: String(path).split('.')[0],
     label: path,
-    type: Object.freeze(canonicalValueType(base, qualifiers))
+    type: Object.freeze(canonicalValueType(base, typeQualifiers)),
+    readable,
+    writable,
+    constructible
   });
 }
 

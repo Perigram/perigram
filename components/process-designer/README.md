@@ -13,7 +13,9 @@ authored status id updates the referenced value without breaking the wire.
 ## Palette and node concerns
 
 The runtime catalog remains exhaustive, but it is not the authoring palette.
-The palette has three non-overlapping operation concerns:
+The palette has four non-overlapping authoring concerns. The fourth is not a
+runtime-catalog dump: it contains only usable process entry and suspension
+operations.
 
 - **Entities** owns typed block assembly and persistence. Compose Block creates
   one canonical block from selected fields. Modify Block copies a connected
@@ -23,21 +25,29 @@ The palette has three non-overlapping operation concerns:
   status; Modify Entity accepts the current entity, replacement blocks, and
   status, and changes only connected blocks. Neither persistence node exposes
   leaf constructor fields.
-- Registered commands use the single Run Service operation. Domain construction
-  producers remain runtime/domain contracts and do not leak into the palette as
-  one-off upload/source nodes.
+- Create Entity first selects the domain entity, then the domain-declared
+  construction mode. Generic construction consumes canonical blocks; typed
+  construction consumes only that mode's declared inputs. Producer identifiers
+  remain runtime/domain contracts and do not leak into the palette as one-off
+  upload/source nodes.
+- Select Entities is the organization-scoped source for an existing typed
+  entity list. Registered commands use the single Run Service operation, whose
+  sockets are projected from the selected command's entity, parameter, and
+  output contracts.
 - **Values** contains one typed value input and one operation-switching node
   each for logic/comparison, text, math, and date-time work.
 - **Lists and trees** contains the Grasshopper-style structure operations:
   list construction/concatenation/index/slice/count/filter/sort/distinct/group,
   and tree flatten/graft/simplify/branch/zip/unzip/cross/transpose.
+- **Automation** contains only Entity changed, Domain event, and Wait Until.
+  Entry nodes expose a labelled payload and execution output. Wait Until
+  consumes a date-time plus execution and resumes through its output.
 
-Events are not data operations and therefore are not a palette family.
 Every effect has one bottom execution switch: Manual exposes the operation to
 authorized users, while Automatic exposes an incoming event socket. Date
 scheduling is composed explicitly with date values and a wait-until control
-before that socket; entity and domain subscriptions are process-entry concerns,
-not effect modes. Every effect exposes one `completed` event there. A failed
+before that socket; entity and domain subscriptions remain entry nodes rather
+than effect modes. Every effect exposes one `completed` event there. A failed
 effect follows its retry policy and then fails the run; it is not a second
 graph branch. Event handles use the same
 left-to-right direction as data sockets instead of pointing out of the bottom
@@ -48,6 +58,24 @@ There is no advanced reveal and no separate “starts and inputs”, “process
 flow”, or “selection and filtering” taxonomy. Filtering is ordinary dataflow:
 deconstruct/read a field over an entity list, evaluate it with Logic to obtain
 a Boolean mask, then feed that mask and the original list to Filter.
+
+## Authoring capability matrix
+
+| User goal | Authoring path | Runtime boundary |
+|---|---|---|
+| Create an entity | Value/block nodes → Create Entity; select a typed construction mode when declared | Entity service or declared construction service |
+| Select and filter entities | Select Entities → Deconstruct/Get Block/Get Field → Logic → Filter List | Organization-scoped readable entity query |
+| Read entity structure | Entity → Deconstruct Entity or Get Block → Get Field | Pure evaluator |
+| Compose or modify a block | Values → Compose Block, or Block + values → Modify Block | Pure evaluator with canonical block schema |
+| Persist replacements/status | Entity/block/status → Modify Entity | Entity field policy and Status engine |
+| Run a service | Typed values/entities → Run Service | Registered command handler |
+| Run manually or chain effects | Manual effect, or completion → Automatic effect | Durable orchestration |
+| Start from an external event | Entity changed/Domain event → Automatic effect | Declared event trigger and payload |
+| Continue at a future time | Date → Wait Until → Automatic effect | Durable wake time |
+| Reshape collections | List/tree operations with explicit packet shapes | Pure data-tree evaluator |
+
+The exhaustive runtime catalog, producer effects, predicates, patches,
+conversions, and trigger-payload helpers have no direct authoring entry.
 
 Runtime-only payload extraction, casts, parsing, nullable removal,
 entity-reference conversion, JSON conversion, predicates, and patch assembly
@@ -69,13 +97,22 @@ An open socket is a composition affordance, not an error. Missing required
 inputs are reported when validation is requested, not as warning badges on
 every new node.
 
+Fallback/default policy is omission-first. A connected value wins; otherwise
+an explicit authored `inputDefaults` value is used. If neither exists, an
+optional input is omitted, while a required input fails validation. Defaults
+declared by a construction mode or command are applied only by that owning
+domain/runtime contract—generic block authoring does not guess them. Generated
+identity uid, Mongo `_id`, origin, status history, and other service-owned
+fields have no authoring fallback and cannot be composed or modified. Initial
+status is the separate lifecycle input.
+
 Only configuration that defines the operation or its ports stays on the node:
 value/type, entity, field, block, operation, trigger identity/mode, and socket
 fallback. Access grants, selected compose/modify field sets, retry policy, and
 other secondary record policy live in the contextual inspector. A status node
 still authors its identity and exposes its output on the canvas; color, icon,
 and lifecycle evidence schemas are edited in the inspector.
-The palette and inspector are independently scrollable. Palette search matches
+The palette and inspector are independently collapsible and scrollable. Palette search matches
 localized job names and descriptions as well as internal kinds. The persistent
 palette uses a readable two-column grid with grouped headings; operation
 descriptions are available on hover instead of occupying canvas space.
@@ -151,6 +188,13 @@ Entity selectors use the shared `EntitySelect`/`EntityMultiSelect` contract:
 selected entity cards render outside the input and the compact change chevron
 remains a separate trigger. Process-node field/type selectors use ordinary
 PrimeVue controls because their values are schemas, not entities.
+
+New Draft, Save, Validate, and Apply are persistent toolbar actions and do not
+depend on a node selection or active inspector tab. The toolbar reports dirty,
+saving, saved, validating, and activating states. Apply saves and validates the
+draft first and refuses activation when validation fails. On narrow layouts the
+toolbar scrolls horizontally, both side rails become overlays, and either rail
+can be closed independently to recover the canvas.
 
 Legacy `ProcessActionNode`, `ProcessEntityNode`, `ProcessServiceNode`,
 `ProcessSocketNode`, `ProcessStatusDefinitionNode`, and

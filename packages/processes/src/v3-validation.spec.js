@@ -178,4 +178,89 @@ describe('process v3 validation', () => {
 
     expect(result.errors).toContain('Edge compose-create cannot send data.secret to project: field is not constructible');
   });
+
+  it('rejects a lineage entry whose reference type disagrees with the consuming entity field', () => {
+    const queueDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }, { type: 'warehouse', blocks: ['identity'] }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        queue: [{
+          path: 'lineage.projectId',
+          block: 'lineage',
+          type: { base: 'entityRef', shape: 'item', nullable: false, entityType: 'project' },
+          constructible: true,
+          writable: true
+        }]
+      },
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      }
+    };
+    const process = entityBlockProcess('warehouse');
+    const rejected = validateProcessDefinition(process, queueDomain);
+    const accepted = validateProcessDefinition(entityBlockProcess('project'), queueDomain);
+
+    expect(rejected.errors).toContain('Edge compose-create cannot send lineage.projectId to queue: composed entry type does not match the entity field');
+    expect(accepted.errors).not.toContain('Edge compose-create cannot send lineage.projectId to queue: composed entry type does not match the entity field');
+  });
+
+  it('rejects service-owned identity uid in block authoring', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'record.composeBlock',
+      block: 'identity',
+      fields: ['identity.uid'],
+      inputDefaults: { 'identity.uid': 'user-supplied-id' }
+    }), {
+      ...domain,
+      blockSchemas: {
+        identity: [{
+          path: 'identity.uid',
+          block: 'identity',
+          type: { base: 'string', shape: 'item', nullable: true },
+          readable: true,
+          writable: false,
+          constructible: false
+        }]
+      }
+    });
+
+    expect(result.errors).toContain('Process node node cannot compose managed field identity.uid');
+  });
 });
+
+function entityBlockProcess(entityType) {
+  return {
+    dataflowVersion: 3,
+    processNodes: {
+      compose: {
+        id: 'compose',
+        kind: 'record.composeBlock',
+        block: 'lineage',
+        compositionMode: 'ancestors',
+        entries: [{ id: 'project', key: 'projectId', entityType }],
+        inputDefaults: { 'entry:project': { type: entityType, id: 'parent-1' } }
+      },
+      create: {
+        id: 'create',
+        kind: 'effect.createEntity',
+        entityType: 'queue',
+        blocks: ['lineage'],
+        trigger: { mode: 'manual' }
+      }
+    },
+    graph: {
+      nodes: ['compose', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+      edges: [{
+        id: 'compose-create',
+        source: 'compose',
+        sourceHandle: 'data:block',
+        target: 'create',
+        targetHandle: 'data:lineage',
+        role: 'data'
+      }]
+    }
+  };
+}
