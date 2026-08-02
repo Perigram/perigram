@@ -160,12 +160,16 @@ icons, docs, component paths, field groups, surface contracts, and field paths.
 It must not import Vue components. `@cutkit/vue` turns this metadata into
 frontend lookup helpers.
 
-`cncEntityFieldSchemas` is also the process designer/runtime schema boundary.
-It materializes exact selectable paths for every registered entity and keeps
-base type, item/list/tree shape, entity type, and unit as separate qualifiers.
+`cncBlockFieldSchemas` is the process designer's structural value registry. It
+defines each canonical block path and value type independently from an entity.
+`cncEntityFieldSchemas` separately declares which of those fields belong to an
+entity and whether they are readable, writable, or constructible. The registry
+keeps intrinsic arrays (`base: array` plus `itemType`) separate from process
+packet shape (`item`, `list`, or `tree`), so a field containing entity refs does
+not turn one composed block into a list of blocks.
 `field-access.js` wildcards authorize families of fields but never generate a
 selectable field or a guessed type. A new process-visible field must therefore
-be added to the schema registry (normally through its UI descriptor or an
+be added to the structural registry (normally through its UI descriptor or an
 explicit exact access entry) before record, predicate, or patch nodes can use
 it.
 

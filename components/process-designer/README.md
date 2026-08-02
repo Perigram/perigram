@@ -87,9 +87,13 @@ connects it immediately.
 ## Types and connections
 
 Types are structured `{ base, shape, nullable, ...qualifiers }` objects. Shape
-is `item`, `list`, or a path-addressed `tree`; it is not encoded in a string
-kind. Exact entity types, blocks, schemas, enums, units, capabilities, and
+is the transported packet (`item`, `list`, or a path-addressed `tree`); it is
+not a field's intrinsic cardinality and is not encoded in a string kind.
+Collection-valued fields use the `array` base with an `itemType`. Exact entity types, blocks, schemas, enums, units, capabilities, and
 attachment/event kinds are preserved on sockets.
+Pack Array converts a list packet into one array-valued item; Unpack Array does
+the reverse. This boundary keeps composing a collection field from accidentally
+producing one block per list element.
 
 The designer checks the source and target socket contracts before persisting a
 wire. Safe item broadcasting and safe scalar/reference coercions are implicit.
@@ -105,10 +109,13 @@ emits one typed socket per declared canonical block. Field-level work is an
 explicit Get Field operation over a block. Entity decomposition, block
 composition, and leaf value operations therefore remain separate concerns.
 
-Field selectors consume `cncDomain.fieldSchemas`. Every selectable field has an
-exact path, block, structured type, and readable/writable capability. Wildcard
-access rules do not appear as fields. Compose/Modify Block expose only the
-explicitly selected field set as dynamic sockets; Create/Modify Entity never
+Compose Block, Modify Block, and Get Field consume entity-independent
+`cncDomain.blockSchemas`; they have a block selector but no entity selector.
+Entity decomposition/read nodes use `fieldSchemas` for entity membership, and
+Create/Modify Entity apply constructible/writable policy when accepting a
+connected block. Persisted nodes keep selected paths, not schema snapshots.
+Wildcard access rules do not appear as fields. Compose/Modify Block expose only
+the explicitly selected field set as dynamic sockets; Create/Modify Entity never
 select leaf fields. Origin, provenance, status history, and summary are not
 generic writable block inputs. A literal never asks for a field path. Effect
 access is edited as explicit role plus access-level rows rather than flattening

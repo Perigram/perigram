@@ -55,6 +55,12 @@ fields present in connected replacement blocks. Lineage entity references are
 normalized to stored ids at this boundary, while lifecycle status remains a
 dedicated status-runtime input. Legacy leaf-field effects migrate to explicit
 block composers rather than remaining a second execution contract.
+Pure block operations resolve exact paths from the domain's entity-independent
+block schema registry. The effect adapter deliberately switches back to the
+target entity schema when projecting constructible or writable values. Stored
+process nodes retain selected block paths but not copied schema snapshots, so
+runtime behavior follows the activated domain contract rather than stale graph
+metadata.
 Process definition management also accepts the active organization membership's
 stored `organizations` grants as a narrow recovery path. Membership role labels
 and sole-member status do not imply process management access; the recovery path
