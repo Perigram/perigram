@@ -12,7 +12,9 @@ designer package does not import a concrete domain.
 Canonical entity decomposition starts from
 `@cutkit/core/CANONICAL_ENTITY_BLOCKS` and is narrowed to blocks declared by the
 selected domain entity. Structural block operations instead read the domain's
-entity-independent `blockSchemas`. Entity `fieldSchemas` own membership plus
+explicit canonical `blockSchemas`. These schemas are never inferred by unioning
+entity fields; open canonical blocks use one whole map/object socket. Entity
+`fieldSchemas` own membership plus
 read/write/construct policy, while wildcard access patterns remain
 authorization rules only. Compose Block, Modify Block, and Get Field therefore
 never select or encode an entity type. Create and Update validate connected

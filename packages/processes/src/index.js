@@ -186,7 +186,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     return {
       fields: node.fields,
       defaults: node.inputDefaults || {},
-      schemas: (node.fields || []).map(path => blockFieldSchema(domain, path)).filter(Boolean),
+      schemas: (node.fields || []).map(path => structuralFieldSchema(domain, path)).filter(Boolean),
       parentEntityType: node.parentEntityType || ''
     };
   }
@@ -201,7 +201,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     .map(edge => recordByGraphNode.get(String(edge.source)))
     .filter(record => ['record.composeBlock', 'record.modifyBlock'].includes(record?.kind));
   const schemas = composers
-    .flatMap(record => (record.fields || []).map(path => blockFieldSchema(domain, path)))
+    .flatMap(record => (record.fields || []).map(path => structuralFieldSchema(domain, path)))
     .filter(Boolean);
   const parentTypes = [...new Set(schemas
     .filter(field => field.block === 'lineage' && field.type?.entityType !== 'organization')
@@ -2447,7 +2447,7 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
   if (['record.getField', 'record.fieldChange', 'predicate.field'].includes(node.kind)) {
     if (!node.path) errors.push(`Process node ${nodeId} must select a field`);
     const schema = node.kind === 'record.getField'
-      ? blockFieldSchema(domain, node.path)
+      ? structuralFieldSchema(domain, node.path)
       : entityFieldSchema(domain, node.entityType, node.path);
     if (node.path && !schema) errors.push(`Process node ${nodeId} uses undeclared field ${node.path}`);
     if (schema && node.kind === 'record.fieldChange' && schema.writable === false) {
@@ -2458,7 +2458,7 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
     if (!node.block) errors.push(`Process node ${nodeId} must select a block`);
     if (!node.fields?.length) errors.push(`Process node ${nodeId} must select at least one block field`);
     for (const path of node.fields || []) {
-      const schema = blockFieldSchema(domain, path);
+      const schema = structuralFieldSchema(domain, path);
       if (!schema) errors.push(`Process node ${nodeId} uses undeclared block field ${path}`);
       if (schema && schema.block !== node.block) {
         errors.push(`Process node ${nodeId} field ${path} does not belong to block ${node.block}`);
@@ -2466,7 +2466,7 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
     }
   }
   if (node.kind === 'record.getField') {
-    const schema = blockFieldSchema(domain, node.path);
+    const schema = structuralFieldSchema(domain, node.path);
     if (schema && schema.block !== node.block) {
       errors.push(`Process node ${nodeId} field ${node.path} does not belong to block ${node.block}`);
     }
@@ -2537,7 +2537,7 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
   try {
     resolveCatalogNodePorts(node, {
       fieldSchema: processNodeUsesStructuralFields(node.kind)
-        ? blockFieldSchema(domain, node.path)
+        ? structuralFieldSchema(domain, node.path)
         : entityFieldSchema(domain, node.entityType, node.path),
       fieldSchemas: processNodeUsesStructuralFields(node.kind)
         ? blockFieldSchemas(domain, node.block)
@@ -2576,8 +2576,12 @@ function validateV3Edges(process, domain) {
       && ['effect.createEntity', 'effect.updateEntity'].includes(targetRecord.kind)) {
       const requiredAccess = targetRecord.kind === 'effect.createEntity' ? 'constructible' : 'writable';
       for (const path of sourceRecord.fields || []) {
+        const targetSchemas = entityFieldSchemas(domain, targetRecord.entityType)
+          .filter(field => field.block === sourceRecord.block);
         const targetSchema = entityFieldSchema(domain, targetRecord.entityType, path);
-        if (!targetSchema || targetSchema[requiredAccess] === false) {
+        const wholeBlockAccepted = path === sourceRecord.block
+          && targetSchemas.some(field => field[requiredAccess] !== false);
+        if (!wholeBlockAccepted && (!targetSchema || targetSchema[requiredAccess] === false)) {
           errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: field is not ${requiredAccess}`);
         }
       }
@@ -2606,7 +2610,7 @@ function validateV3Edges(process, domain) {
 function v3CatalogContext(domain, record) {
   return {
     fieldSchema: processNodeUsesStructuralFields(record.kind)
-      ? blockFieldSchema(domain, record.path)
+      ? structuralFieldSchema(domain, record.path)
       : entityFieldSchema(domain, record.entityType, record.path),
     fieldSchemas: processNodeUsesStructuralFields(record.kind)
       ? blockFieldSchemas(domain, record.block)
@@ -2712,6 +2716,11 @@ function blockFieldSchemas(domain = {}, block = '') {
 function blockFieldSchema(domain, path) {
   return blockFieldSchemas(domain, String(path || '').split('.')[0])
     .find(field => field.path === path) || null;
+}
+
+function structuralFieldSchema(domain, path) {
+  return blockFieldSchema(domain, path)
+    || blockFieldSchema(domain, String(path || '').split('.')[0]);
 }
 
 function processNodeUsesStructuralFields(kind = '') {

@@ -12,6 +12,11 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
   framework block vocabulary used by domain definitions and generic design
   tools: `identity`, `origin`, `status`, `lineage`, `relations`, `provenance`,
   `specs`, `attachments`, `data`, and `summary`.
+- Canonical block schemas: `CANONICAL_BLOCK_SCHEMAS` defines fixed fields for
+  fixed-shape blocks. Open blocks are represented by one whole typed value:
+  Lineage is a map of ancestry keys to ids, while Relations, Provenance,
+  Attachments, Data, and Summary are structured objects. Domain entity field
+  inventories must not be unioned into these schemas.
 - Registry: `createRegistry()` and `createCutkitRegistry()`
 - Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
   `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`

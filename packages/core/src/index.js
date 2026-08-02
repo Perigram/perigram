@@ -262,6 +262,63 @@ export const CANONICAL_ENTITY_BLOCKS = Object.freeze([
   'summary'
 ]);
 
+export const CANONICAL_BLOCK_SCHEMAS = Object.freeze({
+  identity: Object.freeze([
+    canonicalBlockField('identity.uid', 'string'),
+    canonicalBlockField('identity.name', 'string'),
+    canonicalBlockField('identity.slug', 'string'),
+    canonicalBlockField('identity.serial', 'string'),
+    canonicalBlockField('identity.reference', 'string')
+  ]),
+  origin: Object.freeze([
+    canonicalBlockField('origin.state.primary', 'status'),
+    canonicalBlockField('origin.userId', 'string'),
+    canonicalBlockField('origin.timestamp', 'dateTime'),
+    canonicalBlockField('origin.metadata', 'json'),
+    canonicalBlockField('origin.eventId', 'string'),
+    canonicalBlockField('origin.lifecycle', 'json')
+  ]),
+  status: Object.freeze([
+    canonicalBlockField('status.state.primary', 'status'),
+    canonicalBlockField('status.userId', 'string'),
+    canonicalBlockField('status.timestamp', 'dateTime'),
+    canonicalBlockField('status.metadata', 'json'),
+    canonicalBlockField('status.eventId', 'string'),
+    canonicalBlockField('status.lifecycle', 'json')
+  ]),
+  lineage: Object.freeze([
+    canonicalBlockField('lineage', 'map', {
+      keyType: canonicalValueType('string', { nullable: false }),
+      valueType: canonicalValueType('id', { nullable: false })
+    })
+  ]),
+  relations: Object.freeze([canonicalBlockField('relations', 'json')]),
+  provenance: Object.freeze([canonicalBlockField('provenance', 'json')]),
+  specs: Object.freeze([
+    canonicalBlockField('specs.width', 'number', { unit: 'mm' }),
+    canonicalBlockField('specs.length', 'number', { unit: 'mm' }),
+    canonicalBlockField('specs.area', 'number', { unit: 'm2' }),
+    canonicalBlockField('specs.sheetThickness', 'number', { unit: 'mm' }),
+    canonicalBlockField('specs.foilThickness', 'number', { unit: 'mm' })
+  ]),
+  attachments: Object.freeze([canonicalBlockField('attachments', 'json')]),
+  data: Object.freeze([canonicalBlockField('data', 'json')]),
+  summary: Object.freeze([canonicalBlockField('summary', 'json')])
+});
+
+function canonicalBlockField(path, base, qualifiers = {}) {
+  return Object.freeze({
+    path,
+    block: String(path).split('.')[0],
+    label: path,
+    type: Object.freeze(canonicalValueType(base, qualifiers))
+  });
+}
+
+function canonicalValueType(base, qualifiers = {}) {
+  return Object.freeze({ base, shape: 'item', nullable: true, ...qualifiers });
+}
+
 export class Identity {
   constructor(uid = null, name = '', slug = '', serial = '', reference = '') {
     if (!uid) throw new Error('Identity: uid is required');

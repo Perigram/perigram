@@ -89,7 +89,13 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
       const initial = kind === 'record.modifyBlock' ? structuredClone(values[0] || {}) : {};
       const offset = kind === 'record.modifyBlock' ? 1 : 0;
       inputIds.slice(offset).forEach((path, index) => {
-        writePath(initial, blockLocalPath(record.block, path), structuredClone(values[index + offset]));
+        const value = structuredClone(values[index + offset]);
+        if (path === record.block) {
+          for (const key of Object.keys(initial)) delete initial[key];
+          if (value && typeof value === 'object' && !Array.isArray(value)) Object.assign(initial, value);
+          return;
+        }
+        writePath(initial, blockLocalPath(record.block, path), value);
       });
       return initial;
     });

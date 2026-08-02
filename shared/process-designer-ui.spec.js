@@ -30,6 +30,7 @@ describe('process designer canvas UI', () => {
   it('keeps structural block operations independent from entity selection', () => {
     expect(nodeSource).toContain("'record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct'");
     expect(designerSource).toContain('designer.fieldsForBlock(node.block)');
+    expect(designerSource).toContain('processNodeHasSelectableFieldSet(selectedProcessNode)');
     expect(designerSource).toContain("delete node.entityType");
     expect(designerSource).toContain('delete node.fieldSchemas');
   });

@@ -479,7 +479,7 @@
                     <label>{{ $t('processDesigner.relation') }}</label>
                     <Select v-model="selectedProcessNode.relationKey" :options="relationOptionsForEntity(selectedProcessNode.entityType)" option-label="label" option-value="value" filter @change="syncNodeData" />
                   </div>
-                  <div v-if="['record.composeBlock', 'record.modifyBlock'].includes(selectedProcessNode.kind)" class="flex flex-col gap-1">
+                  <div v-if="processNodeHasSelectableFieldSet(selectedProcessNode)" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.fields') }}</label>
                     <MultiSelect
                       v-model="selectedProcessNode.fields"
@@ -2662,6 +2662,12 @@ function processNodeFieldOptions(node = {}) {
       value: field.value,
       type: field.type
     }));
+}
+
+function processNodeHasSelectableFieldSet(node = {}) {
+  if (!['record.composeBlock', 'record.modifyBlock'].includes(node.kind)) return false;
+  const options = processNodeFieldOptions(node);
+  return !(options.length === 1 && options[0].value === node.block);
 }
 
 function processNodeBlockOptions(node = {}) {
