@@ -149,7 +149,7 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
 function writeOpenBlockEntry(block, mode, entry, value) {
   if (mode === 'ancestors') {
     const id = value?.id || value?._id || value?.identity?.uid;
-    if (!entry.key || !entry.entityType || !id) throw new Error(`Lineage entry ${entry.id} requires a declared lineage slot and typed entity reference`);
+    if (!entry.key || !entry.entityType || !id) throw new Error(`Lineage entry ${entry.id} requires a key and typed entity reference`);
     block[entry.key] = id;
     return;
   }

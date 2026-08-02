@@ -113,10 +113,9 @@ Compose Block, Modify Block, and Get Field consume entity-independent
 `cncDomain.blockSchemas` and `blockComposition`; they have a block selector but
 no entity selector. The schemas are explicit canonical contracts, not a union
 of observed entity fields. Fixed blocks expose fixed field sockets. Open blocks
-use inspector-authored typed rows with stable socket ids: Lineage selects a
-declared lineage slot and consumes its typed ancestor reference; Relations
-selects a declared named typed entity reference and preserves one/many
-cardinality; Attachments uses a named attachment kind; and
+use inspector-authored typed rows with stable socket ids: Lineage authors a key
+plus typed ancestor reference; Relations authors a key, referenced entity type,
+and one/many cardinality; Attachments uses a named attachment kind; and
 Data, Summary, and Provenance use a named value type. The composed map is the
 single block output, never an unexplained map input. Get Field mirrors those
 same concerns, including restoring stored lineage ids to typed references.
