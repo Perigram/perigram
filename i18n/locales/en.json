@@ -2602,6 +2602,8 @@
     "fields": "Fields",
     "blockEntries": "Block entries",
     "entryKey": "Entry key",
+    "oneRelation": "One reference",
+    "manyRelations": "Many references",
     "retryPolicy": "Retry policy",
     "retryAttempts": "Attempts",
     "retryDelay": "Delay (ms)",

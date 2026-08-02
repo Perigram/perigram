@@ -2602,6 +2602,8 @@
     "fields": "Поля",
     "blockEntries": "Элементы блока",
     "entryKey": "Ключ элемента",
+    "oneRelation": "Одна ссылка",
+    "manyRelations": "Несколько ссылок",
     "retryPolicy": "Повторные попытки",
     "retryAttempts": "Попытки",
     "retryDelay": "Задержка (мс)",

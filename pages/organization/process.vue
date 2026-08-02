@@ -503,7 +503,6 @@
                       <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                         <div class="grid min-w-0 gap-2">
                           <InputText
-                            v-if="!['ancestors', 'relations'].includes(openBlockComposition(selectedProcessNode).mode)"
                             :model-value="entry.key"
                             size="small"
                             :placeholder="$t('processDesigner.entryKey')"
@@ -511,23 +510,32 @@
                           />
                           <Select
                             v-if="openBlockComposition(selectedProcessNode).mode === 'ancestors'"
-                            :model-value="entry.key"
-                            :options="designer.lineageOptions"
+                            :model-value="entry.entityType"
+                            :options="entityTypeOptions"
                             option-label="label"
                             option-value="value"
                             size="small"
                             filter
-                            @update:model-value="value => updateLineageEntrySlot(selectedProcessNode, index, value)"
+                            @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { entityType: value })"
                           />
                           <Select
                             v-else-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
-                            :model-value="entry.key"
-                            :options="designer.relationOptions"
+                            :model-value="entry.entityType"
+                            :options="entityTypeOptions"
                             option-label="label"
                             option-value="value"
                             size="small"
                             filter
-                            @update:model-value="value => updateRelationEntrySlot(selectedProcessNode, index, value)"
+                            @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { entityType: value })"
+                          />
+                          <Select
+                            v-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
+                            :model-value="entry.cardinality || 'one'"
+                            :options="relationCardinalityOptions"
+                            option-label="label"
+                            option-value="value"
+                            size="small"
+                            @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { cardinality: value })"
                           />
                           <Select
                             v-else-if="openBlockComposition(selectedProcessNode).mode === 'attachments'"
@@ -565,27 +573,26 @@
                   </div>
                   <div v-if="selectedProcessNode.kind === 'record.getField' && openBlockComposition(selectedProcessNode)" class="flex flex-col gap-2">
                     <label>{{ $t('processDesigner.entryKey') }}</label>
+                    <InputText :model-value="selectedProcessNode.entryKey" size="small" @update:model-value="updateOpenBlockReadKey" />
                     <Select
-                      v-if="openBlockComposition(selectedProcessNode).mode === 'ancestors'"
-                      :model-value="selectedProcessNode.entryKey"
-                      :options="designer.lineageOptions"
+                      v-if="['ancestors', 'relations'].includes(openBlockComposition(selectedProcessNode).mode)"
+                      :model-value="openBlockReadEntityType(selectedProcessNode)"
+                      :options="entityTypeOptions"
                       option-label="label"
                       option-value="value"
                       size="small"
                       filter
-                      @update:model-value="updateOpenBlockReadLineageSlot"
+                      @update:model-value="value => updateOpenBlockReadEntityType(value)"
                     />
                     <Select
-                      v-else-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
-                      :model-value="selectedProcessNode.entryKey"
-                      :options="designer.relationOptions"
+                      v-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
+                      :model-value="selectedProcessNode.relationCardinality || 'one'"
+                      :options="relationCardinalityOptions"
                       option-label="label"
                       option-value="value"
                       size="small"
-                      filter
-                      @update:model-value="updateOpenBlockReadRelationSlot"
+                      @update:model-value="updateOpenBlockReadCardinality"
                     />
-                    <InputText v-else :model-value="selectedProcessNode.entryKey" size="small" @update:model-value="updateOpenBlockReadKey" />
                     <Select
                       v-if="openBlockComposition(selectedProcessNode).mode === 'entries'"
                       :model-value="selectedProcessNode.type?.base"
@@ -984,6 +991,10 @@ const accessLevelOptions = [
   { label: t('processDesigner.accessAdmin'), value: 'admin' }
 ];
 const processValueTypeOptions = ['string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'entityRef', 'status'].map(value => ({ label: value, value }));
+const relationCardinalityOptions = [
+  { label: t('processDesigner.oneRelation'), value: 'one' },
+  { label: t('processDesigner.manyRelations'), value: 'many' }
+];
 const processNodeOperations = {
   'value.math': ['add', 'subtract', 'multiply', 'divide', 'modulo', 'power', 'min', 'max', 'absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt', 'clamp'],
   'value.string': ['concat', 'replace', 'substring', 'split', 'join', 'length', 'lower', 'upper', 'trim'],
@@ -2693,22 +2704,18 @@ function syncProcessNode(node = {}) {
     if (composition) {
       node.compositionMode = composition.mode;
       node.compositionValueBase = composition.valueBase;
-      node.entryKey ||= String(node.path || '').replace(`${node.block}.`, '').replace(node.block, '')
-        || (composition.mode === 'ancestors' ? designer.lineageOptions[0]?.value : 'value')
-        || 'value';
+      const inferredKey = String(node.path || '').replace(`${node.block}.`, '').replace(node.block, '');
+      if (!node.entryKey && inferredKey) node.entryKey = inferredKey;
+      if (!node.entryKey && !['ancestors', 'relations'].includes(composition.mode)) node.entryKey = 'value';
       node.path = node.entryKey ? `${node.block}.${node.entryKey}` : '';
       if (composition.mode === 'ancestors') {
-        const slot = designer.lineageOptions.find(option => option.value === node.entryKey) || designer.lineageOptions[0];
-        node.entryKey = slot?.value || '';
-        node.path = node.entryKey ? `${node.block}.${node.entryKey}` : '';
-        node.type = processType('entityRef', { entityType: slot?.entityType || '' });
+        node.type = processType('entityRef', { entityType: openBlockReadEntityType(node) || defaultEntityType() });
       } else if (composition.mode === 'relations') {
-        const slot = designer.relationOptions.find(option => option.value === node.entryKey) || designer.relationOptions[0];
-        node.entryKey = slot?.value || '';
-        node.path = node.entryKey ? `${node.block}.${node.entryKey}` : '';
-        node.type = slot?.cardinality === 'many'
-          ? processType('array', { itemType: processType('entityRef', { entityType: slot.entityType }) })
-          : processType('entityRef', { entityType: slot?.entityType || '' });
+        node.relationCardinality = node.relationCardinality === 'many' ? 'many' : 'one';
+        const entityType = openBlockReadEntityType(node) || defaultEntityType();
+        node.type = node.relationCardinality === 'many'
+          ? processType('array', { itemType: processType('entityRef', { entityType }) })
+          : processType('entityRef', { entityType });
       } else if (composition.mode === 'attachments') {
         node.type = processType('attachmentRef', {
           attachmentKind: node.type?.attachmentKind || designer.attachmentKindOptions[0]?.value || ''
@@ -2735,10 +2742,8 @@ function syncProcessNode(node = {}) {
     if (node.kind === 'record.getField') {
       const composition = openBlockComposition(node);
       if (composition) {
-        node.entryKey ||= composition.mode === 'ancestors'
-          ? designer.lineageOptions[0]?.value
-          : composition.mode === 'relations' ? designer.relationOptions[0]?.value : 'value';
-        node.path = `${node.block}.${node.entryKey}`;
+        if (!node.entryKey && !['ancestors', 'relations'].includes(composition.mode)) node.entryKey = 'value';
+        node.path = node.entryKey ? `${node.block}.${node.entryKey}` : '';
       } else {
         const fields = designer.fieldsForBlock(node.block);
         if (!fields.some(field => field.value === node.path)) node.path = fields[0]?.value || '';
@@ -3558,6 +3563,7 @@ function updateProcessNodeRecord(nodeId, updates = {}) {
   if (updates.block && updates.block !== node.block) {
     node.path = '';
     node.entryKey = '';
+    delete node.relationCardinality;
     delete node.entries;
     delete node.compositionMode;
     delete node.compositionValueBase;
@@ -3594,15 +3600,13 @@ function createOpenBlockEntry(node = {}) {
   };
   const entry = { id: `entry_${Date.now()}_${Math.random().toString(36).slice(2, 7)}` };
   if (composition?.mode === 'ancestors') {
-    const slot = designer.lineageOptions.find(option => !usedKeys.has(option.value)) || designer.lineageOptions[0];
-    Object.assign(entry, { key: slot?.value || '', entityType: slot?.entityType || '' });
+    Object.assign(entry, { key: '', entityType: defaultEntityType() });
   }
   if (composition?.mode === 'relations') {
-    const slot = designer.relationOptions.find(option => !usedKeys.has(option.value)) || designer.relationOptions[0];
     Object.assign(entry, {
-      key: slot?.value || uniqueKey('related'),
-      entityType: slot?.entityType || '',
-      cardinality: slot?.cardinality || 'one'
+      key: '',
+      entityType: defaultEntityType(),
+      cardinality: 'one'
     });
   }
   if (composition?.mode === 'attachments') Object.assign(entry, {
@@ -3623,20 +3627,6 @@ function updateOpenBlockEntry(node, index, updates) {
   if (!node?.entries?.[index]) return;
   node.entries[index] = { ...node.entries[index], ...updates };
   syncNodeData();
-}
-
-function updateLineageEntrySlot(node, index, key) {
-  const slot = designer.lineageOptions.find(option => option.value === key);
-  updateOpenBlockEntry(node, index, { key, entityType: slot?.entityType || '' });
-}
-
-function updateRelationEntrySlot(node, index, key) {
-  const slot = designer.relationOptions.find(option => option.value === key);
-  updateOpenBlockEntry(node, index, {
-    key,
-    entityType: slot?.entityType || '',
-    cardinality: slot?.cardinality || 'one'
-  });
 }
 
 function updateOpenBlockEntryType(node, index, base) {
@@ -3668,26 +3658,8 @@ function updateOpenBlockReadKey(value) {
   syncNodeData();
 }
 
-function updateOpenBlockReadLineageSlot(key) {
-  const node = selectedProcessNode.value;
-  const slot = designer.lineageOptions.find(option => option.value === key);
-  if (!node || !slot) return;
-  node.entryKey = slot.value;
-  node.path = `${node.block}.${slot.value}`;
-  node.type = processType('entityRef', { entityType: slot.entityType });
-  syncNodeData();
-}
-
-function updateOpenBlockReadRelationSlot(key) {
-  const node = selectedProcessNode.value;
-  const slot = designer.relationOptions.find(option => option.value === key);
-  if (!node || !slot) return;
-  node.entryKey = slot.value;
-  node.path = `${node.block}.${slot.value}`;
-  node.type = slot.cardinality === 'many'
-    ? processType('array', { itemType: processType('entityRef', { entityType: slot.entityType }) })
-    : processType('entityRef', { entityType: slot.entityType });
-  syncNodeData();
+function openBlockReadEntityType(node = {}) {
+  return node.type?.base === 'array' ? node.type.itemType?.entityType || '' : node.type?.entityType || '';
 }
 
 function updateOpenBlockReadType(base) {
@@ -3700,7 +3672,20 @@ function updateOpenBlockReadType(base) {
 function updateOpenBlockReadEntityType(entityType) {
   const node = selectedProcessNode.value;
   if (!node) return;
-  node.type = processType('entityRef', { entityType });
+  node.type = node.compositionMode === 'relations' && node.relationCardinality === 'many'
+    ? processType('array', { itemType: processType('entityRef', { entityType }) })
+    : processType('entityRef', { entityType });
+  syncNodeData();
+}
+
+function updateOpenBlockReadCardinality(cardinality) {
+  const node = selectedProcessNode.value;
+  if (!node) return;
+  node.relationCardinality = cardinality === 'many' ? 'many' : 'one';
+  const entityType = openBlockReadEntityType(node) || defaultEntityType();
+  node.type = node.relationCardinality === 'many'
+    ? processType('array', { itemType: processType('entityRef', { entityType }) })
+    : processType('entityRef', { entityType });
   syncNodeData();
 }
 

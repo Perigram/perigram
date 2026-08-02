@@ -56,11 +56,11 @@ describe('process designer domain contract', () => {
     expect(contract.hookOptions).toEqual([{ label: 'Audit', value: 'audit' }]);
     expect(contract.effectOptions).toEqual([{ label: 'Notify', value: 'notify' }]);
     expect(contract.attachmentKindOptions).toEqual([{ label: 'Report', value: 'REPORT' }]);
-    expect(contract.lineageOptions).toContainEqual({ label: 'Work item · lineage.workItemId', value: 'workItemId', entityType: 'work_item' });
-    expect(contract.relationOptions).toEqual([{ label: 'result · relations.owner', value: 'owner', entityType: 'result', cardinality: 'one' }]);
     expect(contract.workflowOptions).toEqual([{ label: 'Work item lifecycle', value: 'work_item' }]);
     expect(contract.construction('work_item').inputs[0].path).toBe('identity.name');
     expect(contract.fieldPolicy('work_item').write).toContain('relations.owner');
+    expect(contract).not.toHaveProperty('lineageOptions');
+    expect(contract).not.toHaveProperty('relationOptions');
   });
 
   it('exposes every core block and limits entity decomposition to declared domain blocks', () => {

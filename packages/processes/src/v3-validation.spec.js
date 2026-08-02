@@ -98,7 +98,7 @@ describe('process v3 validation', () => {
     expect(result.errors).toContain('Edge compose-create cannot send data.note to project: field is not constructible');
   });
 
-  it('accepts declared open-block entries and rejects invented lineage slots', () => {
+  it('keeps open-block lineage entries generic and requires an authored key', () => {
     const lineageDomain = {
       ...domain,
       entities: [...domain.entities, { type: 'organization', blocks: ['identity'] }],
@@ -116,16 +116,24 @@ describe('process v3 validation', () => {
       entries: [{ id: 'organization', key: 'organizationId', entityType: 'organization' }],
       inputDefaults: { 'entry:organization': { type: 'organization', id: 'org-1' } }
     }), lineageDomain);
-    const invalid = validateProcessDefinition(definition({
+    const generic = validateProcessDefinition(definition({
       kind: 'record.composeBlock',
       block: 'lineage',
       compositionMode: 'ancestors',
       entries: [{ id: 'invented', key: 'madeUpId', entityType: 'project' }],
       inputDefaults: { 'entry:invented': { type: 'project', id: 'project-1' } }
     }), lineageDomain);
+    const invalid = validateProcessDefinition(definition({
+      kind: 'record.composeBlock',
+      block: 'lineage',
+      compositionMode: 'ancestors',
+      entries: [{ id: 'missing', key: '', entityType: 'project' }],
+      inputDefaults: { 'entry:missing': { type: 'project', id: 'project-1' } }
+    }), lineageDomain);
 
     expect(valid.errors).toEqual([]);
-    expect(invalid.errors).toContain('Process node node entry invented must select a declared lineage slot');
+    expect(generic.errors).toEqual([]);
+    expect(invalid.errors).toContain('Process node node has a missing or duplicate entry key');
   });
 
   it('checks authored open-block keys against the consuming entity policy', () => {

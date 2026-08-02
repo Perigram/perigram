@@ -100,21 +100,6 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
 export function createProcessDesignerContract(domain = {}) {
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
   const entityByType = new Map(entities.map(entity => [entity.type, entity]));
-  const lineageDefinitions = new Map();
-  const relationDefinitions = new Map();
-  for (const relation of domain.containment || []) {
-    if (relation.lineageKey && relation.parentType) lineageDefinitions.set(relation.lineageKey, relation.parentType);
-  }
-  for (const schemas of Object.values(domain.fieldSchemas || {})) {
-    for (const schema of schemas || []) {
-      if (schema.block === 'lineage' && schema.type?.base === 'entityRef' && schema.type.entityType) {
-        lineageDefinitions.set(String(schema.path).replace(/^lineage\./, ''), schema.type.entityType);
-      }
-    }
-  }
-  for (const relation of domain.relations || []) {
-    if (relation.key && relation.targetType) relationDefinitions.set(relation.key, relation);
-  }
 
   function fieldPolicy(entityType = '') {
     return lookupEntityContract(domain.fieldAccess, entityType) || {};
@@ -177,17 +162,6 @@ export function createProcessDesignerContract(domain = {}) {
     hookOptions: definitionOptions(domain.hooks),
     effectOptions: definitionOptions(domain.effects),
     attachmentKindOptions: definitionOptions(domain.attachmentKinds, 'kind'),
-    lineageOptions: [...lineageDefinitions].map(([key, entityType]) => ({
-      label: `${entityByType.get(entityType)?.label || entityType} · lineage.${key}`,
-      value: key,
-      entityType
-    })),
-    relationOptions: [...relationDefinitions].map(([key, relation]) => ({
-      label: `${entityByType.get(relation.targetType)?.label || relation.targetType} · relations.${key}`,
-      value: key,
-      entityType: relation.targetType,
-      cardinality: relation.cardinality || 'one'
-    })),
     entity: entityType => entityByType.get(entityType) || null,
     fieldPolicy,
     construction,
