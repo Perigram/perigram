@@ -6,6 +6,7 @@ import {
   createDefaultCreatedWorkflow,
   definitionToCanvas,
   legacyTypeToTemplateId,
+  normalizeProcessDefinition,
   portSpecsCompatible,
   requiredEntityProfileTypes,
   resolveScreens,
@@ -2470,6 +2471,45 @@ describe('@cutkit/processes compiler', () => {
 
     expect(canvas.nodes.map(node => node.id)).toEqual(['project_profile', 'create_project']);
     expect(canvas.nodes[0].data.semanticId).toBe('entity:project_profile');
+    expect(roundTrip.ok).toBe(true);
+  });
+
+  it('round-trips a derived action when its effect uses the same stable id', () => {
+    const definition = normalizeProcessDefinition({
+      dataflowVersion: 3,
+      processNodes: {
+        create_project: {
+          id: 'create_project',
+          legacyActionId: 'create_project',
+          label: 'Create project',
+          kind: 'effect.createEntity',
+          entityType: 'project',
+          blocks: ['identity'],
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [] },
+          inputs: [],
+          outputs: []
+        }
+      },
+      graph: {
+        nodes: [{
+          id: 'create_project',
+          type: 'processNode',
+          position: { x: 10, y: 20 },
+          data: { refId: 'create_project' }
+        }],
+        edges: []
+      }
+    }, domain);
+
+    const canvas = definitionToCanvas(definition);
+    const actionNode = canvas.nodes.find(node => node.type === 'action');
+    const effectNode = canvas.nodes.find(node => node.type === 'processNode');
+    const roundTrip = validateRoundTrip(definition);
+
+    expect(actionNode).toMatchObject({ id: 'action:create_project', data: { refId: 'create_project' } });
+    expect(effectNode).toMatchObject({ id: 'create_project', data: { refId: 'create_project' } });
+    expect(roundTrip.errors).not.toContain('Round-trip changed actions');
     expect(roundTrip.ok).toBe(true);
   });
 
