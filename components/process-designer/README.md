@@ -117,7 +117,9 @@ every selected role into a write grant.
 ## Canvas behavior and diagnostics
 
 Nodes are added at the visible viewport center between the palette and
-inspector. Left drag box-selects, Shift extends selection, and middle drag pans.
+inspector. Left drag box-selects, Shift extends selection, two-finger touchpad
+scroll pans, pinch zooms around the pointer, and Space plus left drag provides
+keyboard-assisted panning without a middle mouse button.
 Delete/Backspace removes all selected nodes and edges together while preserving
 definition records that are still referenced. Home frames the graph,
 Numpad Decimal frames the selection, and the compact canvas toolbar exposes

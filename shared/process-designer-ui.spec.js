@@ -30,7 +30,12 @@ describe('process designer canvas UI', () => {
   it('owns multi-selection deletion and broad canvas navigation bounds', () => {
     expect(designerSource).toContain(':delete-key-code="null"');
     expect(designerSource).toContain(':selection-key-code="true"');
-    expect(designerSource).toContain(':pan-on-drag="[1]"');
+    expect(designerSource).toContain(':pan-on-drag="false"');
+    expect(designerSource).toContain('pan-activation-key-code="Space"');
+    expect(designerSource).toContain(':pan-on-scroll="true"');
+    expect(designerSource).toContain(':zoom-on-scroll="false"');
+    expect(designerSource).toContain(':zoom-on-pinch="true"');
+    expect(designerSource).toContain('function handleDesignerWheel(event)');
     expect(designerSource).toContain(':min-zoom="0.1"');
     expect(designerSource).toContain(':max-zoom="4"');
     expect(designerSource).toContain('nodes.value.filter(node => node.selected)');

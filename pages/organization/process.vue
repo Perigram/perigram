@@ -5,6 +5,7 @@
       class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-subtle"
       @mousedown.capture="handleDesignerPointerDown"
       @focusin="handleDesignerFocus"
+      @wheel.capture="handleDesignerWheel"
     >
       <VueFlow
         v-model:nodes="nodes"
@@ -16,7 +17,11 @@
         :selection-key-code="true"
         multi-selection-key-code="Shift"
         :selection-mode="SelectionMode.Partial"
-        :pan-on-drag="[1]"
+        :pan-on-drag="false"
+        pan-activation-key-code="Space"
+        :pan-on-scroll="true"
+        :zoom-on-scroll="false"
+        :zoom-on-pinch="true"
         :zoom-on-double-click="false"
         :default-edge-options="defaultEdgeOptions"
         @node-click="event => selectNode(event.node)"
@@ -1279,6 +1284,27 @@ function handleDesignerPointerDown(event) {
 
 function handleDesignerFocus(event) {
   canvasKeyboardActive.value = Boolean(event.target?.closest?.('.vue-flow'));
+}
+
+function handleDesignerWheel(event) {
+  if (!event.ctrlKey || !event.target?.closest?.('.vue-flow')) return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation?.();
+  canvasKeyboardActive.value = true;
+  const viewport = getViewport?.() || { x: 0, y: 0, zoom: 1 };
+  const rect = canvasFrame.value?.getBoundingClientRect?.();
+  const previousZoom = Number(viewport.zoom) || 1;
+  const nextZoom = Math.min(4, Math.max(0.1, previousZoom * Math.exp(-Number(event.deltaY || 0) * 0.002)));
+  const pointerX = Number(event.clientX || 0) - Number(rect?.left || 0);
+  const pointerY = Number(event.clientY || 0) - Number(rect?.top || 0);
+  const graphX = (pointerX - Number(viewport.x || 0)) / previousZoom;
+  const graphY = (pointerY - Number(viewport.y || 0)) / previousZoom;
+  setViewport({
+    x: pointerX - graphX * nextZoom,
+    y: pointerY - graphY * nextZoom,
+    zoom: nextZoom
+  }, { duration: 0 });
 }
 
 function openPanePalette(event) {
