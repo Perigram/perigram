@@ -1,0 +1,83 @@
+* TODO Process designer architecture and UX acceptance blockers
+  [2026-08-02 Sun]
+
+  Review scope: current organization process designer, the process compiler and
+  evaluator boundary, and the latest canonical/open-block commits through
+  =5cbb33c5=.
+
+** TODO Enforce open-block field types at persistence consumers
+   Compose/Modify Block may author entity-independent Lineage and Relations
+   entries, but Create/Modify Entity must validate every connected entry against
+   the consuming entity field schema, not only its path and access flag.
+
+   - Reject a Lineage entry when its authored =entityType= differs from the
+     target schema's entity reference type.
+   - Reject a Relations entry when its target entity type or one/many
+     cardinality differs from the target schema.
+   - Apply the same qualifier checks to other typed open entries where the
+     consuming schema declares a narrower type.
+   - Add a regression test proving that a =warehouse= reference cannot be sent
+     to =lineage.projectId= while creating a queue.
+
+   Acceptance: process validation must reject the mismatched graph before
+   activation; matching generic open-block graphs must continue to compile and
+   evaluate.
+
+** TODO Complete the draft, validation, and activation UX
+   Saving is currently available only from the Inspector while a node is
+   selected. Roles and Screens can be edited without a visible draft-save
+   action, and the existing =createDraft()= and =validateDraft()= operations are
+   not exposed as controls.
+
+   - Provide persistent, global New draft, Save draft, Validate, and Apply /
+     Activate actions with distinct labels and state feedback.
+   - Keep Save available from Roles, Screens, and an empty canvas selection.
+   - Show dirty, saving, saved, validating, validation-failed, and activating
+     states without requiring the user to infer them from the selected panel.
+   - Require successful validation before activation or make the combined
+     validation-and-activation behavior explicit.
+
+   Acceptance: a user can edit each designer plane, save without activation,
+   validate, fix errors, and activate without selecting an arbitrary node.
+
+** TODO Make the workspace responsive and adaptable
+   The persistent fixed-width palette and inspector leave too little usable
+   canvas on narrow laptops and overlap on tablet/mobile widths.
+
+   - Add collapse/drawer behavior for the palette and inspector.
+   - Preserve a usable canvas and reachable primary actions at supported
+     breakpoints.
+   - Replace fixed empty-state offsets with layout derived from the visible
+     rails.
+   - Verify keyboard focus order, zoom controls, context palette placement, and
+     validation messages at each supported size.
+
+** TODO Add behavioral process-designer UI coverage
+   Existing UI checks primarily assert source-code strings. Add mounted or
+   browser-level coverage for:
+
+   - compatible and rejected connections, including no record mutation after a
+     rejected wire;
+   - socket-drop compatible-node creation;
+   - multi-selection deletion and keyboard navigation;
+   - open-block entry editing and stable socket ids;
+   - saving Roles and Screens, draft forking, validation, and activation;
+   - narrow-layout palette and inspector behavior.
+
+** TODO Synchronize the committed framework manifest
+   =shared/framework-packages.spec.js= currently fails because
+   =framework.manifest.json= does not match generated source metadata, including
+   lineage relationships changed by the recent domain/schema work.
+
+   Acceptance: regenerate the manifest through the documented script and make
+   the framework package contract test pass without weakening the equality
+   assertion.
+
+** Review evidence
+   - Focused process/designer suites: 60 tests passed.
+   - =node scripts/check-arch.js=: passed.
+   - =npm run framework:validate=: passed.
+   - =shared/framework-packages.spec.js=: failed on committed manifest drift.
+   - A focused validator reproduction accepted a Queue create graph that wired
+     a =warehouse= reference into =lineage.projectId=, confirming the missing
+     consumer-side type-qualifier check.
