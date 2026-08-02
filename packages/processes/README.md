@@ -55,6 +55,11 @@ assignment records.
 `validateRoundTrip()` verifies that `definition -> canvas -> definition` does
 not change process semantics before activation. Vue Flow node positions are
 presentation data; runtime behavior must come from the semantic records.
+Canvas projection identifies records by both node type and stable semantic
+reference. When a derived action and its executable effect share an id, the
+saved executable node keeps its graph id and the missing definition-plane node
+receives a namespaced canvas id. Both retain the same `data.refId`, so neither
+record shadows or deletes the other during round-trip validation.
 
 Process lifecycle profiles and action nodes compile directly to normalized
 `@cutkit/workflows` v2 state machines. Entity profiles may provide a full

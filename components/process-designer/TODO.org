@@ -327,6 +327,9 @@
      validation tests reject incorrect open-block qualifiers; orchestration
      tests cover manual/chained, event-started, retry, structured loop, and
      date-wait execution.
+   - Transpiler coverage verifies that a derived action and executable effect
+     may share one stable semantic reference without the action disappearing
+     during definition → canvas → definition validation.
    - Draft actions are persistent, activation validates first, dirty/operation
      state is visible, and both side rails are independently collapsible with
      narrow-layout overlays.
