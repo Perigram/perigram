@@ -133,17 +133,22 @@ describe('process v3 data execution', () => {
       { kind: 'collection.packArray' },
       { value: createDataPacket(refs, 'list') }
     );
-    const composed = await executeProcessDataNode(
-      { kind: 'record.composeBlock', block: 'summary', fields: ['summary.queuePreview'] },
-      { 'summary.queuePreview': packed }
-    );
     const unpacked = await executeProcessDataNode(
       { kind: 'collection.unpackArray' },
       { value: packed }
     );
 
-    expect(composed.branches[0].items).toEqual([{ queuePreview: refs }]);
+    expect(packed.branches[0].items).toEqual([refs]);
     expect(unpacked.shape).toBe('list');
     expect(unpacked.branches[0].items).toEqual(refs);
+  });
+
+  it('composes an open canonical block from one whole map value', async () => {
+    const lineage = { organizationId: 'org-1', projectId: 'project-1' };
+    const composed = await executeProcessDataNode(
+      { kind: 'record.composeBlock', block: 'lineage', fields: ['lineage'] },
+      { lineage: createDataPacket(lineage) }
+    );
+    expect(composed.branches[0].items).toEqual([lineage]);
   });
 });

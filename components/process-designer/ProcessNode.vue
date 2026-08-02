@@ -56,7 +56,7 @@
         @update:model-value="value => update({ block: value })"
       />
       <Select
-        v-if="fieldOptions.length && !showsFieldSet"
+        v-if="showsFieldSelect"
         :model-value="record.path"
         :options="fieldOptions"
         option-label="label"
@@ -241,6 +241,11 @@ const showsFieldSet = computed(() => [
   'record.composeBlock',
   'record.modifyBlock'
 ].includes(record.value.kind));
+const showsFieldSelect = computed(() => (
+  fieldOptions.value.length > 0
+  && !showsFieldSet.value
+  && !(fieldOptions.value.length === 1 && fieldOptions.value[0].value === record.value.block)
+));
 const showEntitySelect = computed(() => (
   (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => record.value.kind?.startsWith(prefix))
     && !['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand', 'effect.runProducer'].includes(record.value.kind))

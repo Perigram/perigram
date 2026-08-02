@@ -25,9 +25,10 @@ describe('CNC entity field schemas', () => {
 
   it('defines structural block fields once, independently from entity policy', () => {
     expect(cncBlockFieldSchemas.identity).toBeTruthy();
-    expect(getBlockFieldSchema('data.description')?.type).toMatchObject({ base: 'string', shape: 'item' });
-    expect(getEntityFieldSchema('library', 'data.description')?.type)
-      .toEqual(getBlockFieldSchema('data.description')?.type);
+    expect(getBlockFieldSchema('data')?.type).toMatchObject({ base: 'json', shape: 'item' });
+    expect(getBlockFieldSchema('data.description')).toBeNull();
+    expect(getEntityFieldSchema('library', 'data.description')?.type).toMatchObject({ base: 'string', shape: 'item' });
+    expect(cncBlockFieldSchemas.lineage.map(field => field.path)).toEqual(['lineage']);
   });
 
   it('does not mistake wildcard authorization for a field', () => {

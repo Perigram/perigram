@@ -1,3 +1,4 @@
+import { CANONICAL_BLOCK_SCHEMAS } from '../../core/src/index.js';
 import { cncEntities } from './entities.js';
 import { cncEntityFieldAccess, normalizeFieldAccessEntityType } from './field-access.js';
 import { cncEntityFieldGroups } from './ui-fields.js';
@@ -54,16 +55,12 @@ const rawEntityFieldSchemas = Object.fromEntries(cncEntities.map(entity => {
   return [entityType, Object.freeze(fields)];
 }));
 
-export const cncBlockFieldSchemas = Object.freeze(buildBlockFieldSchemas(rawEntityFieldSchemas));
+export const cncBlockFieldSchemas = CANONICAL_BLOCK_SCHEMAS;
 
 export const cncEntityFieldSchemas = Object.freeze(Object.fromEntries(
   Object.entries(rawEntityFieldSchemas).map(([entityType, schemas]) => [
     entityType,
-    Object.freeze(schemas.map(schema => Object.freeze({
-      ...schema,
-      type: cncBlockFieldSchemas[schema.block]
-        ?.find(fieldSchema => fieldSchema.path === schema.path)?.type || schema.type
-    })))
+    Object.freeze(schemas.map(schema => Object.freeze({ ...schema })))
   ])
 ));
 
@@ -192,48 +189,4 @@ function uniqueByPath(fields) {
     byPath.set(schema.path, existing && existing.type?.base !== 'json' ? existing : schema);
   }
   return [...byPath.values()];
-}
-
-function buildBlockFieldSchemas(entitySchemas) {
-  const byPath = new Map();
-  for (const schemas of Object.values(entitySchemas)) {
-    for (const schema of schemas) {
-      const existing = byPath.get(schema.path);
-      if (!existing) {
-        byPath.set(schema.path, schema);
-        continue;
-      }
-      byPath.set(schema.path, {
-        ...existing,
-        type: canonicalFieldType(existing.type, schema.type, schema.path),
-        readable: existing.readable || schema.readable,
-        writable: existing.writable || schema.writable,
-        constructible: existing.constructible || schema.constructible
-      });
-    }
-  }
-  const blocks = {};
-  for (const schema of byPath.values()) {
-    (blocks[schema.block] ||= []).push(Object.freeze({
-      path: schema.path,
-      block: schema.block,
-      label: schema.label,
-      i18n: schema.i18n || '',
-      display: schema.display || '',
-      role: schema.role || '',
-      type: Object.freeze(structuredClone(schema.type))
-    }));
-  }
-  return Object.fromEntries(Object.entries(blocks).map(([block, schemas]) => [block, Object.freeze(schemas)]));
-}
-
-function canonicalFieldType(left, right, path) {
-  if (sameFieldType(left, right)) return left;
-  if (left.base === 'json') return right;
-  if (right.base === 'json') return left;
-  throw new Error(`Conflicting structural types for block field ${path}`);
-}
-
-function sameFieldType(left, right) {
-  return JSON.stringify(left) === JSON.stringify(right);
 }

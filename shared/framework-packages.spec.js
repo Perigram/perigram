@@ -6,6 +6,7 @@ describe('Framework package contracts', () => {
   it('registers entity definitions in @cutkit/core', async () => {
     const {
       BaseEntity,
+      CANONICAL_BLOCK_SCHEMAS,
       CANONICAL_ENTITY_BLOCKS,
       createRegistry,
       createEntityRef,
@@ -47,6 +48,8 @@ describe('Framework package contracts', () => {
       'data',
       'summary'
     ]);
+    expect(CANONICAL_BLOCK_SCHEMAS.lineage.map(field => field.path)).toEqual(['lineage']);
+    expect(CANONICAL_BLOCK_SCHEMAS.identity.map(field => field.path)).toContain('identity.name');
 
     const command = registry.defineCommand({
       id: 'runTest',
