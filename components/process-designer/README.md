@@ -56,21 +56,25 @@ and entity-to-reference are wire semantics; an unsafe connection is rejected
 instead of creating an unexplained empty conversion node.
 
 `ProcessNode.vue` renders the catalog's resolved ports, not stored UI guesses.
-Each socket shows its structured type including shape and qualifier. Data
-handles stay at the left/right edges; effect event/control handles use a
-left-to-right footer row. Color communicates transported base type while the thin
-node stripe communicates operation concern. An unconnected primitive input has
-an inline typed fallback editor on the node. It is therefore immediately
-runnable without creating a separate constant node, while a connected wire
-always wins. An open socket is a composition affordance, not an error. Missing
-required inputs are reported when validation is requested, not as warning
-badges on every new node.
+Inputs and outputs share explicit rows, and every handle is centered on the
+outer node rail rather than inheriting a position from variable-height content.
+Socket labels stay concise; the exact structured type, shape, qualifier, and
+description are available on hover and to assistive technology instead of
+being repeated beside every socket. Color communicates transported base type,
+handle shape communicates item/list/tree structure, and the thin node stripe
+communicates operation concern. An unconnected primitive input has a compact
+inline typed fallback editor on the node. It is therefore immediately runnable
+without creating a separate constant node, while a connected wire always wins.
+An open socket is a composition affordance, not an error. Missing required
+inputs are reported when validation is requested, not as warning badges on
+every new node.
 
-Meaningful configuration stays on the node: value/type, entity, field, block,
-operation, trigger entity/event, and socket fallback. Selected dynamic entity
-fields are also summarized in the node header and exposed as named sockets.
-The contextual inspector edits secondary record-level configuration without
-moving status authoring out of its canvas node.
+Only configuration that defines the operation or its ports stays on the node:
+value/type, entity, field, block, operation, trigger identity/mode, and socket
+fallback. Access grants, selected compose/modify field sets, retry policy, and
+other secondary record policy live in the contextual inspector. A status node
+still authors its identity and exposes its output on the canvas; color, icon,
+and lifecycle evidence schemas are edited in the inspector.
 The palette and inspector are independently scrollable. Palette search matches
 localized job names and descriptions as well as internal kinds. The persistent
 palette uses a readable two-column grid with grouped headings; operation
@@ -112,12 +116,17 @@ every selected role into a write grant.
 
 ## Canvas behavior and diagnostics
 
-Nodes are added at the active viewport center. Wires and nodes are selectable;
-Delete/Backspace removes only the selection. Runtime-only selection styles are
-stripped before serialization. Validation reports missing sockets, incompatible
-types, guessed/undeclared fields, unreachable operational nodes, and data or
-control cycles. The compiled screen preview remains separate from operation
-execution.
+Nodes are added at the visible viewport center between the palette and
+inspector. Left drag box-selects, Shift extends selection, and middle drag pans.
+Delete/Backspace removes all selected nodes and edges together while preserving
+definition records that are still referenced. Home frames the graph,
+Numpad Decimal frames the selection, and the compact canvas toolbar exposes
+frame/zoom controls without requiring shortcuts. Zoom spans 0.1x through 4x,
+and the live viewport is persisted with the graph. Runtime-only selection
+styles are stripped before serialization. Validation reports missing sockets,
+incompatible types, guessed/undeclared fields, unreachable operational nodes,
+and data or control cycles. The compiled screen preview remains separate from
+operation execution.
 
 Entity selectors use the shared `EntitySelect`/`EntityMultiSelect` contract:
 selected entity cards render outside the input and the compact change chevron
