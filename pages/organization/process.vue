@@ -1,11 +1,23 @@
 <template>
   <StandardPage>
-    <div ref="canvasFrame" class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-subtle">
+    <div
+      ref="canvasFrame"
+      class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-subtle"
+      @mousedown.capture="handleDesignerPointerDown"
+      @focusin="handleDesignerFocus"
+    >
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
         class="absolute inset-0 h-full w-full"
-        fit-view-on-init
+        :min-zoom="0.1"
+        :max-zoom="4"
+        :delete-key-code="null"
+        :selection-key-code="true"
+        multi-selection-key-code="Shift"
+        :selection-mode="SelectionMode.Partial"
+        :pan-on-drag="[1]"
+        :zoom-on-double-click="false"
         :default-edge-options="defaultEdgeOptions"
         @node-click="event => selectNode(event.node)"
         @edge-click="event => selectEdge(event.edge)"
@@ -23,6 +35,14 @@
         <template #node-valueInput="props"><ProcessValueInputNode v-bind="props" /></template>
         <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
       </VueFlow>
+
+      <div class="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-ui border border-content-border bg-content p-1 shadow-card">
+        <Button icon="pi pi-minus" text size="small" :aria-label="$t('drawing.zoomOut')" @click="zoomCanvasOut" />
+        <Button icon="pi pi-expand" text size="small" :aria-label="$t('processDesigner.frameAll')" @click="frameAllNodes" />
+        <Button icon="pi pi-crosshairs" text size="small" :aria-label="$t('processDesigner.frameSelection')" @click="frameSelectedNodes" />
+        <Button icon="pi pi-plus" text size="small" :aria-label="$t('drawing.zoomIn')" @click="zoomCanvasIn" />
+        <Button icon="pi pi-refresh" text size="small" :aria-label="$t('processDesigner.resetZoom')" @click="resetCanvasZoom" />
+      </div>
 
       <div
         v-if="contextPalette.open"
@@ -332,6 +352,92 @@
                   </div>
                 </template>
 
+                <template v-else-if="selectedNode.type === 'statusDefinition'">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="flex min-w-0 flex-col gap-1">
+                      <label>{{ $t('processDesigner.severity') }}</label>
+                      <Select
+                        :model-value="selectedStatusDefinition.severity"
+                        :options="statusSeverityOptions"
+                        option-label="label"
+                        option-value="value"
+                        @update:model-value="value => updateStatusDefinitionRecord(selectedStatusDefinition.id, { severity: value, color: value })"
+                      />
+                    </div>
+                    <div class="flex min-w-0 flex-col gap-1">
+                      <label>{{ $t('processDesigner.icon') }}</label>
+                      <Select
+                        :model-value="selectedStatusDefinition.icon"
+                        :options="statusIconOptions"
+                        option-label="label"
+                        option-value="value"
+                        @update:model-value="value => updateStatusDefinitionRecord(selectedStatusDefinition.id, { icon: value })"
+                      >
+                        <template #option="{ option }">
+                          <div class="flex items-center gap-2">
+                            <i :class="option.value" aria-hidden="true"></i>
+                            <span>{{ option.label }}</span>
+                          </div>
+                        </template>
+                      </Select>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <Checkbox
+                      :model-value="Boolean(selectedStatusDefinition.lifecycle?.description?.required)"
+                      binary
+                      input-id="selected-status-description"
+                      @update:model-value="setSelectedStatusDescriptionRequired"
+                    />
+                    <label for="selected-status-description">{{ $t('processDesigner.requireDescription') }}</label>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <label>{{ $t('processDesigner.attachments') }}</label>
+                      <Button icon="pi pi-plus" text size="small" :aria-label="$t('processDesigner.addAttachment')" @click="addSelectedStatusAttachment" />
+                    </div>
+                    <div v-for="entry in selectedStatusAttachmentEntries" :key="entry.key" class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-center gap-1">
+                      <InputText :model-value="entry.key" size="small" @change="event => renameSelectedStatusLifecycleEntry('attachments', entry.key, event.target.value)" />
+                      <Select
+                        :model-value="entry.schema.kind"
+                        :options="designer.attachmentKindOptions"
+                        option-label="label"
+                        option-value="value"
+                        editable
+                        size="small"
+                        @update:model-value="value => updateSelectedStatusAttachment(entry.key, { kind: value })"
+                      />
+                      <Checkbox :model-value="Boolean(entry.schema.required)" binary @update:model-value="value => updateSelectedStatusAttachment(entry.key, { required: value })" />
+                      <Button icon="pi pi-times" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedStatusAttachment(entry.key)" />
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <label>{{ $t('processDesigner.snapshots') }}</label>
+                      <Button icon="pi pi-plus" text size="small" :aria-label="$t('processDesigner.addSnapshot')" @click="addSelectedStatusSnapshot" />
+                    </div>
+                    <div v-for="entry in selectedStatusSnapshotEntries" :key="entry.key" class="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-1">
+                      <InputText :model-value="entry.key" size="small" @change="event => renameSelectedStatusLifecycleEntry('snapshots', entry.key, event.target.value)" />
+                      <Select
+                        :model-value="entry.schema.entityType"
+                        :options="entityTypeOptions"
+                        option-label="label"
+                        option-value="value"
+                        size="small"
+                        @update:model-value="value => updateSelectedStatusSnapshot(entry.key, { entityType: value })"
+                      />
+                      <InputText
+                        :model-value="entry.schema.lineageKey"
+                        size="small"
+                        :placeholder="$t('processDesigner.lineageKey')"
+                        @update:model-value="value => updateSelectedStatusSnapshot(entry.key, { lineageKey: value })"
+                      />
+                      <Button icon="pi pi-times" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedStatusSnapshot(entry.key)" />
+                    </div>
+                  </div>
+                  <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeStatusDefinition(selectedStatusDefinition.id)" />
+                </template>
+
                 <template v-else-if="selectedNode.type === 'valueInput'">
                   <Tag :value="processPortTypeLabel(selectedValueInput.outputs?.[0]?.kind || selectedValueInput.valueType)" severity="info" size="small" />
                 </template>
@@ -378,6 +484,49 @@
                       filter
                       @change="syncNodeData"
                     />
+                  </div>
+                  <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <label>{{ $t('processDesigner.roles') }}</label>
+                      <Button
+                        icon="pi pi-plus"
+                        text
+                        size="small"
+                        :aria-label="$t('processDesigner.addRole')"
+                        :disabled="!nextSelectedProcessNodeRoleId"
+                        @click="addSelectedProcessNodeGrant"
+                      />
+                    </div>
+                    <div
+                      v-for="(grant, index) in selectedProcessNodeGrants"
+                      :key="`${grant.roleId}-${index}`"
+                      class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2"
+                    >
+                      <Select
+                        :model-value="grant.roleId"
+                        :options="selectedProcessNodeRoleOptions(index)"
+                        option-label="label"
+                        option-value="value"
+                        size="small"
+                        @update:model-value="value => updateSelectedProcessNodeGrant(index, { roleId: value })"
+                      />
+                      <Select
+                        :model-value="grant.level || 'write'"
+                        :options="accessLevelOptions"
+                        option-label="label"
+                        option-value="value"
+                        size="small"
+                        @update:model-value="value => updateSelectedProcessNodeGrant(index, { level: value })"
+                      />
+                      <Button
+                        icon="pi pi-trash"
+                        text
+                        severity="danger"
+                        size="small"
+                        :aria-label="$t('common.delete')"
+                        @click="removeSelectedProcessNodeGrant(index)"
+                      />
+                    </div>
                   </div>
                   <Panel v-if="selectedProcessNode.kind?.startsWith('effect.')" :header="$t('processDesigner.retryPolicy')">
                     <div class="grid grid-cols-2 gap-2">
@@ -551,7 +700,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { VueFlow, useVueFlow } from '@vue-flow/core';
+import { SelectionMode, VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
@@ -635,7 +784,8 @@ const contextPalette = ref({
   query: '',
   socket: null
 });
-const { getViewport } = useVueFlow();
+const canvasKeyboardActive = ref(false);
+const { fitView, getViewport, setViewport, zoomIn, zoomOut, zoomTo } = useVueFlow();
 
 const designer = createProcessDesignerContract(cncDomain);
 const paletteGroups = computed(() => {
@@ -826,12 +976,24 @@ const selectedEntity = computed(() => selectedNode.value?.type === 'entity' ? en
 const selectedAction = computed(() => selectedNode.value?.type === 'action' ? ensureRecord('actions', selectedNode.value, createAction) : {});
 const selectedService = computed(() => selectedNode.value?.type === 'service' ? ensureRecord('services', selectedNode.value, createService) : {});
 const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? ensureRecord('sockets', selectedNode.value, createSocket) : {});
+const selectedStatusDefinition = computed(() => selectedNode.value?.type === 'statusDefinition'
+  ? ensureRecord('statusDefinitions', selectedNode.value, createStatusDefinition)
+  : {});
+const selectedStatusAttachmentEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.attachments || {})
+  .map(([key, schema]) => ({ key, schema })));
+const selectedStatusSnapshotEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.snapshots || {})
+  .map(([key, schema]) => ({ key, schema })));
 const statusDefinitionList = computed(() => Object.values(draft.value?.data?.statusDefinitions || {}));
 const processStatusOptions = computed(() => statusDefinitionList.value
   .filter(status => status.statusId)
   .map(status => ({ label: status.label || status.statusId, value: status.statusId, refId: status.id })));
 const selectedValueInput = computed(() => selectedNode.value?.type === 'valueInput' ? ensureRecord('valueInputs', selectedNode.value, createValueInput) : {});
 const selectedProcessNode = computed(() => selectedNode.value?.type === 'processNode' ? ensureRecord('processNodes', selectedNode.value, createProcessNode) : {});
+const selectedProcessNodeGrants = computed(() => selectedProcessNode.value.access?.grants || []);
+const nextSelectedProcessNodeRoleId = computed(() => {
+  const selected = new Set(selectedProcessNodeGrants.value.map(grant => grant.roleId));
+  return roleOptions.value.find(option => !selected.has(option.value))?.value || '';
+});
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
 
 const roles = computed(() => draft.value?.data?.roles || {});
@@ -1047,6 +1209,7 @@ function setDraft(value) {
   selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
   selectedPrincipalId.value = Object.keys(value?.data?.servicePrincipals || {})[0] || null;
   selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
+  nextTick(() => setViewport(canvas.viewport || { x: 0, y: 0, zoom: 1 }, { duration: 0 }));
   recomputeProcessPreview();
 }
 
@@ -1062,6 +1225,7 @@ function addNode(item, position = activeViewportCenter()) {
     id,
     type,
     position,
+    selected: true,
     data: { refId, label: refId }
   };
   const record = ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
@@ -1080,7 +1244,8 @@ function addNode(item, position = activeViewportCenter()) {
   if (type === 'valueInput' && valueStructure) {
     Object.assign(record, createValueInput(refId, valueStructure));
   }
-  nodes.value.push(enrichNodeData(node));
+  nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), enrichNodeData(node)];
+  edges.value = edges.value.map(edge => decorateEdge({ ...edge, selected: false }));
   selectedNodeId.value = id;
   selectedEdgeId.value = null;
   syncEdgeSelection();
@@ -1101,9 +1266,19 @@ function selectEdge(edge) {
 
 function clearGraphSelection() {
   closeContextPalette();
+  nodes.value = nodes.value.map(node => ({ ...node, selected: false }));
+  edges.value = edges.value.map(edge => decorateEdge({ ...edge, selected: false }));
   selectedNodeId.value = null;
   selectedEdgeId.value = null;
   syncEdgeSelection();
+}
+
+function handleDesignerPointerDown(event) {
+  canvasKeyboardActive.value = Boolean(event.target?.closest?.('.vue-flow'));
+}
+
+function handleDesignerFocus(event) {
+  canvasKeyboardActive.value = Boolean(event.target?.closest?.('.vue-flow'));
 }
 
 function openPanePalette(event) {
@@ -1240,11 +1415,37 @@ function addContextNode(item) {
 }
 
 function handleCanvasKeydown(event) {
-  if (!['Delete', 'Backspace'].includes(event.key) || (!selectedNodeId.value && !selectedEdgeId.value)) return;
-  if (isTextEditingTarget(event.target)) return;
-  event.preventDefault();
-  if (selectedNodeId.value) deleteSelectedNode();
-  else deleteSelectedEdge();
+  if (!canvasKeyboardActive.value || isTextEditingTarget(event.target)) return;
+  if (['Delete', 'Backspace'].includes(event.key)) {
+    if (!selectedGraphNodes().length && !selectedGraphEdges().length) return;
+    event.preventDefault();
+    deleteGraphSelection();
+    return;
+  }
+  if (event.key === 'Home') {
+    event.preventDefault();
+    frameAllNodes();
+    return;
+  }
+  if (event.code === 'NumpadDecimal') {
+    event.preventDefault();
+    frameSelectedNodes();
+    return;
+  }
+  if (event.key.toLowerCase() === 'a' && event.altKey) {
+    event.preventDefault();
+    clearGraphSelection();
+    return;
+  }
+  if (event.key.toLowerCase() === 'a' && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault();
+    nodes.value = nodes.value.map(node => ({ ...node, selected: true }));
+    edges.value = edges.value.map(edge => decorateEdge({ ...edge, selected: false }));
+    selectedNodeId.value = nodes.value[0]?.id || null;
+    selectedEdgeId.value = null;
+    return;
+  }
+  if (event.key === 'Escape') clearGraphSelection();
 }
 
 function isTextEditingTarget(target) {
@@ -1252,27 +1453,61 @@ function isTextEditingTarget(target) {
   return target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName);
 }
 
-function deleteSelectedNode() {
-  const node = selectedNode.value;
-  if (!node) return;
-  if (node.type === 'statusDefinition') {
-    removeStatusDefinition(node.data?.refId || node.id);
-    return;
-  }
-  const refId = node.data?.refId;
-  nodes.value = nodes.value.filter(item => item.id !== node.id);
-  edges.value = edges.value.filter(edge => edge.source !== node.id && edge.target !== node.id);
-  if (refId && draft.value?.data) delete draft.value.data[recordKeyForType(node.type)]?.[refId];
-  selectedNodeId.value = null;
-  selectedEdgeId.value = null;
-  syncInferredActionInputs();
+function selectedGraphNodes() {
+  const selected = nodes.value.filter(node => node.selected);
+  if (selected.length) return selected;
+  return selectedNode.value ? [selectedNode.value] : [];
 }
 
-function deleteSelectedEdge() {
-  if (!selectedEdgeId.value) return;
+function selectedGraphEdges() {
+  const selected = edges.value.filter(edge => edge.selected);
+  if (selected.length) return selected;
   const edge = edges.value.find(item => item.id === selectedEdgeId.value);
-  clearSemanticConnection(edge);
-  edges.value = edges.value.filter(edge => edge.id !== selectedEdgeId.value);
+  return edge ? [edge] : [];
+}
+
+function deleteGraphSelection() {
+  const selectedNodes = selectedGraphNodes();
+  const candidateNodeIds = new Set(selectedNodes.map(node => node.id));
+  const selectedProcessRefs = new Set(selectedNodes
+    .filter(node => node.type === 'processNode')
+    .map(node => node.data?.refId)
+    .filter(Boolean));
+  const remainingProcessNodes = Object.entries(draft.value?.data?.processNodes || {})
+    .filter(([refId]) => !selectedProcessRefs.has(refId))
+    .map(([, node]) => node);
+  const blockedStatusNodeIds = new Set(selectedNodes
+    .filter(node => node.type === 'statusDefinition')
+    .filter(node => remainingProcessNodes.some(record => record.statusRef === (node.data?.refId || node.id)))
+    .map(node => node.id));
+  const removedNodeIds = new Set([...candidateNodeIds].filter(id => !blockedStatusNodeIds.has(id)));
+  const protectedStatusEdges = new Set(edges.value
+    .filter(edge => blockedStatusNodeIds.has(edge.source) && !removedNodeIds.has(edge.target))
+    .map(edge => edge.id));
+  const removedEdgeIds = new Set(selectedGraphEdges()
+    .map(edge => edge.id)
+    .filter(id => !protectedStatusEdges.has(id)));
+  for (const edge of edges.value) {
+    if ((removedNodeIds.has(edge.source) || removedNodeIds.has(edge.target)) && !protectedStatusEdges.has(edge.id)) {
+      removedEdgeIds.add(edge.id);
+    }
+  }
+  for (const edge of edges.value.filter(edge => removedEdgeIds.has(edge.id))) clearSemanticConnection(edge);
+  for (const node of selectedNodes.filter(node => removedNodeIds.has(node.id))) {
+    const refId = node.data?.refId;
+    if (refId && draft.value?.data) delete draft.value.data[recordKeyForType(node.type)]?.[refId];
+  }
+  nodes.value = nodes.value.filter(node => !removedNodeIds.has(node.id));
+  edges.value = edges.value.filter(edge => !removedEdgeIds.has(edge.id));
+  if (blockedStatusNodeIds.size) {
+    toast.add({
+      severity: 'warn',
+      summary: t('processDesigner.statusInUse'),
+      detail: t('processDesigner.statusInUseHelp'),
+      life: 3000
+    });
+  }
+  selectedNodeId.value = nodes.value.find(node => blockedStatusNodeIds.has(node.id))?.id || null;
   selectedEdgeId.value = null;
   syncInferredActionInputs();
 }
@@ -1282,7 +1517,7 @@ function decorateEdges(items = []) {
 }
 
 function decorateEdge(edge = {}) {
-  const selected = edge.id === selectedEdgeId.value;
+  const selected = edge.selected === true || edge.id === selectedEdgeId.value;
   const type = edge.type === 'smoothstep' || edge.type === 'step' ? 'default' : (edge.type || 'default');
   return {
     ...edge,
@@ -1298,10 +1533,36 @@ function activeViewportCenter() {
   const rect = canvasFrame.value?.getBoundingClientRect?.();
   const width = rect?.width || 1200;
   const height = rect?.height || 720;
+  const visibleLeft = 304;
+  const visibleRight = 432;
+  const visibleCenter = visibleLeft + Math.max(0, width - visibleLeft - visibleRight) / 2;
   return {
-    x: Math.round((width / 2 - Number(viewport.x || 0)) / zoom - 140),
+    x: Math.round((visibleCenter - Number(viewport.x || 0)) / zoom - 128),
     y: Math.round((height / 2 - Number(viewport.y || 0)) / zoom - 80)
   };
+}
+
+function frameAllNodes() {
+  if (!nodes.value.length) return;
+  fitView({ padding: 0.16, duration: 180 });
+}
+
+function frameSelectedNodes() {
+  const ids = selectedGraphNodes().map(node => node.id);
+  if (!ids.length) return frameAllNodes();
+  fitView({ nodes: ids, padding: 0.3, duration: 180 });
+}
+
+function zoomCanvasIn() {
+  zoomIn({ duration: 120 });
+}
+
+function zoomCanvasOut() {
+  zoomOut({ duration: 120 });
+}
+
+function resetCanvasZoom() {
+  zoomTo(1, { duration: 160 });
 }
 
 function syncEdgeSelection() {
@@ -1314,9 +1575,10 @@ function serializeProcess() {
 }
 
 function processDefinitionSnapshot() {
+  const viewport = getViewport?.() || draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 };
   return {
     ...canvasToDefinition(
-      { nodes: nodes.value.map(stripRuntimeNodeData), edges: edges.value.map(stripRuntimeEdgeData), viewport: draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 } },
+      { nodes: nodes.value.map(stripRuntimeNodeData), edges: edges.value.map(stripRuntimeEdgeData), viewport },
       draft.value?.data || {}
     ),
     dataflowVersion: PROCESS_DATAFLOW_VERSION
@@ -1360,7 +1622,7 @@ function syncNodeData() {
     node.data.actionTitleLabel = node.type === 'action' ? actionTitleLabel(record) : null;
     node.data.eventLabel = node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null;
     node.data.actionRecord = node.type === 'action' ? record : null;
-    node.data.entityTypeOptions = ['action', 'statusDefinition'].includes(node.type) ? entityTypeOptions.value : [];
+    node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
     node.data.roleOptions = node.type === 'action' ? actionRoleOptions(record, node) : [];
     node.data.effectiveAccessLabels = node.type === 'action' ? effectiveActionAccessLabels(record, node) : [];
@@ -1377,10 +1639,6 @@ function syncNodeData() {
     node.data.statusDefinitionRecord = node.type === 'statusDefinition' ? record : null;
     node.data.onStatusDefinitionUpdate = node.type === 'statusDefinition' ? updates => updateStatusDefinitionRecord(record.id || node.data.refId, updates) : null;
     node.data.onStatusDefinitionDelete = node.type === 'statusDefinition' ? () => removeStatusDefinition(record.id || node.data.refId) : null;
-    node.data.statusSeverityOptions = node.type === 'statusDefinition' ? statusSeverityOptions : [];
-    node.data.statusIconOptions = node.type === 'statusDefinition' ? statusIconOptions : [];
-    node.data.attachmentKindOptions = node.type === 'statusDefinition' ? designer.attachmentKindOptions : [];
-    node.data.evidenceLabel = node.type === 'statusDefinition' ? t('processDesigner.evidence') : '';
     node.data.processValueTypeOptions = ['valueInput', 'processNode'].includes(node.type) ? processValueTypeOptions : [];
     node.data.processEntityTypeOptions = node.type === 'processNode' ? processEntityTypeOptions(record) : [];
     node.data.processOperationOptions = node.type === 'processNode' ? processNodeOperationOptions(record) : [];
@@ -2891,7 +3149,7 @@ function enrichNodeData(node) {
       actionKindLabel: node.type === 'action' ? actionHeaderLabel(record) : null,
       actionTitleLabel: node.type === 'action' ? actionTitleLabel(record) : null,
       actionRecord: node.type === 'action' ? record : null,
-      entityTypeOptions: ['action', 'statusDefinition'].includes(node.type) ? entityTypeOptions.value : [],
+      entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
       roleOptions: node.type === 'action' ? actionRoleOptions(record, node) : [],
       effectiveAccessLabels: node.type === 'action' ? effectiveActionAccessLabels(record, node) : [],
@@ -2908,10 +3166,6 @@ function enrichNodeData(node) {
       statusDefinitionRecord: node.type === 'statusDefinition' ? record : null,
       onStatusDefinitionUpdate: node.type === 'statusDefinition' ? updates => updateStatusDefinitionRecord(record.id || node.data?.refId, updates) : null,
       onStatusDefinitionDelete: node.type === 'statusDefinition' ? () => removeStatusDefinition(record.id || node.data?.refId) : null,
-      statusSeverityOptions: node.type === 'statusDefinition' ? statusSeverityOptions : [],
-      statusIconOptions: node.type === 'statusDefinition' ? statusIconOptions : [],
-      attachmentKindOptions: node.type === 'statusDefinition' ? designer.attachmentKindOptions : [],
-      evidenceLabel: node.type === 'statusDefinition' ? t('processDesigner.evidence') : '',
       processValueTypeOptions: ['valueInput', 'processNode'].includes(node.type) ? processValueTypeOptions : [],
       processEntityTypeOptions: node.type === 'processNode' ? processEntityTypeOptions(record) : [],
       processOperationOptions: node.type === 'processNode' ? processNodeOperationOptions(record) : [],
@@ -2991,6 +3245,76 @@ function updateStatusDefinitionRecord(statusId, updates = {}) {
   syncNodeData();
 }
 
+function mutateSelectedStatusLifecycle(mutator) {
+  if (!selectedStatusDefinition.value?.id) return;
+  const lifecycle = structuredClone(selectedStatusDefinition.value.lifecycle || {});
+  mutator(lifecycle);
+  if (!lifecycle.description?.required) delete lifecycle.description;
+  if (!Object.keys(lifecycle.attachments || {}).length) delete lifecycle.attachments;
+  if (!Object.keys(lifecycle.snapshots || {}).length) delete lifecycle.snapshots;
+  updateStatusDefinitionRecord(selectedStatusDefinition.value.id, {
+    lifecycle: Object.keys(lifecycle).length ? lifecycle : undefined
+  });
+}
+
+function setSelectedStatusDescriptionRequired(required) {
+  mutateSelectedStatusLifecycle(lifecycle => {
+    if (required) lifecycle.description = { required: true };
+    else delete lifecycle.description;
+  });
+}
+
+function addSelectedStatusAttachment() {
+  mutateSelectedStatusLifecycle(lifecycle => {
+    lifecycle.attachments ||= {};
+    const key = uniqueStatusLifecycleKey('proof', lifecycle.attachments);
+    lifecycle.attachments[key] = { kind: 'photo', required: true };
+  });
+}
+
+function updateSelectedStatusAttachment(key, updates) {
+  mutateSelectedStatusLifecycle(lifecycle => Object.assign(lifecycle.attachments[key], updates));
+}
+
+function removeSelectedStatusAttachment(key) {
+  mutateSelectedStatusLifecycle(lifecycle => delete lifecycle.attachments?.[key]);
+}
+
+function addSelectedStatusSnapshot() {
+  mutateSelectedStatusLifecycle(lifecycle => {
+    lifecycle.snapshots ||= {};
+    const key = uniqueStatusLifecycleKey('snapshot', lifecycle.snapshots);
+    lifecycle.snapshots[key] = {
+      entityType: entityTypeOptions.value[0]?.value || '',
+      lineageKey: '',
+      required: true
+    };
+  });
+}
+
+function updateSelectedStatusSnapshot(key, updates) {
+  mutateSelectedStatusLifecycle(lifecycle => Object.assign(lifecycle.snapshots[key], updates));
+}
+
+function removeSelectedStatusSnapshot(key) {
+  mutateSelectedStatusLifecycle(lifecycle => delete lifecycle.snapshots?.[key]);
+}
+
+function renameSelectedStatusLifecycleEntry(section, previous, value) {
+  const next = String(value || '').trim();
+  if (!next || next === previous || selectedStatusDefinition.value.lifecycle?.[section]?.[next]) return;
+  mutateSelectedStatusLifecycle(lifecycle => {
+    lifecycle[section][next] = lifecycle[section][previous];
+    delete lifecycle[section][previous];
+  });
+}
+
+function uniqueStatusLifecycleKey(prefix, entries) {
+  let index = 1;
+  while (entries[`${prefix}${index}`]) index += 1;
+  return `${prefix}${index}`;
+}
+
 function updateProcessNodeRecord(nodeId, updates = {}) {
   const node = draft.value?.data?.processNodes?.[nodeId];
   if (!node) return;
@@ -3017,6 +3341,41 @@ function updateProcessNodeRecord(nodeId, updates = {}) {
   syncNodeData();
 }
 
+function setSelectedProcessNodeGrants(grants) {
+  if (!selectedProcessNode.value?.id) return;
+  updateProcessNodeRecord(selectedProcessNode.value.id, {
+    access: {
+      ...(selectedProcessNode.value.access || {}),
+      grants
+    }
+  });
+}
+
+function addSelectedProcessNodeGrant() {
+  if (!nextSelectedProcessNodeRoleId.value) return;
+  setSelectedProcessNodeGrants([
+    ...selectedProcessNodeGrants.value,
+    { roleId: nextSelectedProcessNodeRoleId.value, level: 'write' }
+  ]);
+}
+
+function selectedProcessNodeRoleOptions(index) {
+  const usedByOthers = new Set(selectedProcessNodeGrants.value
+    .filter((_, grantIndex) => grantIndex !== index)
+    .map(grant => grant.roleId));
+  return roleOptions.value.filter(option => !usedByOthers.has(option.value));
+}
+
+function updateSelectedProcessNodeGrant(index, updates) {
+  setSelectedProcessNodeGrants(selectedProcessNodeGrants.value.map((grant, grantIndex) => (
+    grantIndex === index ? { ...grant, ...updates } : grant
+  )));
+}
+
+function removeSelectedProcessNodeGrant(index) {
+  setSelectedProcessNodeGrants(selectedProcessNodeGrants.value.filter((_, grantIndex) => grantIndex !== index));
+}
+
 function resetActionAccess(actionId) {
   const action = draft.value?.data?.actions?.[actionId];
   if (!action || action.actionKind !== 'updateEntity') return;
@@ -3034,6 +3393,10 @@ function resetActionAccess(actionId) {
 }
 
 function stripRuntimeNodeData(node) {
+  const runtimeFreeNode = { ...node };
+  delete runtimeFreeNode.selected;
+  delete runtimeFreeNode.dragging;
+  delete runtimeFreeNode.resizing;
   const data = { ...(node.data || {}) };
   for (const key of [
     'actionRecord',
@@ -3073,7 +3436,7 @@ function stripRuntimeNodeData(node) {
   ]) {
     delete data[key];
   }
-  return { ...node, data };
+  return { ...runtimeFreeNode, data };
 }
 
 function stripRuntimeEdgeData(edge) {
