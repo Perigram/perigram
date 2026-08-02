@@ -330,6 +330,9 @@
    - Transpiler coverage verifies that a derived action and executable effect
      may share one stable semantic reference without the action disappearing
      during definition → canvas → definition validation.
+   - Canonical block capabilities keep service-owned identity uid out of fresh
+     Compose/Modify Block nodes, and validation rejects persisted graphs that
+     attempt to author it.
    - Draft actions are persistent, activation validates first, dirty/operation
      state is visible, and both side rails are independently collapsible with
      narrow-layout overlays.

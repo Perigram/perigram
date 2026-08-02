@@ -97,6 +97,15 @@ An open socket is a composition affordance, not an error. Missing required
 inputs are reported when validation is requested, not as warning badges on
 every new node.
 
+Fallback/default policy is omission-first. A connected value wins; otherwise
+an explicit authored `inputDefaults` value is used. If neither exists, an
+optional input is omitted, while a required input fails validation. Defaults
+declared by a construction mode or command are applied only by that owning
+domain/runtime contract—generic block authoring does not guess them. Generated
+identity uid, Mongo `_id`, origin, status history, and other service-owned
+fields have no authoring fallback and cannot be composed or modified. Initial
+status is the separate lifecycle input.
+
 Only configuration that defines the operation or its ports stays on the node:
 value/type, entity, field, block, operation, trigger identity/mode, and socket
 fallback. Access grants, selected compose/modify field sets, retry policy, and

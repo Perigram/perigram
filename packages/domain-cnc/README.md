@@ -169,6 +169,9 @@ declared containment ancestry, so a consuming Create/Modify node can validate a
 generic Lineage block without teaching the block composer about that consumer.
 `cncEntityFieldSchemas` separately declares which of those fields belong to an
 entity and whether they are readable, writable, or constructible. The registry
+also preserves framework structural capabilities: `identity.uid` remains
+readable for inspection but is excluded from Compose/Modify Block because uid
+generation belongs to the owning feature service. The registry
 keeps intrinsic arrays (`base: array` plus `itemType`) separate from process
 packet shape (`item`, `list`, or `tree`), so a field containing entity refs does
 not turn one composed block into a list of blocks.
