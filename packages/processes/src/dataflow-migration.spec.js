@@ -296,6 +296,39 @@ describe('process v3 data-flow migration', () => {
     expect(migrated.type).toEqual({ base: 'block', block: 'identity' });
   });
 
+  it('migrates open block fields and their wires to stable authored entries', () => {
+    const value = migrateProcessDataflowDefinition({
+      dataflowVersion: 3,
+      processNodes: {
+        organization: { id: 'organization', kind: 'source.literalItem', type: { base: 'entityRef', entityType: 'organization' } },
+        lineage: {
+          id: 'lineage',
+          kind: 'record.composeBlock',
+          block: 'lineage',
+          fields: ['lineage.organizationId']
+        }
+      },
+      graph: {
+        nodes: ['organization', 'lineage'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [{
+          id: 'organization-lineage',
+          source: 'organization',
+          sourceHandle: 'data:value',
+          target: 'lineage',
+          targetHandle: 'data:lineage.organizationId',
+          role: 'data'
+        }]
+      }
+    }, cncDomain).value;
+
+    expect(value.processNodes.lineage).toMatchObject({
+      compositionMode: 'ancestors',
+      fields: [],
+      entries: [{ id: 'entry_organizationId', key: 'organizationId', entityType: 'organization' }]
+    });
+    expect(value.graph.edges[0].targetHandle).toBe('data:entry:entry_organizationId');
+  });
+
   it('stops on ambiguous hybrid direct and composed field wiring', () => {
     expect(() => migrateProcessDataflowDefinition({
       dataflowVersion: 3,

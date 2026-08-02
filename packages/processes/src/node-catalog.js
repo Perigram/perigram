@@ -348,12 +348,16 @@ function catalogPorts(record = {}, context = {}) {
   if (kind === 'tree.transpose') return unary({ ...configured, shape: 'tree' }, { ...configured, shape: 'tree' });
   if (kind === 'record.getField') {
     const field = context.fieldSchema || record.fieldSchema;
+    const composition = blockComposition(record, context);
     return {
       inputs: [socket('block', processType('block', {
         block: record.block,
         shape: configured.shape
       }), DATA, true)],
-      outputs: [socket('value', { ...processTypeFrom(field?.type, configured), shape: configured.shape })]
+      outputs: [socket('value', {
+        ...processTypeFrom(composition ? record.type : field?.type, configured),
+        shape: configured.shape
+      })]
     };
   }
   if (kind === 'record.fieldChange') return {
@@ -366,6 +370,21 @@ function catalogPorts(record = {}, context = {}) {
     outputs: [socket('record', entity)]
   };
   if (kind === 'record.composeBlock' || kind === 'record.modifyBlock') {
+    const composition = blockComposition(record, context);
+    const entries = openBlockEntries(record, composition);
+    if (composition) {
+      const block = processType('block', { block: record.block, shape: configured.shape });
+      return {
+        inputs: [
+          ...(kind === 'record.modifyBlock' ? [socket('block', block, DATA, true)] : []),
+          ...entries.map(entry => ({
+            ...socket(`entry:${entry.id}`, openBlockEntryType(entry, composition), DATA, true),
+            label: entryLabel(entry, composition)
+          }))
+        ],
+        outputs: [socket('block', block)]
+      };
+    }
     const fields = dynamicFields(record, context)
       .filter(field => field.block === record.block || field.path?.startsWith(`${record.block}.`));
     const block = processType('block', {
@@ -477,6 +496,38 @@ function catalogPorts(record = {}, context = {}) {
   };
   if (kind === 'control.stopSuccess' || kind === 'control.stopFailure') return { inputs: controlInput, outputs: [] };
   throw new Error(`Node ${kind} has no port contract`);
+}
+
+function blockComposition(record = {}, context = {}) {
+  return context.blockComposition || (record.compositionMode
+    ? { mode: record.compositionMode, valueBase: record.compositionValueBase || 'json' }
+    : null);
+}
+
+function openBlockEntries(record = {}, composition = null) {
+  if (!composition) return [];
+  return Array.isArray(record.entries) ? record.entries.filter(entry => entry?.id) : [];
+}
+
+function openBlockEntryType(entry = {}, composition = {}) {
+  if (composition?.mode === 'relations' && entry.cardinality === 'many') {
+    return processType('array', {
+      itemType: processType('entityRef', { entityType: entry.entityType || undefined })
+    });
+  }
+  if (composition?.mode === 'ancestors' || composition?.mode === 'relations') {
+    return processType('entityRef', { entityType: entry.entityType || undefined });
+  }
+  if (composition?.mode === 'attachments') {
+    return processType('attachmentRef', { attachmentKind: entry.attachmentKind || undefined });
+  }
+  const base = entry.type?.base || composition?.valueBase || 'json';
+  return processType(base, entry.type || {});
+}
+
+function entryLabel(entry = {}, composition = {}) {
+  if (composition?.mode === 'ancestors') return entry.key || entry.entityType || 'ancestor';
+  return entry.key || entry.id;
 }
 
 function unary(input, output) {

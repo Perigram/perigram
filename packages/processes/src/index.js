@@ -2446,18 +2446,45 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
   }
   if (['record.getField', 'record.fieldChange', 'predicate.field'].includes(node.kind)) {
     if (!node.path) errors.push(`Process node ${nodeId} must select a field`);
+    const openBlock = node.kind === 'record.getField' ? domain.blockComposition?.[node.block] : null;
     const schema = node.kind === 'record.getField'
       ? structuralFieldSchema(domain, node.path)
       : entityFieldSchema(domain, node.entityType, node.path);
-    if (node.path && !schema) errors.push(`Process node ${nodeId} uses undeclared field ${node.path}`);
+    if (node.path && !schema && !openBlock) errors.push(`Process node ${nodeId} uses undeclared field ${node.path}`);
+    if (openBlock && node.path && !String(node.path).startsWith(`${node.block}.`)) {
+      errors.push(`Process node ${nodeId} field ${node.path} does not belong to block ${node.block}`);
+    }
+    if (openBlock?.mode === 'ancestors') {
+      const key = String(node.path || '').replace(`${node.block}.`, '');
+      const slot = domainLineageSlots(domain).find(item => item.key === key);
+      if (!slot || node.type?.base !== 'entityRef' || node.type.entityType !== slot.entityType) {
+        errors.push(`Process node ${nodeId} must select a declared lineage slot`);
+      }
+    }
+    if (openBlock?.mode === 'relations') {
+      const key = String(node.path || '').replace(`${node.block}.`, '');
+      const slot = domainRelationSlots(domain).find(item => item.key === key);
+      const validType = slot?.cardinality === 'many'
+        ? node.type?.base === 'array' && node.type.itemType?.base === 'entityRef' && node.type.itemType.entityType === slot.entityType
+        : node.type?.base === 'entityRef' && node.type.entityType === slot?.entityType;
+      if (!slot || !validType) errors.push(`Process node ${nodeId} must select a declared relation slot`);
+    }
     if (schema && node.kind === 'record.fieldChange' && schema.writable === false) {
       errors.push(`Process node ${nodeId} cannot modify read-only field ${node.entityType}.${node.path}`);
     }
   }
   if (['record.composeBlock', 'record.modifyBlock'].includes(node.kind)) {
     if (!node.block) errors.push(`Process node ${nodeId} must select a block`);
-    if (!node.fields?.length) errors.push(`Process node ${nodeId} must select at least one block field`);
-    for (const path of node.fields || []) {
+    if (['origin', 'status', 'provenance', 'summary'].includes(node.block)) {
+      errors.push(`Process node ${nodeId} cannot author managed block ${node.block}`);
+    }
+    const composition = domain.blockComposition?.[node.block];
+    if (composition && node.compositionMode !== composition.mode) {
+      errors.push(`Process node ${nodeId} has the wrong composition mode for ${node.block}`);
+    }
+    if (composition) validateOpenBlockEntries(nodeId, node, composition, entities, domain, errors);
+    else if (!node.fields?.length) errors.push(`Process node ${nodeId} must select at least one block field`);
+    for (const path of composition ? [] : (node.fields || [])) {
       const schema = structuralFieldSchema(domain, path);
       if (!schema) errors.push(`Process node ${nodeId} uses undeclared block field ${path}`);
       if (schema && schema.block !== node.block) {
@@ -2541,11 +2568,88 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
         : entityFieldSchema(domain, node.entityType, node.path),
       fieldSchemas: processNodeUsesStructuralFields(node.kind)
         ? blockFieldSchemas(domain, node.block)
-        : entityFieldSchemas(domain, node.entityType)
+        : entityFieldSchemas(domain, node.entityType),
+      blockComposition: domain.blockComposition?.[node.block] || null
     });
   } catch (error) {
     errors.push(`Process node ${nodeId} has invalid sockets: ${error.message}`);
   }
+}
+
+function validateOpenBlockEntries(nodeId, node, composition, entities, domain, errors) {
+  const entries = Array.isArray(node.entries) ? node.entries : [];
+  if (!entries.length) {
+    errors.push(`Process node ${nodeId} must define at least one block entry`);
+    return;
+  }
+  const ids = new Set();
+  const keys = new Set();
+  for (const entry of entries) {
+    if (!entry?.id || ids.has(entry.id)) errors.push(`Process node ${nodeId} has a missing or duplicate entry id`);
+    ids.add(entry?.id);
+    if (['ancestors', 'relations'].includes(composition.mode)) {
+      if (!entry.entityType || !entities.has(entry.entityType)) {
+        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select an entity type`);
+      }
+    }
+    if (composition.mode === 'ancestors') {
+      const declared = domainLineageSlots(domain).find(slot => slot.key === entry.key);
+      if (!declared || declared.entityType !== entry.entityType) {
+        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select a declared lineage slot`);
+      }
+    } else if (composition.mode === 'relations') {
+      const declared = domainRelationSlots(domain).find(slot => slot.key === entry.key);
+      if (!declared || declared.entityType !== entry.entityType || declared.cardinality !== (entry.cardinality || 'one')) {
+        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select a declared relation slot`);
+      }
+      if (keys.has(entry.key)) errors.push(`Process node ${nodeId} has a missing or duplicate entry key`);
+      keys.add(entry.key);
+    } else {
+      const key = String(entry.key || '').trim();
+      if (!key || keys.has(key)) errors.push(`Process node ${nodeId} has a missing or duplicate entry key`);
+      keys.add(key);
+    }
+    if (composition.mode === 'entries') {
+      try {
+        normalizeProcessType(entry.type);
+      } catch (error) {
+        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} has invalid type: ${error.message}`);
+      }
+    }
+    if (composition.mode === 'attachments') {
+      const kinds = new Set(Object.values(domain.attachmentKinds || {}).map(kind => kind.kind || kind.id));
+      if (!entry.attachmentKind || !kinds.has(entry.attachmentKind)) {
+        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select a declared attachment kind`);
+      }
+    }
+  }
+}
+
+function domainLineageSlots(domain = {}) {
+  const slots = new Map();
+  for (const relation of domain.containment || []) {
+    if (relation.lineageKey && relation.parentType) slots.set(relation.lineageKey, relation.parentType);
+  }
+  for (const schemas of Object.values(domain.fieldSchemas || {})) {
+    for (const schema of schemas || []) {
+      if (schema.block === 'lineage' && schema.type?.base === 'entityRef' && schema.type.entityType) {
+        slots.set(String(schema.path).replace(/^lineage\./, ''), schema.type.entityType);
+      }
+    }
+  }
+  return [...slots].map(([key, entityType]) => ({ key, entityType }));
+}
+
+function domainRelationSlots(domain = {}) {
+  const slots = new Map();
+  for (const relation of domain.relations || []) {
+    if (relation.key && relation.targetType) slots.set(relation.key, {
+      key: relation.key,
+      entityType: relation.targetType,
+      cardinality: relation.cardinality || 'one'
+    });
+  }
+  return [...slots.values()];
 }
 
 function validateV3Edges(process, domain) {
@@ -2575,7 +2679,10 @@ function validateV3Edges(process, domain) {
       && ['record.composeBlock', 'record.modifyBlock'].includes(sourceRecord.kind)
       && ['effect.createEntity', 'effect.updateEntity'].includes(targetRecord.kind)) {
       const requiredAccess = targetRecord.kind === 'effect.createEntity' ? 'constructible' : 'writable';
-      for (const path of sourceRecord.fields || []) {
+      const sourcePaths = sourceRecord.compositionMode
+        ? (sourceRecord.entries || []).map(entry => `${sourceRecord.block}.${entry.key}`).filter(path => !path.endsWith('.undefined'))
+        : (sourceRecord.fields || []);
+      for (const path of sourcePaths) {
         const targetSchemas = entityFieldSchemas(domain, targetRecord.entityType)
           .filter(field => field.block === sourceRecord.block);
         const targetSchema = entityFieldSchema(domain, targetRecord.entityType, path);

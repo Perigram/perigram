@@ -1,7 +1,8 @@
-import { CANONICAL_BLOCK_SCHEMAS } from '../../core/src/index.js';
+import { CANONICAL_BLOCK_COMPOSITION, CANONICAL_BLOCK_SCHEMAS } from '../../core/src/index.js';
 import { cncEntities } from './entities.js';
 import { cncEntityFieldAccess, normalizeFieldAccessEntityType } from './field-access.js';
 import { cncEntityFieldGroups } from './ui-fields.js';
+import { cncContainment } from './relationships.js';
 
 const CORE_FIELDS = [
   field('_id', 'json', { writable: false }),
@@ -38,13 +39,14 @@ const CORE_FIELDS = [
 const rawEntityFieldSchemas = Object.fromEntries(cncEntities.map(entity => {
   const entityType = entity.type;
   const access = fieldAccessFor(entityType);
+  const lineageFields = lineageFieldsFor(entityType);
   const descriptorFields = descriptorsFor(entityType).map(descriptor => descriptorField(descriptor));
   const exactAccessFields = ['read', 'write', 'admin']
     .flatMap(level => access[level] || [])
     .filter(path => !String(path).includes('*'))
     .map(path => field(path, 'json'));
   const allowedBlocks = new Set(entity.blocks || []);
-  const fields = uniqueByPath([...CORE_FIELDS, ...descriptorFields, ...exactAccessFields])
+  const fields = uniqueByPath([...CORE_FIELDS, ...lineageFields, ...descriptorFields, ...exactAccessFields])
     .filter(schema => schema.path === '_id' || allowedBlocks.has(schema.block))
     .map(schema => Object.freeze({
       ...schema,
@@ -56,6 +58,7 @@ const rawEntityFieldSchemas = Object.fromEntries(cncEntities.map(entity => {
 }));
 
 export const cncBlockFieldSchemas = CANONICAL_BLOCK_SCHEMAS;
+export const cncBlockComposition = CANONICAL_BLOCK_COMPOSITION;
 
 export const cncEntityFieldSchemas = Object.freeze(Object.fromEntries(
   Object.entries(rawEntityFieldSchemas).map(([entityType, schemas]) => [
@@ -106,6 +109,21 @@ function field(path, base, qualifiers = {}) {
     writable,
     constructible
   };
+}
+
+function lineageFieldsFor(entityType, visited = new Set()) {
+  if (!entityType || visited.has(entityType)) return [];
+  const nextVisited = new Set(visited).add(entityType);
+  return cncContainment
+    .filter(relation => relation.childType === entityType)
+    .flatMap(relation => [
+      field(`lineage.${relation.lineageKey}`, 'entityRef', {
+        entityType: relation.parentType,
+        writable: false,
+        constructible: true
+      }),
+      ...lineageFieldsFor(relation.parentType, nextVisited)
+    ]);
 }
 
 function descriptorField(descriptor = {}) {

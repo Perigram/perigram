@@ -17,6 +17,8 @@ describe('process designer domain contract', () => {
     hooks: { audit: { id: 'audit', label: 'Audit' } },
     effects: { notify: { id: 'notify', label: 'Notify' } },
     attachmentKinds: { report: { kind: 'REPORT', label: 'Report' } },
+    containment: [{ parentType: 'work_item', childType: 'result', lineageKey: 'workItemId' }],
+    relations: [{ ownerType: 'work_item', key: 'owner', targetType: 'result', cardinality: 'one' }],
     workflows: { work_item: { label: 'Work item lifecycle' } },
     fieldAccess: {
       workItem: {
@@ -54,6 +56,8 @@ describe('process designer domain contract', () => {
     expect(contract.hookOptions).toEqual([{ label: 'Audit', value: 'audit' }]);
     expect(contract.effectOptions).toEqual([{ label: 'Notify', value: 'notify' }]);
     expect(contract.attachmentKindOptions).toEqual([{ label: 'Report', value: 'REPORT' }]);
+    expect(contract.lineageOptions).toContainEqual({ label: 'Work item · lineage.workItemId', value: 'workItemId', entityType: 'work_item' });
+    expect(contract.relationOptions).toEqual([{ label: 'result · relations.owner', value: 'owner', entityType: 'result', cardinality: 'one' }]);
     expect(contract.workflowOptions).toEqual([{ label: 'Work item lifecycle', value: 'work_item' }]);
     expect(contract.construction('work_item').inputs[0].path).toBe('identity.name');
     expect(contract.fieldPolicy('work_item').write).toContain('relations.owner');
@@ -144,7 +148,7 @@ describe('process designer domain contract', () => {
     expect(contract.fieldType('work_item', 'identity.name')).toMatchObject({ base: 'string', shape: 'item' });
   });
 
-  it('projects domain construction producers as fixed service operations', () => {
+  it('keeps domain construction producers out of the authoring palette', () => {
     const contract = createProcessDesignerContract({
       ...domain,
       producers: [{
@@ -167,13 +171,6 @@ describe('process designer domain contract', () => {
     const producer = contract.paletteGroups.flatMap(group => group.items)
       .find(item => item.id === 'buildResult');
 
-    expect(producer).toMatchObject({
-      kind: 'effect.runProducer',
-      preset: {
-        producerId: 'buildResult',
-        entityType: 'result',
-        construction: { mode: 'buildResult' }
-      }
-    });
+    expect(producer).toBeUndefined();
   });
 });
