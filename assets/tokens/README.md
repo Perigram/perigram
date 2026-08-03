@@ -5,6 +5,9 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 ## Source Files
 
 - `index.js` exports token groups plus projections for PrimeVue and Tailwind.
+  Its active palette uses slate/graphite surfaces and cyan precision accents;
+  controls use the compact UI radius while containers use the larger panel
+  radius so dense operational screens retain hierarchy.
 - Runtime CSS variables are declared in `assets/css/main.css` using the same `--ck-*` names.
 - PrimeVue component token overrides are consumed by `assets/presets/re_l.js`.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`.
@@ -13,6 +16,9 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 
 - Prefer PrimeVue semantic variables (`--p-*`) for colors.
 - Use `--ck-*` tokens for app layout, radius, and motion values not owned by PrimeVue.
+- Maintain distinct light and dark component-state tokens where a shared
+  primitive has a surface (especially forms, tables, menus, dialogs, and
+  drawers). Do not use a fixed light surface token as a cross-theme override.
 - Component-specific dimensions such as support chat size, dialog widths, popover/menu minimum widths, preview height, table action column width, and form swatch size live here because they are reused UI decisions rather than page-local styling.
 - Do not introduce page-local hardcoded colors, radii, or transition durations unless the value is real data, such as a pen color or DXF layer color.
 - Shared wrappers own visual chrome. Feature components should compose `EntityCard`, `StandardDialog`, `StandardPage`, `Panel`, and semantic layout classes.

@@ -18,7 +18,14 @@ CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The des
 
 Use PrimeVue semantic variables for color and component state. Use CutKit `--ck-*` tokens for app layout, radius, and motion values that PrimeVue does not own.
 
-The active visual language is a quiet operational UI: zinc-neutral surfaces, teal primary actions, compact 8-10px radii, subtle card elevation, and visible focus rings. Avoid adding decorative gradients, large ornamental backgrounds, or page-local theme colors; promote durable visual decisions to `assets/tokens/index.js`.
+The active visual language is a precision operational UI: graphite/slate surfaces,
+cyan primary actions, 6px control radii, 12px container radii, clear tonal
+borders, restrained elevation, and visible focus rings. Primary cyan signals
+interactive state and selection rather than decorative ambient color. Light and
+dark schemes have separate form and table surface states, so a component must
+not force a light surface token into dark mode. Avoid adding decorative
+gradients, large ornamental backgrounds, or page-local theme colors; promote
+durable visual decisions to `assets/tokens/index.js`.
 
 Do not add page or panel headers, descriptions, helper bubbles, notes, tips, or
 empty-state prose unless the workflow would be ambiguous or blocked without
