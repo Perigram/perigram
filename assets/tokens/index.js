@@ -89,9 +89,8 @@ export const designTokens = {
         full: '9999px'
     },
     shadow: {
-        card: '0 0 0 1px rgb(16 16 14 / 0.18)',
-        cardHover: '0 0 0 2px var(--ck-primary-500)',
-        overlay: '0 20px 56px rgb(0 0 0 / 0.24)'
+        card: 'none',
+        overlay: '0 12px 28px rgb(16 16 14 / 0.14)'
     },
     motion: {
         fast: '100ms',
@@ -134,11 +133,11 @@ export const designTokens = {
 
 export const cssVariableTokens = {
     '--ck-page-background': 'var(--p-surface-100)',
-    '--ck-chrome-background': '#10100e',
-    '--ck-chrome-foreground': '#fffdf8',
-    '--ck-chrome-muted': '#bdbdb5',
-    '--ck-chrome-subtle': '#20201d',
-    '--ck-chrome-border': '#393933',
+    '--ck-chrome-background': '#fefefc',
+    '--ck-chrome-foreground': '#0c0c0b',
+    '--ck-chrome-muted': '#6d6d66',
+    '--ck-chrome-subtle': '#f4f4f0',
+    '--ck-chrome-border': '#c7c7bf',
     '--ck-subtle-background': 'var(--p-surface-100)',
     '--ck-surface-raised': 'var(--p-content-background)',
     '--ck-border-subtle': 'var(--p-content-border-color)',
@@ -194,7 +193,6 @@ export const cssVariableTokens = {
     '--ck-radius-panel': designTokens.radius.panel,
     '--ck-radius-full': designTokens.radius.full,
     '--ck-shadow-card': designTokens.shadow.card,
-    '--ck-shadow-card-hover': designTokens.shadow.cardHover,
     '--ck-shadow-overlay': designTokens.shadow.overlay,
     '--ck-motion-fast': designTokens.motion.fast,
     '--ck-motion-normal': designTokens.motion.normal,
@@ -284,7 +282,6 @@ export const tailwindThemeExtension = {
     },
     boxShadow: {
         card: 'var(--ck-shadow-card)',
-        'card-hover': 'var(--ck-shadow-card-hover)',
         overlay: 'var(--ck-shadow-overlay)'
     },
     transitionDuration: {

@@ -1502,7 +1502,6 @@ function workflowNodeStyle(node) {
     minHeight: `${node.height}px`,
     borderRadius: 'var(--ck-radius-ui)',
     border: selected ? '2px solid var(--p-primary-color)' : '1px solid var(--p-content-border-color)',
-    boxShadow: selected ? 'var(--ck-shadow-card-hover)' : 'var(--ck-shadow-card)',
     fontFamily: 'inherit',
     fontWeight: 600
   };

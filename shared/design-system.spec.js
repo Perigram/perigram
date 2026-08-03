@@ -262,7 +262,8 @@ describe('Design system manifest', () => {
     expect(designTokens.palette.surface[50]).toBe('#f4f4f0');
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
     expect(cssVariableTokens['--ck-surface-100']).toBe(designTokens.palette.surface[100]);
-    expect(cssVariableTokens['--ck-chrome-background']).toBe('#10100e');
+    expect(cssVariableTokens['--ck-chrome-background']).toBe('#fefefc');
+    expect(designTokens.shadow.card).toBe('none');
   });
 
   it('keeps runtime visual tokens and Tailwind semantic aliases in sync', () => {
@@ -280,6 +281,8 @@ describe('Design system manifest', () => {
     expect(runtimeCss).toContain('.bg-chrome');
     expect(runtimeCss).toContain('.chrome-signal-rule');
     expect(runtimeCss).toContain('border-top-width: var(--ck-chrome-signal-height)');
+    expect(runtimeCss).toContain('--ck-chrome-background: #fefefc;');
+    expect(runtimeCss).toContain('--ck-shadow-card: none;');
     expect(runtimeCss).toContain('background: var(--ck-inline-ref-bg, var(--ck-subtle-background));');
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
     expect(tailwindThemeExtension.colors.primary.ink).toBe('var(--ck-primary-ink)');
@@ -504,6 +507,14 @@ describe('Design system manifest', () => {
       .map((file) => path.relative(REPO_ROOT, file));
 
     expect(offenders).toEqual([]);
+  });
+
+  it('keeps entity-card hover feedback inside clipped card roots', () => {
+    const entityCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityCard.vue'), 'utf8');
+
+    expect(entityCard).toContain('transition-colors duration-normal hover:border-primary');
+    expect(entityCard).not.toContain('hover:[box-shadow:var(--ck-shadow-card-hover)]');
+    expect(entityCard).not.toContain('--ck-shadow-card-hover');
   });
 
   it('keeps embedded previews and statuses from conflicting with parent card clicks', () => {

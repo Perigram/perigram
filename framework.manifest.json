@@ -920,12 +920,12 @@
         "--ck-border-subtle": "var(--p-content-border-color)",
         "--ck-bounded-grid-item-max-width": "32rem",
         "--ck-bounded-grid-item-min-width": "24rem",
-        "--ck-chrome-background": "#10100e",
-        "--ck-chrome-border": "#393933",
-        "--ck-chrome-foreground": "#fffdf8",
-        "--ck-chrome-muted": "#bdbdb5",
+        "--ck-chrome-background": "#fefefc",
+        "--ck-chrome-border": "#c7c7bf",
+        "--ck-chrome-foreground": "#0c0c0b",
+        "--ck-chrome-muted": "#6d6d66",
         "--ck-chrome-signal-height": "0.25rem",
-        "--ck-chrome-subtle": "#20201d",
+        "--ck-chrome-subtle": "#f4f4f0",
         "--ck-compact-preview-width": "10rem",
         "--ck-details-gap": "1.5rem",
         "--ck-dialog-lg": "56rem",
@@ -964,9 +964,8 @@
         "--ck-radius-panel": "6px",
         "--ck-radius-ui": "3px",
         "--ck-selection-background": "color-mix(in srgb, var(--p-primary-color) 20%, transparent)",
-        "--ck-shadow-card": "0 0 0 1px rgb(16 16 14 / 0.18)",
-        "--ck-shadow-card-hover": "0 0 0 2px var(--ck-primary-500)",
-        "--ck-shadow-overlay": "0 20px 56px rgb(0 0 0 / 0.24)",
+        "--ck-shadow-card": "none",
+        "--ck-shadow-overlay": "0 12px 28px rgb(16 16 14 / 0.14)",
         "--ck-signal-data": "var(--ck-entity-tone-material)",
         "--ck-signal-decision": "var(--ck-primary-500)",
         "--ck-signal-effect": "var(--ck-entity-tone-fabrication)",
@@ -1096,9 +1095,8 @@
           "ui": "3px"
         },
         "shadow": {
-          "card": "0 0 0 1px rgb(16 16 14 / 0.18)",
-          "cardHover": "0 0 0 2px var(--ck-primary-500)",
-          "overlay": "0 20px 56px rgb(0 0 0 / 0.24)"
+          "card": "none",
+          "overlay": "0 12px 28px rgb(16 16 14 / 0.14)"
         },
         "signal": {
           "data": "var(--ck-signal-data)",
@@ -1134,7 +1132,6 @@
         },
         "boxShadow": {
           "card": "var(--ck-shadow-card)",
-          "card-hover": "var(--ck-shadow-card-hover)",
           "overlay": "var(--ck-shadow-overlay)"
         },
         "colors": {

@@ -8,11 +8,11 @@ html {
 
 :root {
     --ck-page-background: var(--p-surface-100);
-    --ck-chrome-background: #10100e;
-    --ck-chrome-foreground: #fffdf8;
-    --ck-chrome-muted: #bdbdb5;
-    --ck-chrome-subtle: #20201d;
-    --ck-chrome-border: #393933;
+    --ck-chrome-background: #fefefc;
+    --ck-chrome-foreground: #0c0c0b;
+    --ck-chrome-muted: #6d6d66;
+    --ck-chrome-subtle: #f4f4f0;
+    --ck-chrome-border: #c7c7bf;
     --ck-subtle-background: var(--p-surface-100);
     --ck-surface-raised: var(--p-content-background);
     --ck-border-subtle: var(--p-content-border-color);
@@ -67,9 +67,8 @@ html {
     --ck-radius-ui: 3px;
     --ck-radius-panel: 6px;
     --ck-radius-full: 9999px;
-    --ck-shadow-card: 0 0 0 1px rgb(16 16 14 / 0.18);
-    --ck-shadow-card-hover: 0 0 0 2px var(--ck-primary-500);
-    --ck-shadow-overlay: 0 20px 56px rgb(0 0 0 / 0.24);
+    --ck-shadow-card: none;
+    --ck-shadow-overlay: 0 12px 28px rgb(16 16 14 / 0.14);
     --ck-motion-fast: 100ms;
     --ck-motion-normal: 160ms;
 
@@ -197,9 +196,8 @@ html {
     --ck-entity-tone-material: #47ba91;
     --ck-entity-tone-system: #ae9aff;
     --ck-signal-quantity: #f2bc36;
-    --ck-shadow-card: 0 0 0 1px rgb(255 253 248 / 0.14);
-    --ck-shadow-card-hover: 0 0 0 2px var(--ck-primary-400);
-    --ck-shadow-overlay: 0 24px 64px rgb(0 0 0 / 0.60);
+    --ck-shadow-card: none;
+    --ck-shadow-overlay: 0 14px 32px rgb(0 0 0 / 0.38);
 
     --p-primary-color: var(--ck-primary-400) !important;
     --p-primary-contrast-color: var(--ck-surface-950) !important;
@@ -281,7 +279,7 @@ body {
     box-shadow: var(--ck-shadow-card);
 }
 
-/* The app shell uses a single signal rule above an ink instrument rail. */
+/* Light chrome is near-white; dark mode supplies the ink instrument rail. */
 .bg-chrome {
     color: var(--ck-chrome-foreground);
     border-color: var(--ck-chrome-border) !important;

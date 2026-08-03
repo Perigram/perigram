@@ -80,7 +80,7 @@
     <!-- Compact: identity + status in a card row -->
     <template v-else-if="variant === 'compact'">
         <Card
-            class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal"
+            class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] transition-colors duration-normal hover:border-primary"
             :class="[{ 'cursor-pointer': expandable }, compactDensityClass]"
             :role="expandable ? 'button' : undefined"
             :tabindex="expandable ? 0 : undefined"
@@ -186,7 +186,7 @@
 
     <!-- Card: full chrome — tracechain / identity+status / body / footer -->
     <template v-else>
-        <Card class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal">
+        <Card class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] transition-colors duration-normal hover:border-primary">
             <template #header v-if="$slots.header">
                 <slot name="header" />
             </template>
