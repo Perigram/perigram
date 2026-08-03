@@ -77,7 +77,7 @@ const accessLabels = computed(() => {
 });
 const nodeFrameClass = computed(() => [
   'relative min-w-64 rounded-ui border bg-content p-2 shadow-card transition-colors',
-  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+  props.selected ? 'border-primary' : 'border-content-border'
 ]);
 
 function normalizeSpecs(items = []) {

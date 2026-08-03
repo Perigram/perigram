@@ -58,7 +58,7 @@ const toneColor = computed(() => ({
 })[record.value.severity || record.value.color] || 'var(--ck-status-info)');
 const nodeFrameClass = computed(() => [
   'relative w-56 rounded-ui border bg-content p-2 pt-2.5 shadow-card transition-colors',
-  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+  props.selected ? 'border-primary' : 'border-content-border'
 ]);
 
 function update(updates) {

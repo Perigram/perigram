@@ -6,6 +6,15 @@ const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const nodeSource = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessNode.vue'), 'utf8');
 const statusNodeSource = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessStatusDefinitionNode.vue'), 'utf8');
 const designerSource = fs.readFileSync(path.join(REPO_ROOT, 'pages/organization/process.vue'), 'utf8');
+const selectedNodeSources = [
+  'ProcessActionNode.vue',
+  'ProcessEntityNode.vue',
+  'ProcessNode.vue',
+  'ProcessServiceNode.vue',
+  'ProcessSocketNode.vue',
+  'ProcessStatusDefinitionNode.vue',
+  'ProcessValueInputNode.vue'
+].map((file) => fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer', file), 'utf8'));
 
 describe('process designer canvas UI', () => {
   it('keeps process nodes compact and aligns sockets by shared rows', () => {
@@ -18,6 +27,13 @@ describe('process designer canvas UI', () => {
     expect(statusNodeSource).toContain("'relative w-56 rounded-ui border");
     expect(statusNodeSource).not.toContain('evidenceOpen');
     expect(statusNodeSource).not.toContain('text-[10px] text-muted-color');
+  });
+
+  it('uses one border for selected process nodes', () => {
+    for (const source of selectedNodeSources) {
+      expect(source).toContain("props.selected ? 'border-primary' : 'border-content-border'");
+      expect(source).not.toContain('ring-2');
+    }
   });
 
   it('keeps policy configuration in the inspector instead of every node', () => {

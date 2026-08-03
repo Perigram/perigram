@@ -297,7 +297,7 @@ const hasInlineConfiguration = computed(() => (
 ));
 const nodeFrameClass = computed(() => [
   'relative w-64 rounded-ui border bg-content p-2 pt-2.5 shadow-card transition-colors',
-  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+  props.selected ? 'border-primary' : 'border-content-border'
 ]);
 const accent = computed(() => {
   if (record.value.kind?.startsWith('read.')) return { stripe: 'bg-signal-structure', icon: 'text-signal-structure' };

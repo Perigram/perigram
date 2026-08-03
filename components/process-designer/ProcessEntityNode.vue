@@ -76,7 +76,7 @@ const props = defineProps({
 
 const nodeFrameClass = computed(() => [
   'relative min-w-64 rounded-ui border bg-content px-2 py-2 pt-3 shadow-card transition-colors',
-  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+  props.selected ? 'border-primary' : 'border-content-border'
 ]);
 const visibleStates = computed(() => (props.data.stateLabels || []).slice(0, 4));
 const hiddenStateCount = computed(() => Math.max((props.data.stateLabels || []).length - visibleStates.value.length, 0));

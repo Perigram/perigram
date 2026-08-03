@@ -87,7 +87,7 @@ const props = defineProps({
 const record = computed(() => props.data.valueInputRecord || props.data);
 const nodeFrameClass = computed(() => [
   'relative min-w-64 rounded-ui border bg-content p-2 pt-3 shadow-card transition-colors',
-  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+  props.selected ? 'border-primary' : 'border-content-border'
 ]);
 const typeLabel = computed(() => `${record.value.valueType || 'string'}${record.value.structure === 'list' ? '[]' : ''}`);
 const listValues = computed(() => {

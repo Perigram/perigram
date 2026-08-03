@@ -62,7 +62,7 @@ const { t } = useI18n();
 
 const nodeFrameClass = computed(() => [
   'relative min-w-72 rounded-ui border bg-content px-3 py-3 pt-4 shadow-card transition-colors',
-  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+  props.selected ? 'border-primary' : 'border-content-border'
 ]);
 const isInbound = computed(() => props.data.direction === 'inbound');
 const inputLabel = computed(() => props.data.entityType || props.data.refId);
