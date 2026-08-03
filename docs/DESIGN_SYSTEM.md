@@ -34,6 +34,11 @@ domain-specific data surfaces over explanatory text.
 
 The production app shell (`layouts/app.vue`), UI lab shell, and shared entity cards consume the same `--ck-*` CSS variables directly for page background, chrome background, and elevation. This makes visual changes verifiable through CSS variable updates even when Tailwind alias generation requires a dev-server restart.
 
+The global `html` root font size is 14px. This keeps rem-based PrimeVue and
+Tailwind controls compact enough for information-dense engineering workflows;
+new shared sizing should remain token-backed rather than compensating with
+page-local font-size overrides.
+
 Allowed local hardcoded visual values are limited to real data, such as pen stroke colors, DXF layer colors, or uploaded asset metadata. Page-local decorative colors, radii, animation durations, chat/dialog dimensions, swatch sizes, and max-widths must be promoted to tokens or removed.
 
 ## Component Contract

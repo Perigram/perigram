@@ -19,6 +19,9 @@ This directory contains global frontend assets used by Nuxt.
 - Keep the visual hierarchy operational: surfaces and borders establish
   structure, while the cyan primary scale is reserved for interactive state,
   selection, and intentional emphasis in both light and dark modes.
+- The document root is intentionally `14px` so rem-based controls remain
+  compact in dense engineering workspaces. Do not counteract it with page-local
+  root or body font-size overrides.
 
 ## Related
 
