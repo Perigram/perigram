@@ -1040,3 +1040,16 @@
    - Validation: generated overload/action/routing and project-file operation
      focused tests passed; changed SFCs parsed successfully; architecture,
      framework definition, and committed-manifest validation passed.
+
+*** [2026-08-03] Brass Hands visual-system correction
+
+    Reworked the app-level token contract from graphite/lime to an ink-and-
+    near-white operational system with a sparse signal-orange action channel.
+    `assets/tokens/index.js` and `assets/css/main.css` now own the matching
+    palette, hard 3px/6px geometry, structural card borders, minimal elevation,
+    uppercase utility-label tracking, and light/dark PrimeVue bridges. Shared
+    entity-reference family tones and process-status severity tones now resolve
+    through `entity-*` and `status-*` tokens instead of locally assigning
+    primitive colors. Updated the assets, component, process-designer, and
+    design-system documentation; focused design-system tests and the PrimeVue
+    preset import passed before manifest regeneration.

@@ -205,4 +205,6 @@ palette operations must use `ProcessNode.vue`.
 Canvas accents and Vue Flow handles use the global `signal-*` aliases, not raw
 Tailwind hues. The aliases identify roles such as entity, data, structure,
 decision, projection, and effect, so the process canvas stays legible when the
-application theme changes.
+application theme changes. Status-definition severities use `status-*` aliases
+for the same reason; a node maps a severity to a role but never to a primitive
+theme color.

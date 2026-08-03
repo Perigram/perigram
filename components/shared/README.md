@@ -323,8 +323,8 @@ context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
 Inline chips now carry a restrained semantic tone in addition to the icon. The
-hue comes from the entity family (`project/queue`, cassette family, sheet/run
-family, stock/material family, admin/meta family), while the surface treatment
+hue comes from the tokenized entity family roles (`project/queue`, cassette
+family, sheet/run family, stock/material family, admin/meta family), while the surface treatment
 comes from the entity role: containers render as the strongest filled chips,
 templates/designs/revisions render as mid-strength definition chips, and
 concrete items/instances render as lighter outlined chips. This keeps inline
@@ -332,6 +332,8 @@ refs visually legible in both light and dark themes without changing the
 popover card body. The collapsed inline ref remains a real text-inline chip: it
 stays on one line inside prose, truncates with ellipsis, and keeps the same
 semantic color treatment without inflating surrounding line height.
+`EntityInlineRef` maps entity families to `--ck-entity-tone-*` values only; it
+must not introduce PrimeVue primitive color assignments of its own.
 `variant="compact"` renders a horizontal micro card instead of a chip. That
 compact ref uses the compact surface contract directly: a real preview on the
 left when the entity has one, the same semantic inline chip for identity on the
