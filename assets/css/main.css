@@ -7,35 +7,44 @@ html {
 }
 
 :root {
-    --ck-page-background: var(--p-surface-50);
-    --ck-chrome-background: #101216;
-    --ck-chrome-foreground: #f7f8fa;
-    --ck-chrome-muted: #cbd1d8;
-    --ck-chrome-subtle: #20242a;
-    --ck-chrome-border: #292d33;
+    --ck-page-background: var(--p-surface-100);
+    --ck-chrome-background: #10100e;
+    --ck-chrome-foreground: #fffdf8;
+    --ck-chrome-muted: #bdbdb5;
+    --ck-chrome-subtle: #20201d;
+    --ck-chrome-border: #393933;
     --ck-subtle-background: var(--p-surface-100);
     --ck-surface-raised: var(--p-content-background);
     --ck-border-subtle: var(--p-content-border-color);
     --ck-selection-background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
-    --ck-primary-ink: #527000;
+    --ck-primary-ink: #a93300;
     --ck-font-ui: 'JetBrains Mono', monospace;
     --ck-font-mono: 'JetBrains Mono', monospace;
+    --ck-label-tracking: 0.04em;
+    --ck-status-info: var(--p-primary-color);
     --ck-status-success: var(--p-emerald-600);
     --ck-status-warning: var(--p-amber-700);
     --ck-status-danger: var(--p-red-600);
+    --ck-status-neutral: var(--p-surface-500);
+    --ck-entity-tone-command: #ff4b00;
+    --ck-entity-tone-fabrication: #dc3a45;
+    --ck-entity-tone-output: #3f5eff;
+    --ck-entity-tone-material: #0d9069;
+    --ck-entity-tone-system: #795ee5;
     --ck-signal-identity: var(--p-surface-500);
-    --ck-signal-entity: var(--p-sky-500);
-    --ck-signal-reference: var(--p-blue-500);
-    --ck-signal-structure: var(--p-teal-500);
-    --ck-signal-data: var(--p-emerald-500);
-    --ck-signal-quantity: var(--p-lime-500);
-    --ck-signal-decision: var(--p-amber-500);
-    --ck-signal-projection: var(--p-fuchsia-500);
-    --ck-signal-external: var(--p-orange-500);
-    --ck-signal-value: var(--p-violet-500);
-    --ck-signal-effect: var(--p-rose-500);
-    --ck-signal-temporal: var(--p-indigo-500);
+    --ck-signal-entity: var(--ck-entity-tone-command);
+    --ck-signal-reference: var(--ck-entity-tone-output);
+    --ck-signal-structure: var(--ck-entity-tone-system);
+    --ck-signal-data: var(--ck-entity-tone-material);
+    --ck-signal-quantity: #d39700;
+    --ck-signal-decision: var(--ck-primary-500);
+    --ck-signal-projection: var(--ck-entity-tone-system);
+    --ck-signal-external: var(--ck-entity-tone-output);
+    --ck-signal-value: var(--ck-entity-tone-system);
+    --ck-signal-effect: var(--ck-entity-tone-fabrication);
+    --ck-signal-temporal: var(--ck-entity-tone-output);
     --ck-page-max-width: 1600px;
+    --ck-chrome-signal-height: 0.25rem;
     --ck-grid-gap: 1.25rem;
     --ck-bounded-grid-item-min-width: 24rem;
     --ck-bounded-grid-item-max-width: 32rem;
@@ -55,12 +64,12 @@ html {
     --ck-floating-menu-min-width: 12.5rem;
     --ck-preview-dialog-height: 95vh;
     --ck-table-action-column-width: 3rem;
-    --ck-radius-ui: 0.375rem;
-    --ck-radius-panel: 0.75rem;
+    --ck-radius-ui: 3px;
+    --ck-radius-panel: 6px;
     --ck-radius-full: 9999px;
-    --ck-shadow-card: 0 1px 2px rgb(15 18 22 / 0.05), 0 8px 24px rgb(15 18 22 / 0.06);
-    --ck-shadow-card-hover: 0 0 0 1px rgb(198 255 0 / 0.64), 0 16px 32px rgb(15 18 22 / 0.10);
-    --ck-shadow-overlay: 0 12px 40px rgb(15 18 22 / 0.18);
+    --ck-shadow-card: 0 0 0 1px rgb(16 16 14 / 0.18);
+    --ck-shadow-card-hover: 0 0 0 2px var(--ck-primary-500);
+    --ck-shadow-overlay: 0 20px 56px rgb(0 0 0 / 0.24);
     --ck-motion-fast: 100ms;
     --ck-motion-normal: 160ms;
 
@@ -69,29 +78,29 @@ html {
      * values on a cold boot; these variables keep a hot-reloaded page aligned
      * with the token contract instead of retaining the previous preset.
      */
-    --ck-primary-50: #f8ffe8;
-    --ck-primary-100: #efffc2;
-    --ck-primary-200: #e0ff8a;
-    --ck-primary-300: #d1ff52;
-    --ck-primary-400: #c8ff24;
-    --ck-primary-500: #c6ff00;
-    --ck-primary-600: #a8d600;
-    --ck-primary-700: #86ad00;
-    --ck-primary-800: #668500;
-    --ck-primary-900: #4e6600;
-    --ck-primary-950: #263300;
-    --ck-surface-0: #ffffff;
-    --ck-surface-50: #f6f7f9;
-    --ck-surface-100: #eef0f3;
-    --ck-surface-200: #e4e7eb;
-    --ck-surface-300: #d8dde3;
-    --ck-surface-400: #a5acb5;
-    --ck-surface-500: #747c87;
-    --ck-surface-600: #545c66;
-    --ck-surface-700: #39404a;
-    --ck-surface-800: #252a31;
-    --ck-surface-900: #181b20;
-    --ck-surface-950: #0d0f12;
+    --ck-primary-50: #fff0e9;
+    --ck-primary-100: #ffdaca;
+    --ck-primary-200: #ffb396;
+    --ck-primary-300: #ff8b60;
+    --ck-primary-400: #ff6733;
+    --ck-primary-500: #ff4b00;
+    --ck-primary-600: #db4100;
+    --ck-primary-700: #a93300;
+    --ck-primary-800: #7c2600;
+    --ck-primary-900: #5c1c00;
+    --ck-primary-950: #321000;
+    --ck-surface-0: #fefefc;
+    --ck-surface-50: #f4f4f0;
+    --ck-surface-100: #ecece7;
+    --ck-surface-200: #dfdfd9;
+    --ck-surface-300: #c7c7bf;
+    --ck-surface-400: #999992;
+    --ck-surface-500: #6d6d66;
+    --ck-surface-600: #4e4e49;
+    --ck-surface-700: #343431;
+    --ck-surface-800: #232321;
+    --ck-surface-900: #161615;
+    --ck-surface-950: #0c0c0b;
 
     --p-primary-50: var(--ck-primary-50) !important;
     --p-primary-100: var(--ck-primary-100) !important;
@@ -171,20 +180,26 @@ html {
 
 .dark-mode {
     --ck-page-background: var(--p-surface-950);
-    --ck-chrome-background: #0d0f12;
-    --ck-chrome-foreground: #f7f8fa;
-    --ck-chrome-muted: #cbd1d8;
-    --ck-chrome-subtle: #20242a;
-    --ck-chrome-border: #292d33;
+    --ck-chrome-background: #0c0c0b;
+    --ck-chrome-foreground: #fffdf8;
+    --ck-chrome-muted: #bdbdb5;
+    --ck-chrome-subtle: #20201d;
+    --ck-chrome-border: #393933;
     --ck-subtle-background: var(--p-surface-800);
-    --ck-primary-ink: var(--ck-primary-400);
+    --ck-primary-ink: var(--ck-primary-300);
     --ck-status-success: var(--p-emerald-400);
     --ck-status-warning: var(--p-amber-400);
     --ck-status-danger: var(--p-red-400);
     --ck-signal-identity: var(--p-surface-400);
-    --ck-shadow-card: 0 1px 1px rgb(0 0 0 / 0.30), 0 10px 28px rgb(0 0 0 / 0.24);
-    --ck-shadow-card-hover: 0 0 0 1px rgb(198 255 0 / 0.64), 0 16px 36px rgb(0 0 0 / 0.34);
-    --ck-shadow-overlay: 0 1px 2px rgb(0 0 0 / 0.42), 0 26px 64px rgb(0 0 0 / 0.52);
+    --ck-entity-tone-command: #ff8b60;
+    --ck-entity-tone-fabrication: #ff7079;
+    --ck-entity-tone-output: #8292ff;
+    --ck-entity-tone-material: #47ba91;
+    --ck-entity-tone-system: #ae9aff;
+    --ck-signal-quantity: #f2bc36;
+    --ck-shadow-card: 0 0 0 1px rgb(255 253 248 / 0.14);
+    --ck-shadow-card-hover: 0 0 0 2px var(--ck-primary-400);
+    --ck-shadow-overlay: 0 24px 64px rgb(0 0 0 / 0.60);
 
     --p-primary-color: var(--ck-primary-400) !important;
     --p-primary-contrast-color: var(--ck-surface-950) !important;
@@ -258,16 +273,19 @@ body {
     background: var(--ck-selection-background);
 }
 
-/* PrimeVue Card/Panel roots own rounded chrome; clip child backgrounds/media to it. */
+/* PrimeVue Card/Panel roots own hard-edged chrome; clip child backgrounds/media to it. */
 .p-card,
 .p-panel {
     overflow: hidden;
+    border: 1px solid var(--p-content-border-color);
+    box-shadow: var(--ck-shadow-card);
 }
 
-/* The app shell is a deliberate graphite instrument rail in both schemes. */
+/* The app shell uses a single signal rule above an ink instrument rail. */
 .bg-chrome {
     color: var(--ck-chrome-foreground);
     border-color: var(--ck-chrome-border) !important;
+    box-shadow: inset 0 var(--ck-chrome-signal-height) 0 var(--p-primary-color);
 }
 
 .bg-chrome :where(.p-button-text, .p-button-secondary) {
@@ -276,6 +294,11 @@ body {
 
 .bg-chrome :where(.p-button-text:hover, .p-button-secondary:hover) {
     background: var(--ck-chrome-subtle) !important;
+}
+
+:where(.p-button-label, .p-tab-label, .p-datatable-column-title, .p-tag-value) {
+    letter-spacing: var(--ck-label-tracking);
+    text-transform: uppercase;
 }
 
 .entity-inline-chip {
@@ -293,7 +316,7 @@ body {
     line-height: 1.15;
     font-size: 0.92em;
     padding: 0.18rem 0.5rem;
-    border-radius: var(--ck-radius-full);
+    border-radius: var(--ck-radius-ui);
 }
 
 .entity-inline-chip-icon {

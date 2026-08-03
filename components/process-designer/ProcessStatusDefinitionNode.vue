@@ -49,13 +49,13 @@ const props = defineProps({
 
 const record = computed(() => props.data.statusDefinitionRecord || props.data);
 const toneColor = computed(() => ({
-  success: 'var(--p-green-500)',
-  info: 'var(--p-blue-500)',
-  warn: 'var(--p-amber-500)',
-  warning: 'var(--p-amber-500)',
-  danger: 'var(--p-red-500)',
-  secondary: 'var(--p-surface-500)'
-})[record.value.severity || record.value.color] || 'var(--p-blue-500)');
+  success: 'var(--ck-status-success)',
+  info: 'var(--ck-status-info)',
+  warn: 'var(--ck-status-warning)',
+  warning: 'var(--ck-status-warning)',
+  danger: 'var(--ck-status-danger)',
+  secondary: 'var(--ck-status-neutral)'
+})[record.value.severity || record.value.color] || 'var(--ck-status-info)');
 const nodeFrameClass = computed(() => [
   'relative w-56 rounded-ui border bg-content p-2 pt-2.5 shadow-card transition-colors',
   props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'

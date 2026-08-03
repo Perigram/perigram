@@ -258,11 +258,11 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens.dataview.root.background).toBe('transparent');
-    expect(designTokens.palette.primary[500]).toBe('#c6ff00');
-    expect(designTokens.palette.surface[50]).toBe('#f6f7f9');
+    expect(designTokens.palette.primary[500]).toBe('#ff4b00');
+    expect(designTokens.palette.surface[50]).toBe('#f4f4f0');
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
     expect(cssVariableTokens['--ck-surface-100']).toBe(designTokens.palette.surface[100]);
-    expect(cssVariableTokens['--ck-chrome-background']).toBe('#101216');
+    expect(cssVariableTokens['--ck-chrome-background']).toBe('#10100e');
   });
 
   it('keeps runtime visual tokens and Tailwind semantic aliases in sync', () => {
@@ -273,6 +273,7 @@ describe('Design system manifest', () => {
     }
 
     expect(designTokens.typography.ui).toContain('JetBrains Mono');
+    expect(designTokens.typography.labelTracking).toBe('0.04em');
     expect(runtimeCss).toContain('--p-button-primary-background:');
     expect(runtimeCss).toContain('--p-card-background:');
     expect(runtimeCss).toContain('--ck-primary-ink:');
@@ -281,7 +282,20 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
     expect(tailwindThemeExtension.colors.primary.ink).toBe('var(--ck-primary-ink)');
     expect(tailwindThemeExtension.colors.status.danger).toBe('var(--ck-status-danger)');
+    expect(tailwindThemeExtension.colors.status.info).toBe('var(--ck-status-info)');
+    expect(tailwindThemeExtension.colors.entity.command).toBe('var(--ck-entity-tone-command)');
     expect(tailwindThemeExtension.colors.signal.entity).toBe('var(--ck-signal-entity)');
+    expect(tailwindThemeExtension.letterSpacing.label).toBe('var(--ck-label-tracking)');
+  });
+
+  it('keeps shared status and entity accents inside the token system', () => {
+    const entityInlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
+    const statusDefinitionNode = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessStatusDefinitionNode.vue'), 'utf8');
+
+    expect(entityInlineRef).toContain('var(--ck-entity-tone-command)');
+    expect(entityInlineRef).not.toMatch(/var\(--p-(?:blue|orange|teal|green|purple)-500\)/);
+    expect(statusDefinitionNode).toContain('var(--ck-status-info)');
+    expect(statusDefinitionNode).not.toMatch(/var\(--p-(?:green|blue|amber|red)-500\)/);
   });
 
   it('keeps app chrome and process signals on semantic color aliases', () => {

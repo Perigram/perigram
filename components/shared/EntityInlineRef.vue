@@ -327,11 +327,11 @@ function entityToneStyle(type) {
 }
 
 function entityFamilyAccent(type) {
-  if (['project', 'queue'].includes(type)) return 'var(--p-blue-500)';
-  if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance', 'profileTemplate'].includes(type)) return 'var(--p-orange-500)';
-  if (['sheet', 'sheetDesign', 'remnant', 'nestingRun'].includes(type)) return 'var(--p-teal-500)';
-  if (['material', 'materialPile', 'batchPile', 'warehouse', 'catalog', 'color'].includes(type)) return 'var(--p-green-500)';
-  if (['organization', 'library', 'requisition', 'artifact', 'entityRevision', 'toolProfile', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--p-purple-500)';
+  if (['project', 'queue'].includes(type)) return 'var(--ck-entity-tone-command)';
+  if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance', 'profileTemplate'].includes(type)) return 'var(--ck-entity-tone-fabrication)';
+  if (['sheet', 'sheetDesign', 'remnant', 'nestingRun'].includes(type)) return 'var(--ck-entity-tone-output)';
+  if (['material', 'materialPile', 'batchPile', 'warehouse', 'catalog', 'color'].includes(type)) return 'var(--ck-entity-tone-material)';
+  if (['organization', 'library', 'requisition', 'artifact', 'entityRevision', 'toolProfile', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--ck-entity-tone-system)';
   return 'var(--p-surface-500)';
 }
 
