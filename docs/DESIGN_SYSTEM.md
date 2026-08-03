@@ -21,16 +21,17 @@ tokens for the app surface stack, typography, geometry, elevation, motion, and
 domain signal roles that PrimeVue does not own.
 
 The active visual language is a hard editorial engineering instrument:
-ink-black chrome, near-white work surfaces, a single signal-orange action channel,
-3px control radii, 6px container radii, structural rules, and elevation only
-for overlays. JetBrains Mono is the global application face, keeping dense
-labels, values, controls, and technical content visually coherent. Signal
-orange marks intent, selection, and keyboard focus rather than ambient
-decoration; the rail uses the same token as a slim signal rule. Light and dark
-schemes have distinct form and table surfaces, so a component must not force a
-light token into dark mode. Avoid gradients, ornamental backgrounds, and
-page-local theme colors; promote durable visual decisions to
-`assets/tokens/index.js`.
+near-white chrome and work surfaces in light mode, ink chrome in dark mode, a
+single signal-orange action channel, 3px control radii, 6px container radii,
+structural rules, and elevation only for overlays. JetBrains Mono is the global
+application face, keeping dense labels, values, controls, and technical content
+visually coherent. Signal orange marks intent, selection, and keyboard focus
+rather than ambient decoration; the rail uses the same token as a slim signal
+rule. Structural cards use border feedback on hover instead of an outward
+shadow, because their roots clip media. Light and dark schemes have distinct
+form and table surfaces, so a component must not force a light token into dark
+mode. Avoid gradients, ornamental backgrounds, and page-local theme colors;
+promote durable visual decisions to `assets/tokens/index.js`.
 
 `status-*` aliases are for application feedback (`info`, `success`, `warning`,
 `danger`, and `neutral`). `entity-*` aliases own the compact family tones used

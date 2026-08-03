@@ -5,10 +5,10 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 ## Source Files
 
 - `index.js` exports token groups plus projections for PrimeVue and Tailwind.
-  Its active palette uses hard-neutral ink/near-white surfaces and signal-orange
-  intent accents; JetBrains Mono is the compact application face. Controls use
-  a 3px UI radius while containers use a 6px panel radius, keeping dense
-  operational screens precise instead of soft.
+  Its active palette uses near-white light chrome, dark ink chrome, and
+  signal-orange intent accents; JetBrains Mono is the compact application face.
+  Controls use a 3px UI radius while containers use a 6px panel radius,
+  keeping dense operational screens precise instead of soft.
 - Runtime CSS variables are declared in `assets/css/main.css` using the same
   `--ck-*` names. That file also bridges the active PrimeVue `--p-*` variables
   so hot-reloaded pages and fresh preset initialization use the same theme.
@@ -30,4 +30,7 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   roles. Do not introduce page-local hardcoded colors, radii, shadows, or
   transition durations unless the value is real data, such as a pen color or
   DXF layer color.
+- Cards and panels are structural, non-elevated surfaces. Their hover feedback
+  must be an in-place border or color state because shared roots clip media;
+  use the overlay shadow token only for floating UI.
 - Shared wrappers own visual chrome. Feature components should compose `EntityCard`, `StandardDialog`, `StandardPage`, `Panel`, and semantic layout classes.

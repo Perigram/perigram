@@ -1057,3 +1057,10 @@
     Follow-up browser verification replaced the non-painting inset signal
     shadow with the `chrome-signal-rule` token helper on both desktop/mobile
     app chrome and the UI-lab shell.
+
+    Follow-up interaction correction: light-mode chrome now resolves to a
+    near-white surface rather than the dark rail; structural card and workflow
+    surfaces carry no elevation; and `EntityCard` uses an in-place primary
+    hover border so its feedback remains visible within the required clipped
+    card root. Overlay elevation is retained only for floating UI with a
+    smaller, token-backed shadow.
