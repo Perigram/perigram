@@ -1,47 +1,48 @@
 /**
- * High-visibility signal colour for actions. Semantic status colours remain
- * separate so state is never confused with product emphasis.
+ * Electric lime makes the primary action legible at a glance without turning
+ * status feedback into the product accent.
  */
-const signalOrangePrimary = {
-    50: '#fff3e8',
-    100: '#ffe3cc',
-    200: '#ffc79a',
-    300: '#ffa666',
-    400: '#f57c38',
-    500: '#e85d16',
-    600: '#c9450b',
-    700: '#9f360a',
-    800: '#7e2d0c',
-    900: '#662710',
-    950: '#371207'
+const electricLimePrimary = {
+    50: '#f8ffe8',
+    100: '#efffc2',
+    200: '#e0ff8a',
+    300: '#d1ff52',
+    400: '#c8ff24',
+    500: '#c6ff00',
+    600: '#a8d600',
+    700: '#86ad00',
+    800: '#668500',
+    900: '#4e6600',
+    950: '#263300'
 };
 
 /**
- * Notebook-like surfaces avoid the cold blue cast of dashboard defaults while
- * keeping dense engineering content quiet and legible.
+ * Neutral graphite surfaces keep dense engineering content crisp without a
+ * vintage warm cast or a tinted dashboard background.
  */
-const fieldbookSurface = {
-    0: '#fffefb',
-    50: '#f5f1e8',
-    100: '#ece5d8',
-    200: '#ded4c2',
-    300: '#cbbeaa',
-    400: '#a99680',
-    500: '#7b6e5e',
-    600: '#5d5247',
-    700: '#433a32',
-    800: '#2b2621',
-    900: '#1e1a17',
-    950: '#13110f'
+const graphiteSurface = {
+    0: '#ffffff',
+    50: '#f6f7f9',
+    100: '#eef0f3',
+    200: '#e4e7eb',
+    300: '#d8dde3',
+    400: '#a5acb5',
+    500: '#747c87',
+    600: '#545c66',
+    700: '#39404a',
+    800: '#252a31',
+    900: '#181b20',
+    950: '#0d0f12'
 };
 
 export const designTokens = {
     palette: {
-        primary: signalOrangePrimary,
-        surface: fieldbookSurface
+        primary: electricLimePrimary,
+        surface: graphiteSurface
     },
     color: {
         primary: 'var(--p-primary-color)',
+        primaryInk: 'var(--ck-primary-ink)',
         primaryContrast: 'var(--p-primary-contrast-color)',
         primaryEmphasis: 'var(--p-primary-emphasis-color)',
         text: 'var(--p-text-color)',
@@ -50,6 +51,10 @@ export const designTokens = {
         contentBorder: 'var(--p-content-border-color)',
         page: 'var(--ck-page-background)',
         chrome: 'var(--ck-chrome-background)',
+        chromeForeground: 'var(--ck-chrome-foreground)',
+        chromeMuted: 'var(--ck-chrome-muted)',
+        chromeSubtle: 'var(--ck-chrome-subtle)',
+        chromeBorder: 'var(--ck-chrome-border)',
         subtle: 'var(--ck-subtle-background)',
         raised: 'var(--ck-surface-raised)',
         borderSubtle: 'var(--ck-border-subtle)',
@@ -83,9 +88,9 @@ export const designTokens = {
         full: '9999px'
     },
     shadow: {
-        card: '0 1px 0 rgb(56 45 30 / 0.18), 0 8px 20px rgb(56 45 30 / 0.04)',
-        cardHover: '0 0 0 1px rgb(232 93 22 / 0.42), 0 14px 28px rgb(56 45 30 / 0.10)',
-        overlay: '0 2px 4px rgb(56 45 30 / 0.10), 0 24px 56px rgb(56 45 30 / 0.18)'
+        card: '0 1px 2px rgb(15 18 22 / 0.05), 0 8px 24px rgb(15 18 22 / 0.06)',
+        cardHover: '0 0 0 1px rgb(198 255 0 / 0.64), 0 16px 32px rgb(15 18 22 / 0.10)',
+        overlay: '0 12px 40px rgb(15 18 22 / 0.18)'
     },
     motion: {
         fast: '100ms',
@@ -118,11 +123,16 @@ export const designTokens = {
 
 export const cssVariableTokens = {
     '--ck-page-background': 'var(--p-surface-50)',
-    '--ck-chrome-background': 'var(--p-surface-100)',
+    '--ck-chrome-background': '#101216',
+    '--ck-chrome-foreground': '#f7f8fa',
+    '--ck-chrome-muted': '#cbd1d8',
+    '--ck-chrome-subtle': '#20242a',
+    '--ck-chrome-border': '#292d33',
     '--ck-subtle-background': 'var(--p-surface-100)',
     '--ck-surface-raised': 'var(--p-content-background)',
     '--ck-border-subtle': 'var(--p-content-border-color)',
     '--ck-selection-background': 'color-mix(in srgb, var(--p-primary-color) 20%, transparent)',
+    '--ck-primary-ink': '#527000',
     '--ck-font-ui': designTokens.typography.ui,
     '--ck-font-mono': designTokens.typography.mono,
     '--ck-status-success': 'var(--p-emerald-600)',
@@ -168,14 +178,15 @@ export const cssVariableTokens = {
     '--ck-shadow-overlay': designTokens.shadow.overlay,
     '--ck-motion-fast': designTokens.motion.fast,
     '--ck-motion-normal': designTokens.motion.normal,
-    ...Object.fromEntries(Object.entries(signalOrangePrimary).map(([step, value]) => [`--ck-primary-${step}`, value])),
-    ...Object.fromEntries(Object.entries(fieldbookSurface).map(([step, value]) => [`--ck-surface-${step}`, value]))
+    ...Object.fromEntries(Object.entries(electricLimePrimary).map(([step, value]) => [`--ck-primary-${step}`, value])),
+    ...Object.fromEntries(Object.entries(graphiteSurface).map(([step, value]) => [`--ck-surface-${step}`, value]))
 };
 
 export const tailwindThemeExtension = {
     colors: {
         primary: {
             DEFAULT: designTokens.color.primary,
+            ink: designTokens.color.primaryInk,
             contrast: designTokens.color.primaryContrast,
             emphasis: designTokens.color.primaryEmphasis,
             50: 'var(--p-primary-50)',
@@ -194,6 +205,10 @@ export const tailwindThemeExtension = {
         'content-border': designTokens.color.contentBorder,
         page: designTokens.color.page,
         chrome: designTokens.color.chrome,
+        'chrome-foreground': designTokens.color.chromeForeground,
+        'chrome-muted': designTokens.color.chromeMuted,
+        'chrome-subtle': designTokens.color.chromeSubtle,
+        'chrome-border': designTokens.color.chromeBorder,
         subtle: designTokens.color.subtle,
         'text-muted': designTokens.color.textMuted,
         status: designTokens.status,
@@ -267,7 +282,7 @@ export const supportAvatarPalette = [
 
 export const primeSemanticTokens = {
     transitionDuration: 'var(--ck-motion-normal)',
-    primary: signalOrangePrimary,
+    primary: electricLimePrimary,
     focusRing: {
         width: '2px',
         style: 'solid',
@@ -306,12 +321,12 @@ export const primeSemanticTokens = {
     },
     colorScheme: {
         light: {
-            surface: fieldbookSurface,
+            surface: graphiteSurface,
             primary: {
-                color: '{primary.700}',
-                contrastColor: '#ffffff',
-                hoverColor: '{primary.800}',
-                activeColor: '{primary.900}'
+                color: '{primary.500}',
+                contrastColor: '{surface.950}',
+                hoverColor: '{primary.600}',
+                activeColor: '{primary.700}'
             },
             content: {
                 background: '{surface.0}',
@@ -348,7 +363,7 @@ export const primeSemanticTokens = {
             }
         },
         dark: {
-            surface: fieldbookSurface,
+            surface: graphiteSurface,
             primary: {
                 color: '{primary.400}',
                 contrastColor: '{surface.950}',

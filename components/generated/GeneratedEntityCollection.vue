@@ -19,7 +19,7 @@
           <button
             v-if="isIdentityNameField(field.path) && detailRouteFor(data)"
             type="button"
-            class="min-w-0 max-w-full truncate text-left font-medium text-primary underline-offset-4 hover:underline"
+            class="min-w-0 max-w-full truncate text-left font-medium text-[var(--ck-primary-ink)] underline-offset-4 hover:underline"
             @click="openEntity(data)"
           >
             {{ formatCell(data, field.path) }}
@@ -48,7 +48,7 @@
             <div class="flex min-w-0 flex-1 items-center">
               <button
                 type="button"
-                class="min-w-0 max-w-full text-left text-primary underline-offset-4 hover:underline"
+                class="min-w-0 max-w-full text-left text-[var(--ck-primary-ink)] underline-offset-4 hover:underline"
                 @click.stop="openEntity(entity)"
               >
                 <IdentityBlock :entity="entity" />

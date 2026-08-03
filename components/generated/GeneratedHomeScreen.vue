@@ -42,7 +42,7 @@
               <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
-                  class="min-w-0 max-w-full flex-1 text-left text-primary underline-offset-4 hover:underline"
+                  class="min-w-0 max-w-full flex-1 text-left text-[var(--ck-primary-ink)] underline-offset-4 hover:underline"
                   @click.stop="openEntity(section, entity)"
                 >
                   <IdentityBlock :entity="entity" />

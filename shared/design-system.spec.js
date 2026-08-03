@@ -258,8 +258,11 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens.dataview.root.background).toBe('transparent');
+    expect(designTokens.palette.primary[500]).toBe('#c6ff00');
+    expect(designTokens.palette.surface[50]).toBe('#f6f7f9');
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
     expect(cssVariableTokens['--ck-surface-100']).toBe(designTokens.palette.surface[100]);
+    expect(cssVariableTokens['--ck-chrome-background']).toBe('#101216');
   });
 
   it('keeps runtime visual tokens and Tailwind semantic aliases in sync', () => {
@@ -272,8 +275,11 @@ describe('Design system manifest', () => {
     expect(designTokens.typography.ui).toContain('JetBrains Mono');
     expect(runtimeCss).toContain('--p-button-primary-background:');
     expect(runtimeCss).toContain('--p-card-background:');
+    expect(runtimeCss).toContain('--ck-primary-ink:');
+    expect(runtimeCss).toContain('.bg-chrome');
     expect(runtimeCss).toContain('background: var(--ck-inline-ref-bg, var(--ck-subtle-background));');
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
+    expect(tailwindThemeExtension.colors.primary.ink).toBe('var(--ck-primary-ink)');
     expect(tailwindThemeExtension.colors.status.danger).toBe('var(--ck-status-danger)');
     expect(tailwindThemeExtension.colors.signal.entity).toBe('var(--ck-signal-entity)');
   });

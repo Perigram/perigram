@@ -5,7 +5,7 @@
             isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'
         ]"
     >
-    <header class="sticky top-0 z-50 hidden shrink-0 border-b border-content-border bg-chrome backdrop-blur-md md:block">
+    <header class="sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
@@ -24,10 +24,10 @@
                             :key="index"
                             class="flex items-center gap-0 shrink-0"
                         >
-                            <span v-if="index > 0" class="mx-0.5 text-muted opacity-50 shrink-0">/</span>
+                            <span v-if="index > 0" class="mx-0.5 shrink-0 text-[var(--ck-chrome-muted)] opacity-50">/</span>
                             <NuxtLink
                                 :to="crumb.to"
-                                class="p-button p-component p-button-text p-button-secondary text-xs md:text-sm whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
+                                class="p-button p-component p-button-text p-button-secondary !text-[var(--ck-chrome-foreground)] text-xs md:text-sm whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
                             >
                                 {{ crumb.name }}
                             </NuxtLink>
@@ -37,7 +37,7 @@
                                 text
                                 severity="secondary"
                                 size="small"
-                                class="mr-1"
+                                class="mr-1 !text-[var(--ck-chrome-foreground)]"
                                 :aria-label="crumb.name"
                                 @click="openBreadcrumbMenu($event, crumb)"
                             />
@@ -103,7 +103,7 @@
         <Menu ref="mobileScreenMenu" :model="mobileScreenMenuItems" :popup="true" />
         <nav
             v-if="authStore.userIsSet"
-            class="fixed inset-x-0 bottom-0 z-[998] border-t border-content-border bg-chrome px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 [box-shadow:var(--ck-shadow-overlay)] md:hidden"
+            class="fixed inset-x-0 bottom-0 z-[998] border-t [border-color:var(--ck-chrome-border)] bg-chrome px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 [box-shadow:var(--ck-shadow-overlay)] md:hidden"
             :aria-label="$t('nav.home')"
         >
             <div class="mx-auto flex max-w-md items-center justify-around gap-1">

@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col min-h-screen bg-page">
-        <header class="sticky top-0 z-50 border-b border-content-border bg-chrome backdrop-blur">
+        <header class="sticky top-0 z-50 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2">
                 <!-- Left: Logo -->
                 <div class="flex items-center h-full min-w-0 flex-1">
@@ -10,7 +10,7 @@
                     >
                         <span>{{ $t('uiLab.shellTitle') }}</span>
                     </NuxtLink>
-                    <div class="px-2 py-0.5 rounded-ui bg-subtle text-[10px] font-bold uppercase text-muted-color border border-content-border">
+                    <div class="px-2 py-0.5 rounded-ui border [border-color:var(--ck-chrome-border)] bg-[var(--ck-chrome-subtle)] text-[10px] font-bold uppercase text-[var(--ck-chrome-muted)]">
                         {{ $t('uiLab.testMode') }}
                     </div>
                 </div>
@@ -26,7 +26,7 @@
                     />
                     
                     <div class="relative flex items-center">
-                        <div class="flex items-center gap-2 px-2 py-1 rounded-ui hover:bg-subtle cursor-pointer">
+                        <div class="flex items-center gap-2 px-2 py-1 rounded-ui hover:bg-[var(--ck-chrome-subtle)] cursor-pointer">
                             <Avatar 
                                 label="T"
                                 shape="circle" 

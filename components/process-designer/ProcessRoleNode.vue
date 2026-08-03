@@ -7,7 +7,7 @@
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
-          <i class="pi pi-shield text-primary" aria-hidden="true"></i>
+          <i class="pi pi-shield text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
           <strong class="truncate">{{ data.label || data.refId }}</strong>
         </div>
         <small class="text-muted-color">{{ data.kind || $t('processDesigner.role') }}</small>

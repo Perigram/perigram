@@ -24,7 +24,7 @@
       <Panel v-if="hasRegion('billingPackages')">
         <div class="flex h-full flex-col gap-4">
           <div class="flex items-center gap-3">
-            <i class="pi pi-shopping-cart text-xl text-primary" aria-hidden="true"></i>
+            <i class="pi pi-shopping-cart text-xl text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
             <div class="min-w-0">
               <h2 class="m-0 text-base">{{ $t('billing.tokenPackages') }}</h2>
               <small class="text-muted-color">{{ $t('billing.tokenPackagesHint') }}</small>

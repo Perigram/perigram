@@ -195,8 +195,8 @@ const escapeHtml = (value) => String(value)
 
 const tokenClass = (type) => ({
   parameter: 'rounded border border-content-border bg-subtle px-1',
-  context: 'rounded border border-primary px-1 text-primary',
-  function: 'rounded bg-subtle px-1 text-primary',
+  context: 'rounded border border-primary px-1 text-[var(--ck-primary-ink)]',
+  function: 'rounded bg-subtle px-1 text-[var(--ck-primary-ink)]',
   operator: 'px-0.5 text-muted-color',
   number: '',
   unit: 'text-muted-color',
