@@ -1,10 +1,10 @@
 <template>
   <div :class="nodeFrameClass">
-    <div class="absolute inset-y-0 left-0 w-1 rounded-l-ui bg-emerald-500"></div>
+    <div class="absolute inset-y-0 left-0 w-1 rounded-l-ui bg-signal-data"></div>
     <div class="flex min-w-0 items-center gap-2 pl-1">
-      <i :class="actionIcon" class="text-emerald-600" aria-hidden="true"></i>
+      <i :class="actionIcon" class="text-signal-data" aria-hidden="true"></i>
       <div class="min-w-0 flex-1">
-        <span class="block truncate text-xs font-semibold text-emerald-700">{{ actionKindLabel }}</span>
+        <span class="block truncate text-xs font-semibold text-signal-data">{{ actionKindLabel }}</span>
         <strong class="block truncate text-sm">{{ actionTitleLabel }}</strong>
       </div>
       <Tag v-if="triggerMode === 'event'" :value="$t('processDesigner.eventTrigger')" severity="secondary" size="small" />
@@ -35,9 +35,9 @@
         id="trigger"
         type="target"
         :position="Position.Left"
-        class="!left-0 !-translate-x-1/2 !border-violet-500 !bg-violet-500"
+        class="!left-0 !-translate-x-1/2 !border-signal-value !bg-signal-value"
       />
-      <Handle id="event" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-violet-500 !bg-violet-500" />
+      <Handle id="event" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-signal-value !bg-signal-value" />
       <span class="block truncate text-xs text-muted-color">{{ eventLabel }}</span>
     </div>
   </div>
@@ -110,17 +110,17 @@ function handleClass(item, side) {
 
 function socketTone(item = {}) {
   return ({
-    entity: { row: 'border-content-border bg-content', handle: '!border-sky-500 !bg-sky-500' },
-    entity_list: { row: 'border-content-border bg-content', handle: '!border-blue-500 !bg-blue-500' },
-    block: { row: 'border-content-border bg-content', handle: '!border-cyan-500 !bg-cyan-500' },
-    data: { row: 'border-content-border bg-content', handle: '!border-emerald-500 !bg-emerald-500' },
-    string: { row: 'border-content-border bg-content', handle: '!border-emerald-500 !bg-emerald-500' },
-    number: { row: 'border-content-border bg-content', handle: '!border-lime-500 !bg-lime-500' },
-    boolean: { row: 'border-content-border bg-content', handle: '!border-amber-500 !bg-amber-500' },
-    status: { row: 'border-content-border bg-content', handle: '!border-amber-500 !bg-amber-500' },
-    projection: { row: 'border-content-border bg-content', handle: '!border-fuchsia-500 !bg-fuchsia-500' },
-    attachment: { row: 'border-content-border bg-content', handle: '!border-orange-500 !bg-orange-500' },
-    task: { row: 'border-content-border bg-content', handle: '!border-surface-500 !bg-surface-500' }
-  })[item.kind] || { row: 'border-content-border', handle: '!border-emerald-500 !bg-emerald-500' };
+    entity: { row: 'border-content-border bg-content', handle: '!border-signal-entity !bg-signal-entity' },
+    entity_list: { row: 'border-content-border bg-content', handle: '!border-signal-reference !bg-signal-reference' },
+    block: { row: 'border-content-border bg-content', handle: '!border-signal-structure !bg-signal-structure' },
+    data: { row: 'border-content-border bg-content', handle: '!border-signal-data !bg-signal-data' },
+    string: { row: 'border-content-border bg-content', handle: '!border-signal-data !bg-signal-data' },
+    number: { row: 'border-content-border bg-content', handle: '!border-signal-quantity !bg-signal-quantity' },
+    boolean: { row: 'border-content-border bg-content', handle: '!border-signal-decision !bg-signal-decision' },
+    status: { row: 'border-content-border bg-content', handle: '!border-signal-decision !bg-signal-decision' },
+    projection: { row: 'border-content-border bg-content', handle: '!border-signal-projection !bg-signal-projection' },
+    attachment: { row: 'border-content-border bg-content', handle: '!border-signal-external !bg-signal-external' },
+    task: { row: 'border-content-border bg-content', handle: '!border-signal-identity !bg-signal-identity' }
+  })[item.kind] || { row: 'border-content-border', handle: '!border-signal-data !bg-signal-data' };
 }
 </script>

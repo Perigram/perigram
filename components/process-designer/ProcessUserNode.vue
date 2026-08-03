@@ -1,6 +1,6 @@
 <template>
-  <div class="relative min-w-60 rounded-ui border border-slate-300 bg-content px-3 py-3 shadow-card">
-    <Handle id="assignment" type="source" :position="Position.Right" class="!border-slate-500 !bg-slate-500" />
+  <div class="relative min-w-60 rounded-ui border border-signal-identity bg-content px-3 py-3 shadow-card">
+    <Handle id="assignment" type="source" :position="Position.Right" class="!border-signal-identity !bg-signal-identity" />
 
     <div class="flex items-start justify-between gap-3">
       <div class="flex min-w-0 items-center gap-2">

@@ -1,8 +1,8 @@
 <template>
-  <div class="relative min-w-60 rounded-ui border border-emerald-300 bg-content px-3 py-3 shadow-card">
-    <Handle id="assignment" type="target" :position="Position.Left" class="!border-emerald-500 !bg-emerald-500" />
-    <Handle id="access" type="source" :position="Position.Right" class="!border-emerald-500 !bg-emerald-500" />
-    <Handle id="service" type="source" :position="Position.Bottom" class="!border-amber-500 !bg-amber-500" />
+  <div class="relative min-w-60 rounded-ui border border-signal-data bg-content px-3 py-3 shadow-card">
+    <Handle id="assignment" type="target" :position="Position.Left" class="!border-signal-data !bg-signal-data" />
+    <Handle id="access" type="source" :position="Position.Right" class="!border-signal-data !bg-signal-data" />
+    <Handle id="service" type="source" :position="Position.Bottom" class="!border-signal-decision !bg-signal-decision" />
 
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">

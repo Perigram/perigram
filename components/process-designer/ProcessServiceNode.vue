@@ -1,10 +1,10 @@
 <template>
   <div :class="nodeFrameClass">
-    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-amber-500"></div>
+    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-signal-decision"></div>
     <div class="flex items-start justify-between gap-2">
       <div class="min-w-0">
         <div class="flex items-center gap-1">
-          <i class="pi pi-cog text-amber-600" aria-hidden="true"></i>
+          <i class="pi pi-cog text-signal-decision" aria-hidden="true"></i>
           <strong class="truncate text-sm">{{ data.label || data.commandId || data.refId }}</strong>
         </div>
         <small class="text-muted-color">{{ data.commandId || $t('processDesigner.commandId') }}</small>
@@ -12,7 +12,7 @@
     </div>
 
     <div class="relative mt-2 rounded-ui border border-content-border px-2 py-1">
-      <Handle id="run-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2 !border-amber-500 !bg-amber-500" />
+      <Handle id="run-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2 !border-signal-decision !bg-signal-decision" />
       <div class="flex min-w-0 flex-wrap items-center gap-1">
         <span class="text-xs text-muted-color">{{ $t('processDesigner.runAccess') }}</span>
         <span v-for="principal in runPrincipalLabels" :key="principal" class="truncate text-xs">
@@ -96,10 +96,10 @@ function handleClass(item, side) {
 
 function socketTone(item = {}) {
   return ({
-    entity: { row: 'border-content-border bg-content', handle: '!border-sky-500 !bg-sky-500' },
-    data: { row: 'border-content-border bg-content', handle: '!border-emerald-500 !bg-emerald-500' },
-    attachment: { row: 'border-content-border bg-content', handle: '!border-orange-500 !bg-orange-500' },
-    task: { row: 'border-content-border bg-content', handle: '!border-surface-500 !bg-surface-500' }
-  })[item.kind] || { row: 'border-content-border', handle: '!border-amber-500 !bg-amber-500' };
+    entity: { row: 'border-content-border bg-content', handle: '!border-signal-entity !bg-signal-entity' },
+    data: { row: 'border-content-border bg-content', handle: '!border-signal-data !bg-signal-data' },
+    attachment: { row: 'border-content-border bg-content', handle: '!border-signal-external !bg-signal-external' },
+    task: { row: 'border-content-border bg-content', handle: '!border-signal-identity !bg-signal-identity' }
+  })[item.kind] || { row: 'border-content-border', handle: '!border-signal-decision !bg-signal-decision' };
 }
 </script>

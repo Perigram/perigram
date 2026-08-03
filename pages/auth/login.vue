@@ -1,5 +1,5 @@
 <template>
-    <div class="flex min-h-screen items-center justify-center bg-[var(--ck-page-background)] p-4">
+    <div class="flex min-h-screen items-center justify-center bg-page p-4">
         <Panel class="w-full max-w-md">
             <div class="flex flex-col items-center gap-2 mb-8">
                 <i class="pi pi-box text-4xl"></i>

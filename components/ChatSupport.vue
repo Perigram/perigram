@@ -8,7 +8,7 @@
             v-if="supportDialog || embedded"
             :class="embedded
                 ? 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
-                : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content shadow-lg pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
+                : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content [box-shadow:var(--ck-shadow-overlay)] pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
         >
             <div class="flex items-center justify-between p-4 border-b border-content-border bg-content">
                 <div class="flex min-w-0 items-center gap-2">
@@ -119,7 +119,7 @@
                             :class="isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start'"
                         >
                             <div
-                                class="px-4 py-2 rounded-ui text-sm shadow-sm"
+                                class="px-4 py-2 rounded-ui text-sm [box-shadow:var(--ck-shadow-card)]"
                                 :class="isOwnMessage(messageItem)
                                     ? 'bg-primary text-primary-contrast rounded-tr-none'
                                     : 'bg-content border border-content-border rounded-tl-none'"
@@ -194,7 +194,7 @@
                             />
                         </div>
                     </div>
-                    <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-xs text-amber-700">
+                    <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-xs text-status-warning">
                         <small
                             v-for="ref in recipientLimitedRefs"
                             :key="`${ref.type}-${ref.id}`"
@@ -677,7 +677,7 @@ const directConversationKey = (left, right) => {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: var(--p-content-border-color);
-    border-radius: 10px;
+    border-radius: var(--ck-radius-full);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: var(--p-primary-color);

@@ -9,7 +9,10 @@ export const designTokens = {
         contentBorder: 'var(--p-content-border-color)',
         page: 'var(--ck-page-background)',
         chrome: 'var(--ck-chrome-background)',
-        subtle: 'var(--ck-subtle-background)'
+        subtle: 'var(--ck-subtle-background)',
+        raised: 'var(--ck-surface-raised)',
+        borderSubtle: 'var(--ck-border-subtle)',
+        selection: 'var(--ck-selection-background)'
     },
     layout: {
         pageMaxWidth: '1600px',
@@ -34,25 +37,68 @@ export const designTokens = {
         tableActionColumnWidth: '3rem'
     },
     radius: {
-        ui: '0.375rem',
-        panel: '0.75rem',
+        ui: '0.25rem',
+        panel: '0.625rem',
         full: '9999px'
     },
     shadow: {
-        card: '0 0 0 1px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.06), 0 8px 20px rgb(15 23 42 / 0.05)',
-        cardHover: '0 0 0 1px rgb(8 145 178 / 0.30), 0 2px 4px rgb(15 23 42 / 0.08), 0 14px 30px rgb(15 23 42 / 0.12)',
-        overlay: '0 0 0 1px rgb(15 23 42 / 0.10), 0 24px 64px rgb(15 23 42 / 0.20)'
+        card: '0 1px 1px rgb(27 31 35 / 0.03), 0 8px 24px rgb(27 31 35 / 0.045)',
+        cardHover: '0 0 0 1px rgb(71 101 213 / 0.30), 0 14px 32px rgb(27 31 35 / 0.08)',
+        overlay: '0 1px 2px rgb(27 31 35 / 0.08), 0 24px 56px rgb(27 31 35 / 0.16)'
     },
     motion: {
-        fast: '110ms',
-        normal: '180ms'
+        fast: '100ms',
+        normal: '160ms'
+    },
+    typography: {
+        ui: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    },
+    status: {
+        success: 'var(--ck-status-success)',
+        warning: 'var(--ck-status-warning)',
+        danger: 'var(--ck-status-danger)'
+    },
+    signal: {
+        identity: 'var(--ck-signal-identity)',
+        entity: 'var(--ck-signal-entity)',
+        reference: 'var(--ck-signal-reference)',
+        structure: 'var(--ck-signal-structure)',
+        data: 'var(--ck-signal-data)',
+        quantity: 'var(--ck-signal-quantity)',
+        decision: 'var(--ck-signal-decision)',
+        projection: 'var(--ck-signal-projection)',
+        external: 'var(--ck-signal-external)',
+        value: 'var(--ck-signal-value)',
+        effect: 'var(--ck-signal-effect)',
+        temporal: 'var(--ck-signal-temporal)'
     }
 };
 
 export const cssVariableTokens = {
     '--ck-page-background': 'var(--p-surface-50)',
-    '--ck-chrome-background': 'color-mix(in srgb, var(--p-content-background), transparent 3%)',
+    '--ck-chrome-background': 'color-mix(in srgb, var(--p-content-background) 88%, transparent)',
     '--ck-subtle-background': 'var(--p-surface-100)',
+    '--ck-surface-raised': 'var(--p-content-background)',
+    '--ck-border-subtle': 'var(--p-content-border-color)',
+    '--ck-selection-background': 'color-mix(in srgb, var(--p-primary-color) 20%, transparent)',
+    '--ck-font-ui': designTokens.typography.ui,
+    '--ck-font-mono': designTokens.typography.mono,
+    '--ck-status-success': 'var(--p-emerald-600)',
+    '--ck-status-warning': 'var(--p-amber-700)',
+    '--ck-status-danger': 'var(--p-red-600)',
+    '--ck-signal-identity': 'var(--p-surface-500)',
+    '--ck-signal-entity': 'var(--p-sky-500)',
+    '--ck-signal-reference': 'var(--p-blue-500)',
+    '--ck-signal-structure': 'var(--p-teal-500)',
+    '--ck-signal-data': 'var(--p-emerald-500)',
+    '--ck-signal-quantity': 'var(--p-lime-500)',
+    '--ck-signal-decision': 'var(--p-amber-500)',
+    '--ck-signal-projection': 'var(--p-fuchsia-500)',
+    '--ck-signal-external': 'var(--p-orange-500)',
+    '--ck-signal-value': 'var(--p-violet-500)',
+    '--ck-signal-effect': 'var(--p-rose-500)',
+    '--ck-signal-temporal': 'var(--p-indigo-500)',
     '--ck-page-max-width': designTokens.layout.pageMaxWidth,
     '--ck-grid-gap': designTokens.layout.gridGap,
     '--ck-bounded-grid-item-min-width': designTokens.layout.boundedGridItemMinWidth,
@@ -75,6 +121,7 @@ export const cssVariableTokens = {
     '--ck-table-action-column-width': designTokens.layout.tableActionColumnWidth,
     '--ck-radius-ui': designTokens.radius.ui,
     '--ck-radius-panel': designTokens.radius.panel,
+    '--ck-radius-full': designTokens.radius.full,
     '--ck-shadow-card': designTokens.shadow.card,
     '--ck-shadow-card-hover': designTokens.shadow.cardHover,
     '--ck-shadow-overlay': designTokens.shadow.overlay,
@@ -84,15 +131,30 @@ export const cssVariableTokens = {
 
 export const tailwindThemeExtension = {
     colors: {
-        primary: designTokens.color.primary,
-        'primary-contrast': designTokens.color.primaryContrast,
-        'primary-emphasis': designTokens.color.primaryEmphasis,
+        primary: {
+            DEFAULT: designTokens.color.primary,
+            contrast: designTokens.color.primaryContrast,
+            emphasis: designTokens.color.primaryEmphasis,
+            50: 'var(--p-primary-50)',
+            100: 'var(--p-primary-100)',
+            200: 'var(--p-primary-200)',
+            300: 'var(--p-primary-300)',
+            400: 'var(--p-primary-400)',
+            500: 'var(--p-primary-500)',
+            600: 'var(--p-primary-600)',
+            700: 'var(--p-primary-700)',
+            800: 'var(--p-primary-800)',
+            900: 'var(--p-primary-900)',
+            950: 'var(--p-primary-950)'
+        },
         content: designTokens.color.content,
         'content-border': designTokens.color.contentBorder,
         page: designTokens.color.page,
         chrome: designTokens.color.chrome,
         subtle: designTokens.color.subtle,
         'text-muted': designTokens.color.textMuted,
+        status: designTokens.status,
+        signal: designTokens.signal,
         surface: {
             0: 'var(--p-surface-0)',
             50: 'var(--p-surface-50)',
@@ -134,12 +196,17 @@ export const tailwindThemeExtension = {
         ui: 'var(--ck-radius-ui)',
         panel: 'var(--ck-radius-panel)'
     },
+    fontFamily: {
+        sans: 'var(--ck-font-ui)',
+        mono: 'var(--ck-font-mono)'
+    },
     boxShadow: {
         card: 'var(--ck-shadow-card)',
         'card-hover': 'var(--ck-shadow-card-hover)',
         overlay: 'var(--ck-shadow-overlay)'
     },
     transitionDuration: {
+        DEFAULT: 'var(--ck-motion-normal)',
         fast: 'var(--ck-motion-fast)',
         normal: 'var(--ck-motion-normal)'
     }
@@ -155,38 +222,38 @@ export const supportAvatarPalette = [
     'var(--p-pink-500)'
 ];
 
-const cyanPrimary = {
-    50: '{cyan.50}',
-    100: '{cyan.100}',
-    200: '{cyan.200}',
-    300: '{cyan.300}',
-    400: '{cyan.400}',
-    500: '{cyan.500}',
-    600: '{cyan.600}',
-    700: '{cyan.700}',
-    800: '{cyan.800}',
-    900: '{cyan.900}',
-    950: '{cyan.950}'
+const cobaltPrimary = {
+    50: '#eef3ff',
+    100: '#dfe8ff',
+    200: '#c6d5ff',
+    300: '#a6bdff',
+    400: '#7e9dff',
+    500: '#5d7ff3',
+    600: '#4765d5',
+    700: '#3850ad',
+    800: '#2e438e',
+    900: '#263872',
+    950: '#17234a'
 };
 
-const slateSurface = {
+const workbenchSurface = {
     0: '#ffffff',
-    50: '{slate.50}',
-    100: '{slate.100}',
-    200: '{slate.200}',
-    300: '{slate.300}',
-    400: '{slate.400}',
-    500: '{slate.500}',
-    600: '{slate.600}',
-    700: '{slate.700}',
-    800: '{slate.800}',
-    900: '{slate.900}',
-    950: '{slate.950}'
+    50: '#f7f7f5',
+    100: '#efefeb',
+    200: '#e4e3dc',
+    300: '#d3d1c8',
+    400: '#aaa79d',
+    500: '#7e7a71',
+    600: '#605e57',
+    700: '#47453f',
+    800: '#302f2b',
+    900: '#22211f',
+    950: '#171715'
 };
 
 export const primeSemanticTokens = {
     transitionDuration: 'var(--ck-motion-normal)',
-    primary: cyanPrimary,
+    primary: cobaltPrimary,
     focusRing: {
         width: '2px',
         style: 'solid',
@@ -225,7 +292,7 @@ export const primeSemanticTokens = {
     },
     colorScheme: {
         light: {
-            surface: slateSurface,
+            surface: workbenchSurface,
             primary: {
                 color: '{primary.700}',
                 contrastColor: '#ffffff',
@@ -233,9 +300,9 @@ export const primeSemanticTokens = {
                 activeColor: '{primary.900}'
             },
             content: {
-                background: '#ffffff',
+                background: '{surface.0}',
                 hoverBackground: '{surface.100}',
-                borderColor: 'color-mix(in srgb, {surface.300}, transparent 16%)',
+                borderColor: '{surface.300}',
                 color: '{surface.950}'
             },
             text: {
@@ -267,7 +334,7 @@ export const primeSemanticTokens = {
             }
         },
         dark: {
-            surface: slateSurface,
+            surface: workbenchSurface,
             primary: {
                 color: '{primary.400}',
                 contrastColor: '{surface.950}',

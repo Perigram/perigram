@@ -1,5 +1,5 @@
 <template>
-    <div class="flex h-support-chat-admin min-h-support-chat border border-content-border rounded-ui overflow-hidden shadow-sm bg-content">
+    <div class="flex h-support-chat-admin min-h-support-chat border border-content-border rounded-ui overflow-hidden shadow-card bg-content">
         <AdminSupportChatList
             class="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-content-border"
             :class="{'hidden md:flex': selectedUserId, 'flex': !selectedUserId}"

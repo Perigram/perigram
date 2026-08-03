@@ -135,7 +135,7 @@
                                                 @update:model-value="selectedGrantJson = $event"
                                                 @blur="applySelectedGrantJson"
                                             />
-                                            <small v-if="selectedGrantError" class="text-red-500">
+                                            <small v-if="selectedGrantError" class="text-status-danger">
                                                 {{ selectedGrantError }}
                                             </small>
                                         </Panel>

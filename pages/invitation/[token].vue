@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen flex items-center justify-center bg-[var(--ck-page-background)] p-4">
+    <div class="min-h-screen flex items-center justify-center bg-page p-4">
         <Panel class="w-full max-w-md">
             <template #header>
                 <div class="flex flex-col items-center gap-4 text-center">

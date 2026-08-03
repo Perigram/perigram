@@ -38,7 +38,7 @@ const walkFiles = (dir, predicate, acc = []) => {
   return acc;
 };
 
-const usedVueFiles = () => ['components', 'pages']
+const usedVueFiles = () => ['components', 'layouts', 'pages']
   .flatMap((dir) => walkFiles(
     path.join(REPO_ROOT, dir),
     (file) => file.endsWith('.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
@@ -258,6 +258,26 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens.dataview.root.background).toBe('transparent');
+  });
+
+  it('keeps runtime visual tokens and Tailwind semantic aliases in sync', () => {
+    const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
+
+    for (const tokenName of Object.keys(cssVariableTokens)) {
+      expect(runtimeCss, `${tokenName} is missing from the runtime token layer`).toContain(`${tokenName}:`);
+    }
+
+    expect(designTokens.typography.ui).toContain('ui-sans-serif');
+    expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
+    expect(tailwindThemeExtension.colors.status.danger).toBe('var(--ck-status-danger)');
+    expect(tailwindThemeExtension.colors.signal.entity).toBe('var(--ck-signal-entity)');
+  });
+
+  it('keeps app chrome and process signals on semantic color aliases', () => {
+    const rawPaletteUtility = /\b(?:bg|text|border|ring)-(?:slate|zinc|gray|neutral|stone|blue|sky|teal|cyan|indigo|violet|fuchsia|purple|emerald|green|lime|red|orange|amber|yellow|pink|rose)-\d{1,3}\b/;
+    const offenders = usedVueFiles().filter((file) => rawPaletteUtility.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')));
+
+    expect(offenders).toEqual([]);
   });
 
   it('uses existing semantic variables for SVG designer label contrast', () => {

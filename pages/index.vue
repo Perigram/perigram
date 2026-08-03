@@ -1,5 +1,5 @@
 <template>
-  <main class="min-h-screen bg-[var(--ck-page-background)] text-[var(--p-text-color)]">
+  <main class="min-h-screen bg-page text-color">
     <section class="relative min-h-[88vh] overflow-hidden border-b border-content-border">
 
       <header class="relative z-10 mx-auto flex max-w-[var(--ck-page-max-width)] items-center justify-between gap-4 px-4 py-5 md:px-8">

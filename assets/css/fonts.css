@@ -1,35 +1,36 @@
-/* JetBrains Mono Font */
+/* Technical values keep JetBrains Mono; interface copy uses the platform UI face. */
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/700.css';
 @import '@fontsource/jetbrains-mono/400-italic.css';
 
-/* Apply JetBrains Mono globally */
 :root {
-  --font-family: 'JetBrains Mono', monospace;
+  --font-family: var(--ck-font-ui);
 }
 
 body,
 html {
-  font-family: 'JetBrains Mono', monospace !important;
+  font-family: var(--ck-font-ui);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-* {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* Override PrimeVue components */
+/* PrimeVue reads --font-family, but native controls need the same explicit face. */
 .p-component,
 .p-inputtext,
 .p-button,
 .p-select,
 .p-dialog {
-  font-family: 'JetBrains Mono', monospace !important;
+  font-family: var(--ck-font-ui);
 }
 
-/* Override all inputs and buttons */
 input,
 button,
 select,
 textarea {
-  font-family: 'JetBrains Mono', monospace !important;
+  font-family: var(--ck-font-ui);
+}
+
+:where(code, kbd, pre, samp, .font-mono) {
+  font-family: var(--ck-font-mono);
 }

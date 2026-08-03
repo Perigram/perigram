@@ -300,14 +300,14 @@ const nodeFrameClass = computed(() => [
   props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
 ]);
 const accent = computed(() => {
-  if (record.value.kind?.startsWith('read.')) return { stripe: 'bg-cyan-500', icon: 'text-cyan-600' };
-  if (record.value.kind?.startsWith('record.')) return { stripe: 'bg-sky-500', icon: 'text-sky-600' };
+  if (record.value.kind?.startsWith('read.')) return { stripe: 'bg-signal-structure', icon: 'text-signal-structure' };
+  if (record.value.kind?.startsWith('record.')) return { stripe: 'bg-signal-entity', icon: 'text-signal-entity' };
   if (record.value.kind?.startsWith('predicate.') || record.value.kind?.includes('compare') || record.value.kind?.includes('logic')) {
-    return { stripe: 'bg-amber-500', icon: 'text-amber-600' };
+    return { stripe: 'bg-signal-decision', icon: 'text-signal-decision' };
   }
-  if (record.value.kind?.startsWith('effect.')) return { stripe: 'bg-rose-500', icon: 'text-rose-600' };
-  if (record.value.kind?.startsWith('control.')) return { stripe: 'bg-orange-500', icon: 'text-orange-600' };
-  return { stripe: 'bg-violet-500', icon: 'text-violet-600' };
+  if (record.value.kind?.startsWith('effect.')) return { stripe: 'bg-signal-effect', icon: 'text-signal-effect' };
+  if (record.value.kind?.startsWith('control.')) return { stripe: 'bg-signal-external', icon: 'text-signal-external' };
+  return { stripe: 'bg-signal-value', icon: 'text-signal-value' };
 });
 
 function update(updates) {
@@ -484,18 +484,18 @@ function handleClass(item, side) {
 }
 
 function socketTone(item = {}) {
-  if (item.role !== 'data') return { row: '', handle: '!border-orange-500 !bg-orange-500' };
+  if (item.role !== 'data') return { row: '', handle: '!border-signal-external !bg-signal-external' };
   return ({
-    entity: { row: '', handle: '!border-sky-500 !bg-sky-500' },
-    entityRef: { row: '', handle: '!border-blue-500 !bg-blue-500' },
-    block: { row: '', handle: '!border-cyan-500 !bg-cyan-500' },
-    predicate: { row: '', handle: '!border-amber-600 !bg-amber-600' },
-    patch: { row: '', handle: '!border-fuchsia-500 !bg-fuchsia-500' },
-    number: { row: '', handle: '!border-lime-500 !bg-lime-500' },
-    integer: { row: '', handle: '!border-lime-600 !bg-lime-600' },
-    boolean: { row: '', handle: '!border-amber-500 !bg-amber-500' },
-    date: { row: '', handle: '!border-indigo-500 !bg-indigo-500' },
-    dateTime: { row: '', handle: '!border-indigo-600 !bg-indigo-600' }
-  })[item.base] || { row: '', handle: '!border-emerald-500 !bg-emerald-500' };
+    entity: { row: '', handle: '!border-signal-entity !bg-signal-entity' },
+    entityRef: { row: '', handle: '!border-signal-reference !bg-signal-reference' },
+    block: { row: '', handle: '!border-signal-structure !bg-signal-structure' },
+    predicate: { row: '', handle: '!border-signal-decision !bg-signal-decision' },
+    patch: { row: '', handle: '!border-signal-projection !bg-signal-projection' },
+    number: { row: '', handle: '!border-signal-quantity !bg-signal-quantity' },
+    integer: { row: '', handle: '!border-signal-quantity !bg-signal-quantity' },
+    boolean: { row: '', handle: '!border-signal-decision !bg-signal-decision' },
+    date: { row: '', handle: '!border-signal-temporal !bg-signal-temporal' },
+    dateTime: { row: '', handle: '!border-signal-temporal !bg-signal-temporal' }
+  })[item.base] || { row: '', handle: '!border-signal-data !bg-signal-data' };
 }
 </script>

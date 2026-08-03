@@ -1,8 +1,8 @@
 <template>
   <div :class="nodeFrameClass">
-    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-violet-500"></div>
+    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-signal-value"></div>
     <div class="flex items-center gap-2">
-      <i :class="record.structure === 'list' ? 'pi pi-list' : 'pi pi-circle-fill'" class="text-violet-600"></i>
+      <i :class="record.structure === 'list' ? 'pi pi-list' : 'pi pi-circle-fill'" class="text-signal-value"></i>
       <strong class="min-w-0 flex-1 truncate text-sm">{{ record.label || data.refId }}</strong>
       <span class="text-xs text-muted-color">{{ typeLabel }}</span>
     </div>
@@ -65,7 +65,7 @@
       </template>
     </div>
 
-    <Handle id="value" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-violet-500 !bg-violet-500" />
+    <Handle id="value" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-signal-value !bg-signal-value" />
   </div>
 </template>
 

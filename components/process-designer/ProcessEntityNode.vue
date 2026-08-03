@@ -1,10 +1,10 @@
 <template>
   <div :class="nodeFrameClass">
-    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-sky-500"></div>
+    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-signal-entity"></div>
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
-          <i class="pi pi-box text-sky-600" aria-hidden="true"></i>
+          <i class="pi pi-box text-signal-entity" aria-hidden="true"></i>
           <strong class="truncate">{{ data.label || data.entityType || data.refId }}</strong>
         </div>
         <small class="text-muted-color">{{ data.entityType || $t('processDesigner.entityType') }}</small>
@@ -115,10 +115,10 @@ function handleClass(item, side) {
 
 function socketTone(item = {}) {
   return ({
-    entity: { row: 'border-content-border bg-content', handle: '!border-sky-500 !bg-sky-500' },
-    block: { row: 'border-content-border bg-content', handle: '!border-cyan-500 !bg-cyan-500' },
-    status: { row: 'border-content-border bg-content', handle: '!border-amber-500 !bg-amber-500' },
-    data: { row: 'border-content-border bg-content', handle: '!border-emerald-500 !bg-emerald-500' }
-  })[item.kind] || { row: 'border-content-border', handle: '!border-sky-500 !bg-sky-500' };
+    entity: { row: 'border-content-border bg-content', handle: '!border-signal-entity !bg-signal-entity' },
+    block: { row: 'border-content-border bg-content', handle: '!border-signal-structure !bg-signal-structure' },
+    status: { row: 'border-content-border bg-content', handle: '!border-signal-decision !bg-signal-decision' },
+    data: { row: 'border-content-border bg-content', handle: '!border-signal-data !bg-signal-data' }
+  })[item.kind] || { row: 'border-content-border', handle: '!border-signal-entity !bg-signal-entity' };
 }
 </script>

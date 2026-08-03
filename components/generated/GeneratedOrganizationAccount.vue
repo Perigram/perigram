@@ -31,7 +31,7 @@
             </div>
           </div>
           <div v-if="packages.length" class="flex flex-col gap-2">
-            <div v-for="pack in packages" :key="pack.id" class="flex items-center justify-between gap-3 rounded-md border border-surface-200 p-3 dark:border-surface-700">
+            <div v-for="pack in packages" :key="pack.id" class="flex items-center justify-between gap-3 rounded-ui border border-surface-200 p-3 dark:border-surface-700">
               <div class="min-w-0">
                 <p class="m-0 font-medium">{{ packageLabel(pack) }}</p>
                 <small class="text-muted-color">{{ pack.tokenAmount }} {{ $t('billing.tokens') }}</small>
