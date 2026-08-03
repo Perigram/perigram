@@ -34,24 +34,24 @@ export const designTokens = {
         tableActionColumnWidth: '3rem'
     },
     radius: {
-        ui: '0.5rem',
-        panel: '0.625rem',
+        ui: '0.375rem',
+        panel: '0.75rem',
         full: '9999px'
     },
     shadow: {
-        card: '0 1px 2px rgb(15 23 42 / 0.06), 0 1px 1px rgb(15 23 42 / 0.04)',
-        cardHover: '0 10px 24px rgb(15 23 42 / 0.10), 0 2px 6px rgb(15 23 42 / 0.06)',
-        overlay: '0 18px 48px rgb(15 23 42 / 0.18)'
+        card: '0 0 0 1px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.06), 0 8px 20px rgb(15 23 42 / 0.05)',
+        cardHover: '0 0 0 1px rgb(8 145 178 / 0.30), 0 2px 4px rgb(15 23 42 / 0.08), 0 14px 30px rgb(15 23 42 / 0.12)',
+        overlay: '0 0 0 1px rgb(15 23 42 / 0.10), 0 24px 64px rgb(15 23 42 / 0.20)'
     },
     motion: {
-        fast: '120ms',
-        normal: '200ms'
+        fast: '110ms',
+        normal: '180ms'
     }
 };
 
 export const cssVariableTokens = {
     '--ck-page-background': 'var(--p-surface-50)',
-    '--ck-chrome-background': 'color-mix(in srgb, var(--p-content-background), transparent 6%)',
+    '--ck-chrome-background': 'color-mix(in srgb, var(--p-content-background), transparent 3%)',
     '--ck-subtle-background': 'var(--p-surface-100)',
     '--ck-page-max-width': designTokens.layout.pageMaxWidth,
     '--ck-grid-gap': designTokens.layout.gridGap,
@@ -155,44 +155,44 @@ export const supportAvatarPalette = [
     'var(--p-pink-500)'
 ];
 
-const tealPrimary = {
-    50: '{teal.50}',
-    100: '{teal.100}',
-    200: '{teal.200}',
-    300: '{teal.300}',
-    400: '{teal.400}',
-    500: '{teal.500}',
-    600: '{teal.600}',
-    700: '{teal.700}',
-    800: '{teal.800}',
-    900: '{teal.900}',
-    950: '{teal.950}'
+const cyanPrimary = {
+    50: '{cyan.50}',
+    100: '{cyan.100}',
+    200: '{cyan.200}',
+    300: '{cyan.300}',
+    400: '{cyan.400}',
+    500: '{cyan.500}',
+    600: '{cyan.600}',
+    700: '{cyan.700}',
+    800: '{cyan.800}',
+    900: '{cyan.900}',
+    950: '{cyan.950}'
 };
 
-const zincSurface = {
+const slateSurface = {
     0: '#ffffff',
-    50: '{zinc.50}',
-    100: '{zinc.100}',
-    200: '{zinc.200}',
-    300: '{zinc.300}',
-    400: '{zinc.400}',
-    500: '{zinc.500}',
-    600: '{zinc.600}',
-    700: '{zinc.700}',
-    800: '{zinc.800}',
-    900: '{zinc.900}',
-    950: '{zinc.950}'
+    50: '{slate.50}',
+    100: '{slate.100}',
+    200: '{slate.200}',
+    300: '{slate.300}',
+    400: '{slate.400}',
+    500: '{slate.500}',
+    600: '{slate.600}',
+    700: '{slate.700}',
+    800: '{slate.800}',
+    900: '{slate.900}',
+    950: '{slate.950}'
 };
 
 export const primeSemanticTokens = {
     transitionDuration: 'var(--ck-motion-normal)',
-    primary: tealPrimary,
+    primary: cyanPrimary,
     focusRing: {
         width: '2px',
         style: 'solid',
-        color: '{primary.500}',
+        color: '{primary.600}',
         offset: '2px',
-        shadow: '0 0 0 3px color-mix(in srgb, {primary.500}, transparent 78%)'
+        shadow: '0 0 0 3px color-mix(in srgb, {primary.500}, transparent 76%)'
     },
     content: {
         borderRadius: 'var(--ck-radius-ui)'
@@ -204,9 +204,9 @@ export const primeSemanticTokens = {
         focusRing: {
             width: '2px',
             style: 'solid',
-            color: '{primary.500}',
+            color: '{primary.600}',
             offset: '1px',
-            shadow: '0 0 0 3px color-mix(in srgb, {primary.500}, transparent 82%)'
+            shadow: '0 0 0 3px color-mix(in srgb, {primary.500}, transparent 80%)'
         }
     },
     overlay: {
@@ -225,17 +225,17 @@ export const primeSemanticTokens = {
     },
     colorScheme: {
         light: {
-            surface: zincSurface,
+            surface: slateSurface,
             primary: {
-                color: '{primary.600}',
+                color: '{primary.700}',
                 contrastColor: '#ffffff',
-                hoverColor: '{primary.700}',
-                activeColor: '{primary.800}'
+                hoverColor: '{primary.800}',
+                activeColor: '{primary.900}'
             },
             content: {
                 background: '#ffffff',
                 hoverBackground: '{surface.100}',
-                borderColor: '{surface.200}',
+                borderColor: 'color-mix(in srgb, {surface.300}, transparent 16%)',
                 color: '{surface.950}'
             },
             text: {
@@ -244,15 +244,30 @@ export const primeSemanticTokens = {
                 mutedColor: '{surface.500}',
                 hoverMutedColor: '{surface.600}'
             },
+            formField: {
+                background: '{surface.0}',
+                disabledBackground: '{surface.100}',
+                filledBackground: '{surface.50}',
+                filledHoverBackground: '{surface.100}',
+                filledFocusBackground: '{surface.0}',
+                borderColor: '{surface.300}',
+                hoverBorderColor: '{surface.400}',
+                focusBorderColor: '{primary.600}',
+                invalidBorderColor: '{red.500}',
+                color: '{surface.900}',
+                disabledColor: '{surface.500}',
+                placeholderColor: '{surface.500}',
+                invalidPlaceholderColor: '{red.600}'
+            },
             highlight: {
-                background: '{primary.50}',
-                focusBackground: '{primary.100}',
-                color: '{primary.800}',
+                background: 'color-mix(in srgb, {primary.100}, transparent 12%)',
+                focusBackground: '{primary.200}',
+                color: '{primary.900}',
                 focusColor: '{primary.900}'
             }
         },
         dark: {
-            surface: zincSurface,
+            surface: slateSurface,
             primary: {
                 color: '{primary.400}',
                 contrastColor: '{surface.950}',
@@ -262,7 +277,7 @@ export const primeSemanticTokens = {
             content: {
                 background: '{surface.900}',
                 hoverBackground: '{surface.800}',
-                borderColor: '{surface.700}',
+                borderColor: 'color-mix(in srgb, {surface.600}, transparent 46%)',
                 color: '{surface.50}'
             },
             text: {
@@ -271,8 +286,23 @@ export const primeSemanticTokens = {
                 mutedColor: '{surface.400}',
                 hoverMutedColor: '{surface.300}'
             },
+            formField: {
+                background: '{surface.950}',
+                disabledBackground: '{surface.900}',
+                filledBackground: '{surface.900}',
+                filledHoverBackground: '{surface.800}',
+                filledFocusBackground: '{surface.950}',
+                borderColor: '{surface.700}',
+                hoverBorderColor: '{surface.600}',
+                focusBorderColor: '{primary.400}',
+                invalidBorderColor: '{red.400}',
+                color: '{surface.50}',
+                disabledColor: '{surface.500}',
+                placeholderColor: '{surface.400}',
+                invalidPlaceholderColor: '{red.400}'
+            },
             highlight: {
-                background: 'color-mix(in srgb, {primary.500}, transparent 84%)',
+                background: 'color-mix(in srgb, {primary.500}, transparent 86%)',
                 focusBackground: 'color-mix(in srgb, {primary.500}, transparent 76%)',
                 color: '{primary.100}',
                 focusColor: '{primary.50}'
@@ -298,8 +328,15 @@ export const primeComponentTokens = {
     },
     dialog: {
         root: {
+            background: '{content.background}',
+            borderColor: '{content.border.color}',
+            color: '{content.color}',
             borderRadius: 'var(--ck-radius-panel)',
             shadow: 'var(--ck-shadow-overlay)'
+        },
+        title: {
+            fontSize: '1rem',
+            fontWeight: '650'
         },
         header: {
             padding: '1.25rem 1.25rem 0.75rem'
@@ -315,12 +352,17 @@ export const primeComponentTokens = {
         root: {
             borderRadius: 'var(--ck-radius-panel)',
             borderColor: '{content.border.color}',
-            background: '{content.background}'
+            background: '{content.background}',
+            color: '{content.color}'
         },
         header: {
-            background: '{content.background}',
+            background: '{content.hover.background}',
             padding: '1rem 1.125rem',
-            borderColor: '{content.border.color}'
+            borderColor: '{content.border.color}',
+            borderWidth: '0 0 1px'
+        },
+        title: {
+            fontWeight: '650'
         },
         content: {
             padding: '1.125rem'
@@ -348,22 +390,27 @@ export const primeComponentTokens = {
     button: {
         root: {
             borderRadius: 'var(--ck-radius-ui)',
-            paddingX: '0.875rem',
-            paddingY: '0.5625rem',
+            gap: '0.5rem',
+            paddingX: '0.8125rem',
+            paddingY: '0.5rem',
+            iconOnlyWidth: '2.375rem',
+            raisedShadow: 'var(--ck-shadow-card)',
             label: {
                 fontWeight: '600'
             },
             sm: {
                 fontSize: '0.8125rem',
-                paddingX: '0.6875rem',
-                paddingY: '0.4375rem'
+                paddingX: '0.625rem',
+                paddingY: '0.375rem',
+                iconOnlyWidth: '2rem'
             }
         }
     },
     tag: {
         root: {
             borderRadius: 'var(--ck-radius-ui)',
-            fontWeight: '600'
+            fontWeight: '650',
+            padding: '0.1875rem 0.5rem'
         }
     },
     chip: {
@@ -371,12 +418,114 @@ export const primeComponentTokens = {
             borderRadius: 'var(--ck-radius-ui)'
         }
     },
+    menu: {
+        root: {
+            background: '{content.background}',
+            borderColor: '{content.border.color}',
+            color: '{content.color}',
+            borderRadius: 'var(--ck-radius-panel)',
+            shadow: 'var(--ck-shadow-overlay)'
+        },
+        list: {
+            padding: '0.3125rem',
+            gap: '0.125rem'
+        },
+        item: {
+            focusBackground: '{content.hover.background}',
+            color: '{text.color}',
+            focusColor: '{text.color}',
+            padding: '0.5rem 0.625rem',
+            borderRadius: 'var(--ck-radius-ui)',
+            gap: '0.5rem',
+            icon: {
+                color: '{text.muted.color}',
+                focusColor: '{primary.color}'
+            }
+        },
+        separator: {
+            borderColor: '{content.border.color}'
+        }
+    },
+    tabs: {
+        root: {
+            transitionDuration: 'var(--ck-motion-normal)'
+        },
+        tablist: {
+            background: 'transparent',
+            borderWidth: '0 0 1px',
+            borderColor: '{content.border.color}'
+        },
+        tab: {
+            background: 'transparent',
+            hoverBackground: '{content.hover.background}',
+            activeBackground: 'transparent',
+            color: '{text.muted.color}',
+            hoverColor: '{text.color}',
+            activeColor: '{primary.color}',
+            padding: '0.75rem 0.875rem',
+            fontWeight: '600'
+        },
+        activeBar: {
+            height: '2px',
+            background: '{primary.color}'
+        }
+    },
+    tabview: {
+        root: {
+            transitionDuration: 'var(--ck-motion-normal)'
+        },
+        tabList: {
+            background: 'transparent',
+            borderColor: '{content.border.color}'
+        },
+        tab: {
+            borderColor: '{content.border.color}',
+            activeBorderColor: '{primary.color}',
+            color: '{text.muted.color}',
+            hoverColor: '{text.color}',
+            activeColor: '{primary.color}'
+        },
+        tabPanel: {
+            background: 'transparent',
+            color: '{text.color}'
+        }
+    },
+    drawer: {
+        root: {
+            background: '{content.background}',
+            borderColor: '{content.border.color}',
+            color: '{content.color}',
+            shadow: 'var(--ck-shadow-overlay)'
+        },
+        header: {
+            padding: '1rem 1.125rem'
+        },
+        title: {
+            fontSize: '1rem',
+            fontWeight: '650'
+        },
+        content: {
+            padding: '0 1.125rem 1.125rem'
+        }
+    },
+    toast: {
+        root: {
+            borderRadius: 'var(--ck-radius-panel)',
+            borderWidth: '1px',
+            transitionDuration: 'var(--ck-motion-normal)'
+        },
+        content: {
+            padding: '0.875rem 1rem'
+        },
+        summary: {
+            fontWeight: '650'
+        }
+    },
     datatable: {
         root: {
             borderColor: '{content.border.color}'
         },
         headerCell: {
-            background: '{surface.50}',
             borderColor: '{content.border.color}',
             color: '{text.muted.color}',
             padding: '0.75rem 1rem'
@@ -386,7 +535,38 @@ export const primeComponentTokens = {
             padding: '0.75rem 1rem'
         },
         row: {
-            hoverBackground: '{surface.50}'
+            color: '{text.color}'
+        },
+        columnTitle: {
+            fontWeight: '650'
+        },
+        colorScheme: {
+            light: {
+                headerCell: {
+                    background: '{surface.100}',
+                    hoverBackground: '{surface.200}',
+                    selectedBackground: '{primary.50}'
+                },
+                row: {
+                    background: '{content.background}',
+                    hoverBackground: '{surface.50}',
+                    selectedBackground: '{primary.50}',
+                    selectedColor: '{primary.900}'
+                }
+            },
+            dark: {
+                headerCell: {
+                    background: '{surface.800}',
+                    hoverBackground: '{surface.700}',
+                    selectedBackground: 'color-mix(in srgb, {primary.500}, transparent 78%)'
+                },
+                row: {
+                    background: '{content.background}',
+                    hoverBackground: 'color-mix(in srgb, {surface.700}, transparent 58%)',
+                    selectedBackground: 'color-mix(in srgb, {primary.500}, transparent 82%)',
+                    selectedColor: '{primary.100}'
+                }
+            }
         }
     }
 };
