@@ -1053,3 +1053,7 @@
     primitive colors. Updated the assets, component, process-designer, and
     design-system documentation; focused design-system tests and the PrimeVue
     preset import passed before manifest regeneration.
+
+    Follow-up browser verification replaced the non-painting inset signal
+    shadow with the `chrome-signal-rule` token helper on both desktop/mobile
+    app chrome and the UI-lab shell.
