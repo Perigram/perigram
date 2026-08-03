@@ -50,6 +50,7 @@ export const designTokens = {
         content: 'var(--p-content-background)',
         contentBorder: 'var(--p-content-border-color)',
         page: 'var(--ck-page-background)',
+        processCanvas: 'var(--ck-process-canvas-background)',
         chrome: 'var(--ck-chrome-background)',
         chromeForeground: 'var(--ck-chrome-foreground)',
         chromeMuted: 'var(--ck-chrome-muted)',
@@ -133,6 +134,7 @@ export const designTokens = {
 
 export const cssVariableTokens = {
     '--ck-page-background': 'var(--p-surface-100)',
+    '--ck-process-canvas-background': 'var(--p-surface-50)',
     '--ck-chrome-background': '#fefefc',
     '--ck-chrome-foreground': '#0c0c0b',
     '--ck-chrome-muted': '#6d6d66',
@@ -222,6 +224,7 @@ export const tailwindThemeExtension = {
         content: designTokens.color.content,
         'content-border': designTokens.color.contentBorder,
         page: designTokens.color.page,
+        'process-canvas': designTokens.color.processCanvas,
         chrome: designTokens.color.chrome,
         'chrome-foreground': designTokens.color.chromeForeground,
         'chrome-muted': designTokens.color.chromeMuted,

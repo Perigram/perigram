@@ -15,11 +15,24 @@ const selectedNodeSources = [
   'ProcessStatusDefinitionNode.vue',
   'ProcessValueInputNode.vue'
 ].map((file) => fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer', file), 'utf8'));
+const socketContractSources = [
+  'ProcessActionNode.vue',
+  'ProcessEntityNode.vue',
+  'ProcessNode.vue',
+  'ProcessRoleNode.vue',
+  'ProcessServiceNode.vue',
+  'ProcessSocketNode.vue',
+  'ProcessStatusDefinitionNode.vue',
+  'ProcessUserNode.vue',
+  'ProcessValueInputNode.vue'
+].map((file) => fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer', file), 'utf8'));
 
 describe('process designer canvas UI', () => {
   it('keeps process nodes compact and aligns sockets by shared rows', () => {
-    expect(nodeSource).toContain("'relative w-64 rounded-ui border");
+    expect(nodeSource).toContain("'relative w-72 rounded-ui border");
     expect(nodeSource).toContain('const socketRows = computed(() => alignSockets');
+    expect(nodeSource).toContain('grid min-h-7 grid-cols-2 gap-x-5');
+    expect(nodeSource).toContain('border-b border-content-border py-1');
     expect(nodeSource).toContain('!top-1/2 !h-2.5 !w-2.5 !-translate-y-1/2');
     expect(nodeSource).not.toContain('{{ input.typeLabel }}');
     expect(nodeSource).not.toContain('{{ output.typeLabel }}');
@@ -34,6 +47,24 @@ describe('process designer canvas UI', () => {
       expect(source).toContain("props.selected ? 'border-primary' : 'border-content-border'");
       expect(source).not.toContain('ring-2');
     }
+  });
+
+  it('uses one socket-tone contract for ports and wires', () => {
+    for (const source of socketContractSources) {
+      expect(source).toContain('processSocketHandleStyle');
+      expect(source).not.toContain('function socketTone');
+    }
+
+    expect(designerSource).toContain('processSocketColor(sourcePort)');
+    expect(designerSource).toContain('bg-process-canvas');
+    expect(designerSource).not.toContain('bg-content/95');
+  });
+
+  it('renders inspector port specs as structured input and output columns', () => {
+    expect(designerSource).toContain('sm:grid-cols-2 sm:divide-x sm:divide-y-0');
+    expect(designerSource).toContain("$t('processDesigner.inputs')");
+    expect(designerSource).toContain("$t('processDesigner.outputs')");
+    expect(designerSource).not.toContain(':value="`${input.label}: ${processPortTypeLabel(input.type)}`"');
   });
 
   it('keeps policy configuration in the inspector instead of every node', () => {

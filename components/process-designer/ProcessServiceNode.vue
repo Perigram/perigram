@@ -12,7 +12,7 @@
     </div>
 
     <div class="relative mt-2 rounded-ui border border-content-border px-2 py-1">
-      <Handle id="run-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2 !border-signal-decision !bg-signal-decision" />
+      <Handle id="run-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2" :style="handleStyle({ kind: 'event' })" />
       <div class="flex min-w-0 flex-wrap items-center gap-1">
         <span class="text-xs text-muted-color">{{ $t('processDesigner.runAccess') }}</span>
         <span v-for="principal in runPrincipalLabels" :key="principal" class="truncate text-xs">
@@ -28,7 +28,7 @@
           :key="input.id"
           :class="socketClass(input, 'left')"
         >
-          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" />
+          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" :style="handleStyle(input)" />
           <span class="block truncate text-xs">{{ input.label }}</span>
         </div>
       </div>
@@ -38,7 +38,7 @@
           :key="output.id"
           :class="socketClass(output, 'right')"
         >
-          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" />
+          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" :style="handleStyle(output)" />
           <span class="block truncate text-xs">{{ output.label }}</span>
         </div>
       </div>
@@ -49,6 +49,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -67,9 +68,10 @@ function normalizeSpecs(items = []) {
   return items.map((item, index) => {
     if (typeof item === 'string') return { id: `${item}-${index}`, label: item, kind: 'data' };
     return {
+      ...item,
       id: item.id || item.label || index,
       label: item.label || item.entityType || item.id,
-      kind: item.kind || 'data'
+      kind: item.kind || item.type?.base || 'data'
     };
   });
 }
@@ -81,25 +83,18 @@ function socketHandleId(kind, item, index, items) {
 
 function socketClass(item, side) {
   return [
-    'relative min-w-0 rounded-ui border px-2 py-0.5',
+    'relative min-w-0 border-b border-content-border py-0.5',
     side === 'left' ? 'pl-3' : 'pr-3 text-right',
-    socketTone(item).row
   ];
 }
 
 function handleClass(item, side) {
   return [
-    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
-    socketTone(item).handle
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];
 }
 
-function socketTone(item = {}) {
-  return ({
-    entity: { row: 'border-content-border bg-content', handle: '!border-signal-entity !bg-signal-entity' },
-    data: { row: 'border-content-border bg-content', handle: '!border-signal-data !bg-signal-data' },
-    attachment: { row: 'border-content-border bg-content', handle: '!border-signal-external !bg-signal-external' },
-    task: { row: 'border-content-border bg-content', handle: '!border-signal-identity !bg-signal-identity' }
-  })[item.kind] || { row: 'border-content-border', handle: '!border-signal-decision !bg-signal-decision' };
+function handleStyle(item) {
+  return processSocketHandleStyle(item);
 }
 </script>

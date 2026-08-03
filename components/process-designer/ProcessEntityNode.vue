@@ -19,7 +19,7 @@
           :key="input.id"
           :class="socketClass(input, 'left')"
         >
-          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" />
+          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" :style="handleStyle(input)" />
           <span class="block truncate text-xs">{{ input.label }}</span>
         </div>
       </div>
@@ -29,7 +29,7 @@
           :key="output.id"
           :class="socketClass(output, 'right')"
         >
-          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" />
+          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" :style="handleStyle(output)" />
           <span class="block truncate text-xs">{{ output.label }}</span>
         </div>
       </div>
@@ -68,6 +68,7 @@ import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import Badge from 'primevue/badge';
 import Tag from 'primevue/tag';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -86,11 +87,15 @@ const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || []));
 
 function normalizeSpecs(items = []) {
-  return items.map((item, index) => ({
-    id: item.id || item.label || index,
-    label: item.label || item.entityType || item.block || item.id,
-    kind: item.kind || 'data'
-  }));
+  return items.map((item, index) => {
+    if (typeof item === 'string') return { id: `${item}-${index}`, label: item, kind: 'data' };
+    return {
+      ...item,
+      id: item.id || item.label || index,
+      label: item.label || item.entityType || item.block || item.id,
+      kind: item.kind || item.type?.base || 'data'
+    };
+  });
 }
 
 function socketHandleId(kind, item, index, items) {
@@ -100,25 +105,18 @@ function socketHandleId(kind, item, index, items) {
 
 function socketClass(item, side) {
   return [
-    'relative min-w-0 rounded-ui border px-2 py-0.5',
+    'relative min-w-0 border-b border-content-border py-0.5',
     side === 'left' ? 'pl-3' : 'pr-3 text-right',
-    socketTone(item).row
   ];
 }
 
 function handleClass(item, side) {
   return [
-    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
-    socketTone(item).handle
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];
 }
 
-function socketTone(item = {}) {
-  return ({
-    entity: { row: 'border-content-border bg-content', handle: '!border-signal-entity !bg-signal-entity' },
-    block: { row: 'border-content-border bg-content', handle: '!border-signal-structure !bg-signal-structure' },
-    status: { row: 'border-content-border bg-content', handle: '!border-signal-decision !bg-signal-decision' },
-    data: { row: 'border-content-border bg-content', handle: '!border-signal-data !bg-signal-data' }
-  })[item.kind] || { row: 'border-content-border', handle: '!border-signal-entity !bg-signal-entity' };
+function handleStyle(item) {
+  return processSocketHandleStyle(item);
 }
 </script>

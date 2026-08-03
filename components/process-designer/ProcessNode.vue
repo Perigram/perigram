@@ -1,14 +1,14 @@
 <template>
   <div :class="nodeFrameClass" :title="data.purpose || data.summary || ''">
     <div :class="['absolute inset-x-0 top-0 h-0.5 rounded-t-ui', accent.stripe]"></div>
-    <div class="flex items-center gap-1.5">
+    <div class="flex items-center gap-1.5 border-b border-content-border pb-1.5">
       <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-xs', accent.icon]">
         <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
       </span>
       <strong class="min-w-0 flex-1 truncate text-xs text-color">{{ data.kindLabel || record.kind }}</strong>
     </div>
 
-    <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-1.5 flex flex-col gap-1.5" @mousedown.stop @click.stop>
+    <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
       <Select
         v-if="showEntitySelect"
         :model-value="record.entityType"
@@ -108,14 +108,15 @@
       />
     </div>
 
-    <div v-if="socketRows.length" class="mt-1.5 flex flex-col gap-1">
-      <div v-for="row in socketRows" :key="row.key" class="grid min-h-6 grid-cols-2 gap-2">
+    <div v-if="socketRows.length" class="mt-2 flex flex-col">
+      <div v-for="row in socketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <Handle
             :id="socketHandleId(row.input)"
             type="target"
             :position="Position.Left"
             :class="handleClass(row.input, 'left')"
+            :style="handleStyle(row.input)"
             :aria-label="socketTitle(row.input)"
           />
           <span class="block truncate text-[11px] leading-5">{{ row.input.label }}</span>
@@ -169,6 +170,7 @@
             type="source"
             :position="Position.Right"
             :class="handleClass(row.output, 'right')"
+            :style="handleStyle(row.output)"
             :aria-label="socketTitle(row.output)"
           />
           <span class="block truncate text-[11px] leading-5">{{ row.output.label }}</span>
@@ -177,7 +179,7 @@
       </div>
     </div>
 
-    <div v-if="eventSocketRows.length" class="mt-1.5 border-t border-content-border pt-1.5">
+    <div v-if="eventSocketRows.length" class="mt-2 border-t border-content-border pt-2">
       <SelectButton
         v-if="record.kind?.startsWith('effect.')"
         :model-value="record.trigger?.mode === 'event' ? 'event' : 'manual'"
@@ -190,14 +192,14 @@
         @click.stop
         @update:model-value="updateEffectTriggerMode"
       />
-      <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-5 grid-cols-2 gap-2">
+      <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <Handle :id="socketHandleId(row.input)" type="target" :position="Position.Left" :class="handleClass(row.input, 'left')" />
+          <Handle :id="socketHandleId(row.input)" type="target" :position="Position.Left" :class="handleClass(row.input, 'left')" :style="handleStyle(row.input)" />
           <span class="block truncate text-[11px] leading-5">{{ row.input.label }}</span>
         </div>
         <div v-else></div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
-          <Handle :id="socketHandleId(row.output)" type="source" :position="Position.Right" :class="handleClass(row.output, 'right')" />
+          <Handle :id="socketHandleId(row.output)" type="source" :position="Position.Right" :class="handleClass(row.output, 'right')" :style="handleStyle(row.output)" />
           <span class="block truncate text-[11px] leading-5">{{ row.output.label }}</span>
         </div>
         <div v-else></div>
@@ -218,6 +220,7 @@ import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
 import { formatProcessType } from '~/packages/processes/src/index.js';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -296,7 +299,7 @@ const hasInlineConfiguration = computed(() => (
   || record.value.kind?.startsWith('source.literal')
 ));
 const nodeFrameClass = computed(() => [
-  'relative w-64 rounded-ui border bg-content p-2 pt-2.5 shadow-card transition-colors',
+  'relative w-72 rounded-ui border bg-content p-2.5 pt-3 shadow-card transition-colors',
   props.selected ? 'border-primary' : 'border-content-border'
 ]);
 const accent = computed(() => {
@@ -385,9 +388,9 @@ function socketTitle(item) {
 }
 
 function showInlineFallback(input) {
-  return !input.connected
-    && supportsInlineValue(input)
-    && (input.required !== false || props.selected);
+  return props.selected
+    && !input.connected
+    && supportsInlineValue(input);
 }
 
 function supportsInlineValue(input) {
@@ -468,9 +471,8 @@ function socketHandleId(item) {
 
 function socketClass(item, side) {
   return [
-    'relative min-w-0 rounded-ui bg-subtle px-1.5',
-    side === 'left' ? 'pl-2.5' : 'pr-2.5 text-right',
-    socketTone(item).row
+    'relative min-w-0 border-b border-content-border py-1',
+    side === 'left' ? 'pl-3' : 'pr-3 text-right'
   ];
 }
 
@@ -478,24 +480,11 @@ function handleClass(item, side) {
   return [
     '!top-1/2 !h-2.5 !w-2.5 !-translate-y-1/2',
     item.type?.shape === 'tree' ? '!rounded-none' : item.type?.shape === 'list' ? '!rounded-sm' : '!rounded-full',
-    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
-    socketTone(item).handle
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];
 }
 
-function socketTone(item = {}) {
-  if (item.role !== 'data') return { row: '', handle: '!border-signal-external !bg-signal-external' };
-  return ({
-    entity: { row: '', handle: '!border-signal-entity !bg-signal-entity' },
-    entityRef: { row: '', handle: '!border-signal-reference !bg-signal-reference' },
-    block: { row: '', handle: '!border-signal-structure !bg-signal-structure' },
-    predicate: { row: '', handle: '!border-signal-decision !bg-signal-decision' },
-    patch: { row: '', handle: '!border-signal-projection !bg-signal-projection' },
-    number: { row: '', handle: '!border-signal-quantity !bg-signal-quantity' },
-    integer: { row: '', handle: '!border-signal-quantity !bg-signal-quantity' },
-    boolean: { row: '', handle: '!border-signal-decision !bg-signal-decision' },
-    date: { row: '', handle: '!border-signal-temporal !bg-signal-temporal' },
-    dateTime: { row: '', handle: '!border-signal-temporal !bg-signal-temporal' }
-  })[item.base] || { row: '', handle: '!border-signal-data !bg-signal-data' };
+function handleStyle(item) {
+  return processSocketHandleStyle(item);
 }
 </script>

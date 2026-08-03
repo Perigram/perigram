@@ -65,7 +65,7 @@
       </template>
     </div>
 
-    <Handle id="value" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-signal-value !bg-signal-value" />
+    <Handle id="value" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2" :style="valueHandleStyle" />
   </div>
 </template>
 
@@ -78,6 +78,7 @@ import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -85,6 +86,7 @@ const props = defineProps({
 });
 
 const record = computed(() => props.data.valueInputRecord || props.data);
+const valueHandleStyle = computed(() => processSocketHandleStyle({ type: { base: record.value.valueType } }));
 const nodeFrameClass = computed(() => [
   'relative min-w-64 rounded-ui border bg-content p-2 pt-3 shadow-card transition-colors',
   props.selected ? 'border-primary' : 'border-content-border'

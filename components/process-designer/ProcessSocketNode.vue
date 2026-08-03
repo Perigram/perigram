@@ -29,15 +29,15 @@
         <span class="block truncate text-xs">{{ accessLabel }}</span>
       </div>
       <div v-if="!isInbound" :class="socketClass('entity', 'left')">
-        <Handle id="entity-projection" type="target" :position="Position.Left" :class="handleClass('entity', 'left')" />
+        <Handle id="entity-projection" type="target" :position="Position.Left" :class="handleClass('entity', 'left')" :style="handleStyle('entity')" />
         <Tag :value="inputLabel" size="small" severity="secondary" />
       </div>
       <div v-else :class="socketClass('entity', 'right')">
-        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('entity', 'right')" />
+        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('entity', 'right')" :style="handleStyle('entity')" />
         <Tag :value="receivedLabel" size="small" severity="success" />
       </div>
       <div v-if="!isInbound" :class="socketClass('projection', 'right')">
-        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('projection', 'right')" />
+        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('projection', 'right')" :style="handleStyle('projection')" />
         <div class="flex flex-wrap gap-1">
           <Tag v-for="field in visibleProjectedFields" :key="field" :value="field" size="small" />
           <Tag v-if="hiddenProjectedFieldCount > 0" :value="`+${hiddenProjectedFieldCount}`" size="small" />
@@ -53,6 +53,7 @@ import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -77,23 +78,18 @@ const accessRoleLabels = computed(() => isInbound.value ? receiveRoleLabels.valu
 
 function socketClass(kind, side) {
   return [
-    'relative rounded-ui border py-1',
+    'relative min-w-0 border-b border-content-border py-1',
     side === 'left' ? 'pl-3 pr-2' : 'pl-2 pr-3 text-right',
-    socketTone(kind).row
   ];
 }
 
 function handleClass(kind, side) {
   return [
-    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
-    socketTone(kind).handle
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];
 }
 
-function socketTone(kind) {
-  return ({
-    entity: { row: 'border-content-border bg-content', handle: '!border-signal-entity !bg-signal-entity' },
-    projection: { row: 'border-content-border bg-content', handle: '!border-signal-projection !bg-signal-projection' }
-  })[kind] || { row: 'border-content-border', handle: '!border-signal-value !bg-signal-value' };
+function handleStyle(kind) {
+  return processSocketHandleStyle({ kind });
 }
 </script>

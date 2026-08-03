@@ -17,13 +17,13 @@
     <div class="mt-2 grid grid-cols-2 gap-2 pl-1">
       <div class="flex flex-col gap-1">
         <div v-for="(input, index) in inputSpecs" :key="input.id" :class="socketClass(input, 'left')">
-          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" />
+          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" :style="handleStyle(input)" />
           <span class="block truncate text-xs">{{ input.label }}</span>
         </div>
       </div>
       <div class="flex flex-col gap-1">
         <div v-for="(output, index) in outputSpecs" :key="output.id" :class="socketClass(output, 'right')">
-          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" />
+          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" :style="handleStyle(output)" />
           <span class="block truncate text-xs">{{ output.label }}</span>
         </div>
       </div>
@@ -35,9 +35,10 @@
         id="trigger"
         type="target"
         :position="Position.Left"
-        class="!left-0 !-translate-x-1/2 !border-signal-value !bg-signal-value"
+        class="!left-0 !-translate-x-1/2"
+        :style="handleStyle({ kind: 'event' })"
       />
-      <Handle id="event" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2 !border-signal-value !bg-signal-value" />
+      <Handle id="event" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2" :style="handleStyle({ kind: 'event' })" />
       <span class="block truncate text-xs text-muted-color">{{ eventLabel }}</span>
     </div>
   </div>
@@ -48,6 +49,7 @@ import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -81,11 +83,15 @@ const nodeFrameClass = computed(() => [
 ]);
 
 function normalizeSpecs(items = []) {
-  return items.map((item, index) => ({
-    id: item.id || item.label || index,
-    label: item.label || item.entityType || item.id,
-    kind: item.kind || 'data'
-  }));
+  return items.map((item, index) => {
+    if (typeof item === 'string') return { id: `${item}-${index}`, label: item, kind: 'data' };
+    return {
+      ...item,
+      id: item.id || item.label || index,
+      label: item.label || item.entityType || item.id,
+      kind: item.kind || item.type?.base || 'data'
+    };
+  });
 }
 
 function socketHandleId(kind, item, index, items) {
@@ -95,32 +101,18 @@ function socketHandleId(kind, item, index, items) {
 
 function socketClass(item, side) {
   return [
-    'relative min-w-0 rounded-ui border px-2 py-0.5',
+    'relative min-w-0 border-b border-content-border py-0.5',
     side === 'left' ? 'pl-3' : 'pr-3 text-right',
-    socketTone(item).row
   ];
 }
 
 function handleClass(item, side) {
   return [
-    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
-    socketTone(item).handle
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];
 }
 
-function socketTone(item = {}) {
-  return ({
-    entity: { row: 'border-content-border bg-content', handle: '!border-signal-entity !bg-signal-entity' },
-    entity_list: { row: 'border-content-border bg-content', handle: '!border-signal-reference !bg-signal-reference' },
-    block: { row: 'border-content-border bg-content', handle: '!border-signal-structure !bg-signal-structure' },
-    data: { row: 'border-content-border bg-content', handle: '!border-signal-data !bg-signal-data' },
-    string: { row: 'border-content-border bg-content', handle: '!border-signal-data !bg-signal-data' },
-    number: { row: 'border-content-border bg-content', handle: '!border-signal-quantity !bg-signal-quantity' },
-    boolean: { row: 'border-content-border bg-content', handle: '!border-signal-decision !bg-signal-decision' },
-    status: { row: 'border-content-border bg-content', handle: '!border-signal-decision !bg-signal-decision' },
-    projection: { row: 'border-content-border bg-content', handle: '!border-signal-projection !bg-signal-projection' },
-    attachment: { row: 'border-content-border bg-content', handle: '!border-signal-external !bg-signal-external' },
-    task: { row: 'border-content-border bg-content', handle: '!border-signal-identity !bg-signal-identity' }
-  })[item.kind] || { row: 'border-content-border', handle: '!border-signal-data !bg-signal-data' };
+function handleStyle(item) {
+  return processSocketHandleStyle(item);
 }
 </script>

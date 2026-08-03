@@ -8,6 +8,7 @@ html {
 
 :root {
     --ck-page-background: var(--p-surface-100);
+    --ck-process-canvas-background: var(--p-surface-50);
     --ck-chrome-background: #fefefc;
     --ck-chrome-foreground: #0c0c0b;
     --ck-chrome-muted: #6d6d66;
@@ -179,6 +180,7 @@ html {
 
 .dark-mode {
     --ck-page-background: var(--p-surface-950);
+    --ck-process-canvas-background: var(--p-surface-950);
     --ck-chrome-background: #0c0c0b;
     --ck-chrome-foreground: #fffdf8;
     --ck-chrome-muted: #bdbdb5;
@@ -289,6 +291,15 @@ body {
     border-top-color: var(--p-primary-color) !important;
     border-top-style: solid;
     border-top-width: var(--ck-chrome-signal-height) !important;
+}
+
+.process-designer-canvas .vue-flow__connection-path {
+    stroke: var(--p-primary-color);
+    stroke-width: 2px;
+}
+
+.process-designer-canvas .vue-flow__edge-path {
+    stroke-linecap: square;
 }
 
 .bg-chrome :where(.p-button-text, .p-button-secondary) {

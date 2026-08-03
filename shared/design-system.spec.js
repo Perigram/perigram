@@ -263,6 +263,8 @@ describe('Design system manifest', () => {
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
     expect(cssVariableTokens['--ck-surface-100']).toBe(designTokens.palette.surface[100]);
     expect(cssVariableTokens['--ck-chrome-background']).toBe('#fefefc');
+    expect(cssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-50)');
+    expect(tailwindThemeExtension.colors['process-canvas']).toBe('var(--ck-process-canvas-background)');
     expect(designTokens.shadow.card).toBe('none');
   });
 
@@ -282,6 +284,7 @@ describe('Design system manifest', () => {
     expect(runtimeCss).toContain('.chrome-signal-rule');
     expect(runtimeCss).toContain('border-top-width: var(--ck-chrome-signal-height)');
     expect(runtimeCss).toContain('--ck-chrome-background: #fefefc;');
+    expect(runtimeCss).toContain('--ck-process-canvas-background: var(--p-surface-50);');
     expect(runtimeCss).toContain('--ck-shadow-card: none;');
     expect(runtimeCss).toContain('background: var(--ck-inline-ref-bg, var(--ck-subtle-background));');
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');

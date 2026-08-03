@@ -960,6 +960,7 @@
         "--ck-primary-900": "#5c1c00",
         "--ck-primary-950": "#321000",
         "--ck-primary-ink": "#a93300",
+        "--ck-process-canvas-background": "var(--p-surface-50)",
         "--ck-radius-full": "9999px",
         "--ck-radius-panel": "6px",
         "--ck-radius-ui": "3px",
@@ -1020,6 +1021,7 @@
           "primaryContrast": "var(--p-primary-contrast-color)",
           "primaryEmphasis": "var(--p-primary-emphasis-color)",
           "primaryInk": "var(--ck-primary-ink)",
+          "processCanvas": "var(--ck-process-canvas-background)",
           "raised": "var(--ck-surface-raised)",
           "selection": "var(--ck-selection-background)",
           "subtle": "var(--ck-subtle-background)",
@@ -1167,6 +1169,7 @@
             "emphasis": "var(--p-primary-emphasis-color)",
             "ink": "var(--ck-primary-ink)"
           },
+          "process-canvas": "var(--ck-process-canvas-background)",
           "signal": {
             "data": "var(--ck-signal-data)",
             "decision": "var(--ck-signal-decision)",

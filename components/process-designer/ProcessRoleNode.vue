@@ -1,8 +1,8 @@
 <template>
-  <div class="relative min-w-60 rounded-ui border border-signal-data bg-content px-3 py-3 shadow-card">
-    <Handle id="assignment" type="target" :position="Position.Left" class="!border-signal-data !bg-signal-data" />
-    <Handle id="access" type="source" :position="Position.Right" class="!border-signal-data !bg-signal-data" />
-    <Handle id="service" type="source" :position="Position.Bottom" class="!border-signal-decision !bg-signal-decision" />
+  <div class="relative min-w-60 rounded-ui border border-content-border bg-content px-3 py-3 shadow-card">
+    <Handle id="assignment" type="target" :position="Position.Left" :style="processSocketHandleStyle({ type: { base: 'entityRef' } })" />
+    <Handle id="access" type="source" :position="Position.Right" :style="processSocketHandleStyle({ type: { base: 'entityRef' } })" />
+    <Handle id="service" type="source" :position="Position.Bottom" :style="processSocketHandleStyle({ kind: 'event' })" />
 
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
@@ -27,6 +27,7 @@
 import { Handle, Position } from '@vue-flow/core';
 import Badge from 'primevue/badge';
 import Tag from 'primevue/tag';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 defineProps({ data: { type: Object, default: () => ({}) } });
 </script>

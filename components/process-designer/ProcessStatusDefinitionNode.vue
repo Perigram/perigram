@@ -29,7 +29,7 @@
         type="source"
         :position="Position.Right"
         class="!right-0 !top-1/2 !h-2.5 !w-2.5 !translate-x-1/2 !-translate-y-1/2 !rounded-full"
-        :style="{ backgroundColor: toneColor, borderColor: toneColor }"
+        :style="statusHandleStyle"
         :aria-label="$t('processDesigner.socketLabels.status')"
       />
       <span class="block truncate text-[11px] leading-5">{{ record.label || record.statusId || $t('processDesigner.socketLabels.status') }}</span>
@@ -41,6 +41,7 @@
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import InputText from 'primevue/inputtext';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -56,6 +57,7 @@ const toneColor = computed(() => ({
   danger: 'var(--ck-status-danger)',
   secondary: 'var(--ck-status-neutral)'
 })[record.value.severity || record.value.color] || 'var(--ck-status-info)');
+const statusHandleStyle = computed(() => processSocketHandleStyle({ type: { base: 'status' } }));
 const nodeFrameClass = computed(() => [
   'relative w-56 rounded-ui border bg-content p-2 pt-2.5 shadow-card transition-colors',
   props.selected ? 'border-primary' : 'border-content-border'

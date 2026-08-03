@@ -2,7 +2,7 @@
   <StandardPage>
     <div
       ref="canvasFrame"
-      class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-subtle"
+      class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-process-canvas"
       @mousedown.capture="handleDesignerPointerDown"
       @focusin="handleDesignerFocus"
       @wheel.capture="handleDesignerWheel"
@@ -10,7 +10,7 @@
       <VueFlow
         v-model:nodes="nodes"
         v-model:edges="edges"
-        class="absolute inset-0 h-full w-full"
+        class="process-designer-canvas absolute inset-0 h-full w-full"
         :min-zoom="0.1"
         :max-zoom="4"
         :delete-key-code="null"
@@ -86,11 +86,11 @@
         </Message>
       </div>
 
-      <div v-if="!nodes.length" class="absolute inset-x-4 top-24 z-10 flex justify-center lg:left-[20rem] lg:right-[28rem]">
+      <div v-if="!nodes.length" class="absolute inset-x-4 top-36 z-10 flex justify-center sm:top-24 lg:left-[20rem] lg:right-[28rem]">
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <div v-if="paletteOpen" class="absolute left-3 top-16 z-20 flex max-h-[calc(100%-5rem)] w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 overflow-y-auto rounded-ui border border-content-border bg-content/95 p-3 shadow-card backdrop-blur lg:top-3">
+      <div v-if="paletteOpen" class="absolute left-3 top-28 z-20 flex max-h-[calc(100%-8rem)] w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 overflow-y-auto rounded-ui border border-content-border bg-content p-3 shadow-card sm:top-16 sm:max-h-[calc(100%-5rem)]">
         <div class="flex items-center gap-1">
           <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
         </div>
@@ -113,7 +113,8 @@
         </div>
       </div>
 
-      <div class="absolute left-3 right-3 top-3 z-30 flex min-w-0 items-center justify-center gap-1 overflow-x-auto rounded-ui border border-content-border bg-content p-1 shadow-card lg:left-1/2 lg:right-auto lg:max-w-[calc(100%-8rem)] lg:-translate-x-1/2">
+      <div class="absolute inset-x-3 top-3 z-30 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-ui border border-content-border bg-content px-2 py-1 shadow-card">
+        <div class="flex min-w-0 flex-1 items-center gap-2">
           <Button icon="pi pi-bars" text size="small" :aria-label="$t('processDesigner.palette')" :aria-pressed="paletteOpen" @click="paletteOpen = !paletteOpen" />
           <Select
             v-if="processOptions.length"
@@ -122,20 +123,22 @@
             option-label="label"
             option-value="value"
             entity-type="processDefinition"
-            class="w-56 max-w-full"
+            class="min-w-0 flex-1 sm:w-64 sm:flex-none"
             size="small"
             @change="selectProcessDefinition"
           />
           <Tag :value="draftStateLabel" :severity="isDirty ? 'warn' : 'secondary'" size="small" />
+        </div>
+        <div class="flex shrink-0 items-center gap-1 border-l border-content-border pl-2">
           <Button icon="pi pi-file-plus" :label="$t('processDesigner.newDraft')" size="small" severity="secondary" outlined @click="createDraft" />
           <Button icon="pi pi-save" :label="$t('common.save')" size="small" :loading="savingDraft" :disabled="!isDirty && !isActiveProcess" @click="saveDraft" />
           <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :loading="validatingDraft" @click="validateDraft" />
-          <Button icon="pi pi-users" :aria-label="$t('organization.teamManagement')" size="small" severity="secondary" outlined @click="navigateTo('/organization/users')" />
-          <Button icon="pi pi-check" :aria-label="$t('processDesigner.apply')" size="small" :loading="applyingProcess" :disabled="!draft?._id" @click="applyProcess" />
+          <Button icon="pi pi-check" :label="$t('processDesigner.apply')" size="small" :loading="applyingProcess" :disabled="!draft?._id" @click="applyProcess" />
           <Button icon="pi pi-sliders-h" text size="small" :aria-label="$t('processDesigner.inspector')" :aria-pressed="inspectorOpen" @click="inspectorOpen = !inspectorOpen" />
+        </div>
       </div>
 
-      <aside v-if="inspectorOpen" class="absolute bottom-3 right-3 top-16 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card lg:top-3 lg:max-w-[calc(100%-19rem)]">
+      <aside v-if="inspectorOpen" class="absolute bottom-3 right-3 top-28 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card sm:top-16 sm:max-w-[calc(100%-1.5rem)] lg:max-w-[calc(100%-19rem)]">
         <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
@@ -454,23 +457,40 @@
                 </template>
 
                 <template v-else-if="selectedNode.type === 'processNode'">
-                  <div class="rounded-ui border border-content-border bg-content p-2">
-                    <div class="flex flex-wrap items-center gap-2 text-xs">
-                      <Tag
-                        v-for="input in selectedProcessNode.inputs || []"
-                        :key="`input-${input.id}`"
-                        :value="`${input.label}: ${processPortTypeLabel(input.type)}`"
-                        severity="secondary"
-                        size="small"
-                      />
-                      <i class="pi pi-arrow-right text-muted-color"></i>
-                      <Tag
-                        v-for="output in selectedProcessNode.outputs || []"
-                        :key="`output-${output.id}`"
-                        :value="`${output.label}: ${processPortTypeLabel(output.type)}`"
-                        severity="info"
-                        size="small"
-                      />
+                  <div class="overflow-hidden rounded-ui border border-content-border">
+                    <div class="grid grid-cols-1 divide-y divide-content-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                      <section class="min-w-0">
+                        <div class="border-b border-content-border bg-subtle px-2 py-1 text-[10px] font-semibold uppercase tracking-label text-muted-color">
+                          {{ $t('processDesigner.inputs') }}
+                        </div>
+                        <div v-if="selectedProcessNode.inputs?.length" class="min-w-0">
+                          <div
+                            v-for="input in selectedProcessNode.inputs"
+                            :key="`input-${input.id}`"
+                            class="flex min-w-0 items-baseline justify-between gap-2 border-b border-content-border px-2 py-1.5 last:border-b-0"
+                          >
+                            <span class="min-w-0 truncate text-xs">{{ input.label }}</span>
+                            <span class="shrink-0 font-mono text-[10px] text-muted-color">{{ processPortTypeLabel(input.type) }}</span>
+                          </div>
+                        </div>
+                        <span v-else class="block px-2 py-1.5 text-xs text-muted-color">{{ $t('common.notAvailable') }}</span>
+                      </section>
+                      <section class="min-w-0">
+                        <div class="border-b border-content-border bg-subtle px-2 py-1 text-[10px] font-semibold uppercase tracking-label text-muted-color">
+                          {{ $t('processDesigner.outputs') }}
+                        </div>
+                        <div v-if="selectedProcessNode.outputs?.length" class="min-w-0">
+                          <div
+                            v-for="output in selectedProcessNode.outputs"
+                            :key="`output-${output.id}`"
+                            class="flex min-w-0 items-baseline justify-between gap-2 border-b border-content-border px-2 py-1.5 last:border-b-0"
+                          >
+                            <span class="min-w-0 truncate text-xs">{{ output.label }}</span>
+                            <span class="shrink-0 font-mono text-[10px] text-muted-color">{{ processPortTypeLabel(output.type) }}</span>
+                          </div>
+                        </div>
+                        <span v-else class="block px-2 py-1.5 text-xs text-muted-color">{{ $t('common.notAvailable') }}</span>
+                      </section>
                     </div>
                   </div>
                   <div v-if="selectedProcessNode.kind === 'effect.runCommand'" class="flex flex-col gap-1">
@@ -899,6 +919,7 @@ import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPre
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
+import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 
 const { t, te } = useI18n();
 const toast = useToast();
@@ -1739,12 +1760,34 @@ function decorateEdges(items = []) {
 function decorateEdge(edge = {}) {
   const selected = edge.selected === true || edge.id === selectedEdgeId.value;
   const type = edge.type === 'smoothstep' || edge.type === 'step' ? 'default' : (edge.type || 'default');
+  const sourcePort = sourcePortForEdge(edge);
   return {
     ...edge,
     type,
     animated: selected,
-    style: selected ? { stroke: 'var(--p-primary-color)', strokeWidth: 3 } : undefined
+    style: {
+      stroke: selected ? 'var(--p-primary-color)' : processSocketColor(sourcePort),
+      strokeWidth: selected ? 3 : 1.5
+    }
   };
+}
+
+function sourcePortForEdge(edge = {}) {
+  const source = nodes.value.find(node => node.id === edge.source);
+  if (!source) return {};
+  if (source.type === 'statusDefinition') return { type: processType('status') };
+  if (source.type === 'processNode') {
+    const record = draft.value?.data?.processNodes?.[source.data?.refId];
+    if (!record) return {};
+    return portForHandle(
+      resolveCatalogNodePorts(record, catalogContext(record)).outputs,
+      edge.sourceHandle,
+      'output'
+    ) || {};
+  }
+  return portForHandle(source.data?.outputSpecs || [], edge.sourceHandle, 'output')
+    || source.data?.outputSpecs?.[0]
+    || {};
 }
 
 function activeViewportCenter() {
