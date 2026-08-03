@@ -483,14 +483,14 @@ field-access policy.
 
 `assets/tokens/index.js` is the source for app-level visual tokens. Tailwind aliases, PrimeVue component overrides, and global `--ck-*` CSS variables must stay aligned with it.
 
-Current app chrome uses `bg-page`, `bg-chrome`, `bg-subtle`, `rounded-ui`, `rounded-panel`, `shadow-card`, `shadow-card-hover`, and `shadow-overlay`. New shared wrappers should consume these aliases instead of local shadows, arbitrary backgrounds, or one-off radii.
+Current app chrome uses `bg-page`, `bg-chrome`, `bg-subtle`, `rounded-ui`, `rounded-panel`, `shadow-card`, `shadow-card-hover`, and `shadow-overlay`. UI copy uses the token-backed sans stack; use `font-mono` only for technical values. New shared wrappers should consume these aliases instead of local shadows, arbitrary backgrounds, or one-off radii.
 
 For shell/layout chrome that must update reliably during Nuxt dev HMR, direct CSS-variable utilities such as `bg-[var(--ck-page-background)]` and `[box-shadow:var(--ck-shadow-card)]` are acceptable. This avoids depending on a Tailwind config restart for newly added aliases.
 Nested active app surfaces must use semantic aliases such as `bg-content` or
 `bg-subtle`, not raw palette utilities like `bg-surface-50`, so dark mode uses
 the app token overrides consistently.
 
-Use token-backed classes such as `max-w-app`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, or transition durations. Legacy global grid helpers are not used in active components; detail surfaces spell out their responsive grid tracks locally when a shared primitive is not a fit.
+Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Legacy global grid helpers are not used in active components; detail surfaces spell out their responsive grid tracks locally when a shared primitive is not a fit.
 
 ## UI Inventory Policy
 

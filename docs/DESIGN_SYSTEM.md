@@ -16,23 +16,40 @@ CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The des
 
 ## Token Policy
 
-Use PrimeVue semantic variables for color and component state. Use CutKit `--ck-*` tokens for app layout, radius, and motion values that PrimeVue does not own.
+Use PrimeVue semantic variables for shared component state. Use CutKit `--ck-*`
+tokens for the app surface stack, typography, geometry, elevation, motion, and
+domain signal roles that PrimeVue does not own.
 
-The active visual language is a precision operational UI: graphite/slate surfaces,
-cyan primary actions, 6px control radii, 12px container radii, clear tonal
-borders, restrained elevation, and visible focus rings. Primary cyan signals
-interactive state and selection rather than decorative ambient color. Light and
-dark schemes have separate form and table surface states, so a component must
-not force a light surface token into dark mode. Avoid adding decorative
-gradients, large ornamental backgrounds, or page-local theme colors; promote
-durable visual decisions to `assets/tokens/index.js`.
+The active visual language is a precision workbench: warm-neutral canvas and
+surfaces, cobalt primary actions, 4px control radii, 10px container radii,
+hairline structural borders, and elevation reserved for things that float. UI
+copy uses the platform sans stack; JetBrains Mono is reserved for identifiers,
+paths, source, and other technical values through `font-mono`. Cobalt marks
+intent, selection, and keyboard focus rather than ambient decoration. Light and
+dark schemes have distinct form and table surfaces, so a component must not
+force a light token into dark mode. Avoid gradients, ornamental backgrounds,
+and page-local theme colors; promote durable visual decisions to
+`assets/tokens/index.js`.
+
+`status-*` aliases are for application feedback (`success`, `warning`, and
+`danger`). `signal-*` aliases are for process-canvas roles such as `entity`,
+`data`, `structure`, `decision`, and `effect`; the name describes the meaning,
+not a fixed hue. Do not use raw Tailwind palette utilities for app chrome or
+process handles. Drawing and user data colors (for example DXF layers and pen
+strokes) remain literal data and are intentionally exempt.
 
 Do not add page or panel headers, descriptions, helper bubbles, notes, tips, or
 empty-state prose unless the workflow would be ambiguous or blocked without
 them. Prefer compact controls, clear placement, icons, typed labels, and
 domain-specific data surfaces over explanatory text.
 
-The production app shell (`layouts/app.vue`), UI lab shell, and shared entity cards consume the same `--ck-*` CSS variables directly for page background, chrome background, and elevation. This makes visual changes verifiable through CSS variable updates even when Tailwind alias generation requires a dev-server restart.
+The production app shell (`layouts/app.vue`), UI lab shell, shared entity cards,
+and process canvas consume the same projections. `cssVariableTokens` is
+mirrored in `assets/css/main.css`; the design-system test checks that every
+declared runtime token exists and that no route-active component uses a raw
+Tailwind palette utility. The Tailwind primary scale includes `primary-50` to
+`primary-950`, so focus utilities such as `ring-primary-200` resolve through
+the active PrimeVue theme instead of falling back or disappearing.
 
 The global `html` root font size is 14px. This keeps rem-based PrimeVue and
 Tailwind controls compact enough for information-dense engineering workflows;

@@ -5,9 +5,10 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 ## Source Files
 
 - `index.js` exports token groups plus projections for PrimeVue and Tailwind.
-  Its active palette uses slate/graphite surfaces and cyan precision accents;
-  controls use the compact UI radius while containers use the larger panel
-  radius so dense operational screens retain hierarchy.
+  Its active palette uses warm-neutral workbench surfaces and cobalt intent
+  accents; UI copy uses the platform sans stack while technical values opt into
+  JetBrains Mono. Controls use a 4px UI radius while containers use a 10px
+  panel radius so dense operational screens retain hierarchy.
 - Runtime CSS variables are declared in `assets/css/main.css` using the same `--ck-*` names.
 - PrimeVue component token overrides are consumed by `assets/presets/re_l.js`.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`.
@@ -15,10 +16,15 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 ## Rules
 
 - Prefer PrimeVue semantic variables (`--p-*`) for colors.
-- Use `--ck-*` tokens for app layout, radius, and motion values not owned by PrimeVue.
+- Use `--ck-*` tokens for app layout, typography, surface roles, radius,
+  elevation, and motion values not owned by PrimeVue. `assets/css/main.css`
+  mirrors every runtime token exported by `cssVariableTokens`.
 - Maintain distinct light and dark component-state tokens where a shared
   primitive has a surface (especially forms, tables, menus, dialogs, and
   drawers). Do not use a fixed light surface token as a cross-theme override.
 - Component-specific dimensions such as support chat size, dialog widths, popover/menu minimum widths, preview height, table action column width, and form swatch size live here because they are reused UI decisions rather than page-local styling.
-- Do not introduce page-local hardcoded colors, radii, or transition durations unless the value is real data, such as a pen color or DXF layer color.
+- Use `status-*` aliases for feedback and `signal-*` aliases for semantic
+  process-canvas roles. Do not introduce page-local hardcoded colors, radii,
+  shadows, or transition durations unless the value is real data, such as a pen
+  color or DXF layer color.
 - Shared wrappers own visual chrome. Feature components should compose `EntityCard`, `StandardDialog`, `StandardPage`, `Panel`, and semantic layout classes.

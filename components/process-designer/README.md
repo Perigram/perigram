@@ -201,3 +201,8 @@ Legacy `ProcessActionNode`, `ProcessEntityNode`, `ProcessServiceNode`,
 `ProcessValueInputNode` remain only for reading pre-migration canvas records.
 The v3 migration replaces those graph nodes before editing or activation; new
 palette operations must use `ProcessNode.vue`.
+
+Canvas accents and Vue Flow handles use the global `signal-*` aliases, not raw
+Tailwind hues. The aliases identify roles such as entity, data, structure,
+decision, projection, and effect, so the process canvas stays legible when the
+application theme changes.
