@@ -1,4 +1,4 @@
-/* Technical values keep JetBrains Mono; interface copy uses the platform UI face. */
+/* JetBrains Mono is the deliberately compact interface face for CutKit. */
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/700.css';
 @import '@fontsource/jetbrains-mono/400-italic.css';
@@ -9,28 +9,32 @@
 
 body,
 html {
-  font-family: var(--ck-font-ui);
+  font-family: var(--ck-font-ui) !important;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* PrimeVue reads --font-family, but native controls need the same explicit face. */
+* {
+  font-family: var(--ck-font-ui);
+}
+
+/* PrimeVue and native controls receive the same explicit interface face. */
 .p-component,
 .p-inputtext,
 .p-button,
 .p-select,
 .p-dialog {
-  font-family: var(--ck-font-ui);
+  font-family: var(--ck-font-ui) !important;
 }
 
 input,
 button,
 select,
 textarea {
-  font-family: var(--ck-font-ui);
+  font-family: var(--ck-font-ui) !important;
 }
 
 :where(code, kbd, pre, samp, .font-mono) {
-  font-family: var(--ck-font-mono);
+  font-family: var(--ck-font-mono) !important;
 }

@@ -1,4 +1,45 @@
+/**
+ * High-visibility signal colour for actions. Semantic status colours remain
+ * separate so state is never confused with product emphasis.
+ */
+const signalOrangePrimary = {
+    50: '#fff3e8',
+    100: '#ffe3cc',
+    200: '#ffc79a',
+    300: '#ffa666',
+    400: '#f57c38',
+    500: '#e85d16',
+    600: '#c9450b',
+    700: '#9f360a',
+    800: '#7e2d0c',
+    900: '#662710',
+    950: '#371207'
+};
+
+/**
+ * Notebook-like surfaces avoid the cold blue cast of dashboard defaults while
+ * keeping dense engineering content quiet and legible.
+ */
+const fieldbookSurface = {
+    0: '#fffefb',
+    50: '#f5f1e8',
+    100: '#ece5d8',
+    200: '#ded4c2',
+    300: '#cbbeaa',
+    400: '#a99680',
+    500: '#7b6e5e',
+    600: '#5d5247',
+    700: '#433a32',
+    800: '#2b2621',
+    900: '#1e1a17',
+    950: '#13110f'
+};
+
 export const designTokens = {
+    palette: {
+        primary: signalOrangePrimary,
+        surface: fieldbookSurface
+    },
     color: {
         primary: 'var(--p-primary-color)',
         primaryContrast: 'var(--p-primary-contrast-color)',
@@ -37,22 +78,22 @@ export const designTokens = {
         tableActionColumnWidth: '3rem'
     },
     radius: {
-        ui: '0.25rem',
-        panel: '0.625rem',
+        ui: '0.375rem',
+        panel: '0.75rem',
         full: '9999px'
     },
     shadow: {
-        card: '0 1px 1px rgb(27 31 35 / 0.03), 0 8px 24px rgb(27 31 35 / 0.045)',
-        cardHover: '0 0 0 1px rgb(71 101 213 / 0.30), 0 14px 32px rgb(27 31 35 / 0.08)',
-        overlay: '0 1px 2px rgb(27 31 35 / 0.08), 0 24px 56px rgb(27 31 35 / 0.16)'
+        card: '0 1px 0 rgb(56 45 30 / 0.18), 0 8px 20px rgb(56 45 30 / 0.04)',
+        cardHover: '0 0 0 1px rgb(232 93 22 / 0.42), 0 14px 28px rgb(56 45 30 / 0.10)',
+        overlay: '0 2px 4px rgb(56 45 30 / 0.10), 0 24px 56px rgb(56 45 30 / 0.18)'
     },
     motion: {
         fast: '100ms',
         normal: '160ms'
     },
     typography: {
-        ui: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        ui: "'JetBrains Mono', monospace",
+        mono: "'JetBrains Mono', monospace"
     },
     status: {
         success: 'var(--ck-status-success)',
@@ -77,7 +118,7 @@ export const designTokens = {
 
 export const cssVariableTokens = {
     '--ck-page-background': 'var(--p-surface-50)',
-    '--ck-chrome-background': 'color-mix(in srgb, var(--p-content-background) 88%, transparent)',
+    '--ck-chrome-background': 'var(--p-surface-100)',
     '--ck-subtle-background': 'var(--p-surface-100)',
     '--ck-surface-raised': 'var(--p-content-background)',
     '--ck-border-subtle': 'var(--p-content-border-color)',
@@ -126,7 +167,9 @@ export const cssVariableTokens = {
     '--ck-shadow-card-hover': designTokens.shadow.cardHover,
     '--ck-shadow-overlay': designTokens.shadow.overlay,
     '--ck-motion-fast': designTokens.motion.fast,
-    '--ck-motion-normal': designTokens.motion.normal
+    '--ck-motion-normal': designTokens.motion.normal,
+    ...Object.fromEntries(Object.entries(signalOrangePrimary).map(([step, value]) => [`--ck-primary-${step}`, value])),
+    ...Object.fromEntries(Object.entries(fieldbookSurface).map(([step, value]) => [`--ck-surface-${step}`, value]))
 };
 
 export const tailwindThemeExtension = {
@@ -222,38 +265,9 @@ export const supportAvatarPalette = [
     'var(--p-pink-500)'
 ];
 
-const cobaltPrimary = {
-    50: '#eef3ff',
-    100: '#dfe8ff',
-    200: '#c6d5ff',
-    300: '#a6bdff',
-    400: '#7e9dff',
-    500: '#5d7ff3',
-    600: '#4765d5',
-    700: '#3850ad',
-    800: '#2e438e',
-    900: '#263872',
-    950: '#17234a'
-};
-
-const workbenchSurface = {
-    0: '#ffffff',
-    50: '#f7f7f5',
-    100: '#efefeb',
-    200: '#e4e3dc',
-    300: '#d3d1c8',
-    400: '#aaa79d',
-    500: '#7e7a71',
-    600: '#605e57',
-    700: '#47453f',
-    800: '#302f2b',
-    900: '#22211f',
-    950: '#171715'
-};
-
 export const primeSemanticTokens = {
     transitionDuration: 'var(--ck-motion-normal)',
-    primary: cobaltPrimary,
+    primary: signalOrangePrimary,
     focusRing: {
         width: '2px',
         style: 'solid',
@@ -292,7 +306,7 @@ export const primeSemanticTokens = {
     },
     colorScheme: {
         light: {
-            surface: workbenchSurface,
+            surface: fieldbookSurface,
             primary: {
                 color: '{primary.700}',
                 contrastColor: '#ffffff',
@@ -334,7 +348,7 @@ export const primeSemanticTokens = {
             }
         },
         dark: {
-            surface: workbenchSurface,
+            surface: fieldbookSurface,
             primary: {
                 color: '{primary.400}',
                 contrastColor: '{surface.950}',

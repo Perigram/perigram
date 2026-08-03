@@ -920,7 +920,7 @@
         "--ck-border-subtle": "var(--p-content-border-color)",
         "--ck-bounded-grid-item-max-width": "32rem",
         "--ck-bounded-grid-item-min-width": "24rem",
-        "--ck-chrome-background": "color-mix(in srgb, var(--p-content-background) 88%, transparent)",
+        "--ck-chrome-background": "var(--p-surface-100)",
         "--ck-compact-preview-width": "10rem",
         "--ck-details-gap": "1.5rem",
         "--ck-dialog-lg": "56rem",
@@ -929,21 +929,32 @@
         "--ck-dialog-xl": "72rem",
         "--ck-entity-popover-min-width": "18.75rem",
         "--ck-floating-menu-min-width": "12.5rem",
-        "--ck-font-mono": "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-        "--ck-font-ui": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "--ck-font-mono": "'JetBrains Mono', monospace",
+        "--ck-font-ui": "'JetBrains Mono', monospace",
         "--ck-grid-gap": "1.25rem",
         "--ck-motion-fast": "100ms",
         "--ck-motion-normal": "160ms",
         "--ck-page-background": "var(--p-surface-50)",
         "--ck-page-max-width": "1600px",
         "--ck-preview-dialog-height": "95vh",
+        "--ck-primary-100": "#ffe3cc",
+        "--ck-primary-200": "#ffc79a",
+        "--ck-primary-300": "#ffa666",
+        "--ck-primary-400": "#f57c38",
+        "--ck-primary-50": "#fff3e8",
+        "--ck-primary-500": "#e85d16",
+        "--ck-primary-600": "#c9450b",
+        "--ck-primary-700": "#9f360a",
+        "--ck-primary-800": "#7e2d0c",
+        "--ck-primary-900": "#662710",
+        "--ck-primary-950": "#371207",
         "--ck-radius-full": "9999px",
-        "--ck-radius-panel": "0.625rem",
-        "--ck-radius-ui": "0.25rem",
+        "--ck-radius-panel": "0.75rem",
+        "--ck-radius-ui": "0.375rem",
         "--ck-selection-background": "color-mix(in srgb, var(--p-primary-color) 20%, transparent)",
-        "--ck-shadow-card": "0 1px 1px rgb(27 31 35 / 0.03), 0 8px 24px rgb(27 31 35 / 0.045)",
-        "--ck-shadow-card-hover": "0 0 0 1px rgb(71 101 213 / 0.30), 0 14px 32px rgb(27 31 35 / 0.08)",
-        "--ck-shadow-overlay": "0 1px 2px rgb(27 31 35 / 0.08), 0 24px 56px rgb(27 31 35 / 0.16)",
+        "--ck-shadow-card": "0 1px 0 rgb(56 45 30 / 0.18), 0 8px 20px rgb(56 45 30 / 0.04)",
+        "--ck-shadow-card-hover": "0 0 0 1px rgb(232 93 22 / 0.42), 0 14px 28px rgb(56 45 30 / 0.10)",
+        "--ck-shadow-overlay": "0 2px 4px rgb(56 45 30 / 0.10), 0 24px 56px rgb(56 45 30 / 0.18)",
         "--ck-signal-data": "var(--p-emerald-500)",
         "--ck-signal-decision": "var(--p-amber-500)",
         "--ck-signal-effect": "var(--p-rose-500)",
@@ -965,6 +976,18 @@
         "--ck-support-chat-height": "31.25rem",
         "--ck-support-chat-message-max": "85%",
         "--ck-support-chat-width": "25rem",
+        "--ck-surface-0": "#fffefb",
+        "--ck-surface-100": "#ece5d8",
+        "--ck-surface-200": "#ded4c2",
+        "--ck-surface-300": "#cbbeaa",
+        "--ck-surface-400": "#a99680",
+        "--ck-surface-50": "#f5f1e8",
+        "--ck-surface-500": "#7b6e5e",
+        "--ck-surface-600": "#5d5247",
+        "--ck-surface-700": "#433a32",
+        "--ck-surface-800": "#2b2621",
+        "--ck-surface-900": "#1e1a17",
+        "--ck-surface-950": "#13110f",
         "--ck-surface-raised": "var(--p-content-background)",
         "--ck-swatch-size": "2.625rem",
         "--ck-table-action-column-width": "3rem"
@@ -1011,15 +1034,44 @@
           "fast": "100ms",
           "normal": "160ms"
         },
+        "palette": {
+          "primary": {
+            "50": "#fff3e8",
+            "100": "#ffe3cc",
+            "200": "#ffc79a",
+            "300": "#ffa666",
+            "400": "#f57c38",
+            "500": "#e85d16",
+            "600": "#c9450b",
+            "700": "#9f360a",
+            "800": "#7e2d0c",
+            "900": "#662710",
+            "950": "#371207"
+          },
+          "surface": {
+            "0": "#fffefb",
+            "50": "#f5f1e8",
+            "100": "#ece5d8",
+            "200": "#ded4c2",
+            "300": "#cbbeaa",
+            "400": "#a99680",
+            "500": "#7b6e5e",
+            "600": "#5d5247",
+            "700": "#433a32",
+            "800": "#2b2621",
+            "900": "#1e1a17",
+            "950": "#13110f"
+          }
+        },
         "radius": {
           "full": "9999px",
-          "panel": "0.625rem",
-          "ui": "0.25rem"
+          "panel": "0.75rem",
+          "ui": "0.375rem"
         },
         "shadow": {
-          "card": "0 1px 1px rgb(27 31 35 / 0.03), 0 8px 24px rgb(27 31 35 / 0.045)",
-          "cardHover": "0 0 0 1px rgb(71 101 213 / 0.30), 0 14px 32px rgb(27 31 35 / 0.08)",
-          "overlay": "0 1px 2px rgb(27 31 35 / 0.08), 0 24px 56px rgb(27 31 35 / 0.16)"
+          "card": "0 1px 0 rgb(56 45 30 / 0.18), 0 8px 20px rgb(56 45 30 / 0.04)",
+          "cardHover": "0 0 0 1px rgb(232 93 22 / 0.42), 0 14px 28px rgb(56 45 30 / 0.10)",
+          "overlay": "0 2px 4px rgb(56 45 30 / 0.10), 0 24px 56px rgb(56 45 30 / 0.18)"
         },
         "signal": {
           "data": "var(--ck-signal-data)",
@@ -1041,8 +1093,8 @@
           "warning": "var(--ck-status-warning)"
         },
         "typography": {
-          "mono": "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-          "ui": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+          "mono": "'JetBrains Mono', monospace",
+          "ui": "'JetBrains Mono', monospace"
         }
       },
       "tailwindThemeExtension": {
