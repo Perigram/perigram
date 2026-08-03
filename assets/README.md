@@ -6,10 +6,10 @@ This directory contains global frontend assets used by Nuxt.
 
 - `tokens/index.js` is the app-level visual-token source, including the
   hard-neutral near-white light chrome and dark ink surface scale,
-  signal-orange primary scale, JetBrains Mono interface typography, 3px/6px
-  control/container geometry, flat structural surfaces with overlay-only
-  elevation, semantic status/entity/process-signal roles, and PrimeVue state
-  overrides.
+  signal-orange primary scale, dedicated process-canvas surface, JetBrains Mono
+  interface typography, 3px/6px control/container geometry, flat structural
+  surfaces with overlay-only elevation, semantic status/entity/process-signal
+  roles, and PrimeVue state overrides.
 - `presets/re_l.js` defines the PrimeVue preset by extending Aura and consuming token projections.
 - `css/main.css` declares runtime `--ck-*` variables, bridges the active
   PrimeVue `--p-*` surface/action variables for hot reload, and provides layout
@@ -22,7 +22,8 @@ This directory contains global frontend assets used by Nuxt.
 - Put reusable visual values in `tokens/index.js`; do not duplicate page max-widths, fonts, radii, shadows, or motion values in Vue files.
 - Colors should come from PrimeVue semantic `--p-*` variables unless the value represents user/data content.
 - Keep the visual hierarchy operational: light mode uses near-white chrome and
-  dark mode uses the ink rail, while signal orange is reserved for interactive
+  dark mode uses the ink rail, while `bg-process-canvas` isolates graph work
+  from surrounding page chrome. Signal orange is reserved for interactive
   state, selection, and intentional emphasis. Structural cards and panels are
   border-defined rather than elevated; reserve shadow for overlays. Use
   `status-*` for feedback, `entity-*` for shared entity-reference families, and

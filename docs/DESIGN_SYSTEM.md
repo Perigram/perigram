@@ -38,7 +38,10 @@ promote durable visual decisions to `assets/tokens/index.js`.
 by shared entity references. `signal-*` aliases are for process-canvas roles
 such as `entity`, `data`, `structure`, `decision`, and `effect`; the name
 describes the meaning, not a fixed hue. Do not use raw Tailwind palette
-utilities for app chrome, entity-reference tones, or process handles. Drawing
+utilities for app chrome, entity-reference tones, or process handles. The
+process canvas uses its own surface token; a source socket and its wire consume
+the same semantic signal token, while node stripes retain their separate
+operation-concern role. Drawing
 and user data colors (for example DXF layers and pen strokes) remain literal
 data and are intentionally exempt.
 

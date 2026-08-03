@@ -339,5 +339,9 @@
    - Selected canvas nodes use a single primary border across current and
      legacy read-only node views; an outer selection ring does not create a
      duplicate outline.
+   - Socket tones are resolved by one shared mapping across current and legacy
+     node forms, and source wires use that same semantic token. Canvas rails
+     are opaque and flat; selected-node fallbacks and inspector port contracts
+     are structured rather than chip clouds.
    - The generated framework manifest is synchronized by
      =npm run framework:write-manifest= and validated by the framework suite.

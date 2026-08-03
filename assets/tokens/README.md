@@ -6,7 +6,8 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 
 - `index.js` exports token groups plus projections for PrimeVue and Tailwind.
   Its active palette uses near-white light chrome, dark ink chrome, and
-  signal-orange intent accents; JetBrains Mono is the compact application face.
+  signal-orange intent accents; `--ck-process-canvas-background` provides a
+  dedicated graph-work surface; JetBrains Mono is the compact application face.
   Controls use a 3px UI radius while containers use a 6px panel radius,
   keeping dense operational screens precise instead of soft.
 - Runtime CSS variables are declared in `assets/css/main.css` using the same
@@ -27,8 +28,9 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 - Component-specific dimensions such as support chat size, dialog widths, popover/menu minimum widths, preview height, table action column width, and form swatch size live here because they are reused UI decisions rather than page-local styling.
 - Use `status-*` aliases for feedback, `entity-*` aliases for shared
   entity-reference families, and `signal-*` aliases for semantic process-canvas
-  roles. Do not introduce page-local hardcoded colors, radii, shadows, or
-  transition durations unless the value is real data, such as a pen color or
+  roles. Use `bg-process-canvas` for graph work rather than borrowing a page or
+  panel surface. Do not introduce page-local hardcoded colors, radii, shadows,
+  or transition durations unless the value is real data, such as a pen color or
   DXF layer color.
 - Cards and panels are structural, non-elevated surfaces. Their hover feedback
   must be an in-place border or color state because shared roots clip media;

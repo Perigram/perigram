@@ -59,7 +59,9 @@ two-column grid; the full job description is a tooltip, not permanent panel
 prose.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
-moving the canvas.
+moving the canvas. Palette and inspector rails are opaque structural surfaces
+below a split command bar: process selection/state stays together, while draft
+lifecycle actions have their own action group.
 When older saved graphs still contain role/user layout nodes, the route filters
 those non-canvas nodes out and reconstructs entity/service/socket nodes from
 the process records so active definitions do not open to a blank canvas. Truly
@@ -146,12 +148,13 @@ Canvas nodes show explicit expected input and produced output socket labels
 instead of input/output counts: action and service node handles are labeled
 with typed entity/status contracts, socket node handles are labeled with the
 transfer input and projected output fields, and entity nodes render their field
-policy as the process data contract. Socket rows use theme surfaces while
-handles use stable contract colors for entity, block, data, status, event,
-projection, attachment, and task ports, and the canvas keeps only the contract
-label visible so path/required metadata does not duplicate the socket name. New
-palette nodes are placed at the center of the current viewport, and wires use
-curved Vue Flow edges rather than orthogonal step routing.
+policy as the process data contract. Socket rows are unboxed structural rails;
+the shared semantic mapping gives each source handle and its wire the same
+contract tone for entity, block, data, status, event, projection, attachment,
+and task ports. The canvas keeps only the contract label visible so
+path/required metadata does not duplicate the socket name. New palette nodes
+are placed at the center of the current viewport, and wires use curved Vue Flow
+edges rather than orthogonal step routing.
 Open input sockets do not display error badges: they show where composition is
 possible. Required-input failures belong to explicit graph validation.
 The designer resolves the source and target handle contracts before saving a

@@ -6,6 +6,10 @@ Shared frontend utility modules used by Vue pages/components.
 
 - `design-system-contract.js`: Compatibility exports and validation for the CNC design-system contract now owned by `@cutkit/domain-cnc`. It does not import Vue components.
 - `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
+- `processDesignerSocketTone.js`: Pure process-port resolver used by every
+  designer node form and source edge. It maps structured port type/role data to
+  a semantic signal token so a socket and the wire it produces cannot drift
+  into separate color contracts.
 - `entity-display-contract.js`: Pure resolver for the UI constructor. It merges
   core domain field groups/surfaces, optional app extensions, and per-call
   overrides, then returns the effective surface contract and ordered field

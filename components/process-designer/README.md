@@ -90,12 +90,15 @@ Socket labels stay concise; the exact structured type, shape, qualifier, and
 description are available on hover and to assistive technology instead of
 being repeated beside every socket. Color communicates transported base type,
 handle shape communicates item/list/tree structure, and the thin node stripe
-communicates operation concern. An unconnected primitive input has a compact
-inline typed fallback editor on the node. It is therefore immediately runnable
-without creating a separate constant node, while a connected wire always wins.
-An open socket is a composition affordance, not an error. Missing required
-inputs are reported when validation is requested, not as warning badges on
-every new node.
+communicates operation concern. The shared `processDesignerSocketTone` mapping
+drives both a source handle and its wire, so a contract has one semantic tone
+throughout the canvas. Port labels sit on unboxed left/right rails rather than
+inside independently colored chips. When selected, an unconnected primitive
+input reveals a compact inline typed fallback editor; this keeps inactive nodes
+quiet while preserving immediate authoring without a separate constant node.
+A connected wire always wins. An open socket is a composition affordance, not
+an error. Missing required inputs are reported when validation is requested,
+not as warning badges on every new node.
 
 Fallback/default policy is omission-first. A connected value wins; otherwise
 an explicit authored `inputDefaults` value is used. If neither exists, an
@@ -175,6 +178,9 @@ inspector. Left drag box-selects, Shift extends selection, two-finger touchpad
 scroll pans, pinch zooms around the pointer, and Space plus left drag provides
 keyboard-assisted panning without a middle mouse button. A selected node uses
 one primary border only; it does not add an outer ring or second outline.
+The canvas uses its own token-backed work surface. Opaque palette and inspector
+rails sit below a command bar that separates process selection/state from draft
+lifecycle actions, so persistent controls do not compete with the graph.
 Delete/Backspace removes all selected nodes and edges together while preserving
 definition records that are still referenced. Home frames the graph,
 Numpad Decimal frames the selection, and the compact canvas toolbar exposes
