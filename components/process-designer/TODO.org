@@ -336,5 +336,8 @@
    - Draft actions are persistent, activation validates first, dirty/operation
      state is visible, and both side rails are independently collapsible with
      narrow-layout overlays.
+   - Selected canvas nodes use a single primary border across current and
+     legacy read-only node views; an outer selection ring does not create a
+     duplicate outline.
    - The generated framework manifest is synchronized by
      =npm run framework:write-manifest= and validated by the framework suite.

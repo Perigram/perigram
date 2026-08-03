@@ -173,7 +173,8 @@ every selected role into a write grant.
 Nodes are added at the visible viewport center between the palette and
 inspector. Left drag box-selects, Shift extends selection, two-finger touchpad
 scroll pans, pinch zooms around the pointer, and Space plus left drag provides
-keyboard-assisted panning without a middle mouse button.
+keyboard-assisted panning without a middle mouse button. A selected node uses
+one primary border only; it does not add an outer ring or second outline.
 Delete/Backspace removes all selected nodes and edges together while preserving
 definition records that are still referenced. Home frames the graph,
 Numpad Decimal frames the selection, and the compact canvas toolbar exposes
