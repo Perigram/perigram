@@ -285,7 +285,12 @@ body {
 .bg-chrome {
     color: var(--ck-chrome-foreground);
     border-color: var(--ck-chrome-border) !important;
-    box-shadow: inset 0 var(--ck-chrome-signal-height) 0 var(--p-primary-color);
+}
+
+.chrome-signal-rule {
+    border-top-color: var(--p-primary-color) !important;
+    border-top-style: solid;
+    border-top-width: var(--ck-chrome-signal-height) !important;
 }
 
 .bg-chrome :where(.p-button-text, .p-button-secondary) {

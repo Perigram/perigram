@@ -278,6 +278,8 @@ describe('Design system manifest', () => {
     expect(runtimeCss).toContain('--p-card-background:');
     expect(runtimeCss).toContain('--ck-primary-ink:');
     expect(runtimeCss).toContain('.bg-chrome');
+    expect(runtimeCss).toContain('.chrome-signal-rule');
+    expect(runtimeCss).toContain('border-top-width: var(--ck-chrome-signal-height)');
     expect(runtimeCss).toContain('background: var(--ck-inline-ref-bg, var(--ck-subtle-background));');
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
     expect(tailwindThemeExtension.colors.primary.ink).toBe('var(--ck-primary-ink)');
@@ -286,6 +288,11 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.colors.entity.command).toBe('var(--ck-entity-tone-command)');
     expect(tailwindThemeExtension.colors.signal.entity).toBe('var(--ck-signal-entity)');
     expect(tailwindThemeExtension.letterSpacing.label).toBe('var(--ck-label-tracking)');
+
+    const appLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
+    const uiLabLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/ui-lab-layout.vue'), 'utf8');
+    expect(appLayout).toContain('chrome-signal-rule');
+    expect(uiLabLayout).toContain('chrome-signal-rule');
   });
 
   it('keeps shared status and entity accents inside the token system', () => {

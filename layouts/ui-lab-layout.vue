@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col min-h-screen bg-page">
-        <header class="sticky top-0 z-50 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur">
+        <header class="chrome-signal-rule sticky top-0 z-50 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2">
                 <!-- Left: Logo -->
                 <div class="flex items-center h-full min-w-0 flex-1">
