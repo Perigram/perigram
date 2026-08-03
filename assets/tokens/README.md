@@ -5,11 +5,13 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 ## Source Files
 
 - `index.js` exports token groups plus projections for PrimeVue and Tailwind.
-  Its active palette uses warm-neutral workbench surfaces and cobalt intent
-  accents; UI copy uses the platform sans stack while technical values opt into
-  JetBrains Mono. Controls use a 4px UI radius while containers use a 10px
+  Its active palette uses field-notebook surfaces and signal-orange intent
+  accents; JetBrains Mono is the compact application face. Controls use a 6px
+  UI radius while containers use a 12px
   panel radius so dense operational screens retain hierarchy.
-- Runtime CSS variables are declared in `assets/css/main.css` using the same `--ck-*` names.
+- Runtime CSS variables are declared in `assets/css/main.css` using the same
+  `--ck-*` names. That file also bridges the active PrimeVue `--p-*` variables
+  so hot-reloaded pages and fresh preset initialization use the same theme.
 - PrimeVue component token overrides are consumed by `assets/presets/re_l.js`.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`.
 

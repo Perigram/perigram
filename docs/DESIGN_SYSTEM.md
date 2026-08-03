@@ -20,16 +20,16 @@ Use PrimeVue semantic variables for shared component state. Use CutKit `--ck-*`
 tokens for the app surface stack, typography, geometry, elevation, motion, and
 domain signal roles that PrimeVue does not own.
 
-The active visual language is a precision workbench: warm-neutral canvas and
-surfaces, cobalt primary actions, 4px control radii, 10px container radii,
-hairline structural borders, and elevation reserved for things that float. UI
-copy uses the platform sans stack; JetBrains Mono is reserved for identifiers,
-paths, source, and other technical values through `font-mono`. Cobalt marks
-intent, selection, and keyboard focus rather than ambient decoration. Light and
-dark schemes have distinct form and table surfaces, so a component must not
-force a light token into dark mode. Avoid gradients, ornamental backgrounds,
-and page-local theme colors; promote durable visual decisions to
-`assets/tokens/index.js`.
+The active visual language is a field notebook for engineering work: warm paper
+canvas and surfaces, a high-visibility signal-orange action color, 6px control
+radii, 12px container radii, crisp structural borders, and elevation reserved
+for things that float. JetBrains Mono is the global application face, keeping
+dense labels, values, controls, and technical content visually coherent. Signal
+orange marks intent, selection, and keyboard focus rather than ambient
+decoration. Light and dark schemes have distinct form and table surfaces, so a
+component must not force a light token into dark mode. Avoid gradients,
+ornamental backgrounds, and page-local theme colors; promote durable visual
+decisions to `assets/tokens/index.js`.
 
 `status-*` aliases are for application feedback (`success`, `warning`, and
 `danger`). `signal-*` aliases are for process-canvas roles such as `entity`,
@@ -45,11 +45,14 @@ domain-specific data surfaces over explanatory text.
 
 The production app shell (`layouts/app.vue`), UI lab shell, shared entity cards,
 and process canvas consume the same projections. `cssVariableTokens` is
-mirrored in `assets/css/main.css`; the design-system test checks that every
-declared runtime token exists and that no route-active component uses a raw
-Tailwind palette utility. The Tailwind primary scale includes `primary-50` to
-`primary-950`, so focus utilities such as `ring-primary-200` resolve through
-the active PrimeVue theme instead of falling back or disappearing.
+mirrored in `assets/css/main.css`, which also owns a narrow PrimeVue runtime
+bridge for the active `--p-*` surface, form, action, card, table, and overlay
+variables. This makes a hot-reloaded screen render the same palette as a fresh
+PrimeVue preset boot. The design-system test checks that every declared runtime
+token exists and that no route-active component uses a raw Tailwind palette
+utility. The Tailwind primary scale includes `primary-50` to `primary-950`, so
+focus utilities such as `ring-primary-200` resolve through the active PrimeVue
+theme instead of falling back or disappearing.
 
 The global `html` root font size is 14px. This keeps rem-based PrimeVue and
 Tailwind controls compact enough for information-dense engineering workflows;
