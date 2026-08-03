@@ -34,7 +34,7 @@
 
 /* Row hover */
 .tabulator-row:hover {
-    background-color: var(--p-surface-50);
+    background-color: var(--ck-subtle-background);
 }
 
 /* Editable cells */

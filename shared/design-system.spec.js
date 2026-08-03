@@ -272,6 +272,7 @@ describe('Design system manifest', () => {
     expect(designTokens.typography.ui).toContain('JetBrains Mono');
     expect(runtimeCss).toContain('--p-button-primary-background:');
     expect(runtimeCss).toContain('--p-card-background:');
+    expect(runtimeCss).toContain('background: var(--ck-inline-ref-bg, var(--ck-subtle-background));');
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
     expect(tailwindThemeExtension.colors.status.danger).toBe('var(--ck-status-danger)');
     expect(tailwindThemeExtension.colors.signal.entity).toBe('var(--ck-signal-entity)');

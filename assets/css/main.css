@@ -261,7 +261,7 @@ body {
     min-width: 0;
     vertical-align: baseline;
     border: 1px solid var(--ck-inline-ref-border, var(--p-content-border-color));
-    background: var(--ck-inline-ref-bg, var(--p-surface-100));
+    background: var(--ck-inline-ref-bg, var(--ck-subtle-background));
     color: var(--ck-inline-ref-fg, var(--p-text-color));
     box-shadow: var(--ck-inline-ref-shadow, none);
     font-weight: var(--ck-inline-ref-font-weight, 500);
