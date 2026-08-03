@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+    font-size: 14px;
+}
+
 :root {
     --ck-page-background: var(--p-surface-50);
     --ck-chrome-background: color-mix(in srgb, var(--p-content-background), transparent 3%);
