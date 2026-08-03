@@ -5,7 +5,7 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 ## Source Files
 
 - `index.js` exports token groups plus projections for PrimeVue and Tailwind.
-  Its active palette uses field-notebook surfaces and signal-orange intent
+  Its active palette uses neutral graphite surfaces and electric-lime intent
   accents; JetBrains Mono is the compact application face. Controls use a 6px
   UI radius while containers use a 12px
   panel radius so dense operational screens retain hierarchy.

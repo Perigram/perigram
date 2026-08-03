@@ -20,12 +20,12 @@ Use PrimeVue semantic variables for shared component state. Use CutKit `--ck-*`
 tokens for the app surface stack, typography, geometry, elevation, motion, and
 domain signal roles that PrimeVue does not own.
 
-The active visual language is a field notebook for engineering work: warm paper
-canvas and surfaces, a high-visibility signal-orange action color, 6px control
-radii, 12px container radii, crisp structural borders, and elevation reserved
-for things that float. JetBrains Mono is the global application face, keeping
-dense labels, values, controls, and technical content visually coherent. Signal
-orange marks intent, selection, and keyboard focus rather than ambient
+The active visual language is a crisp engineering instrument: near-neutral
+surfaces, a graphite app rail, an electric-lime action signal, 6px control
+radii, 12px container radii, structural borders, and elevation reserved for
+things that float. JetBrains Mono is the global application face, keeping
+dense labels, values, controls, and technical content visually coherent.
+Electric lime marks intent, selection, and keyboard focus rather than ambient
 decoration. Light and dark schemes have distinct form and table surfaces, so a
 component must not force a light token into dark mode. Avoid gradients,
 ornamental backgrounds, and page-local theme colors; promote durable visual
