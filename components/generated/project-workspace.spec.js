@@ -75,17 +75,30 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain("project.expandExplorer");
     expect(source.match(/:node="paneTree"/g)).toHaveLength(1);
     expect(source).toContain('key="workspace-content"');
-    expect(source).toContain(':size="explorerOpen ? 80 : 100"');
+    expect(source).toContain(':size="15"');
+    expect(source).toContain(':min-size="10"');
+    expect(source).toContain(':size="explorerOpen ? 85 : 100"');
     expect(source).not.toContain("pageId: 'project-actions'");
     expect(workspacePaneSource).not.toContain('showExplorerToggle');
     expect(entityFileSource).not.toContain('project.expandExplorer');
     expect(workspacePageSource).not.toContain('project.expandExplorer');
-    expect(source).toContain('chrome-signal-rule');
+    expect(source).not.toContain('chrome-signal-rule');
+    expect(entityFileSource).not.toContain('chrome-signal-rule');
+    expect(workspacePageSource).not.toContain('chrome-signal-rule');
     expect(source).toContain('bg-chrome');
     expect(generatedScreenSource).toContain(':workspace="Boolean(screenOverload)"');
     expect(standardPageSource).toContain("'h-full min-h-0 max-w-none flex-1 gap-0 overflow-hidden'");
     expect(appLayoutSource).toContain('isGeneratedWorkspaceRoute');
     expect(appLayoutSource).toContain("'max-w-none overflow-hidden p-0");
+  });
+
+  it('leaves initial and newly split panes empty until Explorer selection', () => {
+    expect(source).toContain("const paneTree = ref(createWorkspaceLeaf('pane-1'));");
+    expect(source).toContain('createWorkspaceLeaf(`pane-${++paneSequence.value}`)');
+    expect(source).toContain("const key = activePane.value?.selectionKey || '';");
+    expect(source).toContain('if (pane.selectionKey && !visibleKeys.has(pane.selectionKey))');
+    expect(source).not.toContain('defaultPaneKey');
+    expect(source).not.toContain('|| projectItem.value');
   });
 
   it('shows breadcrumb menus for actual alternatives rather than sibling array length', () => {

@@ -1077,6 +1077,12 @@
     pane page using only cassette templates already loaded by the project
     workspace. Updated generated-workspace and component documentation.
 
+    Layout correction: Explorer now starts at a compact 15% width, workspace
+    strip/Explorer/file headers use neutral structural borders rather than the
+    signal-orange rule, and initial or newly split panes remain empty until an
+    explicit Explorer selection. Collapsing Explorer still preserves the keyed
+    recursive pane tree.
+
     Validation: generated workspace tests (34), the design-system suite (46),
     SFC compile checks, the PrimeVue preset import, and `git diff --check`
     passed. `shared/localization.spec.js` still reports the pre-existing

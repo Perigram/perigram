@@ -177,13 +177,16 @@ uses the full width without rebuilding or changing the recursive pane tree.
 Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain only their selected entity or
-registered page and pane-local controls. A workspace pane can be a pane-native
-entity file or an app-registered workspace page; process data selects neither
-arbitrary Vue components nor page-local markup. Entity files reuse registered
-entity-detail body overloads, so a queue file is the operational queue editor
-instead of a generic summary block; generic child entities continue to use
-their contract-driven detail surface. The project entity itself uses that
-standard detail body. The action strip receives only screen/main action ids
+registered page and pane-local controls. Explorer starts as a compact 15% rail;
+the initial pane and new split targets stay empty until an explicit Explorer
+selection. Nested workspace headers use neutral structural borders instead of
+the signal-orange action boundary. A workspace pane can be a pane-native entity
+file or an app-registered workspace page; process data selects neither arbitrary
+Vue components nor page-local markup. Entity files reuse registered entity-detail
+body overloads, so a queue file is the operational queue editor instead of a
+generic summary block; generic child entities continue to use their contract-driven
+detail surface. The project entity itself uses that standard detail body. The
+action strip receives only screen/main action ids
 compiled for the project plus direct project-child creation actions from its
 loaded child regions, then resolves and filters them through the effective user
 action manifest and project status.
