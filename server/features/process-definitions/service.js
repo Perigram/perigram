@@ -74,7 +74,7 @@ export async function create(payload = {}, auth) {
       slug: standardSlugify(name, { keepCase: false })
     },
     lineage: { organizationId: toFlexibleId(organizationId) },
-    data: normalizeCurrentProcessDefinition(payload.data || payload)
+    data: currentProcessDefinition(payload.data || payload)
   });
   applyProcessStatus(process, 'DRAFT', auth.userId, 'Process draft created');
   const created = await repository.create(process);
@@ -89,10 +89,7 @@ export async function update(id, payload = {}, auth) {
   if (payload.identity?.name || payload.name) {
     process.identity.name = payload.identity?.name || payload.name;
   }
-  process.data = {
-    ...process.data,
-    ...normalizeCurrentProcessDefinition(payload.data || payload)
-  };
+  process.data = currentProcessDefinition(payload.data || payload);
   process.data.compiled = null;
   const updated = await repository.updateById(id, process);
   return new ProcessDefinition(updated).toJSON();
@@ -100,14 +97,14 @@ export async function update(id, payload = {}, auth) {
 
 export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
-  process.data = normalizeCurrentProcessDefinition(process.data);
+  assertCurrentProcessDefinition(process.data);
   assertCanonicalProcessSource(process.data);
   return validateActivatableProcess(process.data, getDomain());
 }
 
 export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
-  process.data = normalizeCurrentProcessDefinition(process.data);
+  assertCurrentProcessDefinition(process.data);
   assertCanonicalProcessSource(process.data);
   await preserveActiveAssignments(process);
   const validation = validateActivatableProcess(process.data, getDomain());
@@ -149,7 +146,7 @@ export async function createActiveFromTemplate({ organizationId, userId, templat
     organizationId: toFlexibleId(organizationId),
     userId
   }));
-  process.data = normalizeCurrentProcessDefinition(process.data);
+  assertCurrentProcessDefinition(process.data);
 
   const validation = validateActivatableProcess(process.data, getDomain());
   if (!validation.ok) {
@@ -189,14 +186,18 @@ function validateActivatableProcess(data = {}, domain = {}) {
   return { ...validation, ok: false, errors };
 }
 
-function normalizeCurrentProcessDefinition(data = {}) {
+function assertCurrentProcessDefinition(data = {}) {
   if (Number(data.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
     throw createError({
       statusCode: 409,
       message: `Process dataflow version ${PROCESS_DATAFLOW_VERSION} is required`
     });
   }
-  return normalizeProcessDefinition(data, cncDomain);
+}
+
+function currentProcessDefinition(data = {}) {
+  assertCurrentProcessDefinition(data);
+  return structuredClone(data);
 }
 
 export async function assignUserToActiveProcess({ userId, roleIds = [], bindings = {}, status = 'active' } = {}, auth = {}) {

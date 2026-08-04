@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { activate, appendExistingCassetteDesignToActiveQueue, assignUserToActiveProcessInternal, executeActiveProcessAction, hasProcessDefinitionMembershipAccess } from './service.js';
+import { activate, appendExistingCassetteDesignToActiveQueue, assignUserToActiveProcessInternal, executeActiveProcessAction, hasProcessDefinitionMembershipAccess, update } from './service.js';
 import * as processRepository from './repository.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
@@ -146,6 +146,59 @@ describe('process definitions access fallback', () => {
 
     expect(processRepository.updateById).not.toHaveBeenCalled();
     expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
+  });
+
+  it('stores the authored graph unchanged when saving a draft', async () => {
+    const authored = {
+      schemaVersion: 1,
+      dataflowVersion: 3,
+      graph: {
+        nodes: [{ id: 'literal', type: 'processNode', position: { x: 17, y: 29 }, data: { refId: 'literal' } }],
+        edges: [],
+        viewport: { x: 4, y: 8, zoom: 1.25 }
+      },
+      roles: {},
+      servicePrincipals: {},
+      entityProfiles: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      statusDefinitions: {},
+      valueInputs: {},
+      processNodes: {
+        literal: {
+          id: 'literal',
+          kind: 'source.literalItem',
+          label: 'Authored literal',
+          value: 'unchanged',
+          type: { base: 'string', shape: 'item' }
+        }
+      },
+      screens: {},
+      assignments: {},
+      compiled: { stale: true }
+    };
+    processRepository.findById.mockResolvedValueOnce({
+      _id: 'process-draft',
+      identity: { uid: 'process-draft', name: 'Draft', slug: 'draft' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'DRAFT' },
+      data: authored
+    });
+    processRepository.updateById.mockImplementationOnce(async (id, process) => ({
+      ...process.toJSON(),
+      _id: id
+    }));
+
+    const result = await update('process-draft', { data: authored }, {
+      userId: 'admin',
+      organizationId: 'org-1',
+      effectivePermissions: { organizations: { level: 'admin' } }
+    });
+
+    expect(processRepository.updateById.mock.calls[0][1].data).toEqual({ ...authored, compiled: null });
+    expect(result.data.graph).toEqual(authored.graph);
+    expect(result.data.processNodes).toEqual(authored.processNodes);
   });
 
   it('preserves process status serialization when assigning active process roles', async () => {
