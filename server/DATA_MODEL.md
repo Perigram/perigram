@@ -293,6 +293,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.activeProcessDefinitionId` | String | active process definition id field |
+| `data.assignments` | Array | assignments field |
 | `data.compiled` | String | compiled field |
 | `data.display` | String | display field |
 | `data.entityProfiles` | Array | entity profiles field |
@@ -515,4 +516,3 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
-| `data.assignments` | Array | assignments field |
