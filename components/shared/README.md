@@ -334,9 +334,6 @@ stays on one line inside prose, truncates with ellipsis, and keeps the same
 semantic color treatment without inflating surrounding line height.
 `EntityInlineRef` maps entity families to `--ck-entity-tone-*` values only; it
 must not introduce PrimeVue primitive color assignments of its own.
-Its inline-chip and compact-reference surfaces use the global tokenized
-in-place border/color feedback; callers must not add scale, lift, or shadow
-motion around an embedded reference.
 `variant="compact"` renders a horizontal micro card instead of a chip. That
 compact ref uses the compact surface contract directly: a real preview on the
 left when the entity has one, the same semantic inline chip for identity on the

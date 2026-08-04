@@ -107,10 +107,6 @@ export const designTokens = {
             enter: 'cubic-bezier(0, 0, 0, 1)',
             exit: 'cubic-bezier(0.3, 0, 1, 1)'
         },
-        overlay: {
-            entryScale: 0.98,
-            toastEntryOffset: '0.25rem'
-        },
         spring: {
             dock: { mass: 0.1, stiffness: 180, damping: 16 }
         }
@@ -234,8 +230,6 @@ export const cssVariableTokens = {
     '--ck-ease-standard': designTokens.motion.easing.standard,
     '--ck-ease-enter': designTokens.motion.easing.enter,
     '--ck-ease-exit': designTokens.motion.easing.exit,
-    '--ck-motion-overlay-entry-scale': designTokens.motion.overlay.entryScale,
-    '--ck-motion-toast-entry-offset': designTokens.motion.overlay.toastEntryOffset,
     '--ck-dock-inset': designTokens.dock.inset,
     '--ck-dock-gap': designTokens.dock.gap,
     '--ck-dock-padding': designTokens.dock.padding,

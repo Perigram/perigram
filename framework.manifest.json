@@ -956,8 +956,6 @@
         "--ck-motion-emphasis": "220ms",
         "--ck-motion-fast": "100ms",
         "--ck-motion-normal": "160ms",
-        "--ck-motion-overlay-entry-scale": 0.98,
-        "--ck-motion-toast-entry-offset": "0.25rem",
         "--ck-page-background": "var(--p-surface-100)",
         "--ck-page-max-width": "1600px",
         "--ck-preview-dialog-height": "95vh",
@@ -1094,10 +1092,6 @@
           "emphasis": "220ms",
           "fast": "100ms",
           "normal": "160ms",
-          "overlay": {
-            "entryScale": 0.98,
-            "toastEntryOffset": "0.25rem"
-          },
           "seconds": {
             "emphasis": 0.22,
             "fast": 0.1,
