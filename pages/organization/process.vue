@@ -108,39 +108,54 @@
       <MotionDock
         :items="designerDockItems"
         :aria-label="$t('processDesigner.title')"
+        class-name="process-designer-dock"
       />
 
-      <Popover ref="processMenu">
-        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
-          <PrimeSelect
+      <Popover ref="processMenu" @hide="onDockPopoverHide('process')">
+        <div
+          class="flex min-w-72 flex-col gap-2"
+          @mousedown.stop
+          @click.stop
+          @mouseenter="keepDockPopover('process')"
+          @mouseleave="scheduleDockPopoverClose('process')"
+          @focusin="keepDockPopover('process')"
+        >
+          <Select
             v-if="processOptions.length"
-            v-model="selectedProcessId"
+            :model-value="selectedProcessId"
             :options="processOptions"
             option-label="label"
             option-value="value"
+            entity-type="processDefinition"
             class="w-full"
             size="small"
             :aria-label="$t('processDesigner.title')"
-            @change="selectProcessDefinition"
+            @update:model-value="selectProcessDefinition"
+            @show="pinDockPopover('process')"
+            @hide="unpinDockPopover('process')"
           />
-          <Button icon="pi pi-file-plus" :label="$t('processDesigner.newDraft')" size="small" severity="secondary" outlined :loading="creatingDraft" :disabled="creatingDraft" @click="createDraftFromProcessMenu" />
+          <Button
+            icon="pi pi-file-plus"
+            :label="$t('processDesigner.newDraft')"
+            size="small"
+            severity="secondary"
+            outlined
+            :loading="creatingDraft"
+            :disabled="creatingDraft || savingDraft || applyingProcess"
+            @click="createDraftFromDock"
+          />
         </div>
       </Popover>
 
-      <Popover ref="validationMenu">
-        <div class="flex w-80 flex-col gap-2" @mousedown.stop @click.stop>
-          <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :loading="validatingDraft" @click="validateDraft" />
-          <template v-if="validation">
-            <Message :severity="validation.ok ? 'success' : 'error'" size="small">
-              {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
-            </Message>
-            <Message v-for="warning in validation.warnings || []" :key="warning" severity="warn" size="small">{{ warning }}</Message>
-          </template>
-        </div>
-      </Popover>
-
-      <Popover ref="canvasMenu">
-        <div class="grid grid-cols-5 gap-0.5" @mousedown.stop @click.stop>
+      <Popover ref="canvasMenu" @hide="onDockPopoverHide('navigation')">
+        <div
+          class="grid grid-cols-5 gap-0.5"
+          @mousedown.stop
+          @click.stop
+          @mouseenter="keepDockPopover('navigation')"
+          @mouseleave="scheduleDockPopoverClose('navigation')"
+          @focusin="keepDockPopover('navigation')"
+        >
           <Button icon="pi pi-minus" text size="small" v-tooltip.top="$t('drawing.zoomOut')" :aria-label="$t('drawing.zoomOut')" @click="zoomCanvasOut" />
           <Button icon="pi pi-expand" text size="small" v-tooltip.top="$t('processDesigner.frameAll')" :aria-label="$t('processDesigner.frameAll')" @click="frameAllNodes" />
           <Button icon="pi pi-crosshairs" text size="small" v-tooltip.top="$t('processDesigner.frameSelection')" :aria-label="$t('processDesigner.frameSelection')" @click="frameSelectedNodes" />
@@ -867,6 +882,15 @@
         </Tabs>
       </aside>
 
+      <div v-if="validation" class="absolute bottom-16 left-3 z-10 max-w-xl">
+        <div class="flex flex-col gap-2">
+          <Message :severity="validation.ok ? 'success' : 'error'">
+            {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
+          </Message>
+          <Message v-for="warning in validation.warnings || []" :key="warning" severity="warn">{{ warning }}</Message>
+        </div>
+      </div>
+
     </div>
 
   </StandardPage>
@@ -885,7 +909,6 @@ import Message from 'primevue/message';
 import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Panel from 'primevue/panel';
 import Popover from 'primevue/popover';
-import PrimeSelect from 'primevue/select';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tab from 'primevue/tab';
 import TabList from 'primevue/tablist';
@@ -924,7 +947,7 @@ import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPre
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
-import { normalizeProcessDisplayName } from '~/utils/processDesignerDisplay.js';
+import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 
 const { t, te } = useI18n();
@@ -947,7 +970,6 @@ const validation = ref(null);
 const applyingProcess = ref(false);
 const savingDraft = ref(false);
 const creatingDraft = ref(false);
-const validatingDraft = ref(false);
 const savedDraftSignature = ref('');
 const paletteOpen = ref(true);
 const inspectorOpen = ref(true);
@@ -957,8 +979,9 @@ const selectedScreenId = ref(null);
 const newStateId = ref('');
 const canvasFrame = ref(null);
 const processMenu = ref(null);
-const validationMenu = ref(null);
 const canvasMenu = ref(null);
+const dockPopover = ref(null);
+const pinnedDockPopover = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
 const paletteQuery = ref('');
@@ -1143,19 +1166,14 @@ const statusIconOptions = [
 ];
 const accessLevelRank = { read: 1, write: 2, admin: 3 };
 const defaultEdgeOptions = { type: 'default' };
+let dockPopoverCloseTimer = null;
 
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
 const designerDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-sitemap', 'aria-hidden': 'true' }),
-    label: t('processDesigner.title'),
-    onClick: toggleProcessMenu,
-    hasPopup: true
-  },
-  {
-    icon: () => h('i', { class: 'pi pi-bars', 'aria-hidden': 'true' }),
+    icon: () => h('i', { class: 'pi pi-th-large', 'aria-hidden': 'true' }),
     label: t('processDesigner.palette'),
     onClick: () => { paletteOpen.value = !paletteOpen.value; },
     pressed: paletteOpen.value
@@ -1170,26 +1188,33 @@ const designerDockItems = computed(() => [
     icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
     label: t('common.save'),
     onClick: saveDraftFromDock,
-    disabled: !isDirty.value || savingDraft.value,
+    disabled: (!isDirty.value && !isActiveProcess.value) || savingDraft.value || creatingDraft.value || applyingProcess.value,
     attention: isDirty.value
-  },
-  {
-    icon: () => h('i', { class: validatingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-check-circle', 'aria-hidden': 'true' }),
-    label: t('processDesigner.validate'),
-    onClick: toggleValidationMenu,
-    disabled: validatingDraft.value,
-    hasPopup: true
   },
   {
     icon: () => h('i', { class: applyingProcess.value ? 'pi pi-spinner pi-spin' : 'pi pi-check', 'aria-hidden': 'true' }),
     label: t('processDesigner.apply'),
     onClick: applyProcess,
-    disabled: !draft.value?._id || applyingProcess.value
+    disabled: !draft.value?._id || isActiveProcess.value || applyingProcess.value || savingDraft.value || creatingDraft.value
   },
   {
-    icon: () => h('i', { class: 'pi pi-search', 'aria-hidden': 'true' }),
-    label: t('processDesigner.frameAll'),
-    onClick: toggleCanvasMenu,
+    icon: () => h('i', { class: 'pi pi-arrows-alt', 'aria-hidden': 'true' }),
+    label: t('processDesigner.canvasNavigation'),
+    onClick: event => openDockPopover('navigation', event),
+    onHoverStart: event => openDockPopover('navigation', event),
+    onHoverEnd: () => scheduleDockPopoverClose('navigation'),
+    onFocus: event => openDockPopover('navigation', event),
+    onBlur: () => scheduleDockPopoverClose('navigation'),
+    hasPopup: true
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-folder', 'aria-hidden': 'true' }),
+    label: t('processDesigner.title'),
+    onClick: event => openDockPopover('process', event),
+    onHoverStart: event => openDockPopover('process', event),
+    onHoverEnd: () => scheduleDockPopoverClose('process'),
+    onFocus: event => openDockPopover('process', event),
+    onBlur: () => scheduleDockPopoverClose('process'),
     hasPopup: true
   }
 ]);
@@ -1198,7 +1223,8 @@ const processOptions = computed(() => processDefinitions.value.map(process => ({
     normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id),
     process.status?.state?.primary
   ].filter(Boolean).join(' · '),
-  value: String(process._id)
+  value: String(process._id),
+  entity: processDisplayEntity(process)
 })));
 const emptyCanvasMessage = computed(() => {
   if (loadingProcess.value) return t('common.loading');
@@ -1296,7 +1322,10 @@ onMounted(() => {
   loadActiveOrCreateLocal();
   window.addEventListener('keydown', handleCanvasKeydown);
 });
-onBeforeUnmount(() => window.removeEventListener('keydown', handleCanvasKeydown));
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleCanvasKeydown);
+  if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
+});
 
 async function loadActiveOrCreateLocal() {
   loadingProcess.value = true;
@@ -1353,11 +1382,12 @@ function compareProcessDefinitions(left, right) {
   return new Date(right?.status?.timestamp || 0) - new Date(left?.status?.timestamp || 0);
 }
 
-function selectProcessDefinition() {
+function selectProcessDefinition(processId) {
+  selectedProcessId.value = processId === null || processId === undefined ? null : String(processId);
   const selected = processDefinitions.value.find(process => String(process._id) === selectedProcessId.value);
   if (!selected) return;
   setDraft(selected);
-  processMenu.value?.hide();
+  closeDockPopover('process');
 }
 
 function upsertProcessDefinition(process) {
@@ -1367,16 +1397,19 @@ function upsertProcessDefinition(process) {
   processDefinitions.value = next.sort(compareProcessDefinitions);
 }
 
-async function createDraft() {
-  const sourceId = draft.value?._id || null;
-  const name = isActiveProcess.value && activeName.value ? `${normalizeProcessDisplayName(activeName.value)} draft` : 'Organization process';
+async function createDraft({ copyActive = false, empty = false } = {}) {
+  const sourceId = copyActive ? draft.value?._id || null : null;
+  const name = copyActive && activeName.value ? `${normalizeProcessDisplayName(activeName.value)} draft` : 'Organization process';
+  const data = empty
+    ? canvasToDefinition({ nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }, {})
+    : serializeProcess();
   const created = await $fetch('/api/process-definitions', {
     method: 'POST',
     body: {
       name,
       data: {
-        ...serializeProcess(),
-        sourceProcessDefinitionId: isActiveProcess.value ? sourceId : null
+        ...data,
+        sourceProcessDefinitionId: sourceId
       }
     }
   });
@@ -1385,17 +1418,18 @@ async function createDraft() {
   return created;
 }
 
-async function createDraftFromProcessMenu() {
+async function createDraftFromDock() {
+  if (creatingDraft.value) return;
   creatingDraft.value = true;
   try {
-    await createDraft();
-    processMenu.value?.hide();
+    await createDraft({ empty: true });
+    closeDockPopover('process');
     toast.add({ severity: 'success', summary: t('processDesigner.newDraft'), life: 2400 });
   } catch (error) {
     toast.add({
       severity: 'error',
       summary: t('processDesigner.newDraft'),
-      detail: error.data?.message || error.message,
+      detail: error?.data?.message || error?.message,
       life: 5000
     });
   } finally {
@@ -1407,7 +1441,7 @@ async function saveDraft() {
   savingDraft.value = true;
   try {
     syncNodeData();
-    if (!draft.value?._id || isActiveProcess.value) return await createDraft();
+    if (!draft.value?._id || isActiveProcess.value) return await createDraft({ copyActive: isActiveProcess.value });
     const updated = await $fetch(`/api/process-definitions/${draft.value._id}`, {
       method: 'PATCH',
       body: { data: serializeProcess() }
@@ -1421,34 +1455,22 @@ async function saveDraft() {
 }
 
 async function saveDraftFromDock() {
+  if (savingDraft.value) return;
+  const createsDraft = !draft.value?._id || isActiveProcess.value;
   try {
     await saveDraft();
-    toast.add({ severity: 'success', summary: t('processDesigner.saved'), life: 2400 });
+    toast.add({
+      severity: 'success',
+      summary: createsDraft ? t('processDesigner.newDraft') : t('processDesigner.saved'),
+      life: 2400
+    });
   } catch (error) {
     toast.add({
       severity: 'error',
       summary: t('common.save'),
-      detail: error.data?.message || error.message,
+      detail: error?.data?.message || error?.message,
       life: 5000
     });
-  }
-}
-
-async function validateDraft() {
-  validatingDraft.value = true;
-  try {
-    await saveDraft();
-    validation.value = await $fetch(`/api/process-definitions/${draft.value._id}/validate`, { method: 'POST' });
-    return validation.value;
-  } catch (error) {
-    validation.value = {
-      ok: false,
-      errors: [error.data?.message || error.message],
-      warnings: []
-    };
-    return validation.value;
-  } finally {
-    validatingDraft.value = false;
   }
 }
 
@@ -1464,6 +1486,7 @@ async function activateDraft() {
 }
 
 async function applyProcess() {
+  if (!draft.value?._id || isActiveProcess.value || applyingProcess.value) return;
   applyingProcess.value = true;
   try {
     const activated = await activateDraft();
@@ -1475,7 +1498,7 @@ async function applyProcess() {
     };
     toast.add({ severity: 'success', summary: t('processDesigner.applySuccess'), life: 3000 });
   } catch (error) {
-    const message = error.data?.message || error.message;
+    const message = error?.data?.message || error?.message || t('processDesigner.validationFailed');
     validation.value = {
       ok: false,
       errors: [message],
@@ -1487,16 +1510,60 @@ async function applyProcess() {
   }
 }
 
-function toggleProcessMenu(event) {
-  processMenu.value?.toggle(event);
+function popoverFor(panel) {
+  return panel === 'process' ? processMenu.value : canvasMenu.value;
 }
 
-function toggleValidationMenu(event) {
-  validationMenu.value?.toggle(event);
+function openDockPopover(panel, event) {
+  const previousPanel = dockPopover.value;
+  keepDockPopover(panel);
+  if (previousPanel && previousPanel !== panel) popoverFor(previousPanel)?.hide?.();
+  dockPopover.value = panel;
+  popoverFor(panel)?.show?.(event);
 }
 
-function toggleCanvasMenu(event) {
-  canvasMenu.value?.toggle(event);
+function keepDockPopover(panel) {
+  if (dockPopoverCloseTimer) {
+    clearTimeout(dockPopoverCloseTimer);
+    dockPopoverCloseTimer = null;
+  }
+  dockPopover.value = panel;
+}
+
+function pinDockPopover(panel) {
+  keepDockPopover(panel);
+  pinnedDockPopover.value = panel;
+}
+
+function unpinDockPopover(panel) {
+  if (pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
+  scheduleDockPopoverClose(panel);
+}
+
+function scheduleDockPopoverClose(panel) {
+  if (pinnedDockPopover.value === panel) return;
+  if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
+  dockPopoverCloseTimer = setTimeout(() => {
+    if (dockPopover.value === panel) closeDockPopover(panel);
+    dockPopoverCloseTimer = null;
+  }, 160);
+}
+
+function closeDockPopover(panel = null) {
+  if (dockPopoverCloseTimer) {
+    clearTimeout(dockPopoverCloseTimer);
+    dockPopoverCloseTimer = null;
+  }
+  if (panel && dockPopover.value !== panel) return;
+  if (!panel || pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
+  const activePanel = panel || dockPopover.value;
+  dockPopover.value = null;
+  if (activePanel) popoverFor(activePanel)?.hide?.();
+}
+
+function onDockPopoverHide(panel) {
+  if (dockPopover.value === panel) dockPopover.value = null;
+  if (pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
 }
 
 function setDraft(value) {
@@ -1601,6 +1668,7 @@ function clearGraphSelection() {
 
 function handleDesignerPointerDown(event) {
   canvasKeyboardActive.value = Boolean(event.target?.closest?.('.vue-flow'));
+  if (!event.target?.closest?.('.process-designer-dock')) closeDockPopover();
 }
 
 function handleDesignerFocus(event) {

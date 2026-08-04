@@ -108,7 +108,7 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('setViewport(canvas.viewport');
   });
 
-  it('uses the shared motion dock with focused process and validation popups', () => {
+  it('uses the shared motion dock for semantic hover panels', () => {
     expect(designerSource).toContain('v-if="paletteOpen"');
     expect(designerSource).toContain('v-if="inspectorOpen"');
     expect(designerSource).toContain('<MotionDock');
@@ -133,19 +133,33 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('absolute bottom-16 right-3 top-3 z-20');
     expect(designerSource).toContain('paletteOpen.value = !paletteOpen.value');
     expect(designerSource).toContain('inspectorOpen.value = !inspectorOpen.value');
-    expect(designerSource).toContain('<Popover ref="processMenu">');
-    expect(designerSource).toContain('<Popover ref="validationMenu">');
-    expect(designerSource).toContain('<Popover ref="canvasMenu">');
-    expect(designerSource).toContain('<PrimeSelect');
-    expect(designerSource).toContain('createDraftFromProcessMenu');
+    expect(designerSource).toContain('<Popover ref="processMenu"');
+    expect(designerSource).toContain('<Popover ref="canvasMenu"');
+    expect(designerSource).not.toContain('validationMenu');
+    expect(designerSource).toContain('icon: () => h(\'i\', { class: \'pi pi-th-large\'');
+    expect(designerSource).toContain('icon: () => h(\'i\', { class: \'pi pi-folder\'');
+    expect(designerSource).toContain("label: t('processDesigner.canvasNavigation')");
+    expect(designerSource).toContain('onHoverStart: event => openDockPopover(\'navigation\', event)');
+    expect(designerSource).toContain('onHoverStart: event => openDockPopover(\'process\', event)');
+    expect(designerSource).toContain('<Select');
+    expect(designerSource).toContain('@update:model-value="selectProcessDefinition"');
+    expect(designerSource).toContain('@show="pinDockPopover(\'process\')"');
+    expect(designerSource).toContain('@hide="unpinDockPopover(\'process\')"');
+    expect(designerSource).toContain('function selectProcessDefinition(processId)');
+    expect(designerSource).toContain('createDraftFromDock');
     expect(designerSource).toContain('saveDraftFromDock');
-    expect(designerSource).toContain('toggleValidationMenu');
     expect(designerSource).toContain('attention: isDirty.value');
     expect(motionDockSource).toContain('this.item.attention');
+    expect(motionDockSource).toContain('onHoverStart?: (event: MouseEvent) => void');
+    expect(motionDockSource).toContain('props.item.onHoverStart?.(event)');
+    expect(motionDockSource).toContain('props.item.onHoverEnd?.(event)');
     expect(designerSource).not.toContain('draftStateLabel');
     expect(designerSource).toContain('onClick: applyProcess');
     expect(designerSource).toContain("summary: t('processDesigner.newDraft')");
     expect(designerSource).toContain('return created;');
+    expect(designerSource).toContain('await createDraft({ empty: true });');
+    expect(designerSource).toContain('createDraft({ copyActive: isActiveProcess.value })');
+    expect(designerSource).not.toContain('validateDraft');
     expect(designerSource).toContain('if (!result.ok) throw new Error');
   });
 

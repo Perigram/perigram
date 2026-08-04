@@ -60,6 +60,10 @@
         pressed?: boolean
         attention?: boolean
         hasPopup?: boolean
+        onHoverStart?: (event: MouseEvent) => void
+        onHoverEnd?: (event: MouseEvent) => void
+        onFocus?: (event: FocusEvent) => void
+        onBlur?: (event: FocusEvent) => void
     }
 
     const DockIcon = defineComponent({
@@ -221,15 +225,23 @@
                 unsubscribeSize?.()
             })
 
-            const handleHoverStart = () => isHovered.set(1)
-            const handleHoverEnd = () => isHovered.set(0)
-            const handleFocus = () => {
+            const handleHoverStart = (event: MouseEvent) => {
+                isHovered.set(1)
+                props.item.onHoverStart?.(event)
+            }
+            const handleHoverEnd = (event: MouseEvent) => {
+                isHovered.set(0)
+                props.item.onHoverEnd?.(event)
+            }
+            const handleFocus = (event: FocusEvent) => {
                 isHovered.set(1)
                 isFocused.value = true
+                props.item.onFocus?.(event)
             }
-            const handleBlur = () => {
+            const handleBlur = (event: FocusEvent) => {
                 isHovered.set(0)
                 isFocused.value = false
+                props.item.onBlur?.(event)
             }
             const handleClick = (event: MouseEvent) => {
                 if (!props.item.disabled) props.item.onClick(event)
