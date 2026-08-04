@@ -169,7 +169,8 @@ describe('process designer canvas UI', () => {
   });
 
   it('restores inferred node records when a proposed wire is rejected', () => {
-    expect(designerSource).toContain('const processNodeSnapshot = structuredClone');
+    expect(designerSource).toContain('const processNodeSnapshot = clonePlainData');
+    expect(designerSource).not.toContain('structuredClone(draft.value?.data?.processNodes');
     expect(designerSource).toContain('draft.value.data.processNodes = processNodeSnapshot');
   });
 });

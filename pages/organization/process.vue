@@ -2150,7 +2150,11 @@ function paletteSearchText(item) {
 }
 
 function clonePalettePreset(preset = {}) {
-  return JSON.parse(JSON.stringify(preset || {}));
+  return clonePlainData(preset);
+}
+
+function clonePlainData(value = {}) {
+  return JSON.parse(JSON.stringify(value || {}));
 }
 
 function paletteGroupLabel(id) {
@@ -4167,7 +4171,7 @@ function roleAccessSummary(roleId) {
 function onConnect(connection) {
   contextPalette.value.socket = null;
   syncNodeData();
-  const processNodeSnapshot = structuredClone(draft.value?.data?.processNodes || {});
+  const processNodeSnapshot = clonePlainData(draft.value?.data?.processNodes || {});
   inferGenericNodeTypeFromConnection(connection);
   const compatibility = connectionCompatibility(connection);
   if (!compatibility.ok) {
