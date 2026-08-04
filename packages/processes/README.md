@@ -33,14 +33,10 @@ command-result outputs. Producer effects, conversions, predicates, patches,
 and trigger-payload plumbing remain runtime-only. Applications may change
 layout, but entity types, construction modes, commands, attachment kinds,
 blocks, and fields always come from the supplied domain contract.
-Legacy service cards that only registered access/billing configuration and had
-no graph edges are removed from the canvas during v3 migration; the service
-definition remains in the definition plane. Connected legacy service cards are
-migrated to Run Service and must satisfy the current command socket contract.
-V3 migration preserves explicit entity/domain event entry nodes. Definitions
-from the short-lived embedded-event contract are rewritten back to an entry
-node plus an automatic effect connection; entity-change payloads are wired to
-the effect's entity input.
+Process definitions use only the current dataflow protocol. New definitions and
+starter templates are authored at `dataflowVersion: 3`; package normalization
+does not infer a missing version or rewrite an older graph. Callers must provide
+the current semantic graph directly.
 
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,
@@ -289,8 +285,7 @@ only two execution modes: `manual`, which is exposed through authorized UI, and
 `event`, which requires an incoming control socket. Date scheduling is an
 explicit `control.waitUntil` step fed by date algebra before an automatic
 effect. Entity-change and domain-event subscriptions are process-entry
-concerns and are not stored as effect modes. Older multi-mode effect records
-migrate to the automatic socket contract.
+concerns and are not stored as effect modes.
 Runs carry
 durable control tokens, foreach scopes, join arrivals, wake times, attempts,
 and step outputs. Data subgraphs are evaluated lazily for the operational node
@@ -298,28 +293,8 @@ that consumes them. Arbitrary data or control cycles are rejected during
 activation.
 
 Manual effect inputs resolve the supplied entity from the persisted run context
-when no data wire overrides that socket. Migration
-embeds old standalone trigger records into their target effects, removes the
-old control node, and rewrites any retained payload use as an ordinary process
-input. Entity access remains resolved from persisted run input through the
-authorized feature service.
-
-The v3 migration is a replacement, not a parallel interpretation. It moves
-literal/action/entity/service/socket graph nodes into the operation registry,
-keeps statuses in the definition plane, and collapses old entity-draft,
-field-change, and patch-merge chains into typed block composers while
-preserving their wires and inline defaults. It inserts Get Block/Get Field
-operations for old leaf reads, moves typed constructors to producer services,
-rewrites legacy open-block field handles to stable entry handles,
-rewrites successful effect edges to `completed`, and removes obsolete failure
-branches because exhausted retries fail the run. Manual entry
-triggers preserve generated-screen actions. Required legacy unit conversions
-remain explicit runtime operations;
-legacy status-transition cycles become independent current-entity effects; and
-wildcard projections expand only to exact fields authorized by the domain read
-policy. Impossible optional-parent edges are discarded rather than assigned an
-unsafe type. Unknown or ambiguous node kinds stop migration, and no stale
-compiled runtime is retained when v3 compilation fails.
+when no data wire overrides that socket. Entity access remains resolved from
+persisted run input through the authorized feature service.
 
 `effect.changeStatus` consumes an entity reference, a typed status value, and
 an optional patch. The status may be supplied by a literal or configured from a

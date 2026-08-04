@@ -130,7 +130,7 @@ function normalizeProcessLike(definition = {}) {
   const data = definition.data || definition;
   return {
     schemaVersion: data.schemaVersion || 1,
-    dataflowVersion: data.dataflowVersion || 1,
+    dataflowVersion: data.dataflowVersion,
     sourceTemplateId: data.sourceTemplateId || null,
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
     graph: normalizeGraph(data.graph),

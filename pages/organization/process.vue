@@ -892,7 +892,6 @@ import {
   createProcessDesignerContract,
   definitionToCanvas,
   formatProcessType,
-  migrateProcessDataflowDefinition,
   PROCESS_DATAFLOW_VERSION,
   processSocketsCompatible,
   processType,
@@ -1365,7 +1364,10 @@ async function createDraft({ copyActive = false, empty = false } = {}) {
   const sourceId = copyActive ? draft.value?._id || null : null;
   const name = copyActive && activeName.value ? `${normalizeProcessDisplayName(activeName.value)} draft` : 'Organization process';
   const data = empty
-    ? canvasToDefinition({ nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }, {})
+    ? canvasToDefinition(
+      { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
+      { dataflowVersion: PROCESS_DATAFLOW_VERSION }
+    )
     : serializeProcess();
   const created = await $fetch('/api/process-definitions', {
     method: 'POST',
@@ -1531,9 +1533,8 @@ function onDockPopoverHide(panel) {
 }
 
 function setDraft(value) {
-  const migration = migrateProcessDataflowDefinition(clonePlainData(value || {}), cncDomain);
-  draft.value = migration.value;
-  value = migration.value;
+  value = clonePlainData(value || {});
+  draft.value = value;
   selectedProcessId.value = value?._id ? String(value._id) : null;
   let canvas;
   try {
