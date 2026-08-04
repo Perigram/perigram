@@ -73,6 +73,7 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain('explorerOpen');
     expect(source).toContain("project.collapseExplorer");
     expect(source).toContain("project.expandExplorer");
+    expect(source.match(/\$t\('project\.explorer'\)/g)).toHaveLength(1);
     expect(source.match(/:node="paneTree"/g)).toHaveLength(1);
     expect(source).toContain('key="workspace-content"');
     expect(source).toContain(':size="15"');

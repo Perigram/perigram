@@ -30,9 +30,6 @@
           class="min-h-0 min-w-0 overflow-hidden !border-0"
         >
           <section class="flex h-full min-h-0 flex-col overflow-hidden bg-content">
-            <header class="flex h-10 shrink-0 items-center border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]">
-              <span class="min-w-0 flex-1 truncate font-medium">{{ $t('project.explorer') }}</span>
-            </header>
             <Tree
               v-model:selection-keys="selectionKeys"
               v-model:expanded-keys="expandedKeys"
