@@ -269,8 +269,11 @@ describe('Design system manifest', () => {
     expect(designTokens.motion.emphasis).toBe('220ms');
     expect(designTokens.motion.seconds.normal).toBe(0.16);
     expect(designTokens.motion.easing.standard).toBe('cubic-bezier(0.2, 0, 0, 1)');
+    expect(designTokens.motion.overlay.entryScale).toBe(0.98);
+    expect(designTokens.motion.overlay.toastEntryOffset).toBe('0.25rem');
     expect(designTokens.motion.spring.dock).toEqual({ mass: 0.1, stiffness: 180, damping: 16 });
     expect(cssVariableTokens['--ck-motion-emphasis']).toBe(designTokens.motion.emphasis);
+    expect(cssVariableTokens['--ck-motion-overlay-entry-scale']).toBe(designTokens.motion.overlay.entryScale);
     expect(tailwindThemeExtension.transitionTimingFunction.DEFAULT).toBe('var(--ck-ease-standard)');
   });
 
@@ -293,8 +296,14 @@ describe('Design system manifest', () => {
     expect(runtimeCss).toContain('--ck-process-canvas-background: var(--p-surface-50);');
     expect(runtimeCss).toContain('--ck-shadow-card: none;');
     expect(runtimeCss).toContain('--ck-motion-emphasis: 220ms;');
+    expect(runtimeCss).toContain('--ck-motion-overlay-entry-scale: 0.98;');
     expect(runtimeCss).toContain('--ck-ease-standard: cubic-bezier(0.2, 0, 0, 1);');
     expect(runtimeCss).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(runtimeCss).toContain('.p-connected-overlay-enter-active');
+    expect(runtimeCss).toContain('.p-dialog-enter-active');
+    expect(runtimeCss).toContain('.p-drawer-enter-active');
+    expect(runtimeCss).toContain('.p-toast-message-enter-active');
+    expect(runtimeCss).toContain('transition-timing-function: var(--ck-ease-standard) !important;');
     expect(runtimeCss).toContain('background: var(--ck-inline-ref-bg, var(--ck-subtle-background));');
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
     expect(tailwindThemeExtension.colors.primary.ink).toBe('var(--ck-primary-ink)');

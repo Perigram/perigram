@@ -8,8 +8,10 @@ This directory contains Vue components used in the Cutkit-Demo application.
 - **Motion:** Motion is contextual feedback, not ambient decoration. Use the
   semantic duration/easing/spring values in `assets/tokens/` through shared
   primitives such as `MotionDock`; JavaScript motion must respect
-  `useReducedMotion()`. Do not add perpetual, global, or page-local animation
-  to otherwise static operational controls.
+  `useReducedMotion()`. Core PrimeVue control, selection, and overlay feedback
+  is already supplied by the global token layer, so components must not add
+  competing local transitions. Do not add perpetual, global, or page-local
+  animation to otherwise static operational controls.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
 - **Minimal Text Chrome:** Do not add page/panel headers, descriptions,
   helper bubbles, notes, tips, or empty-state prose unless the user workflow is

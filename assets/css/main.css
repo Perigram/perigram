@@ -76,6 +76,8 @@ html {
     --ck-ease-standard: cubic-bezier(0.2, 0, 0, 1);
     --ck-ease-enter: cubic-bezier(0, 0, 0, 1);
     --ck-ease-exit: cubic-bezier(0.3, 0, 1, 1);
+    --ck-motion-overlay-entry-scale: 0.98;
+    --ck-motion-toast-entry-offset: 0.25rem;
     --ck-dock-inset: 0.75rem;
     --ck-dock-gap: 0.25rem;
     --ck-dock-padding: 0.25rem;
@@ -285,12 +287,128 @@ body {
     background: var(--ck-selection-background);
 }
 
+/*
+ * Direct interaction feedback stays in place. PrimeVue owns component state
+ * and duration tokens; CutKit supplies the common curve so controls do not
+ * each feel like a different application.
+ */
+.p-button,
+.p-inputtext,
+.p-select,
+.p-multiselect,
+.p-treeselect,
+.p-inputchips,
+.p-checkbox-box,
+.p-radiobutton-box,
+.p-toggleswitch-slider,
+.p-tab,
+.p-accordionheader,
+.p-menuitem-content,
+.p-select-option,
+.p-multiselect-option,
+.p-autocomplete-option,
+.p-listbox-option {
+    transition-timing-function: var(--ck-ease-standard) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+    transition:
+        background-color var(--ck-motion-fast) var(--ck-ease-standard),
+        color var(--ck-motion-fast) var(--ck-ease-standard);
+}
+
+/*
+ * PrimeVue ships overlay movement with fixed durations and large scale changes.
+ * Keep the entry perceptible but compact, and make every overlay honor the
+ * same token and reduced-motion contract as the rest of the app.
+ */
+.p-connected-overlay {
+    transform: scaleY(var(--ck-motion-overlay-entry-scale)) !important;
+    transition:
+        transform var(--ck-motion-normal) var(--ck-ease-enter),
+        opacity var(--ck-motion-fast) var(--ck-ease-enter) !important;
+}
+
+.p-connected-overlay-visible,
+.p-connected-overlay-hidden {
+    transform: scaleY(1) !important;
+}
+
+.p-connected-overlay-hidden,
+.p-connected-overlay-leave-active {
+    transition: opacity var(--ck-motion-fast) var(--ck-ease-exit) !important;
+}
+
+.p-connected-overlay-enter-from {
+    transform: scaleY(var(--ck-motion-overlay-entry-scale)) !important;
+}
+
+.p-connected-overlay-enter-active {
+    transition:
+        transform var(--ck-motion-normal) var(--ck-ease-enter),
+        opacity var(--ck-motion-fast) var(--ck-ease-enter) !important;
+}
+
+.p-dialog-enter-active {
+    transition:
+        transform var(--ck-motion-normal) var(--ck-ease-enter),
+        opacity var(--ck-motion-fast) var(--ck-ease-enter) !important;
+}
+
+.p-dialog-leave-active {
+    transition:
+        transform var(--ck-motion-fast) var(--ck-ease-exit),
+        opacity var(--ck-motion-fast) var(--ck-ease-exit) !important;
+}
+
+.p-dialog-enter-from,
+.p-dialog-leave-to {
+    transform: scale(var(--ck-motion-overlay-entry-scale)) !important;
+}
+
+.p-drawer-enter-active {
+    transition: transform var(--ck-motion-emphasis) var(--ck-ease-enter) !important;
+}
+
+.p-drawer-leave-active {
+    transition: transform var(--ck-motion-normal) var(--ck-ease-exit) !important;
+}
+
+.p-drawer-full .p-drawer-enter-active {
+    transition: opacity var(--ck-motion-normal) var(--ck-ease-enter) !important;
+}
+
+.p-drawer-full .p-drawer-leave-active {
+    transition: opacity var(--ck-motion-fast) var(--ck-ease-exit) !important;
+}
+
+.p-toast-message-enter-from {
+    transform: translateY(var(--ck-motion-toast-entry-offset)) !important;
+}
+
+.p-toast-message-enter-active {
+    transition:
+        transform var(--ck-motion-normal) var(--ck-ease-enter),
+        opacity var(--ck-motion-fast) var(--ck-ease-enter) !important;
+}
+
+.p-toast-message-leave-active {
+    transition:
+        max-height var(--ck-motion-emphasis) var(--ck-ease-exit),
+        opacity var(--ck-motion-fast) var(--ck-ease-exit),
+        margin-bottom var(--ck-motion-fast) var(--ck-ease-exit) !important;
+}
+
 /* PrimeVue Card/Panel roots own hard-edged chrome; clip child backgrounds/media to it. */
 .p-card,
 .p-panel {
     overflow: hidden;
     border: 1px solid var(--p-content-border-color);
     box-shadow: var(--ck-shadow-card);
+    transition:
+        border-color var(--ck-motion-normal) var(--ck-ease-standard),
+        background-color var(--ck-motion-normal) var(--ck-ease-standard),
+        color var(--ck-motion-fast) var(--ck-ease-standard);
 }
 
 /* Light chrome is near-white; dark mode supplies the ink instrument rail. */
@@ -343,6 +461,11 @@ body {
     font-size: 0.92em;
     padding: 0.18rem 0.5rem;
     border-radius: var(--ck-radius-ui);
+    transition:
+        border-color var(--ck-motion-fast) var(--ck-ease-standard),
+        background-color var(--ck-motion-fast) var(--ck-ease-standard),
+        color var(--ck-motion-fast) var(--ck-ease-standard),
+        box-shadow var(--ck-motion-fast) var(--ck-ease-standard);
 }
 
 .entity-inline-chip-icon {
@@ -379,6 +502,10 @@ body {
     border-radius: var(--ck-radius-ui);
     box-shadow: var(--ck-shadow-card);
     padding: 0.5rem;
+    transition:
+        border-color var(--ck-motion-normal) var(--ck-ease-standard),
+        background-color var(--ck-motion-normal) var(--ck-ease-standard),
+        color var(--ck-motion-fast) var(--ck-ease-standard);
 }
 
 .entity-inline-compact-preview {
