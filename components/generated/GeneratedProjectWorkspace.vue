@@ -1,119 +1,109 @@
 <template>
   <div v-if="project" class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-    <Splitter v-if="explorerOpen" :gutter-size="1" class="hidden h-full min-h-0 !border-0 lg:flex">
-      <SplitterPanel :size="20" :min-size="12" class="min-h-0 min-w-0 overflow-hidden !border-0">
-        <section class="flex h-full min-h-0 flex-col overflow-hidden bg-content">
-          <header class="chrome-signal-rule flex h-10 shrink-0 items-center justify-between gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]">
-            <span class="min-w-0 flex-1 truncate font-medium">{{ $t('project.explorer') }}</span>
-            <div class="flex shrink-0 items-center gap-1">
-              <Button
-                icon="pi pi-refresh"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                :aria-label="$t('common.refresh')"
-                @click="$emit('refresh')"
-              />
-              <Button
-                icon="pi pi-angle-double-left"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                :aria-label="$t('project.collapseExplorer')"
-                @click="explorerOpen = false"
-              />
-            </div>
-          </header>
-          <Tree
-            v-model:selection-keys="selectionKeys"
-            v-model:expanded-keys="expandedKeys"
-            :value="explorerNodes"
-            selection-mode="single"
-            :aria-label="$t('project.explorer')"
-            class="min-h-0 flex-1 overflow-y-auto !border-0 !p-0"
-            :pt="explorerTreePt"
-            @node-select="selectNode"
-          >
-            <template #default="{ node }">
-              <div v-if="node.data?.item?.kind === 'entity'" class="min-w-0">
-                <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0" />
-              </div>
-              <div v-else class="flex min-w-0 flex-1 items-center gap-2">
-                <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
-                <span v-if="node.data?.section" class="text-sm text-muted-color">{{ node.children?.length || 0 }}</span>
-              </div>
-            </template>
-          </Tree>
-        </section>
-      </SplitterPanel>
-
-      <SplitterPanel :size="80" :min-size="30" class="min-h-0 min-w-0 overflow-hidden !border-0">
-        <WorkspaceSplitNode
-          :node="paneTree"
-          :active-pane-id="activePaneId"
-          @activate="activatePane"
-        >
-          <template #default="{ pane }">
-            <GeneratedWorkspacePane
-              :item="itemForPane(pane)"
-              :action-entries="actionEntriesForPane(pane)"
-              :closeable="paneCount > 1"
-              @execute-action="executeWorkspaceAction"
-              @open-page="openWorkspacePage"
-              @refresh="$emit('refresh')"
-              @split="orientation => splitPane(pane.id, orientation)"
-              @close="closePane(pane.id)"
-            />
-          </template>
-        </WorkspaceSplitNode>
-      </SplitterPanel>
-    </Splitter>
-
-    <WorkspaceSplitNode
-      v-else
-      :node="paneTree"
-      :active-pane-id="activePaneId"
-      class="hidden h-full min-h-0 lg:block"
-      @activate="activatePane"
+    <header
+      class="chrome-signal-rule flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]"
+      data-project-actions-strip
     >
-      <template #default="{ pane }">
+      <Button
+        class="hidden lg:inline-flex"
+        :icon="explorerOpen ? 'pi pi-angle-double-left' : 'pi pi-angle-double-right'"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t(explorerOpen ? 'project.collapseExplorer' : 'project.expandExplorer')"
+        @click="explorerOpen = !explorerOpen"
+      />
+      <GeneratedProjectActionPalette
+        :action-entries="projectActions"
+        @execute-action="executeWorkspaceAction"
+      />
+    </header>
+
+    <div class="min-h-0 flex-1 overflow-hidden">
+      <Splitter :gutter-size="1" class="hidden h-full min-h-0 !border-0 lg:flex">
+        <SplitterPanel
+          v-if="explorerOpen"
+          key="workspace-explorer"
+          :size="20"
+          :min-size="12"
+          class="min-h-0 min-w-0 overflow-hidden !border-0"
+        >
+          <section class="flex h-full min-h-0 flex-col overflow-hidden bg-content">
+            <header class="chrome-signal-rule flex h-10 shrink-0 items-center border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]">
+              <span class="min-w-0 flex-1 truncate font-medium">{{ $t('project.explorer') }}</span>
+            </header>
+            <Tree
+              v-model:selection-keys="selectionKeys"
+              v-model:expanded-keys="expandedKeys"
+              :value="explorerNodes"
+              selection-mode="single"
+              :aria-label="$t('project.explorer')"
+              class="min-h-0 flex-1 overflow-y-auto !border-0 !p-0"
+              :pt="explorerTreePt"
+              @node-select="selectNode"
+            >
+              <template #default="{ node }">
+                <div v-if="node.data?.item?.kind === 'entity'" class="min-w-0">
+                  <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0" />
+                </div>
+                <div v-else class="flex min-w-0 flex-1 items-center gap-2">
+                  <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
+                  <span v-if="node.data?.section" class="text-sm text-muted-color">{{ node.children?.length || 0 }}</span>
+                </div>
+              </template>
+            </Tree>
+          </section>
+        </SplitterPanel>
+
+        <SplitterPanel
+          key="workspace-content"
+          :size="explorerOpen ? 80 : 100"
+          :min-size="30"
+          class="min-h-0 min-w-0 overflow-hidden !border-0"
+        >
+          <WorkspaceSplitNode
+            :node="paneTree"
+            :active-pane-id="activePaneId"
+            @activate="activatePane"
+          >
+            <template #default="{ pane }">
+              <GeneratedWorkspacePane
+                :item="itemForPane(pane)"
+                :action-entries="actionEntriesForPane(pane)"
+                :closeable="paneCount > 1"
+                @execute-action="executeWorkspaceAction"
+                @open-page="openWorkspacePage"
+                @refresh="$emit('refresh')"
+                @split="orientation => splitPane(pane.id, orientation)"
+                @close="closePane(pane.id)"
+              />
+            </template>
+          </WorkspaceSplitNode>
+        </SplitterPanel>
+      </Splitter>
+
+      <div class="flex h-full min-h-0 flex-col lg:hidden">
+        <div class="shrink-0 border-b border-content-border p-1">
+          <EntitySelect
+            v-model="mobileSelectedKey"
+            :options="mobileWorkspaceOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            @update:model-value="selectByKey"
+          />
+        </div>
         <GeneratedWorkspacePane
-          :item="itemForPane(pane)"
-          :action-entries="actionEntriesForPane(pane)"
-          :closeable="paneCount > 1"
-          :show-explorer-toggle="pane.id === activePaneId"
+          class="min-h-0 flex-1"
+          :item="itemForPane(activePane)"
+          :action-entries="actionEntriesForPane(activePane)"
+          :splittable="false"
           @execute-action="executeWorkspaceAction"
           @open-page="openWorkspacePage"
           @refresh="$emit('refresh')"
-          @split="orientation => splitPane(pane.id, orientation)"
-          @close="closePane(pane.id)"
-          @toggle-explorer="explorerOpen = true"
-        />
-      </template>
-    </WorkspaceSplitNode>
-
-    <div class="flex h-full min-h-0 flex-col lg:hidden">
-      <div class="shrink-0 border-b border-content-border p-1">
-        <EntitySelect
-          v-model="mobileSelectedKey"
-          :options="mobileWorkspaceOptions"
-          option-label="label"
-          option-value="value"
-          class="w-full"
-          @update:model-value="selectByKey"
         />
       </div>
-      <GeneratedWorkspacePane
-        class="min-h-0 flex-1"
-        :item="itemForPane(activePane)"
-        :action-entries="actionEntriesForPane(activePane)"
-        :splittable="false"
-        @execute-action="executeWorkspaceAction"
-        @open-page="openWorkspacePage"
-        @refresh="$emit('refresh')"
-      />
     </div>
   </div>
 </template>
@@ -128,6 +118,7 @@ import { useI18n } from 'vue-i18n';
 import EntitySelect from '~/components/shared/EntitySelect.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
+import GeneratedProjectActionPalette from '~/components/generated/GeneratedProjectActionPalette.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
@@ -217,12 +208,6 @@ const projectActions = computed(() => projectContextActionEntries({
   project: project.value,
   projectContext: projectActionContext.value
 }));
-const projectActionsPage = computed(() => project.value ? {
-  key: 'page:project-actions',
-  kind: 'page',
-  pageId: 'project-actions',
-  actionEntries: projectActions.value
-} : null);
 const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
   const entityItem = entityItems.value.find(item => (
     item.type === reference.entityType
@@ -239,7 +224,6 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
   };
 }).filter(Boolean));
 const workspaceItems = computed(() => [
-  projectActionsPage.value,
   ...entityItems.value,
   ...openedPageItems.value
 ].filter(Boolean));
@@ -257,7 +241,6 @@ const explorerNodes = computed(() => {
     icon: domainUi.getIcon('project'),
     data: { item: projectItem.value },
     children: [
-      pageNode(projectActionsPage.value),
       ...childSections.value.map(section => ({
         key: `section:${section.region.id}`,
         label: generatedEntityLabel(section.entityType, { t, te }),
@@ -377,7 +360,6 @@ function syncActiveSelection() {
 
 function itemForPane(pane) {
   return workspaceItems.value.find(item => item.key === pane?.selectionKey)
-    || projectActionsPage.value
     || projectItem.value
     || null;
 }
@@ -459,7 +441,7 @@ function workspaceItemLabel(item) {
 }
 
 function defaultPaneKey() {
-  return projectActionsPage.value?.key || projectKey.value;
+  return projectKey.value;
 }
 
 function sourceStateForRegion(region = {}) {

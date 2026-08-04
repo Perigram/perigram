@@ -13,8 +13,10 @@ const queueEntrySource = readFileSync(new URL('../entities/Queue/QueueEntryCard.
 const responsiveGridSource = readFileSync(new URL('../shared/ResponsiveGrid.vue', import.meta.url), 'utf8');
 
 describe('project file operations and queue pane density', () => {
-  it('renders compiled project actions and operational editors as registered workspace pages', () => {
-    expect(projectWorkspaceSource).toContain("pageId: 'project-actions'");
+  it('renders compiled project actions in the workspace strip and operational editors as registered pages', () => {
+    expect(projectWorkspaceSource).toContain('data-project-actions-strip');
+    expect(projectWorkspaceSource).toContain('<GeneratedProjectActionPalette');
+    expect(projectWorkspaceSource).not.toContain("pageId: 'project-actions'");
     expect(projectWorkspaceSource).toContain('projectContextActionEntries');
     expect(projectWorkspaceSource).toContain('openWorkspacePage');
     expect(workspacePaneSource).toContain("item?.kind === 'entity'");
@@ -22,6 +24,7 @@ describe('project file operations and queue pane density', () => {
     expect(workspacePageSource).toContain('resolveGeneratedWorkspacePage');
     expect(workspacePageSource).toContain('<component');
     expect(actionPaletteSource).toContain('data-project-action-palette');
+    expect(actionPaletteSource).toContain('overflow-x-auto');
     expect(actionPaletteSource).toContain('v-for="entry in actionEntries"');
     expect(actionPaletteSource).toContain('<GeneratedActionButton');
     expect(cassetteDesignerPageSource).toContain('embedded');

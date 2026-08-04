@@ -1067,14 +1067,15 @@
 
 *** [2026-08-04] Workspace page and project-action follow-up
 
-    Replaced the project file's special filtered launcher with a registered
-    workspace-page contract. The initial project-actions page resolves only
+    Added a registered workspace-page contract while keeping project-level
+    controls outside page content. A fixed top action strip resolves only
     screen-compiled project actions and direct project-child creates through
-    the effective action manifest and current project lifecycle. The Explorer
-    is collapsible, uses the app chrome tokens, and tracks page selections
-    alongside entity files. Cassette files can now open the embedded cassette
-    designer as a pane page using only cassette templates already loaded by the
-    project workspace. Updated generated-workspace and component documentation.
+    the effective action manifest and current project lifecycle. Its left-edge
+    control toggles the Explorer; the Explorer contains only source navigation,
+    and collapse preserves the recursive pane tree while letting it consume the
+    released width. Cassette files can open the embedded cassette designer as a
+    pane page using only cassette templates already loaded by the project
+    workspace. Updated generated-workspace and component documentation.
 
     Validation: generated workspace tests (34), the design-system suite (46),
     SFC compile checks, the PrimeVue preset import, and `git diff --check`

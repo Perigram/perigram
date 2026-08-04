@@ -37,16 +37,6 @@
         />
       </EntityActionsPopover>
       <Button
-        v-if="showExplorerToggle"
-        icon="pi pi-folder-open"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t('project.expandExplorer')"
-        @click="$emit('toggle-explorer')"
-      />
-      <Button
         v-if="splittable"
         icon="pi pi-arrows-h"
         text
@@ -120,11 +110,10 @@ const props = defineProps({
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true },
-  showExplorerToggle: { type: Boolean, default: false },
   showGeneratedActions: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['execute-action', 'open-page', 'refresh', 'split', 'close', 'toggle-explorer']);
+const emit = defineEmits(['execute-action', 'open-page', 'refresh', 'split', 'close']);
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const fileDisplayOverrides = {
