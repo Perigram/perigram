@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full min-h-0 min-w-0 flex-wrap content-start items-start gap-2 overflow-y-auto p-2" data-project-action-palette>
+  <div class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto" data-project-action-palette>
     <GeneratedActionButton
       v-for="entry in actionEntries"
       :key="entry.key"

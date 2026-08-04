@@ -30,7 +30,7 @@ describe('generated project workspace architecture', () => {
     expect(workspacePaneSource).toContain('<GeneratedEntityFile');
     expect(workspacePaneSource).toContain('<GeneratedWorkspacePage');
     expect(workspacePageSource).toContain('resolveGeneratedWorkspacePage');
-    expect(workspacePagesSource).toContain("id: 'project-actions'");
+    expect(workspacePagesSource).not.toContain("id: 'project-actions'");
     expect(workspacePagesSource).toContain("id: 'cassette-designer'");
     expect(entityFileSource).toContain('<GeneratedEntityDetailBody');
     expect(entityFileSource).toContain('generatedDetailActionIds');
@@ -63,13 +63,23 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).toContain('<EntityActionsPopover');
   });
 
-  it('owns a borderless flush frame and a collapsible, token-backed Explorer', () => {
+  it('keeps project actions and Explorer visibility in fixed workspace chrome', () => {
     expect(source).toContain("class=\"flex h-full min-h-0 flex-1 flex-col overflow-hidden\"");
+    expect(source).toContain('data-project-actions-strip');
+    expect(source).toContain('<GeneratedProjectActionPalette');
+    expect(source).toContain('class="min-h-0 flex-1 overflow-hidden"');
     expect(source).toContain('!border-0 !p-0');
     expect(source).toContain("'!px-1 !py-0.5 !gap-1'");
     expect(source).toContain('explorerOpen');
     expect(source).toContain("project.collapseExplorer");
-    expect(source).toContain('show-explorer-toggle');
+    expect(source).toContain("project.expandExplorer");
+    expect(source.match(/:node="paneTree"/g)).toHaveLength(1);
+    expect(source).toContain('key="workspace-content"');
+    expect(source).toContain(':size="explorerOpen ? 80 : 100"');
+    expect(source).not.toContain("pageId: 'project-actions'");
+    expect(workspacePaneSource).not.toContain('showExplorerToggle');
+    expect(entityFileSource).not.toContain('project.expandExplorer');
+    expect(workspacePageSource).not.toContain('project.expandExplorer');
     expect(source).toContain('chrome-signal-rule');
     expect(source).toContain('bg-chrome');
     expect(generatedScreenSource).toContain(':workspace="Boolean(screenOverload)"');

@@ -7,16 +7,6 @@
       <i :class="[definition.icon, 'shrink-0']" aria-hidden="true"></i>
       <span class="min-w-0 flex-1 truncate font-medium">{{ $t(definition.labelKey) }}</span>
       <Button
-        v-if="showExplorerToggle"
-        icon="pi pi-folder-open"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t('project.expandExplorer')"
-        @click="$emit('toggle-explorer')"
-      />
-      <Button
         v-if="splittable"
         icon="pi pi-arrows-h"
         text
@@ -68,11 +58,10 @@ import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-
 const props = defineProps({
   page: { type: Object, required: true },
   closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true },
-  showExplorerToggle: { type: Boolean, default: false }
+  splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-page', 'refresh', 'split', 'close', 'toggle-explorer']);
+defineEmits(['execute-action', 'open-page', 'refresh', 'split', 'close']);
 
 const definition = computed(() => resolveGeneratedWorkspacePage(props.page?.pageId));
 const pageProps = computed(() => definition.value?.props?.(props.page) || {});
