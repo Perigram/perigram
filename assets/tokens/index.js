@@ -97,6 +97,22 @@ export const designTokens = {
         fast: '100ms',
         normal: '160ms'
     },
+    dock: {
+        inset: '0.75rem',
+        gap: '0.25rem',
+        padding: '0.25rem',
+        labelOffset: '0.5rem',
+        labelPadding: '0.125rem 0.5rem',
+        indicatorSize: '0.375rem',
+        indicatorInset: '0.125rem',
+        labelTransition: 0.16,
+        panelHeight: 40,
+        baseItemSize: 32,
+        magnification: 40,
+        distance: 96,
+        height: 64,
+        spring: { mass: 0.1, stiffness: 180, damping: 16 }
+    },
     typography: {
         ui: "'JetBrains Mono', monospace",
         mono: "'JetBrains Mono', monospace",
@@ -198,6 +214,13 @@ export const cssVariableTokens = {
     '--ck-shadow-overlay': designTokens.shadow.overlay,
     '--ck-motion-fast': designTokens.motion.fast,
     '--ck-motion-normal': designTokens.motion.normal,
+    '--ck-dock-inset': designTokens.dock.inset,
+    '--ck-dock-gap': designTokens.dock.gap,
+    '--ck-dock-padding': designTokens.dock.padding,
+    '--ck-dock-label-offset': designTokens.dock.labelOffset,
+    '--ck-dock-label-padding': designTokens.dock.labelPadding,
+    '--ck-dock-indicator-size': designTokens.dock.indicatorSize,
+    '--ck-dock-indicator-inset': designTokens.dock.indicatorInset,
     ...Object.fromEntries(Object.entries(signalOrangePrimary).map(([step, value]) => [`--ck-primary-${step}`, value])),
     ...Object.fromEntries(Object.entries(hardNeutralSurface).map(([step, value]) => [`--ck-surface-${step}`, value]))
 };

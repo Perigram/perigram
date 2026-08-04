@@ -105,20 +105,16 @@
         </div>
       </div>
 
-      <div class="absolute bottom-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-0.5 rounded-ui border border-content-border bg-content p-1 shadow-card" @mousedown.stop @click.stop>
-        <Button icon="pi pi-sitemap" text size="small" v-tooltip.top="$t('processDesigner.title')" :aria-label="$t('processDesigner.title')" @click="toggleProcessMenu" />
-        <Button icon="pi pi-bars" text size="small" v-tooltip.top="$t('processDesigner.palette')" :aria-label="$t('processDesigner.palette')" :aria-pressed="paletteOpen" @click="paletteOpen = !paletteOpen" />
-        <Button icon="pi pi-sliders-h" text size="small" v-tooltip.top="$t('processDesigner.inspector')" :aria-label="$t('processDesigner.inspector')" :aria-pressed="inspectorOpen" @click="inspectorOpen = !inspectorOpen" />
-        <span class="mx-0.5 h-4 w-px bg-content-border" aria-hidden="true"></span>
-        <span class="relative inline-flex">
-          <Button icon="pi pi-save" text size="small" v-tooltip.top="$t('common.save')" :aria-label="$t('common.save')" :severity="isDirty ? undefined : 'secondary'" :loading="savingDraft" :disabled="!isDirty" @click="saveDraftFromDock" />
-          <span v-if="isDirty" class="pointer-events-none absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true"></span>
-        </span>
-        <Button icon="pi pi-check-circle" text size="small" v-tooltip.top="$t('processDesigner.validate')" :aria-label="$t('processDesigner.validate')" :severity="validation && !validation.ok ? 'danger' : 'secondary'" :loading="validatingDraft" @click="toggleValidationMenu" />
-        <Button icon="pi pi-check" text size="small" v-tooltip.top="$t('processDesigner.apply')" :aria-label="$t('processDesigner.apply')" :loading="applyingProcess" :disabled="!draft?._id" @click="applyProcess" />
-        <span class="mx-0.5 h-4 w-px bg-content-border" aria-hidden="true"></span>
-        <Button icon="pi pi-search" text size="small" v-tooltip.top="$t('processDesigner.frameAll')" :aria-label="$t('processDesigner.frameAll')" @click="toggleCanvasMenu" />
-      </div>
+      <VueBitsDock
+        :items="designerDockItems"
+        :aria-label="$t('processDesigner.title')"
+        :distance="designTokens.dock.distance"
+        :panel-height="designTokens.dock.panelHeight"
+        :base-item-size="designTokens.dock.baseItemSize"
+        :dock-height="designTokens.dock.height"
+        :magnification="designTokens.dock.magnification"
+        :spring="designTokens.dock.spring"
+      />
 
       <Popover ref="processMenu">
         <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
@@ -883,7 +879,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { SelectionMode, VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -933,6 +929,8 @@ import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
+import VueBitsDock from '~/components/process-designer/VueBitsDock.vue';
+import { designTokens } from '~/assets/tokens/index.js';
 import { normalizeProcessDisplayName } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 
@@ -1156,6 +1154,52 @@ const defaultEdgeOptions = { type: 'default' };
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
+const designerDockItems = computed(() => [
+  {
+    icon: () => h('i', { class: 'pi pi-sitemap', 'aria-hidden': 'true' }),
+    label: t('processDesigner.title'),
+    onClick: toggleProcessMenu,
+    hasPopup: true
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-bars', 'aria-hidden': 'true' }),
+    label: t('processDesigner.palette'),
+    onClick: () => { paletteOpen.value = !paletteOpen.value; },
+    pressed: paletteOpen.value
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-sliders-h', 'aria-hidden': 'true' }),
+    label: t('processDesigner.inspector'),
+    onClick: () => { inspectorOpen.value = !inspectorOpen.value; },
+    pressed: inspectorOpen.value
+  },
+  {
+    icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    label: t('common.save'),
+    onClick: saveDraftFromDock,
+    disabled: !isDirty.value || savingDraft.value,
+    attention: isDirty.value
+  },
+  {
+    icon: () => h('i', { class: validatingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-check-circle', 'aria-hidden': 'true' }),
+    label: t('processDesigner.validate'),
+    onClick: toggleValidationMenu,
+    disabled: validatingDraft.value,
+    hasPopup: true
+  },
+  {
+    icon: () => h('i', { class: applyingProcess.value ? 'pi pi-spinner pi-spin' : 'pi pi-check', 'aria-hidden': 'true' }),
+    label: t('processDesigner.apply'),
+    onClick: applyProcess,
+    disabled: !draft.value?._id || applyingProcess.value
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-search', 'aria-hidden': 'true' }),
+    label: t('processDesigner.frameAll'),
+    onClick: toggleCanvasMenu,
+    hasPopup: true
+  }
+]);
 const processOptions = computed(() => processDefinitions.value.map(process => ({
   label: [
     normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id),

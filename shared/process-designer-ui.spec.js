@@ -5,6 +5,7 @@ import path from 'node:path';
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const nodeSource = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessNode.vue'), 'utf8');
 const statusNodeSource = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessStatusDefinitionNode.vue'), 'utf8');
+const vueBitsDockSource = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/VueBitsDock.vue'), 'utf8');
 const designerSource = fs.readFileSync(path.join(REPO_ROOT, 'pages/organization/process.vue'), 'utf8');
 const selectedNodeSources = [
   'ProcessActionNode.vue',
@@ -108,12 +109,21 @@ describe('process designer canvas UI', () => {
   it('uses a compact bottom dock with focused process and validation popups', () => {
     expect(designerSource).toContain('v-if="paletteOpen"');
     expect(designerSource).toContain('v-if="inspectorOpen"');
-    expect(designerSource).toContain('absolute bottom-3 left-1/2 z-30');
+    expect(designerSource).toContain('<VueBitsDock');
+    expect(designerSource).toContain(':items="designerDockItems"');
+    expect(designerSource).toContain(':magnification="designTokens.dock.magnification"');
+    expect(vueBitsDockSource).toContain("from 'motion-v'");
+    expect(vueBitsDockSource).toContain("name: 'VueBitsDock'");
+    expect(vueBitsDockSource).toContain('useMotionValue(Infinity)');
+    expect(vueBitsDockSource).toContain('useSpring(targetSize, props.spring)');
+    expect(vueBitsDockSource).toContain('var(--p-content-background)');
+    expect(vueBitsDockSource).not.toContain("backgroundColor: '#111'");
+    expect(vueBitsDockSource).not.toContain("border: '1px solid #222'");
     expect(designerSource).not.toContain('absolute inset-x-3 top-3 z-30');
     expect(designerSource).toContain('absolute left-3 top-3 z-20');
     expect(designerSource).toContain('absolute bottom-16 right-3 top-3 z-20');
-    expect(designerSource).toContain('@click="paletteOpen = !paletteOpen"');
-    expect(designerSource).toContain('@click="inspectorOpen = !inspectorOpen"');
+    expect(designerSource).toContain('paletteOpen.value = !paletteOpen.value');
+    expect(designerSource).toContain('inspectorOpen.value = !inspectorOpen.value');
     expect(designerSource).toContain('<Popover ref="processMenu">');
     expect(designerSource).toContain('<Popover ref="validationMenu">');
     expect(designerSource).toContain('<Popover ref="canvasMenu">');
@@ -121,9 +131,10 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('createDraftFromProcessMenu');
     expect(designerSource).toContain('saveDraftFromDock');
     expect(designerSource).toContain('toggleValidationMenu');
-    expect(designerSource).toContain('v-if="isDirty"');
+    expect(designerSource).toContain('attention: isDirty.value');
+    expect(vueBitsDockSource).toContain('this.item.attention');
     expect(designerSource).not.toContain('draftStateLabel');
-    expect(designerSource).toContain('@click="applyProcess"');
+    expect(designerSource).toContain('onClick: applyProcess');
     expect(designerSource).toContain("summary: t('processDesigner.newDraft')");
     expect(designerSource).toContain('return created;');
     expect(designerSource).toContain('if (!result.ok) throw new Error');

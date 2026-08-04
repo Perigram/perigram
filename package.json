@@ -46,6 +46,7 @@
     "formidable": "^3.5.4",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "6.8",
+    "motion-v": "^1.10.3",
     "multiparty": "^4.2.3",
     "nodemailer": "^7.0.3",
     "nodi-modular": "^0.0.41",
