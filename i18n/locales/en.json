@@ -296,6 +296,8 @@
     "deleted": "Project deleted",
     "cassetteLibraries": "Cassette libraries",
     "explorer": "Explorer",
+    "collapseExplorer": "Collapse Explorer",
+    "expandExplorer": "Show Explorer",
     "splitRight": "Split right",
     "splitDown": "Split down"
   },

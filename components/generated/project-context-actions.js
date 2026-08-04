@@ -1,0 +1,70 @@
+import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
+
+export function projectContextActionEntries({
+  actionManifest = [],
+  screenActionIds = [],
+  projectActionIds = [],
+  childSections = [],
+  project = null,
+  projectContext = {}
+} = {}) {
+  if (!project) return [];
+
+  const childActionIds = new Set(childSections.flatMap(section => section.region?.actions || []));
+  const projectEntries = entriesForProject(
+    [...screenActionIds, ...projectActionIds].filter(actionId => !childActionIds.has(actionId)),
+    actionManifest,
+    project,
+    projectContext
+  );
+  const childCreateEntries = childSections.flatMap(section => childCreateActions({
+    section,
+    actionManifest,
+    project
+  }));
+
+  return uniqueEntries([...projectEntries, ...childCreateEntries]);
+}
+
+function entriesForProject(actionIds, actionManifest, project, context) {
+  return [...new Set(actionIds)]
+    .map(actionId => actionManifest.find(action => action.actionId === actionId))
+    .filter(Boolean)
+    .filter(isGeneratedSurfaceAction)
+    .filter(action => actionAppliesToEntity(action, project, 'project'))
+    .map(action => ({
+      key: `project:${action.actionId}`,
+      actionId: action.actionId,
+      entity: project,
+      context
+    }));
+}
+
+function childCreateActions({ section = {}, actionManifest = [], project = null } = {}) {
+  return [...new Set(section.region?.actions || [])]
+    .map(actionId => actionManifest.find(action => action.actionId === actionId))
+    .filter(Boolean)
+    .filter(isGeneratedSurfaceAction)
+    .filter(action => (
+      action.actionKind === 'createEntity'
+      && action.entityType === section.entityType
+      && parentEntityType(action) === 'project'
+      && actionAppliesToEntity(action, project, 'project')
+    ))
+    .map(action => ({
+      key: `collection:${section.region?.id || section.entityType}:${action.actionId}`,
+      actionId: action.actionId,
+      entity: null,
+      context: section.context || {}
+    }));
+}
+
+function parentEntityType(action = {}) {
+  return action.parentEntityType
+    || action.inputs?.find(input => input.id === 'parent')?.entityType
+    || '';
+}
+
+function uniqueEntries(entries = []) {
+  return [...new Map(entries.map(entry => [entry.actionId, entry])).values()];
+}

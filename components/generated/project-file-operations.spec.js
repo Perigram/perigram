@@ -2,24 +2,33 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const entityFileSource = readFileSync(new URL('./GeneratedEntityFile.vue', import.meta.url), 'utf8');
-const projectHomeSource = readFileSync(new URL('./GeneratedProjectFileHome.vue', import.meta.url), 'utf8');
 const projectWorkspaceSource = readFileSync(new URL('./GeneratedProjectWorkspace.vue', import.meta.url), 'utf8');
+const workspacePaneSource = readFileSync(new URL('./GeneratedWorkspacePane.vue', import.meta.url), 'utf8');
+const workspacePageSource = readFileSync(new URL('./GeneratedWorkspacePage.vue', import.meta.url), 'utf8');
+const actionPaletteSource = readFileSync(new URL('./GeneratedProjectActionPalette.vue', import.meta.url), 'utf8');
+const cassetteDesignerPageSource = readFileSync(new URL('./GeneratedCassetteDesignerWorkspacePage.vue', import.meta.url), 'utf8');
+const cassetteDesignerSource = readFileSync(new URL('../CassetteDesignerV2.vue', import.meta.url), 'utf8');
 const queueEditorSource = readFileSync(new URL('../QueueEditor.vue', import.meta.url), 'utf8');
 const queueEntrySource = readFileSync(new URL('../entities/Queue/QueueEntryCard.vue', import.meta.url), 'utf8');
 const responsiveGridSource = readFileSync(new URL('../shared/ResponsiveGrid.vue', import.meta.url), 'utf8');
 
 describe('project file operations and queue pane density', () => {
-  it('uses the project file body as a compiled operation launcher', () => {
-    expect(entityFileSource).toContain('<GeneratedProjectFileHome');
-    expect(entityFileSource).toContain("v-if=\"item.type === 'project'\"");
-    expect(entityFileSource).toContain(':action-entries="launcherActionEntries"');
-    expect(entityFileSource).toContain('entry => entry.launcher');
-    expect(projectHomeSource).toContain('v-for="entry in actionEntries"');
-    expect(projectHomeSource).toContain('<GeneratedActionButton');
-    expect(projectWorkspaceSource).toContain('isProjectFileLauncherAction');
-    expect(projectWorkspaceSource).toContain('launcher: true');
-    expect(projectHomeSource).not.toContain('/api/');
-    expect(projectHomeSource).not.toContain('actionKind');
+  it('renders compiled project actions and operational editors as registered workspace pages', () => {
+    expect(projectWorkspaceSource).toContain("pageId: 'project-actions'");
+    expect(projectWorkspaceSource).toContain('projectContextActionEntries');
+    expect(projectWorkspaceSource).toContain('openWorkspacePage');
+    expect(workspacePaneSource).toContain("item?.kind === 'entity'");
+    expect(workspacePaneSource).toContain("item?.kind === 'page'");
+    expect(workspacePageSource).toContain('resolveGeneratedWorkspacePage');
+    expect(workspacePageSource).toContain('<component');
+    expect(actionPaletteSource).toContain('data-project-action-palette');
+    expect(actionPaletteSource).toContain('v-for="entry in actionEntries"');
+    expect(actionPaletteSource).toContain('<GeneratedActionButton');
+    expect(cassetteDesignerPageSource).toContain('embedded');
+    expect(cassetteDesignerPageSource).toContain("pageId: 'cassette-designer'");
+    expect(cassetteDesignerPageSource).not.toContain('/api/');
+    expect(cassetteDesignerSource).toContain("embedded ? 'h-full'");
+    expect(entityFileSource).not.toContain('GeneratedProjectFileHome');
   });
 
   it('lets the queue workspace consume the full pane when no support region renders', () => {

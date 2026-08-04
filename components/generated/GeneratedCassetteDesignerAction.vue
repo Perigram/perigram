@@ -11,6 +11,7 @@
     @click="openDesigner"
   />
   <StandardDialog
+    v-if="!openInWorkspace"
     v-model:visible="visible"
     :header="$t('cassette.designerTitle')"
     size="full"
@@ -37,10 +38,11 @@ import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  menuItem: { type: Boolean, default: false }
+  menuItem: { type: Boolean, default: false },
+  openInWorkspace: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['refresh']);
+const emit = defineEmits(['open-page', 'refresh']);
 
 const authStore = useAuthStore();
 const { activePermissions } = storeToRefs(authStore);
@@ -66,6 +68,14 @@ const templateOptions = computed(() => {
 const persistedTemplateIds = computed(() => templateOptions.value.map(item => item.value).filter(Boolean));
 
 async function openDesigner() {
+  if (props.openInWorkspace) {
+    emit('open-page', {
+      pageId: 'cassette-designer',
+      entity: props.entity,
+      entityType: 'cassette'
+    });
+    return;
+  }
   visible.value = true;
   if (!cassettes.value.length) {
     cassettes.value = await $fetch('/api/cassettes').catch(() => [props.entity]);

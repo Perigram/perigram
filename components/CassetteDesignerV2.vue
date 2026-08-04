@@ -1,5 +1,11 @@
 <template>
-  <div class="relative flex h-[calc(100dvh-10rem)] min-h-0 min-w-0 flex-col gap-3 overflow-hidden" @keydown.esc.capture="handleDesignerEscape">
+  <div
+    :class="[
+      'relative flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden',
+      embedded ? 'h-full' : 'h-[calc(100dvh-10rem)]'
+    ]"
+    @keydown.esc.capture="handleDesignerEscape"
+  >
     <div
       v-if="showOnboardingRail"
       class="absolute z-[140] w-80 rounded-ui border border-content-border bg-content p-3 [box-shadow:var(--ck-shadow-overlay)]"
@@ -881,6 +887,10 @@ const props = defineProps({
   persistedTemplateIds: {
     type: Array,
     default: () => []
+  },
+  embedded: {
+    type: Boolean,
+    default: false
   },
   persist: {
     type: Boolean,
