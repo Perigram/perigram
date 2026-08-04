@@ -236,8 +236,9 @@
    canvas, rather than appearing only when an arbitrary node is selected.
 
    Show dirty, saving, saved, validating, validation-failed, and activating
-   states. Activation requires successful validation, and the UI must make the
-   boundary between saving a draft and applying it to the organization clear.
+   states without a persistent status badge. Activation requires successful
+   validation, and the UI must make the boundary between saving a draft and
+   applying it to the organization clear.
 
    Acceptance: edit each designer plane, save without activation, validate,
    locate and fix errors, and activate without selecting a node.
@@ -252,8 +253,9 @@
 
    Make palette and inspector independently collapsible. Preserve a useful
    canvas and reachable primary actions on narrow laptops and supported tablet
-   widths. Derive empty-state and toolbar placement from visible rails instead
-   of fixed offsets.
+   widths. Use a compact bottom dock with focused process, validation, and view
+   popups; derive empty-state and dock placement from visible rails instead of
+   fixed offsets.
 
    Preserve Blender-like canvas behavior already required by the design:
 
@@ -336,6 +338,9 @@
    - Draft actions are persistent, activation validates first, dirty/operation
      state is visible, and both side rails are independently collapsible with
      narrow-layout overlays.
+   - The dock keeps only icon controls on the canvas: process selection/new,
+     validation, and view controls open focused popups; dirty work is shown on
+     Save rather than as a status badge, and failed draft creation is visible.
    - Selected canvas nodes use a single primary border across current and
      legacy read-only node views; an outer selection ring does not create a
      duplicate outline.

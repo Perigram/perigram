@@ -40,8 +40,8 @@ process definitions with Vue Flow, persists drafts through
 activates compiled runtime contracts for access, screen manifests, navigation,
 entity workflows, services, sockets, and field policies. The checkmark apply
 button saves or forks the visible graph, activates the resulting process
-definition, and surfaces activation warnings/errors in the validation panel so
-operators can tell when the graph became the organization's active process.
+definition, and records activation warnings/errors in the validation popup so
+operators can inspect the result without a persistent canvas panel.
 The route uses the
 authenticated app layout with a full canvas workspace and compact floating
 controls over it. The graph palette is a compact, descriptive control with four
@@ -60,8 +60,9 @@ prose.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
 moving the canvas. Palette and inspector rails are opaque structural surfaces
-below a split command bar: process selection/state stays together, while draft
-lifecycle actions have their own action group.
+around a compact icon-only bottom dock. Process selection and New Draft live in
+a focused popup; validation and view controls open their own popups. Unsaved
+work is signaled by the active save control and a dot rather than a text badge.
 When older saved graphs still contain role/user layout nodes, the route filters
 those non-canvas nodes out and reconstructs entity/service/socket nodes from
 the process records so active definitions do not open to a blank canvas. Truly

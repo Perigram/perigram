@@ -179,11 +179,14 @@ scroll pans, pinch zooms around the pointer, and Space plus left drag provides
 keyboard-assisted panning without a middle mouse button. A selected node uses
 one primary border only; it does not add an outer ring or second outline.
 The canvas uses its own token-backed work surface. Opaque palette and inspector
-rails sit below a command bar that separates process selection/state from draft
-lifecycle actions, so persistent controls do not compete with the graph.
+rails leave the graph clear behind one compact bottom dock. The dock is
+icon-only: process selection and New Draft live in a focused popup, validation
+runs and reports in its own popup, and frame/zoom controls are grouped in a
+view popup. Dirty state is a primary save affordance plus a small dot, not a
+persistent text badge.
 Delete/Backspace removes all selected nodes and edges together while preserving
 definition records that are still referenced. Home frames the graph,
-Numpad Decimal frames the selection, and the compact canvas toolbar exposes
+Numpad Decimal frames the selection, and the dock's view popup exposes
 frame/zoom controls without requiring shortcuts. Zoom spans 0.1x through 4x,
 and the live viewport is persisted with the graph. Runtime-only selection
 styles are stripped before serialization. Validation reports missing sockets,
@@ -196,12 +199,12 @@ selected entity cards render outside the input and the compact change chevron
 remains a separate trigger. Process-node field/type selectors use ordinary
 PrimeVue controls because their values are schemas, not entities.
 
-New Draft, Save, Validate, and Apply are persistent toolbar actions and do not
-depend on a node selection or active inspector tab. The toolbar reports dirty,
-saving, saved, validating, and activating states. Apply saves and validates the
-draft first and refuses activation when validation fails. On narrow layouts the
-toolbar scrolls horizontally, both side rails become overlays, and either rail
-can be closed independently to recover the canvas.
+New Draft, Save, Validate, and Apply do not depend on a node selection or
+active inspector tab. New Draft exposes creation success or failure rather than
+silently failing; Save becomes active only when the graph is dirty. Apply saves
+and validates the draft first and refuses activation when validation fails. On
+narrow layouts the bottom dock remains icon-only, both side rails become
+overlays, and either rail can be closed independently to recover the canvas.
 
 Legacy `ProcessActionNode`, `ProcessEntityNode`, `ProcessServiceNode`,
 `ProcessSocketNode`, `ProcessStatusDefinitionNode`, and
