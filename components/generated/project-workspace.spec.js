@@ -78,7 +78,11 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain('key="workspace-content"');
     expect(source).toContain(':size="15"');
     expect(source).toContain(':min-size="10"');
-    expect(source).toContain(':size="explorerOpen ? 85 : 100"');
+    expect(source).toContain(':size="85"');
+    expect(source).toContain(':pt="workspaceSplitterPt"');
+    expect(source).toContain("{ '!hidden': !explorerOpen }");
+    expect(source).toContain("gutter: { class: explorerOpen.value ? '' : '!hidden' }");
+    expect(source).not.toContain('v-if="explorerOpen"');
     expect(source).not.toContain("pageId: 'project-actions'");
     expect(workspacePaneSource).not.toContain('showExplorerToggle');
     expect(entityFileSource).not.toContain('project.expandExplorer');
@@ -100,6 +104,10 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain('if (pane.selectionKey && !visibleKeys.has(pane.selectionKey))');
     expect(source).not.toContain('defaultPaneKey');
     expect(source).not.toContain('|| projectItem.value');
+    expect(workspacePaneSource).toContain('data-empty-workspace-pane');
+    expect(workspacePaneSource).toContain('v-else');
+    expect(workspacePaneSource).toContain("$emit('split', 'horizontal')");
+    expect(workspacePaneSource).toContain("$emit('close')");
   });
 
   it('shows breadcrumb menus for actual alternatives rather than sibling array length', () => {
