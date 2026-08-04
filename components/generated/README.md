@@ -37,9 +37,11 @@ bounded IDE-style Explorer and file workspace:
   scrollable, starts directly below the workspace action strip without a local
   header, occupies the compact 15% side of the workspace split, and can collapse
   so file panes use the full workspace width. Its visibility is controlled from
-  the left edge of the fixed workspace action strip; collapsing it does not
-  rebuild or change the recursive pane tree. Nested workspace chrome does not
-  use the signal-orange action boundary.
+  the left edge of the fixed workspace action strip. Collapse hides the mounted
+  Explorer panel and its gutter instead of removing it from the PrimeVue
+  Splitter, so reopening restores the 15/85 proportions rather than rebalancing
+  to equal halves. It does not rebuild or change the recursive pane tree. Nested
+  workspace chrome does not use the signal-orange action boundary.
 - `GeneratedProjectActionPalette` renders directly in that top strip, outside
   both Explorer and pane content. It contains only action ids compiled onto the
   project screen/main region plus direct-project child creates from loaded child
@@ -68,8 +70,10 @@ Selectable rows still come from access-filtered screen source states; the
 Explorer contains no workspace actions or unrelated controls. Clicking an
 Explorer entity or registered page replaces the active pane selection;
 the initial pane and each newly split pane remain empty until the user selects
-content for that pane, and subsequent navigation is pane-local. Opened
-entity-bound pages remain nested beneath their source entity in the Explorer.
+content for that pane. Empty leaves still render the normal blank pane header
+with pane-local split/close controls, rather than disappearing into undifferentiated
+workspace space. Subsequent navigation is pane-local. Opened entity-bound pages
+remain nested beneath their source entity in the Explorer.
 When a child file opens, its actions come from that entity type's compiled
 detail screen in the current user's effective screen manifest. Parent-workspace
 region actions are merged only when they also apply to the selected entity.
