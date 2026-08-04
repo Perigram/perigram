@@ -183,7 +183,7 @@
             item: { type: Object as PropType<DockItemData>, required: true },
         },
         setup(props) {
-            const itemRef = ref<HTMLButtonElement>()
+            const itemRef = ref<HTMLButtonElement | null>(null)
             const isHovered = useMotionValue(0)
             const currentSize = ref(props.baseItemSize)
             const isFocused = ref(false)
@@ -213,18 +213,6 @@
                 },
             )
 
-            let unsubscribeSize: (() => void) | null = null
-
-            onMounted(() => {
-                unsubscribeSize = size.on('change', (latest: number) => {
-                    currentSize.value = latest
-                })
-            })
-
-            onUnmounted(() => {
-                unsubscribeSize?.()
-            })
-
             const handleHoverStart = (event: MouseEvent) => {
                 isHovered.set(1)
                 props.item.onHoverStart?.(event)
@@ -246,12 +234,38 @@
             const handleClick = (event: MouseEvent) => {
                 if (!props.item.disabled) props.item.onClick(event)
             }
+            const setItemRef = (element: HTMLButtonElement | null) => {
+                itemRef.value = element
+            }
+            let unsubscribeSize: (() => void) | null = null
+            let boundButton: HTMLButtonElement | null = null
+
+            onMounted(() => {
+                unsubscribeSize = size.on('change', (latest: number) => {
+                    currentSize.value = latest
+                })
+                boundButton = itemRef.value
+                boundButton?.addEventListener('mouseenter', handleHoverStart)
+                boundButton?.addEventListener('mouseleave', handleHoverEnd)
+                boundButton?.addEventListener('focus', handleFocus)
+                boundButton?.addEventListener('blur', handleBlur)
+                boundButton?.addEventListener('click', handleClick)
+            })
+
+            onUnmounted(() => {
+                unsubscribeSize?.()
+                boundButton?.removeEventListener('mouseenter', handleHoverStart)
+                boundButton?.removeEventListener('mouseleave', handleHoverEnd)
+                boundButton?.removeEventListener('focus', handleFocus)
+                boundButton?.removeEventListener('blur', handleBlur)
+                boundButton?.removeEventListener('click', handleClick)
+            })
 
             return {
-                itemRef,
                 currentSize,
                 isHovered,
                 isFocused,
+                setItemRef,
                 handleHoverStart,
                 handleHoverEnd,
                 handleFocus,
@@ -301,7 +315,7 @@
             return h(
                 'button',
                 {
-                    ref: 'itemRef',
+                    ref: this.setItemRef,
                     type: 'button',
                     style: itemStyle,
                     class: this.item.className,
@@ -309,11 +323,6 @@
                     'aria-label': this.item.label,
                     'aria-pressed': typeof this.item.pressed === 'boolean' ? this.item.pressed : undefined,
                     'aria-haspopup': this.item.hasPopup ? 'dialog' : undefined,
-                    onMouseenter: this.handleHoverStart,
-                    onMouseleave: this.handleHoverEnd,
-                    onFocus: this.handleFocus,
-                    onBlur: this.handleBlur,
-                    onClick: this.handleClick,
                 },
                 children,
             )

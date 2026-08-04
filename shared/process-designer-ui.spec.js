@@ -153,6 +153,9 @@ describe('process designer canvas UI', () => {
     expect(motionDockSource).toContain('onHoverStart?: (event: MouseEvent) => void');
     expect(motionDockSource).toContain('props.item.onHoverStart?.(event)');
     expect(motionDockSource).toContain('props.item.onHoverEnd?.(event)');
+    expect(motionDockSource).toContain("boundButton?.addEventListener('click', handleClick)");
+    expect(motionDockSource).toContain("boundButton?.removeEventListener('click', handleClick)");
+    expect(motionDockSource).toContain('ref: this.setItemRef');
     expect(designerSource).not.toContain('draftStateLabel');
     expect(designerSource).toContain('onClick: applyProcess');
     expect(designerSource).toContain("summary: t('processDesigner.newDraft')");
