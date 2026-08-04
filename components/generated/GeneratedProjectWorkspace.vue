@@ -1,7 +1,7 @@
 <template>
   <div v-if="project" class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
     <header
-      class="chrome-signal-rule flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]"
+      class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]"
       data-project-actions-strip
     >
       <Button
@@ -25,12 +25,12 @@
         <SplitterPanel
           v-if="explorerOpen"
           key="workspace-explorer"
-          :size="20"
-          :min-size="12"
+          :size="15"
+          :min-size="10"
           class="min-h-0 min-w-0 overflow-hidden !border-0"
         >
           <section class="flex h-full min-h-0 flex-col overflow-hidden bg-content">
-            <header class="chrome-signal-rule flex h-10 shrink-0 items-center border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]">
+            <header class="flex h-10 shrink-0 items-center border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]">
               <span class="min-w-0 flex-1 truncate font-medium">{{ $t('project.explorer') }}</span>
             </header>
             <Tree
@@ -58,7 +58,7 @@
 
         <SplitterPanel
           key="workspace-content"
-          :size="explorerOpen ? 80 : 100"
+          :size="explorerOpen ? 85 : 100"
           :min-size="30"
           class="min-h-0 min-w-0 overflow-hidden !border-0"
         >
@@ -262,11 +262,6 @@ const explorerNodes = computed(() => {
 
 watch(project, value => {
   if (!value || !activePane.value) return;
-  if (!activePane.value.selectionKey) {
-    paneTree.value = updateWorkspaceLeaf(paneTree.value, activePane.value.id, {
-      selectionKey: defaultPaneKey()
-    });
-  }
   syncActiveSelection();
   expandedKeys.value = {
     ...expandedKeys.value,
@@ -278,9 +273,9 @@ watch(project, value => {
 watch(workspaceItems, items => {
   const visibleKeys = new Set(items.map(item => item.key));
   for (const pane of panes.value) {
-    if (!visibleKeys.has(pane.selectionKey)) {
+    if (pane.selectionKey && !visibleKeys.has(pane.selectionKey)) {
       paneTree.value = updateWorkspaceLeaf(paneTree.value, pane.id, {
-        selectionKey: defaultPaneKey()
+        selectionKey: ''
       });
     }
   }
@@ -308,7 +303,7 @@ function activatePane(paneId) {
 function splitPane(paneId, orientation) {
   const source = panes.value.find(pane => pane.id === paneId);
   if (!source) return;
-  const nextPane = createWorkspaceLeaf(`pane-${++paneSequence.value}`, source.selectionKey);
+  const nextPane = createWorkspaceLeaf(`pane-${++paneSequence.value}`);
   paneTree.value = splitWorkspaceLeaf(paneTree.value, paneId, orientation, nextPane);
   activePaneId.value = nextPane.id;
 }
@@ -353,14 +348,13 @@ function openWorkspacePage(request = {}) {
 }
 
 function syncActiveSelection() {
-  const key = activePane.value?.selectionKey || defaultPaneKey();
+  const key = activePane.value?.selectionKey || '';
   selectionKeys.value = key ? { [key]: true } : {};
   mobileSelectedKey.value = key;
 }
 
 function itemForPane(pane) {
   return workspaceItems.value.find(item => item.key === pane?.selectionKey)
-    || projectItem.value
     || null;
 }
 
@@ -438,10 +432,6 @@ function workspaceItemLabel(item) {
   }
   const definition = resolveGeneratedWorkspacePage(item?.pageId);
   return definition ? t(definition.labelKey) : '';
-}
-
-function defaultPaneKey() {
-  return projectKey.value;
 }
 
 function sourceStateForRegion(region = {}) {

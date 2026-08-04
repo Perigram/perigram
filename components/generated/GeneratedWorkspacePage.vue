@@ -3,7 +3,7 @@
     v-if="definition"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
   >
-    <header class="chrome-signal-rule flex h-10 shrink-0 items-center gap-2 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-2 text-[var(--ck-chrome-foreground)]">
+    <header class="flex h-10 shrink-0 items-center gap-2 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-2 text-[var(--ck-chrome-foreground)]">
       <i :class="[definition.icon, 'shrink-0']" aria-hidden="true"></i>
       <span class="min-w-0 flex-1 truncate font-medium">{{ $t(definition.labelKey) }}</span>
       <Button
