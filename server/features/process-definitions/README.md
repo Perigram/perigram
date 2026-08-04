@@ -20,6 +20,9 @@ Creation, update, validation, and activation accept only the current semantic
 source at `dataflowVersion: 3`. These boundaries never migrate or rewrite the
 authored graph. Definitions with a missing or different dataflow version are
 rejected, and starter templates are authored directly in the current format.
+Normalization used by validation and compilation is an in-memory projection;
+draft saves and activation persist the authored graph and semantic records
+without replacing them with that projection.
 
 ## Durable orchestration
 
