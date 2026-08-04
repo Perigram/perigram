@@ -481,7 +481,9 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   items; the primitive owns its token-backed geometry, spring, labels,
   keyboard buttons, focus state, and surface treatment. Use the optional
   hover/focus hooks only when a caller owns a contextual popover anchored to
-  that action; the dock does not own page-specific panels.
+  that action; the dock does not own page-specific panels. Its rendered button
+  refs bind pointer, focus, and click listeners after mount so contextual
+  actions remain interactive after SSR hydration.
   `useReducedMotion()` disables magnification and label travel while retaining
   static labels and every action's normal keyboard behavior. Do not recreate
   the interaction with a page-local toolbar or add fixed dark surfaces,
