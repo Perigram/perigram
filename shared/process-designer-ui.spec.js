@@ -63,11 +63,11 @@ describe('process designer canvas UI', () => {
     expect(designerSource).not.toContain('bg-content/95');
   });
 
-  it('renders inspector port specs as structured input and output columns', () => {
-    expect(designerSource).toContain('sm:grid-cols-2 sm:divide-x sm:divide-y-0');
-    expect(designerSource).toContain("$t('processDesigner.inputs')");
-    expect(designerSource).toContain("$t('processDesigner.outputs')");
-    expect(designerSource).not.toContain(':value="`${input.label}: ${processPortTypeLabel(input.type)}`"');
+  it('keeps derived socket specifications on the node instead of duplicating them in the inspector', () => {
+    expect(designerSource).not.toContain('v-for="input in selectedProcessNode.inputs"');
+    expect(designerSource).not.toContain('v-for="output in selectedProcessNode.outputs"');
+    expect(nodeSource).toContain('const inputSpecs = computed');
+    expect(nodeSource).toContain('const outputSpecs = computed');
   });
 
   it('keeps policy configuration in the inspector instead of every node', () => {
@@ -100,6 +100,8 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('function deleteGraphSelection()');
     expect(designerSource).toContain("event.key === 'Home'");
     expect(designerSource).toContain("event.code === 'NumpadDecimal'");
+    expect(designerSource).toContain('function nextNodePosition()');
+    expect(designerSource).toContain('Math.abs(Number(position.x || 0) - candidate.x) < 300');
   });
 
   it('persists the live viewport without serializing transient selection', () => {

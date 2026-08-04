@@ -483,42 +483,6 @@
                 </template>
 
                 <template v-else-if="selectedNode.type === 'processNode'">
-                  <div class="overflow-hidden rounded-ui border border-content-border">
-                    <div class="grid grid-cols-1 divide-y divide-content-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-                      <section class="min-w-0">
-                        <div class="border-b border-content-border bg-subtle px-2 py-1 text-[10px] font-semibold uppercase tracking-label text-muted-color">
-                          {{ $t('processDesigner.inputs') }}
-                        </div>
-                        <div v-if="selectedProcessNode.inputs?.length" class="min-w-0">
-                          <div
-                            v-for="input in selectedProcessNode.inputs"
-                            :key="`input-${input.id}`"
-                            class="flex min-w-0 items-baseline justify-between gap-2 border-b border-content-border px-2 py-1.5 last:border-b-0"
-                          >
-                            <span class="min-w-0 truncate text-xs">{{ input.label }}</span>
-                            <span class="shrink-0 font-mono text-[10px] text-muted-color">{{ processPortTypeLabel(input.type) }}</span>
-                          </div>
-                        </div>
-                        <span v-else class="block px-2 py-1.5 text-xs text-muted-color">{{ $t('common.notAvailable') }}</span>
-                      </section>
-                      <section class="min-w-0">
-                        <div class="border-b border-content-border bg-subtle px-2 py-1 text-[10px] font-semibold uppercase tracking-label text-muted-color">
-                          {{ $t('processDesigner.outputs') }}
-                        </div>
-                        <div v-if="selectedProcessNode.outputs?.length" class="min-w-0">
-                          <div
-                            v-for="output in selectedProcessNode.outputs"
-                            :key="`output-${output.id}`"
-                            class="flex min-w-0 items-baseline justify-between gap-2 border-b border-content-border px-2 py-1.5 last:border-b-0"
-                          >
-                            <span class="min-w-0 truncate text-xs">{{ output.label }}</span>
-                            <span class="shrink-0 font-mono text-[10px] text-muted-color">{{ processPortTypeLabel(output.type) }}</span>
-                          </div>
-                        </div>
-                        <span v-else class="block px-2 py-1.5 text-xs text-muted-color">{{ $t('common.notAvailable') }}</span>
-                      </section>
-                    </div>
-                  </div>
                   <div v-if="selectedProcessNode.kind === 'effect.runCommand'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.service') }}</label>
                     <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
@@ -1606,7 +1570,7 @@ function designerSignature() {
   });
 }
 
-function addNode(item, position = activeViewportCenter()) {
+function addNode(item, position = nextNodePosition()) {
   const type = typeof item === 'string' ? item : item.type;
   const actionKind = typeof item === 'object' ? item.actionKind : null;
   const socketDirection = typeof item === 'object' ? item.direction : null;
@@ -1977,6 +1941,26 @@ function activeViewportCenter() {
     x: Math.round((visibleCenter - Number(viewport.x || 0)) / zoom - 128),
     y: Math.round((height / 2 - Number(viewport.y || 0)) / zoom - 80)
   };
+}
+
+function nextNodePosition() {
+  const origin = activeViewportCenter();
+  const occupied = nodes.value.map(node => node.position || {});
+  const columns = [0, 320, -320, 640, -640];
+  for (let row = 0; row < 20; row += 1) {
+    for (const column of columns) {
+      const candidate = {
+        x: Math.round(origin.x + column),
+        y: Math.round(origin.y + row * 180)
+      };
+      const overlaps = occupied.some(position => (
+        Math.abs(Number(position.x || 0) - candidate.x) < 300
+        && Math.abs(Number(position.y || 0) - candidate.y) < 150
+      ));
+      if (!overlaps) return candidate;
+    }
+  }
+  return { x: Math.round(origin.x), y: Math.round(origin.y + occupied.length * 180) };
 }
 
 function frameAllNodes() {
