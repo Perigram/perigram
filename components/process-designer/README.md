@@ -115,6 +115,9 @@ fallback. Access grants, selected compose/modify field sets, retry policy, and
 other secondary record policy live in the contextual inspector. A status node
 still authors its identity and exposes its output on the canvas; color, icon,
 and lifecycle evidence schemas are edited in the inspector.
+Resolved input/output contracts are shown by the node's labelled socket rails
+and hover/focus metadata; the inspector does not repeat a socket-specification
+table.
 The palette and inspector are independently collapsible and scrollable. Palette search matches
 localized job names and descriptions as well as internal kinds. The persistent
 palette uses a readable two-column grid with grouped headings; operation
@@ -173,11 +176,13 @@ every selected role into a write grant.
 
 ## Canvas behavior and diagnostics
 
-Nodes are added at the visible viewport center between the palette and
-inspector. Left drag box-selects, Shift extends selection, two-finger touchpad
-scroll pans, pinch zooms around the pointer, and Space plus left drag provides
-keyboard-assisted panning without a middle mouse button. A selected node uses
-one primary border only; it does not add an outer ring or second outline.
+Nodes are added to the nearest unoccupied grid position around the visible
+viewport center. A newly inserted node must not cover an existing node or its
+socket hit targets. Left drag box-selects, Shift extends selection, two-finger
+touchpad scroll pans, pinch zooms around the pointer, and Space plus left drag
+provides keyboard-assisted panning without a middle mouse button. A selected
+node uses one primary border only; it does not add an outer ring or second
+outline.
 The canvas uses its own token-backed work surface. Opaque palette and inspector
 rails leave the graph clear behind one compact bottom dock. The dock is
 icon-only and ordered by concern: four-square Palette, Inspector, Save, Apply,
@@ -218,8 +223,8 @@ selected entity cards render outside the input and the compact change chevron
 remains a separate trigger. Process-node field/type selectors use ordinary
 PrimeVue controls because their values are schemas, not entities.
 
-New Draft, Save, Validate, and Apply do not depend on a node selection or
-active inspector tab. New Draft exposes creation success or failure rather than
+New Draft, Save, and Apply do not depend on a node selection or active
+inspector tab. New Draft exposes creation success or failure rather than
 silently failing; Save becomes active only when the graph is dirty. Apply saves
 and validates the draft first and refuses activation when validation fails. On
 narrow layouts the bottom dock remains icon-only, both side rails become
