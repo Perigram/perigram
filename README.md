@@ -44,7 +44,7 @@ flowchart LR
 | Attachment | Persisted file/blob metadata linked to an entity. |
 | AttachmentKind | Declared file content/preview/storage contract. |
 | Adapter | App binding between pure domain definitions and infrastructure. |
-| Process Definition | Organization-owned graph that compiles abstract roles, entity workflows, field policy, services, sockets, screens, and navigation into runtime contracts. |
+| Process Definition | Organization-owned graph that maps organization roles to entity workflows, field policy, services, sockets, screens, and navigation runtime contracts. Role identity and user assignment remain organization data. |
 
 Commands and tasks are not duplicates: commands decide "what business action is
 allowed and requested"; tasks execute retryable background work created by those

@@ -46,7 +46,7 @@ sockets.
 Process definitions use canonical semantic records as the editing source of
 truth. `definitionToCanvas()` projects those records into deterministic Vue
 Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
-preserving role, service-identity, lifecycle, service, socket, and assignment
+preserving role-grant, service-identity, lifecycle, service, and socket
 records.
 Executable effects are represented only by their `processNode` canvas node.
 Compiler-derived action records are not projected as separate action nodes and
@@ -69,18 +69,21 @@ action grant.
 Runtime adapters must not treat lifecycle data as visual-only metadata.
 
 `src/templates.js` contains starter process templates for organization
-bootstrap. They create process graphs and role assignments; runtime behavior is
-driven only by the activated process definition, not by organization type
-branching.
+bootstrap. Each template exposes organization role identities separately from
+its process definition. The definition stores `roleGrants`; runtime behavior is
+driven only by the activated process plus current organization assignment.
 
-Role access is compositional. Effect grants retain explicit `{ roleId, level }`
-rows; authoring never coerces every selected role to `write`. Process role records represent human
-responsibilities and may store explicit access grants, but they do not own
-navigation routes. The compiler combines explicit role grants with grants
+Role access is compositional. Organization records own immutable role ids and
+editable labels. Process definitions own mappings from those ids to behavior;
+they never own role identity or user assignment. Effect grants retain explicit `{ roleId, level }`
+rows; authoring never coerces every selected role to `write`. The compiler
+receives the organization role catalog explicitly and combines `roleGrants` with grants
 derived from entity-profile `allowedRoles`, action access grants, and screen
 `required` contracts.
-Assignments compile against those derived roles and produce effective
-permissions, screens, and navigation for each user. Services use separate
+The compiled contract is user-independent. `resolveRoleAssignmentAccess()`
+combines one organization assignment with compiled roles and screens at auth
+time to produce effective permissions, actions, screens, and navigation.
+Services use separate
 service identities stored in `servicePrincipals` plus
 `access.runPrincipals` / `access.viewPrincipals`; those service identities are
 not selectable as manual user triggers.
@@ -89,8 +92,7 @@ prepaidTokens` with a positive `tokenCost` compiles into the runtime service
 contract, and the command runtime debits the active organization's billing
 account after successful command execution. Token package prices stay outside
 process definitions in runtime billing configuration.
-At runtime those compiled permissions are the organization's active access
-source.
+At runtime this resolved view is the organization's active access source.
 When an assignment contains multiple role ids, generated and authored screens
 from every selected role are merged into that user's screen manifest. Explicit
 screen records that name several roles still compile to one shared screen key;

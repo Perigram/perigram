@@ -3,11 +3,9 @@ export const ORGANIZATION_OWNER_PERMISSIONS = {
   users: { level: 'admin' }
 };
 
-export function ownerMembership({ organizationId, role = 'role_admin', roleIds = ['role_admin'], status = 'active' } = {}) {
+export function ownerMembership({ organizationId, status = 'active' } = {}) {
   return ensureOwnerMembership({
     organizationId,
-    role,
-    roleIds,
     permissions: ORGANIZATION_OWNER_PERMISSIONS,
     status,
     owner: true
@@ -23,8 +21,6 @@ export function ensureOwnerMembership(membership = {}) {
   if (!membership.owner) return membership;
   return {
     ...membership,
-    role: membership.role || 'role_admin',
-    roleIds: membership.roleIds?.length ? membership.roleIds : ['role_admin'],
     permissions: mergeOwnerPermissions(membership.permissions || {}),
     status: membership.status || 'active'
   };

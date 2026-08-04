@@ -12,7 +12,7 @@ const RECORD_NODE_TYPES = Object.keys(CANVAS_RECORD_KEYS);
 
 export function hasCanonicalProcessSource(definition = {}) {
   const data = definition.data || definition;
-  return ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'assignments']
+  return ['roleGrants', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens']
     .some(key => data[key] && typeof data[key] === 'object' && Object.keys(data[key]).length > 0);
 }
 
@@ -134,7 +134,7 @@ function normalizeProcessLike(definition = {}) {
     sourceTemplateId: data.sourceTemplateId || null,
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
     graph: normalizeGraph(data.graph),
-    roles: normalizeRecord(data.roles),
+    roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
     actions: normalizeRecord(data.actions),
@@ -144,7 +144,6 @@ function normalizeProcessLike(definition = {}) {
     valueInputs: normalizeRecord(data.valueInputs),
     processNodes: normalizeRecord(data.processNodes),
     screens: normalizeRecord(data.screens),
-    assignments: normalizeRecord(data.assignments),
     compiled: data.compiled || null
   };
 }
@@ -202,7 +201,7 @@ function collectCanvasRefs(nodes = []) {
 
 function compareSemanticRecords(source, next) {
   const errors = [];
-  for (const key of ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'assignments']) {
+  for (const key of ['roleGrants', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens']) {
     const sourceJson = JSON.stringify(sortObject(source[key] || {}));
     const nextJson = JSON.stringify(sortObject(next[key] || {}));
     if (sourceJson !== nextJson) errors.push(`Round-trip changed ${key}`);

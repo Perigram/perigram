@@ -1,7 +1,7 @@
 # COMPONENT: Process Definitions
 
 Organization-owned process definitions store the visual process graph and the
-compiled runtime contract for roles, user assignments, entity workflows, field
+compiled runtime contract for organization-role grants, entity workflows, field
 policies, service availability, sockets, screen manifests, and navigation.
 Runtime role permissions are derived from the graph during compilation:
 entity-profile access and screen requirements create grants, screen manifests
@@ -85,25 +85,19 @@ contract to suppress non-informative status chrome for one-state lifecycles;
 they do not infer visibility from status names or entity types.
 
 `createActiveFromTemplate()` is the organization-bootstrap path used by signup
-and organization creation. It creates the starter process, assigns the creator
-to the process admin role, compiles it, activates it, and stores the active
-process id on the organization.
+and organization creation. The organization service first stores the template's
+role identities and creator assignment, then this feature compiles the starter
+process against that catalog, activates it, and stores the active process id.
 
-Active process assignment changes are allowed through
-`assignUserToActiveProcess()`. This updates `data.assignments`, recompiles the
-active process in place, and makes the new effective permissions, screens, and
-navigation available on the next auth hydration. Assignment updates preserve the
-process status value object and only touch its audit metadata, so repository
-serialization continues through the shared entity model. Memberships remain the
-tenant relationship; process assignments are the runtime role source. Before
-that recompile, assignment applies the same feature-local legacy status-action
-normalization used by auth hydration, so stored `changeStatus` actions become
-canonical `updateEntity` actions in the semantic process source and do not
-break signup/team assignment paths.
-When a draft is activated, the service preserves the current active process
-assignments for the organization before compiling. Team Management owns user to
-process-role assignment, so an older designer draft cannot erase assignments
-that were changed after the draft was forked.
+Process definitions never store role identities or user assignments. Their
+`data.roleGrants` record maps stable organization role ids to process-owned base
+feature grants; entity profiles, actions, screens, and transitions add their
+own operational mappings. Validation and compilation receive the current
+organization role catalog explicitly and reject missing role references. The
+compiled contract contains role capabilities but no per-user `userAccess`.
+Auth hydration resolves the active organization assignment against that
+contract on every request, so editing a team assignment does not mutate or
+recompile the active process and a draft can never overwrite assignments.
 
 Manual generated-screen actions execute through the active process definition,
 not through client-selected entity routes. For v3 definitions,

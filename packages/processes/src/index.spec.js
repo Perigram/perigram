@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   canvasToDefinition,
-  compileProcessDefinition,
+  compileProcessDefinition as compileContract,
   createProcessFromTemplate,
   createDefaultCreatedWorkflow,
   definitionToCanvas,
+  getProcessTemplate,
   legacyTypeToTemplateId,
   normalizeProcessDefinition,
   portSpecsCompatible,
   requiredEntityProfileTypes,
-  resolveScreens,
-  validateProcessDefinition,
+  resolveRoleAssignmentAccess,
+  resolveScreens as resolveAccessScreens,
+  validateProcessDefinition as validateContract,
   validateRoundTrip
 } from './index.js';
 
@@ -18,6 +20,43 @@ const SOURCE_STATE = 'SOURCE_STATE';
 const TARGET_STATE = 'TARGET_STATE';
 const INITIAL_STATE = 'INITIAL_STATE';
 const NEXT_STATE = 'NEXT_STATE';
+
+function externalizeTestRoles(definition = {}) {
+  const next = structuredClone(definition);
+  const data = next.data || next;
+  const storedRoles = data.roles || {};
+  const roles = Object.keys(storedRoles).length
+    ? Object.fromEntries(Object.entries(storedRoles).map(([roleId, role]) => [roleId, { id: role.id || roleId, label: role.label || roleId }]))
+    : Object.fromEntries(Object.keys(data.roleGrants || {}).map(roleId => [roleId, { id: roleId, label: roleId }]));
+  const assignments = data.assignments || {};
+  data.roleGrants = {
+    ...(data.roleGrants || {}),
+    ...Object.fromEntries(Object.entries(storedRoles)
+      .filter(([, role]) => Array.isArray(role.grants))
+      .map(([roleId, role]) => [roleId, role.grants]))
+  };
+  delete data.roles;
+  delete data.assignments;
+  return { definition: next, roles, assignments };
+}
+
+function validateProcessDefinition(definition, testDomain = {}) {
+  const external = externalizeTestRoles(definition);
+  return validateContract(external.definition, testDomain, { roles: external.roles });
+}
+
+function compileProcessDefinition(definition, testDomain = {}) {
+  const external = externalizeTestRoles(definition);
+  const compiled = compileContract(external.definition, testDomain, { roles: external.roles });
+  compiled.userAccess = Object.fromEntries(Object.entries(external.assignments).map(([userId, assignment]) => [userId,
+    resolveRoleAssignmentAccess({ compiled, assignment, domain: testDomain })
+  ]));
+  return compiled;
+}
+
+function resolveScreens({ compiled, userId } = {}) {
+  return resolveAccessScreens({ access: compiled?.userAccess?.[String(userId)] });
+}
 
 const domain = {
   entities: [
@@ -3128,14 +3167,15 @@ describe('@cutkit/processes compiler', () => {
   it('creates compilable starter process definitions from legacy organization types', () => {
     const process = createProcessFromTemplate({
       templateId: legacyTypeToTemplateId('Manufacturer'),
-      organizationId: 'org-1',
-      userId: 'user-1'
+      organizationId: 'org-1'
     });
-    const compiled = compileProcessDefinition(process.data, domain);
+    const roles = getProcessTemplate('manufacturer').organizationRoles;
+    const compiled = compileContract(process.data, domain, { roles });
+    const access = resolveRoleAssignmentAccess({ compiled, assignment: { userId: 'user-1', roleIds: ['role_admin'], bindings: {} }, domain });
 
     expect(process.data.sourceTemplateId).toBe('manufacturer');
-    expect(compiled.userAccess['user-1'].permissions.organizations[0].level).toBe('admin');
-    expect(compiled.userAccess['user-1'].screens.length).toBeGreaterThan(0);
+    expect(access.permissions.organizations[0].level).toBe('admin');
+    expect(access.screens.length).toBeGreaterThan(0);
   });
 
   it('projects command-required entity profiles from actions and services', () => {

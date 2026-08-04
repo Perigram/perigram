@@ -19,7 +19,8 @@ node server/scripts/migrate-public-system-data.js # Mark system materials/layers
 node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from stored organization type labels
 node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
 node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts
-node server/scripts/migrate-process-role-memberships.js # Clear preset permissions from process-role memberships and recover tenant admins
+node server/scripts/migrate-process-roles-to-organizations.js # Dry-run organization-owned role migration
+node server/scripts/migrate-process-roles-to-organizations.js --apply # Apply only organizations without unresolved references
 node server/scripts/migrate-organization-owner-admins.js # Mark existing organization creator/admin memberships as owner admins
 node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
@@ -152,7 +153,17 @@ defined in the process actions, preserves the previous route as `sourceRoute`,
 recompiles active process contracts, and picks up compiler-inferred screens
 from role grants for processes that have role access but no authored screens.
 
-Use `server/scripts/migrate-process-role-memberships.js` after changing
+Use `server/scripts/migrate-process-roles-to-organizations.js` for the role
+ownership cutover. The default run is read-only and reports label divergence,
+orphan assignment users, and invalid invitation role ids per organization.
+Active-process labels win; roles introduced by current drafts are promoted;
+archived-only roles are audit history. `--apply` moves identity and assignments
+to organization data, moves role grants into each process, recompiles active
+contracts, clears draft compiled output, removes user/membership role copies,
+and removes invitation scalar roles. An organization with unresolved references
+is not changed, and repeated apply runs are idempotent.
+
+The superseded `migrate-process-role-memberships.js` was used after changing
 membership/process role separation. It clears copied permission presets from
 memberships whose `role` or `roleIds` are process role ids (`role_*`) while
 preserving the process role assignment data. It also promotes an active

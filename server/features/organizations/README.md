@@ -15,6 +15,9 @@ Collection: `organizations`
 Key fields:
 - `processTemplateId`: Starter process id used at creation time.
 - `activeProcessDefinitionId`: Active compiled process definition id.
+- `roles`: Stable role identity record `{ [roleId]: { id, label } }`.
+- `roleAssignments`: Authoritative user mapping
+  `{ [userId]: { userId, roleIds, bindings } }`.
 - `settings`: Organization settings that are not role/type branches.
 
 ## ID Handling
@@ -30,7 +33,8 @@ Key fields:
   organization creator receives `membership.owner: true` plus permanent
   `organizations:admin` and `users:admin` grants. Process roles may change
   operational access, but they must not remove or weaken this tenant owner
-  recovery authority.
+  recovery authority. Owner recovery grants are membership state and are not
+  organization role capabilities.
 - Organization management UI is exposed as system generated screens during auth
   hydration, not as hardcoded page buttons. `system-screens.js` emits an
   overview screen at `/organization`, a billing screen at
@@ -41,13 +45,25 @@ Key fields:
   screen and requires `organizations:admin`. When an active process exists,
   those checks use the compiled effective permissions.
 - `createInitialForUser()` is the narrow public-signup helper. It creates the
-  first organization for a newly registered user, creates and activates a
-  starter process definition, assigns the creator to the process admin role,
+  first organization for a newly registered user, seeds the starter template's
+  organization roles and creator assignment, creates and activates a process,
   and writes the user's initial owner membership/lineage. The creator
   membership stores explicit `organizations:admin` and `users:admin` grants so
   tenant management remains reachable even if the active process graph later
   removes operational organization screens. Active process assignments provide
   runtime app access.
+
+## Organization role API
+
+Role identity management is immediate and independent of process draft Save or
+Apply. `GET/POST /api/organizations/:id/roles` lists and creates identities;
+`PATCH/DELETE /api/organizations/:id/roles/:roleId` renames or deletes them.
+Role ids are immutable and generated server-side. Deletion is rejected while a
+role is referenced by an organization assignment, active invitation, active
+process, or draft process. Archived compiled process history does not block it.
+`GET /api/organizations/:id/role-assignments` and
+`PATCH /api/organizations/:id/role-assignments/:userId` manage authoritative
+assignments without recompiling a process.
 
 ## API Behavior
 - `GET /api/organizations/:id` returns the serialized organization when found.

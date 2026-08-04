@@ -1,5 +1,6 @@
 import {
   compileProcessDefinition,
+  resolveRoleAssignmentAccess,
   resolveEffectiveAccess,
   resolveNavigation,
   resolveScreens,
@@ -7,6 +8,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import * as repository from './repository.js';
+import * as organizationsRepository from '../organizations/repository.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
 import { applyOwnerPermissionsToAuth } from '../users/organization-owner.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
@@ -19,21 +21,19 @@ export async function getActiveProcessForOrganization(organizationId) {
 
 export async function getActiveCompiledProcess(organizationId) {
   const active = await getActiveProcessForOrganization(organizationId);
-  return compiledProcessRuntime(active?.data || null);
+  const organization = organizationId ? await organizationsRepository.findById(organizationId) : null;
+  return compiledProcessRuntime(active?.data || null, organization?.data?.roles || {});
 }
 
-function compiledProcessRuntime(data = null) {
+function compiledProcessRuntime(data = null, roles = {}) {
   if (!data?.compiled) return null;
   if (!compiledRuntimeMissingActionContracts(data.compiled)) return data.compiled;
   const migrated = normalizeLegacyProcessActions({ ...data, compiled: null }).data;
-  return compileProcessDefinition({ ...migrated, compiled: null }, cncDomain);
+  return compileProcessDefinition({ ...migrated, compiled: null }, cncDomain, { roles });
 }
 
 function compiledRuntimeMissingActionContracts(compiled = {}) {
-  return Object.values(compiled.actions || {}).some(action => !action.contracts) ||
-    Object.values(compiled.userAccess || {}).some(access => (
-      (access.actions || []).some(action => !action.contracts)
-    ));
+  return Object.values(compiled.actions || {}).some(action => !action.contracts);
 }
 
 export async function resolveProcessAuth(auth = {}) {
@@ -49,11 +49,14 @@ export async function resolveProcessAuth(auth = {}) {
     };
   }
   const userId = String(auth.userId || '');
-  const effectivePermissions = resolveEffectiveAccess({ compiled, userId });
+  const organization = await organizationsRepository.findById(organizationId);
+  const assignment = organization?.data?.roleAssignments?.[userId] || null;
+  const assignmentAccess = resolveRoleAssignmentAccess({ compiled, assignment, domain: cncDomain });
+  const effectivePermissions = resolveEffectiveAccess({ access: assignmentAccess });
   const ownerAuth = applyOwnerPermissionsToAuth({ ...auth, effectivePermissions });
   const system = resolveOrganizationSystemScreens(ownerAuth);
-  const processScreens = resolveScreens({ compiled, userId });
-  const processNavigation = resolveNavigation({ compiled, userId });
+  const processScreens = resolveScreens({ access: assignmentAccess });
+  const processNavigation = resolveNavigation({ access: assignmentAccess });
   return {
     ...ownerAuth,
     process: {
@@ -64,7 +67,7 @@ export async function resolveProcessAuth(auth = {}) {
     fieldPolicies: compiled.fieldPolicies || {},
     navigation: [...system.navigation, ...processNavigation],
     screens: [...system.screens, ...processScreens],
-    roleAssignments: compiled.userAccess?.[userId] || null
+    roleAssignments: assignmentAccess
   };
 }
 

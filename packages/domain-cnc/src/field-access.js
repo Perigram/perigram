@@ -78,13 +78,13 @@ export const cncEntityFieldAccess = {
   },
   processDefinition: {
     feature: 'organizations',
-    read: [...COMMON_READ_FIELDS, 'data.schemaVersion', 'data.graph.*', 'data.roles.*', 'data.entityProfiles.*', 'data.services.*', 'data.sockets.*', 'data.assignments.*', 'data.compiled.*'],
+    read: [...COMMON_READ_FIELDS, 'data.schemaVersion', 'data.graph.*', 'data.roleGrants.*', 'data.entityProfiles.*', 'data.services.*', 'data.sockets.*', 'data.compiled.*'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
   process_definition: {
     feature: 'organizations',
-    read: [...COMMON_READ_FIELDS, 'data.schemaVersion', 'data.graph.*', 'data.roles.*', 'data.entityProfiles.*', 'data.services.*', 'data.sockets.*', 'data.assignments.*', 'data.compiled.*'],
+    read: [...COMMON_READ_FIELDS, 'data.schemaVersion', 'data.graph.*', 'data.roleGrants.*', 'data.entityProfiles.*', 'data.services.*', 'data.sockets.*', 'data.compiled.*'],
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },

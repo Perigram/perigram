@@ -7,11 +7,10 @@ export class ProcessDefinition extends BaseEntity {
       schemaVersion: 1,
       sourceTemplateId: null,
       graph: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
-      roles: {},
+      roleGrants: {},
       entityProfiles: {},
       services: {},
       sockets: {},
-      assignments: {},
       compiled: null,
       ...(this.data || {})
     };

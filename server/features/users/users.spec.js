@@ -50,20 +50,19 @@ describe('User Management & Auth', () => {
     await db.collection('organizations').deleteMany({});
   });
 
-  it('should register a user with correct permission template', async () => {
+  it('registers identity without duplicating organization role state', async () => {
     const data = {
       email: 'test@example.com',
       password: 'password123',
       name: 'Test User',
-      role: 'ManufacturerAdmin'
     };
 
     const user = await userService.register(data);
     
     const dto = user.toJSON();
     expect(dto.data.email).toBe('test@example.com');
-    expect(dto.data.role).toBe('ManufacturerAdmin');
-    expect(dto.data.permissions.catalogs).toBe('admin');
+    expect(dto.data.role).toBeUndefined();
+    expect(dto.data.permissions).toEqual({});
     expect(dto.data.isActive).toBe(true);
     expect(dto).not.toHaveProperty('email');
     expect(dto).not.toHaveProperty('role');
@@ -101,11 +100,7 @@ describe('User Management & Auth', () => {
     const rawUser = await db.collection('users').findOne({ 'data.email': 'owner@example.com' });
     expect(organization.toJSON().identity.name).toBe('Owner Workshop');
     expect(rawUser.lineage.organizationId.toString()).toBe(organization.id);
-    expect(rawUser.data.role).toBe('role_admin');
-    expect(rawUser.data.permissions).toEqual({
-      organizations: { level: 'admin' },
-      users: { level: 'admin' }
-    });
+    expect(rawUser.data.role).toBeUndefined();
     expect(rawUser.data.memberships[0].organizationId.toString()).toBe(organization.id);
     expect(rawUser.data.memberships[0].owner).toBe(true);
     expect(rawUser.data.memberships[0].permissions).toEqual({
@@ -113,6 +108,8 @@ describe('User Management & Auth', () => {
       users: { level: 'admin' }
     });
     expect(rawUser.data.memberships[0].status).toBe('active');
+    const rawOrganization = await db.collection('organizations').findOne({ _id: rawUser.data.memberships[0].organizationId });
+    expect(rawOrganization.data.roleAssignments[String(user.id)].roleIds).toEqual(['role_admin']);
   });
 
   it('should recover a pre-organization signup only with the existing password', async () => {
@@ -148,7 +145,7 @@ describe('User Management & Auth', () => {
     const updatedUser = await userService.switchOrganization(user.insertedId.toString(), org2.toString());
     
     expect(updatedUser.toJSON().lineage.organizationId.toString()).toBe(org2.toString());
-    expect(updatedUser.toJSON().data.role).toBe('IndividualUser');
+    expect(updatedUser.toJSON().data.role).toBeUndefined();
   });
 
   it('does not expand preset labels into permissions when loading users', () => {

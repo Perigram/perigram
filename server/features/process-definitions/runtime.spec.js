@@ -1,323 +1,68 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveProcessAuth } from './runtime.js';
 
-vi.mock('./repository.js', () => ({
-  findActiveByOrganization: vi.fn()
-}));
+vi.mock('./repository.js', () => ({ findActiveByOrganization: vi.fn() }));
+vi.mock('../organizations/repository.js', () => ({ findById: vi.fn() }));
 
 import * as repository from './repository.js';
+import * as organizationsRepository from '../organizations/repository.js';
+import { resolveProcessAuth } from './runtime.js';
 
 describe('process runtime auth hydration', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  beforeEach(() => vi.clearAllMocks());
 
-  it('keeps generated process home screens for inferred operational screens', async () => {
-    repository.findActiveByOrganization.mockResolvedValueOnce({
-      _id: 'process-1',
+  it('combines the active process role contract with the organization assignment', async () => {
+    repository.findActiveByOrganization.mockResolvedValue({
       data: {
         compiled: {
           schemaVersion: 1,
-          workflows: {
-            project: {
-              primaryRegion: 'main',
-              regions: { main: { initial: 'ACTIVE', states: { ACTIVE: {} }, transitions: [] } }
+          workflows: {},
+          fieldPolicies: {},
+          actions: {},
+          roles: {
+            role_operator: {
+              id: 'role_operator',
+              label: 'Operator',
+              grants: [{ feature: 'projects', level: 'read' }],
+              actions: []
             }
           },
-          userAccess: {
-            'user-1': {
-              permissions: {
-                projects: [{ level: 'read' }]
-              },
-              navigation: [
-                { screenKey: 'home_user-1', route: '/screens/home_user-1' },
-                { screenKey: 'auto_project', route: '/screens/auto_project' }
-              ],
-              screens: [
-                {
-                  id: 'home_user-1',
-                  screenKey: 'home_user-1',
-                  template: 'home',
-                  route: '/screens/home_user-1',
-                  regions: [
-                    {
-                      id: 'home_project_section',
-                      sourceId: 'home_project',
-                      screenKey: 'auto_project',
-                      route: '/screens/auto_project'
-                    }
-                  ],
-                  sources: [
-                    {
-                      id: 'home_project',
-                      entityType: 'project',
-                      mode: 'list'
-                    }
-                  ]
-                },
-                {
-                  id: 'auto_project',
-                  screenKey: 'auto_project',
-                  template: 'entityList',
-                  placement: 'hub',
-                  entityType: 'project',
-                  route: '/screens/auto_project'
-                }
-              ]
+          screens: {
+            projects: {
+              id: 'projects',
+              screenKey: 'projects',
+              template: 'entityList',
+              route: '/screens/projects',
+              roleIds: ['role_operator'],
+              required: { feature: 'projects', level: 'read' },
+              sources: [{ id: 'projects', entityType: 'project', mode: 'list' }]
             }
           }
         }
       }
     });
-
-    const result = await resolveProcessAuth({
-      userId: 'user-1',
-      organizationId: 'org-1',
-      memberships: [{
-        organizationId: 'org-1',
-        owner: true,
-        permissions: {},
-        status: 'active'
-      }]
+    organizationsRepository.findById.mockResolvedValue({
+      data: {
+        roles: { role_operator: { id: 'role_operator', label: 'Operator' } },
+        roleAssignments: { user_1: { userId: 'user_1', roleIds: ['role_operator'], bindings: {} } }
+      }
     });
 
-    expect(result.screens.map(screen => screen.screenKey)).toEqual([
-      'organization_overview',
-      'organization_billing',
-      'organization_team',
-      'organization_process',
-      'home_user-1',
-      'auto_project'
-    ]);
-    expect(result.screens.find(screen => screen.template === 'home')).toMatchObject({
-      screenKey: 'home_user-1',
-      sources: [expect.objectContaining({ entityType: 'project', mode: 'list' })]
+    const auth = await resolveProcessAuth({
+      userId: 'user_1',
+      organizationId: 'org_1',
+      memberships: [{ organizationId: 'org_1', status: 'active', permissions: {} }]
     });
-    expect(result.navigation.find(item => item.screenKey === 'home_user-1')).toMatchObject({
-      screenKey: 'home_user-1',
-      route: '/screens/home_user-1'
-    });
-    expect(result.process.workflows.project.regions.main.states).toEqual({ ACTIVE: {} });
+
+    expect(auth.effectivePermissions.projects).toEqual([{ level: 'read' }]);
+    expect(auth.screens).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'projects' })]));
+    expect(auth.roleAssignments.roleIds).toEqual(['role_operator']);
   });
 
-  it('keeps authored process home screens intact', async () => {
-    repository.findActiveByOrganization.mockResolvedValueOnce({
-      _id: 'process-1',
-      data: {
-        compiled: {
-          schemaVersion: 1,
-          userAccess: {
-            'user-1': {
-              permissions: {
-                projects: [{ level: 'read' }]
-              },
-              navigation: [
-                { screenKey: 'home_user-1', route: '/screens/home_user-1' },
-                { screenKey: 'project_board:/project-board', route: '/screens/project_board%3A%2Fproject-board' }
-              ],
-              screens: [
-                {
-                  id: 'home_user-1',
-                  screenKey: 'home_user-1',
-                  template: 'home',
-                  route: '/screens/home_user-1',
-                  regions: [
-                    {
-                      id: 'home_project_section',
-                      sourceId: 'home_project',
-                      screenKey: 'project_board:/project-board',
-                      route: '/screens/project_board%3A%2Fproject-board'
-                    }
-                  ],
-                  sources: [
-                    {
-                      id: 'home_project',
-                      entityType: 'project',
-                      mode: 'list'
-                    }
-                  ]
-                },
-                {
-                  id: 'project_board',
-                  screenKey: 'project_board:/project-board',
-                  template: 'entityList',
-                  placement: 'hub',
-                  entityType: 'project',
-                  route: '/screens/project_board%3A%2Fproject-board'
-                }
-              ]
-            }
-          }
-        }
-      }
-    });
-
-    const result = await resolveProcessAuth({
-      userId: 'user-1',
-      organizationId: 'org-1',
-      memberships: [{
-        organizationId: 'org-1',
-        owner: true,
-        permissions: {},
-        status: 'active'
-      }]
-    });
-
-    expect(result.screens.find(screen => screen.template === 'home')).toMatchObject({
-      screenKey: 'home_user-1'
-    });
-  });
-
-  it('does not inject a blank process home when the active process has no compiled screens', async () => {
-    repository.findActiveByOrganization.mockResolvedValueOnce({
-      _id: 'process-1',
-      data: {
-        compiled: {
-          schemaVersion: 1,
-          userAccess: {
-            'user-1': {
-              permissions: {},
-              navigation: [],
-              screens: []
-            }
-          }
-        }
-      }
-    });
-
-    const result = await resolveProcessAuth({
-      userId: 'user-1',
-      organizationId: 'org-1',
-      memberships: [{
-        organizationId: 'org-1',
-        owner: true,
-        permissions: {},
-        status: 'active'
-      }]
-    });
-
-    expect(result.screens.find(screen => screen.template === 'home')).toBeFalsy();
-    expect(result.navigation.find(item => item.screenKey === 'home_user-1')).toBeFalsy();
-  });
-
-  it('hydrates stale compiled action manifests from semantic process definitions', async () => {
-    repository.findActiveByOrganization.mockResolvedValueOnce({
-      _id: 'process-1',
-      data: {
-        roles: {
-          role_installer: { id: 'role_installer' }
-        },
-        actions: {
-          create_design: {
-            id: 'create_design',
-            actionKind: 'createEntity',
-            entityType: 'cassette_design',
-            construction: { mode: 'bakeCassetteDesignFromTemplate' },
-            status: { to: 'ACTIVE' },
-            trigger: { mode: 'manual' },
-            access: { level: 'write', roleIds: ['role_installer'] },
-            outputs: [{ id: 'created', entityType: 'cassette_design' }]
-          }
-        },
-        assignments: {
-          'user-1': { userId: 'user-1', roleIds: ['role_installer'], status: 'active' }
-        },
-        compiled: {
-          schemaVersion: 1,
-          actions: {
-            create_design: {
-              actionKind: 'createEntity',
-              entityType: 'cassette_design'
-            }
-          },
-          userAccess: {
-            'user-1': {
-              permissions: {},
-              navigation: [],
-              screens: [],
-              actions: [{
-                actionId: 'create_design',
-                actionKind: 'createEntity',
-                entityType: 'cassette_design'
-              }]
-            }
-          }
-        }
-      }
-    });
-
-    const result = await resolveProcessAuth({
-      userId: 'user-1',
-      organizationId: 'org-1',
-      memberships: [{ organizationId: 'org-1', permissions: {}, status: 'active' }]
-    });
-
-    expect(result.roleAssignments.actions.find(action => action.actionId === 'create_design')).toMatchObject({
-      actionKind: 'createEntity',
-      entityType: 'cassette_design',
-      contracts: {
-        outputs: [expect.objectContaining({ entityType: 'cassette_design' })]
-      }
-    });
-  });
-
-  it('hydrates stale compiled runtime after normalizing legacy changeStatus actions', async () => {
-    repository.findActiveByOrganization.mockResolvedValueOnce({
-      _id: 'process-1',
-      data: {
-        roles: {
-          role_operator: { id: 'role_operator' }
-        },
-        actions: {
-          mark_queue_ready: {
-            id: 'mark_queue_ready',
-            actionKind: 'changeStatus',
-            entityType: 'queue',
-            status: { from: 'DRAFT', to: 'READY' },
-            trigger: { mode: 'manual' },
-            access: { level: 'write', roleIds: ['role_operator'] }
-          }
-        },
-        assignments: {
-          'user-1': { userId: 'user-1', roleIds: ['role_operator'], status: 'active' }
-        },
-        compiled: {
-          schemaVersion: 1,
-          actions: {
-            mark_queue_ready: {
-              actionKind: 'changeStatus',
-              entityType: 'queue'
-            }
-          },
-          userAccess: {
-            'user-1': {
-              permissions: {},
-              navigation: [],
-              screens: [],
-              actions: [{
-                actionId: 'mark_queue_ready',
-                actionKind: 'changeStatus',
-                entityType: 'queue'
-              }]
-            }
-          }
-        }
-      }
-    });
-
-    const result = await resolveProcessAuth({
-      userId: 'user-1',
-      organizationId: 'org-1',
-      memberships: [{ organizationId: 'org-1', permissions: {}, status: 'active' }]
-    });
-
-    expect(result.roleAssignments.actions.find(action => action.actionId === 'mark_queue_ready')).toMatchObject({
-      actionKind: 'updateEntity',
-      entityType: 'queue',
-      contracts: {
-        inputs: [expect.objectContaining({ entityType: 'queue' })],
-        outputs: [expect.objectContaining({ entityType: 'queue' })]
-      }
-    });
+  it('does not grant process access without an organization assignment', async () => {
+    repository.findActiveByOrganization.mockResolvedValue({ data: { compiled: { schemaVersion: 1, workflows: {}, fieldPolicies: {}, actions: {}, roles: {}, screens: {} } } });
+    organizationsRepository.findById.mockResolvedValue({ data: { roles: {}, roleAssignments: {} } });
+    const auth = await resolveProcessAuth({ userId: 'user_1', organizationId: 'org_1', memberships: [{ organizationId: 'org_1', status: 'active', permissions: {} }] });
+    expect(auth.roleAssignments.roleIds).toEqual([]);
+    expect(auth.effectivePermissions).toEqual({});
   });
 });

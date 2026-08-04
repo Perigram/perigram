@@ -10,7 +10,7 @@
     <DataTable :value="users" :loading="loading" stripedRows>
       <Column field="identity.name" :header="$t('profile.name')" sortable />
       <Column field="data.email" :header="$t('profile.email')" sortable />
-      <Column field="data.role" :header="$t('organization.processRoles')">
+      <Column :header="$t('organization.processRoles')">
         <template #body="{ data }">
           <div class="flex flex-wrap gap-1">
             <Tag v-for="role in getUserProcessRoles(data)" :key="role.id" :value="role.label" severity="info" />
@@ -229,10 +229,12 @@ const generatedUrl = ref(null);
 const invitations = ref([]);
 const pendingUsers = ref([]);
 const activeProcess = ref(null);
+const organizationRoles = ref({});
+const organizationRoleAssignments = ref({});
 const roleAssignment = ref({ roleIds: [], bindings: {} });
 const selectedUserAccess = computed(() => {
     const userId = String(selectedUser.value?._id || selectedUser.value?.id || '');
-    return activeProcess.value?.data?.compiled?.userAccess?.[userId] || null;
+    return organizationRoleAssignments.value[userId] || null;
 });
 const selectedRoleDerivedAccessSummary = computed(() => derivedRoleAccessSummary(roleAssignment.value.roleIds));
 const selectedUserAccessSummary = computed(() => selectedRoleDerivedAccessSummary.value);
@@ -277,8 +279,7 @@ const inviteForm = ref({
 });
 
 const roleOptions = computed(() => {
-  const roles = activeProcess.value?.data?.roles || {};
-  return Object.values(roles).map(role => ({
+  return Object.values(organizationRoles.value).map(role => ({
     label: role.label || role.id,
     value: role.id
   }));
@@ -295,6 +296,7 @@ async function loadUsers() {
   try {
     const allUsers = await usersEntity.list();
     await loadActiveProcess();
+    await loadOrganizationRoles();
     const organizationId = activeOrganizationId.value?.toString();
     users.value = allUsers.filter(u => 
         u.data?.memberships?.some(m => m.organizationId?.toString() === organizationId && m.status === 'active')
@@ -324,6 +326,15 @@ async function loadActiveProcess() {
     } catch (e) {
         activeProcess.value = null;
     }
+}
+
+async function loadOrganizationRoles() {
+    if (!activeOrganizationId.value) return;
+    const base = `/api/organizations/${activeOrganizationId.value}`;
+    [organizationRoles.value, organizationRoleAssignments.value] = await Promise.all([
+        $fetch(`${base}/roles`),
+        $fetch(`${base}/role-assignments`)
+    ]);
 }
 
 async function generateInvite() {
@@ -365,7 +376,6 @@ async function createUser() {
   try {
     await usersEntity.create({
         ...form.value,
-        role: form.value.roleIds[0] || '',
         roleIds: normalizeSelectedRoleIds(form.value.roleIds, roleOptions.value),
         organizationId: activeOrganizationId.value
     });
@@ -393,18 +403,16 @@ function editProcessRoles(user) {
 async function saveProcessRoles() {
   savingRoleAssignment.value = true;
   try {
-    await $fetch('/api/process-definitions/active/assignments', {
+    await $fetch(`/api/organizations/${activeOrganizationId.value}/role-assignments/${selectedUser.value._id}`, {
       method: 'PATCH',
       body: {
-        userId: selectedUser.value._id,
         roleIds: roleAssignment.value.roleIds,
-        bindings: roleAssignment.value.bindings,
-        status: 'active'
+        bindings: roleAssignment.value.bindings
       }
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.permissionsUpdated'), life: 3000 });
     showPermissionsDialog.value = false;
-    await loadActiveProcess();
+    await loadOrganizationRoles();
     await authStore.setUser();
     await loadUsers();
   } catch (error) {
@@ -415,12 +423,11 @@ async function saveProcessRoles() {
 }
 
 function getProcessAssignment(user) {
-    const assignments = activeProcess.value?.data?.assignments || {};
-    return assignments[String(user?._id)] || assignments[String(user?.id)] || null;
+    return organizationRoleAssignments.value[String(user?._id)] || organizationRoleAssignments.value[String(user?.id)] || null;
 }
 
 function getUserProcessRoles(user) {
-    const roles = activeProcess.value?.data?.roles || {};
+    const roles = organizationRoles.value;
     const assignment = getProcessAssignment(user);
     const roleIds = assignment?.roleIds || [];
     return roleIds.map(roleId => ({
@@ -430,8 +437,8 @@ function getUserProcessRoles(user) {
 }
 
 function invitationRoles(invitation = {}) {
-    const roles = activeProcess.value?.data?.roles || {};
-    const roleIds = invitation.roleIds?.length ? invitation.roleIds : [invitation.role].filter(Boolean);
+    const roles = organizationRoles.value;
+    const roleIds = invitation.roleIds || [];
     return roleIds.map(roleId => ({
         id: roleId,
         label: roles[roleId]?.label || roleId
