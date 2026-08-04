@@ -1086,6 +1086,10 @@
     Removed the redundant Explorer header so its tree begins directly below the
     workspace action strip.
 
+    Reopen correction: Explorer now stays mounted while collapsed, with both its
+    panel and gutter hidden, so it returns at 15% instead of 50%. Empty leaves
+    retain a blank pane header and pane-local split/close controls.
+
     Validation: generated workspace tests (34), the design-system suite (46),
     SFC compile checks, the PrimeVue preset import, and `git diff --check`
     passed. `shared/localization.spec.js` still reports the pre-existing

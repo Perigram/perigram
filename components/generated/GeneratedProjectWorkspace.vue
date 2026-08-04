@@ -21,13 +21,16 @@
     </header>
 
     <div class="min-h-0 flex-1 overflow-hidden">
-      <Splitter :gutter-size="1" class="hidden h-full min-h-0 !border-0 lg:flex">
+      <Splitter
+        :gutter-size="1"
+        :pt="workspaceSplitterPt"
+        class="hidden h-full min-h-0 !border-0 lg:flex"
+      >
         <SplitterPanel
-          v-if="explorerOpen"
           key="workspace-explorer"
           :size="15"
           :min-size="10"
-          class="min-h-0 min-w-0 overflow-hidden !border-0"
+          :class="['min-h-0 min-w-0 overflow-hidden !border-0', { '!hidden': !explorerOpen }]"
         >
           <section class="flex h-full min-h-0 flex-col overflow-hidden bg-content">
             <Tree
@@ -55,7 +58,7 @@
 
         <SplitterPanel
           key="workspace-content"
-          :size="explorerOpen ? 85 : 100"
+          :size="85"
           :min-size="30"
           class="min-h-0 min-w-0 overflow-hidden !border-0"
         >
@@ -154,6 +157,9 @@ const explorerTreePt = {
   nodeContent: { class: '!px-1 !py-0.5 !gap-1' },
   nodeToggleButton: { class: '!h-6 !w-6' }
 };
+const workspaceSplitterPt = computed(() => ({
+  gutter: { class: explorerOpen.value ? '' : '!hidden' }
+}));
 
 const regions = computed(() => props.screen.regions || []);
 const mainRegion = computed(() => regions.value.find(region => sourceStateForRegion(region).source?.mode === 'single') || regions.value[0] || null);
