@@ -152,7 +152,6 @@ function normalizeProcessLike(definition = {}) {
 function projectRecordNodes(process) {
   return [
     ...projectRecords(process.entityProfiles, 'entity', 260),
-    ...projectRecords(process.actions, 'action', 560),
     ...projectRecords(process.services, 'service', 860),
     ...projectRecords(process.sockets, 'socket', 1160),
     ...projectRecords(process.statusDefinitions, 'statusDefinition', 560),

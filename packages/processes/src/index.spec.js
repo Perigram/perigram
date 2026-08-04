@@ -2450,95 +2450,33 @@ describe('@cutkit/processes compiler', () => {
           lifecycle: { mode: 'defaultCreated' },
           fields: { read: ['identity.*'], write: [], private: [] }
         }
-      },
-      actions: {
-        create_project: {
-          id: 'create_project',
-          label: 'Create project',
-          actionKind: 'createEntity',
-          entityType: 'project',
-          status: { to: INITIAL_STATE },
-          trigger: { mode: 'manual' },
-          access: { level: 'write', roleIds: ['role_admin'] },
-          inputs: [],
-          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
-        }
       }
     };
 
     const canvas = definitionToCanvas(definition);
     const roundTrip = validateRoundTrip(definition);
 
-    expect(canvas.nodes.map(node => node.id)).toEqual(['project_profile', 'create_project']);
+    expect(canvas.nodes.map(node => node.id)).toEqual(['project_profile']);
     expect(canvas.nodes[0].data.semanticId).toBe('entity:project_profile');
-    expect(roundTrip.ok).toBe(true);
-  });
-
-  it('round-trips a derived action when its effect uses the same stable id', () => {
-    const definition = normalizeProcessDefinition({
-      dataflowVersion: 3,
-      processNodes: {
-        create_project: {
-          id: 'create_project',
-          legacyActionId: 'create_project',
-          label: 'Create project',
-          kind: 'effect.createEntity',
-          entityType: 'project',
-          blocks: ['identity'],
-          trigger: { mode: 'manual' },
-          access: { level: 'write', grants: [] },
-          inputs: [],
-          outputs: []
-        }
-      },
-      graph: {
-        nodes: [{
-          id: 'create_project',
-          type: 'processNode',
-          position: { x: 10, y: 20 },
-          data: { refId: 'create_project' }
-        }],
-        edges: []
-      }
-    }, domain);
-
-    const canvas = definitionToCanvas(definition);
-    const actionNode = canvas.nodes.find(node => node.type === 'action');
-    const effectNode = canvas.nodes.find(node => node.type === 'processNode');
-    const roundTrip = validateRoundTrip(definition);
-
-    expect(actionNode).toMatchObject({ id: 'action:create_project', data: { refId: 'create_project' } });
-    expect(effectNode).toMatchObject({ id: 'create_project', data: { refId: 'create_project' } });
-    expect(roundTrip.errors).not.toContain('Round-trip changed actions');
     expect(roundTrip.ok).toBe(true);
   });
 
   it('converts canvas deletion back into semantic record deletion', () => {
     const definition = {
-      actions: {
-        create_project: {
-          id: 'create_project',
-          actionKind: 'createEntity',
-          entityType: 'project',
-          status: { to: INITIAL_STATE },
-          trigger: { mode: 'event' },
-          access: { level: 'write', roleIds: [] }
-        },
-        send_project: {
-          id: 'send_project',
-          actionKind: 'sendToOrganization',
-          entityType: 'project',
-          projection: { fields: ['identity.*'], excludeFields: [] },
-          trigger: { mode: 'event' },
-          access: { level: 'write', roleIds: [] }
-        }
+      processNodes: {
+        create_project: { id: 'create_project', kind: 'source.literalItem', value: 'create' },
+        send_project: { id: 'send_project', kind: 'source.literalItem', value: 'send' }
+      },
+      graph: {
+        nodes: ['create_project', 'send_project'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: []
       }
     };
 
     const canvas = definitionToCanvas(definition);
     const next = canvasToDefinition({ ...canvas, nodes: canvas.nodes.filter(node => node.id !== 'send_project') }, definition);
 
-    expect(Object.keys(next.actions)).toEqual(['create_project']);
+    expect(Object.keys(next.processNodes)).toEqual(['create_project']);
   });
 
   it('rejects compiled-only process definitions as editable sources', () => {

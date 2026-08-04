@@ -46,8 +46,11 @@ sockets.
 Process definitions use canonical semantic records as the editing source of
 truth. `definitionToCanvas()` projects those records into deterministic Vue
 Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
-preserving role, service-identity, lifecycle, action, service, socket, and
-assignment records.
+preserving role, service-identity, lifecycle, service, socket, and assignment
+records.
+Executable effects are represented only by their `processNode` canvas node.
+Compiler-derived action records are not projected as separate action nodes and
+are removed when the canvas is serialized.
 `validateRoundTrip()` verifies that `definition -> canvas -> definition` does
 not change process semantics before activation. Vue Flow node positions are
 presentation data; runtime behavior must come from the semantic records.
