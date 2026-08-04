@@ -28,9 +28,15 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 - Component-specific dimensions such as support chat size, dialog widths, popover/menu minimum widths, preview height, table action column width, and form swatch size live here because they are reused UI decisions rather than page-local styling.
 - Motion is a semantic, opt-in interaction contract. `designTokens.motion`
   provides fast/normal/emphasis durations, standard/enter/exit easing curves,
-  and the JavaScript seconds scale required by `motion-v`; CSS exposes the
-  matching `--ck-motion-*` and `--ck-ease-*` values. Spring settings live under
-  `designTokens.motion.spring`, not inside a feature component.
+  overlay entry geometry, and the JavaScript seconds scale required by
+  `motion-v`; CSS exposes the matching `--ck-motion-*` and `--ck-ease-*`
+  values. Spring settings live under `designTokens.motion.spring`, not inside
+  a feature component.
+- `assets/css/main.css` applies the shared interaction curve to PrimeVue
+  controls and selection states, and rebinds connected overlays, dialogs,
+  drawers, and toasts away from PrimeVue's fixed animation values. Those
+  effects are bounded feedback only: no page-layout animation, lift, or
+  decorative bounce belongs in a feature component.
 - `designTokens.dock` owns only shared compact dock geometry: pointer distance,
   scale, spacing, label, and indicator metrics. `components/shared/MotionDock.vue`
   consumes those defaults plus `motion.spring.dock` for the Vue Bits-derived

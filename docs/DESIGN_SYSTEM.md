@@ -7,7 +7,8 @@ CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The des
 - `assets/tokens/index.js` owns semantic app tokens and exports PrimeVue/Tailwind projections.
 - `assets/presets/re_l.js` is the PrimeVue preset and consumes component token overrides.
 - `tailwind.config.js` exposes semantic Tailwind aliases backed by PrimeVue `--p-*` and CutKit `--ck-*` variables.
-- `assets/css/main.css` declares runtime `--ck-*` variables and only global layout helpers.
+- `assets/css/main.css` declares runtime `--ck-*` variables plus the shared
+  interaction/overlay motion layer and narrow global layout helpers.
 - `packages/domain-cnc/src/index.js` defines the CNC entity card/demo contract
   without importing Vue.
 - `utils/design-system-contract.js` re-exports that contract for existing UI
@@ -22,9 +23,12 @@ domain signal roles that PrimeVue does not own.
 
 Motion is reserved for direct interaction feedback: compact contextual controls
 may use the semantic duration/easing/spring scale through shared primitives,
-but operational screens must not acquire ambient animation. CSS and JavaScript
-motion share the same reduced-motion policy, preserving control state and
-keyboard behavior without spatial travel.
+but operational screens must not acquire ambient animation. The global layer
+gives PrimeVue controls, selection rows, and tabs one in-place state curve;
+connected overlays, dialogs, drawers, and toasts use the same tokenized entry
+and exit contract instead of PrimeVue's fixed timings and large default scales.
+CSS and JavaScript motion share the same reduced-motion policy, preserving
+control state and keyboard behavior without moving page layout.
 
 The active visual language is a hard editorial engineering instrument:
 near-white chrome and work surfaces in light mode, ink chrome in dark mode, a
