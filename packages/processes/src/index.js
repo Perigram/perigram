@@ -143,6 +143,10 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, doma
     if (!actionKind) continue;
     const promptContract = effectPromptContract(nodeId, node, processNodes, graph, domain);
     const fields = promptContract.fields;
+    const suppliedFields = new Set([
+      ...Object.keys(promptContract.defaults),
+      ...promptContract.wiredFields
+    ]);
     const statusTo = node.inputDefaults?.['status.state.primary'] || node.status?.to || '';
     derived[actionId] = {
       ...(derived[actionId] || {}),
@@ -158,13 +162,13 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, doma
       mutation: { ...(derived[actionId]?.mutation || {}), fields, blocks: [...(node.blocks || [])] },
       inputPolicy: {
         ...(derived[actionId]?.inputPolicy || {}),
-        prompt: fields.some(path => !Object.hasOwn(promptContract.defaults, path)),
+        prompt: fields.some(path => !suppliedFields.has(path)),
         fields: fields.map(path => ({
           id: `field:${path}`,
           path,
           type: promptContract.schemas.find(field => field.path === path)?.type?.base || 'json',
-          prompt: !Object.hasOwn(promptContract.defaults, path),
-          required: false,
+          prompt: !suppliedFields.has(path),
+          required: node.kind === 'effect.createEntity' && path === 'identity.name',
           ...(Object.hasOwn(promptContract.defaults, path) ? { default: promptContract.defaults[path] } : {})
         }))
       },
@@ -185,12 +189,13 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     return {
       fields: node.fields,
       defaults: node.inputDefaults || {},
+      wiredFields: [],
       schemas: (node.fields || []).map(path => structuralFieldSchema(domain, path)).filter(Boolean),
       parentEntityType: node.parentEntityType || ''
     };
   }
   const graphNode = (graph?.nodes || []).find(item => String(item.data?.refId || item.id) === String(nodeId));
-  if (!graphNode) return { fields: [], defaults: {}, schemas: [], parentEntityType: '' };
+  if (!graphNode) return { fields: [], defaults: {}, wiredFields: [], schemas: [], parentEntityType: '' };
   const recordByGraphNode = new Map((graph.nodes || []).map(item => [
     String(item.id),
     processNodes[String(item.data?.refId || item.id)]
@@ -202,14 +207,39 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
   const schemas = composers
     .flatMap(record => (record.fields || []).map(path => structuralFieldSchema(domain, path)))
     .filter(Boolean);
+  const wiredFields = composers.flatMap(composer => {
+    const composerNode = (graph.nodes || []).find(item => String(item.data?.refId || item.id) === String(composer.id));
+    if (!composerNode) return [];
+    const wiredHandles = new Set((graph.edges || [])
+      .filter(edge => String(edge.target) === String(composerNode.id))
+      .map(edge => String(edge.targetHandle || '').replace(/^(input|data):/, '')));
+    return [
+      ...(composer.fields || []).filter(path => wiredHandles.has(path)),
+      ...(composer.entries || [])
+        .filter(entry => wiredHandles.has(`entry:${entry.id}`))
+        .map(entry => `${composer.block}.${entry.key}`)
+    ];
+  });
+  const composerFields = [...new Set(composers.flatMap(record => [
+    ...(record.fields || []),
+    ...(record.entries || []).map(entry => `${record.block}.${entry.key}`).filter(path => !path.endsWith('.'))
+  ]))];
+  const defaultIdentityFields = node.kind === 'effect.createEntity'
+    && (node.construction?.mode || 'genericCreate') === 'genericCreate'
+    && !composers.some(record => record.block === 'identity')
+    ? ['identity.name']
+    : [];
+  const fields = [...new Set([...composerFields, ...defaultIdentityFields])];
+  const resolvedSchemas = fields.map(path => structuralFieldSchema(domain, path)).filter(Boolean);
   const parentTypes = [...new Set(schemas
     .filter(field => field.block === 'lineage' && field.type?.entityType !== 'organization')
     .map(field => field.type?.entityType)
     .filter(Boolean))];
   return {
-    fields: [...new Set(composers.flatMap(record => record.fields || []))],
+    fields,
     defaults: Object.assign({}, ...composers.map(record => record.inputDefaults || {})),
-    schemas,
+    wiredFields,
+    schemas: [...schemas, ...resolvedSchemas.filter(schema => !schemas.some(item => item.path === schema.path))],
     parentEntityType: node.parentEntityType || (parentTypes.length === 1 ? parentTypes[0] : '')
   };
 }
@@ -2794,7 +2824,10 @@ function validateProcessNodeConnections(process = {}, errors = [], domain = {}) 
     }
     for (const input of contract.inputs) {
       const hasDefault = Object.hasOwn(record.inputDefaults || {}, input.id);
-      if (input.required && !counts.has(input.id) && !hasDefault) errors.push(`Process node ${nodeId} requires input ${input.id}`);
+      const manualCreateIdentity = record.kind === 'effect.createEntity'
+        && (record.trigger?.mode || 'manual') === 'manual'
+        && input.id === 'identity';
+      if (input.required && !counts.has(input.id) && !hasDefault && !manualCreateIdentity) errors.push(`Process node ${nodeId} requires input ${input.id}`);
       if ((counts.get(input.id) || 0) > 1 && !input.multiple) errors.push(`Process node ${nodeId} input ${input.id} has more than one connected value`);
     }
   }

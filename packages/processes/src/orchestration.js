@@ -243,6 +243,13 @@ function processRunInput(inputs = {}, record = {}, portId = '', environment = {}
     return inputs.entity ?? inputs.entities?.[record.entityType];
   }
   if (Object.hasOwn(inputs.data || {}, portId)) return inputs.data[portId];
+  if (portId.startsWith('entry:') && Array.isArray(record.entries)) {
+    const entry = record.entries.find(item => `entry:${item.id}` === portId);
+    if (entry?.key) {
+      const value = readInputPath(inputs.data, `${record.block}.${entry.key}`);
+      if (value !== undefined) return value;
+    }
+  }
   const nested = readInputPath(inputs.data, portId);
   if (nested !== undefined) return nested;
   const field = (environment.catalogContext?.(record)?.fieldSchemas || [])

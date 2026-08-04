@@ -543,25 +543,6 @@
                             @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { entityType: value })"
                           />
                           <Select
-                            v-else-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
-                            :model-value="entry.entityType"
-                            :options="entityTypeOptions"
-                            option-label="label"
-                            option-value="value"
-                            size="small"
-                            filter
-                            @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { entityType: value })"
-                          />
-                          <Select
-                            v-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
-                            :model-value="entry.cardinality || 'one'"
-                            :options="relationCardinalityOptions"
-                            option-label="label"
-                            option-value="value"
-                            size="small"
-                            @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { cardinality: value })"
-                          />
-                          <Select
                             v-else-if="openBlockComposition(selectedProcessNode).mode === 'attachments'"
                             :model-value="entry.attachmentKind"
                             :options="designer.attachmentKindOptions"
@@ -572,7 +553,7 @@
                             @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { attachmentKind: value })"
                           />
                           <Select
-                            v-else
+                            v-else-if="openBlockComposition(selectedProcessNode).mode === 'entries'"
                             :model-value="entry.type?.base"
                             :options="processValueTypeOptions"
                             option-label="label"
@@ -3076,6 +3057,33 @@ function syncProcessNodeConstruction(node = {}) {
 
 function applyInferredProcessNodeInputs(record = {}, node = {}) {
   if (!record?.kind || !node?.id) return;
+  if (record.compositionMode === 'relations' && Array.isArray(record.entries)) {
+    for (const entry of record.entries) {
+      const targetHandle = `entry:${entry.id}`;
+      const edge = edges.value.find(item => (
+        String(item.target) === String(node.id)
+        && String(item.targetHandle || '').replace(/^(input|data):/, '') === targetHandle
+      ));
+      if (!edge) {
+        delete entry.entityType;
+        delete entry.cardinality;
+        continue;
+      }
+      const sourceNode = nodes.value.find(item => String(item.id) === String(edge.source));
+      const sourceRecord = sourceNode?.type === 'processNode'
+        ? draft.value?.data?.processNodes?.[sourceNode.data?.refId || sourceNode.id]
+        : null;
+      const sourcePort = sourceRecord
+        ? processNodeOutputs(sourceRecord).find(port => port.id === String(edge.sourceHandle || '').replace(/^(output|data):/, ''))
+        : null;
+      const sourceType = sourcePort?.type;
+      const entityType = sourceType?.base === 'array'
+        ? sourceType.itemType?.entityType
+        : sourceType?.entityType;
+      entry.entityType = entityType || '';
+      entry.cardinality = sourceType?.base === 'array' || sourceType?.shape === 'list' ? 'many' : 'one';
+    }
+  }
   syncProcessNode(record);
 }
 
@@ -3869,7 +3877,7 @@ function createOpenBlockEntry(node = {}) {
   if (composition?.mode === 'relations') {
     Object.assign(entry, {
       key: '',
-      entityType: defaultEntityType(),
+      entityType: '',
       cardinality: 'one'
     });
   }
@@ -4222,6 +4230,17 @@ function inferGenericNodeTypeFromConnection(connection = {}) {
     syncProcessNode(sourceRecord);
   }
   const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
+  if (targetRecord.compositionMode === 'relations' && targetInput.startsWith('entry:')) {
+    const entryId = targetInput.slice('entry:'.length);
+    const entry = (targetRecord.entries || []).find(item => item.id === entryId);
+    if (entry) {
+      entry.entityType = sourcePort.type?.base === 'array'
+        ? sourcePort.type.itemType?.entityType || ''
+        : sourcePort.type?.entityType || '';
+      entry.cardinality = sourcePort.type?.base === 'array' || sourcePort.type?.shape === 'list' ? 'many' : 'one';
+      syncProcessNode(targetRecord);
+    }
+  }
   const genericKinds = new Set([
     'collection.makeList',
     'collection.packArray',

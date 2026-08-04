@@ -270,8 +270,10 @@ read/write/construct capability. Intrinsic collection values use
 Wildcard field-access entries remain authorization patterns and never become
 field choices or guessed sockets. Fixed-block Compose/Modify expose selected
 fields. Open-block Compose/Modify expose stable `entry:<id>` sockets: Lineage
-entries author a storage key plus typed entity reference, Relations author a
-storage key, referenced entity type, and intrinsic one/many cardinality,
+entries author a storage key plus typed entity reference. Relations author a
+storage key; their referenced entity type and intrinsic one/many cardinality
+are inferred from the connected entity or entity-list value rather than edited
+independently,
 Attachments accept named typed
 attachment references, and Data/Summary/Provenance accept named typed values.
 Renaming an entry does not break its wire. The evaluator lowers Lineage entity
@@ -298,6 +300,14 @@ activation.
 Manual effect inputs resolve the supplied entity from the persisted run context
 when no data wire overrides that socket. Entity access remains resolved from
 persisted run input through the authorized feature service.
+Manual generic Create actions expose `identity.name` as a required prompt when
+no Identity block supplies it. Manual field values are resolved into either
+fixed field sockets or stable open-block entry sockets by canonical field path,
+so a composer node is optional for user-entered creation data. Wired sources
+take precedence and suppress the corresponding prompt. Source nodes such as
+Current Time remain lazy and are evaluated when the consuming effect runs;
+date/date-time values may flow into string fields as their canonical temporal
+representation.
 
 `effect.changeStatus` consumes an entity reference, a typed status value, and
 an optional patch. The status may be supplied by a literal or configured from a

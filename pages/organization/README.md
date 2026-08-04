@@ -114,6 +114,11 @@ remaining inspector surfaces are:
   type and structure from incoming wires, so reading a field across an entity
   list, producing a logic mask, and filtering the original list is ordinary
   aligned dataflow rather than a special query-node language;
+- Relations block entries own only their storage key; entity type and one/many
+  cardinality are inferred from the connected socket. Manual generic Create
+  actions prompt for an unwired identity name and accept canonical field-path
+  values without requiring a block-composer node. Wired dynamic sources remain
+  lazy and suppress the corresponding manual prompt;
 - service nodes own command selection, run/view service identities, prepaid
   token billing metadata, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;

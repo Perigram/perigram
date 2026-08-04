@@ -484,4 +484,68 @@ describe('durable process orchestration', () => {
       }
     }));
   });
+
+  it('maps manual field data into stable open-block entry sockets', async () => {
+    const definition = process([
+      {
+        id: 'identity',
+        kind: 'record.composeBlock',
+        block: 'identity',
+        compositionMode: 'entries',
+        compositionValueBase: 'json',
+        entries: [{ id: 'name', key: 'name', type: { base: 'string', shape: 'item' } }]
+      },
+      {
+        id: 'create',
+        kind: 'effect.createEntity',
+        entityType: 'project',
+        trigger: { mode: 'manual' },
+        blocks: ['identity']
+      }
+    ], ['identity', 'create'], [{
+      id: 'identity-create',
+      source: 'identity',
+      sourceHandle: 'data:block',
+      target: 'create',
+      targetHandle: 'data:identity',
+      role: 'data'
+    }]);
+    const executeEffect = vi.fn().mockResolvedValue({ _id: 'project-1' });
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'create' }, {
+        context: { inputs: { data: { identity: { name: 'Manual project' } } } }
+      }),
+      definition,
+      { executeEffect, catalogContext }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      inputs: { identity: { name: 'Manual project' } }
+    }));
+  });
+
+  it('supplies a manual identity block without requiring a composer node', async () => {
+    const definition = process([{
+      id: 'create',
+      kind: 'effect.createEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      blocks: ['identity']
+    }], ['create'], []);
+    const executeEffect = vi.fn().mockResolvedValue({ _id: 'project-1' });
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'create' }, {
+        context: { inputs: { data: { identity: { name: 'Manual project' } } } }
+      }),
+      definition,
+      { executeEffect, catalogContext }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      inputs: { identity: { name: 'Manual project' } }
+    }));
+  });
+
 });

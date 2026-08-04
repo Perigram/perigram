@@ -235,6 +235,68 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.roles.operator.actions).toContainEqual(expect.objectContaining({ actionId: 'create_queue' }));
   });
 
+  it('prompts for identity name when a manual create has no identity wire', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 3,
+      processNodes: {
+        create_project: {
+          id: 'create_project',
+          kind: 'effect.createEntity',
+          entityType: 'queue',
+          trigger: { mode: 'manual' },
+          construction: domain.construction.queue,
+          blocks: ['identity'],
+          status: { to: SOURCE_STATE }
+        }
+      },
+      graph: {
+        nodes: [{ id: 'create_project', type: 'processNode', data: { refId: 'create_project' } }],
+        edges: []
+      }
+    }, domain);
+
+    expect(compiled.actions.create_project.inputPolicy).toMatchObject({
+      prompt: true,
+      fields: [expect.objectContaining({ path: 'identity.name', type: 'string', prompt: true, required: true })]
+    });
+  });
+
+  it('infers relation entry type and cardinality from its connected source', () => {
+    const definition = normalizeProcessDefinition({
+      dataflowVersion: 3,
+      processNodes: {
+        library: {
+          id: 'library',
+          kind: 'source.literalItem',
+          type: { base: 'entityRef', shape: 'item', entityType: 'library' }
+        },
+        relations: {
+          id: 'relations',
+          kind: 'record.composeBlock',
+          block: 'relations',
+          compositionMode: 'relations',
+          entries: [{ id: 'library', key: 'library', entityType: 'project', cardinality: 'many' }]
+        }
+      },
+      graph: {
+        nodes: ['library', 'relations'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [{
+          id: 'library-relations',
+          source: 'library',
+          sourceHandle: 'data:value',
+          target: 'relations',
+          targetHandle: 'data:entry:library',
+          role: 'data'
+        }]
+      }
+    }, domain);
+
+    expect(definition.processNodes.relations.entries[0]).toMatchObject({
+      entityType: 'library',
+      cardinality: 'one'
+    });
+  });
+
   it('reprojects attachment command sockets from the current typed template contract', () => {
     const attachmentDomain = {
       ...domain,
