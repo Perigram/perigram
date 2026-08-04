@@ -125,6 +125,29 @@ describe('process definitions access fallback', () => {
     expect(await hasProcessDefinitionMembershipAccess(auth, 'org-2', 'admin')).toBe(false);
   });
 
+  it('rejects activation when the authored graph is not the current dataflow version', async () => {
+    processRepository.findById.mockResolvedValueOnce({
+      _id: 'process-old',
+      identity: { uid: 'process-old', name: 'Old process', slug: 'old-process' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'DRAFT' },
+      data: {
+        schemaVersion: 1,
+        dataflowVersion: 2,
+        graph: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }
+      }
+    });
+
+    await expect(activate('process-old', {
+      userId: 'admin',
+      organizationId: 'org-1',
+      effectivePermissions: { organizations: { level: 'admin' } }
+    })).rejects.toThrow('Process dataflow version 3 is required');
+
+    expect(processRepository.updateById).not.toHaveBeenCalled();
+    expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
+  });
+
   it('preserves process status serialization when assigning active process roles', async () => {
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-1',

@@ -18,8 +18,8 @@ import {
   compileProcessDefinition,
   createProcessFromTemplate,
   hasCanonicalProcessSource,
-  migrateProcessDataflowDefinition,
   normalizeProcessDefinition,
+  PROCESS_DATAFLOW_VERSION,
   advanceProcessRun,
   applyPatch,
   createProcessRun,
@@ -190,8 +190,13 @@ function validateActivatableProcess(data = {}, domain = {}) {
 }
 
 function normalizeCurrentProcessDefinition(data = {}) {
-  const normalized = normalizeProcessDefinition(data);
-  return migrateProcessDataflowDefinition(normalized, cncDomain).value;
+  if (Number(data.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
+    throw createError({
+      statusCode: 409,
+      message: `Process dataflow version ${PROCESS_DATAFLOW_VERSION} is required`
+    });
+  }
+  return normalizeProcessDefinition(data, cncDomain);
 }
 
 export async function assignUserToActiveProcess({ userId, roleIds = [], bindings = {}, status = 'active' } = {}, auth = {}) {

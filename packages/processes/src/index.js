@@ -51,7 +51,6 @@ export {
 } from './designer.js';
 
 export { resolveProcessActionInputContext } from './algebra.js';
-export { migrateProcessDataflowDefinition } from './dataflow-migration.js';
 export {
   PROCESS_PROTOCOL_VERSION,
   PROCESS_OPERATION_LEVELS,
@@ -109,7 +108,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const processNodes = normalizeRecord(data.processNodes);
   return inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
-    dataflowVersion: data.dataflowVersion || 1,
+    dataflowVersion: data.dataflowVersion,
     sourceTemplateId: data.sourceTemplateId || null,
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
     graph: normalizeGraph(data.graph),
