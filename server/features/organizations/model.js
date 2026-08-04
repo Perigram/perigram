@@ -7,7 +7,11 @@ export class Organization extends BaseEntity {
   constructor(raw = {}) {
     super(raw);
     
-    this.data = this.data || {};
+    this.data = {
+      roles: {},
+      roleAssignments: {},
+      ...(this.data || {})
+    };
   }
 
   get name() { return this.identity.name; }

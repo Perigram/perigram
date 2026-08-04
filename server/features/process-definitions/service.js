@@ -51,6 +51,28 @@ export async function list(auth) {
   return raws.map(raw => new ProcessDefinition(raw).toJSON());
 }
 
+export async function findRoleReferences(organizationId, roleId) {
+  const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
+  return raws
+    .filter(raw => raw.status?.state?.primary !== 'ARCHIVED')
+    .filter(raw => definitionReferencesRole(raw.data || {}, roleId))
+    .map(raw => ({ id: String(raw._id), name: raw.identity?.name || '', status: raw.status?.state?.primary || '' }));
+}
+
+function definitionReferencesRole(data = {}, roleId) {
+  if (Object.hasOwn(data.roleGrants || {}, roleId)) return true;
+  const serialized = JSON.stringify({
+    graph: data.graph,
+    entityProfiles: data.entityProfiles,
+    actions: data.actions,
+    services: data.services,
+    sockets: data.sockets,
+    screens: data.screens,
+    processNodes: data.processNodes
+  });
+  return serialized.includes(`\"${roleId}\"`);
+}
+
 export async function getActive(auth) {
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'read');
@@ -99,15 +121,15 @@ export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
   assertCurrentProcessDefinition(process.data);
   assertCanonicalProcessSource(process.data);
-  return validateActivatableProcess(process.data, getDomain());
+  return validateActivatableProcess(process.data, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
 }
 
 export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
   assertCurrentProcessDefinition(process.data);
   assertCanonicalProcessSource(process.data);
-  await preserveActiveAssignments(process);
-  const validation = validateActivatableProcess(process.data, getDomain());
+  const roles = await loadOrganizationRoles(process.lineage.organizationId);
+  const validation = validateActivatableProcess(process.data, getDomain(), roles);
   if (!validation.ok) {
     throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
   }
@@ -117,7 +139,7 @@ export async function activate(id, auth) {
   }
   process.data = {
     ...process.data,
-    compiled: compileProcessDefinition(process.data, getDomain())
+    compiled: compileProcessDefinition(process.data, getDomain(), { roles })
   };
   await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
   applyProcessStatus(process, 'ACTIVE', auth.userId, 'Process activated');
@@ -131,35 +153,28 @@ export async function activate(id, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
-async function preserveActiveAssignments(process) {
-  const activeRaw = await repository.findActiveByOrganization(process.lineage.organizationId);
-  if (!activeRaw || String(activeRaw._id) === String(process.id)) return;
-  const active = new ProcessDefinition(activeRaw);
-  process.data.assignments = { ...(active.data?.assignments || {}) };
-}
-
-export async function createActiveFromTemplate({ organizationId, userId, templateId, actorId } = {}) {
+export async function createActiveFromTemplate({ organizationId, templateId, actorId } = {}) {
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization id is required' });
 
   const process = new ProcessDefinition(createProcessFromTemplate({
     templateId,
-    organizationId: toFlexibleId(organizationId),
-    userId
+    organizationId: toFlexibleId(organizationId)
   }));
   assertCurrentProcessDefinition(process.data);
 
-  const validation = validateActivatableProcess(process.data, getDomain());
+  const roles = await loadOrganizationRoles(organizationId);
+  const validation = validateActivatableProcess(process.data, getDomain(), roles);
   if (!validation.ok) {
     throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
   }
 
   process.data = {
     ...process.data,
-    compiled: compileProcessDefinition(process.data, getDomain())
+    compiled: compileProcessDefinition(process.data, getDomain(), { roles })
   };
-  applyProcessStatus(process, 'ACTIVE', actorId || userId || 'SYSTEM', 'Process activated from starter template');
+  applyProcessStatus(process, 'ACTIVE', actorId || 'SYSTEM', 'Process activated from starter template');
 
-  await repository.archiveActiveByOrganization(organizationId, actorId || userId || 'SYSTEM');
+  await repository.archiveActiveByOrganization(organizationId, actorId || 'SYSTEM');
   const created = await repository.create(process);
   await organizationsRepository.updateById(organizationId, {
     data: {
@@ -171,8 +186,8 @@ export async function createActiveFromTemplate({ organizationId, userId, templat
   return new ProcessDefinition(created).toJSON();
 }
 
-function validateActivatableProcess(data = {}, domain = {}) {
-  const validation = validateProcessDefinition(data, domain);
+function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
+  const validation = validateProcessDefinition(data, domain, { roles });
   const process = validation.definition || normalizeProcessDefinition(data);
   const requiredTypes = requiredEntityProfileTypes(process, domain);
   if (!requiredTypes.length) return validation;
@@ -198,52 +213,6 @@ function assertCurrentProcessDefinition(data = {}) {
 function currentProcessDefinition(data = {}) {
   assertCurrentProcessDefinition(data);
   return structuredClone(data);
-}
-
-export async function assignUserToActiveProcess({ userId, roleIds = [], bindings = {}, status = 'active' } = {}, auth = {}) {
-  const organizationId = resolveOrganizationId(auth);
-  await assertOrgAccess(auth, organizationId, 'admin');
-  return await assignUserToActiveProcessInternal({
-    organizationId,
-    userId,
-    roleIds,
-    bindings,
-    status,
-    actorId: auth.userId
-  });
-}
-
-export async function assignUserToActiveProcessInternal({
-  organizationId,
-  userId,
-  roleIds = [],
-  bindings = {},
-  status = 'active',
-  actorId = 'SYSTEM'
-} = {}) {
-  if (!organizationId) throw createError({ statusCode: 400, message: 'Organization id is required' });
-  if (!userId) throw createError({ statusCode: 400, message: 'User id is required' });
-
-  const raw = await repository.findActiveByOrganization(organizationId);
-  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
-
-  const process = new ProcessDefinition(raw);
-  process.data = normalizeLegacyProcessActions(process.data).data;
-  const normalizedRoleIds = normalizeRoleIds(roleIds, process.data.roles);
-  process.data.assignments = {
-    ...(process.data.assignments || {}),
-    [String(userId)]: {
-      userId: String(userId),
-      roleIds: normalizedRoleIds,
-      bindings: bindings && typeof bindings === 'object' ? bindings : {},
-      status
-    }
-  };
-  process.data.compiled = compileProcessDefinition(process.data, getDomain());
-  touchProcessStatus(process, actorId, `Assigned process roles to ${userId}`);
-
-  const updated = await repository.updateById(process.id, process);
-  return new ProcessDefinition(updated).toJSON();
 }
 
 export async function archive(id, auth) {
@@ -1041,19 +1010,6 @@ function applyProcessStatus(process, primary, userId, note) {
   process.applyStatus(createStatusState(primary), userId || 'SYSTEM', { note });
 }
 
-function touchProcessStatus(process, userId, note) {
-  if (!process.status?.toJSON) {
-    applyProcessStatus(process, 'ACTIVE', userId, note);
-    return;
-  }
-  process.status.userId = userId || 'SYSTEM';
-  process.status.timestamp = new Date();
-  process.status.metadata = {
-    ...(process.status.metadata || {}),
-    note
-  };
-}
-
 function assertCompiledActionAvailable(actionId, auth = {}) {
   const available = auth.roleAssignments?.actions || [];
   if (!available.some(action => action.actionId === actionId)) {
@@ -1670,11 +1626,10 @@ function assertCanonicalProcessSource(data = {}) {
   }
 }
 
-function normalizeRoleIds(roleIds, roles = {}) {
-  const list = Array.isArray(roleIds) ? roleIds : [roleIds].filter(Boolean);
-  const valid = list.filter(roleId => roles[roleId]);
-  if (valid.length) return [...new Set(valid)];
-  throw createError({ statusCode: 400, message: 'At least one valid process role is required' });
+async function loadOrganizationRoles(organizationId) {
+  const organization = await organizationsRepository.findById(organizationId);
+  if (!organization) throw createError({ statusCode: 404, message: 'Organization not found' });
+  return organization.data?.roles || {};
 }
 
 function projectEntityFields(entity, projection = {}) {

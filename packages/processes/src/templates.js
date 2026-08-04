@@ -158,19 +158,9 @@ export function getProcessTemplate(id = 'contractor') {
   return PROCESS_TEMPLATES[id] || PROCESS_TEMPLATES[legacyTypeToTemplateId(id)] || PROCESS_TEMPLATES.contractor;
 }
 
-export function createProcessFromTemplate({ templateId = 'contractor', organizationId, userId }) {
+export function createProcessFromTemplate({ templateId = 'contractor', organizationId }) {
   const template = getProcessTemplate(templateId);
   const definition = clonePlain(template.definition);
-  definition.assignments = userId
-    ? {
-        [String(userId)]: {
-          userId: String(userId),
-          roleIds: ['role_admin'],
-          bindings: {},
-          status: 'active'
-        }
-      }
-    : {};
   definition.compiled = null;
   return {
     identity: {
@@ -196,15 +186,16 @@ export function legacyTypeToTemplateId(type = '') {
 }
 
 function createTemplate({ id, label, adminLabel, grants, entities, services }) {
-  const roles = {
+  const organizationRoles = {
     role_admin: {
       id: 'role_admin',
-      label: adminLabel,
-      grants: Object.entries(grants)
-        .filter(([, level]) => level && level !== 'none')
-        .map(([feature, level]) => ({ feature, level })),
-      capabilities: []
+      label: adminLabel
     }
+  };
+  const roleGrants = {
+    role_admin: Object.entries(grants)
+      .filter(([, level]) => level && level !== 'none')
+      .map(([feature, level]) => ({ feature, level }))
   };
   const servicePrincipals = Object.fromEntries(Object.values(services)
     .flatMap(service => [
@@ -238,19 +229,19 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
   return {
     id,
     label,
+    organizationRoles,
     definition: {
       schemaVersion: 1,
       dataflowVersion: 3,
       sourceTemplateId: id,
       graph,
-      roles,
+      roleGrants,
       servicePrincipals,
       entityProfiles: entities,
       actions: {},
       services,
       sockets: {},
       screens: {},
-      assignments: {},
       compiled: null
     }
   };

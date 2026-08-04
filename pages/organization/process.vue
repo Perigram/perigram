@@ -726,7 +726,7 @@
                 <div v-if="selectedRoleRecord" class="flex flex-col gap-3">
                   <div class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.label') }}</label>
-                    <InputText v-model="selectedRoleRecord.label" />
+                    <InputText v-model="selectedRoleRecord.label" @change="saveSelectedRole" />
                   </div>
                   <div class="flex flex-wrap gap-1">
                     <Tag v-for="item in selectedRoleAccessSummary" :key="item" :value="item" size="small" />
@@ -915,6 +915,7 @@ import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 
 const { t, te } = useI18n();
 const toast = useToast();
+const authStore = useAuthStore();
 definePageMeta({
   layout: 'app',
   middleware: 'auth'
@@ -937,6 +938,7 @@ const savedDraftSignature = ref('');
 const paletteOpen = ref(true);
 const inspectorOpen = ref(true);
 const selectedRoleId = ref(null);
+const organizationRoles = ref({});
 const selectedPrincipalId = ref(null);
 const selectedScreenId = ref(null);
 const newStateId = ref('');
@@ -1223,7 +1225,7 @@ const nextSelectedProcessNodeRoleId = computed(() => {
 });
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
 
-const roles = computed(() => draft.value?.data?.roles || {});
+const roles = computed(() => organizationRoles.value);
 const servicePrincipals = computed(() => draft.value?.data?.servicePrincipals || {});
 const screens = computed(() => draft.value?.data?.screens || {});
 const roleList = computed(() => Object.values(roles.value));
@@ -1294,10 +1296,13 @@ async function loadActiveOrCreateLocal() {
   loadingProcess.value = true;
   processLoadError.value = '';
   try {
-    const [active, all] = await Promise.all([
+    const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
+    const [active, all, loadedRoles] = await Promise.all([
       $fetch('/api/process-definitions/active').catch(() => null),
-      $fetch('/api/process-definitions').catch(() => [])
+      $fetch('/api/process-definitions').catch(() => []),
+      organizationId ? $fetch(`/api/organizations/${organizationId}/roles`) : {}
     ]);
+    organizationRoles.value = loadedRoles || {};
     processDefinitions.value = normalizeProcessList(active, all);
     const initial = pickInitialProcess(active, processDefinitions.value);
     if (initial) {
@@ -1308,6 +1313,16 @@ async function loadActiveOrCreateLocal() {
   } finally {
     loadingProcess.value = false;
   }
+}
+
+async function loadOrganizationRoles() {
+  const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
+  organizationRoles.value = organizationId
+    ? await $fetch(`/api/organizations/${organizationId}/roles`)
+    : {};
+  selectedRoleId.value = organizationRoles.value[selectedRoleId.value]
+    ? selectedRoleId.value
+    : Object.keys(organizationRoles.value)[0] || null;
 }
 
 function normalizeProcessList(active, all = []) {
@@ -1548,7 +1563,7 @@ function setDraft(value) {
   selectedEdgeId.value = null;
   nodes.value = canvas.nodes.map(enrichNodeData);
   edges.value = decorateEdges(canvas.edges);
-  selectedRoleId.value = Object.keys(value?.data?.roles || {})[0] || null;
+  selectedRoleId.value = Object.keys(organizationRoles.value)[0] || null;
   selectedPrincipalId.value = Object.keys(value?.data?.servicePrincipals || {})[0] || null;
   selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
   savedDraftSignature.value = designerSignature();
@@ -2014,7 +2029,7 @@ function recomputeProcessPreview() {
     return;
   }
   try {
-    compiledPreview.value = compileProcessDefinition(processDefinitionSnapshot(), cncDomain);
+    compiledPreview.value = compileProcessDefinition(processDefinitionSnapshot(), cncDomain, { roles: organizationRoles.value });
     compiledPreviewError.value = '';
   } catch (error) {
     compiledPreview.value = null;
@@ -2125,10 +2140,6 @@ function recordKeyForType(type) {
 
 function factoryForType(type) {
   return ({ entity: createEntityProfile, action: createAction, service: createService, socket: createSocket, statusDefinition: createStatusDefinition, valueInput: createValueInput, processNode: createProcessNode })[type] || createEntityProfile;
-}
-
-function createRole(id) {
-  return { id, label: id };
 }
 
 function createServicePrincipal(id) {
@@ -2343,49 +2354,48 @@ function createProcessNode(id, kind = 'source.literalItem') {
   return node;
 }
 
-function addRole() {
-  const id = `role_${Date.now()}`;
-  draft.value ||= { data: {} };
-  draft.value.data.roles ||= {};
-  draft.value.data.roles[id] = createRole(id);
-  selectedRoleId.value = id;
+async function addRole() {
+  const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
+  try {
+    const role = await $fetch(`/api/organizations/${organizationId}/roles`, {
+      method: 'POST',
+      body: { label: `Role ${Object.keys(organizationRoles.value).length + 1}` }
+    });
+    organizationRoles.value = { ...organizationRoles.value, [role.id]: role };
+    selectedRoleId.value = role.id;
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+  }
 }
 
-function removeSelectedRole() {
-  if (!selectedRoleId.value || !draft.value?.data?.roles) return;
+async function saveSelectedRole() {
+  if (!selectedRoleRecord.value) return;
+  const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
+  try {
+    const role = await $fetch(`/api/organizations/${organizationId}/roles/${selectedRoleId.value}`, {
+      method: 'PATCH',
+      body: { label: selectedRoleRecord.value.label }
+    });
+    organizationRoles.value = { ...organizationRoles.value, [role.id]: role };
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+    await loadOrganizationRoles();
+  }
+}
+
+async function removeSelectedRole() {
+  if (!selectedRoleId.value) return;
   const removedRoleId = selectedRoleId.value;
-  delete draft.value.data.roles[selectedRoleId.value];
-  for (const profile of Object.values(draft.value.data.entityProfiles || {})) {
-    for (const key of ['read', 'write', 'admin']) profile.allowedRoles[key] = (profile.allowedRoles[key] || []).filter(roleId => roleId !== removedRoleId);
-    for (const region of Object.values(workflowForEntity(profile).regions || {})) {
-      for (const transition of region.transitions || []) {
-        if (transition.access?.processRoleIds) {
-          transition.access.processRoleIds = transition.access.processRoleIds.filter(roleId => roleId !== removedRoleId);
-        }
-      }
-    }
+  const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
+  try {
+    await $fetch(`/api/organizations/${organizationId}/roles/${removedRoleId}`, { method: 'DELETE' });
+    const next = { ...organizationRoles.value };
+    delete next[removedRoleId];
+    organizationRoles.value = next;
+    selectedRoleId.value = Object.keys(next)[0] || null;
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
   }
-  for (const service of Object.values(draft.value.data.services || {})) {
-    service.access ||= {};
-  }
-  for (const socket of Object.values(draft.value.data.sockets || {})) {
-    socket.access ||= {};
-    for (const key of ['sendRoles', 'receiveRoles']) socket.access[key] = (socket.access[key] || []).filter(roleId => roleId !== removedRoleId);
-  }
-  for (const action of Object.values(draft.value.data.actions || {})) {
-    action.trigger ||= { mode: 'manual' };
-    action.access = normalizeDesignerAccess(action.access);
-    action.access.grants = action.access.grants.filter(grant => grant.roleId !== removedRoleId);
-    action.access.roleIds = action.access.grants.map(grant => grant.roleId);
-  }
-  for (const assignment of Object.values(draft.value.data.assignments || {})) {
-    assignment.roleIds = (assignment.roleIds || []).filter(roleId => roleId !== removedRoleId);
-  }
-  for (const [screenId, screen] of Object.entries(draft.value.data.screens || {})) {
-    screen.roleIds = (screen.roleIds || []).filter(roleId => roleId !== removedRoleId);
-    if (!screen.roleIds.length) delete draft.value.data.screens[screenId];
-  }
-  selectedRoleId.value = Object.keys(draft.value.data.roles)[0] || null;
 }
 
 function addServicePrincipal() {

@@ -3,13 +3,12 @@ import * as sessionsRepository from '../sessions/repository.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '../../utils/auth-helpers.js';
 import { createError } from 'h3';
-import { materializeRolePermissions } from './permission-templates.js';
 import { User } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { ObjectId } from 'mongodb';
 import { hasEntityAccess } from '../../core/access/service.js';
-import * as processDefinitionsService from '../process-definitions/service.js';
+import * as organizationsRepository from '../organizations/repository.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { ensureOwnerMembership, isOwnerMembership, mergeOwnerPermissions } from './organization-owner.js';
 
@@ -26,17 +25,18 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
   try {
     const existing = await usersRepository.findByEmail(data.email.toLowerCase());
     if (existing) throw createError({ statusCode: 409, message: 'Email already registered' });
+    const organization = data.organizationId ? await organizationsRepository.findById(data.organizationId) : null;
+    const roleIds = [...new Set(Array.isArray(data.roleIds) ? data.roleIds : [])];
+    if (data.organizationId && !organization) throw createError({ statusCode: 404, message: 'Organization not found' });
+    const missingRoleIds = roleIds.filter(roleId => !organization?.data?.roles?.[roleId]);
+    if (missingRoleIds.length) throw createError({ statusCode: 400, message: `Unknown organization roles: ${missingRoleIds.join(', ')}` });
     
     const passwordHash = await hashPassword(data.password);
-    const role = data.role || data.roleIds?.[0] || '';
-    const permissions = role ? materializeRolePermissions(role, data.permissions) : (data.permissions || {});
-    
     const memberships = [];
     if (data.organizationId) {
       memberships.push({
         organizationId: data.organizationId,
-        role,
-        permissions,
+        permissions: {},
         status: 'active'
       });
     }
@@ -46,8 +46,6 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
       data: {
         email: data.email.toLowerCase(),
         passwordHash,
-        role,
-        permissions,
         memberships,
         isActive: true
       }
@@ -57,14 +55,8 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
 
     const createdRaw = await usersRepository.create(user);
     if (data.organizationId) {
-      await assignProcessRolesFromInput({
-        userId: createdRaw._id,
-        organizationId: data.organizationId,
-        role,
-        roleIds: data.roleIds,
-        bindings: data.bindings,
-        status: 'active',
-        actorId: creatorUserId || 'SYSTEM'
+      await organizationsRepository.setRoleAssignment(data.organizationId, createdRaw._id, {
+        userId: String(createdRaw._id), roleIds, bindings: data.bindings || {}
       });
     }
     return new User(createdRaw);
@@ -153,7 +145,6 @@ export async function switchOrganization(userId, organizationId) {
   if (!membership) throw createError({ statusCode: 403, message: 'User is not a member of this organization' });
 
   user.lineage.organizationId = toFlexibleId(organizationId);
-  user.data.role = membership.role;
   user.data.permissions = membership.owner ? mergeOwnerPermissions(membership.permissions || {}) : membership.permissions;
 
   await usersRepository.updateById(userId, user);
@@ -170,20 +161,10 @@ export async function confirmMembership(userId, organizationId, action, updaterU
 
   if (action === 'approve') {
     await usersRepository.setMembershipStatus(userId, organizationId, 'active');
-    const approvedRaw = await usersRepository.findById(userId);
-    const membership = approvedRaw?.data?.memberships?.find(item => item.organizationId?.toString() === organizationId.toString());
-    await assignProcessRolesFromInput({
-      userId,
-      organizationId,
-      role: membership?.role,
-      roleIds: membership?.roleIds,
-      bindings: membership?.bindings,
-      status: 'active',
-      actorId: updaterUser.userId || 'SYSTEM'
-    });
   } else {
     await assertCanRemoveMembership({ userId, organizationId });
     await usersRepository.removeMembership(userId, organizationId);
+    await organizationsRepository.removeRoleAssignment(organizationId, userId);
   }
   return { success: true };
 }
@@ -323,22 +304,5 @@ async function assertCanRemoveMembership({ userId, organizationId } = {}) {
   const activeOwners = await usersRepository.findActiveOwnersByOrganization(organizationId);
   if (activeOwners.length <= 1) {
     throw createError({ statusCode: 409, message: 'Organization must have at least one owner admin' });
-  }
-}
-
-async function assignProcessRolesFromInput({ userId, organizationId, role, roleIds, bindings, status, actorId } = {}) {
-  if (!organizationId || !userId) return;
-  try {
-    await processDefinitionsService.assignUserToActiveProcessInternal({
-      organizationId,
-      userId,
-      roleIds: roleIds?.length ? roleIds : [],
-      bindings: bindings || {},
-      status,
-      actorId
-    });
-  } catch (error) {
-    if (error.statusCode === 404 || error.status === 404) return;
-    throw error;
   }
 }

@@ -23,7 +23,6 @@ export class User extends BaseEntity {
 
   get isActive() { return !!this.data.isActive; }
   get email() { return this.data.email; }
-  get role() { return this.data.role; }
   get permissions() { return this.data.permissions || {}; }
   get memberships() { return this.data.memberships || []; }
   get restrictedTo() { return this.data.restrictedTo || this.lineage.restrictedTo; }

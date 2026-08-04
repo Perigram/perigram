@@ -112,7 +112,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     sourceTemplateId: data.sourceTemplateId || null,
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
     graph: normalizeGraph(data.graph),
-    roles: normalizeRecord(data.roles),
+    roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
     actions: normalizeActions(deriveV3EffectActions(data.actions, processNodes, data.graph, domain)),
@@ -122,7 +122,6 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     valueInputs: normalizeRecord(data.valueInputs),
     processNodes,
     screens: normalizeRecord(data.screens),
-    assignments: normalizeRecord(data.assignments),
     compiled: data.compiled || null
   });
 }
@@ -228,8 +227,9 @@ export function requiredEntityProfileTypes(definition = {}, domain = {}) {
   ))];
 }
 
-export function validateProcessDefinition(definition = {}, domain = {}) {
+export function validateProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {
   const process = normalizeProcessDefinition(definition, domain);
+  const organizationRoles = normalizeRoleCatalog(roles);
   const errors = [];
   const warnings = [];
   const nodeIds = new Set(process.graph.nodes.map(node => node.id));
@@ -246,7 +246,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
   for (const node of process.graph.nodes) {
     const refId = node.data?.refId;
     if (!refId) continue;
-    if (node.type === 'role' && !process.roles[refId]) errors.push(`Role node ${node.id} references missing role ${refId}`);
+    if (node.type === 'role' && !organizationRoles[refId]) errors.push(`Role node ${node.id} references missing organization role ${refId}`);
     if (node.type === 'entity' && !process.entityProfiles[refId]) errors.push(`Entity node ${node.id} references missing entity profile ${refId}`);
     if (node.type === 'action' && !process.actions[refId]) errors.push(`Action node ${node.id} references missing action ${refId}`);
     if (node.type === 'service' && !process.services[refId]) errors.push(`Service node ${node.id} references missing service ${refId}`);
@@ -254,7 +254,6 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     if (node.type === 'statusDefinition' && !process.statusDefinitions[refId]) errors.push(`Status node ${node.id} references missing status definition ${refId}`);
     if (node.type === 'valueInput' && !process.valueInputs[refId]) errors.push(`Value node ${node.id} references missing value input ${refId}`);
     if (node.type === 'processNode' && !process.processNodes[refId]) errors.push(`Process node ${node.id} references missing process node ${refId}`);
-    if (node.type === 'user' && !process.assignments[refId]) errors.push(`User node ${node.id} references missing assignment ${refId}`);
   }
 
   for (const [profileId, profile] of Object.entries(process.entityProfiles)) {
@@ -288,7 +287,7 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
   }
 
   for (const [actionId, action] of Object.entries(process.actions)) {
-    validateAction(actionId, action, { entities, commands, roles: process.roles, domain, errors, statusDefinitions: process.statusDefinitions, process });
+    validateAction(actionId, action, { entities, commands, roles: organizationRoles, domain, errors, statusDefinitions: process.statusDefinitions, process });
   }
 
   for (const [nodeId, node] of Object.entries(process.processNodes)) {
@@ -325,25 +324,21 @@ export function validateProcessDefinition(definition = {}, domain = {}) {
     }
     if (!screen.route) errors.push(`Screen ${screenId} must define a route`);
     for (const roleId of screen.roleIds || []) {
-      if (!process.roles[roleId]) errors.push(`Screen ${screenId} references missing role ${roleId}`);
+      if (!organizationRoles[roleId]) errors.push(`Screen ${screenId} references missing organization role ${roleId}`);
     }
     validateScreenContract(screen, { screenId, entities, actions: process.actions, errors });
   }
 
-  for (const [userId, assignment] of Object.entries(process.assignments)) {
-    for (const roleId of assignment.roleIds || []) {
-      if (!process.roles[roleId]) errors.push(`Assignment ${userId} references missing role ${roleId}`);
-    }
+  for (const roleId of Object.keys(process.roleGrants)) {
+    if (!organizationRoles[roleId]) errors.push(`Process grants reference missing organization role ${roleId}`);
   }
-
-  const bindingWarnings = collectIncompleteBindingWarnings(process);
-  warnings.push(...bindingWarnings);
 
   return { ok: errors.length === 0, errors, warnings, definition: process };
 }
 
-export function compileProcessDefinition(definition = {}, domain = {}) {
-  const validation = validateProcessDefinition(definition, domain);
+export function compileProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {
+  const organizationRoles = normalizeRoleCatalog(roles);
+  const validation = validateProcessDefinition(definition, domain, { roles: organizationRoles });
   if (!validation.ok) {
     const error = new Error(validation.errors.join('; '));
     error.validation = validation;
@@ -351,22 +346,15 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
   }
 
   const process = validation.definition;
-  const compiledRoles = compileRoles(process, domain);
+  const compiledRoles = compileRoles(process, domain, organizationRoles);
   const compiledScreens = compileScreens(process, domain, compiledRoles);
   const workflows = compileWorkflows(process, domain);
-
-  const userAccess = {};
-  for (const [userId, assignment] of Object.entries(process.assignments)) {
-    if (assignment.status && assignment.status !== 'active') continue;
-    userAccess[userId] = compileAssignmentAccess({ assignment, roles: compiledRoles, screens: compiledScreens, domain });
-  }
 
   return {
     schemaVersion: PROCESS_SCHEMA_VERSION,
     activatedAt: new Date().toISOString(),
     roles: compiledRoles,
     servicePrincipals: process.servicePrincipals,
-    userAccess,
     workflows,
     fieldPolicies: compileFieldPolicies(process.entityProfiles, domain),
     actions: compileActions(process.actions, process, domain),
@@ -380,17 +368,21 @@ export function compileProcessDefinition(definition = {}, domain = {}) {
   };
 }
 
-export function resolveEffectiveAccess({ compiled, userId } = {}) {
-  return compiled?.userAccess?.[String(userId)]?.permissions || {};
+export function resolveRoleAssignmentAccess({ compiled, assignment, domain = {} } = {}) {
+  if (!assignment || (assignment.status && assignment.status !== 'active')) return emptyAssignmentAccess();
+  return compileAssignmentAccess({ assignment, roles: compiled?.roles || {}, screens: compiled?.screens || {}, domain });
 }
 
-export function resolveNavigation({ compiled, userId } = {}) {
-  return compiled?.userAccess?.[String(userId)]?.navigation || [];
+export function resolveEffectiveAccess({ access } = {}) {
+  return access?.permissions || {};
 }
 
-export function resolveScreens({ compiled, userId } = {}) {
-  const access = compiled?.userAccess?.[String(userId)] || {};
-  return access.screens || [];
+export function resolveNavigation({ access } = {}) {
+  return access?.navigation || [];
+}
+
+export function resolveScreens({ access } = {}) {
+  return access?.screens || [];
 }
 
 export function resolveWorkflow({ compiled, entityType, fallbackWorkflow = null } = {}) {
@@ -773,13 +765,13 @@ function topLevelHomeSections(screens = [], domain = {}) {
   return [...sectionsByEntity.values()];
 }
 
-function compileRoles(process = {}, domain = {}) {
+function compileRoles(process = {}, domain = {}, organizationRoles = {}) {
   const graphContext = buildActionGraphContext(process);
-  const roles = Object.fromEntries(Object.entries(process.roles || {}).map(([roleId, role]) => [roleId, {
+  const roles = Object.fromEntries(Object.entries(organizationRoles).map(([roleId, role]) => [roleId, {
     id: role.id || roleId,
     label: role.label || role.id || roleId,
-    grants: Array.isArray(role.grants) ? [...role.grants] : [],
-    actions: Array.isArray(role.actions) ? [...role.actions] : []
+    grants: Array.isArray(process.roleGrants?.[roleId]) ? [...process.roleGrants[roleId]] : [],
+    actions: []
   }]));
   for (const profile of Object.values(process.entityProfiles || {})) {
     const feature = resolveEntityFeature(domain, profile.entityType);
@@ -1394,17 +1386,15 @@ function replacePlaceholders(value, bindings, incomplete) {
   });
 }
 
-function collectIncompleteBindingWarnings(process) {
-  const warnings = [];
-  const compiledRoles = compileRoles(process);
-  const compiledScreens = compileScreens(process, {}, compiledRoles);
-  for (const [userId, assignment] of Object.entries(process.assignments)) {
-    const access = compileAssignmentAccess({ assignment, roles: compiledRoles, screens: compiledScreens });
-    for (const item of access.incompleteBindings) {
-      warnings.push(`Assignment ${userId} role ${item.roleId}${item.screenId ? ` screen ${item.screenId}` : ''} missing binding ${item.binding}`);
-    }
-  }
-  return warnings;
+function normalizeRoleCatalog(roles = {}) {
+  return Object.fromEntries(Object.entries(normalizeRecord(roles)).map(([roleId, role]) => [roleId, {
+    id: role.id || roleId,
+    label: role.label || role.id || roleId
+  }]));
+}
+
+function emptyAssignmentAccess() {
+  return { roleIds: [], bindings: {}, permissions: {}, screens: [], navigation: [], actions: [], incompleteBindings: [] };
 }
 
 function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) {
