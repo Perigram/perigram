@@ -470,6 +470,16 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   inline-card popovers, and generated entity files place edit/process/delete
   commands inside this surface instead of expanding action buttons beside
   identity and status.
+- **`MotionDock.vue`**: Shared compact bottom action dock adapted from the Vue
+  Bits Dock block and backed by `motion-v`. Use it for a small, contextual set
+  of canvas or workspace commands—not global navigation or ordinary page
+  actions. Callers supply `{ icon, label, onClick, pressed?, disabled?,
+  attention?, hasPopup? }` items; the primitive owns its token-backed geometry,
+  spring, labels, keyboard buttons, focus state, and surface treatment.
+  `useReducedMotion()` disables magnification and label travel while retaining
+  static labels and every action's normal keyboard behavior. Do not recreate
+  the interaction with a page-local toolbar or add fixed dark surfaces,
+  shadows, or motion constants.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
   sections whose header remains fixed while the panel content scrolls. It
   supports an `actions` slot for header controls and `:scroll-content="false"`

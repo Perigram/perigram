@@ -5,6 +5,11 @@ This directory contains Vue components used in the Cutkit-Demo application.
 ## Style Guide
 - **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
 - **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets and `assets/tokens/` projections. No custom CSS except for layout purposes.
+- **Motion:** Motion is contextual feedback, not ambient decoration. Use the
+  semantic duration/easing/spring values in `assets/tokens/` through shared
+  primitives such as `MotionDock`; JavaScript motion must respect
+  `useReducedMotion()`. Do not add perpetual, global, or page-local animation
+  to otherwise static operational controls.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
 - **Minimal Text Chrome:** Do not add page/panel headers, descriptions,
   helper bubbles, notes, tips, or empty-state prose unless the user workflow is
@@ -98,6 +103,7 @@ All entity-related components MUST use these patterns:
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 | Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `entity-type` |
+| Compact contextual canvas/workspace actions | `<MotionDock :items="..." />` |
 | Public marketing animation | `components/marketing/CassetteMarketingAnimation.vue` |
 
 `WorkflowDesignerV2.vue` is the shared v2 state-machine editor used by the admin

@@ -20,6 +20,12 @@ Use PrimeVue semantic variables for shared component state. Use CutKit `--ck-*`
 tokens for the app surface stack, typography, geometry, elevation, motion, and
 domain signal roles that PrimeVue does not own.
 
+Motion is reserved for direct interaction feedback: compact contextual controls
+may use the semantic duration/easing/spring scale through shared primitives,
+but operational screens must not acquire ambient animation. CSS and JavaScript
+motion share the same reduced-motion policy, preserving control state and
+keyboard behavior without spatial travel.
+
 The active visual language is a hard editorial engineering instrument:
 near-white chrome and work surfaces in light mode, ink chrome in dark mode, a
 single signal-orange action channel, 3px control radii, 6px container radii,

@@ -26,10 +26,19 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   primitive has a surface (especially forms, tables, menus, dialogs, and
   drawers). Do not use a fixed light surface token as a cross-theme override.
 - Component-specific dimensions such as support chat size, dialog widths, popover/menu minimum widths, preview height, table action column width, and form swatch size live here because they are reused UI decisions rather than page-local styling.
-- `designTokens.dock` owns the shared compact dock scale, pointer distance,
-  spring, spacing, label, and indicator metrics. `VueBitsDock.vue` consumes
-  these values for the process designer's installed Vue Bits Dock block; its
-  colors, borders, and focus state still resolve through PrimeVue variables.
+- Motion is a semantic, opt-in interaction contract. `designTokens.motion`
+  provides fast/normal/emphasis durations, standard/enter/exit easing curves,
+  and the JavaScript seconds scale required by `motion-v`; CSS exposes the
+  matching `--ck-motion-*` and `--ck-ease-*` values. Spring settings live under
+  `designTokens.motion.spring`, not inside a feature component.
+- `designTokens.dock` owns only shared compact dock geometry: pointer distance,
+  scale, spacing, label, and indicator metrics. `components/shared/MotionDock.vue`
+  consumes those defaults plus `motion.spring.dock` for the Vue Bits-derived
+  proximity interaction; its colors, borders, and focus state still resolve
+  through PrimeVue variables.
+- CSS shortens all design-system durations for `prefers-reduced-motion`, and
+  JavaScript motion primitives must consume `useReducedMotion()` so they can
+  remove spatial movement while preserving focus, labels, and control state.
 - Use `status-*` aliases for feedback, `entity-*` aliases for shared
   entity-reference families, and `signal-*` aliases for semantic process-canvas
   roles. Use `bg-process-canvas` for graph work rather than borrowing a page or

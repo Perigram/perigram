@@ -143,6 +143,21 @@ Exception: `useStatus` may be used in entity cards for a `v-if` conditional (not
 
 ---
 
+## useReducedMotion
+
+```js
+const reducedMotion = useReducedMotion();
+```
+
+Returns a readonly boolean ref for the operating system's
+`prefers-reduced-motion` setting. Shared design-system primitives that use
+JavaScript motion must consume it to remove spatial movement while retaining
+the control's state and keyboard behavior. CSS duration overrides live beside
+the same media query in `assets/css/main.css`; do not add a separate page-level
+preference implementation.
+
+---
+
 ## useStatusController
 
 Direct bridge to the State Machine Engine. Used internally by `useEntity.changeStatus()`.

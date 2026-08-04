@@ -63,11 +63,12 @@ moving the canvas. Palette and inspector rails are opaque structural surfaces
 around a compact icon-only bottom dock. Process selection and New Draft live in
 a focused popup; validation and view controls open their own popups. Unsaved
 work is signaled by the active save control and a dot rather than a text badge.
-The dock is the local `VueBitsDock.vue` installation of the Vue Bits Dock
-block: `process.vue` maps the page actions into its item API, while
-`designTokens.dock` provides its compact scale and token-backed shell. This
-keeps the external block's proximity interaction without introducing its
-published fixed black surface, border, or shadow treatment.
+The dock is the shared `MotionDock.vue` installation of the Vue Bits Dock
+interaction: `process.vue` maps the page actions into its item API, while the
+design system supplies its compact scale, spring, token-backed shell, and
+reduced-motion policy. This keeps the external block's proximity interaction
+without introducing its published fixed black surface, border, or shadow
+treatment.
 When older saved graphs still contain role/user layout nodes, the route filters
 those non-canvas nodes out and reconstructs entity/service/socket nodes from
 the process records so active definitions do not open to a blank canvas. Truly

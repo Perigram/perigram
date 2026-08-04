@@ -183,12 +183,14 @@ rails leave the graph clear behind one compact bottom dock. The dock is
 icon-only: process selection and New Draft live in a focused popup, validation
 runs and reports in its own popup, and frame/zoom controls are grouped in a
 view popup. Dirty state is a primary save affordance plus a small dot, not a
-persistent text badge. `VueBitsDock.vue` is the local Vue Bits Dock block,
-backed by `motion-v`; the page supplies its action data while the block owns
-the proximity scaling, keyboard buttons, and hover labels. Its compact scale
-and all surface/border/indicator styling come from `designTokens.dock` and
-PrimeVue variables, so it must not be replaced by a hand-built toolbar or
-fixed dark colors and shadows.
+persistent text badge. `components/shared/MotionDock.vue` is the shared,
+Vue Bits-derived `motion-v` block: the page supplies only action data while the
+design-system primitive owns proximity scaling, keyboard buttons, and hover
+labels. Its compact scale comes from `designTokens.dock`, its spring from
+`designTokens.motion.spring.dock`, and its surface/border/indicator styling
+from PrimeVue variables. `useReducedMotion()` keeps the same accessible actions
+without magnification or label travel, so the route must not replace it with a
+hand-built toolbar, fixed dark colors, or shadows.
 Delete/Backspace removes all selected nodes and edges together while preserving
 definition records that are still referenced. Home frames the graph,
 Numpad Decimal frames the selection, and the dock's view popup exposes
