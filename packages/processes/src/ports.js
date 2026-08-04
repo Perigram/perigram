@@ -127,16 +127,40 @@ function incomingContracts(process, targetNodeId, graphNodes) {
     if (String(edge.target) !== String(targetNodeId)) continue;
     const sourceNode = graphNodes.get(String(edge.source));
     if (!sourceNode) continue;
-    const source = resolveNodePort(process, sourceNode, edge.sourceHandle, 'output');
-    if (!source) continue;
+    const sourceRecord = recordForNode(process, sourceNode);
+    const sourceType = sourceRecord?.type;
+    const inferredSource = sourceRecord?.kind?.startsWith('source.') && sourceType?.base
+      ? normalizePortSpec({
+          id: normalizeHandleId(edge.sourceHandle, 'output') || 'value',
+          label: sourceRecord.label || sourceRecord.id || 'value',
+          kind: sourceType.base === 'entityRef' && sourceType.shape === 'list' ? 'entity_list' : sourceType.base,
+          entityType: sourceType.entityType,
+          multiple: sourceType.shape === 'list'
+        })
+      : resolveNodePort(process, sourceNode, edge.sourceHandle, 'output');
+    if (!inferredSource) continue;
     const inputId = normalizeHandleId(edge.targetHandle, 'input') || 'input';
-    contracts[inputId] = source;
+    contracts[inputId] = inferredSource;
   }
   return contracts;
 }
 
 function inferRecordContract(record, incoming) {
   const next = { ...record };
+  if (['record.composeBlock', 'record.modifyBlock'].includes(record.kind)
+    && record.compositionMode === 'relations'
+    && Array.isArray(record.entries)) {
+    next.entries = record.entries.map(entry => {
+      const source = incoming[`entry:${entry.id}`];
+      if (!source) return { ...entry, entityType: '', cardinality: 'one' };
+      return {
+        ...entry,
+        entityType: source.entityType || '',
+        cardinality: ['entity_list', 'list'].includes(source.kind) || source.multiple ? 'many' : 'one'
+      };
+    });
+    return next;
+  }
   const primaryId = {
     entityDecompose: 'entity',
     entityField: 'entity',

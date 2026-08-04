@@ -3,6 +3,14 @@ import { createDataPacket } from './data-tree.js';
 import { applyPatch, evaluateEntityPredicate, executeProcessDataNode } from './evaluator.js';
 
 describe('process v3 data execution', () => {
+  it('evaluates current time from the runtime clock when accessed', async () => {
+    const now = vi.fn(() => new Date('2026-08-04T12:34:56.000Z'));
+    const result = await executeProcessDataNode({ kind: 'source.currentTime' }, {}, { now });
+
+    expect(now).toHaveBeenCalledOnce();
+    expect(result.branches[0].items).toEqual(['2026-08-04T12:34:56.000Z']);
+  });
+
   it('broadcasts an item over aligned list values', async () => {
     const result = await executeProcessDataNode(
       { kind: 'value.math', operation: 'multiply' },

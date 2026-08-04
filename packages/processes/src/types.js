@@ -120,6 +120,9 @@ export function processTypesCompatible(sourceType, targetType) {
   if (source.base === 'date' && target.base === 'dateTime') {
     return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'dateToDateTime' };
   }
+  if (['date', 'dateTime'].includes(source.base) && target.base === 'string') {
+    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'temporalToString' };
+  }
   if (source.base === 'number' && target.base === 'number' && source.unit && target.unit && source.unit !== target.unit) {
     return convertible('value.convertUnit', `Unit conversion ${source.unit} → ${target.unit} must remain visible`, source, target);
   }

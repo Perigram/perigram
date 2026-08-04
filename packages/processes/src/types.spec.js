@@ -46,6 +46,14 @@ describe('process v3 type algebra', () => {
       implicit: true,
       coercion: 'entityToReference'
     });
+    expect(processTypesCompatible(
+      processType('dateTime'),
+      processType('string')
+    )).toMatchObject({
+      ok: true,
+      implicit: true,
+      coercion: 'temporalToString'
+    });
   });
 
   it('rejects nullable values and unlike entity types that require author intent', () => {
