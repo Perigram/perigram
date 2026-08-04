@@ -280,6 +280,7 @@ describe('process definitions access fallback', () => {
       },
       data: {
         schemaVersion: 1,
+        dataflowVersion: 3,
         graph: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
         roles: { role_operator: { id: 'role_operator', label: 'Operator' } },
         assignments: {},
@@ -350,6 +351,7 @@ describe('process definitions access fallback', () => {
       status: { state: 'DRAFT' },
       data: {
         schemaVersion: 1,
+        dataflowVersion: 3,
         graph: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
         roles: {},
         assignments: {},
