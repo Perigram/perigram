@@ -6,6 +6,10 @@ const entityPageSource = readFileSync(new URL('../shared/EntityPage.vue', import
 const generatedScreenSource = readFileSync(new URL('./GeneratedScreen.vue', import.meta.url), 'utf8');
 const standardPageSource = readFileSync(new URL('../shared/StandardPage.vue', import.meta.url), 'utf8');
 const entityFileSource = readFileSync(new URL('./GeneratedEntityFile.vue', import.meta.url), 'utf8');
+const workspacePaneSource = readFileSync(new URL('./GeneratedWorkspacePane.vue', import.meta.url), 'utf8');
+const workspacePageSource = readFileSync(new URL('./GeneratedWorkspacePage.vue', import.meta.url), 'utf8');
+const workspacePagesSource = readFileSync(new URL('./workspace-pages.js', import.meta.url), 'utf8');
+const projectContextActionsSource = readFileSync(new URL('./project-context-actions.js', import.meta.url), 'utf8');
 const detailBodySource = readFileSync(new URL('./GeneratedEntityDetailBody.vue', import.meta.url), 'utf8');
 const queueDetailSource = readFileSync(new URL('./GeneratedQueueDetail.vue', import.meta.url), 'utf8');
 const entityCardSource = readFileSync(new URL('../shared/EntityCard.vue', import.meta.url), 'utf8');
@@ -14,8 +18,8 @@ const entityWorkspaceSource = readFileSync(new URL('../shared/EntityWorkspace.vu
 const appLayoutSource = readFileSync(new URL('../../layouts/app.vue', import.meta.url), 'utf8');
 
 describe('generated project workspace architecture', () => {
-  it('renders pane-native entity files in recursively splittable workspace panes', () => {
-    expect(source).toContain('<GeneratedEntityFile');
+  it('renders pane-native entity files and registered pages in recursively splittable workspace panes', () => {
+    expect(source).toContain('<GeneratedWorkspacePane');
     expect(source).toContain('<WorkspaceSplitNode');
     expect(source).toContain('<Splitter');
     expect(source).toContain('<Tree');
@@ -23,6 +27,11 @@ describe('generated project workspace architecture', () => {
     expect(source).not.toContain('<ScrollablePanel');
     expect(source).not.toContain('project.lifecycle');
     expect(splitNodeSource).toContain(":layout=\"node.orientation\"");
+    expect(workspacePaneSource).toContain('<GeneratedEntityFile');
+    expect(workspacePaneSource).toContain('<GeneratedWorkspacePage');
+    expect(workspacePageSource).toContain('resolveGeneratedWorkspacePage');
+    expect(workspacePagesSource).toContain("id: 'project-actions'");
+    expect(workspacePagesSource).toContain("id: 'cassette-designer'");
     expect(entityFileSource).toContain('<GeneratedEntityDetailBody');
     expect(entityFileSource).toContain('generatedDetailActionIds');
     expect(entityFileSource).not.toContain('<EntitySurfaceContent');
@@ -36,9 +45,10 @@ describe('generated project workspace architecture', () => {
 
   it('stays inside compiled screen sources and actions', () => {
     expect(source).toContain('sourceStateForRegion');
-    expect(source).toContain('section.region.actions');
-    expect(source).toContain("actionParentType(action) === 'project'");
+    expect(source).toContain('projectContextActionEntries');
     expect(source).toContain('props.screenActions');
+    expect(projectContextActionsSource).toContain("parentEntityType(action) === 'project'");
+    expect(projectContextActionsSource).toContain('actionAppliesToEntity(action, project, \'project\')');
     expect(source).not.toContain('cncRelations');
     expect(source).not.toContain('relationKeysForAction');
     expect(source).not.toContain('authStore.actionManifest.filter');
@@ -53,10 +63,15 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).toContain('<EntityActionsPopover');
   });
 
-  it('owns a borderless flush frame and dense independently scrolling Explorer', () => {
+  it('owns a borderless flush frame and a collapsible, token-backed Explorer', () => {
     expect(source).toContain("class=\"flex h-full min-h-0 flex-1 flex-col overflow-hidden\"");
     expect(source).toContain('!border-0 !p-0');
     expect(source).toContain("'!px-1 !py-0.5 !gap-1'");
+    expect(source).toContain('explorerOpen');
+    expect(source).toContain("project.collapseExplorer");
+    expect(source).toContain('show-explorer-toggle');
+    expect(source).toContain('chrome-signal-rule');
+    expect(source).toContain('bg-chrome');
     expect(generatedScreenSource).toContain(':workspace="Boolean(screenOverload)"');
     expect(standardPageSource).toContain("'h-full min-h-0 max-w-none flex-1 gap-0 overflow-hidden'");
     expect(appLayoutSource).toContain('isGeneratedWorkspaceRoute');

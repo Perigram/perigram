@@ -174,20 +174,22 @@ register the overload there so it receives only the sources, regions, actions,
 and scope available to the current user. Project `entityDetail` screens use
 this path to render an IDE-style operational workspace over the generated
 project source and generated child collection sources. Its Explorer owns child
-rows from generated source regions. The active editor is a pane-native entity
-file rather than a nested page or card. File bodies reuse the registered
-entity-detail body overloads, so a queue file is the operational queue editor
-instead of a generic summary block; generic child entities continue to use
-their contract-driven detail surface. The project file itself is an operational
-launcher containing its compiled project and direct-child actions, not a
-project-information page. Operational bodies receive file mode and remove
-redundant rounded panel borders when the file pane already owns the boundary.
-Files can be recursively split right or down
-and retain pane-local selections. The project file aggregates compiled
-screen/main operations with direct-child creation actions from matching child
-regions. Its body launcher includes those direct-child creates and compiled
-relation/attachment operations; ordinary entity and lifecycle actions remain
-in the file-header ellipsis. An overload must not discover extra sources or
+rows from generated source regions and can collapse so the recursive pane area
+uses the full width. A workspace pane can be a pane-native entity file or an
+app-registered workspace page; process data selects neither arbitrary Vue
+components nor page-local markup. Entity files reuse registered entity-detail
+body overloads, so a queue file is the operational queue editor instead of a
+generic summary block; generic child entities continue to use their
+contract-driven detail surface. The project entity itself uses that standard
+detail body. The initial project-actions page is a generated action palette:
+it receives only screen/main action ids compiled for the project plus direct
+project-child creation actions from its loaded child regions, then resolves and
+filters them through the effective user action manifest and project status.
+The cassette designer is an entity-bound registered page that mounts inside a
+pane and receives only source-visible cassette templates. Operational bodies
+receive file mode and remove redundant rounded panel borders when the file pane
+already owns the boundary. Panes can be recursively split right or down and
+retain pane-local selections. An overload must not discover extra sources or
 actions from domain registries or the global action manifest, and it must not
 invent upload/link controls outside compiled process actions.
 Child files resolve their own detail-screen actions from the same effective
@@ -783,8 +785,9 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   materials, outline edges, lights, and raycast workpiece selection. The
   preview panel must not stop document-level pointer movement, because
   OrbitControls registers drag continuation on `ownerDocument`. The designer
-  root uses a fixed viewport-height work area with
-  internal side-panel/canvas overflow instead of growing below the window.
+  root uses a fixed viewport-height work area in standalone/dialog contexts and
+  fills its supplied workspace pane in embedded mode, with internal
+  side-panel/canvas overflow instead of growing below its owner.
   Edges already represented by either side of a fold are not clickable. Inline
   coordinate/expression popups are draggable, remember their session-local
   position, keep close controls in the input line, and close on Enter or

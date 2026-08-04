@@ -1064,3 +1064,22 @@
     hover border so its feedback remains visible within the required clipped
     card root. Overlay elevation is retained only for floating UI with a
     smaller, token-backed shadow.
+
+*** [2026-08-04] Workspace page and project-action follow-up
+
+    Replaced the project file's special filtered launcher with a registered
+    workspace-page contract. The initial project-actions page resolves only
+    screen-compiled project actions and direct project-child creates through
+    the effective action manifest and current project lifecycle. The Explorer
+    is collapsible, uses the app chrome tokens, and tracks page selections
+    alongside entity files. Cassette files can now open the embedded cassette
+    designer as a pane page using only cassette templates already loaded by the
+    project workspace. Updated generated-workspace and component documentation.
+
+    Validation: generated workspace tests (34), the design-system suite (46),
+    SFC compile checks, the PrimeVue preset import, and `git diff --check`
+    passed. `shared/localization.spec.js` still reports the pre-existing
+    missing keys `nesting.selectMachine`, `nesting.thickness`, and
+    `common.rotate`. The external agent-scope check cannot pass against the
+    current `origin/local` baseline because it reports the branch's existing
+    broad delta as well as this workspace surface.

@@ -3,7 +3,7 @@
     v-if="item?.entity"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
   >
-    <header class="flex h-10 shrink-0 items-center gap-2 border-b border-content-border px-2">
+    <header class="chrome-signal-rule flex h-10 shrink-0 items-center gap-2 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-2 text-[var(--ck-chrome-foreground)]">
       <i :class="[domainUi.getIcon(item.type), 'shrink-0']" aria-hidden="true"></i>
       <IdentityBlock :entity="item.entity" variant="compact" class="min-w-0 flex-1" />
       <EntityStatus
@@ -18,6 +18,8 @@
           v-if="item.type === 'cassette'"
           :entity="item.entity"
           menu-item
+          open-in-workspace
+          @open-page="page => $emit('open-page', page)"
           @refresh="$emit('refresh')"
         />
         <GeneratedActionButton
@@ -34,6 +36,16 @@
           @deleted="$emit('refresh')"
         />
       </EntityActionsPopover>
+      <Button
+        v-if="showExplorerToggle"
+        icon="pi pi-folder-open"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('project.expandExplorer')"
+        @click="$emit('toggle-explorer')"
+      />
       <Button
         v-if="splittable"
         icon="pi pi-arrows-h"
@@ -67,13 +79,7 @@
     </header>
 
     <div class="min-h-0 flex-1 overflow-hidden">
-      <GeneratedProjectFileHome
-        v-if="item.type === 'project'"
-        :action-entries="launcherActionEntries"
-        @execute-action="(action, entry) => $emit('execute-action', action, entry)"
-      />
       <GeneratedEntityDetailBody
-        v-else
         :key="`${item.type}:${entityId}`"
         :entity="item.entity"
         :entity-type="item.type"
@@ -99,7 +105,6 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import GeneratedEntityDetailBody from '~/components/generated/GeneratedEntityDetailBody.vue';
-import GeneratedProjectFileHome from '~/components/generated/GeneratedProjectFileHome.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import {
   generatedDetailActionIds,
@@ -114,10 +119,12 @@ const props = defineProps({
   item: { type: Object, default: null },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true }
+  splittable: { type: Boolean, default: true },
+  showExplorerToggle: { type: Boolean, default: false },
+  showGeneratedActions: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['execute-action', 'refresh', 'split', 'close']);
+const emit = defineEmits(['execute-action', 'open-page', 'refresh', 'split', 'close', 'toggle-explorer']);
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const fileDisplayOverrides = {
@@ -133,11 +140,13 @@ const detailScreen = computed(() => generatedDetailScreenForEntityType({
   screens: authStore.screenManifest,
   entityType: props.item?.type
 }));
-const ownDetailActionIds = computed(() => generatedDetailActionIds({
-  screens: authStore.screenManifest,
-  entityType: props.item?.type,
-  preferredRoute: detailScreen.value?.route || ''
-}));
+const ownDetailActionIds = computed(() => props.showGeneratedActions
+  ? generatedDetailActionIds({
+      screens: authStore.screenManifest,
+      entityType: props.item?.type,
+      preferredRoute: detailScreen.value?.route || ''
+    })
+  : []);
 const resolvedActionEntries = computed(() => {
   const existing = props.actionEntries || [];
   const context = existing[0]?.context || {};
@@ -155,7 +164,6 @@ const resolvedActionEntries = computed(() => {
     .map(entry => [entry.actionId, entry])
   ).values());
 });
-const launcherActionEntries = computed(() => resolvedActionEntries.value.filter(entry => entry.launcher));
 const detailActions = computed(() => resolvedActionEntries.value
   .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
   .filter(Boolean));

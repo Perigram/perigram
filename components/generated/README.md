@@ -32,41 +32,37 @@ The current default overloads are:
 `GeneratedProjectWorkspace.vue` renders project `entityDetail` screens as a
 bounded IDE-style Explorer and file workspace:
 
-- the borderless Explorer is a dense PrimeVue tree containing the opened
-  project and only the child collections loaded by the screen's list regions.
-- each file is a `GeneratedEntityFile`: a single header line with entity icon,
-  identity, status, an ellipsis action menu, and split controls. A project file
-  is the workspace's operational home: its body contains only the runnable
-  project and direct-child actions compiled for the current user, rather than a
-  duplicate project summary. Child entity bodies resolve through the same
-  registered entity-detail overload registry as a generated detail page,
-  without nesting `EntityPage` or an entity card. Operational entities
-  therefore keep their real editor—queues render
-  `GeneratedQueueDetail`/`QueueEditor`—while entities without an overload fall
-  back to the pane-width-safe generic detail surface. The file rendering mode
-  asks operational bodies for flush chrome; queue workspace panels remove
-  rounded outer borders because the surrounding file already owns the pane
-  boundary.
-- PrimeVue splitters form a recursive split tree. A file can split right or
-  down, and nested horizontal/vertical splits keep independent entity
-  selections and scrolling. There is no reserved right inspector pane.
-
-The opened project file aggregates its runnable project operations from the
-compiled contract and renders them as a compact launcher in the otherwise empty
-file body. Direct-child create actions come from the matching child list region
-and must declare `project` as their parent. Screen/main action ids join the
-launcher only when their typed inputs mutate `relations`/`attachments` or
-consume an attachment; normal entity and lifecycle commands stay in the header
-ellipsis. The component resolves only those ids through the current user's
-action manifest; it does not scan the global manifest, import domain relation
-metadata, or call link/upload APIs directly. If the organization process does
-not compile an upload or relation action onto this screen, that control is
-intentionally absent; no generic project-information fallback replaces missing
-operations.
+- the Explorer is a dense PrimeVue tree containing the opened project and only
+  child collections loaded by the screen's list regions. It is independently
+  scrollable, uses the shared chrome tokens, and can collapse so file panes use
+  the full workspace width. The active pane header restores it.
+- `GeneratedWorkspacePane` accepts both pane-native entity files and registered
+  workspace pages. `GeneratedEntityFile` still owns entity identity, lifecycle,
+  local ellipsis actions, and detail-body overloads; the project entity itself
+  now renders its regular generated detail surface instead of a special action
+  launcher.
+- `GeneratedWorkspacePage` resolves a page id through the fixed app-owned
+  `workspace-pages.js` registry. Process data never selects a Vue component.
+  The built-in `project-actions` page is the initial workspace pane and renders
+  the generated action palette. It contains only action ids compiled onto the
+  project screen/main region plus direct-project child creates from loaded child
+  regions, resolves those ids through the effective user action manifest, and
+  checks current project lifecycle applicability. It does not scan the global
+  manifest or invent relation/upload controls.
+- The built-in `cassette-designer` page opens from a workspace cassette file's
+  access-gated designer action. It receives only cassette templates already
+  available in the project workspace sources and mounts `CassetteDesignerV2` in
+  embedded mode so the designer owns the pane rather than a dialog. Additional
+  app-owned pages register through the same fixed registry.
+- PrimeVue splitters form a recursive split tree. A pane can split right or
+  down, and nested horizontal/vertical splits keep independent selections and
+  scrolling. There is no reserved right inspector pane.
 
 Selectable rows still come from access-filtered screen source states. Clicking
-an Explorer entity replaces the active file selection; splitting duplicates the
-current selection and subsequent navigation is pane-local.
+an Explorer entity or registered page replaces the active pane selection;
+splitting duplicates the current selection and subsequent navigation is
+pane-local. Opened entity-bound pages remain nested beneath their source entity
+in the Explorer.
 When a child file opens, its actions come from that entity type's compiled
 detail screen in the current user's effective screen manifest. Parent-workspace
 region actions are merged only when they also apply to the selected entity.

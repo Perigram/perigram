@@ -296,6 +296,8 @@
     "deleted": "Проект удалён",
     "cassetteLibraries": "Библиотеки кассет",
     "explorer": "Проводник",
+    "collapseExplorer": "Скрыть проводник",
+    "expandExplorer": "Показать проводник",
     "splitRight": "Разделить справа",
     "splitDown": "Разделить снизу"
   },
