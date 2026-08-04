@@ -173,4 +173,8 @@ describe('process designer canvas UI', () => {
     expect(designerSource).not.toContain('structuredClone(draft.value?.data?.processNodes');
     expect(designerSource).toContain('draft.value.data.processNodes = processNodeSnapshot');
   });
+
+  it('keeps Vue reactive process records outside the plain-data migrator', () => {
+    expect(designerSource).toContain('migrateProcessDataflowDefinition(clonePlainData(value || {}), cncDomain)');
+  });
 });

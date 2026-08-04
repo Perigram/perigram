@@ -1531,7 +1531,7 @@ function onDockPopoverHide(panel) {
 }
 
 function setDraft(value) {
-  const migration = migrateProcessDataflowDefinition(value || {}, cncDomain);
+  const migration = migrateProcessDataflowDefinition(clonePlainData(value || {}), cncDomain);
   draft.value = migration.value;
   value = migration.value;
   selectedProcessId.value = value?._id ? String(value._id) : null;
