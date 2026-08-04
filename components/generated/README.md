@@ -35,20 +35,24 @@ bounded IDE-style Explorer and file workspace:
 - the Explorer is a dense PrimeVue tree containing the opened project and only
   child collections loaded by the screen's list regions. It is independently
   scrollable, uses the shared chrome tokens, and can collapse so file panes use
-  the full workspace width. The active pane header restores it.
+  the full workspace width. Its visibility is controlled from the left edge of
+  the fixed workspace action strip; collapsing it does not rebuild or change
+  the recursive pane tree.
+- `GeneratedProjectActionPalette` renders directly in that top strip, outside
+  both Explorer and pane content. It contains only action ids compiled onto the
+  project screen/main region plus direct-project child creates from loaded child
+  regions, resolves those ids through the effective user action manifest, and
+  checks current project lifecycle applicability. It does not scan the global
+  manifest or invent relation/upload controls.
 - `GeneratedWorkspacePane` accepts both pane-native entity files and registered
   workspace pages. `GeneratedEntityFile` still owns entity identity, lifecycle,
   local ellipsis actions, and detail-body overloads; the project entity itself
   now renders its regular generated detail surface instead of a special action
   launcher.
 - `GeneratedWorkspacePage` resolves a page id through the fixed app-owned
-  `workspace-pages.js` registry. Process data never selects a Vue component.
-  The built-in `project-actions` page is the initial workspace pane and renders
-  the generated action palette. It contains only action ids compiled onto the
-  project screen/main region plus direct-project child creates from loaded child
-  regions, resolves those ids through the effective user action manifest, and
-  checks current project lifecycle applicability. It does not scan the global
-  manifest or invent relation/upload controls.
+  `workspace-pages.js` registry. Process data never selects a Vue component,
+  and workspace-level actions are not represented as a registered page or
+  Explorer item.
 - The built-in `cassette-designer` page opens from a workspace cassette file's
   access-gated designer action. It receives only cassette templates already
   available in the project workspace sources and mounts `CassetteDesignerV2` in
@@ -58,8 +62,9 @@ bounded IDE-style Explorer and file workspace:
   down, and nested horizontal/vertical splits keep independent selections and
   scrolling. There is no reserved right inspector pane.
 
-Selectable rows still come from access-filtered screen source states. Clicking
-an Explorer entity or registered page replaces the active pane selection;
+Selectable rows still come from access-filtered screen source states; the
+Explorer contains no workspace actions or unrelated controls. Clicking an
+Explorer entity or registered page replaces the active pane selection;
 splitting duplicates the current selection and subsequent navigation is
 pane-local. Opened entity-bound pages remain nested beneath their source entity
 in the Explorer.
