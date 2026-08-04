@@ -2,8 +2,10 @@
 
 The organization process designer authors the `@cutkit/processes`
 `dataflowVersion: 3` contract. Executable canvas records are `processNode`
-operations. Roles, entity profiles, screens, assignments, service principals,
-and statuses are definition-plane records. Statuses have a
+operations. Entity profiles, screens, role grants, service principals, and
+statuses are definition-plane records. Role identities are organization data,
+and the Roles panel performs immediate organization CRUD independently of
+process Save/Apply. Assignments belong to Team Management. Statuses have a
 definition item in the Entities palette and render as inline-editable canvas
 nodes; they are not inspector tabs or process-selector controls. A status node
 exposes one typed `status` output backed by its stable definition reference.

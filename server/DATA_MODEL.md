@@ -266,6 +266,8 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.email` | String | email field |
 | `data.phone` | String | phone field |
 | `data.processTemplateId` | String | process template id field |
+| `data.roles` | Object | Stable organization role identities keyed by role id |
+| `data.roleAssignments` | Object | User role ids and assignment bindings keyed by user id |
 | `data.settings` | Array | settings field |
 | `data.type` | String | type field |
 
@@ -293,12 +295,11 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.activeProcessDefinitionId` | String | active process definition id field |
-| `data.assignments` | Array | assignments field |
 | `data.compiled` | String | compiled field |
 | `data.display` | String | display field |
 | `data.entityProfiles` | Array | entity profiles field |
 | `data.graph` | String | graph field |
-| `data.roles` | Array | roles field |
+| `data.roleGrants` | Object | Process-owned base grants keyed by organization role id |
 | `data.schemaVersion` | String | schema version field |
 | `data.services` | Array | services field |
 | `data.sockets` | Array | sockets field |

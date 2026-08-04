@@ -115,9 +115,10 @@ The organization process designer keeps lifecycle design inside the same Vue
 Flow workspace: status definitions are created from the Entities palette and
 edited on their own definition nodes, while Modify Entity applies those states
 through a dedicated typed status socket. Entity lifecycle data compiles into the runtime
-status machine. Abstract roles and user assignments are process-panel records,
-not graph nodes; roles are assigned onto executable nodes and lifecycle
-transitions.
+status machine. The Roles panel immediately manages organization-owned role
+identities; it is not process draft state. Process records map those role ids
+onto executable nodes, screens, and lifecycle transitions. User assignments are
+managed by Team Management and never serialized with the canvas.
 Process designer nodes live under `components/process-designer/` and must show
 typed Vue Flow handles that match the process compiler contract: role access,
 service input/output, and socket projection/transfer. Do not reduce these nodes
