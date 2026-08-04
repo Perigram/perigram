@@ -98,9 +98,10 @@ defaults are derived from the domain entity registry. The designer must not
 hardcode app navigation routes or concrete CNC entity names as generic process
 defaults; concrete starter graphs belong in process templates.
 
-The inspector edits the selected canvas record only. Status definitions live
-in a dedicated toolbar manager, so definition-plane status metadata is not
-mixed into node inspection. The remaining inspector surfaces are:
+The inspector edits secondary configuration for the selected canvas record.
+Derived input/output socket specifications remain on the node rails and their
+hover/focus metadata; the inspector does not duplicate them as a table. The
+remaining inspector surfaces are:
 
 - the roles tab owns human process role labels and derived access summaries;
 - the service access tab owns service runtime identities used by service run/view access;
@@ -160,8 +161,9 @@ the shared semantic mapping gives each source handle and its wire the same
 contract tone for entity, block, data, status, event, projection, attachment,
 and task ports. The canvas keeps only the contract label visible so
 path/required metadata does not duplicate the socket name. New palette nodes
-are placed at the center of the current viewport, and wires use curved Vue Flow
-edges rather than orthogonal step routing.
+are placed at the nearest unoccupied grid position around the current viewport
+center so a later node cannot cover an earlier node's socket hit targets. Wires
+use curved Vue Flow edges rather than orthogonal step routing.
 Open input sockets do not display error badges: they show where composition is
 possible. Required-input failures belong to explicit graph validation.
 The designer resolves the source and target handle contracts before saving a

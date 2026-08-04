@@ -281,6 +281,15 @@
    Acceptance: run the complete scenario suite at supported wide and narrow
    layouts, using mouse, touchpad, and keyboard paths where applicable.
 
+   Agent note (2026-08-04): removed the duplicated input/output socket
+   specification table from the operation inspector. Palette insertion now
+   chooses an unoccupied grid position around the viewport center so a newly
+   inserted node cannot cover an existing node's socket and prevent Vue Flow
+   from starting the connection gesture. Updated
+   =pages/organization/process.vue=, the focused UI contract test, and the
+   process-designer/organization READMEs. This task remains WAITING pending the
+   complete interactive scenario suite required above.
+
 ** DONE Add behavioral acceptance coverage
 
    Keep source-contract checks as lightweight UI regression evidence, while
