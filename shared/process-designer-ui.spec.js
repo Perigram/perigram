@@ -5,7 +5,9 @@ import path from 'node:path';
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const nodeSource = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessNode.vue'), 'utf8');
 const statusNodeSource = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessStatusDefinitionNode.vue'), 'utf8');
-const vueBitsDockSource = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/VueBitsDock.vue'), 'utf8');
+const motionDockSource = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/MotionDock.vue'), 'utf8');
+const reducedMotionSource = fs.readFileSync(path.join(REPO_ROOT, 'composables/useReducedMotion.js'), 'utf8');
+const motionTokenSource = fs.readFileSync(path.join(REPO_ROOT, 'assets/tokens/index.js'), 'utf8');
 const designerSource = fs.readFileSync(path.join(REPO_ROOT, 'pages/organization/process.vue'), 'utf8');
 const selectedNodeSources = [
   'ProcessActionNode.vue',
@@ -106,19 +108,26 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('setViewport(canvas.viewport');
   });
 
-  it('uses a compact bottom dock with focused process and validation popups', () => {
+  it('uses the shared motion dock with focused process and validation popups', () => {
     expect(designerSource).toContain('v-if="paletteOpen"');
     expect(designerSource).toContain('v-if="inspectorOpen"');
-    expect(designerSource).toContain('<VueBitsDock');
+    expect(designerSource).toContain('<MotionDock');
     expect(designerSource).toContain(':items="designerDockItems"');
-    expect(designerSource).toContain(':magnification="designTokens.dock.magnification"');
-    expect(vueBitsDockSource).toContain("from 'motion-v'");
-    expect(vueBitsDockSource).toContain("name: 'VueBitsDock'");
-    expect(vueBitsDockSource).toContain('useMotionValue(Infinity)');
-    expect(vueBitsDockSource).toContain('useSpring(targetSize, props.spring)');
-    expect(vueBitsDockSource).toContain('var(--p-content-background)');
-    expect(vueBitsDockSource).not.toContain("backgroundColor: '#111'");
-    expect(vueBitsDockSource).not.toContain("border: '1px solid #222'");
+    expect(designerSource).not.toContain('designTokens.dock');
+    expect(motionDockSource).toContain("from 'motion-v'");
+    expect(motionDockSource).toContain("name: 'MotionDock'");
+    expect(motionDockSource).toContain('useMotionValue(Infinity)');
+    expect(motionDockSource).toContain('useSpring(targetSize, props.spring)');
+    expect(motionDockSource).toContain('useReducedMotion');
+    expect(motionDockSource).toContain('if (props.reducedMotion) return props.baseItemSize');
+    expect(motionDockSource).toContain('var(--p-content-background)');
+    expect(motionDockSource).not.toContain("backgroundColor: '#111'");
+    expect(motionDockSource).not.toContain("border: '1px solid #222'");
+    expect(reducedMotionSource).toContain("'(prefers-reduced-motion: reduce)'");
+    expect(reducedMotionSource).toContain("mediaQuery.addEventListener('change', syncPreference)");
+    expect(motionTokenSource).toContain("emphasis: '220ms'");
+    expect(motionTokenSource).toContain("standard: 'cubic-bezier(0.2, 0, 0, 1)'");
+    expect(motionTokenSource).toContain('dock: { mass: 0.1, stiffness: 180, damping: 16 }');
     expect(designerSource).not.toContain('absolute inset-x-3 top-3 z-30');
     expect(designerSource).toContain('absolute left-3 top-3 z-20');
     expect(designerSource).toContain('absolute bottom-16 right-3 top-3 z-20');
@@ -132,7 +141,7 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('saveDraftFromDock');
     expect(designerSource).toContain('toggleValidationMenu');
     expect(designerSource).toContain('attention: isDirty.value');
-    expect(vueBitsDockSource).toContain('this.item.attention');
+    expect(motionDockSource).toContain('this.item.attention');
     expect(designerSource).not.toContain('draftStateLabel');
     expect(designerSource).toContain('onClick: applyProcess');
     expect(designerSource).toContain("summary: t('processDesigner.newDraft')");

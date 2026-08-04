@@ -939,6 +939,9 @@
         "--ck-dock-label-offset": "0.5rem",
         "--ck-dock-label-padding": "0.125rem 0.5rem",
         "--ck-dock-padding": "0.25rem",
+        "--ck-ease-enter": "cubic-bezier(0, 0, 0, 1)",
+        "--ck-ease-exit": "cubic-bezier(0.3, 0, 1, 1)",
+        "--ck-ease-standard": "cubic-bezier(0.2, 0, 0, 1)",
         "--ck-entity-popover-min-width": "18.75rem",
         "--ck-entity-tone-command": "#ff4b00",
         "--ck-entity-tone-fabrication": "#dc3a45",
@@ -950,6 +953,7 @@
         "--ck-font-ui": "'JetBrains Mono', monospace",
         "--ck-grid-gap": "1.25rem",
         "--ck-label-tracking": "0.04em",
+        "--ck-motion-emphasis": "220ms",
         "--ck-motion-fast": "100ms",
         "--ck-motion-normal": "160ms",
         "--ck-page-background": "var(--p-surface-100)",
@@ -1045,15 +1049,9 @@
           "inset": "0.75rem",
           "labelOffset": "0.5rem",
           "labelPadding": "0.125rem 0.5rem",
-          "labelTransition": 0.16,
           "magnification": 40,
           "padding": "0.25rem",
-          "panelHeight": 40,
-          "spring": {
-            "damping": 16,
-            "mass": 0.1,
-            "stiffness": 180
-          }
+          "panelHeight": 40
         },
         "entityTone": {
           "command": "var(--ck-entity-tone-command)",
@@ -1086,8 +1084,26 @@
           "tableActionColumnWidth": "3rem"
         },
         "motion": {
+          "easing": {
+            "enter": "cubic-bezier(0, 0, 0, 1)",
+            "exit": "cubic-bezier(0.3, 0, 1, 1)",
+            "standard": "cubic-bezier(0.2, 0, 0, 1)"
+          },
+          "emphasis": "220ms",
           "fast": "100ms",
-          "normal": "160ms"
+          "normal": "160ms",
+          "seconds": {
+            "emphasis": 0.22,
+            "fast": 0.1,
+            "normal": 0.16
+          },
+          "spring": {
+            "dock": {
+              "damping": 16,
+              "mass": 0.1,
+              "stiffness": 180
+            }
+          }
         },
         "palette": {
           "primary": {
@@ -1263,8 +1279,14 @@
         },
         "transitionDuration": {
           "DEFAULT": "var(--ck-motion-normal)",
+          "emphasis": "var(--ck-motion-emphasis)",
           "fast": "var(--ck-motion-fast)",
           "normal": "var(--ck-motion-normal)"
+        },
+        "transitionTimingFunction": {
+          "DEFAULT": "var(--ck-ease-standard)",
+          "enter": "var(--ck-ease-enter)",
+          "exit": "var(--ck-ease-exit)"
         },
         "width": {
           "swatch": "var(--ck-swatch-size)"

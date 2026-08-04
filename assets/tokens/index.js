@@ -95,7 +95,21 @@ export const designTokens = {
     },
     motion: {
         fast: '100ms',
-        normal: '160ms'
+        normal: '160ms',
+        emphasis: '220ms',
+        seconds: {
+            fast: 0.1,
+            normal: 0.16,
+            emphasis: 0.22
+        },
+        easing: {
+            standard: 'cubic-bezier(0.2, 0, 0, 1)',
+            enter: 'cubic-bezier(0, 0, 0, 1)',
+            exit: 'cubic-bezier(0.3, 0, 1, 1)'
+        },
+        spring: {
+            dock: { mass: 0.1, stiffness: 180, damping: 16 }
+        }
     },
     dock: {
         inset: '0.75rem',
@@ -105,13 +119,11 @@ export const designTokens = {
         labelPadding: '0.125rem 0.5rem',
         indicatorSize: '0.375rem',
         indicatorInset: '0.125rem',
-        labelTransition: 0.16,
         panelHeight: 40,
         baseItemSize: 32,
         magnification: 40,
         distance: 96,
-        height: 64,
-        spring: { mass: 0.1, stiffness: 180, damping: 16 }
+        height: 64
     },
     typography: {
         ui: "'JetBrains Mono', monospace",
@@ -214,6 +226,10 @@ export const cssVariableTokens = {
     '--ck-shadow-overlay': designTokens.shadow.overlay,
     '--ck-motion-fast': designTokens.motion.fast,
     '--ck-motion-normal': designTokens.motion.normal,
+    '--ck-motion-emphasis': designTokens.motion.emphasis,
+    '--ck-ease-standard': designTokens.motion.easing.standard,
+    '--ck-ease-enter': designTokens.motion.easing.enter,
+    '--ck-ease-exit': designTokens.motion.easing.exit,
     '--ck-dock-inset': designTokens.dock.inset,
     '--ck-dock-gap': designTokens.dock.gap,
     '--ck-dock-padding': designTokens.dock.padding,
@@ -313,7 +329,13 @@ export const tailwindThemeExtension = {
     transitionDuration: {
         DEFAULT: 'var(--ck-motion-normal)',
         fast: 'var(--ck-motion-fast)',
-        normal: 'var(--ck-motion-normal)'
+        normal: 'var(--ck-motion-normal)',
+        emphasis: 'var(--ck-motion-emphasis)'
+    },
+    transitionTimingFunction: {
+        DEFAULT: 'var(--ck-ease-standard)',
+        enter: 'var(--ck-ease-enter)',
+        exit: 'var(--ck-ease-exit)'
     }
 };
 

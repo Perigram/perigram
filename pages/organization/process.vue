@@ -105,15 +105,9 @@
         </div>
       </div>
 
-      <VueBitsDock
+      <MotionDock
         :items="designerDockItems"
         :aria-label="$t('processDesigner.title')"
-        :distance="designTokens.dock.distance"
-        :panel-height="designTokens.dock.panelHeight"
-        :base-item-size="designTokens.dock.baseItemSize"
-        :dock-height="designTokens.dock.height"
-        :magnification="designTokens.dock.magnification"
-        :spring="designTokens.dock.spring"
       />
 
       <Popover ref="processMenu">
@@ -929,8 +923,7 @@ import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
-import VueBitsDock from '~/components/process-designer/VueBitsDock.vue';
-import { designTokens } from '~/assets/tokens/index.js';
+import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 

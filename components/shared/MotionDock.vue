@@ -20,6 +20,7 @@
                 :distance="distance"
                 :magnification="magnification"
                 :baseItemSize="baseItemSize"
+                :reducedMotion="reducedMotion"
                 :item="item"
             />
         </div>
@@ -28,7 +29,8 @@
 
 <script lang="ts">
     /*
-     * Vue Bits Dock block (https://vue-bits.dev/components/dock)
+     * MotionDock is adapted from the Vue Bits Dock block
+     * (https://vue-bits.dev/components/dock).
      * Copyright (c) 2025 David Haz
      *
      * Permission is granted to use, copy, modify, merge, publish, and distribute
@@ -42,6 +44,7 @@
     import type { ConcreteComponent, CSSProperties, PropType } from 'vue'
     import { computed, defineComponent, h, onMounted, onUnmounted, ref, watch } from 'vue'
     import { designTokens } from '~/assets/tokens/index.js'
+    import { useReducedMotion } from '~/composables/useReducedMotion.js'
 
     const MotionComponent = Motion as unknown as ConcreteComponent
     const AnimatePresenceComponent = AnimatePresence as unknown as ConcreteComponent
@@ -88,6 +91,7 @@
                 type: Object as PropType<ReturnType<typeof useMotionValue<number>>>,
                 required: true,
             },
+            reducedMotion: { type: Boolean, required: true },
         },
         setup(props) {
             const isVisible = ref(false)
@@ -122,6 +126,20 @@
                 boxShadow: 'none',
             }
 
+            if (this.reducedMotion) {
+                return this.isVisible
+                    ? h(
+                          'div',
+                          {
+                              class: this.className,
+                              role: 'tooltip',
+                              style: labelStyle,
+                          },
+                          this.$slots.default?.(),
+                      )
+                    : null
+            }
+
             return h(AnimatePresenceComponent, {}, () =>
                 this.isVisible
                     ? [
@@ -136,7 +154,7 @@
                                   initial: { opacity: 0, y: 0 },
                                   animate: { opacity: 1, y: -6 },
                                   exit: { opacity: 0, y: 0 },
-                                  transition: { duration: designTokens.dock.labelTransition },
+                                  transition: { duration: designTokens.motion.seconds.normal },
                               },
                               () => this.$slots.default?.(),
                           ),
@@ -157,6 +175,7 @@
             distance: { type: Number, required: true },
             baseItemSize: { type: Number, required: true },
             magnification: { type: Number, required: true },
+            reducedMotion: { type: Boolean, required: true },
             item: { type: Object as PropType<DockItemData>, required: true },
         },
         setup(props) {
@@ -171,6 +190,8 @@
             })
 
             const targetSize = useTransform(mouseDistance, (distanceFromPointer: number) => {
+                if (props.reducedMotion) return props.baseItemSize
+
                 const clamped = Math.max(-props.distance, Math.min(props.distance, distanceFromPointer))
                 const proximity = 1 - Math.abs(clamped) / props.distance
                 return props.baseItemSize + (props.magnification - props.baseItemSize) * proximity
@@ -179,10 +200,12 @@
             const size = useSpring(targetSize, props.spring)
 
             watch(
-                () => props.baseItemSize,
-                (newSize) => {
-                    currentSize.value = newSize
-                    size.set(newSize)
+                () => ({ baseItemSize: props.baseItemSize, reducedMotion: props.reducedMotion }),
+                ({ baseItemSize, reducedMotion }) => {
+                    currentSize.value = baseItemSize
+
+                    if (reducedMotion) size.jump(baseItemSize)
+                    else size.set(baseItemSize)
                 },
             )
 
@@ -244,7 +267,7 @@
                 opacity: this.item.disabled ? 0.45 : 1,
                 outline: 'none',
                 transition:
-                    'background-color var(--ck-motion-fast), border-color var(--ck-motion-fast), opacity var(--ck-motion-fast)',
+                    'background-color var(--ck-motion-fast) var(--ck-ease-standard), border-color var(--ck-motion-fast) var(--ck-ease-standard), opacity var(--ck-motion-fast) var(--ck-ease-standard)',
             }
             const indicatorStyle: CSSProperties = {
                 position: 'absolute',
@@ -258,7 +281,7 @@
             }
             const children = [
                 h(DockIcon, {}, () => [icon]),
-                h(DockLabel, { isHovered: this.isHovered }, () => [this.item.label]),
+                h(DockLabel, { isHovered: this.isHovered, reducedMotion: this.reducedMotion }, () => [this.item.label]),
             ]
 
             if (this.item.attention) children.splice(1, 0, h('span', { style: indicatorStyle, 'aria-hidden': 'true' }))
@@ -286,37 +309,44 @@
     })
 
     export default defineComponent({
-        name: 'VueBitsDock',
+        name: 'MotionDock',
         components: { DockItem },
         props: {
             items: { type: Array as PropType<DockItemData[]>, required: true },
             ariaLabel: { type: String, default: '' },
             className: { type: String, default: '' },
-            distance: { type: Number, default: 200 },
-            panelHeight: { type: Number, default: 68 },
-            baseItemSize: { type: Number, default: 50 },
-            dockHeight: { type: Number, default: 256 },
-            magnification: { type: Number, default: 70 },
+            distance: { type: Number, default: designTokens.dock.distance },
+            panelHeight: { type: Number, default: designTokens.dock.panelHeight },
+            baseItemSize: { type: Number, default: designTokens.dock.baseItemSize },
+            dockHeight: { type: Number, default: designTokens.dock.height },
+            magnification: { type: Number, default: designTokens.dock.magnification },
             spring: {
                 type: Object as PropType<SpringOptions>,
-                default: () => ({ mass: 0.1, stiffness: 150, damping: 12 }),
+                default: () => ({ ...designTokens.motion.spring.dock }),
             },
         },
         setup(props) {
             const mouseX = useMotionValue(Infinity)
             const isHovered = useMotionValue(0)
             const currentHeight = ref(props.panelHeight)
+            const reducedMotion = useReducedMotion()
 
             const maxHeight = computed(() =>
                 Math.max(props.dockHeight, props.magnification + props.magnification / 2 + 4),
             )
             const heightRow = useTransform(isHovered, (hovered: number) =>
-                hovered === 1 ? maxHeight.value : props.panelHeight,
+                !reducedMotion.value && hovered === 1 ? maxHeight.value : props.panelHeight,
             )
             const height = useSpring(heightRow, props.spring)
 
-            watch([() => props.panelHeight, maxHeight], () => {
-                height.set(isHovered.get() === 1 ? maxHeight.value : props.panelHeight)
+            watch([() => props.panelHeight, maxHeight, reducedMotion], () => {
+                const nextHeight = !reducedMotion.value && isHovered.get() === 1 ? maxHeight.value : props.panelHeight
+
+                if (reducedMotion.value) {
+                    currentHeight.value = props.panelHeight
+                    height.jump(nextHeight)
+                    mouseX.set(Infinity)
+                } else height.set(nextHeight)
             })
 
             let unsubscribeHeight: (() => void) | null = null
@@ -332,6 +362,8 @@
             })
 
             const handleMouseMove = (event: MouseEvent) => {
+                if (reducedMotion.value) return
+
                 isHovered.set(1)
                 mouseX.set(event.clientX)
             }
@@ -368,6 +400,7 @@
 
             return {
                 mouseX,
+                reducedMotion,
                 outerStyle,
                 panelStyle,
                 handleMouseMove,

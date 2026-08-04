@@ -72,6 +72,10 @@ html {
     --ck-shadow-overlay: 0 12px 28px rgb(16 16 14 / 0.14);
     --ck-motion-fast: 100ms;
     --ck-motion-normal: 160ms;
+    --ck-motion-emphasis: 220ms;
+    --ck-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --ck-ease-enter: cubic-bezier(0, 0, 0, 1);
+    --ck-ease-exit: cubic-bezier(0.3, 0, 1, 1);
     --ck-dock-inset: 0.75rem;
     --ck-dock-gap: 0.25rem;
     --ck-dock-padding: 0.25rem;
@@ -264,6 +268,7 @@ html {
     :root {
         --ck-motion-fast: 1ms;
         --ck-motion-normal: 1ms;
+        --ck-motion-emphasis: 1ms;
     }
 }
 
