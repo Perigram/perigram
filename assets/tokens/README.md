@@ -26,6 +26,10 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   primitive has a surface (especially forms, tables, menus, dialogs, and
   drawers). Do not use a fixed light surface token as a cross-theme override.
 - Component-specific dimensions such as support chat size, dialog widths, popover/menu minimum widths, preview height, table action column width, and form swatch size live here because they are reused UI decisions rather than page-local styling.
+- `designTokens.dock` owns the shared compact dock scale, pointer distance,
+  spring, spacing, label, and indicator metrics. `VueBitsDock.vue` consumes
+  these values for the process designer's installed Vue Bits Dock block; its
+  colors, borders, and focus state still resolve through PrimeVue variables.
 - Use `status-*` aliases for feedback, `entity-*` aliases for shared
   entity-reference families, and `signal-*` aliases for semantic process-canvas
   roles. Use `bg-process-canvas` for graph work rather than borrowing a page or
