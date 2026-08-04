@@ -1,5 +1,5 @@
-* DONE Process designer architecture and UX acceptance
-  [2026-08-02 Sun]
+* WAITING Process designer architecture and UX acceptance
+  [2026-08-04 Tue]
 
   This is the current plan for the organization process designer. Presence in
   the runtime catalog or a source-code assertion does not make a node usable.
@@ -229,21 +229,24 @@
    Acceptance: demonstrate manual execution, one effect following another, one
    domain/entity event starting a process, and the calculated 30-day wait flow.
 
-** DONE Complete draft, validation, and activation UX
+** WAITING Complete draft, save, and Apply UX
 
-   Provide persistent New Draft, Save Draft, Validate, and Activate actions.
-   They must remain reachable while editing Nodes, Roles, Screens, or an empty
-   canvas, rather than appearing only when an arbitrary node is selected.
+   Provide persistent New Draft, Save, and Apply actions. They must remain
+   reachable while editing Nodes, Roles, Screens, or an empty canvas, rather
+   than appearing only when an arbitrary node is selected.
 
-   Show dirty, saving, saved, validating, validation-failed, and activating
-   states without a persistent status badge. Activation requires successful
-   validation, and the UI must make the boundary between saving a draft and
-   applying it to the organization clear.
+   New Draft starts an empty graph. Save on an active process creates an
+   editable draft copy; Save on a draft updates that draft. Apply saves,
+   validates, and activates as one operation. There is no standalone Validate
+   control. Apply feedback must expose validation failures without a status
+   badge, and the UI must make the boundary between saving a draft and applying
+   it to the organization clear.
 
-   Acceptance: edit each designer plane, save without activation, validate,
-   locate and fix errors, and activate without selecting a node.
+   Acceptance: edit each designer plane, create a fresh draft, save without
+   activation, locate an Apply failure, fix it, and activate without selecting
+   a node.
 
-** DONE Make the workspace compact, consistent, and responsive
+** WAITING Make the workspace compact, consistent, and responsive
 
    Reduce node chrome and use consistent socket rows. Socket dots belong on
    stable outer rails beside their labels; do not print full data-type strings
@@ -253,9 +256,12 @@
 
    Make palette and inspector independently collapsible. Preserve a useful
    canvas and reachable primary actions on narrow laptops and supported tablet
-   widths. Use a compact bottom dock with focused process, validation, and view
-   popups; derive empty-state and dock placement from visible rails instead of
-   fixed offsets.
+   widths. Use a compact bottom dock with a four-square Palette button,
+   Inspector, Save, Apply, hover/focus Navigation, and a final Folder for
+   process selection and New Draft. Do not add a Validate button. Navigation
+   and Folder panels must remain usable when moving from their dock icon into a
+   panel or a teleported select overlay. Derive empty-state and dock placement
+   from visible rails instead of fixed offsets.
 
    Preserve Blender-like canvas behavior already required by the design:
 
@@ -321,7 +327,7 @@
      selecting entities, some domain-declared creation choices, automatic
      event/date execution, and services requiring structured inputs.
 
-** Completion evidence
+** Historical implementation evidence (not acceptance)
 
    - The component README publishes the implemented capability matrix and the
      four-family curated palette boundary.
@@ -338,9 +344,9 @@
    - Draft actions are persistent, activation validates first, dirty/operation
      state is visible, and both side rails are independently collapsible with
      narrow-layout overlays.
-   - The dock keeps only icon controls on the canvas: process selection/new,
-     validation, and view controls open focused popups; dirty work is shown on
-     Save rather than as a status badge, and failed draft creation is visible.
+   - Earlier dock implementation evidence is superseded by the current WAITING
+     dock acceptance requirements above. A separate Validate popup is not an
+     acceptable completion condition.
    - Selected canvas nodes use a single primary border across current and
      legacy read-only node views; an outer selection ring does not create a
      duplicate outline.

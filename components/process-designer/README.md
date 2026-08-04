@@ -180,17 +180,29 @@ keyboard-assisted panning without a middle mouse button. A selected node uses
 one primary border only; it does not add an outer ring or second outline.
 The canvas uses its own token-backed work surface. Opaque palette and inspector
 rails leave the graph clear behind one compact bottom dock. The dock is
-icon-only: process selection and New Draft live in a focused popup, validation
-runs and reports in its own popup, and frame/zoom controls are grouped in a
-view popup. Dirty state is a primary save affordance plus a small dot, not a
-persistent text badge. `components/shared/MotionDock.vue` is the shared,
-Vue Bits-derived `motion-v` block: the page supplies only action data while the
-design-system primitive owns proximity scaling, keyboard buttons, and hover
-labels. Its compact scale comes from `designTokens.dock`, its spring from
-`designTokens.motion.spring.dock`, and its surface/border/indicator styling
-from PrimeVue variables. `useReducedMotion()` keeps the same accessible actions
-without magnification or label travel, so the route must not replace it with a
-hand-built toolbar, fixed dark colors, or shadows.
+icon-only and ordered by concern: four-square Palette, Inspector, Save, Apply,
+hover/focus Navigation, then the final Folder for process selection and New
+Draft. There is no standalone Validate control: Apply saves, validates, and
+activates as one operation, while the result remains visible as feedback on the
+canvas. Navigation opens framing and zoom controls on hover/focus. The Folder
+opens the process chooser and New Draft action the same way, with click as a
+touch fallback. The process chooser uses the shared `EntitySelect` value event
+directly, pins the Folder panel while its option overlay is open, and closes
+only after an actual selection; selected process cards remain outside the
+change trigger.
+
+New Draft starts from an empty graph. Save on an active process is the explicit
+copy-to-draft operation; saving an ordinary draft updates that draft. Dirty
+state is a primary save affordance plus a small dot, not a persistent text
+badge. `components/shared/MotionDock.vue` is the shared, Vue Bits-derived
+`motion-v` block: the page supplies action data and optional contextual
+hover/focus hooks while the design-system primitive owns proximity scaling,
+keyboard buttons, and hover labels. Its compact scale comes from
+`designTokens.dock`, its spring from `designTokens.motion.spring.dock`, and its
+surface/border/indicator styling from PrimeVue variables. `useReducedMotion()`
+keeps the same accessible actions without magnification or label travel, so the
+route must not replace it with a hand-built toolbar, fixed dark colors, or
+shadows.
 Delete/Backspace removes all selected nodes and edges together while preserving
 definition records that are still referenced. Home frames the graph,
 Numpad Decimal frames the selection, and the dock's view popup exposes

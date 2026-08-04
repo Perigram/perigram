@@ -474,8 +474,11 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   Bits Dock block and backed by `motion-v`. Use it for a small, contextual set
   of canvas or workspace commands—not global navigation or ordinary page
   actions. Callers supply `{ icon, label, onClick, pressed?, disabled?,
-  attention?, hasPopup? }` items; the primitive owns its token-backed geometry,
-  spring, labels, keyboard buttons, focus state, and surface treatment.
+  attention?, hasPopup?, onHoverStart?, onHoverEnd?, onFocus?, onBlur? }`
+  items; the primitive owns its token-backed geometry, spring, labels,
+  keyboard buttons, focus state, and surface treatment. Use the optional
+  hover/focus hooks only when a caller owns a contextual popover anchored to
+  that action; the dock does not own page-specific panels.
   `useReducedMotion()` disables magnification and label travel while retaining
   static labels and every action's normal keyboard behavior. Do not recreate
   the interaction with a page-local toolbar or add fixed dark surfaces,
