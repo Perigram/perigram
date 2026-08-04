@@ -105,15 +105,27 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('setViewport(canvas.viewport');
   });
 
-  it('keeps draft lifecycle and responsive rails independent from node selection', () => {
+  it('uses a compact bottom dock with focused process and validation popups', () => {
     expect(designerSource).toContain('v-if="paletteOpen"');
     expect(designerSource).toContain('v-if="inspectorOpen"');
+    expect(designerSource).toContain('absolute bottom-3 left-1/2 z-30');
+    expect(designerSource).not.toContain('absolute inset-x-3 top-3 z-30');
+    expect(designerSource).toContain('absolute left-3 top-3 z-20');
+    expect(designerSource).toContain('absolute bottom-16 right-3 top-3 z-20');
     expect(designerSource).toContain('@click="paletteOpen = !paletteOpen"');
     expect(designerSource).toContain('@click="inspectorOpen = !inspectorOpen"');
-    expect(designerSource).toContain(':label="$t(\'processDesigner.newDraft\')"');
-    expect(designerSource).toContain('@click="saveDraft"');
-    expect(designerSource).toContain('@click="validateDraft"');
+    expect(designerSource).toContain('<Popover ref="processMenu">');
+    expect(designerSource).toContain('<Popover ref="validationMenu">');
+    expect(designerSource).toContain('<Popover ref="canvasMenu">');
+    expect(designerSource).toContain('<PrimeSelect');
+    expect(designerSource).toContain('createDraftFromProcessMenu');
+    expect(designerSource).toContain('saveDraftFromDock');
+    expect(designerSource).toContain('toggleValidationMenu');
+    expect(designerSource).toContain('v-if="isDirty"');
+    expect(designerSource).not.toContain('draftStateLabel');
     expect(designerSource).toContain('@click="applyProcess"');
+    expect(designerSource).toContain("summary: t('processDesigner.newDraft')");
+    expect(designerSource).toContain('return created;');
     expect(designerSource).toContain('if (!result.ok) throw new Error');
   });
 

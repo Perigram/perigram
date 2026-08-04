@@ -41,14 +41,6 @@
         <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
       </VueFlow>
 
-      <div class="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-ui border border-content-border bg-content p-1 shadow-card">
-        <Button icon="pi pi-minus" text size="small" :aria-label="$t('drawing.zoomOut')" @click="zoomCanvasOut" />
-        <Button icon="pi pi-expand" text size="small" :aria-label="$t('processDesigner.frameAll')" @click="frameAllNodes" />
-        <Button icon="pi pi-crosshairs" text size="small" :aria-label="$t('processDesigner.frameSelection')" @click="frameSelectedNodes" />
-        <Button icon="pi pi-plus" text size="small" :aria-label="$t('drawing.zoomIn')" @click="zoomCanvasIn" />
-        <Button icon="pi pi-refresh" text size="small" :aria-label="$t('processDesigner.resetZoom')" @click="resetCanvasZoom" />
-      </div>
-
       <div
         v-if="contextPalette.open"
         class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border bg-content p-2 shadow-card"
@@ -86,11 +78,11 @@
         </Message>
       </div>
 
-      <div v-if="!nodes.length" class="absolute inset-x-4 top-36 z-10 flex justify-center sm:top-24 lg:left-[20rem] lg:right-[28rem]">
+      <div v-if="!nodes.length" class="absolute inset-x-4 top-8 z-10 flex justify-center lg:left-[20rem] lg:right-[28rem]">
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <div v-if="paletteOpen" class="absolute left-3 top-28 z-20 flex max-h-[calc(100%-8rem)] w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 overflow-y-auto rounded-ui border border-content-border bg-content p-3 shadow-card sm:top-16 sm:max-h-[calc(100%-5rem)]">
+      <div v-if="paletteOpen" class="absolute left-3 top-3 z-20 flex max-h-[calc(100%-6rem)] w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 overflow-y-auto rounded-ui border border-content-border bg-content p-3 shadow-card">
         <div class="flex items-center gap-1">
           <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
         </div>
@@ -113,32 +105,61 @@
         </div>
       </div>
 
-      <div class="absolute inset-x-3 top-3 z-30 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-ui border border-content-border bg-content px-2 py-1 shadow-card">
-        <div class="flex min-w-0 flex-1 items-center gap-2">
-          <Button icon="pi pi-bars" text size="small" :aria-label="$t('processDesigner.palette')" :aria-pressed="paletteOpen" @click="paletteOpen = !paletteOpen" />
-          <Select
+      <div class="absolute bottom-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-0.5 rounded-ui border border-content-border bg-content p-1 shadow-card" @mousedown.stop @click.stop>
+        <Button icon="pi pi-sitemap" text size="small" v-tooltip.top="$t('processDesigner.title')" :aria-label="$t('processDesigner.title')" @click="toggleProcessMenu" />
+        <Button icon="pi pi-bars" text size="small" v-tooltip.top="$t('processDesigner.palette')" :aria-label="$t('processDesigner.palette')" :aria-pressed="paletteOpen" @click="paletteOpen = !paletteOpen" />
+        <Button icon="pi pi-sliders-h" text size="small" v-tooltip.top="$t('processDesigner.inspector')" :aria-label="$t('processDesigner.inspector')" :aria-pressed="inspectorOpen" @click="inspectorOpen = !inspectorOpen" />
+        <span class="mx-0.5 h-4 w-px bg-content-border" aria-hidden="true"></span>
+        <span class="relative inline-flex">
+          <Button icon="pi pi-save" text size="small" v-tooltip.top="$t('common.save')" :aria-label="$t('common.save')" :severity="isDirty ? undefined : 'secondary'" :loading="savingDraft" :disabled="!isDirty" @click="saveDraftFromDock" />
+          <span v-if="isDirty" class="pointer-events-none absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true"></span>
+        </span>
+        <Button icon="pi pi-check-circle" text size="small" v-tooltip.top="$t('processDesigner.validate')" :aria-label="$t('processDesigner.validate')" :severity="validation && !validation.ok ? 'danger' : 'secondary'" :loading="validatingDraft" @click="toggleValidationMenu" />
+        <Button icon="pi pi-check" text size="small" v-tooltip.top="$t('processDesigner.apply')" :aria-label="$t('processDesigner.apply')" :loading="applyingProcess" :disabled="!draft?._id" @click="applyProcess" />
+        <span class="mx-0.5 h-4 w-px bg-content-border" aria-hidden="true"></span>
+        <Button icon="pi pi-search" text size="small" v-tooltip.top="$t('processDesigner.frameAll')" :aria-label="$t('processDesigner.frameAll')" @click="toggleCanvasMenu" />
+      </div>
+
+      <Popover ref="processMenu">
+        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
+          <PrimeSelect
             v-if="processOptions.length"
             v-model="selectedProcessId"
             :options="processOptions"
             option-label="label"
             option-value="value"
-            entity-type="processDefinition"
-            class="min-w-0 flex-1 sm:w-64 sm:flex-none"
+            class="w-full"
             size="small"
+            :aria-label="$t('processDesigner.title')"
             @change="selectProcessDefinition"
           />
-          <Tag :value="draftStateLabel" :severity="isDirty ? 'warn' : 'secondary'" size="small" />
+          <Button icon="pi pi-file-plus" :label="$t('processDesigner.newDraft')" size="small" severity="secondary" outlined :loading="creatingDraft" :disabled="creatingDraft" @click="createDraftFromProcessMenu" />
         </div>
-        <div class="flex shrink-0 items-center gap-1 border-l border-content-border pl-2">
-          <Button icon="pi pi-file-plus" :label="$t('processDesigner.newDraft')" size="small" severity="secondary" outlined @click="createDraft" />
-          <Button icon="pi pi-save" :label="$t('common.save')" size="small" :loading="savingDraft" :disabled="!isDirty && !isActiveProcess" @click="saveDraft" />
-          <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :loading="validatingDraft" @click="validateDraft" />
-          <Button icon="pi pi-check" :label="$t('processDesigner.apply')" size="small" :loading="applyingProcess" :disabled="!draft?._id" @click="applyProcess" />
-          <Button icon="pi pi-sliders-h" text size="small" :aria-label="$t('processDesigner.inspector')" :aria-pressed="inspectorOpen" @click="inspectorOpen = !inspectorOpen" />
-        </div>
-      </div>
+      </Popover>
 
-      <aside v-if="inspectorOpen" class="absolute bottom-3 right-3 top-28 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card sm:top-16 sm:max-w-[calc(100%-1.5rem)] lg:max-w-[calc(100%-19rem)]">
+      <Popover ref="validationMenu">
+        <div class="flex w-80 flex-col gap-2" @mousedown.stop @click.stop>
+          <Button icon="pi pi-check-circle" :label="$t('processDesigner.validate')" size="small" severity="secondary" outlined :loading="validatingDraft" @click="validateDraft" />
+          <template v-if="validation">
+            <Message :severity="validation.ok ? 'success' : 'error'" size="small">
+              {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
+            </Message>
+            <Message v-for="warning in validation.warnings || []" :key="warning" severity="warn" size="small">{{ warning }}</Message>
+          </template>
+        </div>
+      </Popover>
+
+      <Popover ref="canvasMenu">
+        <div class="grid grid-cols-5 gap-0.5" @mousedown.stop @click.stop>
+          <Button icon="pi pi-minus" text size="small" v-tooltip.top="$t('drawing.zoomOut')" :aria-label="$t('drawing.zoomOut')" @click="zoomCanvasOut" />
+          <Button icon="pi pi-expand" text size="small" v-tooltip.top="$t('processDesigner.frameAll')" :aria-label="$t('processDesigner.frameAll')" @click="frameAllNodes" />
+          <Button icon="pi pi-crosshairs" text size="small" v-tooltip.top="$t('processDesigner.frameSelection')" :aria-label="$t('processDesigner.frameSelection')" @click="frameSelectedNodes" />
+          <Button icon="pi pi-plus" text size="small" v-tooltip.top="$t('drawing.zoomIn')" :aria-label="$t('drawing.zoomIn')" @click="zoomCanvasIn" />
+          <Button icon="pi pi-refresh" text size="small" v-tooltip.top="$t('processDesigner.resetZoom')" :aria-label="$t('processDesigner.resetZoom')" @click="resetCanvasZoom" />
+        </div>
+      </Popover>
+
+      <aside v-if="inspectorOpen" class="absolute bottom-16 right-3 top-3 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card lg:max-w-[calc(100%-19rem)]">
         <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
@@ -856,14 +877,6 @@
         </Tabs>
       </aside>
 
-      <Panel v-if="validation" class="absolute bottom-3 left-3 z-10 max-w-xl" :header="$t('processDesigner.validation')">
-        <div class="flex flex-col gap-2">
-          <Message :severity="validation.ok ? 'success' : 'error'">
-            {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
-          </Message>
-          <Message v-for="warning in validation.warnings || []" :key="warning" severity="warn">{{ warning }}</Message>
-        </div>
-      </Panel>
     </div>
 
   </StandardPage>
@@ -881,6 +894,8 @@ import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Panel from 'primevue/panel';
+import Popover from 'primevue/popover';
+import PrimeSelect from 'primevue/select';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tab from 'primevue/tab';
 import TabList from 'primevue/tablist';
@@ -918,7 +933,7 @@ import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
-import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
+import { normalizeProcessDisplayName } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 
 const { t, te } = useI18n();
@@ -940,6 +955,7 @@ const selectedEdgeId = ref(null);
 const validation = ref(null);
 const applyingProcess = ref(false);
 const savingDraft = ref(false);
+const creatingDraft = ref(false);
 const validatingDraft = ref(false);
 const savedDraftSignature = ref('');
 const paletteOpen = ref(true);
@@ -949,6 +965,9 @@ const selectedPrincipalId = ref(null);
 const selectedScreenId = ref(null);
 const newStateId = ref('');
 const canvasFrame = ref(null);
+const processMenu = ref(null);
+const validationMenu = ref(null);
+const canvasMenu = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
 const paletteQuery = ref('');
@@ -1137,19 +1156,12 @@ const defaultEdgeOptions = { type: 'default' };
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
-const draftStateLabel = computed(() => {
-  if (applyingProcess.value) return t('processDesigner.activating');
-  if (savingDraft.value) return t('processDesigner.saving');
-  if (validatingDraft.value) return t('processDesigner.validating');
-  return isDirty.value ? t('processDesigner.unsaved') : t('processDesigner.saved');
-});
 const processOptions = computed(() => processDefinitions.value.map(process => ({
   label: [
     normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id),
     process.status?.state?.primary
   ].filter(Boolean).join(' · '),
-  value: String(process._id),
-  entity: processDisplayEntity(process)
+  value: String(process._id)
 })));
 const emptyCanvasMessage = computed(() => {
   if (loadingProcess.value) return t('common.loading');
@@ -1306,7 +1318,9 @@ function compareProcessDefinitions(left, right) {
 
 function selectProcessDefinition() {
   const selected = processDefinitions.value.find(process => String(process._id) === selectedProcessId.value);
-  if (selected) setDraft(selected);
+  if (!selected) return;
+  setDraft(selected);
+  processMenu.value?.hide();
 }
 
 function upsertProcessDefinition(process) {
@@ -1331,6 +1345,25 @@ async function createDraft() {
   });
   upsertProcessDefinition(created);
   setDraft(created);
+  return created;
+}
+
+async function createDraftFromProcessMenu() {
+  creatingDraft.value = true;
+  try {
+    await createDraft();
+    processMenu.value?.hide();
+    toast.add({ severity: 'success', summary: t('processDesigner.newDraft'), life: 2400 });
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: t('processDesigner.newDraft'),
+      detail: error.data?.message || error.message,
+      life: 5000
+    });
+  } finally {
+    creatingDraft.value = false;
+  }
 }
 
 async function saveDraft() {
@@ -1350,11 +1383,32 @@ async function saveDraft() {
   }
 }
 
+async function saveDraftFromDock() {
+  try {
+    await saveDraft();
+    toast.add({ severity: 'success', summary: t('processDesigner.saved'), life: 2400 });
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: t('common.save'),
+      detail: error.data?.message || error.message,
+      life: 5000
+    });
+  }
+}
+
 async function validateDraft() {
   validatingDraft.value = true;
   try {
     await saveDraft();
     validation.value = await $fetch(`/api/process-definitions/${draft.value._id}/validate`, { method: 'POST' });
+    return validation.value;
+  } catch (error) {
+    validation.value = {
+      ok: false,
+      errors: [error.data?.message || error.message],
+      warnings: []
+    };
     return validation.value;
   } finally {
     validatingDraft.value = false;
@@ -1382,15 +1436,30 @@ async function applyProcess() {
       warnings: activated?.data?.compiled?.warnings || [],
       message: t('processDesigner.applySuccess')
     };
+    toast.add({ severity: 'success', summary: t('processDesigner.applySuccess'), life: 3000 });
   } catch (error) {
+    const message = error.data?.message || error.message;
     validation.value = {
       ok: false,
-      errors: [error.data?.message || error.message],
+      errors: [message],
       warnings: []
     };
+    toast.add({ severity: 'error', summary: t('processDesigner.apply'), detail: message, life: 5000 });
   } finally {
     applyingProcess.value = false;
   }
+}
+
+function toggleProcessMenu(event) {
+  processMenu.value?.toggle(event);
+}
+
+function toggleValidationMenu(event) {
+  validationMenu.value?.toggle(event);
+}
+
+function toggleCanvasMenu(event) {
+  canvasMenu.value?.toggle(event);
 }
 
 function setDraft(value) {
