@@ -16,11 +16,10 @@ process transpiler round-trip, compiles the runtime contract, archives the
 previous active process for the organization, marks the selected process
 `ACTIVE`, and stores its id on the organization.
 
-Activation and all write boundaries normalize the semantic source to
-`dataflowVersion: 3`. The migration replaces old graph node types with catalog
-operations and clears the old compiled snapshot; validation or compilation
-failure stops activation instead of retaining a v2 runtime beside a v3 graph.
-Starter templates pass through the same migration.
+Creation, update, validation, and activation accept only the current semantic
+source at `dataflowVersion: 3`. These boundaries never migrate or rewrite the
+authored graph. Definitions with a missing or different dataflow version are
+rejected, and starter templates are authored directly in the current format.
 
 ## Durable orchestration
 
@@ -53,8 +52,7 @@ attachment services and never write another feature's repository. Generic
 Create consumes connected canonical blocks. Update flattens only writable
 fields present in connected replacement blocks. Lineage entity references are
 normalized to stored ids at this boundary, while lifecycle status remains a
-dedicated status-runtime input. Legacy leaf-field effects migrate to explicit
-block composers rather than remaining a second execution contract.
+dedicated status-runtime input.
 Pure block operations resolve exact paths from the domain's entity-independent
 block schema registry. The effect adapter deliberately switches back to the
 target entity schema when projecting constructible or writable values. Stored
