@@ -1083,6 +1083,9 @@
     explicit Explorer selection. Collapsing Explorer still preserves the keyed
     recursive pane tree.
 
+    Removed the redundant Explorer header so its tree begins directly below the
+    workspace action strip.
+
     Validation: generated workspace tests (34), the design-system suite (46),
     SFC compile checks, the PrimeVue preset import, and `git diff --check`
     passed. `shared/localization.spec.js` still reports the pre-existing

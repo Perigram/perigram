@@ -178,9 +178,10 @@ Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain only their selected entity or
 registered page and pane-local controls. Explorer starts as a compact 15% rail;
-the initial pane and new split targets stay empty until an explicit Explorer
-selection. Nested workspace headers use neutral structural borders instead of
-the signal-orange action boundary. A workspace pane can be a pane-native entity
+its tree starts directly below the workspace action strip without a redundant
+Explorer header. The initial pane and new split targets stay empty until an
+explicit Explorer selection. Nested workspace headers use neutral structural
+borders instead of the signal-orange action boundary. A workspace pane can be a pane-native entity
 file or an app-registered workspace page; process data selects neither arbitrary
 Vue components nor page-local markup. Entity files reuse registered entity-detail
 body overloads, so a queue file is the operational queue editor instead of a
