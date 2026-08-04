@@ -34,11 +34,12 @@ bounded IDE-style Explorer and file workspace:
 
 - the Explorer is a dense PrimeVue tree containing the opened project and only
   child collections loaded by the screen's list regions. It is independently
-  scrollable, starts as the compact 15% side of the workspace split, uses
-  neutral shared chrome, and can collapse so file panes use the full workspace
-  width. Its visibility is controlled from the left edge of the fixed workspace
-  action strip; collapsing it does not rebuild or change the recursive pane
-  tree. Nested workspace chrome does not use the signal-orange action boundary.
+  scrollable, starts directly below the workspace action strip without a local
+  header, occupies the compact 15% side of the workspace split, and can collapse
+  so file panes use the full workspace width. Its visibility is controlled from
+  the left edge of the fixed workspace action strip; collapsing it does not
+  rebuild or change the recursive pane tree. Nested workspace chrome does not
+  use the signal-orange action boundary.
 - `GeneratedProjectActionPalette` renders directly in that top strip, outside
   both Explorer and pane content. It contains only action ids compiled onto the
   project screen/main region plus direct-project child creates from loaded child
