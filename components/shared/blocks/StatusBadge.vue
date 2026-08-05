@@ -43,6 +43,8 @@ const label = computed(() => {
     :severity="config.severity" 
     class="status-badge max-w-full min-w-0"
     :icon="config.icon"
+    :aria-label="iconOnly ? label : undefined"
+    :title="iconOnly ? label : undefined"
   >
     <template v-if="!iconOnly">
         <span class="min-w-0 truncate">{{ label }}</span>

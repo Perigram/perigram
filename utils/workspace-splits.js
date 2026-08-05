@@ -1,5 +1,5 @@
 export function createWorkspaceLeaf(id, selectionKey = '') {
-  return { kind: 'leaf', id, selectionKey };
+  return { kind: 'leaf', id, selectionKey, tabKeys: selectionKey ? [selectionKey] : [] };
 }
 
 export function splitWorkspaceLeaf(root, targetId, orientation, nextLeaf) {

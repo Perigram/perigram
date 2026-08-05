@@ -3,7 +3,8 @@
     v-if="entity"
     :entity="entity"
     :entity-type="entityType"
-    show-trace
+    :show-trace="!embedded"
+    :show-header="!embedded"
     :show-identity="showIdentity || entityType === 'sheet_design'"
     @refresh="$emit('refresh')"
   >
@@ -62,7 +63,8 @@ const props = defineProps({
   excludedActions: { type: Array, default: () => [] },
   actions: { type: Array, default: () => [] },
   showIdentity: { type: Boolean, default: false },
-  openActionsInWorkspace: { type: Boolean, default: false }
+  openActionsInWorkspace: { type: Boolean, default: false },
+  embedded: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['refresh', 'execute-action', 'open-page']);

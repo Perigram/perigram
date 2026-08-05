@@ -38,7 +38,7 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).toContain('generatedDetailActionIds');
     expect(entityFileSource).not.toContain('<GeneratedEntityDetailBody');
     expect(entityFileSource).not.toContain('mode="file"');
-    expect(entityFileSource).toContain('show-identity');
+    expect(entityFileSource).toContain('embedded');
     expect(entityFileSource).toContain('useGeneratedScreen(scopedDetailScreen)');
     expect(entityFileSource).toContain('detailChildRegions');
     expect(entityFileSource).toContain('<GeneratedRegion');
@@ -69,9 +69,10 @@ describe('generated project workspace architecture', () => {
     expect(entityPageSource).not.toContain("props.variant === 'workspace'");
     expect(entityPageSource).toContain('<EntityActionsPopover');
     expect(entityCardSource).toContain('<EntityActionsPopover');
-    expect(entityFileSource).not.toContain('<EntityActionsPopover');
-    expect(entityFileSource).toContain('<IdentityBlock');
-    expect(entityFileSource).not.toContain('<EntityStatus');
+    expect(entityFileSource).toContain('<EntityActionsPopover');
+    expect(entityFileSource).toContain('<GeneratedWorkspaceTabs');
+    expect(entityFileSource).toContain('<EntityStatus');
+    expect(entityFileSource).toContain('variant="icon"');
     expect(entityPageSource).toContain('<EntityActionsPopover');
   });
 
@@ -116,6 +117,16 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain('saveProjectWorkspaceState(window.localStorage, key');
     expect(source).toContain('@resize="resizePaneSplit"');
     expect(splitNodeSource).toContain('@resizeend="$emit(\'resize\', node.id, $event.sizes)"');
+  });
+
+  it('owns IDE tabs and pane-local chrome outside the embedded entity body', () => {
+    expect(source).toContain(':tabs="tabItemsForPane(pane)"');
+    expect(source).toContain('@select-tab="key => selectPaneTab(pane.id, key)"');
+    expect(source).toContain('@close-tab="key => closePaneTab(pane.id, key)"');
+    expect(source).toContain('selectionKey: key, tabKeys');
+    expect(entityFileSource).toContain('embedded');
+    expect(entityPageSource).toContain('v-if="showHeader"');
+    expect(splitNodeSource).toContain("ring-1 ring-inset ring-primary-200");
   });
 
   it('keeps nested detail-region entities and their actions inside the active project pane', () => {

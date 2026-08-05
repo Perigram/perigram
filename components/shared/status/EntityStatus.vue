@@ -22,7 +22,7 @@ import { onEntityChanged } from '~/utils/entity-events.js';
 const props = defineProps({
   entity: { type: Object, required: true },
   entityType: { type: String, required: true }, // e.g. 'project', 'queue'
-  variant: { type: String, default: 'inline' }, // inline, full
+  variant: { type: String, default: 'inline' }, // icon, inline, full
   showActions: { type: Boolean, default: true },
   actions: { type: Array, default: () => [] }, // preferred action API
   manualActions: { type: Array, default: () => [] }, // backward compatibility
@@ -279,7 +279,13 @@ function normalizeEventType(type) {
   >
     <template v-if="!isExpanded">
       <div class="flex min-w-0 max-w-48 flex-wrap items-center justify-end gap-1.5 sm:max-w-56">
-        <StatusBadge :state="state" :display="statusDisplay" class="cursor-pointer min-w-0 max-w-full shrink" @click.stop="toggle" />
+        <StatusBadge
+          :state="state"
+          :display="statusDisplay"
+          :icon-only="variant === 'icon'"
+          class="cursor-pointer min-w-0 max-w-full shrink"
+          @click.stop="toggle"
+        />
         <StatusBadge
           v-for="region in secondaryRegions"
           :key="region.id"

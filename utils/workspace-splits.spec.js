@@ -44,6 +44,15 @@ describe('workspace split tree', () => {
     expect(workspaceLeaves(updated).map(pane => pane.selectionKey)).toEqual(['project:p1', 'queue:q2']);
   });
 
+  it('initializes a selected leaf with one open tab', () => {
+    expect(createWorkspaceLeaf('pane-1', 'project:p1')).toEqual({
+      kind: 'leaf',
+      id: 'pane-1',
+      selectionKey: 'project:p1',
+      tabKeys: ['project:p1']
+    });
+  });
+
   it('collapses a split when one of its panes closes', () => {
     const root = splitWorkspaceLeaf(
       createWorkspaceLeaf('pane-1', 'project:p1'),

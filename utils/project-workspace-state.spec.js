@@ -12,7 +12,7 @@ describe('project workspace state', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       projectId: 'project-1'
-    })).toBe('cutkit:project-workspace:2:user-1:org-1:project-1');
+    })).toBe('cutkit:project-workspace:3:user-1:org-1:project-1');
     expect(projectWorkspaceStorageKey({ userId: '', organizationId: 'org-1', projectId: 'project-1' })).toBe('');
   });
 
@@ -22,9 +22,20 @@ describe('project workspace state', () => {
       activePaneId: 'missing',
       explorerSize: 99
     })).toMatchObject({
-      paneTree: { kind: 'leaf', id: 'pane-1', selectionKey: '' },
+      paneTree: { kind: 'leaf', id: 'pane-1', selectionKey: '', tabKeys: [] },
       activePaneId: 'pane-1',
       explorerSize: 40
+    });
+  });
+
+  it('keeps the selected file in a normalized pane tab set', () => {
+    expect(normalizeProjectWorkspaceState({
+      paneTree: { kind: 'leaf', id: 'pane-1', selectionKey: 'queue:q1', tabKeys: ['project:p1'] }
+    }).paneTree).toEqual({
+      kind: 'leaf',
+      id: 'pane-1',
+      selectionKey: 'queue:q1',
+      tabKeys: ['project:p1', 'queue:q1']
     });
   });
 
@@ -41,8 +52,8 @@ describe('project workspace state', () => {
         orientation: 'horizontal',
         sizes: [35, 65],
         children: [
-          { kind: 'leaf', id: 'pane-1', selectionKey: 'project:p1' },
-          { kind: 'leaf', id: 'pane-2', selectionKey: 'page:cassette-designer:c1' }
+          { kind: 'leaf', id: 'pane-1', selectionKey: 'project:p1', tabKeys: ['project:p1'] },
+          { kind: 'leaf', id: 'pane-2', selectionKey: 'page:cassette-designer:c1', tabKeys: ['cassette:c1', 'page:cassette-designer:c1'] }
         ]
       },
       activePaneId: 'pane-2',

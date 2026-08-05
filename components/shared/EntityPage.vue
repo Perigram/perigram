@@ -16,6 +16,7 @@ const props = defineProps({
   title: { type: String, default: null },
   loading: { type: Boolean, default: false },
   showTrace: { type: Boolean, default: false },
+  showHeader: { type: Boolean, default: true },
   showIdentity: { type: Boolean, default: true },
   showStatus: { type: Boolean, default: true },
   statusActions: { type: Array, default: () => [] }
@@ -27,7 +28,7 @@ const effectiveTitle = computed(() => props.title || '');
 
 <template>
   <div class="entity-page flex flex-col gap-6">
-    <div class="flex flex-col gap-4">
+    <div v-if="showHeader" class="flex flex-col gap-4" data-entity-page-header>
       <TraceChain v-if="showTrace" :entity="entity" :entity-type="entityType" />
 
       <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -58,7 +59,7 @@ const effectiveTitle = computed(() => props.title || '');
       </div>
     </div>
 
-    <Divider class="m-0" />
+    <Divider v-if="showHeader" class="m-0" />
 
     <div :class="[ $slots.sidebar ? 'grid grid-cols-1 lg:grid-cols-12 gap-6' : 'flex flex-col gap-6' ]">
       <div :class="[ $slots.sidebar ? 'lg:col-span-8 flex flex-col gap-6' : 'flex flex-col gap-6' ]">

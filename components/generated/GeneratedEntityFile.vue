@@ -3,9 +3,43 @@
     v-if="item?.entity"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
   >
-    <header class="flex h-10 shrink-0 items-center gap-2 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-2 text-[var(--ck-chrome-foreground)]">
-      <i :class="[domainUi.getIcon(item.type), 'shrink-0']" aria-hidden="true" />
-      <IdentityBlock :entity="item.entity" variant="compact" class="min-w-0 flex-1" />
+    <header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
+      <GeneratedWorkspaceTabs
+        :tabs="tabs"
+        :active-key="item.key"
+        @select="$emit('select-tab', $event)"
+        @close="$emit('close-tab', $event)"
+      />
+      <EntityStatus
+        :entity="item.entity"
+        :entity-type="item.type"
+        variant="icon"
+        @refresh="refreshFile"
+        @transitioned="refreshFile"
+      />
+      <EntityActionsPopover v-if="item.type === 'cassette' || resolvedActionIds.length || entityCanDelete">
+        <GeneratedCassetteDesignerAction
+          v-if="item.type === 'cassette'"
+          :entity="item.entity"
+          menu-item
+          open-in-workspace
+          @open-page="page => $emit('open-page', page)"
+          @refresh="refreshFile"
+        />
+        <GeneratedActionButton
+          v-for="actionId in resolvedActionIds"
+          :key="actionId"
+          :action-id="actionId"
+          menu-item
+          @execute="executeAction"
+        />
+        <GeneratedDeleteButton
+          :entity="item.entity"
+          :entity-type="item.type"
+          menu-item
+          @deleted="$emit('refresh')"
+        />
+      </EntityActionsPopover>
       <Button
         v-if="splittable"
         icon="pi pi-arrows-h"
@@ -46,7 +80,7 @@
         :screen-key="detailScreen?.screenKey || detailScreen?.id || ''"
         :actions="resolvedActionIds"
         :excluded-actions="detailChildActionIds"
-        show-identity
+        embedded
         open-actions-in-workspace
         @execute-action="executeAction"
         @open-page="page => $emit('open-page', page)"
@@ -81,26 +115,33 @@ import { computed } from 'vue';
 import Button from 'primevue/button';
 import GeneratedEntityDetail from '~/components/generated/GeneratedEntityDetail.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
+import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
+import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
+import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import {
   generatedDetailActionIds,
   generatedDetailScreenForEntityType
 } from '~/components/generated/detail-screen-actions.js';
 import { useAuthStore } from '~/stores/auth';
+import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 
 const props = defineProps({
   item: { type: Object, default: null },
+  tabs: { type: Array, default: () => [] },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true },
   showGeneratedActions: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'split', 'close']);
+const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'split', 'close']);
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const entityId = computed(() => props.item?.entity?._id || props.item?.entity?.identity?.uid || '');
@@ -157,6 +198,12 @@ const resolvedEntries = computed(() => {
   ).values());
 });
 const resolvedActionIds = computed(() => resolvedEntries.value.map(entry => entry.actionId));
+const entityCanDelete = computed(() => canDeleteGeneratedEntity({
+  authStore,
+  domainUi,
+  entity: props.item?.entity,
+  entityType: props.item?.type
+}));
 
 function executeAction(action, entity = null, context = {}) {
   const entry = resolvedEntries.value.find(item => item.actionId === action.actionId) || {

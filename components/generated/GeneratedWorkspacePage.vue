@@ -3,9 +3,13 @@
     v-if="definition"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
   >
-    <header class="flex h-10 shrink-0 items-center gap-2 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-2 text-[var(--ck-chrome-foreground)]">
-      <i :class="[definition.icon, 'shrink-0']" aria-hidden="true"></i>
-      <span class="min-w-0 flex-1 truncate font-medium">{{ $t(definition.labelKey) }}</span>
+    <header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
+      <GeneratedWorkspaceTabs
+        :tabs="tabs"
+        :active-key="page.key"
+        @select="$emit('select-tab', $event)"
+        @close="$emit('close-tab', $event)"
+      />
       <Button
         v-if="splittable"
         icon="pi pi-arrows-h"
@@ -53,15 +57,17 @@
 <script setup>
 import { computed } from 'vue';
 import Button from 'primevue/button';
+import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 
 const props = defineProps({
   page: { type: Object, required: true },
+  tabs: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-page', 'refresh', 'split', 'close']);
+defineEmits(['execute-action', 'open-page', 'refresh', 'select-tab', 'close-tab', 'split', 'close']);
 
 const definition = computed(() => resolveGeneratedWorkspacePage(props.page?.pageId));
 const pageProps = computed(() => definition.value?.props?.(props.page) || {});

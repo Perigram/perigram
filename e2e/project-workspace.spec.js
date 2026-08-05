@@ -8,6 +8,7 @@ test.describe('generated project workspace', () => {
     const library = entity('library-1', 'Library One');
     const cassette = entity('cassette-1', 'Cassette One', {
       lineage: { organizationId: 'org-demo-acme', libraryId: 'library-1' },
+      status: lifecycleStatus('ACTIVE'),
       data: { definition: { occs: '0.4-draft', documentType: 'template', parameters: {}, definitions: { workpieces: [] } } }
     });
 
@@ -37,12 +38,25 @@ test.describe('generated project workspace', () => {
     await expect(app.page.locator('[data-workspace-pane] header')).toContainText('Library One');
     await expect(app.page.getByText('Cassette One', { exact: true }).first()).toBeVisible();
 
-    await app.page.getByRole('button', { name: /^more$/i }).last().click();
+    await app.page.getByRole('button', { name: 'Cassette One' }).click();
+    const paneHeader = app.page.locator('[data-workspace-pane] header');
+    await expect(paneHeader.getByRole('tab', { name: 'Library One' })).toBeVisible();
+    await expect(paneHeader.getByRole('tab', { name: 'Cassette One' })).toHaveAttribute('aria-selected', 'true');
+    await expect(paneHeader.locator('[data-entity-status="true"] .status-badge')).toHaveAttribute('aria-label', /active/i);
+    await expect(app.page.locator('[data-workspace-pane] .entity-page [data-entity-page-header]')).toHaveCount(0);
+
+    await paneHeader.getByRole('button', { name: /^more$/i }).click();
     await app.page.getByRole('button', { name: /^edit$/i }).click();
     await expect(app.page.locator('[data-workspace-pane] header')).toContainText(/cassette designer/i);
 
     await app.page.reload();
-    await expect(app.page.locator('[data-workspace-pane] header')).toContainText(/cassette designer/i);
+    await expect(app.page.getByRole('tab', { name: 'Library One' })).toBeVisible();
+    await expect(app.page.getByRole('tab', { name: 'Cassette One' })).toBeVisible();
+    const designerTab = app.page.getByRole('tab', { name: /cassette designer/i });
+    await expect(designerTab).toHaveAttribute('aria-selected', 'true');
+    await designerTab.locator('..').getByRole('button', { name: /^close$/i }).click();
+    await expect(app.page.getByRole('tab', { name: /cassette designer/i })).toHaveCount(0);
+    await expect(app.page.getByRole('tab', { name: 'Cassette One' })).toHaveAttribute('aria-selected', 'true');
     await app.expectCleanRuntime();
   });
 });
@@ -107,4 +121,16 @@ function source(id, entityType, mode) {
 
 function region(id, sourceId, surface = 'detail') {
   return { id, slot: 'main', sourceId, surface, actions: [] };
+}
+
+function lifecycleStatus(primary) {
+  return {
+    state: {
+      schemaVersion: 2,
+      primary,
+      active: { main: primary },
+      regions: { main: { state: primary, path: [primary] } }
+    },
+    lifecycle: { actors: [], attachments: {}, data: {} }
+  };
 }

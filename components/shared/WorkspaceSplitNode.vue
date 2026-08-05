@@ -30,6 +30,7 @@
   <div
     v-else
     class="h-full min-h-0 min-w-0 overflow-hidden"
+    :class="node.id === activePaneId ? 'ring-1 ring-inset ring-primary-200' : ''"
     :data-workspace-pane="node.id"
     :data-active="node.id === activePaneId"
     @pointerdown="$emit('activate', node.id)"

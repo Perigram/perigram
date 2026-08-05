@@ -72,12 +72,15 @@
             <template #default="{ pane }">
               <GeneratedWorkspacePane
                 :item="itemForPane(pane)"
+                :tabs="tabItemsForPane(pane)"
                 :action-entries="actionEntriesForPane(pane)"
                 :closeable="paneCount > 1"
                 @execute-action="executeWorkspaceAction"
                 @open-entity="openWorkspaceEntity"
                 @open-page="openWorkspacePage"
                 @refresh="$emit('refresh')"
+                @select-tab="key => selectPaneTab(pane.id, key)"
+                @close-tab="key => closePaneTab(pane.id, key)"
                 @split="orientation => splitPane(pane.id, orientation)"
                 @close="closePane(pane.id)"
               />
@@ -100,12 +103,15 @@
         <GeneratedWorkspacePane
           class="min-h-0 flex-1"
           :item="itemForPane(activePane)"
+          :tabs="tabItemsForPane(activePane)"
           :action-entries="actionEntriesForPane(activePane)"
           :splittable="false"
           @execute-action="executeWorkspaceAction"
           @open-entity="openWorkspaceEntity"
           @open-page="openWorkspacePage"
           @refresh="$emit('refresh')"
+          @select-tab="key => selectPaneTab(activePane.id, key)"
+          @close-tab="key => closePaneTab(activePane.id, key)"
         />
       </div>
     </div>
@@ -395,7 +401,35 @@ function selectNode(node) {
 
 function selectByKey(key) {
   if (!workspaceItems.value.some(item => item.key === key) || !activePane.value) return;
-  paneTree.value = updateWorkspaceLeaf(paneTree.value, activePane.value.id, { selectionKey: key });
+  selectPaneTab(activePane.value.id, key);
+}
+
+function selectPaneTab(paneId, key) {
+  const pane = panes.value.find(item => item.id === paneId);
+  if (!pane || !workspaceItems.value.some(item => item.key === key)) return;
+  const tabKeys = [...new Set([...(pane.tabKeys || []), key])];
+  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey: key, tabKeys });
+  activePaneId.value = paneId;
+  syncActiveSelection();
+}
+
+function closePaneTab(paneId, key) {
+  const pane = panes.value.find(item => item.id === paneId);
+  if (!pane) return;
+  const currentKeys = pane.tabKeys || [];
+  const closingIndex = currentKeys.indexOf(key);
+  if (closingIndex < 0) return;
+  const tabKeys = currentKeys.filter(tabKey => tabKey !== key);
+  const selectionKey = pane.selectionKey === key
+    ? (tabKeys[Math.max(0, closingIndex - 1)] || '')
+    : pane.selectionKey;
+  const nextTree = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey, tabKeys });
+  paneTree.value = nextTree;
+  const remainingTabKeys = new Set(workspaceLeaves(nextTree).flatMap(leaf => leaf.tabKeys || []));
+  if (!remainingTabKeys.has(key)) {
+    openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
+  }
+  activePaneId.value = paneId;
   syncActiveSelection();
 }
 
@@ -459,7 +493,7 @@ function openWorkspacePage(request = {}) {
       entityId: entityId(entityItem.entity)
     }];
   }
-  paneTree.value = updateWorkspaceLeaf(paneTree.value, activePane.value.id, { selectionKey: key });
+  selectPaneTab(activePane.value.id, key);
   expandedKeys.value = {
     ...expandedKeys.value,
     [entityItem.key]: true,
@@ -496,6 +530,12 @@ function syncActiveSelection() {
 function itemForPane(pane) {
   return workspaceItems.value.find(item => item.key === pane?.selectionKey)
     || null;
+}
+
+function tabItemsForPane(pane) {
+  return (pane?.tabKeys || [])
+    .map(key => workspaceItems.value.find(item => item.key === key))
+    .filter(Boolean);
 }
 
 function actionEntriesForPane(pane) {

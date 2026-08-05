@@ -1,6 +1,6 @@
 import { createWorkspaceLeaf, workspaceLeaves } from './workspace-splits.js';
 
-export const PROJECT_WORKSPACE_STATE_VERSION = 2;
+export const PROJECT_WORKSPACE_STATE_VERSION = 3;
 
 export function projectWorkspaceStorageKey({ userId, organizationId, projectId }) {
   if (!userId || !organizationId || !projectId) return '';
@@ -56,10 +56,13 @@ function normalizePaneNode(node, ids = new Set()) {
   if (!node || typeof node !== 'object' || typeof node.id !== 'string' || ids.has(node.id)) return null;
   ids.add(node.id);
   if (node.kind === 'leaf') {
+    const selectionKey = typeof node.selectionKey === 'string' ? node.selectionKey : '';
+    const tabKeys = normalizeTabKeys(node.tabKeys, selectionKey);
     return {
       kind: 'leaf',
       id: node.id,
-      selectionKey: typeof node.selectionKey === 'string' ? node.selectionKey : ''
+      selectionKey: tabKeys.includes(selectionKey) ? selectionKey : (tabKeys[0] || ''),
+      tabKeys
     };
   }
   if (node.kind !== 'split' || !['horizontal', 'vertical'].includes(node.orientation)) return null;
@@ -73,6 +76,12 @@ function normalizePaneNode(node, ids = new Set()) {
     sizes: normalizeSplitSizes(node.sizes),
     children
   };
+}
+
+function normalizeTabKeys(value, selectionKey = '') {
+  const keys = Array.isArray(value) ? value.filter(key => typeof key === 'string' && key) : [];
+  if (selectionKey && !keys.includes(selectionKey)) keys.push(selectionKey);
+  return [...new Set(keys)];
 }
 
 function normalizeSplitSizes(sizes) {
