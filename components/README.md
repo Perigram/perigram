@@ -450,6 +450,10 @@ numeric control per OCCS parameter discovered from that cassette definition.
 When the action is already scoped to a cassette parent, the template selector
 is hidden and the current parent cassette supplies both the construction
 template id and the parameter set.
+Generated relation Link dialogs always render the shared entity select for the
+declared target type. They bind the opened detail entity as owner context and do
+not fall back to a raw exact-id text field when the authorized option list is
+empty or still loading.
 Generated cassette-design creation must be scoped to a cassette template. A
 queue links the resulting design through `queue.relations.cassettes`; generated
 screens must not treat a queue as the parent/source for

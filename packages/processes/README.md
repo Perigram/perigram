@@ -530,6 +530,11 @@ Typed create nodes expose their mode-specific constructor inputs together with
 canonical constructible block inputs and `status.state.primary`. Canonical
 blocks do not change the selected typed construction mode; they augment the
 entity produced by that constructor.
+Relation-derived actions are update actions and therefore carry no create
+construction contract. On an entity-detail surface the opened entity is the
+implicit relation owner; only the relation target is prompted. When the domain
+declares one relationship for that owner/target pair, its key and cardinality
+replace the composer's provisional socket-derived key.
 Incoming graph parent edges are validated against lineage contracts. If an edge
 connects an unsupported parent, such as `queue -> create cassette_design`, the
 compiler ignores that parent edge and compiles the action as an unparented

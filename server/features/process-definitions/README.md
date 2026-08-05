@@ -153,9 +153,9 @@ parent revision provenance in the initial create payload. The owning feature
 service must persist that context during create; process definitions do not
 write child rows directly or patch another feature's collection after creation.
 Create Entity owns both generic and typed domain construction. Generic mode
-receives canonical blocks; any other declared mode receives only its fixed
-`construction.inputs` sockets and delegates to the corresponding domain
-constructor. Producer identifiers remain internal runtime metadata rather than
+receives canonical blocks; other declared modes receive their fixed
+`construction.inputs` together with canonical constructible blocks and delegate
+initial creation to the corresponding domain constructor. Producer identifiers remain internal runtime metadata rather than
 separate authoring nodes:
 For a typed construction input, an explicit connected/authored value wins,
 then the declared construction default is used, and an absent optional value is
@@ -168,7 +168,8 @@ contract always persists a named OCCS template with the default graph-tree
 document;
 `bakeCassetteDesignFromTemplate` calls the cassette template service, requires a
 template id or resolves the default construction-ready template visible to the
-caller, accepts concrete parameters and a name, creates a real `cassette_design`
+caller, accepts concrete parameters, creates a real `cassette_design` whose
+default identity comes from the source cassette,
 with geometry/editor provenance, then applies the process target status.
 In v3 execution, typed constructor inputs and connected canonical blocks are
 collected separately. The constructor creates the complete derived entity
@@ -182,6 +183,9 @@ from a queue. A queue consumes baked designs through its declared
 an owner type and relationship key; after creation the runtime validates that
 relationship against the domain registry and updates it through the owner's
 `processUpdate()` contract.
+Compiled Link actions grant their exposed roles read access to the declared
+target entity feature so generated entity pickers can load authorized choices.
+They do not inherit the owner entity's create-construction fields.
 Typed construction actions receive action-scoped grants for the target entity
 they create and for the source entities declared by the construction contract.
 For cassette-design baking this includes a temporary `cassettes:write` grant so
