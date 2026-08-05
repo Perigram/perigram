@@ -52,7 +52,8 @@ bounded IDE-style Explorer and file workspace:
   pages. Each recursive pane owns an IDE-style tab list; Explorer navigation
   opens or selects a tab in the active pane, and tab order plus selection persist
   with that pane. `GeneratedEntityFile` is the pane adapter: each entity tab
-  owns its icon-only interactive lifecycle status and close affordance; the tab
+  owns its DTO-backed icon-only interactive lifecycle status and close affordance;
+  tabs without a persisted status state do not synthesize an `UNKNOWN` badge. The tab
   strip ends with an add-tab picker. Pane-level split and close commands live in
   one ellipsis menu. Generated entity-action buttons render inside the active
   tab body below the strip. The body mounts the canonical
