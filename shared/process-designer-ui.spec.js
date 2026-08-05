@@ -183,7 +183,8 @@ describe('process designer canvas UI', () => {
     expect(nodeSource).toContain("{ type: record.type?.entityType || record.entityType || '', id: value }");
   });
 
-  it('preserves entity-producing sockets during lineage inference', () => {
-    expect(designerSource).toContain("['entity', 'entityRef'].includes(sourcePort?.type?.base)");
+  it('uses the shared entity-binding resolver for open block entries', () => {
+    expect(designerSource).toContain('resolveEntityBinding({');
+    expect(designerSource).not.toContain("record.compositionMode === 'ancestors'");
   });
 });
