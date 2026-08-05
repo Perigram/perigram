@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
   return await processDefinitionsService.executeActiveProcessAction({
-    actionId: event.context.params.id,
+    actionId: decodeURIComponent(event.context.params.id),
     entityId: body?.entityId,
     data: body?.data || {},
     parameters: body?.parameters || {},
