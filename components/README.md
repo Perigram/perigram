@@ -194,7 +194,9 @@ selected entity or a registered workspace page, plus pane-local controls. Each
 pane header owns its IDE-style file tabs: each entity tab carries its compact
 lifecycle status and close affordance, followed by a standalone add-tab control.
 Pane split/close commands live in a pane-level ellipsis menu. Generated entity
-actions belong to the active tab body below the tab strip. The embedded entity page suppresses its
+actions not already owned by an operational editor belong to the active tab body
+below the tab strip. Active-pane emphasis is applied subtly to its tab header,
+and empty panes retain an open-content prompt. The embedded entity page suppresses its
 duplicate title, lineage, lifecycle, and action header while retaining the full
 canonical detail body. A pane must not substitute a compact
 summary/detail-body-only surface. It scopes

@@ -55,8 +55,10 @@ bounded IDE-style Explorer and file workspace:
   owns its DTO-backed icon-only interactive lifecycle status and close affordance;
   tabs without a persisted status state do not synthesize an `UNKNOWN` badge. The tab
   strip ends with an add-tab picker. Pane-level split and close commands live in
-  one ellipsis menu. Generated entity-action buttons render inside the active
-  tab body below the strip. The body mounts the canonical
+  one ellipsis menu. The add button follows the last tab instead of consuming
+  the far edge of the header. Generated entity-action buttons render inside the active
+  tab body below the strip only when the operational detail overload does not
+  already consume that action. The body mounts the canonical
   `GeneratedEntityDetail`/`EntityPage` content for that entity with duplicate
   identity, lineage, status, actions, and divider chrome suppressed. Detail
   overload bodies therefore behave identically in a
@@ -90,8 +92,9 @@ bounded IDE-style Explorer and file workspace:
   before restoration. A reference remains in its pane while asynchronous screen
   sources and linked entities load; temporary absence must not erase restored
   navigation state. There is no reserved right inspector pane.
-  The active pane receives only a subtle inset semantic-primary boundary; tab
-  selection remains the stronger indicator of the active file.
+  The active pane receives a subtle semantic highlight on its pane header; tab
+  selection remains the stronger indicator of the active file. Empty panes keep
+  the normal tab strip and an open-content prompt instead of a blank body.
 
 Selectable rows still come from access-filtered screen source states; the
 Explorer contains no workspace actions or unrelated controls. Clicking an
