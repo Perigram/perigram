@@ -27,7 +27,7 @@
           @click="$emit('select', tab.key)"
         />
         <EntityStatus
-          v-if="tab.kind === 'entity'"
+          v-if="tab.kind === 'entity' && tab.entity?.status?.state"
           :entity="tab.entity"
           :entity-type="tab.type"
           variant="icon"

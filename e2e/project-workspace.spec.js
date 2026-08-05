@@ -41,8 +41,9 @@ test.describe('generated project workspace', () => {
     await app.page.getByRole('button', { name: 'Cassette One' }).click();
     const paneHeader = app.page.locator('[data-workspace-pane] header');
     await expect(paneHeader.getByRole('tab', { name: 'Library One' })).toBeVisible();
-    await expect(paneHeader.getByRole('tab', { name: 'Cassette One' })).toHaveAttribute('aria-selected', 'true');
-    await expect(paneHeader.locator('[data-entity-status="true"] .status-badge')).toHaveAttribute('aria-label', /active/i);
+    const cassetteTab = paneHeader.getByRole('tab', { name: 'Cassette One' });
+    await expect(cassetteTab).toHaveAttribute('aria-selected', 'true');
+    await expect(cassetteTab.locator('..').locator('[data-entity-status="true"] .status-badge')).toHaveAttribute('aria-label', /active/i);
     await expect(app.page.locator('[data-workspace-pane] .entity-page [data-entity-page-header]')).toHaveCount(0);
     await expect(paneHeader.getByRole('button', { name: /^add$/i })).toBeVisible();
 
