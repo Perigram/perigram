@@ -258,6 +258,13 @@ mutations publish typed invalidation events through
 Generated screens consume those events through the shared browser-local entity
 sync contract and then reload their normal sources; process actions do not
 broadcast DTO replicas or bypass entity read access.
+The active action options route resolves relation choices through registered
+entity services. For an embedded relation creator it follows the creator's
+typed source, its declared containment parent, the opened owner's ancestor, and
+the active process relation joining those parent types. Derived targets are
+then queried by canonical provenance. Submitting `relationCreator` to the Link
+action runs that exact embedded constructor and persists the returned reference
+through the owner's `processUpdate()` boundary.
 Create-and-link behavior is relationship-driven rather than entity-specific.
 `linkCreatedTo` is accepted only when the domain declares the requested
 many-valued owner relationship and its target matches the created entity type.

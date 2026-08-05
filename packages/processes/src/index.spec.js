@@ -1793,9 +1793,16 @@ describe('@cutkit/processes compiler', () => {
       processNodes: {
         library: {
           id: 'library',
-          kind: 'source.literalItem',
-          type: { base: 'entityRef', shape: 'item', entityType: 'library' },
-          value: { type: 'library', id: 'library-1' }
+          kind: 'effect.createEntity',
+          entityType: 'library',
+          construction: {
+            mode: 'genericCreate',
+            inputs: [{ id: 'name', path: 'name', label: 'Library name', type: 'string', required: true, prompt: true }]
+          },
+          status: { to: INITIAL_STATE },
+          outputs: [{ id: 'result', role: 'data', type: { base: 'entity', shape: 'item', entityType: 'library' } }],
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
         },
         artifact: {
           id: 'artifact',
@@ -1833,7 +1840,7 @@ describe('@cutkit/processes compiler', () => {
       graph: {
         nodes: ['library', 'artifact', 'relations', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
-          { id: 'library-relations', source: 'library', sourceHandle: 'data:value', target: 'relations', targetHandle: 'data:entry:library', role: 'data' },
+          { id: 'library-relations', source: 'library', sourceHandle: 'data:result', target: 'relations', targetHandle: 'data:entry:library', role: 'data' },
           { id: 'artifact-relations', source: 'artifact', sourceHandle: 'data:value', target: 'relations', targetHandle: 'data:entry:artifact', role: 'data' },
           { id: 'relations-create', source: 'relations', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:relations', role: 'data' }
         ]
@@ -1844,7 +1851,13 @@ describe('@cutkit/processes compiler', () => {
       label: 'Link library',
       actionKind: 'updateEntity',
       entityType: 'project',
-      relationMutation: { key: 'libraries', targetType: 'library', cardinality: 'many', operation: 'link' }
+      relationMutation: {
+        key: 'libraries',
+        targetType: 'library',
+        cardinality: 'many',
+        operation: 'link',
+        creator: expect.objectContaining({ actionId: 'library', entityType: 'library' })
+      }
     });
     expect(compiled.roles.role_admin.actions.find(action => action.actionId === 'create:link:libraries')?.construction).toBeNull();
     expect(compiled.actions['create:unlink:libraries']).toMatchObject({
@@ -1870,7 +1883,7 @@ describe('@cutkit/processes compiler', () => {
       }
     });
     expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'artifacts', level: 'write' }));
-    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'libraries', level: 'read' }));
+    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'libraries', level: 'write' }));
     expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
       'create:link:libraries',
       'create:unlink:libraries'
