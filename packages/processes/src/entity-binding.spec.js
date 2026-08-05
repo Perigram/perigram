@@ -27,4 +27,17 @@ describe('entity bindings', () => {
     const ambiguous = [...fields, { ...fields[0], path: 'lineage.ownerProjectId' }];
     expect(resolveEntityBinding({ source: { kind: 'entity', entityType: 'project' }, fields: ambiguous, block: 'lineage' }).path).toBe('');
   });
+
+  it('binds one entity to the sole matching many relation field', () => {
+    expect(resolveEntityBinding({
+      source: { kind: 'entity', entityType: 'library' },
+      fields,
+      block: 'relations'
+    })).toMatchObject({
+      path: 'relations.libraries',
+      entityType: 'library',
+      sourceCardinality: 'one',
+      cardinality: 'many'
+    });
+  });
 });

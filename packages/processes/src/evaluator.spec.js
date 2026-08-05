@@ -173,6 +173,20 @@ describe('process v3 data execution', () => {
     }]);
   });
 
+  it('wraps a singleton entity reference for a many relation entry', async () => {
+    const composed = await executeProcessDataNode({
+      kind: 'record.composeBlock',
+      block: 'relations',
+      compositionMode: 'relations',
+      entries: [{ id: 'library', key: 'cassetteLibraries', entityType: 'library', cardinality: 'many', inputCardinality: 'one' }]
+    }, {
+      'entry:library': createDataPacket({ type: 'library', id: 'library-1' })
+    });
+    expect(composed.branches[0].items).toEqual([{
+      cassetteLibraries: [{ type: 'library', id: 'library-1' }]
+    }]);
+  });
+
   it('reads a lineage id back as the declared typed entity reference', async () => {
     const result = await executeProcessDataNode(
       {

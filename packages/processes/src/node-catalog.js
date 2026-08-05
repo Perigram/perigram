@@ -521,7 +521,7 @@ function openBlockEntries(record = {}, composition = null) {
 }
 
 function openBlockEntryType(entry = {}, composition = {}) {
-  if (composition?.mode === 'relations' && entry.cardinality === 'many') {
+  if (composition?.mode === 'relations' && (entry.inputCardinality || entry.cardinality) === 'many') {
     return processType('array', {
       itemType: processType('entityRef', { entityType: entry.entityType || undefined })
     });

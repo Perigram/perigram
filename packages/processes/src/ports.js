@@ -156,7 +156,7 @@ function inferRecordContract(record, incoming) {
       return {
         ...entry,
         entityType: source.entityType || '',
-        cardinality: ['entity_list', 'list'].includes(source.kind) || source.multiple ? 'many' : 'one'
+        inputCardinality: ['entity_list', 'list'].includes(source.kind) || source.multiple ? 'many' : 'one'
       };
     });
     return next;

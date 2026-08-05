@@ -165,7 +165,13 @@ function inferOpenBlockEntityBindings(process = {}, domain = {}) {
         access: composer.kind === 'record.composeBlock' ? 'constructible' : 'writable'
       });
       if (!binding.path) return entry;
-      return { ...entry, entityType: binding.entityType, cardinality: binding.cardinality, key: binding.path.slice(`${composer.block}.`.length) };
+      return {
+        ...entry,
+        entityType: binding.entityType,
+        cardinality: binding.cardinality,
+        inputCardinality: binding.sourceCardinality,
+        key: binding.path.slice(`${composer.block}.`.length)
+      };
     });
     processNodes[String(composer.id)] = { ...composer, entries };
   }

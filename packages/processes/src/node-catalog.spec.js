@@ -176,6 +176,19 @@ describe('process v3 node catalog', () => {
     });
   });
 
+  it('keeps a singleton relation source socket when the target field is many', () => {
+    const compose = resolveCatalogNodePorts({
+      kind: 'record.composeBlock',
+      block: 'relations',
+      compositionMode: 'relations',
+      entries: [{ id: 'library', key: 'cassetteLibraries', entityType: 'library', cardinality: 'many', inputCardinality: 'one' }]
+    });
+    expect(compose.inputs[0]).toMatchObject({
+      id: 'entry:library',
+      type: { base: 'entityRef', entityType: 'library' }
+    });
+  });
+
   it('keeps domain producer inputs on a fixed service effect', () => {
     const producer = resolveCatalogNodePorts({
       kind: 'effect.runProducer',
