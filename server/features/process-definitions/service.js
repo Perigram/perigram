@@ -345,6 +345,9 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   const action = process.data.compiled?.actions?.[actionId] || process.data.actions?.[actionId];
   if (!action) throw createError({ statusCode: 404, message: 'Action not found in active process' });
   assertCompiledActionAvailable(actionId, auth);
+  if (action.relationMutation) {
+    return await executeCompiledRelationMutationAction({ action, actionId, entityId, data, entities }, auth);
+  }
   if (Number(process.data.dataflowVersion) === 3) {
     return await executeV3ActionRun({
       process,
@@ -476,6 +479,60 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   }
 
   throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
+}
+
+async function executeCompiledRelationMutationAction({ action, actionId, entityId, data = {}, entities = {} } = {}, auth = {}) {
+  const targetValue = entityId || entities?.entity || entities?.[action.entityType];
+  const targetId = normalizeEntityRef(targetValue)?.id || targetValue;
+  if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
+  const entityType = resolveActionEntityType(action);
+  const executionAuth = createActionExecutionAuth(auth, action);
+  const mutation = await resolveManualRelationMutation(
+    entityType,
+    targetId,
+    pickMutationData(data, action, entities),
+    action,
+    executionAuth
+  );
+  const updated = await persistProcessEntityPatch(entityType, targetId, flattenMutationPatch(mutation), executionAuth);
+  await publishActionEntityEvent(auth, entityType, updated || { _id: targetId }, 'updated', 'process-relation-update');
+  return updated;
+}
+
+async function resolveManualRelationMutation(entityType, targetId, mutation = {}, action = {}, auth = {}) {
+  const contract = action.relationMutation;
+  const key = contract?.key;
+  const targetValue = getByPath(mutation, `relations.${key}`);
+  const targetRef = normalizeRelationRef(targetValue, contract?.targetType);
+  await assertRelationTargetAvailable(targetRef, contract, auth);
+
+  const service = getAppRegistry().getEntityService(entityType);
+  const currentRecord = await service?.processGetById?.(targetId, auth);
+  if (!currentRecord) throw createError({ statusCode: 404, message: `${entityType} not found` });
+  const current = currentRecord?.toJSON ? currentRecord.toJSON() : currentRecord;
+  const currentValue = current.relations?.[key];
+
+  if (contract.cardinality !== 'many') {
+    if (contract.operation === 'unlink' && currentValue) {
+      const currentRef = normalizeRelationRef(currentValue, contract.targetType);
+      if (`${currentRef.type}:${currentRef.id}` !== `${targetRef.type}:${targetRef.id}`) {
+        throw createError({ statusCode: 400, message: `Selected ${contract.targetType} is not linked through ${key}` });
+      }
+    }
+    return {
+      relations: {
+        [key]: contract.operation === 'unlink' ? null : targetRef
+      }
+    };
+  }
+
+  const refs = (Array.isArray(currentValue) ? currentValue : currentValue ? [currentValue] : [])
+    .map(item => normalizeRelationRef(item, contract.targetType));
+  const targetKey = `${targetRef.type}:${targetRef.id}`;
+  const next = contract.operation === 'unlink'
+    ? refs.filter(ref => `${ref.type}:${ref.id}` !== targetKey)
+    : Array.from(new Map([...refs, targetRef].map(ref => [`${ref.type}:${ref.id}`, ref])).values());
+  return { relations: { [key]: next } };
 }
 
 async function executeV3ActionRun({ process, actionId, entityId, data, parameters, entities, targetOrganizationId }, auth) {
@@ -1217,7 +1274,9 @@ async function persistProcessEntityPatch(entityType, targetId, patch, auth) {
 function flattenMutationPatch(source = {}, prefix = '', result = {}) {
   for (const [key, value] of Object.entries(source || {})) {
     const path = prefix ? `${prefix}.${key}` : key;
-    if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+    if (value && typeof value === 'object' && value.type && value.id) {
+      result[path] = value;
+    } else if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
       flattenMutationPatch(value, path, result);
     } else {
       result[path] = value;

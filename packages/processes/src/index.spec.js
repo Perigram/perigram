@@ -1757,6 +1757,83 @@ describe('@cutkit/processes compiler', () => {
       .find(region => region.id === 'main').actions).toContain('update_relations');
   });
 
+  it('derives Link and Unlink detail actions from a process-composed relation', () => {
+    const relationDomain = {
+      ...domain,
+      fieldAccess: {
+        ...domain.fieldAccess,
+        project: { ...domain.fieldAccess.project, write: [...domain.fieldAccess.project.write, 'relations.*'] }
+      },
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        project: [{
+          path: 'relations.library',
+          block: 'relations',
+          type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'library' },
+          readable: true,
+          writable: true,
+          constructible: true
+        }]
+      },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }]
+      },
+      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } }
+    };
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 3,
+      roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
+      processNodes: {
+        library: {
+          id: 'library',
+          kind: 'source.literalItem',
+          type: { base: 'entityRef', shape: 'item', entityType: 'library' },
+          value: { type: 'library', id: 'library-1' }
+        },
+        relations: {
+          id: 'relations',
+          kind: 'record.composeBlock',
+          block: 'relations',
+          compositionMode: 'relations',
+          entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one' }]
+        },
+        create: {
+          id: 'create',
+          kind: 'effect.createEntity',
+          label: 'Create project',
+          entityType: 'project',
+          blocks: ['relations'],
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
+        }
+      },
+      graph: {
+        nodes: ['library', 'relations', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'library-relations', source: 'library', sourceHandle: 'data:value', target: 'relations', targetHandle: 'data:entry:library', role: 'data' },
+          { id: 'relations-create', source: 'relations', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:relations', role: 'data' }
+        ]
+      }
+    }, relationDomain);
+
+    expect(compiled.actions['create:link:library']).toMatchObject({
+      label: 'Link library',
+      actionKind: 'updateEntity',
+      entityType: 'project',
+      relationMutation: { key: 'library', targetType: 'library', operation: 'link' }
+    });
+    expect(compiled.actions['create:unlink:library']).toMatchObject({
+      label: 'Unlink library',
+      relationMutation: { key: 'library', targetType: 'library', operation: 'unlink' }
+    });
+    expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
+      'create:link:library',
+      'create:unlink:library'
+    ]));
+  });
+
   it('compiles create actions with explicit parent inputs', () => {
     const compiled = compileProcessDefinition({
       actions: {

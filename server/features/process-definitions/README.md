@@ -141,6 +141,12 @@ replacement Relations block, then persisted through the target feature's
 introduce relation-specific repositories or action executors. Manual Update
 effects compile into the normal generated action manifest; Relations data
 connections without an effect remain non-executable dataflow.
+Compiled process-relation actions execute directly at the active-definition
+boundary, including for dataflow-v3 definitions: Link merges the selected typed
+reference according to relation cardinality, Unlink removes that exact
+reference, and persistence still delegates to the owner entity's
+`processUpdate` service. The process relation contract is the authority; it
+does not require a duplicate hardcoded relation in the CNC domain registry.
 Parent-scoped create actions also pass declared containment lineage and pinned
 parent revision provenance in the initial create payload. The owning feature
 service must persist that context during create; process definitions do not

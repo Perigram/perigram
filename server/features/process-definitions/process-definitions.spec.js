@@ -1705,4 +1705,77 @@ describe('process definitions access fallback', () => {
       status: { state: { primary: 'PRODUCED' } }
     });
   });
+
+  it('executes compiled relation actions directly for v3 processes', async () => {
+    const projectUpdate = vi.fn().mockResolvedValue({
+      _id: 'project-1',
+      identity: { name: 'Project' },
+      relations: { library: { type: 'library', id: 'library-1' } }
+    });
+    getAppRegistry.mockReturnValue({
+      getDomain: () => ({
+        entities: [
+          { type: 'project', collection: 'projects' },
+          { type: 'library', collection: 'libraries' }
+        ],
+        fieldAccess: {
+          project: { feature: 'projects' },
+          library: { feature: 'libraries' }
+        }
+      }),
+      getEntityService: type => ({
+        project: {
+          processGetById: vi.fn().mockResolvedValue({ _id: 'project-1', identity: { name: 'Project' }, relations: {} }),
+          processUpdate: projectUpdate
+        },
+        library: {
+          processGetById: vi.fn().mockResolvedValue({ _id: 'library-1', identity: { name: 'Library' } })
+        }
+      })[type] || null
+    });
+    processRepository.findActiveByOrganization.mockResolvedValueOnce({
+      _id: 'process-active',
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'ACTIVE' },
+      data: {
+        dataflowVersion: 3,
+        compiled: {
+          actions: {
+            'create:link:library': {
+              id: 'create:link:library',
+              actionKind: 'updateEntity',
+              entityType: 'project',
+              relationMutation: { key: 'library', targetType: 'library', cardinality: 'one', operation: 'link' },
+              mutation: { fields: ['relations.library'] },
+              inputs: [
+                { id: 'entity', entityType: 'project' },
+                { id: 'relation:library', relationKey: 'library', entityType: 'library' }
+              ],
+              access: { level: 'admin', roleIds: ['role_admin'] }
+            }
+          }
+        }
+      }
+    });
+
+    await executeActiveProcessAction({
+      actionId: 'create:link:library',
+      entityId: 'project-1',
+      data: { relations: { library: 'library-1' } }
+    }, {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      roleAssignments: { actions: [{ actionId: 'create:link:library' }] },
+      effectivePermissions: {
+        projects: [{ level: 'admin' }],
+        libraries: [{ level: 'read' }]
+      }
+    });
+
+    expect(projectUpdate).toHaveBeenCalledWith(
+      'project-1',
+      { 'relations.library': { type: 'library', id: 'library-1' } },
+      expect.any(Object)
+    );
+  });
 });
