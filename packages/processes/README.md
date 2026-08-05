@@ -54,6 +54,10 @@ declared data ports before reading or evaluating it. A sole data output is the
 canonical source when an edge uses the node-level handle. Trigger and effect
 outputs are read only from the token's emitted-value cache; operational nodes
 are never dispatched through the pure data/read evaluator.
+When a manual downstream action is exposed in an existing entity context, an
+upstream entity-producing effect socket may bind to the matching typed entity
+from `context.inputs.entities`. This represents the current entity window; it
+does not recompute or rerun the upstream effect.
 Executable effects are represented only by their `processNode` canvas node.
 Compiler-derived action records are not projected as separate action nodes and
 are removed when the canvas is serialized.
