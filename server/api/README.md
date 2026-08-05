@@ -56,7 +56,9 @@ Routes are grouped into sub-directories corresponding to features:
   validation, activation, and archive endpoints. Activation compiles the visual
   graph into runtime access, navigation, workflow, field-policy, service, and
   socket contracts. Active assignment updates patch the compiled process role
-  mapping for a user. Active action execution endpoints resolve the action from
+  mapping for a user. Active action execution decodes the dynamic route segment
+  before resolving the action because derived ids contain separators such as
+  `:link:` and browsers percent-encode them. The endpoints resolve the action from
   the active compiled process, verify that it is available to the current
   process roles, and delegate to entity, status, socket, or command runtimes.
   The active queue item endpoint appends an existing readable cassette design to
