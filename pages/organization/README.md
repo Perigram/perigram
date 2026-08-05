@@ -82,6 +82,9 @@ entity lifecycles, action definitions, services, organization sends, screens,
 and assignments remain the process source of truth. If a stored process contains
 only compiled runtime data and no semantic records, the designer shows a clear
 validation error instead of guessing a canvas.
+Palette captions are presentation-only and are localized when the canvas is
+rendered. Persisted process-node labels keep the canonical operation kind, so
+the locale used while authoring cannot leak into generated action buttons.
 On load, the route fetches the active process and the current process list,
 selects the active process first, and falls back to the newest usable draft or
 saved definition only when active is unavailable. Empty canvases show a passive

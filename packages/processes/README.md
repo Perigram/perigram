@@ -33,6 +33,9 @@ command-result outputs. Producer effects, conversions, predicates, patches,
 and trigger-payload plumbing remain runtime-only. Applications may change
 layout, but entity types, construction modes, commands, attachment kinds,
 blocks, and fields always come from the supplied domain contract.
+Palette translations are authoring presentation and are never process data.
+Executable process nodes persist their canonical kind; generated create-action
+captions are derived from the typed target entity at render time.
 Process definitions use only the current dataflow protocol. New definitions and
 starter templates are authored at `dataflowVersion: 3`; package normalization
 does not infer a missing version or rewrite an older graph. Callers must provide
