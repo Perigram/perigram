@@ -258,7 +258,10 @@ user screen manifest used by normal generated detail routes. Registered
 operational bodies may consume those actions—for example queue nesting and
 cassette-design producer actions—while the tab body keeps the remaining
 applicable commands. Operational bodies receive only this compiled action set;
-they never supplement it by scanning the global action manifest.
+main/screen and child-region actions are delivered as separate channels so
+child operations can reach an editor without reappearing in its surrounding
+header. Operational bodies never supplement this set by scanning the global
+action manifest.
 Within a queue file, `EntityWorkspace` gives the composition editor all twelve
 columns when no readable nesting-run/support region exists and uses the normal
 8/4 split only while that region is present. Queue entry cards use their own

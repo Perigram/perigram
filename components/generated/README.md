@@ -121,8 +121,10 @@ region actions are merged only when they also apply to the selected entity.
 This lets an embedded queue consume queue-detail commands and cassette-design
 producer actions without granting or discovering actions outside the user's
 compiled process access. `GeneratedEntityDetailBody` passes only that scoped
-action set into operational overloads; it never scans the global action manifest
-for additional queue producers.
+action set into operational overloads. Child-region action ids travel through
+the separate `bodyActions` channel: QueueEditor receives its compiled producer
+operations while surrounding headers continue to exclude them. The body never
+scans the global action manifest for additional queue producers.
 
 Registered screen overloads select the bounded workspace mode on
 `GeneratedScreen`/`StandardPage`, and the authenticated app layout resolves the
