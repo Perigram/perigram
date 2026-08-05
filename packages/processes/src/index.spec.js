@@ -1761,6 +1761,7 @@ describe('@cutkit/processes compiler', () => {
     const relationDomain = {
       ...domain,
       entities: [...domain.entities, { type: 'artifact', collection: 'artifacts' }],
+      relations: [{ ownerType: 'project', key: 'libraries', targetType: 'library', cardinality: 'many' }],
       attachmentKinds: {
         DXF_SOURCE: { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
         CAPTURE_PHOTO: { kind: 'CAPTURE_PHOTO', creation: { mode: 'upload' } }
@@ -1839,15 +1840,16 @@ describe('@cutkit/processes compiler', () => {
       }
     }, relationDomain);
 
-    expect(compiled.actions['create:link:library']).toMatchObject({
+    expect(compiled.actions['create:link:libraries']).toMatchObject({
       label: 'Link library',
       actionKind: 'updateEntity',
       entityType: 'project',
-      relationMutation: { key: 'library', targetType: 'library', operation: 'link' }
+      relationMutation: { key: 'libraries', targetType: 'library', cardinality: 'many', operation: 'link' }
     });
-    expect(compiled.actions['create:unlink:library']).toMatchObject({
+    expect(compiled.roles.role_admin.actions.find(action => action.actionId === 'create:link:libraries')?.construction).toBeNull();
+    expect(compiled.actions['create:unlink:libraries']).toMatchObject({
       label: 'Unlink library',
-      relationMutation: { key: 'library', targetType: 'library', operation: 'unlink' },
+      relationMutation: { key: 'libraries', targetType: 'library', operation: 'unlink' },
       inputPolicy: { prompt: false, fields: [] }
     });
     expect(compiled.actions['create:link:artifact']).toMatchObject({
@@ -1868,9 +1870,10 @@ describe('@cutkit/processes compiler', () => {
       }
     });
     expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'artifacts', level: 'write' }));
+    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'libraries', level: 'read' }));
     expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
-      'create:link:library',
-      'create:unlink:library'
+      'create:link:libraries',
+      'create:unlink:libraries'
     ]));
   });
 

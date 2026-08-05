@@ -382,11 +382,13 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     .filter(Boolean))];
   const relationContracts = composers
     .filter(record => record.compositionMode === 'relations' || record.block === 'relations')
-    .flatMap(record => (record.entries || []).map(entry => ({
-      key: entry.key,
-      targetType: entry.entityType,
-      cardinality: entry.cardinality || 'one',
-      ...(entry.entityType === 'artifact' ? {
+    .flatMap(record => (record.entries || []).map(entry => {
+      const declared = declaredRelationForTarget(domain, node.entityType, entry.entityType);
+      return {
+      key: declared?.key || entry.key,
+      targetType: declared?.targetType || entry.entityType,
+      cardinality: declared?.cardinality || entry.cardinality || 'one',
+      ...((declared?.targetType || entry.entityType) === 'artifact' ? {
         creator: {
           entityType: 'artifact',
           attachmentKinds: (entry.attachmentKinds?.length
@@ -400,7 +402,8 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
           }))
         }
       } : {})
-    })))
+    };
+    }))
     .filter(relation => relation.key && relation.targetType);
   return {
     fields,
@@ -410,6 +413,13 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     parentEntityType: node.parentEntityType || (parentTypes.length === 1 ? parentTypes[0] : ''),
     relationContracts
   };
+}
+
+function declaredRelationForTarget(domain = {}, ownerType = '', targetType = '') {
+  const matches = (domain.relations || []).filter(relation => (
+    relation.ownerType === ownerType && relation.targetType === targetType
+  ));
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export function requiredEntityProfileTypes(definition = {}, domain = {}) {
@@ -1018,6 +1028,12 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}) {
           ...(creatorScope ? { scope: creatorScope } : {})
         });
       }
+      if (action.relationMutation?.operation === 'link' && action.relationMutation.targetType) {
+        upsertGrant(roles[roleId].grants, {
+          feature: resolveEntityFeature(domain, action.relationMutation.targetType),
+          level: 'read'
+        });
+      }
       const inputs = actionInputsForExposure(exposedAction, parentEntityType, domain).map(input => (
         input.id === 'entity' && !input.entityType && resolvedEntityType ? { ...input, entityType: resolvedEntityType } : input
       ));
@@ -1034,7 +1050,9 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}) {
         parentRevision: normalizeParentRevision(action.parentRevision, parentEntityType, domain),
         status: actionStatusForExposure(action, actionWindow, access, process),
         relationMutation: action.relationMutation || null,
-        construction: normalizeConstruction(action.construction, action.entityType, domain),
+        construction: (action.actionKind || 'createEntity') === 'createEntity'
+          ? normalizeConstruction(action.construction, action.entityType, domain)
+          : null,
         inputPolicy: compiledInputPolicy(action, domain),
         inputs,
         outputs,

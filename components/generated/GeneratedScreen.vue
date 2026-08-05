@@ -172,18 +172,11 @@
           />
           <div v-else-if="field.type === 'entity'" class="flex flex-col gap-2">
             <Select
-              v-if="promptOptions[field.id]?.length"
               v-model="promptValues[field.id]"
               :options="promptOptions[field.id] || []"
               option-label="label"
               option-value="value"
               :entity-type="field.entityType || field.accepts?.[0] || ''"
-              class="w-full"
-            />
-            <InputText
-              v-else
-              v-model="promptValues[field.id]"
-              :placeholder="$t('generatedScreen.exactEntityId')"
               class="w-full"
             />
             <Button
