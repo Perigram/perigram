@@ -1814,7 +1814,7 @@ describe('@cutkit/processes compiler', () => {
               key: 'artifact',
               entityType: 'artifact',
               cardinality: 'one',
-              attachmentKinds: ['DXF_SOURCE', 'CAPTURE_PHOTO']
+              attachmentKinds: []
             }
           ]
         },

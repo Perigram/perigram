@@ -283,7 +283,14 @@ describe('Framework package contracts', () => {
     expect(existsSync('server/api/cassette-instances/index.get.js')).toBe(true);
     expect(domainUi.getSingleEndpoint('project', 'p-1')).toBe('/api/project/p-1');
     expect(domainUi.getAttachmentPreview('LAYOUT_DXF')).toEqual({ mode: 'dxf' });
-    expect(domainUi.getAttachmentCreation('DXF_SOURCE')).toEqual({ mode: 'upload' });
+    expect(domainUi.getAttachmentCreation('DXF_SOURCE')).toMatchObject({
+      mode: 'upload',
+      accept: '.dxf,application/dxf',
+      fields: [
+        { id: 'name', path: 'identity.name', type: 'string', required: true },
+        { id: 'metadata', path: 'data.metadata', type: 'object', required: false }
+      ]
+    });
     expect(domainUi.getAttachmentCreation('LAYOUT_DXF')).toEqual({ mode: 'command', commandId: 'generateAttachment' });
     expect(domainUi.getAttachmentEditor('LAYOUT_DXF')).toEqual({ mode: 'layout' });
     expect(domainUi.getAttachmentEditor('DXF_SOURCE')).toEqual({ mode: 'none' });

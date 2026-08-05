@@ -30,6 +30,8 @@ inventing a generic entity-create path or choosing a frontend editor.
 ## APIs
 
 - `POST /api/artifacts` — multipart upload for a declared upload-backed kind
+- `PUT /api/artifacts/:id` — update writable artifact identity/data
+- `PUT /api/artifacts/:id/file` — replace the file of an upload-backed kind
 - `GET /api/artifacts/:id`
 - `GET /api/artifacts/:id/metadata`
 - `DELETE /api/artifacts/:id`

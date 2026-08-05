@@ -44,6 +44,7 @@ describe('project file operations and queue pane density', () => {
     expect(generatedScreenSource).not.toContain('field.required && !options.length');
     expect(generatedScreenSource).toContain('hasUploadCreator(field)');
     expect(artifactCreatorSource).toContain("$fetch('/api/artifacts', { method: 'POST', body: form })");
+    expect(artifactCreatorSource).toContain("form.append('metadata', metadata.value || '{}')");
     expect(entityFileSource).not.toContain('GeneratedProjectFileHome');
     expect(entityFileSource).toContain('<GeneratedEntityDetail');
     expect(entityFileSource).not.toContain('<GeneratedEntityDetailBody');

@@ -109,7 +109,12 @@ Each attachment kind also declares its creation affiliation (`upload`,
 surfaces resolve those capabilities through the domain UI adapter instead of
 branching on artifact names. A kind marked `layout` opens the shared artifact
 layout editor only when the persisted artifact carries editable layout and
-template provenance; source and preview files remain non-editable.
+template provenance; an upload-backed kind supports primary-file replacement,
+while workflow preview files remain read-only.
+Upload creation contracts also declare accepted file types and creator fields.
+The shared artifact creator and detail editor consume that contract, so adding
+an upload-backed kind does not require a relation-, cassette-, or page-specific
+upload implementation.
 `generateAttachment` is a polymorphic command: its process-designer contract is
 one abstract `Attachment source` input with `attachments.generate` capability
 and accepted source types.

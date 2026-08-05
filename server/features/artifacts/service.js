@@ -61,7 +61,7 @@ export async function create(data, userId = 'SYSTEM', userOrg = null, userRole =
   return await getById(raw._id, userId, userOrg, userRole, auth);
 }
 
-export async function createUploaded({ buffer, filename, mimeType, type, lineage, metadata = {}, relations = {}, provenance = {} } = {}, auth = {}) {
+export async function createUploaded({ buffer, filename, name, mimeType, type, lineage, metadata = {}, relations = {}, provenance = {} } = {}, auth = {}) {
   if (!buffer?.length) throw createError({ statusCode: 400, message: 'Artifact file is required' });
   const bucketName = bucketNameForType(type);
   const stored = await filesService.uploadFile(buffer, filename || 'upload', {
@@ -71,7 +71,7 @@ export async function createUploaded({ buffer, filename, mimeType, type, lineage
   }, bucketName);
   try {
     return await create({
-      name: filename || 'Upload',
+      name: name || filename || 'Upload',
       type,
       fileId: stored.id,
       mimeType,
@@ -118,6 +118,44 @@ export async function createRendered({ buffer, filename, mimeType, type, lineage
     return new Artifact(updated).toJSON();
   } catch (error) {
     if (artifact?._id) await repository.deleteById(artifact._id).catch(() => {});
+    await filesService.deleteFile(stored.id, bucketName).catch(() => {});
+    throw error;
+  }
+}
+
+export async function updateDetails(id, { name, metadata } = {}, auth = {}) {
+  const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
+  assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
+  return await processUpdate(id, {
+    'identity.name': String(name || artifact.identity?.name || '').trim(),
+    'data.metadata': metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {}
+  }, auth);
+}
+
+export async function replaceUploadedFile(id, { buffer, filename, mimeType } = {}, auth = {}) {
+  if (!buffer?.length) throw createError({ statusCode: 400, message: 'Artifact file is required' });
+  const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
+  assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
+  const type = artifact.data?.type;
+  const bucketName = bucketNameForType(type);
+  const stored = await filesService.uploadFile(buffer, filename || artifact.identity?.name || 'upload', {
+    userId: auth.userId,
+    organizationId: auth.organizationId,
+    artifactType: type
+  }, bucketName);
+  try {
+    const old = artifact.attachments?.primary;
+    const updated = await repository.updateById(id, {
+      attachments: {
+        ...(artifact.attachments || {}),
+        primary: createArtifactAttachment(type, stored.id, filename || artifact.identity?.name, mimeType, bucketName)
+      },
+      updatedAt: new Date()
+    });
+    if (!updated) throw createError({ statusCode: 404, message: 'Artifact not found' });
+    if (old?.fileId) await filesService.deleteFile(old.fileId, old.metadata?.bucketName || bucketName).catch(() => {});
+    return new Artifact(updated).toJSON();
+  } catch (error) {
     await filesService.deleteFile(stored.id, bucketName).catch(() => {});
     throw error;
   }

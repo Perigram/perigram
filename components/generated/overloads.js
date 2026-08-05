@@ -2,6 +2,7 @@ import GeneratedProjectWorkspace from '~/components/generated/GeneratedProjectWo
 import GeneratedQueueDetail from '~/components/generated/GeneratedQueueDetail.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
+import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
 
 export const generatedScreenOverloads = [
   {
@@ -12,6 +13,11 @@ export const generatedScreenOverloads = [
 ];
 
 export const generatedEntityDetailOverloads = [
+  {
+    entityType: 'artifact',
+    component: ArtifactDetail,
+    props: ({ entity }) => ({ artifact: entity })
+  },
   {
     entityType: 'cassette',
     component: GeneratedCassetteDesignerWorkspacePage,

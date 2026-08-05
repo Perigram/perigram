@@ -381,10 +381,15 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       key: entry.key,
       targetType: entry.entityType,
       cardinality: entry.cardinality || 'one',
-      ...(entry.entityType === 'artifact' && entry.attachmentKinds?.length ? {
+      ...(entry.entityType === 'artifact' ? {
         creator: {
           entityType: 'artifact',
-          attachmentKinds: (entry.attachmentKinds || []).map(kind => ({
+          attachmentKinds: (entry.attachmentKinds?.length
+            ? entry.attachmentKinds
+            : Object.values(domain.attachmentKinds || {})
+              .filter(definition => definition.creation?.mode === 'upload')
+              .map(definition => definition.kind || definition.id)
+          ).map(kind => ({
             kind,
             creation: domain.attachmentKinds?.[kind]?.creation || { mode: 'workflow' }
           }))

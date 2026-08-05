@@ -8,6 +8,7 @@ reports.
 | File | Purpose |
 |---|---|
 | `ArtifactCard.vue` | Entity card wrapper with preview/select click behavior and source run relation. |
+| `ArtifactDetail.vue` | Registered generated-detail editor for name, kind-declared data/file operations, and layout-backed artifacts. |
 
 ## Contract
 
@@ -20,6 +21,10 @@ reports.
   currently part of the compact trace contract.
 - The card may own a custom preview click action and disables `EntityCard`
   expansion for that action.
+- Generated artifact detail files resolve through the overload registry.
+  Upload-backed kinds can replace their primary file, writable users can edit
+  identity name and `data.metadata`, and kinds declaring `editor.mode: layout`
+  use the shared `ArtifactLayoutEditor` and revision-backed layout API.
 
 ## Related
 

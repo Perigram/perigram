@@ -123,8 +123,8 @@ remaining inspector surfaces are:
   values without requiring a block-composer node. Wired dynamic sources remain
   lazy and suppress the corresponding manual prompt;
 - artifact Relations entries always show the upload-backed attachment kinds
-  allowed by that Link action. Selecting one or more kinds directly enables
-  creation; there is no separate hidden toggle. These options come from the
+  allowed by that Link action. An empty selection allows every upload-backed
+  domain kind, while an explicit selection narrows the creator. These options come from the
   domain attachment-kind creation contract;
 - service nodes own command selection, run/view service identities, prepaid
   token billing metadata, and command-derived inputs/outputs;
