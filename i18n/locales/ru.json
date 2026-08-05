@@ -2772,6 +2772,7 @@
     "attachments": "Вложения",
     "addAttachment": "Добавить вложение",
     "attachmentKind": "Тип вложения",
+    "allowCreateRelatedEntity": "Разрешить создание связанной сущности",
     "required": "Обязательно",
     "snapshots": "Снимки",
     "addSnapshot": "Добавить снимок",
@@ -2823,7 +2824,9 @@
     "noScreens": "Экраны процесса недоступны",
     "actionCompleted": "Действие выполнено",
     "actionFailed": "Не удалось выполнить действие",
-    "exactEntityId": "Точный ID сущности",
+      "exactEntityId": "Точный ID сущности",
+      "createArtifact": "Загрузить артефакт",
+      "selectArtifactFile": "Выбрать файл",
     "noOptions": "Нет доступных вариантов для {field}"
   }
 }

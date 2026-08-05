@@ -2,6 +2,7 @@ import { createError, defineEventHandler, getQuery, readMultipartFormData } from
 import { requireAuth } from '~/server/utils/permissions.js';
 import { serializeForAccess, serializeManyForAccess } from '~/server/utils/entity-redaction.js';
 import { service } from '~/server/features/artifacts';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
 
 export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);
@@ -16,6 +17,10 @@ export default defineEventHandler(async (event) => {
   if (!file?.data?.length) throw createError({ statusCode: 400, message: 'Artifact file is required' });
   const value = name => form.find(field => field.name === name)?.data?.toString();
   const type = value('type') || inferArtifactType(file.type, file.filename);
+  const attachmentKind = getAppRegistry().getAttachmentKindDefinition(type);
+  if (!attachmentKind || attachmentKind.creation?.mode !== 'upload') {
+    throw createError({ statusCode: 400, message: `Artifact kind ${type} is not upload-backed` });
+  }
   const lineage = parseObjectField(value('lineage'), 'lineage');
   const metadata = parseObjectField(value('metadata'), 'metadata');
   const artifact = await service.createUploaded({

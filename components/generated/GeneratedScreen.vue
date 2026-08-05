@@ -170,19 +170,33 @@
             rows="3"
             auto-resize
           />
-          <Select
-            v-else-if="field.type === 'entity' && promptOptions[field.id]?.length"
-            v-model="promptValues[field.id]"
-            :options="promptOptions[field.id] || []"
-            option-label="label"
-            option-value="value"
-            :entity-type="field.entityType || field.accepts?.[0] || ''"
-          />
-          <InputText
-            v-else-if="field.type === 'entity'"
-            v-model="promptValues[field.id]"
-            :placeholder="$t('generatedScreen.exactEntityId')"
-          />
+          <div v-else-if="field.type === 'entity'" class="flex items-center gap-2">
+            <Select
+              v-if="promptOptions[field.id]?.length"
+              v-model="promptValues[field.id]"
+              :options="promptOptions[field.id] || []"
+              option-label="label"
+              option-value="value"
+              :entity-type="field.entityType || field.accepts?.[0] || ''"
+              class="min-w-0 flex-1"
+            />
+            <InputText
+              v-else
+              v-model="promptValues[field.id]"
+              :placeholder="$t('generatedScreen.exactEntityId')"
+              class="min-w-0 flex-1"
+            />
+            <Button
+              v-if="hasUploadCreator(field)"
+              icon="pi pi-upload"
+              :aria-label="$t('generatedScreen.createArtifact')"
+              :title="$t('generatedScreen.createArtifact')"
+              size="small"
+              severity="secondary"
+              outlined
+              @click="openArtifactCreator(field)"
+            />
+          </div>
           <Select
             v-else-if="field.type === 'enum'"
             v-model="promptValues[field.id]"
@@ -206,11 +220,19 @@
         </label>
       </div>
     </StandardDialog>
+    <GeneratedArtifactCreator
+      v-if="artifactCreatorField"
+      v-model="artifactCreatorVisible"
+      :creator="artifactCreatorField.creator"
+      :lineage="artifactCreatorLineage"
+      @created="selectCreatedArtifact"
+    />
   </StandardPage>
 </template>
 
 <script setup>
 import { computed, reactive, ref, toRef, watch } from 'vue';
+import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Select from '~/components/shared/EntitySelect.vue';
@@ -225,6 +247,7 @@ import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue'
 import GeneratedOrganizationAccount from '~/components/generated/GeneratedOrganizationAccount.vue';
 import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
+import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue';
 import { entityIdentifier, generatedActionRequiresParent, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
@@ -249,6 +272,8 @@ const pendingEntity = ref(null);
 const actionError = ref('');
 const promptValues = reactive({});
 const promptOptions = reactive({});
+const artifactCreatorVisible = ref(false);
+const artifactCreatorField = ref(null);
 
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
@@ -322,6 +347,38 @@ function closeInputDialog() {
   inputDialogVisible.value = false;
   pendingAction.value = null;
   pendingEntity.value = null;
+}
+
+function hasUploadCreator(field = {}) {
+  return field.creator?.entityType === 'artifact'
+    && field.creator.attachmentKinds?.some(item => item.creation?.mode === 'upload');
+}
+
+function openArtifactCreator(field = {}) {
+  artifactCreatorField.value = field;
+  artifactCreatorVisible.value = true;
+}
+
+const artifactCreatorLineage = computed(() => {
+  const owner = pendingEntity.value?.entity || {};
+  const ownerType = pendingEntity.value?.context?.entityType || pendingAction.value?.entityType || '';
+  const ownerId = entityIdentifier(owner);
+  return {
+    ...(owner.lineage || {}),
+    ...(ownerType && ownerId ? { [`${camelEntityType(ownerType)}Id`]: ownerId } : {})
+  };
+});
+
+function selectCreatedArtifact(artifact = {}) {
+  const field = artifactCreatorField.value;
+  const id = entityIdentifier(artifact);
+  if (!field || !id) return;
+  promptOptions[field.id] = [...(promptOptions[field.id] || []), entityOption(artifact, 'artifact')];
+  promptValues[field.id] = id;
+}
+
+function camelEntityType(entityType = '') {
+  return String(entityType).replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
 }
 
 async function submitPromptedAction() {
