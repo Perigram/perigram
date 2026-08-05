@@ -165,13 +165,14 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const libraryId = data.libraryId || data.data?.libraryId;
   if (libraryId) lineage.libraryId = toFlexibleId(libraryId);
 
-  if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassettes', 'write')) {
+  const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Template created' });
+
+  if (userPermissions && !hasLineagePermission(userPermissions, { lineage, status: origin }, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }
 
   const name = data.name || data.identity?.name || 'New Template';
   const slug = data.slug || data.identity?.slug || `${standardSlugify(name, { keepCase: false })}-${generateRandomString(6)}`;
-  const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Template created' });
   const suppliedDefinition = data.definition || data.data?.definition;
   if (suppliedDefinition && !isOccsDocument(suppliedDefinition)) {
     throw createError({ statusCode: 400, message: 'Cassette definition must be a valid OCCS document' });
