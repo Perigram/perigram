@@ -274,6 +274,46 @@ describe('process v3 validation', () => {
     });
   });
 
+  it('resolves a connected entity output through the graph port contract', () => {
+    const queueDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        queue: [{
+          path: 'lineage.projectId',
+          block: 'lineage',
+          type: { base: 'entityRef', shape: 'item', entityType: 'project' },
+          constructible: true
+        }]
+      },
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: { ...domain.blockSchemas, lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }] }
+    };
+    const process = entityBlockProcess('project');
+    process.processNodes.source = {
+      id: 'source',
+      kind: 'source.literalItem',
+      type: { base: 'entityRef', shape: 'item', entityType: 'project' },
+      value: { type: 'project', id: 'project-1' }
+    };
+    process.graph.nodes.push({ id: 'source', type: 'processNode', data: { refId: 'source' } });
+    process.graph.edges.push({
+      id: 'source-compose',
+      source: 'source',
+      sourceHandle: 'data:value',
+      target: 'compose',
+      targetHandle: 'data:entry:project',
+      role: 'data'
+    });
+    process.processNodes.compose.entries[0] = { id: 'project', key: '', entityType: '' };
+    delete process.processNodes.compose.inputDefaults;
+
+    expect(() => normalizeProcessDefinition(process, queueDomain)).not.toThrow();
+    expect(normalizeProcessDefinition(process, queueDomain).processNodes.compose.entries[0])
+      .toMatchObject({ key: 'projectId', entityType: 'project' });
+  });
+
   it('rejects service-owned identity uid in block authoring', () => {
     const result = validateProcessDefinition(definition({
       kind: 'record.composeBlock',

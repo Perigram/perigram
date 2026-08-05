@@ -159,7 +159,9 @@ effect kind and is shared by designer synchronization and definition
 normalization. Parentage remains a field of a composed Lineage block, not an
 extra Create socket. Once resolved, the compiler recognizes one lineage entity
 reference as contextual parent scope while the effect boundary persists its
-normalized id. Derived
+normalized id. Fixed-field and open-entry composers contribute to that same
+schema set, so contextual action placement does not depend on how the block was
+authored. Derived
 entities are not selectable in generic Create. Domain constructors project as
 fixed producer-service effects; for example,
 `bakeCassetteDesignFromTemplate` delegates to the cassette template
