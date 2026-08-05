@@ -53,7 +53,7 @@ export function resolveQueueDesignProducers({
       }
       if (producer.kind === 'entitySource') {
         const sourceFeature = featureForEntity(domain, producer.source?.entityType || producer.output?.entityType);
-        return canReadFeature(hasFeatureAccess, sourceFeature)
+        return canEditQueue && canReadFeature(hasFeatureAccess, sourceFeature)
           ? { ...producer, sourceKind: 'domainProducer' }
           : null;
       }
@@ -89,4 +89,17 @@ export function resolveQueueDesignProducers({
     : [];
 
   return [...resolved, ...extraActions];
+}
+
+export function entitySourceProducerFields(producer = {}) {
+  if (producer.kind !== 'entitySource' || !producer.source?.entityType) return [];
+  return [{
+    id: 'entityId',
+    path: 'entityId',
+    label: producer.label || producer.source.entityType,
+    type: 'entity',
+    entityType: producer.source.entityType,
+    required: true,
+    prompt: true
+  }];
 }
