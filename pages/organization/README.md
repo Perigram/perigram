@@ -206,7 +206,11 @@ vocabulary exported by `@cutkit/core`. The selected domain entity narrows which
 blocks exist, while core block entries plus domain field access/field groups
 drive the editable field choices. Typed construction modes expose their
 mode-specific inputs on create nodes, so derived constructors do not render an
-empty generic input contract. The mode selector is shown only when the selected
+empty generic input contract. Typed constructors augment, rather than replace,
+the canonical constructible block sockets and the initial-status socket. A
+connected block is applied after the constructor creates its complete derived
+entity, preserving constructor-owned geometry and provenance unless that block
+is explicitly authored. The mode selector is shown only when the selected
 derived entity genuinely has multiple construction strategies; ordinary entity
 creation, including cassette creation, exposes blocks without a meaningless
 single-option selector.

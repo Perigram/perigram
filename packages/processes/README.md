@@ -526,6 +526,10 @@ does not attach them to unrelated parent `entityDetail` screens. For example, a
 cassette-to-create-cassette-design graph compiles cassette design creation as a
 target-list action with a `templateId` constructor input, not as a cassette
 detail action.
+Typed create nodes expose their mode-specific constructor inputs together with
+canonical constructible block inputs and `status.state.primary`. Canonical
+blocks do not change the selected typed construction mode; they augment the
+entity produced by that constructor.
 Incoming graph parent edges are validated against lineage contracts. If an edge
 connects an unsupported parent, such as `queue -> create cassette_design`, the
 compiler ignores that parent edge and compiles the action as an unparented

@@ -170,6 +170,12 @@ document;
 template id or resolves the default construction-ready template visible to the
 caller, accepts concrete parameters and a name, creates a real `cassette_design`
 with geometry/editor provenance, then applies the process target status.
+In v3 execution, typed constructor inputs and connected canonical blocks are
+collected separately. The constructor creates the complete derived entity
+first, then the entity feature's explicit `processUpdate()` applies authored
+blocks as merges over the created DTO. This keeps generated geometry and
+provenance intact while allowing the same identity, relations, attachments,
+specs, and data composition available to ordinary create nodes.
 The typed cassette-design constructor is sourced from a cassette template, not
 from a queue. A queue consumes baked designs through its declared
 `relations.cassettes` relationship. A producer may request `linkCreatedTo` with
