@@ -11,7 +11,6 @@ import * as repository from './repository.js';
 import * as organizationsRepository from '../organizations/repository.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
 import { applyOwnerPermissionsToAuth } from '../users/organization-owner.js';
-import { normalizeLegacyProcessActions } from './action-migration.js';
 
 export async function getActiveProcessForOrganization(organizationId) {
   if (!organizationId) return null;
@@ -22,18 +21,12 @@ export async function getActiveProcessForOrganization(organizationId) {
 export async function getActiveCompiledProcess(organizationId) {
   const active = await getActiveProcessForOrganization(organizationId);
   const organization = organizationId ? await organizationsRepository.findById(organizationId) : null;
-  return compiledProcessRuntime(active?.data || null, organization?.data?.roles || {});
+  return compileActiveProcessRuntime(active?.data || null, organization?.data?.roles || {});
 }
 
-function compiledProcessRuntime(data = null, roles = {}) {
-  if (!data?.compiled) return null;
-  if (!compiledRuntimeMissingActionContracts(data.compiled)) return data.compiled;
-  const migrated = normalizeLegacyProcessActions({ ...data, compiled: null }).data;
-  return compileProcessDefinition({ ...migrated, compiled: null }, cncDomain, { roles });
-}
-
-function compiledRuntimeMissingActionContracts(compiled = {}) {
-  return Object.values(compiled.actions || {}).some(action => !action.contracts);
+export function compileActiveProcessRuntime(data = null, roles = {}) {
+  if (!data) return null;
+  return compileProcessDefinition({ ...data, compiled: null }, cncDomain, { roles });
 }
 
 export async function resolveProcessAuth(auth = {}) {

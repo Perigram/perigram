@@ -187,12 +187,11 @@ Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain only their selected entity or
 registered page and pane-local controls. Explorer starts as a compact 15% rail;
-project mutation actions, including relation Link/Unlink actions, remain in the
-strip even when a child region references the same compiled action. Only
-project-bound child-create actions move to collection context.
-Process-composed relations compile those Link/Unlink actions with a typed
-entity selector, so the strip can execute the relation without page-specific
-relationship controls.
+project mutation actions, including relation Link, remain in the strip even
+when a child region references the same compiled action. Unlink is not an owner
+strip command: each linked `EntityInlineRef` receives the matching contextual
+Unlink operation in its own actions, with both owner and target already bound.
+Only project-bound child-create actions move to collection context.
 its tree starts directly below the workspace action strip without a redundant
 Explorer header. Collapse hides that mounted panel and its gutter so reopening
 restores the 15/85 split instead of inserting a new equally sized panel. The

@@ -63,7 +63,8 @@ const props = defineProps({
   fields: { type: Array, default: () => ['serial'] },
   allowDetailRoute: { type: Boolean, default: true },
   interactive: { type: Boolean, default: true },
-  variant: { type: String, default: 'inline' }
+  variant: { type: String, default: 'inline' },
+  contextActionEntries: { type: Array, default: () => [] }
 });
 
 const loaded = ref(null);
@@ -158,7 +159,7 @@ const popupDetailActionIds = computed(() => generatedDetailActionIds({
 const hasGeneratedActionExecutor = computed(() => typeof unref(generatedExecuteAction) === 'function');
 const popupActions = computed(() => {
   if (!hasGeneratedActionExecutor.value) return [];
-  return resolveGeneratedEntityActions({
+  const standard = resolveGeneratedEntityActions({
     actionIds: popupDetailActionIds.value,
     actionManifest: authStore.actionManifest,
     entity: resolved.value,
@@ -166,6 +167,11 @@ const popupActions = computed(() => {
   })
     .filter(isGeneratedSurfaceAction)
     .filter(action => !isConsumedDetailAction(action));
+  const contextual = props.contextActionEntries
+    .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
+    .filter(Boolean);
+  return Array.from(new Map([...standard, ...contextual]
+    .map(action => [action.actionId, action])).values());
 });
 const popupActionIds = computed(() => popupActions.value.map(action => action.actionId));
 const popupCanDelete = computed(() => canDeleteGeneratedEntity({
@@ -303,7 +309,8 @@ function openDetail(event) {
 function executePopupAction(action) {
   const executor = unref(generatedExecuteAction);
   if (typeof executor !== 'function' || !resolved.value) return;
-  executor(action, resolved.value);
+  const contextual = props.contextActionEntries.find(entry => entry.actionId === action.actionId);
+  executor(action, contextual?.entity || resolved.value, contextual?.context || {});
 }
 
 function closeCompactPopup() {

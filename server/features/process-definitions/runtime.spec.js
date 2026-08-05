@@ -13,29 +13,18 @@ describe('process runtime auth hydration', () => {
   it('combines the active process role contract with the organization assignment', async () => {
     repository.findActiveByOrganization.mockResolvedValue({
       data: {
-        compiled: {
-          schemaVersion: 1,
-          workflows: {},
-          fieldPolicies: {},
-          actions: {},
-          roles: {
-            role_operator: {
-              id: 'role_operator',
-              label: 'Operator',
-              grants: [{ feature: 'projects', level: 'read' }],
-              actions: []
-            }
-          },
-          screens: {
-            projects: {
-              id: 'projects',
-              screenKey: 'projects',
-              template: 'entityList',
-              route: '/screens/projects',
-              roleIds: ['role_operator'],
-              required: { feature: 'projects', level: 'read' },
-              sources: [{ id: 'projects', entityType: 'project', mode: 'list' }]
-            }
+        roleGrants: {
+          role_operator: [{ feature: 'projects', level: 'read' }]
+        },
+        screens: {
+          projects: {
+            id: 'projects',
+            screenKey: 'projects',
+            template: 'entityList',
+            route: '/screens/projects',
+            roleIds: ['role_operator'],
+            required: { feature: 'projects', level: 'read' },
+            sources: [{ id: 'projects', entityType: 'project', mode: 'list' }]
           }
         }
       }
@@ -59,7 +48,7 @@ describe('process runtime auth hydration', () => {
   });
 
   it('does not grant process access without an organization assignment', async () => {
-    repository.findActiveByOrganization.mockResolvedValue({ data: { compiled: { schemaVersion: 1, workflows: {}, fieldPolicies: {}, actions: {}, roles: {}, screens: {} } } });
+    repository.findActiveByOrganization.mockResolvedValue({ data: {} });
     organizationsRepository.findById.mockResolvedValue({ data: { roles: {}, roleAssignments: {} } });
     const auth = await resolveProcessAuth({ userId: 'user_1', organizationId: 'org_1', memberships: [{ organizationId: 'org_1', status: 'active', permissions: {} }] });
     expect(auth.roleAssignments.roleIds).toEqual([]);

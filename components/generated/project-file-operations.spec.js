@@ -11,6 +11,7 @@ const cassetteDesignerSource = readFileSync(new URL('../CassetteDesignerV2.vue',
 const queueEditorSource = readFileSync(new URL('../QueueEditor.vue', import.meta.url), 'utf8');
 const queueEntrySource = readFileSync(new URL('../entities/Queue/QueueEntryCard.vue', import.meta.url), 'utf8');
 const responsiveGridSource = readFileSync(new URL('../shared/ResponsiveGrid.vue', import.meta.url), 'utf8');
+const relationsBlockSource = readFileSync(new URL('../shared/EntityRelationsBlock.vue', import.meta.url), 'utf8');
 
 describe('project file operations and queue pane density', () => {
   it('renders compiled project actions in the workspace strip and operational editors as registered pages', () => {
@@ -31,6 +32,9 @@ describe('project file operations and queue pane density', () => {
     expect(cassetteDesignerPageSource).toContain("pageId: 'cassette-designer'");
     expect(cassetteDesignerPageSource).not.toContain('/api/');
     expect(cassetteDesignerSource).toContain("embedded ? 'h-full'");
+    expect(cassetteDesignerSource).toContain("'/api/cassettes'");
+    expect(cassetteDesignerSource).not.toContain("'/api/commands/saveCassetteTemplate/run'");
+    expect(relationsBlockSource).toContain(':context-action-entries="unlinkEntries(relation, item)"');
     expect(entityFileSource).not.toContain('GeneratedProjectFileHome');
   });
 

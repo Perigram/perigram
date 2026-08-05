@@ -43,6 +43,7 @@ import { hasPermissionGrant, normalizePermissionGrants } from '#shared/access-co
 import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
+import { compileActiveProcessRuntime } from './runtime.js';
 
 export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
@@ -342,7 +343,9 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
 
   const process = new ProcessDefinition(raw);
-  const action = process.data.compiled?.actions?.[actionId] || process.data.actions?.[actionId];
+  const organization = await organizationsRepository.findById(organizationId);
+  const compiled = compileActiveProcessRuntime(process.data, organization?.data?.roles || {});
+  const action = compiled?.actions?.[actionId];
   if (!action) throw createError({ statusCode: 404, message: 'Action not found in active process' });
   assertCompiledActionAvailable(actionId, auth);
   if (action.relationMutation) {

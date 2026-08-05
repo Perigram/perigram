@@ -52,4 +52,19 @@ describe('project context actions', () => {
       context: { parentEntityId: 'project-1' }
     }]);
   });
+
+  it('keeps unlink out of the owner strip', () => {
+    const entries = projectContextActionEntries({
+      project,
+      screenActionIds: ['unlink_library'],
+      actionManifest: [{
+        actionId: 'unlink_library',
+        actionKind: 'updateEntity',
+        entityType: 'project',
+        relationMutation: { operation: 'unlink', key: 'library', targetType: 'library' }
+      }]
+    });
+
+    expect(entries).toEqual([]);
+  });
 });

@@ -143,10 +143,11 @@ effects compile into the normal generated action manifest; Relations data
 connections without an effect remain non-executable dataflow.
 Compiled process-relation actions execute directly at the active-definition
 boundary, including for dataflow-v3 definitions: Link merges the selected typed
-reference according to relation cardinality, Unlink removes that exact
-reference, and persistence still delegates to the owner entity's
-`processUpdate` service. The process relation contract is the authority; it
-does not require a duplicate hardcoded relation in the CNC domain registry.
+reference according to relation cardinality, while contextual Unlink removes
+the exact reference supplied by the linked entity row. Persistence still
+delegates to the owner entity's `processUpdate` service. Auth hydration and
+execution resolve actions from the same freshly compiled canonical graph; the
+stored activation snapshot is not a second executable action source.
 Parent-scoped create actions also pass declared containment lineage and pinned
 parent revision provenance in the initial create payload. The owning feature
 service must persist that context during create; process definitions do not
@@ -272,21 +273,7 @@ returns receiver lifecycle metadata for the target organization to interpret.
 Inbound sockets are receiver contracts in the active process graph and cannot
 be used by the outbound projection API.
 
-Auth hydration returns the compiled process screen manifest as-is. Generated
-process `home` screens may be synthesized from inferred `auto_*` list screens,
-so stored process definitions should still be recompiled with
-`server/scripts/migrate-process-compiled-runtime.js` whenever the compiler
-changes that contract.
-When an active process still carries a stale compiled runtime that predates
-action entity contracts, auth hydration recompiles the active process
-definition in memory from its semantic source before returning role action
-assignments. If that semantic source still uses legacy `changeStatus` action
-kinds, hydration applies the feature-local in-memory `updateEntity`
-normalization before recompiling. The durable cleanup script reuses that pure
-normalizer and adds database persistence/recompile behavior; runtime modules
-must not import `server/scripts/*` because Nitro dev output preserves script
-relative package imports from `.nuxt/dev`. This preserves the strict current
-`contracts.inputs` / `contracts.outputs` protocol for generated workspaces
-such as queue cassette producers without adding UI fallbacks for older output
-shapes. The migration scripts remain the durable cleanup path for stored
-process data.
+Auth hydration compiles the current semantic process graph before resolving
+screens, actions, workflows, and grants. Manual action execution uses that same
+compiler path. The stored compiled value is an activation snapshot only; it is
+never preferred over the canonical graph at either runtime boundary.
