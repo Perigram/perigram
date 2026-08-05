@@ -3089,7 +3089,6 @@ function applyInferredProcessNodeInputs(record = {}, node = {}) {
       if (!binding.valid) continue;
       entry.entityType = binding.entityType;
       entry.cardinality = binding.cardinality;
-      entry.inputCardinality = binding.sourceCardinality;
       entry.key = binding.path ? binding.path.slice(`${record.block}.`.length) : '';
     }
   }

@@ -173,17 +173,17 @@ describe('process v3 data execution', () => {
     }]);
   });
 
-  it('wraps a singleton entity reference for a many relation entry', async () => {
+  it('composes a socket-derived entity relation', async () => {
     const composed = await executeProcessDataNode({
       kind: 'record.composeBlock',
       block: 'relations',
       compositionMode: 'relations',
-      entries: [{ id: 'library', key: 'cassetteLibraries', entityType: 'library', cardinality: 'many', inputCardinality: 'one' }]
+      entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one' }]
     }, {
       'entry:library': createDataPacket({ type: 'library', id: 'library-1' })
     });
     expect(composed.branches[0].items).toEqual([{
-      cassetteLibraries: [{ type: 'library', id: 'library-1' }]
+      library: { type: 'library', id: 'library-1' }
     }]);
   });
 

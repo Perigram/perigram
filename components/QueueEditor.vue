@@ -417,8 +417,7 @@ import { currentQueueRun } from '~/utils/queue-runs.js';
 import { queueEntryParameterNames } from '~/utils/queue-entry-parameters.js';
 import {
     buildProducerActionRequest,
-    producerFieldsForAction,
-    templatesAvailableToProject
+    producerFieldsForAction
 } from '~/utils/queue-producers.js';
 import { resolveQueueDesignProducers } from '~/utils/queue-design-producers.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
@@ -610,7 +609,7 @@ function availableTemplateEntities() {
             return libraryId?.toString() === selectedLibraryId.toString();
         });
     }
-    return templatesAvailableToProject(cassettes.value, project.value?.relations?.cassetteLibraries || []);
+    return cassettes.value;
 }
 
 async function loadTemplatesForSelectedLibrary() {

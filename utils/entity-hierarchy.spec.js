@@ -25,7 +25,7 @@ describe('entity containment hierarchy', () => {
   it('keeps unrelated entity relations out of ancestry and root filtering', () => {
     const project = {
       lineage: { organizationId: 'org-1' },
-      relations: { cassetteLibraries: [{ type: 'library', id: 'library-1' }] }
+      relations: { source: { type: 'artifact', id: 'artifact-1' } }
     };
     expect(containmentAncestors(project, 'project')).toEqual([
       { type: 'organization', id: 'org-1', lineageKey: 'organizationId' }

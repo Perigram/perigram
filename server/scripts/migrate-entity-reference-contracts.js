@@ -69,34 +69,6 @@ export function migrateLegacyDerivedFrom(design = {}) {
   };
 }
 
-export function migrateLegacyProjectLibraryRelations(project = {}) {
-  const legacyIds = [
-    ...(Array.isArray(project.data?.cassetteLibraryIds) ? project.data.cassetteLibraryIds : []),
-    ...(Array.isArray(project.data?.libraryIds) ? project.data.libraryIds : []),
-    project.data?.cassetteLibraryId,
-    project.data?.libraryId
-  ].filter(Boolean);
-  if (!legacyIds.length) return { changed: false, project };
-  const existing = project.relations?.cassetteLibraries;
-  const refs = [...(Array.isArray(existing) ? existing : [existing].filter(Boolean))];
-  for (const id of legacyIds) refs.push({ type: 'library', id: stringId(id) });
-  const unique = [...new Map(refs.map(ref => [`${ref.type}:${stringId(ref.id)}:${stringId(ref.revisionId)}`, {
-    type: ref.type,
-    id: stringId(ref.id),
-    ...(ref.revisionId ? { revisionId: stringId(ref.revisionId) } : {})
-  }])).values()];
-  const data = { ...(project.data || {}) };
-  for (const key of ['cassetteLibraryIds', 'libraryIds', 'cassetteLibraryId', 'libraryId']) delete data[key];
-  return {
-    changed: true,
-    project: {
-      ...project,
-      data,
-      relations: { ...(project.relations || {}), cassetteLibraries: unique }
-    }
-  };
-}
-
 export function migrateLegacyParentRevision(entity = {}, relation = {}, revision = null) {
   const parentId = entity.lineage?.[relation.lineageKey];
   if (!parentId || entity.provenance?.parent?.source) return { changed: false, entity, unsetKeys: [] };
@@ -184,21 +156,6 @@ async function main() {
     migrateLegacyDerivedFrom,
     result => result.design
   );
-  summary.projects = await migrateCollection(
-    db,
-    'projects',
-    db.collection('projects').find({
-      $or: [
-        { 'data.cassetteLibraryIds': { $exists: true } },
-        { 'data.libraryIds': { $exists: true } },
-        { 'data.cassetteLibraryId': { $exists: true } },
-        { 'data.libraryId': { $exists: true } }
-      ]
-    }),
-    migrateLegacyProjectLibraryRelations,
-    result => result.project
-  );
-
   const entityByType = new Map((cncDomain.entities || []).map(entity => [entity.type, entity]));
   summary.parentRevisions = { scanned: 0, changed: 0, invalid: 0 };
   for (const relation of cncDomain.containment || []) {

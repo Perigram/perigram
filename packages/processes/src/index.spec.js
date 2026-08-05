@@ -341,8 +341,8 @@ describe('@cutkit/processes compiler', () => {
 
     expect(definition.processNodes.relations.entries[0]).toMatchObject({
       entityType: 'library',
-      cardinality: 'many',
-      inputCardinality: 'one'
+      key: 'library',
+      cardinality: 'one'
     });
   });
 

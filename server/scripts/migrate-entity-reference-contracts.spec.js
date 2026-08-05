@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   migrateLegacyDerivedFrom,
   migrateLegacyParentRevision,
-  migrateLegacyProjectLibraryRelations,
   migrateLegacyRevisionData
 } from './migrate-entity-reference-contracts.js';
 
@@ -46,18 +45,6 @@ describe('entity reference contract migration', () => {
 
     expect(result.changed).toBe(false);
     expect(result.invalid).toBe(true);
-  });
-
-  it('moves editable project library ids to non-owning relations', () => {
-    const result = migrateLegacyProjectLibraryRelations({
-      data: { libraryIds: ['l1', 'l2'], name: 'Project' },
-      relations: { cassetteLibraries: [{ type: 'library', id: 'l1' }] }
-    });
-    expect(result.project.data).toEqual({ name: 'Project' });
-    expect(result.project.relations.cassetteLibraries).toEqual([
-      { type: 'library', id: 'l1' },
-      { type: 'library', id: 'l2' }
-    ]);
   });
 
   it('moves an exact immediate-parent revision out of lineage', () => {

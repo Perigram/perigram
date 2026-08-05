@@ -3,7 +3,7 @@ import { entityBindingSourceContract, resolveEntityBinding } from './entity-bind
 
 const fields = [
   { path: 'lineage.projectId', block: 'lineage', type: { base: 'entityRef', entityType: 'project' }, constructible: true },
-  { path: 'relations.libraries', block: 'relations', type: { base: 'array', itemType: { base: 'entityRef', entityType: 'library' } }, constructible: true }
+  { path: 'relations.value', block: 'relations', type: { base: 'json' }, constructible: true }
 ];
 
 describe('entity bindings', () => {
@@ -16,11 +16,9 @@ describe('entity bindings', () => {
     expect(entityBindingSourceContract(source)).toMatchObject({ valid: true, entityType, cardinality });
   });
 
-  it('resolves fields only from the supplied consumer schema', () => {
+  it('resolves lineage fields only from the supplied consumer schema', () => {
     expect(resolveEntityBinding({ source: { kind: 'entity', entityType: 'project' }, fields, block: 'lineage' }))
       .toMatchObject({ path: 'lineage.projectId', entityType: 'project', cardinality: 'one' });
-    expect(resolveEntityBinding({ source: { kind: 'entity_list', entityType: 'library' }, fields, block: 'relations' }))
-      .toMatchObject({ path: 'relations.libraries', entityType: 'library', cardinality: 'many' });
   });
 
   it('does not guess when the consumer schema is ambiguous', () => {
@@ -28,15 +26,24 @@ describe('entity bindings', () => {
     expect(resolveEntityBinding({ source: { kind: 'entity', entityType: 'project' }, fields: ambiguous, block: 'lineage' }).path).toBe('');
   });
 
-  it('binds one entity to the sole matching many relation field', () => {
+  it('derives a relation entry from the source type without a domain relation field', () => {
     expect(resolveEntityBinding({
       source: { kind: 'entity', entityType: 'library' },
       fields,
       block: 'relations'
     })).toMatchObject({
-      path: 'relations.libraries',
+      path: 'relations.library',
       entityType: 'library',
       sourceCardinality: 'one',
+      cardinality: 'one'
+    });
+    expect(resolveEntityBinding({
+      source: { kind: 'entity_list', entityType: 'library' },
+      fields,
+      block: 'relations'
+    })).toMatchObject({
+      path: 'relations.library',
+      entityType: 'library',
       cardinality: 'many'
     });
   });

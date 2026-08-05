@@ -24,6 +24,15 @@ export function resolveEntityBinding({
 } = {}) {
   const contract = entityBindingSourceContract(source, authoredEntityType);
   if (!contract.valid || !contract.entityType) return { ...contract, path: '', matches: [] };
+  if (block === 'relations') {
+    const key = contract.entityType;
+    return {
+      ...contract,
+      sourceCardinality: contract.cardinality,
+      path: `relations.${key}`,
+      matches: [`relations.${key}`]
+    };
+  }
   const typedCandidates = fields.filter(field => {
     if (block && field.block !== block) return false;
     if (access && field[access] === false) return false;

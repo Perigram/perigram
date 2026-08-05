@@ -155,10 +155,7 @@ function writeOpenBlockEntry(block, mode, entry, value) {
   }
   const key = String(entry.key || '').trim();
   if (!key) throw new Error(`Block entry ${entry.id} requires a key`);
-  const normalized = mode === 'relations' && entry.cardinality === 'many' && !Array.isArray(value)
-    ? [value]
-    : value;
-  writePath(block, key, structuredClone(normalized));
+  writePath(block, key, structuredClone(value));
 }
 
 function blockLocalPath(block, path) {

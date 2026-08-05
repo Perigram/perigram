@@ -12,12 +12,6 @@ export const cncContainment = [
 
 export const cncRelations = [
   {
-    ownerType: 'project',
-    key: 'cassetteLibraries',
-    targetType: 'library',
-    cardinality: 'many'
-  },
-  {
     ownerType: 'geometry_capture',
     key: 'sourcePhoto',
     targetType: 'artifact',

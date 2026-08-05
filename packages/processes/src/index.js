@@ -169,7 +169,6 @@ function inferOpenBlockEntityBindings(process = {}, domain = {}) {
         ...entry,
         entityType: binding.entityType,
         cardinality: binding.cardinality,
-        inputCardinality: binding.sourceCardinality,
         key: binding.path.slice(`${composer.block}.`.length)
       };
     });
@@ -2743,12 +2742,14 @@ function validateV3Edges(process, domain) {
         const targetSchemas = entityFieldSchemas(domain, targetRecord.entityType)
           .filter(field => field.block === sourceRecord.block);
         const targetSchema = entityFieldSchema(domain, targetRecord.entityType, path);
+        const openRelationsAccepted = sourceRecord.compositionMode === 'relations'
+          && targetSchemas.some(field => field[requiredAccess] !== false);
         const wholeBlockAccepted = path === sourceRecord.block
           && targetSchemas.some(field => field[requiredAccess] !== false);
-        if (!wholeBlockAccepted && (!targetSchema || targetSchema[requiredAccess] === false)) {
+        if (!openRelationsAccepted && !wholeBlockAccepted && (!targetSchema || targetSchema[requiredAccess] === false)) {
           errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: field is not ${requiredAccess}`);
         }
-        if (sourceRecord.compositionMode && targetSchema) {
+        if (sourceRecord.compositionMode && sourceRecord.compositionMode !== 'relations' && targetSchema) {
           const key = path.slice(sourceRecord.block.length + 1);
           const entry = (sourceRecord.entries || []).find(item => item.key === key);
           const sourceType = openCompositionEntryType(entry, sourceRecord.compositionMode, sourceRecord.compositionValueBase);

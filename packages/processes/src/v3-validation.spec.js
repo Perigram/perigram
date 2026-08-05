@@ -274,6 +274,79 @@ describe('process v3 validation', () => {
     });
   });
 
+  it('accepts socket-derived relations without a target-specific relation field', () => {
+    const relationDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'library', blocks: ['identity', 'relations'] }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        project: [
+          ...domain.fieldSchemas.project,
+          {
+            path: 'relations.value',
+            block: 'relations',
+            type: { base: 'json', shape: 'item' },
+            constructible: true,
+            writable: false
+          }
+        ]
+      },
+      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }]
+      }
+    };
+    const process = {
+      dataflowVersion: 3,
+      processNodes: {
+        library: {
+          id: 'library',
+          kind: 'source.literalItem',
+          type: { base: 'entityRef', shape: 'item', entityType: 'library' },
+          value: { type: 'library', id: 'library-1' }
+        },
+        compose: {
+          id: 'compose',
+          kind: 'record.composeBlock',
+          block: 'relations',
+          compositionMode: 'relations',
+          entries: [{ id: 'library', key: '', entityType: '', cardinality: 'one' }]
+        },
+        create: {
+          id: 'create',
+          kind: 'effect.createEntity',
+          entityType: 'project',
+          blocks: ['relations'],
+          construction: { mode: 'genericCreate' },
+          status: { to: 'NEW' },
+          trigger: { mode: 'manual' }
+        }
+      },
+      graph: {
+        nodes: ['library', 'compose', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'library-compose', source: 'library', sourceHandle: 'data:value', target: 'compose', targetHandle: 'data:entry:library', role: 'data' },
+          { id: 'compose-create', source: 'compose', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:relations', role: 'data' }
+        ]
+      }
+    };
+
+    const result = validateProcessDefinition(process, relationDomain);
+
+    expect(result.definition.processNodes.compose.entries[0]).toMatchObject({
+      key: 'library',
+      entityType: 'library',
+      cardinality: 'one'
+    });
+    expect(result.errors).not.toContain(
+      'Edge compose-create cannot send relations.library to project: composed entry type does not match the entity field'
+    );
+    expect(result.errors).not.toContain(
+      'Edge compose-create cannot send relations.library to project: field is not constructible'
+    );
+  });
+
   it('resolves a connected entity output through the graph port contract', () => {
     const queueDomain = {
       ...domain,

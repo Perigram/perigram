@@ -13,7 +13,7 @@ export const cncEntityFieldAccess = {
   project: {
     feature: 'projects',
     read: [...COMMON_READ_FIELDS, 'data.address', 'data.thumbnailUrl'],
-    write: ['data.metadata', 'data.name', 'relations.cassetteLibraries'],
+    write: ['data.metadata', 'data.name'],
     admin: ['data.*', 'attachments.*']
   },
   queue: {

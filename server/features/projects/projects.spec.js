@@ -90,44 +90,28 @@ describe('Projects & Multi-tenant Ownership', () => {
     expect(list2[0].toJSON().identity.name).toBe('Org 2 Proj');
   });
 
-  it('persists cassette libraries as canonical non-owning relations without changing lineage', async () => {
-    const libraryId = new ObjectId();
-    await db.collection('libraries').insertOne({
-      _id: libraryId,
-      identity: { uid: libraryId.toString(), name: 'Facade library' },
-      lineage: { organizationId: contractor1.organizationId },
-      status: { state: { primary: 'AVAILABLE' } },
-      relations: {},
-      provenance: {},
-      data: {},
-      summary: {}
-    });
-    const permissions = {
-      memberships: [{
-        organizationId: contractor1.organizationId,
-        permissions: { projects: 'admin', libraries: 'read' }
-      }]
-    };
-
+  it('persists generic relations without assigning containment semantics', async () => {
     const project = await projectService.create({
       name: 'Related project',
       relations: {
-        cassetteLibraries: [{ type: 'library', id: libraryId.toString() }]
+        source: { type: 'artifact', id: 'artifact-1' }
       }
-    }, contractor1.userId, contractor1.organizationId, null, permissions);
+    }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
 
     expect(project.toJSON()).toMatchObject({
       lineage: { organizationId: contractor1.organizationId },
       relations: {
-        cassetteLibraries: [{ type: 'library', id: libraryId.toString() }]
+        source: { type: 'artifact', id: 'artifact-1' }
       }
     });
-    expect(project.lineage).not.toHaveProperty('libraryId');
 
     const updated = await projectService.update(project._id, {
-      relations: { cassetteLibraries: [] }
-    }, contractor1.userId, contractor1.organizationId, null, permissions);
-    expect(updated.toJSON().relations).toEqual({});
+      relations: { result: [{ type: 'artifact', id: 'artifact-2' }] }
+    }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    expect(updated.toJSON().relations).toEqual({
+      source: { type: 'artifact', id: 'artifact-1' },
+      result: [{ type: 'artifact', id: 'artifact-2' }]
+    });
   });
 
   it('should deny access to other organization projects', async () => {

@@ -168,24 +168,11 @@ describe('process v3 node catalog', () => {
       kind: 'record.composeBlock',
       block: 'relations',
       compositionMode: 'relations',
-      entries: [{ id: 'libraries', key: 'cassetteLibraries', entityType: 'library', cardinality: 'many' }]
+      entries: [{ id: 'libraries', key: 'library', entityType: 'library', cardinality: 'many' }]
     });
     expect(compose.inputs[0]).toMatchObject({
       id: 'entry:libraries',
       type: { base: 'array', itemType: { base: 'entityRef', entityType: 'library' } }
-    });
-  });
-
-  it('keeps a singleton relation source socket when the target field is many', () => {
-    const compose = resolveCatalogNodePorts({
-      kind: 'record.composeBlock',
-      block: 'relations',
-      compositionMode: 'relations',
-      entries: [{ id: 'library', key: 'cassetteLibraries', entityType: 'library', cardinality: 'many', inputCardinality: 'one' }]
-    });
-    expect(compose.inputs[0]).toMatchObject({
-      id: 'entry:library',
-      type: { base: 'entityRef', entityType: 'library' }
     });
   });
 

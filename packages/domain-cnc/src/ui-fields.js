@@ -4,9 +4,6 @@ export const cncEntityFieldGroups = {
       { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', role: 'childCount', priority: 10 },
       { path: 'summary.queuePreview', i18n: 'project.queues', display: 'entityRefList', entityType: 'queue', replacesCountPath: 'summary.queueCount', priority: 15 },
       { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²', display: 'area', priority: 20 }
-    ],
-    relations: [
-      { path: 'relations.cassetteLibraries', i18n: 'project.cassetteLibraries', display: 'entityRefList', entityType: 'library', priority: 30 }
     ]
   },
   queue: {
