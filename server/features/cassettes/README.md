@@ -156,6 +156,9 @@ delete must pass the full cassette DTO/model to `hasLineagePermission()`, not
 only `cassette.lineage`, because process grants can be scoped by current
 status. A generated cassette designer save for a `CREATED` template therefore
 uses the same status-scoped grant as the detail read.
+Creation evaluates the candidate lineage together with the initial process
+status, so a role granted cassette writes in `NEW` can create or Save As a
+template through the cassette entity endpoint.
 
 ## Related
 - [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.
