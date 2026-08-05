@@ -191,7 +191,9 @@ Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain the canonical entity page for their
 selected entity or a registered workspace page, plus pane-local controls. A
-pane must not substitute a compact summary/detail-body-only surface. Explorer starts as a compact 15% rail;
+pane must not substitute a compact summary/detail-body-only surface. It scopes
+and loads the selected entity's own compiled detail screen so child regions
+remain available inside Project. Explorer starts as a compact 15% rail;
 project mutation actions, including relation Link, remain in the strip even
 when a child region references the same compiled action. Unlink is not an owner
 strip command: each linked `EntityInlineRef` receives the matching contextual
