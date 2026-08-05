@@ -2360,7 +2360,6 @@
       "updateEntity": "Обновить сущность",
       "changeStatus": "Изменить статус",
       "runService": "Запустить сервис",
-      "createDefaultOccsTemplate": "Создать шаблон кассеты",
       "sendEntity": "Отправить сущность",
       "generateAttachment": "Создать вложение",
       "choosePath": "Выбрать путь",

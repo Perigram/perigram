@@ -2360,7 +2360,6 @@
       "updateEntity": "Update entity",
       "changeStatus": "Change status",
       "runService": "Run service",
-      "createDefaultOccsTemplate": "Create cassette template",
       "sendEntity": "Send entity",
       "generateAttachment": "Generate attachment",
       "choosePath": "Choose path",

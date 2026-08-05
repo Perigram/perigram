@@ -273,7 +273,7 @@
                     <label>{{ $t('processDesigner.projectedFields') }}</label>
                     <MultiSelect v-model="selectedAction.projection.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
                   </div>
-                  <div v-if="selectedAction.actionKind === 'createEntity'" class="flex flex-col gap-1">
+                  <div v-if="selectedAction.actionKind === 'createEntity' && constructionModeOptions(selectedAction.entityType).length > 1" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.constructionMode') }}</label>
                     <Select v-model="selectedAction.construction.mode" :options="constructionModeOptions(selectedAction.entityType)" option-label="label" option-value="value" @change="syncSelectedAction" />
                   </div>
@@ -487,7 +487,7 @@
                     <label>{{ $t('processDesigner.service') }}</label>
                     <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
                   </div>
-                  <div v-if="selectedProcessNode.kind === 'effect.createEntity'" class="flex flex-col gap-1">
+                  <div v-if="selectedProcessNode.kind === 'effect.createEntity' && constructionModeOptions(selectedProcessNode.entityType).length > 1" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.constructionMode') }}</label>
                     <Select v-model="selectedProcessNode.construction.mode" :options="constructionModeOptions(selectedProcessNode.entityType)" option-label="label" option-value="value" @change="syncNodeData" />
                   </div>

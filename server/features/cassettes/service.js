@@ -169,19 +169,22 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }
 
-  const slug = data.slug || `${standardSlugify(data.name || 'template', { keepCase: false })}-${generateRandomString(6)}`;
+  const name = data.name || data.identity?.name || 'New Template';
+  const slug = data.slug || data.identity?.slug || `${standardSlugify(name, { keepCase: false })}-${generateRandomString(6)}`;
   const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Template created' });
+  const suppliedDefinition = data.definition || data.data?.definition;
+  const definition = suppliedDefinition || createDefaultOccsCassetteTemplateDefinition();
 
   const cassetteData = {
-    identity: createIdentity(data.name || 'New Template', slug),
+    identity: createIdentity(name, slug),
     origin,
     status: origin,
     lineage,
     provenance: data.provenance || {},
     data: createData({
         type: data.type || 'PARAMETRIC', // PARAMETRIC | STANDARD
-        definition: data.definition || data.data || null,
-        parameters: data.parameters || []
+        definition,
+        parameters: data.parameters || data.data?.parameters || Object.keys(definition.parameters || {})
     })
   };
 
@@ -189,20 +192,6 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const { cassette: updated } = await ensureGeometryRevision(cassette, userId, 'template-created');
   await syncParentSummary(updated);
   return toDTO(updated);
-}
-
-export async function createDefaultOccsTemplate(data = {}, userId, userOrg, userRole, userPermissions) {
-  const name = data.name || data.identity?.name;
-  if (!name) throw createError({ statusCode: 400, message: 'Cassette template name is required' });
-  const definition = createDefaultOccsCassetteTemplateDefinition();
-  return await create({
-    name,
-    libraryId: data.libraryId || data.data?.libraryId,
-    provenance: data.provenance || {},
-    type: 'PARAMETRIC',
-    definition,
-    parameters: Object.keys(definition.parameters || {})
-  }, userId, userOrg, userRole, userPermissions);
 }
 
 export async function importFromArtifact(artifactId, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {

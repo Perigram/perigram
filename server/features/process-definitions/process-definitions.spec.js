@@ -28,7 +28,6 @@ vi.mock('~/server/features/organizations/repository.js', () => ({
 vi.mock('~/server/features/cassettes/service.js', async (importOriginal) => ({
   ...(await importOriginal()),
   createDesignFromTemplate: vi.fn(),
-  createDefaultOccsTemplate: vi.fn(),
   findDefaultConstructableTemplate: vi.fn()
 }));
 
@@ -1380,8 +1379,8 @@ describe('process definitions access fallback', () => {
     );
   });
 
-  it('creates cassette templates through the typed OCCS template constructor', async () => {
-    cassetteService.createDefaultOccsTemplate.mockResolvedValueOnce({
+  it('creates cassettes through the ordinary entity service contract', async () => {
+    const create = vi.fn().mockResolvedValueOnce({
       _id: 'template-created',
       identity: { uid: 'template-created', name: 'Facade Template' },
       lineage: { organizationId: 'org-1', libraryId: 'library-1' },
@@ -1403,9 +1402,10 @@ describe('process definitions access fallback', () => {
           cassette: { feature: 'cassettes' }
         }
       }),
-      getEntityService: type => type === 'library'
-        ? { processGetById: vi.fn().mockResolvedValue({ _id: 'library-1', lineage: { organizationId: 'org-1' } }) }
-        : null
+      getEntityService: type => ({
+        library: { processGetById: vi.fn().mockResolvedValue({ _id: 'library-1', lineage: { organizationId: 'org-1' } }) },
+        cassette: { create }
+      })[type] || null
     });
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
       _id: 'process-active',
@@ -1421,7 +1421,7 @@ describe('process definitions access fallback', () => {
               actionKind: 'createEntity',
               entityType: 'cassette',
               parentEntityType: 'library',
-              construction: { mode: 'createDefaultOccsTemplate' },
+              construction: { mode: 'genericCreate' },
               status: { to: 'ACTIVE' },
               access: { level: 'admin', roleIds: ['role_designer'] }
             }
@@ -1442,7 +1442,7 @@ describe('process definitions access fallback', () => {
       }
     });
 
-    expect(cassetteService.createDefaultOccsTemplate).toHaveBeenCalledWith(
+    expect(create).toHaveBeenCalledWith(
       {
         name: 'Facade Template',
         libraryId: 'library-1',
@@ -1479,7 +1479,7 @@ describe('process definitions access fallback', () => {
               actionKind: 'createEntity',
               entityType: 'cassette',
               parentEntityType: 'library',
-              construction: { mode: 'createDefaultOccsTemplate' },
+              construction: { mode: 'genericCreate' },
               access: { level: 'admin', roleIds: ['role_designer'] }
             }
           }
@@ -1498,7 +1498,6 @@ describe('process definitions access fallback', () => {
       }
     })).rejects.toThrow(/library parent is required/);
 
-    expect(cassetteService.createDefaultOccsTemplate).not.toHaveBeenCalled();
   });
 
   it('derives create parent ids from graph entity inputs', async () => {

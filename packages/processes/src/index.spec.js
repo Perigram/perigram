@@ -181,10 +181,10 @@ const domain = {
       ]
     },
     cassette: {
-      modes: ['createDefaultOccsTemplate'],
-      defaultMode: 'createDefaultOccsTemplate',
+      modes: ['genericCreate'],
+      defaultMode: 'genericCreate',
       inputs: [
-        { id: 'name', path: 'name', type: 'string', required: true, prompt: true }
+        { id: 'name', path: 'identity.name', type: 'string', required: true, prompt: true }
       ]
     },
     cassette_design: {
@@ -2466,7 +2466,7 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.create_template.construction).toMatchObject({
-      mode: 'createDefaultOccsTemplate',
+      mode: 'genericCreate',
       inputs: [expect.objectContaining({ id: 'name', required: true, prompt: true })]
     });
     expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual([
