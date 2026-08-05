@@ -43,6 +43,24 @@ export function resolveQueueDesignProducers({
       .filter(([mode]) => mode)
   );
   const boundConstructionModes = new Set();
+  const relationActions = processMode
+    ? processActions
+      .filter(action => (
+        action?.entityType === 'queue'
+        && action?.relationMutation?.operation === 'link'
+        && action.relationMutation.key === 'cassettes'
+        && action.relationMutation.targetType === outputEntityType
+      ))
+      .map(action => ({
+        id: action.actionId || action.id,
+        actionId: action.actionId || action.id,
+        label: action.label || action.actionId || action.id,
+        kind: 'relationLink',
+        sourceKind: 'processAction',
+        action,
+        output: { entityType: outputEntityType }
+      }))
+    : [];
 
   const resolved = domainProducers
     .map(producer => {
@@ -88,18 +106,5 @@ export function resolveQueueDesignProducers({
       }))
     : [];
 
-  return [...resolved, ...extraActions];
-}
-
-export function entitySourceProducerFields(producer = {}) {
-  if (producer.kind !== 'entitySource' || !producer.source?.entityType) return [];
-  return [{
-    id: 'entityId',
-    path: 'entityId',
-    label: producer.label || producer.source.entityType,
-    type: 'entity',
-    entityType: producer.source.entityType,
-    required: true,
-    prompt: true
-  }];
+  return [...relationActions, ...resolved, ...extraActions];
 }

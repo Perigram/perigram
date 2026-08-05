@@ -395,7 +395,7 @@ import {
     buildProducerActionRequest,
     producerFieldsForAction
 } from '~/utils/queue-producers.js';
-import { entitySourceProducerFields, resolveQueueDesignProducers } from '~/utils/queue-design-producers.js';
+import { resolveQueueDesignProducers } from '~/utils/queue-design-producers.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { cncDomain } from '@cutkit/domain-cnc';
@@ -482,7 +482,6 @@ const producerMenuItems = computed(() => availableProducers.value.map(producer =
 const producerFields = computed(() => {
     const producer = selectedProducer.value;
     if (!producer) return [];
-    if (producer.kind === 'entitySource') return entitySourceProducerFields(producer);
     if (producer.action) {
         const fields = producer.action.inputPolicy?.fields || producer.action.construction?.inputs || [];
         return producerSourceFields(
@@ -644,6 +643,19 @@ async function startProducer(producer) {
 
 async function loadProducerEntityOptions(field = {}) {
     const entityType = field.entityType || field.accepts?.[0] || '';
+    if (selectedProducer.value?.kind === 'relationLink' && field.relationKey) {
+        const actionId = selectedProducer.value.actionId;
+        const queueId = props.queue._id || props.queue.identity?.uid;
+        const entities = await optionalList(() => $fetch(
+            `/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/options`,
+            { query: { entityId: queueId } }
+        ));
+        return entities.map(entity => ({
+            label: entitySelectLabel(entity, entityType),
+            value: entity._id?.toString(),
+            entity
+        }));
+    }
     const entities = entityType === 'library'
         ? libraries.value
         : entityType === 'cassette'
@@ -749,7 +761,9 @@ async function executeSelectedProducer() {
                 values: producerValues.value,
                 data: {
                     ...data,
-                    ...(isProcessMode.value ? { linkCreatedTo: { ownerType: 'queue', relationKey: 'cassettes' } } : {})
+                    ...(isProcessMode.value && selectedProducer.value.kind !== 'relationLink'
+                        ? { linkCreatedTo: { ownerType: 'queue', relationKey: 'cassettes' } }
+                        : {})
                 },
                 contextEntities: { queue: props.queue, project: project.value }
             });
@@ -763,6 +777,12 @@ async function executeSelectedProducer() {
                 body: request
             });
             if (isProcessMode.value) {
+                if (selectedProducer.value.kind === 'relationLink') {
+                    await loadQueueData();
+                    emit('updated');
+                    showAddDialog.value = false;
+                    return;
+                }
                 const design = await resolveProducedDesign(produced);
                 if (!design) throw new Error(t('queues.invalidCassetteEntry'));
                 await loadQueueData();
@@ -776,10 +796,6 @@ async function executeSelectedProducer() {
                 method: 'POST',
                 body: { parameters: data.parameters || {}, name: data.name || '' }
             });
-        } else if (selectedProducer.value.kind === 'entitySource') {
-            produced = cassetteDesigns.value.find(design => (
-                design._id?.toString() === producerValues.value.entityId?.toString()
-            ));
         }
         const design = await resolveProducedDesign(produced);
         if (!design) throw new Error(t('queues.invalidCassetteEntry'));
