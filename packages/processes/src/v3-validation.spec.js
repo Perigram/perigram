@@ -302,9 +302,12 @@ describe('process v3 validation', () => {
       processNodes: {
         library: {
           id: 'library',
-          kind: 'source.literalItem',
-          type: { base: 'entityRef', shape: 'item', entityType: 'library' },
-          value: { type: 'library', id: 'library-1' }
+          kind: 'effect.createEntity',
+          entityType: 'library',
+          blocks: ['identity'],
+          construction: { mode: 'genericCreate' },
+          status: { to: 'NEW' },
+          trigger: { mode: 'manual' }
         },
         compose: {
           id: 'compose',
@@ -326,7 +329,7 @@ describe('process v3 validation', () => {
       graph: {
         nodes: ['library', 'compose', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
-          { id: 'library-compose', source: 'library', sourceHandle: 'data:value', target: 'compose', targetHandle: 'data:entry:library', role: 'data' },
+          { id: 'library-compose', source: 'library', sourceHandle: 'data:result', target: 'compose', targetHandle: 'data:entry:library', role: 'data' },
           { id: 'compose-create', source: 'compose', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:relations', role: 'data' }
         ]
       }

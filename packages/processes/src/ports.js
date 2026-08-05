@@ -8,15 +8,17 @@ export const PROCESS_DATAFLOW_VERSION = PROCESS_PROTOCOL_VERSION;
 
 export function normalizePortSpec(io = {}, fallback = {}) {
   const source = io && typeof io === 'object' ? io : {};
-  const kind = normalizePortKind(source.kind, source, fallback);
-  const entityType = source.entityType || fallback.entityType || '';
-  const multiple = Boolean(source.multiple || kind === 'entity_list');
+  const typed = structuredPortType(source.type);
+  const normalizedSource = { ...typed, ...source };
+  const kind = normalizePortKind(source.kind || typed.kind, normalizedSource, fallback);
+  const entityType = source.entityType || typed.entityType || fallback.entityType || '';
+  const multiple = Boolean(source.multiple || typed.multiple || kind === 'entity_list');
   return {
     id: String(source.id || fallback.id || ''),
     label: source.label || source.entityType || source.kind || fallback.label || source.id || fallback.id || '',
     kind: multiple && kind === 'entity' ? 'entity_list' : kind,
     entityType,
-    block: source.block || fallback.block || '',
+    block: source.block || typed.block || fallback.block || '',
     dataPath: source.dataPath || source.path || fallback.dataPath || '',
     capability: source.capability || fallback.capability || '',
     accepts: Array.isArray(source.accepts) ? [...source.accepts] : [],
@@ -25,6 +27,27 @@ export function normalizePortSpec(io = {}, fallback = {}) {
     required: Boolean(source.required),
     projection: Boolean(source.projection || kind === 'projection')
   };
+}
+
+function structuredPortType(type) {
+  if (!type || typeof type !== 'object') return {};
+  if (type.base === 'array') {
+    const item = type.itemType || {};
+    if (['entity', 'entityRef'].includes(item.base)) {
+      return { kind: 'entity_list', entityType: item.entityType || '', multiple: true };
+    }
+    return { kind: 'list', multiple: true };
+  }
+  if (['entity', 'entityRef'].includes(type.base)) {
+    return {
+      kind: type.shape === 'list' ? 'entity_list' : 'entity',
+      entityType: type.entityType || '',
+      multiple: type.shape === 'list'
+    };
+  }
+  if (type.base === 'block') return { kind: type.shape === 'list' ? 'block_list' : 'block', block: type.block || '', multiple: type.shape === 'list' };
+  if (type.base === 'dateTime') return { kind: 'date' };
+  return { kind: PROCESS_SCALAR_KINDS.includes(type.base) ? type.base : 'data' };
 }
 
 export function portSpecsCompatible(source = {}, target = {}) {
@@ -152,7 +175,7 @@ function inferRecordContract(record, incoming) {
     && Array.isArray(record.entries)) {
     next.entries = record.entries.map(entry => {
       const source = incoming[`entry:${entry.id}`];
-      if (!source) return { ...entry, entityType: '', cardinality: 'one' };
+      if (!source) return { ...entry };
       return {
         ...entry,
         entityType: source.entityType || '',
@@ -261,6 +284,7 @@ function inputPortsForRecord(type, record = {}) {
 }
 
 function outputPortsForRecord(type, record = {}) {
+  if (Array.isArray(record.outputs) && record.outputs.length) return record.outputs.map(port => normalizePortSpec(port));
   if (type === 'processNode') return processNodeOutputPorts(record);
   if (type === 'action') {
     return [
@@ -268,7 +292,6 @@ function outputPortsForRecord(type, record = {}) {
       ...(record.events || []).map(port => normalizePortSpec({ ...port, kind: 'event' }))
     ];
   }
-  if (Array.isArray(record.outputs) && record.outputs.length) return record.outputs.map(port => normalizePortSpec(port));
   if (type === 'entity') {
     return [
       normalizePortSpec({ id: 'entity', kind: 'entity', entityType: record.entityType || '' }),

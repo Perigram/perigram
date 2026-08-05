@@ -71,6 +71,58 @@ describe('process programming node ports', () => {
     expect(portSpecsCompatible(output, { id: 'target', kind: 'number' }).ok).toBe(false);
   });
 
+  it('infers relation entries from typed operational-node outputs', () => {
+    const process = {
+      processNodes: {
+        library: {
+          id: 'library',
+          kind: 'effect.createEntity',
+          entityType: 'library'
+        },
+        relations: {
+          id: 'relations',
+          kind: 'record.composeBlock',
+          compositionMode: 'relations',
+          entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one' }]
+        }
+      },
+      graph: {
+        nodes: ['library', 'relations'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [{
+          source: 'library',
+          sourceHandle: 'data:result',
+          target: 'relations',
+          targetHandle: 'data:entry:library'
+        }]
+      }
+    };
+
+    expect(inferProcessDataflowContracts(process).processNodes.relations.entries[0]).toMatchObject({
+      key: 'library',
+      entityType: 'library',
+      cardinality: 'one'
+    });
+  });
+
+  it('resolves persisted structured v3 ports without a node-kind adapter', () => {
+    const process = {
+      processNodes: {
+        effect: {
+          id: 'effect',
+          kind: 'effect.createEntity',
+          outputs: [{ id: 'result', type: { base: 'entity', shape: 'item', entityType: 'library' }, role: 'data' }]
+        }
+      }
+    };
+    const output = resolveNodePort(process, {
+      id: 'effect',
+      type: 'processNode',
+      data: { refId: 'effect' }
+    }, 'data:result', 'output');
+
+    expect(output).toMatchObject({ kind: 'entity', entityType: 'library' });
+  });
+
   it('preserves list structure through entity projection, predicates, and filtering', () => {
     expect(resolveProcessNodePorts({ kind: 'entityQuery', entityType: 'queue' }).outputs)
       .toEqual([expect.objectContaining({ id: 'entities', kind: 'entity_list', entityType: 'queue' })]);
