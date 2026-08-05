@@ -50,6 +50,9 @@ blocked by unrelated shell noise.
 - `process-generated-screen.spec.js`: verifies generated process screens have a
   live canonical queue collection endpoint at `/api/queue` and that the removed
   `/api/queues` route is not treated as valid.
+- `project-workspace.spec.js`: verifies a cassette reached through a Project
+  pane's linked Library child region opens the embedded cassette designer in the
+  same pane and restores that page after reload.
 
 The queue nesting regression intentionally stops before the worker-backed
 solve. Full nesting tests need explicit fixture cassette geometry and a running

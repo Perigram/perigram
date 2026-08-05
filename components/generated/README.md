@@ -58,8 +58,11 @@ bounded IDE-style Explorer and file workspace:
   the selected entity type's compiled `entityDetail` screen with the selected
   entity id and loads its readable sources through `useGeneratedScreen()`.
   Child regions are nested under the entity page exactly as they are on the
-  regular generated route; Project screen source data is not a substitute for
-  the selected entity's own detail-screen contract.
+  regular generated route. Their entity links and entity-bound workspace actions
+  propagate back through the pane adapter: selecting a nested entity replaces
+  the active pane, while editing a nested cassette opens the registered designer
+  page in that pane. Project screen source data is not a substitute for the
+  selected entity's own detail-screen contract.
 - `GeneratedWorkspacePage` resolves a page id through the fixed app-owned
   `workspace-pages.js` registry. Process data never selects a Vue component,
   and workspace-level actions are not represented as a registered page or
@@ -76,7 +79,8 @@ bounded IDE-style Explorer and file workspace:
   scrolling. Split proportions, Explorer width/visibility, active pane,
   selections, and opened registered pages are persisted as versioned browser UI
   state scoped to the current user, organization, and project. Stored data
-  contains stable entity/page references, never entity DTOs, and is validated
+  contains stable entity/page references, including entities discovered through
+  nested detail regions, never entity DTOs, and is validated
   before restoration. A reference remains in its pane while asynchronous screen
   sources and linked entities load; temporary absence must not erase restored
   navigation state. There is no reserved right inspector pane.
