@@ -72,9 +72,9 @@ Tailwind controls compact enough for information-dense engineering workflows;
 new shared sizing should remain token-backed rather than compensating with
 page-local font-size overrides.
 
-Pointer-focused interactive controls suppress browser and PrimeVue fallback
-outlines/shadows; the token-backed `:focus-visible` treatment remains the
-keyboard focus indicator. Components must not add a second selected/focus border.
+Interactive controls suppress browser and PrimeVue fallback outlines/shadows.
+Components own their selected and keyboard-focus presentation and must not add
+a second generic focus border.
 
 Allowed local hardcoded visual values are limited to real data, such as pen stroke colors, DXF layer colors, or uploaded asset metadata. Page-local decorative colors, radii, animation durations, chat/dialog dimensions, swatch sizes, and max-widths must be promoted to tokens or removed.
 

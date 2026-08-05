@@ -105,7 +105,9 @@ bounded IDE-style Explorer and file workspace:
   navigation state. There is no reserved right inspector pane.
   The active pane uses the neutral chrome-subtle surface on its pane header; tab
   selection remains the stronger indicator of the active file. Empty panes keep
-  the normal tab strip and an open-content prompt instead of a blank body.
+  the normal tab strip and an open-content prompt instead of a blank body. File
+  tabs scroll horizontally by wheel or touchpad when they overflow, without
+  exposing a browser scrollbar beneath the strip.
 
 Selectable rows still come from access-filtered screen source states; the
 Explorer contains no workspace actions or unrelated controls. Clicking an
@@ -123,8 +125,11 @@ producer actions without granting or discovering actions outside the user's
 compiled process access. `GeneratedEntityDetailBody` passes only that scoped
 action set into operational overloads. Child-region action ids travel through
 the separate `bodyActions` channel: QueueEditor receives its compiled producer
-operations while surrounding headers continue to exclude them. The body never
-scans the global action manifest for additional queue producers.
+operations while surrounding headers continue to exclude them. Those ids are
+already compiler-scoped and access-filtered, so the body resolves them directly
+from the user's action manifest instead of incorrectly comparing the producer's
+output entity type to the open queue. The body never scans the global action
+manifest for additional queue producers.
 
 Registered screen overloads select the bounded workspace mode on
 `GeneratedScreen`/`StandardPage`, and the authenticated app layout resolves the
