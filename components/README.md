@@ -233,7 +233,9 @@ detail surface. The project entity itself uses that standard detail body. The
 action strip receives only screen/main action ids
 compiled for the project plus direct project-child creation actions from its
 loaded child regions, then resolves and filters them through the effective user
-action manifest and project status.
+action manifest and project status. Create actions with different internal ids
+but the same visible entity/parent operation collapse to one button, matching
+the generated create-button label contract.
 The cassette designer is an entity-bound registered page that mounts inside a
 pane and receives only workspace-visible cassette templates. Source-loaded
 children and explicitly linked entities use the same page-opening contract, so

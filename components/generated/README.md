@@ -55,7 +55,9 @@ bounded IDE-style Explorer and file workspace:
   project screen/main region plus direct-project child creates from loaded child
   regions, resolves those ids through the effective user action manifest, and
   checks current project lifecycle applicability. It does not scan the global
-  manifest or invent relation/upload controls.
+  manifest or invent relation/upload controls. Multiple compiled ids that map
+  to the same entity/parent create operation render as one visible button,
+  matching the generated create-button label contract.
 - `GeneratedWorkspacePane` accepts both entity pages and registered workspace
   pages. Each recursive pane owns an IDE-style tab list; Explorer navigation
   opens or selects a tab in the active pane, and tab order plus selection persist
