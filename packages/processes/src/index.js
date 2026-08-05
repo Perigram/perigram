@@ -283,6 +283,21 @@ function deriveRelationMutationActions(actions = {}) {
     for (const relation of sourceAction.mutation?.relationContracts || []) {
       if (!sourceAction.entityType || !relation.key || !relation.targetType) continue;
       for (const operation of ['link', 'unlink']) {
+        const creatorAction = relation.creator?.actionId ? actions[relation.creator.actionId] : null;
+        const creator = creatorAction
+          ? {
+              actionId: creatorAction.id || relation.creator.actionId,
+              entityType: creatorAction.entityType,
+              construction: creatorAction.construction,
+              inputPolicy: {
+                prompt: true,
+                fields: [
+                  ...(creatorAction.inputPolicy?.fields || []),
+                  ...(creatorAction.construction?.inputs || [])
+                ].filter((field, index, fields) => fields.findIndex(item => item.id === field.id) === index)
+              }
+            }
+          : relation.creator;
         const id = `${sourceActionId}:${operation}:${relation.key}`;
         const input = {
           id: `relation:${relation.key}`,
@@ -294,7 +309,7 @@ function deriveRelationMutationActions(actions = {}) {
           cardinality: relation.cardinality || 'one',
           required: true,
           prompt: operation === 'link',
-          ...(operation === 'link' && relation.creator ? { creator: relation.creator } : {})
+          ...(operation === 'link' && creator ? { creator } : {})
         };
         derived[id] = {
           id,
@@ -306,7 +321,7 @@ function deriveRelationMutationActions(actions = {}) {
             targetType: relation.targetType,
             cardinality: relation.cardinality || 'one',
             operation,
-            ...(operation === 'link' && relation.creator ? { creator: relation.creator } : {})
+            ...(operation === 'link' && creator ? { creator } : {})
           },
           mutation: { fields: [`relations.${relation.key}`], relationContracts: [relation] },
           inputPolicy: operation === 'link'
@@ -384,10 +399,21 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     .filter(record => record.compositionMode === 'relations' || record.block === 'relations')
     .flatMap(record => (record.entries || []).map(entry => {
       const declared = declaredRelationForTarget(domain, node.entityType, entry.entityType);
+      const composerNode = (graph.nodes || []).find(item => String(item.data?.refId || item.id) === String(record.id));
+      const entryEdge = composerNode && (graph.edges || []).find(edge => (
+        String(edge.target) === String(composerNode.id)
+        && normalizeHandle(edge.targetHandle) === `entry:${entry.id}`
+      ));
+      const sourceRecord = entryEdge ? recordByGraphNode.get(String(entryEdge.source)) : null;
+      const processCreator = sourceRecord?.kind === 'effect.createEntity'
+        && sourceRecord.entityType === (declared?.targetType || entry.entityType)
+        ? { actionId: String(sourceRecord.legacyActionId || sourceRecord.id) }
+        : null;
       return {
       key: declared?.key || entry.key,
       targetType: declared?.targetType || entry.entityType,
       cardinality: declared?.cardinality || entry.cardinality || 'one',
+      ...(processCreator ? { creator: processCreator } : {}),
       ...((declared?.targetType || entry.entityType) === 'artifact' ? {
         creator: {
           entityType: 'artifact',

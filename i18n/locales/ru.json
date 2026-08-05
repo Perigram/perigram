@@ -2829,6 +2829,7 @@
     "actionFailed": "Не удалось выполнить действие",
       "exactEntityId": "Точный ID сущности",
       "createArtifact": "Загрузить артефакт",
+      "createRelatedEntity": "Создать",
       "selectArtifactFile": "Выбрать файл",
       "replaceArtifactFile": "Заменить файл",
       "artifactFileRequired": "Выберите файл для загрузки.",

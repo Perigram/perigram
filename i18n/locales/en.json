@@ -2829,6 +2829,7 @@
     "actionFailed": "Action failed",
       "exactEntityId": "Exact entity ID",
       "createArtifact": "Upload artifact",
+      "createRelatedEntity": "Create new",
       "selectArtifactFile": "Select file",
       "replaceArtifactFile": "Replace file",
       "artifactFileRequired": "Select a file to upload.",

@@ -79,6 +79,67 @@ export async function getActive(auth) {
   return raw ? new ProcessDefinition(raw).toJSON() : null;
 }
 
+export async function getActiveRelationOptions({ actionId, entityId, source = false } = {}, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  const raw = await repository.findActiveByOrganization(organizationId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
+  const process = new ProcessDefinition(raw);
+  const organization = await organizationsRepository.findById(organizationId);
+  const compiled = compileActiveProcessRuntime(process.data, organization?.data?.roles || {});
+  const action = compiled?.actions?.[actionId];
+  if (!action?.relationMutation || action.relationMutation.operation !== 'link') {
+    throw createError({ statusCode: 400, message: 'Action does not provide relation options' });
+  }
+  assertCompiledActionAvailable(actionId, auth);
+  const owner = await resolveProcessGraphEntity(action.entityType, entityId, { auth });
+  const creator = action.relationMutation.creator;
+  const sourceInput = creator?.inputPolicy?.fields?.find(field => field.type === 'entity' && field.entityType);
+  if (!creator?.actionId || !sourceInput) return queryProcessGraphEntities(action.relationMutation.targetType, auth);
+
+  const creatorNode = Object.values(process.data.processNodes || {})
+    .find(node => String(node.legacyActionId || node.id) === String(creator.actionId));
+  const creatorGraphNode = (process.data.graph?.nodes || [])
+    .find(node => String(node.data?.refId || node.id) === String(creatorNode?.id));
+  const sourceEdge = (process.data.graph?.edges || []).find(edge => (
+    String(edge.target) === String(creatorGraphNode?.id)
+    && String(edge.targetHandle || '').replace(/^(input|data):/, '') === sourceInput.id
+  ));
+  const sourceGraphNode = (process.data.graph?.nodes || []).find(node => String(node.id) === String(sourceEdge?.source));
+  const sourceNode = process.data.processNodes?.[String(sourceGraphNode?.data?.refId || sourceGraphNode?.id)];
+  const sourceAction = compiled.actions?.[String(sourceNode?.legacyActionId || sourceNode?.id)];
+  const sourceParentType = sourceAction?.parentEntityType;
+  if (!sourceParentType || sourceNode?.entityType !== sourceInput.entityType) {
+    return [];
+  }
+
+  const domain = getDomain();
+  const ownerParent = (domain.containment || []).find(item => item.childType === action.entityType && item.lineageKey);
+  const ancestorId = ownerParent && owner.lineage?.[ownerParent.lineageKey];
+  if (!ownerParent || !ancestorId) return [];
+  const ancestor = await resolveProcessGraphEntity(ownerParent.parentType, ancestorId, { auth });
+  const ancestorLinkAction = Object.values(compiled.actions || {}).find(item => (
+    item.entityType === ownerParent.parentType
+    && item.relationMutation?.operation === 'link'
+    && item.relationMutation.targetType === sourceParentType
+  ));
+  const refs = ancestorLinkAction ? ancestor.relations?.[ancestorLinkAction.relationMutation.key] : null;
+  const parentIds = (Array.isArray(refs) ? refs : refs ? [refs] : [])
+    .map(ref => normalizeEntityRef(ref)?.id)
+    .filter(Boolean);
+  if (!parentIds.length) return [];
+  const containment = (domain.containment || []).find(item => (
+    item.parentType === sourceParentType && item.childType === sourceInput.entityType
+  ));
+  if (!containment?.lineageKey) return [];
+  const sourceService = getAppRegistry().getEntityService(sourceInput.entityType);
+  const targetService = getAppRegistry().getEntityService(action.relationMutation.targetType);
+  const sources = (await Promise.all(parentIds.map(id => sourceService.processList({ [containment.lineageKey]: String(id) }, auth)))).flat();
+  if (source) return sources.map(item => item?.toJSON ? item.toJSON() : item);
+  const sourceIds = [...new Set(sources.map(entityInputId).filter(Boolean).map(String))];
+  const targets = (await Promise.all(sourceIds.map(id => targetService.processList({ templateId: id }, auth)))).flat();
+  return Array.from(new Map(targets.map(item => [String(entityInputId(item)), item?.toJSON ? item.toJSON() : item])).values());
+}
+
 export async function getById(id, auth) {
   const process = await loadAuthorized(id, auth, 'read');
   return process.toJSON();
@@ -347,6 +408,32 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   if (!action) throw createError({ statusCode: 404, message: 'Action not found in active process' });
   assertCompiledActionAvailable(actionId, auth);
   if (action.relationMutation) {
+    if (data?.relationCreator) {
+      const creatorId = action.relationMutation.creator?.actionId;
+      const creatorAction = creatorId && compiled.actions?.[creatorId];
+      if (!creatorAction || creatorAction.entityType !== action.relationMutation.targetType) {
+        throw createError({ statusCode: 400, message: 'Relation action has no compatible creator' });
+      }
+      const created = await executeV3ActionRun({
+        process,
+        actionId: creatorId,
+        entityId: null,
+        data: data.relationCreator,
+        parameters: {},
+        entities,
+        targetOrganizationId: null
+      }, createActionExecutionAuth(auth, creatorAction));
+      const createdId = entityInputId(created);
+      if (!createdId) throw createError({ statusCode: 500, message: `Created ${creatorAction.entityType} has no id` });
+      const owner = await executeCompiledRelationMutationAction({
+        action,
+        actionId,
+        entityId,
+        data: { relations: { [action.relationMutation.key]: { type: creatorAction.entityType, id: createdId } } },
+        entities
+      }, auth);
+      return { created, owner };
+    }
     return await executeCompiledRelationMutationAction({ action, actionId, entityId, data, entities }, auth);
   }
   if (Number(process.data.dataflowVersion) === 3) {

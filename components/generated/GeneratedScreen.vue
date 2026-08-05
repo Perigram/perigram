@@ -172,6 +172,7 @@
           />
           <div v-else-if="field.type === 'entity'" class="flex flex-col gap-2">
             <Select
+              v-if="!relationCreatorMode"
               v-model="promptValues[field.id]"
               :options="promptOptions[field.id] || []"
               option-label="label"
@@ -189,6 +190,37 @@
               class="self-start"
               @click="openArtifactCreator(field)"
             />
+            <Button
+              v-if="field.creator?.actionId"
+              icon="pi pi-plus"
+              :label="relationCreatorMode ? $t('common.cancel') : $t('generatedScreen.createRelatedEntity')"
+              size="small"
+              severity="secondary"
+              outlined
+              class="self-start"
+              @click="toggleRelationCreator(field)"
+            />
+            <div v-if="relationCreatorMode && field.creator?.actionId" class="flex flex-col gap-3">
+              <label v-for="creatorField in relationCreatorFields" :key="creatorField.id" class="flex flex-col gap-1">
+                <span class="text-xs text-muted-color">{{ creatorField.label || creatorField.id }}</span>
+                <Select
+                  v-if="creatorField.type === 'entity'"
+                  v-model="relationCreatorValues[creatorField.id]"
+                  :options="relationCreatorOptions[creatorField.id] || []"
+                  option-label="label"
+                  option-value="value"
+                  :entity-type="creatorField.entityType || ''"
+                  @update:model-value="syncRelationCreatorParameters"
+                />
+                <div v-else-if="creatorField.type === 'cassetteParameters'" class="grid grid-cols-2 gap-2">
+                  <label v-for="parameter in relationCreatorParameterFields(creatorField)" :key="parameter.name" class="flex flex-col gap-1">
+                    <span class="text-xs text-muted-color">{{ parameter.name }}</span>
+                    <InputText v-model="relationCreatorValues[creatorField.id][parameter.name]" type="number" />
+                  </label>
+                </div>
+                <InputText v-else v-model="relationCreatorValues[creatorField.id]" :type="creatorField.type === 'number' ? 'number' : 'text'" />
+              </label>
+            </div>
           </div>
           <Select
             v-else-if="field.type === 'enum'"
@@ -267,6 +299,9 @@ const promptValues = reactive({});
 const promptOptions = reactive({});
 const artifactCreatorVisible = ref(false);
 const artifactCreatorField = ref(null);
+const relationCreatorMode = ref(false);
+const relationCreatorValues = reactive({});
+const relationCreatorOptions = reactive({});
 
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
@@ -283,6 +318,8 @@ const detailActionContext = computed(() => {
 });
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 const promptFields = computed(() => promptedFields(pendingAction.value));
+const relationCreatorFields = computed(() => pendingAction.value?.relationMutation?.creator?.inputPolicy?.fields
+  ?.filter(field => field.prompt || field.required) || []);
 const pendingActionLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.confirm'));
 const dialogSaveLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
@@ -319,6 +356,9 @@ async function openInputDialog(action, entity = null, context = {}) {
   pendingEntity.value = { entity, context };
   for (const key of Object.keys(promptValues)) delete promptValues[key];
   for (const key of Object.keys(promptOptions)) delete promptOptions[key];
+  relationCreatorMode.value = false;
+  for (const key of Object.keys(relationCreatorValues)) delete relationCreatorValues[key];
+  for (const key of Object.keys(relationCreatorOptions)) delete relationCreatorOptions[key];
   const fields = collectActionInputFields(action);
   for (const field of fields) {
     promptValues[field.id] = initialPromptValue(field);
@@ -378,10 +418,13 @@ async function submitPromptedAction() {
   if (!pendingAction.value) return;
   submittingAction.value = true;
   try {
+    const data = relationCreatorMode.value
+      ? { relationCreator: promptData(relationCreatorFields.value, relationCreatorValues) }
+      : promptData(actionInputFields.value, promptValues);
     await postAction(
       pendingAction.value,
       pendingEntity.value?.entity || null,
-      promptData(actionInputFields.value, promptValues),
+      data,
       contextWithSelectedParent(pendingEntity.value?.context || {})
     );
     closeInputDialog();
@@ -537,6 +580,14 @@ function promptFieldHidden(field = {}, action = pendingAction.value) {
 }
 
 async function entityOptions(entityType, field = {}) {
+  if (field.relationKey && pendingAction.value?.relationMutation?.operation === 'link') {
+    const actionId = pendingAction.value.actionId || pendingAction.value.id;
+    const ownerId = entityIdentifier(pendingEntity.value?.entity);
+    const items = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/options`, {
+      query: { entityId: ownerId }
+    });
+    return (items || []).map(entity => entityOption(entity, entityType));
+  }
   if (entityType === 'cassette') {
     const items = await $fetch('/api/cassettes');
     return items
@@ -548,6 +599,42 @@ async function entityOptions(entityType, field = {}) {
   return (Array.isArray(items) ? items : items.items || items.data || [])
     .filter(entity => !field.attachmentKinds?.length || field.attachmentKinds.includes(entity.data?.type))
     .map(entity => entityOption(entity, entityType));
+}
+
+async function toggleRelationCreator(field = {}) {
+  relationCreatorMode.value = !relationCreatorMode.value;
+  if (!relationCreatorMode.value) return;
+  for (const creatorField of relationCreatorFields.value) {
+    relationCreatorValues[creatorField.id] = initialPromptValue(creatorField);
+  }
+  const actionId = pendingAction.value?.actionId || pendingAction.value?.id;
+  const ownerId = entityIdentifier(pendingEntity.value?.entity);
+  for (const creatorField of relationCreatorFields.value.filter(item => item.type === 'entity')) {
+    const items = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/options`, {
+      query: { entityId: ownerId, source: 'creator' }
+    });
+    relationCreatorOptions[creatorField.id] = (items || []).map(entity => entityOption(entity, creatorField.entityType));
+    if (creatorField.required && !relationCreatorValues[creatorField.id]) {
+      relationCreatorValues[creatorField.id] = relationCreatorOptions[creatorField.id][0]?.value || '';
+    }
+  }
+  syncRelationCreatorParameters();
+}
+
+function relationCreatorParameterFields(field = {}) {
+  const templateId = relationCreatorValues[field.templateFieldId || 'templateId'];
+  const template = (relationCreatorOptions[field.templateFieldId || 'templateId'] || [])
+    .find(item => String(item.value) === String(templateId))?.entity;
+  return Object.keys(occsQueueParameters(cassetteParameterDefinition(template))).map(name => ({ name }));
+}
+
+function syncRelationCreatorParameters() {
+  for (const field of relationCreatorFields.value.filter(item => item.type === 'cassetteParameters')) {
+    const templateId = relationCreatorValues[field.templateFieldId || 'templateId'];
+    const template = (relationCreatorOptions[field.templateFieldId || 'templateId'] || [])
+      .find(item => String(item.value) === String(templateId))?.entity;
+    relationCreatorValues[field.id] = { ...occsQueueParameters(cassetteParameterDefinition(template)) };
+  }
 }
 
 function uiEntityType(entityType = '') {
