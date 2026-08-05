@@ -133,7 +133,8 @@ const drawingSource = ref(null);
 const drawingSourceType = ref('dxf-url');
 const isPdf = computed(() => artifactPreviewMode(previewArtifactData.value) === 'pdf');
 const editableLayout = computed(() => Boolean(
-    previewArtifactData.value?.data?.layout
+    domainUi.getAttachmentEditor(artifactType(previewArtifactData.value)).mode === 'layout'
+    && previewArtifactData.value?.data?.layout
     && previewArtifactData.value?.provenance?.template?.source?.id
     && hasPermissionGrant({
         permissions: authStore.activePermissions,

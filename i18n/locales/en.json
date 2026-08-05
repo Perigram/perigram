@@ -295,6 +295,7 @@
     "confirmDelete": "Are you sure you want to delete this project?",
     "deleted": "Project deleted",
     "explorer": "Explorer",
+    "linkedEntities": "Linked entities",
     "collapseExplorer": "Collapse Explorer",
     "expandExplorer": "Show Explorer",
     "splitRight": "Split right",
@@ -2822,6 +2823,7 @@
     "noScreens": "No process screens are available",
     "actionCompleted": "Action completed",
     "actionFailed": "Action failed",
+    "exactEntityId": "Exact entity ID",
     "noOptions": "No available options for {field}"
   }
 }

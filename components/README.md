@@ -183,6 +183,10 @@ this path to render an IDE-style operational workspace over the generated
 project source and generated child collection sources. Its Explorer owns child
 rows from generated source regions and can collapse so the recursive pane area
 uses the full width without rebuilding or changing the recursive pane tree.
+Relations declared on the project are rendered in a dedicated **Linked entities**
+Explorer section. They use the same typed relation references and entity-detail
+workspace files as every other entity; this section is navigation, not a second
+containment model, and does not depend on relation-key naming conventions.
 Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain only their selected entity or

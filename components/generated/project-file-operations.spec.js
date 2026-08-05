@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const entityFileSource = readFileSync(new URL('./GeneratedEntityFile.vue', import.meta.url), 'utf8');
 const projectWorkspaceSource = readFileSync(new URL('./GeneratedProjectWorkspace.vue', import.meta.url), 'utf8');
+const generatedScreenSource = readFileSync(new URL('./GeneratedScreen.vue', import.meta.url), 'utf8');
 const workspacePaneSource = readFileSync(new URL('./GeneratedWorkspacePane.vue', import.meta.url), 'utf8');
 const workspacePageSource = readFileSync(new URL('./GeneratedWorkspacePage.vue', import.meta.url), 'utf8');
 const actionPaletteSource = readFileSync(new URL('./GeneratedProjectActionPalette.vue', import.meta.url), 'utf8');
@@ -20,6 +21,9 @@ describe('project file operations and queue pane density', () => {
     expect(projectWorkspaceSource).not.toContain("pageId: 'project-actions'");
     expect(projectWorkspaceSource).toContain('projectContextActionEntries');
     expect(projectWorkspaceSource).toContain('openWorkspacePage');
+    expect(projectWorkspaceSource).toContain("t('project.linkedEntities')");
+    expect(projectWorkspaceSource).toContain('resolveEntityRelationRefs');
+    expect(projectWorkspaceSource).toContain('entityStore.fetchEntity');
     expect(workspacePaneSource).toContain("item?.kind === 'entity'");
     expect(workspacePaneSource).toContain("item?.kind === 'page'");
     expect(workspacePageSource).toContain('resolveGeneratedWorkspacePage');
@@ -35,6 +39,8 @@ describe('project file operations and queue pane density', () => {
     expect(cassetteDesignerSource).toContain("'/api/cassettes'");
     expect(cassetteDesignerSource).not.toContain("'/api/commands/saveCassetteTemplate/run'");
     expect(relationsBlockSource).toContain(':context-action-entries="unlinkEntries(relation, item)"');
+    expect(generatedScreenSource).toContain("$t('generatedScreen.exactEntityId')");
+    expect(generatedScreenSource).not.toContain('field.required && !options.length');
     expect(entityFileSource).not.toContain('GeneratedProjectFileHome');
   });
 

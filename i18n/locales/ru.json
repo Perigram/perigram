@@ -295,6 +295,7 @@
     "confirmDelete": "Вы уверены, что хотите удалить этот проект?",
     "deleted": "Проект удалён",
     "explorer": "Проводник",
+    "linkedEntities": "Связанные сущности",
     "collapseExplorer": "Скрыть проводник",
     "expandExplorer": "Показать проводник",
     "splitRight": "Разделить справа",
@@ -2822,6 +2823,7 @@
     "noScreens": "Экраны процесса недоступны",
     "actionCompleted": "Действие выполнено",
     "actionFailed": "Не удалось выполнить действие",
+    "exactEntityId": "Точный ID сущности",
     "noOptions": "Нет доступных вариантов для {field}"
   }
 }

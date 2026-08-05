@@ -41,7 +41,7 @@ export const cncEntityConstruction = {
       ],
       importCassetteDesignFromArtifact: [
         { id: 'name', label: 'Design name', path: 'name', type: 'string', required: true, prompt: true },
-        { id: 'artifactId', label: 'DXF artifact', path: 'artifactId', type: 'entity', entityType: 'artifact', required: true, prompt: true },
+        { id: 'artifactId', label: 'DXF artifact', path: 'artifactId', type: 'entity', entityType: 'artifact', attachmentKinds: ['DXF_SOURCE'], required: true, prompt: true },
         { id: 'layerMapping', label: 'Layer mapping', path: 'layerMapping', type: 'object', required: false, prompt: true },
         { id: 'parameters', label: 'Parameters', path: 'parameters', type: 'object', required: false, prompt: true }
       ]

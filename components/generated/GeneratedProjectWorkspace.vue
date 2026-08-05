@@ -125,8 +125,10 @@ import { mergeCollectionActionContext } from '~/components/generated/action-cont
 import { projectContextActionEntries } from '~/components/generated/project-context-actions.js';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 import { useAuthStore } from '~/stores/auth';
+import { useEntityStore } from '~/stores/entities.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 import {
   closeWorkspaceLeaf,
   createWorkspaceLeaf,
@@ -143,6 +145,7 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh', 'execute-action']);
 const authStore = useAuthStore();
+const entityStore = useEntityStore();
 const domainUi = useCutkitDomainUi();
 const { t, te } = useI18n();
 const explorerOpen = ref(true);
@@ -153,6 +156,7 @@ const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
 const paneTree = ref(createWorkspaceLeaf('pane-1'));
 const openedPageRefs = ref([]);
+const linkedEntityItems = ref([]);
 const explorerTreePt = {
   nodeContent: { class: '!px-1 !py-0.5 !gap-1' },
   nodeToggleButton: { class: '!h-6 !w-6' }
@@ -199,6 +203,8 @@ const entityItems = computed(() => [
     region: section.region
   })))
 ].filter(item => item?.entity && entityId(item.entity)));
+const linkedRefs = computed(() => Object.values(project.value?.relations || {})
+  .flatMap(value => resolveEntityRelationRefs(value)));
 const cassetteItems = computed(() => entityItems.value.filter(item => item.type === 'cassette'));
 const projectActions = computed(() => projectContextActionEntries({
   actionManifest: authStore.actionManifest,
@@ -228,8 +234,11 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
 }).filter(Boolean));
 const workspaceItems = computed(() => [
   ...entityItems.value,
+  ...linkedEntityItems.value,
   ...openedPageItems.value
-].filter(Boolean));
+].filter(Boolean).filter((item, index, items) => (
+  items.findIndex(candidate => candidate.key === item.key) === index
+)));
 const panes = computed(() => workspaceLeaves(paneTree.value));
 const paneCount = computed(() => panes.value.length);
 const activePane = computed(() => panes.value.find(pane => pane.id === activePaneId.value) || panes.value[0]);
@@ -244,6 +253,17 @@ const explorerNodes = computed(() => {
     icon: domainUi.getIcon('project'),
     data: { item: projectItem.value },
     children: [
+      ...(linkedEntityItems.value.length ? [{
+        key: 'section:linked-entities',
+        label: t('project.linkedEntities'),
+        data: { linked: true },
+        selectable: false,
+        children: linkedEntityItems.value.map(item => ({
+          key: `linked:${item.key}`,
+          icon: domainUi.getIcon(item.type),
+          data: { item }
+        }))
+      }] : []),
       ...childSections.value.map(section => ({
         key: `section:${section.region.id}`,
         label: generatedEntityLabel(section.entityType, { t, te }),
@@ -284,6 +304,24 @@ watch(workspaceItems, items => {
   }
   syncActiveSelection();
 }, { deep: true });
+
+watch(linkedRefs, async refs => {
+  const loaded = await Promise.all(refs.map(async ref => {
+    const existing = entityItems.value.find(item => (
+      item.type === ref.entityType && entityId(item.entity) === ref.id
+    ));
+    const entity = existing?.entity || ref.entity
+      || await entityStore.fetchEntity(ref.entityType, ref.id, false, { silent: true });
+    return entity ? {
+      key: entityKey(ref.entityType, entity),
+      kind: 'entity',
+      type: ref.entityType,
+      entity,
+      region: null
+    } : null;
+  }));
+  linkedEntityItems.value = loaded.filter(Boolean);
+}, { immediate: true });
 
 watch(activePaneId, syncActiveSelection);
 
