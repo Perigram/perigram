@@ -2829,7 +2829,8 @@
       "createArtifact": "Upload artifact",
       "selectArtifactFile": "Select file",
       "replaceArtifactFile": "Replace file",
-      "artifactData": "Artifact data",
+      "artifactFileRequired": "Select a file to upload.",
+      "artifactUploadFailed": "Artifact upload failed.",
     "noOptions": "No available options for {field}"
   }
 }

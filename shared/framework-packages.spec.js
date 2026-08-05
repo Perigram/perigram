@@ -287,8 +287,7 @@ describe('Framework package contracts', () => {
       mode: 'upload',
       accept: '.dxf,application/dxf',
       fields: [
-        { id: 'name', path: 'identity.name', type: 'string', required: true },
-        { id: 'metadata', path: 'data.metadata', type: 'object', required: false }
+        { id: 'name', path: 'identity.name', type: 'string', required: true }
       ]
     });
     expect(domainUi.getAttachmentCreation('LAYOUT_DXF')).toEqual({ mode: 'command', commandId: 'generateAttachment' });

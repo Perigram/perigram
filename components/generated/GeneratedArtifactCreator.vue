@@ -10,7 +10,10 @@
     @cancel="close"
   >
     <template #header>{{ $t('generatedScreen.createArtifact') }}</template>
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-4">
+      <Message v-if="errorMessage" severity="error" :closable="false">
+        {{ errorMessage }}
+      </Message>
       <Select
         v-if="uploadKinds.length > 1"
         v-model="kind"
@@ -20,20 +23,18 @@
       />
       <label class="flex flex-col gap-1">
         <span class="text-xs text-muted-color">{{ $t('common.name') }}</span>
-        <InputText v-model="name" />
+        <InputText v-model="name" class="w-full" />
       </label>
-      <label class="flex flex-col gap-1">
-        <span class="text-xs text-muted-color">{{ $t('generatedScreen.artifactData') }}</span>
-        <Textarea v-model="metadata" rows="4" auto-resize />
-      </label>
-      <FileUpload
-        mode="basic"
-        :accept="accept"
-        :choose-label="$t('generatedScreen.selectArtifactFile')"
-        custom-upload
-        @select="selectFile"
-      />
-      <small v-if="file" class="text-muted-color">{{ file.name }}</small>
+      <div class="flex flex-col items-start gap-2">
+        <FileUpload
+          mode="basic"
+          :accept="accept"
+          :choose-label="$t('generatedScreen.selectArtifactFile')"
+          custom-upload
+          @select="selectFile"
+        />
+        <span v-if="file" class="text-sm text-muted-color">{{ file.name }}</span>
+      </div>
     </div>
   </StandardDialog>
 </template>
@@ -42,9 +43,10 @@
 import { computed, ref, watch } from 'vue';
 import FileUpload from 'primevue/fileupload';
 import InputText from 'primevue/inputtext';
-import Select from 'primevue/select';
-import Textarea from 'primevue/textarea';
+import Message from 'primevue/message';
+import Select from '~/components/shared/EntitySelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -52,6 +54,7 @@ const props = defineProps({
   lineage: { type: Object, default: () => ({}) }
 });
 const emit = defineEmits(['update:modelValue', 'created']);
+const { t } = useI18n();
 const visible = computed({
   get: () => props.modelValue,
   set: value => emit('update:modelValue', value)
@@ -60,7 +63,7 @@ const file = ref(null);
 const kind = ref('');
 const uploading = ref(false);
 const name = ref('');
-const metadata = ref('{}');
+const errorMessage = ref('');
 const uploadKinds = computed(() => (props.creator.attachmentKinds || [])
   .filter(item => item.creation?.mode === 'upload'));
 const accept = computed(() => uploadKinds.value
@@ -76,18 +79,24 @@ function selectFile(event) {
 }
 
 async function upload() {
-  if (!file.value || !kind.value) return;
+  errorMessage.value = '';
+  if (!file.value) {
+    errorMessage.value = t('generatedScreen.artifactFileRequired');
+    return;
+  }
+  if (!kind.value) return;
   uploading.value = true;
   try {
     const form = new FormData();
     form.append('file', file.value);
     form.append('type', kind.value);
     form.append('name', name.value || file.value.name);
-    form.append('metadata', metadata.value || '{}');
     form.append('lineage', JSON.stringify(props.lineage || {}));
     const artifact = await $fetch('/api/artifacts', { method: 'POST', body: form });
     emit('created', artifact);
     close();
+  } catch (error) {
+    errorMessage.value = error?.data?.message || error?.message || t('generatedScreen.artifactUploadFailed');
   } finally {
     uploading.value = false;
   }
@@ -97,7 +106,7 @@ function close() {
   visible.value = false;
   file.value = null;
   name.value = '';
-  metadata.value = '{}';
+  errorMessage.value = '';
 }
 
 function acceptForKind(attachmentKind = '') {

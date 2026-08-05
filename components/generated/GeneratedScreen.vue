@@ -170,7 +170,7 @@
             rows="3"
             auto-resize
           />
-          <div v-else-if="field.type === 'entity'" class="flex items-center gap-2">
+          <div v-else-if="field.type === 'entity'" class="flex flex-col gap-2">
             <Select
               v-if="promptOptions[field.id]?.length"
               v-model="promptValues[field.id]"
@@ -178,22 +178,22 @@
               option-label="label"
               option-value="value"
               :entity-type="field.entityType || field.accepts?.[0] || ''"
-              class="min-w-0 flex-1"
+              class="w-full"
             />
             <InputText
               v-else
               v-model="promptValues[field.id]"
               :placeholder="$t('generatedScreen.exactEntityId')"
-              class="min-w-0 flex-1"
+              class="w-full"
             />
             <Button
               v-if="hasUploadCreator(field)"
               icon="pi pi-upload"
-              :aria-label="$t('generatedScreen.createArtifact')"
-              :title="$t('generatedScreen.createArtifact')"
+              :label="$t('generatedScreen.createArtifact')"
               size="small"
               severity="secondary"
               outlined
+              class="self-start"
               @click="openArtifactCreator(field)"
             />
           </div>

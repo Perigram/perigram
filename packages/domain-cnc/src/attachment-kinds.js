@@ -14,8 +14,7 @@ export const cncAttachmentKinds = {
       mode: 'upload',
       accept: '.dxf,application/dxf',
       fields: [
-        { id: 'name', path: 'identity.name', type: 'string', required: true },
-        { id: 'metadata', path: 'data.metadata', type: 'object', required: false }
+        { id: 'name', path: 'identity.name', type: 'string', required: true }
       ]
     },
     editor: { mode: 'none' }
