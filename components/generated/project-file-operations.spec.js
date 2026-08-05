@@ -61,6 +61,13 @@ describe('project file operations and queue pane density', () => {
     expect(queueEditorSource).toContain('v-bind="workspaceLayoutProps"');
   });
 
+  it('drives Add cassette through the generated queue relation action', () => {
+    expect(queueEditorSource).toContain(":label=\"$t('queues.addCassette')\"");
+    expect(queueEditorSource).toContain("selectedProducer.value?.kind === 'relationLink'");
+    expect(queueEditorSource).toContain('/process-definitions/active/actions/${encodeURIComponent(actionId)}/options');
+    expect(queueEditorSource).not.toContain('entitySourceProducerFields');
+  });
+
   it('keeps queue entries compact and makes their grid respond to actual card width', () => {
     expect(queueEntrySource).toContain('container-type: inline-size');
     expect(queueEntrySource).toContain('grid-template-columns: var(--ck-compact-preview-width) minmax(0, 1fr)');

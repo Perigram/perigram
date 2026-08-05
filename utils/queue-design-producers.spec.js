@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entitySourceProducerFields, resolveQueueDesignProducers } from './queue-design-producers.js';
+import { resolveQueueDesignProducers } from './queue-design-producers.js';
 
 const domain = {
   entities: [
@@ -8,12 +8,6 @@ const domain = {
     { type: 'artifact', collection: 'artifacts' }
   ],
   producers: [
-    {
-      id: 'selectExistingCassetteDesign',
-      kind: 'entitySource',
-      source: { entityType: 'cassette_design' },
-      output: { entityType: 'cassette_design' }
-    },
     {
       id: 'bakeCassetteDesignFromTemplate',
       kind: 'construction',
@@ -44,27 +38,43 @@ describe('queue design producer resolver', () => {
     });
 
     expect(producers.map(producer => producer.id)).toEqual([
-      'selectExistingCassetteDesign',
       'bakeCassetteDesignFromTemplate',
       'importCassetteDesignFromArtifact'
     ]);
   });
 
-  it('keeps the existing-design producer in process mode for queue editors with write access', () => {
+  it('uses the generated cassette relation action as the process-mode add operation', () => {
     const producers = resolveQueueDesignProducers({
       domain,
       processMode: true,
-      canEditQueue: true,
-      hasFeatureAccess: (feature, level) => feature === 'cassette_designs' && level === 'read'
+      processActions: [{
+        actionId: 'update-queue:link:cassettes',
+        label: 'Link cassette design',
+        actionKind: 'updateEntity',
+        entityType: 'queue',
+        relationMutation: {
+          key: 'cassettes',
+          targetType: 'cassette_design',
+          operation: 'link'
+        },
+        inputPolicy: {
+          prompt: true,
+          fields: [{
+            id: 'relation:cassettes',
+            type: 'entity',
+            entityType: 'cassette_design',
+            required: true,
+            prompt: true
+          }]
+        }
+      }]
     });
 
-    expect(producers.map(producer => producer.id)).toEqual(['selectExistingCassetteDesign']);
-    expect(entitySourceProducerFields(producers[0])).toEqual([
+    expect(producers).toEqual([
       expect.objectContaining({
-        id: 'entityId',
-        type: 'entity',
-        entityType: 'cassette_design',
-        required: true
+        id: 'update-queue:link:cassettes',
+        actionId: 'update-queue:link:cassettes',
+        kind: 'relationLink'
       })
     ]);
   });
