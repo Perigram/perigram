@@ -48,11 +48,12 @@ bounded IDE-style Explorer and file workspace:
   regions, resolves those ids through the effective user action manifest, and
   checks current project lifecycle applicability. It does not scan the global
   manifest or invent relation/upload controls.
-- `GeneratedWorkspacePane` accepts both pane-native entity files and registered
-  workspace pages. `GeneratedEntityFile` still owns entity identity, lifecycle,
-  local ellipsis actions, and detail-body overloads; the project entity itself
-  now renders its regular generated detail surface instead of a special action
-  launcher.
+- `GeneratedWorkspacePane` accepts both entity pages and registered workspace
+  pages. `GeneratedEntityFile` is only the pane adapter: it owns split/close
+  controls and mounts the canonical `GeneratedEntityDetail`/`EntityPage` for
+  the selected entity. It must not rebuild identity, lifecycle, actions, or a
+  compact summary surface. Detail overloads therefore behave identically in a
+  project pane and on a regular generated entity route.
 - `GeneratedWorkspacePage` resolves a page id through the fixed app-owned
   `workspace-pages.js` registry. Process data never selects a Vue component,
   and workspace-level actions are not represented as a registered page or

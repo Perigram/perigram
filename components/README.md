@@ -189,8 +189,9 @@ workspace files as every other entity; this section is navigation, not a second
 containment model, and does not depend on relation-key naming conventions.
 Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
-source navigation only, while panes contain only their selected entity or
-registered page and pane-local controls. Explorer starts as a compact 15% rail;
+source navigation only, while panes contain the canonical entity page for their
+selected entity or a registered workspace page, plus pane-local controls. A
+pane must not substitute a compact summary/detail-body-only surface. Explorer starts as a compact 15% rail;
 project mutation actions, including relation Link, remain in the strip even
 when a child region references the same compiled action. Unlink is not an owner
 strip command: each linked `EntityInlineRef` receives the matching contextual
