@@ -2772,7 +2772,7 @@
     "attachments": "Вложения",
     "addAttachment": "Добавить вложение",
     "attachmentKind": "Тип вложения",
-    "allowCreateRelatedEntity": "Разрешить создание связанной сущности",
+    "allowedArtifactCreation": "Разрешённое создание артефактов",
     "required": "Обязательно",
     "snapshots": "Снимки",
     "addSnapshot": "Добавить снимок",

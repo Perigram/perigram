@@ -381,7 +381,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       key: entry.key,
       targetType: entry.entityType,
       cardinality: entry.cardinality || 'one',
-      ...(entry.entityType === 'artifact' && entry.allowCreate ? {
+      ...(entry.entityType === 'artifact' && entry.attachmentKinds?.length ? {
         creator: {
           entityType: 'artifact',
           attachmentKinds: (entry.attachmentKinds || []).map(kind => ({
@@ -2796,7 +2796,7 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
     if (composition.mode === 'relations' && !['one', 'many'].includes(entry.cardinality || 'one')) {
       errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} has invalid relation cardinality`);
     }
-    if (composition.mode === 'relations' && entry.allowCreate) {
+    if (composition.mode === 'relations' && entry.attachmentKinds?.length) {
       const kinds = new Map(Object.values(domain.attachmentKinds || {}).map(kind => [kind.kind || kind.id, kind]));
       if (entry.entityType !== 'artifact') {
         errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} can create targets only for artifact relations`);
