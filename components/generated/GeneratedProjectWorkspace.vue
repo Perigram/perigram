@@ -75,6 +75,7 @@
                 :action-entries="actionEntriesForPane(pane)"
                 :closeable="paneCount > 1"
                 @execute-action="executeWorkspaceAction"
+                @open-entity="openWorkspaceEntity"
                 @open-page="openWorkspacePage"
                 @refresh="$emit('refresh')"
                 @split="orientation => splitPane(pane.id, orientation)"
@@ -102,6 +103,7 @@
           :action-entries="actionEntriesForPane(activePane)"
           :splittable="false"
           @execute-action="executeWorkspaceAction"
+          @open-entity="openWorkspaceEntity"
           @open-page="openWorkspacePage"
           @refresh="$emit('refresh')"
         />
@@ -164,9 +166,12 @@ const mobileSelectedKey = ref('');
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
 const paneTree = ref(createWorkspaceLeaf('pane-1'));
+const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const linkedEntityItems = ref([]);
+const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
+let openedEntityLoadSequence = 0;
 const explorerTreePt = {
   nodeContent: { class: '!px-1 !py-0.5 !gap-1' },
   nodeToggleButton: { class: '!h-6 !w-6' }
@@ -218,7 +223,7 @@ const entityItems = computed(() => [
     region: section.region
   })))
 ].filter(item => item?.entity && entityId(item.entity)));
-const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value]
+const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
 const linkedRefs = computed(() => Object.values(project.value?.relations || {})
   .flatMap(value => resolveEntityRelationRefs(value)));
@@ -308,13 +313,14 @@ watch(workspaceStorageKey, key => {
   paneSequence.value = state.paneSequence;
   explorerOpen.value = state.explorerOpen;
   explorerSize.value = state.explorerSize;
+  openedEntityRefs.value = state.openedEntityRefs;
   openedPageRefs.value = state.openedPageRefs;
   hydratedStorageKey.value = key;
   syncActiveSelection();
 }, { immediate: true });
 
 watch(
-  [paneTree, activePaneId, paneSequence, explorerOpen, explorerSize, openedPageRefs],
+  [paneTree, activePaneId, paneSequence, explorerOpen, explorerSize, openedEntityRefs, openedPageRefs],
   () => {
     const key = workspaceStorageKey.value;
     if (!key || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
@@ -324,6 +330,7 @@ watch(
       paneSequence: paneSequence.value,
       explorerOpen: explorerOpen.value,
       explorerSize: explorerSize.value,
+      openedEntityRefs: openedEntityRefs.value,
       openedPageRefs: openedPageRefs.value
     });
   },
@@ -361,6 +368,22 @@ watch(linkedRefs, async refs => {
   }));
   linkedEntityItems.value = loaded.filter(Boolean);
 }, { immediate: true });
+
+watch(openedEntityRefs, async refs => {
+  const sequence = ++openedEntityLoadSequence;
+  const loaded = await Promise.all(refs.map(async reference => {
+    const existing = entityItems.value.find(item => (
+      item.type === reference.entityType && entityId(item.entity) === reference.entityId
+    )) || linkedEntityItems.value.find(item => (
+      item.type === reference.entityType && entityId(item.entity) === reference.entityId
+    ));
+    const entity = existing?.entity
+      || await entityStore.fetchEntity(reference.entityType, reference.entityId, false, { silent: true });
+    return entity ? workspaceEntityItem(reference.entityType, entity) : null;
+  }));
+  if (sequence !== openedEntityLoadSequence) return;
+  openedEntityItems.value = loaded.filter(Boolean);
+}, { immediate: true, deep: true });
 
 watch(activePaneId, syncActiveSelection);
 
@@ -404,6 +427,12 @@ function closePane(paneId) {
   activePaneId.value = workspaceLeaves(paneTree.value)[0]?.id || 'pane-1';
 }
 
+function openWorkspaceEntity(request = {}) {
+  const item = rememberWorkspaceEntity(request.entityType, request.entity);
+  if (!item) return;
+  selectByKey(item.key);
+}
+
 function openWorkspacePage(request = {}) {
   const definition = resolveGeneratedWorkspacePage(request.pageId);
   if (!definition) return;
@@ -412,6 +441,8 @@ function openWorkspacePage(request = {}) {
     return;
   }
   if (definition.entityType !== request.entityType) return;
+
+  rememberWorkspaceEntity(request.entityType, request.entity);
 
   const entityItem = workspaceEntityItems.value.find(item => (
     item.type === definition.entityType
@@ -435,6 +466,25 @@ function openWorkspacePage(request = {}) {
     ...(entityItem.region ? { [`section:${entityItem.region.id}`]: true } : {})
   };
   syncActiveSelection();
+}
+
+function rememberWorkspaceEntity(entityType, entity) {
+  const id = entityId(entity);
+  if (!entityType || !id) return null;
+  const key = entityKey(entityType, entity);
+  const existing = workspaceEntityItems.value.find(item => item.key === key);
+  if (existing) return existing;
+
+  const item = workspaceEntityItem(entityType, entity);
+  openedEntityItems.value = [...openedEntityItems.value, item];
+  if (!openedEntityRefs.value.some(reference => reference.key === key)) {
+    openedEntityRefs.value = [...openedEntityRefs.value, {
+      key,
+      entityType,
+      entityId: id
+    }];
+  }
+  return item;
 }
 
 function syncActiveSelection() {
@@ -534,6 +584,16 @@ function workspacePageKey(pageId, entity) {
 
 function entityKey(type, entity) {
   return `${type}:${entityId(entity)}`;
+}
+
+function workspaceEntityItem(type, entity) {
+  return {
+    key: entityKey(type, entity),
+    kind: 'entity',
+    type,
+    entity,
+    region: null
+  };
 }
 
 function entityId(entity = null) {

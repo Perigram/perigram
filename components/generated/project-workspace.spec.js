@@ -14,6 +14,8 @@ const detailBodySource = readFileSync(new URL('./GeneratedEntityDetailBody.vue',
 const queueDetailSource = readFileSync(new URL('./GeneratedQueueDetail.vue', import.meta.url), 'utf8');
 const entityCardSource = readFileSync(new URL('../shared/EntityCard.vue', import.meta.url), 'utf8');
 const splitNodeSource = readFileSync(new URL('../shared/WorkspaceSplitNode.vue', import.meta.url), 'utf8');
+const regionSource = readFileSync(new URL('./GeneratedRegion.vue', import.meta.url), 'utf8');
+const collectionSource = readFileSync(new URL('./GeneratedEntityCollection.vue', import.meta.url), 'utf8');
 const entityWorkspaceSource = readFileSync(new URL('../shared/EntityWorkspace.vue', import.meta.url), 'utf8');
 const appLayoutSource = readFileSync(new URL('../../layouts/app.vue', import.meta.url), 'utf8');
 
@@ -114,6 +116,18 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain('saveProjectWorkspaceState(window.localStorage, key');
     expect(source).toContain('@resize="resizePaneSplit"');
     expect(splitNodeSource).toContain('@resizeend="$emit(\'resize\', node.id, $event.sizes)"');
+  });
+
+  it('keeps nested detail-region entities and their actions inside the active project pane', () => {
+    expect(entityFileSource).toContain('open-in-workspace');
+    expect(entityFileSource).toContain('@open-entity');
+    expect(regionSource).toContain(':open-in-workspace="openInWorkspace"');
+    expect(regionSource).toContain('@open-page');
+    expect(collectionSource).toContain("emit('open-entity', { entity, entityType: props.entityType })");
+    expect(collectionSource).toContain(':open-in-workspace="openInWorkspace"');
+    expect(source).toContain('@open-entity="openWorkspaceEntity"');
+    expect(source).toContain('openedEntityRefs');
+    expect(source).toContain('rememberWorkspaceEntity(request.entityType, request.entity)');
   });
 
   it('leaves initial and newly split panes empty until Explorer selection', () => {

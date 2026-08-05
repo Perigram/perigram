@@ -229,7 +229,10 @@ action manifest and project status.
 The cassette designer is an entity-bound registered page that mounts inside a
 pane and receives only workspace-visible cassette templates. Source-loaded
 children and explicitly linked entities use the same page-opening contract, so
-an accessible linked cassette can open the embedded designer. The recursive
+an accessible linked cassette can open the embedded designer. Entity links and
+actions inside a linked entity's own child regions stay in the active project
+pane as well; they must not fall back to route navigation or a dialog merely
+because the entity was discovered one detail level deeper. The recursive
 pane tree, split proportions, Explorer width/visibility, active pane,
 selections, and opened registered pages persist as versioned browser UI state
 scoped to the current user, organization, and project; only stable references
