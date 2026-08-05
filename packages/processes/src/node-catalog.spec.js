@@ -109,6 +109,21 @@ describe('process v3 node catalog', () => {
     expect(create.inputs.find(input => input.id === 'identity')?.required).toBe(true);
     expect(modify.inputs.map(input => input.id)).toEqual(['entity', 'identity', 'data', 'status.state.primary']);
     expect(create.outputs.map(output => output.id)).toEqual(['completed', 'result']);
+    const typedCreate = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      entityType: 'cassette_design',
+      blocks: ['identity', 'relations'],
+      construction: {
+        mode: 'bakeCassetteDesignFromTemplate',
+        inputs: [{ id: 'templateId', label: 'Cassette template', type: 'entity', entityType: 'cassette', required: true }]
+      }
+    }, context);
+    expect(typedCreate.inputs.map(input => input.id)).toEqual([
+      'templateId',
+      'identity',
+      'relations',
+      'status.state.primary'
+    ]);
     const automaticModify = resolveCatalogNodePorts({
       kind: 'effect.updateEntity',
       entityType: 'project',
@@ -208,7 +223,7 @@ describe('process v3 node catalog', () => {
       }
     });
 
-    expect(create.inputs.map(input => input.id)).toEqual(['name', 'templateId']);
+    expect(create.inputs.map(input => input.id)).toEqual(['name', 'templateId', 'status.state.primary']);
     expect(create.inputs[1].type).toMatchObject({ base: 'entityRef', entityType: 'cassette' });
   });
 

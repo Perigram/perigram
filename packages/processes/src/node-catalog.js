@@ -586,10 +586,14 @@ function effectInputs(kind, types) {
     label: input.label || input.id
   }));
   if (kind === 'effect.createEntity' && types.constructionMode !== 'genericCreate') {
-    return types.constructionInputs.map(input => ({
-      ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
-      label: input.label || input.id
-    }));
+    return [
+      ...types.constructionInputs.map(input => ({
+        ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
+        label: input.label || input.id
+      })),
+      ...types.blocks.map(block => socket(block, processType('block', { block }), DATA)),
+      socket('status.state.primary', processType('status', { entityType: types.entity.entityType }))
+    ];
   }
   if (kind === 'effect.createEntity') return [
     ...types.blocks.map(block => socket(block, processType('block', {

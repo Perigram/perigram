@@ -3086,9 +3086,7 @@ function syncProcessNode(node = {}) {
     delete node.fieldSchemas;
   }
   if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
-    node.blocks = node.kind === 'effect.createEntity' && node.construction?.mode !== 'genericCreate'
-      ? []
-      : node.kind === 'effect.createEntity'
+    node.blocks = node.kind === 'effect.createEntity'
       ? constructibleEntityBlocks(node.entityType)
       : writableEntityBlocks(node.entityType);
     node.fields = [];

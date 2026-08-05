@@ -1329,9 +1329,11 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
   const service = getAppRegistry().getEntityService(entityType);
   if (!service) throw new Error(`Entity service missing for ${entityType}`);
   if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
-    const draft = kind === 'effect.createEntity' && (record.construction?.mode || 'genericCreate') === 'genericCreate'
-      ? processBlockInputRecord(record, inputs)
-      : processConstructionInputRecord(record, inputs);
+    const constructionDraft = processConstructionInputRecord(record, inputs);
+    const blockDraft = kind === 'effect.createEntity' ? processBlockInputRecord(record, inputs) : {};
+    const draft = (record.construction?.mode || 'genericCreate') === 'genericCreate'
+      ? blockDraft
+      : { ...blockDraft, ...constructionDraft };
     const targetState = inputs['status.state.primary'] || record.status?.to;
     const statusMetadata = draft.status?.metadata && typeof draft.status.metadata === 'object'
       ? draft.status.metadata
@@ -1339,7 +1341,11 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
     delete draft.status;
     const parentEntities = {};
     if (entityType === 'cassette_design' && record.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-      return await executeBakeCassetteDesign(record, draft, resolveOrganizationId(auth), auth, processData, parentEntities);
+      const created = await executeBakeCassetteDesign({
+        ...record,
+        status: { ...(record.status || {}), to: targetState || '' }
+      }, draft, resolveOrganizationId(auth), auth, processData, parentEntities);
+      return await applyTypedConstructionBlocks(record, blockDraft, created, service, auth);
     }
     if (entityType === 'cassette_design' && record.construction?.mode === 'importCassetteDesignFromArtifact') {
       const data = draft;
@@ -1353,7 +1359,18 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
         data.layerMapping || null,
         data.parameters || null
       );
-      return imported.design;
+      const created = await applyTypedConstructionBlocks(record, blockDraft, imported.design, service, auth);
+      if (!targetState) return created;
+      const targetId = created?._id || created?.identity?.uid;
+      const status = await statusService.setInitialStateForOrganization(
+        entityType,
+        targetId,
+        targetState,
+        resolveOrganizationId(auth),
+        auth.userId,
+        processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
+      );
+      return { ...created, status };
     }
     if (!service.create) throw new Error(`Entity service cannot create ${entityType}`);
     const parentContext = await resolveParentCreationContext(record, parentEntities, auth);
@@ -1449,6 +1466,18 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
     }, auth);
   }
   throw new Error(`Unsupported process effect ${kind}`);
+}
+
+async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, created = null, service = null, auth = {}) {
+  if (!created || !Object.keys(blockDraft).length) return created;
+  if (!service?.processUpdate) throw new Error(`Entity service cannot apply constructed blocks to ${record.entityType}`);
+  const targetId = created._id || created.identity?.uid;
+  if (!targetId) throw new Error(`Created ${record.entityType} has no id`);
+  const patch = Object.fromEntries(Object.entries(blockDraft).map(([block, value]) => [
+    block,
+    { ...(created[block] || {}), ...(value || {}) }
+  ]));
+  return await service.processUpdate(targetId, patch, auth);
 }
 
 function commandEffectPayload(commandId, inputs = {}) {

@@ -238,8 +238,13 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, doma
       entityType: node.entityType || derived[actionId]?.entityType || '',
       commandId: node.commandId || derived[actionId]?.commandId || '',
       parentEntityType: promptContract.parentEntityType || derived[actionId]?.parentEntityType || '',
-      construction: node.kind === 'effect.createEntity' && node.blocks?.length
-        ? { mode: 'genericCreate', inputs: [], blockComposed: true }
+      construction: node.kind === 'effect.createEntity'
+        ? (node.construction?.mode || 'genericCreate') === 'genericCreate' && node.blocks?.length
+          ? { mode: 'genericCreate', inputs: [], blockComposed: true }
+          : {
+              ...(node.construction || derived[actionId]?.construction || {}),
+              blockComposed: Boolean(node.blocks?.length)
+            }
         : (node.construction || derived[actionId]?.construction || {}),
       mutation: {
         ...(derived[actionId]?.mutation || {}),

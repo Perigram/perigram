@@ -194,6 +194,11 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('updateProcessNodeConstructionMode(selectedProcessNode, mode)');
   });
 
+  it('keeps canonical blocks on typed entity constructors', () => {
+    expect(designerSource).not.toContain("node.kind === 'effect.createEntity' && node.construction?.mode !== 'genericCreate'\n      ? []");
+    expect(designerSource).toContain("node.kind === 'effect.createEntity'\n      ? constructibleEntityBlocks(node.entityType)");
+  });
+
   it('keeps Vue reactive process records outside the plain-data migrator', () => {
     expect(designerSource).toContain('migrateProcessDataflowDefinition(clonePlainData(value || {}), cncDomain)');
   });
