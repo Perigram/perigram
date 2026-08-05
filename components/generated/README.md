@@ -49,10 +49,11 @@ bounded IDE-style Explorer and file workspace:
   checks current project lifecycle applicability. It does not scan the global
   manifest or invent relation/upload controls.
 - `GeneratedWorkspacePane` accepts both entity pages and registered workspace
-  pages. `GeneratedEntityFile` is only the pane adapter: it owns split/close
-  controls and mounts the canonical `GeneratedEntityDetail`/`EntityPage` for
-  the selected entity. It must not rebuild identity, lifecycle, actions, or a
-  compact summary surface. Detail overloads therefore behave identically in a
+  pages. `GeneratedEntityFile` is only the pane adapter: its compact header
+  identifies the open entity and owns split/close controls, while its body
+  mounts the canonical `GeneratedEntityDetail`/`EntityPage` for that entity.
+  It must not rebuild lifecycle, actions, or a compact summary surface. Detail
+  overloads therefore behave identically in a
   project pane and on a regular generated entity route. The adapter also scopes
   the selected entity type's compiled `entityDetail` screen with the selected
   entity id and loads its readable sources through `useGeneratedScreen()`.
@@ -65,12 +66,20 @@ bounded IDE-style Explorer and file workspace:
   Explorer item.
 - The built-in `cassette-designer` page opens from a workspace cassette file's
   access-gated designer action. It receives only cassette templates already
-  available in the project workspace sources and mounts `CassetteDesignerV2` in
-  embedded mode so the designer owns the pane rather than a dialog. Additional
-  app-owned pages register through the same fixed registry.
+  available among the workspace's source-loaded or explicitly linked entities
+  and mounts `CassetteDesignerV2` in embedded mode so the designer owns the pane
+  rather than a dialog. Linked entities and source-loaded children use the same
+  page-opening lookup; relation navigation does not reduce their capabilities.
+  Additional app-owned pages register through the same fixed registry.
 - PrimeVue splitters form a recursive split tree. A pane can split right or
   down, and nested horizontal/vertical splits keep independent selections and
-  scrolling. There is no reserved right inspector pane.
+  scrolling. Split proportions, Explorer width/visibility, active pane,
+  selections, and opened registered pages are persisted as versioned browser UI
+  state scoped to the current user, organization, and project. Stored data
+  contains stable entity/page references, never entity DTOs, and is validated
+  before restoration. A reference remains in its pane while asynchronous screen
+  sources and linked entities load; temporary absence must not erase restored
+  navigation state. There is no reserved right inspector pane.
 
 Selectable rows still come from access-filtered screen source states; the
 Explorer contains no workspace actions or unrelated controls. Clicking an

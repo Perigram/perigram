@@ -38,9 +38,13 @@ Shared frontend utility modules used by Vue pages/components.
   before the drawer opens.
 - `workspace-splits.js`: Pure recursive split-tree operations for IDE-style
   workspaces. It creates leaves, splits a targeted leaf horizontally or
-  vertically, updates pane-local selection, collapses parents when a file
-  closes, and enumerates leaves without coupling state mutation to Vue or
-  PrimeVue.
+  vertically, updates pane-local selection and split proportions, collapses
+  parents when a file closes, and enumerates leaves without coupling state
+  mutation to Vue or PrimeVue.
+- `project-workspace-state.js`: Versioned serialization and defensive
+  normalization for project workspace UI state. Storage keys are scoped by
+  user, organization, and project; payloads contain pane/page references and
+  layout preferences, never entity DTOs.
 - `interactive-target.js`: Shared DOM guard for entity cards that have parent
   click/select actions. It detects nested links, buttons, form controls, status
   controls, geometry previews, and nested inline/compact entity cards so parent

@@ -190,7 +190,9 @@ containment model, and does not depend on relation-key naming conventions.
 Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain the canonical entity page for their
-selected entity or a registered workspace page, plus pane-local controls. A
+selected entity or a registered workspace page, plus pane-local controls. The
+pane header identifies the open entity with `IdentityBlock`; the canonical
+entity page remains the sole owner of lifecycle and entity actions. A
 pane must not substitute a compact summary/detail-body-only surface. It scopes
 and loads the selected entity's own compiled detail screen so child regions
 remain available inside Project. Explorer starts as a compact 15% rail;
@@ -220,7 +222,13 @@ compiled for the project plus direct project-child creation actions from its
 loaded child regions, then resolves and filters them through the effective user
 action manifest and project status.
 The cassette designer is an entity-bound registered page that mounts inside a
-pane and receives only source-visible cassette templates. Operational bodies
+pane and receives only workspace-visible cassette templates. Source-loaded
+children and explicitly linked entities use the same page-opening contract, so
+an accessible linked cassette can open the embedded designer. The recursive
+pane tree, split proportions, Explorer width/visibility, active pane,
+selections, and opened registered pages persist as versioned browser UI state
+scoped to the current user, organization, and project; only stable references
+are stored. Operational bodies
 receive file mode and remove redundant rounded panel borders when the file pane
 already owns the boundary. Panes can be recursively split right or down and
 retain pane-local selections. An overload must not discover extra sources or
