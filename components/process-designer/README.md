@@ -111,6 +111,14 @@ identity uid, Mongo `_id`, origin, status history, and other service-owned
 fields have no authoring fallback and cannot be composed or modified. Initial
 status is the separate lifecycle input.
 
+Entity inputs use the same socket contract for every binding source. A typed
+entity-reference literal authors one exact entity id, a direct entity socket
+uses the entity available in the current run, and `read.queryEntities` accepts
+typed predicate sockets to produce a filtered entity list. Consumers infer the
+entity type and item/list cardinality from the wire. Lineage composition also
+uses its downstream Create Entity schema to resolve the constructible lineage
+key, so its inspector does not expose a separate entity-type selector.
+
 Only configuration that defines the operation or its ports stays on the node:
 value/type, entity, field, block, operation, trigger identity/mode, and socket
 fallback. Access grants, selected compose/modify field sets, retry policy, and

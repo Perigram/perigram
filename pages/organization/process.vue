@@ -533,17 +533,7 @@
                             @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { key: value })"
                           />
                           <Select
-                            v-if="openBlockComposition(selectedProcessNode).mode === 'ancestors'"
-                            :model-value="entry.entityType"
-                            :options="entityTypeOptions"
-                            option-label="label"
-                            option-value="value"
-                            size="small"
-                            filter
-                            @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { entityType: value })"
-                          />
-                          <Select
-                            v-else-if="openBlockComposition(selectedProcessNode).mode === 'attachments'"
+                            v-if="openBlockComposition(selectedProcessNode).mode === 'attachments'"
                             :model-value="entry.attachmentKind"
                             :options="designer.attachmentKindOptions"
                             option-label="label"
@@ -3094,6 +3084,40 @@ function applyInferredProcessNodeInputs(record = {}, node = {}) {
       entry.cardinality = sourceType?.base === 'array' || sourceType?.shape === 'list' ? 'many' : 'one';
     }
   }
+  if (record.compositionMode === 'ancestors' && Array.isArray(record.entries)) {
+    const consumerEntityTypes = [...new Set(edges.value
+      .filter(edge => String(edge.source) === String(node.id))
+      .map(edge => nodes.value.find(item => String(item.id) === String(edge.target)))
+      .map(target => target?.type === 'processNode' ? draft.value?.data?.processNodes?.[target.data?.refId || target.id] : null)
+      .filter(target => target?.kind === 'effect.createEntity' && target.entityType)
+      .map(target => target.entityType))];
+    const targetEntityType = consumerEntityTypes.length === 1 ? consumerEntityTypes[0] : '';
+    for (const entry of record.entries) {
+      const edge = edges.value.find(item => (
+        String(item.target) === String(node.id)
+        && String(item.targetHandle || '').replace(/^(input|data):/, '') === `entry:${entry.id}`
+      ));
+      const sourceNode = edge ? nodes.value.find(item => String(item.id) === String(edge.source)) : null;
+      const sourceRecord = sourceNode?.type === 'processNode'
+        ? draft.value?.data?.processNodes?.[sourceNode.data?.refId || sourceNode.id]
+        : null;
+      const sourcePort = sourceRecord
+        ? processNodeOutputs(sourceRecord).find(port => port.id === String(edge?.sourceHandle || '').replace(/^(output|data):/, ''))
+        : null;
+      const entityType = sourcePort?.type?.base === 'entityRef' && sourcePort.type.shape !== 'list'
+        ? sourcePort.type.entityType || ''
+        : '';
+      const matches = targetEntityType && entityType
+        ? designer.fieldsForEntity(targetEntityType, 'lineage').filter(field => (
+            field.constructible !== false
+            && field.type?.base === 'entityRef'
+            && field.type?.entityType === entityType
+          ))
+        : [];
+      entry.entityType = entityType;
+      entry.key = matches.length === 1 ? matches[0].value.slice('lineage.'.length) : '';
+    }
+  }
   syncProcessNode(record);
 }
 
@@ -3882,7 +3906,7 @@ function createOpenBlockEntry(node = {}) {
   };
   const entry = { id: `entry_${Date.now()}_${Math.random().toString(36).slice(2, 7)}` };
   if (composition?.mode === 'ancestors') {
-    Object.assign(entry, { key: '', entityType: defaultEntityType() });
+    Object.assign(entry, { key: '', entityType: '' });
   }
   if (composition?.mode === 'relations') {
     Object.assign(entry, {
@@ -4240,15 +4264,18 @@ function inferGenericNodeTypeFromConnection(connection = {}) {
     syncProcessNode(sourceRecord);
   }
   const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
-  if (targetRecord.compositionMode === 'relations' && targetInput.startsWith('entry:')) {
+  if (['relations', 'ancestors'].includes(targetRecord.compositionMode) && targetInput.startsWith('entry:')) {
     const entryId = targetInput.slice('entry:'.length);
     const entry = (targetRecord.entries || []).find(item => item.id === entryId);
     if (entry) {
       entry.entityType = sourcePort.type?.base === 'array'
         ? sourcePort.type.itemType?.entityType || ''
         : sourcePort.type?.entityType || '';
-      entry.cardinality = sourcePort.type?.base === 'array' || sourcePort.type?.shape === 'list' ? 'many' : 'one';
+      if (targetRecord.compositionMode === 'relations') {
+        entry.cardinality = sourcePort.type?.base === 'array' || sourcePort.type?.shape === 'list' ? 'many' : 'one';
+      }
       syncProcessNode(targetRecord);
+      applyInferredProcessNodeInputs(targetRecord, targetNode);
     }
   }
   const genericKinds = new Set([

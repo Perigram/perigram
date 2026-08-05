@@ -106,7 +106,7 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const data = definition.data || definition;
   const processNodes = normalizeRecord(data.processNodes);
-  return inferProcessDataflowContracts({
+  const normalized = inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
     dataflowVersion: data.dataflowVersion,
     sourceTemplateId: data.sourceTemplateId || null,
@@ -124,6 +124,52 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     screens: normalizeRecord(data.screens),
     compiled: data.compiled || null
   });
+  return inferProcessDataflowContracts(inferLineageComposerEntries(normalized, domain));
+}
+
+function inferLineageComposerEntries(process = {}, domain = {}) {
+  const nodesById = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
+  const recordsByNodeId = new Map([...nodesById].map(([nodeId, node]) => [
+    nodeId,
+    process.processNodes?.[String(node.data?.refId || node.id)]
+  ]));
+  const processNodes = { ...(process.processNodes || {}) };
+
+  for (const [graphNodeId, composer] of recordsByNodeId) {
+    if (!['record.composeBlock', 'record.modifyBlock'].includes(composer?.kind)
+      || composer.block !== 'lineage'
+      || composer.compositionMode !== 'ancestors'
+      || !Array.isArray(composer.entries)) continue;
+    const consumerEdges = (process.graph?.edges || []).filter(edge => String(edge.source) === graphNodeId);
+    const targetTypes = [...new Set(consumerEdges
+      .map(edge => recordsByNodeId.get(String(edge.target)))
+      .filter(record => record?.kind === 'effect.createEntity' && record.entityType)
+      .map(record => record.entityType))];
+    if (targetTypes.length !== 1) continue;
+    const targetFields = entityFieldSchemas(domain, targetTypes[0])
+      .filter(field => field.block === 'lineage' && field.constructible !== false);
+    const entries = composer.entries.map(entry => {
+      const edge = (process.graph?.edges || []).find(item => (
+        String(item.target) === graphNodeId
+        && normalizeHandle(item.targetHandle) === `entry:${entry.id}`
+      ));
+      const sourceNode = edge ? nodesById.get(String(edge.source)) : null;
+      const source = sourceNode ? resolveNodePort(process, sourceNode, edge.sourceHandle, 'output') : null;
+      const exactRef = composer.inputDefaults?.[`entry:${entry.id}`];
+      const entityType = source?.kind === 'entity' && !source.multiple
+        ? source.entityType
+        : String(exactRef?.type || exactRef?.entityType || '');
+      const matches = targetFields.filter(field => field.type?.base === 'entityRef' && field.type?.entityType === entityType);
+      if (!entityType || matches.length !== 1) return entry;
+      return { ...entry, entityType, key: matches[0].path.slice('lineage.'.length) };
+    });
+    processNodes[String(composer.id)] = { ...composer, entries };
+  }
+  return { ...process, processNodes };
+}
+
+function normalizeHandle(handle = '') {
+  return String(handle).replace(/^(input|output|data):/, '');
 }
 
 function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}) {

@@ -140,8 +140,14 @@ action grants; pre-existing
 entity-profile grants are an independent grant source, not a filter for action
 grant creation. Generic Entity creation accepts typed canonical block values.
 Parentage is a field of a composed Lineage block, not an extra Create socket.
-The compiler recognizes one declared lineage entity reference as contextual
-parent scope while the effect boundary persists its normalized id. Derived
+An ancestor entry takes its entity type from the connected entity socket (or an
+exact typed entity-reference default). When that Lineage block feeds one Create
+Entity consumer, normalization resolves the entry key from the consumer's
+constructible lineage field schema. Designers therefore do not author an entity
+type or guess storage keys such as `projectId`; ambiguous or undeclared lineage
+relationships remain validation errors. The compiler recognizes one resolved
+lineage entity reference as contextual parent scope while the effect boundary
+persists its normalized id. Derived
 entities are not selectable in generic Create. Domain constructors project as
 fixed producer-service effects; for example,
 `bakeCassetteDesignFromTemplate` delegates to the cassette template

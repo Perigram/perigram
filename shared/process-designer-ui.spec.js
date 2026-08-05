@@ -177,4 +177,9 @@ describe('process designer canvas UI', () => {
   it('keeps Vue reactive process records outside the plain-data migrator', () => {
     expect(designerSource).toContain('migrateProcessDataflowDefinition(clonePlainData(value || {}), cncDomain)');
   });
+
+  it('authors exact entity references as a typed id instead of raw JSON', () => {
+    expect(nodeSource).toContain("record.type?.base === 'entityRef'");
+    expect(nodeSource).toContain("{ type: record.type?.entityType || record.entityType || '', id: value }");
+  });
 });

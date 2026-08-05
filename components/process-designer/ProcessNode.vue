@@ -66,7 +66,14 @@
         @update:model-value="value => update({ path: value })"
       />
       <InputText
-        v-if="record.kind === 'source.literalItem' && !['number', 'integer', 'boolean', 'date', 'dateTime', 'status'].includes(record.type?.base)"
+        v-if="record.kind === 'source.literalItem' && record.type?.base === 'entityRef'"
+        :model-value="record.value?.id || ''"
+        size="small"
+        :placeholder="$t('common.id')"
+        @update:model-value="value => update({ value: value ? { type: record.type?.entityType || record.entityType || '', id: value } : null })"
+      />
+      <InputText
+        v-if="record.kind === 'source.literalItem' && !['entityRef', 'number', 'integer', 'boolean', 'date', 'dateTime', 'status'].includes(record.type?.base)"
         :model-value="literalDisplay"
         size="small"
         @update:model-value="updateLiteral"

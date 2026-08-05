@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateProcessDefinition } from './index.js';
+import { normalizeProcessDefinition, validateProcessDefinition } from './index.js';
 
 const domain = {
   entities: [{ type: 'project', blocks: ['identity'] }],
@@ -205,6 +205,41 @@ describe('process v3 validation', () => {
 
     expect(rejected.errors).toContain('Edge compose-create cannot send lineage.projectId to queue: composed entry type does not match the entity field');
     expect(accepted.errors).not.toContain('Edge compose-create cannot send lineage.projectId to queue: composed entry type does not match the entity field');
+  });
+
+  it('infers a lineage field from the connected entity and consuming create schema', () => {
+    const queueDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        queue: [{
+          path: 'lineage.projectId',
+          block: 'lineage',
+          type: { base: 'entityRef', shape: 'item', nullable: false, entityType: 'project' },
+          constructible: true,
+          writable: true
+        }]
+      },
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      }
+    };
+    const process = entityBlockProcess('project');
+    process.processNodes.compose.entries[0].key = '';
+    process.processNodes.compose.entries[0].entityType = '';
+
+    const normalized = normalizeProcessDefinition(process, queueDomain);
+    const result = validateProcessDefinition(process, queueDomain);
+
+    expect(normalized.processNodes.compose.entries[0]).toMatchObject({
+      key: 'projectId',
+      entityType: 'project'
+    });
+    expect(result.errors).not.toContain('Process node compose has a missing or duplicate entry key');
+    expect(result.errors).not.toContain('Edge compose-create cannot send lineage. to queue: field is not constructible');
   });
 
   it('rejects service-owned identity uid in block authoring', () => {
