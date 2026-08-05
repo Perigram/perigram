@@ -281,10 +281,18 @@ body {
     color: var(--p-text-color);
 }
 
-/* Pointer focus must not leak browser/PrimeVue default white outlines. */
-:where(button, a, input, textarea, select, [tabindex]):focus:not(:focus-visible) {
+/* App controls own their selected state; suppress browser/PrimeVue focus rings. */
+:where(button, a, input, textarea, select, [tabindex]):focus {
     outline: none !important;
     box-shadow: none !important;
+}
+
+.workspace-tab-strip {
+    scrollbar-width: none;
+}
+
+.workspace-tab-strip::-webkit-scrollbar {
+    display: none;
 }
 
 ::selection {

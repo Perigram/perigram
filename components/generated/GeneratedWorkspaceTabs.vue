@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
     <div
-      class="flex min-w-0 items-stretch overflow-x-auto"
+      class="workspace-tab-strip flex min-w-0 items-stretch overflow-x-auto"
       role="tablist"
       :aria-label="$t('project.openFiles')"
     >

@@ -193,6 +193,8 @@ source navigation only, while panes contain the canonical entity page for their
 selected entity or a registered workspace page, plus pane-local controls. Each
 pane header owns its IDE-style file tabs: each entity tab carries its compact
 lifecycle status and close affordance, followed by a standalone add-tab control.
+Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
+hidden, matching an IDE file-tab strip.
 Pane split/close commands live in a pane-level ellipsis menu. Generated entity
 actions not already owned by an operational editor belong to the active tab body
 below the tab strip. Operational editor tabs own their complete action surface,
