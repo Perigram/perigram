@@ -217,7 +217,9 @@ describe('@cutkit/processes compiler', () => {
           id: 'queue_lineage',
           kind: 'record.composeBlock',
           block: 'lineage',
-          fields: ['lineage.projectId'],
+          compositionMode: 'ancestors',
+          entries: [{ id: 'project', key: 'projectId', entityType: 'project' }],
+          inputDefaults: { 'entry:project': { type: 'project', id: 'project-1' } }
         },
         create_queue: {
           id: 'create_queue',
@@ -256,7 +258,10 @@ describe('@cutkit/processes compiler', () => {
           }
         ]
       }
-    }, domain);
+    }, {
+      ...domain,
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } }
+    });
 
     expect(compiled.actions.create_queue).toMatchObject({
       id: 'create_queue',

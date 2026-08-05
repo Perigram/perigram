@@ -153,7 +153,8 @@ function inferOpenBlockEntityBindings(process = {}, domain = {}) {
         && normalizeHandle(item.targetHandle) === `entry:${entry.id}`
       ));
       const sourceNode = edge ? nodesById.get(String(edge.source)) : null;
-      const source = sourceNode ? resolveNodePort(process, sourceNode, edge.sourceHandle, 'output') : null;
+      const sourceRecord = sourceNode ? recordsByNodeId.get(String(sourceNode.id)) : null;
+      const source = sourceRecord ? catalogDataOutput(sourceRecord, edge.sourceHandle, domain) : null;
       const exactRef = composer.inputDefaults?.[`entry:${entry.id}`];
       const binding = resolveEntityBinding({
         source: source || exactRef || {},
@@ -169,6 +170,22 @@ function inferOpenBlockEntityBindings(process = {}, domain = {}) {
     processNodes[String(composer.id)] = { ...composer, entries };
   }
   return { ...process, processNodes };
+}
+
+function catalogDataOutput(record = {}, handle = '', domain = {}) {
+  const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
+  const ports = resolveCatalogNodePorts(record, {
+    fieldSchema: structural
+      ? structuralFieldSchema(domain, record.path)
+      : entityFieldSchema(domain, record.entityType, record.path),
+    fieldSchemas: structural
+      ? blockFieldSchemas(domain, record.block)
+      : entityFieldSchemas(domain, record.entityType),
+    blockComposition: domain.blockComposition?.[record.block] || null,
+    command: domain.commands?.[record.commandId] || null
+  }).outputs.filter(port => port.role === 'data');
+  const id = normalizeHandle(handle);
+  return ports.find(port => port.id === id) || (ports.length === 1 ? ports[0] : null);
 }
 
 function normalizeHandle(handle = '') {
@@ -279,7 +296,8 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     : [];
   const fields = [...new Set([...composerFields, ...defaultIdentityFields])];
   const resolvedSchemas = fields.map(path => structuralFieldSchema(domain, path)).filter(Boolean);
-  const parentTypes = [...new Set(schemas
+  const allSchemas = [...schemas, ...resolvedSchemas.filter(schema => !schemas.some(item => item.path === schema.path))];
+  const parentTypes = [...new Set(allSchemas
     .filter(field => field.block === 'lineage' && field.type?.entityType !== 'organization')
     .map(field => field.type?.entityType)
     .filter(Boolean))];
@@ -287,7 +305,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     fields,
     defaults: Object.assign({}, ...composers.map(record => record.inputDefaults || {})),
     wiredFields,
-    schemas: [...schemas, ...resolvedSchemas.filter(schema => !schemas.some(item => item.path === schema.path))],
+    schemas: allSchemas,
     parentEntityType: node.parentEntityType || (parentTypes.length === 1 ? parentTypes[0] : '')
   };
 }
