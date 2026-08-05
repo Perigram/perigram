@@ -340,13 +340,44 @@ describe('process v3 validation', () => {
     expect(result.definition.processNodes.compose.entries[0]).toMatchObject({
       key: 'library',
       entityType: 'library',
-      cardinality: 'one'
+      cardinality: 'one',
+      bindingMode: 'socket',
+      operation: 'replace'
     });
     expect(result.errors).not.toContain(
       'Edge compose-create cannot send relations.library to project: composed entry type does not match the entity field'
     );
     expect(result.errors).not.toContain(
       'Edge compose-create cannot send relations.library to project: field is not constructible'
+    );
+  });
+
+  it('rejects relation mutation operations outside the canonical contract', () => {
+    const relationDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'library', blocks: ['relations'] }],
+      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }]
+      }
+    };
+    const process = {
+      dataflowVersion: 3,
+      processNodes: {
+        modify: {
+          id: 'modify',
+          kind: 'record.modifyBlock',
+          block: 'relations',
+          compositionMode: 'relations',
+          entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one', operation: 'mergeMaybe' }]
+        }
+      },
+      graph: { nodes: [{ id: 'modify', type: 'processNode', data: { refId: 'modify' } }], edges: [] }
+    };
+
+    expect(validateProcessDefinition(process, relationDomain).errors).toContain(
+      'Process node modify entry library has invalid relation mutation'
     );
   });
 

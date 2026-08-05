@@ -543,6 +543,15 @@
                             @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { attachmentKind: value })"
                           />
                           <Select
+                            v-else-if="openBlockComposition(selectedProcessNode).mode === 'relations' && selectedProcessNode.kind === 'record.modifyBlock'"
+                            :model-value="entry.operation || 'append'"
+                            :options="relationMutationOptions"
+                            option-label="label"
+                            option-value="value"
+                            size="small"
+                            @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { operation: value })"
+                          />
+                          <Select
                             v-else-if="openBlockComposition(selectedProcessNode).mode === 'entries'"
                             :model-value="entry.type?.base"
                             :options="processValueTypeOptions"
@@ -1084,6 +1093,11 @@ const processNodeOperationLabels = {
   startOfDay: t('processDesigner.operationLabels.startOfDay'),
   endOfDay: t('processDesigner.operationLabels.endOfDay')
 };
+const relationMutationOptions = [
+  { label: t('processDesigner.operationLabels.link'), value: 'append' },
+  { label: t('processDesigner.operationLabels.unlink'), value: 'remove' },
+  { label: t('processDesigner.operationLabels.replaceRelation'), value: 'replace' }
+];
 const statusSeverityOptions = [
   { label: 'info', value: 'info' },
   { label: 'success', value: 'success' },
@@ -3008,6 +3022,14 @@ function syncProcessNode(node = {}) {
       node.compositionMode = composition.mode;
       node.compositionValueBase = composition.valueBase;
       if (!Array.isArray(node.entries)) node.entries = [createOpenBlockEntry(node)];
+      if (composition.mode === 'relations') {
+        node.entries = node.entries.map(entry => ({
+          ...entry,
+          ...(node.kind === 'record.modifyBlock'
+            ? { operation: ['append', 'remove', 'replace'].includes(entry.operation) ? entry.operation : 'append' }
+            : {})
+        }));
+      }
       node.fields = [];
     } else {
       delete node.compositionMode;
@@ -3886,7 +3908,8 @@ function createOpenBlockEntry(node = {}) {
     Object.assign(entry, {
       key: '',
       entityType: '',
-      cardinality: 'one'
+      cardinality: 'one',
+      ...(node.kind === 'record.modifyBlock' ? { operation: 'append' } : {})
     });
   }
   if (composition?.mode === 'attachments') Object.assign(entry, {

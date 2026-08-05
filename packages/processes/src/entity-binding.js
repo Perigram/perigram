@@ -10,8 +10,17 @@ export function entityBindingSourceContract(source = {}, fallbackEntityType = ''
   return {
     valid: Boolean(exactReferenceType || fallbackEntityType) || ['entity', 'entityRef'].includes(base) || ['entity', 'entity_list'].includes(source.kind),
     entityType,
-    cardinality
+    cardinality,
+    mode: entityBindingMode(source)
   };
+}
+
+function entityBindingMode(source = {}) {
+  if (['exact', 'socket', 'filtered', 'context'].includes(source.bindingMode)) return source.bindingMode;
+  if (source.kind === 'entity_list' || source.type?.shape === 'list' || source.type?.base === 'array') return 'filtered';
+  if (source.kind === 'entity' || source.kind === 'entityRef' || (source.type && typeof source.type === 'object')) return 'socket';
+  if (typeof source.type === 'string' && (source.id || source._id || source.identity?.uid)) return 'exact';
+  return 'socket';
 }
 
 export function resolveEntityBinding({

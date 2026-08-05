@@ -1678,6 +1678,87 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('exposes manual relation updates as generated entity-detail actions', () => {
+    const relationDomain = {
+      ...domain,
+      fieldAccess: {
+        ...domain.fieldAccess,
+        project: { ...domain.fieldAccess.project, write: [...domain.fieldAccess.project.write, 'relations.*'] }
+      },
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        project: [{
+          path: 'relations.library',
+          block: 'relations',
+          type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'library' },
+          readable: true,
+          writable: true
+        }]
+      },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }]
+      },
+      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } }
+    };
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 3,
+      roles: {
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
+      processNodes: {
+        current: { id: 'current', kind: 'read.currentEntity', entityType: 'project' },
+        deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'project', blocks: ['relations'] },
+        library: {
+          id: 'library',
+          kind: 'source.literalItem',
+          type: { base: 'entityRef', shape: 'item', entityType: 'library' },
+          value: { type: 'library', id: 'library-1' }
+        },
+        modify: {
+          id: 'modify',
+          kind: 'record.modifyBlock',
+          block: 'relations',
+          compositionMode: 'relations',
+          entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one', operation: 'append' }]
+        },
+        update_relations: {
+          id: 'update_relations',
+          kind: 'effect.updateEntity',
+          label: 'Link library',
+          entityType: 'project',
+          blocks: ['relations'],
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] },
+          inputs: [
+            { id: 'entity', entityType: 'project', required: true },
+            { id: 'relations', block: 'relations' }
+          ],
+          outputs: [{ id: 'result', entityType: 'project' }]
+        }
+      },
+      graph: {
+        nodes: ['current', 'deconstruct', 'library', 'modify', 'update_relations']
+          .map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'current-deconstruct', source: 'current', sourceHandle: 'data:entity', target: 'deconstruct', targetHandle: 'data:entity', role: 'data' },
+          { id: 'current-update', source: 'current', sourceHandle: 'data:entity', target: 'update_relations', targetHandle: 'data:entity', role: 'data' },
+          { id: 'deconstruct-modify', source: 'deconstruct', sourceHandle: 'data:relations', target: 'modify', targetHandle: 'data:block', role: 'data' },
+          { id: 'library-modify', source: 'library', sourceHandle: 'data:value', target: 'modify', targetHandle: 'data:entry:library', role: 'data' },
+          { id: 'modify-update', source: 'modify', sourceHandle: 'data:block', target: 'update_relations', targetHandle: 'data:relations', role: 'data' }
+        ]
+      }
+    }, relationDomain);
+
+    expect(compiled.actions.update_relations).toMatchObject({
+      actionKind: 'updateEntity',
+      entityType: 'project',
+      mutation: { blocks: ['relations'] }
+    });
+    expect(compiled.screens.auto_role_admin_project_detail.regions
+      .find(region => region.id === 'main').actions).toContain('update_relations');
+  });
+
   it('compiles create actions with explicit parent inputs', () => {
     const compiled = compileProcessDefinition({
       actions: {

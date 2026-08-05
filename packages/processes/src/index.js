@@ -157,7 +157,7 @@ function inferOpenBlockEntityBindings(process = {}, domain = {}) {
       const source = sourceRecord ? catalogDataOutput(sourceRecord, edge.sourceHandle, domain) : null;
       const exactRef = composer.inputDefaults?.[`entry:${entry.id}`];
       const binding = resolveEntityBinding({
-        source: source || exactRef || {},
+        source: source ? { ...source, bindingMode: entityBindingModeForRecord(sourceRecord) } : exactRef || {},
         authoredEntityType: entry.entityType,
         authoredPath: entry.key ? `${composer.block}.${entry.key}` : '',
         fields: targetFields,
@@ -169,12 +169,23 @@ function inferOpenBlockEntityBindings(process = {}, domain = {}) {
         ...entry,
         entityType: binding.entityType,
         cardinality: binding.cardinality,
-        key: binding.path.slice(`${composer.block}.`.length)
+        key: binding.path.slice(`${composer.block}.`.length),
+        bindingMode: binding.mode,
+        ...(composer.block === 'relations'
+          ? { operation: composer.kind === 'record.modifyBlock' ? entry.operation || 'append' : 'replace' }
+          : {})
       };
     });
     processNodes[String(composer.id)] = { ...composer, entries };
   }
   return { ...process, processNodes };
+}
+
+function entityBindingModeForRecord(record = {}) {
+  if (record.kind === 'source.literalItem') return 'exact';
+  if (record.kind === 'read.currentEntity') return 'context';
+  if (['read.queryEntities', 'read.filterRecords'].includes(record.kind)) return 'filtered';
+  return 'socket';
 }
 
 function catalogDataOutput(record = {}, handle = '', domain = {}) {
@@ -2691,6 +2702,10 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
     keys.add(key);
     if (composition.mode === 'relations' && !['one', 'many'].includes(entry.cardinality || 'one')) {
       errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} has invalid relation cardinality`);
+    }
+    if (composition.mode === 'relations' && node.kind === 'record.modifyBlock'
+      && !['append', 'remove', 'replace'].includes(entry.operation || 'append')) {
+      errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} has invalid relation mutation`);
     }
     if (composition.mode === 'entries') {
       try {

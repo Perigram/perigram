@@ -135,6 +135,45 @@ describe('process v3 data execution', () => {
     expect(modified.branches[0].items).toEqual([{ name: 'Cut queue', slug: 'queue' }]);
   });
 
+  it('applies append, remove, and replace semantics to typed relation entries', async () => {
+    const base = createDataPacket({ libraries: [{ type: 'library', id: 'a' }] });
+    const append = await executeProcessDataNode({
+      kind: 'record.modifyBlock',
+      block: 'relations',
+      compositionMode: 'relations',
+      entries: [{ id: 'libraries', key: 'libraries', entityType: 'library', cardinality: 'many', operation: 'append' }]
+    }, {
+      block: base,
+      'entry:libraries': createDataPacket([{ type: 'library', id: 'a' }, { type: 'library', id: 'b' }])
+    });
+    expect(append.branches[0].items).toEqual([{ libraries: [
+      { type: 'library', id: 'a' },
+      { type: 'library', id: 'b' }
+    ] }]);
+
+    const remove = await executeProcessDataNode({
+      kind: 'record.modifyBlock',
+      block: 'relations',
+      compositionMode: 'relations',
+      entries: [{ id: 'libraries', key: 'libraries', entityType: 'library', cardinality: 'many', operation: 'remove' }]
+    }, {
+      block: append,
+      'entry:libraries': createDataPacket({ type: 'library', id: 'a' })
+    });
+    expect(remove.branches[0].items).toEqual([{ libraries: [{ type: 'library', id: 'b' }] }]);
+
+    const replace = await executeProcessDataNode({
+      kind: 'record.modifyBlock',
+      block: 'relations',
+      compositionMode: 'relations',
+      entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one', operation: 'replace' }]
+    }, {
+      block: createDataPacket({ library: { type: 'library', id: 'a' } }),
+      'entry:library': createDataPacket({ type: 'library', id: 'b' })
+    });
+    expect(replace.branches[0].items).toEqual([{ library: { type: 'library', id: 'b' } }]);
+  });
+
   it('packs packet lists into one array-valued block field and unpacks them explicitly', async () => {
     const refs = [{ type: 'queue', id: 'q1' }, { type: 'queue', id: 'q2' }];
     const packed = await executeProcessDataNode(

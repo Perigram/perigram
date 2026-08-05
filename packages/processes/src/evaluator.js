@@ -155,7 +155,53 @@ function writeOpenBlockEntry(block, mode, entry, value) {
   }
   const key = String(entry.key || '').trim();
   if (!key) throw new Error(`Block entry ${entry.id} requires a key`);
+  if (mode === 'relations') {
+    writeRelationEntry(block, key, entry, value);
+    return;
+  }
   writePath(block, key, structuredClone(value));
+}
+
+function writeRelationEntry(block, key, entry, value) {
+  const operation = entry.operation || 'replace';
+  const incoming = relationValues(value);
+  if (operation === 'replace') {
+    writePath(block, key, entry.cardinality === 'many' ? distinctReferences(incoming) : incoming[0] ?? null);
+    return;
+  }
+  const current = relationValues(readPath(block, key));
+  if (operation === 'append') {
+    const combined = distinctReferences([...current, ...incoming]);
+    writePath(block, key, entry.cardinality === 'many' ? combined : combined.at(-1) ?? null);
+    return;
+  }
+  if (operation === 'remove') {
+    const removed = new Set(incoming.map(entityReferenceKey));
+    const remaining = current.filter(item => !removed.has(entityReferenceKey(item)));
+    writePath(block, key, entry.cardinality === 'many' ? remaining : remaining[0] ?? null);
+    return;
+  }
+  throw new Error(`Unsupported relation mutation ${operation}`);
+}
+
+function relationValues(value) {
+  if (value == null) return [];
+  return (Array.isArray(value) ? value : [value]).map(item => structuredClone(item));
+}
+
+function distinctReferences(values) {
+  const seen = new Set();
+  return values.filter(value => {
+    const key = entityReferenceKey(value);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function entityReferenceKey(value) {
+  if (!value || typeof value !== 'object') return JSON.stringify(value);
+  return `${value.type || value.entityType || ''}:${value.id || value._id || value.identity?.uid || JSON.stringify(value)}`;
 }
 
 function blockLocalPath(block, path) {

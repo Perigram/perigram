@@ -16,6 +16,15 @@ describe('entity bindings', () => {
     expect(entityBindingSourceContract(source)).toMatchObject({ valid: true, entityType, cardinality });
   });
 
+  it.each([
+    [{ type: 'project', id: 'p1' }, 'exact'],
+    [{ kind: 'entity', entityType: 'project' }, 'socket'],
+    [{ kind: 'entity_list', entityType: 'project' }, 'filtered'],
+    [{ bindingMode: 'context', kind: 'entity', entityType: 'project' }, 'context']
+  ])('retains the entity binding mode', (source, mode) => {
+    expect(entityBindingSourceContract(source).mode).toBe(mode);
+  });
+
   it('resolves lineage fields only from the supplied consumer schema', () => {
     expect(resolveEntityBinding({ source: { kind: 'entity', entityType: 'project' }, fields, block: 'lineage' }))
       .toMatchObject({ path: 'lineage.projectId', entityType: 'project', cardinality: 'one' });
