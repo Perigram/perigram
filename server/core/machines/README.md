@@ -21,7 +21,11 @@ The system consists of three main parts: the transition engine, the dynamic hook
   when a process workflow overrides an entity lifecycle. Service-owned flows
   such as `nesting_run` solver completion still need their hidden
   `NESTING -> COMPLETE` / `NESTING -> ERROR` intents even when the user-facing
-  process adds custom statuses.
+  process adds custom statuses. If a process-authored state does not declare a
+  domain system intent, workflow composition adds a hidden self-transition for
+  that intent. This lets internal events such as `artifactFileStored` complete
+  and enter status history without replacing the process-owned state or
+  invalidating status-scoped grants.
   Process-authored user transitions are authorized by their compiled
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the

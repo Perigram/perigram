@@ -36,6 +36,12 @@ inventing a generic entity-create path or choosing a frontend editor.
 - `GET /api/artifacts/:id/metadata`
 - `DELETE /api/artifacts/:id`
 
+Upload requests carry the declared kind, file, name, and parent lineage. The
+service owns file metadata such as the original filename; clients do not edit
+that storage object as arbitrary JSON. When a process owns the artifact
+lifecycle, the hidden `artifactFileStored` system intent is recorded without
+replacing the process-authored current state.
+
 ## Generation Notes
 
 `generateAttachment()` handles `LAYOUT_DXF` for two source types:

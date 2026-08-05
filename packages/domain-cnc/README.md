@@ -114,7 +114,10 @@ while workflow preview files remain read-only.
 Upload creation contracts also declare accepted file types and creator fields.
 The shared artifact creator and detail editor consume that contract, so adding
 an upload-backed kind does not require a relation-, cassette-, or page-specific
-upload implementation.
+upload implementation. Creator fields are user-authored typed values only;
+storage metadata such as the original filename is maintained by the artifact
+service and is not a generic JSON form field. `DXF_SOURCE` therefore asks for a
+name and file, while its stored metadata remains internal.
 `generateAttachment` is a polymorphic command: its process-designer contract is
 one abstract `Attachment source` input with `attachments.generate` capability
 and accepted source types.
