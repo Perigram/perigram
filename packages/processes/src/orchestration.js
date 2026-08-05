@@ -233,7 +233,12 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
       if (port.required) throw new Error(`Node ${record.id || node.id} requires input ${port.id}`);
       continue;
     }
-    inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, new Set());
+    try {
+      inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, new Set());
+    } catch (error) {
+      if (!port.required && error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
+      throw error;
+    }
   }
   return inputs;
 }
@@ -288,7 +293,9 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   );
   if (contextualOutput) return contextualOutput;
   if (record.kind.endsWith('Trigger') || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) {
-    throw new Error(`Operational node ${record.id || node.id} has not emitted data output ${resolvedOutputId}`);
+    const error = new Error(`Operational node ${record.id || node.id} has not emitted data output ${resolvedOutputId}`);
+    error.code = 'PROCESS_OUTPUT_UNAVAILABLE';
+    throw error;
   }
   if (resolving.has(cacheKey)) throw new Error(`Data cycle detected at ${nodeId}:${outputId}`);
   resolving.add(cacheKey);
@@ -308,7 +315,12 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
       if (port.required) throw new Error(`Node ${record.id || node.id} requires input ${port.id}`);
       continue;
     }
-    inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, resolving);
+    try {
+      inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, resolving);
+    } catch (error) {
+      if (!port.required && error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
+      throw error;
+    }
   }
   const packet = await executeProcessDataNode(record, inputs, {
     ...(environment.data || {}),
