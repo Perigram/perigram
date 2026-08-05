@@ -22,7 +22,6 @@
 import { computed } from 'vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import { useAuthStore } from '~/stores/auth';
-import { actionProducesEntityType } from '~/utils/queue-producers.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveGeneratedEntityDetailOverload } from '~/components/generated/overloads.js';
 
@@ -41,10 +40,7 @@ defineEmits(['refresh']);
 
 const authStore = useAuthStore();
 const detailOverload = computed(() => resolveGeneratedEntityDetailOverload(props.entityType));
-const queueProducerActions = computed(() => props.entityType === 'queue'
-  ? authStore.actionManifest.filter(action => actionProducesEntityType(action, 'cassette_design'))
-  : []);
-const detailActions = computed(() => uniqueActions([...props.actions, ...queueProducerActions.value]));
+const detailActions = computed(() => uniqueActions(props.actions));
 const canEditSheetDesign = computed(() => hasPermissionGrant({
   permissions: authStore.activePermissions,
   feature: 'sheet_designs',
