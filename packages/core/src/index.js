@@ -713,6 +713,17 @@ export function validateEffectDefinition(definition) {
 
 export function validateAttachmentKindDefinition(definition) {
   if (!definition?.kind) throw new Error('Attachment kind definition requires kind');
+  const creationMode = definition.creation?.mode || 'workflow';
+  if (!['upload', 'command', 'workflow'].includes(creationMode)) {
+    throw new Error(`Attachment kind ${definition.kind} has invalid creation mode ${creationMode}`);
+  }
+  if (creationMode === 'command' && !definition.creation?.commandId) {
+    throw new Error(`Attachment kind ${definition.kind} command creation requires commandId`);
+  }
+  const editorMode = definition.editor?.mode || 'none';
+  if (!['none', 'layout'].includes(editorMode)) {
+    throw new Error(`Attachment kind ${definition.kind} has invalid editor mode ${editorMode}`);
+  }
 }
 
 function deepFreeze(value) {

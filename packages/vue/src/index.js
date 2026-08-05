@@ -70,6 +70,8 @@ export function createDomainUiAdapter(domain = {}) {
     getIcon: type => surfaceMap[type]?.icon || 'pi pi-box',
     getAttachmentKind: kind => attachmentKindMap[kind] || null,
     getAttachmentPreview: kind => attachmentKindMap[kind]?.preview || { mode: 'download' },
+    getAttachmentCreation: kind => attachmentKindMap[kind]?.creation || { mode: 'workflow' },
+    getAttachmentEditor: kind => attachmentKindMap[kind]?.editor || { mode: 'none' },
     getDownloadEndpoint: (type, id) => endpointMap[type]?.download?.(id) || getSingleEndpoint(endpointMap, type, id)
   };
 }

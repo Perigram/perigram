@@ -171,12 +171,17 @@
             auto-resize
           />
           <Select
-            v-else-if="field.type === 'entity'"
+            v-else-if="field.type === 'entity' && promptOptions[field.id]?.length"
             v-model="promptValues[field.id]"
             :options="promptOptions[field.id] || []"
             option-label="label"
             option-value="value"
             :entity-type="field.entityType || field.accepts?.[0] || ''"
+          />
+          <InputText
+            v-else-if="field.type === 'entity'"
+            v-model="promptValues[field.id]"
+            :placeholder="$t('generatedScreen.exactEntityId')"
           />
           <Select
             v-else-if="field.type === 'enum'"
@@ -464,11 +469,8 @@ async function loadPromptOptions(fields = []) {
   await Promise.all(fields
     .filter(field => ['entity', 'entityList'].includes(field.type))
     .map(async (field) => {
-      const options = await entityOptions(field.entityType || field.accepts?.[0]);
+      const options = await entityOptions(field.entityType || field.accepts?.[0], field).catch(() => []);
       promptOptions[field.id] = options;
-      if (field.required && !options.length) {
-        throw new Error(t('generatedScreen.noOptions', { field: field.label || field.id }));
-      }
       if (field.type !== 'entityList' && field.required && !promptValues[field.id] && options[0]?.value) {
         promptValues[field.id] = options[0].value;
       }
@@ -484,7 +486,7 @@ function promptFieldHidden(field = {}, action = pendingAction.value) {
     && field.id === 'templateId';
 }
 
-async function entityOptions(entityType) {
+async function entityOptions(entityType, field = {}) {
   if (entityType === 'cassette') {
     const items = await $fetch('/api/cassettes');
     return items
@@ -494,6 +496,7 @@ async function entityOptions(entityType) {
   if (!entityType) return [];
   const items = await $fetch(domainUi.getListEndpoint(uiEntityType(entityType)));
   return (Array.isArray(items) ? items : items.items || items.data || [])
+    .filter(entity => !field.attachmentKinds?.length || field.attachmentKinds.includes(entity.data?.type))
     .map(entity => entityOption(entity, entityType));
 }
 
