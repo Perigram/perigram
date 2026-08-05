@@ -25,10 +25,11 @@
         :gutter-size="1"
         :pt="workspaceSplitterPt"
         class="hidden h-full min-h-0 !border-0 lg:flex"
+        @resizeend="resizeWorkspaceShell"
       >
         <SplitterPanel
           key="workspace-explorer"
-          :size="15"
+          :size="explorerSize"
           :min-size="10"
           :class="['min-h-0 min-w-0 overflow-hidden !border-0', { '!hidden': !explorerOpen }]"
         >
@@ -58,7 +59,7 @@
 
         <SplitterPanel
           key="workspace-content"
-          :size="85"
+          :size="100 - explorerSize"
           :min-size="30"
           class="min-h-0 min-w-0 overflow-hidden !border-0"
         >
@@ -66,6 +67,7 @@
             :node="paneTree"
             :active-pane-id="activePaneId"
             @activate="activatePane"
+            @resize="resizePaneSplit"
           >
             <template #default="{ pane }">
               <GeneratedWorkspacePane
@@ -134,8 +136,14 @@ import {
   createWorkspaceLeaf,
   splitWorkspaceLeaf,
   updateWorkspaceLeaf,
+  updateWorkspaceSplit,
   workspaceLeaves
 } from '~/utils/workspace-splits.js';
+import {
+  loadProjectWorkspaceState,
+  projectWorkspaceStorageKey,
+  saveProjectWorkspaceState
+} from '~/utils/project-workspace-state.js';
 
 const props = defineProps({
   screen: { type: Object, required: true },
@@ -149,6 +157,7 @@ const entityStore = useEntityStore();
 const domainUi = useCutkitDomainUi();
 const { t, te } = useI18n();
 const explorerOpen = ref(true);
+const explorerSize = ref(15);
 const selectionKeys = ref({});
 const expandedKeys = ref({});
 const mobileSelectedKey = ref('');
@@ -157,6 +166,7 @@ const paneSequence = ref(1);
 const paneTree = ref(createWorkspaceLeaf('pane-1'));
 const openedPageRefs = ref([]);
 const linkedEntityItems = ref([]);
+const hydratedStorageKey = ref('');
 const explorerTreePt = {
   nodeContent: { class: '!px-1 !py-0.5 !gap-1' },
   nodeToggleButton: { class: '!h-6 !w-6' }
@@ -169,6 +179,11 @@ const regions = computed(() => props.screen.regions || []);
 const mainRegion = computed(() => regions.value.find(region => sourceStateForRegion(region).source?.mode === 'single') || regions.value[0] || null);
 const project = computed(() => mainRegion.value ? sourceStateForRegion(mainRegion.value).entity : null);
 const projectKey = computed(() => entityKey('project', project.value));
+const workspaceStorageKey = computed(() => projectWorkspaceStorageKey({
+  userId: authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id,
+  organizationId: authStore.organizationData?._id || authStore.userData?.organizationId,
+  projectId: entityId(project.value)
+}));
 const projectItem = computed(() => project.value ? {
   key: projectKey.value,
   kind: 'entity',
@@ -203,9 +218,11 @@ const entityItems = computed(() => [
     region: section.region
   })))
 ].filter(item => item?.entity && entityId(item.entity)));
+const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value]
+  .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
 const linkedRefs = computed(() => Object.values(project.value?.relations || {})
   .flatMap(value => resolveEntityRelationRefs(value)));
-const cassetteItems = computed(() => entityItems.value.filter(item => item.type === 'cassette'));
+const cassetteItems = computed(() => workspaceEntityItems.value.filter(item => item.type === 'cassette'));
 const projectActions = computed(() => projectContextActionEntries({
   actionManifest: authStore.actionManifest,
   screenActionIds: props.screenActions || [],
@@ -218,7 +235,7 @@ const projectActions = computed(() => projectContextActionEntries({
   projectContext: projectActionContext.value
 }));
 const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
-  const entityItem = entityItems.value.find(item => (
+  const entityItem = workspaceEntityItems.value.find(item => (
     item.type === reference.entityType
     && entityId(item.entity) === reference.entityId
   ));
@@ -233,8 +250,7 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
   };
 }).filter(Boolean));
 const workspaceItems = computed(() => [
-  ...entityItems.value,
-  ...linkedEntityItems.value,
+  ...workspaceEntityItems.value,
   ...openedPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
@@ -261,7 +277,8 @@ const explorerNodes = computed(() => {
         children: linkedEntityItems.value.map(item => ({
           key: `linked:${item.key}`,
           icon: domainUi.getIcon(item.type),
-          data: { item }
+          data: { item },
+          children: openedPagesForEntity(item).map(pageNode)
         }))
       }] : []),
       ...childSections.value.map(section => ({
@@ -283,6 +300,36 @@ const explorerNodes = computed(() => {
   }];
 });
 
+watch(workspaceStorageKey, key => {
+  if (!key || typeof window === 'undefined') return;
+  const state = loadProjectWorkspaceState(window.localStorage, key);
+  paneTree.value = state.paneTree;
+  activePaneId.value = state.activePaneId;
+  paneSequence.value = state.paneSequence;
+  explorerOpen.value = state.explorerOpen;
+  explorerSize.value = state.explorerSize;
+  openedPageRefs.value = state.openedPageRefs;
+  hydratedStorageKey.value = key;
+  syncActiveSelection();
+}, { immediate: true });
+
+watch(
+  [paneTree, activePaneId, paneSequence, explorerOpen, explorerSize, openedPageRefs],
+  () => {
+    const key = workspaceStorageKey.value;
+    if (!key || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
+    saveProjectWorkspaceState(window.localStorage, key, {
+      paneTree: paneTree.value,
+      activePaneId: activePaneId.value,
+      paneSequence: paneSequence.value,
+      explorerOpen: explorerOpen.value,
+      explorerSize: explorerSize.value,
+      openedPageRefs: openedPageRefs.value
+    });
+  },
+  { deep: true }
+);
+
 watch(project, value => {
   if (!value || !activePane.value) return;
   syncActiveSelection();
@@ -293,15 +340,7 @@ watch(project, value => {
   };
 }, { immediate: true });
 
-watch(workspaceItems, items => {
-  const visibleKeys = new Set(items.map(item => item.key));
-  for (const pane of panes.value) {
-    if (pane.selectionKey && !visibleKeys.has(pane.selectionKey)) {
-      paneTree.value = updateWorkspaceLeaf(paneTree.value, pane.id, {
-        selectionKey: ''
-      });
-    }
-  }
+watch(workspaceItems, () => {
   syncActiveSelection();
 }, { deep: true });
 
@@ -349,6 +388,16 @@ function splitPane(paneId, orientation) {
   activePaneId.value = nextPane.id;
 }
 
+function resizePaneSplit(splitId, sizes) {
+  paneTree.value = updateWorkspaceSplit(paneTree.value, splitId, sizes);
+}
+
+function resizeWorkspaceShell(event) {
+  if (!explorerOpen.value || !Array.isArray(event?.sizes)) return;
+  const nextSize = Number(event.sizes[0]);
+  if (Number.isFinite(nextSize)) explorerSize.value = Math.min(40, Math.max(10, nextSize));
+}
+
 function closePane(paneId) {
   if (paneCount.value <= 1) return;
   paneTree.value = closeWorkspaceLeaf(paneTree.value, paneId);
@@ -364,7 +413,7 @@ function openWorkspacePage(request = {}) {
   }
   if (definition.entityType !== request.entityType) return;
 
-  const entityItem = entityItems.value.find(item => (
+  const entityItem = workspaceEntityItems.value.find(item => (
     item.type === definition.entityType
     && entityId(item.entity) === entityId(request.entity)
   ));

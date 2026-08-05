@@ -68,7 +68,7 @@ describe('generated project workspace architecture', () => {
     expect(entityPageSource).toContain('<EntityActionsPopover');
     expect(entityCardSource).toContain('<EntityActionsPopover');
     expect(entityFileSource).not.toContain('<EntityActionsPopover');
-    expect(entityFileSource).not.toContain('<IdentityBlock');
+    expect(entityFileSource).toContain('<IdentityBlock');
     expect(entityFileSource).not.toContain('<EntityStatus');
     expect(entityPageSource).toContain('<EntityActionsPopover');
   });
@@ -86,9 +86,9 @@ describe('generated project workspace architecture', () => {
     expect(source.match(/\$t\('project\.explorer'\)/g)).toHaveLength(1);
     expect(source.match(/:node="paneTree"/g)).toHaveLength(1);
     expect(source).toContain('key="workspace-content"');
-    expect(source).toContain(':size="15"');
+    expect(source).toContain(':size="explorerSize"');
     expect(source).toContain(':min-size="10"');
-    expect(source).toContain(':size="85"');
+    expect(source).toContain(':size="100 - explorerSize"');
     expect(source).toContain(':pt="workspaceSplitterPt"');
     expect(source).toContain("{ '!hidden': !explorerOpen }");
     expect(source).toContain("gutter: { class: explorerOpen.value ? '' : '!hidden' }");
@@ -107,11 +107,21 @@ describe('generated project workspace architecture', () => {
     expect(appLayoutSource).toContain("'max-w-none overflow-hidden p-0");
   });
 
+  it('opens pages for linked entities and restores versioned per-project pane state', () => {
+    expect(source).toContain('const workspaceEntityItems = computed');
+    expect(source).toContain('workspaceEntityItems.value.find');
+    expect(source).toContain('loadProjectWorkspaceState(window.localStorage, key)');
+    expect(source).toContain('saveProjectWorkspaceState(window.localStorage, key');
+    expect(source).toContain('@resize="resizePaneSplit"');
+    expect(splitNodeSource).toContain('@resizeend="$emit(\'resize\', node.id, $event.sizes)"');
+  });
+
   it('leaves initial and newly split panes empty until Explorer selection', () => {
     expect(source).toContain("const paneTree = ref(createWorkspaceLeaf('pane-1'));");
     expect(source).toContain('createWorkspaceLeaf(`pane-${++paneSequence.value}`)');
     expect(source).toContain("const key = activePane.value?.selectionKey || '';");
-    expect(source).toContain('if (pane.selectionKey && !visibleKeys.has(pane.selectionKey))');
+    expect(source).toContain('watch(workspaceItems, () =>');
+    expect(source).not.toContain('visibleKeys.has(pane.selectionKey)');
     expect(source).not.toContain('defaultPaneKey');
     expect(source).not.toContain('|| projectItem.value');
     expect(workspacePaneSource).toContain('data-empty-workspace-pane');

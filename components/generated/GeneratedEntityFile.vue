@@ -3,7 +3,9 @@
     v-if="item?.entity"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
   >
-    <header class="flex h-10 shrink-0 items-center justify-end gap-2 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-2 text-[var(--ck-chrome-foreground)]">
+    <header class="flex h-10 shrink-0 items-center gap-2 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-2 text-[var(--ck-chrome-foreground)]">
+      <i :class="[domainUi.getIcon(item.type), 'shrink-0']" aria-hidden="true" />
+      <IdentityBlock :entity="item.entity" variant="compact" class="min-w-0 flex-1" />
       <Button
         v-if="splittable"
         icon="pi pi-arrows-h"
@@ -76,7 +78,9 @@ import { computed } from 'vue';
 import Button from 'primevue/button';
 import GeneratedEntityDetail from '~/components/generated/GeneratedEntityDetail.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
 import {
@@ -95,6 +99,7 @@ const props = defineProps({
 
 const emit = defineEmits(['execute-action', 'open-page', 'refresh', 'split', 'close']);
 const authStore = useAuthStore();
+const domainUi = useCutkitDomainUi();
 const entityId = computed(() => props.item?.entity?._id || props.item?.entity?.identity?.uid || '');
 const detailScreen = computed(() => generatedDetailScreenForEntityType({
   screens: authStore.screenManifest,

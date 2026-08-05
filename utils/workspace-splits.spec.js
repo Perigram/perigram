@@ -4,6 +4,7 @@ import {
   createWorkspaceLeaf,
   splitWorkspaceLeaf,
   updateWorkspaceLeaf,
+  updateWorkspaceSplit,
   workspaceLeaves
 } from './workspace-splits.js';
 
@@ -14,8 +15,20 @@ describe('workspace split tree', () => {
     const nested = splitWorkspaceLeaf(horizontal, 'pane-2', 'vertical', createWorkspaceLeaf('pane-3', 'sheet:s1'));
 
     expect(nested.orientation).toBe('horizontal');
+    expect(nested.sizes).toEqual([50, 50]);
     expect(nested.children[1].orientation).toBe('vertical');
     expect(workspaceLeaves(nested).map(pane => pane.id)).toEqual(['pane-1', 'pane-2', 'pane-3']);
+  });
+
+  it('updates only the resized split proportions', () => {
+    const root = splitWorkspaceLeaf(
+      createWorkspaceLeaf('pane-1'),
+      'pane-1',
+      'horizontal',
+      createWorkspaceLeaf('pane-2')
+    );
+
+    expect(updateWorkspaceSplit(root, root.id, [30, 70]).sizes).toEqual([30, 70]);
   });
 
   it('updates one pane selection without changing its siblings', () => {
