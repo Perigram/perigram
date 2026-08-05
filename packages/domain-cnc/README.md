@@ -122,7 +122,9 @@ runtime can call the correct construction service and preserve editor
 contracts. `cassette` uses the ordinary entity-create contract because a valid
 OCCS template is an invariant of the cassette service, not an optional
 construction strategy. Without an explicit definition, every create receives
-the complete starter OCCS document.
+the complete starter OCCS document. The construction contract declares no
+constructor-field inputs: process nodes compose cassette identity, lineage, and
+other canonical blocks like any ordinary entity.
 When a `cassette` create action is connected to a `library` parent, the process
 runtime sends `libraryId` to the cassette service so the resulting template
 is stored as a child of the library.
