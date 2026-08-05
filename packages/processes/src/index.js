@@ -108,6 +108,7 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const data = definition.data || definition;
   const processNodes = normalizeRecord(data.processNodes);
+  const effectActions = deriveV3EffectActions(data.actions, processNodes, data.graph, domain);
   const normalized = inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
     dataflowVersion: data.dataflowVersion,
@@ -117,7 +118,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
-    actions: normalizeActions(deriveV3EffectActions(data.actions, processNodes, data.graph, domain)),
+    actions: normalizeActions(deriveRelationMutationActions(effectActions)),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
     statusDefinitions: normalizeRecord(data.statusDefinitions),
@@ -240,7 +241,12 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, doma
       construction: node.kind === 'effect.createEntity' && node.blocks?.length
         ? { mode: 'genericCreate', inputs: [], blockComposed: true }
         : (node.construction || derived[actionId]?.construction || {}),
-      mutation: { ...(derived[actionId]?.mutation || {}), fields, blocks: [...(node.blocks || [])] },
+      mutation: {
+        ...(derived[actionId]?.mutation || {}),
+        fields,
+        blocks: [...(node.blocks || [])],
+        relationContracts: promptContract.relationContracts
+      },
       inputPolicy: {
         ...(derived[actionId]?.inputPolicy || {}),
         prompt: fields.some(path => !suppliedFields.has(path)),
@@ -261,6 +267,52 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, doma
       outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : [],
       events: [{ id: 'completed', label: `${node.label || actionKind} completed`, kind: 'event' }]
     };
+  }
+  return derived;
+}
+
+function deriveRelationMutationActions(actions = {}) {
+  const derived = { ...actions };
+  for (const [sourceActionId, sourceAction] of Object.entries(actions)) {
+    if ((sourceAction.trigger?.mode || 'manual') !== 'manual') continue;
+    for (const relation of sourceAction.mutation?.relationContracts || []) {
+      if (!sourceAction.entityType || !relation.key || !relation.targetType) continue;
+      for (const operation of ['link', 'unlink']) {
+        const id = `${sourceActionId}:${operation}:${relation.key}`;
+        const input = {
+          id: `relation:${relation.key}`,
+          label: relation.targetType.replace(/_/g, ' '),
+          path: `relations.${relation.key}`,
+          type: 'entity',
+          entityType: relation.targetType,
+          relationKey: relation.key,
+          cardinality: relation.cardinality || 'one',
+          required: true,
+          prompt: true
+        };
+        derived[id] = {
+          id,
+          label: `${operation === 'link' ? 'Link' : 'Unlink'} ${relation.targetType.replace(/_/g, ' ')}`,
+          actionKind: 'updateEntity',
+          entityType: sourceAction.entityType,
+          relationMutation: {
+            key: relation.key,
+            targetType: relation.targetType,
+            cardinality: relation.cardinality || 'one',
+            operation
+          },
+          mutation: { fields: [`relations.${relation.key}`], relationContracts: [relation] },
+          inputPolicy: { prompt: true, fields: [input] },
+          access: sourceAction.access,
+          trigger: { mode: 'manual' },
+          inputs: [
+            { id: 'entity', entityType: sourceAction.entityType, required: true },
+            input
+          ],
+          outputs: [{ id: 'entity', entityType: sourceAction.entityType }]
+        };
+      }
+    }
   }
   return derived;
 }
@@ -319,12 +371,21 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     .filter(field => field.block === 'lineage' && field.type?.entityType !== 'organization')
     .map(field => field.type?.entityType)
     .filter(Boolean))];
+  const relationContracts = composers
+    .filter(record => record.compositionMode === 'relations' || record.block === 'relations')
+    .flatMap(record => (record.entries || []).map(entry => ({
+      key: entry.key,
+      targetType: entry.entityType,
+      cardinality: entry.cardinality || 'one'
+    })))
+    .filter(relation => relation.key && relation.targetType);
   return {
     fields,
     defaults: Object.assign({}, ...composers.map(record => record.inputDefaults || {})),
     wiredFields,
     schemas: allSchemas,
-    parentEntityType: node.parentEntityType || (parentTypes.length === 1 ? parentTypes[0] : '')
+    parentEntityType: node.parentEntityType || (parentTypes.length === 1 ? parentTypes[0] : ''),
+    relationContracts
   };
 }
 
@@ -940,8 +1001,9 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}) {
         parentEntityType: parentEntityType || null,
         parentRevision: normalizeParentRevision(action.parentRevision, parentEntityType, domain),
         status: actionStatusForExposure(action, actionWindow, access, process),
+        relationMutation: action.relationMutation || null,
         construction: normalizeConstruction(action.construction, action.entityType, domain),
-        inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
+        inputPolicy: compiledInputPolicy(action, domain),
         inputs,
         outputs,
         contracts: compileActionEntityContracts(exposedAction, inputs, outputs, actionWindow, domain)
@@ -2059,9 +2121,10 @@ function compileActions(actions = {}, process = {}, domain = {}) {
       commandId: action.commandId || null,
       status: compileActionStatus(action, process),
       mutation: action.mutation || { fields: [] },
+      relationMutation: action.relationMutation || null,
       projection: action.projection || null,
       construction: normalizeConstruction(action.construction, action.entityType, domain),
-      inputPolicy: normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain),
+      inputPolicy: compiledInputPolicy(action, domain),
       statusRef: action.statusRef || null,
       access: normalizeActionAccess(action.access),
       trigger: {
@@ -2273,6 +2336,12 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
   };
 }
 
+function compiledInputPolicy(action = {}, domain = {}) {
+  return (action.actionKind || 'createEntity') === 'createEntity'
+    ? normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain)
+    : normalizeInputPolicy(action.inputPolicy);
+}
+
 function defaultConstructionMode() {
   return 'genericCreate';
 }
@@ -2373,15 +2442,17 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     const entityType = action.inputs?.find(input => input.entityType)?.entityType || action.entityType || inferConnectedActionEntityType(actionId, process);
     if (!entityType) errors.push(`Action ${actionId} must receive an entity input`);
     if (entityType && !entities.has(entityType)) errors.push(`Action ${actionId} input uses unknown entity type ${entityType}`);
+    const processRelationFields = new Set((action.mutation?.relationContracts || []).map(relation => `relations.${relation.key}`));
+    const policyFields = (action.mutation?.fields || []).filter(field => !processRelationFields.has(field));
     validateFieldList(
-      action.mutation?.fields,
+      policyFields,
       domain,
       entityType,
       `action ${actionId} update fields`,
       errors,
       normalizedAccess.level
     );
-    validateMutationGrantLevels(actionId, action.mutation?.fields, domain, entityType, normalizedAccess.grants, errors);
+    validateMutationGrantLevels(actionId, policyFields, domain, entityType, normalizedAccess.grants, errors);
     if (!(action.mutation?.fields || []).length && !hasTargetStatus) {
       errors.push(`Action ${actionId} must connect at least one writable field, relation, or status`);
     }

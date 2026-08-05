@@ -173,6 +173,9 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const slug = data.slug || data.identity?.slug || `${standardSlugify(name, { keepCase: false })}-${generateRandomString(6)}`;
   const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Template created' });
   const suppliedDefinition = data.definition || data.data?.definition;
+  if (suppliedDefinition && !isOccsDocument(suppliedDefinition)) {
+    throw createError({ statusCode: 400, message: 'Cassette definition must be a valid OCCS document' });
+  }
   const definition = suppliedDefinition || createDefaultOccsCassetteTemplateDefinition();
 
   const cassetteData = {
