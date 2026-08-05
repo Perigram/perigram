@@ -122,9 +122,10 @@ remaining inspector surfaces are:
   actions prompt for an unwired identity name and accept canonical field-path
   values without requiring a block-composer node. Wired dynamic sources remain
   lazy and suppress the corresponding manual prompt;
-- artifact Relations entries can enable inline target creation and select the
-  upload-backed attachment kinds allowed by that Link action. These options
-  come from the domain attachment-kind creation contract;
+- artifact Relations entries always show the upload-backed attachment kinds
+  allowed by that Link action. Selecting one or more kinds directly enables
+  creation; there is no separate hidden toggle. These options come from the
+  domain attachment-kind creation contract;
 - service nodes own command selection, run/view service identities, prepaid
   token billing metadata, and command-derived inputs/outputs;
 - socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
