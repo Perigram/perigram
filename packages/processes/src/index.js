@@ -14,6 +14,7 @@ import {
 } from './ports.js';
 import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeProcessType, processSocketsCompatible, processType } from './types.js';
+import { resolveEntityBinding } from './entity-binding.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -67,6 +68,7 @@ export {
   withProcessShape
 } from './types.js';
 export * from './data-tree.js';
+export { entityBindingSourceContract, resolveEntityBinding } from './entity-binding.js';
 export {
   PROCESS_NODE_CATALOG,
   PROCESS_NODE_FAMILIES,
@@ -124,10 +126,10 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     screens: normalizeRecord(data.screens),
     compiled: data.compiled || null
   });
-  return inferProcessDataflowContracts(inferLineageComposerEntries(normalized, domain));
+  return inferProcessDataflowContracts(inferOpenBlockEntityBindings(normalized, domain));
 }
 
-function inferLineageComposerEntries(process = {}, domain = {}) {
+function inferOpenBlockEntityBindings(process = {}, domain = {}) {
   const nodesById = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
   const recordsByNodeId = new Map([...nodesById].map(([nodeId, node]) => [
     nodeId,
@@ -137,17 +139,14 @@ function inferLineageComposerEntries(process = {}, domain = {}) {
 
   for (const [graphNodeId, composer] of recordsByNodeId) {
     if (!['record.composeBlock', 'record.modifyBlock'].includes(composer?.kind)
-      || composer.block !== 'lineage'
-      || composer.compositionMode !== 'ancestors'
       || !Array.isArray(composer.entries)) continue;
     const consumerEdges = (process.graph?.edges || []).filter(edge => String(edge.source) === graphNodeId);
     const targetTypes = [...new Set(consumerEdges
       .map(edge => recordsByNodeId.get(String(edge.target)))
-      .filter(record => record?.kind === 'effect.createEntity' && record.entityType)
+      .filter(record => record?.entityType && (record.blocks || []).includes(composer.block))
       .map(record => record.entityType))];
     if (targetTypes.length !== 1) continue;
-    const targetFields = entityFieldSchemas(domain, targetTypes[0])
-      .filter(field => field.block === 'lineage' && field.constructible !== false);
+    const targetFields = entityFieldSchemas(domain, targetTypes[0]);
     const entries = composer.entries.map(entry => {
       const edge = (process.graph?.edges || []).find(item => (
         String(item.target) === graphNodeId
@@ -156,12 +155,16 @@ function inferLineageComposerEntries(process = {}, domain = {}) {
       const sourceNode = edge ? nodesById.get(String(edge.source)) : null;
       const source = sourceNode ? resolveNodePort(process, sourceNode, edge.sourceHandle, 'output') : null;
       const exactRef = composer.inputDefaults?.[`entry:${entry.id}`];
-      const entityType = source?.kind === 'entity' && !source.multiple
-        ? source.entityType
-        : String(entry.entityType || exactRef?.type || exactRef?.entityType || '');
-      const matches = targetFields.filter(field => field.type?.base === 'entityRef' && field.type?.entityType === entityType);
-      if (!entityType || matches.length !== 1) return entry;
-      return { ...entry, entityType, key: matches[0].path.slice('lineage.'.length) };
+      const binding = resolveEntityBinding({
+        source: source || exactRef || {},
+        authoredEntityType: entry.entityType,
+        authoredPath: entry.key ? `${composer.block}.${entry.key}` : '',
+        fields: targetFields,
+        block: composer.block,
+        access: composer.kind === 'record.composeBlock' ? 'constructible' : 'writable'
+      });
+      if (!binding.path) return entry;
+      return { ...entry, entityType: binding.entityType, cardinality: binding.cardinality, key: binding.path.slice(`${composer.block}.`.length) };
     });
     processNodes[String(composer.id)] = { ...composer, entries };
   }

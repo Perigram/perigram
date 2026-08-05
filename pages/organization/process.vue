@@ -867,6 +867,7 @@ import {
   processSocketsCompatible,
   processType,
   requiredEntityProfileTypes,
+  resolveEntityBinding,
   resolveCatalogNodePorts
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
@@ -3057,39 +3058,12 @@ function syncProcessNodeConstruction(node = {}) {
 
 function applyInferredProcessNodeInputs(record = {}, node = {}) {
   if (!record?.kind || !node?.id) return;
-  if (record.compositionMode === 'relations' && Array.isArray(record.entries)) {
-    for (const entry of record.entries) {
-      const targetHandle = `entry:${entry.id}`;
-      const edge = edges.value.find(item => (
-        String(item.target) === String(node.id)
-        && String(item.targetHandle || '').replace(/^(input|data):/, '') === targetHandle
-      ));
-      if (!edge) {
-        delete entry.entityType;
-        delete entry.cardinality;
-        continue;
-      }
-      const sourceNode = nodes.value.find(item => String(item.id) === String(edge.source));
-      const sourceRecord = sourceNode?.type === 'processNode'
-        ? draft.value?.data?.processNodes?.[sourceNode.data?.refId || sourceNode.id]
-        : null;
-      const sourcePort = sourceRecord
-        ? processNodeOutputs(sourceRecord).find(port => port.id === String(edge.sourceHandle || '').replace(/^(output|data):/, ''))
-        : null;
-      const sourceType = sourcePort?.type;
-      const entityType = sourceType?.base === 'array'
-        ? sourceType.itemType?.entityType
-        : sourceType?.entityType;
-      entry.entityType = entityType || '';
-      entry.cardinality = sourceType?.base === 'array' || sourceType?.shape === 'list' ? 'many' : 'one';
-    }
-  }
-  if (record.compositionMode === 'ancestors' && Array.isArray(record.entries)) {
+  if (Array.isArray(record.entries)) {
     const consumerEntityTypes = [...new Set(edges.value
       .filter(edge => String(edge.source) === String(node.id))
       .map(edge => nodes.value.find(item => String(item.id) === String(edge.target)))
       .map(target => target?.type === 'processNode' ? draft.value?.data?.processNodes?.[target.data?.refId || target.id] : null)
-      .filter(target => target?.kind === 'effect.createEntity' && target.entityType)
+      .filter(target => target?.entityType && (target.blocks || []).includes(record.block))
       .map(target => target.entityType))];
     const targetEntityType = consumerEntityTypes.length === 1 ? consumerEntityTypes[0] : '';
     for (const entry of record.entries) {
@@ -3104,19 +3078,18 @@ function applyInferredProcessNodeInputs(record = {}, node = {}) {
       const sourcePort = sourceRecord
         ? processNodeOutputs(sourceRecord).find(port => port.id === String(edge?.sourceHandle || '').replace(/^(output|data):/, ''))
         : null;
-      const entityType = ['entity', 'entityRef'].includes(sourcePort?.type?.base)
-        && sourcePort.type.shape !== 'list'
-        ? sourcePort.type.entityType || ''
-        : '';
-      const matches = targetEntityType && entityType
-        ? designer.fieldsForEntity(targetEntityType, 'lineage').filter(field => (
-            field.constructible !== false
-            && field.type?.base === 'entityRef'
-            && field.type?.entityType === entityType
-          ))
-        : [];
-      entry.entityType = entityType;
-      entry.key = matches.length === 1 ? matches[0].value.slice('lineage.'.length) : '';
+      const binding = resolveEntityBinding({
+        source: sourcePort || {},
+        authoredEntityType: entry.entityType,
+        authoredPath: entry.key ? `${record.block}.${entry.key}` : '',
+        fields: targetEntityType ? designer.fieldsForEntity(targetEntityType, record.block) : [],
+        block: record.block,
+        access: record.kind === 'record.composeBlock' ? 'constructible' : 'writable'
+      });
+      if (!binding.valid) continue;
+      entry.entityType = binding.entityType;
+      entry.cardinality = binding.cardinality;
+      entry.key = binding.path ? binding.path.slice(`${record.block}.`.length) : '';
     }
   }
   syncProcessNode(record);

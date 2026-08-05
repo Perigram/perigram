@@ -111,13 +111,14 @@ identity uid, Mongo `_id`, origin, status history, and other service-owned
 fields have no authoring fallback and cannot be composed or modified. Initial
 status is the separate lifecycle input.
 
-Entity inputs use the same socket contract for every binding source. A typed
+Entity inputs use the same socket contract and shared binding resolver for every binding source. A typed
 entity-reference literal authors one exact entity id, a direct entity socket
 uses the entity available in the current run, and `read.queryEntities` accepts
 typed predicate sockets to produce a filtered entity list. Consumers infer the
-entity type and item/list cardinality from the wire. Lineage composition also
-uses its downstream Create Entity schema to resolve the constructible lineage
-key, so its inspector does not expose a separate entity-type selector.
+entity type and item/list cardinality from the wire. Open entity-valued block
+entries use the downstream consumer schema to resolve their writable or
+constructible field path, so inspectors do not expose a separate entity-type
+selector.
 Both materialized `entity` outputs and lightweight `entityRef` outputs carry
 this inference; saving or re-synchronizing the canvas must preserve either form.
 
