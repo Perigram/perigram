@@ -77,9 +77,9 @@ describe('process designer canvas UI', () => {
   });
 
   it('authors artifact upload creators on relation entries', () => {
-    expect(designerSource).toContain("entry.entityType === 'artifact' && entry.allowCreate");
+    expect(designerSource).toContain("$t('processDesigner.allowedArtifactCreation')");
     expect(designerSource).toContain(':options="artifactUploadKindOptions"');
-    expect(designerSource).toContain("allowCreate: false");
+    expect(designerSource).not.toContain('entry.allowCreate');
   });
 
   it('keeps policy configuration in the inspector instead of every node', () => {
