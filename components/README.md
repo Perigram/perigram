@@ -138,6 +138,11 @@ consume blocks and lifecycle status rather than recreating CRUD forms.
 Open canonical blocks expose inspector-authored typed entry rows rather than a
 global union of entity fields or a raw map input. Entry ids own wire stability;
 keys and qualifiers own the stored block shape.
+Relations entries on Modify Block expose Link, Unlink, and Replace operations.
+Their entity type and one/many cardinality still come from the connected exact,
+socket, or filtered entity value. The resulting block must feed a manual Modify
+Entity effect to produce generated entity-detail action chrome; block nodes do
+not create buttons independently.
 The process designer also exposes non-effect process algebra nodes for typed
 source/transform work: entity references, field reads, string operations,
 comparisons, logic, and collection transforms. These nodes are semantic

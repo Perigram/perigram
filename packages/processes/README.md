@@ -151,10 +151,16 @@ entity-profile grants are an independent grant source, not a filter for action
 grant creation. Generic Entity creation accepts typed canonical block values.
 Entity-valued inputs share one binding resolver. Exact typed references, direct
 entity sockets, and filtered entity lists normalize into an entity type plus
-item/list cardinality. A Relations entry derives its key from that socket entity
+item/list cardinality and retain an explicit `exact`, `socket`, `filtered`, or
+`context` binding mode in the normalized contract. A Relations entry derives its key from that socket entity
 type and keeps the socket's cardinality; it does not require a domain relation
 declaration or a consumer-specific field. The consumer only determines whether
-its Relations block is constructible or writable. Lineage remains stricter: its
+its Relations block is constructible or writable. Compose Relations replaces a
+constructed entry. Modify Relations applies one explicit `append`, `remove`, or
+`replace` operation against the incoming block; reference identity is the typed
+entity id, so append is idempotent and remove does not depend on object identity.
+These are block mutations consumed by ordinary Create/Update effects, not a
+parallel link-action runtime. Lineage remains stricter: its
 storage path resolves against the consuming entity's declared containment
 schema, and ambiguous or undeclared matches remain validation errors. The
 shared resolver is used by designer synchronization and definition
@@ -252,9 +258,12 @@ process compiler reusable and prevents hidden domain behavior from living in the
 generic package.
 Create and update effects never own leaf mutation fields. Create consumes
 constructible typed blocks plus a dedicated status value. Update consumes an entity,
-connected replacement blocks, and status; only values present in connected
+connected modified/replacement blocks, and status; only values present in connected
 blocks reach the owning feature update boundary. Compose and Modify Block own
-field selection and inline primitive fallbacks. Manual screen input policy is
+field selection, relation mutation operations, and inline primitive fallbacks.
+A manual Update effect fed by a modified Relations block therefore compiles and
+renders like every other generated entity-detail action; a block or data wire
+alone never creates an action. Manual screen input policy is
 traced from connected block composers, so generated forms and graph execution
 use the same field contract.
 V3 effect records also derive the semantic action manifest consumed by screen
@@ -306,7 +315,8 @@ fields. Open-block Compose/Modify expose stable `entry:<id>` sockets: Lineage
 entries author a storage key plus typed entity reference. Relations author a
 storage key; their referenced entity type and intrinsic one/many cardinality
 are inferred from the connected entity or entity-list value rather than edited
-independently,
+independently. Modify Relations additionally authors Link (`append`), Unlink
+(`remove`), or Replace semantics per stable entry socket.
 Attachments accept named typed
 attachment references, and Data/Summary/Provenance accept named typed values.
 Renaming an entry does not break its wire. The evaluator lowers Lineage entity

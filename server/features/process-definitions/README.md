@@ -132,6 +132,13 @@ one declared lineage entity reference for contextual screen placement, and the
 effect boundary converts its entity reference to the canonical stored id.
 Origin, provenance, status history, and summary are not accepted as generic
 constructible blocks.
+Generic Update receives block mutations through the same typed process dataflow.
+Relations Link, Unlink, and Replace are evaluated by Modify Block into a
+replacement Relations block, then persisted through the target feature's
+`processUpdate()` contract. They do not bypass the owning service and do not
+introduce relation-specific repositories or action executors. Manual Update
+effects compile into the normal generated action manifest; Relations data
+connections without an effect remain non-executable dataflow.
 Parent-scoped create actions also pass declared containment lineage and pinned
 parent revision provenance in the initial create payload. The owning feature
 service must persist that context during create; process definitions do not
