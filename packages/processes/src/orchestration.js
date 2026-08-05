@@ -281,6 +281,12 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   const cacheKey = `${nodeId}:${resolvedOutputId}:${tokenContext.scope || 'root'}`;
   if (tokenContext.values?.[cacheKey]) return tokenContext.values[cacheKey];
   if (tokenContext.values?.[`${nodeId}:${resolvedOutputId}`]) return tokenContext.values[`${nodeId}:${resolvedOutputId}`];
+  const contextualOutput = await resolveContextualEntityOutput(
+    ports.outputs.find(port => port.id === resolvedOutputId),
+    run.context?.inputs || {},
+    environment
+  );
+  if (contextualOutput) return contextualOutput;
   if (record.kind.endsWith('Trigger') || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) {
     throw new Error(`Operational node ${record.id || node.id} has not emitted data output ${resolvedOutputId}`);
   }
@@ -313,6 +319,23 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   });
   resolving.delete(cacheKey);
   return packet;
+}
+
+async function resolveContextualEntityOutput(port = {}, inputs = {}, environment = {}) {
+  const type = port.type || {};
+  if (!['entity', 'entityRef'].includes(type.base) || type.shape === 'list' || !type.entityType) return null;
+  const candidate = inputs.entities?.[type.entityType] ?? inputs.entity;
+  if (candidate == null || candidate === '') return null;
+  const reference = typeof candidate === 'object'
+    ? { type: candidate.type || type.entityType, id: candidate.id || candidate._id || candidate.identity?.uid }
+    : { type: type.entityType, id: candidate };
+  if (!reference.id) return null;
+  if (type.base === 'entityRef') return createDataPacket(reference);
+  if (typeof candidate === 'object' && (candidate._id || candidate.identity)) return createDataPacket(candidate);
+  const entity = environment.data?.resolveEntityRef
+    ? await environment.data.resolveEntityRef(reference)
+    : reference;
+  return createDataPacket(entity);
 }
 
 function resolveDataOutputId(outputs = [], requestedId = '', record = {}) {

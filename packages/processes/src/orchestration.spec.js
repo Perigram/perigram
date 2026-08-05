@@ -522,6 +522,56 @@ describe('durable process orchestration', () => {
     }));
   });
 
+  it('binds an upstream effect entity output from manual action context', async () => {
+    const definition = process([
+      {
+        id: 'create-project',
+        kind: 'effect.createEntity',
+        entityType: 'project',
+        trigger: { mode: 'manual' },
+        blocks: ['identity']
+      },
+      {
+        id: 'lineage',
+        kind: 'record.composeBlock',
+        block: 'lineage',
+        compositionMode: 'ancestors',
+        entries: [{ id: 'project', key: 'projectId', entityType: 'project' }]
+      },
+      {
+        id: 'create-queue',
+        kind: 'effect.createEntity',
+        entityType: 'queue',
+        trigger: { mode: 'manual' },
+        blocks: ['lineage']
+      }
+    ], ['create-project', 'lineage', 'create-queue'], [
+      { source: 'create-project', sourceHandle: 'data:result', target: 'lineage', targetHandle: 'data:entry:project', role: 'data' },
+      { source: 'lineage', sourceHandle: 'data:block', target: 'create-queue', targetHandle: 'data:lineage', role: 'data' }
+    ]);
+    const executeEffect = vi.fn().mockResolvedValue({ _id: 'queue-1' });
+
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'create-queue' }, {
+        context: { inputs: { entities: { project: 'project-1' } } }
+      }),
+      definition,
+      {
+        executeEffect,
+        catalogContext,
+        data: { resolveEntityRef: async ref => ({ _id: ref.id, type: ref.type }) }
+      }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledTimes(1);
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'effect.createEntity',
+      record: expect.objectContaining({ id: 'create-queue' }),
+      inputs: { lineage: { projectId: 'project-1' } }
+    }));
+  });
+
   it('maps manual field data into stable open-block entry sockets', async () => {
     const definition = process([
       {
