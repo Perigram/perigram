@@ -170,6 +170,10 @@ entities are not selectable in generic Create. Domain constructors project as
 fixed producer-service effects; for example,
 `bakeCassetteDesignFromTemplate` delegates to the cassette template
 construction service with its own typed inputs.
+Dataflow inference reads structured v3 `inputs`/`outputs` when they are
+persisted, but an unavailable port snapshot never clears an entry's semantic
+type. The canonical node catalog performs the authoritative inference for
+operational nodes such as Create Entity.
 Legacy stored `changeStatus` action records are normalized to status-mutating
 `updateEntity` actions at the compiler boundary so old activated processes can
 still compile during registration, assignment, auth hydration, and command
