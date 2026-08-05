@@ -5,7 +5,7 @@ Manages cassette templates (Standard and Parametric) using standardized v24 arch
 ## Core Files
 - `repository.js`: Database operations on `cassettes` collection.
 - `service.js`: Template management and permission handling.
-- `operations.js`: Domain operation handler for `saveCassetteTemplate`.
+- `operations.js`: Domain operation handler for process-invoked cassette saves.
 
 ## Data Structure (v24)
 
@@ -121,17 +121,12 @@ created template and its initial design; queue uploads should add the design id,
 not the template id.
 
 ### Update Operations
-- **`saveCassetteTemplate`**: Domain operation used by `CassetteDesigner` and
-  `CassetteDesignerV2`. Creates a new template or updates the selected template
-  through the service layer while preserving OCCS documents under
-  `data.definition`. Callers should pass `entities.cassette` only for templates
-  already loaded from the database; generated fixture/demo ids should be saved
-  without an entity ref so the operation creates a real cassette row. App
-  surfaces use `CassetteDesignerV2`; the legacy designer is kept for dev/test
-  fixture flows.
+- Cassette Designer v2 persists the entity it edits through `POST /api/cassettes`
+  and `PUT /api/cassettes/:id`. This keeps editor persistence on the cassette
+  feature boundary and does not require the active process to expose an
+  unrelated command service. OCCS stays canonical under `data.definition`.
 - Cassette Designer v2 keeps its dialog open after Save so the active editing
-  session is not destroyed by a refresh. Save As runs the same command without
-  an input cassette entity, creating a distinct template and switching the
+  session is not destroyed by a refresh. Save As posts a distinct template and switches the
   editor to that saved record. Escape clears the current
   face/workpiece/attachment selection instead of closing the designer dialog.
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.

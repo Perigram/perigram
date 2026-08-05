@@ -252,10 +252,11 @@ old processes that stored `jobItems.required: true` compile to an empty queue
 shell action instead of blocking on cassette-design selection.
 Relations composed by the process graph are executable process contracts even
 when they are not global CNC-domain relations. A manual effect that consumes a
-composed relation derives `Link <target>` and `Unlink <target>` update actions
-for the owner entity. Those actions carry the exact relation key, target type,
-cardinality, access grants, and entity selector required by generated detail
-screens; update actions do not inherit create-constructor prompts.
+composed relation derives `Link <target>` for the owner action surface and a
+contextual `Unlink <target>` operation for each rendered linked reference. Both
+carry the exact relation key, target type, cardinality, and access grants. Link
+prompts for a target; Unlink receives the already-rendered target reference and
+therefore never opens an entity selector.
 The compiler fallback construction mode is only `genericCreate`; any
 entity-specific constructor such as baked cassette designs or OCCS template
 creation must be declared by the domain construction registry. This keeps the
@@ -438,11 +439,10 @@ feature, not by the command output feature. A `solveNesting` button belongs on
 the queue detail because the user executes it against a queue, while the same
 graph window still grants access to produced `nesting_run` and `sheet_design`
 records through command output windows.
-Stored active process definitions keep compiled runtime contracts in MongoDB.
-After compiler changes that alter generated screens, action exposure, workflow
-output, or grants, run
-`server/scripts/migrate-process-compiled-runtime.js` to recompile existing
-active definitions from their canonical process data.
+Stored active process definitions keep a compiled activation snapshot for
+inspection. Auth hydration and manual action execution both compile the current
+canonical process graph at access time, so visible actions and executable
+actions cannot come from different compiler versions.
 After runtime changes that introduce command-output status projection, run
 `server/scripts/migrate-process-command-output-statuses.js` so existing command
 outputs are moved into the active process status windows derived from the
