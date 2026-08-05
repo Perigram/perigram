@@ -158,7 +158,7 @@ function inferLineageComposerEntries(process = {}, domain = {}) {
       const exactRef = composer.inputDefaults?.[`entry:${entry.id}`];
       const entityType = source?.kind === 'entity' && !source.multiple
         ? source.entityType
-        : String(exactRef?.type || exactRef?.entityType || '');
+        : String(entry.entityType || exactRef?.type || exactRef?.entityType || '');
       const matches = targetFields.filter(field => field.type?.base === 'entityRef' && field.type?.entityType === entityType);
       if (!entityType || matches.length !== 1) return entry;
       return { ...entry, entityType, key: matches[0].path.slice('lineage.'.length) };

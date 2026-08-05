@@ -118,6 +118,8 @@ typed predicate sockets to produce a filtered entity list. Consumers infer the
 entity type and item/list cardinality from the wire. Lineage composition also
 uses its downstream Create Entity schema to resolve the constructible lineage
 key, so its inspector does not expose a separate entity-type selector.
+Both materialized `entity` outputs and lightweight `entityRef` outputs carry
+this inference; saving or re-synchronizing the canvas must preserve either form.
 
 Only configuration that defines the operation or its ports stays on the node:
 value/type, entity, field, block, operation, trigger identity/mode, and socket

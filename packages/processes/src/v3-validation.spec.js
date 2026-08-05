@@ -242,6 +242,38 @@ describe('process v3 validation', () => {
     expect(result.errors).not.toContain('Edge compose-create cannot send lineage. to queue: field is not constructible');
   });
 
+  it('keeps a socket-inferred lineage type when normalizing the saved graph', () => {
+    const queueDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        queue: [{
+          path: 'lineage.projectId',
+          block: 'lineage',
+          type: { base: 'entityRef', shape: 'item', nullable: false, entityType: 'project' },
+          constructible: true,
+          writable: true
+        }]
+      },
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      }
+    };
+    const process = entityBlockProcess('project');
+    process.processNodes.compose.entries[0].key = '';
+    delete process.processNodes.compose.inputDefaults;
+
+    const normalized = normalizeProcessDefinition(process, queueDomain);
+
+    expect(normalized.processNodes.compose.entries[0]).toMatchObject({
+      key: 'projectId',
+      entityType: 'project'
+    });
+  });
+
   it('rejects service-owned identity uid in block authoring', () => {
     const result = validateProcessDefinition(definition({
       kind: 'record.composeBlock',

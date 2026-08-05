@@ -3104,7 +3104,8 @@ function applyInferredProcessNodeInputs(record = {}, node = {}) {
       const sourcePort = sourceRecord
         ? processNodeOutputs(sourceRecord).find(port => port.id === String(edge?.sourceHandle || '').replace(/^(output|data):/, ''))
         : null;
-      const entityType = sourcePort?.type?.base === 'entityRef' && sourcePort.type.shape !== 'list'
+      const entityType = ['entity', 'entityRef'].includes(sourcePort?.type?.base)
+        && sourcePort.type.shape !== 'list'
         ? sourcePort.type.entityType || ''
         : '';
       const matches = targetEntityType && entityType
