@@ -13,7 +13,7 @@
       :entity-type="entityType"
       :surface="surface"
       :screen-key="screenKey"
-      :actions="resolvedActions"
+      :actions="resolvedBodyActions"
       @refresh="$emit('refresh')"
     />
     <slot />
@@ -65,6 +65,7 @@ const props = defineProps({
   surface: { type: String, default: 'detail' },
   screenKey: { type: String, default: '' },
   excludedActions: { type: Array, default: () => [] },
+  bodyActions: { type: Array, default: () => [] },
   actions: { type: Array, default: () => [] },
   showIdentity: { type: Boolean, default: false },
   openActionsInWorkspace: { type: Boolean, default: false },
@@ -84,6 +85,12 @@ const resolvedActions = computed(() => resolveGeneratedEntityActions({
   entity: props.entity,
   entityType: props.entityType,
   excludedActionIds: props.excludedActions
+}));
+const resolvedBodyActions = computed(() => resolveGeneratedEntityActions({
+  actionIds: [...new Set([...props.actions, ...props.bodyActions])],
+  actionManifest: authStore.actionManifest,
+  entity: props.entity,
+  entityType: props.entityType
 }));
 const headerActionIds = computed(() => resolvedActions.value
   .filter(isGeneratedSurfaceAction)

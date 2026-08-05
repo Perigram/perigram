@@ -47,11 +47,14 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).toContain('detailChildRegions');
     expect(entityFileSource).toContain('<GeneratedRegion');
     expect(entityFileSource).toContain(':action-context="detailActionContext"');
+    expect(entityFileSource).toContain(':body-actions="detailChildActionIds"');
     expect(entityFileSource).not.toContain('<EntitySurfaceContent');
     expect(detailBodySource).toContain('resolveGeneratedEntityDetailOverload');
     expect(detailBodySource).not.toContain('actionProducesEntityType');
     expect(detailBodySource).not.toContain('authStore.actionManifest.filter');
     expect(detailBodySource).toContain('uniqueActions(props.actions)');
+    expect(regionSource).toContain(':body-actions="bodyActions"');
+    expect(generatedScreenSource).toContain(':body-actions="detailChildActionIds"');
     expect(queueDetailSource).toContain('<QueueEditor');
     expect(queueDetailSource).toContain(':flush="flush"');
     expect(entityWorkspaceSource).toContain('container-type: inline-size');

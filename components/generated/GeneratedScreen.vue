@@ -69,6 +69,7 @@
       :template="screen.template"
       :screen-actions="screen.actions || []"
       :excluded-actions="detailChildActionIds"
+      :body-actions="detailChildActionIds"
       @refresh="load"
       @execute-action="executeAction"
     >

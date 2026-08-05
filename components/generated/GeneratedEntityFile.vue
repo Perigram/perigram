@@ -48,6 +48,7 @@
         :screen-key="detailScreen?.screenKey || detailScreen?.id || ''"
         :actions="resolvedActionIds"
         :excluded-actions="detailChildActionIds"
+        :body-actions="detailChildActionIds"
         embedded
         open-actions-in-workspace
         @execute-action="executeAction"

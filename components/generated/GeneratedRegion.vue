@@ -5,6 +5,7 @@
     :entity-type="sourceState.source.entityType"
     :surface="region.surface || 'detail'"
     :actions="effectiveActions"
+    :body-actions="bodyActions"
     :screen-key="screenKey"
     :excluded-actions="excludedActions"
     :open-actions-in-workspace="openInWorkspace"
@@ -45,6 +46,7 @@ const props = defineProps({
   screenActions: { type: Array, default: () => [] },
   screenKey: { type: String, default: '' },
   excludedActions: { type: Array, default: () => [] },
+  bodyActions: { type: Array, default: () => [] },
   actionContext: { type: Object, default: () => ({}) },
   openInWorkspace: { type: Boolean, default: false }
 });
