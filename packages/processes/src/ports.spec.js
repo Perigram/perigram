@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inferProcessDataflowContracts, portSpecsCompatible, resolveNodePort, resolveProcessNodePorts } from './ports.js';
+import { inferProcessDataflowContracts, portSpecsCompatible, resolveNodePort, resolveProcessNodePorts, validateProcessEdges } from './ports.js';
 
 describe('process programming node ports', () => {
   it('gives every string operation its actual input arity and scalar types', () => {
@@ -69,6 +69,42 @@ describe('process programming node ports', () => {
     });
     expect(portSpecsCompatible(output, { id: 'target', kind: 'status' }).ok).toBe(true);
     expect(portSpecsCompatible(output, { id: 'target', kind: 'number' }).ok).toBe(false);
+  });
+
+  it('connects a status definition to a structured v3 status input', () => {
+    const process = {
+      statusDefinitions: {
+        ready: { id: 'ready', statusId: 'READY', label: 'Ready' }
+      },
+      processNodes: {
+        create: {
+          id: 'create',
+          kind: 'effect.createEntity',
+          inputs: [{
+            id: 'status.state.primary',
+            type: { base: 'status', shape: 'item', entityType: 'project' },
+            role: 'data'
+          }]
+        }
+      },
+      graph: {
+        nodes: [
+          { id: 'ready', type: 'statusDefinition', data: { refId: 'ready' } },
+          { id: 'create', type: 'processNode', data: { refId: 'create' } }
+        ],
+        edges: [{
+          id: 'ready-create-status',
+          source: 'ready',
+          sourceHandle: 'data:status',
+          target: 'create',
+          targetHandle: 'data:status.state.primary'
+        }]
+      }
+    };
+
+    expect(resolveNodePort(process, process.graph.nodes[1], 'data:status.state.primary', 'input'))
+      .toMatchObject({ kind: 'status', entityType: 'project' });
+    expect(validateProcessEdges(process)).toEqual([]);
   });
 
   it('infers relation entries from typed operational-node outputs', () => {

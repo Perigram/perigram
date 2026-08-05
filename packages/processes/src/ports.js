@@ -46,6 +46,11 @@ function structuredPortType(type) {
     };
   }
   if (type.base === 'block') return { kind: type.shape === 'list' ? 'block_list' : 'block', block: type.block || '', multiple: type.shape === 'list' };
+  if (['status', 'predicate', 'event'].includes(type.base)) {
+    return { kind: type.base, entityType: type.entityType || '' };
+  }
+  if (type.base === 'attachmentRef') return { kind: 'attachment' };
+  if (type.base === 'taskRef') return { kind: 'task' };
   if (type.base === 'dateTime') return { kind: 'date' };
   return { kind: PROCESS_SCALAR_KINDS.includes(type.base) ? type.base : 'data' };
 }
