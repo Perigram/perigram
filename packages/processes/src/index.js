@@ -250,12 +250,14 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, doma
 }
 
 function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
+  const consumerFieldSchema = path => entityFieldSchema(domain, node.entityType, path)
+    || structuralFieldSchema(domain, path);
   if (Array.isArray(node.fields) && node.fields.length) {
     return {
       fields: node.fields,
       defaults: node.inputDefaults || {},
       wiredFields: [],
-      schemas: (node.fields || []).map(path => structuralFieldSchema(domain, path)).filter(Boolean),
+      schemas: (node.fields || []).map(consumerFieldSchema).filter(Boolean),
       parentEntityType: node.parentEntityType || ''
     };
   }
@@ -270,7 +272,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     .map(edge => recordByGraphNode.get(String(edge.source)))
     .filter(record => ['record.composeBlock', 'record.modifyBlock'].includes(record?.kind));
   const schemas = composers
-    .flatMap(record => (record.fields || []).map(path => structuralFieldSchema(domain, path)))
+    .flatMap(record => (record.fields || []).map(consumerFieldSchema))
     .filter(Boolean);
   const wiredFields = composers.flatMap(composer => {
     const composerNode = (graph.nodes || []).find(item => String(item.data?.refId || item.id) === String(composer.id));
@@ -295,7 +297,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     ? ['identity.name']
     : [];
   const fields = [...new Set([...composerFields, ...defaultIdentityFields])];
-  const resolvedSchemas = fields.map(path => structuralFieldSchema(domain, path)).filter(Boolean);
+  const resolvedSchemas = fields.map(consumerFieldSchema).filter(Boolean);
   const allSchemas = [...schemas, ...resolvedSchemas.filter(schema => !schemas.some(item => item.path === schema.path))];
   const parentTypes = [...new Set(allSchemas
     .filter(field => field.block === 'lineage' && field.type?.entityType !== 'organization')

@@ -260,7 +260,11 @@ describe('@cutkit/processes compiler', () => {
       }
     }, {
       ...domain,
-      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } }
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      }
     });
 
     expect(compiled.actions.create_queue).toMatchObject({

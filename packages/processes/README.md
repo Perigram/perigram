@@ -161,7 +161,9 @@ extra Create socket. Once resolved, the compiler recognizes one lineage entity
 reference as contextual parent scope while the effect boundary persists its
 normalized id. Fixed-field and open-entry composers contribute to that same
 schema set, so contextual action placement does not depend on how the block was
-authored. Derived
+authored. Persisted field paths are resolved against the effect's target entity
+schema first; an open structural block schema describes its container, not the
+entity-specific fields stored inside it. Derived
 entities are not selectable in generic Create. Domain constructors project as
 fixed producer-service effects; for example,
 `bakeCassetteDesignFromTemplate` delegates to the cassette template
