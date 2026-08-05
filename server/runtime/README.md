@@ -19,9 +19,9 @@ should call `getAppRegistry()`.
 
 - Entity services for every persisted domain entity declared in
   `@cutkit/domain-cnc`. Registration adds an explicit
-  `processList(filters, auth)` binding for each feature's concrete list
-  signature; process entity-query nodes use that uniform boundary instead of
-  guessing positional service arguments.
+  `processList(filters, auth)` and `processGetById(id, auth)` bindings for each
+  feature's concrete list/detail signatures; process entity nodes use those
+  uniform boundaries instead of guessing positional service arguments.
 - Command handlers: `saveCassetteTemplate`, `solveNesting`,
   `generateAttachment`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.

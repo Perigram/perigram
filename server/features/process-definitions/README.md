@@ -45,7 +45,9 @@ wait-until control step, which persists the wake boundary before forwarding its
 event to the automatic effect. Entity/domain subscriptions require a separate
 process-entry contract and are not inferred from effect configuration.
 The originating actor/access snapshot is stored with the run so a due
-continuation re-enters the normal feature access boundary. API handlers do not
+continuation re-enters the normal feature access boundary. The snapshot includes
+the compiled `effectivePermissions` consumed by entity adapters, so a resumed
+read has the same access context as the action that started the run. API handlers do not
 touch orchestration collections.
 
 The pure scheduler lives in `@cutkit/processes`. This service supplies only
@@ -195,9 +197,12 @@ typed entity and attachment output sockets while the full result remains the
 fallback output for commands without declared entity/attachment outputs.
 Entity query nodes also stay inside feature access boundaries. The application
 registry gives every registered entity service one explicit
-`processList(filters, auth)` adapter matching that feature's real list
-signature. Process evaluation calls only this adapter, serializes returned
-models, and then evaluates entity-typed field predicates in memory. Predicate
+`processList(filters, auth)` adapter and one `processGetById(id, auth)` adapter
+matching that feature's real list and detail signatures. Process evaluation
+calls only these adapters; it never guesses positional feature-service auth
+arguments. This covers current/exact entity reads, parent resolution,
+relation-target validation, update-target loading, and socket projection.
+Returned models are serialized before entity-typed field predicates are evaluated in memory. Predicate
 conditions and gates remain process algebra values; they are not translated
 into database filters. The runtime does not infer service signatures, read
 feature collections directly, or turn a designer predicate into an unchecked
