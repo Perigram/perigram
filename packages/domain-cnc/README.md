@@ -119,9 +119,11 @@ the supported construction modes and required inputs for each entity type:
 ordinary entities use `genericCreate`, while derived entities such as
 `cassette_design` use a typed mode (`bakeCassetteDesignFromTemplate`) so the
 runtime can call the correct construction service and preserve editor
-contracts. `cassette` templates also use a typed constructor,
-`createDefaultOccsTemplate`, which requires a prompted name and creates a full
-default OCCS template document instead of an empty generic row.
+contracts. Cassette creation defaults to `genericCreate`, so a Create Entity
+node exposes the cassette's constructible block sockets. The separately
+declared `createDefaultOccsTemplate` producer remains available when a complete
+starter OCCS document is required; it accepts a template name and owns that
+specialized construction behavior.
 When a `cassette` create action is connected to a `library` parent, the process
 runtime sends `libraryId` to that typed constructor so the resulting template
 is stored as a child of the library.

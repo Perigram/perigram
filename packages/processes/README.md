@@ -223,9 +223,10 @@ Compilation hydrates create-action construction and prompt policy from the
 domain construction contract. A sparse visual action for `cassette_design`
 therefore still compiles with required `name` and `templateId` prompt fields,
 so generated screens open the input dialog even when the draft did not persist
-`construction.inputs` or `inputPolicy.fields`. `cassette` creation actions
-compile to `createDefaultOccsTemplate`, prompt for a template name, and create
-a complete OCCS template. When stored actions carry a construction mode that no
+`construction.inputs` or `inputPolicy.fields`. Generic `cassette` creation
+keeps the canonical constructible block sockets; the registered
+`createDefaultOccsTemplate` producer owns creation of a complete starter OCCS
+template. When stored actions carry a construction mode that no
 longer belongs to the selected entity type, compilation normalizes the mode to
 the current domain default and the process-construction migration persists that
 normalization before recompiling active runtime contracts.

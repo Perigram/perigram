@@ -118,7 +118,9 @@ typed predicate sockets to produce a filtered entity list. Consumers infer the
 entity type and item/list cardinality from the wire. Open entity-valued block
 entries use the downstream consumer schema to resolve their writable or
 constructible field path, so inspectors do not expose a separate entity-type
-selector.
+selector. When the sole matching relation field is a collection, a connected
+single entity is accepted as a singleton relation list; the composer records
+the target field's `many` cardinality and wraps the runtime value.
 Both materialized `entity` outputs and lightweight `entityRef` outputs carry
 this inference; saving or re-synchronizing the canvas must preserve either form.
 
