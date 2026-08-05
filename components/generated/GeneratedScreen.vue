@@ -663,7 +663,7 @@ watch(
 
 function normalizeEntityListValue(field = {}, value = []) {
   const ids = Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean);
-  if (field.path === 'job.items' || field.accepts?.includes('cassette_design')) {
+  if (field.accepts?.includes('cassette_design')) {
     return ids.map((id, index) => ({
       entryId: `${field.id || 'entry'}_${index + 1}`,
       id,

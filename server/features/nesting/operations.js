@@ -38,7 +38,7 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
     if (await nestingJobs.findActiveByQueue(queue._id)) {
       throw createError({ statusCode: 400, message: 'Queue is already nesting' });
     }
-    if (!queue.data?.job?.items || queue.data.job.items.length === 0) {
+    if (queuesService.queueCassetteDesignRefs(queue).length === 0) {
       throw createError({ statusCode: 400, message: 'Queue has no entries' });
     }
     const nestingSlug = `queue-${queue.data?.queueNumber ?? queue._id.toString().slice(-6)}-${generateRandomString(6)}`;
@@ -135,10 +135,10 @@ async function queueNestingRequestedEvent(queue, settings, taskRun, runId, auth)
 export async function buildJobFiles(queue, auth) {
   const jobFiles = [];
   const evaluatedDesigns = new Map();
-  for (const entry of queue.data.job.items) {
+  for (const entry of queuesService.queueCassetteDesignRefs(queue)) {
     try {
       const entryParameters = entry.parameters || entry.dimensions || {};
-      if (entry.entityType !== 'cassette_design') {
+      if (entry.type !== 'cassette_design') {
         throw createError({ statusCode: 400, message: `Queue item ${entry.id} must reference a cassette_design` });
       }
       const sourceDesign = await cassetteDesignService.getById(entry.id, auth.userId, auth.role, auth).catch(() => null);
@@ -152,8 +152,8 @@ export async function buildJobFiles(queue, auth) {
 
       jobFiles.push({
         cassetteId: item._id.toString(),
-        count: entry.quantity,
-        dimensions: hasEntries(entryParameters) ? entryParameters : item.data?.dimensions || item.data?.parameters || {},
+        count: 1,
+        dimensions: item.data?.dimensions || item.data?.parameters || {},
         polygonParts: getPolygonParts(item),
         layerData: getLayerData(item)
       });
@@ -169,8 +169,8 @@ async function resolveQueueDesignGeometry({ entry, sourceDesign, parameters = {}
   const sourceParameters = hasEntries(sourceDesign.data?.parameters)
     ? sourceDesign.data.parameters
     : (sourceDesign.provenance?.derivedFrom?.parameters || {});
-  const effectiveParameters = hasEntries(parameters) ? parameters : sourceParameters;
-  const canDeriveParametricGeometry = entry.type === 'PARAMETRIC' || hasEntries(sourceParameters);
+  const effectiveParameters = { ...sourceParameters, ...(parameters || {}) };
+  const canDeriveParametricGeometry = hasEntries(sourceParameters);
   if (!canDeriveParametricGeometry || sameParameterMap(effectiveParameters, sourceParameters)) return sourceDesign;
 
   const sourceRef = sourceDesign.provenance?.derivedFrom?.source;
@@ -517,16 +517,12 @@ function orientRing(ring, counterClockwise) {
 function queueWithMaterialThickness(queue, thickness) {
   return {
     ...queue,
-    data: {
-      ...(queue.data || {}),
-      job: {
-        ...(queue.data?.job || {}),
-        items: (queue.data?.job?.items || []).map(item => (
-          item.type === 'PARAMETRIC'
-            ? { ...item, parameters: { ...(item.parameters || {}), T: thickness } }
-            : item
-        ))
-      }
+    relations: {
+      ...(queue.relations || {}),
+      cassettes: queuesService.queueCassetteDesignRefs(queue).map(item => ({
+        ...item,
+        parameters: { ...(item.parameters || {}), T: thickness }
+      }))
     }
   };
 }

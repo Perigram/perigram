@@ -121,40 +121,23 @@ describe('Production Queues & Nesting Status', () => {
     expect(result.data.queueNumber).toBe(1);
   });
 
-  it('normalizes queue job item source identity', () => {
-    expect(queueService.normalizeQueueJobItems([
-      { id: 'design-1', entityType: 'cassette_design', quantity: 2 }
-    ])).toEqual([
-      {
-        id: 'design-1',
-        entityType: 'cassette_design',
-        quantity: 2,
-        parameters: {}
-      }
-    ]);
-    expect(() => queueService.normalizeQueueJobItems([
-      { id: 'template-1', entityType: 'cassette', dimensions: { A: 100 } }
-    ])).toThrow(/must reference cassette_design/);
-    expect(() => queueService.normalizeQueueJobItems([
-      { id: 'ambiguous-1', quantity: 1 }
-    ])).toThrow(/require id and entityType/);
-    expect(() => queueService.normalizeQueueJobItems([
-      { id: 'design-1', entityType: 'cassette_design', quantity: 1.5 }
-    ])).toThrow(/positive integer/);
+  it('reads queue cassette designs from canonical relations', () => {
+    expect(queueService.queueCassetteDesignRefs({
+      relations: { cassettes: [{ type: 'cassette_design', id: 'design-1' }] }
+    })).toEqual([{ type: 'cassette_design', id: 'design-1' }]);
+    expect(queueService.queueCassetteDesignRefs({ data: { job: { items: [{ id: 'old' }] } } })).toEqual([]);
   });
 
-  it('stores only canonical nesting settings and binds parametric T to material thickness', async () => {
+  it('stores only canonical nesting settings without mutating related designs', async () => {
     const queueId = new ObjectId();
     await db.collection('queues').insertOne({
       _id: queueId,
       identity: { uid: queueId.toString(), name: 'Settings queue' },
       lineage: { organizationId: mockUser.organizationId },
       status: statusFixture('DRAFT', { userId: mockUser.userId, timestamp: new Date(), metadata: {} }),
+      relations: { cassettes: [{ type: 'cassette_design', id: 'design-1' }] },
       data: {
-        job: {
-          items: [{ id: 'design-1', entityType: 'cassette_design', type: 'PARAMETRIC', quantity: 1, parameters: { A: 100, T: 99 } }],
-          materialPool: []
-        },
+        job: { materialPool: [] },
         nestingParams: {
           materialMode: 'VIRTUAL',
           virtualWidth: 1000,
@@ -185,7 +168,7 @@ describe('Production Queues & Nesting Status', () => {
       toolProfileId: 'tool-1',
       requestedArtifacts: ['LAYOUT_DXF']
     });
-    expect(result.data.job.items[0].parameters).toEqual({ A: 100, T: 2 });
+    expect(result.relations.cassettes).toEqual([{ type: 'cassette_design', id: 'design-1' }]);
     expect(result.data.nestingParams).toBeUndefined();
     expect(raw.data.nestingSettings).toBeDefined();
     expect(raw.data.nestingParams).toBeUndefined();

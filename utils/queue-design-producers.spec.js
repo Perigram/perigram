@@ -9,12 +9,6 @@ const domain = {
   ],
   producers: [
     {
-      id: 'selectExistingCassetteDesign',
-      kind: 'entitySource',
-      source: { entityType: 'cassette_design' },
-      output: { entityType: 'cassette_design' }
-    },
-    {
       id: 'bakeCassetteDesignFromTemplate',
       kind: 'construction',
       constructionMode: 'bakeCassetteDesignFromTemplate',
@@ -44,7 +38,6 @@ describe('queue design producer resolver', () => {
     });
 
     expect(producers.map(producer => producer.id)).toEqual([
-      'selectExistingCassetteDesign',
       'bakeCassetteDesignFromTemplate',
       'importCassetteDesignFromArtifact'
     ]);
@@ -70,7 +63,6 @@ describe('queue design producer resolver', () => {
     });
 
     expect(producers.map(producer => [producer.id, producer.actionId || null])).toEqual([
-      ['selectExistingCassetteDesign', null],
       ['bakeCassetteDesignFromTemplate', 'action-bake'],
       ['importCassetteDesignFromArtifact', 'action-import']
     ]);

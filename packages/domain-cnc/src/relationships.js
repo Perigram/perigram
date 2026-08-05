@@ -12,6 +12,12 @@ export const cncContainment = [
 
 export const cncRelations = [
   {
+    ownerType: 'queue',
+    key: 'cassettes',
+    targetType: 'cassette_design',
+    cardinality: 'many'
+  },
+  {
     ownerType: 'geometry_capture',
     key: 'sourcePhoto',
     targetType: 'artifact',

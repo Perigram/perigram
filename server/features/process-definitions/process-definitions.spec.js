@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { activate, appendExistingCassetteDesignToActiveQueue, assignUserToActiveProcessInternal, authFromRun, executeActiveProcessAction, hasProcessDefinitionMembershipAccess, orchestrationActor, resolveProcessGraphEntity, update } from './service.js';
+import { activate, assignUserToActiveProcessInternal, authFromRun, executeActiveProcessAction, hasProcessDefinitionMembershipAccess, orchestrationActor, resolveProcessGraphEntity, update } from './service.js';
 import * as processRepository from './repository.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
-import * as cassetteDesignsService from '~/server/features/cassette-designs/service.js';
 import * as queuesService from '~/server/features/queues/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -31,14 +30,10 @@ vi.mock('~/server/features/cassettes/service.js', async (importOriginal) => ({
   findDefaultConstructableTemplate: vi.fn()
 }));
 
-vi.mock('~/server/features/cassette-designs/service.js', async (importOriginal) => ({
-  ...(await importOriginal()),
-  getById: vi.fn()
-}));
-
 vi.mock('~/server/features/queues/service.js', async (importOriginal) => ({
   ...(await importOriginal()),
   getById: vi.fn(),
+  processGetById: vi.fn(),
   processUpdate: vi.fn()
 }));
 
@@ -1069,25 +1064,15 @@ describe('process definitions access fallback', () => {
   });
 
   it('appends process-produced cassette designs to the queue through queue processUpdate', async () => {
-    queuesService.getById.mockResolvedValueOnce({
+    queuesService.processGetById.mockResolvedValueOnce({
       _id: 'queue-1',
       lineage: { organizationId: 'org-1' },
-      data: { job: { items: [] } }
+      relations: { cassettes: [] }
     });
     queuesService.processUpdate.mockResolvedValueOnce({
       _id: 'queue-1',
       lineage: { organizationId: 'org-1' },
-      data: {
-        job: {
-          items: [{
-            type: 'PARAMETRIC',
-            entityType: 'cassette_design',
-            id: 'design-created',
-            quantity: 3,
-            parameters: { A: 1200, T: 18 }
-          }]
-        }
-      }
+      relations: { cassettes: [{ type: 'cassette_design', id: 'design-created' }] }
     });
     getAppRegistry.mockReturnValue({
       getDomain: () => ({
@@ -1100,7 +1085,7 @@ describe('process definitions access fallback', () => {
           cassette_design: { feature: 'cassette_designs', write: ['data.*'] }
         }
       }),
-      getEntityService: () => null
+      getEntityService: type => type === 'queue' ? queuesService : null
     });
     cassetteService.createDesignFromTemplate.mockResolvedValueOnce({
       _id: 'design-created',
@@ -1137,7 +1122,7 @@ describe('process definitions access fallback', () => {
       data: {
         templateId: 'cassette-template-1',
         parameters: { A: 1200, T: 18 },
-        queueAppend: { quantity: 3 }
+        linkCreatedTo: { ownerType: 'queue', relationKey: 'cassettes' }
       }
     }, {
       userId: 'user-1',
@@ -1148,101 +1133,7 @@ describe('process definitions access fallback', () => {
     });
 
     expect(queuesService.processUpdate).toHaveBeenCalledWith('queue-1', {
-      'data.job.items': [{
-        type: 'PARAMETRIC',
-        entityType: 'cassette_design',
-        id: 'design-created',
-        quantity: 3,
-        parameters: { A: 1200, T: 18 }
-      }]
-    }, expect.objectContaining({
-      effectivePermissions: expect.objectContaining({
-        queues: expect.arrayContaining([
-          expect.objectContaining({ level: 'write', actions: { update: true, edit: true } })
-        ])
-      })
-    }));
-  });
-
-  it('appends existing readable cassette designs to a process queue through queue processUpdate', async () => {
-    getAppRegistry.mockReturnValue({
-      getDomain: () => ({
-        entities: [
-          { type: 'queue', collection: 'queues' },
-          { type: 'cassette_design', collection: 'cassette_designs' }
-        ],
-        fieldAccess: {
-          queue: { feature: 'queues', read: ['data.job.items'], write: ['data.job.*'] },
-          cassette_design: { feature: 'cassette_designs', read: ['data.parameters'] }
-        }
-      })
-    });
-    queuesService.getById.mockResolvedValueOnce({
-      _id: 'queue-1',
-      lineage: { organizationId: 'org-1' },
-      data: {
-        job: {
-          items: [{
-            type: 'STATIC',
-            entityType: 'cassette_design',
-            id: 'existing-design',
-            quantity: 1,
-            parameters: {}
-          }]
-        }
-      }
-    });
-    cassetteDesignsService.getById.mockResolvedValueOnce({
-      _id: 'design-2',
-      lineage: { organizationId: 'org-1' },
-      data: { parameters: { W: 500 } }
-    });
-    queuesService.processUpdate.mockResolvedValueOnce({
-      _id: 'queue-1',
-      lineage: { organizationId: 'org-1' },
-      data: { job: { items: [] } }
-    });
-    processRepository.findActiveByOrganization.mockResolvedValueOnce({
-      _id: 'process-active',
-      lineage: { organizationId: 'org-1' },
-      data: { compiled: { actions: {} } }
-    });
-
-    await appendExistingCassetteDesignToActiveQueue({
-      queueId: 'queue-1',
-      designId: 'design-2',
-      quantity: 4
-    }, {
-      userId: 'user-1',
-      organizationId: 'org-1',
-      effectivePermissions: {
-        queues: [{ level: 'read' }],
-        cassette_designs: [{ level: 'read' }]
-      }
-    });
-
-    expect(cassetteDesignsService.getById).toHaveBeenCalledWith('design-2', 'user-1', undefined, expect.objectContaining({
-      effectivePermissions: expect.objectContaining({
-        cassette_designs: [{ level: 'read' }]
-      })
-    }));
-    expect(queuesService.processUpdate).toHaveBeenCalledWith('queue-1', {
-      'data.job.items': [
-        {
-          type: 'STATIC',
-          entityType: 'cassette_design',
-          id: 'existing-design',
-          quantity: 1,
-          parameters: {}
-        },
-        {
-          type: 'STATIC',
-          entityType: 'cassette_design',
-          id: 'design-2',
-          quantity: 4,
-          parameters: { W: 500 }
-        }
-      ]
+      'relations.cassettes': [{ type: 'cassette_design', id: 'design-created' }]
     }, expect.objectContaining({
       effectivePermissions: expect.objectContaining({
         queues: expect.arrayContaining([

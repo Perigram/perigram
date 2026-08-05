@@ -43,8 +43,8 @@ const handleCardClick = (event) => {
     emit('view', props.queue);
 };
 
-const jobItems = computed(() => props.queue.data?.job?.items || []);
-const totalQuantity = computed(() => jobItems.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0));
+const jobItems = computed(() => props.queue.relations?.cassettes || []);
+const totalQuantity = computed(() => jobItems.value.length);
 const canEditQueue = computed(() => hasPermissionGrant({
     permissions: authStore.activePermissions,
     feature: 'queues',

@@ -11,7 +11,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.queueNumber', i18n: 'queue.name', display: 'text', priority: 10 }
     ],
     summary: [
-      { path: 'data.job.items.length', i18n: 'queue.jobItems', display: 'count', priority: 10 },
+      { path: 'relations.cassettes', i18n: 'queue.jobItems', display: 'entityRefList', entityType: 'cassetteDesign', priority: 10 },
       { path: 'summary.runCount', i18n: 'queue.nestingRuns', display: 'count', role: 'childCount', priority: 20 },
       { path: 'summary.runPreview', i18n: 'queue.nestingRuns', display: 'entityRefList', entityType: 'nestingRun', replacesCountPath: 'summary.runCount', priority: 25 },
       { path: 'summary.sheetCount', i18n: 'results.sheets', display: 'count', role: 'childCount', priority: 30 },

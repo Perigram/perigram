@@ -489,7 +489,13 @@
                   </div>
                   <div v-if="selectedProcessNode.kind === 'effect.createEntity' && constructionModeOptions(selectedProcessNode.entityType).length > 1" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.constructionMode') }}</label>
-                    <Select v-model="selectedProcessNode.construction.mode" :options="constructionModeOptions(selectedProcessNode.entityType)" option-label="label" option-value="value" @change="syncNodeData" />
+                    <Select
+                      :model-value="selectedProcessNode.construction.mode"
+                      :options="constructionModeOptions(selectedProcessNode.entityType)"
+                      option-label="label"
+                      option-value="value"
+                      @update:model-value="mode => updateProcessNodeConstructionMode(selectedProcessNode, mode)"
+                    />
                   </div>
                   <div v-if="selectedProcessNode.kind === 'control.domainEventTrigger'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.event') }}</label>
@@ -2034,6 +2040,7 @@ function serializeProcess() {
 }
 
 function processDefinitionSnapshot() {
+  pruneAllMissingProcessNodeInputEdges();
   const viewport = getViewport?.() || draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 };
   return {
     ...canvasToDefinition(
@@ -3920,7 +3927,32 @@ function updateProcessNodeRecord(nodeId, updates = {}) {
     if (updates.operation === 'contains') node.valueType = 'string';
   }
   syncProcessNode(node);
+  pruneMissingProcessNodeInputEdges(nodeId, node);
   syncNodeData();
+}
+
+function updateProcessNodeConstructionMode(node = {}, mode = '') {
+  if (!node?.id || !mode || node.construction?.mode === mode) return;
+  updateProcessNodeRecord(node.id, {
+    construction: { ...(node.construction || {}), mode }
+  });
+}
+
+function pruneMissingProcessNodeInputEdges(nodeId, node = {}) {
+  const graphNodeId = nodes.value.find(item => item.type === 'processNode' && item.data?.refId === nodeId)?.id;
+  if (!graphNodeId) return;
+  const inputIds = new Set(processNodeInputs(node).map(input => input.id));
+  edges.value = edges.value.filter(edge => (
+    edge.target !== graphNodeId
+    || !/^(?:input|data):/.test(String(edge.targetHandle || ''))
+    || inputIds.has(String(edge.targetHandle).replace(/^(?:input|data):/, ''))
+  ));
+}
+
+function pruneAllMissingProcessNodeInputEdges() {
+  for (const node of Object.values(draft.value?.data?.processNodes || {})) {
+    pruneMissingProcessNodeInputEdges(node.id, node);
+  }
 }
 
 function openBlockComposition(node = {}) {

@@ -186,6 +186,13 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('draft.value.data.processNodes = processNodeSnapshot');
   });
 
+  it('removes wires whose typed inputs disappear when a node contract changes', () => {
+    expect(designerSource).toContain('pruneMissingProcessNodeInputEdges(nodeId, node)');
+    expect(designerSource).toContain('pruneAllMissingProcessNodeInputEdges();');
+    expect(designerSource).toContain("inputIds.has(String(edge.targetHandle).replace(/^(?:input|data):/, ''))");
+    expect(designerSource).toContain('updateProcessNodeConstructionMode(selectedProcessNode, mode)');
+  });
+
   it('keeps Vue reactive process records outside the plain-data migrator', () => {
     expect(designerSource).toContain('migrateProcessDataflowDefinition(clonePlainData(value || {}), cncDomain)');
   });

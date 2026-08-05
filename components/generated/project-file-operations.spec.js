@@ -68,7 +68,7 @@ describe('project file operations and queue pane density', () => {
     expect(queueEntrySource).not.toContain('hide-dimension-layer');
     expect(queueEntrySource).toContain('fixed-frame');
     expect(queueEntrySource).toContain('type="cassetteTemplate"');
-    expect(queueEntrySource).toContain('class="flex min-w-0 items-center gap-1"');
+    expect(queueEntrySource).toContain('type="cassetteDesign"');
     expect(queueEntrySource).toContain("header: { class: '!hidden' }");
     expect(queueEntrySource).not.toContain('<IdentityBlock');
     expect(queueEditorSource).toContain('severity="secondary"');

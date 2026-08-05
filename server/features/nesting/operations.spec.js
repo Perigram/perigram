@@ -323,7 +323,7 @@ describe('nesting operation worker payloads', () => {
     expect(request.items.map(item => item.handles)).toEqual([['wp_1:C1'], ['wp_2:C1']]);
   });
 
-  it('rejects legacy template queue rows instead of baking through a runtime fallback', async () => {
+  it('ignores removed embedded queue rows instead of using a runtime fallback', async () => {
     const queue = {
       data: {
         job: {
@@ -338,8 +338,7 @@ describe('nesting operation worker payloads', () => {
       }
     };
 
-    await expect(buildJobFiles(queue, makeAuth()))
-      .rejects.toThrow(/must reference a cassette_design/);
+    await expect(buildJobFiles(queue, makeAuth())).resolves.toEqual([]);
     expect(cassetteDesignService.getById).not.toHaveBeenCalled();
   });
 
@@ -364,17 +363,7 @@ describe('nesting operation worker payloads', () => {
     });
 
     const queue = {
-      data: {
-        job: {
-          items: [{
-            type: 'STATIC',
-            entityType: 'cassette_design',
-            id: 'design-1',
-            quantity: 2,
-            parameters: {}
-          }]
-        }
-      }
+      relations: { cassettes: [{ type: 'cassette_design', id: 'design-1' }] }
     };
     const auth = { userId: 'user-1', organizationId: 'org-1', role: 'USER', memberships: [] };
 
@@ -385,7 +374,7 @@ describe('nesting operation worker payloads', () => {
     expect(request.items).toHaveLength(1);
     expect(request.items[0]).toMatchObject({
       cassette_id: 'design-1',
-      count: 2,
+      count: 1,
       handles: ['OUTER'],
       sourceLayers: [{
         layer: 'fold.route',
@@ -600,16 +589,12 @@ describe('nesting operation worker payloads', () => {
     });
 
     const queue = {
-      data: {
-        job: {
-          items: [{
-            type: 'STATIC',
-            entityType: 'cassette_design',
-            id: 'design-source',
-            quantity: 1,
-            parameters: { A: 700, B: 300, T: 4 }
-          }]
-        }
+      relations: {
+        cassettes: [{
+          type: 'cassette_design',
+          id: 'design-source',
+          parameters: { T: 4 }
+        }]
       }
     };
     const auth = makeAuth();
@@ -668,17 +653,10 @@ function makeQueue() {
       }
     },
     lineage: { organizationId: 'org-1' },
+    relations: { cassettes: [{ type: 'cassette_design', id: 'design-1' }] },
     data: {
       queueNumber: 7,
-      job: {
-        items: [{
-          type: 'STATIC',
-          entityType: 'cassette_design',
-          id: 'design-1',
-          quantity: 2,
-          parameters: {}
-        }]
-      },
+      job: { materialPool: [] },
       nestingSettings: {
         machineId: 'machine-1',
         toolProfileId: 'tool-1',

@@ -7,7 +7,7 @@ import * as sheetDesignsService from '../sheet-designs/service.js';
 import * as sheetsService from '../sheets/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { getPrimaryState, inheritLineage } from '~/server/core/blocks/index.js';
+import { getPrimaryState, inheritLineage, Relations } from '~/server/core/blocks/index.js';
 import { Queue } from './model.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
@@ -91,38 +91,12 @@ export function normalizeQueueJob(job = {}) {
   const source = job && typeof job === 'object' ? job : {};
   return {
     ...source,
-    items: normalizeQueueJobItems(source.items || []),
     materialPool: Array.isArray(source.materialPool) ? source.materialPool : []
   };
 }
 
-export function normalizeQueueJobItems(items = []) {
-  if (!Array.isArray(items)) {
-    throw createError({ statusCode: 400, message: 'Queue job items must be an array' });
-  }
-  return items.map(normalizeQueueJobItem);
-}
-
-function normalizeQueueJobItem(item = {}) {
-  const id = item.id || '';
-  const entityType = item.entityType || '';
-  if (!id || !entityType) {
-    throw createError({ statusCode: 400, message: 'Queue items require id and entityType' });
-  }
-  if (entityType !== 'cassette_design') {
-    throw createError({ statusCode: 400, message: 'Queue items must reference cassette_design entities' });
-  }
-  const quantity = Number(item.quantity ?? item.count ?? 1);
-  if (!Number.isInteger(quantity) || quantity < 1) {
-    throw createError({ statusCode: 400, message: 'Queue item quantity must be a positive integer' });
-  }
-  return {
-    ...item,
-    id,
-    entityType,
-    quantity,
-    parameters: item.parameters || item.dimensions || {}
-  };
+export function queueCassetteDesignRefs(queue = {}) {
+  return Array.isArray(queue.relations?.cassettes) ? queue.relations.cassettes : [];
 }
 
 
@@ -142,17 +116,14 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const queue = new Queue({
     identity: { uid, name: name || `Queue #${queueNumber}` },
     lineage,
+    relations: new Relations(data.relations || {}),
     provenance: data.provenance || {},
     data: {
-      job: bindQueueMaterialThickness(
-        normalizeQueueJob(job || { items: [], materialPool: [] }),
-        normalizeQueueNestingSettings(data.nestingSettings || {}).virtualThickness
-      ),
+      job: normalizeQueueJob(job || { materialPool: [] }),
       nestingSettings: normalizeQueueNestingSettings(data.nestingSettings || {}),
       queueNumber
     }
   });
-  queue.data.job = bindQueueMaterialThickness(queue.data.job, materialThicknessForQueue(queue.data));
 
   const initialStatus = await statusService.initialStatusForOrganization('queue', userOrg, userId, { note: 'Initial queue creation' });
   queue.origin = initialStatus;
@@ -262,6 +233,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   delete dataUpdates.nestingParams;
   // Update data block
   queue.data = { ...queue.data, ...dataUpdates };
+  if (updates.relations) queue.relations = new Relations(updates.relations);
   
   // Handle root level updates that should go to job/params
   if (updates.job) queue.data.job = normalizeQueueJob(updates.job);
@@ -270,7 +242,6 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
     queue.data.nestingSettings = normalizeQueueNestingSettings(nestingSettingsUpdate, queue.data.nestingSettings);
   }
   delete queue.data.nestingParams;
-  queue.data.job = bindQueueMaterialThickness(queue.data.job, materialThicknessForQueue(queue.data));
 
   await repository.updateById(uid, queue);
   const updatedRaw = await repository.findById(uid);
@@ -371,30 +342,8 @@ function optionalPositiveNumber(value) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
-function materialThicknessForQueue(data = {}) {
-  if (data.nestingSettings?.materialMode !== 'WAREHOUSE') {
-    return optionalPositiveNumber(data.nestingSettings?.virtualThickness);
-  }
-  const source = data.job?.materialPool?.[0] || {};
-  return optionalPositiveNumber(source.dimensions?.thickness ?? source.specsData?.thickness ?? source.thickness);
-}
-
-export function bindQueueMaterialThickness(job = {}, thickness = null) {
-  const materialThickness = optionalPositiveNumber(thickness);
-  return {
-    ...(job || {}),
-    items: (job?.items || []).map(item => {
-      if (item.type !== 'PARAMETRIC') return item;
-      const parameters = { ...(item.parameters || {}) };
-      delete parameters.T;
-      if (materialThickness) parameters.T = materialThickness;
-      return { ...item, parameters };
-    })
-  };
-}
-
 function queuePreview(queue = {}) {
-  const items = queue.data?.job?.items || [];
+  const items = queueCassetteDesignRefs(queue);
   const materialPool = queue.data?.job?.materialPool || [];
   const preview = {
     _id: queue._id?.toString?.() || queue._id,
@@ -411,7 +360,7 @@ function queuePreview(queue = {}) {
     },
     summary: {
       jobItemCount: items.length,
-      totalQuantity: items.reduce((sum, item) => sum + Number(item.quantity || item.count || 1), 0),
+      totalQuantity: items.length,
       runCount: Number(queue.summary?.runCount || 0),
       sheetCount: Number(queue.summary?.sheetCount || 0),
       totalArea: Number(queue.summary?.totalArea || 0),

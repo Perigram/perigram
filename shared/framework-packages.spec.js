@@ -225,6 +225,7 @@ describe('Framework package contracts', () => {
     expect(cncEntities.find(entity => entity.type === 'queue')?.collection).toBe('queues');
     expect(cncEntities.every(entity => entity.blocks.includes('relations') && entity.blocks.includes('provenance'))).toBe(true);
     expect(cncContainment).toContainEqual({ parentType: 'project', childType: 'queue', lineageKey: 'projectId' });
+    expect(cncRelations).toContainEqual({ ownerType: 'queue', key: 'cassettes', targetType: 'cassette_design', cardinality: 'many' });
     expect(cncRelations).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ ownerType: 'project', targetType: 'library' })
     ]));

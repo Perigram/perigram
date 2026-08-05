@@ -230,37 +230,21 @@
                                     :cassette="getEntryEntityData(entry)"
                                     :template="getEntryTemplateData(entry)"
                                     :template-id="getEntryTemplateId(entry)"
-                                    :parameters="getEntryParameters(entry)"
-                                    :locked-parameters="['T']"
                                     :disabled="!canEditQueue"
-                                    @update-quantity="value => updateEntryQuantity(entry, value)"
-                                    @update-dimension="(param, value) => updateEntryDimension(entry, param, value)"
                                     @remove="confirmDelete(entry)"
                                 />
                             </template>
                         </ResponsiveGrid>
 
                         <TableFrame v-else>
-                            <DataTable :value="entries" dataKey="_key" :editMode="canEditQueue ? 'cell' : null" @cell-edit-complete="onRowEditSave">
+                            <DataTable :value="entries" dataKey="_key">
                                 <Column field="id" :header="$t('queues.cassette')">
                                     <template #body="{ data }"><span>{{ getCassetteName(data.id) }}</span></template>
-                                </Column>
-                                <Column field="quantity" :header="$t('queues.quantity')">
-                                    <template #editor="{ data }"><InputNumber v-model="data.quantity" :min="1" fluid size="small" /></template>
                                 </Column>
                                 <Column v-for="param in allParameters" :key="param" :header="param" :field="`dimensions.${param}`">
                                     <template #body="{ data }">
                                         <span v-if="hasEditableEntryParameters(data)">{{ data.dimensions?.[param] ?? '-' }}</span>
                                         <span v-else class="text-muted-color">-</span>
-                                    </template>
-                                    <template #editor="{ data }">
-                                        <InputNumber
-                                            v-if="hasEditableEntryParameters(data)"
-                                            v-model="data.dimensions[param]"
-                                            :disabled="param === 'T'"
-                                            fluid
-                                            size="small"
-                                        />
                                     </template>
                                 </Column>
                                 <Column v-if="canEditQueue" style="width: var(--ck-table-action-column-width)">
@@ -310,11 +294,7 @@
 
         <StandardDialog v-model:visible="showAddDialog" :header="selectedProducer ? producerLabel(selectedProducer) : $t('queues.addEntry')">
             <div class="flex flex-col gap-4 py-4">
-                <div v-if="selectedProducer?.kind === 'entitySource'" class="flex flex-col gap-2">
-                    <label>{{ $t('queues.cassette') }}</label>
-                    <Select v-model="producerValues.designId" :options="designOptions" optionLabel="label" optionValue="value" entity-type="cassetteDesign" class="w-full" size="small" />
-                </div>
-                <template v-else>
+                <template>
                     <div v-for="field in visibleProducerFields" :key="field.id" class="flex flex-col gap-2">
                         <label>{{ field.label || field.id }}</label>
                         <Select
@@ -350,10 +330,6 @@
                         </div>
                     </div>
                 </template>
-                <div class="flex flex-col gap-2">
-                    <label>{{ $t('queues.quantity') }}</label>
-                    <InputNumber v-model="producerQuantity" :min="1" fluid size="small" />
-                </div>
             </div>
             <template #footer>
                 <Button :label="$t('common.cancel')" text severity="secondary" size="small" @click="showAddDialog = false" />
@@ -460,7 +436,6 @@ const selectedProducer = ref(null);
 const producerValues = ref({});
 const producerFieldOptions = ref({});
 const producerParameters = ref({});
-const producerQuantity = ref(1);
 const producerExecuting = ref(false);
 const producerResourcesReady = ref(false);
 const cassettes = ref([]);
@@ -506,7 +481,7 @@ const producerMenuItems = computed(() => availableProducers.value.map(producer =
 })));
 const producerFields = computed(() => {
     const producer = selectedProducer.value;
-    if (!producer || producer.kind === 'entitySource') return [];
+    if (!producer) return [];
     if (producer.action) {
         const fields = producer.action.inputPolicy?.fields || producer.action.construction?.inputs || [];
         return producerSourceFields(
@@ -517,11 +492,6 @@ const producerFields = computed(() => {
     return producerSourceFields(producer, constructionFields(producer.constructionMode));
 });
 const visibleProducerFields = computed(() => producerFields.value.filter(field => !usesServerDefaultTemplate(field)));
-const designOptions = computed(() => cassetteDesigns.value.map(design => ({
-    label: entitySelectLabel(design, t('entities.cassetteDesign')),
-    value: design._id?.toString(),
-    entity: design
-})));
 const libraryOptions = computed(() => libraries.value
     .filter(library => libraryHasReadableTemplates(library))
     .map(library => ({
@@ -537,7 +507,7 @@ const uploadProducerActionBody = computed(() => {
     if (!selectedProducer.value?.actionId) return {};
     return {
         data: {
-            ...(isProcessMode.value ? { queueAppend: { quantity: 1 } } : {})
+            ...(isProcessMode.value ? { linkCreatedTo: { ownerType: 'queue', relationKey: 'cassettes' } } : {})
         },
         entities: {
             queue: props.queue._id || props.queue.identity?.uid,
@@ -547,7 +517,6 @@ const uploadProducerActionBody = computed(() => {
 });
 const producerReady = computed(() => {
     if (!selectedProducer.value) return false;
-    if (selectedProducer.value.kind === 'entitySource') return Boolean(producerValues.value.designId);
     return producerFields.value.every(field => !field.required || hasProducerValue(field));
 });
 const processRunNestingAction = computed(() => {
@@ -654,7 +623,6 @@ async function startProducer(producer) {
     producerValues.value = {};
     producerFieldOptions.value = {};
     producerParameters.value = {};
-    producerQuantity.value = 1;
     if (producer.constructionMode === 'importCassetteDesignFromArtifact') {
         showUploadDialog.value = true;
         return;
@@ -772,15 +740,7 @@ async function executeSelectedProducer() {
     producerExecuting.value = true;
     try {
         let produced;
-        if (selectedProducer.value.kind === 'entitySource') {
-            produced = cassetteDesigns.value.find(design => design._id?.toString() === producerValues.value.designId?.toString());
-            if (isProcessMode.value) {
-                if (!produced) throw new Error(t('queues.invalidCassetteEntry'));
-                await appendExistingDesignInProcessMode(produced);
-                showAddDialog.value = false;
-                return;
-            }
-        } else if (selectedProducer.value.actionId) {
+        if (selectedProducer.value.actionId) {
             const data = producerData();
             const request = buildProducerActionRequest({
                 action: selectedProducer.value.action,
@@ -788,7 +748,7 @@ async function executeSelectedProducer() {
                 values: producerValues.value,
                 data: {
                     ...data,
-                    ...(isProcessMode.value ? { queueAppend: { quantity: producerQuantity.value } } : {})
+                    ...(isProcessMode.value ? { linkCreatedTo: { ownerType: 'queue', relationKey: 'cassettes' } } : {})
                 },
                 contextEntities: { queue: props.queue, project: project.value }
             });
@@ -818,25 +778,13 @@ async function executeSelectedProducer() {
         }
         const design = await resolveProducedDesign(produced);
         if (!design) throw new Error(t('queues.invalidCassetteEntry'));
-        await addEntry(design, producerQuantity.value);
+        await addEntry(design);
         showAddDialog.value = false;
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: requestErrorMessage(error) });
     } finally {
         producerExecuting.value = false;
     }
-}
-
-async function appendExistingDesignInProcessMode(design) {
-    await $fetch(`/api/process-definitions/active/queues/${encodeURIComponent(props.queue._id || props.queue.identity?.uid)}/items`, {
-        method: 'POST',
-        body: {
-            designId: design._id,
-            quantity: producerQuantity.value
-        }
-    });
-    await loadQueueData();
-    emit('updated');
 }
 
 async function resolveProducedDesign(result) {
@@ -1256,7 +1204,7 @@ const loadQueueData = async () => {
     try {
         const data = await queuesStore.getQueue(props.queue._id);
         if (data) {
-            entries.value = (data.data?.job?.items || []).map(makeQueueEntry);
+            entries.value = (data.relations?.cassettes || []).map(makeQueueEntry);
             entries.value.forEach(syncEntryWithCassette);
             await hydrateMissingEntryDesigns();
             entries.value.forEach(syncEntryWithCassette);
@@ -1412,35 +1360,13 @@ const syncEntryWithCassette = (entry) => {
     return entry;
 };
 
-const updateEntryQuantity = async (entry, quantity) => {
-    if (!canEditQueue.value) return;
-    entry.quantity = quantity;
-    await saveQueue({ notify: false });
-};
-
-const updateEntryDimension = async (entry, param, value) => {
-    if (!canEditQueue.value) return;
-    if (param === 'T') return;
-    entry.dimensions = {
-        ...(entry.dimensions || {}),
-        [param]: value
-    };
-    await saveQueue({ notify: false });
-};
-
-const addEntry = async (item = null, quantity = 1) => {
+const addEntry = async (item = null) => {
     if (!canEditQueue.value) return;
     const data = item;
     if (!data || !isCassetteDesignEntity(data)) throw new Error(t('queues.invalidCassetteEntry'));
-    const parameters = { ...(data.data?.parameters || {}) };
-    const type = Object.prototype.hasOwnProperty.call(parameters, 'T') ? 'PARAMETRIC' : 'STATIC';
-
     entries.value.push(syncEntryWithCassette({
-        quantity: Number(quantity || 1),
-        dimensions: parameters,
         _key: `entry_${data._id}_${Date.now()}_${entries.value.length}`,
         entityType: 'cassette_design',
-        type,
         id: data._id
     }));
 
@@ -1459,16 +1385,11 @@ const saveQueue = async ({ notify = true } = {}) => {
         await queuesStore.updateQueue(
             props.queue._id,
             {
-                job: {
-                    items: entries.value.map(e => ({
-                        type: e.type,
-                        entityType: e.entityType,
-                        id: e.id,
-                        quantity: e.quantity,
-                        parameters: e.dimensions
-                    })),
-                    materialPool: selectedMaterialPool.value
+                relations: {
+                    ...(props.queue.relations || {}),
+                    cassettes: entries.value.map(e => ({ type: 'cassette_design', id: e.id }))
                 },
+                job: { materialPool: selectedMaterialPool.value },
                 nestingSettings: nestingOptions.value
             }
         );
@@ -1576,7 +1497,6 @@ const confirmDelete = (entry) => {
     });
 };
 
-const onRowEditSave = async () => await saveQueue();
 
 const loadInstances = async () => {
     try {

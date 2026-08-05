@@ -236,7 +236,6 @@
         ],
         "entityType": "queue",
         "fieldPaths": [
-          "data.job.items.length",
           "data.queueNumber",
           "summary.runCount",
           "summary.sheetCount",
