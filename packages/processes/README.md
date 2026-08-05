@@ -264,6 +264,12 @@ contextual `Unlink <target>` operation for each rendered linked reference. Both
 carry the exact relation key, target type, cardinality, and access grants. Link
 prompts for a target; Unlink receives the already-rendered target reference and
 therefore never opens an entity selector.
+When a relation entry is fed by a typed Create Entity effect, the compiled Link
+contract retains that effect as its embedded creator. The creator is not exposed
+as an unrelated top-level action: it is authorized and executed only through
+the Link action. Its connected entity source and containment path also define
+the eligible existing targets and creator sources in the current owner context,
+so generated pickers do not fall back to a global target collection.
 Artifact relation entries select declared upload-backed `AttachmentKind`
 values in their always-visible creation selector. An empty selection uses every
 upload-backed kind declared by the domain; selecting values narrows that set.

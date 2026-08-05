@@ -5,6 +5,14 @@ load arbitrary Vue component names from process data; the manifest selects fixed
 screen templates, sources, regions, surfaces, and action ids, and the app
 renderer maps those contracts to registered Vue surfaces.
 
+Relation Link dialogs load their options through the active action contract.
+When the relation is fed by a process Create Entity effect, the dialog offers a
+compact `Create new` path using that embedded constructor and links the returned
+entity in the same submission. Both existing target choices and constructor
+source choices are scoped by the opened owner, process-authored ancestor
+relations, domain containment, and derivation provenance; the component never
+substitutes a global entity list for that scoped contract.
+
 ## Overload Registry
 
 `overloads.js` owns app default overloads for generated surfaces. Overloads are
