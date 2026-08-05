@@ -72,10 +72,10 @@ standard template only when no parametric template is available. Process
 construction uses that selector when a graph action is executed without an
 explicit template id.
 
-Process `createEntity` actions that target `cassette` use
-`createDefaultOccsTemplate` as their only construction mode. Generic shallow
-cassette creation is not part of the process contract. The service requires a prompted template name and
-stores the default OCCS v2 graph-tree document from `utils/occs/templates.js`,
+Process `createEntity` actions target the ordinary cassette service; cassette
+creation has no alternate process construction mode. The service stores the
+supplied OCCS definition or creates the default OCCS v2 graph-tree document
+from `utils/occs/templates.js`,
 including the standard parameter list and geometry revision pointer. A
 process-created template therefore opens in `CassetteDesignerV2` with an
 editable OCCS document instead of `data.definition: null`.

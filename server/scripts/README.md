@@ -22,7 +22,6 @@ node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize store
 node server/scripts/migrate-process-roles-to-organizations.js # Dry-run organization-owned role migration
 node server/scripts/migrate-process-roles-to-organizations.js --apply # Apply only organizations without unresolved references
 node server/scripts/migrate-organization-owner-admins.js # Mark existing organization creator/admin memberships as owner admins
-node server/scripts/migrate-process-create-status-grants.js # Normalize create construction/input policies and recompile process contracts
 node server/scripts/migrate-process-compiled-runtime.js # Recompile active process runtime contracts after compiler changes
 node server/scripts/migrate-process-update-actions.js # Replace legacy changeStatus actions with updateEntity status mutations
 node server/scripts/migrate-process-command-output-statuses.js # Apply graph-derived process statuses to existing command output entities
@@ -177,16 +176,6 @@ memberships. It marks one active membership per organization as
 membership, then the first active member. The selected owner receives
 `organizations:admin` and `users:admin` so every organization keeps at least
 one permanent tenant admin.
-
-Use `server/scripts/migrate-process-create-status-grants.js` after compiler
-changes that affect generated screens, create-action status grants,
-action-derived workflows, construction contracts, or other compiled runtime
-contracts. It rewrites stored create actions to include the current domain
-`construction` and `inputPolicy` records, resets stale invalid construction
-modes to the current entity-type default, and rewrites every stored semantic
-process action, including drafts. Definitions that already have a compiled
-runtime contract are recompiled, so existing active processes pick up compiler
-fixes without editing their semantic graph records.
 
 Use `server/scripts/migrate-process-update-actions.js` after adopting unified
 process updates. It rewrites stored `changeStatus` action records to

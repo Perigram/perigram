@@ -238,12 +238,11 @@ domain construction contract. A sparse visual action for `cassette_design`
 therefore still compiles with required `name` and `templateId` prompt fields,
 so generated screens open the input dialog even when the draft did not persist
 `construction.inputs` or `inputPolicy.fields`. Generic `cassette` creation
-keeps the canonical constructible block sockets; the registered
-`createDefaultOccsTemplate` producer owns creation of a complete starter OCCS
+keeps the canonical constructible block sockets; the cassette entity service
+owns the invariant that every created cassette has a complete editable OCCS
 template. When stored actions carry a construction mode that no
 longer belongs to the selected entity type, compilation normalizes the mode to
-the current domain default and the process-construction migration persists that
-normalization before recompiling active runtime contracts.
+the current domain default before compiling the active runtime contract.
 Domain construction contracts own structural input metadata during compilation:
 field id, label, path, type, accepted entity types, and `required` status come
 from the current domain registry, not from stale action snapshots. Stored graph
