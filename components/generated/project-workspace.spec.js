@@ -63,13 +63,15 @@ describe('generated project workspace architecture', () => {
     expect(source).not.toContain('authStore.actionManifest.filter');
   });
 
-  it('keeps entity pages canonical and collapses page/card actions into ellipsis menus', () => {
+  it('keeps entity pages canonical and exposes pane actions directly in file chrome', () => {
     expect(source).not.toContain('variant="workspace"');
     expect(entityPageSource).not.toContain("variant: { type: String");
     expect(entityPageSource).not.toContain("props.variant === 'workspace'");
     expect(entityPageSource).toContain('<EntityActionsPopover');
     expect(entityCardSource).toContain('<EntityActionsPopover');
-    expect(entityFileSource).toContain('<EntityActionsPopover');
+    expect(entityFileSource).not.toContain('<EntityActionsPopover');
+    expect(entityFileSource).toContain('<GeneratedActionButton');
+    expect(entityFileSource).not.toContain('menu-item\n        @execute="executeAction"');
     expect(entityFileSource).toContain('<GeneratedWorkspaceTabs');
     expect(entityFileSource).toContain('<EntityStatus');
     expect(entityFileSource).toContain('variant="icon"');
