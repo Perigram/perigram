@@ -56,8 +56,10 @@ export function getAppRegistry() {
 function registerAppBindings(registry) {
   for (const [type, service] of Object.entries(entityServices)) {
     const processList = entityProcessLists[type];
+    const processGetById = entityProcessReads[type];
     if (!processList) throw new Error(`Entity service ${type} requires an explicit processList binding`);
-    registry.registerEntityService(type, { ...service, processList });
+    if (!processGetById) throw new Error(`Entity service ${type} requires an explicit processGetById binding`);
+    registry.registerEntityService(type, { ...service, processList, processGetById });
   }
   for (const [id, handler] of Object.entries(commandHandlers)) {
     registry.registerCommandHandler(id, handler);
@@ -117,6 +119,21 @@ const authFirstList = service => (filters, auth) => service.list(
   filters
 );
 
+const authLastRead = service => (id, auth) => service.getById(
+  id,
+  auth.userId,
+  auth.organizationId,
+  auth.role,
+  auth
+);
+
+const authWithoutOrganizationRead = service => (id, auth) => service.getById(
+  id,
+  auth.userId,
+  auth.role,
+  auth
+);
+
 const entityProcessLists = {
   artifact: (filters, auth) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
   artifact_template: (filters, auth) => artifactTemplatesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
@@ -146,6 +163,37 @@ const entityProcessLists = {
   tool_profile: (_filters, auth) => toolProfilesService.listAll(auth.userId),
   user: (_filters, auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth),
   warehouse: authFirstList(warehousesService)
+};
+
+const entityProcessReads = {
+  artifact: authLastRead(artifactsService),
+  artifact_template: authLastRead(artifactTemplatesService),
+  cassette: authLastRead(cassettesService),
+  cassette_design: authWithoutOrganizationRead(cassetteDesignsService),
+  cassette_instance: authLastRead(cassetteInstancesService),
+  catalog: id => catalogsService.getById(id),
+  color: id => colorsService.getById(id),
+  entity_revision: authWithoutOrganizationRead(entityRevisionsService),
+  geometry_capture: authLastRead(geometryCapturesService),
+  layer_standard: id => layerStandardsService.getById(id),
+  library: authLastRead(librariesService),
+  machine: authLastRead(machinesService),
+  material: id => materialsService.getById(id),
+  material_pile: id => materialPilesService.getById(id),
+  nesting_run: authLastRead(nestingRunsService),
+  organization: id => organizationsService.getById(id),
+  pen_template: (id, auth) => penTemplatesService.getById(id, auth.userId),
+  process_definition: (id, auth) => processDefinitionsService.getById(id, auth),
+  profile_template: (id, auth) => profileTemplatesService.getById(id, auth),
+  project: id => projectsService.getById(id),
+  queue: authLastRead(queuesService),
+  remnant: authLastRead(remnantsService),
+  requisition: authLastRead(requisitionsService),
+  sheet_design: authLastRead(sheetDesignsService),
+  sheet: id => sheetsService.getById(id),
+  tool_profile: (id, auth) => toolProfilesService.getById(id, auth.userId),
+  user: id => usersService.getById(id),
+  warehouse: id => warehousesService.getById(id)
 };
 
 const commandHandlers = {

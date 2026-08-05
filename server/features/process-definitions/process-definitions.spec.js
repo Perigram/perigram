@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { activate, appendExistingCassetteDesignToActiveQueue, assignUserToActiveProcessInternal, executeActiveProcessAction, hasProcessDefinitionMembershipAccess, update } from './service.js';
+import { activate, appendExistingCassetteDesignToActiveQueue, assignUserToActiveProcessInternal, authFromRun, executeActiveProcessAction, hasProcessDefinitionMembershipAccess, orchestrationActor, resolveProcessGraphEntity, update } from './service.js';
 import * as processRepository from './repository.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
@@ -76,6 +76,45 @@ describe('process definitions access fallback', () => {
         updateOne: vi.fn().mockResolvedValue({ matchedCount: 1 })
       }))
     });
+  });
+
+  it('retains compiled permissions across durable orchestration resumes', () => {
+    const effectivePermissions = {
+      libraries: [{ level: 'read', rule: { fact: 'primaryStatus', equals: 'NEW' } }]
+    };
+    const actor = orchestrationActor({
+      userId: 'user-1',
+      role: 'member',
+      effectivePermissions,
+      roleAssignments: { roleIds: ['role-designer'] }
+    }, 'org-1');
+
+    expect(authFromRun({ organizationId: 'org-1', context: { actor } })).toMatchObject({
+      userId: 'user-1',
+      organizationId: 'org-1',
+      effectivePermissions,
+      roleAssignments: { roleIds: ['role-designer'] }
+    });
+  });
+
+  it('reads a library through its explicit process adapter with the complete auth context', async () => {
+    const processGetById = vi.fn().mockResolvedValue({
+      _id: 'library-1',
+      lineage: { organizationId: 'org-1' }
+    });
+    getAppRegistry.mockReturnValueOnce({
+      getEntityService: entityType => entityType === 'library' ? { processGetById } : null
+    });
+    const auth = {
+      userId: 'user-1',
+      organizationId: 'org-1',
+      effectivePermissions: { libraries: [{ level: 'read' }] }
+    };
+
+    await expect(resolveProcessGraphEntity('library', 'library-1', { auth })).resolves.toMatchObject({
+      _id: 'library-1'
+    });
+    expect(processGetById).toHaveBeenCalledWith('library-1', auth);
   });
 
   it('does not treat membership role labels as process-definition grants', async () => {
@@ -601,7 +640,7 @@ describe('process definitions access fallback', () => {
         }
       }),
       getEntityService: () => ({
-        getById: vi.fn().mockResolvedValue({
+        processGetById: vi.fn().mockResolvedValue({
           _id: 'project-1',
           identity: { uid: 'project-1', name: 'Project' },
           lineage: { organizationId: 'org-1' },
@@ -1365,7 +1404,7 @@ describe('process definitions access fallback', () => {
         }
       }),
       getEntityService: type => type === 'library'
-        ? { getById: vi.fn().mockResolvedValue({ _id: 'library-1', lineage: { organizationId: 'org-1' } }) }
+        ? { processGetById: vi.fn().mockResolvedValue({ _id: 'library-1', lineage: { organizationId: 'org-1' } }) }
         : null
     });
     processRepository.findActiveByOrganization.mockResolvedValueOnce({
@@ -1484,7 +1523,7 @@ describe('process definitions access fallback', () => {
         containment: [{ parentType: 'project', childType: 'queue', lineageKey: 'projectId' }]
       }),
       getEntityService: type => type === 'project'
-        ? { getById: vi.fn().mockResolvedValue({ _id: 'project-1', lineage: { organizationId: 'org-1' } }) }
+        ? { processGetById: vi.fn().mockResolvedValue({ _id: 'project-1', lineage: { organizationId: 'org-1' } }) }
         : { create }
     });
     statusService.setInitialStateForOrganization.mockResolvedValueOnce({
@@ -1577,7 +1616,7 @@ describe('process definitions access fallback', () => {
       }),
       getEntityService: type => type === 'sheet_design'
         ? {
-            getById: vi.fn().mockResolvedValue({
+            processGetById: vi.fn().mockResolvedValue({
               _id: 'design-1',
               lineage: {
                 organizationId: 'org-1',
