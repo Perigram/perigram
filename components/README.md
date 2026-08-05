@@ -140,7 +140,10 @@ global union of entity fields or a raw map input. Entry ids own wire stability;
 keys and qualifiers own the stored block shape.
 Relations entries on Modify Block expose Link, Unlink, and Replace operations.
 Their entity type and one/many cardinality still come from the connected exact,
-socket, or filtered entity value. The resulting block must feed a manual Modify
+socket, or filtered entity value. Before a socket is connected, the inspector
+can establish the same typed entry so an exact entity id can be entered inline;
+a later connection remains authoritative and updates type, cardinality, and key.
+The resulting block must feed a manual Modify
 Entity effect to produce generated entity-detail action chrome; block nodes do
 not create buttons independently.
 The process designer also exposes non-effect process algebra nodes for typed
@@ -385,6 +388,9 @@ Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page, and generated cassette
 collection/home cards mirror that same editor action in their footers when the
 user has `cassettes:write` on the concrete cassette.
+The generated entity-detail overload registry also maps `cassette` directly to
+the embedded `CassetteDesignerV2` surface. Project panes and ordinary generated
+cassette detail routes therefore use the same editor affiliation.
 Entity-bound generated actions are filtered before
 rendering: the action entity type must match the region source, and
 status-change actions render only when the entity's current primary status
