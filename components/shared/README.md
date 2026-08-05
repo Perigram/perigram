@@ -162,7 +162,9 @@ Interactive status component for display + state-machine transitions. Status-cha
 Props: `:entity`, `entity-type`, `variant` (`icon` | `inline` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
 `variant="icon"` renders the primary status as an accessible icon-only badge
 while retaining the normal interactive popover, transitions, location, and
-history. It is intended for constrained pane/tool chrome; regular cards and
+history. In pane/tool chrome it still renders a DTO-backed state when no
+multi-state workflow is registered, while transition loading remains limited
+to registered workflows. It is intended for constrained pane/tool chrome; regular cards and
 pages continue to use `inline` or `full`.
 Rendering guard: component renders only when `props.entity` is present.
 Behavior: component auto-expands when lifecycle `actions` are provided; otherwise inline mode uses badge + popover. The popover is compact UI, not a labeled detail page: it renders lifecycle controls, current location, notes, and the status timeline without section headings or empty placeholder copy.
