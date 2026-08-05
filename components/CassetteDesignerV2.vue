@@ -1534,24 +1534,28 @@ const saveTemplate = async ({ saveAs = false } = {}) => {
 
   savingTemplate.value = true;
   try {
+    const updating = !saveAs && selectedTemplateIsPersisted.value && payload.id;
     const body = {
-      entities: !saveAs && selectedTemplateIsPersisted.value && payload.id ? { cassette: payload.id } : {},
-      parameters: {
-        name: payload.name,
-        type: 'PARAMETRIC',
-        definition: payload.definition,
-        parameters: payload.parameters
-      }
+      name: payload.name,
+      type: 'PARAMETRIC',
+      definition: payload.definition,
+      parameters: payload.parameters,
+      ...(!updating && props.template?.lineage?.libraryId
+        ? { libraryId: props.template.lineage.libraryId }
+        : {})
     };
-    const response = await $fetch('/api/commands/saveCassetteTemplate/run', { method: 'POST', body });
-    const savedId = response?.result?.data?.cassetteId ||
-      response?.result?.entities?.find(entity => entity.type === 'cassette')?.id ||
-      payload.id;
+    const response = await $fetch(
+      updating ? `/api/cassettes/${encodeURIComponent(payload.id)}` : '/api/cassettes',
+      { method: updating ? 'PUT' : 'POST', body }
+    );
+    const savedId = response?._id || response?.identity?.uid || payload.id;
     if (savedId) {
       suppressAutosave = true;
       persistedTemplateIdOverride.value = savedId;
     }
-    const savedEntity = savedId ? await $fetch(`/api/cassettes/${encodeURIComponent(savedId)}`).catch(() => null) : null;
+    const savedEntity = response || (savedId
+      ? await $fetch(`/api/cassettes/${encodeURIComponent(savedId)}`).catch(() => null)
+      : null);
     if (process.client) {
       window.sessionStorage.removeItem(draftKeyBeforeSave);
       window.sessionStorage.removeItem(autosaveStorageKey.value);
@@ -1561,8 +1565,7 @@ const saveTemplate = async ({ saveAs = false } = {}) => {
     emit('save-template', {
       ...payload,
       id: savedId || payload.id,
-      savedEntity,
-      commandResult: response?.result || null
+      savedEntity
     });
   } catch {
     toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.saveFailed'), life: 3000 });

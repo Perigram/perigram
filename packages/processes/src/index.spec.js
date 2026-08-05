@@ -1826,7 +1826,8 @@ describe('@cutkit/processes compiler', () => {
     });
     expect(compiled.actions['create:unlink:library']).toMatchObject({
       label: 'Unlink library',
-      relationMutation: { key: 'library', targetType: 'library', operation: 'unlink' }
+      relationMutation: { key: 'library', targetType: 'library', operation: 'unlink' },
+      inputPolicy: { prompt: false, fields: [] }
     });
     expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
       'create:link:library',

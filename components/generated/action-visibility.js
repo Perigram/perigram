@@ -30,6 +30,7 @@ export function resolveGeneratedEntityActions({
 }
 
 export function isGeneratedSurfaceAction(action = {}) {
+  if (action?.relationMutation?.operation === 'unlink') return false;
   return ['createEntity', 'updateEntity', 'runCommand', 'sendToOrganization'].includes(action?.actionKind);
 }
 

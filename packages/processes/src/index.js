@@ -288,7 +288,7 @@ function deriveRelationMutationActions(actions = {}) {
           relationKey: relation.key,
           cardinality: relation.cardinality || 'one',
           required: true,
-          prompt: true
+          prompt: operation === 'link'
         };
         derived[id] = {
           id,
@@ -302,7 +302,9 @@ function deriveRelationMutationActions(actions = {}) {
             operation
           },
           mutation: { fields: [`relations.${relation.key}`], relationContracts: [relation] },
-          inputPolicy: { prompt: true, fields: [input] },
+          inputPolicy: operation === 'link'
+            ? { prompt: true, fields: [input] }
+            : { prompt: false, fields: [] },
           access: sourceAction.access,
           trigger: { mode: 'manual' },
           inputs: [

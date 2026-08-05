@@ -285,7 +285,7 @@ async function executeAction(action, entity = null, context = {}) {
       await openInputDialog(action, entity, context);
       return;
     }
-    await postAction(action, entity, promptData(collectActionInputFields(action), {}), context);
+    await postAction(action, entity, context.data || promptData(collectActionInputFields(action), {}), context);
   } catch (err) {
     showActionError(err);
   }

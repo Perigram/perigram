@@ -17,6 +17,7 @@
     <EntityRelationsBlock
       v-if="relationFields.length"
       :entity="entity"
+      :entity-type="entityType"
       :fields="relationFields"
       :item-variant="relationVariant"
     />
