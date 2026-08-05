@@ -22,8 +22,22 @@ const regionSource = readFileSync(new URL('./GeneratedRegion.vue', import.meta.u
 const collectionSource = readFileSync(new URL('./GeneratedEntityCollection.vue', import.meta.url), 'utf8');
 const entityWorkspaceSource = readFileSync(new URL('../shared/EntityWorkspace.vue', import.meta.url), 'utf8');
 const appLayoutSource = readFileSync(new URL('../../layouts/app.vue', import.meta.url), 'utf8');
+const mainCssSource = readFileSync(new URL('../../assets/css/main.css', import.meta.url), 'utf8');
 
 describe('generated project workspace architecture', () => {
+  it('keeps the IDE-style tab strip scrollable without visible scrollbar chrome', () => {
+    expect(workspaceTabsSource).toContain('workspace-tab-strip');
+    expect(workspaceTabsSource).toContain('overflow-x-auto');
+    expect(mainCssSource).toContain('.workspace-tab-strip');
+    expect(mainCssSource).toContain('scrollbar-width: none');
+    expect(mainCssSource).toContain('.workspace-tab-strip::-webkit-scrollbar');
+  });
+
+  it('suppresses the browser focus border for app-owned interactive states', () => {
+    expect(mainCssSource).toContain(':where(button, a, input, textarea, select, [tabindex]):focus {');
+    expect(mainCssSource).not.toContain(':focus:not(:focus-visible)');
+  });
+
   it('renders pane-native entity files and registered pages in recursively splittable workspace panes', () => {
     expect(source).toContain('<GeneratedWorkspacePane');
     expect(source).toContain('<WorkspaceSplitNode');
@@ -147,7 +161,7 @@ describe('generated project workspace architecture', () => {
     expect(splitNodeSource).toContain(':deep([data-pane-header])');
     expect(workspaceTabsSource).toContain('icon="pi pi-plus"');
     expect(workspaceTabsSource).toContain('availableTabs: { type: Array');
-    expect(workspaceTabsSource).toContain('class="flex min-w-0 items-stretch overflow-x-auto"');
+    expect(workspaceTabsSource).toContain('class="workspace-tab-strip flex min-w-0 items-stretch overflow-x-auto"');
     expect(statusBadgeSource).toContain('status-badge-glyph');
     expect(statusBadgeSource).toContain('h-1.5 w-1.5 rounded-full');
     expect(workspacePaneMenuSource).toContain('icon="pi pi-ellipsis-v"');

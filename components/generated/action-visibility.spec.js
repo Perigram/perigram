@@ -3,7 +3,8 @@ import {
   actionAppliesToEntity,
   isGeneratedSurfaceAction,
   parentBoundCreateAppliesToEntityType,
-  resolveGeneratedEntityActions
+  resolveGeneratedEntityActions,
+  resolveScopedGeneratedActions
 } from './action-visibility.js';
 
 describe('generated action visibility', () => {
@@ -76,6 +77,27 @@ describe('generated action visibility', () => {
     });
 
     expect(actions.map(action => action.actionId)).toEqual(['solve']);
+  });
+
+  it('resolves a compiler-scoped body producer without reinterpreting its output entity', () => {
+    const producer = {
+      actionId: 'create-design',
+      actionKind: 'createEntity',
+      entityType: 'cassette_design',
+      contracts: {
+        inputs: [{ id: 'queue', kind: 'entity', entityType: 'queue' }],
+        outputs: [{ id: 'created', kind: 'entity', entityType: 'cassette_design' }]
+      }
+    };
+
+    expect(resolveScopedGeneratedActions({
+      actionIds: ['create-design'],
+      actionManifest: [producer]
+    })).toEqual([producer]);
+    expect(resolveScopedGeneratedActions({
+      actionIds: ['create-design'],
+      actionManifest: []
+    })).toEqual([]);
   });
 
   it('keeps only canonical process actions in generic action surfaces', () => {

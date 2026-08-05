@@ -52,7 +52,11 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
-import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
+import {
+  isGeneratedSurfaceAction,
+  resolveGeneratedEntityActions,
+  resolveScopedGeneratedActions
+} from '~/components/generated/action-visibility.js';
 import {
   generatedEntityDetailConsumesAction,
   generatedEntityDetailOwnsActionSurface
@@ -87,11 +91,16 @@ const resolvedActions = computed(() => resolveGeneratedEntityActions({
   excludedActionIds: props.excludedActions
 }));
 const resolvedBodyActions = computed(() => resolveGeneratedEntityActions({
-  actionIds: [...new Set([...props.actions, ...props.bodyActions])],
+  actionIds: props.actions,
   actionManifest: authStore.actionManifest,
   entity: props.entity,
   entityType: props.entityType
-}));
+}).concat(resolveScopedGeneratedActions({
+  actionIds: props.bodyActions,
+  actionManifest: authStore.actionManifest
+})).filter((action, index, actions) => (
+  actions.findIndex(candidate => candidate.actionId === action.actionId) === index
+)));
 const headerActionIds = computed(() => resolvedActions.value
   .filter(isGeneratedSurfaceAction)
   .filter(action => !generatedEntityDetailConsumesAction(props.entityType, action))

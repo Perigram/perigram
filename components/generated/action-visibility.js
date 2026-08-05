@@ -29,6 +29,12 @@ export function resolveGeneratedEntityActions({
     .filter(action => actionAppliesToEntity(action, entity, entityType));
 }
 
+export function resolveScopedGeneratedActions({ actionIds = [], actionManifest = [] } = {}) {
+  return actionIds
+    .map(actionId => actionManifest.find(action => action.actionId === actionId))
+    .filter(Boolean);
+}
+
 export function isGeneratedSurfaceAction(action = {}) {
   if (action?.relationMutation?.operation === 'unlink') return false;
   return ['createEntity', 'updateEntity', 'runCommand', 'sendToOrganization'].includes(action?.actionKind);
