@@ -58,6 +58,10 @@ When a manual downstream action is exposed in an existing entity context, an
 upstream entity-producing effect socket may bind to the matching typed entity
 from `context.inputs.entities`. This represents the current entity window; it
 does not recompute or rerun the upstream effect.
+If no matching context exists and that operational output feeds an optional
+input, manual execution omits the optional input. A manual action never runs a
+separate operational node merely to obtain its data output; required inputs
+still fail until their source has emitted or the current context supplies it.
 Executable effects are represented only by their `processNode` canvas node.
 Compiler-derived action records are not projected as separate action nodes and
 are removed when the canvas is serialized.

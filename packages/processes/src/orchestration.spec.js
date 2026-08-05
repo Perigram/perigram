@@ -572,6 +572,48 @@ describe('durable process orchestration', () => {
     }));
   });
 
+  it('omits an optional relation whose manual source has not run', async () => {
+    const definition = process([
+      {
+        id: 'create-library',
+        kind: 'effect.createEntity',
+        entityType: 'library',
+        trigger: { mode: 'manual' }
+      },
+      {
+        id: 'relations',
+        kind: 'record.composeBlock',
+        block: 'relations',
+        compositionMode: 'relations',
+        entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one' }]
+      },
+      {
+        id: 'create-project',
+        kind: 'effect.createEntity',
+        entityType: 'project',
+        trigger: { mode: 'manual' },
+        blocks: ['relations']
+      }
+    ], ['create-library', 'relations', 'create-project'], [
+      { source: 'create-library', sourceHandle: 'data:result', target: 'relations', targetHandle: 'data:entry:library', role: 'data' },
+      { source: 'relations', sourceHandle: 'data:block', target: 'create-project', targetHandle: 'data:relations', role: 'data' }
+    ]);
+    const executeEffect = vi.fn().mockResolvedValue({ _id: 'project-1' });
+
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'create-project' }),
+      definition,
+      { executeEffect, catalogContext }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledOnce();
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      record: expect.objectContaining({ id: 'create-project' }),
+      inputs: {}
+    }));
+  });
+
   it('maps manual field data into stable open-block entry sockets', async () => {
     const definition = process([
       {

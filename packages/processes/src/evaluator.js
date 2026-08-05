@@ -88,7 +88,7 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'record.applyChanges') return combineDataPackets([required(packets, 'record', record), required(packets, 'changes', record)], ([value, patch]) => applyPatch(value, patch));
   if (kind === 'record.composeBlock' || kind === 'record.modifyBlock') {
     if (record.compositionMode && Array.isArray(record.entries)) {
-      const entries = record.entries;
+      const entries = record.entries.filter(entry => packets[`entry:${entry.id}`]);
       const inputIds = [
         ...(kind === 'record.modifyBlock' ? ['block'] : []),
         ...entries.map(entry => `entry:${entry.id}`)
