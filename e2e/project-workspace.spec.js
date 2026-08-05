@@ -15,7 +15,17 @@ test.describe('generated project workspace', () => {
     await app.page.route('**/api/auth/me', async route => {
       const response = await route.fetch();
       const current = await response.json();
-      await route.fulfill({ response, json: { ...current, screens: [...(current.screens || []), ...workspaceScreens()] } });
+      await route.fulfill({
+        response,
+        json: {
+          ...current,
+          screens: [...(current.screens || []), ...workspaceScreens()],
+          roleAssignments: {
+            ...(current.roleAssignments || {}),
+            actions: [...(current.roleAssignments?.actions || []), ...duplicateCassetteActions()]
+          }
+        }
+      });
     });
     await fulfillJson(app.page, '**/api/project/project-1', project);
     await fulfillJson(app.page, '**/api/libraries/library-1', library);
@@ -32,6 +42,7 @@ test.describe('generated project workspace', () => {
       }
     });
     await app.page.reload();
+    await expect(app.page.locator('[data-project-action-palette]').getByRole('button', { name: /^cassette$/i })).toHaveCount(1);
 
     await app.page.getByRole('treeitem', { name: /linked entities/i }).getByRole('button').click();
     await app.page.getByText('Library One', { exact: true }).first().click();
@@ -85,7 +96,7 @@ function workspaceScreens() {
   return [
     detailScreen('project_workspace_test', 'project', [
       source('project', 'project', 'single'),
-    ], [region('main', 'project')]),
+    ], [{ ...region('main', 'project'), actions: ['create_cassette_a', 'create_cassette_b'] }]),
     detailScreen('library_detail_test', 'library', [
       source('library', 'library', 'single'),
       { ...source('cassette_children', 'cassette', 'list'), filters: { libraryId: '$screen.scope.entityId' } }
@@ -94,6 +105,16 @@ function workspaceScreens() {
       source('cassette', 'cassette', 'single')
     ], [region('main', 'cassette')])
   ];
+}
+
+function duplicateCassetteActions() {
+  return ['create_cassette_a', 'create_cassette_b'].map(actionId => ({
+    actionId,
+    actionKind: 'createEntity',
+    entityType: 'cassette',
+    parentEntityType: 'project',
+    inputs: []
+  }));
 }
 
 function detailScreen(screenKey, entityType, sources, regions) {

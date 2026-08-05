@@ -53,6 +53,30 @@ describe('project context actions', () => {
     }]);
   });
 
+  it('renders one button for duplicate compiled ids of the same visible create operation', () => {
+    const entries = projectContextActionEntries({
+      project,
+      screenActionIds: ['create_cassette_a', 'create_cassette_b'],
+      actionManifest: [
+        {
+          actionId: 'create_cassette_a',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          parentEntityType: 'project'
+        },
+        {
+          actionId: 'create_cassette_b',
+          actionKind: 'createEntity',
+          entityType: 'cassette',
+          parentEntityType: 'project'
+        }
+      ]
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].actionId).toBe('create_cassette_b');
+  });
+
   it('keeps unlink out of the owner strip', () => {
     const entries = projectContextActionEntries({
       project,

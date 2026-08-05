@@ -28,7 +28,7 @@ export function projectContextActionEntries({
     project
   }));
 
-  return uniqueEntries([...projectEntries, ...childCreateEntries]);
+  return uniqueEntries([...projectEntries, ...childCreateEntries], actionManifest);
 }
 
 function entriesForProject(actionIds, actionManifest, project, context) {
@@ -70,6 +70,18 @@ function parentEntityType(action = {}) {
     || '';
 }
 
-function uniqueEntries(entries = []) {
-  return [...new Map(entries.map(entry => [entry.actionId, entry])).values()];
+function uniqueEntries(entries = [], actionManifest = []) {
+  return [...new Map(entries.map(entry => {
+    const action = actionManifest.find(candidate => candidate.actionId === entry.actionId);
+    return [visibleOperationKey(action, entry), entry];
+  })).values()];
+}
+
+function visibleOperationKey(action = {}, entry = {}) {
+  if (action.actionKind !== 'createEntity') return entry.actionId;
+  return [
+    'createEntity',
+    action.entityType || '',
+    parentEntityType(action)
+  ].join(':');
 }
