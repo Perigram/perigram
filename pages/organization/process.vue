@@ -174,7 +174,7 @@
           <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
-                <div v-if="!['action', 'statusDefinition'].includes(selectedNode.type)" class="flex flex-col gap-1">
+                <div v-if="!['action', 'statusDefinition', 'processNode'].includes(selectedNode.type)" class="flex flex-col gap-1">
                   <label>{{ $t('processDesigner.label') }}</label>
                   <InputText v-model="selectedRecord.label" />
                 </div>
@@ -1616,7 +1616,6 @@ function addNode(item, position = nextNodePosition()) {
   if (type === 'processNode' && processNodeKind) {
     Object.assign(record, createProcessNode(refId, processNodeKind));
     Object.assign(record, clonePalettePreset(item.preset));
-    record.label = paletteLabel(item);
     syncProcessNode(record);
   }
   if (type === 'valueInput' && valueStructure) {
@@ -3074,7 +3073,7 @@ function syncProcessNode(node = {}) {
     const allowed = processNodeOperationOptions(node).map(option => option.value);
     if (!allowed.includes(node.operation)) node.operation = allowed[0] || 'eq';
   }
-  node.label = processNodeDisplayLabel(node);
+  node.label = node.kind;
   node.inputs = processNodeInputs(node);
   node.outputs = processNodeOutputs(node);
   node.inputDefaults ||= {};

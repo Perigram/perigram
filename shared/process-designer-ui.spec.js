@@ -70,6 +70,12 @@ describe('process designer canvas UI', () => {
     expect(nodeSource).toContain('const outputSpecs = computed');
   });
 
+  it('keeps localized palette captions out of persisted process-node labels', () => {
+    expect(designerSource).toContain("!['action', 'statusDefinition', 'processNode'].includes(selectedNode.type)");
+    expect(designerSource).toContain('node.label = node.kind');
+    expect(designerSource).not.toContain('record.label = paletteLabel(item)');
+  });
+
   it('keeps policy configuration in the inspector instead of every node', () => {
     expect(nodeSource).not.toContain('effectGrants');
     expect(nodeSource).not.toContain('<MultiSelect');

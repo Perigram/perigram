@@ -32,6 +32,12 @@ describe('generated labels', () => {
     }, '', i18n)).toBe('Cassette');
 
     expect(generatedActionLabel({
+      actionKind: 'createEntity',
+      entityType: 'cassette',
+      label: 'Создать сущность'
+    }, '', i18n)).toBe('Cassette');
+
+    expect(generatedActionLabel({
       actionKind: 'updateEntity',
       entityType: 'cassette',
       status: { from: 'NEW', to: 'DELETED' },
