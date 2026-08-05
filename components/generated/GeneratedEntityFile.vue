@@ -43,12 +43,30 @@
         :entity-type="item.type"
         :screen-key="detailScreen?.screenKey || detailScreen?.id || ''"
         :actions="resolvedActionIds"
+        :excluded-actions="detailChildActionIds"
         show-identity
         open-actions-in-workspace
         @execute-action="executeAction"
         @open-page="page => $emit('open-page', page)"
-        @refresh="$emit('refresh')"
-      />
+        @refresh="refreshFile"
+      >
+        <StateBlock v-if="detailLoading" state="loading" :message="$t('common.loading')" />
+        <StateBlock v-else-if="detailError" state="error" :message="detailErrorMessage || $t('generatedScreen.loadFailed')" />
+        <template v-else>
+          <GeneratedRegion
+            v-for="region in detailChildRegions"
+            :key="region.id"
+            :region="region"
+            :screen-key="detailScreen?.screenKey || detailScreen?.id || ''"
+            :source-state="detailSourceState(region.sourceId)"
+            template="entityDetail"
+            :screen-actions="[]"
+            :action-context="detailActionContext"
+            @refresh="refreshFile"
+            @execute-action="executeAction"
+          />
+        </template>
+      </GeneratedEntityDetail>
     </div>
   </section>
 </template>
@@ -57,6 +75,9 @@
 import { computed } from 'vue';
 import Button from 'primevue/button';
 import GeneratedEntityDetail from '~/components/generated/GeneratedEntityDetail.vue';
+import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
+import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
 import {
   generatedDetailActionIds,
@@ -79,6 +100,31 @@ const detailScreen = computed(() => generatedDetailScreenForEntityType({
   screens: authStore.screenManifest,
   entityType: props.item?.type
 }));
+const scopedDetailScreen = computed(() => detailScreen.value ? {
+  ...detailScreen.value,
+  scope: {
+    ...(detailScreen.value.scope || {}),
+    entityId: entityId.value,
+    [`${props.item?.type}Id`]: entityId.value
+  }
+} : {});
+const {
+  screen: loadedDetailScreen,
+  loading: detailLoading,
+  error: detailError,
+  load: loadDetailScreen,
+  sourceState: detailSourceState
+} = useGeneratedScreen(scopedDetailScreen);
+const detailMainRegion = computed(() => loadedDetailScreen.value.regions.find(region => (
+  detailSourceState(region.sourceId).source?.mode === 'single'
+)) || loadedDetailScreen.value.regions[0] || null);
+const detailChildRegions = computed(() => loadedDetailScreen.value.regions.filter(region => region !== detailMainRegion.value));
+const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);
+const detailActionContext = computed(() => ({
+  parentEntity: props.item?.entity || null,
+  parentEntityType: props.item?.type || ''
+}));
+const detailErrorMessage = computed(() => detailError.value?.data?.message || detailError.value?.message || '');
 const ownDetailActionIds = computed(() => props.showGeneratedActions
   ? generatedDetailActionIds({
       screens: authStore.screenManifest,
@@ -104,12 +150,17 @@ const resolvedEntries = computed(() => {
 });
 const resolvedActionIds = computed(() => resolvedEntries.value.map(entry => entry.actionId));
 
-function executeAction(action) {
+function executeAction(action, entity = null, context = {}) {
   const entry = resolvedEntries.value.find(item => item.actionId === action.actionId) || {
     actionId: action.actionId,
-    entity: props.item?.entity,
-    context: {}
+    entity: entity || props.item?.entity,
+    context: Object.keys(context || {}).length ? context : detailActionContext.value
   };
   emit('execute-action', action, entry);
+}
+
+async function refreshFile() {
+  await loadDetailScreen();
+  emit('refresh');
 }
 </script>

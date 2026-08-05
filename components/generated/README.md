@@ -53,7 +53,12 @@ bounded IDE-style Explorer and file workspace:
   controls and mounts the canonical `GeneratedEntityDetail`/`EntityPage` for
   the selected entity. It must not rebuild identity, lifecycle, actions, or a
   compact summary surface. Detail overloads therefore behave identically in a
-  project pane and on a regular generated entity route.
+  project pane and on a regular generated entity route. The adapter also scopes
+  the selected entity type's compiled `entityDetail` screen with the selected
+  entity id and loads its readable sources through `useGeneratedScreen()`.
+  Child regions are nested under the entity page exactly as they are on the
+  regular generated route; Project screen source data is not a substitute for
+  the selected entity's own detail-screen contract.
 - `GeneratedWorkspacePage` resolves a page id through the fixed app-owned
   `workspace-pages.js` registry. Process data never selects a Vue component,
   and workspace-level actions are not represented as a registered page or
