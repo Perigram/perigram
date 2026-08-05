@@ -33,6 +33,8 @@ operations.
   are not shown as authoring choices. Producer identifiers
   remain runtime/domain contracts and do not leak into the palette as one-off
   upload/source nodes.
+  Cassette creation is generic block composition; it does not expose a
+  cassette-specific template-name constructor socket.
 - Select Entities is the organization-scoped source for an existing typed
   entity list. Registered commands use the single Run Service operation, whose
   sockets are projected from the selected command's entity, parameter, and

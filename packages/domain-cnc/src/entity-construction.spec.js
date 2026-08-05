@@ -7,8 +7,6 @@ describe('CNC entity construction', () => {
 
     expect(contract.defaultMode).toBe('genericCreate');
     expect(contract.modes).toEqual(['genericCreate']);
-    expect(contract.inputs).toMatchObject([
-      { id: 'name', path: 'identity.name', required: true }
-    ]);
+    expect(contract.inputs).toEqual([]);
   });
 });

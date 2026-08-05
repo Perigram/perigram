@@ -19,9 +19,7 @@ export const cncEntityConstruction = {
   cassette: {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',
-    inputs: [
-      { id: 'name', label: 'Name', path: 'identity.name', type: 'string', required: true, prompt: true }
-    ]
+    inputs: []
   },
   library: {
     modes: ['genericCreate'],
