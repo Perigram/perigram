@@ -533,9 +533,10 @@ target-list create. Relationship context is separate from lineage: after a
 design is created, the action runtime may link it through a declared domain
 relationship such as `queue.relations.cassettes`.
 The designer removes incoming data edges whenever a node contract change
-removes their target socket, and repeats that normalization before serializing a
-draft. Saved or loaded drafts therefore cannot retain edges to deleted composed
-entries or construction inputs.
+removes their target socket. Before serializing a draft it derives a filtered
+edge list without mutating reactive canvas state, so saved drafts cannot retain
+edges to deleted composed entries or construction inputs and preview
+recomputation cannot recursively trigger itself.
 Navigation is compiled from the screen manifest. When a role has access grants
 but no authored screen for that entity feature, the compiler creates a generated
 entity-list screen for that role/feature so process-active users do not fall
