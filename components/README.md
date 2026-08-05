@@ -191,8 +191,10 @@ Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain the canonical entity page for their
 selected entity or a registered workspace page, plus pane-local controls. Each
-pane header owns its IDE-style file tabs, compact lifecycle status, directly
-visible generated entity-action buttons, and split/close controls. The embedded entity page suppresses its
+pane header owns its IDE-style file tabs: each entity tab carries its compact
+lifecycle status and close affordance, followed by a standalone add-tab control.
+Pane split/close commands live in a pane-level ellipsis menu. Generated entity
+actions belong to the active tab body below the tab strip. The embedded entity page suppresses its
 duplicate title, lineage, lifecycle, and action header while retaining the full
 canonical detail body. A pane must not substitute a compact
 summary/detail-body-only surface. It scopes

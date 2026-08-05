@@ -51,10 +51,11 @@ bounded IDE-style Explorer and file workspace:
 - `GeneratedWorkspacePane` accepts both entity pages and registered workspace
   pages. Each recursive pane owns an IDE-style tab list; Explorer navigation
   opens or selects a tab in the active pane, and tab order plus selection persist
-  with that pane. `GeneratedEntityFile` is the pane adapter: its header owns the
-  tabs, icon-only interactive lifecycle status, directly visible generated
-  entity-action buttons, split
-  controls, and pane close. Its body mounts the canonical
+  with that pane. `GeneratedEntityFile` is the pane adapter: each entity tab
+  owns its icon-only interactive lifecycle status and close affordance; the tab
+  strip ends with an add-tab picker. Pane-level split and close commands live in
+  one ellipsis menu. Generated entity-action buttons render inside the active
+  tab body below the strip. The body mounts the canonical
   `GeneratedEntityDetail`/`EntityPage` content for that entity with duplicate
   identity, lineage, status, actions, and divider chrome suppressed. Detail
   overload bodies therefore behave identically in a
@@ -113,6 +114,6 @@ flush to the app boundary and body scrolling is disabled. Explorer, editor, and
 file panes own their scrolling independently.
 
 `GeneratedActionButton`, `GeneratedDeleteButton`, and
-`GeneratedCassetteDesignerAction` render directly in project pane headers.
+`GeneratedCassetteDesignerAction` render in the active project tab body.
 Regular entity pages and cards may use their menu-item presentation inside
 entity ellipsis menus; presentation does not change action resolution or access.
