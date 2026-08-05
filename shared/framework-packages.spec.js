@@ -226,6 +226,10 @@ describe('Framework package contracts', () => {
     expect(cncEntities.every(entity => entity.blocks.includes('relations') && entity.blocks.includes('provenance'))).toBe(true);
     expect(cncContainment).toContainEqual({ parentType: 'project', childType: 'queue', lineageKey: 'projectId' });
     expect(cncRelations).toContainEqual({ ownerType: 'queue', key: 'cassettes', targetType: 'cassette_design', cardinality: 'many' });
+    expect(cncDomain.construction.cassette_design.modeInputs.bakeCassetteDesignFromTemplate
+      .some(input => input.id === 'name')).toBe(false);
+    expect(cncDomain.construction.cassette_design.modeInputs.importCassetteDesignFromArtifact
+      .some(input => input.id === 'name')).toBe(false);
     expect(cncRelations).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ ownerType: 'project', targetType: 'library' })
     ]));

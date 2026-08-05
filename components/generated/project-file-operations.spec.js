@@ -40,7 +40,7 @@ describe('project file operations and queue pane density', () => {
     expect(cassetteDesignerSource).toContain("'/api/cassettes'");
     expect(cassetteDesignerSource).not.toContain("'/api/commands/saveCassetteTemplate/run'");
     expect(relationsBlockSource).toContain(':context-action-entries="unlinkEntries(relation, item)"');
-    expect(generatedScreenSource).toContain("$t('generatedScreen.exactEntityId')");
+    expect(generatedScreenSource).not.toContain("$t('generatedScreen.exactEntityId')");
     expect(generatedScreenSource).not.toContain('field.required && !options.length');
     expect(generatedScreenSource).toContain('hasUploadCreator(field)');
     expect(generatedScreenSource).toContain(":label=\"$t('generatedScreen.createArtifact')\"");

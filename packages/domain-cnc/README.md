@@ -151,8 +151,11 @@ Queue composition is declared as the `queue.cassettes -> cassette_design`
 many-valued relationship. Producers create or import a complete design and then
 link it; no queue construction socket or embedded item contract duplicates the
 design.
-`cassette_design` creation uses `bakeCassetteDesignFromTemplate` with a
-prompted `name`, a source `cassette` template, and typed `cassetteParameters`.
+`cassette_design` creation uses `bakeCassetteDesignFromTemplate` with a source
+`cassette` template and typed `cassetteParameters`. Design identity is derived
+by the owning creation service from that source; it is not a separate required
+constructor input. A process may still explicitly compose the canonical
+Identity block when it needs to override the derived identity.
 The frontend must derive those parameter controls from the chosen cassette's
 OCCS definition instead of asking users to enter a raw object string.
 `producers.js` declares source categories that can provide derived entities to
