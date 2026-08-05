@@ -250,6 +250,12 @@ inputs may keep non-structural values such as defaults, but they cannot make a
 now-optional domain input required again. Queue creation relies on this rule so
 old processes that stored `jobItems.required: true` compile to an empty queue
 shell action instead of blocking on cassette-design selection.
+Relations composed by the process graph are executable process contracts even
+when they are not global CNC-domain relations. A manual effect that consumes a
+composed relation derives `Link <target>` and `Unlink <target>` update actions
+for the owner entity. Those actions carry the exact relation key, target type,
+cardinality, access grants, and entity selector required by generated detail
+screens; update actions do not inherit create-constructor prompts.
 The compiler fallback construction mode is only `genericCreate`; any
 entity-specific constructor such as baked cassette designs or OCCS template
 creation must be declared by the domain construction registry. This keeps the

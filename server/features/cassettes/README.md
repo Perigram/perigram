@@ -79,6 +79,8 @@ from `utils/occs/templates.js`,
 including the standard parameter list and geometry revision pointer. A
 process-created template therefore opens in `CassetteDesignerV2` with an
 editable OCCS document instead of `data.definition: null`.
+Supplied definitions are validated as OCCS before persistence; arbitrary data
+objects cannot create a cassette record that the designer cannot open.
 If the graph action has a `library` parent input, process execution passes
 `libraryId` into the typed constructor and the cassette service persists it
 under `lineage.libraryId`. A parent-scoped process action must provide that
