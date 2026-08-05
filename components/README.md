@@ -197,6 +197,10 @@ when a child region references the same compiled action. Unlink is not an owner
 strip command: each linked `EntityInlineRef` receives the matching contextual
 Unlink operation in its own actions, with both owner and target already bound.
 Only project-bound child-create actions move to collection context.
+When a generated Link input carries an artifact creator contract, its entity
+picker exposes a dedicated upload dialog for the allowed upload-backed kinds.
+The created artifact is selected into the same typed Link input; exact-id and
+existing-entity selection remain available beside it.
 its tree starts directly below the workspace action strip without a redundant
 Explorer header. Collapse hides that mounted panel and its gutter so reopening
 restores the 15/85 split instead of inserting a new equally sized panel. The

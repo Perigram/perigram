@@ -535,7 +535,7 @@
                           <Select
                             v-if="openBlockComposition(selectedProcessNode).mode === 'attachments'"
                             :model-value="entry.attachmentKind"
-                            :options="designer.attachmentKindOptions"
+                            :options="artifactUploadKindOptions"
                             option-label="label"
                             option-value="value"
                             size="small"
@@ -560,6 +560,27 @@
                             option-value="value"
                             size="small"
                             @update:model-value="value => updateRelationEntryCardinality(selectedProcessNode, index, value)"
+                          />
+                          <div
+                            v-if="openBlockComposition(selectedProcessNode).mode === 'relations' && entry.entityType === 'artifact'"
+                            class="flex items-center gap-2"
+                          >
+                            <Checkbox
+                              :model-value="entry.allowCreate === true"
+                              binary
+                              @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { allowCreate: value === true })"
+                            />
+                            <span>{{ $t('processDesigner.allowCreateRelatedEntity') }}</span>
+                          </div>
+                          <MultiSelect
+                            v-if="openBlockComposition(selectedProcessNode).mode === 'relations' && entry.entityType === 'artifact' && entry.allowCreate"
+                            :model-value="entry.attachmentKinds || []"
+                            :options="designer.attachmentKindOptions"
+                            option-label="label"
+                            option-value="value"
+                            display="chip"
+                            filter
+                            @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { attachmentKinds: value })"
                           />
                           <Select
                             v-if="openBlockComposition(selectedProcessNode).mode === 'relations' && selectedProcessNode.kind === 'record.modifyBlock'"
@@ -1117,6 +1138,8 @@ const relationMutationOptions = [
   { label: t('processDesigner.operationLabels.unlink'), value: 'remove' },
   { label: t('processDesigner.operationLabels.replaceRelation'), value: 'replace' }
 ];
+const artifactUploadKindOptions = computed(() => designer.attachmentKindOptions
+  .filter(option => option.creation?.mode === 'upload'));
 const statusSeverityOptions = [
   { label: 'info', value: 'info' },
   { label: 'success', value: 'success' },
@@ -3927,6 +3950,8 @@ function createOpenBlockEntry(node = {}) {
       key: '',
       entityType: '',
       cardinality: 'one',
+      allowCreate: false,
+      attachmentKinds: [],
       ...(node.kind === 'record.modifyBlock' ? { operation: 'append' } : {})
     });
   }
@@ -3963,7 +3988,8 @@ function updateRelationEntryType(node, index, entityType) {
   if (!entry) return;
   updateOpenBlockEntry(node, index, {
     entityType,
-    key: entityType || entry.key
+    key: entityType || entry.key,
+    ...(entityType === 'artifact' ? {} : { allowCreate: false, attachmentKinds: [] })
   });
   syncProcessNode(node);
   syncNodeData();

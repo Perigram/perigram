@@ -55,7 +55,12 @@ describe('process designer domain contract', () => {
     expect(contract.eventOptions).toEqual([{ label: 'Calculated', value: 'calculated' }]);
     expect(contract.hookOptions).toEqual([{ label: 'Audit', value: 'audit' }]);
     expect(contract.effectOptions).toEqual([{ label: 'Notify', value: 'notify' }]);
-    expect(contract.attachmentKindOptions).toEqual([{ label: 'Report', value: 'REPORT' }]);
+    expect(contract.attachmentKindOptions).toEqual([{
+      label: 'Report · workflow',
+      value: 'REPORT',
+      creation: { mode: 'workflow' },
+      editor: { mode: 'none' }
+    }]);
     expect(contract.workflowOptions).toEqual([{ label: 'Work item lifecycle', value: 'work_item' }]);
     expect(contract.construction('work_item').inputs[0].path).toBe('identity.name');
     expect(contract.fieldPolicy('work_item').write).toContain('relations.owner');

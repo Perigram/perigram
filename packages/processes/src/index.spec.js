@@ -1760,6 +1760,11 @@ describe('@cutkit/processes compiler', () => {
   it('derives Link and Unlink detail actions from a process-composed relation', () => {
     const relationDomain = {
       ...domain,
+      entities: [...domain.entities, { type: 'artifact', collection: 'artifacts' }],
+      attachmentKinds: {
+        DXF_SOURCE: { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
+        CAPTURE_PHOTO: { kind: 'CAPTURE_PHOTO', creation: { mode: 'upload' } }
+      },
       fieldAccess: {
         ...domain.fieldAccess,
         project: { ...domain.fieldAccess.project, write: [...domain.fieldAccess.project.write, 'relations.*'] }
@@ -1791,12 +1796,28 @@ describe('@cutkit/processes compiler', () => {
           type: { base: 'entityRef', shape: 'item', entityType: 'library' },
           value: { type: 'library', id: 'library-1' }
         },
+        artifact: {
+          id: 'artifact',
+          kind: 'source.literalItem',
+          type: { base: 'entityRef', shape: 'item', entityType: 'artifact' },
+          value: { type: 'artifact', id: 'artifact-1' }
+        },
         relations: {
           id: 'relations',
           kind: 'record.composeBlock',
           block: 'relations',
           compositionMode: 'relations',
-          entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one' }]
+          entries: [
+            { id: 'library', key: 'library', entityType: 'library', cardinality: 'one' },
+            {
+              id: 'artifact',
+              key: 'artifact',
+              entityType: 'artifact',
+              cardinality: 'one',
+              allowCreate: true,
+              attachmentKinds: ['DXF_SOURCE', 'CAPTURE_PHOTO']
+            }
+          ]
         },
         create: {
           id: 'create',
@@ -1810,9 +1831,10 @@ describe('@cutkit/processes compiler', () => {
         }
       },
       graph: {
-        nodes: ['library', 'relations', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        nodes: ['library', 'artifact', 'relations', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
           { id: 'library-relations', source: 'library', sourceHandle: 'data:value', target: 'relations', targetHandle: 'data:entry:library', role: 'data' },
+          { id: 'artifact-relations', source: 'artifact', sourceHandle: 'data:value', target: 'relations', targetHandle: 'data:entry:artifact', role: 'data' },
           { id: 'relations-create', source: 'relations', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:relations', role: 'data' }
         ]
       }
@@ -1829,6 +1851,24 @@ describe('@cutkit/processes compiler', () => {
       relationMutation: { key: 'library', targetType: 'library', operation: 'unlink' },
       inputPolicy: { prompt: false, fields: [] }
     });
+    expect(compiled.actions['create:link:artifact']).toMatchObject({
+      relationMutation: {
+        creator: {
+          entityType: 'artifact',
+          attachmentKinds: [
+            { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
+            { kind: 'CAPTURE_PHOTO', creation: { mode: 'upload' } }
+          ]
+        }
+      },
+      inputPolicy: {
+        fields: [expect.objectContaining({
+          entityType: 'artifact',
+          creator: expect.objectContaining({ entityType: 'artifact' })
+        })]
+      }
+    });
+    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'artifacts', level: 'write' }));
     expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
       'create:link:library',
       'create:unlink:library'

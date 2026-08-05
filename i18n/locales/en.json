@@ -2772,6 +2772,7 @@
     "attachments": "Attachments",
     "addAttachment": "Add attachment",
     "attachmentKind": "Attachment kind",
+    "allowCreateRelatedEntity": "Allow creating the related entity",
     "required": "Required",
     "snapshots": "Snapshots",
     "addSnapshot": "Add snapshot",
@@ -2823,7 +2824,9 @@
     "noScreens": "No process screens are available",
     "actionCompleted": "Action completed",
     "actionFailed": "Action failed",
-    "exactEntityId": "Exact entity ID",
+      "exactEntityId": "Exact entity ID",
+      "createArtifact": "Upload artifact",
+      "selectArtifactFile": "Select file",
     "noOptions": "No available options for {field}"
   }
 }

@@ -76,6 +76,12 @@ describe('process designer canvas UI', () => {
     expect(designerSource).not.toContain('record.label = paletteLabel(item)');
   });
 
+  it('authors artifact upload creators on relation entries', () => {
+    expect(designerSource).toContain("entry.entityType === 'artifact' && entry.allowCreate");
+    expect(designerSource).toContain(':options="artifactUploadKindOptions"');
+    expect(designerSource).toContain("allowCreate: false");
+  });
+
   it('keeps policy configuration in the inspector instead of every node', () => {
     expect(nodeSource).not.toContain('effectGrants');
     expect(nodeSource).not.toContain('<MultiSelect');

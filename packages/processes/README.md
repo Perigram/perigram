@@ -264,6 +264,11 @@ contextual `Unlink <target>` operation for each rendered linked reference. Both
 carry the exact relation key, target type, cardinality, and access grants. Link
 prompts for a target; Unlink receives the already-rendered target reference and
 therefore never opens an entity selector.
+Artifact relation entries may also enable target creation and select declared
+upload-backed `AttachmentKind` values. The compiler places that creator
+contract on the Link input and grants the exposed role scoped artifact write
+access through the same action window. Command- and workflow-produced kinds
+remain separate process effects and are not presented as file uploads.
 The compiler fallback construction mode is only `genericCreate`; any
 entity-specific constructor such as baked cassette designs or OCCS template
 creation must be declared by the domain construction registry. This keeps the

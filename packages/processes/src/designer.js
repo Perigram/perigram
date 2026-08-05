@@ -170,7 +170,12 @@ export function createProcessDesignerContract(domain = {}) {
     eventOptions: definitionOptions(domain.events),
     hookOptions: definitionOptions(domain.hooks),
     effectOptions: definitionOptions(domain.effects),
-    attachmentKindOptions: definitionOptions(domain.attachmentKinds, 'kind'),
+    attachmentKindOptions: Object.values(domain.attachmentKinds || {}).map(definition => ({
+      label: `${definition.label || definition.name || definition.kind} · ${definition.creation?.mode || 'workflow'}`,
+      value: definition.kind,
+      creation: definition.creation || { mode: 'workflow' },
+      editor: definition.editor || { mode: 'none' }
+    })),
     entity: entityType => entityByType.get(entityType) || null,
     fieldPolicy,
     construction,

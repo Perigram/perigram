@@ -288,7 +288,8 @@ function deriveRelationMutationActions(actions = {}) {
           relationKey: relation.key,
           cardinality: relation.cardinality || 'one',
           required: true,
-          prompt: operation === 'link'
+          prompt: operation === 'link',
+          ...(operation === 'link' && relation.creator ? { creator: relation.creator } : {})
         };
         derived[id] = {
           id,
@@ -299,7 +300,8 @@ function deriveRelationMutationActions(actions = {}) {
             key: relation.key,
             targetType: relation.targetType,
             cardinality: relation.cardinality || 'one',
-            operation
+            operation,
+            ...(operation === 'link' && relation.creator ? { creator: relation.creator } : {})
           },
           mutation: { fields: [`relations.${relation.key}`], relationContracts: [relation] },
           inputPolicy: operation === 'link'
@@ -378,7 +380,16 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     .flatMap(record => (record.entries || []).map(entry => ({
       key: entry.key,
       targetType: entry.entityType,
-      cardinality: entry.cardinality || 'one'
+      cardinality: entry.cardinality || 'one',
+      ...(entry.entityType === 'artifact' && entry.allowCreate ? {
+        creator: {
+          entityType: 'artifact',
+          attachmentKinds: (entry.attachmentKinds || []).map(kind => ({
+            kind,
+            creation: domain.attachmentKinds?.[kind]?.creation || { mode: 'workflow' }
+          }))
+        }
+      } : {})
     })))
     .filter(relation => relation.key && relation.targetType);
   return {
@@ -988,6 +999,15 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}) {
       const parentEntityType = effectiveActionParentEntityType(action, domain, graphContext.parentIncomingByActionId.get(actionId));
       const resolvedEntityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || null;
       const exposedAction = resolvedEntityType && !action.entityType ? { ...action, entityType: resolvedEntityType } : action;
+      if (action.relationMutation?.creator?.entityType) {
+        const creatorScope = actionWindow?.grants
+          ?.find(grant => grant.roleIds?.includes(roleId))?.scope;
+        upsertGrant(roles[roleId].grants, {
+          feature: resolveEntityFeature(domain, action.relationMutation.creator.entityType),
+          level: 'write',
+          ...(creatorScope ? { scope: creatorScope } : {})
+        });
+      }
       const inputs = actionInputsForExposure(exposedAction, parentEntityType, domain).map(input => (
         input.id === 'entity' && !input.entityType && resolvedEntityType ? { ...input, entityType: resolvedEntityType } : input
       ));
@@ -2775,6 +2795,20 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
     keys.add(key);
     if (composition.mode === 'relations' && !['one', 'many'].includes(entry.cardinality || 'one')) {
       errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} has invalid relation cardinality`);
+    }
+    if (composition.mode === 'relations' && entry.allowCreate) {
+      const kinds = new Map(Object.values(domain.attachmentKinds || {}).map(kind => [kind.kind || kind.id, kind]));
+      if (entry.entityType !== 'artifact') {
+        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} can create targets only for artifact relations`);
+      }
+      if (!entry.attachmentKinds?.length) {
+        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select an upload attachment kind`);
+      }
+      for (const kind of entry.attachmentKinds || []) {
+        if (!kinds.has(kind) || kinds.get(kind)?.creation?.mode !== 'upload') {
+          errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} creator requires an upload attachment kind`);
+        }
+      }
     }
     if (composition.mode === 'relations' && node.kind === 'record.modifyBlock'
       && !['append', 'remove', 'replace'].includes(entry.operation || 'append')) {
