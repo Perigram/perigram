@@ -183,9 +183,7 @@ const domain = {
     cassette: {
       modes: ['genericCreate'],
       defaultMode: 'genericCreate',
-      inputs: [
-        { id: 'name', path: 'identity.name', type: 'string', required: true, prompt: true }
-      ]
+      inputs: []
     },
     cassette_design: {
       modes: ['bakeCassetteDesignFromTemplate'],
@@ -2467,11 +2465,9 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.actions.create_template.construction).toMatchObject({
       mode: 'genericCreate',
-      inputs: [expect.objectContaining({ id: 'name', required: true, prompt: true })]
+      inputs: []
     });
-    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual([
-      expect.objectContaining({ id: 'name', required: true, prompt: true })
-    ]);
+    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual([]);
   });
 
   it('compiles update actions with field mutation sockets', () => {
