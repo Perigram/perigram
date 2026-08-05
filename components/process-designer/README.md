@@ -115,12 +115,11 @@ Entity inputs use the same socket contract and shared binding resolver for every
 entity-reference literal authors one exact entity id, a direct entity socket
 uses the entity available in the current run, and `read.queryEntities` accepts
 typed predicate sockets to produce a filtered entity list. Consumers infer the
-entity type and item/list cardinality from the wire. Open entity-valued block
-entries use the downstream consumer schema to resolve their writable or
-constructible field path, so inspectors do not expose a separate entity-type
-selector. When the sole matching relation field is a collection, a connected
-single entity is accepted as a singleton relation list; the composer records
-the target field's `many` cardinality and wraps the runtime value.
+entity type and item/list cardinality from the wire. Relations entries derive
+their key directly from that entity type and preserve the wire cardinality, so
+they do not expose an entity-type selector or depend on a predefined
+consumer-specific relation. Lineage entries use the downstream containment
+schema to resolve their constructible/writable path.
 Both materialized `entity` outputs and lightweight `entityRef` outputs carry
 this inference; saving or re-synchronizing the canvas must preserve either form.
 

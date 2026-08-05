@@ -151,11 +151,13 @@ entity-profile grants are an independent grant source, not a filter for action
 grant creation. Generic Entity creation accepts typed canonical block values.
 Entity-valued inputs share one binding resolver. Exact typed references, direct
 entity sockets, and filtered entity lists normalize into an entity type plus
-item/list cardinality. Open-block composition resolves a storage path only
-against the consuming entity's field schemas, required access, block, type, and
-cardinality; a unique match is required, while ambiguous or undeclared matches
-remain validation errors. This resolver is independent of a canonical block or
-effect kind and is shared by designer synchronization and definition
+item/list cardinality. A Relations entry derives its key from that socket entity
+type and keeps the socket's cardinality; it does not require a domain relation
+declaration or a consumer-specific field. The consumer only determines whether
+its Relations block is constructible or writable. Lineage remains stricter: its
+storage path resolves against the consuming entity's declared containment
+schema, and ambiguous or undeclared matches remain validation errors. The
+shared resolver is used by designer synchronization and definition
 normalization. Parentage remains a field of a composed Lineage block, not an
 extra Create socket. Once resolved, the compiler recognizes one lineage entity
 reference as contextual parent scope while the effect boundary persists its

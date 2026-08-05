@@ -106,8 +106,10 @@ Relations { linkedLibrary: { type, id, revisionId? }, relatedItems: [{ type, id,
 ```
 
 Each relation value is normalized through `normalizeEntityRef()`. Use
-`relations` for cross-links such as a project pointing at a library. Do not add
-those links to `lineage`; lineage is only for containment ancestry.
+`relations` for non-owning cross-links. Process Relations composers derive the
+entry key and item/list cardinality from their connected entity socket; they do
+not require a predefined owner-to-target domain relation. Do not add those
+links to `lineage`; lineage is only for containment ancestry.
 
 ---
 

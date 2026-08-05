@@ -196,9 +196,8 @@ and recompiles stored runtime contracts.
 Use `server/scripts/migrate-entity-reference-contracts.js` after adopting
 canonical entity references. It migrates legacy revision `entityType/entityId`
 fields to `data.source`, moves cassette-design `data.derivedFrom` and
-`lineage.templateId` into `provenance.derivedFrom.source`, migrates project
-library ids into `relations.cassetteLibraries`, and persists parent revision
-provenance where configured.
+`lineage.templateId` into `provenance.derivedFrom.source`, and persists parent
+revision provenance where configured.
 
 Use `server/scripts/migrate-queue-nesting-contracts.js` after adopting the
 current queue nesting contract. It converts legacy `data.nestingParams` and

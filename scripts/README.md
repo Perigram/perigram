@@ -36,7 +36,7 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   process status window. Supports `--dry-run`.
 - `server/scripts/migrate-entity-reference-contracts.js`: Moves legacy entity
   reference fields into canonical `relations` and `provenance` blocks,
-  including cassette-design derived-from data and project library relations.
+  including cassette-design derived-from data.
 - `server/scripts/migrate-queue-nesting-contracts.js`: Converts legacy queue
   nesting params/items into the current `data.nestingSettings` and
   `cassette_design` job-item contract, seeding the default machine id where

@@ -37,3 +37,7 @@ Refactored to use standardized blocks and the centralized State Machine engine.
   summary: { stateDistribution, totalArea, totalWeight }
 }
 ```
+
+Projects have no built-in Library relation. Like every canonical entity, they
+may persist generic non-owning references in `relations`; the service preserves
+those entries without assigning containment or cassette-specific semantics.
