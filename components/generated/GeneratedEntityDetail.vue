@@ -4,7 +4,7 @@
     :entity="entity"
     :entity-type="entityType"
     show-trace
-    :show-identity="entityType === 'sheet_design'"
+    :show-identity="showIdentity || entityType === 'sheet_design'"
     @refresh="$emit('refresh')"
   >
     <GeneratedEntityDetailBody
@@ -21,6 +21,8 @@
         v-if="entityType === 'cassette'"
         :entity="entity"
         menu-item
+        :open-in-workspace="openActionsInWorkspace"
+        @open-page="page => $emit('open-page', page)"
         @refresh="$emit('refresh')"
       />
       <GeneratedActionButton
@@ -58,10 +60,12 @@ const props = defineProps({
   surface: { type: String, default: 'detail' },
   screenKey: { type: String, default: '' },
   excludedActions: { type: Array, default: () => [] },
-  actions: { type: Array, default: () => [] }
+  actions: { type: Array, default: () => [] },
+  showIdentity: { type: Boolean, default: false },
+  openActionsInWorkspace: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['refresh', 'execute-action']);
+const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();

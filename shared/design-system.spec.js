@@ -580,7 +580,7 @@ describe('Design system manifest', () => {
     expect(editor).toContain('clampSheetPlacement');
     expect(editor).toContain('majorGridSize');
     expect(editor).toContain('selectedSnapPoint');
-    expect(generatedDetail).toContain(":show-identity=\"entityType === 'sheet_design'\"");
+    expect(generatedDetail).toContain(":show-identity=\"showIdentity || entityType === 'sheet_design'\"");
     expect(relationBlock).toContain(':variant="itemVariant"');
   });
 

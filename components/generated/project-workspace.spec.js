@@ -32,8 +32,11 @@ describe('generated project workspace architecture', () => {
     expect(workspacePageSource).toContain('resolveGeneratedWorkspacePage');
     expect(workspacePagesSource).not.toContain("id: 'project-actions'");
     expect(workspacePagesSource).toContain("id: 'cassette-designer'");
-    expect(entityFileSource).toContain('<GeneratedEntityDetailBody');
+    expect(entityFileSource).toContain('<GeneratedEntityDetail');
     expect(entityFileSource).toContain('generatedDetailActionIds');
+    expect(entityFileSource).not.toContain('<GeneratedEntityDetailBody');
+    expect(entityFileSource).not.toContain('mode="file"');
+    expect(entityFileSource).toContain('show-identity');
     expect(entityFileSource).not.toContain('<EntitySurfaceContent');
     expect(detailBodySource).toContain('resolveGeneratedEntityDetailOverload');
     expect(detailBodySource).toContain('actionProducesEntityType');
@@ -60,7 +63,10 @@ describe('generated project workspace architecture', () => {
     expect(entityPageSource).not.toContain("props.variant === 'workspace'");
     expect(entityPageSource).toContain('<EntityActionsPopover');
     expect(entityCardSource).toContain('<EntityActionsPopover');
-    expect(entityFileSource).toContain('<EntityActionsPopover');
+    expect(entityFileSource).not.toContain('<EntityActionsPopover');
+    expect(entityFileSource).not.toContain('<IdentityBlock');
+    expect(entityFileSource).not.toContain('<EntityStatus');
+    expect(entityPageSource).toContain('<EntityActionsPopover');
   });
 
   it('keeps project actions and Explorer visibility in fixed workspace chrome', () => {
