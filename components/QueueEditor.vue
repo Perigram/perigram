@@ -210,8 +210,8 @@
                         <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
                         <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
                         <Button
-                            v-if="canAddQueueEntry && producerMenuItems.length"
-                            :label="$t('queues.addEntry')"
+                            v-if="canAddQueueEntry"
+                            :label="$t('queues.addCassette')"
                             icon="pi pi-plus"
                             severity="secondary"
                             size="small"
@@ -395,7 +395,7 @@ import {
     buildProducerActionRequest,
     producerFieldsForAction
 } from '~/utils/queue-producers.js';
-import { resolveQueueDesignProducers } from '~/utils/queue-design-producers.js';
+import { entitySourceProducerFields, resolveQueueDesignProducers } from '~/utils/queue-design-producers.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { cncDomain } from '@cutkit/domain-cnc';
@@ -482,6 +482,7 @@ const producerMenuItems = computed(() => availableProducers.value.map(producer =
 const producerFields = computed(() => {
     const producer = selectedProducer.value;
     if (!producer) return [];
+    if (producer.kind === 'entitySource') return entitySourceProducerFields(producer);
     if (producer.action) {
         const fields = producer.action.inputPolicy?.fields || producer.action.construction?.inputs || [];
         return producerSourceFields(
@@ -775,6 +776,10 @@ async function executeSelectedProducer() {
                 method: 'POST',
                 body: { parameters: data.parameters || {}, name: data.name || '' }
             });
+        } else if (selectedProducer.value.kind === 'entitySource') {
+            produced = cassetteDesigns.value.find(design => (
+                design._id?.toString() === producerValues.value.entityId?.toString()
+            ));
         }
         const design = await resolveProducedDesign(produced);
         if (!design) throw new Error(t('queues.invalidCassetteEntry'));

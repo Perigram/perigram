@@ -162,7 +162,9 @@ OCCS definition instead of asking users to enter a raw object string.
 workspaces and fixed construction services at runtime. These declarations do
 not become one-off process palette nodes. Queue UI resolves the domain
 producers and binds matching process actions at runtime instead of hardcoding
-page-local source buttons.
+page-local source buttons. Selecting an existing `cassette_design` is an
+explicit `entitySource` producer; it requires cassette-design read access and
+queue write access but does not require a create-design process action.
 `entity-create-inputs.js` projects those construction contracts into
 process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an

@@ -1,5 +1,13 @@
 export const cncEntityProducers = [
   {
+    id: 'selectExistingCassetteDesign',
+    label: 'Select existing cassette design',
+    labelKey: 'queues.producers.existingDesign',
+    kind: 'entitySource',
+    source: { entityType: 'cassette_design', access: 'read' },
+    output: { entityType: 'cassette_design' }
+  },
+  {
     id: 'bakeCassetteDesignFromTemplate',
     label: 'Bake cassette design from template',
     labelKey: 'queues.producers.libraryCassette',

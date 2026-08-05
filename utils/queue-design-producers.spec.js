@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveQueueDesignProducers } from './queue-design-producers.js';
+import { entitySourceProducerFields, resolveQueueDesignProducers } from './queue-design-producers.js';
 
 const domain = {
   entities: [
@@ -8,6 +8,12 @@ const domain = {
     { type: 'artifact', collection: 'artifacts' }
   ],
   producers: [
+    {
+      id: 'selectExistingCassetteDesign',
+      kind: 'entitySource',
+      source: { entityType: 'cassette_design' },
+      output: { entityType: 'cassette_design' }
+    },
     {
       id: 'bakeCassetteDesignFromTemplate',
       kind: 'construction',
@@ -38,8 +44,28 @@ describe('queue design producer resolver', () => {
     });
 
     expect(producers.map(producer => producer.id)).toEqual([
+      'selectExistingCassetteDesign',
       'bakeCassetteDesignFromTemplate',
       'importCassetteDesignFromArtifact'
+    ]);
+  });
+
+  it('keeps the existing-design producer in process mode for queue editors with write access', () => {
+    const producers = resolveQueueDesignProducers({
+      domain,
+      processMode: true,
+      canEditQueue: true,
+      hasFeatureAccess: (feature, level) => feature === 'cassette_designs' && level === 'read'
+    });
+
+    expect(producers.map(producer => producer.id)).toEqual(['selectExistingCassetteDesign']);
+    expect(entitySourceProducerFields(producers[0])).toEqual([
+      expect.objectContaining({
+        id: 'entityId',
+        type: 'entity',
+        entityType: 'cassette_design',
+        required: true
+      })
     ]);
   });
 
