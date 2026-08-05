@@ -75,7 +75,7 @@ describe('entity Select wrappers', () => {
     expect(violations).toEqual([]);
   });
 
-  it('renders the selected entity outside the Select control', async () => {
+  it('renders the selected entity inside a normal full-width Select control', async () => {
     const html = await render(EntitySelect, {
       modelValue: 'queue-2',
       options,
@@ -87,15 +87,11 @@ describe('entity Select wrappers', () => {
     expect(html).toContain('data-entity-id="queue-2"');
     expect(html.match(/data-variant="compact"/g)).toHaveLength(3);
     expect(html.match(/data-interactive="false"/g)).toHaveLength(3);
-    expect(html).toContain('flex w-full min-w-0 max-w-full items-start gap-2');
-    expect(html).toContain('pointer-events-none min-w-0 flex-1');
-    expect(html).not.toContain('gap-2 overflow-hidden');
-    expect(html).not.toContain('flex-1 overflow-hidden');
-    expect(html).toContain('class="!w-10 shrink-0 self-start"');
-    expect(html).toContain('aria-label="Queue 2"');
-    expect(html).toMatch(/data-prime-value[^>]*><span class="pi pi-pencil" aria-hidden="true"><\/span><\/div>/);
-    expect(html).not.toMatch(/data-prime-value[^>]*><span><\/span><\/div>/);
-    expect(html.indexOf('data-entity-selection')).toBeLessThan(html.indexOf('data-prime-select'));
+    expect(html).toContain('data-prime-select');
+    expect(html).toContain('class="w-full"');
+    expect(html).not.toContain('!w-10');
+    expect(html).not.toContain('pi-pencil');
+    expect(html).not.toContain('data-entity-selection');
   });
 
   it('keeps unselected entity Select controls as ordinary full chooser controls', async () => {

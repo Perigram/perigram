@@ -204,7 +204,12 @@ Only project-bound child-create actions move to collection context.
 When a generated Link input carries an artifact creator contract, its entity
 picker exposes a dedicated upload dialog for the allowed upload-backed kinds.
 The created artifact is selected into the same typed Link input; exact-id and
-existing-entity selection remain available beside it.
+existing-entity selection remain available. Entity Link prompts use one
+full-width picker with the creator as a separate labeled action below it; the
+shared entity picker renders its selected reference inside a normal full-width
+Select rather than replacing the control with a card and icon-only edit button.
+Artifact creator/editor surfaces render only domain-declared typed inputs. They
+must not expose the persisted `data.metadata` object as a raw JSON textarea.
 its tree starts directly below the workspace action strip without a redundant
 Explorer header. Collapse hides that mounted panel and its gutter so reopening
 restores the 15/85 split instead of inserting a new equally sized panel. The

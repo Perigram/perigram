@@ -2829,7 +2829,8 @@
       "createArtifact": "Загрузить артефакт",
       "selectArtifactFile": "Выбрать файл",
       "replaceArtifactFile": "Заменить файл",
-      "artifactData": "Данные артефакта",
+      "artifactFileRequired": "Выберите файл для загрузки.",
+      "artifactUploadFailed": "Не удалось загрузить артефакт.",
     "noOptions": "Нет доступных вариантов для {field}"
   }
 }

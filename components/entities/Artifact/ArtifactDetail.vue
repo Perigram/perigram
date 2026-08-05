@@ -9,11 +9,7 @@
       <div class="flex flex-col gap-3">
         <label class="flex flex-col gap-1">
           <span class="text-xs text-muted-color">{{ $t('common.name') }}</span>
-          <InputText v-model="name" :disabled="!canEdit" />
-        </label>
-        <label class="flex flex-col gap-1">
-          <span class="text-xs text-muted-color">{{ $t('generatedScreen.artifactData') }}</span>
-          <Textarea v-model="metadata" rows="6" auto-resize :disabled="!canEdit" />
+          <InputText v-model="name" :disabled="!canEdit" class="w-full" />
         </label>
         <FileUpload
           v-if="canReplaceFile"
@@ -38,7 +34,6 @@ import Button from 'primevue/button';
 import FileUpload from 'primevue/fileupload';
 import InputText from 'primevue/inputtext';
 import Panel from 'primevue/panel';
-import Textarea from 'primevue/textarea';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import ArtifactLayoutEditor from '~/components/ArtifactLayoutEditor.vue';
 import { useAuthStore } from '~/stores/auth';
@@ -51,7 +46,6 @@ const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const saving = ref(false);
 const name = ref('');
-const metadata = ref('{}');
 const layoutDraft = ref(null);
 const kind = computed(() => props.artifact.data?.type || '');
 const creation = computed(() => domainUi.getAttachmentCreation(kind.value));
@@ -67,7 +61,6 @@ const canReplaceFile = computed(() => canEdit.value && creation.value.mode === '
 
 watch(() => props.artifact, artifact => {
   name.value = artifact.identity?.name || '';
-  metadata.value = JSON.stringify(artifact.data?.metadata || {}, null, 2);
   layoutDraft.value = artifact.data?.layout ? structuredClone(artifact.data.layout) : null;
 }, { immediate: true, deep: true });
 
@@ -76,7 +69,7 @@ async function save() {
   try {
     let updated = await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`, {
       method: 'PUT',
-      body: { name: name.value, metadata: JSON.parse(metadata.value || '{}') }
+      body: { name: name.value }
     });
     if (editor.value.mode === 'layout' && layoutDraft.value) {
       updated = await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/layout`, {

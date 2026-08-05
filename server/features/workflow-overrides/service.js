@@ -80,6 +80,7 @@ function mergeSystemWorkflowTransitions({ processWorkflow, defaultWorkflow }) {
   const merged = normalizeWorkflowPayload(processWorkflow);
   const systemWorkflow = normalizeWorkflowPayload(defaultWorkflow);
   const primaryRegionId = merged.primaryRegion || 'main';
+  const processStateIds = new Set(Object.keys(merged.regions?.[primaryRegionId]?.states || {}));
 
   for (const [regionId, systemRegion] of Object.entries(systemWorkflow.regions || {})) {
     const targetRegionId = merged.regions?.[regionId] ? regionId : primaryRegionId;
@@ -101,6 +102,18 @@ function mergeSystemWorkflowTransitions({ processWorkflow, defaultWorkflow }) {
       ));
       if (!exists) {
         targetRegion.transitions.push({ ...transition, region: targetRegionId });
+      }
+      if (targetRegionId !== primaryRegionId) continue;
+      for (const stateId of processStateIds) {
+        const handlesIntent = targetRegion.transitions.some(item => item.from === stateId && item.intent === transition.intent);
+        if (!handlesIntent) {
+          targetRegion.transitions.push({
+            ...transition,
+            from: stateId,
+            to: stateId,
+            region: targetRegionId
+          });
+        }
       }
     }
   }

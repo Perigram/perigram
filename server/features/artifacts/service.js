@@ -126,10 +126,11 @@ export async function createRendered({ buffer, filename, mimeType, type, lineage
 export async function updateDetails(id, { name, metadata } = {}, auth = {}) {
   const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
   assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
-  return await processUpdate(id, {
-    'identity.name': String(name || artifact.identity?.name || '').trim(),
-    'data.metadata': metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {}
-  }, auth);
+  const patch = { 'identity.name': String(name || artifact.identity?.name || '').trim() };
+  if (metadata !== undefined) {
+    patch['data.metadata'] = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {};
+  }
+  return await processUpdate(id, patch, auth);
 }
 
 export async function replaceUploadedFile(id, { buffer, filename, mimeType } = {}, auth = {}) {
