@@ -409,11 +409,6 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       await publishActionEntityEvent(auth, entityType, imported.design, 'created', 'process-create');
       return imported.design;
     }
-    if (entityType === 'cassette' && action.construction?.mode === 'createDefaultOccsTemplate') {
-      const created = await executeCreateDefaultCassetteTemplate(action, data, organizationId, auth, process.data, entities);
-      await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
-      return created;
-    }
     if (entityType === 'cassette_design') {
       throw createError({ statusCode: 400, message: 'cassette_design requires typed construction' });
     }
@@ -913,31 +908,6 @@ async function executeBakeCassetteDesign(action = {}, data = {}, organizationId,
   return { ...created, status };
 }
 
-async function executeCreateDefaultCassetteTemplate(action = {}, data = {}, organizationId, auth = {}, processData = {}, entities = {}) {
-  const parentContext = await resolveParentCreationContext(action, entities, auth);
-  const createdTemplate = await cassetteService.createDefaultOccsTemplate(
-    createActionPayload(action, data, entities, parentContext),
-    auth.userId,
-    organizationId,
-    auth.role,
-    createActionExecutionAuth(auth, action)
-  );
-  const created = assertCreatedParentContext('cassette', createdTemplate, parentContext);
-  const targetState = action.status?.to;
-  if (!targetState) return created;
-  const targetId = created?._id || created?.identity?.uid;
-  if (!targetId) return created;
-  const status = await statusService.setInitialStateForOrganization(
-    'cassette',
-    targetId,
-    targetState,
-    organizationId,
-    auth.userId,
-    processStatusMetadata(action, `Created by process action ${action.id}`, processData)
-  );
-  return { ...created, status };
-}
-
 function processStatusMetadata(action = {}, note = '', processData = {}) {
   const display = actionStatusDisplayMetadata(action, processData);
   return {
@@ -1383,9 +1353,6 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
         data.parameters || null
       );
       return imported.design;
-    }
-    if (entityType === 'cassette' && record.construction?.mode === 'createDefaultOccsTemplate') {
-      return await executeCreateDefaultCassetteTemplate(record, draft, resolveOrganizationId(auth), auth, processData, parentEntities);
     }
     if (!service.create) throw new Error(`Entity service cannot create ${entityType}`);
     const parentContext = await resolveParentCreationContext(record, parentEntities, auth);

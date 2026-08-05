@@ -27,9 +27,10 @@ operations.
   status; Modify Entity accepts the current entity, replacement blocks, and
   status, and changes only connected blocks. Neither persistence node exposes
   leaf constructor fields.
-- Create Entity first selects the domain entity, then the domain-declared
-  construction mode. Generic construction consumes canonical blocks; typed
-  construction consumes only that mode's declared inputs. Producer identifiers
+- Create Entity first selects the domain entity. Generic construction consumes
+  canonical blocks; when a derived entity declares multiple real construction
+  strategies, a selector chooses the typed inputs. Single-option internal modes
+  are not shown as authoring choices. Producer identifiers
   remain runtime/domain contracts and do not leak into the palette as one-off
   upload/source nodes.
 - Select Entities is the organization-scoped source for an existing typed

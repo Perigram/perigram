@@ -199,7 +199,10 @@ vocabulary exported by `@cutkit/core`. The selected domain entity narrows which
 blocks exist, while core block entries plus domain field access/field groups
 drive the editable field choices. Typed construction modes expose their
 mode-specific inputs on create nodes, so derived constructors do not render an
-empty generic input contract.
+empty generic input contract. The mode selector is shown only when the selected
+derived entity genuinely has multiple construction strategies; ordinary entity
+creation, including cassette creation, exposes blocks without a meaningless
+single-option selector.
 Status-definition nodes are entity agnostic. They render the final status tag
 directly on the node, edit status id, label, severity, icon, and lifecycle
 evidence requirements, and apply to whichever entity lifecycle or action target

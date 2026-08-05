@@ -10,7 +10,12 @@ export function projectContextActionEntries({
 } = {}) {
   if (!project) return [];
 
-  const childActionIds = new Set(childSections.flatMap(section => section.region?.actions || []));
+  const childActionIds = new Set(childSections.flatMap(section => (
+    (section.region?.actions || []).filter(actionId => {
+      const action = actionManifest.find(candidate => candidate.actionId === actionId);
+      return action?.actionKind === 'createEntity' && parentEntityType(action) === 'project';
+    })
+  )));
   const projectEntries = entriesForProject(
     [...screenActionIds, ...projectActionIds].filter(actionId => !childActionIds.has(actionId)),
     actionManifest,
