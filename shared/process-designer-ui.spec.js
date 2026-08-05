@@ -188,7 +188,8 @@ describe('process designer canvas UI', () => {
 
   it('removes wires whose typed inputs disappear when a node contract changes', () => {
     expect(designerSource).toContain('pruneMissingProcessNodeInputEdges(nodeId, node)');
-    expect(designerSource).toContain('pruneAllMissingProcessNodeInputEdges();');
+    expect(designerSource).toContain('edges: validProcessEdges().map(stripRuntimeEdgeData)');
+    expect(designerSource).not.toContain('pruneAllMissingProcessNodeInputEdges();');
     expect(designerSource).toContain("inputIds.has(String(edge.targetHandle).replace(/^(?:input|data):/, ''))");
     expect(designerSource).toContain('updateProcessNodeConstructionMode(selectedProcessNode, mode)');
   });

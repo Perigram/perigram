@@ -2040,11 +2040,10 @@ function serializeProcess() {
 }
 
 function processDefinitionSnapshot() {
-  pruneAllMissingProcessNodeInputEdges();
   const viewport = getViewport?.() || draft.value?.data?.graph?.viewport || { x: 0, y: 0, zoom: 1 };
   return {
     ...canvasToDefinition(
-      { nodes: nodes.value.map(stripRuntimeNodeData), edges: edges.value.map(stripRuntimeEdgeData), viewport },
+      { nodes: nodes.value.map(stripRuntimeNodeData), edges: validProcessEdges().map(stripRuntimeEdgeData), viewport },
       draft.value?.data || {}
     ),
     dataflowVersion: PROCESS_DATAFLOW_VERSION
@@ -3949,10 +3948,16 @@ function pruneMissingProcessNodeInputEdges(nodeId, node = {}) {
   ));
 }
 
-function pruneAllMissingProcessNodeInputEdges() {
-  for (const node of Object.values(draft.value?.data?.processNodes || {})) {
-    pruneMissingProcessNodeInputEdges(node.id, node);
-  }
+function validProcessEdges() {
+  const processNodesByGraphId = new Map(nodes.value
+    .filter(node => node.type === 'processNode' && node.data?.refId)
+    .map(node => [node.id, draft.value?.data?.processNodes?.[node.data.refId]]));
+  return edges.value.filter(edge => {
+    const node = processNodesByGraphId.get(edge.target);
+    if (!node || !/^(?:input|data):/.test(String(edge.targetHandle || ''))) return true;
+    const inputId = String(edge.targetHandle).replace(/^(?:input|data):/, '');
+    return processNodeInputs(node).some(input => input.id === inputId);
+  });
 }
 
 function openBlockComposition(node = {}) {
