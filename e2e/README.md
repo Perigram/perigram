@@ -52,7 +52,8 @@ blocked by unrelated shell noise.
   `/api/queues` route is not treated as valid.
 - `project-workspace.spec.js`: verifies a cassette reached through a Project
   pane's linked Library child region opens the embedded cassette designer in the
-  same pane and restores that page after reload.
+  same pane; verifies pane tabs, icon-only status, suppressed embedded entity
+  header, tab close behavior, and restoration after reload.
 
 The queue nesting regression intentionally stops before the worker-backed
 solve. Full nesting tests need explicit fixture cassette geometry and a running

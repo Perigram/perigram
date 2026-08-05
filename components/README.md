@@ -190,10 +190,12 @@ containment model, and does not depend on relation-key naming conventions.
 Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain the canonical entity page for their
-selected entity or a registered workspace page, plus pane-local controls. The
-pane header identifies the open entity with `IdentityBlock`; the canonical
-entity page remains the sole owner of lifecycle and entity actions. A
-pane must not substitute a compact summary/detail-body-only surface. It scopes
+selected entity or a registered workspace page, plus pane-local controls. Each
+pane header owns its IDE-style file tabs, compact lifecycle status, entity
+actions, and split/close controls. The embedded entity page suppresses its
+duplicate title, lineage, lifecycle, and action header while retaining the full
+canonical detail body. A pane must not substitute a compact
+summary/detail-body-only surface. It scopes
 and loads the selected entity's own compiled detail screen so child regions
 remain available inside Project. Explorer starts as a compact 15% rail;
 project mutation actions, including relation Link, remain in the strip even
@@ -233,8 +235,9 @@ an accessible linked cassette can open the embedded designer. Entity links and
 actions inside a linked entity's own child regions stay in the active project
 pane as well; they must not fall back to route navigation or a dialog merely
 because the entity was discovered one detail level deeper. The recursive
-pane tree, split proportions, Explorer width/visibility, active pane,
-selections, and opened registered pages persist as versioned browser UI state
+pane tree, split proportions, Explorer width/visibility, active pane, ordered
+tabs and their pane-local selections, and opened registered pages persist as
+versioned browser UI state
 scoped to the current user, organization, and project; only stable references
 are stored. Operational bodies
 receive file mode and remove redundant rounded panel borders when the file pane

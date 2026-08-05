@@ -49,11 +49,14 @@ bounded IDE-style Explorer and file workspace:
   checks current project lifecycle applicability. It does not scan the global
   manifest or invent relation/upload controls.
 - `GeneratedWorkspacePane` accepts both entity pages and registered workspace
-  pages. `GeneratedEntityFile` is only the pane adapter: its compact header
-  identifies the open entity and owns split/close controls, while its body
-  mounts the canonical `GeneratedEntityDetail`/`EntityPage` for that entity.
-  It must not rebuild lifecycle, actions, or a compact summary surface. Detail
-  overloads therefore behave identically in a
+  pages. Each recursive pane owns an IDE-style tab list; Explorer navigation
+  opens or selects a tab in the active pane, and tab order plus selection persist
+  with that pane. `GeneratedEntityFile` is the pane adapter: its header owns the
+  tabs, icon-only interactive lifecycle status, entity action menu, split
+  controls, and pane close. Its body mounts the canonical
+  `GeneratedEntityDetail`/`EntityPage` content for that entity with duplicate
+  identity, lineage, status, actions, and divider chrome suppressed. Detail
+  overload bodies therefore behave identically in a
   project pane and on a regular generated entity route. The adapter also scopes
   the selected entity type's compiled `entityDetail` screen with the selected
   entity id and loads its readable sources through `useGeneratedScreen()`.
@@ -77,13 +80,15 @@ bounded IDE-style Explorer and file workspace:
 - PrimeVue splitters form a recursive split tree. A pane can split right or
   down, and nested horizontal/vertical splits keep independent selections and
   scrolling. Split proportions, Explorer width/visibility, active pane,
-  selections, and opened registered pages are persisted as versioned browser UI
+  tab lists/selections, and opened registered pages are persisted as versioned browser UI
   state scoped to the current user, organization, and project. Stored data
   contains stable entity/page references, including entities discovered through
   nested detail regions, never entity DTOs, and is validated
   before restoration. A reference remains in its pane while asynchronous screen
   sources and linked entities load; temporary absence must not erase restored
   navigation state. There is no reserved right inspector pane.
+  The active pane receives only a subtle inset semantic-primary boundary; tab
+  selection remains the stronger indicator of the active file.
 
 Selectable rows still come from access-filtered screen source states; the
 Explorer contains no workspace actions or unrelated controls. Clicking an

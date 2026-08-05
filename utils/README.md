@@ -45,7 +45,8 @@ Shared frontend utility modules used by Vue pages/components.
   normalization for project workspace UI state. Storage keys are scoped by
   user, organization, and project; payloads contain pane/page references,
   references for entities discovered through nested detail regions, and layout
-  preferences, never entity DTOs.
+  preferences including each pane's ordered tab keys and selected tab, never
+  entity DTOs.
 - `interactive-target.js`: Shared DOM guard for entity cards that have parent
   click/select actions. It detects nested links, buttons, form controls, status
   controls, geometry previews, and nested inline/compact entity cards so parent
