@@ -265,8 +265,9 @@ carry the exact relation key, target type, cardinality, and access grants. Link
 prompts for a target; Unlink receives the already-rendered target reference and
 therefore never opens an entity selector.
 Artifact relation entries select declared upload-backed `AttachmentKind`
-values in their always-visible creation selector. A non-empty selection is the
-creator contract; there is no separate enable flag. The compiler places that creator
+values in their always-visible creation selector. An empty selection uses every
+upload-backed kind declared by the domain; selecting values narrows that set.
+The compiler places that creator
 contract on the Link input and grants the exposed role scoped artifact write
 access through the same action window. Command- and workflow-produced kinds
 remain separate process effects and are not presented as file uploads.
