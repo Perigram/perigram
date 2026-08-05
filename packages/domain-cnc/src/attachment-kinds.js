@@ -10,7 +10,14 @@ export const cncAttachmentKinds = {
     bucket: 'userDxf',
     mimeType: 'application/dxf',
     preview: { mode: 'download' },
-    creation: { mode: 'upload' },
+    creation: {
+      mode: 'upload',
+      accept: '.dxf,application/dxf',
+      fields: [
+        { id: 'name', path: 'identity.name', type: 'string', required: true },
+        { id: 'metadata', path: 'data.metadata', type: 'object', required: false }
+      ]
+    },
     editor: { mode: 'none' }
   },
   SVG_PREVIEW: {kind: 'SVG_PREVIEW',

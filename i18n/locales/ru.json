@@ -2773,6 +2773,7 @@
     "addAttachment": "Добавить вложение",
     "attachmentKind": "Тип вложения",
     "allowedArtifactCreation": "Разрешённое создание артефактов",
+    "allUploadArtifactKinds": "Все загружаемые типы",
     "required": "Обязательно",
     "snapshots": "Снимки",
     "addSnapshot": "Добавить снимок",
@@ -2827,6 +2828,8 @@
       "exactEntityId": "Точный ID сущности",
       "createArtifact": "Загрузить артефакт",
       "selectArtifactFile": "Выбрать файл",
+      "replaceArtifactFile": "Заменить файл",
+      "artifactData": "Данные артефакта",
     "noOptions": "Нет доступных вариантов для {field}"
   }
 }

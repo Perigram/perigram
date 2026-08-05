@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
   const artifact = await service.createUploaded({
     buffer: file.data,
     filename: file.filename,
+    name: value('name') || file.filename,
     mimeType: file.type,
     type,
     lineage,

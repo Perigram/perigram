@@ -573,6 +573,7 @@
                               option-value="value"
                               display="chip"
                               filter
+                              :placeholder="$t('processDesigner.allUploadArtifactKinds')"
                               @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { attachmentKinds: value })"
                             />
                           </label>

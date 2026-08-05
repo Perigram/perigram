@@ -2773,6 +2773,7 @@
     "addAttachment": "Add attachment",
     "attachmentKind": "Attachment kind",
     "allowedArtifactCreation": "Allowed artifact creation",
+    "allUploadArtifactKinds": "All upload-backed kinds",
     "required": "Required",
     "snapshots": "Snapshots",
     "addSnapshot": "Add snapshot",
@@ -2827,6 +2828,8 @@
       "exactEntityId": "Exact entity ID",
       "createArtifact": "Upload artifact",
       "selectArtifactFile": "Select file",
+      "replaceArtifactFile": "Replace file",
+      "artifactData": "Artifact data",
     "noOptions": "No available options for {field}"
   }
 }
