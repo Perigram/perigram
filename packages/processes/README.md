@@ -48,6 +48,12 @@ truth. `definitionToCanvas()` projects those records into deterministic Vue
 Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
 preserving role-grant, service-identity, lifecycle, service, and socket
 records.
+
+Durable orchestration resolves every data edge through the source node's
+declared data ports before reading or evaluating it. A sole data output is the
+canonical source when an edge uses the node-level handle. Trigger and effect
+outputs are read only from the token's emitted-value cache; operational nodes
+are never dispatched through the pure data/read evaluator.
 Executable effects are represented only by their `processNode` canvas node.
 Compiler-derived action records are not projected as separate action nodes and
 are removed when the canvas is serialized.

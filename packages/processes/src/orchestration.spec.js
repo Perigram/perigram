@@ -485,6 +485,43 @@ describe('durable process orchestration', () => {
     }));
   });
 
+  it('resolves a manual trigger entity edge through its declared payload output', async () => {
+    const definition = process([
+      { id: 'trigger', kind: 'control.manualTrigger', entityType: 'project' },
+      {
+        id: 'lineage',
+        kind: 'record.composeBlock',
+        block: 'lineage',
+        compositionMode: 'ancestors',
+        entries: [{ id: 'project', key: 'projectId', entityType: 'project' }]
+      },
+      {
+        id: 'create',
+        kind: 'effect.createEntity',
+        entityType: 'queue',
+        trigger: { mode: 'event' },
+        blocks: ['lineage']
+      }
+    ], ['trigger', 'lineage', 'create'], [
+      { source: 'trigger', sourceHandle: 'data:entity', target: 'lineage', targetHandle: 'data:entry:project', role: 'data' },
+      { source: 'trigger', sourceHandle: 'control:start', target: 'create', targetHandle: 'control:in', role: 'control' },
+      { source: 'lineage', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:lineage', role: 'data' }
+    ]);
+    const project = { _id: 'project-1', identity: { name: 'Project' } };
+    const executeEffect = vi.fn().mockResolvedValue({ _id: 'queue-1' });
+
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'trigger', payload: project }),
+      definition,
+      { executeEffect, catalogContext }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      inputs: { lineage: { projectId: 'project-1' } }
+    }));
+  });
+
   it('maps manual field data into stable open-block entry sockets', async () => {
     const definition = process([
       {

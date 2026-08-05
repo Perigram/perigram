@@ -268,21 +268,24 @@ function readInputPath(value, path = '') {
 }
 
 async function evaluateNodeOutput(process, nodeId, outputId, run, environment, tokenContext, resolving) {
-  const cacheKey = `${nodeId}:${outputId}:${tokenContext.scope || 'root'}`;
-  if (tokenContext.values?.[cacheKey]) return tokenContext.values[cacheKey];
-  if (tokenContext.values?.[`${nodeId}:${outputId}`]) return tokenContext.values[`${nodeId}:${outputId}`];
-  if (resolving.has(cacheKey)) throw new Error(`Data cycle detected at ${nodeId}:${outputId}`);
-  resolving.add(cacheKey);
   const graphNode = (process.graph?.nodes || []).find(item => String(item.id) === String(nodeId));
   if (graphNode?.type === 'statusDefinition') {
     const definition = process.statusDefinitions?.[recordId(graphNode)];
     if (!definition?.statusId) throw new Error(`Status definition ${recordId(graphNode)} does not exist`);
-    resolving.delete(cacheKey);
     return createDataPacket(definition.statusId);
   }
   const node = processNode(process, nodeId);
   const record = process.processNodes[recordId(node)];
   const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
+  const resolvedOutputId = resolveDataOutputId(ports.outputs, outputId, record);
+  const cacheKey = `${nodeId}:${resolvedOutputId}:${tokenContext.scope || 'root'}`;
+  if (tokenContext.values?.[cacheKey]) return tokenContext.values[cacheKey];
+  if (tokenContext.values?.[`${nodeId}:${resolvedOutputId}`]) return tokenContext.values[`${nodeId}:${resolvedOutputId}`];
+  if (record.kind.endsWith('Trigger') || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) {
+    throw new Error(`Operational node ${record.id || node.id} has not emitted data output ${resolvedOutputId}`);
+  }
+  if (resolving.has(cacheKey)) throw new Error(`Data cycle detected at ${nodeId}:${outputId}`);
+  resolving.add(cacheKey);
   const inputs = {};
   for (const port of ports.inputs.filter(item => item.role === 'data')) {
     const edge = incomingData(process, node.id, port.id);
@@ -310,6 +313,15 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   });
   resolving.delete(cacheKey);
   return packet;
+}
+
+function resolveDataOutputId(outputs = [], requestedId = '', record = {}) {
+  const dataOutputs = outputs.filter(port => port.role === 'data');
+  const requested = cleanHandle(requestedId);
+  const matched = dataOutputs.find(port => port.id === requested);
+  if (matched) return matched.id;
+  if (dataOutputs.length === 1) return dataOutputs[0].id;
+  throw new Error(`Node ${record.id || record.kind} does not expose data output ${requested || '(default)'}`);
 }
 
 function processData(definition) {
