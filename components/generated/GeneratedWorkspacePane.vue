@@ -7,6 +7,7 @@
     :splittable="splittable"
     :show-generated-actions="item.type !== 'project'"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
+    @open-entity="request => $emit('open-entity', request)"
     @open-page="page => $emit('open-page', page)"
     @refresh="$emit('refresh')"
     @split="orientation => $emit('split', orientation)"
@@ -76,5 +77,5 @@ defineProps({
   splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-page', 'refresh', 'split', 'close']);
+defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'split', 'close']);
 </script>

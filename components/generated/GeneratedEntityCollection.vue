@@ -87,6 +87,8 @@
           <GeneratedCassetteDesignerAction
             v-if="entityType === 'cassette'"
             :entity="entity"
+            :open-in-workspace="openInWorkspace"
+            @open-page="page => $emit('open-page', page)"
             @refresh="$emit('refresh')"
           />
           <GeneratedActionButton
@@ -138,10 +140,11 @@ const props = defineProps({
   screenKey: { type: String, default: '' },
   region: { type: Object, default: () => ({}) },
   source: { type: Object, default: () => ({}) },
-  actionContext: { type: Object, default: () => ({}) }
+  actionContext: { type: Object, default: () => ({}) },
+  openInWorkspace: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['refresh', 'execute-action']);
+const emit = defineEmits(['refresh', 'execute-action', 'open-entity', 'open-page']);
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
@@ -188,6 +191,10 @@ function dedupeActions(actions = []) {
 }
 
 function openEntity(entity) {
+  if (props.openInWorkspace) {
+    emit('open-entity', { entity, entityType: props.entityType });
+    return;
+  }
   const route = detailRouteFor(entity);
   if (route) navigateTo(route);
 }

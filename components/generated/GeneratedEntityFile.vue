@@ -64,7 +64,10 @@
             template="entityDetail"
             :screen-actions="[]"
             :action-context="detailActionContext"
+            open-in-workspace
             @refresh="refreshFile"
+            @open-entity="request => $emit('open-entity', request)"
+            @open-page="page => $emit('open-page', page)"
             @execute-action="executeAction"
           />
         </template>
@@ -97,7 +100,7 @@ const props = defineProps({
   showGeneratedActions: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['execute-action', 'open-page', 'refresh', 'split', 'close']);
+const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'split', 'close']);
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const entityId = computed(() => props.item?.entity?._id || props.item?.entity?.identity?.uid || '');
