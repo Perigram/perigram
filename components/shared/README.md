@@ -162,7 +162,7 @@ Interactive status component for display + state-machine transitions. Status-cha
 Props: `:entity`, `entity-type`, `variant` (`icon` | `inline` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
 `variant="icon"` renders the primary status as an accessible icon-only badge
 while retaining the normal interactive popover, transitions, location, and
-history. Its badge is a fixed square/circle rather than a label-width Tag. In
+history. Icon mode is a bare semantic status dot with no Tag fill or border. In
 pane/tool chrome it still renders a DTO-backed state when no
 multi-state workflow is registered, while transition loading remains limited
 to registered workflows. It is intended for constrained pane/tool chrome; regular cards and
