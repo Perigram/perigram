@@ -104,6 +104,12 @@ write generated Vue/domain files to the repository.
 
 `artifact` remains the current persisted entity type for generated file records.
 File behavior is declared by `AttachmentKind`.
+Each attachment kind also declares its creation affiliation (`upload`,
+`command`, or `workflow`) and editor affiliation (`none` or `layout`). UI
+surfaces resolve those capabilities through the domain UI adapter instead of
+branching on artifact names. A kind marked `layout` opens the shared artifact
+layout editor only when the persisted artifact carries editable layout and
+template provenance; source and preview files remain non-editable.
 `generateAttachment` is a polymorphic command: its process-designer contract is
 one abstract `Attachment source` input with `attachments.generate` capability
 and accepted source types.
