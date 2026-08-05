@@ -17,29 +17,25 @@
         @refresh="refreshFile"
         @transitioned="refreshFile"
       />
-      <EntityActionsPopover v-if="item.type === 'cassette' || resolvedActionIds.length || entityCanDelete">
-        <GeneratedCassetteDesignerAction
-          v-if="item.type === 'cassette'"
-          :entity="item.entity"
-          menu-item
-          open-in-workspace
-          @open-page="page => $emit('open-page', page)"
-          @refresh="refreshFile"
-        />
-        <GeneratedActionButton
-          v-for="actionId in resolvedActionIds"
-          :key="actionId"
-          :action-id="actionId"
-          menu-item
-          @execute="executeAction"
-        />
-        <GeneratedDeleteButton
-          :entity="item.entity"
-          :entity-type="item.type"
-          menu-item
-          @deleted="$emit('refresh')"
-        />
-      </EntityActionsPopover>
+      <GeneratedCassetteDesignerAction
+        v-if="item.type === 'cassette'"
+        :entity="item.entity"
+        open-in-workspace
+        @open-page="page => $emit('open-page', page)"
+        @refresh="refreshFile"
+      />
+      <GeneratedActionButton
+        v-for="actionId in resolvedActionIds"
+        :key="actionId"
+        :action-id="actionId"
+        @execute="executeAction"
+      />
+      <GeneratedDeleteButton
+        v-if="entityCanDelete"
+        :entity="item.entity"
+        :entity-type="item.type"
+        @deleted="$emit('refresh')"
+      />
       <Button
         v-if="splittable"
         icon="pi pi-arrows-h"
@@ -119,7 +115,6 @@ import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTab
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
-import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';

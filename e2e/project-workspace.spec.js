@@ -45,8 +45,7 @@ test.describe('generated project workspace', () => {
     await expect(paneHeader.locator('[data-entity-status="true"] .status-badge')).toHaveAttribute('aria-label', /active/i);
     await expect(app.page.locator('[data-workspace-pane] .entity-page [data-entity-page-header]')).toHaveCount(0);
 
-    await paneHeader.getByRole('button', { name: /^more$/i }).click();
-    await app.page.getByRole('button', { name: /^edit$/i }).click();
+    await paneHeader.getByRole('button', { name: /^edit$/i }).click();
     await expect(app.page.locator('[data-workspace-pane] header')).toContainText(/cassette designer/i);
 
     await app.page.reload();

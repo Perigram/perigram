@@ -53,7 +53,7 @@ const localWorkflows = computed(() => props.workflows || unref(providedWorkflows
 const displaysLifecycleStatus = computed(() => hasMeaningfulWorkflowStatus(
     props.entityType,
     localWorkflows.value || undefined
-));
+) || (props.variant === 'icon' && Boolean(props.entity?.status?.state)));
 const hasRegisteredWorkflow = computed(() => hasWorkflow(props.entityType, localWorkflows.value || undefined));
 const useServerActions = computed(() => props.showActions && !localWorkflows.value && hasRegisteredWorkflow.value);
 const useLocalTransition = computed(() => Boolean(localWorkflows.value && localTransitionHandler));

@@ -52,7 +52,8 @@ bounded IDE-style Explorer and file workspace:
   pages. Each recursive pane owns an IDE-style tab list; Explorer navigation
   opens or selects a tab in the active pane, and tab order plus selection persist
   with that pane. `GeneratedEntityFile` is the pane adapter: its header owns the
-  tabs, icon-only interactive lifecycle status, entity action menu, split
+  tabs, icon-only interactive lifecycle status, directly visible generated
+  entity-action buttons, split
   controls, and pane close. Its body mounts the canonical
   `GeneratedEntityDetail`/`EntityPage` content for that entity with duplicate
   identity, lineage, status, actions, and divider chrome suppressed. Detail
@@ -112,5 +113,6 @@ flush to the app boundary and body scrolling is disabled. Explorer, editor, and
 file panes own their scrolling independently.
 
 `GeneratedActionButton`, `GeneratedDeleteButton`, and
-`GeneratedCassetteDesignerAction` support menu-item presentation for entity
-ellipsis menus. Presentation does not change action resolution or access.
+`GeneratedCassetteDesignerAction` render directly in project pane headers.
+Regular entity pages and cards may use their menu-item presentation inside
+entity ellipsis menus; presentation does not change action resolution or access.
