@@ -22,7 +22,7 @@
     </header>
 
     <div
-      v-if="tabActionIds.length || entityCanDelete"
+      v-if="tabActionIds.length || visibleEntityDelete"
       class="flex shrink-0 flex-wrap items-center justify-end gap-1 border-b border-content-border px-2 py-1"
       data-tab-actions
     >
@@ -33,7 +33,7 @@
         @execute="executeAction"
       />
       <GeneratedDeleteButton
-        v-if="entityCanDelete"
+        v-if="visibleEntityDelete"
         :entity="item.entity"
         :entity-type="item.type"
         @deleted="$emit('refresh')"
@@ -89,7 +89,10 @@ import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
-import { generatedEntityDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
+import {
+  generatedEntityDetailConsumesAction,
+  generatedEntityDetailOwnsActionSurface
+} from '~/components/generated/detail-action-ownership.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import {
   generatedDetailActionIds,
@@ -176,6 +179,9 @@ const entityCanDelete = computed(() => canDeleteGeneratedEntity({
   entity: props.item?.entity,
   entityType: props.item?.type
 }));
+const visibleEntityDelete = computed(() => (
+  entityCanDelete.value && !generatedEntityDetailOwnsActionSurface(props.item?.type)
+));
 
 function executeAction(action, entity = null, context = {}) {
   const entry = resolvedEntries.value.find(item => item.actionId === action.actionId) || {

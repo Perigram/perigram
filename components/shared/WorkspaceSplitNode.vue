@@ -55,6 +55,6 @@ defineEmits(['activate', 'split', 'close', 'resize']);
 
 <style scoped>
 .workspace-pane-active :deep([data-pane-header]) {
-  background: var(--p-highlight-background);
+  background: var(--ck-chrome-subtle);
 }
 </style>

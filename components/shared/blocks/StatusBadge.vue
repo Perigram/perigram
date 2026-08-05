@@ -36,20 +36,34 @@ const label = computed(() => {
     const value = config.value.label;
     return te(value) ? t(value) : value;
 });
+const dotClass = computed(() => ({
+    success: 'bg-status-success',
+    info: 'bg-status-info',
+    warn: 'bg-status-warning',
+    warning: 'bg-status-warning',
+    danger: 'bg-status-danger',
+    primary: 'bg-primary',
+    secondary: 'bg-status-neutral'
+}[config.value.severity] || 'bg-status-neutral'));
 </script>
 
 <template>
-  <Tag 
+  <span
+    v-if="iconOnly"
+    class="status-badge-glyph inline-flex h-5 w-5 shrink-0 items-center justify-center"
+    role="img"
+    :aria-label="label"
+    :title="label"
+  >
+    <span class="h-1.5 w-1.5 rounded-full" :class="dotClass" aria-hidden="true" />
+  </span>
+  <Tag
+    v-else
     :severity="config.severity" 
     class="status-badge max-w-full min-w-0"
-    :class="{ 'status-badge-icon-only !h-5 !w-5 !min-w-5 !rounded-full !p-0 justify-center': iconOnly }"
     :icon="config.icon"
-    :aria-label="iconOnly ? label : undefined"
-    :title="iconOnly ? label : undefined"
   >
-    <template v-if="!iconOnly">
-        <span class="min-w-0 truncate">{{ label }}</span>
-    </template>
+    <span class="min-w-0 truncate">{{ label }}</span>
   </Tag>
 </template>
 
@@ -60,7 +74,4 @@ const label = computed(() => {
     font-weight: 700;
 }
 
-.status-badge-icon-only :deep(.p-tag-icon) {
-    margin: 0;
-}
 </style>

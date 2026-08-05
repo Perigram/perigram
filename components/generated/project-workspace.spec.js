@@ -80,7 +80,7 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).toContain('generatedEntityDetailConsumesAction');
     expect(entityFileSource).toContain('v-for="actionId in tabActionIds"');
     expect(entityFileSource).not.toContain('<GeneratedCassetteDesignerAction');
-    expect(detailActionOwnershipSource).toContain('detailActionConsumers');
+    expect(detailActionOwnershipSource).toContain('detailActionSurfaceOwners');
     expect(entityFileSource).toContain('<GeneratedWorkspaceTabs');
     expect(entityFileSource).not.toContain('<EntityStatus');
     expect(workspaceTabsSource).toContain('<EntityStatus');
@@ -143,7 +143,8 @@ describe('generated project workspace architecture', () => {
     expect(workspaceTabsSource).toContain('icon="pi pi-plus"');
     expect(workspaceTabsSource).toContain('availableTabs: { type: Array');
     expect(workspaceTabsSource).toContain('class="flex min-w-0 items-stretch overflow-x-auto"');
-    expect(statusBadgeSource).toContain('!h-5 !w-5 !min-w-5 !rounded-full !p-0');
+    expect(statusBadgeSource).toContain('status-badge-glyph');
+    expect(statusBadgeSource).toContain('h-1.5 w-1.5 rounded-full');
     expect(workspacePaneMenuSource).toContain('icon="pi pi-ellipsis-v"');
     expect(workspacePaneMenuSource).toContain("$emit('split', 'horizontal')");
     expect(workspacePaneMenuSource).toContain("$emit('close')");

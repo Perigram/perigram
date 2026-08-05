@@ -281,6 +281,12 @@ body {
     color: var(--p-text-color);
 }
 
+/* Pointer focus must not leak browser/PrimeVue default white outlines. */
+:where(button, a, input, textarea, select, [tabindex]):focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
 ::selection {
     background: var(--ck-selection-background);
 }

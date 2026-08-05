@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { generatedEntityDetailConsumesAction } from './detail-action-ownership.js';
+import {
+  generatedEntityDetailConsumesAction,
+  generatedEntityDetailOwnsActionSurface
+} from './detail-action-ownership.js';
 
 describe('generated detail action ownership', () => {
   it('keeps editor-owned actions out of surrounding entity action rows', () => {
+    expect(generatedEntityDetailOwnsActionSurface('queue')).toBe(true);
+    expect(generatedEntityDetailOwnsActionSurface('cassette')).toBe(true);
+    expect(generatedEntityDetailOwnsActionSurface('sheet_design')).toBe(true);
     expect(generatedEntityDetailConsumesAction('queue', {
       actionKind: 'runCommand',
       commandId: 'solveNesting'
@@ -16,11 +22,9 @@ describe('generated detail action ownership', () => {
   });
 
   it('leaves unrelated entity commands to the surrounding action row', () => {
-    expect(generatedEntityDetailConsumesAction('queue', {
+    expect(generatedEntityDetailConsumesAction('artifact', {
       actionKind: 'sendToOrganization'
     })).toBe(false);
-    expect(generatedEntityDetailConsumesAction('cassette', {
-      actionKind: 'sendToOrganization'
-    })).toBe(false);
+    expect(generatedEntityDetailOwnsActionSurface('artifact')).toBe(false);
   });
 });
