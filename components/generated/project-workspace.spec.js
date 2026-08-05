@@ -10,6 +10,8 @@ const workspacePaneSource = readFileSync(new URL('./GeneratedWorkspacePane.vue',
 const workspacePageSource = readFileSync(new URL('./GeneratedWorkspacePage.vue', import.meta.url), 'utf8');
 const workspaceTabsSource = readFileSync(new URL('./GeneratedWorkspaceTabs.vue', import.meta.url), 'utf8');
 const workspacePaneMenuSource = readFileSync(new URL('./GeneratedWorkspacePaneMenu.vue', import.meta.url), 'utf8');
+const detailActionOwnershipSource = readFileSync(new URL('./detail-action-ownership.js', import.meta.url), 'utf8');
+const statusBadgeSource = readFileSync(new URL('../shared/blocks/StatusBadge.vue', import.meta.url), 'utf8');
 const workspacePagesSource = readFileSync(new URL('./workspace-pages.js', import.meta.url), 'utf8');
 const projectContextActionsSource = readFileSync(new URL('./project-context-actions.js', import.meta.url), 'utf8');
 const detailBodySource = readFileSync(new URL('./GeneratedEntityDetailBody.vue', import.meta.url), 'utf8');
@@ -75,6 +77,10 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).toContain('<GeneratedActionButton');
     expect(entityFileSource).not.toContain('menu-item\n        @execute="executeAction"');
     expect(entityFileSource).toContain('data-tab-actions');
+    expect(entityFileSource).toContain('generatedEntityDetailConsumesAction');
+    expect(entityFileSource).toContain('v-for="actionId in tabActionIds"');
+    expect(entityFileSource).not.toContain('<GeneratedCassetteDesignerAction');
+    expect(detailActionOwnershipSource).toContain('detailActionConsumers');
     expect(entityFileSource).toContain('<GeneratedWorkspaceTabs');
     expect(entityFileSource).not.toContain('<EntityStatus');
     expect(workspaceTabsSource).toContain('<EntityStatus');
@@ -132,9 +138,12 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain('selectionKey: key, tabKeys');
     expect(entityFileSource).toContain('embedded');
     expect(entityPageSource).toContain('v-if="showHeader"');
-    expect(splitNodeSource).toContain("ring-1 ring-inset ring-primary-200");
+    expect(splitNodeSource).toContain('workspace-pane-active');
+    expect(splitNodeSource).toContain(':deep([data-pane-header])');
     expect(workspaceTabsSource).toContain('icon="pi pi-plus"');
     expect(workspaceTabsSource).toContain('availableTabs: { type: Array');
+    expect(workspaceTabsSource).toContain('class="flex min-w-0 items-stretch overflow-x-auto"');
+    expect(statusBadgeSource).toContain('!h-5 !w-5 !min-w-5 !rounded-full !p-0');
     expect(workspacePaneMenuSource).toContain('icon="pi pi-ellipsis-v"');
     expect(workspacePaneMenuSource).toContain("$emit('split', 'horizontal')");
     expect(workspacePaneMenuSource).toContain("$emit('close')");
@@ -164,6 +173,7 @@ describe('generated project workspace architecture', () => {
     expect(source).not.toContain('|| projectItem.value');
     expect(workspacePaneSource).toContain('data-empty-workspace-pane');
     expect(workspacePaneSource).toContain('v-else');
+    expect(workspacePaneSource).toContain("$t('project.openSomething')");
     expect(workspacePaneSource).toContain('<GeneratedWorkspacePaneMenu');
     expect(workspacePaneSource).toContain("$emit('close')");
   });

@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures.js';
 
 test.describe('generated project workspace', () => {
-  test('opens a linked library child cassette in the pane designer and restores it', async ({ app }) => {
+  test('opens a linked library child cassette in its editor tab and restores it', async ({ app }) => {
     const project = entity('project-1', 'Project One', {
       relations: { library: { entityType: 'library', id: 'library-1' } }
     });
@@ -47,19 +47,17 @@ test.describe('generated project workspace', () => {
     await expect(app.page.locator('[data-workspace-pane] .entity-page [data-entity-page-header]')).toHaveCount(0);
     await expect(paneHeader.getByRole('button', { name: /^add$/i })).toBeVisible();
 
-    const tabActions = app.page.locator('[data-workspace-pane] [data-tab-actions]');
     await expect(paneHeader.getByRole('button', { name: /^edit$/i })).toHaveCount(0);
-    await tabActions.getByRole('button', { name: /^edit$/i }).click();
-    await expect(app.page.locator('[data-workspace-pane] header')).toContainText(/cassette designer/i);
+    await expect(app.page.locator('[data-workspace-pane] [data-tab-actions]').getByRole('button', { name: /^edit$/i })).toHaveCount(0);
+    await expect(app.page.getByPlaceholder(/cassette name/i)).toBeVisible();
 
     await app.page.reload();
     await expect(app.page.getByRole('tab', { name: 'Library One' })).toBeVisible();
-    await expect(app.page.getByRole('tab', { name: 'Cassette One' })).toBeVisible();
-    const designerTab = app.page.getByRole('tab', { name: /cassette designer/i });
-    await expect(designerTab).toHaveAttribute('aria-selected', 'true');
-    await designerTab.locator('..').getByRole('button', { name: /^close$/i }).click();
-    await expect(app.page.getByRole('tab', { name: /cassette designer/i })).toHaveCount(0);
-    await expect(app.page.getByRole('tab', { name: 'Cassette One' })).toHaveAttribute('aria-selected', 'true');
+    const restoredCassetteTab = app.page.getByRole('tab', { name: 'Cassette One' });
+    await expect(restoredCassetteTab).toHaveAttribute('aria-selected', 'true');
+    await restoredCassetteTab.locator('..').getByRole('button', { name: /^close$/i }).click();
+    await expect(app.page.getByRole('tab', { name: 'Cassette One' })).toHaveCount(0);
+    await expect(app.page.getByRole('tab', { name: 'Library One' })).toHaveAttribute('aria-selected', 'true');
     await app.expectCleanRuntime();
   });
 });

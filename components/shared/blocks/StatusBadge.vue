@@ -42,6 +42,7 @@ const label = computed(() => {
   <Tag 
     :severity="config.severity" 
     class="status-badge max-w-full min-w-0"
+    :class="{ 'status-badge-icon-only !h-5 !w-5 !min-w-5 !rounded-full !p-0 justify-center': iconOnly }"
     :icon="config.icon"
     :aria-label="iconOnly ? label : undefined"
     :title="iconOnly ? label : undefined"
@@ -57,5 +58,9 @@ const label = computed(() => {
     text-transform: uppercase;
     font-size: 0.7rem;
     font-weight: 700;
+}
+
+.status-badge-icon-only :deep(.p-tag-icon) {
+    margin: 0;
 }
 </style>

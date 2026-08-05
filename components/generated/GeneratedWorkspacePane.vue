@@ -39,7 +39,7 @@
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
     data-empty-workspace-pane
   >
-    <header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
+    <header data-pane-header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :available-tabs="availableTabs"
@@ -56,7 +56,10 @@
         @close="$emit('close')"
       />
     </header>
-    <div class="min-h-0 flex-1" />
+    <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted-color">
+      <i class="pi pi-folder-open text-2xl" aria-hidden="true" />
+      <span>{{ $t('project.openSomething') }}</span>
+    </div>
   </section>
 </template>
 

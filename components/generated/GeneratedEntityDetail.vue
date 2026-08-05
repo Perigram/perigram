@@ -53,6 +53,7 @@ import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
+import { generatedEntityDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 
 const props = defineProps({
@@ -83,7 +84,7 @@ const resolvedActions = computed(() => resolveGeneratedEntityActions({
 }));
 const headerActionIds = computed(() => resolvedActions.value
   .filter(isGeneratedSurfaceAction)
-  .filter(action => !(props.entityType === 'queue' && action.actionKind === 'runCommand' && action.commandId === 'solveNesting'))
+  .filter(action => !generatedEntityDetailConsumesAction(props.entityType, action))
   .map(action => action.actionId));
 const entityCanDelete = computed(() => canDeleteGeneratedEntity({
   authStore,

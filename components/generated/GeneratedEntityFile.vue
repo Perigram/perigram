@@ -3,7 +3,7 @@
     v-if="item?.entity"
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
   >
-    <header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
+    <header data-pane-header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :available-tabs="availableTabs"
@@ -22,19 +22,12 @@
     </header>
 
     <div
-      v-if="item.type === 'cassette' || resolvedActionIds.length || entityCanDelete"
+      v-if="tabActionIds.length || entityCanDelete"
       class="flex shrink-0 flex-wrap items-center justify-end gap-1 border-b border-content-border px-2 py-1"
       data-tab-actions
     >
-      <GeneratedCassetteDesignerAction
-        v-if="item.type === 'cassette'"
-        :entity="item.entity"
-        open-in-workspace
-        @open-page="page => $emit('open-page', page)"
-        @refresh="refreshFile"
-      />
       <GeneratedActionButton
-        v-for="actionId in resolvedActionIds"
+        v-for="actionId in tabActionIds"
         :key="actionId"
         :action-id="actionId"
         @execute="executeAction"
@@ -91,12 +84,12 @@ import GeneratedEntityDetail from '~/components/generated/GeneratedEntityDetail.
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
 import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
-import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
-import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
+import { generatedEntityDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import {
   generatedDetailActionIds,
@@ -172,6 +165,11 @@ const resolvedEntries = computed(() => {
   ).values());
 });
 const resolvedActionIds = computed(() => resolvedEntries.value.map(entry => entry.actionId));
+const tabActionIds = computed(() => resolvedEntries.value
+  .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
+  .filter(isGeneratedSurfaceAction)
+  .filter(action => !generatedEntityDetailConsumesAction(props.item?.type, action))
+  .map(action => action.actionId));
 const entityCanDelete = computed(() => canDeleteGeneratedEntity({
   authStore,
   domainUi,

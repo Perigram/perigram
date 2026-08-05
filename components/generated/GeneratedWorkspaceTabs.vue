@@ -1,7 +1,7 @@
 <template>
-  <div class="flex h-full min-w-0 flex-1 items-stretch">
+  <div class="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
     <div
-      class="flex min-w-0 flex-1 items-stretch overflow-x-auto"
+      class="flex min-w-0 items-stretch overflow-x-auto"
       role="tablist"
       :aria-label="$t('project.openFiles')"
     >
@@ -51,7 +51,7 @@
       rounded
       size="small"
       severity="secondary"
-      class="shrink-0"
+      class="shrink-0 self-center"
       :disabled="addableTabs.length === 0"
       :aria-label="$t('common.add')"
       @click.stop="toggleAdd"
