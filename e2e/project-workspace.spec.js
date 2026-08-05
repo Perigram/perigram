@@ -49,7 +49,7 @@ test.describe('generated project workspace', () => {
 
     await expect(paneHeader.getByRole('button', { name: /^edit$/i })).toHaveCount(0);
     await expect(app.page.locator('[data-workspace-pane] [data-tab-actions]').getByRole('button', { name: /^edit$/i })).toHaveCount(0);
-    await expect(app.page.getByPlaceholder(/cassette name/i)).toBeVisible();
+    await expect(app.page.locator('[data-workspace-pane]').getByPlaceholder(/cassette name/i)).toBeVisible();
 
     await app.page.reload();
     await expect(app.page.getByRole('tab', { name: 'Library One' })).toBeVisible();
