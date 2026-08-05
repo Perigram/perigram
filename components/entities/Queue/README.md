@@ -109,9 +109,10 @@ Production queue card and detail surface.
   visible to the process role, QueueEditor omits that field and lets the active
   process action resolve its default constructable template on the server while
   still sending the current material thickness as parameter `T`.
-- Queue card summary labels describe `data.job.items` as "Items to Nest"
-  (`Позиции раскроя`), meaning cassette/design quantities entering the nesting
-  job, not commercial order lines.
+- Queue card summaries count `relations.cassettes` as designs to nest. Each
+  relation points to one real, editable cassette design; repeated production
+  entries are represented by separately created designs rather than quantity
+  metadata copied into the relation.
 - Queue editor selected warehouse sources use compact `QueueSourceCard` tiles
   instead of embedding pile/sheet/remnant cards. It draws remnant polygons when
   present and rectangular sheet previews for stock sources without stored

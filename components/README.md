@@ -451,9 +451,9 @@ When the action is already scoped to a cassette parent, the template selector
 is hidden and the current parent cassette supplies both the construction
 template id and the parameter set.
 Generated cassette-design creation must be scoped to a cassette template. A
-queue is linked after creation by adding the baked design id to
-`queue.data.job.items[]`; generated screens must not treat a queue as the
-parent/source for `bakeCassetteDesignFromTemplate`.
+queue links the resulting design through `queue.relations.cassettes`; generated
+screens must not treat a queue as the parent/source for
+`bakeCassetteDesignFromTemplate`.
 Generated collections may turn `identity.name` into a link only through the
 screen manifest: the collection looks for an `entityDetail` screen with a
 single source for the same entity type, preferring the detail screen paired
@@ -655,11 +655,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   parameter counts; generated cassette-design surfaces render exact
   materialized values from `data.parameters` with
   `provenance.derivedFrom.parameters` only as a display fallback.
-- `QueueEditor` keeps a UI-only `_key` for queue rows because persisted
-  `queue.data.job.items[]` entries intentionally store only the cassette/design
-  `id`, `entityType: "cassette_design"`, nesting `type`, quantity, and
-  parameters. Delete actions must use `_key`; nesting payload saves must
-  persist `id` and `entityType` without leaking the UI key. Queue relation rows
+- `QueueEditor` keeps a UI-only `_key` for rendered rows while persisting only
+  canonical `{ type: "cassette_design", id }` references in
+  `queue.relations.cassettes`. Delete actions use `_key` without leaking it into
+  the relationship. Queue relation rows
   render the already-hydrated cassette-design identity or a typed id chip in
   the row header; they must not nest a full relation card/popover inside the
   queue item panel. Rows that cannot be resolved to a loaded cassette design

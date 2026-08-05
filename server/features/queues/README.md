@@ -76,25 +76,13 @@ Defines a specific nesting job, bridging the digital production intent with phys
   the queue is created under organization lineage only, which lets
   process-authored organizations use queues without introducing a project
   entity into the process graph.
-- `create(data, ...)` and `update(id, { job })` normalize
-  `data.job.items[]` at the service boundary. Each persisted queue item keeps
-  `id` as the source `cassette_design` id, `entityType: "cassette_design"`,
-  `type` as the nesting behavior (`STATIC`/`PARAMETRIC`), `quantity`, and
-  `parameters`. Producers must submit the canonical `id + entityType` pair;
-  ambiguous cassette/template aliases belong only in one-time data migrations.
-  A queue is a consumer of baked cassette designs, not the parent/source for
-  creating them. Process graphs should first create a `cassette_design` from a
-  cassette template, then add that design id to `data.job.items[]` through a
-  queue update/action.
-  Material selection may update the queued `parameters.T` value for parametric
-  items. The queue service persists that intended parameter snapshot only;
-  nesting is responsible for evaluating the source template into request-local
-  worker geometry when the queued parameters differ from the saved design
-  geometry. That evaluation does not persist a new cassette design or DXF.
-  Queue editor parameter and quantity changes use this same update boundary but
-  do not request a generated-screen source refresh for each input value. The
-  editor's local canonical rows remain visible until another entity change is
-  received.
+- Queue composition is the declared many-valued `relations.cassettes`
+  relationship. Every reference targets a real `cassette_design`; adding an
+  entry creates or imports that design first and then links it. Design
+  parameters and editable OCCS provenance stay on the design instead of being
+  copied into a queue-specific item object. `data.job` stores only the selected
+  material pool. Nesting reads the related designs and applies selected material
+  thickness as a request-local parameter overlay without mutating either entity.
 - `listPreviewByProjects(projectIds, ..., { limit })` returns access-redacted,
   summary-oriented queue previews keyed by parent project id. `/api/project`
   uses this to attach `summary.queuePreview` for the `/projects` route without

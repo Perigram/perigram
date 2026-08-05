@@ -39,11 +39,10 @@ material context (`materialMode: WAREHOUSE`, `inventoryItems`, and normalized
 `materialPool`), plus a selected machine and tool profile. The machine supplies
 the working-area preset and boundary offset; the selected material source still
 supplies the actual sheet size/thickness, and the tool profile supplies kerf.
-For parametric queue items, material thickness updates the queued `T` parameter;
-the nesting handler uses the source cassette provenance to evaluate
-request-local worker geometry when that parameter snapshot differs from the
-saved baked geometry. It does not create another persisted cassette design for
-that nesting run.
+For parametric queue designs, the nesting handler overlays material thickness as
+request-local `T` and uses source cassette provenance to evaluate worker
+geometry. It does not mutate the linked design or create another persisted
+cassette design for that nesting run.
 `solveNesting` and the `nesting.solve` task produce
 `nesting_run` and `sheet_design` entities only. DXF/SVG/PDF files are requested
 later through the artifacts service and `AttachmentKind` contracts, not as
@@ -142,12 +141,16 @@ other canonical blocks like any ordinary entity.
 When a `cassette` create action is connected to a `library` parent, the process
 runtime sends `libraryId` to the cassette service so the resulting template
 is stored as a child of the library.
-Queue creation is intentionally a shell creation contract: `jobItems`,
-`materialPool`, and nesting parameters are optional construction inputs because
+Queue creation is intentionally a shell creation contract: `materialPool` and
+nesting parameters are optional construction inputs because
 queue composition belongs to the queue editor and nesting command readiness
 checks, not to the initial create action dialog. Queue creation still requires
 a prompted `name` input so process-generated queues do not enter the system as
 unnamed shells.
+Queue composition is declared as the `queue.cassettes -> cassette_design`
+many-valued relationship. Producers create or import a complete design and then
+link it; no queue construction socket or embedded item contract duplicates the
+design.
 `cassette_design` creation uses `bakeCassetteDesignFromTemplate` with a
 prompted `name`, a source `cassette` template, and typed `cassetteParameters`.
 The frontend must derive those parameter controls from the chosen cassette's

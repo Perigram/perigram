@@ -171,10 +171,11 @@ template id or resolves the default construction-ready template visible to the
 caller, accepts concrete parameters and a name, creates a real `cassette_design`
 with geometry/editor provenance, then applies the process target status.
 The typed cassette-design constructor is sourced from a cassette template, not
-from a queue. A queue consumes existing baked designs through its
-`data.job.items[]` contract; process graphs should model that as a queue update
-or queue-specific action after the design exists, not as a queue parent edge
-into `bakeCassetteDesignFromTemplate`.
+from a queue. A queue consumes baked designs through its declared
+`relations.cassettes` relationship. A producer may request `linkCreatedTo` with
+an owner type and relationship key; after creation the runtime validates that
+relationship against the domain registry and updates it through the owner's
+`processUpdate()` contract.
 Typed construction actions receive action-scoped grants for the target entity
 they create and for the source entities declared by the construction contract.
 For cassette-design baking this includes a temporary `cassettes:write` grant so
@@ -247,15 +248,12 @@ mutations publish typed invalidation events through
 Generated screens consume those events through the shared browser-local entity
 sync contract and then reload their normal sources; process actions do not
 broadcast DTO replicas or bypass entity read access.
-Generated queue composition has one additional active-process boundary for
-existing cassette-design sources. `POST
-/api/process-definitions/active/queues/:id/items` requires an active process,
-loads the queue through the queue feature, loads the selected cassette design
-through the cassette-design feature, checks read access for both, and then
-appends the canonical `data.job.items[]` row through queue `processUpdate()`
-with a narrow request-local queue write grant. It does not expose arbitrary
-queue patching and is separate from process producer actions that create a new
-`cassette_design` before appending it.
+Create-and-link behavior is relationship-driven rather than entity-specific.
+`linkCreatedTo` is accepted only when the domain declares the requested
+many-valued owner relationship and its target matches the created entity type.
+The runtime resolves the owner from action context and uses its explicit
+`processGetById()` and `processUpdate()` methods with a narrow request-local
+write grant. There is no queue-specific append endpoint or copied item model.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.
