@@ -2,12 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { getEntityConstruction } from './entity-construction.js';
 
 describe('CNC entity construction', () => {
-  it('keeps generic cassette creation as the block-authored default', () => {
+  it('creates cassettes only through the editable OCCS template constructor', () => {
     const contract = getEntityConstruction('cassette');
 
-    expect(contract.defaultMode).toBe('genericCreate');
-    expect(contract.modes).toEqual(['genericCreate', 'createDefaultOccsTemplate']);
-    expect(contract.modeInputs.genericCreate).toEqual([]);
+    expect(contract.defaultMode).toBe('createDefaultOccsTemplate');
+    expect(contract.modes).toEqual(['createDefaultOccsTemplate']);
     expect(contract.modeInputs.createDefaultOccsTemplate).toMatchObject([
       { id: 'name', label: 'Template name', required: true }
     ]);

@@ -543,7 +543,26 @@
                             @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { attachmentKind: value })"
                           />
                           <Select
-                            v-else-if="openBlockComposition(selectedProcessNode).mode === 'relations' && selectedProcessNode.kind === 'record.modifyBlock'"
+                            v-else-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
+                            :model-value="entry.entityType"
+                            :options="entityTypeOptions"
+                            option-label="label"
+                            option-value="value"
+                            size="small"
+                            filter
+                            @update:model-value="value => updateRelationEntryType(selectedProcessNode, index, value)"
+                          />
+                          <Select
+                            v-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
+                            :model-value="entry.cardinality || 'one'"
+                            :options="relationCardinalityOptions"
+                            option-label="label"
+                            option-value="value"
+                            size="small"
+                            @update:model-value="value => updateRelationEntryCardinality(selectedProcessNode, index, value)"
+                          />
+                          <Select
+                            v-if="openBlockComposition(selectedProcessNode).mode === 'relations' && selectedProcessNode.kind === 'record.modifyBlock'"
                             :model-value="entry.operation || 'append'"
                             :options="relationMutationOptions"
                             option-label="label"
@@ -3940,6 +3959,23 @@ function updateOpenBlockEntryEntityType(node, index, entityType) {
   updateOpenBlockEntry(node, index, { type: processType('entityRef', { entityType }) });
 }
 
+function updateRelationEntryType(node, index, entityType) {
+  const entry = node?.entries?.[index];
+  if (!entry) return;
+  updateOpenBlockEntry(node, index, {
+    entityType,
+    key: entityType || entry.key
+  });
+  syncProcessNode(node);
+  syncNodeData();
+}
+
+function updateRelationEntryCardinality(node, index, cardinality) {
+  updateOpenBlockEntry(node, index, { cardinality: cardinality === 'many' ? 'many' : 'one' });
+  syncProcessNode(node);
+  syncNodeData();
+}
+
 function removeOpenBlockEntry(node, index) {
   const entry = node?.entries?.[index];
   if (!entry) return;
@@ -4269,6 +4305,7 @@ function inferGenericNodeTypeFromConnection(connection = {}) {
         ? sourcePort.type.itemType?.entityType || ''
         : sourcePort.type?.entityType || '';
       if (targetRecord.compositionMode === 'relations') {
+        entry.key = entry.entityType;
         entry.cardinality = sourcePort.type?.base === 'array' || sourcePort.type?.shape === 'list' ? 'many' : 'one';
       }
       syncProcessNode(targetRecord);

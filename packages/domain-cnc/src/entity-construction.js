@@ -17,10 +17,9 @@ export const cncEntityConstruction = {
     ]
   },
   cassette: {
-    modes: ['genericCreate', 'createDefaultOccsTemplate'],
-    defaultMode: 'genericCreate',
+    modes: ['createDefaultOccsTemplate'],
+    defaultMode: 'createDefaultOccsTemplate',
     modeInputs: {
-      genericCreate: [],
       createDefaultOccsTemplate: [
         { id: 'name', label: 'Template name', path: 'name', type: 'string', required: true, prompt: true }
       ]
