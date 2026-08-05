@@ -421,7 +421,9 @@ then bound to the current user's compiled process action manifest where a
 process action provides the matching construction mode. Existing cassette
 designs, library cassette templates, DXF/artifact import, and additional
 process actions that output `cassette_design` remain distinct source menu
-items. Process-mode producer actions are accepted only when their current
+items. The queue action is labeled **Add cassette** and remains available for
+the domain's existing-design source whenever the user can read cassette designs
+and write the queue; it is not contingent on a construction action. Process-mode producer actions are accepted only when their current
 compiled action contract exposes a `cassette_design` output through
 `contracts.outputs`.
 When a process producer is executed from a queue detail, the queue id is sent as
