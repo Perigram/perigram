@@ -47,6 +47,8 @@ describe('project file operations and queue pane density', () => {
     expect(entityFileSource).not.toContain('GeneratedProjectFileHome');
     expect(entityFileSource).toContain('<GeneratedEntityDetail');
     expect(entityFileSource).not.toContain('<GeneratedEntityDetailBody');
+    expect(entityFileSource).toContain('entityId: entityId.value');
+    expect(entityFileSource).toContain('detailSourceState(region.sourceId)');
   });
 
   it('lets the queue workspace consume the full pane when no support region renders', () => {

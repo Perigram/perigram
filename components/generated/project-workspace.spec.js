@@ -37,6 +37,10 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).not.toContain('<GeneratedEntityDetailBody');
     expect(entityFileSource).not.toContain('mode="file"');
     expect(entityFileSource).toContain('show-identity');
+    expect(entityFileSource).toContain('useGeneratedScreen(scopedDetailScreen)');
+    expect(entityFileSource).toContain('detailChildRegions');
+    expect(entityFileSource).toContain('<GeneratedRegion');
+    expect(entityFileSource).toContain(':action-context="detailActionContext"');
     expect(entityFileSource).not.toContain('<EntitySurfaceContent');
     expect(detailBodySource).toContain('resolveGeneratedEntityDetailOverload');
     expect(detailBodySource).toContain('actionProducesEntityType');
