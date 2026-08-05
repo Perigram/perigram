@@ -182,4 +182,8 @@ describe('process designer canvas UI', () => {
     expect(nodeSource).toContain("record.type?.base === 'entityRef'");
     expect(nodeSource).toContain("{ type: record.type?.entityType || record.entityType || '', id: value }");
   });
+
+  it('preserves entity-producing sockets during lineage inference', () => {
+    expect(designerSource).toContain("['entity', 'entityRef'].includes(sourcePort?.type?.base)");
+  });
 });
