@@ -73,6 +73,7 @@
               <GeneratedWorkspacePane
                 :item="itemForPane(pane)"
                 :tabs="tabItemsForPane(pane)"
+                :available-tabs="workspaceItems"
                 :action-entries="actionEntriesForPane(pane)"
                 :closeable="paneCount > 1"
                 @execute-action="executeWorkspaceAction"
@@ -81,6 +82,7 @@
                 @refresh="$emit('refresh')"
                 @select-tab="key => selectPaneTab(pane.id, key)"
                 @close-tab="key => closePaneTab(pane.id, key)"
+                @add-tab="key => selectPaneTab(pane.id, key)"
                 @split="orientation => splitPane(pane.id, orientation)"
                 @close="closePane(pane.id)"
               />
@@ -104,6 +106,7 @@
           class="min-h-0 flex-1"
           :item="itemForPane(activePane)"
           :tabs="tabItemsForPane(activePane)"
+          :available-tabs="workspaceItems"
           :action-entries="actionEntriesForPane(activePane)"
           :splittable="false"
           @execute-action="executeWorkspaceAction"
@@ -112,6 +115,7 @@
           @refresh="$emit('refresh')"
           @select-tab="key => selectPaneTab(activePane.id, key)"
           @close-tab="key => closePaneTab(activePane.id, key)"
+          @add-tab="key => selectPaneTab(activePane.id, key)"
         />
       </div>
     </div>

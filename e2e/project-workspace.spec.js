@@ -44,8 +44,11 @@ test.describe('generated project workspace', () => {
     await expect(paneHeader.getByRole('tab', { name: 'Cassette One' })).toHaveAttribute('aria-selected', 'true');
     await expect(paneHeader.locator('[data-entity-status="true"] .status-badge')).toHaveAttribute('aria-label', /active/i);
     await expect(app.page.locator('[data-workspace-pane] .entity-page [data-entity-page-header]')).toHaveCount(0);
+    await expect(paneHeader.getByRole('button', { name: /^add$/i })).toBeVisible();
 
-    await paneHeader.getByRole('button', { name: /^edit$/i }).click();
+    const tabActions = app.page.locator('[data-workspace-pane] [data-tab-actions]');
+    await expect(paneHeader.getByRole('button', { name: /^edit$/i })).toHaveCount(0);
+    await tabActions.getByRole('button', { name: /^edit$/i }).click();
     await expect(app.page.locator('[data-workspace-pane] header')).toContainText(/cassette designer/i);
 
     await app.page.reload();

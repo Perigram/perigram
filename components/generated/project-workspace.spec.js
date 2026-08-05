@@ -8,6 +8,8 @@ const standardPageSource = readFileSync(new URL('../shared/StandardPage.vue', im
 const entityFileSource = readFileSync(new URL('./GeneratedEntityFile.vue', import.meta.url), 'utf8');
 const workspacePaneSource = readFileSync(new URL('./GeneratedWorkspacePane.vue', import.meta.url), 'utf8');
 const workspacePageSource = readFileSync(new URL('./GeneratedWorkspacePage.vue', import.meta.url), 'utf8');
+const workspaceTabsSource = readFileSync(new URL('./GeneratedWorkspaceTabs.vue', import.meta.url), 'utf8');
+const workspacePaneMenuSource = readFileSync(new URL('./GeneratedWorkspacePaneMenu.vue', import.meta.url), 'utf8');
 const workspacePagesSource = readFileSync(new URL('./workspace-pages.js', import.meta.url), 'utf8');
 const projectContextActionsSource = readFileSync(new URL('./project-context-actions.js', import.meta.url), 'utf8');
 const detailBodySource = readFileSync(new URL('./GeneratedEntityDetailBody.vue', import.meta.url), 'utf8');
@@ -63,7 +65,7 @@ describe('generated project workspace architecture', () => {
     expect(source).not.toContain('authStore.actionManifest.filter');
   });
 
-  it('keeps entity pages canonical and exposes pane actions directly in file chrome', () => {
+  it('keeps entity pages canonical and exposes actions inside the active tab body', () => {
     expect(source).not.toContain('variant="workspace"');
     expect(entityPageSource).not.toContain("variant: { type: String");
     expect(entityPageSource).not.toContain("props.variant === 'workspace'");
@@ -72,9 +74,11 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).not.toContain('<EntityActionsPopover');
     expect(entityFileSource).toContain('<GeneratedActionButton');
     expect(entityFileSource).not.toContain('menu-item\n        @execute="executeAction"');
+    expect(entityFileSource).toContain('data-tab-actions');
     expect(entityFileSource).toContain('<GeneratedWorkspaceTabs');
-    expect(entityFileSource).toContain('<EntityStatus');
-    expect(entityFileSource).toContain('variant="icon"');
+    expect(entityFileSource).not.toContain('<EntityStatus');
+    expect(workspaceTabsSource).toContain('<EntityStatus');
+    expect(workspaceTabsSource).toContain('variant="icon"');
     expect(entityPageSource).toContain('<EntityActionsPopover');
   });
 
@@ -129,6 +133,13 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).toContain('embedded');
     expect(entityPageSource).toContain('v-if="showHeader"');
     expect(splitNodeSource).toContain("ring-1 ring-inset ring-primary-200");
+    expect(workspaceTabsSource).toContain('icon="pi pi-plus"');
+    expect(workspaceTabsSource).toContain('availableTabs: { type: Array');
+    expect(workspacePaneMenuSource).toContain('icon="pi pi-ellipsis-v"');
+    expect(workspacePaneMenuSource).toContain("$emit('split', 'horizontal')");
+    expect(workspacePaneMenuSource).toContain("$emit('close')");
+    expect(entityFileSource).not.toContain('icon="pi pi-arrows-h"');
+    expect(entityFileSource).not.toContain(':aria-label="$t(\'common.close\')"');
   });
 
   it('keeps nested detail-region entities and their actions inside the active project pane', () => {
@@ -153,7 +164,7 @@ describe('generated project workspace architecture', () => {
     expect(source).not.toContain('|| projectItem.value');
     expect(workspacePaneSource).toContain('data-empty-workspace-pane');
     expect(workspacePaneSource).toContain('v-else');
-    expect(workspacePaneSource).toContain("$emit('split', 'horizontal')");
+    expect(workspacePaneSource).toContain('<GeneratedWorkspacePaneMenu');
     expect(workspacePaneSource).toContain("$emit('close')");
   });
 

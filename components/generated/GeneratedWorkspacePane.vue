@@ -3,6 +3,7 @@
     v-if="item?.kind === 'entity'"
     :item="item"
     :tabs="tabs"
+    :available-tabs="availableTabs"
     :action-entries="actionEntries"
     :closeable="closeable"
     :splittable="splittable"
@@ -13,6 +14,7 @@
     @refresh="$emit('refresh')"
     @select-tab="$emit('select-tab', $event)"
     @close-tab="$emit('close-tab', $event)"
+    @add-tab="$emit('add-tab', $event)"
     @split="orientation => $emit('split', orientation)"
     @close="$emit('close')"
   />
@@ -20,6 +22,7 @@
     v-else-if="item?.kind === 'page'"
     :page="item"
     :tabs="tabs"
+    :available-tabs="availableTabs"
     :closeable="closeable"
     :splittable="splittable"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
@@ -27,6 +30,7 @@
     @refresh="$emit('refresh')"
     @select-tab="$emit('select-tab', $event)"
     @close-tab="$emit('close-tab', $event)"
+    @add-tab="$emit('add-tab', $event)"
     @split="orientation => $emit('split', orientation)"
     @close="$emit('close')"
   />
@@ -38,39 +42,18 @@
     <header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
+        :available-tabs="availableTabs"
         active-key=""
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
+        @add="$emit('add-tab', $event)"
+        @refresh="$emit('refresh')"
       />
-      <Button
-        v-if="splittable"
-        icon="pi pi-arrows-h"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t('project.splitRight')"
-        @click="$emit('split', 'horizontal')"
-      />
-      <Button
-        v-if="splittable"
-        icon="pi pi-arrows-v"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t('project.splitDown')"
-        @click="$emit('split', 'vertical')"
-      />
-      <Button
-        v-if="closeable"
-        icon="pi pi-times"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t('common.close')"
-        @click="$emit('close')"
+      <GeneratedWorkspacePaneMenu
+        :splittable="splittable"
+        :closeable="closeable"
+        @split="$emit('split', $event)"
+        @close="$emit('close')"
       />
     </header>
     <div class="min-h-0 flex-1" />
@@ -78,18 +61,19 @@
 </template>
 
 <script setup>
-import Button from 'primevue/button';
 import GeneratedEntityFile from '~/components/generated/GeneratedEntityFile.vue';
 import GeneratedWorkspacePage from '~/components/generated/GeneratedWorkspacePage.vue';
 import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
+import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
 
 defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
+  availableTabs: { type: Array, default: () => [] },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'split', 'close']);
+defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 </script>
