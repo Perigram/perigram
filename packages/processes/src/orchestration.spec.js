@@ -677,4 +677,48 @@ describe('durable process orchestration', () => {
     }));
   });
 
+  it('uses explicit manual input instead of evaluating a wired operational output', async () => {
+    const definition = process([
+      {
+        id: 'create-template',
+        kind: 'effect.createEntity',
+        entityType: 'cassette',
+        trigger: { mode: 'manual' }
+      },
+      {
+        id: 'create-design',
+        kind: 'effect.createEntity',
+        entityType: 'cassette_design',
+        trigger: { mode: 'manual' },
+        construction: {
+          mode: 'bakeCassetteDesignFromTemplate',
+          inputs: [{ id: 'templateId', type: 'entity', entityType: 'cassette', required: true }]
+        }
+      }
+    ], ['create-template', 'create-design'], [{
+      id: 'template-design',
+      source: 'create-template',
+      sourceHandle: 'data:result',
+      target: 'create-design',
+      targetHandle: 'data:templateId',
+      role: 'data'
+    }]);
+    const executeEffect = vi.fn().mockResolvedValue({ _id: 'design-1' });
+
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'create-design' }, {
+        context: { inputs: { data: { templateId: 'cassette-1' } } }
+      }),
+      definition,
+      { executeEffect, catalogContext }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledOnce();
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      record: expect.objectContaining({ id: 'create-design' }),
+      inputs: { templateId: 'cassette-1' }
+    }));
+  });
+
 });
