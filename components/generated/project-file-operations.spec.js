@@ -65,6 +65,7 @@ describe('project file operations and queue pane density', () => {
     expect(queueEditorSource).not.toContain("kind === 'relationLink'");
     expect(generatedScreenSource).toContain('/process-definitions/active/actions/${encodeURIComponent(actionId)}/options');
     expect(queueEditorSource).not.toContain('entitySourceProducerFields');
+    expect(entityFileSource).not.toContain('<GeneratedDeleteButton');
   });
 
   it('keeps queue entries compact and makes their grid respond to actual card width', () => {

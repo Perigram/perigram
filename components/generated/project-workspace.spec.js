@@ -23,6 +23,7 @@ const collectionSource = readFileSync(new URL('./GeneratedEntityCollection.vue',
 const entityWorkspaceSource = readFileSync(new URL('../shared/EntityWorkspace.vue', import.meta.url), 'utf8');
 const appLayoutSource = readFileSync(new URL('../../layouts/app.vue', import.meta.url), 'utf8');
 const mainCssSource = readFileSync(new URL('../../assets/css/main.css', import.meta.url), 'utf8');
+const deleteButtonSource = readFileSync(new URL('./GeneratedDeleteButton.vue', import.meta.url), 'utf8');
 
 describe('generated project workspace architecture', () => {
   it('keeps the IDE-style tab strip scrollable without visible scrollbar chrome', () => {
@@ -97,6 +98,12 @@ describe('generated project workspace architecture', () => {
     expect(entityFileSource).toContain('<GeneratedActionButton');
     expect(entityFileSource).not.toContain('menu-item\n        @execute="executeAction"');
     expect(entityFileSource).toContain('data-tab-actions');
+    expect(entityFileSource).not.toContain('<GeneratedDeleteButton');
+    expect(source).toContain('<EntityActionsPopover');
+    expect(source).toContain('<GeneratedDeleteButton');
+    expect(source).toContain('@deleted="handleExplorerEntityDeleted(node.data.item)"');
+    expect(deleteButtonSource).toContain("confirm.require({");
+    expect(deleteButtonSource).toContain("message: t('messages.confirmDelete')");
     expect(entityFileSource).toContain('generatedEntityDetailConsumesAction');
     expect(entityFileSource).toContain('v-for="actionId in tabActionIds"');
     expect(entityFileSource).not.toContain('<GeneratedCassetteDesignerAction');

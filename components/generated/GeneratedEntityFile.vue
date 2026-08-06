@@ -22,7 +22,7 @@
     </header>
 
     <div
-      v-if="tabActionIds.length || visibleEntityDelete"
+      v-if="tabActionIds.length"
       class="flex shrink-0 flex-wrap items-center justify-end gap-1 border-b border-content-border px-2 py-1"
       data-tab-actions
     >
@@ -31,12 +31,6 @@
         :key="actionId"
         :action-id="actionId"
         @execute="executeAction"
-      />
-      <GeneratedDeleteButton
-        v-if="visibleEntityDelete"
-        :entity="item.entity"
-        :entity-type="item.type"
-        @deleted="$emit('refresh')"
       />
     </div>
 
@@ -86,21 +80,16 @@ import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
 import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
-import {
-  generatedEntityDetailConsumesAction,
-  generatedEntityDetailOwnsActionSurface
-} from '~/components/generated/detail-action-ownership.js';
-import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
+import { generatedEntityDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
+import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
 import {
   generatedDetailActionIds,
   generatedDetailScreenForEntityType
 } from '~/components/generated/detail-screen-actions.js';
 import { useAuthStore } from '~/stores/auth';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 
 const props = defineProps({
   item: { type: Object, default: null },
@@ -114,7 +103,6 @@ const props = defineProps({
 
 const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 const authStore = useAuthStore();
-const domainUi = useCutkitDomainUi();
 const entityId = computed(() => props.item?.entity?._id || props.item?.entity?.identity?.uid || '');
 const detailScreen = computed(() => generatedDetailScreenForEntityType({
   screens: authStore.screenManifest,
@@ -173,17 +161,9 @@ const tabActionIds = computed(() => resolvedEntries.value
   .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
   .filter(action => action && !detailChildActionIds.value.includes(action.actionId))
   .filter(isGeneratedSurfaceAction)
+  .filter(action => generatedActionRendersAt(action, ['entity', 'relation']))
   .filter(action => !generatedEntityDetailConsumesAction(props.item?.type, action))
   .map(action => action.actionId));
-const entityCanDelete = computed(() => canDeleteGeneratedEntity({
-  authStore,
-  domainUi,
-  entity: props.item?.entity,
-  entityType: props.item?.type
-}));
-const visibleEntityDelete = computed(() => (
-  entityCanDelete.value && !generatedEntityDetailOwnsActionSurface(props.item?.type)
-));
 
 function executeAction(action, entity = null, context = {}) {
   const entry = resolvedEntries.value.find(item => item.actionId === action.actionId) || {
