@@ -43,7 +43,7 @@ describe('queue design producer resolver', () => {
     ]);
   });
 
-  it('uses the generated cassette relation action as the process-mode add operation', () => {
+  it('does not reinterpret generated relation actions as queue-specific producers', () => {
     const producers = resolveQueueDesignProducers({
       domain,
       processMode: true,
@@ -70,13 +70,7 @@ describe('queue design producer resolver', () => {
       }]
     });
 
-    expect(producers).toEqual([
-      expect.objectContaining({
-        id: 'update-queue:link:cassettes',
-        actionId: 'update-queue:link:cassettes',
-        kind: 'relationLink'
-      })
-    ]);
+    expect(producers).toEqual([]);
   });
 
   it('binds process construction actions to the matching domain producer categories', () => {

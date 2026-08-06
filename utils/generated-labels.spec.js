@@ -8,11 +8,12 @@ const messages = {
   'generatedScreen.actions.change': 'Change',
   'generatedScreen.actions.run': 'Run',
   'generatedScreen.actions.send': 'Send',
+  'generatedScreen.actions.addRelated': ({ entity }) => `Add ${entity}`,
   'entities.cassette': 'Cassette',
   'entities.cassetteDesign': 'Cassette design'
 };
 const i18n = {
-  t: key => messages[key] || key,
+  t: (key, params) => typeof messages[key] === 'function' ? messages[key](params) : (messages[key] || key),
   te: key => Object.hasOwn(messages, key)
 };
 
@@ -43,5 +44,17 @@ describe('generated labels', () => {
       status: { from: 'NEW', to: 'DELETED' },
       label: 'DELETED'
     }, '', i18n)).toBe('Change');
+  });
+
+  it('labels generated link actions from their target entity contract', () => {
+    expect(generatedActionLabel({
+      actionKind: 'updateEntity',
+      entityType: 'queue',
+      relationMutation: {
+        key: 'cassettes',
+        targetType: 'cassette_design',
+        operation: 'link'
+      }
+    }, '', i18n)).toBe('Add Cassette design');
   });
 });

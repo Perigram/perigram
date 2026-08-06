@@ -2820,6 +2820,7 @@
     "home": "Home",
     "actions": {
       "change": "Change",
+      "addRelated": "Add {entity}",
       "run": "Run",
       "send": "Send"
     },
