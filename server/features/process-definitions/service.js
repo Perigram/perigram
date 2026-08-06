@@ -429,7 +429,10 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
         action,
         actionId,
         entityId,
-        data: { relations: { [action.relationMutation.key]: { type: creatorAction.entityType, id: createdId } } },
+        data: {
+          relations: { [action.relationMutation.key]: { type: creatorAction.entityType, id: createdId } },
+          ...(data.relationReplaces ? { relationReplaces: data.relationReplaces } : {})
+        },
         entities
       }, auth);
       return { created, owner };
@@ -576,10 +579,12 @@ async function executeCompiledRelationMutationAction({ action, actionId, entityI
   if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
   const entityType = resolveActionEntityType(action);
   const executionAuth = createActionExecutionAuth(auth, action);
+  const selectedMutation = pickMutationData(data, action, entities);
+  if (data.relationReplaces) selectedMutation.relationReplaces = data.relationReplaces;
   const mutation = await resolveManualRelationMutation(
     entityType,
     targetId,
-    pickMutationData(data, action, entities),
+    selectedMutation,
     action,
     executionAuth
   );
@@ -594,6 +599,9 @@ async function resolveManualRelationMutation(entityType, targetId, mutation = {}
   const targetValue = getByPath(mutation, `relations.${key}`);
   const targetRef = normalizeRelationRef(targetValue, contract?.targetType);
   await assertRelationTargetAvailable(targetRef, contract, auth);
+  const replacementRef = mutation.relationReplaces
+    ? normalizeRelationRef(mutation.relationReplaces, contract?.targetType)
+    : null;
 
   const service = getAppRegistry().getEntityService(entityType);
   const currentRecord = await service?.processGetById?.(targetId, auth);
@@ -618,9 +626,16 @@ async function resolveManualRelationMutation(entityType, targetId, mutation = {}
   const refs = (Array.isArray(currentValue) ? currentValue : currentValue ? [currentValue] : [])
     .map(item => normalizeRelationRef(item, contract.targetType));
   const targetKey = `${targetRef.type}:${targetRef.id}`;
+  const replacementKey = replacementRef ? `${replacementRef.type}:${replacementRef.id}` : '';
+  if (replacementRef && !refs.some(ref => `${ref.type}:${ref.id}` === replacementKey)) {
+    throw createError({ statusCode: 400, message: `Selected ${contract.targetType} is not linked through ${key}` });
+  }
+  const retained = replacementRef
+    ? refs.filter(ref => `${ref.type}:${ref.id}` !== replacementKey)
+    : refs;
   const next = contract.operation === 'unlink'
-    ? refs.filter(ref => `${ref.type}:${ref.id}` !== targetKey)
-    : Array.from(new Map([...refs, targetRef].map(ref => [`${ref.type}:${ref.id}`, ref])).values());
+    ? retained.filter(ref => `${ref.type}:${ref.id}` !== targetKey)
+    : Array.from(new Map([...retained, targetRef].map(ref => [`${ref.type}:${ref.id}`, ref])).values());
   return { relations: { [key]: next } };
 }
 

@@ -2289,6 +2289,7 @@
     "runNestingFirst": "Запустите раскрой из очереди проекта, чтобы получить раскладки листов."
   },
   "cassetteDesign": {
+    "configure": "Настроить дизайн",
     "createFromTemplate": "Создать дизайн",
     "createdFromTemplate": "Дизайн кассеты создан.",
     "createFromTemplateFailed": "Не удалось создать дизайн кассеты.",

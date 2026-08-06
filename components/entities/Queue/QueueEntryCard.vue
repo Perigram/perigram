@@ -22,6 +22,17 @@
           <Tag v-else :value="sourceLabel" severity="secondary" />
           <div class="flex shrink-0 items-center gap-1" data-entity-card-interactive="true" @click.stop>
             <Button
+              v-if="configurable"
+              icon="pi pi-sliders-h"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('cassetteDesign.configure')"
+              :disabled="disabled"
+              @click="emit('configure')"
+            />
+            <Button
               icon="pi pi-trash"
               severity="danger"
               text
@@ -61,10 +72,11 @@ const props = defineProps({
   cassette: { type: Object, default: null },
   template: { type: Object, default: null },
   templateId: { type: String, default: '' },
+  configurable: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['remove']);
+const emit = defineEmits(['configure', 'remove']);
 const { t } = useI18n();
 const panelPt = {
   header: { class: '!hidden' },

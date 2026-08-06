@@ -265,6 +265,11 @@ the active process relation joining those parent types. Derived targets are
 then queried by canonical provenance. Submitting `relationCreator` to the Link
 action runs that exact embedded constructor and persists the returned reference
 through the owner's `processUpdate()` boundary.
+An embedded creator request may also declare `relationReplaces` for one target
+already linked through that same relation. After creation, the relation runtime
+verifies the old reference belongs to the owner and replaces it with the new
+target in one owner update. This is the generic copy-on-write path for editing
+immutable derived entities from an owning context.
 Create-and-link behavior is relationship-driven rather than entity-specific.
 `linkCreatedTo` is accepted only when the domain declares the requested
 many-valued owner relationship and its target matches the created entity type.
