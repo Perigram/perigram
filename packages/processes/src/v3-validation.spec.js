@@ -443,6 +443,42 @@ describe('process v3 validation', () => {
 
     expect(result.errors).toContain('Process node node cannot compose managed field identity.uid');
   });
+
+  it('removes stale create blocks that the current entity contract no longer constructs', () => {
+    const cassetteDomain = {
+      ...domain,
+      entities: [{ type: 'cassette_design', blocks: ['identity', 'data'] }],
+      construction: {
+        cassette_design: {
+          modes: ['bakeCassetteDesignFromTemplate'],
+          defaultMode: 'bakeCassetteDesignFromTemplate',
+          derived: true,
+          inputs: []
+        }
+      },
+      fieldSchemas: {
+        cassette_design: [
+          { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' }, constructible: false },
+          { path: 'data.value', block: 'data', type: { base: 'json', shape: 'item' }, constructible: true }
+        ]
+      }
+    };
+    const process = definition({
+      kind: 'effect.createEntity',
+      entityType: 'cassette_design',
+      blocks: ['identity', 'data'],
+      construction: { mode: 'bakeCassetteDesignFromTemplate' },
+      inputDefaults: { 'identity.name': 'Old design name', 'data.value': { A: 10 } },
+      trigger: { mode: 'manual' }
+    });
+
+    const normalized = normalizeProcessDefinition(process, cassetteDomain);
+
+    expect(normalized.processNodes.node.blocks).toEqual(['data']);
+    expect(normalized.processNodes.node.inputDefaults).toEqual({ 'data.value': { A: 10 } });
+    expect(validateProcessDefinition(process, cassetteDomain).errors)
+      .not.toContain('Process node node cannot persist block identity');
+  });
 });
 
 function entityBlockProcess(entityType) {

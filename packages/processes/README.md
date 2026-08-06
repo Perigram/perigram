@@ -192,6 +192,12 @@ For derived entity constructors, the current domain input contract is
 authoritative: stale authored construction inputs and prompt fields that are no
 longer declared are discarded during compilation instead of resurfacing in
 designer nodes or generated dialogs.
+Create-node normalization applies the same rule to canonical blocks. When an
+entity's current field schema marks every field in a previously persisted block
+as non-constructible, that block and its inline defaults are removed before
+action derivation and validation. Unknown blocks remain validation errors; this
+normalization only removes blocks whose ownership is explicitly declared by the
+current domain schema.
 Dataflow inference reads structured v3 `inputs`/`outputs` when they are
 persisted, but an unavailable port snapshot never clears an entry's semantic
 type. The canonical node catalog performs the authoritative inference for

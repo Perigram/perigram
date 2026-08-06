@@ -107,7 +107,7 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
 
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const data = definition.data || definition;
-  const processNodes = normalizeRecord(data.processNodes);
+  const processNodes = normalizeProcessNodesForDomain(data.processNodes, domain);
   const effectActions = deriveV3EffectActions(data.actions, processNodes, data.graph, domain);
   const normalized = inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
@@ -128,6 +128,27 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     compiled: data.compiled || null
   });
   return inferProcessDataflowContracts(inferOpenBlockEntityBindings(normalized, domain));
+}
+
+function normalizeProcessNodesForDomain(value = {}, domain = {}) {
+  return Object.fromEntries(Object.entries(normalizeRecord(value)).map(([id, node]) => {
+    if (node?.kind !== 'effect.createEntity' || !node.entityType) return [id, node];
+    const schemas = entityFieldSchemas(domain, node.entityType);
+    const knownBlocks = new Set(schemas.map(field => field.block));
+    const allowedBlocks = new Set(schemas
+      .filter(field => field.constructible !== false)
+      .map(field => field.block));
+    const persistedBlocks = Array.isArray(node.blocks) ? node.blocks : [];
+    const blocks = persistedBlocks.filter(block => !knownBlocks.has(block) || allowedBlocks.has(block));
+    const removedBlocks = new Set(persistedBlocks.filter(block => knownBlocks.has(block) && !allowedBlocks.has(block)));
+    const inputDefaults = Object.fromEntries(Object.entries(node.inputDefaults || {})
+      .filter(([path]) => !removedBlocks.has(String(path).split('.')[0])));
+    return [id, {
+      ...node,
+      blocks,
+      ...(node.inputDefaults ? { inputDefaults } : {})
+    }];
+  }));
 }
 
 function inferOpenBlockEntityBindings(process = {}, domain = {}) {
