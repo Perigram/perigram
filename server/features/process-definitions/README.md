@@ -192,10 +192,15 @@ Compiled Link actions grant their exposed roles read access to the declared
 target entity feature so generated entity pickers can load authorized choices.
 They do not inherit the owner entity's create-construction fields.
 Link option resolution keeps embedded creators scoped to their construction
-source. It reads that source from the normalized creator prompt/construction
-contract and follows the process-declared owner ancestry and relations before
-listing targets. An unresolved scoped creator returns no candidates; it never
-falls back to the organization-wide readable target collection. For queue
+source. It reads the source entity type from the normalized creator contract,
+uses domain containment to resolve both the owner's parent and the source's
+parent, then crosses the single matching process-declared Link relation between
+those parents. Source and derived-target reads use the embedded creator's
+temporary execution grants, while owner and ancestor reads retain the caller's
+ordinary access checks. An unresolved or ambiguous scoped path returns no
+candidates; it never falls back to the organization-wide readable target
+collection. The same endpoint returns existing derived targets for normal
+selection and source entities for the embedded Create-new flow. For queue
 cassette designs this yields project-linked libraries, their cassette children,
 and only designs derived from those cassettes.
 Typed construction actions receive action-scoped grants for the target entity
