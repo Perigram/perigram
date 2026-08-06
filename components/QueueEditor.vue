@@ -230,7 +230,9 @@
                                     :cassette="getEntryEntityData(entry)"
                                     :template="getEntryTemplateData(entry)"
                                     :template-id="getEntryTemplateId(entry)"
+                                    :configurable="canConfigureEntry(entry)"
                                     :disabled="!canEditQueue"
+                                    @configure="configureEntry(entry)"
                                     @remove="confirmDelete(entry)"
                                 />
                             </template>
@@ -248,7 +250,20 @@
                                     </template>
                                 </Column>
                                 <Column v-if="canEditQueue" style="width: var(--ck-table-action-column-width)">
-                                    <template #body="{ data }"><Button icon="pi pi-trash" severity="danger" text :aria-label="$t('common.delete')" @click="confirmDelete(data)" size="small" /></template>
+                                    <template #body="{ data }">
+                                        <div class="flex items-center justify-end gap-1">
+                                            <Button
+                                                v-if="canConfigureEntry(data)"
+                                                icon="pi pi-sliders-h"
+                                                severity="secondary"
+                                                text
+                                                :aria-label="$t('cassetteDesign.configure')"
+                                                size="small"
+                                                @click="configureEntry(data)"
+                                            />
+                                            <Button icon="pi pi-trash" severity="danger" text :aria-label="$t('common.delete')" @click="confirmDelete(data)" size="small" />
+                                        </div>
+                                    </template>
                                 </Column>
                             </DataTable>
                         </TableFrame>
@@ -344,6 +359,16 @@
             @saved="onCassetteUploaded"
         />
 
+        <CassetteDesignParameterDialog
+            v-if="configuredDesign && configuredTemplate && configureRelationAction"
+            v-model="showConfigureDialog"
+            :action="configureRelationAction"
+            :design="configuredDesign"
+            :template="configuredTemplate"
+            :queue="queue"
+            @saved="onDesignConfigured"
+        />
+
         <ConfirmDialog />
     </div>
 </template>
@@ -374,6 +399,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
+import CassetteDesignParameterDialog from '~/components/entities/CassetteDesign/CassetteDesignParameterDialog.vue';
 import QueueEntryCard from '~/components/entities/Queue/QueueEntryCard.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import QueueSourceCard from '~/components/entities/Queue/QueueSourceCard.vue';
@@ -431,6 +457,9 @@ const { runs, nestingCompleted } = storeToRefs(queuesStore);
 const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
+const showConfigureDialog = ref(false);
+const configuredDesign = ref(null);
+const configuredTemplate = ref(null);
 const producerMenu = ref(null);
 const selectedProducer = ref(null);
 const producerValues = ref({});
@@ -466,6 +495,18 @@ const canEditQueue = computed(() => {
 });
 const hasFeatureAccess = (feature, level) => authStore.hasPermission(feature, level);
 const canAddQueueEntry = computed(() => producerMenuItems.value.length > 0);
+const queueDesignRelation = (cncDomain.relations || []).find(relation => (
+    relation.ownerType === 'queue' && relation.targetType === 'cassette_design'
+));
+const configureRelationAction = computed(() => {
+    if (!isProcessMode.value || !queueDesignRelation) return null;
+    return props.processActions.find(action => (
+        action.relationMutation?.operation === 'link'
+        && action.relationMutation.key === queueDesignRelation.key
+        && action.relationMutation.targetType === queueDesignRelation.targetType
+        && action.relationMutation.creator?.actionId
+    )) || null;
+});
 const availableProducers = computed(() => {
     return resolveQueueDesignProducers({
         domain: cncDomain,
@@ -1038,6 +1079,26 @@ const getEntryTemplateData = (entry) => {
     const templateId = getEntryTemplateId(entry);
     return cassettes.value.find(template => template._id?.toString() === templateId?.toString()) || null;
 };
+const canConfigureEntry = entry => Boolean(
+    configureRelationAction.value
+    && getEntryEntityData(entry)
+    && getEntryTemplateData(entry)
+);
+
+function configureEntry(entry) {
+    if (!canConfigureEntry(entry)) return;
+    configuredDesign.value = getEntryEntityData(entry);
+    configuredTemplate.value = getEntryTemplateData(entry);
+    showConfigureDialog.value = true;
+}
+
+async function onDesignConfigured(design) {
+    if (design?._id && !cassetteDesigns.value.some(item => item._id?.toString() === design._id?.toString())) {
+        cassetteDesigns.value.push(design);
+    }
+    await loadQueueData();
+    emit('updated');
+}
 const getEntryParameters = (e) => {
     const data = getEntryEntityData(e);
     return queueEntryParameterNames(e, data ? getCassetteParameters(data) : []);

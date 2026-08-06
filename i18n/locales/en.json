@@ -2289,6 +2289,7 @@
     "runNestingFirst": "Run nesting from a project queue to generate sheet layouts."
   },
   "cassetteDesign": {
+    "configure": "Configure design",
     "createFromTemplate": "Create design",
     "createdFromTemplate": "Cassette design was created.",
     "createFromTemplateFailed": "Failed to create cassette design.",

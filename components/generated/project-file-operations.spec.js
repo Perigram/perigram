@@ -12,6 +12,7 @@ const cassetteDesignerPageSource = readFileSync(new URL('./GeneratedCassetteDesi
 const cassetteDesignerSource = readFileSync(new URL('../CassetteDesignerV2.vue', import.meta.url), 'utf8');
 const queueEditorSource = readFileSync(new URL('../QueueEditor.vue', import.meta.url), 'utf8');
 const queueEntrySource = readFileSync(new URL('../entities/Queue/QueueEntryCard.vue', import.meta.url), 'utf8');
+const designParameterDialogSource = readFileSync(new URL('../entities/CassetteDesign/CassetteDesignParameterDialog.vue', import.meta.url), 'utf8');
 const responsiveGridSource = readFileSync(new URL('../shared/ResponsiveGrid.vue', import.meta.url), 'utf8');
 const relationsBlockSource = readFileSync(new URL('../shared/EntityRelationsBlock.vue', import.meta.url), 'utf8');
 
@@ -76,6 +77,12 @@ describe('project file operations and queue pane density', () => {
     expect(queueEntrySource).toContain('fixed-frame');
     expect(queueEntrySource).toContain('type="cassetteTemplate"');
     expect(queueEntrySource).toContain('type="cassetteDesign"');
+    expect(queueEntrySource).toContain("emit('configure')");
+    expect(queueEditorSource).toContain('configureRelationAction');
+    expect(queueEditorSource).toContain('<CassetteDesignParameterDialog');
+    expect(designParameterDialogSource).toContain('relationCreator');
+    expect(designParameterDialogSource).toContain('relationReplaces');
+    expect(designParameterDialogSource).toContain('occsParameterNames');
     expect(queueEntrySource).toContain("header: { class: '!hidden' }");
     expect(queueEntrySource).not.toContain('<IdentityBlock');
     expect(queueEditorSource).toContain('severity="secondary"');
