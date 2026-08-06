@@ -201,8 +201,13 @@ describe('generated project workspace architecture', () => {
     expect(collectionSource).toContain('v-model="sortBy"');
     expect(collectionSource).toContain('v-for="entity in visibleItems"');
     expect(collectionSource).toContain('generatedActionRendersAt(action, \'collection\')');
-    expect(collectionSource).toContain('suppress-child-counts');
-    expect(entitySurfaceSource).toContain("props.suppressChildCounts && field.role === 'childCount'");
+    expect(collectionSource).toContain('suppress-child-summaries');
+    expect(entitySurfaceSource).toContain("const renderableFields = computed");
+    expect(entitySurfaceSource).toContain("props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath)");
+    expect(entityFileSource).toContain(':suppress-child-summaries="detailChildRegions.length > 0"');
+    expect(generatedScreenSource).toContain(':suppress-child-summaries="detailChildRegions.length > 0"');
+    expect(source).toContain('children: explorerSectionRootItems(section).map');
+    expect(source).toContain('.filter(item => item.region?.id === regionId)');
   });
 
   it('leaves initial and newly split panes empty until Explorer selection', () => {

@@ -95,7 +95,7 @@
         :entity="entity"
         :entity-type="entityType"
         :surface="surface"
-        suppress-child-counts
+        suppress-child-summaries
         relation-variant="compact"
       />
       <template v-if="entityType === 'cassette' || entityActionsFor(entity).length || entityCanDelete(entity) || detailRouteFor(entity)" #footer>

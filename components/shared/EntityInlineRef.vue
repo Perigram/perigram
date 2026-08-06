@@ -482,7 +482,7 @@ function tonePalette(role) {
               :entity="resolved"
               :entity-type="generatedEntityType"
               surface="card"
-              suppress-child-counts
+              suppress-child-summaries
               relation-variant="compact"
               :display-overrides="{ dataDisplay: 'compact' }"
             />
