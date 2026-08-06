@@ -42,6 +42,7 @@ import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
 import { compileActiveProcessRuntime } from './runtime.js';
+import { resolveRelationOptionScope } from './relation-options.js';
 
 export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
@@ -93,8 +94,10 @@ export async function getActiveRelationOptions({ actionId, entityId, source = fa
   assertCompiledActionAvailable(actionId, auth);
   const owner = await resolveProcessGraphEntity(action.entityType, entityId, { auth });
   const creator = action.relationMutation.creator;
-  const sourceInput = creator?.inputPolicy?.fields?.find(field => field.type === 'entity' && field.entityType);
-  if (!creator?.actionId || !sourceInput) return queryProcessGraphEntities(action.relationMutation.targetType, auth);
+  const optionScope = resolveRelationOptionScope(creator);
+  if (!optionScope.scoped) return queryProcessGraphEntities(action.relationMutation.targetType, auth);
+  const sourceInput = optionScope.sourceInput;
+  if (!sourceInput) return [];
 
   const creatorNode = Object.values(process.data.processNodes || {})
     .find(node => String(node.legacyActionId || node.id) === String(creator.actionId));
