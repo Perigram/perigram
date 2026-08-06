@@ -27,4 +27,23 @@ describe('generated detail action ownership', () => {
     })).toBe(false);
     expect(generatedEntityDetailOwnsActionSurface('artifact')).toBe(false);
   });
+
+  it('leaves generated relation mutations on the generic action surface', () => {
+    expect(generatedEntityDetailConsumesAction('queue', {
+      actionKind: 'updateEntity',
+      relationMutation: {
+        key: 'cassettes',
+        targetType: 'cassette_design',
+        operation: 'link'
+      }
+    })).toBe(false);
+    expect(generatedEntityDetailConsumesAction('cassette', {
+      actionKind: 'updateEntity',
+      relationMutation: {
+        key: 'library',
+        targetType: 'library',
+        operation: 'link'
+      }
+    })).toBe(false);
+  });
 });

@@ -61,10 +61,9 @@ describe('project file operations and queue pane density', () => {
     expect(queueEditorSource).toContain('v-bind="workspaceLayoutProps"');
   });
 
-  it('drives Add cassette through the generated queue relation action', () => {
-    expect(queueEditorSource).toContain(":label=\"$t('queues.addCassette')\"");
-    expect(queueEditorSource).toContain("selectedProducer.value?.kind === 'relationLink'");
-    expect(queueEditorSource).toContain('/process-definitions/active/actions/${encodeURIComponent(actionId)}/options');
+  it('keeps generated relation execution out of the queue editor', () => {
+    expect(queueEditorSource).not.toContain("kind === 'relationLink'");
+    expect(generatedScreenSource).toContain('/process-definitions/active/actions/${encodeURIComponent(actionId)}/options');
     expect(queueEditorSource).not.toContain('entitySourceProducerFields');
   });
 
