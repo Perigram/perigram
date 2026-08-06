@@ -20,6 +20,7 @@ const entityCardSource = readFileSync(new URL('../shared/EntityCard.vue', import
 const splitNodeSource = readFileSync(new URL('../shared/WorkspaceSplitNode.vue', import.meta.url), 'utf8');
 const regionSource = readFileSync(new URL('./GeneratedRegion.vue', import.meta.url), 'utf8');
 const collectionSource = readFileSync(new URL('./GeneratedEntityCollection.vue', import.meta.url), 'utf8');
+const entitySurfaceSource = readFileSync(new URL('../shared/EntitySurfaceContent.vue', import.meta.url), 'utf8');
 const entityWorkspaceSource = readFileSync(new URL('../shared/EntityWorkspace.vue', import.meta.url), 'utf8');
 const appLayoutSource = readFileSync(new URL('../../layouts/app.vue', import.meta.url), 'utf8');
 const mainCssSource = readFileSync(new URL('../../assets/css/main.css', import.meta.url), 'utf8');
@@ -121,7 +122,7 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain('<GeneratedProjectActionPalette');
     expect(source).toContain('class="min-h-0 flex-1 overflow-hidden"');
     expect(source).toContain('!border-0 !p-0');
-    expect(source).toContain("'!px-1 !py-0.5 !gap-1'");
+    expect(source).toContain("'!min-w-0 !max-w-full !overflow-hidden !px-1 !py-0.5 !gap-1'");
     expect(source).toContain('explorerOpen');
     expect(source).toContain("project.collapseExplorer");
     expect(source).toContain("project.expandExplorer");
@@ -134,6 +135,11 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain(':pt="workspaceSplitterPt"');
     expect(source).toContain("{ '!hidden': !explorerOpen }");
     expect(source).toContain("gutter: { class: explorerOpen.value ? '' : '!hidden' }");
+    expect(source).toContain('project-explorer-tree');
+    expect(source).toContain('overflow-x-hidden');
+    expect(source).toContain('@container (max-width: 14rem)');
+    expect(source).toContain('.p-tree-node-children');
+    expect(source).not.toContain('node.children?.length || 0');
     expect(source).not.toContain('v-if="explorerOpen"');
     expect(source).not.toContain("pageId: 'project-actions'");
     expect(workspacePaneSource).not.toContain('showExplorerToggle');
@@ -189,6 +195,14 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain('@open-entity="openWorkspaceEntity"');
     expect(source).toContain('openedEntityRefs');
     expect(source).toContain('rememberWorkspaceEntity(request.entityType, request.entity)');
+    expect(collectionSource).toContain('data-collection-toolbar');
+    expect(collectionSource).toContain('v-model="searchQuery"');
+    expect(collectionSource).toContain('v-model="statusFilter"');
+    expect(collectionSource).toContain('v-model="sortBy"');
+    expect(collectionSource).toContain('v-for="entity in visibleItems"');
+    expect(collectionSource).toContain('generatedActionRendersAt(action, \'collection\')');
+    expect(collectionSource).toContain('suppress-child-counts');
+    expect(entitySurfaceSource).toContain("props.suppressChildCounts && field.role === 'childCount'");
   });
 
   it('leaves initial and newly split panes empty until Explorer selection', () => {

@@ -29,8 +29,6 @@ import { computed } from 'vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityPreview from '~/components/shared/EntityPreview.vue';
 import EntityRelationsBlock from '~/components/shared/EntityRelationsBlock.vue';
-import { resolveDataPath } from '~/utils/data-display.js';
-import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
@@ -55,7 +53,7 @@ const renderableFields = computed(() => display.value.fields.filter(field => fie
 const dataFields = computed(() => renderableFields.value.filter(field =>
   field.display !== 'entityRef'
   && field.display !== 'entityRefList'
-  && !(props.suppressChildCounts && suppressedChildCountPaths.value.has(field.path))
+  && !(props.suppressChildCounts && field.role === 'childCount')
 ));
 const relationFields = computed(() => renderableFields.value.filter(field =>
   field.display === 'entityRef' || field.display === 'entityRefList'
@@ -66,11 +64,4 @@ const dataVariant = computed(() =>
     ? 'compact'
     : 'default'
 );
-const suppressedChildCountPaths = computed(() => {
-  if (!props.suppressChildCounts) return new Set();
-  return new Set(relationFields.value
-    .filter(field => field.replacesCountPath)
-    .filter(field => resolveEntityRelationRefs(resolveDataPath(props.entity, field.path), field).length)
-    .map(field => field.replacesCountPath));
-});
 </script>

@@ -49,7 +49,12 @@ bounded IDE-style Explorer and file workspace:
   Explorer panel and its gutter instead of removing it from the PrimeVue
   Splitter, so reopening restores the 15/85 proportions rather than rebalancing
   to equal halves. It does not rebuild or change the recursive pane tree. Nested
-  workspace chrome does not use the signal-orange action boundary.
+  workspace chrome does not use the signal-orange action boundary. Explorer
+  rows are width-contained and truncate identity text instead of creating
+  horizontal scrolling. Below the narrow Explorer breakpoint, semantic nesting
+  remains intact while additional visual indentation is removed so deep trees
+  do not consume the row's usable width. Collection headings do not append
+  decorative child counts.
 - `GeneratedProjectActionPalette` renders directly in that top strip, outside
   both Explorer and pane content. It contains only action ids compiled onto the
   project screen/main region plus direct-project child creates from loaded child
@@ -117,6 +122,14 @@ content for that pane. Empty leaves still render the normal blank pane header
 with pane-local split/close controls, rather than disappearing into undifferentiated
 workspace space. Subsequent navigation is pane-local. Opened entity-bound pages
 remain nested beneath their source entity in the Explorer.
+
+Generated list regions render one collection toolbar above their table or card
+surface. Search operates on entity identity and lifecycle state, the filter is
+derived from lifecycle states actually present in the loaded source, and sort
+offers stable identity/date orders. Region-compiled collection actions share
+that toolbar; the renderer does not discover or synthesize additional actions.
+Collection cards omit `childCount` summary fields because the collection itself
+is the authoritative child surface.
 When a child file opens, its actions come from that entity type's compiled
 detail screen in the current user's effective screen manifest. Parent-workspace
 region actions are merged only when they also apply to the selected entity.
