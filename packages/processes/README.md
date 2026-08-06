@@ -201,7 +201,10 @@ current domain schema.
 Derived relation actions normalize their embedded creator from that same
 current construction contract. Generated Link dialogs therefore cannot revive
 removed constructor fields from the creator action's persisted input-policy or
-construction snapshots.
+construction snapshots. Canonical block composition suppresses separate typed
+inputs only for `genericCreate`; a typed constructor may also accept canonical
+blocks, but its domain-declared service inputs remain present in the compiled
+creator and generated form.
 Dataflow inference reads structured v3 `inputs`/`outputs` when they are
 persisted, but an unavailable port snapshot never clears an entry's semantic
 type. The canonical node catalog performs the authoritative inference for

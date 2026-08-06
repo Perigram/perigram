@@ -1898,6 +1898,7 @@ describe('@cutkit/processes compiler', () => {
           entityType: 'cassette_design',
           construction: {
             mode: 'bakeCassetteDesignFromTemplate',
+            blockComposed: true,
             inputs: [
               { id: 'name', type: 'string', required: true, prompt: true },
               { id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
@@ -1937,6 +1938,8 @@ describe('@cutkit/processes compiler', () => {
     });
 
     expect(normalized.actions['update_queue:link:cassettes'].relationMutation.creator.inputPolicy.fields)
+      .toEqual([expect.objectContaining({ id: 'templateId' })]);
+    expect(normalized.actions['update_queue:link:cassettes'].relationMutation.creator.construction.inputs)
       .toEqual([expect.objectContaining({ id: 'templateId' })]);
   });
 

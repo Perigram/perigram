@@ -2369,7 +2369,8 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
     ? requestedMode
     : (contract.defaultMode || modes[0] || defaultConstructionMode(entityType));
   const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
-  const contractInputs = construction.blockComposed
+  const blocksOwnConstruction = construction.blockComposed && mode === 'genericCreate';
+  const contractInputs = blocksOwnConstruction
     ? []
     : (contract.modeInputs?.[mode] || contract.inputs || []);
   const inputsById = new Map(contractInputs.map(input => [input.id || input.path, { ...input }]));
@@ -3152,7 +3153,7 @@ function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
     errors.push(`Action ${actionId} must use a typed construction mode for derived entity ${entityType}`);
   }
   const contractInputs = contract.modeInputs?.[construction.mode] || contract.inputs || [];
-  if (construction.blockComposed) return;
+  if (construction.blockComposed && construction.mode === 'genericCreate') return;
   const requiredIds = new Set(contractInputs.filter(input => input.required).map(input => input.id));
   const presentIds = new Set([...(construction.inputs || []), ...(action.inputs || [])].map(input => input.id));
   for (const inputId of requiredIds) {
