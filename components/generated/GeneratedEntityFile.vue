@@ -43,6 +43,7 @@
         :actions="resolvedActionIds"
         :excluded-actions="detailChildActionIds"
         :body-actions="detailChildActionIds"
+        :suppress-child-summaries="detailChildRegions.length > 0"
         embedded
         open-actions-in-workspace
         @execute-action="executeAction"

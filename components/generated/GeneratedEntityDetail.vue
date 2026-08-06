@@ -14,6 +14,7 @@
       :surface="surface"
       :screen-key="screenKey"
       :actions="resolvedBodyActions"
+      :suppress-child-summaries="suppressChildSummaries"
       @refresh="$emit('refresh')"
     />
     <slot />
@@ -73,7 +74,8 @@ const props = defineProps({
   actions: { type: Array, default: () => [] },
   showIdentity: { type: Boolean, default: false },
   openActionsInWorkspace: { type: Boolean, default: false },
-  embedded: { type: Boolean, default: false }
+  embedded: { type: Boolean, default: false },
+  suppressChildSummaries: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['refresh', 'execute-action', 'open-page']);

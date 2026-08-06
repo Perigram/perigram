@@ -36,7 +36,7 @@ const props = defineProps({
   entityType: { type: String, required: true },
   surface: { type: String, default: 'card' },
   accessEntity: { type: Object, default: null },
-  suppressChildCounts: { type: Boolean, default: false },
+  suppressChildSummaries: { type: Boolean, default: false },
   relationVariant: { type: String, default: 'inline' },
   displayExtensions: { type: Object, default: null },
   displayOverrides: { type: Object, default: null }
@@ -49,11 +49,13 @@ const display = computed(() => resolveEntityDisplayContract({
   overrides: props.displayOverrides
 }));
 
-const renderableFields = computed(() => display.value.fields.filter(field => field.role !== 'previewSource'));
+const renderableFields = computed(() => display.value.fields.filter(field => (
+  field.role !== 'previewSource'
+  && !(props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath))
+)));
 const dataFields = computed(() => renderableFields.value.filter(field =>
   field.display !== 'entityRef'
   && field.display !== 'entityRefList'
-  && !(props.suppressChildCounts && field.role === 'childCount')
 ));
 const relationFields = computed(() => renderableFields.value.filter(field =>
   field.display === 'entityRef' || field.display === 'entityRefList'

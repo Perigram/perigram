@@ -61,7 +61,7 @@
               :entity="entity"
               :entity-type="section.source.entityType"
               :surface="section.region.surface || 'card'"
-              suppress-child-counts
+              suppress-child-summaries
               relation-variant="compact"
             />
             <template v-if="section.source.entityType === 'cassette' || entityActionsFor(section, entity).length || entityCanDelete(section, entity) || detailRouteFor(section, entity)" #footer>

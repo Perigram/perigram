@@ -70,6 +70,7 @@
       :screen-actions="screen.actions || []"
       :excluded-actions="detailChildActionIds"
       :body-actions="detailChildActionIds"
+      :suppress-child-summaries="detailChildRegions.length > 0"
       @refresh="load"
       @execute-action="executeAction"
     >

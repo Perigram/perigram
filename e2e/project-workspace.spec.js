@@ -5,7 +5,13 @@ test.describe('generated project workspace', () => {
     const project = entity('project-1', 'Project One', {
       relations: { library: { entityType: 'library', id: 'library-1' } }
     });
-    const library = entity('library-1', 'Library One');
+    const library = entity('library-1', 'Library One', {
+      summary: { cassetteCount: 1, cassettePreview: [{ entityType: 'cassette', id: 'cassette-1' }] },
+      data: { description: 'Library summary marker' }
+    });
+    const queue = entity('queue-1', 'Queue One', {
+      lineage: { organizationId: 'org-demo-acme', projectId: 'project-1' }
+    });
     const cassette = entity('cassette-1', 'Cassette One', {
       lineage: { organizationId: 'org-demo-acme', libraryId: 'library-1' },
       status: lifecycleStatus('ACTIVE'),
@@ -29,6 +35,7 @@ test.describe('generated project workspace', () => {
     });
     await fulfillJson(app.page, '**/api/project/project-1', project);
     await fulfillJson(app.page, '**/api/libraries/library-1', library);
+    await fulfillJson(app.page, '**/api/queues?**', [queue]);
     await fulfillJson(app.page, '**/api/cassettes?**', [cassette]);
     await fulfillJson(app.page, '**/api/cassettes/cassette-1', cassette);
     await fulfillJson(app.page, '**/api/status/actions?**', []);
@@ -43,6 +50,7 @@ test.describe('generated project workspace', () => {
     });
     await app.page.reload();
     await expect(app.page.locator('[data-project-action-palette]').getByRole('button', { name: /^cassette$/i })).toHaveCount(1);
+    await expect(app.page.getByRole('treeitem', { name: /^queues$/i })).toBeVisible();
 
     await app.page.getByRole('treeitem', { name: /linked entities/i }).getByRole('button').click();
     await app.page.getByText('Library One', { exact: true }).first().click();
@@ -50,6 +58,8 @@ test.describe('generated project workspace', () => {
     await expect(app.page.getByText('Cassette One', { exact: true }).first()).toBeVisible();
     await expect(app.page.locator('[data-workspace-pane] [data-tab-actions]').getByRole('button', { name: /^cassette$/i })).toHaveCount(0);
     await expect(app.page.locator('[data-workspace-pane]').getByRole('button', { name: /^cassette$/i })).toHaveCount(1);
+    await expect(app.page.locator('[data-workspace-pane] .data-block dt').filter({ hasText: /^cassette$/i })).toHaveCount(0);
+    await expect(app.page.locator('[data-workspace-pane]').getByText('Library summary marker', { exact: true })).toBeVisible();
     const collectionToolbar = app.page.locator('[data-workspace-pane] [data-collection-toolbar]');
     await expect(collectionToolbar.getByPlaceholder(/^search$/i)).toBeVisible();
     await collectionToolbar.getByPlaceholder(/^search$/i).fill('missing cassette');
@@ -109,7 +119,11 @@ function workspaceScreens() {
   return [
     detailScreen('project_workspace_test', 'project', [
       source('project', 'project', 'single'),
-    ], [{ ...region('main', 'project'), actions: ['create_cassette_a', 'create_cassette_b'] }]),
+      { ...source('queue_children', 'queue', 'list'), filters: { projectId: '$screen.scope.entityId' } }
+    ], [
+      { ...region('main', 'project'), actions: ['create_cassette_a', 'create_cassette_b'] },
+      region('queue_children_region', 'queue_children', 'card')
+    ]),
     { ...detailScreen('library_detail_test', 'library', [
       source('library', 'library', 'single'),
       { ...source('cassette_children', 'cassette', 'list'), filters: { libraryId: '$screen.scope.entityId' } }

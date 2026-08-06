@@ -14,6 +14,7 @@
       :surface="surface"
       :display-overrides="displayOverrides"
       :relation-variant="relationVariant"
+      :suppress-child-summaries="suppressChildSummaries"
     />
   </div>
 </template>
@@ -33,7 +34,8 @@ const props = defineProps({
   actions: { type: Array, default: () => [] },
   mode: { type: String, default: 'page' },
   displayOverrides: { type: Object, default: null },
-  relationVariant: { type: String, default: 'inline' }
+  relationVariant: { type: String, default: 'inline' },
+  suppressChildSummaries: { type: Boolean, default: false }
 });
 
 defineEmits(['refresh']);

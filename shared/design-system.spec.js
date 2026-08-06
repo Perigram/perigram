@@ -611,10 +611,10 @@ describe('Design system manifest', () => {
 
     expect(generatedHome).toContain('overflow-x-auto');
     expect(generatedHome).toContain('shrink-0');
-    expect(generatedHome).toContain('suppress-child-counts');
+    expect(generatedHome).toContain('suppress-child-summaries');
     expect(generatedHome).toContain('relation-variant="compact"');
     expect(generatedHome).toContain('GeneratedCassetteDesignerAction');
-    expect(generatedCollection).toContain('suppress-child-counts');
+    expect(generatedCollection).toContain('suppress-child-summaries');
     expect(generatedCollection).toContain('relation-variant="compact"');
     expect(generatedCollection).toContain('GeneratedCassetteDesignerAction');
     expect(generatedHome).toContain('pi pi-external-link');
@@ -627,7 +627,7 @@ describe('Design system manifest', () => {
     expect(relationsBlock).toContain('overflowItems');
     expect(relationsBlock).toContain('itemVariant');
     expect(relationsBlock).toContain("field.display === 'entityRefList'");
-    expect(surfaceContent).toContain("props.suppressChildCounts && field.role === 'childCount'");
+    expect(surfaceContent).toContain("props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath)");
     expect(surfaceContent).toContain('relationVariant');
     expect(inlineRef).toContain('entityToneStyle');
     expect(inlineRef).toContain('color-mix');

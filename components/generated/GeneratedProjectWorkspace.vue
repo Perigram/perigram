@@ -310,25 +310,28 @@ const explorerNodes = computed(() => {
         selectable: false,
         children: explorerHierarchy.value.linkedRootItems.map(item => explorerEntityNode(item, 'linked'))
       }] : []),
-      ...explorerHierarchy.value.rootItems.map(item => explorerEntityNode(item)),
       ...childSections.value.map(section => ({
         key: `section:${section.region.id}`,
         label: generatedEntityLabel(section.entityType, { t, te }),
         data: { section },
         selectable: false,
-        children: section.items.map(entity => {
-          const item = entityItems.value.find(candidate => candidate.key === entityKey(section.entityType, entity));
-          return explorerHierarchy.value.orphanItems.some(orphan => orphan.key === item?.key)
-            ? explorerEntityNode(item)
-            : null;
-        }).filter(Boolean)
+        children: explorerSectionRootItems(section).map(item => explorerEntityNode(item))
       })).filter(section => section.children.length),
+      ...explorerHierarchy.value.rootItems
+        .filter(item => !item.region)
+        .map(item => explorerEntityNode(item)),
       ...explorerHierarchy.value.orphanItems
         .filter(item => !item.region)
         .map(item => explorerEntityNode(item))
     ].filter(Boolean)
   }];
 });
+
+function explorerSectionRootItems(section) {
+  const regionId = section.region?.id;
+  return [...explorerHierarchy.value.rootItems, ...explorerHierarchy.value.orphanItems]
+    .filter(item => item.region?.id === regionId);
+}
 
 watch(workspaceStorageKey, key => {
   if (!key || typeof window === 'undefined') return;
