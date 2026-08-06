@@ -45,8 +45,16 @@
               @node-select="selectNode"
             >
               <template #default="{ node }">
-                <div v-if="node.data?.item?.kind === 'entity'" class="min-w-0">
-                  <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0" />
+                <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 flex-1 items-center gap-1" data-explorer-entity>
+                  <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0 flex-1" />
+                  <EntityActionsPopover v-if="explorerEntityCanDelete(node.data.item)">
+                    <GeneratedDeleteButton
+                      :entity="node.data.item.entity"
+                      :entity-type="node.data.item.type"
+                      menu-item
+                      @deleted="handleExplorerEntityDeleted(node.data.item)"
+                    />
+                  </EntityActionsPopover>
                 </div>
                 <div v-else class="flex min-w-0 flex-1 items-center gap-2">
                   <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
@@ -131,8 +139,10 @@ import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import EntitySelect from '~/components/shared/EntitySelect.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedProjectActionPalette from '~/components/generated/GeneratedProjectActionPalette.vue';
+import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
@@ -143,6 +153,8 @@ import { useEntityStore } from '~/stores/entities.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
+import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
+import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
 import {
   closeWorkspaceLeaf,
   createWorkspaceLeaf,
@@ -235,6 +247,11 @@ const entityItems = computed(() => [
 ].filter(item => item?.entity && entityId(item.entity)));
 const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
+const explorerHierarchy = computed(() => projectExplorerHierarchy({
+  projectItem: projectItem.value,
+  items: workspaceEntityItems.value,
+  linkedItemKeys: linkedEntityItems.value.map(item => item.key)
+}));
 const linkedRefs = computed(() => Object.values(project.value?.relations || {})
   .flatMap(value => resolveEntityRelationRefs(value)));
 const cassetteItems = computed(() => workspaceEntityItems.value.filter(item => item.type === 'cassette'));
@@ -284,18 +301,14 @@ const explorerNodes = computed(() => {
     icon: domainUi.getIcon('project'),
     data: { item: projectItem.value },
     children: [
-      ...(linkedEntityItems.value.length ? [{
+      ...(explorerHierarchy.value.linkedRootItems.length ? [{
         key: 'section:linked-entities',
         label: t('project.linkedEntities'),
         data: { linked: true },
         selectable: false,
-        children: linkedEntityItems.value.map(item => ({
-          key: `linked:${item.key}`,
-          icon: domainUi.getIcon(item.type),
-          data: { item },
-          children: openedPagesForEntity(item).map(pageNode)
-        }))
+        children: explorerHierarchy.value.linkedRootItems.map(item => explorerEntityNode(item, 'linked'))
       }] : []),
+      ...explorerHierarchy.value.rootItems.map(item => explorerEntityNode(item)),
       ...childSections.value.map(section => ({
         key: `section:${section.region.id}`,
         label: generatedEntityLabel(section.entityType, { t, te }),
@@ -303,14 +316,14 @@ const explorerNodes = computed(() => {
         selectable: false,
         children: section.items.map(entity => {
           const item = entityItems.value.find(candidate => candidate.key === entityKey(section.entityType, entity));
-          return {
-            key: item?.key,
-            icon: domainUi.getIcon(section.entityType),
-            data: { item },
-            children: openedPagesForEntity(item).map(pageNode)
-          };
-        })
-      }))
+          return explorerHierarchy.value.orphanItems.some(orphan => orphan.key === item?.key)
+            ? explorerEntityNode(item)
+            : null;
+        }).filter(Boolean)
+      })).filter(section => section.children.length),
+      ...explorerHierarchy.value.orphanItems
+        .filter(item => !item.region)
+        .map(item => explorerEntityNode(item))
     ].filter(Boolean)
   }];
 });
@@ -401,6 +414,53 @@ function selectNode(node) {
   const item = node.data?.item;
   if (!item) return;
   selectByKey(item.key);
+}
+
+function explorerEntityNode(item, prefix = '') {
+  if (!item) return null;
+  const contained = explorerHierarchy.value.childrenByKey.get(item.key) || [];
+  return {
+    key: prefix ? `${prefix}:${item.key}` : item.key,
+    icon: domainUi.getIcon(item.type),
+    data: { item },
+    children: [
+      ...contained.map(child => explorerEntityNode(child)),
+      ...openedPagesForEntity(item).map(pageNode)
+    ]
+  };
+}
+
+function explorerEntityCanDelete(item) {
+  return item?.type !== 'project' && canDeleteGeneratedEntity({
+    authStore,
+    domainUi,
+    entity: item?.entity,
+    entityType: item?.type
+  });
+}
+
+function handleExplorerEntityDeleted(item) {
+  const removedKeys = new Set([
+    item.key,
+    ...openedPageRefs.value
+      .filter(page => page.entityType === item.type && page.entityId === entityId(item.entity))
+      .map(page => page.key)
+  ]);
+  openedEntityRefs.value = openedEntityRefs.value.filter(reference => reference.key !== item.key);
+  openedEntityItems.value = openedEntityItems.value.filter(candidate => candidate.key !== item.key);
+  linkedEntityItems.value = linkedEntityItems.value.filter(candidate => candidate.key !== item.key);
+  openedPageRefs.value = openedPageRefs.value.filter(page => !removedKeys.has(page.key));
+  let nextTree = paneTree.value;
+  for (const pane of workspaceLeaves(nextTree)) {
+    const tabKeys = (pane.tabKeys || []).filter(key => !removedKeys.has(key));
+    const selectionKey = removedKeys.has(pane.selectionKey)
+      ? (tabKeys[tabKeys.length - 1] || '')
+      : pane.selectionKey;
+    nextTree = updateWorkspaceLeaf(nextTree, pane.id, { tabKeys, selectionKey });
+  }
+  paneTree.value = nextTree;
+  syncActiveSelection();
+  emit('refresh');
 }
 
 function selectByKey(key) {

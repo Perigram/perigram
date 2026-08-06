@@ -151,3 +151,16 @@ implement, but generated relation mutations always remain on this generic action
 surface. Their target entity, scoped choices, optional creator, execution, and
 refresh behavior come from the compiled relation-action contract; editors must
 not match entity types or relation keys locally.
+Generated action placement is concern-based and has one owner: create actions
+belong to collection/region surfaces, relation mutations to relation-aware
+entity surfaces, and entity operations to the opened entity surface. Project
+entity deletion is a management operation owned by the Explorer row ellipsis;
+it is confirmed before execution, removed from the tab body, and closes every
+tab/page reference to the deleted entity after success.
+
+The Project Explorer projects declared containment as folders. Parent entities
+remain selectable files and become expandable when currently available child
+entities reference them through a declared lineage key. Ordinary project links
+stay in the Linked entities section; descendants may nest beneath those linked
+parents when containment declares the relationship. No entity type, relation
+key, or lineage field is inferred from naming.

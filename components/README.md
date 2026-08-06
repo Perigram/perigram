@@ -197,8 +197,16 @@ Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
 hidden, matching an IDE file-tab strip.
 Pane split/close commands live in a pane-level ellipsis menu. Generated entity
 actions not already owned by an operational editor belong to the active tab body
-below the tab strip. Operational editor tabs own their complete action surface,
-including deletion, so no surrounding action row duplicates editor controls.
+below the tab strip. Action presentation has one concern-based owner: collection
+creation stays with its region, relation mutation stays with the relation-aware
+entity surface, and entity operations stay with the opened entity. Inside
+Project, CRUD deletion is a management action owned only by the Explorer
+entity-row ellipsis. It uses the canonical permission gate and confirmation and
+closes every affected entity/page tab after success.
+Explorer parent entities remain selectable files and become expandable folders
+when declared containment and loaded lineage establish children. Linked roots
+stay in the separate Linked entities section rather than being presented as
+containment; declared descendants may nest beneath a linked parent.
 Active-pane emphasis uses the neutral chrome-subtle token on its tab header,
 and empty panes retain an open-content prompt. The embedded entity page suppresses its
 duplicate title, lineage, lifecycle, and action header while retaining the full

@@ -130,6 +130,7 @@ import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppli
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
+import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
 
 const props = defineProps({
   entityType: { type: String, required: true },
@@ -155,7 +156,7 @@ const resolvedActions = computed(() => props.actions
   .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
   .filter(Boolean));
 const collectionActions = computed(() => dedupeActions([
-  ...resolvedActions.value.filter(action => action.actionKind === 'createEntity')
+  ...resolvedActions.value.filter(action => generatedActionRendersAt(action, 'collection'))
 ]));
 const actionContext = computed(() => mergeCollectionActionContext({
   incoming: props.actionContext || {},
@@ -172,6 +173,7 @@ const tableFields = computed(() => resolveEntityDisplayContract({
 function entityActionsFor(entity) {
   return resolvedActions.value.filter(action => (
     isGeneratedSurfaceAction(action) &&
+    generatedActionRendersAt(action, ['entity', 'relation']) &&
     !parentBoundCreateAppliesToEntityType(action, props.entityType)
     && actionAppliesToEntity(action, entity, props.entityType)
   ));
