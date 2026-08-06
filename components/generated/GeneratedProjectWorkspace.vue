@@ -33,19 +33,19 @@
           :min-size="10"
           :class="['min-h-0 min-w-0 overflow-hidden !border-0', { '!hidden': !explorerOpen }]"
         >
-          <section class="flex h-full min-h-0 flex-col overflow-hidden bg-content">
+          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content">
             <Tree
               v-model:selection-keys="selectionKeys"
               v-model:expanded-keys="expandedKeys"
               :value="explorerNodes"
               selection-mode="single"
               :aria-label="$t('project.explorer')"
-              class="min-h-0 flex-1 overflow-y-auto !border-0 !p-0"
+              class="project-explorer-tree min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto !border-0 !p-0"
               :pt="explorerTreePt"
               @node-select="selectNode"
             >
               <template #default="{ node }">
-                <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 flex-1 items-center gap-1" data-explorer-entity>
+                <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden" data-explorer-entity>
                   <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0 flex-1" />
                   <EntityActionsPopover v-if="explorerEntityCanDelete(node.data.item)">
                     <GeneratedDeleteButton
@@ -58,7 +58,6 @@
                 </div>
                 <div v-else class="flex min-w-0 flex-1 items-center gap-2">
                   <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
-                  <span v-if="node.data?.section" class="text-sm text-muted-color">{{ node.children?.length || 0 }}</span>
                 </div>
               </template>
             </Tree>
@@ -195,7 +194,10 @@ const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
 let openedEntityLoadSequence = 0;
 const explorerTreePt = {
-  nodeContent: { class: '!px-1 !py-0.5 !gap-1' },
+  root: { class: '!min-w-0 !max-w-full !overflow-hidden' },
+  node: { class: '!min-w-0 !max-w-full !overflow-hidden' },
+  nodeContent: { class: '!min-w-0 !max-w-full !overflow-hidden !px-1 !py-0.5 !gap-1' },
+  nodeLabel: { class: '!min-w-0 !overflow-hidden' },
   nodeToggleButton: { class: '!h-6 !w-6' }
 };
 const workspaceSplitterPt = computed(() => ({
@@ -705,3 +707,29 @@ function entityId(entity = null) {
   return value ? String(value) : '';
 }
 </script>
+
+<style scoped>
+.project-explorer {
+  container-type: inline-size;
+}
+
+.project-explorer-tree :deep(.p-tree-root),
+.project-explorer-tree :deep(.p-tree-node),
+.project-explorer-tree :deep(.p-tree-node-content),
+.project-explorer-tree :deep(.p-tree-node-label),
+.project-explorer-tree :deep(.p-tree-node-children) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.project-explorer-tree :deep(.p-tree-node-content),
+.project-explorer-tree :deep(.p-tree-node-label) {
+  overflow: hidden;
+}
+
+@container (max-width: 14rem) {
+  .project-explorer-tree :deep(.p-tree-node-children) {
+    padding-inline-start: 0;
+  }
+}
+</style>

@@ -627,8 +627,7 @@ describe('Design system manifest', () => {
     expect(relationsBlock).toContain('overflowItems');
     expect(relationsBlock).toContain('itemVariant');
     expect(relationsBlock).toContain("field.display === 'entityRefList'");
-    expect(surfaceContent).toContain('replacesCountPath');
-    expect(surfaceContent).toContain('resolveEntityRelationRefs');
+    expect(surfaceContent).toContain("props.suppressChildCounts && field.role === 'childCount'");
     expect(surfaceContent).toContain('relationVariant');
     expect(inlineRef).toContain('entityToneStyle');
     expect(inlineRef).toContain('color-mix');

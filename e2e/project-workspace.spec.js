@@ -50,6 +50,12 @@ test.describe('generated project workspace', () => {
     await expect(app.page.getByText('Cassette One', { exact: true }).first()).toBeVisible();
     await expect(app.page.locator('[data-workspace-pane] [data-tab-actions]').getByRole('button', { name: /^cassette$/i })).toHaveCount(0);
     await expect(app.page.locator('[data-workspace-pane]').getByRole('button', { name: /^cassette$/i })).toHaveCount(1);
+    const collectionToolbar = app.page.locator('[data-workspace-pane] [data-collection-toolbar]');
+    await expect(collectionToolbar.getByPlaceholder(/^search$/i)).toBeVisible();
+    await collectionToolbar.getByPlaceholder(/^search$/i).fill('missing cassette');
+    await expect(app.page.locator('[data-workspace-pane]').getByText('Cassette One', { exact: true })).toHaveCount(0);
+    await collectionToolbar.getByPlaceholder(/^search$/i).fill('Cassette One');
+    await expect(app.page.locator('[data-workspace-pane]').getByText('Cassette One', { exact: true }).first()).toBeVisible();
 
     await app.page.getByRole('button', { name: 'Cassette One' }).click();
     const paneHeader = app.page.locator('[data-workspace-pane] header');
@@ -59,6 +65,8 @@ test.describe('generated project workspace', () => {
     const libraryTreeItem = app.page.getByRole('treeitem', { name: /Library One/ });
     await libraryTreeItem.getByRole('button').first().click();
     await expect(libraryTreeItem.getByText('Cassette One', { exact: true })).toBeVisible();
+    const explorerFits = await app.page.locator('.project-explorer-tree').evaluate(element => element.scrollWidth <= element.clientWidth);
+    expect(explorerFits).toBe(true);
     await expect(cassetteTab.locator('..').locator('[data-entity-status="true"] .status-badge-glyph')).toHaveAttribute('aria-label', /active/i);
     await expect(app.page.locator('[data-workspace-pane] .entity-page [data-entity-page-header]')).toHaveCount(0);
     await expect(paneHeader.getByRole('button', { name: /^add$/i })).toBeVisible();
