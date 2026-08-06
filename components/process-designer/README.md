@@ -184,6 +184,11 @@ Create/Modify Entity apply constructible/writable policy when accepting a
 connected block. Persisted fixed nodes keep selected paths, while open nodes
 keep stable entry ids plus their authored key/type qualifiers; neither stores
 schema snapshots.
+When the current entity schema makes every field in a persisted Create block
+non-constructible, process normalization removes that stale block and its
+defaults before the designer validates or saves the definition. This keeps
+service-owned blocks such as cassette-design identity out of the node record,
+not merely hidden from its sockets.
 Wildcard access rules do not appear as fields. Compose/Modify Block expose only
 the explicitly selected field set as dynamic sockets; Create/Modify Entity never
 select leaf fields. Origin, provenance, status history, and summary are not
