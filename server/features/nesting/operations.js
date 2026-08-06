@@ -152,7 +152,7 @@ export async function buildJobFiles(queue, auth) {
 
       jobFiles.push({
         cassetteId: item._id.toString(),
-        count: 1,
+        count: Math.max(1, Math.trunc(Number(entry.quantity) || 1)),
         dimensions: item.data?.dimensions || item.data?.parameters || {},
         polygonParts: getPolygonParts(item),
         layerData: getLayerData(item)

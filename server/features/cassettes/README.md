@@ -57,9 +57,10 @@ or returns a `cassette_design` for the selected template.
 
 The same constructor is used by process `createEntity` actions whose
 construction mode is `bakeCassetteDesignFromTemplate`. Process execution passes
-the prompted template id, parameter object, and optional design name into
-`createDesignFromTemplate()` so a process-created `cassette_design` has the
-same baked geometry, `provenance.derivedFrom`, DXF/gridfs references, and editor
+the prompted template id and parameter object into `createDesignFromTemplate()`.
+The resulting `cassette_design` derives its identity name from the source
+cassette; no separate design-name input exists in the process or API contract.
+It has the same baked geometry, `provenance.derivedFrom`, DXF/gridfs references, and editor
 contract as a design created from the cassette UI. Process runtime status is
 applied after construction by the process-definition service. Parametric
 templates must be construction-ready before this path runs: OCCS templates need

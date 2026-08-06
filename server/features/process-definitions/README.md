@@ -176,13 +176,18 @@ collected separately. The constructor creates the complete derived entity
 first, then the entity feature's explicit `processUpdate()` applies authored
 blocks as merges over the created DTO. This keeps generated geometry and
 provenance intact while allowing the same identity, relations, attachments,
-specs, and data composition available to ordinary create nodes.
+specs, and data composition available to ordinary create nodes, except for
+service-owned blocks. Cassette-design identity is service-owned and therefore
+is not constructible in the process designer.
 The typed cassette-design constructor is sourced from a cassette template, not
 from a queue. A queue consumes baked designs through its declared
 `relations.cassettes` relationship. A producer may request `linkCreatedTo` with
 an owner type and relationship key; after creation the runtime validates that
 relationship against the domain registry and updates it through the owner's
-`processUpdate()` contract.
+`processUpdate()` contract. Relations may declare an association-data path;
+linking initializes its defaults, unlinking removes it, and copy-on-write
+replacement transfers it to the new target. Queue cassette quantity uses this
+generic relation-association contract.
 Compiled Link actions grant their exposed roles read access to the declared
 target entity feature so generated entity pickers can load authorized choices.
 They do not inherit the owner entity's create-construction fields.

@@ -7,8 +7,7 @@ parametric/OCCS definitions.
 
 | File | Purpose |
 |---|---|
-| `CassetteDesignCard.vue` | Geometry-first design card with parent template context. |
-| `CassetteDesignParameterDialog.vue` | Affiliated OCCS parameter editor used by authorized contextual relation actions. |
+| `CassetteDesignCard.vue` | Geometry-first design card identified only by its parent cassette template. |
 
 ## Contract
 
@@ -39,10 +38,13 @@ parametric/OCCS definitions.
 - Exact source geometry revision is loaded from
   `provenance.derivedFrom.source.revisionId`
   and rendered as a compact `EntityInlineRef` when present.
-- Parameter configuration is copy-on-write. The affiliated dialog consumes the
-  active relation action's embedded constructor, initializes fields from the
-  source OCCS template and current concrete snapshot, and asks that action to
-  replace the owning queue reference with the newly baked design.
+- Cassette designs do not expose a separate user-authored design name. Their
+  persisted identity is derived from the source cassette, and cards present the
+  parent cassette relation instead of the derived entity identity.
+- Parameter configuration is copy-on-write inside the owning queue cassette
+  card. The card initializes fields from the source OCCS template and current
+  concrete snapshot, then asks the active relation action to replace the queue
+  reference with the newly baked design.
 - The footer DXF action downloads from
   `/api/cassette-designs/:id/export`, so saved designs can serve their own
   stored or regenerated DXF independently of their source template.

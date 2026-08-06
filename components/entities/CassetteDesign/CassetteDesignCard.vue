@@ -1,8 +1,13 @@
 <template>
   <div>
     <EntityCard :entity="design" entity-type="cassette_design" :variant="variant" :show-status="false">
-      <template #before-identity>
-        <i class="pi pi-cog"></i>
+      <template #title>
+        <EntityInlineRef
+          v-if="templateId"
+          type="cassetteTemplate"
+          :id="templateId"
+          :interactive="false"
+        />
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
@@ -45,6 +50,10 @@ const props = defineProps({
 });
 
 const revisionId = computed(() => props.design.provenance?.derivedFrom?.source?.revisionId || null);
+const templateId = computed(() => {
+  const source = props.design.provenance?.derivedFrom?.source;
+  return source?.type === 'cassette' ? source.id : null;
+});
 
 const downloadDxf = () => {
   if (!props.design?._id || !import.meta.client) return;

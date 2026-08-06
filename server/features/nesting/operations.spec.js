@@ -363,7 +363,8 @@ describe('nesting operation worker payloads', () => {
     });
 
     const queue = {
-      relations: { cassettes: [{ type: 'cassette_design', id: 'design-1' }] }
+      relations: { cassettes: [{ type: 'cassette_design', id: 'design-1' }] },
+      data: { job: { items: [{ type: 'cassette_design', id: 'design-1', quantity: 3 }] } }
     };
     const auth = { userId: 'user-1', organizationId: 'org-1', role: 'USER', memberships: [] };
 
@@ -371,10 +372,11 @@ describe('nesting operation worker payloads', () => {
     const request = buildNestingWorkerRequest(jobFiles, makeExecutionSettings());
 
     expect(cassetteDesignService.getById).toHaveBeenCalledWith('design-1', 'user-1', 'USER', auth);
+    expect(jobFiles[0].count).toBe(3);
     expect(request.items).toHaveLength(1);
     expect(request.items[0]).toMatchObject({
       cassette_id: 'design-1',
-      count: 1,
+      count: 3,
       handles: ['OUTER'],
       sourceLayers: [{
         layer: 'fold.route',

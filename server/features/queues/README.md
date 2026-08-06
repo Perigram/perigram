@@ -79,10 +79,12 @@ Defines a specific nesting job, bridging the digital production intent with phys
 - Queue composition is the declared many-valued `relations.cassettes`
   relationship. Every reference targets a real `cassette_design`; adding an
   entry creates or imports that design first and then links it. Design
-  parameters and editable OCCS provenance stay on the design instead of being
-  copied into a queue-specific item object. `data.job` stores only the selected
-  material pool. Nesting reads the related designs and applies selected material
-  thickness as a request-local parameter overlay without mutating either entity.
+  parameters and editable OCCS provenance stay on the design. The matching
+  `data.job.items` association stores only queue-local production quantity;
+  relation creation defaults it to one and copy-on-write design replacement
+  preserves it. Nesting reads the related designs and their queue quantities,
+  then applies selected material thickness as a request-local parameter overlay
+  without mutating either entity.
 - `listPreviewByProjects(projectIds, ..., { limit })` returns access-redacted,
   summary-oriented queue previews keyed by parent project id. `/api/project`
   uses this to attach `summary.queuePreview` for the `/projects` route without

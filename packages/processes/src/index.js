@@ -321,6 +321,7 @@ function deriveRelationMutationActions(actions = {}) {
             targetType: relation.targetType,
             cardinality: relation.cardinality || 'one',
             operation,
+            ...(relation.association ? { association: relation.association } : {}),
             ...(operation === 'link' && creator ? { creator } : {})
           },
           mutation: { fields: [`relations.${relation.key}`], relationContracts: [relation] },
@@ -1468,7 +1469,12 @@ function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}
   }
   const construction = normalizeConstruction(action.construction, action.entityType, domain);
   const constructionInputs = new Map((construction.inputs || []).map(input => [input.id || input.path, input]));
-  return inputs.map(input => {
+  const contract = constructionContract(domain, action.entityType);
+  return inputs.filter(input => (
+    !contract.derived
+    || !input.constructionInputId
+    || constructionInputs.has(input.constructionInputId)
+  )).map(input => {
     const constructionInput = constructionInputs.get(input.constructionInputId)
       || constructionInputs.get(input.id)
       || constructionInputs.get(String(input.id || '').replace(/^data:/, ''))
@@ -2346,6 +2352,7 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
   for (const input of declaredInputs) {
     const key = input.id || input.path;
     const contractInput = inputsById.get(key);
+    if (contract.derived && !contractInput) continue;
     inputsById.set(key, contractInput
       ? mergeConstructionInput(contractInput, input)
       : { ...input }
@@ -2396,6 +2403,7 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
   for (const field of policyFields) {
     const key = field.id || field.path;
     const constructionField = normalizedConstruction.inputs.find(input => (input.id || input.path) === key);
+    if (constructionContract(domain, entityType).derived && !constructionField) continue;
     const merged = constructionField
       ? mergeConstructionInput(constructionField, field)
       : {

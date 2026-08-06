@@ -124,7 +124,11 @@ describe('Production Queues & Nesting Status', () => {
   it('reads queue cassette designs from canonical relations', () => {
     expect(queueService.queueCassetteDesignRefs({
       relations: { cassettes: [{ type: 'cassette_design', id: 'design-1' }] }
-    })).toEqual([{ type: 'cassette_design', id: 'design-1' }]);
+    })).toEqual([{ type: 'cassette_design', id: 'design-1', quantity: 1 }]);
+    expect(queueService.queueCassetteDesignRefs({
+      relations: { cassettes: [{ type: 'cassette_design', id: 'design-1' }] },
+      data: { job: { items: [{ type: 'cassette_design', id: 'design-1', quantity: 7 }] } }
+    })).toEqual([{ type: 'cassette_design', id: 'design-1', quantity: 7 }]);
     expect(queueService.queueCassetteDesignRefs({ data: { job: { items: [{ id: 'old' }] } } })).toEqual([]);
   });
 

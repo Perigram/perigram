@@ -491,6 +491,11 @@ Generated cassette-design creation must be scoped to a cassette template. A
 queue links the resulting design through `queue.relations.cassettes`; generated
 screens must not treat a queue as the parent/source for
 `bakeCassetteDesignFromTemplate`.
+Queue cassette cards present the source cassette as their identity and keep
+OCCS parameter controls inline. Parameter saves use the contextual Link action
+to replace the immutable design, while queue-local quantity is stored in the
+matching `data.job.items` association and sent to nesting as the production
+count.
 Generated collections may turn `identity.name` into a link only through the
 screen manifest: the collection looks for an `entityDetail` screen with a
 single source for the same entity type, preferring the detail screen paired
