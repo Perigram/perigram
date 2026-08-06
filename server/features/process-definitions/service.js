@@ -42,7 +42,7 @@ import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
 import { compileActiveProcessRuntime } from './runtime.js';
-import { resolveRelationOptionScope } from './relation-options.js';
+import { resolveRelationOptionPath, resolveRelationOptionScope } from './relation-options.js';
 
 export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
@@ -99,47 +99,32 @@ export async function getActiveRelationOptions({ actionId, entityId, source = fa
   const sourceInput = optionScope.sourceInput;
   if (!sourceInput) return [];
 
-  const creatorNode = Object.values(process.data.processNodes || {})
-    .find(node => String(node.legacyActionId || node.id) === String(creator.actionId));
-  const creatorGraphNode = (process.data.graph?.nodes || [])
-    .find(node => String(node.data?.refId || node.id) === String(creatorNode?.id));
-  const sourceEdge = (process.data.graph?.edges || []).find(edge => (
-    String(edge.target) === String(creatorGraphNode?.id)
-    && String(edge.targetHandle || '').replace(/^(input|data):/, '') === sourceInput.id
-  ));
-  const sourceGraphNode = (process.data.graph?.nodes || []).find(node => String(node.id) === String(sourceEdge?.source));
-  const sourceNode = process.data.processNodes?.[String(sourceGraphNode?.data?.refId || sourceGraphNode?.id)];
-  const sourceAction = compiled.actions?.[String(sourceNode?.legacyActionId || sourceNode?.id)];
-  const sourceParentType = sourceAction?.parentEntityType;
-  if (!sourceParentType || sourceNode?.entityType !== sourceInput.entityType) {
-    return [];
-  }
-
   const domain = getDomain();
-  const ownerParent = (domain.containment || []).find(item => item.childType === action.entityType && item.lineageKey);
+  const optionPath = resolveRelationOptionPath({
+    ownerType: action.entityType,
+    sourceType: sourceInput.entityType,
+    containment: domain.containment || [],
+    actions: compiled.actions || {}
+  });
+  if (!optionPath) return [];
+  const { ownerParent, sourceParent, bridgeRelationKey } = optionPath;
   const ancestorId = ownerParent && owner.lineage?.[ownerParent.lineageKey];
-  if (!ownerParent || !ancestorId) return [];
+  if (!ancestorId) return [];
   const ancestor = await resolveProcessGraphEntity(ownerParent.parentType, ancestorId, { auth });
-  const ancestorLinkAction = Object.values(compiled.actions || {}).find(item => (
-    item.entityType === ownerParent.parentType
-    && item.relationMutation?.operation === 'link'
-    && item.relationMutation.targetType === sourceParentType
-  ));
-  const refs = ancestorLinkAction ? ancestor.relations?.[ancestorLinkAction.relationMutation.key] : null;
+  const refs = ancestor.relations?.[bridgeRelationKey];
   const parentIds = (Array.isArray(refs) ? refs : refs ? [refs] : [])
     .map(ref => normalizeEntityRef(ref)?.id)
     .filter(Boolean);
   if (!parentIds.length) return [];
-  const containment = (domain.containment || []).find(item => (
-    item.parentType === sourceParentType && item.childType === sourceInput.entityType
-  ));
-  if (!containment?.lineageKey) return [];
+  const creatorAction = compiled.actions?.[creator.actionId];
+  if (!creatorAction) return [];
+  const optionAuth = createActionExecutionAuth(auth, creatorAction);
   const sourceService = getAppRegistry().getEntityService(sourceInput.entityType);
   const targetService = getAppRegistry().getEntityService(action.relationMutation.targetType);
-  const sources = (await Promise.all(parentIds.map(id => sourceService.processList({ [containment.lineageKey]: String(id) }, auth)))).flat();
+  const sources = (await Promise.all(parentIds.map(id => sourceService.processList({ [sourceParent.lineageKey]: String(id) }, optionAuth)))).flat();
   if (source) return sources.map(item => item?.toJSON ? item.toJSON() : item);
   const sourceIds = [...new Set(sources.map(entityInputId).filter(Boolean).map(String))];
-  const targets = (await Promise.all(sourceIds.map(id => targetService.processList({ templateId: id }, auth)))).flat();
+  const targets = (await Promise.all(sourceIds.map(id => targetService.processList({ templateId: id }, optionAuth)))).flat();
   return Array.from(new Map(targets.map(item => [String(entityInputId(item)), item?.toJSON ? item.toJSON() : item])).values());
 }
 
