@@ -198,6 +198,10 @@ as non-constructible, that block and its inline defaults are removed before
 action derivation and validation. Unknown blocks remain validation errors; this
 normalization only removes blocks whose ownership is explicitly declared by the
 current domain schema.
+Derived relation actions normalize their embedded creator from that same
+current construction contract. Generated Link dialogs therefore cannot revive
+removed constructor fields from the creator action's persisted input-policy or
+construction snapshots.
 Dataflow inference reads structured v3 `inputs`/`outputs` when they are
 persisted, but an unavailable port snapshot never clears an entry's semantic
 type. The canonical node catalog performs the authoritative inference for
