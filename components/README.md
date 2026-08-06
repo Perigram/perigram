@@ -421,10 +421,11 @@ then bound to the current user's compiled process action manifest where a
 process action provides the matching construction mode. Existing cassette
 designs, library cassette templates, DXF/artifact import, and additional
 process actions that output `cassette_design` remain distinct source menu
-items. The queue action is labeled **Add cassette**. In process mode its
-existing-design choice is the compiler-generated Link action for the declared
-`queue.cassettes -> cassette_design` relation; QueueEditor must not replace it
-with a global entity-source fallback. Process-mode producer actions are accepted only when their current
+items. Construction producers remain in the operational editor. Existing-entity
+linking stays on the generic generated-action surface: a compiler-generated Link
+action for any declared relation renders as **Add {target entity}**, uses the
+shared scoped option/creator dialog, and never enters QueueEditor as a producer.
+Process-mode producer actions are accepted only when their current
 compiled action contract exposes a `cassette_design` output through
 `contracts.outputs`.
 When a process producer is executed from a queue detail, the queue id is sent as

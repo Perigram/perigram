@@ -141,3 +141,8 @@ file panes own their scrolling independently.
 `GeneratedCassetteDesignerAction` render in the active project tab body.
 Regular entity pages and cards may use their menu-item presentation inside
 entity ellipsis menus; presentation does not change action resolution or access.
+Operational editors may consume commands and construction producers they
+implement, but generated relation mutations always remain on this generic action
+surface. Their target entity, scoped choices, optional creator, execution, and
+refresh behavior come from the compiled relation-action contract; editors must
+not match entity types or relation keys locally.
