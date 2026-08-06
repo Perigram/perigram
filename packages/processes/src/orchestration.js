@@ -219,15 +219,15 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
   const dataInputs = ports.inputs.filter(port => port.role === 'data');
   const inputs = {};
   for (const port of dataInputs) {
+    const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment);
+    if (runValue !== undefined) {
+      inputs[port.id] = createDataPacket(structuredClone(runValue), port.type?.shape);
+      continue;
+    }
     const edge = incomingData(process, node.id, port.id);
     if (!edge) {
       if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
         inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.type?.shape);
-        continue;
-      }
-      const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment);
-      if (runValue !== undefined) {
-        inputs[port.id] = createDataPacket(structuredClone(runValue), port.type?.shape);
         continue;
       }
       if (port.required) throw new Error(`Node ${record.id || node.id} requires input ${port.id}`);

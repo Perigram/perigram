@@ -57,6 +57,11 @@ declared data ports before reading or evaluating it. A sole data output is the
 canonical source when an edge uses the node-level handle. Trigger and effect
 outputs are read only from the token's emitted-value cache; operational nodes
 are never dispatched through the pure data/read evaluator.
+For the manually started operational node, an explicit run input is authoritative
+for its matching port and the connected data edge is only the fallback. This is
+how an embedded relation creator consumes the entity selected in its generated
+form without executing an upstream Create effect merely because that effect
+defines the designer-time source socket.
 When a manual downstream action is exposed in an existing entity context, an
 upstream entity-producing effect socket may bind to the matching typed entity
 from `context.inputs.entities`. This represents the current entity window; it
