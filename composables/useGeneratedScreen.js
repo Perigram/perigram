@@ -13,52 +13,70 @@ export function useGeneratedScreen(screenRef) {
   const sourceStates = ref({});
   const loading = ref(false);
   const error = ref(null);
+  let loadSequence = 0;
+  let refreshTimer = null;
 
   const screen = computed(() => normalizeScreenContract(unrefScreen(screenRef) || {}));
 
   const visibleSources = computed(() => screen.value.sources.filter(source => canReadSource(source, activePermissions.value)));
 
-  async function load() {
+  async function load({ initial = false } = {}) {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
+      refreshTimer = null;
+    }
+    const sequence = ++loadSequence;
     const sources = visibleSources.value;
-    sourceStates.value = Object.fromEntries(sources.map(source => [source.id, emptyState(source)]));
-    if (!sources.length) return;
+    if (!sources.length) {
+      sourceStates.value = {};
+      loading.value = false;
+      return;
+    }
 
-    loading.value = true;
-    error.value = null;
+    const firstLoad = initial || !sources.some(source => sourceStates.value[source.id]);
+    if (firstLoad) loading.value = true;
+    if (firstLoad) error.value = null;
     try {
-      for (const source of sources) {
+      const loaded = await Promise.all(sources.map(async source => {
         const entityApi = useEntity(source.entityType);
         if (source.mode === 'single') {
           const identifier = resolveSourceIdentifier(source, screen.value);
           if (!identifier) {
-            sourceStates.value[source.id] = { ...emptyState(source), error: 'missing-identifier' };
-            continue;
+            return [source.id, { ...emptyState(source), error: 'missing-identifier' }];
           }
           const entity = await entityApi.fetch(identifier, { silent: true });
-          sourceStates.value[source.id] = { ...emptyState(source), entity };
-          continue;
+          return [source.id, { ...emptyState(source), entity }];
         }
         const items = await entityApi.list(resolveSourceFilters(source, screen.value));
         const visibleItems = filterRootSourceItems(items, source.rootLineageKeys);
-        sourceStates.value[source.id] = { ...emptyState(source), items: visibleItems };
-      }
+        return [source.id, { ...emptyState(source), items: visibleItems }];
+      }));
+      if (sequence !== loadSequence) return;
+      sourceStates.value = Object.fromEntries(loaded);
+      error.value = null;
     } catch (err) {
-      error.value = err;
+      if (sequence === loadSequence && firstLoad) error.value = err;
     } finally {
-      loading.value = false;
+      if (sequence === loadSequence) loading.value = false;
     }
   }
 
   watch(screen, () => {
-    load();
+    sourceStates.value = {};
+    load({ initial: true });
   }, { immediate: true, deep: true });
 
-  const stopEntityChangeListener = onEntityChanged(({ type }) => {
-    if (!type || !visibleSources.value.some(source => source.entityType === type)) return;
-    load();
+  const stopEntityChangeListener = onEntityChanged(change => {
+    if (!entityChangeAffectsSources(change, visibleSources.value, screen.value)) return;
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      refreshTimer = null;
+      load();
+    }, 80);
   });
 
   onUnmounted(() => {
+    if (refreshTimer) clearTimeout(refreshTimer);
     stopEntityChangeListener();
   });
 
@@ -75,6 +93,15 @@ export function useGeneratedScreen(screenRef) {
     load,
     sourceState
   };
+}
+
+function entityChangeAffectsSources(change = {}, sources = [], screen = {}) {
+  if (!change.type) return false;
+  return sources.some(source => {
+    if (source.entityType !== change.type) return false;
+    if (source.mode !== 'single' || !change.id) return true;
+    return String(resolveSourceIdentifier(source, screen)) === String(change.id);
+  });
 }
 
 function canReadSource(source = {}, permissions = {}) {

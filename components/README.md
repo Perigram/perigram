@@ -296,7 +296,11 @@ list screen and must not appear as duplicate sibling entries with the same
 entity label. Generated
 action buttons post to the active process action endpoint and then refresh the
 screen's entity sources; they do not call arbitrary entity URLs from the
-browser. Collection-level and detail-level generated actions are limited to the
+browser. Action completion and the corresponding SSE entity event may request
+the same refresh; generated source loading preserves the current render,
+coalesces event bursts, and ignores stale request completions instead of
+switching the whole page back to its initial loading state. Collection-level
+and detail-level generated actions are limited to the
 action ids compiled onto the current screen or region; generated components must
 not scan the whole user action manifest and inject every parent-bound action
 that happens to match the row or detail entity type. Collection actions emit the
