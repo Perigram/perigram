@@ -2839,6 +2839,7 @@
       "exactEntityId": "Точный ID сущности",
       "createArtifact": "Загрузить артефакт",
       "createRelatedEntity": "Создать",
+      "selectExisting": "Выбрать существующую",
       "selectArtifactFile": "Выбрать файл",
       "replaceArtifactFile": "Заменить файл",
       "artifactFileRequired": "Выберите файл для загрузки.",

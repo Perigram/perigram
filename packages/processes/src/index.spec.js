@@ -1889,6 +1889,57 @@ describe('@cutkit/processes compiler', () => {
     ]));
   });
 
+  it('normalizes embedded relation creators against the current derived construction contract', () => {
+    const normalized = normalizeProcessDefinition({
+      actions: {
+        create_design: {
+          id: 'create_design',
+          actionKind: 'createEntity',
+          entityType: 'cassette_design',
+          construction: {
+            mode: 'bakeCassetteDesignFromTemplate',
+            inputs: [
+              { id: 'name', type: 'string', required: true, prompt: true },
+              { id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
+            ]
+          },
+          inputPolicy: {
+            fields: [
+              { id: 'name', type: 'string', required: true, prompt: true },
+              { id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
+            ]
+          }
+        },
+        update_queue: {
+          id: 'update_queue',
+          actionKind: 'updateEntity',
+          entityType: 'queue',
+          mutation: {
+            relationContracts: [{
+              ownerType: 'queue',
+              key: 'cassettes',
+              targetType: 'cassette_design',
+              cardinality: 'many',
+              creator: { actionId: 'create_design' }
+            }]
+          }
+        }
+      }
+    }, {
+      construction: {
+        cassette_design: {
+          modes: ['bakeCassetteDesignFromTemplate'],
+          defaultMode: 'bakeCassetteDesignFromTemplate',
+          derived: true,
+          inputs: [{ id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }]
+        }
+      }
+    });
+
+    expect(normalized.actions['update_queue:link:cassettes'].relationMutation.creator.inputPolicy.fields)
+      .toEqual([expect.objectContaining({ id: 'templateId' })]);
+  });
+
   it('compiles create actions with explicit parent inputs', () => {
     const compiled = compileProcessDefinition({
       actions: {

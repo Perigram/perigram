@@ -43,6 +43,8 @@ describe('project file operations and queue pane density', () => {
     expect(generatedScreenSource).not.toContain("$t('generatedScreen.exactEntityId')");
     expect(generatedScreenSource).not.toContain('field.required && !options.length');
     expect(generatedScreenSource).toContain('hasUploadCreator(field)');
+    expect(generatedScreenSource).toContain("relationCreatorMode ? $t('generatedScreen.selectExisting')");
+    expect(generatedScreenSource).toContain("pendingAction.value?.relationMutation?.operation === 'link'");
     expect(generatedScreenSource).toContain(":label=\"$t('generatedScreen.createArtifact')\"");
     expect(artifactCreatorSource).toContain("$fetch('/api/artifacts', { method: 'POST', body: form })");
     expect(artifactCreatorSource).not.toContain("form.append('metadata'");

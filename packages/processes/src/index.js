@@ -118,7 +118,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
-    actions: normalizeActions(deriveRelationMutationActions(effectActions)),
+    actions: normalizeActions(deriveRelationMutationActions(effectActions, domain)),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
     statusDefinitions: normalizeRecord(data.statusDefinitions),
@@ -297,7 +297,7 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, doma
   return derived;
 }
 
-function deriveRelationMutationActions(actions = {}) {
+function deriveRelationMutationActions(actions = {}, domain = {}) {
   const derived = { ...actions };
   for (const [sourceActionId, sourceAction] of Object.entries(actions)) {
     if ((sourceAction.trigger?.mode || 'manual') !== 'manual') continue;
@@ -306,18 +306,21 @@ function deriveRelationMutationActions(actions = {}) {
       for (const operation of ['link', 'unlink']) {
         const creatorAction = relation.creator?.actionId ? actions[relation.creator.actionId] : null;
         const creator = creatorAction
-          ? {
+          ? (() => {
+              const construction = normalizeConstruction(creatorAction.construction, creatorAction.entityType, domain);
+              const inputPolicy = normalizeActionInputPolicy(
+                creatorAction.inputPolicy,
+                construction,
+                creatorAction.entityType,
+                domain
+              );
+              return {
               actionId: creatorAction.id || relation.creator.actionId,
               entityType: creatorAction.entityType,
-              construction: creatorAction.construction,
-              inputPolicy: {
-                prompt: true,
-                fields: [
-                  ...(creatorAction.inputPolicy?.fields || []),
-                  ...(creatorAction.construction?.inputs || [])
-                ].filter((field, index, fields) => fields.findIndex(item => item.id === field.id) === index)
-              }
-            }
+              construction,
+              inputPolicy
+            };
+            })()
           : relation.creator;
         const id = `${sourceActionId}:${operation}:${relation.key}`;
         const input = {
