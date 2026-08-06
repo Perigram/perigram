@@ -54,7 +54,9 @@ bounded IDE-style Explorer and file workspace:
   horizontal scrolling. Below the narrow Explorer breakpoint, semantic nesting
   remains intact while additional visual indentation is removed so deep trees
   do not consume the row's usable width. Collection headings do not append
-  decorative child counts.
+  decorative child counts. Every loaded list region retains its entity-type
+  folder (for example, Queues); containment nests the region's root entities
+  inside that folder instead of promoting them directly beneath the project.
 - `GeneratedProjectActionPalette` renders directly in that top strip, outside
   both Explorer and pane content. It contains only action ids compiled onto the
   project screen/main region plus direct-project child creates from loaded child
@@ -128,8 +130,11 @@ surface. Search operates on entity identity and lifecycle state, the filter is
 derived from lifecycle states actually present in the loaded source, and sort
 offers stable identity/date orders. Region-compiled collection actions share
 that toolbar; the renderer does not discover or synthesize additional actions.
-Collection cards omit `childCount` summary fields because the collection itself
-is the authoritative child surface.
+Collection cards omit child-count and child-preview summary fields because the
+collection itself is the authoritative child surface. An entity detail with one
+or more compiled child regions applies the same suppression to its parent body,
+so a library does not repeat cassette totals/previews above its cassette region;
+unrelated operational fields such as material and description remain visible.
 When a child file opens, its actions come from that entity type's compiled
 detail screen in the current user's effective screen manifest. Parent-workspace
 region actions are merged only when they also apply to the selected entity.
@@ -171,9 +176,9 @@ entity deletion is a management operation owned by the Explorer row ellipsis;
 it is confirmed before execution, removed from the tab body, and closes every
 tab/page reference to the deleted entity after success.
 
-The Project Explorer projects declared containment as folders. Parent entities
-remain selectable files and become expandable when currently available child
-entities reference them through a declared lineage key. Ordinary project links
-stay in the Linked entities section; descendants may nest beneath those linked
-parents when containment declares the relationship. No entity type, relation
-key, or lineage field is inferred from naming.
+The Project Explorer projects declared containment within compiled collection
+folders. Parent entities remain selectable files and become expandable when
+currently available child entities reference them through a declared lineage
+key. Ordinary project links stay in the Linked entities section; descendants
+may nest beneath those linked parents when containment declares the relationship.
+No entity type, relation key, or lineage field is inferred from naming.
