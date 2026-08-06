@@ -60,6 +60,11 @@ On the client, those same successful CRUD calls also publish a typed
 invalidation to `POST /api/entity-events`, which fans out to other authenticated
 sessions over SSE. Server events intentionally carry ids and change metadata,
 not full DTOs; receiving surfaces refetch through their normal entity APIs.
+Generated screens treat those refetches as background synchronization: they
+preserve the rendered source snapshot, coalesce short event bursts, load source
+regions concurrently, and commit only the newest completed request. The
+page-level loading state is reserved for initial screen hydration, so ordinary
+create/update/delete events do not unmount and rebuild the page.
 `state` is the primary lifecycle string derived from structured
 `status.state.primary`; `stateObject` and `statusRegions` expose the full v2
 machine state when a surface needs region details.
