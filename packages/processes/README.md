@@ -188,6 +188,10 @@ entities are not selectable in generic Create. Domain constructors project as
 fixed producer-service effects; for example,
 `bakeCassetteDesignFromTemplate` delegates to the cassette template
 construction service with its own typed inputs.
+For derived entity constructors, the current domain input contract is
+authoritative: stale authored construction inputs and prompt fields that are no
+longer declared are discarded during compilation instead of resurfacing in
+designer nodes or generated dialogs.
 Dataflow inference reads structured v3 `inputs`/`outputs` when they are
 persisted, but an unavailable port snapshot never clears an entry's semantic
 type. The canonical node catalog performs the authoritative inference for

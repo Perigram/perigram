@@ -8,7 +8,7 @@ Production queue card and detail surface.
 |---|---|
 | `QueueCard.vue` | Entity card wrapper for queue identity, job item totals, output summary, and command actions. |
 | `QueueDetail.vue` | Detail page body for artifacts, job composition, consumed source relations, and history. |
-| `QueueEntryCard.vue` | Queue-editor cassette-design reference with thumbnail and contextual configure/remove controls. |
+| `QueueEntryCard.vue` | Queue-editor cassette card with parent-template identity, inline design parameters, queue-local quantity, and remove controls. |
 | `QueueSourceCard.vue` | Compact queue-editor material source tile with deterministic SVG preview, identity, dimensions, and count. |
 
 ## Contract
@@ -32,14 +32,13 @@ Production queue card and detail surface.
   compact card selects the queue without opening the `EntityCard` popover or
   using full card padding. Queue number prefixes and the full queue data block
   render only on full queue cards.
-- Queue relations remain typed design references and never carry parameter
-  overrides. When the active process exposes the queue's Link action with an
-  embedded cassette-design creator, each linked design gets a contextual
-  Configure control. Its affiliated parameter dialog reads names/defaults from
-  the source OCCS template and concrete values from the design. Saving bakes a
-  new immutable design and atomically replaces only that queue reference; it
-  never mutates a design that another queue may use. Without that compiled
-  action the Configure control is absent.
+- Queue relations remain typed design references and never carry parameter or
+  quantity overrides. The queue card displays OCCS parameters inline. When the
+  active process exposes the queue's Link action with an embedded
+  cassette-design creator, saving those fields bakes a new immutable design and
+  atomically replaces only that queue reference; it never mutates a design that
+  another queue may use. Quantity is independent queue association data stored
+  in `data.job.items` and survives design replacement.
 - The generated/process queue composer exposes Add in the cassette panel header
   beside the view controls. The header action opens a source menu whose entries
   stay separated by producer: existing readable `cassette_design` records use
@@ -56,9 +55,8 @@ Production queue card and detail surface.
   `entityType: cassette` queue items hydrate from readable cassette templates
   and remain labeled as cassette-template entries; ids without an explicit
   entity type are not reinterpreted as templates.
-- Queue editor cassette rows do not use the arbitrary baked
-  `cassette_design.identity.name` as their default header. The compact header
-  renders the canonical source cassette template from
+- Queue editor cassette rows never render `cassette_design.identity.name`. The
+  compact header renders only the canonical source cassette template from
   `provenance.derivedFrom.source` as a non-interactive inline
   `EntityInlineRef`, followed by quantity and remove controls. Designs without
   cassette-template provenance fall back to their typed source id. Missing
@@ -104,10 +102,10 @@ Production queue card and detail surface.
   visible to the process role, QueueEditor omits that field and lets the active
   process action resolve its default constructable template on the server while
   still sending the current material thickness as parameter `T`.
-- Queue card summaries count `relations.cassettes` as designs to nest. Each
-  relation points to one real, editable cassette design; repeated production
-  entries are represented by separately created designs rather than quantity
-  metadata copied into the relation.
+- Queue card summaries count `relations.cassettes` as designs to nest and sum
+  the matching queue-local `data.job.items[].quantity` values. Each relation
+  points to one real cassette design; quantity belongs to the queue entry and
+  is passed to nesting without being copied onto or into that design.
 - Queue editor selected warehouse sources use compact `QueueSourceCard` tiles
   instead of embedding pile/sheet/remnant cards. It draws remnant polygons when
   present and rectangular sheet previews for stock sources without stored
