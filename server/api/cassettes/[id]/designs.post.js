@@ -13,7 +13,6 @@ export default defineEventHandler(async (event) => {
     auth.userId,
     auth.organizationId,
     auth.role,
-    auth,
-    { name: body?.name || '' }
+    auth
   );
 });

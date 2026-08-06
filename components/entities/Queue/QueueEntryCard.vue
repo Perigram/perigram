@@ -13,24 +13,24 @@
       <div class="queue-entry-card__content flex min-w-0 flex-col gap-2">
         <div class="flex min-w-0 items-center justify-between gap-2">
           <EntityInlineRef
-            v-if="cassette"
-            type="cassetteDesign"
-            :id="sourceId"
-            :entity="cassette"
+            v-if="template || templateId"
+            type="cassetteTemplate"
+            :id="templateId"
+            :entity="template"
             :fetch="false"
+            :interactive="false"
           />
           <Tag v-else :value="sourceLabel" severity="secondary" />
           <div class="flex shrink-0 items-center gap-1" data-entity-card-interactive="true" @click.stop>
-            <Button
-              v-if="configurable"
-              icon="pi pi-sliders-h"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              :aria-label="$t('cassetteDesign.configure')"
+            <small class="text-muted-color">{{ $t('common.quantity') }}</small>
+            <InputNumber
+              :model-value="entry.quantity"
+              :min="1"
               :disabled="disabled"
-              @click="emit('configure')"
+              size="small"
+              class="w-16"
+              :aria-label="$t('common.quantity')"
+              @update:model-value="value => emit('update-quantity', value)"
             />
             <Button
               icon="pi pi-trash"
@@ -45,24 +45,38 @@
           </div>
         </div>
 
-        <EntityInlineRef
-          v-if="template || templateId"
-          type="cassetteTemplate"
-          :id="templateId"
-          :entity="template"
-          :fetch="false"
-          :interactive="false"
-        />
+        <div v-if="parameterNames.length" class="queue-entry-card__parameters grid gap-2">
+          <label v-for="parameter in parameterNames" :key="parameter" class="flex items-center gap-2">
+            <small class="min-w-6 text-muted-color">{{ parameter }}</small>
+            <InputNumber
+              v-model="draftParameters[parameter]"
+              :disabled="disabled || !configurable || lockedParameters.includes(parameter)"
+              size="small"
+              fluid
+            />
+          </label>
+          <Button
+            v-if="configurable && parametersChanged"
+            icon="pi pi-check"
+            severity="secondary"
+            size="small"
+            :label="$t('common.save')"
+            :loading="saving"
+            :disabled="disabled"
+            @click="emit('configure', { ...draftParameters })"
+          />
+        </div>
       </div>
     </div>
   </Panel>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
+import InputNumber from 'primevue/inputnumber';
 import Tag from 'primevue/tag';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
@@ -72,11 +86,14 @@ const props = defineProps({
   cassette: { type: Object, default: null },
   template: { type: Object, default: null },
   templateId: { type: String, default: '' },
+  parameters: { type: Array, default: () => [] },
+  lockedParameters: { type: Array, default: () => ['T'] },
   configurable: { type: Boolean, default: false },
+  saving: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['configure', 'remove']);
+const emit = defineEmits(['configure', 'update-quantity', 'remove']);
 const { t } = useI18n();
 const panelPt = {
   header: { class: '!hidden' },
@@ -84,6 +101,24 @@ const panelPt = {
 };
 
 const sourceId = computed(() => props.entry.id);
+const parameterNames = computed(() => props.parameters);
+const draftParameters = reactive({});
+const sourceParameters = computed(() => props.cassette?.data?.parameters
+  || props.cassette?.provenance?.derivedFrom?.parameters
+  || {});
+const parametersChanged = computed(() => parameterNames.value.some(parameter => (
+  Number(draftParameters[parameter]) !== Number(sourceParameters.value[parameter])
+)));
+
+watch([sourceParameters, parameterNames], ([values, names]) => {
+  for (const key of Object.keys(draftParameters)) delete draftParameters[key];
+  const definitions = props.template?.data?.definition?.parameters || {};
+  for (const name of names) {
+    const definition = definitions[name] || {};
+    const value = values[name] ?? definition.default ?? definition.value ?? definition.min ?? 0;
+    draftParameters[name] = Number.isFinite(Number(value)) ? Number(value) : 0;
+  }
+}, { immediate: true });
 const sourceTypeLabel = computed(() => {
   if (props.entry.entityType === 'cassette') return t('entities.cassette');
   if (props.entry.entityType === 'cassette_design') return t('entities.cassetteDesign');
@@ -102,6 +137,10 @@ const sourceLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value |
 .queue-entry-card__preview {
   width: var(--ck-compact-preview-width);
   max-width: var(--ck-compact-preview-width);
+}
+
+.queue-entry-card__parameters {
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
 }
 
 @container (min-width: 28rem) {

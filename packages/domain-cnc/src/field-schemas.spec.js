@@ -70,5 +70,8 @@ describe('CNC entity field schemas', () => {
     expect(getEntityFieldSchema('queue', 'status.metadata')).toMatchObject({
       constructible: false
     });
+    expect(getEntityFieldSchema('cassette_design', 'identity.name')).toMatchObject({
+      constructible: false
+    });
   });
 });

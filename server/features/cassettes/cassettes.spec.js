@@ -139,8 +139,7 @@ describe('Cassette Management & Ownership', () => {
       user1.userId,
       user1.organizationId,
       null,
-      user1.permissions,
-      { name: 'Design from incomplete template' }
+      user1.permissions
     )).rejects.toThrow(/no construction definition/);
   });
 

@@ -1039,8 +1039,7 @@ describe('process definitions access fallback', () => {
       'user-1',
       'org-1',
       undefined,
-      expect.any(Object),
-      { name: 'Facade A' }
+      expect.any(Object)
     );
     expect(cassetteService.createDesignFromTemplate.mock.calls[0][5]).toEqual(expect.objectContaining({
       effectivePermissions: expect.objectContaining({
@@ -1195,8 +1194,7 @@ describe('process definitions access fallback', () => {
       'user-1',
       'org-1',
       undefined,
-      expect.any(Object),
-      { name: 'Parent based' }
+      expect.any(Object)
     );
   });
 
@@ -1265,8 +1263,7 @@ describe('process definitions access fallback', () => {
       'user-1',
       'org-1',
       undefined,
-      expect.any(Object),
-      { name: 'Facade B' }
+      expect.any(Object)
     );
   });
 

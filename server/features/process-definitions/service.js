@@ -636,7 +636,33 @@ async function resolveManualRelationMutation(entityType, targetId, mutation = {}
   const next = contract.operation === 'unlink'
     ? retained.filter(ref => `${ref.type}:${ref.id}` !== targetKey)
     : Array.from(new Map([...retained, targetRef].map(ref => [`${ref.type}:${ref.id}`, ref])).values());
-  return { relations: { [key]: next } };
+  const result = { relations: { [key]: next } };
+  const associationPath = contract.association?.path;
+  if (associationPath) {
+    const currentAssociations = getByPath(current, associationPath);
+    const associations = Array.isArray(currentAssociations) ? currentAssociations : [];
+    const associationKey = item => `${item?.type || contract.targetType}:${item?.id || ''}`;
+    const retainedAssociations = replacementRef
+      ? associations.filter(item => associationKey(item) !== replacementKey)
+      : associations;
+    const replacementAssociation = replacementRef
+      ? associations.find(item => associationKey(item) === replacementKey)
+      : null;
+    const nextAssociations = contract.operation === 'unlink'
+      ? retainedAssociations.filter(item => associationKey(item) !== targetKey)
+      : [
+          ...retainedAssociations.filter(item => associationKey(item) !== targetKey),
+          {
+            ...(contract.association.defaults || {}),
+            ...(replacementAssociation || {}),
+            type: targetRef.type,
+            entityType: targetRef.type,
+            id: targetRef.id
+          }
+        ];
+    setByPath(result, associationPath, nextAssociations);
+  }
+  return result;
 }
 
 async function executeV3ActionRun({ process, actionId, entityId, data, parameters, entities, targetOrganizationId }, auth) {
@@ -784,7 +810,23 @@ async function linkCreatedEntityToContextRelation({ action = {}, data = {}, enti
   const next = existing.some(ref => ref.type === targetType && String(ref.id) === String(createdId))
     ? existing
     : [...existing, { type: targetType, id: createdId }];
-  const updated = await ownerService.processUpdate(ownerId, { [`relations.${relation.key}`]: next }, linkAuth);
+  const patch = { [`relations.${relation.key}`]: next };
+  if (relation.association?.path) {
+    const associations = getByPath(owner, relation.association.path);
+    const currentAssociations = Array.isArray(associations) ? associations : [];
+    if (!currentAssociations.some(item => String(item?.id) === String(createdId))) {
+      patch[relation.association.path] = [
+        ...currentAssociations,
+        {
+          ...(relation.association.defaults || {}),
+          type: targetType,
+          entityType: targetType,
+          id: createdId
+        }
+      ];
+    }
+  }
+  const updated = await ownerService.processUpdate(ownerId, patch, linkAuth);
   await publishActionEntityEvent(auth, ownerType, updated || { _id: ownerId }, 'updated', 'process-created-relation-link');
   return updated;
 }
@@ -991,8 +1033,7 @@ async function executeBakeCassetteDesign(action = {}, data = {}, organizationId,
     auth.userId,
     organizationId,
     auth.role,
-    createActionExecutionAuth(auth, action),
-    { name: data.name || data.identity?.name || '' }
+    createActionExecutionAuth(auth, action)
   );
   const targetState = action.status?.to;
   if (!targetState) return created;

@@ -15,7 +15,11 @@ export const cncRelations = [
     ownerType: 'queue',
     key: 'cassettes',
     targetType: 'cassette_design',
-    cardinality: 'many'
+    cardinality: 'many',
+    association: {
+      path: 'data.job.items',
+      defaults: { quantity: 1 }
+    }
   },
   {
     ownerType: 'geometry_capture',

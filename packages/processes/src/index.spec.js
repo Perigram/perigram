@@ -190,7 +190,6 @@ const domain = {
       defaultMode: 'bakeCassetteDesignFromTemplate',
       derived: true,
       inputs: [
-        { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
         { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true },
         { id: 'parameters', path: 'parameters', type: 'cassetteParameters', templateFieldId: 'templateId', required: false, prompt: true }
       ]
@@ -2352,6 +2351,8 @@ describe('@cutkit/processes compiler', () => {
       icon: 'pi pi-eye'
     });
     expect(compiled.actions.create_design.construction.mode).toBe('bakeCassetteDesignFromTemplate');
+    expect(compiled.actions.create_design.construction.inputs.map(input => input.id)).toEqual(['templateId', 'parameters']);
+    expect(compiled.actions.create_design.inputPolicy.fields.map(field => field.id)).not.toContain('name');
     expect(compiled.statusDefinitions.status_review).toMatchObject({
       statusId: 'REVIEW',
       severity: 'warn',
@@ -2492,16 +2493,15 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.create_design.construction).toMatchObject({
       mode: 'bakeCassetteDesignFromTemplate',
       inputs: expect.arrayContaining([
-        expect.objectContaining({ id: 'name', prompt: true, required: true }),
         expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
         expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
       ])
     });
     expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', prompt: true, required: true }),
       expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
       expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
     ]));
+    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields.map(field => field.id)).not.toContain('name');
   });
 
   it('does not require queue job items during queue creation', () => {

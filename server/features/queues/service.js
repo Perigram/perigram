@@ -96,7 +96,12 @@ export function normalizeQueueJob(job = {}) {
 }
 
 export function queueCassetteDesignRefs(queue = {}) {
-  return Array.isArray(queue.relations?.cassettes) ? queue.relations.cassettes : [];
+  const refs = Array.isArray(queue.relations?.cassettes) ? queue.relations.cassettes : [];
+  const items = Array.isArray(queue.data?.job?.items) ? queue.data.job.items : [];
+  return refs.map(ref => {
+    const item = items.find(candidate => candidate.id?.toString?.() === ref.id?.toString?.());
+    return { ...ref, quantity: Math.max(1, Math.trunc(Number(item?.quantity) || 1)) };
+  });
 }
 
 
@@ -360,7 +365,7 @@ function queuePreview(queue = {}) {
     },
     summary: {
       jobItemCount: items.length,
-      totalQuantity: items.length,
+      totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
       runCount: Number(queue.summary?.runCount || 0),
       sheetCount: Number(queue.summary?.sheetCount || 0),
       totalArea: Number(queue.summary?.totalArea || 0),

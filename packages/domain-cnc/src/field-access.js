@@ -18,8 +18,8 @@ export const cncEntityFieldAccess = {
   },
   queue: {
     feature: 'queues',
-    read: [...COMMON_READ_FIELDS, 'data.queueNumber', 'data.job.materialPool', 'data.materialConsumption', 'data.physicalOutputs'],
-    write: ['relations.cassettes', 'data.job.materialPool', 'data.nestingSettings.*'],
+    read: [...COMMON_READ_FIELDS, 'data.queueNumber', 'data.job.items', 'data.job.materialPool', 'data.materialConsumption', 'data.physicalOutputs'],
+    write: ['relations.cassettes', 'data.job.items', 'data.job.materialPool', 'data.nestingSettings.*'],
     admin: ['data.*', 'attachments.*']
   },
   nestingRun: {

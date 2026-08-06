@@ -53,6 +53,7 @@ const rawEntityFieldSchemas = Object.fromEntries(cncEntities.map(entity => {
       readable: hasAccess(access, schema.path, 'read'),
       writable: schema.writable !== false && hasAccess(access, schema.path, 'write'),
       constructible: schema.constructible !== false
+        && !(entityType === 'cassette_design' && schema.block === 'identity')
     }));
   return [entityType, Object.freeze(fields)];
 }));
