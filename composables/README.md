@@ -65,6 +65,10 @@ preserve the rendered source snapshot, coalesce short event bursts, load source
 regions concurrently, and commit only the newest completed request. The
 page-level loading state is reserved for initial screen hydration, so ordinary
 create/update/delete events do not unmount and rebuild the page.
+Action responses are applied immediately to matching source snapshots before
+that reconciliation begins. Local entity events likewise upsert or remove
+their included entity snapshot immediately; the following server fetch remains
+authoritative and corrects membership or derived fields.
 `state` is the primary lifecycle string derived from structured
 `status.state.primary`; `stateObject` and `statusRegions` expose the full v2
 machine state when a surface needs region details.

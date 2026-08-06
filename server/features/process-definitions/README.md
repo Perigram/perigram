@@ -191,6 +191,13 @@ generic relation-association contract.
 Compiled Link actions grant their exposed roles read access to the declared
 target entity feature so generated entity pickers can load authorized choices.
 They do not inherit the owner entity's create-construction fields.
+Link option resolution keeps embedded creators scoped to their construction
+source. It reads that source from the normalized creator prompt/construction
+contract and follows the process-declared owner ancestry and relations before
+listing targets. An unresolved scoped creator returns no candidates; it never
+falls back to the organization-wide readable target collection. For queue
+cassette designs this yields project-linked libraries, their cassette children,
+and only designs derived from those cassettes.
 Typed construction actions receive action-scoped grants for the target entity
 they create and for the source entities declared by the construction contract.
 For cassette-design baking this includes a temporary `cassettes:write` grant so

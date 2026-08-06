@@ -299,7 +299,9 @@ screen's entity sources; they do not call arbitrary entity URLs from the
 browser. Action completion and the corresponding SSE entity event may request
 the same refresh; generated source loading preserves the current render,
 coalesces event bursts, and ignores stale request completions instead of
-switching the whole page back to its initial loading state. Collection-level
+switching the whole page back to its initial loading state. The action response
+is applied to matching rendered sources first, so the user sees the mutation
+before background reconciliation completes. Collection-level
 and detail-level generated actions are limited to the
 action ids compiled onto the current screen or region; generated components must
 not scan the whole user action manifest and inject every parent-bound action

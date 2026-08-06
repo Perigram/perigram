@@ -70,6 +70,8 @@ describe('project file operations and queue pane density', () => {
     expect(generatedScreenComposableSource).toContain('const loaded = await Promise.all');
     expect(generatedScreenComposableSource).toContain('if (firstLoad) loading.value = true');
     expect(generatedScreenComposableSource).toContain('refreshTimer = setTimeout');
+    expect(generatedScreenComposableSource).toContain('else if (change.entity) applyEntitySnapshot');
+    expect(generatedScreenSource).toContain('applyActionResult(action, result)');
     expect(generatedScreenComposableSource).not.toContain('sourceStates.value = Object.fromEntries(sources.map');
   });
 

@@ -68,6 +68,8 @@ export function useGeneratedScreen(screenRef) {
 
   const stopEntityChangeListener = onEntityChanged(change => {
     if (!entityChangeAffectsSources(change, visibleSources.value, screen.value)) return;
+    if (change.change === 'deleted') removeEntitySnapshot(change.type, change.id);
+    else if (change.entity) applyEntitySnapshot(change.type, change.entity);
     if (refreshTimer) clearTimeout(refreshTimer);
     refreshTimer = setTimeout(() => {
       refreshTimer = null;
@@ -84,6 +86,38 @@ export function useGeneratedScreen(screenRef) {
     return sourceStates.value[sourceId] || emptyState({ id: sourceId });
   }
 
+  function applyEntitySnapshot(entityType, entity = null) {
+    const id = entity?._id?.toString?.() || entity?._id || entity?.identity?.uid?.toString?.() || entity?.identity?.uid;
+    if (!entityType || !id || !entity) return;
+    sourceStates.value = Object.fromEntries(Object.entries(sourceStates.value).map(([sourceId, state]) => {
+      if (state.source?.entityType !== entityType) return [sourceId, state];
+      if (state.source.mode === 'single') {
+        const sourceIdValue = resolveSourceIdentifier(state.source, screen.value);
+        return String(sourceIdValue) === String(id) ? [sourceId, { ...state, entity }] : [sourceId, state];
+      }
+      const index = (state.items || []).findIndex(item => String(item?._id || item?.identity?.uid) === String(id));
+      if (index < 0) {
+        return entityMatchesSource(entity, state.source, screen.value)
+          ? [sourceId, { ...state, items: [...(state.items || []), entity] }]
+          : [sourceId, state];
+      }
+      const items = [...state.items];
+      items[index] = entity;
+      return [sourceId, { ...state, items }];
+    }));
+  }
+
+  function removeEntitySnapshot(entityType, id) {
+    if (!entityType || !id) return;
+    sourceStates.value = Object.fromEntries(Object.entries(sourceStates.value).map(([sourceId, state]) => {
+      if (state.source?.entityType !== entityType || state.source.mode === 'single') return [sourceId, state];
+      return [sourceId, {
+        ...state,
+        items: (state.items || []).filter(item => String(item?._id || item?.identity?.uid) !== String(id))
+      }];
+    }));
+  }
+
   return {
     screen,
     sourceStates,
@@ -91,8 +125,20 @@ export function useGeneratedScreen(screenRef) {
     error,
     visibleSources,
     load,
+    applyEntitySnapshot,
     sourceState
   };
+}
+
+function entityMatchesSource(entity = {}, source = {}, screen = {}) {
+  const filters = resolveSourceFilters(source, screen);
+  return Object.entries(filters).every(([path, expected]) => {
+    if (path === 'primaryStatus') return entity.status?.state?.primary === expected;
+    if (path === 'primaryStatuses') return String(expected).split(',').includes(entity.status?.state?.primary);
+    if (expected && typeof expected === 'object') return false;
+    const actual = path.split('.').reduce((value, key) => value?.[key], entity);
+    return String(actual ?? '') === String(expected ?? '');
+  });
 }
 
 function entityChangeAffectsSources(change = {}, sources = [], screen = {}) {

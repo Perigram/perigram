@@ -291,7 +291,7 @@ const toast = useToast();
 const { t, te } = useI18n();
 const domainUi = useCutkitDomainUi();
 const screenRef = toRef(props, 'screen');
-const { screen, loading, error, load, sourceState } = useGeneratedScreen(screenRef);
+const { screen, loading, error, load, applyEntitySnapshot, sourceState } = useGeneratedScreen(screenRef);
 const inputDialogVisible = ref(false);
 const submittingAction = ref(false);
 const pendingAction = ref(null);
@@ -441,7 +441,7 @@ async function postAction(action, entity = null, data = {}, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
+    const result = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
       method: 'POST',
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
@@ -450,10 +450,20 @@ async function postAction(action, entity = null, data = {}, context = {}) {
         parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }
       }
     });
+    applyActionResult(action, result);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await load();
   } catch (err) {
     showActionError(err);
+  }
+}
+
+function applyActionResult(action = {}, result = null) {
+  if (!result || typeof result !== 'object') return;
+  if (result.owner) applyEntitySnapshot(action.entityType, result.owner);
+  if (result.created) applyEntitySnapshot(action.relationMutation?.targetType || action.entityType, result.created);
+  if (!result.owner && !result.created) {
+    applyEntitySnapshot(action.entityType, result.entity || result);
   }
 }
 
