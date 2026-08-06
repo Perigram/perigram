@@ -2839,6 +2839,7 @@
       "exactEntityId": "Exact entity ID",
       "createArtifact": "Upload artifact",
       "createRelatedEntity": "Create new",
+      "selectExisting": "Select existing",
       "selectArtifactFile": "Select file",
       "replaceArtifactFile": "Replace file",
       "artifactFileRequired": "Select a file to upload.",

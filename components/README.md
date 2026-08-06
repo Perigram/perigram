@@ -487,6 +487,11 @@ Generated relation Link dialogs always render the shared entity select for the
 declared target type. They bind the opened detail entity as owner context and do
 not fall back to a raw exact-id text field when the authorized option list is
 empty or still loading.
+When a Link relation has an embedded creator, switching to Create new replaces
+the relation selector with the creator's actual fields instead of nesting them
+under a redundant raw entity label. The dialog keeps the action name as its
+header, uses Add as the submit command, and exposes Select existing to return to
+the relation picker.
 Generated cassette-design creation must be scoped to a cassette template. A
 queue links the resulting design through `queue.relations.cassettes`; generated
 screens must not treat a queue as the parent/source for

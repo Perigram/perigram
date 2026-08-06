@@ -124,8 +124,8 @@
             :entity-type="parentSelectionType"
           />
         </label>
-        <label v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
-          <span class="text-xs text-muted-color">{{ field.label || field.id }}</span>
+        <div v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
+          <span v-if="!(relationCreatorMode && field.creator?.actionId)" class="text-xs text-muted-color">{{ field.label || field.id }}</span>
           <div
             v-if="field.type === 'cassetteParameters'"
             class="grid grid-cols-2 gap-2"
@@ -195,7 +195,7 @@
             <Button
               v-if="field.creator?.actionId"
               icon="pi pi-plus"
-              :label="relationCreatorMode ? $t('common.cancel') : $t('generatedScreen.createRelatedEntity')"
+              :label="relationCreatorMode ? $t('generatedScreen.selectExisting') : $t('generatedScreen.createRelatedEntity')"
               size="small"
               severity="secondary"
               outlined
@@ -244,7 +244,7 @@
             v-model="promptValues[field.id]"
             :type="field.type === 'number' ? 'number' : 'text'"
           />
-        </label>
+        </div>
       </div>
     </StandardDialog>
     <GeneratedArtifactCreator
@@ -323,7 +323,9 @@ const promptFields = computed(() => promptedFields(pendingAction.value));
 const relationCreatorFields = computed(() => pendingAction.value?.relationMutation?.creator?.inputPolicy?.fields
   ?.filter(field => field.prompt || field.required) || []);
 const pendingActionLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.confirm'));
-const dialogSaveLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.save'));
+const dialogSaveLabel = computed(() => pendingAction.value?.relationMutation?.operation === 'link'
+  ? t('common.add')
+  : pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
 const parentSelectionFieldId = '__parentEntityId';
 const parentSelectionType = computed(() => requiredParentType(pendingAction.value, pendingEntity.value?.entity, pendingEntity.value?.context));
