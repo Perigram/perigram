@@ -67,6 +67,10 @@ Generated entity surfaces display this concrete parameter snapshot as exact
 named values such as `A=1200, B=400`. Source cassette/template cards do not
 show parameter counts because they represent symbolic constructors, not one
 materialized design.
+Changing those concrete parameters is another bake, not an in-place patch of
+the existing design. Owning contexts such as queues use their authorized
+relation creator to create the replacement design and swap the typed reference;
+the original design and its provenance remain unchanged for every other owner.
 
 Standard DXF uploads also create an initial design. The upload service extracts
 the mapped `cut.outer` layer as `polygonParts`; queues should nest this design

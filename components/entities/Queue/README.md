@@ -8,7 +8,7 @@ Production queue card and detail surface.
 |---|---|
 | `QueueCard.vue` | Entity card wrapper for queue identity, job item totals, output summary, and command actions. |
 | `QueueDetail.vue` | Detail page body for artifacts, job composition, consumed source relations, and history. |
-| `QueueEntryCard.vue` | Queue-editor cassette entry card with row identity/typed id, thumbnail, quantity, and parameter editing. |
+| `QueueEntryCard.vue` | Queue-editor cassette-design reference with thumbnail and contextual configure/remove controls. |
 | `QueueSourceCard.vue` | Compact queue-editor material source tile with deterministic SVG preview, identity, dimensions, and count. |
 
 ## Contract
@@ -32,15 +32,14 @@ Production queue card and detail surface.
   compact card selects the queue without opening the `EntityCard` popover or
   using full card padding. Queue number prefixes and the full queue data block
   render only on full queue cards.
-- Queue editor cassette rows use `QueueEntryCard`; the component emits quantity
-  and parameter updates while `QueueEditor` remains the owner of persistence and
-  `_key`-based row deletion. Editable fields come from the canonical queue-item
-  `parameters` snapshot, supplemented by the hydrated design's declared
-  parameter names. They are not gated by the item's `STATIC`/`PARAMETRIC`
-  nesting behavior: a baked design can still be request-locally reevaluated
-  when its queued parameter snapshot changes. `T` remains material-owned and
-  locked in the editor. These rows keep natural panel height inside the center
-  lane grid; the workspace lane owns scrolling.
+- Queue relations remain typed design references and never carry parameter
+  overrides. When the active process exposes the queue's Link action with an
+  embedded cassette-design creator, each linked design gets a contextual
+  Configure control. Its affiliated parameter dialog reads names/defaults from
+  the source OCCS template and concrete values from the design. Saving bakes a
+  new immutable design and atomically replaces only that queue reference; it
+  never mutates a design that another queue may use. Without that compiled
+  action the Configure control is absent.
 - The generated/process queue composer exposes Add in the cassette panel header
   beside the view controls. The header action opens a source menu whose entries
   stay separated by producer: existing readable `cassette_design` records use
@@ -49,10 +48,6 @@ Production queue card and detail surface.
   entries only; it must not add a fake in-grid Add tile. Add Entry uses
   secondary emphasis because queue composition, rather than source creation, is
   the primary surface.
-- Inline quantity and parameter updates persist without emitting the route-level
-  `updated` refresh event. The editor retains its local rows while the PUT
-  completes, so typing a cassette parameter does not remount the generated
-  detail page.
 - Queue job item relation rows read `item.entityType` to distinguish
   `cassette_design` from `cassette` template ids. When a process role can read
   the queue but not the related design/template directly, `QueueEntryCard`
