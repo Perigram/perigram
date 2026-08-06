@@ -22,7 +22,7 @@ test.describe('generated project workspace', () => {
           screens: [...(current.screens || []), ...workspaceScreens()],
           roleAssignments: {
             ...(current.roleAssignments || {}),
-            actions: [...(current.roleAssignments?.actions || []), ...duplicateCassetteActions()]
+            actions: [...(current.roleAssignments?.actions || []), ...workspaceActions()]
           }
         }
       });
@@ -48,6 +48,8 @@ test.describe('generated project workspace', () => {
     await app.page.getByText('Library One', { exact: true }).first().click();
     await expect(app.page.locator('[data-workspace-pane] header')).toContainText('Library One');
     await expect(app.page.getByText('Cassette One', { exact: true }).first()).toBeVisible();
+    await expect(app.page.locator('[data-workspace-pane] [data-tab-actions]').getByRole('button', { name: /^cassette$/i })).toHaveCount(0);
+    await expect(app.page.locator('[data-workspace-pane]').getByRole('button', { name: /^cassette$/i })).toHaveCount(1);
 
     await app.page.getByRole('button', { name: 'Cassette One' }).click();
     const paneHeader = app.page.locator('[data-workspace-pane] header');
@@ -97,24 +99,30 @@ function workspaceScreens() {
     detailScreen('project_workspace_test', 'project', [
       source('project', 'project', 'single'),
     ], [{ ...region('main', 'project'), actions: ['create_cassette_a', 'create_cassette_b'] }]),
-    detailScreen('library_detail_test', 'library', [
+    { ...detailScreen('library_detail_test', 'library', [
       source('library', 'library', 'single'),
       { ...source('cassette_children', 'cassette', 'list'), filters: { libraryId: '$screen.scope.entityId' } }
-    ], [region('main', 'library'), region('cassette_children_region', 'cassette_children', 'card')]),
+    ], [region('main', 'library'), { ...region('cassette_children_region', 'cassette_children', 'card'), actions: ['create_cassette_for_library'] }]), actions: ['create_cassette_for_library'] },
     detailScreen('cassette_detail_test', 'cassette', [
       source('cassette', 'cassette', 'single')
     ], [region('main', 'cassette')])
   ];
 }
 
-function duplicateCassetteActions() {
+function workspaceActions() {
   return ['create_cassette_a', 'create_cassette_b'].map(actionId => ({
     actionId,
     actionKind: 'createEntity',
     entityType: 'cassette',
     parentEntityType: 'project',
     inputs: []
-  }));
+  })).concat({
+    actionId: 'create_cassette_for_library',
+    actionKind: 'createEntity',
+    entityType: 'cassette',
+    parentEntityType: 'library',
+    inputs: [{ id: 'parent', entityType: 'library', required: true }]
+  });
 }
 
 function detailScreen(screenKey, entityType, sources, regions) {

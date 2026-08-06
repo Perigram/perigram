@@ -130,6 +130,11 @@ already compiler-scoped and access-filtered, so the body resolves them directly
 from the user's action manifest instead of incorrectly comparing the producer's
 output entity type to the open queue. The body never scans the global action
 manifest for additional queue producers.
+In a project pane, the screen-wide action list is only an aggregate used to
+resolve the file's available contracts. `GeneratedEntityFile` subtracts every
+child-region action from the tab action row; each child action renders only in
+the region that owns it. The tab header must never duplicate a child collection
+action such as adding a cassette to an opened library.
 
 Registered screen overloads select the bounded workspace mode on
 `GeneratedScreen`/`StandardPage`, and the authenticated app layout resolves the

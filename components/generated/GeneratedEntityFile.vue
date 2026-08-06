@@ -171,6 +171,7 @@ const resolvedEntries = computed(() => {
 const resolvedActionIds = computed(() => resolvedEntries.value.map(entry => entry.actionId));
 const tabActionIds = computed(() => resolvedEntries.value
   .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
+  .filter(action => action && !detailChildActionIds.value.includes(action.actionId))
   .filter(isGeneratedSurfaceAction)
   .filter(action => !generatedEntityDetailConsumesAction(props.item?.type, action))
   .map(action => action.actionId));
