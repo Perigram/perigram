@@ -71,6 +71,12 @@ describe('Framework package contracts', () => {
       bucket: 'reports',
       mimeType: 'application/pdf'
     });
+    const captureKind = registry.defineAttachmentKind({
+      kind: 'TEST_CAPTURE',
+      bucket: 'captures',
+      creation: { mode: 'capture' },
+      editor: { mode: 'text' }
+    });
     const domain = registry.defineDomain({
       id: 'test-domain',
       entities: [{ type: 'domain_entity', collection: 'domain_entities' }],
@@ -87,6 +93,7 @@ describe('Framework package contracts', () => {
     expect(registry.getTaskDefinition('test.task')).toEqual(task);
     expect(registry.listTaskDefinitions()).toContainEqual(task);
     expect(registry.getAttachmentKindDefinition('TEST_REPORT')).toEqual(attachmentKind);
+    expect(registry.getAttachmentKindDefinition('TEST_CAPTURE')).toEqual(captureKind);
     expect(registry.listAttachmentKindDefinitions()).toContainEqual(attachmentKind);
     expect(registry.getDomain('test-domain')).toEqual(domain);
     expect(registry.listDomains()).toContainEqual(domain);

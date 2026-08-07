@@ -42,7 +42,7 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
 | Task | Async execution boundary for worker/server work. It is queued in `task_runs`, claimed by a worker or executor, and completed with a normalized task result. |
 | Workflow | Entity lifecycle machine: region states, transitions, access requirements, hooks, and lifecycle data policy. |
 | Hook | Transition side-effect contract plus app-registered handler. |
-| AttachmentKind | File/blob content contract: kind, bucket, MIME type, preview mode. |
+| AttachmentKind | File/blob content contract: kind, bucket, MIME type, preview mode, and creation/editor capability. |
 | Adapter | Application binding that connects pure domain definitions to infrastructure. |
 
 Commands and tasks are intentionally separate: a command expresses user/system
