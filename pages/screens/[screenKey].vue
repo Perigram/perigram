@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
@@ -21,7 +21,10 @@ definePageMeta({
 
 const route = useRoute();
 const authStore = useAuthStore();
-const refreshingAuth = ref(true);
+// The auth middleware has already hydrated this store for SSR and client route
+// navigation. Re-fetching it on mount replaces the manifest and unmounts the
+// generated workspace immediately after hydration.
+const refreshingAuth = ref(!authStore.userIsSet);
 
 const screenKey = computed(() => Array.isArray(route.params.screenKey)
   ? route.params.screenKey.join('/')
@@ -39,19 +42,6 @@ const screen = computed(() => {
     }
   };
 });
-
-onMounted(() => refreshProcessManifest());
-
-watch(screenKey, () => refreshProcessManifest());
-
-async function refreshProcessManifest() {
-  refreshingAuth.value = true;
-  try {
-    await authStore.setUser();
-  } finally {
-    refreshingAuth.value = false;
-  }
-}
 
 function synthesizedDetailScreen(key = '') {
   if (!String(key).endsWith('_detail')) return null;
