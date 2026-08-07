@@ -71,6 +71,8 @@ export const cncDesignSystemPrimitives = [
 const workflowStatus = (entityType) => cncWorkflows[entityType] ? 'interactive' : 'hidden';
 
 export const cncDesignSystemEntityContracts = [
+  ['facade', 'facade', 'production', 'entities.facade', 'facade', 'createMockFacade', workflowStatus('facade'), true, ['components/entities/Facade/README.md', 'server/features/facades/README.md']],
+  ['facadePattern', 'facade_pattern', 'master', 'entities.facadePattern', 'facadePattern', 'createMockFacadePattern', workflowStatus('facade_pattern'), true, ['components/entities/FacadePattern/README.md', 'server/features/facade-patterns/README.md']],
   ['project', 'project', 'production', 'entities.project', 'project', 'createMockProject', workflowStatus('project'), true, ['components/entities/Project/README.md', 'server/features/projects/README.md']],
   ['queue', 'queue', 'production', 'entities.queue', 'queue', 'createMockQueue', workflowStatus('queue'), true, ['server/features/queues/README.md']],
   ['nestingRun', 'nesting_run', 'production', 'entities.nestingRun', 'run', 'createMockNestingRun', workflowStatus('nesting_run'), true, ['server/features/nesting-runs/README.md']],

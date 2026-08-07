@@ -66,6 +66,8 @@ const createEntity = ({
 };
 
 export const MOCK_IDS = {
+  facadeId: 'facade-demo-atrium',
+  facadePatternId: 'facade-pattern-demo-grid',
   organizationId: 'org-demo-acme',
   manufacturerId: 'org-demo-maker',
   warehouseId: 'wh-demo-main',
@@ -749,6 +751,14 @@ export function createMockMachine(overrides = {}) {
     }),
     ...overrides
   };
+}
+
+export function createMockFacade(overrides = {}) {
+  return { ...createEntity({ uid: MOCK_IDS.facadeId, name: 'Atrium facade', state: 'DRAFT', lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId }, relations: {}, data: { parts: [], partAssignments: [], revisions: {} } }), ...overrides };
+}
+
+export function createMockFacadePattern(overrides = {}) {
+  return { ...createEntity({ uid: MOCK_IDS.facadePatternId, name: 'Panel grid', state: 'ACTIVE', lineage: { organizationId: MOCK_IDS.organizationId }, relations: {}, data: { graph: { schemaVersion: 1, nodes: [], edges: [], outputs: [], parameters: [] }, revisions: {} } }), ...overrides };
 }
 
 export function createMockHistory(statuses = ['DRAFT', 'ACTIVE', 'CLOSED']) {

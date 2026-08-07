@@ -27,6 +27,8 @@ import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const CARD_COMPONENTS = {
+  facade: defineAsyncComponent(() => import('~/components/entities/Facade/FacadeCard.vue')),
+  facadePattern: defineAsyncComponent(() => import('~/components/entities/FacadePattern/FacadePatternCard.vue')),
   project: defineAsyncComponent(() => import('~/components/entities/Project/ProjectCard.vue')),
   queue: defineAsyncComponent(() => import('~/components/entities/Queue/QueueCard.vue')),
   nestingRun: defineAsyncComponent(() => import('~/components/entities/NestingRun/NestingRunCard.vue')),

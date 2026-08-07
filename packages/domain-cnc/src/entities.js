@@ -12,6 +12,8 @@ export const cncEntities = [
   { type: 'catalog', collection: 'catalogs', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] },
   { type: 'color', collection: 'colors', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'entity_revision', collection: 'entity_revisions', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
+  { type: 'facade', collection: 'facades', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
+  { type: 'facade_pattern', collection: 'facade_patterns', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'geometry_capture', collection: 'geometry_captures', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'specs'] },
   { type: 'layer_standard', collection: 'layer_standards', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'library', feature: 'libraries', collection: 'libraries', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'], operations: { delete: true } },

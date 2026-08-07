@@ -2,6 +2,8 @@ import GeneratedProjectWorkspace from '~/components/generated/GeneratedProjectWo
 import GeneratedQueueDetail from '~/components/generated/GeneratedQueueDetail.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
+import GeneratedFacadeDesignerWorkspacePage from '~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue';
+import GeneratedFacadePatternDesignerWorkspacePage from '~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue';
 import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
 
 export const generatedScreenOverloads = [
@@ -22,6 +24,16 @@ export const generatedEntityDetailOverloads = [
     entityType: 'cassette',
     component: GeneratedCassetteDesignerWorkspacePage,
     props: ({ entity }) => ({ cassette: entity })
+  },
+  {
+    entityType: 'facade',
+    component: GeneratedFacadeDesignerWorkspacePage,
+    props: ({ entity }) => ({ facade: entity })
+  },
+  {
+    entityType: 'facade_pattern',
+    component: GeneratedFacadePatternDesignerWorkspacePage,
+    props: ({ entity }) => ({ facadePattern: entity })
   },
   {
     entityType: 'queue',

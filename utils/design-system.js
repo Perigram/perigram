@@ -26,6 +26,8 @@ import UserCard from '~/components/entities/User/UserCard.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
 import ArtifactTemplateCard from '~/components/entities/ArtifactTemplate/ArtifactTemplateCard.vue';
+import FacadeCard from '~/components/entities/Facade/FacadeCard.vue';
+import FacadePatternCard from '~/components/entities/FacadePattern/FacadePatternCard.vue';
 
 import * as factories from '~/test-data/factories.js';
 import {
@@ -37,6 +39,8 @@ import {
 } from '~/utils/design-system-contract.js';
 
 const components = {
+  facade: FacadeCard,
+  facadePattern: FacadePatternCard,
   project: ProjectCard,
   queue: QueueCard,
   nestingRun: NestingRunCard,

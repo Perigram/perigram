@@ -25,6 +25,8 @@ export const cncFrontendEntities = [
   { type: 'sheetDesign', collection: 'sheet-designs', routes: { single: '/api/sheet-designs/:id', list: '/api/sheet-designs' } },
   { type: 'artifact', collection: 'artifacts', routes: { single: '/api/artifacts/:id/metadata', download: '/api/artifacts/:id', list: '/api/artifacts' } },
   { type: 'artifactTemplate', collection: 'artifact-templates', routes: { single: '/api/artifact-templates/:id', download: '/api/artifact-templates/:id/source', list: '/api/artifact-templates' } },
+  { type: 'facade', collection: 'facades', routes: { single: '/api/facades/:id', list: '/api/facades' } },
+  { type: 'facadePattern', collection: 'facade-patterns', routes: { single: '/api/facade-patterns/:id', list: '/api/facade-patterns' } },
   { type: 'catalog', collection: 'catalogs', routes: { single: '/api/catalogs/:id', list: '/api/catalogs' } },
   { type: 'color', collection: 'colors', routes: { single: '/api/colors/:id', list: '/api/colors' } },
   { type: 'entityRevision', collection: 'entity-revisions', routes: { single: '/api/entity-revisions/:id', list: '/api/entity-revisions' } },

@@ -1892,8 +1892,12 @@
     "user": "Профиль пользователя",
     "organization": "Организация",
     "artifact": "Артефакт",
-    "artifactTemplate": "Шаблон артефакта"
+    "artifactTemplate": "Шаблон артефакта",
+    "facade": "Фасад",
+    "facadePattern": "Шаблон фасада"
   },
+  "facade": { "parts": "Части", "assignments": "Назначения", "save": "Сохранить фасад", "patterns": "Шаблоны", "sourceModel": "Исходная модель" },
+  "facadePattern": { "nodes": "Узлы", "save": "Сохранить шаблон", "graph": "Граф шаблона" },
   "artifactTemplates": {
     "selectFile": "Выбрать DXF или PDF",
     "empty": "Нет шаблонов артефактов",

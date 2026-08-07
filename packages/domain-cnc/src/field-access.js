@@ -10,6 +10,8 @@ const COMMON_READ_FIELDS = [
 ];
 
 export const cncEntityFieldAccess = {
+  facade: { feature: 'facades', read: [...COMMON_READ_FIELDS, 'data.parts', 'data.partAssignments', 'data.revisions'], write: ['relations.*', 'data.parts', 'data.partAssignments', 'data.revisions'], admin: ['identity.*', 'data.*', 'attachments.*'] },
+  facade_pattern: { feature: 'facade_patterns', read: [...COMMON_READ_FIELDS, 'data.graph', 'data.revisions'], write: ['identity.name', 'data.graph', 'data.revisions'], admin: ['identity.*', 'data.*', 'attachments.*'] },
   project: {
     feature: 'projects',
     read: [...COMMON_READ_FIELDS, 'data.address', 'data.thumbnailUrl'],

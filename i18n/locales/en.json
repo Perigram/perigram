@@ -1892,8 +1892,12 @@
     "user": "User Profile",
     "organization": "Organization",
     "artifact": "Artifact",
-    "artifactTemplate": "Artifact Template"
+    "artifactTemplate": "Artifact Template",
+    "facade": "Facade",
+    "facadePattern": "Facade Pattern"
   },
+  "facade": { "parts": "Parts", "assignments": "Assignments", "save": "Save facade", "patterns": "Patterns", "sourceModel": "Source model" },
+  "facadePattern": { "nodes": "Nodes", "save": "Save pattern", "graph": "Pattern graph" },
   "artifactTemplates": {
     "selectFile": "Choose DXF or PDF",
     "empty": "No artifact templates",
