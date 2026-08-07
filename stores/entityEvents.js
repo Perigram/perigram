@@ -2,8 +2,8 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { emitEntityChanged } from '~/utils/entity-events.js';
 
-const POLL_INTERVAL_MS = 750;
-const RETRY_INTERVAL_MS = 1500;
+const POLL_INTERVAL_MS = 15_000;
+const RETRY_INTERVAL_MS = 5_000;
 
 export const useEntityEventsStore = defineStore('entityEvents', () => {
     const connected = ref(false);
@@ -12,9 +12,10 @@ export const useEntityEventsStore = defineStore('entityEvents', () => {
     let timer = null;
     let runId = 0;
     let running = false;
+    let onVisibilityChange = null;
 
     async function poll(activeRunId) {
-        if (activeRunId !== runId) return;
+        if (activeRunId !== runId || !isDocumentVisible()) return;
 
         try {
             const response = await $fetch('/api/entity-events', {
@@ -42,6 +43,13 @@ export const useEntityEventsStore = defineStore('entityEvents', () => {
         running = true;
         const activeRunId = ++runId;
         error.value = null;
+        onVisibilityChange = () => {
+            if (!isDocumentVisible() || activeRunId !== runId) return;
+            if (timer) clearTimeout(timer);
+            timer = null;
+            poll(activeRunId);
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
         poll(activeRunId);
     }
 
@@ -50,6 +58,8 @@ export const useEntityEventsStore = defineStore('entityEvents', () => {
         running = false;
         if (timer) clearTimeout(timer);
         timer = null;
+        if (onVisibilityChange) document.removeEventListener('visibilitychange', onVisibilityChange);
+        onVisibilityChange = null;
         cursor = null;
         connected.value = false;
         error.value = null;
@@ -57,3 +67,7 @@ export const useEntityEventsStore = defineStore('entityEvents', () => {
 
     return { connected, error, connect, disconnect };
 });
+
+function isDocumentVisible() {
+    return typeof document === 'undefined' || document.visibilityState !== 'hidden';
+}
