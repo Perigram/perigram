@@ -68,23 +68,7 @@
                 <p>{{ previewError }}</p>
             </div>
             <div v-else-if="!editingLayout" class="flex-1 flex overflow-hidden">
-                <DrawingCanvas
-                    v-if="drawingSource"
-                    :source="drawingSource"
-                    :source-type="drawingSourceType"
-                    mode="viewer"
-                    show-layer-panel
-                    @error="handlePreviewError"
-                />
-                <!-- PDF Fallback -->
-                <div v-else-if="isPdf" class="flex-1 flex flex-col items-center justify-center gap-6">
-                    <i class="pi pi-file-pdf text-6xl opacity-20"></i>
-                    <div class="text-center">
-                        <p>{{ $t('artifacts.pdfPreviewUnavailable') }}</p>
-                        <small>{{ $t('artifacts.downloadFilePrompt') }}</small>
-                    </div>
-                    <Button :label="$t('common.download')" icon="pi pi-download" @click="downloadArtifact(previewArtifactData)" />
-                </div>
+                <ArtifactViewer :artifact="previewArtifactData" />
             </div>
         </div>
     </StandardDialog>
@@ -102,6 +86,7 @@ import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 import ArtifactLayoutEditor from '~/components/ArtifactLayoutEditor.vue';
 import { useToast } from 'primevue/usetoast';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';

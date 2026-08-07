@@ -85,6 +85,7 @@ export async function ensureForEntitySnapshot({
   scope = DEFAULT_SCOPE,
   content,
   snapshot,
+  attachments = {},
   userId = 'SYSTEM',
   reason = 'content-change'
 } = {}) {
@@ -116,6 +117,7 @@ export async function ensureForEntitySnapshot({
       ...(entity.lineage || {}),
       [`${entityType}Id`]: entityId
     },
+    attachments,
     data: createData({
       source: createEntityRef(entityType, entityId),
       scope,
@@ -173,5 +175,9 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   }
 
   const revisions = await repository.find({ ...lineageFilter, ...processed });
-  return revisions.map(toDTO);
+  return revisions.filter(revision => canReadRevision(userPermissions, revision)).map(toDTO);
+}
+
+export async function removeForEntity(entityType, entityId) {
+  return await repository.deleteForSource(entityType, entityId);
 }

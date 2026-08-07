@@ -1142,7 +1142,7 @@ const relationMutationOptions = [
   { label: t('processDesigner.operationLabels.replaceRelation'), value: 'replace' }
 ];
 const artifactUploadKindOptions = computed(() => designer.attachmentKindOptions
-  .filter(option => option.creation?.mode === 'upload'));
+  .filter(option => ['upload', 'capture', 'editor'].includes(option.creation?.mode)));
 const statusSeverityOptions = [
   { label: 'info', value: 'info' },
   { label: 'success', value: 'success' },

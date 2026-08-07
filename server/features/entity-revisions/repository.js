@@ -28,6 +28,20 @@ export async function find(filter = {}, options = {}) {
     .toArray();
 }
 
+export async function deleteForSource(entityType, entityId) {
+  const db = await connectDB();
+  const id = toFlexibleId(entityId).toString();
+  const filter = {
+    $or: [
+      { 'data.source.type': entityType, 'data.source.id': id },
+      { 'data.entityType': entityType, 'data.entityId': id }
+    ]
+  };
+  const revisions = await db.collection(COLLECTION).find(filter).toArray();
+  await db.collection(COLLECTION).deleteMany(filter);
+  return revisions;
+}
+
 export async function findByHash(entityType, entityId, scope, contentHash) {
   const db = await connectDB();
   const id = toFlexibleId(entityId).toString();

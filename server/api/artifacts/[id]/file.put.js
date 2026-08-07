@@ -3,6 +3,7 @@ import { requireAuth } from '~/server/utils/permissions.js';
 import { serializeForAccess } from '~/server/utils/entity-redaction.js';
 import { service } from '~/server/features/artifacts';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { validateArtifactFile } from '~/server/features/artifacts/file-contract.js';
 
 export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);
@@ -12,7 +13,8 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id');
   const current = await service.getById(id, auth.userId, auth.organizationId, auth.role, auth);
   const kind = getAppRegistry().getAttachmentKindDefinition(current.data?.type);
-  if (!kind || kind.creation?.mode !== 'upload') throw createError({ statusCode: 400, message: 'Artifact kind does not support file replacement' });
+  if (!kind || !['upload', 'capture', 'editor'].includes(kind.creation?.mode)) throw createError({ statusCode: 400, message: 'Artifact kind does not support file replacement' });
+  validateArtifactFile(kind, { buffer: file.data, filename: file.filename, mimeType: file.type });
   const artifact = await service.replaceUploadedFile(id, {
     buffer: file.data,
     filename: file.filename,
