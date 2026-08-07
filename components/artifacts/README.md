@@ -10,5 +10,6 @@ the domain attachment kind instead of accepting arbitrary component names.
 - `ArtifactDetail` supplies artifact DTOs and revision DTOs; the viewer never
   receives unauthorised file URLs.
 
-The CSV editor persists a replacement file and therefore creates a new
-immutable artifact file revision. XLSX is intentionally read-only.
+The CSV editor renders an editable cell table and persists a replacement file,
+therefore creating a new immutable artifact file revision. XLSX is intentionally
+read-only.
