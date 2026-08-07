@@ -24,9 +24,10 @@ Routes are grouped into sub-directories corresponding to features:
   package catalog, Stripe checkout creation, and payment sync routes. Token
   packages come from runtime config, not from user records or database price
   collections.
-- `entity-events/`: Authenticated entity invalidation stream. `GET` opens the
-  app-wide SSE connection for the current user, and `POST` publishes successful
-  frontend CRUD mutations after their canonical entity API call succeeds.
+- `entity-events/`: Authenticated entity invalidation channel. `GET` returns
+  visible recent events after an optional numeric cursor, and `POST` publishes
+  successful frontend CRUD mutations after their canonical entity API call
+  succeeds.
 - `tasks/`: Worker task queue protocol for claim, heartbeat, complete,
   fail, and cancel.
 - `admin/commands/`: Authenticated command definition and run listing for
