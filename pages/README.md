@@ -37,10 +37,10 @@ active organization processes. It looks up the current user's compiled screen
 manifest from the auth store and renders it through the fixed generated screen
 runtime, including the compiler-synthesized `home` template. Process navigation
 points to `/screens/:screenKey`; the route does not load arbitrary Vue
-components from process data. On mount and screen-key changes it refreshes
-`/api/auth/me` before rendering, so generated screens use the current active
-process screen/action manifest instead of stale client-side process
-assignments.
+components from process data. The auth middleware is the sole hydration
+boundary: generated routes must render the hydrated manifest directly and not
+re-fetch `/api/auth/me` on mount or screen-key changes, because replacing that
+manifest unmounts an already-rendered operational workspace.
 
 Operational pages use shared UI shell primitives:
 
