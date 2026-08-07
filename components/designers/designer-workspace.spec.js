@@ -5,6 +5,8 @@ const workspaceSource = readFileSync(new URL('../shared/DesignerWorkspace.vue', 
 const viewportSource = readFileSync(new URL('../shared/ThreeViewport.vue', import.meta.url), 'utf8');
 const cassetteSource = readFileSync(new URL('../CassetteDesignerV2.vue', import.meta.url), 'utf8');
 const processSource = readFileSync(new URL('../../pages/organization/process.vue', import.meta.url), 'utf8');
+const facadeSource = readFileSync(new URL('../FacadeDesigner.vue', import.meta.url), 'utf8');
+const facadePatternSource = readFileSync(new URL('../FacadePatternDesigner.vue', import.meta.url), 'utf8');
 
 describe('designer workspace contract', () => {
   it('keeps layout ownership in the shared shell', () => {
@@ -22,11 +24,16 @@ describe('designer workspace contract', () => {
     expect(viewportSource).toContain('disposeObject');
   });
 
-  it('moves existing designers onto the shared layout contract', () => {
+  it('routes every operational designer through the shared layout contract', () => {
     expect(cassetteSource).toContain('<DesignerWorkspace layout="lanes"');
     expect(cassetteSource).toContain('<template #palette>');
     expect(cassetteSource).toContain('<template #inspector>');
     expect(processSource).toContain('<DesignerWorkspace');
     expect(processSource).toContain('layout="canvas"');
+    expect(processSource).toContain('<template v-if="paletteOpen" #palette>');
+    expect(processSource).toContain('<template v-if="inspectorOpen" #inspector>');
+    expect(processSource).toContain('<template #dock>');
+    expect(facadeSource).toContain('<DesignerWorkspace layout="lanes"');
+    expect(facadePatternSource).toContain('<DesignerWorkspace layout="canvas"');
   });
 });

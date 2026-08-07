@@ -21,6 +21,14 @@ Do not add page-local breakpoint grids, viewport-height calculations, or
 independent lane scrolling to a designer. A designer may position feature-local
 handles and popovers inside its default-slot canvas.
 
+Every operational designer uses this contract: Cassette and Facade use the
+`lanes` composition, while Process and Facade Pattern use the `canvas`
+composition. The page or generated workspace supplies the full-height route
+shell through `StandardPage workspace`; the designer supplies palette,
+inspector, and dock content through these named slots. A canvas designer must
+not recreate its own floating palette, inspector, or dock positioning outside
+`DesignerWorkspace`.
+
 `layout="lanes"` is for editors with persistent side panels, such as cassette
 and facade design. `layout="canvas"` is for graph editors whose palette and
 inspector overlay a full canvas, such as process and facade-pattern design.

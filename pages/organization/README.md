@@ -42,9 +42,11 @@ entity workflows, services, sockets, and field policies. The checkmark apply
 button saves or forks the visible graph, activates the resulting process
 definition, and records activation warnings/errors in the validation popup so
 operators can inspect the result without a persistent canvas panel.
-The route uses the
-authenticated app layout with a full canvas workspace and compact floating
-controls over it. The graph palette is a compact, descriptive control with four
+The route uses the authenticated app layout with a full canvas workspace and
+the shared `DesignerWorkspace layout="canvas"` shell. Its graph palette,
+inspector, and dock are supplied through the shell's named slots, matching the
+shared designer contract used by Cassette, Facade, and Facade Pattern. The
+graph palette is a compact, descriptive control with four
 concerns only: Entities, Values, Lists and trees, and Events. Its framework
 metadata comes from `createProcessDesignerContract(cncDomain)`; the route
 supplies CNC as the active domain implementation rather than importing
