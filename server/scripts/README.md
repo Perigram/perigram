@@ -15,6 +15,8 @@ node server/scripts/seed-layer-standards.js  # OCCS layer standards from docs/sp
 node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
 node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry revisions and design provenance
+node server/scripts/migrate-artifact-file-revisions.js # Dry-run artifact current-file revision backfill
+node server/scripts/migrate-artifact-file-revisions.js --apply # Persist retained file revisions and scoped pointers
 node server/scripts/migrate-public-system-data.js # Mark system materials/layers/pens/tools public-read
 node server/scripts/migrate-org-types-to-processes.js # Backfill active process definitions from stored organization type labels
 node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
