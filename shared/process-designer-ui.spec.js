@@ -31,6 +31,11 @@ const socketContractSources = [
 ].map((file) => fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer', file), 'utf8'));
 
 describe('process designer canvas UI', () => {
+  it('renders Vue Flow only on the client because its accessibility ids are not SSR-stable', () => {
+    expect(designerSource).toContain('<ClientOnly>');
+    expect(designerSource).toContain('<template #fallback><div class="absolute inset-0" /></template>');
+  });
+
   it('keeps process nodes compact and aligns sockets by shared rows', () => {
     expect(nodeSource).toContain("'relative w-72 rounded-ui border");
     expect(nodeSource).toContain('const socketRows = computed(() => alignSockets');

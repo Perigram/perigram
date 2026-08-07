@@ -8,39 +8,42 @@
       @focusin="handleDesignerFocus"
       @wheel.capture="handleDesignerWheel"
     >
-      <VueFlow
-        v-model:nodes="nodes"
-        v-model:edges="edges"
-        class="process-designer-canvas absolute inset-0 h-full w-full"
-        :min-zoom="0.1"
-        :max-zoom="4"
-        :delete-key-code="null"
-        :selection-key-code="true"
-        multi-selection-key-code="Shift"
-        :selection-mode="SelectionMode.Partial"
-        :pan-on-drag="false"
-        pan-activation-key-code="Space"
-        :pan-on-scroll="true"
-        :zoom-on-scroll="false"
-        :zoom-on-pinch="true"
-        :zoom-on-double-click="false"
-        :default-edge-options="defaultEdgeOptions"
-        @node-click="event => selectNode(event.node)"
-        @edge-click="event => selectEdge(event.edge)"
-        @pane-click="clearGraphSelection"
-        @pane-context-menu="openPanePalette"
-        @connect-start="beginSocketConnection"
-        @connect-end="endSocketConnection"
-        @connect="onConnect"
-      >
-        <template #node-entity="props"><ProcessEntityNode v-bind="props" /></template>
-        <template #node-action="props"><ProcessActionNode v-bind="props" /></template>
-        <template #node-service="props"><ProcessServiceNode v-bind="props" /></template>
-        <template #node-socket="props"><ProcessSocketNode v-bind="props" /></template>
-        <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
-        <template #node-valueInput="props"><ProcessValueInputNode v-bind="props" /></template>
-        <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
-      </VueFlow>
+      <ClientOnly>
+        <VueFlow
+          v-model:nodes="nodes"
+          v-model:edges="edges"
+          class="process-designer-canvas absolute inset-0 h-full w-full"
+          :min-zoom="0.1"
+          :max-zoom="4"
+          :delete-key-code="null"
+          :selection-key-code="true"
+          multi-selection-key-code="Shift"
+          :selection-mode="SelectionMode.Partial"
+          :pan-on-drag="false"
+          pan-activation-key-code="Space"
+          :pan-on-scroll="true"
+          :zoom-on-scroll="false"
+          :zoom-on-pinch="true"
+          :zoom-on-double-click="false"
+          :default-edge-options="defaultEdgeOptions"
+          @node-click="event => selectNode(event.node)"
+          @edge-click="event => selectEdge(event.edge)"
+          @pane-click="clearGraphSelection"
+          @pane-context-menu="openPanePalette"
+          @connect-start="beginSocketConnection"
+          @connect-end="endSocketConnection"
+          @connect="onConnect"
+        >
+          <template #node-entity="props"><ProcessEntityNode v-bind="props" /></template>
+          <template #node-action="props"><ProcessActionNode v-bind="props" /></template>
+          <template #node-service="props"><ProcessServiceNode v-bind="props" /></template>
+          <template #node-socket="props"><ProcessSocketNode v-bind="props" /></template>
+          <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
+          <template #node-valueInput="props"><ProcessValueInputNode v-bind="props" /></template>
+          <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
+        </VueFlow>
+        <template #fallback><div class="absolute inset-0" /></template>
+      </ClientOnly>
 
       <div
         v-if="contextPalette.open"
