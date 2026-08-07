@@ -16,6 +16,7 @@ services:
     environment:
       - MONGODB_URI=mongodb://mongo:27017/cutkit_dev
       - NODE_ENV=development
+      - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=4096}
       - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
