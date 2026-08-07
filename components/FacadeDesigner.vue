@@ -1,5 +1,6 @@
 <template>
-  <DesignerWorkspace layout="lanes" class="h-full min-h-[32rem]">
+  <DesignerSurface>
+    <DesignerWorkspace layout="lanes" class="h-full">
     <template #palette>
       <div class="flex min-h-0 flex-col gap-3 rounded-ui border border-content-border bg-content p-3">
         <Button :label="$t('facade.save')" icon="pi pi-save" size="small" :loading="saving" :disabled="!facade?._id" @click="save" />
@@ -19,7 +20,8 @@
         </div>
       </div>
     </template>
-  </DesignerWorkspace>
+    </DesignerWorkspace>
+  </DesignerSurface>
 </template>
 
 <script setup>
@@ -29,6 +31,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Button from 'primevue/button';
 import Select from '~/components/shared/EntitySelect.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import ThreeViewport from '~/components/shared/ThreeViewport.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';

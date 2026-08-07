@@ -3,7 +3,6 @@
     :template="cassette"
     :template-options="templateOptions"
     :persisted-template-ids="persistedTemplateIds"
-    embedded
     @load-template="openTemplate"
     @save-template="$emit('refresh')"
   />

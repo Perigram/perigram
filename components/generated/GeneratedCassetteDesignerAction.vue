@@ -10,11 +10,10 @@
     :aria-label="$t('common.edit')"
     @click="openDesigner"
   />
-  <StandardDialog
+  <DesignerDialog
     v-if="!openInWorkspace"
     v-model:visible="visible"
     :header="$t('cassette.designerTitle')"
-    size="full"
     :close-on-escape="false"
   >
     <CassetteDesignerV2
@@ -24,7 +23,7 @@
       @load-template="loadTemplate"
       @save-template="handleSaved"
     />
-  </StandardDialog>
+  </DesignerDialog>
 </template>
 
 <script setup>
@@ -32,7 +31,7 @@ import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import CassetteDesignerV2 from '~/components/CassetteDesignerV2.vue';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
+import DesignerDialog from '~/components/shared/DesignerDialog.vue';
 import { useAuthStore } from '~/stores/auth';
 import { hasPermissionGrant } from '#shared/access-control.js';
 

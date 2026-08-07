@@ -1,13 +1,14 @@
 <template>
   <StandardPage workspace>
-    <DesignerWorkspace
-      ref="canvasFrame"
-      layout="canvas"
-      class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
-      @mousedown.capture="handleDesignerPointerDown"
-      @focusin="handleDesignerFocus"
-      @wheel.capture="handleDesignerWheel"
-    >
+    <DesignerSurface>
+      <DesignerWorkspace
+        ref="canvasFrame"
+        layout="canvas"
+        class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
+        @mousedown.capture="handleDesignerPointerDown"
+        @focusin="handleDesignerFocus"
+        @wheel.capture="handleDesignerWheel"
+      >
       <ClientOnly>
         <VueFlow
           v-model:nodes="nodes"
@@ -886,7 +887,8 @@
         </div>
       </div>
 
-    </DesignerWorkspace>
+      </DesignerWorkspace>
+    </DesignerSurface>
 
   </StandardPage>
 </template>
@@ -916,6 +918,7 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import {

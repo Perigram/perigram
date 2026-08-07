@@ -77,10 +77,9 @@
       @uploaded="handleUploaded"
     />
 
-    <StandardDialog
+    <DesignerDialog
       v-model:visible="showDesignerDialog"
       :header="$t('cassette.designerTitle')"
-      size="full"
       :close-on-escape="false"
       @hide="editingCassette = null"
     >
@@ -91,7 +90,7 @@
         @load-template="loadDesignerTemplate"
         @save-template="handleDesignerSaved"
       />
-    </StandardDialog>
+    </DesignerDialog>
     <ConfirmDialog />
   </div>
 </template>
@@ -109,7 +108,7 @@ import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesignerV2 from './CassetteDesignerV2.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
+import DesignerDialog from '~/components/shared/DesignerDialog.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
