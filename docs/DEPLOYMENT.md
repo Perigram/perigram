@@ -108,7 +108,9 @@ curl http://192.168.0.67:11434/api/tags
 
 ## 🛠 Troubleshooting
 
-*   **Memory Issues**: If you see "JS heap out of memory", set `NODE_OPTIONS="--max-old-space-size=4096"`.
+*   **Memory Issues**: The Docker development app passes
+    `NODE_OPTIONS=--max-old-space-size=4096` to Nuxt by default. Override that
+    environment variable only when the host has a known lower memory budget.
 *   **MongoDB**: Older CPUs require `mongo:4.4` (newer versions require AVX support).
 *   **Logs**:
     *   `docker service logs -f cutkit_app`
