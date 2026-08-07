@@ -86,7 +86,8 @@
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <div v-if="paletteOpen" class="absolute left-3 top-3 z-20 flex max-h-[calc(100%-6rem)] w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 overflow-y-auto rounded-ui border border-content-border bg-content p-3 shadow-card">
+      <template v-if="paletteOpen" #palette>
+        <div class="flex w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 rounded-ui border border-content-border bg-content p-3 shadow-card">
         <div class="flex items-center gap-1">
           <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
         </div>
@@ -107,13 +108,16 @@
             />
           </div>
         </div>
-      </div>
+        </div>
+      </template>
 
-      <MotionDock
-        :items="designerDockItems"
-        :aria-label="$t('processDesigner.title')"
-        class-name="process-designer-dock"
-      />
+      <template #dock>
+        <MotionDock
+          :items="designerDockItems"
+          :aria-label="$t('processDesigner.title')"
+          class-name="process-designer-dock"
+        />
+      </template>
 
       <Popover ref="processMenu" @hide="onDockPopoverHide('process')">
         <div
@@ -168,7 +172,8 @@
         </div>
       </Popover>
 
-      <aside v-if="inspectorOpen" class="absolute bottom-16 right-3 top-3 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card lg:max-w-[calc(100%-19rem)]">
+      <template v-if="inspectorOpen" #inspector>
+        <aside class="flex w-[26rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
         <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
@@ -869,7 +874,8 @@
             </TabPanel>
           </TabPanels>
         </Tabs>
-      </aside>
+        </aside>
+      </template>
 
       <div v-if="validation" class="absolute bottom-16 left-3 z-10 max-w-xl">
         <div class="flex flex-col gap-2">

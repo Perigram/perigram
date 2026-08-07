@@ -153,8 +153,9 @@ describe('process designer canvas UI', () => {
     expect(motionTokenSource).toContain("standard: 'cubic-bezier(0.2, 0, 0, 1)'");
     expect(motionTokenSource).toContain('dock: { mass: 0.1, stiffness: 180, damping: 16 }');
     expect(designerSource).not.toContain('absolute inset-x-3 top-3 z-30');
-    expect(designerSource).toContain('absolute left-3 top-3 z-20');
-    expect(designerSource).toContain('absolute bottom-16 right-3 top-3 z-20');
+    expect(designerSource).toContain('<template v-if="paletteOpen" #palette>');
+    expect(designerSource).toContain('<template v-if="inspectorOpen" #inspector>');
+    expect(designerSource).toContain('<template #dock>');
     expect(designerSource).toContain('paletteOpen.value = !paletteOpen.value');
     expect(designerSource).toContain('inspectorOpen.value = !inspectorOpen.value');
     expect(designerSource).toContain('<Popover ref="processMenu"');
