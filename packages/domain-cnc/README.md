@@ -28,6 +28,12 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
 - `ui.js` - design-system policy metadata, not Vue components.
 - `index.js` - public exports and aggregate `cncDomain`.
 
+Facade vocabulary includes project-scoped `facade` entities and organization-
+scoped `facade_pattern` entities. A facade points to an immutable GLB or
+self-contained GLTF artifact and records mesh-part pattern placements. A
+pattern holds a validated typed visual graph and an immutable algorithm
+revision. Neither entity bakes cassette designs or starts nesting.
+
 ## Vocabulary
 
 Commands are the access/business intent boundary. Tasks are retryable async
