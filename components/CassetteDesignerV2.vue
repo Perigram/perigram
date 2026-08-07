@@ -34,7 +34,8 @@
       </div>
     </div>
 
-    <div class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(18rem,1fr)_16rem_12rem] gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)_14rem] xl:grid-cols-[18rem_minmax(0,1fr)_20rem] xl:grid-rows-1 2xl:grid-cols-[20rem_minmax(0,1fr)_22rem]">
+    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
+      <template #palette>
       <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border bg-content p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
 
       <div class="flex shrink-0 flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
@@ -213,6 +214,7 @@
         <Textarea :model-value="occsJson" readonly rows="22" class="min-h-0 w-full flex-1 font-mono text-xs" />
       </div>
       </aside>
+      </template>
 
       <section ref="editorSurfaceRef" class="relative order-1 min-h-0 min-w-0 overflow-hidden xl:order-2">
       <DrawingCanvas
@@ -553,6 +555,7 @@
       </div>
       </section>
 
+      <template #inspector>
       <aside class="order-2 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden xl:order-3">
         <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3">
           <div class="flex items-center justify-between gap-2">
@@ -738,7 +741,8 @@
           />
         </div>
       </aside>
-    </div>
+      </template>
+    </DesignerWorkspace>
 
     <StandardDialog
       v-model:visible="profileDialogVisible"
@@ -829,6 +833,7 @@ import ProfileSketchEditor from '~/components/ProfileSketchEditor.vue';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useEntity } from '~/composables/useEntity.js';

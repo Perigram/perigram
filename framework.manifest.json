@@ -832,6 +832,26 @@
         "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions."
       },
       {
+        "componentPath": "components/shared/DesignerWorkspace.vue",
+        "docs": [
+          "components/designers/README.md",
+          "components/shared/README.md"
+        ],
+        "key": "DesignerWorkspace",
+        "kind": "layout",
+        "purpose": "Shared responsive palette/canvas/inspector workspace for operational designers."
+      },
+      {
+        "componentPath": "components/shared/ThreeViewport.vue",
+        "docs": [
+          "components/designers/README.md",
+          "components/shared/README.md"
+        ],
+        "key": "ThreeViewport",
+        "kind": "viewport",
+        "purpose": "Shared Three.js renderer lifecycle and selectable scene viewport for designers."
+      },
+      {
         "componentPath": "components/shared/GeometryPreview.vue",
         "docs": [
           "components/shared/README.md",
