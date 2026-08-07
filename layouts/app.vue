@@ -88,7 +88,8 @@
         <main
             :class="[
                 'flex min-h-0 w-full flex-1 flex-col mx-auto',
-                isFlushMobileSurface ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-w-[var(--ck-page-max-width)] md:overflow-visible md:p-6 lg:p-8'
+                isStandaloneDesignerRoute ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
+                    : isFlushMobileSurface ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-w-[var(--ck-page-max-width)] md:overflow-visible md:p-6 lg:p-8'
                     : isGeneratedWorkspaceRoute ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
                         : isBoundedWorkspaceRoute ? 'max-w-[var(--ck-page-max-width)] overflow-hidden px-3 pt-3 pb-24 md:p-4'
                         : 'max-w-[var(--ck-page-max-width)] px-4 pt-4 pb-24 md:p-6 lg:p-8'
@@ -290,8 +291,10 @@
     const isGeneratedWorkspaceRoute = computed(() => Boolean(
         resolveGeneratedScreenOverload(activeGeneratedScreen.value)
     ))
+    const isStandaloneDesignerRoute = computed(() => route.path === '/organization/process')
     const isBoundedWorkspaceRoute = computed(() => (
         isGeneratedWorkspaceRoute.value
+        || isStandaloneDesignerRoute.value
         || /^\/project\/[^/]+\/queues\/?$/.test(route.path)
     ))
     const isAccountRoute = computed(() => route.path === '/profile' || route.path.startsWith('/organization'))
