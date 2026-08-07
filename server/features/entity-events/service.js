@@ -1,5 +1,7 @@
 const subscribers = new Map();
 const automaticHandlers = new Set();
+const recentEvents = [];
+const MAX_RECENT_EVENTS = 500;
 let nextSubscriberId = 1;
 let nextEventId = 1;
 
@@ -30,6 +32,9 @@ export async function publishEntityChanged(auth = {}, detail = {}) {
     data: event
   });
 
+  recentEvents.push(event);
+  if (recentEvents.length > MAX_RECENT_EVENTS) recentEvents.shift();
+
   await Promise.all([...subscribers.values()]
     .filter(subscriber => canReceive(subscriber.auth, event))
     .map(subscriber => subscriber.push(payload).catch(() => null)));
@@ -40,6 +45,17 @@ export async function publishEntityChanged(auth = {}, detail = {}) {
   )));
 
   return event;
+}
+
+export function listEntityChanges(auth = {}, { after = null } = {}) {
+  const normalizedAuth = normalizeAuth(auth);
+  const cursor = nextEventId - 1;
+  if (after === null || !Number.isFinite(after)) return { cursor, events: [] };
+
+  return {
+    cursor,
+    events: recentEvents.filter(event => event.eventId > after && canReceive(normalizedAuth, event))
+  };
 }
 
 function normalizeEvent(auth = {}, detail = {}) {

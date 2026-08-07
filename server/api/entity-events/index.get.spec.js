@@ -1,51 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const stream = {
-  push: vi.fn(),
-  onClosed: vi.fn(),
-  send: vi.fn()
-};
-const unsubscribe = vi.fn();
+const listEntityChanges = vi.fn();
 
 vi.mock('h3', () => ({
-  createEventStream: vi.fn(() => stream),
   defineEventHandler: handler => handler,
-  setResponseHeaders: vi.fn(),
-  setResponseStatus: vi.fn()
+  getQuery: vi.fn(event => event.query || {})
 }));
 vi.mock('~/server/utils/permissions.js', () => ({
   requireAuth: vi.fn(() => ({ userId: 'user-1', organizationId: 'org-1' }))
 }));
-vi.mock('~/server/features/entity-events/service.js', () => ({
-  subscribe: vi.fn(() => unsubscribe)
-}));
+vi.mock('~/server/features/entity-events/service.js', () => ({ listEntityChanges }));
 
 const handler = (await import('./index.get.js')).default;
 
 describe('GET /api/entity-events', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    stream.push.mockReturnValue(new Promise(() => {}));
-    stream.send.mockReturnValue({ body: 'stream' });
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns immediately with changes after the client cursor', () => {
+    listEntityChanges.mockReturnValue({ cursor: 8, events: [] });
+
+    expect(handler({ query: { after: '7' } })).toEqual({ cursor: 8, events: [] });
+    expect(listEntityChanges).toHaveBeenCalledWith(
+      { userId: 'user-1', organizationId: 'org-1' },
+      { after: 7 }
+    );
   });
 
-  it('starts the response without waiting for the first stream write', async () => {
-    const flushHeaders = vi.fn();
-    const response = await handler({ node: { res: { flushHeaders } } });
+  it('omits history on the initial cursor request', () => {
+    handler({ query: {} });
 
-    expect(flushHeaders).toHaveBeenCalledOnce();
-    expect(stream.push).toHaveBeenCalledWith(expect.stringContaining('"type":"connected"'));
-    expect(stream.send).toHaveBeenCalledOnce();
-    expect(response).toEqual({ body: 'stream' });
-  });
-
-  it('unsubscribes without closing the already-closed stream again', async () => {
-    await handler({ node: { res: {} } });
-
-    const onClosed = stream.onClosed.mock.calls[0][0];
-    onClosed();
-
-    expect(unsubscribe).toHaveBeenCalledOnce();
-    expect(stream.close).toBeUndefined();
+    expect(listEntityChanges).toHaveBeenCalledWith(expect.any(Object), { after: null });
   });
 });
