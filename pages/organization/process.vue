@@ -1,9 +1,9 @@
 <template>
-  <StandardPage>
+  <StandardPage workspace>
     <DesignerWorkspace
       ref="canvasFrame"
       layout="canvas"
-      class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-process-canvas"
+      class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
       @mousedown.capture="handleDesignerPointerDown"
       @focusin="handleDesignerFocus"
       @wheel.capture="handleDesignerWheel"
@@ -1598,7 +1598,13 @@ function setDraft(value) {
   selectedPrincipalId.value = Object.keys(value?.data?.servicePrincipals || {})[0] || null;
   selectedScreenId.value = Object.keys(value?.data?.screens || {})[0] || null;
   savedDraftSignature.value = designerSignature();
-  nextTick(() => setViewport(canvas.viewport || { x: 0, y: 0, zoom: 1 }, { duration: 0 }));
+  nextTick(() => {
+    if (nodes.value.length) {
+      fitView({ padding: 0.16, duration: 0, maxZoom: 1 });
+      return;
+    }
+    setViewport(canvas.viewport || { x: 0, y: 0, zoom: 1 }, { duration: 0 });
+  });
   recomputeProcessPreview();
 }
 

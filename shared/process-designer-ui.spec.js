@@ -122,6 +122,11 @@ describe('process designer canvas UI', () => {
     expect(designerSource).toContain('setViewport(canvas.viewport');
   });
 
+  it('frames persisted nodes after loading a process definition', () => {
+    expect(designerSource).toContain('if (nodes.value.length)');
+    expect(designerSource).toContain('fitView({ padding: 0.16, duration: 0, maxZoom: 1 });');
+  });
+
   it('uses the shared motion dock for semantic hover panels', () => {
     expect(designerSource).toContain('v-if="paletteOpen"');
     expect(designerSource).toContain('v-if="inspectorOpen"');

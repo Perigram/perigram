@@ -118,8 +118,10 @@ entity surface itself.
 Organization routes are first-class app areas. `/organization` is the
 workspace hub linked from the user menu and profile organization cards;
 `/organization/users` owns team management; `/organization/process` owns the
-Vue Flow process designer. Breadcrumbs expose these routes as organization
-siblings so users can move between overview, team management, and process
+standalone Vue Flow process designer. It uses the full bounded app workspace
+instead of a padded page panel and frames persisted graph nodes after loading,
+so a saved viewport cannot hide the graph. Breadcrumbs expose these routes as
+organization siblings so users can move between overview, team management, and process
 design without going through profile/admin pages. Team management assigns users
 to active process roles; the process designer activation defines available
 services, field policies, navigation, and lifecycle machines for the current
