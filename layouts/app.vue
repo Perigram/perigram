@@ -669,9 +669,3 @@
         }
     })
 </script>
-
-<style scoped lang="scss">
-html {
-    font-size: 14px;
-}
-</style>
