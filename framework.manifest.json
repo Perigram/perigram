@@ -952,6 +952,16 @@
         "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions."
       },
       {
+        "componentPath": "components/shared/DesignerSurface.vue",
+        "docs": [
+          "components/designers/README.md",
+          "components/shared/README.md"
+        ],
+        "key": "DesignerSurface",
+        "kind": "layout",
+        "purpose": "Shared full-height flex boundary for operational designer route, pane, and dialog hosts."
+      },
+      {
         "componentPath": "components/shared/DesignerWorkspace.vue",
         "docs": [
           "components/designers/README.md",
@@ -960,6 +970,16 @@
         "key": "DesignerWorkspace",
         "kind": "layout",
         "purpose": "Shared responsive palette/canvas/inspector workspace for operational designers."
+      },
+      {
+        "componentPath": "components/shared/DesignerDialog.vue",
+        "docs": [
+          "components/designers/README.md",
+          "components/shared/README.md"
+        ],
+        "key": "DesignerDialog",
+        "kind": "layout",
+        "purpose": "Viewport-sized dialog host for standalone designer launches."
       },
       {
         "componentPath": "components/shared/ThreeViewport.vue",

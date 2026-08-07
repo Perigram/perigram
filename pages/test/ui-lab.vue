@@ -295,6 +295,12 @@
               <DrawingCanvas :source="sheetDesignEntity" source-type="geometry-preview" mode="card" />
             </template>
 
+            <template v-else-if="primitive.key === 'DesignerSurface'">
+              <DesignerSurface class="h-48 rounded-ui border border-content-border p-2">
+                <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-image" />
+              </DesignerSurface>
+            </template>
+
             <template v-else-if="primitive.key === 'DesignerWorkspace'">
               <DesignerWorkspace layout="lanes" class="h-48 rounded-ui border border-content-border p-2">
                 <template #palette><StateBlock :message="$t('common.details')" /></template>
@@ -356,6 +362,16 @@
               >
                 <DataBlock entity-type="materialPile" :entity="pileEntity" :fields="pileFields" />
               </StandardDialog>
+            </template>
+
+            <template v-else-if="primitive.key === 'DesignerDialog'">
+              <Button :label="$t('common.open')" icon="pi pi-window-maximize" @click="designerDialogVisible = true" />
+              <DesignerDialog
+                v-model:visible="designerDialogVisible"
+                :header="$t('cassette.designerTitle')"
+              >
+                <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-image" />
+              </DesignerDialog>
             </template>
 
             <template v-else-if="primitive.key === 'StandardPage'">
@@ -457,6 +473,8 @@ import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import DesignerDialog from '~/components/shared/DesignerDialog.vue';
+import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import ThreeViewport from '~/components/shared/ThreeViewport.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
@@ -506,7 +524,9 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'StatusLocation',
   'StatusHistory',
   'DrawingCanvas',
+  'DesignerSurface',
   'DesignerWorkspace',
+  'DesignerDialog',
   'ThreeViewport',
   'GeometryPreview',
   'TraceLink',
@@ -534,6 +554,7 @@ const expandedReviews = ref(new Set());
 
 const activeSection = ref(groups[0]?.id || 'contract');
 const dialogVisible = ref(false);
+const designerDialogVisible = ref(false);
 const activeGroup = computed(() => groups.find((group) => group.id === activeSection.value));
 const activeRows = computed(() => rows.filter((row) => row.group === activeSection.value));
 const activeRowsWithModels = computed(() => activeRows.value.map((row) => ({

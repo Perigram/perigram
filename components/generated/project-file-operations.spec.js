@@ -34,10 +34,11 @@ describe('project file operations and queue pane density', () => {
     expect(actionPaletteSource).toContain('overflow-x-auto');
     expect(actionPaletteSource).toContain('v-for="entry in actionEntries"');
     expect(actionPaletteSource).toContain('<GeneratedActionButton');
-    expect(cassetteDesignerPageSource).toContain('embedded');
+    expect(cassetteDesignerPageSource).not.toContain('embedded');
     expect(cassetteDesignerPageSource).toContain("pageId: 'cassette-designer'");
     expect(cassetteDesignerPageSource).not.toContain('/api/');
-    expect(cassetteDesignerSource).toContain("embedded ? 'h-full'");
+    expect(cassetteDesignerSource).toContain('<DesignerSurface');
+    expect(cassetteDesignerSource).not.toContain('h-[calc(100dvh-10rem)]');
     expect(cassetteDesignerSource).toContain("'/api/cassettes'");
     expect(cassetteDesignerSource).not.toContain("'/api/commands/saveCassetteTemplate/run'");
     expect(relationsBlockSource).toContain(':context-action-entries="unlinkEntries(relation, item)"');

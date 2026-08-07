@@ -337,7 +337,8 @@ describe('Design system manifest', () => {
   it('keeps raw Card and Dialog ownership inside shared wrappers', () => {
     const allowed = new Set([
       'components/shared/EntityCard.vue',
-      'components/shared/StandardDialog.vue'
+      'components/shared/StandardDialog.vue',
+      'components/shared/DesignerDialog.vue'
     ]);
 
     const offenders = usedVueFiles().filter((file) => {

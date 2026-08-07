@@ -1,5 +1,6 @@
 <template>
-  <DesignerWorkspace layout="canvas" class="h-full min-h-[32rem]">
+  <DesignerSurface>
+    <DesignerWorkspace layout="canvas" class="h-full">
     <template #palette>
       <div class="flex w-52 flex-col gap-2 rounded-ui border border-content-border bg-content p-3 shadow-sm">
         <span class="text-sm font-medium">{{ $t('facadePattern.nodes') }}</span>
@@ -25,7 +26,8 @@
     <template #dock>
       <Button :label="$t('facadePattern.save')" icon="pi pi-save" :loading="saving" :disabled="readOnly || !pattern?._id" @click="save" />
     </template>
-  </DesignerWorkspace>
+    </DesignerWorkspace>
+  </DesignerSurface>
 </template>
 
 <script setup>
@@ -35,6 +37,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import { FACADE_PATTERN_NODE_TYPES } from '~/utils/facade-patterns/index.js';
 
 const props = defineProps({ pattern: { type: Object, required: true }, readOnly: { type: Boolean, default: false } });

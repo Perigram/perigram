@@ -1,9 +1,6 @@
 <template>
-  <div
-    :class="[
-      'relative flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden',
-      embedded ? 'h-full' : 'h-[calc(100dvh-10rem)]'
-    ]"
+  <DesignerSurface
+    class="relative gap-3"
     @keydown.esc.capture="handleDesignerEscape"
   >
     <div
@@ -812,7 +809,7 @@
         </div>
       </template>
     </StandardDialog>
-  </div>
+  </DesignerSurface>
 </template>
 
 <script setup>
@@ -834,6 +831,7 @@ import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandard
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useEntity } from '~/composables/useEntity.js';
@@ -892,10 +890,6 @@ const props = defineProps({
   persistedTemplateIds: {
     type: Array,
     default: () => []
-  },
-  embedded: {
-    type: Boolean,
-    default: false
   },
   persist: {
     type: Boolean,
