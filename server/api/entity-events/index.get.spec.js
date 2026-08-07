@@ -9,7 +9,9 @@ const unsubscribe = vi.fn();
 
 vi.mock('h3', () => ({
   createEventStream: vi.fn(() => stream),
-  defineEventHandler: handler => handler
+  defineEventHandler: handler => handler,
+  setResponseHeaders: vi.fn(),
+  setResponseStatus: vi.fn()
 }));
 vi.mock('~/server/utils/permissions.js', () => ({
   requireAuth: vi.fn(() => ({ userId: 'user-1', organizationId: 'org-1' }))
@@ -28,15 +30,17 @@ describe('GET /api/entity-events', () => {
   });
 
   it('starts the response without waiting for the first stream write', async () => {
-    const response = await handler({});
+    const flushHeaders = vi.fn();
+    const response = await handler({ node: { res: { flushHeaders } } });
 
+    expect(flushHeaders).toHaveBeenCalledOnce();
     expect(stream.push).toHaveBeenCalledWith(expect.stringContaining('"type":"connected"'));
     expect(stream.send).toHaveBeenCalledOnce();
     expect(response).toEqual({ body: 'stream' });
   });
 
   it('unsubscribes without closing the already-closed stream again', async () => {
-    await handler({});
+    await handler({ node: { res: {} } });
 
     const onClosed = stream.onClosed.mock.calls[0][0];
     onClosed();

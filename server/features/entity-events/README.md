@@ -44,10 +44,11 @@ contract.
 The app shell opens `GET /api/entity-events` once the auth store is hydrated.
 Incoming server events are re-emitted through `utils/entity-events.js`, which is
 the browser-local contract consumed by shared stores and components.
-The route starts the SSE response before any asynchronous stream write and sends
-heartbeat messages every 30 seconds. Closing the request only removes its
-subscriber and heartbeat; the server must not close an already-closed stream
-from its close callback.
+The route commits SSE response headers before any asynchronous stream write so
+the Nuxt development proxy and production reverse proxies do not wait for the
+long-lived response to finish before forwarding it. It sends heartbeat messages
+every 30 seconds. Closing the request only removes its subscriber and heartbeat;
+the server must not close an already-closed stream from its close callback.
 
 ## Related
 
