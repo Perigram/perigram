@@ -19,7 +19,7 @@ function normalizeAssignments(value = []) {
   if (!Array.isArray(value)) throw createError({ statusCode: 400, message: 'Facade assignments must be an array' });
   return value.map(item => ({
     partKey: String(item?.partKey || ''), patternId: item?.patternId ? String(item.patternId) : '', patternRevisionId: item?.patternRevisionId ? String(item.patternRevisionId) : '', libraryId: item?.libraryId ? String(item.libraryId) : '', cassetteId: item?.cassetteId ? String(item.cassetteId) : '', parameters: item?.parameters && typeof item.parameters === 'object' ? item.parameters : {}, mapping: item?.mapping?.mode === 'planar' ? { mode: 'planar' } : { mode: 'uv' }, placements: Array.isArray(item?.placements) ? item.placements : []
-  }).filter(item => item.partKey && item.patternId);
+  })).filter(item => item.partKey && item.patternId);
 }
 
 async function ensureLayoutRevision(facade, userId, reason) {
