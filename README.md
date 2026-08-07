@@ -102,11 +102,6 @@ human explicitly asks. Worker endpoints require matching `WORKER_TOKEN` on app
 and workers; compose files use `cutkit-dev-worker` for local development.
 Docker dev starts Nuxt with `--host 0.0.0.0` so the app binds to the container
 interface and is reachable through the compose `3000:3000` port mapping.
-Development server source maps are disabled because Nitro's error-frame enhancer can
-fail inside its WASM source-map consumer and prevent the internal Vite-to-Nitro
-proxy from completing error responses. Runtime errors remain logged with their
-generated server bundle locations instead of being replaced by repeated
-source-map failures and HTTP 502 timeouts.
 When opening the dev app from another device on the LAN, also set
 `NUXT_DEV_HMR_HOST=<your-laptop-LAN-IP>` so the proxied Vite client advertises
 the same browser-visible host for hot-module websocket traffic instead of an
