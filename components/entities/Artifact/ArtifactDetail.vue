@@ -10,7 +10,7 @@
         <FileUpload v-if="canReplaceFile" mode="basic" :accept="creation.accept" :choose-label="$t('generatedScreen.replaceArtifactFile')" custom-upload @select="replaceFile" />
         <Select v-if="revisions.length" v-model="selectedRevisionId" :options="revisionOptions" option-label="label" option-value="value" size="small" class="min-w-48" />
       </div>
-      <template v-else-if="canEdit && layoutDraft && editor.mode === 'layout'"><ArtifactLayoutEditor v-model="layoutDraft" /></template>
+      <template v-if="canEdit && layoutDraft && editor.mode === 'layout'"><ArtifactLayoutEditor v-model="layoutDraft" /></template>
       <ArtifactTextEditor v-else-if="canEdit && ['text', 'csv'].includes(editor.mode)" :artifact="artifact" @saved="$emit('saved', $event)" />
       <ArtifactViewer v-else :artifact="artifact" :revision="revision" />
     </div>
