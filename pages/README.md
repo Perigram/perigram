@@ -120,7 +120,8 @@ workspace hub linked from the user menu and profile organization cards;
 `/organization/users` owns team management; `/organization/process` owns the
 standalone Vue Flow process designer. It uses the full bounded app workspace
 instead of a padded page panel and frames persisted graph nodes after loading,
-so a saved viewport cannot hide the graph. Breadcrumbs expose these routes as
+so a saved viewport cannot hide the graph. Vue Flow renders client-side because
+its generated accessibility ids are not stable across SSR hydration. Breadcrumbs expose these routes as
 organization siblings so users can move between overview, team management, and process
 design without going through profile/admin pages. Team management assigns users
 to active process roles; the process designer activation defines available
