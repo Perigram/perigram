@@ -351,7 +351,13 @@ export function generateRelationshipDiagram(models) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   extractDataModels().then(models => {
     const md = generateMarkdown(models);
-    fs.writeFileSync(path.resolve(process.cwd(), 'server/DATA_MODEL.md'), md);
+    const outputPath = path.resolve(process.cwd(), 'server/DATA_MODEL.md');
+    const current = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
+    if (current === md) {
+      console.log('✓ server/DATA_MODEL.md is current');
+      return;
+    }
+    fs.writeFileSync(outputPath, md);
     console.log('✓ Successfully updated server/DATA_MODEL.md');
   }).catch(err => {
     console.error('Error:', err);
