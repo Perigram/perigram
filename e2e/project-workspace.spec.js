@@ -35,7 +35,7 @@ test.describe('generated project workspace', () => {
     });
     await fulfillJson(app.page, '**/api/project/project-1', project);
     await fulfillJson(app.page, '**/api/libraries/library-1', library);
-    await fulfillJson(app.page, '**/api/queues?**', [queue]);
+    await fulfillJson(app.page, '**/api/queue?**', [queue]);
     await fulfillJson(app.page, '**/api/cassettes?**', [cassette]);
     await fulfillJson(app.page, '**/api/cassettes/cassette-1', cassette);
     await fulfillJson(app.page, '**/api/status/actions?**', []);
