@@ -47,6 +47,7 @@ function parseObjectField(value, name) {
 }
 
 function inferArtifactType(mimeType = '', filename = '') {
+  if (/\.(glb|gltf)$/i.test(filename)) return 'FACADE_MODEL_SOURCE';
   if (String(mimeType).startsWith('image/')) return 'CAPTURE_PHOTO';
   if (/\.dxf$/i.test(filename)) return 'DXF_SOURCE';
   return 'UPLOAD';

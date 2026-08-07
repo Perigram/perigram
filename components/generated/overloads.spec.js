@@ -4,6 +4,8 @@ vi.mock('~/components/generated/GeneratedProjectWorkspace.vue', () => ({ default
 vi.mock('~/components/generated/GeneratedQueueDetail.vue', () => ({ default: { name: 'GeneratedQueueDetail' } }));
 vi.mock('~/components/SheetDesignEditor.vue', () => ({ default: { name: 'SheetDesignEditor' } }));
 vi.mock('~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedCassetteDesignerWorkspacePage' } }));
+vi.mock('~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadeDesignerWorkspacePage' } }));
+vi.mock('~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadePatternDesignerWorkspacePage' } }));
 vi.mock('~/components/entities/Artifact/ArtifactDetail.vue', () => ({ default: { name: 'ArtifactDetail' } }));
 
 import {
@@ -38,6 +40,8 @@ describe('generated overload registry', () => {
   it('keeps entity detail body overloads in the registry', () => {
     expect(resolveGeneratedEntityDetailOverload('artifact')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('cassette')?.component).toBeTruthy();
+    expect(resolveGeneratedEntityDetailOverload('facade')?.component).toBeTruthy();
+    expect(resolveGeneratedEntityDetailOverload('facade_pattern')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('queue')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('sheet_design')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('project')).toBeNull();

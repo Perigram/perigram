@@ -1,4 +1,5 @@
 export const cncContainment = [
+  { parentType: 'project', childType: 'facade', lineageKey: 'projectId' },
   { parentType: 'library', childType: 'cassette', lineageKey: 'libraryId' },
   { parentType: 'project', childType: 'queue', lineageKey: 'projectId' },
   { parentType: 'queue', childType: 'nesting_run', lineageKey: 'queueId' },
@@ -11,6 +12,10 @@ export const cncContainment = [
 ];
 
 export const cncRelations = [
+  { ownerType: 'facade', key: 'sourceModel', targetType: 'artifact', cardinality: 'one' },
+  { ownerType: 'facade', key: 'patterns', targetType: 'facade_pattern', cardinality: 'many' },
+  { ownerType: 'facade', key: 'libraries', targetType: 'library', cardinality: 'many' },
+  { ownerType: 'library', key: 'facadePatterns', targetType: 'facade_pattern', cardinality: 'many' },
   {
     ownerType: 'queue',
     key: 'cassettes',

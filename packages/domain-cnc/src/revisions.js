@@ -11,6 +11,8 @@ export const cncEntityRevisions = {
     scopes: ['geometry'],
     defaultScope: 'geometry'
   },
+  facade: { scopes: ['layout'], defaultScope: 'layout' },
+  facade_pattern: { scopes: ['algorithm'], defaultScope: 'algorithm' },
   sheet_design: {
     scopes: ['geometry'],
     defaultScope: 'geometry'

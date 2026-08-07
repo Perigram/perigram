@@ -1,6 +1,15 @@
 {
   "attachmentKinds": [
     {
+      "bucket": "facadeModels",
+      "key": "FACADE_MODEL_SOURCE",
+      "kind": "FACADE_MODEL_SOURCE",
+      "mimeType": "model/gltf-binary",
+      "preview": {
+        "mode": "model3d"
+      }
+    },
+    {
       "bucket": "artifactTemplates",
       "key": "ARTIFACT_TEMPLATE_SOURCE",
       "kind": "ARTIFACT_TEMPLATE_SOURCE",
@@ -211,6 +220,36 @@
   ],
   "designSystem": {
     "components": [
+      {
+        "componentPath": null,
+        "docs": [
+          "components/entities/Facade/README.md",
+          "server/features/facades/README.md"
+        ],
+        "entityType": "facade",
+        "fieldPaths": [],
+        "group": "production",
+        "key": "facade",
+        "labelKey": "entities.facade",
+        "propName": "facade",
+        "status": "interactive",
+        "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "components/entities/FacadePattern/README.md",
+          "server/features/facade-patterns/README.md"
+        ],
+        "entityType": "facade_pattern",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "facadePattern",
+        "labelKey": "entities.facadePattern",
+        "propName": "facadePattern",
+        "status": "interactive",
+        "trace": true
+      },
       {
         "componentPath": "components/entities/Project/ProjectCard.vue",
         "docs": [
@@ -1450,6 +1489,37 @@
         "status",
         "attachments",
         "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "facades",
+      "lineage": {},
+      "type": "facade"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "facade_patterns",
+      "lineage": {},
+      "meta": true,
+      "type": "facade_pattern"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data",
         "specs",
         "relations",
         "provenance"
@@ -1996,6 +2066,18 @@
       "type": "artifactTemplate"
     },
     {
+      "collection": "facades",
+      "list": "/api/facades",
+      "single": "/api/facades/:id",
+      "type": "facade"
+    },
+    {
+      "collection": "facade-patterns",
+      "list": "/api/facade-patterns",
+      "single": "/api/facade-patterns/:id",
+      "type": "facadePattern"
+    },
+    {
       "collection": "catalogs",
       "list": "/api/catalogs",
       "single": "/api/catalogs/:id",
@@ -2235,6 +2317,31 @@
     "ok": true
   },
   "workflows": [
+    {
+      "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "DRAFT",
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 3,
+      "type": "facade"
+    },
+    {
+      "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 1,
+      "type": "facade_pattern"
+    },
     {
       "initial": "DRAFT",
       "regions": [

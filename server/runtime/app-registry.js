@@ -10,6 +10,8 @@ import * as cassettesService from '~/server/features/cassettes/service.js';
 import * as catalogsService from '~/server/features/catalogs/service.js';
 import * as colorsService from '~/server/features/colors/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
+import * as facadesService from '~/server/features/facades/service.js';
+import * as facadePatternsService from '~/server/features/facade-patterns/service.js';
 import * as geometryCapturesService from '~/server/features/geometry-captures/service.js';
 import * as layerStandardsService from '~/server/features/layer-standards/service.js';
 import * as librariesService from '~/server/features/libraries/service.js';
@@ -89,6 +91,8 @@ const entityServices = {
   catalog: catalogsService,
   color: colorsService,
   entity_revision: entityRevisionsService,
+  facade: facadesService,
+  facade_pattern: facadePatternsService,
   geometry_capture: geometryCapturesService,
   layer_standard: layerStandardsService,
   library: librariesService,
@@ -143,6 +147,8 @@ const entityProcessLists = {
   catalog: authFirstList(catalogsService),
   color: authFirstList(colorsService),
   entity_revision: authFirstList(entityRevisionsService),
+  facade: authFirstList(facadesService),
+  facade_pattern: authFirstList(facadePatternsService),
   geometry_capture: authFirstList(geometryCapturesService),
   layer_standard: filters => layerStandardsService.list(filters),
   library: authFirstList(librariesService),
@@ -174,6 +180,8 @@ const entityProcessReads = {
   catalog: id => catalogsService.getById(id),
   color: id => colorsService.getById(id),
   entity_revision: authWithoutOrganizationRead(entityRevisionsService),
+  facade: authLastRead(facadesService),
+  facade_pattern: authLastRead(facadePatternsService),
   geometry_capture: authLastRead(geometryCapturesService),
   layer_standard: id => layerStandardsService.getById(id),
   library: authLastRead(librariesService),

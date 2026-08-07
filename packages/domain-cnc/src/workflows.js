@@ -12,6 +12,20 @@ const mainWorkflow = ({ initial, states, transitions }) => ({
 });
 
 const workflowDefinitions = {
+  facade: {
+    initial: 'DRAFT',
+    states: { DRAFT: { canUpdateMeta: true }, ACTIVE: { canUpdateMeta: true }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
+    transitions: [
+      { from: 'DRAFT', to: 'ACTIVE', access: { permissions: [{ feature: 'facades', level: 'write' }] } },
+      { from: 'DRAFT', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'facades', level: 'admin' }] } },
+      { from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'facades', level: 'admin' }] } }
+    ]
+  },
+  facade_pattern: {
+    initial: 'ACTIVE',
+    states: { ACTIVE: { canUpdateMeta: true }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
+    transitions: [{ from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'facade_patterns', level: 'admin' }] } }]
+  },
   project: {
     initial: 'DRAFT',
     states: { DRAFT: { canUpdateMeta: true }, ACTIVE: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false } },
