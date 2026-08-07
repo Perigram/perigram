@@ -43,7 +43,7 @@ button saves or forks the visible graph, activates the resulting process
 definition, and records activation warnings/errors in the validation popup so
 operators can inspect the result without a persistent canvas panel.
 The route uses the authenticated app layout with a full canvas workspace and
-the shared `DesignerWorkspace layout="canvas"` shell. Its graph palette,
+the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. Its graph palette,
 inspector, and dock are supplied through the shell's named slots, matching the
 shared designer contract used by Cassette, Facade, and Facade Pattern. The
 graph palette is a compact, descriptive control with four

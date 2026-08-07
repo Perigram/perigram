@@ -154,6 +154,15 @@ persistent editor panels and `layout="canvas"` for a full canvas with overlay
 palette and inspector. Do not recreate designer breakpoint grids or viewport
 height calculations in a feature component.
 
+### `DesignerSurface.vue` and `DesignerDialog.vue`
+
+`DesignerSurface` is the shared full-height flex boundary for every operational
+designer before it mounts `DesignerWorkspace`; it works consistently in routes,
+generated workspace panes, and dialog content. `DesignerDialog` is the only
+dialog host for standalone designer launches. It fills the viewport and mounts
+its content through `DesignerSurface`, so a cassette designer opened from an
+entity action uses the same sizing contract as route and pane designers.
+
 ### `ThreeViewport.vue`
 
 Shared Three.js host for designer previews. It owns renderer/camera/control

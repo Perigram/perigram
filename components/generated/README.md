@@ -96,8 +96,8 @@ bounded IDE-style Explorer and file workspace:
 - The built-in `cassette-designer` page opens from a workspace cassette file's
   access-gated designer action. It receives only cassette templates already
   available among the workspace's source-loaded or explicitly linked entities
-  and mounts `CassetteDesignerV2` in embedded mode so the designer owns the pane
-  rather than a dialog. Linked entities and source-loaded children use the same
+  and mounts `CassetteDesignerV2` through the shared designer surface so the
+  designer owns the pane rather than a dialog. Linked entities and source-loaded children use the same
   page-opening lookup; relation navigation does not reduce their capabilities.
   Additional app-owned pages register through the same fixed registry.
 - PrimeVue splitters form a recursive split tree. A pane can split right or

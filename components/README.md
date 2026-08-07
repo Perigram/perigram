@@ -461,8 +461,9 @@ action instead of routing users to a static asset page, and generated cassette
 collection/home cards mirror that same editor action in their footers when the
 user has `cassettes:write` on the concrete cassette.
 The generated entity-detail overload registry also maps `cassette` directly to
-the embedded `CassetteDesignerV2` surface. Project panes and ordinary generated
-cassette detail routes therefore use the same editor affiliation.
+the `CassetteDesignerV2` surface. Project panes and ordinary generated cassette
+detail routes therefore use the same editor affiliation and shared full-height
+designer host.
 It also maps `facade` to `FacadeDesigner` and `facade_pattern` to
 `FacadePatternDesigner`. Both use the shared designer shell: the facade editor
 owns immutable-model part assignment, while the pattern editor owns only its
