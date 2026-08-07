@@ -44,6 +44,10 @@ contract.
 The app shell opens `GET /api/entity-events` once the auth store is hydrated.
 Incoming server events are re-emitted through `utils/entity-events.js`, which is
 the browser-local contract consumed by shared stores and components.
+The route starts the SSE response before any asynchronous stream write and sends
+heartbeat messages every 30 seconds. Closing the request only removes its
+subscriber and heartbeat; the server must not close an already-closed stream
+from its close callback.
 
 ## Related
 
