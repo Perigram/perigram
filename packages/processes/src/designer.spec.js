@@ -116,8 +116,7 @@ describe('process designer domain contract', () => {
     expect(Object.keys(groups)).toEqual([
       'entities',
       'values',
-      'listTree',
-      'automation'
+      'listTree'
     ]);
     expect(groups.entities.map(item => item.kind || item.type)).toEqual([
       'effect.createEntity',
@@ -140,11 +139,9 @@ describe('process designer domain contract', () => {
     ]);
     expect(groups.listTree.map(item => item.kind)).toContain('tree.cross');
     expect(items.map(item => item.kind)).not.toContain('control.manualTrigger');
-    expect(groups.automation.map(item => item.kind)).toEqual([
-      'control.entityChangedTrigger',
-      'control.domainEventTrigger',
-      'control.waitUntil'
-    ]);
+    expect(items.map(item => item.kind)).not.toContain('control.entityChangedTrigger');
+    expect(items.map(item => item.kind)).not.toContain('control.domainEventTrigger');
+    expect(items.map(item => item.kind)).not.toContain('control.waitUntil');
     expect(items.map(item => item.kind)).not.toContain('value.cast');
     expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');

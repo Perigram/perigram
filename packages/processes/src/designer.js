@@ -92,14 +92,6 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('crossLists', 'tree.cross'),
       paletteItem('transposeTree', 'tree.transpose')
     ]
-  },
-  {
-    id: 'automation',
-    items: [
-      paletteItem('entityEvent', 'control.entityChangedTrigger'),
-      paletteItem('domainEvent', 'control.domainEventTrigger'),
-      paletteItem('waitUntilTime', 'control.waitUntil')
-    ]
   }
 ].map(group => Object.freeze({
   ...group,
