@@ -145,6 +145,22 @@ creates additional tracks instead of enlarging existing cards without limit.
 Route-level production pages that need navigation, center work area, and right
 rail still use `WorkspaceLanes`.
 
+### `DesignerWorkspace.vue`
+
+Shared full-height shell for operational designers. It owns responsive lane
+layout and overflow; feature designers supply `toolbar`, `palette`, default
+canvas, `inspector`, `support`, and `dock` slots. Use `layout="lanes"` for
+persistent editor panels and `layout="canvas"` for a full canvas with overlay
+palette and inspector. Do not recreate designer breakpoint grids or viewport
+height calculations in a feature component.
+
+### `ThreeViewport.vue`
+
+Shared Three.js host for designer previews. It owns renderer/camera/control
+lifecycle, resize, selection raycasting, and disposal. Feature code supplies a
+scene group and stores selectable metadata in `object.userData.designerItem`;
+it must not create another renderer or global pointer listener.
+
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.
 Status labels may be either i18n keys from shared mappings or process-authored
