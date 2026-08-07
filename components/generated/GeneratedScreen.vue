@@ -388,7 +388,7 @@ function closeInputDialog() {
 
 function hasUploadCreator(field = {}) {
   return field.creator?.entityType === 'artifact'
-    && field.creator.attachmentKinds?.some(item => item.creation?.mode === 'upload');
+    && field.creator.attachmentKinds?.some(item => ['upload', 'capture', 'editor'].includes(item.creation?.mode));
 }
 
 function openArtifactCreator(field = {}) {

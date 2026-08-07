@@ -14,7 +14,6 @@ export class Artifact extends BaseEntity {
       metadata: raw.data?.metadata || {},
       layout: raw.data?.layout || null,
       values: raw.data?.values || {},
-      activeRevisionId: raw.data?.activeRevisionId || null,
       revisions: raw.data?.revisions || {}
     };
   }

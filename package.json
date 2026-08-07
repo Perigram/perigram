@@ -42,6 +42,7 @@
     "archiver": "^7.0.1",
     "argon2": "^0.44.0",
     "clipper2-wasm": "^0.4.0",
+    "docx-preview": "^0.4.0",
     "dxf-parser": "^1.1.2",
     "formidable": "^3.5.4",
     "jsonwebtoken": "^9.0.3",

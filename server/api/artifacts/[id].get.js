@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   setResponseHeaders(event, {
     'Content-Type': mimeType || 'application/octet-stream',
     'Content-Disposition': `attachment; filename="${encodeURIComponent(artifact.identity?.name || artifact._id.toString())}"`,
-    'Cache-Control': 'public, max-age=31536000, immutable'
+    'Cache-Control': 'private, no-cache'
   });
   return await filesService.getFileStream(fileId, bucketName);
 });

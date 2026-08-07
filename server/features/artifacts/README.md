@@ -14,6 +14,10 @@ current app entity type that stores file metadata and GridFS references.
   revision in artifact provenance.
 - Create immutable artifact layout revisions when a template-backed artifact is
   generated or its placed items are moved/deleted.
+- Create immutable `file` revisions for every uploaded, captured, rendered,
+  edited, replaced, or restored artifact file. Each file revision retains its
+  own GridFS attachment; artifacts point at the current revision through
+  `data.revisions.file`.
 
 Creation and editor selection are domain concerns, not persistence concerns.
 The domain `AttachmentKind` contract states whether a kind is uploaded,
@@ -35,12 +39,18 @@ inventing a generic entity-create path or choosing a frontend editor.
 - `GET /api/artifacts/:id`
 - `GET /api/artifacts/:id/metadata`
 - `DELETE /api/artifacts/:id`
+- `POST /api/artifacts/:id/revisions/:revisionId/restore`
+- `GET /api/entity-revisions/:id/file`
 
 Upload requests carry the declared kind, file, name, and parent lineage. The
 service owns file metadata such as the original filename; clients do not edit
 that storage object as arbitrary JSON. When a process owns the artifact
 lifecycle, the hidden `artifactFileStored` system intent is recorded without
 replacing the process-authored current state.
+
+Upload and replacement routes enforce each attachment kind's allowed extension,
+MIME type, and byte limit. Deleting an artifact as an administrator cascades to
+its revisions and retained GridFS blobs.
 
 ## Generation Notes
 

@@ -47,7 +47,6 @@ export async function create(data, userId = 'SYSTEM', userOrg = null, userRole =
       metadata: data.metadata || {},
       layout: data.layout || null,
       values: data.values || {},
-      activeRevisionId: data.activeRevisionId || null,
       revisions: data.revisions || {}
     })
   };
@@ -70,7 +69,7 @@ export async function createUploaded({ buffer, filename, name, mimeType, type, l
     artifactType: type
   }, bucketName);
   try {
-    return await create({
+    const artifact = await create({
       name: name || filename || 'Upload',
       type,
       fileId: stored.id,
@@ -81,6 +80,7 @@ export async function createUploaded({ buffer, filename, name, mimeType, type, l
       relations,
       provenance
     }, auth.userId, auth.organizationId, auth.role, auth);
+    return await createFileRevision(artifact, auth.userId, 'artifact-uploaded');
   } catch (error) {
     await filesService.deleteFile(stored.id, bucketName).catch(() => {});
     throw error;
@@ -110,9 +110,10 @@ export async function createRendered({ buffer, filename, mimeType, type, lineage
       values
     }, auth.userId, auth.organizationId, auth.role, auth);
     const revision = await ensureLayoutRevision(artifact, auth.userId, 'artifact-generated');
+    const fileRevision = await ensureFileRevision(artifact, auth.userId, 'artifact-generated');
     const updated = await repository.updateById(artifact._id, {
-      'data.activeRevisionId': revision._id,
-      'data.revisions.layout': revisionPointer(revision)
+      'data.revisions.layout': revisionPointer(revision),
+      'data.revisions.file': revisionPointer(fileRevision)
     });
     if (!updated) throw createError({ statusCode: 409, message: 'Artifact changed before its generated layout revision was saved' });
     return new Artifact(updated).toJSON();
@@ -145,16 +146,52 @@ export async function replaceUploadedFile(id, { buffer, filename, mimeType } = {
     artifactType: type
   }, bucketName);
   try {
-    const old = artifact.attachments?.primary;
+    const attachments = {
+      ...(artifact.attachments || {}),
+      primary: createArtifactAttachment(type, stored.id, filename || artifact.identity?.name, mimeType, bucketName)
+    };
+    const fileRevision = await ensureFileRevision({ ...artifact, attachments }, auth.userId, 'artifact-file-replaced');
     const updated = await repository.updateById(id, {
-      attachments: {
-        ...(artifact.attachments || {}),
-        primary: createArtifactAttachment(type, stored.id, filename || artifact.identity?.name, mimeType, bucketName)
-      },
+      attachments,
+      'data.revisions.file': revisionPointer(fileRevision),
       updatedAt: new Date()
     });
     if (!updated) throw createError({ statusCode: 404, message: 'Artifact not found' });
-    if (old?.fileId) await filesService.deleteFile(old.fileId, old.metadata?.bucketName || bucketName).catch(() => {});
+    return new Artifact(updated).toJSON();
+  } catch (error) {
+    await filesService.deleteFile(stored.id, bucketName).catch(() => {});
+    throw error;
+  }
+}
+
+export async function restoreFileRevision(id, revisionId, auth = {}) {
+  const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
+  assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
+  const revision = await entityRevisionsService.getById(revisionId, auth.userId, auth.role, auth);
+  if (revision.data?.source?.type !== 'artifact' || String(revision.data?.source?.id) !== String(artifact._id)) {
+    throw createError({ statusCode: 404, message: 'Artifact revision not found' });
+  }
+  const source = revision.attachments?.primary;
+  if (!source?.fileId) throw createError({ statusCode: 409, message: 'Artifact revision has no file' });
+  const bucketName = bucketNameForType(artifact.data?.type);
+  const buffer = await filesService.getFileBuffer(source.fileId, source.metadata?.bucketName || source.bucketName || bucketName);
+  const filename = source.name || artifact.identity?.name || 'artifact';
+  const stored = await filesService.uploadFile(buffer, filename, {
+    userId: auth.userId,
+    organizationId: auth.organizationId,
+    artifactType: artifact.data?.type
+  }, bucketName);
+  try {
+    const attachments = {
+      ...(artifact.attachments || {}),
+      primary: createArtifactAttachment(artifact.data?.type, stored.id, filename, source.metadata?.mimeType, bucketName)
+    };
+    const fileRevision = await ensureFileRevision({ ...artifact, attachments }, auth.userId, 'artifact-file-restored');
+    const updated = await repository.updateById(id, {
+      attachments,
+      'data.revisions.file': revisionPointer(fileRevision),
+      updatedAt: new Date()
+    });
     return new Artifact(updated).toJSON();
   } catch (error) {
     await filesService.deleteFile(stored.id, bucketName).catch(() => {});
@@ -193,17 +230,16 @@ export async function replaceLayout(id, layout, values = {}, auth = {}) {
   };
   try {
     const revision = await ensureLayoutRevision(candidate, auth.userId, 'artifact-layout-updated');
+    const fileRevision = await ensureFileRevision(candidate, auth.userId, 'artifact-layout-updated');
     const updated = await repository.updateById(id, {
       attachments: candidate.attachments,
       'data.layout': rendered.layout,
       'data.values': values,
-      'data.activeRevisionId': revision._id,
       'data.revisions.layout': revisionPointer(revision),
+      'data.revisions.file': revisionPointer(fileRevision),
       updatedAt: new Date()
     });
     if (!updated) throw createError({ statusCode: 409, message: 'Artifact changed before its layout revision was saved' });
-    const oldFile = artifact.attachments?.primary;
-    if (oldFile?.fileId) await filesService.deleteFile(oldFile.fileId, oldFile.metadata?.bucketName || bucketName).catch(() => {});
     return new Artifact(updated).toJSON();
   } catch (error) {
     await filesService.deleteFile(stored.id, bucketName).catch(() => {});
@@ -235,10 +271,16 @@ export async function list(filter = {}, userId = null, userOrg = null, userRole 
 export async function remove(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const artifact = await getById(id, userId, userOrg, userRole, auth);
   if (auth) assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'admin', auth });
-  const primary = artifact.attachments?.primary;
-
-  if (primary?.fileId) {
-    await filesService.deleteFile(primary.fileId, primary.metadata?.bucketName || bucketNameForType(artifact.data?.type));
+  const revisions = await entityRevisionsService.removeForEntity('artifact', artifact._id);
+  const files = [artifact.attachments?.primary, ...revisions.map(revision => revision.attachments?.primary)]
+    .filter(attachment => attachment?.fileId);
+  const seen = new Set();
+  for (const attachment of files) {
+    const bucket = attachment.metadata?.bucketName || attachment.bucketName || bucketNameForType(artifact.data?.type);
+    const key = `${bucket}:${attachment.fileId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    await filesService.deleteFile(attachment.fileId, bucket);
   }
 
   return await repository.deleteById(toFlexibleId(id));
@@ -253,11 +295,14 @@ export async function markReadyByRun(runId, type, fileId, mimeType, name = '') {
   const artifact = await repository.findOne(filter);
   if (!artifact) return null;
 
+  const attachments = {
+    ...(artifact.attachments || {}),
+    primary: createArtifactAttachment(type, fileId, name || artifact.identity?.name || 'Artifact', mimeType)
+  };
+  const fileRevision = await ensureFileRevision({ ...artifact, attachments }, 'SYSTEM', 'artifact-generated');
   await repository.updateById(artifact._id, {
-    attachments: {
-      ...(artifact.attachments || {}),
-      primary: createArtifactAttachment(type, fileId, name || artifact.identity?.name || 'Artifact', mimeType)
-    },
+    attachments,
+    'data.revisions.file': revisionPointer(fileRevision),
     updatedAt: new Date()
   });
 
@@ -290,6 +335,33 @@ function revisionPointer(revision) {
     number: revision.data?.number || 0,
     contentHash: revision.data?.contentHash || ''
   } : null;
+}
+
+async function createFileRevision(artifact, userId, reason) {
+  const revision = await ensureFileRevision(artifact, userId, reason);
+  const updated = await repository.updateById(artifact._id, {
+    'data.revisions.file': revisionPointer(revision),
+    updatedAt: new Date()
+  });
+  return new Artifact(updated || artifact).toJSON();
+}
+
+async function ensureFileRevision(artifact, userId, reason) {
+  const primary = artifact.attachments?.primary;
+  if (!primary?.fileId) throw createError({ statusCode: 409, message: 'Artifact file is required for revisioning' });
+  return await entityRevisionsService.ensureForEntitySnapshot({
+    entityType: 'artifact',
+    entity: artifact,
+    scope: 'file',
+    content: { fileId: String(primary.fileId), attachment: primary },
+    snapshot: {
+      identity: artifact.identity || null,
+      data: { type: artifact.data?.type, layout: artifact.data?.layout || null, values: artifact.data?.values || {} }
+    },
+    attachments: { primary },
+    userId,
+    reason
+  });
 }
 
 async function ensureLayoutRevision(artifact, userId, reason) {

@@ -442,12 +442,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       ...((declared?.targetType || entry.entityType) === 'artifact' ? {
         creator: {
           entityType: 'artifact',
-          attachmentKinds: (entry.attachmentKinds?.length
-            ? entry.attachmentKinds
-            : Object.values(domain.attachmentKinds || {})
-              .filter(definition => definition.creation?.mode === 'upload')
-              .map(definition => definition.kind || definition.id)
-          ).map(kind => ({
+          attachmentKinds: (entry.attachmentKinds || []).map(kind => ({
             kind,
             creation: domain.attachmentKinds?.[kind]?.creation || { mode: 'workflow' }
           }))
@@ -2892,8 +2887,8 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
         errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select an upload attachment kind`);
       }
       for (const kind of entry.attachmentKinds || []) {
-        if (!kinds.has(kind) || kinds.get(kind)?.creation?.mode !== 'upload') {
-          errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} creator requires an upload attachment kind`);
+        if (!kinds.has(kind) || !['upload', 'capture', 'editor'].includes(kinds.get(kind)?.creation?.mode)) {
+          errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} creator requires a user-creatable attachment kind`);
         }
       }
     }

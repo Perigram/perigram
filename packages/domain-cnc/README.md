@@ -104,13 +104,17 @@ write generated Vue/domain files to the repository.
 `artifact` remains the current persisted entity type for generated file records.
 File behavior is declared by `AttachmentKind`.
 Each attachment kind also declares its creation affiliation (`upload`,
-`command`, or `workflow`) and editor affiliation (`none` or `layout`). UI
+`capture`, `editor`, `command`, or `workflow`), preview mode, editor
+affiliation (`none`, `text`, `csv`, or `layout`), and server-enforced file
+rules. UI
 surfaces resolve those capabilities through the domain UI adapter instead of
 branching on artifact names. A kind marked `layout` opens the shared artifact
 layout editor only when the persisted artifact carries editable layout and
 template provenance; an upload-backed kind supports primary-file replacement,
 while workflow preview files remain read-only.
-Upload creation contracts also declare accepted file types and creator fields.
+File creation contracts also declare accepted file types, byte limits, and
+creator fields. `capture` uses the browser-native camera chooser and `editor`
+creates a blank TXT/CSV artifact.
 The shared artifact creator and detail editor consume that contract, so adding
 an upload-backed kind does not require a relation-, cassette-, or page-specific
 upload implementation. Creator fields are user-authored typed values only;

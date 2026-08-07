@@ -21,10 +21,11 @@ reports.
   currently part of the compact trace contract.
 - The card may own a custom preview click action and disables `EntityCard`
   expansion for that action.
-- Generated artifact detail files resolve through the overload registry.
-  Upload-backed kinds can replace their primary file, writable users can edit
-  identity name and `data.metadata`, and kinds declaring `editor.mode: layout`
-  use the shared `ArtifactLayoutEditor` and revision-backed layout API.
+- Generated artifact detail files resolve through the overload registry. The
+  detail uses the shared artifact viewer registry and exposes file revision
+  history. Writable users can replace uploaded/captured files, edit TXT/CSV,
+  restore a prior revision as a new latest revision, and edit layout-backed
+  artifacts through `ArtifactLayoutEditor`.
 
 ## Related
 
