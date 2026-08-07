@@ -52,6 +52,10 @@ Upload and replacement routes enforce each attachment kind's allowed extension,
 MIME type, and byte limit. Deleting an artifact as an administrator cascades to
 its revisions and retained GridFS blobs.
 
+The artifact detail replacement control uses a native file input and explicitly
+preserves the selected filename in its multipart part. This matches the create
+artifact flow and keeps the server's kind-specific file validation intact.
+
 ## Generation Notes
 
 `generateAttachment()` handles `LAYOUT_DXF` for two source types:
