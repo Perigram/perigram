@@ -1,10 +1,24 @@
-import { createEventStream, defineEventHandler } from 'h3';
+import {
+  createEventStream,
+  defineEventHandler,
+  setResponseHeaders,
+  setResponseStatus
+} from 'h3';
 import { requireAuth } from '~/server/utils/permissions.js';
 import * as entityEventService from '~/server/features/entity-events/service.js';
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const eventStream = createEventStream(event);
+
+  setResponseStatus(event, 200);
+  setResponseHeaders(event, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'private, no-cache, no-store, no-transform, must-revalidate, max-age=0',
+    'X-Accel-Buffering': 'no',
+    Connection: 'keep-alive'
+  });
+  event.node.res.flushHeaders?.();
 
   eventStream.push(JSON.stringify({
     type: 'connected',
