@@ -26,6 +26,12 @@ const portableAliases = {
 export default defineNuxtConfig({
     compatibilityDate: '2025-07-15',
 
+    // Nitro's development error renderer can recurse through a corrupted
+    // generated map and leave Vite proxy requests waiting until they 502.
+    sourcemap: {
+        server: false
+    },
+
     alias: {
         ...cutkitAliases,
         ...portableAliases
