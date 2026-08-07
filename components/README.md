@@ -96,6 +96,7 @@ All entity-related components MUST use these patterns:
 | Repeated card grids | `<ResponsiveGrid>` |
 | Entity-local workspaces | `<EntityWorkspace>` |
 | Three-lane production workspaces | `<WorkspaceLanes>` |
+| Operational designers | `<DesignerWorkspace layout="lanes|canvas">` owns layout; feature components own state and persistence |
 | Bounded scrolling workspace sections | `<ScrollablePanel>` |
 | Loading/empty/error surfaces | `<StateBlock>` |
 | Data table frame | `<TableFrame><DataTable ... /></TableFrame>` |
@@ -657,6 +658,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   lifecycle action design remains a workflow-machine concern, not a local card
   action override.
 - `CassetteDesignerV2` owns OCCS cassette-template editing. It uses
+  `DesignerWorkspace` for its responsive palette/canvas/inspector layout; the
+  shared workspace owns layout only and does not interpret OCCS state.
   `StandardDialog` for the profile sketch popup and `ProfileSketchEditor` for
   reusable `profile_template` sketches. Profile drawing saves library templates;
   cassette geometry consumes those templates from the selected hanger feature's

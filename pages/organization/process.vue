@@ -1,7 +1,8 @@
 <template>
   <StandardPage>
-    <div
+    <DesignerWorkspace
       ref="canvasFrame"
+      layout="canvas"
       class="relative h-[calc(100vh-8rem)] min-h-[36rem] overflow-hidden rounded-ui border border-content-border bg-process-canvas"
       @mousedown.capture="handleDesignerPointerDown"
       @focusin="handleDesignerFocus"
@@ -876,7 +877,7 @@
         </div>
       </div>
 
-    </div>
+    </DesignerWorkspace>
 
   </StandardPage>
 </template>
@@ -905,6 +906,7 @@ import Textarea from 'primevue/textarea';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import {

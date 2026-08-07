@@ -295,6 +295,18 @@
               <DrawingCanvas :source="sheetDesignEntity" source-type="geometry-preview" mode="card" />
             </template>
 
+            <template v-else-if="primitive.key === 'DesignerWorkspace'">
+              <DesignerWorkspace layout="lanes" class="h-48 rounded-ui border border-content-border p-2">
+                <template #palette><StateBlock :message="$t('common.details')" /></template>
+                <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-image" />
+                <template #inspector><StateBlock :message="$t('common.settings')" /></template>
+              </DesignerWorkspace>
+            </template>
+
+            <template v-else-if="primitive.key === 'ThreeViewport'">
+              <ThreeViewport class="h-48 rounded-ui border border-content-border" />
+            </template>
+
             <template v-else-if="primitive.key === 'TraceLink'">
               <TraceLink type="project" :id="primitiveEntity.lineage.projectId" :label="$t('uiLab.fixtures.downtownComplex')" slug="downtown-complex" />
             </template>
@@ -445,6 +457,8 @@ import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import ThreeViewport from '~/components/shared/ThreeViewport.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -492,6 +506,8 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'StatusLocation',
   'StatusHistory',
   'DrawingCanvas',
+  'DesignerWorkspace',
+  'ThreeViewport',
   'GeometryPreview',
   'TraceLink',
   'TraceChain',
