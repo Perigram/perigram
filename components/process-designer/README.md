@@ -15,9 +15,7 @@ authored status id updates the referenced value without breaking the wire.
 ## Palette and node concerns
 
 The runtime catalog remains exhaustive, but it is not the authoring palette.
-The palette has four non-overlapping authoring concerns. The fourth is not a
-runtime-catalog dump: it contains only usable process entry and suspension
-operations.
+The palette has three non-overlapping authoring concerns.
 
 - **Entities** owns typed block assembly and persistence. Compose Block creates
   one canonical block from selected fields. Modify Block copies a connected
@@ -44,10 +42,6 @@ operations.
 - **Lists and trees** contains the Grasshopper-style structure operations:
   list construction/concatenation/index/slice/count/filter/sort/distinct/group,
   and tree flatten/graft/simplify/branch/zip/unzip/cross/transpose.
-- **Automation** contains only Entity changed, Domain event, and Wait Until.
-  Entry nodes expose a labelled payload and execution output. Wait Until
-  consumes a date-time plus execution and resumes through its output.
-
 Every effect has one bottom execution switch: Manual exposes the operation to
 authorized users, while Automatic exposes an incoming event socket. Date
 scheduling is composed explicitly with date values and a wait-until control
@@ -75,8 +69,6 @@ a Boolean mask, then feed that mask and the original list to Filter.
 | Persist replacements/status | Entity/block/status → Modify Entity | Entity field policy and Status engine |
 | Run a service | Typed values/entities → Run Service | Registered command handler |
 | Run manually or chain effects | Manual effect, or completion → Automatic effect | Durable orchestration |
-| Start from an external event | Entity changed/Domain event → Automatic effect | Declared event trigger and payload |
-| Continue at a future time | Date → Wait Until → Automatic effect | Durable wake time |
 | Reshape collections | List/tree operations with explicit packet shapes | Pure data-tree evaluator |
 
 The exhaustive runtime catalog, producer effects, predicates, patches,

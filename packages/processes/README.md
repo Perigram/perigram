@@ -23,10 +23,8 @@ never select or encode an entity type. Create and Update validate connected
 block fields against their target entity policy at the consumer boundary.
 
 The grouped authoring palette is a curated framework projection, separate from
-the exhaustive runtime catalog. It exposes Entities, Values, Lists and trees,
-and a deliberately small Automation group, with stable localization and
-description ids. Automation contains only declared entity/domain event entries
-and Wait Until. Create Entity resolves either canonical block sockets or the
+the exhaustive runtime catalog. It exposes Entities, Values, and Lists and
+trees, with stable localization and description ids. Create Entity resolves either canonical block sockets or the
 selected domain construction mode's typed inputs. Run Service resolves the
 selected command definition into typed entity/parameter inputs and typed
 command-result outputs. Producer effects, conversions, predicates, patches,
