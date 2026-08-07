@@ -7,7 +7,8 @@
 
     <div class="flex min-h-[32rem] flex-col gap-3">
       <div class="flex flex-wrap items-center gap-2">
-        <FileUpload v-if="canReplaceFile" mode="basic" :accept="creation.accept" :choose-label="$t('generatedScreen.replaceArtifactFile')" custom-upload @select="replaceFile" />
+        <input ref="replacementInput" class="hidden" type="file" :accept="creation.accept" @change="replaceFile">
+        <Button v-if="canReplaceFile" icon="pi pi-upload" :label="$t('generatedScreen.replaceArtifactFile')" size="small" severity="secondary" outlined @click="replacementInput?.click()" />
         <Select v-if="revisions.length" v-model="selectedRevisionId" :options="revisionOptions" option-label="label" option-value="value" size="small" class="min-w-48" />
       </div>
       <template v-if="canEdit && layoutDraft && editor.mode === 'layout'"><ArtifactLayoutEditor v-model="layoutDraft" /></template>
@@ -20,7 +21,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import FileUpload from 'primevue/fileupload';
 import Select from 'primevue/select';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
@@ -37,6 +37,7 @@ const domainUi = useCutkitDomainUi();
 const revisions = ref([]);
 const selectedRevisionId = ref('');
 const layoutDraft = ref(null);
+const replacementInput = ref(null);
 const kind = computed(() => props.artifact.data?.type || '');
 const creation = computed(() => domainUi.getAttachmentCreation(kind.value));
 const editor = computed(() => domainUi.getAttachmentEditor(kind.value));
@@ -54,12 +55,16 @@ watch(() => props.artifact._id, loadRevisions);
 watch(() => props.artifact, artifact => { layoutDraft.value = artifact.data?.layout ? structuredClone(artifact.data.layout) : null; }, { immediate: true, deep: true });
 
 async function replaceFile(event) {
-  const file = event.files?.[0];
+  const file = event.target.files?.[0];
   if (!file) return;
-  const form = new FormData(); form.append('file', file);
-  const updated = await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/file`, { method: 'PUT', body: form });
-  await loadRevisions();
-  emit('saved', updated);
+  try {
+    const form = new FormData(); form.append('file', file, file.name);
+    const updated = await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/file`, { method: 'PUT', body: form });
+    await loadRevisions();
+    emit('saved', updated);
+  } finally {
+    event.target.value = '';
+  }
 }
 async function restore() {
   const updated = await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/revisions/${encodeURIComponent(revision.value._id)}/restore`, { method: 'POST' });
