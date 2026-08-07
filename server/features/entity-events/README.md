@@ -20,10 +20,11 @@ The bus deliberately does not broadcast full entity DTOs. Clients that receive
 an event refresh through the normal entity APIs, so existing read access,
 generated process scope, and field redaction remain the enforcement boundary.
 
-Events are process-local and delivered over SSE to authenticated users in the
-same active organization, to the actor's own sessions, and to admins. This is a
-runtime synchronization channel, not a durable audit log. Status history remains
-the persisted audit source.
+Events are process-local and retained in a bounded recent-event buffer. Authenticated
+clients poll that buffer by cursor and receive only events visible to the same
+active organization, to the actor's own sessions, or to admins. This is a runtime
+synchronization channel, not a durable audit log. Status history remains the
+persisted audit source.
 
 The bus also exposes an in-process automatic-handler registration boundary for
 explicit consumers. Process effects are not registered implicitly from node
@@ -41,14 +42,13 @@ contract.
 
 ## Consumers
 
-The app shell opens `GET /api/entity-events` once the auth store is hydrated.
-Incoming server events are re-emitted through `utils/entity-events.js`, which is
-the browser-local contract consumed by shared stores and components.
-The route commits SSE response headers before any asynchronous stream write so
-the Nuxt development proxy and production reverse proxies do not wait for the
-long-lived response to finish before forwarding it. It sends heartbeat messages
-every 30 seconds. Closing the request only removes its subscriber and heartbeat;
-the server must not close an already-closed stream from its close callback.
+The app shell polls `GET /api/entity-events` once the auth store is hydrated.
+The initial request establishes the current cursor without replaying stale
+history; subsequent requests pass `after=<cursor>` and return immediately with
+new visible events. Short completed requests are used deliberately because they
+work consistently through Nuxt's development worker proxy and production reverse
+proxies. Incoming events are re-emitted through `utils/entity-events.js`, which
+is the browser-local contract consumed by shared stores and components.
 
 ## Related
 

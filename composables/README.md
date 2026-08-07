@@ -58,7 +58,7 @@ or dependent refreshes should listen to that contract rather than wiring
 page-local callbacks for each CRUD button.
 On the client, those same successful CRUD calls also publish a typed
 invalidation to `POST /api/entity-events`, which fans out to other authenticated
-sessions over SSE. Server events intentionally carry ids and change metadata,
+sessions through cursor-based event polling. Server events intentionally carry ids and change metadata,
 not full DTOs; receiving surfaces refetch through their normal entity APIs.
 Generated screens treat those refetches as background synchronization: they
 preserve the rendered source snapshot, coalesce short event bursts, load source

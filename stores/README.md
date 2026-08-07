@@ -17,9 +17,10 @@ Pinia stores for client state and API orchestration.
   store loads `/api/support/conversations` only after `auth.userIsSet` is true
   and refreshes it on a short interval so login/auth hydration cannot leave the
   drawer with only its synthetic support row.
-- `entityEvents.js`: App-wide entity synchronization stream. The app shell
-  connects it after auth hydration, listens to `GET /api/entity-events`, and
-  bridges server-side invalidation messages into the browser-local
+- `entityEvents.js`: App-wide entity synchronization poller. The app shell starts
+  it after auth hydration; it advances the cursor returned by
+  `GET /api/entity-events`, retries completed requests after transient failures,
+  and bridges server-side invalidations into the browser-local
   `utils/entity-events.js` contract used by shared stores and generated screens.
 - `cassettes.js`, `toolProfiles.js`, etc.: Related feature stores.
 
