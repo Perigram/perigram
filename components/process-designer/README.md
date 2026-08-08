@@ -52,12 +52,11 @@ Every effect has one bottom execution switch: Manual exposes the operation to
 authorized users, while Automatic exposes an incoming event socket. Date
 scheduling is composed explicitly with date values and a wait-until control
 before that socket; entity and domain subscriptions remain entry nodes rather
-than effect modes. Every effect exposes one `completed` event there. A failed
-effect follows its retry policy and then fails the run; it is not a second
-graph branch. Event handles use the same
+than effect modes. Every effect exposes one `completed` event there. Event handles use the same
 left-to-right direction as data sockets instead of pointing out of the bottom
 of the card. Pure value, list/tree, read, and deconstruct nodes do not render
-event chrome.
+event chrome. Effect failures fail the run; retry behavior is not hidden effect
+metadata and must be introduced later as explicit event/control dataflow.
 
 There is no advanced reveal and no separate “starts and inputs”, “process
 flow”, or “selection and filtering” taxonomy. Filtering is ordinary dataflow:
@@ -120,13 +119,18 @@ only through Collect Array.
 
 Only configuration that defines the operation or its ports stays on the node:
 value/type, entity, field, block, operation, trigger identity/mode, and socket
-fallback. Access grants, selected compose/modify field sets, retry policy, and
+fallback. Access grants, selected compose/modify field sets, and
 other secondary record policy live in the contextual inspector. A status node
 still authors its identity and exposes its output on the canvas; color, icon,
 and lifecycle evidence schemas are edited in the inspector.
 Resolved input/output contracts are shown by the node's labelled socket rails
 and hover/focus metadata; the inspector does not repeat a socket-specification
 table.
+Pure and read nodes expose an on-demand Output data inspector. It evaluates
+only the selected node and its upstream data dependencies, then renders each
+output as branch paths, sampled values, and branch/item counts. Effects and
+control nodes never show this inspection action because preview execution
+deliberately suppresses them.
 The palette and inspector are independently collapsible and scrollable. Palette search matches
 localized job names and descriptions as well as internal kinds. The persistent
 palette uses a readable two-column grid with grouped headings; operation
