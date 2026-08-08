@@ -55,6 +55,9 @@ its revisions and retained GridFS blobs.
 The artifact detail replacement control uses a native file input and explicitly
 preserves the selected filename in its multipart part. This matches the create
 artifact flow and keeps the server's kind-specific file validation intact.
+The viewer does not request `GET /api/artifacts/:id` when the selected artifact
+or revision has no primary file. Historical pending/incomplete records therefore
+show the normal unavailable preview state instead of producing a download 404.
 
 ## Generation Notes
 

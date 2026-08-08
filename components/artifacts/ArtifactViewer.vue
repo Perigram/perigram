@@ -1,21 +1,22 @@
 <template>
   <div class="min-h-0 min-w-0 flex-1 overflow-auto">
     <DrawingCanvas
-      v-if="['dxf', 'svg'].includes(mode)"
+      v-if="hasFile && ['dxf', 'svg'].includes(mode)"
       :source="fileUrl"
       :source-type="`${mode}-url`"
       mode="viewer"
       show-layer-panel
     />
-    <img v-else-if="mode === 'image'" :src="blobUrl || fileUrl" class="mx-auto block max-h-full max-w-full object-contain" :alt="artifact.identity?.name || ''">
-    <iframe v-else-if="mode === 'pdf'" :src="blobUrl || fileUrl" class="h-full min-h-[32rem] w-full border-0" :title="artifact.identity?.name || 'PDF'" />
-    <div v-else-if="mode === 'docx'" ref="docxHost" class="min-h-[32rem] bg-white p-6 text-black" />
-    <TableFrame v-else-if="['table', 'workbook'].includes(mode) && rows.length">
+    <img v-else-if="hasFile && mode === 'image'" :src="blobUrl || fileUrl" class="mx-auto block max-h-full max-w-full object-contain" :alt="artifact.identity?.name || ''">
+    <iframe v-else-if="hasFile && mode === 'pdf'" :src="blobUrl || fileUrl" class="h-full min-h-[32rem] w-full border-0" :title="artifact.identity?.name || 'PDF'" />
+    <div v-else-if="hasFile && mode === 'docx'" ref="docxHost" class="min-h-[32rem] bg-white p-6 text-black" />
+    <TableFrame v-else-if="hasFile && ['table', 'workbook'].includes(mode) && rows.length">
       <DataTable :value="rows" scrollable scroll-height="flex" size="small">
         <Column v-for="column in columns" :key="column" :field="column" :header="column" />
       </DataTable>
     </TableFrame>
-    <pre v-else-if="mode === 'text'" class="whitespace-pre-wrap break-words p-4 font-mono text-sm">{{ text }}</pre>
+    <pre v-else-if="hasFile && mode === 'text'" class="whitespace-pre-wrap break-words p-4 font-mono text-sm">{{ text }}</pre>
+    <StateBlock v-else-if="!hasFile" state="empty" :message="$t('artifacts.previewUnavailable')" />
     <StateBlock v-else-if="error" state="error" :message="error" />
     <StateBlock v-else state="empty" :message="$t('artifacts.previewUnavailable')" />
   </div>
@@ -40,7 +41,8 @@ const columns = ref([]);
 const error = ref('');
 const blobUrl = ref('');
 const mode = computed(() => domainUi.getAttachmentPreview(props.artifact.data?.type || '').mode);
-const fileUrl = computed(() => props.revision?._id
+const hasFile = computed(() => Boolean(props.revision?.attachments?.primary?.fileId || props.artifact.attachments?.primary?.fileId));
+const fileUrl = computed(() => !hasFile.value ? '' : props.revision?._id
   ? `/api/entity-revisions/${encodeURIComponent(props.revision._id)}/file`
   : domainUi.getDownloadEndpoint('artifact', props.artifact._id));
 
@@ -52,6 +54,7 @@ function releaseBlob() {
 async function load() {
   releaseBlob();
   text.value = ''; rows.value = []; columns.value = []; error.value = '';
+  if (!hasFile.value) return;
   if (['dxf', 'svg'].includes(mode.value)) return;
   try {
     const response = await fetch(fileUrl.value);
