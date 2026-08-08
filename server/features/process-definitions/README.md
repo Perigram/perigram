@@ -129,7 +129,11 @@ rebuild.
 Generic Create receives block-composed data. `identity.name` and
 `identity.slug` are projected to the owning service's `name`/`slug` inputs;
 `data` and `specs` values are projected only where the service has no explicit
-top-level value. A composed Lineage block owns parent ids. The compiler may use
+top-level value. Non-block generic construction inputs remain available beside
+those blocks, so an entity can declare an explicit source reference without
+turning it into a bespoke effect. A composed Lineage block owns parent ids and
+its stored ids are also projected to the owning service's top-level creation
+payload. The compiler may use
 one declared lineage entity reference for contextual screen placement, and the
 effect boundary converts its entity reference to the canonical stored id.
 Origin, provenance, status history, and summary are not accepted as generic
