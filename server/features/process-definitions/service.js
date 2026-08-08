@@ -903,6 +903,11 @@ function normalizeCreationPayload(payload = {}) {
   const normalized = { ...payload };
   if (normalized.identity?.name && !normalized.name) normalized.name = normalized.identity.name;
   if (normalized.identity?.slug && !normalized.slug) normalized.slug = normalized.identity.slug;
+  if (normalized.lineage && typeof normalized.lineage === 'object' && !Array.isArray(normalized.lineage)) {
+    for (const [key, value] of Object.entries(normalized.lineage)) {
+      if (normalized[key] === undefined) normalized[key] = value;
+    }
+  }
   for (const block of ['data', 'specs', 'summary']) {
     if (!normalized[block] || typeof normalized[block] !== 'object' || Array.isArray(normalized[block])) continue;
     for (const [key, value] of Object.entries(normalized[block])) {
@@ -1462,9 +1467,7 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
   if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
     const constructionDraft = processConstructionInputRecord(record, inputs);
     const blockDraft = kind === 'effect.createEntity' ? processBlockInputRecord(record, inputs) : {};
-    const draft = (record.construction?.mode || 'genericCreate') === 'genericCreate'
-      ? blockDraft
-      : { ...blockDraft, ...constructionDraft };
+    const draft = { ...blockDraft, ...constructionDraft };
     const targetState = inputs['status.state.primary'] || record.status?.to;
     const statusMetadata = draft.status?.metadata && typeof draft.status.metadata === 'object'
       ? draft.status.metadata

@@ -2377,9 +2377,12 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
     : (contract.defaultMode || modes[0] || defaultConstructionMode(entityType));
   const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
   const blocksOwnConstruction = construction.blockComposed && mode === 'genericCreate';
-  const contractInputs = blocksOwnConstruction
-    ? []
-    : (contract.modeInputs?.[mode] || contract.inputs || []);
+  const contractInputs = (contract.modeInputs?.[mode] || contract.inputs || [])
+    .filter(input => !blocksOwnConstruction || (
+      input.id !== 'name'
+      && input.path !== 'name'
+      && !isCanonicalBlockConstructionPath(input.path)
+    ));
   const inputsById = new Map(contractInputs.map(input => {
     const normalizedInput = normalizeConstructionInput(input, domain);
     return [normalizedInput.id || normalizedInput.path, normalizedInput];
@@ -2398,6 +2401,11 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
     ...(construction.blockComposed ? { blockComposed: true } : {}),
     inputs: [...inputsById.values()]
   };
+}
+
+function isCanonicalBlockConstructionPath(path = '') {
+  return ['identity', 'lineage', 'relations', 'specs', 'data', 'status', 'attachments', 'summary', 'provenance']
+    .some(block => String(path).startsWith(`${block}.`));
 }
 
 function normalizeConstructionInput(input = {}, domain = {}) {

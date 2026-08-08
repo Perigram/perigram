@@ -503,6 +503,7 @@ describe('process definitions access fallback', () => {
       actionId: 'create_project',
       data: {
         identity: { name: 'Created project' },
+        lineage: { organizationId: 'org-1' },
         data: { metadata: { priority: 'high' } }
       }
     }, {
@@ -519,8 +520,10 @@ describe('process definitions access fallback', () => {
     expect(create).toHaveBeenCalledWith(
       {
         identity: { name: 'Created project' },
+        lineage: { organizationId: 'org-1' },
         data: { metadata: { priority: 'high' } },
         name: 'Created project',
+        organizationId: 'org-1',
         metadata: { priority: 'high' }
       },
       'user-1',

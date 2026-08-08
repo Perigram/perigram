@@ -306,6 +306,49 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('keeps non-block construction inputs when generic create consumes blocks', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 3,
+      processNodes: {
+        create_facade: {
+          id: 'create_facade',
+          kind: 'effect.createEntity',
+          entityType: 'facade',
+          trigger: { mode: 'manual' },
+          construction: { mode: 'genericCreate' },
+          blocks: ['identity', 'lineage'],
+          status: { to: SOURCE_STATE }
+        }
+      },
+      graph: {
+        nodes: [{ id: 'create_facade', type: 'processNode', data: { refId: 'create_facade' } }],
+        edges: []
+      }
+    }, {
+      ...domain,
+      entities: [...domain.entities, { type: 'facade' }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        facade: domain.fieldSchemas.queue
+      },
+      construction: {
+        ...domain.construction,
+        facade: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+            { id: 'sourceModelId', path: 'sourceModelId', type: 'entity', entityType: 'artifact', required: false, prompt: true }
+          ]
+        }
+      }
+    });
+
+    expect(compiled.actions.create_facade.construction.inputs).toEqual([
+      expect.objectContaining({ id: 'sourceModelId', entityType: 'artifact', prompt: true })
+    ]);
+  });
+
   it('infers relation entry type and cardinality from its connected source', () => {
     const definition = normalizeProcessDefinition({
       dataflowVersion: 3,
