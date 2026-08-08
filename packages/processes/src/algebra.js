@@ -84,11 +84,6 @@ export async function resolveProcessActionInputContext(definition = {}, actionId
       }
       inputs[inputId] = await evaluate(edge.source, edge.sourceHandle);
     }
-    for (const input of contract.inputs) {
-      if (input.required && !Object.prototype.hasOwnProperty.call(inputs, input.id)) {
-        throw new Error(`Process node ${record.id || node.id} requires input ${input.id}`);
-      }
-    }
     return executeNode(record, inputs, outputId, options);
   }
 }

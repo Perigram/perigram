@@ -114,16 +114,6 @@
         <span>{{ pendingActionLabel }}</span>
       </template>
       <div class="flex flex-col gap-3">
-        <label v-if="parentSelectionRequired" class="flex flex-col gap-1">
-          <span class="text-xs text-muted-color">{{ parentSelectionLabel }}</span>
-          <Select
-            v-model="promptValues[parentSelectionFieldId]"
-            :options="parentSelectionOptions"
-            option-label="label"
-            option-value="value"
-            :entity-type="parentSelectionType"
-          />
-        </label>
         <div v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
           <span v-if="!(relationCreatorMode && field.creator?.actionId)" class="text-xs text-muted-color">{{ field.label || field.id }}</span>
           <div
@@ -275,11 +265,11 @@ import GeneratedOrganizationAccount from '~/components/generated/GeneratedOrgani
 import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue';
-import { entityIdentifier, generatedActionRequiresParent, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
+import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
-import { generatedActionLabel, generatedEntityLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
+import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 
@@ -321,17 +311,12 @@ const detailActionContext = computed(() => {
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 const promptFields = computed(() => promptedFields(pendingAction.value));
 const relationCreatorFields = computed(() => pendingAction.value?.relationMutation?.creator?.inputPolicy?.fields
-  ?.filter(field => field.prompt || field.required) || []);
+  ?.filter(field => field.prompt) || []);
 const pendingActionLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.confirm'));
 const dialogSaveLabel = computed(() => pendingAction.value?.relationMutation?.operation === 'link'
   ? t('common.add')
   : pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
-const parentSelectionFieldId = '__parentEntityId';
-const parentSelectionType = computed(() => requiredParentType(pendingAction.value, pendingEntity.value?.entity, pendingEntity.value?.context));
-const parentSelectionRequired = computed(() => Boolean(parentSelectionType.value));
-const parentSelectionLabel = computed(() => parentSelectionType.value ? generatedEntityLabel(parentSelectionType.value, { t, te }) : '');
-const parentSelectionOptions = computed(() => promptOptions[parentSelectionFieldId] || pendingEntity.value?.context?.parentOptions || []);
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
 const pageTitle = computed(() => screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
 const screenOverload = computed(() => resolveGeneratedScreenOverload(screen.value));
@@ -353,7 +338,7 @@ async function executeAction(action, entity = null, context = {}) {
       artifactCreatorVisible.value = true;
       return;
     }
-    if (['createEntity', 'updateEntity', 'runCommand'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
+    if (['createEntity', 'updateEntity', 'runCommand'].includes(action.actionKind) && promptedFields(action).length) {
       await openInputDialog(action, entity, context);
       return;
     }
@@ -374,13 +359,6 @@ async function openInputDialog(action, entity = null, context = {}) {
   const fields = collectActionInputFields(action);
   for (const field of fields) {
     promptValues[field.id] = initialPromptValue(field);
-  }
-  const parentType = requiredParentType(action, entity, context);
-  if (parentType) {
-    const options = await loadParentSelectionOptions(parentType, context, action);
-    if (!options.length) throw new Error(t('generatedScreen.noOptions', { field: parentType }));
-    promptOptions[parentSelectionFieldId] = options;
-    promptValues[parentSelectionFieldId] = options[0]?.value || '';
   }
   await loadPromptOptions(promptedFields(action));
   syncCassetteParameterValues(promptedFields(action));
@@ -450,7 +428,7 @@ async function submitPromptedAction() {
       pendingAction.value,
       pendingEntity.value?.entity || null,
       data,
-      contextWithSelectedParent(pendingEntity.value?.context || {})
+      pendingEntity.value?.context || {}
     );
     closeInputDialog();
   } finally {
@@ -493,7 +471,7 @@ function actionEntities(action = {}, entity = null, context = {}) {
 
 function selectedTemplateIdForField(field = {}) {
   const templateFieldId = field.templateFieldId || 'templateId';
-  return promptValues[templateFieldId] || promptValues[parentSelectionFieldId] || '';
+  return promptValues[templateFieldId] || '';
 }
 
 function selectedTemplateForField(field = {}) {
@@ -504,10 +482,7 @@ function selectedTemplateForField(field = {}) {
     if (!templateId || pendingId?.toString() === templateId?.toString()) return pending;
   }
   if (!templateId) return null;
-  const templateOptions = [
-    ...(promptOptions[field.templateFieldId || 'templateId'] || []),
-    ...(promptOptions[parentSelectionFieldId] || [])
-  ];
+  const templateOptions = promptOptions[field.templateFieldId || 'templateId'] || [];
   return templateOptions.find(option => option.value?.toString() === templateId?.toString())?.entity || null;
 }
 
@@ -532,29 +507,6 @@ function syncCassetteParameterValues(fields = promptedFields(pendingAction.value
     }
     promptValues[field.id] = next;
   }
-}
-
-function requiredParentType(action = {}, entity = null, context = {}) {
-  return generatedActionRequiresParent({ action, entity, context, screen: screen.value });
-}
-
-async function loadParentSelectionOptions(parentType = '', context = {}, action = {}) {
-  const contextOptions = context?.parentEntityType === parentType && Array.isArray(context?.parentOptions) ? context.parentOptions : [];
-  const options = contextOptions.length ? contextOptions : await entityOptions(parentType);
-  return options.filter(option => !option.entity || actionAppliesToEntity(action, option.entity, parentType));
-}
-
-function contextWithSelectedParent(context = {}) {
-  const parentType = requiredParentType(pendingAction.value, pendingEntity.value?.entity, context);
-  if (!parentType) return context;
-  const parentId = promptValues[parentSelectionFieldId];
-  const selected = (promptOptions[parentSelectionFieldId] || []).find(option => option.value === parentId);
-  return {
-    ...context,
-    parentEntityType: parentType,
-    parentEntityId: parentId,
-    parentEntity: selected?.entity || null
-  };
 }
 
 function initialPromptValue(field = {}) {
@@ -598,9 +550,6 @@ async function loadPromptOptions(fields = []) {
     .map(async (field) => {
       const options = await entityOptions(field.entityType || field.accepts?.[0], field).catch(() => []);
       promptOptions[field.id] = options;
-      if (field.type !== 'entityList' && field.required && !promptValues[field.id] && options[0]?.value) {
-        promptValues[field.id] = options[0].value;
-      }
     }));
 }
 
@@ -648,9 +597,6 @@ async function toggleRelationCreator(field = {}) {
       query: { entityId: ownerId, source: 'creator' }
     });
     relationCreatorOptions[creatorField.id] = (items || []).map(entity => entityOption(entity, creatorField.entityType));
-    if (creatorField.required && !relationCreatorValues[creatorField.id]) {
-      relationCreatorValues[creatorField.id] = relationCreatorOptions[creatorField.id][0]?.value || '';
-    }
   }
   syncRelationCreatorParameters();
 }
@@ -760,7 +706,7 @@ function normalizeCassetteParameters(value = {}) {
 }
 
 watch(
-  () => [promptValues.templateId, promptValues[parentSelectionFieldId], pendingAction.value?.actionId || pendingAction.value?.id || ''],
+  () => [promptValues.templateId, pendingAction.value?.actionId || pendingAction.value?.id || ''],
   () => {
     if (!inputDialogVisible.value) return;
     syncCassetteParameterValues();

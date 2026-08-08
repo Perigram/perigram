@@ -24,7 +24,7 @@ export function normalizePortSpec(io = {}, fallback = {}) {
     accepts: Array.isArray(source.accepts) ? [...source.accepts] : [],
     multiple,
     optional: Boolean(source.optional || source.required === false || fallback.optional),
-    required: Boolean(source.required),
+    required: false,
     projection: Boolean(source.projection || kind === 'projection')
   };
 }

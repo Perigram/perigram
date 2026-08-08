@@ -64,10 +64,8 @@ When a manual downstream action is exposed in an existing entity context, an
 upstream entity-producing effect socket may bind to the matching typed entity
 from `context.inputs.entities`. This represents the current entity window; it
 does not recompute or rerun the upstream effect.
-If no matching context exists and that operational output feeds an optional
-input, manual execution omits the optional input. A manual action never runs a
-separate operational node merely to obtain its data output; required inputs
-still fail until their source has emitted or the current context supplies it.
+If no matching context exists, manual execution omits that input. A manual
+action never runs a separate operational node merely to obtain its data output.
 Executable effects are represented only by their `processNode` canvas node.
 Compiler-derived action records are not projected as separate action nodes and
 are removed when the canvas is serialized.
@@ -262,7 +260,7 @@ and the queue service creates organization-root lineage instead of requiring a
 project concept that the process graph did not define.
 Compilation hydrates create-action construction and prompt policy from the
 domain construction contract. A sparse visual action for `cassette_design`
-therefore still compiles with required `name` and `templateId` prompt fields,
+therefore still compiles with promptable `name` and `templateId` fields,
 so generated screens open the input dialog even when the draft did not persist
 `construction.inputs` or `inputPolicy.fields`. Generic `cassette` creation
 keeps the canonical constructible block sockets; the cassette entity service
@@ -275,12 +273,12 @@ upload constructor. Its selected upload/capture/editor kinds travel in that
 construction contract, so generated artifact actions open the file creator
 rather than the generic identity-name dialog.
 Domain construction contracts own structural input metadata during compilation:
-field id, label, path, type, accepted entity types, and `required` status come
-from the current domain registry, not from stale action snapshots. Stored graph
-inputs may keep non-structural values such as defaults, but they cannot make a
-now-optional domain input required again. Queue creation relies on this rule so
-old processes that stored `jobItems.required: true` compile to an empty queue
-shell action instead of blocking on cassette-design selection.
+field id, label, path, type, and accepted entity types come from the current
+domain registry, not stale action snapshots. Process projections set every
+input `required: false`; stored graph inputs may keep non-structural values
+such as defaults but cannot make an input required. Queue creation therefore
+compiles to an empty queue shell action instead of blocking on cassette-design
+selection.
 Relations composed by the process graph are executable process contracts even
 when they are not global CNC-domain relations. A manual effect that consumes a
 composed relation derives `Link <target>` for the owner action surface and a
@@ -393,7 +391,7 @@ activation.
 Manual effect inputs resolve the supplied entity from the persisted run context
 when no data wire overrides that socket. Entity access remains resolved from
 persisted run input through the authorized feature service.
-Manual generic Create actions expose `identity.name` as a required prompt when
+Manual generic Create actions expose `identity.name` as a prompt when
 no Identity block supplies it. Manual field values are resolved into either
 fixed field sockets or stable open-block entry sockets by canonical field path,
 so a composer node is optional for user-entered creation data. Wired sources

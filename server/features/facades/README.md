@@ -31,9 +31,9 @@ Process authors create a Facade with the generic Create Entity node. To place
 the action in a project context, they compose the facade `lineage` block with
 the declared `projectId` containment reference and connect that block to Create
 Entity. The process compiler resolves this shared containment contract; facade
-construction itself does not declare or infer a parent. The action prompts for
-a facade name and can select an existing `FACADE_MODEL_SOURCE` artifact; a
-source model may also be linked later through the facade API.
+construction itself does not declare or infer a parent. The action prompts only
+for a facade name. A source model is an ordinary `relations.sourceModel` artifact
+reference, assigned through the facade API; it is not a process-construction input.
 
 ## Related
 

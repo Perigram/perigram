@@ -302,7 +302,7 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.actions.create_project.inputPolicy).toMatchObject({
       prompt: true,
-      fields: [expect.objectContaining({ path: 'identity.name', type: 'string', prompt: true, required: true })]
+      fields: [expect.objectContaining({ path: 'identity.name', type: 'string', prompt: true, required: false })]
     });
   });
 
@@ -338,14 +338,14 @@ describe('@cutkit/processes compiler', () => {
           defaultMode: 'genericCreate',
           inputs: [
             { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
-            { id: 'sourceModelId', path: 'sourceModelId', type: 'entity', entityType: 'artifact', required: false, prompt: true }
+            { id: 'customLabel', path: 'customLabel', type: 'string', required: false, prompt: true }
           ]
         }
       }
     });
 
     expect(compiled.actions.create_facade.construction.inputs).toEqual([
-      expect.objectContaining({ id: 'sourceModelId', entityType: 'artifact', prompt: true })
+      expect.objectContaining({ id: 'customLabel', type: 'string', prompt: true })
     ]);
   });
 
@@ -2163,7 +2163,7 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.actions.create_cassette.parentEntityType).toBe('library');
     expect(compiled.actions.create_cassette.parentRevision).toEqual({ enabled: true, scope: 'content' });
-    expect(compiled.actions.create_cassette.inputs[0]).toMatchObject({ id: 'parent', entityType: 'library', required: true });
+    expect(compiled.actions.create_cassette.inputs[0]).toMatchObject({ id: 'parent', entityType: 'library', required: false });
     expect(compiled.screens.auto_role_admin_library_detail.sources).toEqual(expect.arrayContaining([
       expect.objectContaining({
         id: 'cassette_children',
@@ -2590,12 +2590,12 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.create_design.construction).toMatchObject({
       mode: 'bakeCassetteDesignFromTemplate',
       inputs: expect.arrayContaining([
-        expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
+        expect.objectContaining({ id: 'templateId', prompt: true, required: false }),
         expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
       ])
     });
     expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
+      expect.objectContaining({ id: 'templateId', prompt: true, required: false }),
       expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
     ]));
     expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields.map(field => field.id)).not.toContain('name');
@@ -2642,7 +2642,7 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.create_queue.construction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true }),
+      expect.objectContaining({ id: 'name', required: false, prompt: true }),
       expect.objectContaining({ id: 'jobItems', required: false }),
       expect.objectContaining({ id: 'materialPool', required: false })
     ]));
@@ -2658,11 +2658,11 @@ describe('@cutkit/processes compiler', () => {
       expect.objectContaining({ id: 'data:jobItems', required: false })
     ]));
     expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true }),
+      expect.objectContaining({ id: 'name', required: false, prompt: true }),
       expect.objectContaining({ id: 'jobItems', required: false })
     ]));
     expect(exposedQueueAction.inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true })
+      expect.objectContaining({ id: 'name', required: false, prompt: true })
     ]));
     expect(exposedQueueAction.inputPolicy.fields).not.toContainEqual(expect.objectContaining({ id: 'jobItems' }));
   });

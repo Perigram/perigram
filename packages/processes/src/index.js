@@ -283,7 +283,7 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, doma
           path,
           type: promptContract.schemas.find(field => field.path === path)?.type?.base || 'json',
           prompt: !suppliedFields.has(path),
-          required: node.kind === 'effect.createEntity' && path === 'identity.name',
+          required: false,
           ...(Object.hasOwn(promptContract.defaults, path) ? { default: promptContract.defaults[path] } : {})
         }))
       },
@@ -333,7 +333,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
           entityType: relation.targetType,
           relationKey: relation.key,
           cardinality: relation.cardinality || 'one',
-          required: true,
+          required: false,
           prompt: operation === 'link',
           ...(operation === 'link' && creator ? { creator } : {})
         };
@@ -357,7 +357,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
           access: sourceAction.access,
           trigger: { mode: 'manual' },
           inputs: [
-            { id: 'entity', entityType: sourceAction.entityType, required: true },
+            { id: 'entity', entityType: sourceAction.entityType, required: false },
             input
           ],
           outputs: [{ id: 'entity', entityType: sourceAction.entityType }]
@@ -727,7 +727,7 @@ function normalizeActionRecord(action = {}) {
   const entityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType || '';
   const inputs = [...(action.inputs || [])];
   if (!inputs.some(input => input.id === 'entity')) {
-    inputs.unshift({ id: 'entity', kind: 'entity', entityType, required: true });
+    inputs.unshift({ id: 'entity', kind: 'entity', entityType, required: false });
   }
   if (!inputs.some(input => input.id === 'status')) {
     inputs.push({
@@ -1486,7 +1486,7 @@ function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}
       ...input,
       label: parentEntityType || 'Parent entity',
       entityType: parentEntityType || '',
-      required: Boolean(parentEntityType),
+      required: false,
       status: parentEntityType ? input.status || '' : ''
     };
   });
@@ -1495,7 +1495,7 @@ function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}
       id: 'parent',
       label: parentEntityType,
       entityType: parentEntityType,
-      required: true
+      required: false
     });
   }
   const construction = normalizeConstruction(action.construction, action.entityType, domain);
@@ -1532,7 +1532,7 @@ function commandActionInputs(command = {}) {
       entityType: input.type || '',
       capability: input.capability || '',
       accepts: input.accepts || [],
-      required: Boolean(input.required),
+      required: false,
       multiple: Boolean(input.multiple),
       abstract: true,
       prompt: false
@@ -1544,7 +1544,7 @@ function commandActionInputs(command = {}) {
         label: input.label || input.name || input.type,
         entityType: input.type,
         kind: 'entity',
-        required: Boolean(input.required),
+        required: false,
         prompt: true,
         path: `entities.${input.name || input.type}`
       })),
@@ -1555,7 +1555,7 @@ function commandActionInputs(command = {}) {
       type: input.type || 'string',
       options: input.options || [],
       default: input.default ?? null,
-      required: Boolean(input.required),
+      required: false,
       prompt: input.display !== 'hidden',
       path: `parameters.${input.name}`,
       dataPath: `parameters.${input.name}`,
@@ -2258,7 +2258,7 @@ function compileActionEntityContracts(action = {}, inputs = [], outputs = [], ac
       id: input.id || 'entity',
       kind: input.multiple ? 'entity_list' : 'entity',
       entityType: input.entityType,
-      required: input.required !== false,
+      required: false,
       status: input.status || null,
       relationKey: input.relationKey || null,
       cardinality: input.cardinality || null
@@ -2277,7 +2277,7 @@ function compileActionEntityContracts(action = {}, inputs = [], outputs = [], ac
   }
   if (action.actionKind === 'updateEntity' && entityType) {
     if (!inputContracts.some(contract => contract.entityType === entityType)) {
-      inputContracts.unshift({ id: 'entity', kind: 'entity', entityType, required: true, status: actionWindow?.input?.status || null });
+      inputContracts.unshift({ id: 'entity', kind: 'entity', entityType, required: false, status: actionWindow?.input?.status || null });
     }
     if (!outputContracts.some(contract => contract.entityType === entityType)) {
       outputContracts.push({ id: 'entity', kind: 'entity', entityType, status: actionTargetState(action) || actionWindow?.outputs?.[0]?.status || null });
@@ -2393,7 +2393,7 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
     if (contract.derived && !contractInput) continue;
     inputsById.set(key, contractInput
       ? mergeConstructionInput(contractInput, input)
-      : { ...input }
+      : { ...input, required: false }
     );
   }
   return {
@@ -2410,7 +2410,7 @@ function isCanonicalBlockConstructionPath(path = '') {
 
 function normalizeConstructionInput(input = {}, domain = {}) {
   if (input.creator?.entityType !== 'artifact' || input.creator.attachmentKinds !== 'userCreatable') {
-    return { ...input };
+    return { ...input, required: false };
   }
   return {
     ...input,
@@ -2419,7 +2419,8 @@ function normalizeConstructionInput(input = {}, domain = {}) {
       attachmentKinds: Object.values(domain.attachmentKinds || {})
         .filter(kind => ['upload', 'capture', 'editor'].includes(kind.creation?.mode))
         .map(kind => ({ kind: kind.kind || kind.id, creation: kind.creation }))
-    }
+    },
+    required: false
   };
 }
 
@@ -2442,14 +2443,17 @@ function mergeConstructionInput(contractInput = {}, declaredInput = {}) {
     } : {}),
     default: declaredInput.default ?? contractInput.default,
     value: declaredInput.value ?? contractInput.value,
-    prompt: declaredInput.prompt ?? contractInput.prompt
+    prompt: declaredInput.prompt ?? contractInput.prompt,
+    required: false
   };
 }
 
 function normalizeInputPolicy(inputPolicy = {}) {
   return {
     prompt: inputPolicy.prompt !== false,
-    fields: Array.isArray(inputPolicy.fields) ? inputPolicy.fields : []
+    fields: Array.isArray(inputPolicy.fields)
+      ? inputPolicy.fields.map(field => ({ ...field, required: false }))
+      : []
   };
 }
 
@@ -2458,7 +2462,7 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
   const policyFields = Array.isArray(inputPolicy.fields) ? inputPolicy.fields : [];
   const fieldsById = new Map(
     normalizedConstruction.inputs
-      .filter(input => input.prompt || input.required)
+      .filter(input => input.prompt)
       .map(input => [input.id || input.path, { ...input }])
   );
   for (const field of policyFields) {
@@ -2471,12 +2475,12 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
           ...(fieldsById.get(key) || {}),
           ...field
         };
-    if (merged.prompt || merged.required || !constructionField) fieldsById.set(key, merged);
+    if (merged.prompt || !constructionField) fieldsById.set(key, { ...merged, required: false });
     else fieldsById.delete(key);
   }
-  const fields = [...fieldsById.values()];
+  const fields = [...fieldsById.values()].map(field => ({ ...field, required: false }));
   return {
-    prompt: inputPolicy.prompt !== false && fields.some(field => field.prompt || field.required),
+    prompt: inputPolicy.prompt !== false && fields.some(field => field.prompt),
     fields
   };
 }
@@ -3134,11 +3138,6 @@ function validateProcessNodeConnections(process = {}, errors = [], domain = {}) 
       counts.set(inputId, (counts.get(inputId) || 0) + 1);
     }
     for (const input of contract.inputs) {
-      const hasDefault = Object.hasOwn(record.inputDefaults || {}, input.id);
-      const manualCreateIdentity = record.kind === 'effect.createEntity'
-        && (record.trigger?.mode || 'manual') === 'manual'
-        && input.id === 'identity';
-      if (input.required && !counts.has(input.id) && !hasDefault && !manualCreateIdentity) errors.push(`Process node ${nodeId} requires input ${input.id}`);
       if ((counts.get(input.id) || 0) > 1 && !input.multiple) errors.push(`Process node ${nodeId} input ${input.id} has more than one connected value`);
     }
   }
@@ -3188,13 +3187,7 @@ function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
   if (contract.derived && construction.mode === 'genericCreate') {
     errors.push(`Action ${actionId} must use a typed construction mode for derived entity ${entityType}`);
   }
-  const contractInputs = contract.modeInputs?.[construction.mode] || contract.inputs || [];
   if (construction.blockComposed && construction.mode === 'genericCreate') return;
-  const requiredIds = new Set(contractInputs.filter(input => input.required).map(input => input.id));
-  const presentIds = new Set([...(construction.inputs || []), ...(action.inputs || [])].map(input => input.id));
-  for (const inputId of requiredIds) {
-    if (!presentIds.has(inputId)) errors.push(`Action ${actionId} missing construction input ${inputId}`);
-  }
 }
 
 function constructionContract(domain = {}, entityType = '') {
