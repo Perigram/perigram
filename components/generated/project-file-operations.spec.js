@@ -65,14 +65,15 @@ describe('project file operations and queue pane density', () => {
     expect(queueEditorSource).toContain('v-bind="workspaceLayoutProps"');
   });
 
-  it('refreshes generated sources without blanking or accepting stale responses', () => {
+  it('keeps generated source snapshots without blanking or refetching local mutations', () => {
     expect(generatedScreenComposableSource).toContain('const sequence = ++loadSequence');
     expect(generatedScreenComposableSource).toContain('if (sequence !== loadSequence) return');
     expect(generatedScreenComposableSource).toContain('const loaded = await Promise.all');
     expect(generatedScreenComposableSource).toContain('if (firstLoad) loading.value = true');
     expect(generatedScreenComposableSource).toContain('refreshTimer = setTimeout');
-    expect(generatedScreenComposableSource).toContain('else if (change.entity) applyEntitySnapshot');
+    expect(generatedScreenComposableSource).toContain('if (change.entity) {\n      applyEntitySnapshot(change.type, change.entity);\n      return;');
     expect(generatedScreenSource).toContain('applyActionResult(action, result)');
+    expect(generatedScreenSource).not.toContain('applyActionResult(action, result);\n    toast.add({ severity: \'success\', summary: t(\'common.success\'), detail: t(\'generatedScreen.actionCompleted\'), life: 2000 });\n    await load();');
     expect(generatedScreenComposableSource).not.toContain('sourceStates.value = Object.fromEntries(sources.map');
   });
 

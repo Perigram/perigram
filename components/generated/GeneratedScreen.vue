@@ -345,6 +345,14 @@ async function executeAction(action, entity = null, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
+    const artifactCreator = artifactCreatorForAction(action);
+    if (artifactCreator) {
+      pendingAction.value = action;
+      pendingEntity.value = { entity, context };
+      artifactCreatorField.value = { id: 'artifact', creator: artifactCreator };
+      artifactCreatorVisible.value = true;
+      return;
+    }
     if (['createEntity', 'updateEntity', 'runCommand'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
       await openInputDialog(action, entity, context);
       return;
@@ -391,6 +399,13 @@ function hasUploadCreator(field = {}) {
     && field.creator.attachmentKinds?.some(item => ['upload', 'capture', 'editor'].includes(item.creation?.mode));
 }
 
+function artifactCreatorForAction(action = {}) {
+  if (action.actionKind !== 'createEntity' || action.entityType !== 'artifact') return null;
+  const field = [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
+    .find(input => input.creator?.entityType === 'artifact');
+  return hasUploadCreator(field) ? field.creator : null;
+}
+
 function openArtifactCreator(field = {}) {
   artifactCreatorField.value = field;
   artifactCreatorVisible.value = true;
@@ -410,6 +425,12 @@ function selectCreatedArtifact(artifact = {}) {
   const field = artifactCreatorField.value;
   const id = entityIdentifier(artifact);
   if (!field || !id) return;
+  if (pendingAction.value?.entityType === 'artifact') {
+    artifactCreatorField.value = null;
+    pendingAction.value = null;
+    pendingEntity.value = null;
+    return;
+  }
   promptOptions[field.id] = [...(promptOptions[field.id] || []), entityOption(artifact, 'artifact')];
   promptValues[field.id] = id;
 }
@@ -452,7 +473,6 @@ async function postAction(action, entity = null, data = {}, context = {}) {
     });
     applyActionResult(action, result);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
-    await load();
   } catch (err) {
     showActionError(err);
   }

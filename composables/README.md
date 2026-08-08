@@ -216,9 +216,11 @@ loads entity data through `useEntity()`. It supports list and single-entity
 sources, assignment-bound filters/identifiers, and exposes source states to the
 generated renderer.
 Generated screens listen to the shared browser-local entity sync event and
-reload when an event targets one of their visible source entity types. This is
-the generated-screen side of cross-device entity synchronization; the backend
-still enforces whether the refreshed source can read each changed entity.
+apply its complete entity snapshot directly to matching source state. A local
+create, update, or delete therefore becomes visible immediately without a
+polling request or a manual page reload. Events without a complete snapshot are
+the only case that schedules a source reload; API routes still enforce whether
+the source may read the changed entity.
 
 Generated screens are UI composition only. They decide which regions, sources,
 and action buttons are visible, while API routes still enforce real access.

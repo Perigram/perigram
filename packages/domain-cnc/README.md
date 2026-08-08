@@ -24,7 +24,10 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
   date operations preserve their time component when scheduling from a
   lifecycle entry.
 - `entity-construction.js` - create-time construction contracts used by process
-  action nodes and generated action dialogs.
+  action nodes and generated action dialogs. `artifact` is a derived
+  `uploadArtifact` constructor: it accepts only attachment kinds whose domain
+  contract allows upload, capture, or editor creation, never a name-only
+  generic artifact record.
 - `ui.js` - design-system policy metadata, not Vue components.
 - `index.js` - public exports and aggregate `cncDomain`.
 

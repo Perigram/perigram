@@ -575,7 +575,9 @@ function dynamicBlocks(record, context) {
     ...(Array.isArray(record.fieldSchemas) ? record.fieldSchemas : []),
     ...(Array.isArray(context.fieldSchemas) ? context.fieldSchemas : [])
   ]
-    .filter(field => field.writable !== false)
+    .filter(field => record.kind === 'effect.createEntity'
+      ? field.constructible !== false
+      : field.writable !== false)
     .map(field => field.block || String(field.path || '').split('.')[0])
     .filter(block => block && !['origin', 'status', 'provenance', 'summary'].includes(block)))];
 }

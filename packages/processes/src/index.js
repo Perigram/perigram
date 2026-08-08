@@ -143,9 +143,11 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
     const removedBlocks = new Set(persistedBlocks.filter(block => knownBlocks.has(block) && !allowedBlocks.has(block)));
     const inputDefaults = Object.fromEntries(Object.entries(node.inputDefaults || {})
       .filter(([path]) => !removedBlocks.has(String(path).split('.')[0])));
+    const construction = normalizeConstruction(node.construction, node.entityType, domain);
     return [id, {
       ...node,
       blocks,
+      construction,
       ...(node.inputDefaults ? { inputDefaults } : {})
     }];
   }));
@@ -442,10 +444,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       ...((declared?.targetType || entry.entityType) === 'artifact' ? {
         creator: {
           entityType: 'artifact',
-          attachmentKinds: (entry.attachmentKinds || []).map(kind => ({
-            kind,
-            creation: domain.attachmentKinds?.[kind]?.creation || { mode: 'workflow' }
-          }))
+          attachmentKinds: artifactCreatorKinds(entry.attachmentKinds, domain)
         }
       } : {})
     };
@@ -459,6 +458,19 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     parentEntityType: node.parentEntityType || (parentTypes.length === 1 ? parentTypes[0] : ''),
     relationContracts
   };
+}
+
+function artifactCreatorKinds(selectedKinds = [], domain = {}) {
+  const definitions = Object.values(domain.attachmentKinds || {});
+  const kinds = selectedKinds.length
+    ? selectedKinds.map(kind => typeof kind === 'string' ? kind : kind.kind)
+    : definitions
+      .filter(kind => ['upload', 'capture', 'editor'].includes(kind.creation?.mode))
+      .map(kind => kind.kind || kind.id);
+  return kinds.filter(Boolean).map(kind => ({
+    kind,
+    creation: domain.attachmentKinds?.[kind]?.creation || { mode: 'workflow' }
+  }));
 }
 
 function declaredRelationForTarget(domain = {}, ownerType = '', targetType = '') {
@@ -2369,7 +2381,10 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
   const contractInputs = blocksOwnConstruction
     ? []
     : (contract.modeInputs?.[mode] || contract.inputs || []);
-  const inputsById = new Map(contractInputs.map(input => [input.id || input.path, { ...input }]));
+  const inputsById = new Map(contractInputs.map(input => {
+    const normalizedInput = normalizeConstructionInput(input, domain);
+    return [normalizedInput.id || normalizedInput.path, normalizedInput];
+  }));
   for (const input of declaredInputs) {
     const key = input.id || input.path;
     const contractInput = inputsById.get(key);
@@ -2383,6 +2398,21 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
     mode,
     ...(construction.blockComposed ? { blockComposed: true } : {}),
     inputs: [...inputsById.values()]
+  };
+}
+
+function normalizeConstructionInput(input = {}, domain = {}) {
+  if (input.creator?.entityType !== 'artifact' || input.creator.attachmentKinds !== 'userCreatable') {
+    return { ...input };
+  }
+  return {
+    ...input,
+    creator: {
+      ...input.creator,
+      attachmentKinds: Object.values(domain.attachmentKinds || {})
+        .filter(kind => ['upload', 'capture', 'editor'].includes(kind.creation?.mode))
+        .map(kind => ({ kind: kind.kind || kind.id, creation: kind.creation }))
+    }
   };
 }
 
@@ -2400,6 +2430,9 @@ function mergeConstructionInput(contractInput = {}, declaredInput = {}) {
   return {
     ...declaredInput,
     ...contractInput,
+    ...(contractInput.creator || declaredInput.creator ? {
+      creator: { ...(contractInput.creator || {}), ...(declaredInput.creator || {}) }
+    } : {}),
     default: declaredInput.default ?? contractInput.default,
     value: declaredInput.value ?? contractInput.value,
     prompt: declaredInput.prompt ?? contractInput.prompt
