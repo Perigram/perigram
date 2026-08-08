@@ -57,6 +57,10 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   `data.compiled` contracts after process compiler changes. Use this after
   generated-screen synthesis changes so active organizations drop stale
   compiler-projected home and navigation manifests.
+- `server/scripts/migrate-process-dataflow-v4.js`: Migrates stored v3 process
+  graphs to the universal v4 data-tree contract. It is a dry run by default and
+  writes only with `--apply`. The write pass aborts if any legacy relation
+  append/remove operation requires an explicit list-dataflow rewrite.
 - `server/scripts/migrate-process-transition-role-access.js`: Compiled-process
   cleanup for status transitions. It removes stale workflow
   `access.permissions` from transitions that already have `processRoleIds`, so

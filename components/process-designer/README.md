@@ -1,7 +1,7 @@
 # COMPONENT: Process Designer
 
 The organization process designer authors the `@cutkit/processes`
-`dataflowVersion: 3` contract. Executable canvas records are `processNode`
+`dataflowVersion: 4` contract. Executable canvas records are `processNode`
 operations. Entity profiles, screens, role grants, service principals, and
 statuses are definition-plane records. Role identities are organization data,
 and the Roles panel performs immediate organization CRUD independently of
@@ -15,7 +15,7 @@ authored status id updates the referenced value without breaking the wire.
 ## Palette and node concerns
 
 The runtime catalog remains exhaustive, but it is not the authoring palette.
-The palette has three non-overlapping authoring concerns.
+The palette has four non-overlapping authoring concerns.
 
 - **Entities** owns typed block assembly and persistence. Compose Block creates
   one canonical block from selected fields. Modify Block copies a connected
@@ -42,9 +42,12 @@ The palette has three non-overlapping authoring concerns.
   output contracts.
 - **Values** contains one typed value input and one operation-switching node
   each for logic/comparison, text, math, and date-time work.
-- **Lists and trees** contains the Grasshopper-style structure operations:
-  list construction/concatenation/index/slice/count/filter/sort/distinct/group,
-  and tree flatten/graft/simplify/branch/zip/unzip/cross/transpose.
+- **Lists and trees** contains branch-local list operations and explicit tree
+  transforms. Collect Array converts one branch into one persisted array value;
+  Expand Array performs the reverse. Matching is Longest by default, with
+  Shortest and Cross available per node.
+- **Events** contains entry events, conditions, waits, and the paired For Each /
+  For Each End iteration boundary. Effects never vectorize implicitly.
 Every effect has one bottom execution switch: Manual exposes the operation to
 authorized users, while Automatic exposes an incoming event socket. Date
 scheduling is composed explicitly with date values and a wait-until control
@@ -72,7 +75,7 @@ a Boolean mask, then feed that mask and the original list to Filter.
 | Persist replacements/status | Entity/block/status → Modify Entity | Entity field policy and Status engine |
 | Run a service | Typed values/entities → Run Service | Registered command handler |
 | Run manually or chain effects | Manual effect, or completion → Automatic effect | Durable orchestration |
-| Reshape collections | List/tree operations with explicit packet shapes | Pure data-tree evaluator |
+| Reshape collections | Branch-local list operations and explicit tree transforms | Pure data-tree evaluator |
 
 The exhaustive runtime catalog, producer effects, predicates, patches,
 conversions, and trigger-payload helpers have no direct authoring entry.
@@ -86,10 +89,10 @@ instead of creating an unexplained empty conversion node.
 `ProcessNode.vue` renders the catalog's resolved ports, not stored UI guesses.
 Inputs and outputs share explicit rows, and every handle is centered on the
 outer node rail rather than inheriting a position from variable-height content.
-Socket labels stay concise; the exact structured type, shape, qualifier, and
+Socket labels stay concise; the exact element type, access, qualifier, and
 description are available on hover and to assistive technology instead of
 being repeated beside every socket. Color communicates transported base type,
-handle shape communicates item/list/tree structure, and the thin node stripe
+handle shape communicates Item/List/Tree access, and the thin node stripe
 communicates operation concern. The shared `processDesignerSocketTone` mapping
 drives both a source handle and its wire, so a contract has one semantic tone
 throughout the canvas. Port labels sit on unboxed left/right rails rather than
@@ -109,17 +112,11 @@ identity uid, Mongo `_id`, origin, status history, and other service-owned
 fields have no authoring fallback and cannot be composed or modified. Initial
 status is the separate lifecycle input.
 
-Entity inputs use the same socket contract and shared binding resolver for every binding source. A typed
-entity-reference literal authors one exact entity id, a direct entity socket
-uses the entity available in the current run, and `read.queryEntities` accepts
-typed predicate sockets to produce a filtered entity list. Consumers infer the
-entity type and item/list cardinality from the wire. Relations entries derive
-their key directly from that entity type and preserve the wire cardinality, so
-they do not expose an entity-type selector or depend on a predefined
-consumer-specific relation. Lineage entries use the downstream containment
-schema to resolve their constructible/writable path.
-Both materialized `entity` outputs and lightweight `entityRef` outputs carry
-this inference; saving or re-synchronizing the canvas must preserve either form.
+Entity and block bindings are explicit. Query Entities chooses its entity type;
+open block rows choose their key and element type. Neither a source socket nor
+a downstream consumer rewrites those choices. Filtering is Query → Get Field →
+Logic → Cull Pattern/Dispatch. Several references become one stored collection
+only through Collect Array.
 
 Only configuration that defines the operation or its ports stays on the node:
 value/type, entity, field, block, operation, trigger identity/mode, and socket
@@ -141,23 +138,21 @@ connects it immediately.
 
 ## Types and connections
 
-Types are structured `{ base, shape, nullable, ...qualifiers }` objects. Shape
-is the transported packet (`item`, `list`, or a path-addressed `tree`); it is
-not a field's intrinsic cardinality and is not encoded in a string kind.
+Types are structured `{ base, nullable, ...qualifiers }` element contracts.
+Every data value travels in a path-addressed tree. Socket `access` independently
+declares whether a node consumes an Item, each branch as a List, or the entire
+Tree.
 Collection-valued fields use the `array` base with an `itemType`. Exact entity types, blocks, schemas, enums, units, capabilities, and
 attachment/event kinds are preserved on sockets.
-Pack Array converts a list packet into one array-valued item; Unpack Array does
+Collect Array converts a branch into one array-valued item; Expand Array does
 the reverse. This boundary keeps composing a collection field from accidentally
 producing one block per list element.
 
-The designer checks the source and target socket contracts before persisting a
-wire. Safe item broadcasting and safe scalar/reference coercions are implicit.
-Generic list/tree nodes infer their transported base type from the first
-connected data socket. Field, block, deconstruct, logic, text, math, and date
-operations infer list/tree shape so operations map over structured input and
-can produce a Boolean mask for Filter without a separate “entity filter”
-language. Narrowing or restructuring data is rejected until the author adds
-the appropriate list/tree node.
+The designer checks element compatibility before persisting a wire. The runtime
+solver obtains topology from actual source trees. Item access maps over matched
+items; List access executes independently for every branch; Tree access receives
+the complete structure. Per-input Simplify, Flatten, and Graft run before the
+node's Longest, Shortest, or Cross matching rule.
 
 Deconstruct Entity consumes one typed entity or aligned entity structure and
 emits one typed socket per declared canonical block. Field-level work is an
@@ -169,8 +164,8 @@ Compose Block, Modify Block, and Get Field consume entity-independent
 no entity selector. The schemas are explicit canonical contracts, not a union
 of observed entity fields. Fixed blocks expose fixed field sockets. Open blocks
 use inspector-authored typed rows with stable socket ids: Lineage authors a key
-plus typed ancestor reference; Relations authors a key, referenced entity type,
-and one/many cardinality; Attachments uses a named attachment kind; and
+plus typed ancestor reference; Relations authors a key and referenced entity
+type; Attachments uses a named attachment kind; and
 Data, Summary, and Provenance use a named value type. The composed map is the
 single block output, never an unexplained map input. Get Field mirrors those
 same concerns, including restoring stored lineage ids to typed references.
@@ -247,11 +242,10 @@ and validates the draft first and refuses activation when validation fails. On
 narrow layouts the bottom dock remains icon-only, both side rails become
 overlays, and either rail can be closed independently to recover the canvas.
 
-Legacy `ProcessActionNode`, `ProcessEntityNode`, `ProcessServiceNode`,
-`ProcessSocketNode`, `ProcessStatusDefinitionNode`, and
-`ProcessValueInputNode` remain only for reading pre-migration canvas records.
-The v3 migration replaces those graph nodes before editing or activation; new
-palette operations must use `ProcessNode.vue`.
+Legacy canvas records are not interpreted by the designer. The v4 migration
+rewrites supported v3 records before editing or activation and fails closed
+when an old mutation cannot be represented without changing meaning. New
+palette operations use `ProcessNode.vue` exclusively.
 
 Canvas accents and Vue Flow handles use the global `signal-*` aliases, not raw
 Tailwind hues. The aliases identify roles such as entity, data, structure,
