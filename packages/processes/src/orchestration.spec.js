@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { advanceProcessRun, createProcessRun, runProcessUntilSettled } from './orchestration.js';
+import { advanceProcessRun, createProcessRun, previewProcessDataflow, runProcessUntilSettled } from './orchestration.js';
 
 function process(records, nodes, edges) {
   return {
     id: 'definition',
-    dataflowVersion: 3,
+    dataflowVersion: 4,
     processNodes: Object.fromEntries(records.map(record => [record.id, record])),
     graph: { nodes: nodes.map(id => ({ id, type: 'processNode', data: { refId: id } })), edges }
   };
@@ -719,6 +719,25 @@ describe('durable process orchestration', () => {
       record: expect.objectContaining({ id: 'create-design' }),
       inputs: { templateId: 'cassette-1' }
     }));
+  });
+
+  it('previews pure/read data without executing effects', async () => {
+    const definition = process([
+      { id: 'entities', kind: 'read.queryEntities', entityType: 'queue' },
+      { id: 'count', kind: 'collection.count', type: { base: 'entity' } },
+      { id: 'effect', kind: 'effect.updateEntity', entityType: 'queue', trigger: { mode: 'event' } }
+    ], ['entities', 'count', 'effect'], [{
+      id: 'entities-count', source: 'entities', sourceHandle: 'data:entities', target: 'count', targetHandle: 'data:value', role: 'data'
+    }]);
+    const executeEffect = vi.fn();
+    const result = await previewProcessDataflow(definition, {}, {
+      executeEffect,
+      catalogContext,
+      data: { queryEntities: async () => [{ _id: 'q1' }, { _id: 'q2' }] }
+    });
+    expect(result.nodes.count.outputs.value.branches[0].items).toEqual([2]);
+    expect(result.nodes.effect).toBeUndefined();
+    expect(executeEffect).not.toHaveBeenCalled();
   });
 
 });

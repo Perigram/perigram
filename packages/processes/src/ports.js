@@ -39,13 +39,9 @@ function structuredPortType(type) {
     return { kind: 'list', multiple: true };
   }
   if (['entity', 'entityRef'].includes(type.base)) {
-    return {
-      kind: type.shape === 'list' ? 'entity_list' : 'entity',
-      entityType: type.entityType || '',
-      multiple: type.shape === 'list'
-    };
+    return { kind: 'entity', entityType: type.entityType || '', multiple: false };
   }
-  if (type.base === 'block') return { kind: type.shape === 'list' ? 'block_list' : 'block', block: type.block || '', multiple: type.shape === 'list' };
+  if (type.base === 'block') return { kind: 'block', block: type.block || '', multiple: false };
   if (['status', 'predicate', 'event'].includes(type.base)) {
     return { kind: type.base, entityType: type.entityType || '' };
   }
@@ -157,13 +153,13 @@ function incomingContracts(process, targetNodeId, graphNodes) {
     if (!sourceNode) continue;
     const sourceRecord = recordForNode(process, sourceNode);
     const sourceType = sourceRecord?.type;
-    const inferredSource = sourceRecord?.kind?.startsWith('source.') && sourceType?.base
+      const inferredSource = sourceRecord?.kind?.startsWith('source.') && sourceType?.base
       ? normalizePortSpec({
           id: normalizeHandleId(edge.sourceHandle, 'output') || 'value',
           label: sourceRecord.label || sourceRecord.id || 'value',
-          kind: sourceType.base === 'entityRef' && sourceType.shape === 'list' ? 'entity_list' : sourceType.base,
+          kind: sourceType.base,
           entityType: sourceType.entityType,
-          multiple: sourceType.shape === 'list'
+          multiple: false
         })
       : resolveNodePort(process, sourceNode, edge.sourceHandle, 'output');
     if (!inferredSource) continue;
@@ -175,20 +171,6 @@ function incomingContracts(process, targetNodeId, graphNodes) {
 
 function inferRecordContract(record, incoming) {
   const next = { ...record };
-  if (['record.composeBlock', 'record.modifyBlock'].includes(record.kind)
-    && record.compositionMode === 'relations'
-    && Array.isArray(record.entries)) {
-    next.entries = record.entries.map(entry => {
-      const source = incoming[`entry:${entry.id}`];
-      if (!source) return { ...entry };
-      return {
-        ...entry,
-        entityType: source.entityType || '',
-        cardinality: ['entity_list', 'list'].includes(source.kind) || source.multiple ? 'many' : 'one'
-      };
-    });
-    return next;
-  }
   const primaryId = {
     entityDecompose: 'entity',
     entityField: 'entity',
@@ -434,7 +416,7 @@ function processNodeOutputPorts(record = {}) {
     return [normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '' })];
   }
   if (record.kind === 'entityRef') {
-    const outputType = record.mode === 'children' || (record.mode === 'related' && record.relationCardinality === 'many') ? 'entity_list' : 'entity';
+    const outputType = ['children', 'related'].includes(record.mode) ? 'entity_list' : 'entity';
     const entityType = record.relationEntityType || record.entityType || '';
     return [normalizePortSpec({ id: 'entity', label: entityType || outputType, kind: outputType, entityType })];
   }

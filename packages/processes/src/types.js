@@ -1,4 +1,4 @@
-export const PROCESS_PROTOCOL_VERSION = 3;
+export const PROCESS_PROTOCOL_VERSION = 4;
 
 export const PROCESS_OPERATION_LEVELS = Object.freeze([
   'definition',
@@ -38,7 +38,7 @@ export const PROCESS_BASE_TYPES = Object.freeze([
   'opaque'
 ]);
 
-export const PROCESS_DATA_SHAPES = Object.freeze(['item', 'list', 'tree']);
+export const PROCESS_DATA_ACCESS = Object.freeze(['item', 'list', 'tree']);
 export const PROCESS_SOCKET_ROLES = Object.freeze(['data', 'control', 'success', 'failure']);
 
 export function processType(base = 'json', options = {}) {
@@ -51,10 +51,8 @@ export function normalizeProcessType(type = {}) {
   }
   const base = PROCESS_BASE_TYPES.includes(type.base) ? type.base : '';
   if (!base) throw new Error(`Unknown process base type ${type.base || '(empty)'}`);
-  const shape = PROCESS_DATA_SHAPES.includes(type.shape) ? type.shape : 'item';
   const normalized = {
     base,
-    shape,
     nullable: Boolean(type.nullable)
   };
   for (const key of [
@@ -94,7 +92,9 @@ export function normalizeProcessSocket(socket = {}, fallback = {}) {
     type: normalizeProcessType(type),
     role,
     required: source.required === true || (source.required == null && fallback.required === true),
-    multiple: Boolean(source.multiple),
+    access: PROCESS_DATA_ACCESS.includes(source.access)
+      ? source.access
+      : (PROCESS_DATA_ACCESS.includes(fallback.access) ? fallback.access : 'item'),
     path: source.path || source.dataPath || fallback.path || '',
     description: source.description || fallback.description || ''
   };
@@ -103,31 +103,29 @@ export function normalizeProcessSocket(socket = {}, fallback = {}) {
 export function processTypesCompatible(sourceType, targetType) {
   const source = normalizeProcessType(sourceType);
   const target = normalizeProcessType(targetType);
-  const shape = shapeCompatibility(source.shape, target.shape);
-  if (!shape.ok) return incompatible(shape.reason, source, target);
   if (source.nullable && !target.nullable) {
     return incompatible('A nullable value cannot satisfy a required socket; handle the empty case first', source, target);
   }
   if (sameQualifiedType(source, target)) {
-    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast };
+    return { ok: true, implicit: true, source, target };
   }
   if (source.base === 'integer' && target.base === 'number') {
-    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'integerToNumber' };
+    return { ok: true, implicit: true, source, target, coercion: 'integerToNumber' };
   }
   if (source.base === 'entity' && target.base === 'entityRef' && sameEntityType(source, target)) {
-    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'entityToReference' };
+    return { ok: true, implicit: true, source, target, coercion: 'entityToReference' };
   }
   if (source.base === 'date' && target.base === 'dateTime') {
-    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'dateToDateTime' };
+    return { ok: true, implicit: true, source, target, coercion: 'dateToDateTime' };
   }
   if (['date', 'dateTime'].includes(source.base) && target.base === 'string') {
-    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'temporalToString' };
+    return { ok: true, implicit: true, source, target, coercion: 'temporalToString' };
   }
   if (source.base === 'number' && target.base === 'number' && source.unit && target.unit && source.unit !== target.unit) {
     return convertible('value.convertUnit', `Unit conversion ${source.unit} → ${target.unit} must remain visible`, source, target);
   }
   if (target.base === 'json') {
-    return { ok: true, implicit: true, source, target, broadcast: shape.broadcast, coercion: 'toJson' };
+    return { ok: true, implicit: true, source, target, coercion: 'toJson' };
   }
   return incompatible(`Expected ${formatProcessType(target)}, received ${formatProcessType(source)}`, source, target);
 }
@@ -165,24 +163,16 @@ export function formatProcessType(type = {}) {
   const base = qualifier ? `${normalized.base}<${qualifier}>` : normalized.base;
   const unit = normalized.unit ? ` ${normalized.unit}` : '';
   const nullable = normalized.nullable ? '?' : '';
-  const shape = normalized.shape === 'item' ? '' : normalized.shape === 'list' ? '[]' : '{}';
-  return `${base}${unit}${nullable}${shape}`;
-}
-
-export function withProcessShape(type, shape) {
-  return normalizeProcessType({ ...normalizeProcessType(type), shape });
+  return `${base}${unit}${nullable}`;
 }
 
 export function legacyProcessType(kind = 'data', metadata = {}) {
   let clean = String(kind || 'data');
-  let shape = metadata.multiple ? 'list' : 'item';
   if (clean.endsWith('_list')) {
     clean = clean.slice(0, -5);
-    shape = 'list';
   }
   if (clean === 'entityList') {
     clean = 'entity';
-    shape = 'list';
   }
   const base = ({
     object: 'json',
@@ -196,7 +186,6 @@ export function legacyProcessType(kind = 'data', metadata = {}) {
   const supportsEntityType = ['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(supported);
   return normalizeProcessType({
     base: supported,
-    shape,
     nullable: Boolean(metadata.optional),
     entityType: supportsEntityType ? metadata.entityType : undefined,
     block: supported === 'block' ? metadata.block : undefined,
@@ -204,12 +193,6 @@ export function legacyProcessType(kind = 'data', metadata = {}) {
     accepts: metadata.accepts,
     opaqueType: supported === 'opaque' ? clean : undefined
   });
-}
-
-function shapeCompatibility(source, target) {
-  if (source === target) return { ok: true, broadcast: false };
-  if (source === 'item' && ['list', 'tree'].includes(target)) return { ok: true, broadcast: true };
-  return { ok: false, reason: `Cannot implicitly narrow or restructure ${source} data as ${target}` };
 }
 
 function sameQualifiedType(source, target) {

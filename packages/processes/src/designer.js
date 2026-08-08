@@ -56,13 +56,13 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
     id: 'values',
     items: [
-      paletteItem('valueInput', 'source.literalItem', { preset: { type: { base: 'string', shape: 'item', nullable: false }, value: '' } }),
-      paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', shape: 'item', nullable: true }, operation: 'eq' } }),
-      paletteItem('text', 'value.string', { preset: { type: { base: 'string', shape: 'item', nullable: false }, operation: 'concat' } }),
-      paletteItem('calculate', 'value.math', { preset: { type: { base: 'number', shape: 'item', nullable: false } } }),
+      paletteItem('valueInput', 'source.literalItem', { preset: { type: { base: 'string', nullable: false }, access: 'item', value: '' } }),
+      paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', nullable: true }, operation: 'eq' } }),
+      paletteItem('text', 'value.string', { preset: { type: { base: 'string', nullable: false }, operation: 'concat' } }),
+      paletteItem('calculate', 'value.math', { preset: { type: { base: 'number', nullable: false } } }),
       paletteItem('date', 'value.dateTime', {
         preset: {
-          type: { base: 'dateTime', shape: 'item', nullable: false },
+          type: { base: 'dateTime', nullable: false },
           operation: 'addDays',
           inputDefaults: { amount: 30 }
         }
@@ -72,25 +72,39 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
     id: 'listTree',
     items: [
-      paletteItem('makeList', 'collection.makeList'),
-      paletteItem('packArray', 'collection.packArray'),
-      paletteItem('unpackArray', 'collection.unpackArray'),
+      paletteItem('collectArray', 'collection.packArray'),
+      paletteItem('expandArray', 'collection.unpackArray'),
       paletteItem('joinLists', 'collection.concat'),
       paletteItem('itemAtPosition', 'collection.itemAt'),
       paletteItem('sliceList', 'collection.slice'),
       paletteItem('listCount', 'collection.count'),
       paletteItem('filterList', 'collection.filter'),
       paletteItem('sortItems', 'collection.sort'),
+      paletteItem('reverseItems', 'collection.reverse'),
+      paletteItem('shiftItems', 'collection.shift'),
+      paletteItem('partitionItems', 'collection.partition'),
+      paletteItem('dispatchItems', 'collection.dispatch'),
       paletteItem('removeDuplicates', 'collection.distinct'),
       paletteItem('groupItems', 'collection.groupBy'),
       paletteItem('flattenTree', 'tree.flatten'),
       paletteItem('graftTree', 'tree.graft'),
       paletteItem('simplifyTree', 'tree.simplify'),
       paletteItem('treeBranch', 'tree.branch'),
-      paletteItem('zipLists', 'tree.zip'),
-      paletteItem('unzipLists', 'tree.unzip'),
-      paletteItem('crossLists', 'tree.cross'),
-      paletteItem('transposeTree', 'tree.transpose')
+      paletteItem('transposeTree', 'tree.transpose'),
+      paletteItem('cleanTree', 'tree.clean'),
+      paletteItem('treeStatistics', 'tree.stats')
+    ]
+  },
+  {
+    id: 'events',
+    items: [
+      paletteItem('manualTrigger', 'control.manualTrigger'),
+      paletteItem('domainEventTrigger', 'control.domainEventTrigger'),
+      paletteItem('ifElse', 'control.if'),
+      paletteItem('forEach', 'control.forEach'),
+      paletteItem('forEachEnd', 'control.forEachEnd'),
+      paletteItem('waitUntil', 'control.waitUntil'),
+      paletteItem('waitDuration', 'control.waitDuration')
     ]
   }
 ].map(group => Object.freeze({
@@ -178,12 +192,10 @@ export function createProcessDesignerContract(domain = {}) {
     blockFieldType: path => blockFields(String(path || '').split('.')[0])
       .find(field => field.value === path)?.type || {
         base: 'json',
-        shape: 'item',
         nullable: true
       },
     fieldType: (entityType, path) => fields(entityType).find(field => field.value === path)?.type || {
       base: 'json',
-      shape: 'item',
       nullable: true
     }
   };

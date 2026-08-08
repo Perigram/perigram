@@ -10,7 +10,7 @@ describe('organization-owned process roles', () => {
 
   it('compiles process grants against an external catalog and resolves an assignment at runtime', () => {
     const compiled = compileProcessDefinition({
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       roleGrants: { role_a: [{ feature: 'projects', level: 'read' }] }
     }, {}, { roles: { role_a: { id: 'role_a', label: 'Operator' } } });
     expect(compiled.userAccess).toBeUndefined();
@@ -21,7 +21,7 @@ describe('organization-owned process roles', () => {
   });
 
   it('rejects process references to unknown organization roles', () => {
-    expect(() => compileProcessDefinition({ dataflowVersion: 3, roleGrants: { missing: [] } }, {}, { roles: {} }))
+    expect(() => compileProcessDefinition({ dataflowVersion: 4, roleGrants: { missing: [] } }, {}, { roles: {} }))
       .toThrow('missing organization role');
   });
 });

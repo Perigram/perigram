@@ -198,9 +198,9 @@ const domain = {
 };
 
 describe('@cutkit/processes compiler', () => {
-  it('derives runnable action contracts from authored v3 effect nodes', () => {
+  it('derives runnable action contracts from authored effect nodes', () => {
     const compiled = compileProcessDefinition({
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       roles: { operator: { id: 'operator', label: 'Operator' } },
       processNodes: {
         queue_identity: {
@@ -282,7 +282,7 @@ describe('@cutkit/processes compiler', () => {
 
   it('prompts for identity name when a manual create has no identity wire', () => {
     const compiled = compileProcessDefinition({
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       processNodes: {
         create_project: {
           id: 'create_project',
@@ -308,7 +308,7 @@ describe('@cutkit/processes compiler', () => {
 
   it('keeps non-block construction inputs when generic create consumes blocks', () => {
     const compiled = compileProcessDefinition({
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       processNodes: {
         create_facade: {
           id: 'create_facade',
@@ -349,21 +349,21 @@ describe('@cutkit/processes compiler', () => {
     ]);
   });
 
-  it('infers relation entry type and cardinality from its connected source', () => {
+  it('does not infer persistence contracts from connected data topology', () => {
     const definition = normalizeProcessDefinition({
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       processNodes: {
         library: {
           id: 'library',
           kind: 'source.literalItem',
-          type: { base: 'entityRef', shape: 'item', entityType: 'library' }
+          type: { base: 'entityRef', entityType: 'library' }
         },
         relations: {
           id: 'relations',
           kind: 'record.composeBlock',
           block: 'relations',
           compositionMode: 'relations',
-          entries: [{ id: 'library', key: 'library', entityType: 'project', cardinality: 'many' }]
+          entries: [{ id: 'library', key: 'library', entityType: 'project' }]
         }
       },
       graph: {
@@ -380,9 +380,8 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(definition.processNodes.relations.entries[0]).toMatchObject({
-      entityType: 'library',
-      key: 'library',
-      cardinality: 'one'
+      entityType: 'project',
+      key: 'library'
     });
   });
 
@@ -1742,7 +1741,7 @@ describe('@cutkit/processes compiler', () => {
       blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } }
     };
     const compiled = compileProcessDefinition({
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       roles: {
         role_admin: { id: 'role_admin', label: 'Admin' }
       },
@@ -1830,7 +1829,7 @@ describe('@cutkit/processes compiler', () => {
       blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } }
     };
     const compiled = compileProcessDefinition({
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
       processNodes: {
         library: {

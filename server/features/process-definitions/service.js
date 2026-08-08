@@ -22,6 +22,7 @@ import {
   applyPatch,
   createProcessRun,
   evaluateEntityPredicate,
+  previewProcessDataflow,
   resolveProcessActionInputContext,
   requiredEntityProfileTypes,
   validateProcessDefinition,
@@ -273,8 +274,8 @@ export async function archive(id, auth) {
 export async function startRun(id, payload = {}, auth = {}) {
   const process = await loadAuthorized(id, auth, 'read');
   const definition = process.toJSON();
-  if (Number(definition.data?.dataflowVersion) !== 3) {
-    throw createError({ statusCode: 409, message: 'Process must be migrated to dataflow version 3 before it can run' });
+  if (Number(definition.data?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
+    throw createError({ statusCode: 409, message: `Process must use dataflow version ${PROCESS_DATAFLOW_VERSION} before it can run` });
   }
   const organizationId = resolveOrganizationId(auth);
   const run = createProcessRun(definition, payload.trigger || {}, {
@@ -342,6 +343,28 @@ export async function resumeRun(id, auth = {}) {
   return serializeRun(run);
 }
 
+export async function preview({ definition, trigger = {}, inputs = {} } = {}, auth = {}) {
+  const organizationId = resolveOrganizationId(auth);
+  await assertOrgAccess(auth, organizationId, 'read');
+  if (!definition || Number((definition.data || definition).dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
+    throw createError({ statusCode: 400, message: `Preview requires dataflow version ${PROCESS_DATAFLOW_VERSION}` });
+  }
+  const run = { context: { inputs }, trigger };
+  return await previewProcessDataflow(definition, { trigger, inputs }, {
+    previewLimit: 100,
+    catalogContext: record => {
+      const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
+      return {
+        fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.entityType, record.path),
+        fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.entityType),
+        blockComposition: cncDomain.blockComposition?.[record.block] || null,
+        command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null
+      };
+    },
+    data: processDataEnvironment(auth, run)
+  });
+}
+
 export async function projectEntityThroughSocket({ socketId, entityId, targetOrganizationId } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'read');
@@ -402,7 +425,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
       if (!creatorAction || creatorAction.entityType !== action.relationMutation.targetType) {
         throw createError({ statusCode: 400, message: 'Relation action has no compatible creator' });
       }
-      const created = await executeV3ActionRun({
+      const created = await executeDataflowActionRun({
         process,
         actionId: creatorId,
         entityId: null,
@@ -427,8 +450,8 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     }
     return await executeCompiledRelationMutationAction({ action, actionId, entityId, data, entities }, auth);
   }
-  if (Number(process.data.dataflowVersion) === 3) {
-    return await executeV3ActionRun({
+  if (Number(process.data.dataflowVersion) === PROCESS_DATAFLOW_VERSION) {
+    return await executeDataflowActionRun({
       process,
       actionId,
       entityId,
@@ -653,15 +676,15 @@ async function resolveManualRelationMutation(entityType, targetId, mutation = {}
   return result;
 }
 
-async function executeV3ActionRun({ process, actionId, entityId, data, parameters, entities, targetOrganizationId }, auth) {
+async function executeDataflowActionRun({ process, actionId, entityId, data, parameters, entities, targetOrganizationId }, auth) {
   const effect = Object.values(process.data.processNodes || {})
     .find(node => node.legacyActionId === actionId && node.kind?.startsWith('effect.'));
   if (!effect || (effect.trigger?.mode || 'manual') !== 'manual') {
-    throw createError({ statusCode: 409, message: `Action ${actionId} has no v3 entry trigger` });
+    throw createError({ statusCode: 409, message: `Action ${actionId} has no entry trigger` });
   }
   const graphNode = (process.data.graph?.nodes || [])
     .find(node => String(node.data?.refId || node.id) === String(effect.id));
-  if (!graphNode) throw createError({ statusCode: 409, message: `Action ${actionId} has no v3 graph node` });
+  if (!graphNode) throw createError({ statusCode: 409, message: `Action ${actionId} has no graph node` });
   let run = await startRun(process.id, {
     trigger: { nodeId: graphNode.id },
     inputs: {

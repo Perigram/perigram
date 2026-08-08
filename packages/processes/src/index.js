@@ -14,7 +14,7 @@ import {
 } from './ports.js';
 import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeProcessType, processSocketsCompatible, processType } from './types.js';
-import { resolveEntityBinding } from './entity-binding.js';
+import { createDataTree, isDataTree } from './data-tree.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -56,7 +56,7 @@ export {
   PROCESS_PROTOCOL_VERSION,
   PROCESS_OPERATION_LEVELS,
   PROCESS_BASE_TYPES,
-  PROCESS_DATA_SHAPES,
+  PROCESS_DATA_ACCESS,
   PROCESS_SOCKET_ROLES,
   formatProcessType,
   legacyProcessType,
@@ -64,11 +64,10 @@ export {
   normalizeProcessType,
   processSocketsCompatible,
   processType,
-  processTypesCompatible,
-  withProcessShape
+  processTypesCompatible
 } from './types.js';
 export * from './data-tree.js';
-export { entityBindingSourceContract, resolveEntityBinding } from './entity-binding.js';
+export { migrateProcessDefinitionV4 } from './migration-v4.js';
 export {
   PROCESS_NODE_CATALOG,
   PROCESS_NODE_FAMILIES,
@@ -87,6 +86,7 @@ export {
   PROCESS_STEP_STATUSES,
   advanceProcessRun,
   createProcessRun,
+  previewProcessDataflow,
   runProcessUntilSettled
 } from './orchestration.js';
 
@@ -107,8 +107,8 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
 
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const data = definition.data || definition;
-  const processNodes = normalizeProcessNodesForDomain(data.processNodes, domain);
-  const effectActions = deriveV3EffectActions(data.actions, processNodes, data.graph, domain);
+  const processNodes = normalizeProcessInputDefaults(normalizeProcessNodesForDomain(data.processNodes, domain), domain);
+  const effectActions = deriveEffectActions(data.actions, processNodes, data.graph, domain);
   const normalized = inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
     dataflowVersion: data.dataflowVersion,
@@ -127,11 +127,41 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     screens: normalizeRecord(data.screens),
     compiled: data.compiled || null
   });
-  return inferProcessDataflowContracts(inferOpenBlockEntityBindings(normalized, domain));
+  return normalized;
+}
+
+function normalizeProcessInputDefaults(processNodes = {}, domain = {}) {
+  return Object.fromEntries(Object.entries(processNodes).map(([id, record]) => {
+    if (!record?.inputDefaults) return [id, record];
+    let ports = [];
+    try { ports = resolveCatalogNodePorts(record, catalogContext(domain, record)).inputs; } catch { ports = []; }
+    const accessById = new Map(ports.map(port => [port.id, port.access || 'item']));
+    return [id, {
+      ...record,
+      inputDefaults: Object.fromEntries(Object.entries(record.inputDefaults).map(([socketId, value]) => [
+        socketId,
+        isDataTree(value) ? value : createDataTree(value, accessById.get(socketId) || 'item')
+      ]))
+    }];
+  }));
+}
+
+function processDefaultValue(value) {
+  return isDataTree(value) ? value.branches[0]?.items?.[0] : value;
+}
+
+function plainProcessDefaults(defaults = {}) {
+  return Object.fromEntries(Object.entries(defaults || {}).map(([key, value]) => [key, processDefaultValue(value)]));
 }
 
 function normalizeProcessNodesForDomain(value = {}, domain = {}) {
   return Object.fromEntries(Object.entries(normalizeRecord(value)).map(([id, node]) => {
+    if (Array.isArray(node?.entries)) {
+      node = {
+        ...node,
+        entries: node.entries.map(({ cardinality, operation, ...entry }) => entry)
+      };
+    }
     if (node?.kind !== 'effect.createEntity' || !node.entityType) return [id, node];
     const schemas = entityFieldSchemas(domain, node.entityType);
     const knownBlocks = new Set(schemas.map(field => field.block));
@@ -153,86 +183,11 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
   }));
 }
 
-function inferOpenBlockEntityBindings(process = {}, domain = {}) {
-  const nodesById = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
-  const recordsByNodeId = new Map([...nodesById].map(([nodeId, node]) => [
-    nodeId,
-    process.processNodes?.[String(node.data?.refId || node.id)]
-  ]));
-  const processNodes = { ...(process.processNodes || {}) };
-
-  for (const [graphNodeId, composer] of recordsByNodeId) {
-    if (!['record.composeBlock', 'record.modifyBlock'].includes(composer?.kind)
-      || !Array.isArray(composer.entries)) continue;
-    const consumerEdges = (process.graph?.edges || []).filter(edge => String(edge.source) === graphNodeId);
-    const targetTypes = [...new Set(consumerEdges
-      .map(edge => recordsByNodeId.get(String(edge.target)))
-      .filter(record => record?.entityType && (record.blocks || []).includes(composer.block))
-      .map(record => record.entityType))];
-    if (targetTypes.length !== 1) continue;
-    const targetFields = entityFieldSchemas(domain, targetTypes[0]);
-    const entries = composer.entries.map(entry => {
-      const edge = (process.graph?.edges || []).find(item => (
-        String(item.target) === graphNodeId
-        && normalizeHandle(item.targetHandle) === `entry:${entry.id}`
-      ));
-      const sourceNode = edge ? nodesById.get(String(edge.source)) : null;
-      const sourceRecord = sourceNode ? recordsByNodeId.get(String(sourceNode.id)) : null;
-      const source = sourceRecord ? catalogDataOutput(sourceRecord, edge.sourceHandle, domain) : null;
-      const exactRef = composer.inputDefaults?.[`entry:${entry.id}`];
-      const binding = resolveEntityBinding({
-        source: source ? { ...source, bindingMode: entityBindingModeForRecord(sourceRecord) } : exactRef || {},
-        authoredEntityType: entry.entityType,
-        authoredPath: entry.key ? `${composer.block}.${entry.key}` : '',
-        fields: targetFields,
-        block: composer.block,
-        access: composer.kind === 'record.composeBlock' ? 'constructible' : 'writable'
-      });
-      if (!binding.path) return entry;
-      return {
-        ...entry,
-        entityType: binding.entityType,
-        cardinality: binding.cardinality,
-        key: binding.path.slice(`${composer.block}.`.length),
-        bindingMode: binding.mode,
-        ...(composer.block === 'relations'
-          ? { operation: composer.kind === 'record.modifyBlock' ? entry.operation || 'append' : 'replace' }
-          : {})
-      };
-    });
-    processNodes[String(composer.id)] = { ...composer, entries };
-  }
-  return { ...process, processNodes };
-}
-
-function entityBindingModeForRecord(record = {}) {
-  if (record.kind === 'source.literalItem') return 'exact';
-  if (record.kind === 'read.currentEntity') return 'context';
-  if (['read.queryEntities', 'read.filterRecords'].includes(record.kind)) return 'filtered';
-  return 'socket';
-}
-
-function catalogDataOutput(record = {}, handle = '', domain = {}) {
-  const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
-  const ports = resolveCatalogNodePorts(record, {
-    fieldSchema: structural
-      ? structuralFieldSchema(domain, record.path)
-      : entityFieldSchema(domain, record.entityType, record.path),
-    fieldSchemas: structural
-      ? blockFieldSchemas(domain, record.block)
-      : entityFieldSchemas(domain, record.entityType),
-    blockComposition: domain.blockComposition?.[record.block] || null,
-    command: domain.commands?.[record.commandId] || null
-  }).outputs.filter(port => port.role === 'data');
-  const id = normalizeHandle(handle);
-  return ports.find(port => port.id === id) || (ports.length === 1 ? ports[0] : null);
-}
-
 function normalizeHandle(handle = '') {
   return String(handle).replace(/^(input|output|data):/, '');
 }
 
-function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}) {
+function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}) {
   const derived = { ...(actions || {}) };
   for (const [nodeId, node] of Object.entries(processNodes)) {
     if (!node.kind?.startsWith('effect.')) continue;
@@ -252,7 +207,7 @@ function deriveV3EffectActions(actions = {}, processNodes = {}, graph = {}, doma
       ...Object.keys(promptContract.defaults),
       ...promptContract.wiredFields
     ]);
-    const statusTo = node.inputDefaults?.['status.state.primary'] || node.status?.to || '';
+    const statusTo = processDefaultValue(node.inputDefaults?.['status.state.primary']) || node.status?.to || '';
     derived[actionId] = {
       ...(derived[actionId] || {}),
       id: actionId,
@@ -374,7 +329,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
   if (Array.isArray(node.fields) && node.fields.length) {
     return {
       fields: node.fields,
-      defaults: node.inputDefaults || {},
+      defaults: plainProcessDefaults(node.inputDefaults),
       wiredFields: [],
       schemas: (node.fields || []).map(consumerFieldSchema).filter(Boolean),
       parentEntityType: node.parentEntityType || ''
@@ -439,7 +394,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       return {
       key: declared?.key || entry.key,
       targetType: declared?.targetType || entry.entityType,
-      cardinality: declared?.cardinality || entry.cardinality || 'one',
+      cardinality: declared?.cardinality || (entry.type?.base === 'array' ? 'many' : 'one'),
       ...(processCreator ? { creator: processCreator } : {}),
       ...((declared?.targetType || entry.entityType) === 'artifact' ? {
         creator: {
@@ -452,7 +407,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     .filter(relation => relation.key && relation.targetType);
   return {
     fields,
-    defaults: Object.assign({}, ...composers.map(record => record.inputDefaults || {})),
+    defaults: Object.assign({}, ...composers.map(record => plainProcessDefaults(record.inputDefaults))),
     wiredFields,
     schemas: allSchemas,
     parentEntityType: node.parentEntityType || (parentTypes.length === 1 ? parentTypes[0] : ''),
@@ -508,7 +463,7 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (!nodeIds.has(edge.target)) errors.push(`Edge ${edge.id} references missing target node ${edge.target}`);
   }
   errors.push(...validateProcessEdges(process));
-  if (Number(process.dataflowVersion) === 3) errors.push(...validateV3Edges(process, domain));
+  if (Number(process.dataflowVersion) === PROCESS_DATAFLOW_VERSION) errors.push(...validateDataflowEdges(process, domain));
 
   for (const node of process.graph.nodes) {
     const refId = node.data?.refId;
@@ -2668,7 +2623,7 @@ function inferConnectedActionEntityType(actionId, process = {}) {
 function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   const kind = node.kind || '';
   if (kind.includes('.')) {
-    validateV3ProcessNode(nodeId, node, { entities, domain, errors });
+    validateProcessNode(nodeId, node, { entities, domain, errors });
     return;
   }
   const kinds = [
@@ -2752,7 +2707,7 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   }
 }
 
-function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
+function validateProcessNode(nodeId, node, { entities, domain, errors }) {
   const definition = getProcessNodeDefinition(node.kind);
   if (!definition) {
     errors.push(`Process node ${nodeId} uses unknown node kind ${node.kind}`);
@@ -2822,7 +2777,7 @@ function validateV3ProcessNode(nodeId, node, { entities, domain, errors }) {
     errors.push(`Process node ${nodeId} must expose at least one declared block`);
   }
   if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
-    const statusTarget = node.inputDefaults?.['status.state.primary'] || node.status?.to || node.statusRef;
+    const statusTarget = processDefaultValue(node.inputDefaults?.['status.state.primary']) || node.status?.to || node.statusRef;
     if (node.kind === 'effect.updateEntity' && !node.blocks?.length && !statusTarget) {
       errors.push(`Process node ${nodeId} must accept at least one writable block or status`);
     }
@@ -2916,9 +2871,6 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
     const key = String(entry.key || '').trim();
     if (!key || keys.has(key)) errors.push(`Process node ${nodeId} has a missing or duplicate entry key`);
     keys.add(key);
-    if (composition.mode === 'relations' && !['one', 'many'].includes(entry.cardinality || 'one')) {
-      errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} has invalid relation cardinality`);
-    }
     if (composition.mode === 'relations' && entry.attachmentKinds?.length) {
       const kinds = new Map(Object.values(domain.attachmentKinds || {}).map(kind => [kind.kind || kind.id, kind]));
       if (entry.entityType !== 'artifact') {
@@ -2932,10 +2884,6 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
           errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} creator requires a user-creatable attachment kind`);
         }
       }
-    }
-    if (composition.mode === 'relations' && node.kind === 'record.modifyBlock'
-      && !['append', 'remove', 'replace'].includes(entry.operation || 'append')) {
-      errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} has invalid relation mutation`);
     }
     if (composition.mode === 'entries') {
       try {
@@ -2953,7 +2901,7 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
   }
 }
 
-function validateV3Edges(process, domain) {
+function validateDataflowEdges(process, domain) {
   const errors = [];
   const graphNodes = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
   for (const edge of process.graph?.edges || []) {
@@ -2962,8 +2910,8 @@ function validateV3Edges(process, domain) {
     const sourceRecord = process.processNodes?.[String(sourceNode?.data?.refId || sourceNode?.id || '')];
     const targetRecord = process.processNodes?.[String(targetNode?.data?.refId || targetNode?.id || '')];
     if (!sourceRecord || !targetRecord) continue;
-    const sourcePorts = resolveCatalogNodePorts(sourceRecord, v3CatalogContext(domain, sourceRecord)).outputs;
-    const targetPorts = resolveCatalogNodePorts(targetRecord, v3CatalogContext(domain, targetRecord)).inputs;
+    const sourcePorts = resolveCatalogNodePorts(sourceRecord, catalogContext(domain, sourceRecord)).outputs;
+    const targetPorts = resolveCatalogNodePorts(targetRecord, catalogContext(domain, targetRecord)).inputs;
     const sourcePort = catalogPortForHandle(sourcePorts, edge.sourceHandle);
     const targetPort = catalogPortForHandle(targetPorts, edge.targetHandle);
     if (!sourcePort) {
@@ -3025,7 +2973,7 @@ function validateV3Edges(process, domain) {
   return errors;
 }
 
-function v3CatalogContext(domain, record) {
+function catalogContext(domain, record) {
   return {
     fieldSchema: processNodeUsesStructuralFields(record.kind)
       ? structuralFieldSchema(domain, record.path)
@@ -3040,10 +2988,8 @@ function v3CatalogContext(domain, record) {
 
 function openCompositionEntryType(entry = {}, mode = '', valueBase = 'json') {
   if (!entry) return null;
-  if (mode === 'relations' && entry.cardinality === 'many') {
-    return processType('array', { itemType: processType('entityRef', { entityType: entry.entityType }) });
-  }
   if (mode === 'ancestors' || mode === 'relations') {
+    if (entry.type?.base) return processType(entry.type.base, entry.type);
     return processType('entityRef', { entityType: entry.entityType });
   }
   if (mode === 'attachments') {
@@ -3053,7 +2999,7 @@ function openCompositionEntryType(entry = {}, mode = '', valueBase = 'json') {
 }
 
 function processTypesEquivalent(left = {}, right = {}) {
-  if (left.base !== right.base || (left.shape || 'item') !== (right.shape || 'item')) return false;
+  if (left.base !== right.base) return false;
   for (const qualifier of ['entityType', 'attachmentKind', 'enumId', 'unit']) {
     if ((left[qualifier] || '') !== (right[qualifier] || '')) return false;
   }
@@ -3122,7 +3068,7 @@ function validateProcessNodeConnections(process = {}, errors = [], domain = {}) 
     const record = process.processNodes?.[nodeId];
     if (!record) continue;
     const contract = record.kind?.includes('.')
-      ? resolveCatalogNodePorts(record, v3CatalogContext(domain, record))
+      ? resolveCatalogNodePorts(record, catalogContext(domain, record))
       : resolveProcessNodePorts(record);
     const counts = new Map();
     for (const edge of (process.graph?.edges || []).filter(item => String(item.target) === String(graphNode.id))) {
