@@ -97,12 +97,12 @@ inside independently colored chips. When selected, an unconnected primitive
 input reveals a compact inline typed fallback editor; this keeps inactive nodes
 quiet while preserving immediate authoring without a separate constant node.
 A connected wire always wins. An open socket is a composition affordance, not
-an error. Missing required inputs are reported when validation is requested,
-not as warning badges on every new node.
+an error. Process sockets are always optional; validation only rejects invalid
+wires, duplicate single-value connections, and invalid authored contracts.
 
 Fallback/default policy is omission-first. A connected value wins; otherwise
-an explicit authored `inputDefaults` value is used. If neither exists, an
-optional input is omitted, while a required input fails validation. Defaults
+an explicit authored `inputDefaults` value is used. If neither exists, the
+input is omitted. Defaults
 declared by a construction mode or command are applied only by that owning
 domain/runtime contract—generic block authoring does not guess them. Generated
 identity uid, Mongo `_id`, origin, status history, and other service-owned
