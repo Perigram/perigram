@@ -36,10 +36,17 @@ async function assertSourceModel(sourceModel, auth) {
 }
 
 export async function create(input = {}, userId, userOrg, userRole, auth) {
-  if (!input.projectId) throw createError({ statusCode: 400, message: 'Facade project lineage is required' });
-  const project = await projectsService.getById(input.projectId);
+  const requestedLineage = input.lineage && typeof input.lineage === 'object' ? input.lineage : {};
+  const projectId = input.projectId || requestedLineage.projectId;
+  if (!projectId) throw createError({ statusCode: 400, message: 'Facade project lineage is required' });
+  const project = await projectsService.getById(projectId);
   if (!project) throw createError({ statusCode: 404, message: 'Project not found' });
-  const lineage = { ...(project.lineage || {}), projectId: toFlexibleId(input.projectId), organizationId: project.lineage?.organizationId || toFlexibleId(userOrg) };
+  const lineage = {
+    ...requestedLineage,
+    ...(project.lineage || {}),
+    projectId: toFlexibleId(projectId),
+    organizationId: project.lineage?.organizationId || toFlexibleId(userOrg)
+  };
   const origin = await statusService.initialStatusForOrganization('facade', lineage.organizationId, userId, { note: 'Facade created' });
   if (!hasLineagePermission(auth, { lineage, status: origin }, 'facades', 'write')) throw createError({ statusCode: 403, message: 'Permission denied for facades' });
   const source = input.relations?.sourceModel ? await assertSourceModel(input.relations.sourceModel, auth) : null;
