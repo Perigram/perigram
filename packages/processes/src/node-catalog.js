@@ -464,7 +464,7 @@ function catalogPorts(record = {}, context = {}) {
       blocks: dynamicBlocks(record, context),
       constructionInputs: constructionInputs(record),
       constructionMode: record.construction?.mode || 'genericCreate'
-    });
+    }, record);
     const eventInput = record.trigger?.mode === 'event' ? controlInput : [];
     return {
       inputs: [...eventInput, ...specific],
@@ -580,7 +580,7 @@ function dynamicBlocks(record, context) {
     .filter(block => block && !['origin', 'status', 'provenance', 'summary'].includes(block)))];
 }
 
-function effectInputs(kind, types) {
+function effectInputs(kind, types, record = {}) {
   if (kind === 'effect.runProducer') return types.constructionInputs.map(input => ({
     ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
     label: input.label || input.id
@@ -596,6 +596,7 @@ function effectInputs(kind, types) {
     ];
   }
   if (kind === 'effect.createEntity') return [
+    ...(record.parentEntityType ? [socket('parent', processType('entity', { entityType: record.parentEntityType }), DATA, true)] : []),
     ...types.blocks.map(block => socket(block, processType('block', {
       block
     }), DATA, block === 'identity')),

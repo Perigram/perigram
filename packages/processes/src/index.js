@@ -1447,6 +1447,7 @@ function effectiveActionParentEntityType(action = {}, domain = {}, incoming = nu
     incoming?.parentInput ? incoming.entityType : '',
     action.parentEntityType,
     action.inputs?.find(input => input.id === 'parent' && input.entityType)?.entityType,
+    constructionContract(domain, entityType).parentEntityType,
     !incoming?.parentInput ? incoming?.entityType : ''
   ].filter(Boolean);
 
