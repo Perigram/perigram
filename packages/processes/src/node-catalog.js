@@ -167,8 +167,8 @@ function definition(kind, label, family, level, pure, ports = { inputs: [], outp
   return { kind, label, family, level, pure, ports };
 }
 
-function socket(id, type, role = DATA, required = false) {
-  return { id, label: id, type, role, required };
+function socket(id, type, role = DATA) {
+  return { id, label: id, type, role, required: false };
 }
 
 function catalogPorts(record = {}, context = {}) {

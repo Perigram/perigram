@@ -24,9 +24,8 @@ describe('CNC entity construction', () => {
     const contract = getEntityConstruction('facade');
 
     expect(contract.parentEntityType).toBeUndefined();
-    expect(contract.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', prompt: true }),
-      expect.objectContaining({ id: 'sourceModelId', entityType: 'artifact' })
-    ]));
+    expect(contract.inputs).toEqual([
+      expect.objectContaining({ id: 'name', prompt: true })
+    ]);
   });
 });

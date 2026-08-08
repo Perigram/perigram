@@ -106,7 +106,7 @@ describe('process v3 node catalog', () => {
     }, context);
 
     expect(create.inputs.map(input => input.id)).toEqual(['identity', 'data', 'status.state.primary']);
-    expect(create.inputs.find(input => input.id === 'identity')?.required).toBe(true);
+    expect(create.inputs.find(input => input.id === 'identity')?.required).toBe(false);
     expect(modify.inputs.map(input => input.id)).toEqual(['entity', 'identity', 'data', 'status.state.primary']);
     expect(create.outputs.map(output => output.id)).toEqual(['completed', 'result']);
     const typedCreate = resolveCatalogNodePorts({
@@ -255,8 +255,8 @@ describe('process v3 node catalog', () => {
     });
 
     expect(ports.inputs).toMatchObject([
-      { id: 'queue', required: true, type: { base: 'entityRef', entityType: 'queue' } },
-      { id: 'machineId', required: true, type: { base: 'entityRef', entityType: 'machine' } },
+      { id: 'queue', required: false, type: { base: 'entityRef', entityType: 'queue' } },
+      { id: 'machineId', required: false, type: { base: 'entityRef', entityType: 'machine' } },
       { id: 'materialMode', type: { base: 'enum' } }
     ]);
     expect(ports.outputs.map(output => output.id)).toEqual(['completed', 'nesting_run', 'sheet']);

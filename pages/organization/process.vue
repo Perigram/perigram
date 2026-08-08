@@ -2842,7 +2842,7 @@ function syncActionConstruction(action = {}) {
     : (contract.defaultMode || modes[0] || 'genericCreate');
   const constructionInputs = constructionInputsForMode(contract, action.construction.mode);
   action.construction.inputs = constructionInputs.map(input => ({ ...input }));
-  const promptFields = constructionInputs.filter(input => input.prompt || input.required);
+  const promptFields = constructionInputs.filter(input => input.prompt);
   const existingFields = new Map((action.inputPolicy?.fields || []).map(field => [field.id || field.path, field]));
   action.inputPolicy = {
     ...(action.inputPolicy || {}),
@@ -4669,7 +4669,7 @@ function fieldForTargetSocket(field = {}, targetField = null, targetId = '') {
     path: targetField.path || field.path,
     type: targetField.type || field.type,
     prompt: false,
-    required: Boolean(targetField.required && field.default === undefined),
+    required: false,
     default: field.default,
     valueRef: field.valueRef
   };

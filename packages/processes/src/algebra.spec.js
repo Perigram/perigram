@@ -81,7 +81,7 @@ describe('process programming algebra', () => {
     expect(result.parameters).toEqual({ label: 'Queue: Monday' });
   });
 
-  it('rejects incomplete operations instead of evaluating placeholders', async () => {
+  it('omits incomplete operation inputs instead of rejecting the graph', async () => {
     const process = {
       actions: { action: { id: 'action', actionKind: 'runCommand', inputs: [{ id: 'label' }] } },
       valueInputs: { value: { id: 'value', valueType: 'string', value: 'only one' } },
@@ -100,7 +100,7 @@ describe('process programming algebra', () => {
     };
 
     await expect(resolveProcessActionInputContext(process, 'action'))
-      .rejects.toThrow('Process node join requires input right');
+      .resolves.toMatchObject({ parameters: { label: 'only one' } });
   });
 
   it('casts explicitly and applies a scalar fallback element-wise without changing list structure', async () => {

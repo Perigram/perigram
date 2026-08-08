@@ -230,13 +230,12 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
         inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.type?.shape);
         continue;
       }
-      if (port.required) throw new Error(`Node ${record.id || node.id} requires input ${port.id}`);
       continue;
     }
     try {
       inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, new Set());
     } catch (error) {
-      if (!port.required && error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
+      if (error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
       throw error;
     }
   }
@@ -312,15 +311,19 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
         inputs[port.id] = createDataPacket(structuredClone(runValue), port.type?.shape);
         continue;
       }
-      if (port.required) throw new Error(`Node ${record.id || node.id} requires input ${port.id}`);
       continue;
     }
     try {
       inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, resolving);
     } catch (error) {
-      if (!port.required && error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
+      if (error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
       throw error;
     }
+  }
+  if (ports.inputs.some(port => port.role === 'data') && !Object.keys(inputs).length) {
+    const error = new Error(`Data node ${record.id || node.id} has no available inputs`);
+    error.code = 'PROCESS_OUTPUT_UNAVAILABLE';
+    throw error;
   }
   const packet = await executeProcessDataNode(record, inputs, {
     ...(environment.data || {}),

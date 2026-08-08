@@ -28,8 +28,9 @@ async function ensureLayoutRevision(facade, userId, reason) {
   return await repository.updateById(facade._id, { data });
 }
 
-async function assertSourceModel(sourceModelId, auth) {
-  const artifact = await artifactsService.getById(sourceModelId, auth.userId, auth.organizationId, auth.role, auth);
+async function assertSourceModel(sourceModel, auth) {
+  const sourceId = typeof sourceModel === 'object' ? sourceModel?.id : sourceModel;
+  const artifact = await artifactsService.getById(sourceId, auth.userId, auth.organizationId, auth.role, auth);
   if (artifact.data?.type !== 'FACADE_MODEL_SOURCE') throw createError({ statusCode: 400, message: 'Facade source model must be a FACADE_MODEL_SOURCE artifact' });
   return artifact;
 }
@@ -41,7 +42,7 @@ export async function create(input = {}, userId, userOrg, userRole, auth) {
   const lineage = { ...(project.lineage || {}), projectId: toFlexibleId(input.projectId), organizationId: project.lineage?.organizationId || toFlexibleId(userOrg) };
   const origin = await statusService.initialStatusForOrganization('facade', lineage.organizationId, userId, { note: 'Facade created' });
   if (!hasLineagePermission(auth, { lineage, status: origin }, 'facades', 'write')) throw createError({ statusCode: 403, message: 'Permission denied for facades' });
-  const source = input.sourceModelId ? await assertSourceModel(input.sourceModelId, auth) : null;
+  const source = input.relations?.sourceModel ? await assertSourceModel(input.relations.sourceModel, auth) : null;
   const name = input.name || 'New Facade';
   const created = await repository.create({ identity: createIdentity(name, `${standardSlugify(name, { keepCase: false })}-${generateRandomString(6)}`), origin, status: origin, lineage, relations: { sourceModel: source ? ref('artifact', source._id) : null, patterns: [], libraries: [] }, data: createData({ parts: [], partAssignments: [], revisions: {} }) });
   return toDTO(await ensureLayoutRevision(toDTO(created), userId, 'facade-created'));
@@ -65,7 +66,7 @@ export async function list(userId, userOrg, userRole, auth, query = {}) {
 export async function update(id, input = {}, userId, userOrg, userRole, auth) {
   const current = await getById(id, userId, userOrg, userRole, auth);
   if (!hasLineagePermission(auth, current, 'facades', 'write')) throw createError({ statusCode: 403, message: 'Permission denied for facades' });
-  const source = input.sourceModelId ? await assertSourceModel(input.sourceModelId, auth) : null;
+  const source = input.relations?.sourceModel ? await assertSourceModel(input.relations.sourceModel, auth) : null;
   const assignments = input.partAssignments === undefined ? current.data.partAssignments : normalizeAssignments(input.partAssignments);
   const parts = input.parts === undefined ? current.data.parts : Array.isArray(input.parts) ? input.parts : [];
   const relations = { ...(current.relations || {}), ...(source ? { sourceModel: ref('artifact', source._id) } : {}), patterns: [...new Map(assignments.map(item => [item.patternId, ref('facade_pattern', item.patternId)])).values()], libraries: [...new Map(assignments.filter(item => item.libraryId).map(item => [item.libraryId, ref('library', item.libraryId)])).values()] };
