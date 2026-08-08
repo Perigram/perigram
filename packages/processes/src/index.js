@@ -2623,7 +2623,7 @@ function inferConnectedActionEntityType(actionId, process = {}) {
 function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   const kind = node.kind || '';
   if (kind.includes('.')) {
-    validateProcessNode(nodeId, node, { entities, domain, errors });
+    validateCatalogProcessNode(nodeId, node, { entities, domain, errors });
     return;
   }
   const kinds = [
@@ -2707,7 +2707,7 @@ function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
   }
 }
 
-function validateProcessNode(nodeId, node, { entities, domain, errors }) {
+function validateCatalogProcessNode(nodeId, node, { entities, domain, errors }) {
   const definition = getProcessNodeDefinition(node.kind);
   if (!definition) {
     errors.push(`Process node ${nodeId} uses unknown node kind ${node.kind}`);

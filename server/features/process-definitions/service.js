@@ -343,7 +343,7 @@ export async function resumeRun(id, auth = {}) {
   return serializeRun(run);
 }
 
-export async function preview({ definition, trigger = {}, inputs = {} } = {}, auth = {}) {
+export async function preview({ definition, nodeId = '', trigger = {}, inputs = {} } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'read');
   if (!definition || Number((definition.data || definition).dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
@@ -351,6 +351,7 @@ export async function preview({ definition, trigger = {}, inputs = {} } = {}, au
   }
   const run = { context: { inputs }, trigger };
   return await previewProcessDataflow(definition, { trigger, inputs }, {
+    targetNodeId: nodeId,
     previewLimit: 100,
     catalogContext: record => {
       const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);

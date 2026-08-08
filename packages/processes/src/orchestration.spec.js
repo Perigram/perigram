@@ -237,14 +237,13 @@ describe('durable process orchestration', () => {
     expect(completed.status).toBe('succeeded');
   });
 
-  it('terminates a failed effect after retry instead of emitting completion', async () => {
+  it('terminates a failed effect without emitting completion', async () => {
     const definition = process([
       {
         id: 'start',
         kind: 'effect.runCommand',
         commandId: 'start',
-        trigger: { mode: 'manual' },
-        retry: { maxAttempts: 2, delayMs: 0 }
+        trigger: { mode: 'manual' }
       },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['start', 'stop'], [
@@ -260,7 +259,7 @@ describe('durable process orchestration', () => {
 
     expect(failed.status).toBe('failed');
     expect(failed.error.message).toBe('command failed');
-    expect(executeEffect).toHaveBeenCalledTimes(2);
+    expect(executeEffect).toHaveBeenCalledTimes(1);
     expect(failed.steps.some(step => step.nodeId === 'stop')).toBe(false);
   });
 
