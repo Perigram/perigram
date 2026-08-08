@@ -20,6 +20,15 @@ export const cncEntityConstruction = {
     defaultMode: 'genericCreate',
     inputs: []
   },
+  facade: {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    parentEntityType: 'project',
+    inputs: [
+      { id: 'name', label: 'Facade name', path: 'name', type: 'string', required: true, prompt: true },
+      { id: 'sourceModelId', label: 'Source model', path: 'sourceModelId', type: 'entity', entityType: 'artifact', attachmentKinds: ['FACADE_MODEL_SOURCE'], required: false, prompt: true }
+    ]
+  },
   library: {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',

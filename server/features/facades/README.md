@@ -27,6 +27,13 @@ the operator select a mesh part, and persists its facade-pattern assignment.
 The component uses the shared `DesignerWorkspace` contract; it owns facade
 semantics but not shell or renderer lifecycle behavior.
 
+Process authors create a Facade with the generic Create Entity node. Its
+construction contract declares `project` as the required containment parent,
+so the compiled action appears in the project's child-action strip and supplies
+that parent automatically. The action prompts for a facade name and can select
+an existing `FACADE_MODEL_SOURCE` artifact; a source model may also be linked
+later through the facade API.
+
 ## Related
 
 - [facade-patterns](../facade-patterns/README.md)
