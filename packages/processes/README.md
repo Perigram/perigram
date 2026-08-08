@@ -270,6 +270,10 @@ owns the invariant that every created cassette has a complete editable OCCS
 template. When stored actions carry a construction mode that no
 longer belongs to the selected entity type, compilation normalizes the mode to
 the current domain default before compiling the active runtime contract.
+Formerly generic Artifact create nodes therefore compile as the domain's typed
+upload constructor. Its selected upload/capture/editor kinds travel in that
+construction contract, so generated artifact actions open the file creator
+rather than the generic identity-name dialog.
 Domain construction contracts own structural input metadata during compilation:
 field id, label, path, type, accepted entity types, and `required` status come
 from the current domain registry, not from stale action snapshots. Stored graph
