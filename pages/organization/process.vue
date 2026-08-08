@@ -3180,7 +3180,6 @@ function syncProcessNode(node = {}) {
 
 function syncProcessNodeConstruction(node = {}) {
   const contract = constructionContractForEntity(node.entityType);
-  node.parentEntityType = contract.parentEntityType || '';
   const modes = contract.modes?.length ? contract.modes : ['genericCreate'];
   node.construction ||= {};
   if (!modes.includes(node.construction.mode)) {

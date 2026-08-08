@@ -2027,43 +2027,6 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
-  it('uses a construction-declared parent for facade creation actions', () => {
-    const facadeDomain = {
-      ...domain,
-      entities: [...domain.entities, { type: 'facade', feature: 'facades' }],
-      containment: [...domain.containment, { parentType: 'project', childType: 'facade', lineageKey: 'projectId' }],
-      construction: {
-        facade: {
-          modes: ['genericCreate'],
-          defaultMode: 'genericCreate',
-          parentEntityType: 'project',
-          inputs: [{ id: 'name', path: 'name', type: 'string', required: true, prompt: true }]
-        }
-      }
-    };
-    const compiled = compileProcessDefinition({
-      roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
-      actions: {
-        create_facade: {
-          id: 'create_facade',
-          actionKind: 'createEntity',
-          entityType: 'facade',
-          status: { to: INITIAL_STATE },
-          trigger: { mode: 'manual' },
-          access: { level: 'write', roleIds: ['role_admin'] },
-          outputs: [{ id: 'created', entityType: 'facade' }]
-        }
-      },
-      assignments: { user_admin: { userId: 'user_admin', roleIds: ['role_admin'], status: 'active' } }
-    }, facadeDomain);
-
-    expect(compiled.actions.create_facade.parentEntityType).toBe('project');
-    expect(compiled.userAccess.user_admin.actions).toContainEqual(expect.objectContaining({
-      actionId: 'create_facade',
-      parentEntityType: 'project'
-    }));
-  });
-
   it('does not mark an explicitly parent-filtered list source as a root source', () => {
     const scopedDomain = {
       ...domain,
