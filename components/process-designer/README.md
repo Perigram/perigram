@@ -33,6 +33,9 @@ The palette has three non-overlapping authoring concerns.
   upload/source nodes.
   Cassette creation is generic block composition; it does not expose a
   cassette-specific template-name constructor socket.
+- Containment is authored through the target entity's `lineage` block. The
+  compiler resolves declared parent/child relations from that block; Create
+  Entity does not assign an entity-specific parent or add a parent socket.
 - Select Entities is the organization-scoped source for an existing typed
   entity list. Registered commands use the single Run Service operation, whose
   sockets are projected from the selected command's entity, parameter, and

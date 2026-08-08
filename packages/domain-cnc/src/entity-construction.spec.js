@@ -19,4 +19,14 @@ describe('CNC entity construction', () => {
     expect(contract.modes).toEqual(['genericCreate']);
     expect(contract.inputs).toEqual([]);
   });
+
+  it('keeps facade construction independent of its containment parent', () => {
+    const contract = getEntityConstruction('facade');
+
+    expect(contract.parentEntityType).toBeUndefined();
+    expect(contract.inputs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'name', prompt: true }),
+      expect.objectContaining({ id: 'sourceModelId', entityType: 'artifact' })
+    ]));
+  });
 });
