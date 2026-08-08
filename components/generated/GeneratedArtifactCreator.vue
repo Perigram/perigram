@@ -42,6 +42,7 @@ import Message from 'primevue/message';
 import Select from '~/components/shared/EntitySelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useI18n } from 'vue-i18n';
+import { emitEntityCreated } from '~/utils/entity-events.js';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -99,6 +100,7 @@ async function upload() {
     form.append('name', name.value || initial.name);
     form.append('lineage', JSON.stringify(props.lineage || {}));
     const artifact = await $fetch('/api/artifacts', { method: 'POST', body: form });
+    emitEntityCreated({ type: 'artifact', id: artifact?._id, entity: artifact, reason: 'artifact-uploaded' });
     emit('created', artifact);
     close();
   } catch (error) {

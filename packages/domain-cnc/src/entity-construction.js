@@ -1,4 +1,22 @@
 export const cncEntityConstruction = {
+  artifact: {
+    modes: ['uploadArtifact'],
+    defaultMode: 'uploadArtifact',
+    derived: true,
+    modeInputs: {
+      uploadArtifact: [
+        {
+          id: 'artifact',
+          label: 'Artifact file',
+          type: 'artifactUpload',
+          required: true,
+          prompt: true,
+          creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+        }
+      ]
+    },
+    inputs: []
+  },
   project: {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',

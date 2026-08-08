@@ -283,9 +283,22 @@
                     <label>{{ $t('processDesigner.projectedFields') }}</label>
                     <MultiSelect v-model="selectedAction.projection.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
                   </div>
-                  <div v-if="selectedAction.actionKind === 'createEntity' && constructionModeOptions(selectedAction.entityType).length > 1" class="flex flex-col gap-1">
+                  <div v-if="selectedAction.actionKind === 'createEntity' && (constructionModeOptions(selectedAction.entityType).length > 1 || selectedAction.entityType === 'artifact')" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.constructionMode') }}</label>
                     <Select v-model="selectedAction.construction.mode" :options="constructionModeOptions(selectedAction.entityType)" option-label="label" option-value="value" @change="syncSelectedAction" />
+                  </div>
+                  <div v-if="selectedAction.actionKind === 'createEntity' && selectedAction.entityType === 'artifact'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.allowedArtifactCreation') }}</label>
+                    <MultiSelect
+                      :model-value="artifactCreationKinds(selectedAction)"
+                      :options="artifactUploadKindOptions"
+                      option-label="label"
+                      option-value="value"
+                      display="chip"
+                      filter
+                      :placeholder="$t('processDesigner.allUploadArtifactKinds')"
+                      @update:model-value="value => updateArtifactCreationKinds(selectedAction, value)"
+                    />
                   </div>
                   <div v-if="selectedAction.actionKind === 'createEntity' && parentRevisionScopeOptions(selectedAction.parentEntityType).length" class="flex flex-col gap-2">
                     <div class="flex items-center gap-2">
@@ -497,7 +510,7 @@
                     <label>{{ $t('processDesigner.service') }}</label>
                     <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
                   </div>
-                  <div v-if="selectedProcessNode.kind === 'effect.createEntity' && constructionModeOptions(selectedProcessNode.entityType).length > 1" class="flex flex-col gap-1">
+                  <div v-if="selectedProcessNode.kind === 'effect.createEntity' && (constructionModeOptions(selectedProcessNode.entityType).length > 1 || selectedProcessNode.entityType === 'artifact')" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.constructionMode') }}</label>
                     <Select
                       :model-value="selectedProcessNode.construction.mode"
@@ -505,6 +518,19 @@
                       option-label="label"
                       option-value="value"
                       @update:model-value="mode => updateProcessNodeConstructionMode(selectedProcessNode, mode)"
+                    />
+                  </div>
+                  <div v-if="selectedProcessNode.kind === 'effect.createEntity' && selectedProcessNode.entityType === 'artifact'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.allowedArtifactCreation') }}</label>
+                    <MultiSelect
+                      :model-value="artifactCreationKinds(selectedProcessNode)"
+                      :options="artifactUploadKindOptions"
+                      option-label="label"
+                      option-value="value"
+                      display="chip"
+                      filter
+                      :placeholder="$t('processDesigner.allUploadArtifactKinds')"
+                      @update:model-value="value => updateArtifactCreationKinds(selectedProcessNode, value)"
                     />
                   </div>
                   <div v-if="selectedProcessNode.kind === 'control.domainEventTrigger'" class="flex flex-col gap-1">
@@ -2836,6 +2862,33 @@ function constructionModeOptions(entityType = '') {
 
 function constructionInputsForMode(contract = {}, mode = '') {
   return contract.modeInputs?.[mode] || contract.inputs || [];
+}
+
+function artifactCreationKinds(record = {}) {
+  const creator = (record.construction?.inputs || []).find(input => input.creator?.entityType === 'artifact')?.creator;
+  if (creator?.attachmentKinds === 'userCreatable' || !Array.isArray(creator?.attachmentKinds)) {
+    return artifactUploadKindOptions.value.map(option => option.value);
+  }
+  return creator.attachmentKinds.map(kind => typeof kind === 'string' ? kind : kind.kind).filter(Boolean);
+}
+
+function updateArtifactCreationKinds(record = {}, kinds = []) {
+  record.construction ||= {};
+  const contractInput = constructionInputsForMode(constructionContractForEntity(record.entityType), record.construction.mode)
+    .find(input => input.creator?.entityType === 'artifact');
+  if (!contractInput) return;
+  const index = (record.construction.inputs || []).findIndex(input => input.id === contractInput.id);
+  const attachmentKinds = (kinds || []).map(kind => {
+    const definition = designer.attachmentKindOptions.find(option => option.value === kind);
+    return { kind, creation: definition?.creation || { mode: 'workflow' } };
+  });
+  const input = {
+    ...(index >= 0 ? record.construction.inputs[index] : contractInput),
+    creator: { ...contractInput.creator, attachmentKinds }
+  };
+  if (index >= 0) record.construction.inputs[index] = input;
+  else record.construction.inputs = [...(record.construction.inputs || []), input];
+  syncNodeData();
 }
 
 function parentRevisionScopeOptions(entityType = '') {

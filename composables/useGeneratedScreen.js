@@ -68,8 +68,14 @@ export function useGeneratedScreen(screenRef) {
 
   const stopEntityChangeListener = onEntityChanged(change => {
     if (!entityChangeAffectsSources(change, visibleSources.value, screen.value)) return;
-    if (change.change === 'deleted') removeEntitySnapshot(change.type, change.id);
-    else if (change.entity) applyEntitySnapshot(change.type, change.entity);
+    if (change.change === 'deleted') {
+      removeEntitySnapshot(change.type, change.id);
+      return;
+    }
+    if (change.entity) {
+      applyEntitySnapshot(change.type, change.entity);
+      return;
+    }
     if (refreshTimer) clearTimeout(refreshTimer);
     refreshTimer = setTimeout(() => {
       refreshTimer = null;

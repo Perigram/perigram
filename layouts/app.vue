@@ -195,7 +195,6 @@
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
     import { useSupportChatStore } from '~/stores/supportChat'
-    import { useEntityEventsStore } from '~/stores/entityEvents'
     import { useNavigationStore } from '~/stores/navigation'
     import { useGlobalStore } from '~/stores/global'
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
@@ -209,7 +208,6 @@
     const authStore = useAuthStore()
     provide('statusWorkflows', computed(() => authStore.statusWorkflows))
     const supportChatStore = useSupportChatStore()
-    const entityEventsStore = useEntityEventsStore()
     const navStore = useNavigationStore()
     const globalStore = useGlobalStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
@@ -250,10 +248,8 @@
     watch(() => authStore.userIsSet, (isSet) => {
         if (isSet) {
             supportChatStore.connect()
-            entityEventsStore.connect()
         } else {
             supportChatStore.disconnect()
-            entityEventsStore.disconnect()
         }
     }, { immediate: true })
 

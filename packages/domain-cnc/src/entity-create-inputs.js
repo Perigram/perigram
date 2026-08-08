@@ -1,6 +1,7 @@
 import { cncEntityConstruction } from './entity-construction.js';
 
 export const cncEntityCreateInputs = {
+  artifact: cncEntityConstruction.artifact.modeInputs.uploadArtifact,
   project: cncEntityConstruction.project.inputs,
   queue: cncEntityConstruction.queue.inputs,
   cassette_design: cncEntityConstruction.cassette_design.inputs,
