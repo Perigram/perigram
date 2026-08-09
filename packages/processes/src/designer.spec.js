@@ -116,8 +116,7 @@ describe('process designer domain contract', () => {
     expect(Object.keys(groups)).toEqual([
       'entities',
       'values',
-      'listTree',
-      'events'
+      'listTree'
     ]);
     expect(groups.entities.map(item => item.kind || item.type)).toEqual([
       'effect.createEntity',
@@ -139,10 +138,14 @@ describe('process designer domain contract', () => {
       'value.dateTime'
     ]);
     expect(groups.listTree.map(item => item.kind)).not.toContain('tree.cross');
-    expect(groups.events.map(item => item.kind)).toContain('control.manualTrigger');
+    expect(items.map(item => item.kind)).not.toContain('control.manualTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.entityChangedTrigger');
-    expect(groups.events.map(item => item.kind)).toContain('control.domainEventTrigger');
-    expect(groups.events.map(item => item.kind)).toContain('control.waitUntil');
+    expect(items.map(item => item.kind)).not.toContain('control.domainEventTrigger');
+    expect(items.map(item => item.kind)).not.toContain('control.if');
+    expect(items.map(item => item.kind)).not.toContain('control.forEach');
+    expect(items.map(item => item.kind)).not.toContain('control.forEachEnd');
+    expect(items.map(item => item.kind)).not.toContain('control.waitUntil');
+    expect(items.map(item => item.kind)).not.toContain('control.waitDuration');
     expect(items.map(item => item.kind)).not.toContain('value.cast');
     expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');

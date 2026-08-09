@@ -94,18 +94,6 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('cleanTree', 'tree.clean'),
       paletteItem('treeStatistics', 'tree.stats')
     ]
-  },
-  {
-    id: 'events',
-    items: [
-      paletteItem('manualTrigger', 'control.manualTrigger'),
-      paletteItem('domainEventTrigger', 'control.domainEventTrigger'),
-      paletteItem('ifElse', 'control.if'),
-      paletteItem('forEach', 'control.forEach'),
-      paletteItem('forEachEnd', 'control.forEachEnd'),
-      paletteItem('waitUntil', 'control.waitUntil'),
-      paletteItem('waitDuration', 'control.waitDuration')
-    ]
   }
 ].map(group => Object.freeze({
   ...group,
