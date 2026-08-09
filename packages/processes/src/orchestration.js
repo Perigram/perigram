@@ -5,6 +5,54 @@ import { resolveCatalogNodePorts } from './node-catalog.js';
 export const PROCESS_RUN_STATUSES = Object.freeze(['running', 'waiting', 'succeeded', 'failed', 'cancelled']);
 export const PROCESS_STEP_STATUSES = Object.freeze(['pending', 'running', 'waiting', 'succeeded', 'failed', 'skipped']);
 
+export async function previewProcessDataflow(definition, sample = {}, environment = {}) {
+  const process = processData(definition);
+  const run = {
+    trigger: structuredClone(sample.trigger || {}),
+    context: { inputs: structuredClone(sample.inputs || {}) }
+  };
+  const tokenContext = { scope: 'preview', values: {} };
+  const nodes = {};
+  for (const node of process.graph?.nodes || []) {
+    if (node.type !== 'processNode') continue;
+    const record = process.processNodes?.[recordId(node)];
+    if (!record || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) continue;
+    const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
+    const outputs = {};
+    let error = null;
+    for (const port of ports.outputs.filter(item => item.role === 'data')) {
+      try {
+        const tree = await evaluateNodeOutput(process, node.id, port.id, run, environment, tokenContext, new Set());
+        outputs[port.id] = previewTree(tree, environment.previewLimit);
+      } catch (cause) {
+        error ||= cause.message;
+      }
+    }
+    nodes[node.id] = { outputs, ...(error ? { error } : {}) };
+  }
+  return { nodes };
+}
+
+function previewTree(tree, limit = 100) {
+  let remaining = Math.max(1, Number(limit) || 100);
+  const itemCount = tree.branches.reduce((total, branch) => total + branch.items.length, 0);
+  return {
+    branchCount: tree.branches.length,
+    itemCount,
+    branches: tree.branches.map(branch => {
+      const items = branch.items.slice(0, remaining).map(redactPreviewValue);
+      remaining -= items.length;
+      return { path: [...branch.path], itemCount: branch.items.length, items };
+    }),
+    truncated: remaining === 0 && itemCount > limit
+  };
+}
+
+function redactPreviewValue(value) {
+  if (value?.secretRef || value?.opaqueType) return '[redacted]';
+  return structuredClone(value);
+}
+
 export function createProcessRun(definition = {}, trigger = {}, options = {}) {
   const process = processData(definition);
   const triggerNode = findTriggerNode(process, trigger);
@@ -12,12 +60,13 @@ export function createProcessRun(definition = {}, trigger = {}, options = {}) {
   return {
     id: options.id || crypto.randomUUID(),
     processDefinitionId: String(options.processDefinitionId || definition._id || definition.id || ''),
-    protocolVersion: 3,
+    protocolVersion: 4,
     status: 'running',
     trigger: structuredClone(trigger),
     context: structuredClone(options.context || {}),
     tokens: [token(triggerNode.id)],
     joins: {},
+    loops: {},
     steps: [],
     wakeAt: null,
     result: null,
@@ -29,6 +78,7 @@ export function createProcessRun(definition = {}, trigger = {}, options = {}) {
 
 export async function advanceProcessRun(runInput, definition, environment = {}) {
   const run = structuredClone(runInput);
+  run.loops ||= {};
   const process = processData(definition);
   if (!['running', 'waiting'].includes(run.status)) return run;
   const now = instant(environment.now);
@@ -113,7 +163,7 @@ async function executeOperationalNode({ run, process, node, record, current, ste
     const result = await environment.executeEffect({
       kind: record.kind,
       record,
-      inputs: Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, packetValue(packet)])),
+      inputs: Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, packetValue(packet, 'item')])),
       idempotencyKey: step.idempotencyKey,
       attempt: step.attempt,
       run
@@ -158,14 +208,35 @@ async function executeOperationalNode({ run, process, node, record, current, ste
   }
   if (record.kind === 'control.forEach') {
     const packet = inputs.items;
-    const items = packet.branches.flatMap(branch => branch.items);
     const eachEdges = outgoingControl(process, node.id, 'each');
-    items.forEach((item, index) => enqueueEdges(run, eachEdges, {
+    const total = packet.branches.reduce((count, branch) => count + branch.items.length, 0);
+    const loopKey = `${current.scope || 'root'}/${node.id}`;
+    run.loops[loopKey] = { expected: total, completed: 0, doneEdges: outgoingControl(process, node.id, 'done'), parent: current };
+    packet.branches.forEach(branch => branch.items.forEach((item, index) => enqueueEdges(run, eachEdges, {
       ...current,
-      scope: `${current.scope || 'root'}/${node.id}/${index}`,
-      values: { ...(current.values || {}), [`${node.id}:item`]: createDataPacket(item) }
-    }));
-    enqueueEdges(run, outgoingControl(process, node.id, 'done'), current);
+      loopKey,
+      scope: `${current.scope || 'root'}/${node.id}/${branch.path.join('.') || 'root'}/${index}`,
+      values: {
+        ...(current.values || {}),
+        [`${node.id}:item`]: { branches: [{ path: [...branch.path], items: [structuredClone(item)] }] },
+        [`${node.id}:path`]: createDataPacket([...branch.path]),
+        [`${node.id}:index`]: createDataPacket(index)
+      }
+    })));
+    if (!total) {
+      enqueueEdges(run, run.loops[loopKey].doneEdges, current);
+      delete run.loops[loopKey];
+    }
+    return;
+  }
+  if (record.kind === 'control.forEachEnd') {
+    const loop = current.loopKey && run.loops[current.loopKey];
+    if (!loop) throw new Error(`For Each End ${record.id || node.id} was reached outside an iteration`);
+    loop.completed += 1;
+    if (loop.completed >= loop.expected) {
+      enqueueEdges(run, loop.doneEdges, loop.parent);
+      delete run.loops[current.loopKey];
+    }
     return;
   }
   if (record.kind === 'control.waitDuration' || record.kind === 'control.waitUntil') {
@@ -208,7 +279,7 @@ async function effectOutputValues(nodeId, record, result, environment) {
           : refs;
       }
     }
-    values[`${nodeId}:${port.id}`] = createDataPacket(value, port.type?.shape);
+    values[`${nodeId}:${port.id}`] = createDataPacket(value, port.access || 'item');
   }
   return values;
 }
@@ -221,13 +292,13 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
   for (const port of dataInputs) {
     const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment);
     if (runValue !== undefined) {
-      inputs[port.id] = createDataPacket(structuredClone(runValue), port.type?.shape);
+      inputs[port.id] = createDataPacket(structuredClone(runValue), port.access || 'item');
       continue;
     }
     const edge = incomingData(process, node.id, port.id);
     if (!edge) {
       if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
-        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.type?.shape);
+        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.access || 'item');
         continue;
       }
       continue;
@@ -303,12 +374,12 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
     const edge = incomingData(process, node.id, port.id);
     if (!edge) {
       if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
-        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.type?.shape);
+        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.access || 'item');
         continue;
       }
       const runValue = processRunInput(run.context?.inputs || {}, record, port.id);
       if (runValue !== undefined) {
-        inputs[port.id] = createDataPacket(structuredClone(runValue), port.type?.shape);
+        inputs[port.id] = createDataPacket(structuredClone(runValue), port.access || 'item');
         continue;
       }
       continue;
@@ -338,7 +409,7 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
 
 async function resolveContextualEntityOutput(port = {}, inputs = {}, environment = {}) {
   const type = port.type || {};
-  if (!['entity', 'entityRef'].includes(type.base) || type.shape === 'list' || !type.entityType) return null;
+  if (!['entity', 'entityRef'].includes(type.base) || port.access !== 'item' || !type.entityType) return null;
   const candidate = inputs.entities?.[type.entityType] ?? inputs.entity;
   if (candidate == null || candidate === '') return null;
   const reference = typeof candidate === 'object'
@@ -364,7 +435,7 @@ function resolveDataOutputId(outputs = [], requestedId = '', record = {}) {
 
 function processData(definition) {
   const process = definition?.data?.graph ? definition.data : definition;
-  if (Number(process?.dataflowVersion) !== 3) throw new Error('Durable orchestration requires process dataflow version 3');
+  if (Number(process?.dataflowVersion) !== 4) throw new Error('Durable orchestration requires process dataflow version 4');
   return process;
 }
 
@@ -431,6 +502,7 @@ function token(nodeId, targetHandle, inherited = {}) {
     sourceNodeId: inherited.sourceNodeId || null,
     scope: inherited.scope || 'root',
     values: inherited.values || {},
+    loopKey: inherited.loopKey || null,
     attempt: 1
   };
 }

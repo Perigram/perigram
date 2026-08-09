@@ -351,7 +351,7 @@ function updateLiteral(value) {
   if (record.value.type?.base === 'entityRef') {
     return update({ value: value ? { type: record.value.entityType, id: value } : null });
   }
-  if (record.value.type?.shape !== 'item' || record.value.type?.base === 'json') {
+  if (record.value.access !== 'item' || record.value.type?.base === 'json') {
     try {
       update({ value: JSON.parse(value) });
     } catch {
@@ -402,11 +402,13 @@ function showInlineFallback(input) {
 
 function supportsInlineValue(input) {
   return ['string', 'id', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'status', 'entityRef'].includes(input.base)
-    && input.type?.shape !== 'list';
+    && input.access === 'item';
 }
 
 function inputDefault(id) {
-  return record.value.inputDefaults?.[id];
+  const value = record.value.inputDefaults?.[id];
+  if (!value?.branches) return value;
+  return value.branches[0]?.items?.[0];
 }
 
 function displayInputDefault(id) {
@@ -459,14 +461,14 @@ function inputPlaceholder(input) {
 function updateInputDefault(id, value) {
   const inputDefaults = { ...(record.value.inputDefaults || {}) };
   if (value == null || value === '') delete inputDefaults[id];
-  else inputDefaults[id] = value;
+  else inputDefaults[id] = { branches: [{ path: [], items: [value] }] };
   update({ inputDefaults });
 }
 
 function updateStatusInputDefault(id, value) {
   const option = (props.data.processStatusOptions || []).find(item => item.value === value);
   update({
-    inputDefaults: { ...(record.value.inputDefaults || {}), [id]: value },
+    inputDefaults: { ...(record.value.inputDefaults || {}), [id]: { branches: [{ path: [], items: [value] }] } },
     statusRef: option?.refId || '',
     status: { ...(record.value.status || {}), to: value }
   });
@@ -486,7 +488,7 @@ function socketClass(item, side) {
 function handleClass(item, side) {
   return [
     '!top-1/2 !h-2.5 !w-2.5 !-translate-y-1/2',
-    item.type?.shape === 'tree' ? '!rounded-none' : item.type?.shape === 'list' ? '!rounded-sm' : '!rounded-full',
+    item.access === 'tree' ? '!rounded-none' : item.access === 'list' ? '!rounded-sm' : '!rounded-full',
     side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];
 }

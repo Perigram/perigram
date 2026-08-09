@@ -17,7 +17,7 @@ previous active process for the organization, marks the selected process
 `ACTIVE`, and stores its id on the organization.
 
 Creation, update, validation, and activation accept only the current semantic
-source at `dataflowVersion: 3`. These boundaries never migrate or rewrite the
+source at `dataflowVersion: 4`. These boundaries never migrate or rewrite the
 authored graph. Definitions with a missing or different dataflow version are
 rejected, and starter templates are authored directly in the current format.
 Normalization used by validation and compilation is an in-memory projection;
@@ -35,7 +35,7 @@ optimistic `revision`. A step receipt owns one effect idempotency key and its
 running/succeeded/failed result. Unique step keys prevent a resumed request
 from applying the same external effect twice.
 
-`POST /api/process-definitions/:id/runs` starts a manual v3 trigger and drives
+`POST /api/process-definitions/:id/runs` starts a manual v4 trigger and drives
 it until success, failure, or a wait boundary.
 `POST /api/process-definitions/runs/:id/resume` provides an explicit recovery
 resume, and `GET /api/process-definitions/runs/:id` reads the authorized run.
@@ -102,7 +102,7 @@ contract on every request, so editing a team assignment does not mutate or
 recompile the active process and a draft can never overwrite assignments.
 
 Manual generated-screen actions execute through the active process definition,
-not through client-selected entity routes. For v3 definitions,
+not through client-selected entity routes. For v4 definitions,
 `executeActiveProcessAction()` verifies the compiled role assignment, resolves
 the authored effect's manual start, starts the durable run, and returns
 the effect result (or a run/wake reference for a persisted wait). It does not
@@ -138,15 +138,15 @@ one declared lineage entity reference for contextual screen placement, and the
 effect boundary converts its entity reference to the canonical stored id.
 Origin, provenance, status history, and summary are not accepted as generic
 constructible blocks.
-Generic Update receives block mutations through the same typed process dataflow.
-Relations Link, Unlink, and Replace are evaluated by Modify Block into a
-replacement Relations block, then persisted through the target feature's
-`processUpdate()` contract. They do not bypass the owning service and do not
-introduce relation-specific repositories or action executors. Manual Update
+Generic Update receives replacement blocks through the same typed process
+dataflow. Relation collection changes are composed with ordinary list/tree
+operations before Modify Block receives the replacement value, then persisted
+through the target feature's `processUpdate()` contract. They do not bypass the
+owning service. Manual Update
 effects compile into the normal generated action manifest; Relations data
 connections without an effect remain non-executable dataflow.
 Compiled process-relation actions execute directly at the active-definition
-boundary, including for dataflow-v3 definitions: Link merges the selected typed
+boundary, including for dataflow-v4 definitions: Link merges the selected typed
 reference according to relation cardinality, while contextual Unlink removes
 the exact reference supplied by the linked entity row. Persistence still
 delegates to the owner entity's `processUpdate` service. Auth hydration and
@@ -175,7 +175,7 @@ template id or resolves the default construction-ready template visible to the
 caller, accepts concrete parameters, creates a real `cassette_design` whose
 default identity comes from the source cassette,
 with geometry/editor provenance, then applies the process target status.
-In v3 execution, typed constructor inputs and connected canonical blocks are
+In v4 execution, typed constructor inputs and connected canonical blocks are
 collected separately. The constructor creates the complete derived entity
 first, then the entity feature's explicit `processUpdate()` applies authored
 blocks as merges over the created DTO. This keeps generated geometry and
@@ -228,7 +228,7 @@ command handler to evaluate material-bound parametric queue entries, while
 queue job edits still require the separate `queues:write` entity grant. A queue
 write grant alone does not expose the command action, and a command action
 grant does not expose queue mutation controls.
-For dataflow v3, Run Service sockets are resolved from the current registered
+For dataflow v4, Run Service sockets are resolved from the current registered
 command definition at authoring, validation, and durable-resume boundaries.
 The durable executor partitions those flat typed socket values into the
 command runtime's `entities` and `parameters` envelope; it does not accept a

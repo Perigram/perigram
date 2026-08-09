@@ -175,7 +175,7 @@ describe('process definitions access fallback', () => {
       userId: 'admin',
       organizationId: 'org-1',
       effectivePermissions: { organizations: { level: 'admin' } }
-    })).rejects.toThrow('Process dataflow version 3 is required');
+    })).rejects.toThrow('Process dataflow version 4 is required');
 
     expect(processRepository.updateById).not.toHaveBeenCalled();
     expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
@@ -184,7 +184,7 @@ describe('process definitions access fallback', () => {
   it('stores the authored graph unchanged when saving a draft', async () => {
     const authored = {
       schemaVersion: 1,
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       graph: {
         nodes: [{ id: 'literal', type: 'processNode', position: { x: 17, y: 29 }, data: { refId: 'literal' } }],
         edges: [],

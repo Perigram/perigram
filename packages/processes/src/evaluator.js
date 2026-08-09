@@ -1,5 +1,6 @@
 import {
   combineDataPackets,
+  cleanDataTree,
   createDataPacket,
   crossDataPackets,
   flattenDataPacket,
@@ -9,17 +10,24 @@ import {
   packetValue,
   selectDataBranch,
   simplifyDataPacket,
-  transposeDataPacket
+  solveDataTrees,
+  transformDataTree,
+  transposeDataPacket,
+  treeStats
 } from './data-tree.js';
 
 export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
   const kind = record.kind;
   const defaultPackets = Object.fromEntries(Object.entries(record.inputDefaults || {})
     .map(([id, value]) => [id, createDataPacket(structuredClone(value))]));
-  const packets = {
+  const rawPackets = {
     ...defaultPackets,
     ...Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, normalizeDataPacket(packet)]))
   };
+  const packets = Object.fromEntries(Object.entries(rawPackets).map(([id, packet]) => [
+    id,
+    transformDataTree(packet, record.inputTransforms?.[id])
+  ]));
   if (kind.startsWith('source.')) return executeSource(record, context);
   if (kind === 'value.cast' || kind === 'value.parse') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
   if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
@@ -38,32 +46,43 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'value.compare') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => compare(record.operation, left, right));
   if (kind === 'value.logic') return executeLogic(record, packets);
   if (kind === 'value.format') return mapDataPacket(required(packets, 'value', record), value => format(record, value));
-  if (kind === 'collection.makeList') return createDataPacket([packetValue(required(packets, 'value', record))], 'list');
+  if (kind === 'collection.makeList') return required(packets, 'value', record);
   if (kind === 'collection.packArray') {
-    return createDataPacket(structuredClone(flattenDataPacket(required(packets, 'value', record)).branches[0].items));
+    return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => structuredClone(items));
   }
   if (kind === 'collection.unpackArray') {
-    const value = packetValue(required(packets, 'value', record));
-    if (!Array.isArray(value)) throw new Error(`${record.id || kind} requires an array value`);
-    return createDataPacket(structuredClone(value), 'list');
+    return solveDataTrees([{ tree: required(packets, 'value', record), access: 'item' }], ([value]) => {
+      if (!Array.isArray(value)) throw new Error(`${record.id || kind} requires an array value`);
+      return structuredClone(value);
+    }, { outputAccess: 'list' });
   }
-  if (kind === 'collection.concat') return createDataPacket([
-    ...flattenDataPacket(required(packets, 'left', record)).branches[0].items,
-    ...flattenDataPacket(required(packets, 'right', record)).branches[0].items
-  ], 'list');
+  if (kind === 'collection.concat') return solveDataTrees([
+    { tree: required(packets, 'left', record), access: 'list' },
+    { tree: required(packets, 'right', record), access: 'list' }
+  ], ([left, right]) => [...left, ...right], { outputAccess: 'list', matching: record.matching });
   if (kind === 'collection.itemAt') {
-    const values = flattenDataPacket(required(packets, 'items', record)).branches[0].items;
-    return createDataPacket(values.at(Number(packetValue(required(packets, 'index', record)))) ?? null);
+    return solveDataTrees([
+      { tree: required(packets, 'items', record), access: 'list' },
+      { tree: required(packets, 'index', record), access: 'item' }
+    ], ([values, index]) => values.at(Number(index)) ?? null, { matching: record.matching });
   }
   if (kind === 'collection.slice') {
-    const values = flattenDataPacket(required(packets, 'items', record)).branches[0].items;
-    const start = packets.start ? Number(packetValue(packets.start)) : undefined;
-    const end = packets.end ? Number(packetValue(packets.end)) : undefined;
-    return createDataPacket(values.slice(start, end), 'list');
+    const inputs = [{ tree: required(packets, 'items', record), access: 'list' }];
+    if (packets.start) inputs.push({ tree: packets.start, access: 'item' });
+    if (packets.end) inputs.push({ tree: packets.end, access: 'item' });
+    return solveDataTrees(inputs, values => values[0].slice(values[1] == null ? undefined : Number(values[1]), values[2] == null ? undefined : Number(values[2])), { outputAccess: 'list', matching: record.matching });
   }
-  if (kind === 'collection.count') return createDataPacket(flattenDataPacket(required(packets, 'value', record)).branches[0].items.length);
-  if (kind === 'collection.distinct') return createDataPacket(distinct(flattenDataPacket(required(packets, 'value', record)).branches[0].items), 'list');
-  if (kind === 'collection.sort') return createDataPacket(sortValues(flattenDataPacket(required(packets, 'value', record)).branches[0].items, record), 'list');
+  if (kind === 'collection.count') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => items.length);
+  if (kind === 'collection.distinct') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => distinct(items), { outputAccess: 'list' });
+  if (kind === 'collection.sort') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => sortValues(items, record), { outputAccess: 'list' });
+  if (kind === 'collection.reverse') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => [...items].reverse(), { outputAccess: 'list' });
+  if (kind === 'collection.shift') return solveDataTrees([
+    { tree: required(packets, 'items', record), access: 'list' }, { tree: required(packets, 'offset', record), access: 'item' }
+  ], ([items, offset]) => shiftValues(items, Number(offset)), { outputAccess: 'list', matching: record.matching });
+  if (kind === 'collection.partition') return solveDataTrees([
+    { tree: required(packets, 'items', record), access: 'list' }, { tree: required(packets, 'size', record), access: 'item' }
+  ], ([items, size]) => partitionValues(items, Number(size)), { outputAccess: 'tree', matching: record.matching });
+  if (kind === 'collection.dispatch') return dispatchPackets(required(packets, 'items', record), required(packets, 'mask', record), context.outputId);
   if (kind === 'collection.groupBy') return groupByPackets(required(packets, 'items', record), required(packets, 'keys', record));
   if (kind === 'collection.filter') return filterPackets(required(packets, 'items', record), required(packets, 'mask', record));
   if (kind === 'tree.flatten') return flattenDataPacket(required(packets, 'value', record));
@@ -74,6 +93,8 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'tree.unzip') return unzipPacket(required(packets, 'value', record));
   if (kind === 'tree.cross') return crossDataPackets(required(packets, 'left', record), required(packets, 'right', record));
   if (kind === 'tree.transpose') return transposeDataPacket(required(packets, 'value', record));
+  if (kind === 'tree.clean') return cleanDataTree(required(packets, 'value', record));
+  if (kind === 'tree.stats') return createDataPacket(treeStats(required(packets, 'value', record)));
   if (kind === 'record.getField') {
     return mapDataPacket(required(packets, 'block', record), value => {
       const fieldValue = readPath(value, blockLocalPath(record.block, record.path));
@@ -156,52 +177,10 @@ function writeOpenBlockEntry(block, mode, entry, value) {
   const key = String(entry.key || '').trim();
   if (!key) throw new Error(`Block entry ${entry.id} requires a key`);
   if (mode === 'relations') {
-    writeRelationEntry(block, key, entry, value);
+    writePath(block, key, structuredClone(value));
     return;
   }
   writePath(block, key, structuredClone(value));
-}
-
-function writeRelationEntry(block, key, entry, value) {
-  const operation = entry.operation || 'replace';
-  const incoming = relationValues(value);
-  if (operation === 'replace') {
-    writePath(block, key, entry.cardinality === 'many' ? distinctReferences(incoming) : incoming[0] ?? null);
-    return;
-  }
-  const current = relationValues(readPath(block, key));
-  if (operation === 'append') {
-    const combined = distinctReferences([...current, ...incoming]);
-    writePath(block, key, entry.cardinality === 'many' ? combined : combined.at(-1) ?? null);
-    return;
-  }
-  if (operation === 'remove') {
-    const removed = new Set(incoming.map(entityReferenceKey));
-    const remaining = current.filter(item => !removed.has(entityReferenceKey(item)));
-    writePath(block, key, entry.cardinality === 'many' ? remaining : remaining[0] ?? null);
-    return;
-  }
-  throw new Error(`Unsupported relation mutation ${operation}`);
-}
-
-function relationValues(value) {
-  if (value == null) return [];
-  return (Array.isArray(value) ? value : [value]).map(item => structuredClone(item));
-}
-
-function distinctReferences(values) {
-  const seen = new Set();
-  return values.filter(value => {
-    const key = entityReferenceKey(value);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function entityReferenceKey(value) {
-  if (!value || typeof value !== 'object') return JSON.stringify(value);
-  return `${value.type || value.entityType || ''}:${value.id || value._id || value.identity?.uid || JSON.stringify(value)}`;
 }
 
 function blockLocalPath(block, path) {
@@ -235,10 +214,11 @@ export function applyPatch(record, patch) {
 
 async function executeSource(record, context) {
   if (record.kind === 'source.currentTime') return createDataPacket((context.now || (() => new Date()))().toISOString());
-  if (record.kind === 'source.processInput') return createDataPacket(readPath(context.inputs || {}, record.path), record.type?.shape);
-  if (record.kind === 'source.triggerPayload') return createDataPacket(readPath(context.trigger || {}, record.path), record.type?.shape);
+  if (record.kind === 'source.processInput') return createDataPacket(readPath(context.inputs || {}, record.path), record.access || 'item');
+  if (record.kind === 'source.triggerPayload') return createDataPacket(readPath(context.trigger || {}, record.path), record.access || 'item');
   if (record.kind === 'source.secretRef') return createDataPacket({ secretRef: record.secretRef });
-  return createDataPacket(structuredClone(record.value), record.type?.shape || record.shape || 'item');
+  const access = record.access || (record.kind === 'source.literalList' ? 'list' : record.kind === 'source.literalTree' ? 'tree' : 'item');
+  return createDataPacket(structuredClone(record.value), access);
 }
 
 async function executeRead(record, packets, context) {
@@ -299,7 +279,7 @@ function executeString(record, packets) {
 function executeLogic(record, packets) {
   const left = required(packets, 'left', record);
   if (['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'].includes(record.operation)) {
-    return combineDataPackets([left, required(packets, 'right', record)], ([a, b]) => compare(record.operation, a, b));
+    return combineDataPackets([left, required(packets, 'right', record)], ([a, b]) => compare(record.operation, a, b), { matching: record.matching });
   }
   if (['isNull', 'isNotNull'].includes(record.operation)) {
     return mapDataPacket(left, value => compare(record.operation, value, null));
@@ -315,7 +295,7 @@ function executeLogic(record, packets) {
     if (record.operation === 'nand') return !Boolean(a && b);
     if (record.operation === 'nor') return !Boolean(a || b);
     return Boolean(a) === Boolean(b);
-  });
+  }, { matching: record.matching });
 }
 
 function executeDateTime(record, packets) {
@@ -327,7 +307,7 @@ function executeDateTime(record, packets) {
       const divisor = record.operation === 'differenceDays' ? 86_400_000
         : record.operation === 'differenceHours' ? 3_600_000 : 60_000;
       return (dateValue(left).getTime() - dateValue(right).getTime()) / divisor;
-    });
+    }, { matching: record.matching });
   }
   const sourceId = ['addDuration', 'subtractDuration', 'addDays', 'addHours', 'addMinutes', 'addMonths'].includes(record.operation) ? 'date' : 'value';
   const source = required(packets, sourceId, record);
@@ -356,7 +336,7 @@ function executeDateTime(record, packets) {
           : durationMilliseconds(adjustment);
     date.setTime(date.getTime() + direction * milliseconds);
     return date.toISOString();
-  });
+  }, { matching: record.matching });
 }
 
 function executeMath(record, packets) {
@@ -368,12 +348,12 @@ function executeMath(record, packets) {
       required(packets, 'value', record),
       required(packets, 'min', record),
       required(packets, 'max', record)
-    ], ([value, min, max]) => Math.min(Number(max), Math.max(Number(min), Number(value))));
+    ], ([value, min, max]) => Math.min(Number(max), Math.max(Number(min), Number(value))), { matching: record.matching });
   }
   return combineDataPackets([
     required(packets, 'left', record),
     required(packets, 'right', record)
-  ], ([left, right]) => math(record.operation, left, right));
+  ], ([left, right]) => math(record.operation, left, right), { matching: record.matching });
 }
 
 function dateValue(value) {
@@ -496,6 +476,32 @@ function distinct(values) {
   });
 }
 
+function shiftValues(values, offset) {
+  if (!values.length) return [];
+  const normalized = ((Math.trunc(offset) % values.length) + values.length) % values.length;
+  return [...values.slice(normalized), ...values.slice(0, normalized)];
+}
+
+function partitionValues(values, size) {
+  if (!Number.isInteger(size) || size < 1) throw new Error('Partition size must be a positive integer');
+  return {
+    branches: Array.from({ length: Math.ceil(values.length / size) }, (_, index) => ({
+      path: [index], items: structuredClone(values.slice(index * size, (index + 1) * size))
+    }))
+  };
+}
+
+function dispatchPackets(itemsPacket, maskPacket, outputId = 'true') {
+  const combined = combineDataPackets([itemsPacket, maskPacket], values => values);
+  const keep = outputId !== 'false';
+  return {
+    branches: combined.branches.map(branch => ({
+      path: [...branch.path],
+      items: branch.items.filter(([, include]) => Boolean(include) === keep).map(([item]) => item)
+    }))
+  };
+}
+
 function sortValues(values, record) {
   return [...values].sort((left, right) => {
     const a = record.path ? readPath(left, record.path) : left;
@@ -507,22 +513,24 @@ function sortValues(values, record) {
 
 function groupByPackets(itemsPacket, keysPacket) {
   const combined = combineDataPackets([itemsPacket, keysPacket], values => values);
-  const groups = new Map();
-  for (const [item, key] of combined.branches[0].items) {
-    const serialized = JSON.stringify(key);
-    if (!groups.has(serialized)) groups.set(serialized, []);
-    groups.get(serialized).push(item);
+  const branches = [];
+  for (const branch of combined.branches) {
+    const groups = new Map();
+    for (const [item, key] of branch.items) {
+      const serialized = JSON.stringify(key);
+      if (!groups.has(serialized)) groups.set(serialized, []);
+      groups.get(serialized).push(item);
+    }
+    [...groups.values()].forEach((items, index) => {
+      branches.push({ path: [...branch.path, index], items });
+    });
   }
-  return {
-    shape: 'tree',
-    branches: [...groups.values()].map((items, index) => ({ path: [index], items }))
-  };
+  return { branches };
 }
 
 function filterPackets(itemsPacket, maskPacket) {
   const combined = combineDataPackets([itemsPacket, maskPacket], values => values);
   return {
-    shape: combined.shape,
     branches: combined.branches.map(branch => ({
       path: branch.path,
       items: branch.items.filter(([, include]) => include).map(([value]) => value)
@@ -534,7 +542,6 @@ function unzipPacket(packet) {
   const values = flattenDataPacket(packet).branches[0].items;
   const width = Math.max(0, ...values.map(value => Array.isArray(value) ? value.length : 0));
   return {
-    shape: 'tree',
     branches: Array.from({ length: width }, (_, index) => ({
       path: [index],
       items: values.map(value => value[index])

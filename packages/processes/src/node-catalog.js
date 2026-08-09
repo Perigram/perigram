@@ -37,6 +37,10 @@ const definitions = [
   data('collection.count', 'count'),
   data('collection.distinct', 'distinct'),
   data('collection.sort', 'sort'),
+  data('collection.reverse', 'reverse'),
+  data('collection.shift', 'shift'),
+  data('collection.partition', 'partition'),
+  data('collection.dispatch', 'dispatch'),
   data('collection.groupBy', 'groupBy'),
   data('collection.filter', 'filterValues'),
   data('tree.flatten', 'flatten'),
@@ -47,6 +51,8 @@ const definitions = [
   data('tree.unzip', 'unzip'),
   data('tree.cross', 'crossProduct'),
   data('tree.transpose', 'transpose'),
+  data('tree.clean', 'cleanTree'),
+  data('tree.stats', 'treeStatistics'),
 
   data('record.getField', 'getField'),
   data('record.fieldChange', 'fieldChange'),
@@ -89,6 +95,7 @@ const definitions = [
   control('control.joinAll', 'joinAll'),
   control('control.joinAny', 'joinAny'),
   control('control.forEach', 'forEach'),
+  control('control.forEachEnd', 'forEachEnd'),
   control('control.waitDuration', 'waitDuration'),
   control('control.waitUntil', 'waitUntil'),
   control('control.stopSuccess', 'stopSuccess'),
@@ -167,15 +174,14 @@ function definition(kind, label, family, level, pure, ports = { inputs: [], outp
   return { kind, label, family, level, pure, ports };
 }
 
-function socket(id, type, role = DATA) {
-  return { id, label: id, type, role, required: false };
+function socket(id, type, role = DATA, _required = false, access = 'item') {
+  return { id, label: id, type, role, required: false, access };
 }
 
 function catalogPorts(record = {}, context = {}) {
   const kind = record.kind;
   const configuredBase = record.base || 'json';
   const configured = processTypeFrom(record.type, processType(configuredBase, {
-    shape: record.shape || 'item',
     nullable: record.nullable,
     ...(['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(configuredBase)
       && record.entityType ? { entityType: record.entityType } : {}),
@@ -183,9 +189,9 @@ function catalogPorts(record = {}, context = {}) {
     unit: record.unit,
     enumId: record.enumId
   }));
-  const sameShape = base => processType(base, { shape: configured.shape });
-  const entity = processType('entity', { shape: record.shape || 'item', entityType: record.entityType });
-  const entityList = processType('entity', { shape: 'list', entityType: record.entityType });
+  const sameShape = base => processType(base);
+  const entity = processType('entity', { entityType: record.entityType });
+  const entityList = processType('entity', { entityType: record.entityType });
   const entityRef = processType('entityRef', { entityType: record.entityType });
   const predicate = processType('predicate', { entityType: record.entityType });
   const patch = processType('patch', { entityType: record.entityType });
@@ -197,7 +203,8 @@ function catalogPorts(record = {}, context = {}) {
     const output = kind === 'source.currentTime' ? processType('dateTime')
       : kind === 'source.secretRef' ? processType('opaque', { opaqueType: 'secretRef' })
         : configured;
-    return { inputs: [], outputs: [socket('value', output)] };
+    const access = kind === 'source.literalTree' ? 'tree' : kind === 'source.literalList' ? 'list' : 'item';
+    return { inputs: [], outputs: [socket('value', output, DATA, false, access)] };
   }
   if (kind === 'value.cast' || kind === 'value.parse' || kind === 'value.convertUnit'
     || kind === 'value.toJson' || kind === 'value.required' || kind === 'value.validate'
@@ -243,10 +250,10 @@ function catalogPorts(record = {}, context = {}) {
     };
     if (record.operation === 'split') return {
       inputs: [socket('text', sameShape('string'), DATA, true), socket('separator', sameShape('string'), DATA, true)],
-      outputs: [socket('value', processType('string', { shape: 'list' }))]
+      outputs: [socket('value', processType('string'), DATA, false, 'list')]
     };
     if (record.operation === 'join') return {
-      inputs: [socket('items', processType('string', { shape: 'list' }), DATA, true), socket('separator', sameShape('string'), DATA, true)],
+      inputs: [socket('items', processType('string'), DATA, true, 'list'), socket('separator', sameShape('string'), DATA, true)],
       outputs: [socket('value', sameShape('string'))]
     };
     if (record.operation === 'length') return {
@@ -300,63 +307,61 @@ function catalogPorts(record = {}, context = {}) {
       outputs: [socket('result', sameShape('boolean'))]
     };
   }
-  if (kind === 'collection.makeList') return unary({ ...configured, shape: 'item' }, { ...configured, shape: 'list' });
+  if (kind === 'collection.makeList') return unary(configured, configured);
   if (kind === 'collection.packArray') {
-    const itemType = { ...configured, shape: 'item' };
-    return unary(
-      { ...itemType, shape: 'list' },
-      processType('array', { itemType })
-    );
+    const itemType = configured;
+    return { inputs: [socket('value', itemType, DATA, true, 'list')], outputs: [socket('value', processType('array', { itemType }))] };
   }
   if (kind === 'collection.unpackArray') {
     const itemType = configured.base === 'array'
       ? configured.itemType
       : processType('json');
-    return unary(
-      configured.base === 'array' ? configured : processType('array', { itemType }),
-      { ...itemType, shape: 'list' }
-    );
+    return { inputs: [socket('value', configured.base === 'array' ? configured : processType('array', { itemType }), DATA, true)], outputs: [socket('value', itemType, DATA, false, 'list')] };
   }
-  if (kind === 'collection.concat') return binary({ ...configured, shape: 'list' }, { ...configured, shape: 'list' });
+  if (kind === 'collection.concat') return { inputs: [socket('left', configured, DATA, true, 'list'), socket('right', configured, DATA, true, 'list')], outputs: [socket('value', configured, DATA, false, 'list')] };
   if (kind === 'collection.itemAt') return {
-    inputs: [socket('items', { ...configured, shape: 'list' }, DATA, true), socket('index', processType('integer'), DATA, true)],
-    outputs: [socket('item', { ...configured, shape: 'item', nullable: true })]
+    inputs: [socket('items', configured, DATA, true, 'list'), socket('index', processType('integer'), DATA, true)],
+    outputs: [socket('item', { ...configured, nullable: true })]
   };
   if (kind === 'collection.slice') return {
-    inputs: [socket('items', { ...configured, shape: 'list' }, DATA, true), socket('start', processType('integer')), socket('end', processType('integer'))],
-    outputs: [socket('items', { ...configured, shape: 'list' })]
+    inputs: [socket('items', configured, DATA, true, 'list'), socket('start', processType('integer')), socket('end', processType('integer'))],
+    outputs: [socket('items', configured, DATA, false, 'list')]
   };
-  if (kind === 'collection.count') return unary({ ...configured, shape: 'list' }, processType('integer'));
-  if (['collection.distinct', 'collection.sort'].includes(kind)) return unary({ ...configured, shape: 'list' }, { ...configured, shape: 'list' });
+  if (kind === 'collection.count') return { inputs: [socket('value', configured, DATA, true, 'list')], outputs: [socket('value', processType('integer'))] };
+  if (['collection.distinct', 'collection.sort', 'collection.reverse'].includes(kind)) return { inputs: [socket('value', configured, DATA, true, 'list')], outputs: [socket('value', configured, DATA, false, 'list')] };
+  if (kind === 'collection.shift' || kind === 'collection.partition') return {
+    inputs: [socket('items', configured, DATA, true, 'list'), socket(kind === 'collection.shift' ? 'offset' : 'size', processType('integer'), DATA, true)],
+    outputs: [socket('items', configured, DATA, false, kind === 'collection.partition' ? 'tree' : 'list')]
+  };
+  if (kind === 'collection.dispatch') return {
+    inputs: [socket('items', configured, DATA, true, 'list'), socket('mask', processType('boolean'), DATA, true, 'list')],
+    outputs: [socket('true', configured, DATA, false, 'list'), socket('false', configured, DATA, false, 'list')]
+  };
   if (kind === 'collection.groupBy') return {
-    inputs: [socket('items', { ...configured, shape: 'list' }, DATA, true), socket('keys', processType('json', { shape: 'list' }), DATA, true)],
-    outputs: [socket('groups', { ...configured, shape: 'tree' })]
+    inputs: [socket('items', configured, DATA, true, 'list'), socket('keys', processType('json'), DATA, true, 'list')],
+    outputs: [socket('groups', configured, DATA, false, 'tree')]
   };
   if (kind === 'collection.filter') return {
-    inputs: [socket('items', { ...configured, shape: 'list' }, DATA, true), socket('mask', processType('boolean', { shape: 'list' }), DATA, true)],
-    outputs: [socket('items', { ...configured, shape: 'list' })]
+    inputs: [socket('items', configured, DATA, true, 'list'), socket('mask', processType('boolean'), DATA, true, 'list')],
+    outputs: [socket('items', configured, DATA, false, 'list')]
   };
-  if (kind === 'tree.flatten') return unary({ ...configured, shape: 'tree' }, { ...configured, shape: 'list' });
-  if (kind === 'tree.graft') return unary(configured, { ...configured, shape: 'tree' });
-  if (kind === 'tree.simplify') return unary({ ...configured, shape: 'tree' }, { ...configured, shape: 'tree' });
+  if (kind === 'tree.flatten' || kind === 'tree.graft' || kind === 'tree.simplify' || kind === 'tree.transpose' || kind === 'tree.clean') return { inputs: [socket('value', configured, DATA, true, 'tree')], outputs: [socket('value', configured, DATA, false, 'tree')] };
+  if (kind === 'tree.stats') return { inputs: [socket('value', configured, DATA, true, 'tree')], outputs: [socket('stats', processType('record'))] };
   if (kind === 'tree.branch') return {
-    inputs: [socket('tree', { ...configured, shape: 'tree' }, DATA, true), socket('path', processType('integer', { shape: 'list' }), DATA, true)],
-    outputs: [socket('items', { ...configured, shape: 'list' })]
+    inputs: [socket('tree', configured, DATA, true, 'tree'), socket('path', processType('integer'), DATA, true, 'list')],
+    outputs: [socket('items', configured, DATA, false, 'list')]
   };
-  if (['tree.zip', 'tree.cross'].includes(kind)) return binary(configured, configured, { ...configured, shape: kind === 'tree.cross' ? 'list' : configured.shape });
-  if (kind === 'tree.unzip') return unary(configured, processType('json', { shape: 'tree' }));
-  if (kind === 'tree.transpose') return unary({ ...configured, shape: 'tree' }, { ...configured, shape: 'tree' });
+  if (['tree.zip', 'tree.cross'].includes(kind)) return binary(configured, configured, configured);
+  if (kind === 'tree.unzip') return unary(configured, processType('json'));
   if (kind === 'record.getField') {
     const field = context.fieldSchema || record.fieldSchema;
     const composition = blockComposition(record, context);
     return {
       inputs: [socket('block', processType('block', {
-        block: record.block,
-        shape: configured.shape
+        block: record.block
       }), DATA, true)],
       outputs: [socket('value', {
-        ...processTypeFrom(composition ? record.type : field?.type, configured),
-        shape: configured.shape
+        ...processTypeFrom(composition ? record.type : field?.type, configured)
       })]
     };
   }
@@ -373,7 +378,7 @@ function catalogPorts(record = {}, context = {}) {
     const composition = blockComposition(record, context);
     const entries = openBlockEntries(record, composition);
     if (composition) {
-      const block = processType('block', { block: record.block, shape: configured.shape });
+      const block = processType('block', { block: record.block });
       return {
         inputs: [
           ...(kind === 'record.modifyBlock' ? [socket('block', block, DATA, true)] : []),
@@ -388,8 +393,7 @@ function catalogPorts(record = {}, context = {}) {
     const fields = dynamicFields(record, context)
       .filter(field => field.block === record.block || field.path?.startsWith(`${record.block}.`));
     const block = processType('block', {
-      block: record.block,
-      shape: configured.shape
+      block: record.block
     });
     return {
       inputs: [
@@ -411,16 +415,14 @@ function catalogPorts(record = {}, context = {}) {
     return {
       inputs: [socket('entity', entity, DATA, true)],
       outputs: blocks.map(block => socket(block, processType('block', {
-        block,
-        shape: entity.shape
+        block
       })))
     };
   }
   if (kind === 'record.getBlock') return {
     inputs: [socket('entity', entity, DATA, true)],
     outputs: [socket('block', processType('block', {
-      block: record.block,
-      shape: entity.shape
+      block: record.block
     }))]
   };
   if (kind === 'predicate.field') return {
@@ -439,11 +441,11 @@ function catalogPorts(record = {}, context = {}) {
   }
   if (kind === 'read.queryEntities') return {
     inputs: [socket('predicate', predicate)],
-    outputs: [socket('entities', entityList)]
+    outputs: [socket('entities', entityList, DATA, false, 'list')]
   };
   if (kind === 'read.filterRecords') return {
-    inputs: [socket('entities', entityList, DATA, true), socket('predicate', predicate, DATA, true)],
-    outputs: [socket('entities', entityList)]
+    inputs: [socket('entities', entityList, DATA, true, 'list'), socket('predicate', predicate, DATA, true)],
+    outputs: [socket('entities', entityList, DATA, false, 'list')]
   };
   if (kind.startsWith('effect.')) {
     if (kind === 'effect.runCommand') {
@@ -494,9 +496,10 @@ function catalogPorts(record = {}, context = {}) {
     return { inputs: [socket('branches', event, CONTROL, true)], outputs: [socket('out', event, CONTROL)] };
   }
   if (kind === 'control.forEach') return {
-    inputs: [...controlInput, socket('items', { ...configured, shape: 'list' }, DATA, true)],
-    outputs: [socket('each', event, CONTROL), socket('item', { ...configured, shape: 'item' }), socket('done', event, CONTROL)]
+    inputs: [...controlInput, socket('items', configured, DATA, true, 'tree')],
+    outputs: [socket('each', event, CONTROL), socket('item', configured), socket('path', processType('array', { itemType: processType('integer') })), socket('index', processType('integer')), socket('done', event, CONTROL)]
   };
+  if (kind === 'control.forEachEnd') return { inputs: controlInput, outputs: [] };
   if (kind === 'control.waitDuration') return {
     inputs: [...controlInput, socket('duration', processType('duration'), DATA, true)],
     outputs: [socket('out', event, CONTROL)]
@@ -521,12 +524,8 @@ function openBlockEntries(record = {}, composition = null) {
 }
 
 function openBlockEntryType(entry = {}, composition = {}) {
-  if (composition?.mode === 'relations' && entry.cardinality === 'many') {
-    return processType('array', {
-      itemType: processType('entityRef', { entityType: entry.entityType || undefined })
-    });
-  }
   if (composition?.mode === 'ancestors' || composition?.mode === 'relations') {
+    if (entry.type?.base) return processType(entry.type.base, entry.type);
     return processType('entityRef', { entityType: entry.entityType || undefined });
   }
   if (composition?.mode === 'attachments') {
@@ -626,11 +625,9 @@ function commandInputSockets(command = {}) {
   return [
     ...abstractInputs.map(input => socket(
       input.name || input.type || input.capability,
-      processType('entityRef', {
-        entityType: input.type || undefined,
-        accepts: input.accepts || [],
-        shape: input.multiple ? 'list' : 'item'
-      }),
+      input.multiple
+        ? processType('array', { itemType: processType('entityRef', { entityType: input.type || undefined, accepts: input.accepts || [] }) })
+        : processType('entityRef', { entityType: input.type || undefined, accepts: input.accepts || [] }),
       DATA,
       Boolean(input.required)
     )),
@@ -638,10 +635,9 @@ function commandInputSockets(command = {}) {
       .filter(input => !acceptedTypes.has(input.type))
       .map(input => socket(
         input.name || input.type,
-        processType('entityRef', {
-          entityType: input.type,
-          shape: input.multiple ? 'list' : 'item'
-        }),
+        input.multiple
+          ? processType('array', { itemType: processType('entityRef', { entityType: input.type }) })
+          : processType('entityRef', { entityType: input.type }),
         DATA,
         Boolean(input.required)
       )),
@@ -661,11 +657,17 @@ function commandOutputSockets(command = {}) {
   const outputs = [
     ...(command.output?.entities || []).map(entityType => socket(
       entityType,
-      processType('entity', { entityType, shape: 'list' })
+      processType('entity', { entityType }),
+      DATA,
+      false,
+      'list'
     )),
     ...(command.output?.attachments || []).map(kind => socket(
       `attachment:${kind}`,
-      processType('attachmentRef', { attachmentKind: kind, shape: 'list' })
+      processType('attachmentRef', { attachmentKind: kind }),
+      DATA,
+      false,
+      'list'
     ))
   ];
   return outputs.length ? outputs : [socket('result', processType('json', { nullable: true }))];
@@ -698,11 +700,9 @@ function constructionInputs(record = {}) {
   return (record.construction?.inputs || []).map(input => {
     const multiple = input.type === 'entityList';
     const type = input.type === 'entity' || multiple
-      ? processType('entityRef', {
-          entityType: input.entityType,
-          accepts: input.accepts,
-          shape: multiple ? 'list' : 'item'
-        })
+      ? multiple
+        ? processType('array', { itemType: processType('entityRef', { entityType: input.entityType, accepts: input.accepts }) })
+        : processType('entityRef', { entityType: input.entityType, accepts: input.accepts })
       : legacyProcessType(input.type || 'json');
     return { ...input, id: input.id || input.path, type };
   }).filter(input => input.id);

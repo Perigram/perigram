@@ -15,11 +15,14 @@ Routes are grouped into sub-directories corresponding to features:
   service so parent detail pages only list their own child templates.
 - `commands/`: Authenticated execution route for declared domain commands such
   as `saveCassetteTemplate` and `generateAttachment`.
-- `process-definitions/`: Draft/activation endpoints plus durable v3
+- `process-definitions/`: Draft/activation endpoints, effect-free graph preview,
+  plus durable v4
   orchestration. `POST /:id/runs` starts a trigger, `POST /runs/:id/resume`
   advances a running or due-waiting run, and `GET /runs/:id` reads its status.
   Route handlers delegate authorization, persistence, scheduling, and effects
   to the process-definitions feature service.
+  `POST /preview` evaluates pure/read nodes from an unsaved v4 definition,
+  bounds returned tree samples, and suppresses effects and control flow.
 - `organizations/:id/billing`: Authenticated organization billing account,
   package catalog, Stripe checkout creation, and payment sync routes. Token
   packages come from runtime config, not from user records or database price

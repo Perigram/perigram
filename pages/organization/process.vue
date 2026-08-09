@@ -506,6 +506,21 @@
                 </template>
 
                 <template v-else-if="selectedNode.type === 'processNode'">
+                  <div v-if="selectedProcessNode.kind && !selectedProcessNode.kind.startsWith('effect.') && !selectedProcessNode.kind.startsWith('control.') && !selectedProcessNode.kind.startsWith('source.')" class="flex flex-col gap-2">
+                    <label>{{ $t('processDesigner.dataMatching') }}</label>
+                    <Select v-model="selectedProcessNode.matching" :options="dataMatchingOptions" option-label="label" option-value="value" size="small" @change="syncNodeData" />
+                    <div v-for="input in processNodeInputs(selectedProcessNode).filter(item => item.role === 'data')" :key="input.id" class="flex items-center gap-2 text-xs">
+                      <span class="min-w-0 flex-1 truncate">{{ input.label }}</span>
+                      <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(selectedProcessNode.inputTransforms?.[input.id]?.simplify)" binary @update:model-value="value => updateInputTransform(selectedProcessNode, input.id, 'simplify', value)" />{{ $t('processDesigner.simplify') }}</label>
+                      <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(selectedProcessNode.inputTransforms?.[input.id]?.flatten)" binary @update:model-value="value => updateInputTransform(selectedProcessNode, input.id, 'flatten', value)" />{{ $t('processDesigner.flatten') }}</label>
+                      <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(selectedProcessNode.inputTransforms?.[input.id]?.graft)" binary @update:model-value="value => updateInputTransform(selectedProcessNode, input.id, 'graft', value)" />{{ $t('processDesigner.graft') }}</label>
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <Button icon="pi pi-eye" :label="$t('processDesigner.previewData')" size="small" outlined :loading="previewingData" @click="previewDataflow" />
+                    <Message v-if="selectedNodePreview?.error" severity="error">{{ selectedNodePreview.error }}</Message>
+                    <pre v-else-if="selectedNodePreview" class="max-h-64 overflow-auto rounded-ui border border-content-border bg-subtle p-2 text-xs">{{ JSON.stringify(selectedNodePreview.outputs, null, 2) }}</pre>
+                  </div>
                   <div v-if="selectedProcessNode.kind === 'effect.runCommand'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.service') }}</label>
                     <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
@@ -594,15 +609,6 @@
                             filter
                             @update:model-value="value => updateRelationEntryType(selectedProcessNode, index, value)"
                           />
-                          <Select
-                            v-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
-                            :model-value="entry.cardinality || 'one'"
-                            :options="relationCardinalityOptions"
-                            option-label="label"
-                            option-value="value"
-                            size="small"
-                            @update:model-value="value => updateRelationEntryCardinality(selectedProcessNode, index, value)"
-                          />
                           <label
                             v-if="openBlockComposition(selectedProcessNode).mode === 'relations' && entry.entityType === 'artifact'"
                             class="flex flex-col gap-1"
@@ -619,15 +625,6 @@
                               @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { attachmentKinds: value })"
                             />
                           </label>
-                          <Select
-                            v-if="openBlockComposition(selectedProcessNode).mode === 'relations' && selectedProcessNode.kind === 'record.modifyBlock'"
-                            :model-value="entry.operation || 'append'"
-                            :options="relationMutationOptions"
-                            option-label="label"
-                            option-value="value"
-                            size="small"
-                            @update:model-value="value => updateOpenBlockEntry(selectedProcessNode, index, { operation: value })"
-                          />
                           <Select
                             v-else-if="openBlockComposition(selectedProcessNode).mode === 'entries'"
                             :model-value="entry.type?.base"
@@ -664,15 +661,6 @@
                       size="small"
                       filter
                       @update:model-value="value => updateOpenBlockReadEntityType(value)"
-                    />
-                    <Select
-                      v-if="openBlockComposition(selectedProcessNode).mode === 'relations'"
-                      :model-value="selectedProcessNode.relationCardinality || 'one'"
-                      :options="relationCardinalityOptions"
-                      option-label="label"
-                      option-value="value"
-                      size="small"
-                      @update:model-value="updateOpenBlockReadCardinality"
                     />
                     <Select
                       v-if="openBlockComposition(selectedProcessNode).mode === 'entries'"
@@ -957,7 +945,6 @@ import {
   processSocketsCompatible,
   processType,
   requiredEntityProfileTypes,
-  resolveEntityBinding,
   resolveCatalogNodePorts
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
@@ -993,6 +980,8 @@ const edges = ref([]);
 const selectedNodeId = ref(null);
 const selectedEdgeId = ref(null);
 const validation = ref(null);
+const dataflowPreview = ref(null);
+const previewingData = ref(false);
 const applyingProcess = ref(false);
 const savingDraft = ref(false);
 const creatingDraft = ref(false);
@@ -1090,10 +1079,7 @@ const accessLevelOptions = [
   { label: t('processDesigner.accessAdmin'), value: 'admin' }
 ];
 const processValueTypeOptions = ['string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'entityRef', 'status'].map(value => ({ label: value, value }));
-const relationCardinalityOptions = [
-  { label: t('processDesigner.oneRelation'), value: 'one' },
-  { label: t('processDesigner.manyRelations'), value: 'many' }
-];
+const dataMatchingOptions = ['longest', 'shortest', 'cross'].map(value => ({ label: t(`processDesigner.matching.${value}`), value }));
 const processNodeOperations = {
   'value.math': ['add', 'subtract', 'multiply', 'divide', 'modulo', 'power', 'min', 'max', 'absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt', 'clamp'],
   'value.string': ['concat', 'replace', 'substring', 'split', 'join', 'length', 'lower', 'upper', 'trim'],
@@ -1266,6 +1252,7 @@ const emptyCanvasMessage = computed(() => {
   return t('processDesigner.noActiveDraft');
 });
 const selectedNode = computed(() => nodes.value.find(node => node.id === selectedNodeId.value) || null);
+const selectedNodePreview = computed(() => selectedNode.value ? dataflowPreview.value?.nodes?.[selectedNode.value.id] || null : null);
 const selectedRecord = computed(() => {
   if (!selectedNode.value) return {};
   return ensureRecord(recordKeyForType(selectedNode.value.type), selectedNode.value, factoryForType(selectedNode.value.type));
@@ -1521,6 +1508,22 @@ async function saveDraftFromDock() {
       detail: error?.data?.message || error?.message,
       life: 5000
     });
+  }
+}
+
+async function previewDataflow() {
+  if (!draft.value) return;
+  previewingData.value = true;
+  try {
+    const definition = serializeProcess();
+    dataflowPreview.value = await $fetch('/api/process-definitions/preview', {
+      method: 'POST',
+      body: { definition, trigger: {}, inputs: {} }
+    });
+  } catch (error) {
+    dataflowPreview.value = { nodes: { [selectedNodeId.value]: { error: error?.data?.message || error.message } } };
+  } finally {
+    previewingData.value = false;
   }
 }
 
@@ -2392,8 +2395,8 @@ function createProcessNode(id, kind = 'source.literalItem') {
     node.legacyActionId = id;
     node.entryTriggerId = id;
   }
-  if (kind === 'source.literalList') node.type = processType('json', { shape: 'list' });
-  if (kind === 'source.literalTree') node.type = processType('json', { shape: 'tree' });
+  if (kind === 'source.literalList') node.access = 'list';
+  if (kind === 'source.literalTree') node.access = 'tree';
   if (fieldKind) {
     const fields = kind === 'record.getField' ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType);
     node.path = fields
@@ -3039,16 +3042,17 @@ function syncProcessNode(node = {}) {
   }
   if (node.type?.base === 'block') delete node.type.entityType;
   node.operation ||= defaultProcessNodeOperation(node.kind);
-  node.type = node.type?.base ? node.type : processType('json', {
-    shape: node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : 'item'
-  });
+  node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
+  node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
+  node.matching = ['longest', 'shortest', 'cross'].includes(node.matching) ? node.matching : 'longest';
+  node.inputTransforms ||= {};
   node.icon = iconForProcessNode(node.kind);
   const referencedStatus = node.statusRef
     ? draft.value?.data?.statusDefinitions?.[node.statusRef]
     : null;
   if (referencedStatus?.statusId) {
     node.inputDefaults ||= {};
-    node.inputDefaults['status.state.primary'] = referencedStatus.statusId;
+    node.inputDefaults['status.state.primary'] = { branches: [{ path: [], items: [referencedStatus.statusId] }] };
     node.status ||= {};
     node.status.to = referencedStatus.statusId;
   }
@@ -3083,11 +3087,8 @@ function syncProcessNode(node = {}) {
       if (composition.mode === 'ancestors') {
         node.type = processType('entityRef', { entityType: openBlockReadEntityType(node) || defaultEntityType() });
       } else if (composition.mode === 'relations') {
-        node.relationCardinality = node.relationCardinality === 'many' ? 'many' : 'one';
         const entityType = openBlockReadEntityType(node) || defaultEntityType();
-        node.type = node.relationCardinality === 'many'
-          ? processType('array', { itemType: processType('entityRef', { entityType }) })
-          : processType('entityRef', { entityType });
+        node.type = processType('entityRef', { entityType });
       } else if (composition.mode === 'attachments') {
         node.type = processType('attachmentRef', {
           attachmentKind: node.type?.attachmentKind || designer.attachmentKindOptions[0]?.value || ''
@@ -3137,14 +3138,7 @@ function syncProcessNode(node = {}) {
       node.compositionMode = composition.mode;
       node.compositionValueBase = composition.valueBase;
       if (!Array.isArray(node.entries)) node.entries = [createOpenBlockEntry(node)];
-      if (composition.mode === 'relations') {
-        node.entries = node.entries.map(entry => ({
-          ...entry,
-          ...(node.kind === 'record.modifyBlock'
-            ? { operation: ['append', 'remove', 'replace'].includes(entry.operation) ? entry.operation : 'append' }
-            : {})
-        }));
-      }
+      if (composition.mode === 'relations') node.entries = node.entries.map(({ cardinality, operation, ...entry }) => entry);
       node.fields = [];
     } else {
       delete node.compositionMode;
@@ -3191,43 +3185,8 @@ function syncProcessNodeConstruction(node = {}) {
     .map(input => ({ ...input }));
 }
 
-function applyInferredProcessNodeInputs(record = {}, node = {}) {
-  if (!record?.kind || !node?.id) return;
-  if (Array.isArray(record.entries)) {
-    const consumerEntityTypes = [...new Set(edges.value
-      .filter(edge => String(edge.source) === String(node.id))
-      .map(edge => nodes.value.find(item => String(item.id) === String(edge.target)))
-      .map(target => target?.type === 'processNode' ? draft.value?.data?.processNodes?.[target.data?.refId || target.id] : null)
-      .filter(target => target?.entityType && (target.blocks || []).includes(record.block))
-      .map(target => target.entityType))];
-    const targetEntityType = consumerEntityTypes.length === 1 ? consumerEntityTypes[0] : '';
-    for (const entry of record.entries) {
-      const edge = edges.value.find(item => (
-        String(item.target) === String(node.id)
-        && String(item.targetHandle || '').replace(/^(input|data):/, '') === `entry:${entry.id}`
-      ));
-      const sourceNode = edge ? nodes.value.find(item => String(item.id) === String(edge.source)) : null;
-      const sourceRecord = sourceNode?.type === 'processNode'
-        ? draft.value?.data?.processNodes?.[sourceNode.data?.refId || sourceNode.id]
-        : null;
-      const sourcePort = sourceRecord
-        ? processNodeOutputs(sourceRecord).find(port => port.id === String(edge?.sourceHandle || '').replace(/^(output|data):/, ''))
-        : null;
-      const binding = resolveEntityBinding({
-        source: sourcePort || {},
-        authoredEntityType: entry.entityType,
-        authoredPath: entry.key ? `${record.block}.${entry.key}` : '',
-        fields: targetEntityType ? designer.fieldsForEntity(targetEntityType, record.block) : [],
-        block: record.block,
-        access: record.kind === 'record.composeBlock' ? 'constructible' : 'writable'
-      });
-      if (!binding.valid) continue;
-      entry.entityType = binding.entityType;
-      entry.cardinality = binding.cardinality;
-      entry.key = binding.path ? binding.path.slice(`${record.block}.`.length) : '';
-    }
-  }
-  syncProcessNode(record);
+function applyInferredProcessNodeInputs(record = {}) {
+  if (record?.kind) syncProcessNode(record);
 }
 
 function defaultProcessNodeValueType(kind = '', operation = '') {
@@ -4052,9 +4011,7 @@ function createOpenBlockEntry(node = {}) {
     Object.assign(entry, {
       key: '',
       entityType: '',
-      cardinality: 'one',
-      attachmentKinds: [],
-      ...(node.kind === 'record.modifyBlock' ? { operation: 'append' } : {})
+      attachmentKinds: []
     });
   }
   if (composition?.mode === 'attachments') Object.assign(entry, {
@@ -4077,6 +4034,13 @@ function updateOpenBlockEntry(node, index, updates) {
   syncNodeData();
 }
 
+function updateInputTransform(node, inputId, transform, enabled) {
+  node.inputTransforms ||= {};
+  node.inputTransforms[inputId] = { ...(node.inputTransforms[inputId] || {}), [transform]: Boolean(enabled) };
+  if (!Object.values(node.inputTransforms[inputId]).some(Boolean)) delete node.inputTransforms[inputId];
+  syncNodeData();
+}
+
 function updateOpenBlockEntryType(node, index, base) {
   updateOpenBlockEntry(node, index, { type: processType(base) });
 }
@@ -4093,12 +4057,6 @@ function updateRelationEntryType(node, index, entityType) {
     key: entityType || entry.key,
     ...(entityType === 'artifact' ? {} : { attachmentKinds: [] })
   });
-  syncProcessNode(node);
-  syncNodeData();
-}
-
-function updateRelationEntryCardinality(node, index, cardinality) {
-  updateOpenBlockEntry(node, index, { cardinality: cardinality === 'many' ? 'many' : 'one' });
   syncProcessNode(node);
   syncNodeData();
 }
@@ -4138,20 +4096,7 @@ function updateOpenBlockReadType(base) {
 function updateOpenBlockReadEntityType(entityType) {
   const node = selectedProcessNode.value;
   if (!node) return;
-  node.type = node.compositionMode === 'relations' && node.relationCardinality === 'many'
-    ? processType('array', { itemType: processType('entityRef', { entityType }) })
-    : processType('entityRef', { entityType });
-  syncNodeData();
-}
-
-function updateOpenBlockReadCardinality(cardinality) {
-  const node = selectedProcessNode.value;
-  if (!node) return;
-  node.relationCardinality = cardinality === 'many' ? 'many' : 'one';
-  const entityType = openBlockReadEntityType(node) || defaultEntityType();
-  node.type = node.relationCardinality === 'many'
-    ? processType('array', { itemType: processType('entityRef', { entityType }) })
-    : processType('entityRef', { entityType });
+  node.type = processType('entityRef', { entityType });
   syncNodeData();
 }
 
@@ -4424,21 +4369,6 @@ function inferGenericNodeTypeFromConnection(connection = {}) {
     syncProcessNode(sourceRecord);
   }
   const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
-  if (['relations', 'ancestors'].includes(targetRecord.compositionMode) && targetInput.startsWith('entry:')) {
-    const entryId = targetInput.slice('entry:'.length);
-    const entry = (targetRecord.entries || []).find(item => item.id === entryId);
-    if (entry) {
-      entry.entityType = sourcePort.type?.base === 'array'
-        ? sourcePort.type.itemType?.entityType || ''
-        : sourcePort.type?.entityType || '';
-      if (targetRecord.compositionMode === 'relations') {
-        entry.key = entry.entityType;
-        entry.cardinality = sourcePort.type?.base === 'array' || sourcePort.type?.shape === 'list' ? 'many' : 'one';
-      }
-      syncProcessNode(targetRecord);
-      applyInferredProcessNodeInputs(targetRecord, targetNode);
-    }
-  }
   const genericKinds = new Set([
     'collection.makeList',
     'collection.packArray',
@@ -4464,17 +4394,12 @@ function inferGenericNodeTypeFromConnection(connection = {}) {
   if (genericKinds.has(targetRecord.kind) && drivesGenericType) {
     targetRecord.type = { ...sourcePort.type };
   }
-  if (['record.getField', 'record.getBlock', 'record.deconstruct'].includes(targetRecord.kind)) {
-    targetRecord.shape = sourcePort.type.shape;
-  }
   if (targetRecord.kind === 'value.logic' && ['left', 'value', ''].includes(targetInput)) {
     targetRecord.type = { ...sourcePort.type };
-    targetRecord.shape = sourcePort.type.shape;
   }
   if (['value.string', 'value.math', 'value.dateTime'].includes(targetRecord.kind)
     && ['left', 'text', 'date', 'value', ''].includes(targetInput)) {
-    targetRecord.type = { ...(targetRecord.type || {}), shape: sourcePort.type.shape };
-    targetRecord.shape = sourcePort.type.shape;
+    targetRecord.type = { ...sourcePort.type };
   }
   syncProcessNode(targetRecord);
 }
@@ -4500,7 +4425,7 @@ function connectionCompatibility(connection = {}) {
       target: targetPort
     };
   }
-  if (!sourceRecord || !targetRecord) return { ok: false, reason: 'Only v3 operation nodes can be connected' };
+  if (!sourceRecord || !targetRecord) return { ok: false, reason: 'Only current operation nodes can be connected' };
   const sourcePort = portForHandle(resolveCatalogNodePorts(sourceRecord, catalogContext(sourceRecord)).outputs, connection.sourceHandle, 'output');
   const targetPort = portForHandle(resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs, connection.targetHandle, 'input');
   if (!sourcePort || !targetPort) return { ok: true };
@@ -4534,7 +4459,7 @@ function applySemanticConnection(connection = {}) {
       if (targetInput !== 'status.state.primary') return;
       processNode.statusRef = status.id || source.data?.refId;
       processNode.inputDefaults ||= {};
-      processNode.inputDefaults[targetInput] = status.statusId;
+      processNode.inputDefaults[targetInput] = { branches: [{ path: [], items: [status.statusId] }] };
       processNode.status = { ...(processNode.status || {}), to: status.statusId };
       syncProcessNode(processNode);
       return;

@@ -6,7 +6,7 @@ import {
   resolveCatalogNodePorts
 } from './node-catalog.js';
 
-describe('process v3 node catalog', () => {
+describe('process v4 node catalog', () => {
   it('uses unique namespaced kinds and one declared family/level per node', () => {
     const kinds = PROCESS_NODE_CATALOG.map(node => node.kind);
     expect(new Set(kinds).size).toBe(kinds.length);
@@ -65,7 +65,7 @@ describe('process v3 node catalog', () => {
     }
   });
 
-  it('preserves both sides of an explicit conversion contract', () => {
+  it('preserves both element types and socket access of an explicit conversion contract', () => {
     const ports = resolveCatalogNodePorts({
       kind: 'value.required',
       sourceType: { base: 'entity', shape: 'list', nullable: true, entityType: 'sheet' },
@@ -74,13 +74,11 @@ describe('process v3 node catalog', () => {
 
     expect(ports.inputs[0].type).toMatchObject({
       base: 'entity',
-      shape: 'list',
       nullable: true,
       entityType: 'sheet'
     });
     expect(ports.outputs[0].type).toMatchObject({
       base: 'entity',
-      shape: 'list',
       nullable: false,
       entityType: 'sheet'
     });
@@ -178,12 +176,12 @@ describe('process v3 node catalog', () => {
     expect(compose.outputs[0]).toMatchObject({ id: 'block', type: { base: 'block', block: 'lineage' } });
   });
 
-  it('preserves relation cardinality as an intrinsic array value', () => {
+  it('uses an explicit intrinsic array type for a relation collection', () => {
     const compose = resolveCatalogNodePorts({
       kind: 'record.composeBlock',
       block: 'relations',
       compositionMode: 'relations',
-      entries: [{ id: 'libraries', key: 'library', entityType: 'library', cardinality: 'many' }]
+      entries: [{ id: 'libraries', key: 'library', type: { base: 'array', itemType: { base: 'entityRef', entityType: 'library' } } }]
     });
     expect(compose.inputs[0]).toMatchObject({
       id: 'entry:libraries',
@@ -275,7 +273,7 @@ describe('process v3 node catalog', () => {
     expect(resolveCatalogNodePorts({ kind: 'value.math', operation: 'sqrt' }).inputs.map(port => port.id)).toEqual(['value']);
     expect(resolveCatalogNodePorts({ kind: 'value.math', operation: 'clamp' }).inputs.map(port => port.id)).toEqual(['value', 'min', 'max']);
     expect(resolveCatalogNodePorts({ kind: 'value.string', operation: 'substring' }).inputs.map(port => port.id)).toEqual(['text', 'start', 'end']);
-    expect(resolveCatalogNodePorts({ kind: 'value.string', operation: 'split' }).outputs[0].type.shape).toBe('list');
+    expect(resolveCatalogNodePorts({ kind: 'value.string', operation: 'split' }).outputs[0].access).toBe('list');
   });
 
   it('makes packet-list and intrinsic-array conversion explicit', () => {
@@ -283,35 +281,32 @@ describe('process v3 node catalog', () => {
       kind: 'collection.packArray',
       type: { base: 'entityRef', entityType: 'queue', shape: 'list' }
     });
-    expect(packed.inputs[0].type).toMatchObject({ base: 'entityRef', entityType: 'queue', shape: 'list' });
+    expect(packed.inputs[0]).toMatchObject({ access: 'list', type: { base: 'entityRef', entityType: 'queue' } });
     expect(packed.outputs[0].type).toMatchObject({
       base: 'array',
-      shape: 'item',
-      itemType: { base: 'entityRef', entityType: 'queue', shape: 'item' }
+      itemType: { base: 'entityRef', entityType: 'queue' }
     });
     const unpacked = resolveCatalogNodePorts({ kind: 'collection.unpackArray', type: packed.outputs[0].type });
-    expect(unpacked.outputs[0].type).toMatchObject({ base: 'entityRef', entityType: 'queue', shape: 'list' });
+    expect(unpacked.outputs[0]).toMatchObject({ access: 'list', type: { base: 'entityRef', entityType: 'queue' } });
   });
 
-  it('propagates entity list shape through field reads and deconstruction', () => {
+  it('keeps field reads item-wise so tree topology flows at runtime', () => {
     const context = {
       fieldSchema: { path: 'identity.name', type: { base: 'string', shape: 'item' } },
       fieldSchemas: [{ path: 'identity.name', type: { base: 'string', shape: 'item' } }]
     };
     expect(resolveCatalogNodePorts({
       kind: 'record.getField',
-      shape: 'list',
       block: 'identity',
       path: 'identity.name'
     }, context)).toMatchObject({
-      inputs: [{ id: 'block', type: { base: 'block', block: 'identity', shape: 'list' } }],
-      outputs: [{ id: 'value', type: { base: 'string', shape: 'list' } }]
+      inputs: [{ id: 'block', access: 'item', type: { base: 'block', block: 'identity' } }],
+      outputs: [{ id: 'value', access: 'item', type: { base: 'string' } }]
     });
     expect(resolveCatalogNodePorts({
       kind: 'record.deconstruct',
       entityType: 'project',
-      shape: 'list',
       blocks: ['identity']
-    }, context).outputs[0].type).toMatchObject({ base: 'block', block: 'identity', shape: 'list' });
+    }, context).outputs[0]).toMatchObject({ access: 'item', type: { base: 'block', block: 'identity' } });
   });
 });

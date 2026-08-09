@@ -232,7 +232,7 @@ function createTemplate({ id, label, adminLabel, grants, entities, services }) {
     organizationRoles,
     definition: {
       schemaVersion: 1,
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       sourceTemplateId: id,
       graph,
       roleGrants,

@@ -35,7 +35,7 @@ Palette translations are authoring presentation and are never process data.
 Executable process nodes persist their canonical kind; generated create-action
 captions are derived from the typed target entity at render time.
 Process definitions use only the current dataflow protocol. New definitions and
-starter templates are authored at `dataflowVersion: 3`; package normalization
+starter templates are authored at `dataflowVersion: 4`; package normalization
 does not infer a missing version or rewrite an older graph. Callers must provide
 the current semantic graph directly.
 
@@ -157,18 +157,12 @@ transition without requiring admin access before it. Designers select from proce
 action grants; pre-existing
 entity-profile grants are an independent grant source, not a filter for action
 grant creation. Generic Entity creation accepts typed canonical block values.
-Entity-valued inputs share one binding resolver. Exact typed references, direct
-entity sockets, and filtered entity lists normalize into an entity type plus
-item/list cardinality and retain an explicit `exact`, `socket`, `filtered`, or
-`context` binding mode in the normalized contract. A Relations entry derives its key from that socket entity
-type and keeps the socket's cardinality; it does not require a domain relation
-declaration or a consumer-specific field. The consumer only determines whether
-its Relations block is constructible or writable. Compose Relations replaces a
-constructed entry. Modify Relations applies one explicit `append`, `remove`, or
-`replace` operation against the incoming block; reference identity is the typed
-entity id, so append is idempotent and remove does not depend on object identity.
-These are block mutations consumed by ordinary Create/Update effects, not a
-parallel link-action runtime. Lineage remains stricter: its
+Entity-valued sockets carry explicit element types. An open Relations entry
+authors its stable storage key and element type; neither the connected producer
+nor a downstream entity consumer rewrites those choices. A single reference or
+an intrinsic `array<entityRef>` is composed like any other explicit value.
+Selection, ordering, aggregation, append, removal, and replacement are ordinary
+list/tree dataflow before persistence, not hidden relation-entry modes. Lineage remains stricter: its
 storage path resolves against the consuming entity's declared containment
 schema, and ambiguous or undeclared matches remain validation errors. The
 shared resolver is used by designer synchronization and definition
@@ -201,16 +195,10 @@ construction snapshots. Canonical block composition suppresses separate typed
 inputs only for `genericCreate`; a typed constructor may also accept canonical
 blocks, but its domain-declared service inputs remain present in the compiled
 creator and generated form.
-Dataflow inference reads structured v3 `inputs`/`outputs` when they are
-persisted, but an unavailable port snapshot never clears an entry's semantic
-type. The canonical node catalog performs the authoritative inference for
-operational nodes such as Create Entity. Structured lifecycle and control
-types retain their semantic port kinds (`status`, `predicate`, and `event`)
-instead of degrading to generic data during edge validation.
-Legacy stored `changeStatus` action records are normalized to status-mutating
-`updateEntity` actions at the compiler boundary so old activated processes can
-still compile during registration, assignment, auth hydration, and command
-execution.
+The canonical node catalog resolves operation ports. Persisted socket snapshots
+do not override catalog contracts, and connecting a wire never mutates an open
+entry's semantic key or type. Lifecycle and control values retain their
+semantic port kinds (`status` and `event`) during edge validation.
 Graph edges are validated through exported typed port helpers:
 `normalizePortSpec()`, `portSpecsCompatible()`, `resolveNodePort()`, and
 `validateProcessEdges()`. The v1 contract covers existing process values only:
@@ -308,18 +296,19 @@ Create and update effects never own leaf mutation fields. Create consumes
 constructible typed blocks plus a dedicated status value. Update consumes an entity,
 connected modified/replacement blocks, and status; only values present in connected
 blocks reach the owning feature update boundary. Compose and Modify Block own
-field selection, relation mutation operations, and inline primitive fallbacks.
+field selection and inline primitive fallbacks; collection changes happen in
+list/tree nodes before the block socket.
 A manual Update effect fed by a modified Relations block therefore compiles and
 renders like every other generated entity-detail action; a block or data wire
 alone never creates an action. Manual screen input policy is
 traced from connected block composers, so generated forms and graph execution
 use the same field contract.
-V3 effect records also derive the semantic action manifest consumed by screen
+V4 effect records also derive the semantic action manifest consumed by screen
 and access compilation. Their selected process-role grants, trigger mode,
 entity type, fields, construction contract, command, and status target are
 therefore the same contract used by durable execution and generated UI; a new
 canvas effect is not a runtime-only box.
-`dataflowVersion: 3` is the sole current operation protocol. Every executable
+`dataflowVersion: 4` is the sole current operation protocol. Every executable
 canvas record lives under `processNodes` and has a namespaced kind from the
 catalog: `source.*`, `value.*`, `collection.*`/`tree.*`, `record.*`,
 `predicate.*`, `read.*`, `effect.*`, or `control.*`. Roles, entity profiles,
@@ -328,22 +317,23 @@ are not executable operations. Status definitions alone may project a typed
 status value socket; orchestration resolves that socket from the referenced
 definition without treating the definition as an executable step.
 
-Socket types are structured objects. `base` describes the value
-(`number`, `entity`, `predicate`, `patch`, and so on); `shape` independently
-describes the wire packet as `item`, `list`, or a path-addressed `tree`; nullable, entity type,
-schema, block, enum, unit, attachment, event, and capability qualifiers remain
-orthogonal. Connections may broadcast one item over an aligned list/tree.
-Non-singleton branches must have identical paths and lengths. Flatten, graft,
-simplify, branch selection, zip, cross, unzip, and transpose are explicit
-operations. Safe integer-to-number, date-to-date-time,
+Socket types are structured element contracts. `base` describes the value;
+nullable, entity type, schema, block, enum, unit, attachment, event, and
+capability qualifiers remain orthogonal. Socket `access` declares Item, List,
+or Tree consumption without duplicating topology in the element type. Runtime
+values always use ordered `{ branches: [{ path, items }] }` trees. Per-input
+Simplify, Flatten, and Graft run before Longest, Shortest, or Cross matching.
+Longest repeats the last branch/item, Shortest truncates, and Cross computes
+the Cartesian match. Safe integer-to-number, date-to-date-time,
 entity-to-entity-reference, and JSON transport coercions are implicit wire
 semantics and do not create graph nodes. Nullable-to-required, unit-changing,
 narrowing, and restructuring connections require explicit author intent and
 are rejected when the selected node contract cannot express that intent.
 
-`data-tree.js` carries runtime packets as ordered `{ path, items }` branches.
-`evaluator.js` executes pure data nodes and authorized reads with the same
-broadcast-then-align rules. The authoring projection filters any typed list
+`data-tree.js` owns the universal tree solver. `evaluator.js` executes pure data
+nodes and authorized reads through it. Item access maps matched items, List
+access runs once per matched branch, and Tree access receives the complete
+structure. The authoring projection filters any typed list
 with the same data algebra: read/deconstruct the compared field over the list,
 evaluate it through the polymorphic Logic node to obtain an aligned Boolean
 mask, and pass the original list plus mask to `collection.filter`. The runtime
@@ -356,15 +346,14 @@ comes from `domain.blockComposition`; entity readers and
 effect boundaries use `domain.fieldSchemas`. Each entry has an exact path,
 canonical block, and structured type, while entity schemas additionally own
 read/write/construct capability. Intrinsic collection values use
-`array<itemType>` and do not overload the outer list/tree packet shape.
+`array<itemType>` and do not overload tree topology.
 Wildcard field-access entries remain authorization patterns and never become
 field choices or guessed sockets. Fixed-block Compose/Modify expose selected
 fields. Open-block Compose/Modify expose stable `entry:<id>` sockets: Lineage
 entries author a storage key plus typed entity reference. Relations author a
-storage key; their referenced entity type and intrinsic one/many cardinality
-are inferred from the connected entity or entity-list value rather than edited
-independently. Modify Relations additionally authors Link (`append`), Unlink
-(`remove`), or Replace semantics per stable entry socket.
+storage key and referenced element type explicitly. Their value can be one
+reference or an array assembled by Collect Array. Modify Relations replaces the
+connected entry value; list operations express collection changes beforehand.
 Attachments accept named typed
 attachment references, and Data/Summary/Provenance accept named typed values.
 Renaming an entry does not break its wire. The evaluator lowers Lineage entity

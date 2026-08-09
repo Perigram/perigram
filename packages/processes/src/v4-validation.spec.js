@@ -20,13 +20,13 @@ const domain = {
 
 function definition(record) {
   return {
-    dataflowVersion: 3,
+    dataflowVersion: 4,
     processNodes: { node: { id: 'node', ...record } },
     graph: { nodes: [{ id: 'node', type: 'processNode', data: { refId: 'node' } }], edges: [] }
   };
 }
 
-describe('process v3 validation', () => {
+describe('process v4 validation', () => {
   it('accepts catalog nodes with structured types', () => {
     const result = validateProcessDefinition(definition({
       kind: 'source.literalItem',
@@ -60,7 +60,7 @@ describe('process v3 validation', () => {
 
   it('enforces entity policy where a structural block enters an effect', () => {
     const result = validateProcessDefinition({
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       processNodes: {
         compose: {
           id: 'compose',
@@ -138,7 +138,7 @@ describe('process v3 validation', () => {
 
   it('checks authored open-block keys against the consuming entity policy', () => {
     const result = validateProcessDefinition({
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       processNodes: {
         compose: {
           id: 'compose',
@@ -207,7 +207,7 @@ describe('process v3 validation', () => {
     expect(accepted.errors).not.toContain('Edge compose-create cannot send lineage.projectId to queue: composed entry type does not match the entity field');
   });
 
-  it('infers a lineage field from the connected entity and consuming create schema', () => {
+  it('requires an explicit lineage key and entity type', () => {
     const queueDomain = {
       ...domain,
       entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }],
@@ -228,8 +228,8 @@ describe('process v3 validation', () => {
       }
     };
     const process = entityBlockProcess('project');
-    process.processNodes.compose.entries[0].key = '';
-    process.processNodes.compose.entries[0].entityType = '';
+    process.processNodes.compose.entries[0].key = 'projectId';
+    process.processNodes.compose.entries[0].entityType = 'project';
 
     const normalized = normalizeProcessDefinition(process, queueDomain);
     const result = validateProcessDefinition(process, queueDomain);
@@ -242,7 +242,7 @@ describe('process v3 validation', () => {
     expect(result.errors).not.toContain('Edge compose-create cannot send lineage. to queue: field is not constructible');
   });
 
-  it('keeps a socket-inferred lineage type when normalizing the saved graph', () => {
+  it('keeps an explicitly authored lineage type when normalizing the saved graph', () => {
     const queueDomain = {
       ...domain,
       entities: [...domain.entities, { type: 'queue', blocks: ['lineage'] }],
@@ -263,7 +263,7 @@ describe('process v3 validation', () => {
       }
     };
     const process = entityBlockProcess('project');
-    process.processNodes.compose.entries[0].key = '';
+    process.processNodes.compose.entries[0].key = 'projectId';
     delete process.processNodes.compose.inputDefaults;
 
     const normalized = normalizeProcessDefinition(process, queueDomain);
@@ -274,7 +274,7 @@ describe('process v3 validation', () => {
     });
   });
 
-  it('accepts socket-derived relations without a target-specific relation field', () => {
+  it('accepts explicitly authored open relation entries without cardinality metadata', () => {
     const relationDomain = {
       ...domain,
       entities: [...domain.entities, { type: 'library', blocks: ['identity', 'relations'] }],
@@ -298,7 +298,7 @@ describe('process v3 validation', () => {
       }
     };
     const process = {
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       processNodes: {
         library: {
           id: 'library',
@@ -314,7 +314,7 @@ describe('process v3 validation', () => {
           kind: 'record.composeBlock',
           block: 'relations',
           compositionMode: 'relations',
-          entries: [{ id: 'library', key: '', entityType: '', cardinality: 'one' }]
+          entries: [{ id: 'library', key: 'library', entityType: 'library' }]
         },
         create: {
           id: 'create',
@@ -340,9 +340,7 @@ describe('process v3 validation', () => {
     expect(result.definition.processNodes.compose.entries[0]).toMatchObject({
       key: 'library',
       entityType: 'library',
-      cardinality: 'one',
-      bindingMode: 'socket',
-      operation: 'replace'
+      entityType: 'library'
     });
     expect(result.errors).not.toContain(
       'Edge compose-create cannot send relations.library to project: composed entry type does not match the entity field'
@@ -352,7 +350,7 @@ describe('process v3 validation', () => {
     );
   });
 
-  it('rejects relation mutation operations outside the canonical contract', () => {
+  it('removes obsolete relation cardinality and mutation metadata', () => {
     const relationDomain = {
       ...domain,
       entities: [...domain.entities, { type: 'library', blocks: ['relations'] }],
@@ -363,7 +361,7 @@ describe('process v3 validation', () => {
       }
     };
     const process = {
-      dataflowVersion: 3,
+      dataflowVersion: 4,
       processNodes: {
         modify: {
           id: 'modify',
@@ -376,9 +374,13 @@ describe('process v3 validation', () => {
       graph: { nodes: [{ id: 'modify', type: 'processNode', data: { refId: 'modify' } }], edges: [] }
     };
 
-    expect(validateProcessDefinition(process, relationDomain).errors).toContain(
-      'Process node modify entry library has invalid relation mutation'
-    );
+    const result = validateProcessDefinition(process, relationDomain);
+    expect(result.definition.processNodes.modify.entries[0]).toEqual({
+      id: 'library',
+      key: 'library',
+      entityType: 'library'
+    });
+    expect(result.errors.some(error => error.includes('relation mutation'))).toBe(false);
   });
 
   it('resolves a connected entity output through the graph port contract', () => {
@@ -413,7 +415,7 @@ describe('process v3 validation', () => {
       targetHandle: 'data:entry:project',
       role: 'data'
     });
-    process.processNodes.compose.entries[0] = { id: 'project', key: '', entityType: '' };
+    process.processNodes.compose.entries[0] = { id: 'project', key: 'projectId', entityType: 'project' };
     delete process.processNodes.compose.inputDefaults;
 
     expect(() => normalizeProcessDefinition(process, queueDomain)).not.toThrow();
@@ -475,7 +477,9 @@ describe('process v3 validation', () => {
     const normalized = normalizeProcessDefinition(process, cassetteDomain);
 
     expect(normalized.processNodes.node.blocks).toEqual(['data']);
-    expect(normalized.processNodes.node.inputDefaults).toEqual({ 'data.value': { A: 10 } });
+    expect(normalized.processNodes.node.inputDefaults).toEqual({
+      'data.value': { branches: [{ path: [], items: [{ A: 10 }] }] }
+    });
     expect(validateProcessDefinition(process, cassetteDomain).errors)
       .not.toContain('Process node node cannot persist block identity');
   });
@@ -483,7 +487,7 @@ describe('process v3 validation', () => {
 
 function entityBlockProcess(entityType) {
   return {
-    dataflowVersion: 3,
+    dataflowVersion: 4,
     processNodes: {
       compose: {
         id: 'compose',
