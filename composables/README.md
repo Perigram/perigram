@@ -218,7 +218,10 @@ The derived source state retains `rawItems` so the renderer can distinguish an
 empty top-level source from a child source whose rows were all suppressed. A
 child is hidden when any readable non-organization ancestor is present in
 another home source; with no readable ancestor it remains top-level. Non-home
-sources are never root-filtered.
+sources are never root-filtered. The Home renderer separately omits a source
+section when the domain declares a non-organization parent and loaded records
+carry that parent lineage, preventing derived operational types from becoming
+full dashboard bands merely because their parent is absent from the Home data.
 
 Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
 The composable normalizes the screen contract, checks source-level process

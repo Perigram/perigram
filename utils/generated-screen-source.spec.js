@@ -85,12 +85,17 @@ describe('generated screen root sources', () => {
       items: [],
       rawItems: [],
       source: { entityType: 'queue', rootLineageKeys: ['projectId'] }
-    })).toBe(false);
+    }, [{ parentType: 'project', childType: 'queue', lineageKey: 'projectId' }])).toBe(false);
     expect(shouldRenderHomeSection({
       items: [],
       rawItems: [{ _id: 'design-1', lineage: { libraryId: 'library-1' } }],
       source: { entityType: 'cassette_design' }
-    })).toBe(false);
+    }, [{ parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' }])).toBe(false);
+    expect(shouldRenderHomeSection({
+      items: [{ _id: 'design-1', lineage: { templateId: 'cassette-1' } }],
+      rawItems: [{ _id: 'design-1', lineage: { templateId: 'cassette-1' } }],
+      source: { entityType: 'cassette_design' }
+    }, [{ parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' }])).toBe(false);
     expect(shouldRenderHomeSection({
       items: [],
       rawItems: [],

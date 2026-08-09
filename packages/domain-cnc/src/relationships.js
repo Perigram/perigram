@@ -1,6 +1,7 @@
 export const cncContainment = [
   { parentType: 'project', childType: 'facade', lineageKey: 'projectId' },
   { parentType: 'library', childType: 'cassette', lineageKey: 'libraryId' },
+  { parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' },
   { parentType: 'project', childType: 'queue', lineageKey: 'projectId' },
   { parentType: 'queue', childType: 'nesting_run', lineageKey: 'queueId' },
   { parentType: 'nesting_run', childType: 'sheet_design', lineageKey: 'runId' },
