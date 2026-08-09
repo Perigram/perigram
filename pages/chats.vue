@@ -1,5 +1,5 @@
 <template>
-  <ChatSupport embedded full-page />
+  <ChatSupport :embedded="true" :full-page="true" />
 </template>
 
 <script setup>
