@@ -142,8 +142,7 @@ Profile remains a personal account/preferences/membership page and must not
 show project usage or user-owned credit purchase flows.
 Its account surface uploads/removes the current user's avatar through the user
 avatar API; every avatar image uses a square cover crop inside its circular
-frame. Account, preferences, and membership views use explicit button tabs
-whose content is controlled by the page rather than an unchanging tab value.
+frame. Account, preferences, and membership views use controlled PrimeVue tabs.
 Organization memberships render canonical `OrganizationCard` surfaces
 with visible footer actions: inactive memberships switch context, while the
 active membership has one direct action into the generated organization
@@ -155,7 +154,9 @@ uses a single-pane list/thread flow. The app shell's floating chat launcher
 opens the same inbox as a compact drawer, whose expand control navigates here;
 the launcher is absent on `/chats` itself. The full route passes its layout mode
 explicitly, keeps independent inbox/thread headers, and fills the bounded app
-workspace even when there are no persisted conversations.
+workspace even when there are no persisted conversations. Selecting a persisted
+thread starts its SSE message stream on either the drawer or embedded route;
+stream connection is not conditional on the floating-dialog state.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,

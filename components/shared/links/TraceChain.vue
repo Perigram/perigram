@@ -67,7 +67,7 @@ const props = defineProps({
 const entityStore = useEntityStore();
 const authStore = useAuthStore();
 const entityContext = inject('entityContext', null);
-const displayedEntityContext = inject('displayedEntityContext', null);
+const displayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 const isExpanded = ref(!props.expandable);
 const { lineage: entityLineage } = useLineage(toRef(props, 'entity'));
 const labels = ref({});
@@ -84,11 +84,12 @@ const FALLBACK_LABELS = {
 
 const activeLineage = computed(() => props.lineage || entityLineage.value);
 const effectiveExclusions = computed(() => {
-    const displayed = unref(displayedEntityContext);
-    const displayedId = displayed?.entity?._id || displayed?.entity?.identity?.uid || displayed?.entity?.id;
     return [
         ...props.exclude,
-        ...(displayed?.type && displayedId ? [{ type: displayed.type, id: displayedId }] : [])
+        ...(unref(displayedEntityContexts) || []).map(displayed => ({
+            type: displayed?.type,
+            id: displayed?.entity?._id || displayed?.entity?.identity?.uid || displayed?.entity?.id
+        })).filter(displayed => displayed.type && displayed.id)
     ];
 });
 

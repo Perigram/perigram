@@ -5,19 +5,18 @@
     entity-type="organization"
     :show-status="false"
     :show-trace="false"
+    actions-display="inline"
   >
-    <ActionToolbar v-if="systemScreens.length" :title="$t('organization.workspace')">
-      <template #actions>
-        <Button
-          v-for="item in systemScreens"
-          :key="item.screenKey || item.route"
-          :label="systemLabel(item.labelKey, item.screenKey)"
-          :icon="item.icon || 'pi pi-arrow-right'"
-          size="small"
-          @click="router.push(item.route)"
-        />
-      </template>
-    </ActionToolbar>
+    <template v-if="systemScreens.length" #actions>
+      <Button
+        v-for="item in systemScreens"
+        :key="item.screenKey || item.route"
+        :label="systemLabel(item.labelKey, item.screenKey)"
+        :icon="item.icon || 'pi pi-arrow-right'"
+        size="small"
+        @click="router.push(item.route)"
+      />
+    </template>
 
     <DataBlock
       entity-type="organization"
@@ -32,7 +31,6 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
-import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { useAuthStore } from '~/stores/auth';

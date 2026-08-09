@@ -130,7 +130,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
@@ -207,6 +207,7 @@ const workspaceSplitterPt = computed(() => ({
 const regions = computed(() => props.screen.regions || []);
 const mainRegion = computed(() => regions.value.find(region => sourceStateForRegion(region).source?.mode === 'single') || regions.value[0] || null);
 const project = computed(() => mainRegion.value ? sourceStateForRegion(mainRegion.value).entity : null);
+provide('displayedEntityContexts', computed(() => project.value ? [{ type: 'project', entity: project.value }] : []));
 const projectKey = computed(() => entityKey('project', project.value));
 const workspaceStorageKey = computed(() => projectWorkspaceStorageKey({
   userId: authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id,

@@ -464,9 +464,12 @@ watch(supportDialog, (isOpen) => {
     if (isOpen && chatTarget.value?.userId) openDirectTarget()
 })
 
-watch(activeConversation, () => {
-    if (supportDialog.value && activeConversation.value) connect()
-})
+watch(
+    [activeConversation, supportDialog, () => props.embedded],
+    ([conversation, dialogOpen, embedded]) => {
+        if (conversation && (dialogOpen || embedded)) connect()
+    }
+)
 
 const formatTime = (timestamp, withoutTime) => {
     const date = new Date(timestamp)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterRootSourceItems } from './generated-screen-source.js';
+import { filterRootSourceItems, shouldRenderHomeSection } from './generated-screen-source.js';
 
 describe('generated screen root sources', () => {
   it('keeps only entities without any declared containment parent', () => {
@@ -64,5 +64,37 @@ describe('generated screen root sources', () => {
         { parentType: 'sheet_design', childType: 'sheet', lineageKey: 'sheetDesignId' }
       ]
     )).toEqual([]);
+  });
+
+  it('uses canonical lineage keys even when containment metadata omits the relation', () => {
+    const library = { _id: 'library-1', lineage: { organizationId: 'org-1' } };
+    const design = { _id: 'design-1', lineage: { organizationId: 'org-1', libraryId: 'library-1' } };
+    expect(filterRootSourceItems(
+      [design],
+      { entityType: 'cassette_design' },
+      {
+        libraries: { source: { entityType: 'library', mode: 'list' }, items: [library] },
+        designs: { source: { entityType: 'cassette_design', mode: 'list' }, items: [design] }
+      },
+      []
+    )).toEqual([]);
+  });
+
+  it('removes empty child sections but retains empty top-level creation sections', () => {
+    expect(shouldRenderHomeSection({
+      items: [],
+      rawItems: [],
+      source: { entityType: 'queue', rootLineageKeys: ['projectId'] }
+    })).toBe(false);
+    expect(shouldRenderHomeSection({
+      items: [],
+      rawItems: [{ _id: 'design-1', lineage: { libraryId: 'library-1' } }],
+      source: { entityType: 'cassette_design' }
+    })).toBe(false);
+    expect(shouldRenderHomeSection({
+      items: [],
+      rawItems: [],
+      source: { entityType: 'project', rootLineageKeys: [] }
+    })).toBe(true);
   });
 });

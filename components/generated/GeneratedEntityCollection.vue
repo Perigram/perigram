@@ -56,7 +56,7 @@
     </DataTable>
   </TableFrame>
   <StateBlock v-else-if="visibleItems.length === 0" :message="$t('common.noResults')" icon="pi pi-search" />
-  <ResponsiveGrid v-else :variant="template === 'workspaceLanes' ? 'wide' : 'cards'" responsive-context="container">
+  <ResponsiveGrid v-else :variant="template === 'workspaceLanes' ? 'wide' : 'bounded'" responsive-context="container">
     <EntityCard
       v-for="entity in visibleItems"
       :key="entity._id || entity.id || entity.identity?.uid"

@@ -93,6 +93,7 @@ export function useGeneratedScreen(screenRef) {
     if (state.source?.mode === 'single' || screen.value.template !== 'home') return state;
     return {
       ...state,
+      rawItems: state.items,
       items: filterRootSourceItems(state.items, state.source, sourceStates.value, cncContainment)
     };
   }

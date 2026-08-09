@@ -117,6 +117,7 @@ import { detailRouteForEntity } from '~/components/generated/entity-detail-routi
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
+import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 
 const props = defineProps({
   screen: { type: Object, required: true },
@@ -138,10 +139,11 @@ const sections = computed(() => props.screen.regions
     return {
       region,
       source: state.source || {},
-      items: state.items || []
+      items: state.items || [],
+      rawItems: state.rawItems || state.items || []
     };
   })
-  .filter(section => section.source.entityType));
+  .filter(section => section.source.entityType && shouldRenderHomeSection(section)));
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)
