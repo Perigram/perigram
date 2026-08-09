@@ -7,10 +7,12 @@
         <div
             v-if="supportDialog || embedded"
             :class="embedded
-                ? 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
+                ? fullPage
+                    ? 'grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden border border-content-border bg-content pointer-events-auto md:grid-cols-[20rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)] md:rounded-ui'
+                    : 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
                 : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content [box-shadow:var(--ck-shadow-overlay)] pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
         >
-            <div class="flex items-center justify-between p-4 border-b border-content-border bg-content">
+            <div class="flex items-center justify-between border-b border-content-border bg-content p-4" :class="{ 'md:col-span-2': fullPage }">
                 <div class="flex min-w-0 items-center gap-2">
                     <Button
                         v-if="activeConversation"
@@ -19,6 +21,7 @@
                         text
                         rounded
                         size="small"
+                        :class="{ 'md:hidden': fullPage }"
                         :aria-label="$t('common.back')"
                         @click="showInbox"
                     />
@@ -29,7 +32,7 @@
                 </div>
                 <div class="flex shrink-0 items-center gap-1">
                     <Button
-                        v-if="!activeConversation"
+                        v-if="!activeConversation || fullPage"
                         icon="pi pi-user-plus"
                         severity="secondary"
                         text
@@ -61,7 +64,14 @@
                 </div>
             </div>
 
-            <div v-if="!activeConversation" class="flex-1 overflow-y-auto p-2 md:p-3">
+            <aside
+                v-if="!activeConversation || fullPage"
+                class="min-h-0 overflow-y-auto p-2 md:p-3"
+                :class="[
+                    fullPage ? 'border-r border-content-border' : 'flex-1',
+                    { 'hidden md:block': fullPage && activeConversation }
+                ]"
+            >
                 <div v-if="newChatVisible" class="mb-2">
                     <Select
                         v-model="newChatUserId"
@@ -78,7 +88,8 @@
                         @update:model-value="openNewChatUser"
                     />
                 </div>
-                <div class="flex flex-col gap-2">
+                <StateBlock v-if="!displayConversations.length && !newChatVisible" :message="$t('support.noConversations')" icon="pi pi-comments" />
+                <div v-else class="flex flex-col gap-2">
                     <button
                         v-for="conversation in displayConversations"
                         :key="conversation.conversationKey"
@@ -108,9 +119,13 @@
                         <small v-if="conversation.timestamp" class="shrink-0 text-muted-color">{{ shortTime(conversation.timestamp) }}</small>
                     </button>
                 </div>
+            </aside>
+
+            <div v-if="fullPage && !activeConversation" class="hidden min-h-0 items-center justify-center md:flex">
+                <StateBlock :message="$t('support.selectConversation')" icon="pi pi-comments" />
             </div>
 
-            <template v-else>
+            <section v-if="activeConversation" class="flex min-h-0 min-w-0 flex-col overflow-hidden">
                 <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-content custom-scrollbar md:p-4 md:gap-4">
                     <template
                         v-for="messageItem in messagesList"
@@ -245,7 +260,7 @@
                         />
                     </div>
                 </div>
-            </template>
+            </section>
         </div>
     </div>
 </template>
@@ -259,6 +274,7 @@ import Textarea from 'primevue/textarea'
 import { useI18n } from 'vue-i18n'
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
+import StateBlock from '~/components/shared/StateBlock.vue'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
@@ -267,7 +283,8 @@ const props = defineProps({
     embedded: {
         type: Boolean,
         default: false
-    }
+    },
+    fullPage: { type: Boolean, default: false }
 })
 
 const { t } = useI18n()

@@ -1,0 +1,42 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+
+const read = relative => readFileSync(new URL(relative, import.meta.url), 'utf8');
+
+describe('reviewed UI rework contracts', () => {
+  it('uses container width for entity page facts and collections', () => {
+    expect(read('./shared/EntityPage.vue')).toContain('container-type: inline-size');
+    expect(read('./shared/blocks/DataBlock.vue')).toContain('@container (min-width: 32rem)');
+    expect(read('./shared/blocks/SpecsBlock.vue')).toContain('@container (min-width: 32rem)');
+    expect(read('./generated/GeneratedEntityCollection.vue')).toContain('responsive-context="container"');
+  });
+
+  it('suppresses a displayed parent from descendant lineage traces', () => {
+    expect(read('./shared/EntityPage.vue')).toContain("provide('displayedEntityContext'");
+    expect(read('./shared/links/TraceChain.vue')).toContain("inject('displayedEntityContext'");
+  });
+
+  it('keeps the chats inbox visible beside the selected conversation on the full route', () => {
+    expect(read('../pages/chats.vue')).toContain('<ChatSupport embedded full-page />');
+    expect(read('./ChatSupport.vue')).toContain("md:grid-cols-[20rem_minmax(0,1fr)]");
+    expect(read('./ChatSupport.vue')).toContain("'hidden md:block': fullPage && activeConversation");
+  });
+
+  it('renders profile organization navigation as a visible direct action', () => {
+    expect(read('./entities/Organization/OrganizationCard.vue')).toContain('footer-display="inline"');
+    expect(read('../pages/profile/index.vue')).toContain("$t('profile.viewOrganization')");
+    expect(read('../pages/profile/index.vue')).not.toContain('v-for="screen in organizationScreens"');
+  });
+
+  it('builds organization breadcrumbs as organization then section', () => {
+    const navigation = read('../stores/navigation.js');
+    expect(navigation).toContain("if (parts[0] === 'organization')");
+    expect(navigation).toContain("to: '/organization'");
+    expect(navigation).toContain("currentScreen.route !== '/organization'");
+  });
+
+  it('uses a standard invitation panel header and cropped user avatars', () => {
+    expect(read('../pages/invitation/[token].vue')).toContain('<Panel :header="$t(\'auth.invitationTitle\')"');
+    expect(read('./entities/User/UserCard.vue')).toContain('[&_.p-avatar-image]:object-cover');
+  });
+});

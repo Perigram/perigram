@@ -31,8 +31,38 @@ describe('generated screen root sources', () => {
     )).toEqual([child]);
   });
 
-  it('does not alter explicitly scoped child-source results', () => {
-    const child = { _id: 'child', lineage: { projectId: 'project-1' } };
-    expect(filterRootSourceItems([child], { entityType: 'queue', rootLineageKeys: [] })).toEqual([child]);
+  it('derives containment for already-compiled home manifests without root lineage keys', () => {
+    const project = { _id: 'project-1', lineage: { organizationId: 'org-1' } };
+    const queue = { _id: 'queue-1', lineage: { organizationId: 'org-1', projectId: 'project-1' } };
+    expect(filterRootSourceItems(
+      [queue],
+      { entityType: 'queue' },
+      {
+        projects: { source: { entityType: 'project', mode: 'list' }, items: [project] },
+        queues: { source: { entityType: 'queue', mode: 'list' }, items: [queue] }
+      },
+      [{ parentType: 'project', childType: 'queue', lineageKey: 'projectId' }]
+    )).toEqual([]);
+  });
+
+  it('hides a descendant when a readable indirect ancestor is present', () => {
+    const project = { _id: 'project-1', lineage: { organizationId: 'org-1' } };
+    const sheet = {
+      _id: 'sheet-1',
+      lineage: { organizationId: 'org-1', projectId: 'project-1', queueId: 'queue-1', sheetDesignId: 'design-1' }
+    };
+    expect(filterRootSourceItems(
+      [sheet],
+      { entityType: 'sheet' },
+      {
+        projects: { source: { entityType: 'project', mode: 'list' }, items: [project] },
+        sheets: { source: { entityType: 'sheet', mode: 'list' }, items: [sheet] }
+      },
+      [
+        { parentType: 'project', childType: 'queue', lineageKey: 'projectId' },
+        { parentType: 'queue', childType: 'sheet_design', lineageKey: 'queueId' },
+        { parentType: 'sheet_design', childType: 'sheet', lineageKey: 'sheetDesignId' }
+      ]
+    )).toEqual([]);
   });
 });

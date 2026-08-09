@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="organization" entity-type="organization" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="organization" entity-type="organization" :variant="variant" :show-trace="false" :show-status="false" footer-display="inline">
       <template #before-identity>
         <Avatar :label="avatarLabel" shape="circle" size="large" />
       </template>
@@ -14,6 +14,9 @@
       <template #compact-content>
         <div v-if="organization.data?.email" class="mt-3 text-sm text-muted-color">{{ organization.data.email }}</div>
       </template>
+      <div v-if="$slots.context && variant === 'card'" class="mb-3 flex flex-wrap gap-2">
+        <slot name="context" />
+      </div>
       <Divider />
       <div class="flex flex-col gap-2">
         <DataBlock entity-type="organization" :entity="organization" :fields="ORGANIZATION_FIELDS" />

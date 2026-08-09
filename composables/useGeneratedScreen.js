@@ -90,7 +90,7 @@ export function useGeneratedScreen(screenRef) {
 
   function sourceState(sourceId) {
     const state = sourceStates.value[sourceId] || emptyState({ id: sourceId });
-    if (state.source?.mode === 'single') return state;
+    if (state.source?.mode === 'single' || screen.value.template !== 'home') return state;
     return {
       ...state,
       items: filterRootSourceItems(state.items, state.source, sourceStates.value, cncContainment)

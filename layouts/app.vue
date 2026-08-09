@@ -60,7 +60,7 @@
                                 :label="!authStore.userData.avatarUrl && authStore.userData.name ? authStore.userData.name[0].toUpperCase() : null"
                                 shape="circle" 
                                 size="normal" 
-                                class="bg-primary text-primary-contrast"
+                                class="bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                             />
                         </Button>
                     </div>
@@ -161,7 +161,7 @@
             size="large"
             :aria-label="$t('support.openChat')"
             @click="openSupportDialog"
-            v-if="!supportDialog"
+            v-if="!supportDialog && route.path !== '/chats'"
             class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 [box-shadow:var(--ck-shadow-overlay)] md:inline-flex"
         />
     </div>
@@ -272,13 +272,15 @@
         resolveGeneratedScreenOverload(activeGeneratedScreen.value)
     ))
     const isStandaloneDesignerRoute = computed(() => route.path === '/organization/process')
+    const isChatsRoute = computed(() => route.path === '/chats')
     const isBoundedWorkspaceRoute = computed(() => (
         isGeneratedWorkspaceRoute.value
         || isStandaloneDesignerRoute.value
+        || isChatsRoute.value
         || /^\/project\/[^/]+\/queues\/?$/.test(route.path)
     ))
     const isAccountRoute = computed(() => route.path === '/profile' || route.path.startsWith('/organization'))
-    const isFlushMobileSurface = computed(() => mobileActiveTab.value === 'chats' || isAccountRoute.value)
+    const isFlushMobileSurface = computed(() => mobileActiveTab.value === 'chats' || isAccountRoute.value || isChatsRoute.value)
     const screenName = (screen) => generatedScreenLabel(screen, { t, te })
     const mobileShortcutStorageKey = computed(() => [
         'cutkit.mobileScreenShortcuts.v1',
@@ -513,10 +515,10 @@
         const canOpenGeneratedRoute = (route) => !authStore.processActive || navStore.processAllowsRoute(route);
 
         // 1. Current Organization & Context
-        // Organization Switcher (if multiple)
-        if (authStore.userOrganizations.length > 1) {
+        // Keep the organization context visible even for a single membership.
+        if (authStore.userOrganizations.length) {
             items.push({
-                label: t('auth.organization'),
+                label: t('profile.myOrganizations'),
                 items: authStore.userOrganizations.map(org => ({
                     label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
                     icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',

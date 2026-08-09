@@ -6,7 +6,7 @@
           <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
               <h2 class="m-0 text-base">{{ $t('billing.organizationAccount') }}</h2>
-              <small class="text-muted-color">{{ $t('billing.tokensExplanation') }}</small>
+              <small class="text-muted-color">{{ $t('billing.organizationAccountHint') }}</small>
             </div>
             <Tag v-if="currentTariffLabel" :value="currentTariffLabel" severity="info" />
           </div>
@@ -17,6 +17,7 @@
             </div>
             <Button icon="pi pi-refresh" :label="$t('common.refresh')" size="small" text :loading="loadingBilling" @click="loadBilling" />
           </div>
+          <Message severity="secondary" :closable="false">{{ $t('billing.tokensExplanation') }}</Message>
           <Message v-if="billingError" severity="error">{{ billingError }}</Message>
         </div>
       </Panel>

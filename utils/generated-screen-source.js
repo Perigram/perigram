@@ -1,22 +1,13 @@
 export function filterRootSourceItems(items = [], source = {}, sourceStates = {}, containment = []) {
-  const rootLineageKeys = source.rootLineageKeys || [];
-  if (!Array.isArray(rootLineageKeys) || !rootLineageKeys.length) return items;
   const accessibleIdsByType = accessibleEntityIds(sourceStates);
-  return items.filter(entity => rootLineageKeys.every(key => {
-    const parentId = entity?.lineage?.[key];
-    if (!hasEntityRefValue(parentId)) return true;
-    const relation = containment.find(item => (
-      item.childType === source.entityType && item.lineageKey === key
-    ));
-    if (!relation?.parentType) return true;
-    return !accessibleIdsByType.get(relation.parentType)?.has(String(parentId));
-  }));
+  return items.filter(entity => !ancestorRefs(entity, source.entityType, containment)
+    .some(ref => accessibleIdsByType.get(ref.type)?.has(ref.id)));
 }
 
 function accessibleEntityIds(sourceStates = {}) {
   const result = new Map();
   for (const state of Object.values(sourceStates || {})) {
-    const entityType = state?.source?.entityType;
+    const entityType = normalizeType(state?.source?.entityType);
     if (!entityType) continue;
     const entities = state.source.mode === 'single' ? [state.entity] : state.items;
     for (const entity of entities || []) {
@@ -29,6 +20,28 @@ function accessibleEntityIds(sourceStates = {}) {
   return result;
 }
 
-function hasEntityRefValue(value) {
-  return value !== undefined && value !== null && value !== '';
+function ancestorRefs(entity = {}, entityType = '', containment = []) {
+  const lineage = entity?.lineage || {};
+  const refs = [];
+  const visitedTypes = new Set([normalizeType(entityType)]);
+  const pendingTypes = [normalizeType(entityType)];
+  while (pendingTypes.length) {
+    const childType = pendingTypes.shift();
+    for (const relation of containment || []) {
+      if (normalizeType(relation.childType) !== childType) continue;
+      const parentId = lineage[relation.lineageKey];
+      const parentType = normalizeType(relation.parentType);
+      if (parentType === 'organization' || parentId === undefined || parentId === null || parentId === '') continue;
+      refs.push({ type: parentType, id: String(parentId) });
+      if (!visitedTypes.has(parentType)) {
+        visitedTypes.add(parentType);
+        pendingTypes.push(parentType);
+      }
+    }
+  }
+  return refs;
+}
+
+function normalizeType(type = '') {
+  return String(type || '').replace(/-/g, '_');
 }

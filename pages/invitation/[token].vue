@@ -1,14 +1,6 @@
 <template>
     <div class="min-h-screen flex items-center justify-center bg-page p-4">
-        <Panel class="w-full max-w-md overflow-hidden">
-            <template #header>
-                <div class="flex flex-col items-center gap-4 text-center">
-                    <div class="w-16 h-16 border rounded-full flex items-center justify-center">
-                        <i class="pi pi-building text-3xl"></i>
-                    </div>
-                    <h1 class="m-0">{{ $t('auth.invitationTitle') }}</h1>
-                </div>
-            </template>
+        <Panel :header="$t('auth.invitationTitle')" class="w-full max-w-md overflow-hidden">
             <StateBlock v-if="loading" state="loading" :message="$t('auth.fetchingInvitation')" />
             
             <div v-else-if="error" class="flex min-w-0 flex-col gap-4 py-8 text-center">
@@ -18,6 +10,7 @@
 
             <div v-else-if="invitation" class="flex flex-col gap-6 py-4">
                 <div class="flex flex-col items-center gap-3 text-center">
+                    <i class="pi pi-building text-2xl text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
                     <small>{{ $t('auth.invitedToJoin') }}</small>
                     <h2 class="m-0">{{ invitation.organizationName }}</h2>
                     <div class="mt-4 inline-flex items-center gap-2">
