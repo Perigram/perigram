@@ -107,14 +107,19 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
 
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const data = definition.data || definition;
-  const processNodes = normalizeProcessInputDefaults(normalizeProcessNodesForDomain(data.processNodes, domain), domain);
-  const effectActions = deriveEffectActions(data.actions, processNodes, data.graph, domain);
+  const graph = normalizeGraph(data.graph);
+  const processNodes = inferOpenBlockEntries(
+    normalizeProcessInputDefaults(normalizeProcessNodesForDomain(data.processNodes, domain), domain),
+    graph,
+    domain
+  );
+  const effectActions = deriveEffectActions(data.actions, processNodes, graph, domain);
   const normalized = inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
     dataflowVersion: data.dataflowVersion,
     sourceTemplateId: data.sourceTemplateId || null,
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
-    graph: normalizeGraph(data.graph),
+    graph,
     roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
@@ -128,6 +133,38 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     compiled: data.compiled || null
   });
   return normalized;
+}
+
+function inferOpenBlockEntries(processNodes = {}, graph = {}, domain = {}) {
+  const inferred = Object.fromEntries(Object.entries(processNodes).map(([id, node]) => [id, {
+    ...node,
+    ...(Array.isArray(node?.entries) ? { entries: node.entries.map(entry => ({ ...entry })) } : {})
+  }]));
+  const recordsByGraphId = new Map((graph.nodes || []).map(node => [
+    String(node.id),
+    inferred[String(node.data?.refId || node.id)]
+  ]));
+  for (const edge of graph.edges || []) {
+    const target = recordsByGraphId.get(String(edge.target));
+    const entryId = normalizeHandle(edge.targetHandle).replace(/^entry:/, '');
+    if (!target || !entryId || target.compositionMode !== 'ancestors') continue;
+    const entry = target.entries?.find(item => item.id === entryId);
+    const source = recordsByGraphId.get(String(edge.source));
+    if (!entry || !source) continue;
+    let outputs = [];
+    try { outputs = resolveCatalogNodePorts(source, catalogContext(domain, source)).outputs; } catch { outputs = []; }
+    const sourcePort = catalogPortForHandle(outputs, edge.sourceHandle);
+    const entityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || source.entityType || '';
+    if (!entityType) continue;
+    entry.entityType = entityType;
+    entry.key = entry.key || lineageKeyForEntityType(entityType);
+  }
+  return inferred;
+}
+
+function lineageKeyForEntityType(entityType = '') {
+  const camel = String(entityType).replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
+  return camel ? `${camel}Id` : '';
 }
 
 function normalizeProcessInputDefaults(processNodes = {}, domain = {}) {

@@ -276,6 +276,39 @@ describe('process v4 validation', () => {
     expect(result.errors).not.toContain('Process node create cannot persist block lineage');
   });
 
+  it('infers a Lineage ancestor entry from its connected entity output', () => {
+    const process = entityBlockProcess('');
+    process.processNodes.compose.entries[0] = {
+      id: 'entry_parent',
+      key: '',
+      entityType: ''
+    };
+    process.processNodes.parent = {
+      id: 'parent',
+      kind: 'effect.createEntity',
+      entityType: 'project',
+      construction: { mode: 'genericCreate', inputs: [] },
+      blocks: ['identity'],
+      trigger: { mode: 'manual' }
+    };
+    process.graph.nodes.push({ id: 'parent', type: 'processNode', data: { refId: 'parent' } });
+    process.graph.edges.push({
+      id: 'parent-compose',
+      source: 'parent',
+      target: 'compose',
+      sourceHandle: 'data:result',
+      targetHandle: 'data:entry:entry_parent'
+    });
+
+    const normalized = normalizeProcessDefinition(process, domain);
+
+    expect(normalized.processNodes.compose.entries).toEqual([{
+      id: 'entry_parent',
+      key: 'projectId',
+      entityType: 'project'
+    }]);
+  });
+
   it('keeps an explicitly authored lineage type when normalizing the saved graph', () => {
     const queueDomain = {
       ...domain,
