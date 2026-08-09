@@ -50,6 +50,7 @@
                 <div class="flex items-center gap-2 shrink-0">
                     <div class="relative flex items-center" v-if="authStore.userIsSet">
                         <Button 
+                            data-testid="user-menu-trigger"
                             type="button" 
                             @click="toggleUserMenu" 
                             class="p-0.5 rounded-full overflow-hidden border-2 border-transparent transition-colors"

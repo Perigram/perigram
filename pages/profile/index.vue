@@ -1,6 +1,6 @@
 <template>
     <StandardPage :title="$t('nav.profile')">
-        <Tabs value="0">
+        <Tabs v-model:value="activeProfileTab">
             <TabList>
                 <Tab value="0"><span>{{ $t('profile.account') }}</span></Tab>
                 <Tab value="1"><span>{{ $t('profile.preferences') }}</span></Tab>
@@ -188,6 +188,7 @@ const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
 const avatarInput = ref(null);
 const avatarUploading = ref(false);
+const activeProfileTab = ref('0');
 
 const organizationMemberships = computed(() => authStore.memberships.map(membership => {
     const id = String(membership.organizationId || '');

@@ -22,6 +22,7 @@ describe('app standalone designer routes', () => {
     expect(source).toContain('if (authStore.userOrganizations.length)');
     expect(source).not.toContain('authStore.userOrganizations.length > 1');
     expect(source).toContain('[&_.p-avatar-image]:object-cover');
+    expect(source).toContain('data-testid="user-menu-trigger"');
     expect(source).toContain("router.push('/organization')");
   });
 });
