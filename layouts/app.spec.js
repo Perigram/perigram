@@ -14,6 +14,7 @@ describe('app standalone designer routes', () => {
     expect(source).toContain("command: () => router.push('/chats')");
     expect(source).toContain("class=\"fixed bottom-8 right-8 z-[999] hidden h-14 w-14");
     expect(source).toContain('v-if="!supportDialog && !isChatsRoute"');
+    expect(source).toContain('data-testid="desktop-chat-launcher"');
     expect(source).toContain("const isChatsRoute = computed(() => route.path === '/chats' || route.path.startsWith('/chats/'))");
   });
 

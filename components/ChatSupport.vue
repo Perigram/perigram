@@ -8,7 +8,7 @@
             v-if="supportDialog || embedded"
             :class="embedded
                 ? fullPage
-                    ? 'grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden border border-content-border bg-content pointer-events-auto md:grid-cols-[20rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)] md:rounded-ui'
+                    ? 'grid h-full min-h-0 w-full grid-rows-[minmax(0,1fr)] overflow-hidden border border-content-border bg-content pointer-events-auto md:grid-cols-[20rem_minmax(0,1fr)] md:rounded-ui'
                     : 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
                 : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content [box-shadow:var(--ck-shadow-overlay)] pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
         >
@@ -66,7 +66,7 @@
 
             <aside
                 v-if="!activeConversation || fullPage"
-                class="min-h-0 overflow-hidden"
+                class="flex min-h-0 flex-col overflow-hidden"
                 :class="[
                     fullPage ? 'border-r border-content-border' : 'flex-1',
                     { 'hidden md:block': fullPage && activeConversation }
@@ -101,7 +101,7 @@
                     />
                 </div>
                 <StateBlock v-if="!displayConversations.length && !newChatVisible" class="m-3" :message="$t('support.noConversations')" icon="pi pi-comments" />
-                <div v-else class="flex h-full min-h-0 flex-col gap-1 overflow-y-auto p-2 md:p-3">
+                <div v-else class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2 md:p-3">
                     <button
                         v-for="conversation in displayConversations"
                         :key="conversation.conversationKey"
