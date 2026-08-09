@@ -142,9 +142,9 @@ Profile remains a personal account/preferences/membership page and must not
 show project usage or user-owned credit purchase flows.
 Its account surface uploads/removes the current user's avatar through the user
 avatar API; every avatar image uses a square cover crop inside its circular
-frame. Account, preferences, and membership views use PrimeVue tabs backed by
-the route's `tab` query. Each tab click performs real navigation so hydration,
-browser history, reloads, and direct membership links retain the selected view.
+frame. Account, preferences, and membership views use semantic navigation links
+backed by the route's `tab` query. Each tab performs real navigation so browser
+history, reloads, and direct membership links retain the selected view.
 Organization memberships render canonical `OrganizationCard` surfaces
 with visible footer actions: inactive memberships switch context, while the
 active membership has one direct action into the generated organization
