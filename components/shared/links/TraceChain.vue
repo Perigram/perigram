@@ -53,7 +53,7 @@ import { useLineage } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities';
 import { ENTITY_UI } from '~/utils/status-engine';
-import { containmentAncestors, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute } from '~/utils/entity-hierarchy.js';
+import { containmentAncestors, entityHierarchyIds, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute } from '~/utils/entity-hierarchy.js';
 
 const props = defineProps({
     entity: { type: Object, default: null },
@@ -84,13 +84,17 @@ const FALLBACK_LABELS = {
 
 const activeLineage = computed(() => props.lineage || entityLineage.value);
 const effectiveExclusions = computed(() => {
+    const contextExclusions = (unref(displayedEntityContexts) || []).flatMap(displayed => {
+        if (!displayed?.type) return [];
+        return entityHierarchyIds(displayed.entity || {}).map(id => ({
+            type: displayed.type,
+            id
+        }));
+    });
     return [
         ...props.exclude,
-        ...(unref(displayedEntityContexts) || []).map(displayed => ({
-            type: displayed?.type,
-            id: displayed?.entity?._id || displayed?.entity?.identity?.uid || displayed?.entity?.id
-        })).filter(displayed => displayed.type && displayed.id)
-    ];
+        ...contextExclusions
+    ].filter(displayed => displayed.type && displayed.id);
 });
 
 const items = computed(() => containmentAncestors(

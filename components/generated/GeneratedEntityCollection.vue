@@ -157,6 +157,7 @@ import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { entityHierarchyIds } from '~/utils/entity-hierarchy.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
@@ -200,10 +201,14 @@ const actionContext = computed(() => mergeCollectionActionContext({
   entityType: props.entityType,
   items: props.items
 }));
-const traceExclusions = computed(() => actionContext.value.parentEntity ? [{
-  type: actionContext.value.parentEntityType,
-  id: actionContext.value.parentEntity._id || actionContext.value.parentEntity.identity?.uid || actionContext.value.parentEntity.id
-}] : []);
+const traceExclusions = computed(() => {
+  const entity = actionContext.value.parentEntity;
+  if (!entity || !actionContext.value.parentEntityType) return [];
+  return entityHierarchyIds(entity).map(id => ({
+    type: actionContext.value.parentEntityType,
+    id
+  }));
+});
 const tableFields = computed(() => resolveEntityDisplayContract({
   entityType: props.entityType,
   surface: props.surface || 'table'

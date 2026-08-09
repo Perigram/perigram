@@ -266,6 +266,7 @@ import { ENTITY_UI } from '~/utils/status-engine';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
+import { entityHierarchyIds } from '~/utils/entity-hierarchy.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const props = defineProps({
@@ -316,10 +317,13 @@ const effectiveShowTrace = computed(() => {
     return displayPlan.value.surfaceContract.trace !== 'hidden';
 });
 const effectivePopupShowTrace = computed(() => effectiveShowTrace.value || Boolean(unref(inlineForceTraceRef)));
-const traceExclusions = computed(() => props.contextEntity ? [{
-    type: props.contextEntityType,
-    id: props.contextEntity._id || props.contextEntity.identity?.uid || props.contextEntity.id
-}] : []);
+const traceExclusions = computed(() => {
+    if (!props.contextEntity || !props.contextEntityType) return [];
+    return entityHierarchyIds(props.contextEntity).map(id => ({
+        type: props.contextEntityType,
+        id
+    }));
+});
 const compactDensityClass = computed(() => props.density === 'dense'
     ? '[&_.p-card-body]:!p-3 [&_.p-card-content]:!p-0'
     : ''

@@ -23,6 +23,16 @@ export function entityHierarchyId(entity = {}) {
   return entity._id?.toString?.() || entity.identity?.uid?.toString?.() || entity.id?.toString?.() || '';
 }
 
+export function entityHierarchyIds(entity = {}) {
+  const ids = [
+    entity._id?.toString?.(),
+    entity.identity?.uid?.toString?.(),
+    entity.identity?.slug?.toString?.(),
+    entity.id?.toString?.()
+  ].filter(value => value != null && value !== '');
+  return [...new Set(ids)];
+}
+
 export function containmentParent(entityType = '', lineage = {}, containment = cncContainment) {
   const childType = normalizeHierarchyType(entityType);
   const candidates = (containment || []).filter(relation => (

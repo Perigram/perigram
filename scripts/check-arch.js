@@ -405,12 +405,136 @@ collectLineMatches(frontendStatusFiles, [
   }
 ]);
 
+// 9. Migration inventory must be empty; every finding is blocking.
 if (inventory.length > 0) {
-  console.log(`\n--- Migration Inventory (${inventory.length} non-blocking items) ---`);
+  console.log(`\n--- Architecture Violations (${inventory.length} blocking items) ---`);
   inventory.forEach(item => {
-    console.log(`• ${item.rule} ${item.file}:${item.line} [${item.symbol}] ${item.message}`);
+    console.error(`❌ ${item.rule} ${item.file}:${item.line} [${item.symbol}] ${item.message}`);
   });
+  errors += inventory.length;
 }
+
+// 10. Concrete CNC domain imports in generic/generated modules
+console.log('\nChecking concrete CNC domain leaks...');
+const genericUiFiles = [
+  ...walkDir('composables').filter(file => file.endsWith('.js')),
+  ...walkDir('components/generated').filter(file => file.endsWith('.vue')),
+  ...walkDir('components/shared').filter(file => file.endsWith('.vue'))
+];
+genericUiFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const relFile = path.relative('.', file);
+  if (relFile === 'composables/useCutkitDomainUi.js') return;
+  if (/from\s+['"]@cutkit\/domain-cnc['"]/.test(content)) {
+    console.error(`❌ ${relFile} imports @cutkit/domain-cnc directly — consume the injected domain UI adapter`);
+    errors++;
+  }
+});
+
+// 11. Duplicate object keys in domain registry files
+console.log('\nChecking duplicate object keys...');
+const objectKeyFiles = [
+  'packages/domain-cnc/src/entity-create-inputs.js',
+  'packages/domain-cnc/src/summaries.js',
+  'packages/domain-cnc/src/relationships.js'
+];
+objectKeyFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const lines = content.split('\n');
+  let braceDepth = 0;
+  let arrayDepth = 0;
+  const keyPositions = new Map();
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    braceDepth += (line.match(/\{/g) || []).length;
+    braceDepth -= (line.match(/\}/g) || []).length;
+    arrayDepth += (line.match(/\[/g) || []).length;
+    arrayDepth -= (line.match(/\]/g) || []).length;
+    if (arrayDepth > 0) continue;
+    const keyMatch = line.match(/^\s*(\w+)\s*:\s*/);
+    if (keyMatch && braceDepth <= 2) {
+      const key = keyMatch[1];
+      if (keyPositions.has(key)) {
+        console.error(`❌ ${file}:${i + 1} duplicate object key [${key}] (also at line ${keyPositions.get(key)})`);
+        errors++;
+      } else {
+        keyPositions.set(key, i + 1);
+      }
+    }
+  }
+});
+
+// 12. Concrete entity-name branches in @cutkit/processes
+console.log('\nChecking concrete entity-name branches in @cutkit/processes...');
+const processesDir = 'packages/processes/src';
+const processesFiles = walkDir(processesDir).filter(file => file.endsWith('.js') && !file.endsWith('.spec.js'));
+processesFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const lines = content.split('\n');
+  const relFile = path.relative('.', file);
+  lines.forEach((line, index) => {
+    const entityMatch = line.match(/(?:entityType|targetType|childType)\s*[=:]\s*['"]([a-z_]+)['"]/g);
+    if (entityMatch) {
+      for (const match of entityMatch) {
+        const name = match.match(/['"]([a-z_]+)['"]/)[1];
+        if (name !== 'artifact' && name !== 'project' && name !== 'queue' && name !== 'cassette' && name !== 'cassette_design' && name !== 'library' && name !== 'nesting_run' && name !== 'sheet_design' && name !== 'sheet' && name !== 'cassette_instance' && name !== 'facade' && name !== 'facade_pattern' && name !== 'geometry_capture' && name !== 'catalog' && name !== 'color' && name !== 'warehouse' && name !== 'material_pile' && name !== 'batch_pile' && name !== 'organization' && name !== 'remnant') continue;
+        console.error(`❌ ${relFile}:${index + 1} hardcoded CNC entity name [${name}] in generic process module`);
+        errors++;
+      }
+    }
+  });
+});
+
+// 13. Runtime legacy-process bridges
+console.log('\nChecking runtime legacy-process bridges...');
+const allSourceFiles = [
+  ...walkDir('packages/processes/src').filter(file => file.endsWith('.js')),
+  ...walkDir('server/features').filter(file => file.endsWith('.js')),
+  ...walkDir('components').filter(file => file.endsWith('.vue')),
+  ...walkDir('pages').filter(file => file.endsWith('.vue'))
+];
+const legacyPatterns = [
+  { pattern: /\blegacyActionId\b/, name: 'legacyActionId' },
+  { pattern: /\blegacyProcessType\b/, name: 'legacyProcessType' },
+  { pattern: /\blegacyTypeToTemplateId\b/, name: 'legacyTypeToTemplateId' },
+  { pattern: /\bnormalizeParentRevision\b/, name: 'normalizeParentRevision' }
+];
+legacyPatterns.forEach(({ pattern, name }) => {
+  allSourceFiles.forEach(file => {
+    const content = fs.readFileSync(file, 'utf8');
+    if (pattern.test(content)) {
+      const relFile = path.relative('.', file);
+      console.error(`❌ ${relFile} uses legacy bridge [${name}] — migrate to current protocol`);
+      errors++;
+    }
+  });
+});
+
+// 14. Cross-feature repository imports
+console.log('\nChecking cross-feature repository imports...');
+const featureFiles = walkDir('server/features').filter(file => file.endsWith('.js'));
+featureFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const relFile = path.relative('.', file);
+  const repoMatch = content.match(/from\s+['"]\.\.\/[a-z-]+\/repository['"]/g);
+  if (repoMatch) {
+    console.error(`❌ ${relFile} imports cross-feature repository — call registered services only`);
+    errors++;
+  }
+});
+
+// 15. Source-assertion tests
+console.log('\nChecking source-assertion test practices...');
+const specFiles = walkDir('.').filter(file => file.endsWith('.spec.js') && !file.includes('node_modules'));
+specFiles.forEach(file => {
+  const relFile = path.relative('.', file);
+  if (relFile.startsWith('server/scripts/') || relFile.startsWith('node_modules/')) return;
+  const content = fs.readFileSync(file, 'utf8');
+  if (/fs\.readFileSync\s*\(/.test(content) && /\.toContain\s*\(/.test(content) && !relFile.startsWith('shared/framework-packages.spec.js') && !relFile.startsWith('shared/process-designer-ui.spec.js') && !relFile.startsWith('shared/localization.spec.js') && !relFile.startsWith('components/shared/')) {
+    console.error(`❌ ${relFile} uses source-string assertions (fs.readFileSync + toContain) — use behavioral tests`);
+    errors++;
+  }
+});
 
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {
