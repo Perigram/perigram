@@ -17,7 +17,7 @@ describe('reviewed UI rework contracts', () => {
   });
 
   it('keeps the chats inbox visible beside the selected conversation on the full route', () => {
-    expect(read('../pages/chats.vue')).toContain('<ChatSupport embedded full-page />');
+    expect(read('../pages/chats.vue')).toContain('<ChatSupport :embedded="true" :full-page="true" />');
     expect(read('./ChatSupport.vue')).toContain("md:grid-cols-[20rem_minmax(0,1fr)]");
     expect(read('./ChatSupport.vue')).toContain("'hidden md:block': fullPage && activeConversation");
     expect(read('./ChatSupport.vue')).toContain('grid-rows-[minmax(0,1fr)]');
@@ -58,6 +58,6 @@ describe('reviewed UI rework contracts', () => {
   });
 
   it('imports i18n explicitly on the projects route', () => {
-    expect(read('../pages/projects/index.vue')).toContain("import { useI18n } from 'vue-i18n'");
+    expect(read('../pages/projects/index.vue')).toContain("import { useI18n as useProjectsI18n } from 'vue-i18n'");
   });
 });

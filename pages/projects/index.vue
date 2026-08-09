@@ -115,14 +115,14 @@
     import { useToast } from 'primevue/usetoast'
     import { useConfirm } from 'primevue/useconfirm'
     import { useEntity } from '~/composables/useEntity'
-    import { useI18n } from 'vue-i18n'
+    import { useI18n as useProjectsI18n } from 'vue-i18n'
 
     definePageMeta({
         layout: 'app',
         middleware: 'auth',
     })
 
-    const { t } = useI18n()
+    const { t } = useProjectsI18n()
     const router = useRouter()
     const globalStore = useGlobalStore()
     const toast = useToast()
