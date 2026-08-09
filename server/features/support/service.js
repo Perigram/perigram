@@ -91,8 +91,7 @@ export async function listUserConversations(auth) {
     const userId = auth?.userId;
     if (!userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
     const messages = await repository.findConversationMessages(userConversationsMatch(userId), messageProjection());
-    const conversations = await buildConversationSummaries(messages, auth);
-    return await addReachableUserConversations(conversations, auth);
+    return await buildConversationSummaries(messages, auth);
 }
 
 export async function listAdminSupportConversations(auth) {

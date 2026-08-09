@@ -9,4 +9,9 @@ describe('app standalone designer routes', () => {
     expect(source).toContain('|| isStandaloneDesignerRoute.value');
     expect(source).toContain("isStandaloneDesignerRoute ? 'max-w-none overflow-hidden p-0");
   });
+
+  it('keeps chat access out of the desktop menubar and exposes the full chats route', () => {
+    expect(source).toContain("command: () => router.push('/chats')");
+    expect(source).toContain("class=\"fixed bottom-8 right-8 z-[999] hidden h-14 w-14");
+  });
 });
