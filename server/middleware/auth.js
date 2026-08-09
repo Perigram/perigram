@@ -39,8 +39,12 @@ export default defineEventHandler(async (event) => {
 
   // 3. Populate Context
   if (user && user.isActive) {
+    const userDto = user.toJSON();
     const authContext = {
       userId: user.id,
+      name: user.identity?.name || '',
+      email: user.data?.email || '',
+      avatarUrl: userDto.data?.avatarUrl || null,
       organizationId: user.organizationId?.toString() || null,
       role: user.role,
       permissions: user.permissions,

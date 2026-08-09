@@ -1,6 +1,6 @@
 <template>
     <div class="min-h-screen flex items-center justify-center bg-page p-4">
-        <Panel class="w-full max-w-md">
+        <Panel class="w-full max-w-md overflow-hidden">
             <template #header>
                 <div class="flex flex-col items-center gap-4 text-center">
                     <div class="w-16 h-16 border rounded-full flex items-center justify-center">
@@ -11,8 +11,8 @@
             </template>
             <StateBlock v-if="loading" state="loading" :message="$t('auth.fetchingInvitation')" />
             
-            <div v-else-if="error" class="text-center py-8 flex flex-col gap-4">
-                <Message severity="error">{{ error }}</Message>
+            <div v-else-if="error" class="flex min-w-0 flex-col gap-4 py-8 text-center">
+                <Message severity="error" class="w-full min-w-0 [&_.p-message-text]:break-words">{{ error }}</Message>
                 <Button :label="$t('errors.goHome')" @click="navigateTo('/')" />
             </div>
 
@@ -22,7 +22,7 @@
                     <h2 class="m-0">{{ invitation.organizationName }}</h2>
                     <div class="mt-4 inline-flex items-center gap-2">
                         <i class="pi pi-shield"></i>
-                        <Tag :value="invitation.role" />
+                        <Tag :value="invitation.roleLabels?.join(', ')" />
                     </div>
                 </div>
 

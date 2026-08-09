@@ -40,6 +40,17 @@ export async function getByToken(token) {
   return invitation;
 }
 
+export async function getPublicByToken(token) {
+  const invitation = await getByToken(token);
+  const organization = await organizationsRepository.findById(invitation.organizationId);
+  const roles = organization?.data?.roles || {};
+  return {
+    organizationName: invitation.organizationName || organization?.identity?.name || '',
+    roleLabels: normalizeRoleIds(invitation.roleIds).map(roleId => roles[roleId]?.label || roleId),
+    expiresAt: invitation.expiresAt || null
+  };
+}
+
 export async function joinByToken(token, user) {
   const invitation = await getByToken(token);
   return await processJoin(invitation, user);

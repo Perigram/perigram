@@ -60,7 +60,8 @@ const props = defineProps({
     entityType: { type: String, default: '' },
     lineage: { type: Object, default: null },
     expandable: { type: Boolean, default: false },
-    variant: { type: String, default: 'full' }
+    variant: { type: String, default: 'full' },
+    exclude: { type: Array, default: () => [] }
 });
 
 const entityStore = useEntityStore();
@@ -85,7 +86,11 @@ const activeLineage = computed(() => props.lineage || entityLineage.value);
 const items = computed(() => containmentAncestors(
     { ...(props.entity || {}), lineage: activeLineage.value || {} },
     props.entityType || props.entity?.entityType || inferEntityType(activeLineage.value || {})
-).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) })));
+).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) }))
+  .filter(ref => !props.exclude.some(item => (
+    normalizeHierarchyType(item?.type) === normalizeHierarchyType(ref.type)
+    && String(item?.id || '') === String(ref.id || '')
+  ))));
 
 function inferEntityType(lineage = {}) {
     const candidates = ['sheetDesignId', 'runId', 'queueId', 'projectId', 'libraryId', 'catalogId', 'pileId'];

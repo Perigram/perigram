@@ -81,6 +81,9 @@ export default defineNuxtConfig({
         stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
         billing: {
             priceCatalog: process.env.NUXT_BILLING_PRICE_CATALOG || '[]',
+            mode: process.env.NUXT_BILLING_MODE || 'prepaidTokens',
+            currentTariff: process.env.NUXT_BILLING_CURRENT_TARIFF || '',
+            currentTariffLabelKey: process.env.NUXT_BILLING_CURRENT_TARIFF_LABEL_KEY || '',
         },
         resendToken: process.env.RESEND_TOKEN || '',
         public: {

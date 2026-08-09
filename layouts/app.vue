@@ -56,7 +56,8 @@
                             text
                         >
                             <Avatar 
-                                :label="authStore.userData.name ? authStore.userData.name[0].toUpperCase() : 'U'" 
+                                :image="authStore.userData.avatarUrl || null"
+                                :label="!authStore.userData.avatarUrl && authStore.userData.name ? authStore.userData.name[0].toUpperCase() : null"
                                 shape="circle" 
                                 size="normal" 
                                 class="bg-primary text-primary-contrast"

@@ -11,6 +11,7 @@ import { hasEntityAccess } from '../../core/access/service.js';
 import * as organizationsRepository from '../organizations/repository.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { ensureOwnerMembership, isOwnerMembership, mergeOwnerPermissions } from './organization-owner.js';
+import * as filesService from '../files/service.js';
 
 /**
  * Users Service - v24 Absolute Final
@@ -203,6 +204,57 @@ export async function getById(uid) {
   return new User(raw);
 }
 
+export async function saveAvatar(uid, file = {}, auth = {}) {
+  const raw = await usersRepository.findById(uid);
+  if (!raw) throw createError({ statusCode: 404, message: 'User not found' });
+  await assertCanEditUserAvatar(raw, auth);
+  if (!file.buffer?.length) throw createError({ statusCode: 400, message: 'Avatar image is required' });
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimeType)) {
+    throw createError({ statusCode: 400, message: 'Avatar must be a JPEG, PNG, or WebP image' });
+  }
+  if (file.buffer.length > 5 * 1024 * 1024) {
+    throw createError({ statusCode: 413, message: 'Avatar image must not exceed 5 MB' });
+  }
+
+  const uploaded = await filesService.uploadFile(
+    file.buffer,
+    `avatar-${uid}-${Date.now()}`,
+    { userId: String(uid), mimeType: file.mimeType },
+    'avatars'
+  );
+  const previousFileId = raw.data?.avatar?.fileId;
+  const updatedAt = new Date();
+  const updatedRaw = await usersRepository.updateAvatar(uid, {
+    fileId: uploaded.id,
+    mimeType: file.mimeType,
+    updatedAt
+  });
+  if (previousFileId) await filesService.deleteFile(previousFileId, 'avatars');
+  return new User(updatedRaw);
+}
+
+export async function getAvatar(uid, auth = {}) {
+  const raw = await usersRepository.findById(uid);
+  if (!raw) throw createError({ statusCode: 404, message: 'User not found' });
+  assertCanReadUser(raw, auth);
+  const avatar = raw.data?.avatar;
+  if (!avatar?.fileId) throw createError({ statusCode: 404, message: 'Avatar not found' });
+  return {
+    stream: await filesService.getFileStream(avatar.fileId, 'avatars'),
+    mimeType: avatar.mimeType || 'image/jpeg'
+  };
+}
+
+export async function removeAvatar(uid, auth = {}) {
+  const raw = await usersRepository.findById(uid);
+  if (!raw) throw createError({ statusCode: 404, message: 'User not found' });
+  await assertCanEditUserAvatar(raw, auth);
+  const fileId = raw.data?.avatar?.fileId;
+  await usersRepository.updateAvatar(uid, null);
+  if (fileId) await filesService.deleteFile(fileId, 'avatars');
+  return { success: true };
+}
+
 export async function update(uid, updates, userId, userRole) {
   const raw = await usersRepository.findById(uid);
   if (!raw) throw createError({ statusCode: 404, message: 'User not found' });
@@ -240,6 +292,26 @@ export async function remove(uid, deleterAuth = {}) {
 
 function getActiveOrganizationId(auth = {}) {
   return auth.organizationId || auth.memberships?.[0]?.organizationId || null;
+}
+
+async function assertCanEditUserAvatar(userRaw, auth = {}) {
+  if (String(userRaw._id) === String(auth.userId)) return;
+  const organizationId = getActiveOrganizationId(auth);
+  const inOrganization = userRaw.data?.memberships?.some(item => (
+    String(item.organizationId) === String(organizationId)
+  ));
+  if (inOrganization && await canManageUsersInOrganization(auth, organizationId)) return;
+  throw createError({ statusCode: 403, message: 'Forbidden' });
+}
+
+function assertCanReadUser(userRaw, auth = {}) {
+  if (String(userRaw._id) === String(auth.userId)) return;
+  const organizationIds = new Set([
+    auth.organizationId,
+    ...(auth.memberships || []).map(item => item.organizationId)
+  ].filter(Boolean).map(String));
+  if (userRaw.data?.memberships?.some(item => organizationIds.has(String(item.organizationId)))) return;
+  throw createError({ statusCode: 403, message: 'Forbidden' });
 }
 
 function lookupIdValues(value) {

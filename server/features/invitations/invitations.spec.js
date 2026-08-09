@@ -75,6 +75,11 @@ describe('invitations', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].organizationId).toBe(organizationId);
     expect(rows[0].roleIds).toEqual(['role_operator']);
+    await expect(invitationsService.getPublicByToken(invitation.token)).resolves.toEqual({
+      organizationName: 'Cutkit Org',
+      roleLabels: ['Operator'],
+      expiresAt: expect.any(Date)
+    });
   });
 
   it('denies invitation management to ordinary members when another active member exists', async () => {

@@ -84,6 +84,20 @@ describe('support communication service', () => {
     });
   });
 
+  it('resolves an explicit self recipient as a direct self conversation', async () => {
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({ _id: 'user-a', identity: { name: 'User A' }, data: {} })
+    });
+
+    await expect(supportService.getUserConversationContext(auth, 'user-a')).resolves.toMatchObject({
+      kind: 'direct',
+      conversationKey: 'direct:user-a:user-a',
+      participants: ['user-a'],
+      recipient: { _id: 'user-a' }
+    });
+  });
+
   it('builds user conversation unread counts from read cursors', async () => {
     mocks.repository.findConversationMessages.mockResolvedValue([
       {

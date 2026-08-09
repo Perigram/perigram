@@ -2,10 +2,10 @@ import { createError } from 'h3';
 import { generateRandomString } from '../../utils/strings.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import * as repository from './repository.js';
-import { findBillingPackage, getBillingCatalog } from './pricing.js';
+import { findBillingPackage, getBillingCatalog, getBillingConfiguration } from './pricing.js';
 import { getCheckoutPaymentStatus } from './sync.js';
 
-export async function getAccountSummary({ organizationId, auth, limit = 50 }) {
+export async function getAccountSummary({ organizationId, auth, limit = 50, runtimeConfig = useRuntimeConfig() }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'read');
   const account = await getOrCreateAccount(organizationId);
@@ -14,6 +14,7 @@ export async function getAccountSummary({ organizationId, auth, limit = 50 }) {
     repository.findInvoices({ organizationId, limit })
   ]);
   return {
+    billing: getBillingConfiguration(runtimeConfig),
     account: serializeAccount(account),
     ledger: ledger.map(serializeLedgerEntry),
     invoices: invoices.map(serializeInvoice)
@@ -28,6 +29,10 @@ export function listPackagesForOrganization({ organizationId, auth, runtimeConfi
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'read');
   return listPackages(runtimeConfig);
+}
+
+export function getConfiguration(runtimeConfig = useRuntimeConfig()) {
+  return getBillingConfiguration(runtimeConfig);
 }
 
 export async function createCheckout({ organizationId, packageId, auth, runtimeConfig = useRuntimeConfig() }) {

@@ -6,6 +6,7 @@ import { normalizeScreenContract } from '~/packages/processes/src/screen-contrac
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { filterRootSourceItems } from '~/utils/generated-screen-source.js';
+import { cncContainment } from '@cutkit/domain-cnc';
 
 export function useGeneratedScreen(screenRef) {
   const authStore = useAuthStore();
@@ -48,8 +49,7 @@ export function useGeneratedScreen(screenRef) {
           return [source.id, { ...emptyState(source), entity }];
         }
         const items = await entityApi.list(resolveSourceFilters(source, screen.value));
-        const visibleItems = filterRootSourceItems(items, source.rootLineageKeys);
-        return [source.id, { ...emptyState(source), items: visibleItems }];
+        return [source.id, { ...emptyState(source), items }];
       }));
       if (sequence !== loadSequence) return;
       sourceStates.value = Object.fromEntries(loaded);
@@ -89,7 +89,12 @@ export function useGeneratedScreen(screenRef) {
   });
 
   function sourceState(sourceId) {
-    return sourceStates.value[sourceId] || emptyState({ id: sourceId });
+    const state = sourceStates.value[sourceId] || emptyState({ id: sourceId });
+    if (state.source?.mode === 'single') return state;
+    return {
+      ...state,
+      items: filterRootSourceItems(state.items, state.source, sourceStates.value, cncContainment)
+    };
   }
 
   function applyEntitySnapshot(entityType, entity = null) {
