@@ -15,10 +15,11 @@ Organization card surface for tenant/manufacturer records.
 - Status and trace are hidden for organization cards unless a future workflow is
   added to the domain contract.
 - The card exposes `context` and `actions` slots for membership state and
-  caller-owned system-screen actions. Profile organization membership surfaces
-  use these slots instead of rebuilding organization identity/data panels.
-- Organization management actions come from the active generated system-screen
-  manifest; invitations and permissions still use their custom endpoints.
+  caller-owned navigation. These footer actions render visibly instead of being
+  collapsed into the generic entity-card ellipsis menu.
+- Profile uses one action per membership: switch to an inactive organization or
+  open the active generated organization overview. Billing, team, and process
+  screens are children of that overview rather than flat profile-card actions.
 
 ## Related
 

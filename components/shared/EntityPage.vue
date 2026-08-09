@@ -8,7 +8,7 @@ import EntityStatus from './status/EntityStatus.vue';
 import TraceChain from './links/TraceChain.vue';
 import EntityActionsPopover from './EntityActionsPopover.vue';
 import Divider from 'primevue/divider';
-import { computed } from 'vue';
+import { computed, provide } from 'vue';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -24,10 +24,14 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 const effectiveTitle = computed(() => props.title || '');
+provide('displayedEntityContext', computed(() => ({
+  type: props.entityType,
+  entity: props.entity
+})));
 </script>
 
 <template>
-  <div class="entity-page flex flex-col gap-6">
+  <div class="entity-page flex w-full min-w-0 flex-col gap-6">
     <div v-if="showHeader" class="flex flex-col gap-4" data-entity-page-header>
       <TraceChain v-if="showTrace" :entity="entity" :entity-type="entityType" />
 
@@ -62,11 +66,11 @@ const effectiveTitle = computed(() => props.title || '');
     <Divider v-if="showHeader" class="m-0" />
 
     <div :class="[ $slots.sidebar ? 'entity-page-content-grid grid grid-cols-1 gap-6' : 'flex flex-col gap-6' ]">
-      <div :class="[ $slots.sidebar ? 'entity-page-main flex flex-col gap-6' : 'flex flex-col gap-6' ]">
+      <div :class="[ $slots.sidebar ? 'entity-page-main flex min-w-0 flex-col gap-6' : 'flex min-w-0 flex-col gap-6' ]">
         <slot></slot>
       </div>
 
-      <div v-if="$slots.sidebar" class="entity-page-sidebar flex flex-col gap-6">
+      <div v-if="$slots.sidebar" class="entity-page-sidebar flex min-w-0 flex-col gap-6">
         <slot name="sidebar"></slot>
       </div>
     </div>
@@ -78,13 +82,16 @@ const effectiveTitle = computed(() => props.title || '');
   container-type: inline-size;
 }
 
-@container (min-width: 48rem) {
+@container (min-width: 40rem) {
   .entity-page-header-content {
     align-items: flex-start;
     flex-direction: row;
     justify-content: space-between;
   }
 
+}
+
+@container (min-width: 56rem) {
   .entity-page-content-grid {
     grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
   }

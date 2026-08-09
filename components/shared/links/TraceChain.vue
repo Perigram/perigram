@@ -67,6 +67,7 @@ const props = defineProps({
 const entityStore = useEntityStore();
 const authStore = useAuthStore();
 const entityContext = inject('entityContext', null);
+const displayedEntityContext = inject('displayedEntityContext', null);
 const isExpanded = ref(!props.expandable);
 const { lineage: entityLineage } = useLineage(toRef(props, 'entity'));
 const labels = ref({});
@@ -82,12 +83,20 @@ const FALLBACK_LABELS = {
 };
 
 const activeLineage = computed(() => props.lineage || entityLineage.value);
+const effectiveExclusions = computed(() => {
+    const displayed = unref(displayedEntityContext);
+    const displayedId = displayed?.entity?._id || displayed?.entity?.identity?.uid || displayed?.entity?.id;
+    return [
+        ...props.exclude,
+        ...(displayed?.type && displayedId ? [{ type: displayed.type, id: displayedId }] : [])
+    ];
+});
 
 const items = computed(() => containmentAncestors(
     { ...(props.entity || {}), lineage: activeLineage.value || {} },
     props.entityType || props.entity?.entityType || inferEntityType(activeLineage.value || {})
 ).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) }))
-  .filter(ref => !props.exclude.some(item => (
+  .filter(ref => !effectiveExclusions.value.some(item => (
     normalizeHierarchyType(item?.type) === normalizeHierarchyType(ref.type)
     && String(item?.id || '') === String(ref.id || '')
   ))));

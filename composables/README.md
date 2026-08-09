@@ -210,10 +210,11 @@ Used by `<StatusHistory>` component.
 ## useGeneratedScreen
 
 Generated home sources retain raw access-filtered list results and derive their
-visible top-level rows after every source has loaded. A child is hidden from the
-home screen only when its declared containment parent is present in another
-readable source; when that ancestor is not readable, the child is top-level for
-that user.
+visible top-level rows after every source has loaded. Runtime filtering walks
+the domain containment graph, so it also works for active manifests compiled
+before `rootLineageKeys` existed. A child is hidden when any readable
+non-organization ancestor is present in another home source; with no readable
+ancestor it remains top-level. Non-home sources are never root-filtered.
 
 Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
 The composable normalizes the screen contract, checks source-level process

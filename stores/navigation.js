@@ -147,6 +147,8 @@ export const useNavigationStore = defineStore('navigation', () => {
         && (candidate === route || candidate.startsWith(`${route}/`) || route.startsWith(`${candidate}/`));
 
     const screenName = (screen) => generatedScreenLabel(screen, { t, te });
+    const organizationSystemScreens = computed(() => visibleProcessScreens.value
+        .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization')));
 
     const routeIcon = (route) => hubConfigs.find(config => routeMatches(config.to, route))?.icon || 'pi pi-th-large';
     const baseScreenKey = (key) => String(key || '').endsWith('_detail')
@@ -209,6 +211,30 @@ export const useNavigationStore = defineStore('navigation', () => {
         const nav = [];
 
         if (parts.length === 0) return nav;
+
+        if (parts[0] === 'organization') {
+            const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId;
+            const organization = authStore.organizationData
+                || authStore.userOrganizations.find(item => String(item._id || item.id) === String(organizationId || ''));
+            nav.push({
+                id: String(organizationId || 'organization'),
+                name: entitySelectLabel(organization, t('auth.organization')),
+                to: '/organization',
+                siblings: []
+            });
+            const currentScreen = organizationSystemScreens.value.find(screen => screen.route === path);
+            if (currentScreen?.route && currentScreen.route !== '/organization') {
+                nav.push({
+                    id: currentScreen.screenKey || currentScreen.id,
+                    name: screenName(currentScreen),
+                    to: currentScreen.route,
+                    siblings: organizationSystemScreens.value
+                        .filter(screen => screen.route !== '/organization')
+                        .map(screen => siblingOption(screenName(screen), screen.route))
+                });
+            }
+            return nav;
+        }
 
         // --- Level 1: Hub Logic ---
         let currentSectionId = parts[0];

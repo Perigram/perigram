@@ -224,9 +224,10 @@
             </template>
             <template #footer>
                 <div v-if="$slots.footer" class="flex justify-end" @click.stop>
-                  <EntityActionsPopover>
+                  <EntityActionsPopover v-if="footerDisplay === 'menu'">
                     <slot name="footer" />
                   </EntityActionsPopover>
+                  <slot v-else name="footer" />
                 </div>
             </template>
         </Card>
@@ -280,7 +281,8 @@ const props = defineProps({
     displayExtensions: { type: Object, default: null },
     displayOverrides: { type: Object, default: null },
     contextEntity: { type: Object, default: null },
-    contextEntityType: { type: String, default: '' }
+    contextEntityType: { type: String, default: '' },
+    footerDisplay: { type: String, default: 'menu', validator: value => ['menu', 'inline'].includes(value) }
 });
 
 const emit = defineEmits(['refresh']);

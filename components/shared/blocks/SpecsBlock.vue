@@ -56,7 +56,7 @@ const hasSpecs = computed(() => Boolean((canDisplayDimensions.value && formatted
 
     <!-- Default Variant -->
     <template v-else>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <div class="specs-layout grid grid-cols-1 gap-3">
             <div v-if="canDisplayDimensions && formattedDimensions" class="min-w-0 rounded-ui border border-content-border bg-content px-3 py-3">
                 <small class="text-muted-color">{{ $t('catalog.dimensions') }}</small>
                 <div class="mt-1 break-words font-semibold">{{ formattedDimensions }}</div>
@@ -75,3 +75,15 @@ const hasSpecs = computed(() => Boolean((canDisplayDimensions.value && formatted
     </template>
   </div>
 </template>
+
+<style scoped>
+.specs-block {
+  container-type: inline-size;
+}
+
+@container (min-width: 32rem) {
+  .specs-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  }
+}
+</style>

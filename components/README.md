@@ -322,6 +322,10 @@ not invent static dashboard widgets, hardcoded domain routes, or per-card
 create buttons. Each home section resolves its open-list button from the
 compiled region route or the matching compiled entity-list screen in the
 current screen manifest; it must not construct list routes from entity names.
+Home root filtering is derived at runtime from the domain containment graph as
+well as compiled source metadata. This keeps already-active process manifests
+correct and suppresses a descendant when any non-organization ancestor is
+readable, not only when its immediate parent is a home section.
 Home sections are true horizontal carousels: entity cards keep a stable
 non-shrinking width and overflow horizontally instead of shrinking every card
 to fit the viewport. The fixed width belongs on the carousel item wrapper, not
@@ -959,6 +963,10 @@ only messages are valid and must stay sendable when the draft has at least one
 selected entity ref. The conversation snapshot is auth-
 gated by the store so direct user candidates are not lost behind a failed
 pre-auth request.
+The expanded `/chats` route keeps the persisted-conversation inbox visible as
+a desktop side rail while the selected conversation occupies the remaining
+width. It uses a single-pane interaction on mobile, and the app-shell floating
+launcher is hidden while that route is open.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data

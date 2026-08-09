@@ -85,6 +85,9 @@ Props: `entity-type` (required), `:entity` (required), `:access-entity` (optiona
 **Field schema:** `{ path, i18n, suffix?, prefix? }` — `path` is dot-notation into entity object, `i18n` is the translation key for the label. Rows with null/undefined values are hidden automatically.
 Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden. Fields with `display: 'parameterMap'` render scalar object entries as exact named parameters such as `A=1200, B=400`; use this for materialized cassette design values, not symbolic template parameter lists.
 Default layout renders a semantic `<dl>` grid for card bodies; compact layout renders inline facts for popovers, relation rows, and tight embedded surfaces.
+The default `DataBlock` and `SpecsBlock` layouts use their own inline-size
+containers, so columns follow the width assigned by a page or split pane rather
+than the browser viewport.
 Inline entity popovers mark their body with `entity-card-popup-content`, and
 `DataBlock` collapses default grid rows to compact inline facts inside that
 scope. Do not add entity-local popup data layouts just to make popovers denser;
@@ -447,7 +450,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   location rows where direct route navigation is intended. Do not use it for
   entity relation summaries inside cards/details; use `EntityInlineRef` so the
   relation resolves through `useEntity` and the registered entity card.
-- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` — never pass raw ancestry arrays. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove ancestry already represented by an enclosing entity surface; generated child collections pass their displayed parent through this contract.
+- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` — never pass raw ancestry arrays. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove explicit ancestry, and it automatically omits the nearest `EntityPage` entity already represented by the enclosing detail surface.
   Card title chrome uses compact trace mode: it shows the nearest parent
   lineage item and an ellipsis expander when more ancestry exists. Expanded
   popovers and detail pages render the full lineage breadcrumb chain. Supported
@@ -501,7 +504,9 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   popover for entity-local commands. `EntityPage`, full `EntityCard` footers,
   inline-card popovers, and generated entity files place edit/process/delete
   commands inside this surface instead of expanding action buttons beside
-  identity and status.
+  identity and status. `EntityCard footer-display="inline"` is reserved for a
+  small caller-owned primary navigation choice, such as opening or switching
+  the organization represented by a profile card.
 - **`MotionDock.vue`**: Shared compact bottom action dock adapted from the Vue
   Bits Dock block and backed by `motion-v`. Use it for a small, contextual set
   of canvas or workspace commands—not global navigation or ordinary page
@@ -558,7 +563,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   Entity type comes from the picker prop or option record and is never inferred
   from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
-- **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, and collapse the `actions` slot into `EntityActionsPopover`; delete and secondary process commands do not expand the header row. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome. Pane adapters pass `:show-header="false"` so their own tabs/status/actions remain the sole chrome while the canonical body and sidebar layout are retained. The wrapper is an inline-size query container: headers split and sidebars take a two-column track only when the parent pane is at least 48rem wide, not merely when the browser viewport is wide. Operational overloads compose their workspace primitives inside this canonical shell instead of adding overload-specific layout modes to `EntityPage`.
+- **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, and collapse the `actions` slot into `EntityActionsPopover`; delete and secondary process commands do not expand the header row. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome. Pane adapters pass `:show-header="false"` so their own tabs/status/actions remain the sole chrome while the canonical body and sidebar layout are retained. The wrapper is an inline-size query container: the header splits at 40rem and the sidebar receives its second track at 56rem of actual parent width. It also provides the displayed entity to descendant traces so nested child cards do not repeat that parent. Operational overloads compose their workspace primitives inside this canonical shell instead of adding overload-specific layout modes to `EntityPage`.
 - **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title. PrimeVue `Card`/`Panel` roots are globally overflow-clipped in `assets/css/main.css` so header media and top-slot backgrounds cannot paint outside the token-backed rounded border. Card hover feedback is an in-place primary border, rather than an outward shadow, so it remains visible inside that clipping boundary.
   Full-card footer actions and generated inline/compact popover actions render
   through `EntityActionsPopover`, including access-gated deletion.

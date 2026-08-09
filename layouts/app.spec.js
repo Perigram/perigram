@@ -13,5 +13,13 @@ describe('app standalone designer routes', () => {
   it('keeps chat access out of the desktop menubar and exposes the full chats route', () => {
     expect(source).toContain("command: () => router.push('/chats')");
     expect(source).toContain("class=\"fixed bottom-8 right-8 z-[999] hidden h-14 w-14");
+    expect(source).toContain("v-if=\"!supportDialog && route.path !== '/chats'\"");
+    expect(source).toContain("const isChatsRoute = computed(() => route.path === '/chats')");
+  });
+
+  it('keeps the organization switcher visible and crops avatar images', () => {
+    expect(source).toContain('if (authStore.userOrganizations.length)');
+    expect(source).not.toContain('authStore.userOrganizations.length > 1');
+    expect(source).toContain('[&_.p-avatar-image]:object-cover');
   });
 });

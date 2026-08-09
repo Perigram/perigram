@@ -12,7 +12,7 @@
                         <div class="md:col-span-4">
                             <Panel class="h-full" :header="$t('profile.title')">
                                     <div class="flex flex-col items-center text-center gap-4 py-4">
-                                        <Avatar :image="user.avatarUrl || null" :label="!user.avatarUrl && user.name ? user.name[0].toUpperCase() : null" size="xlarge" shape="circle" />
+                                        <Avatar :image="user.avatarUrl || null" :label="!user.avatarUrl && user.name ? user.name[0].toUpperCase() : null" size="xlarge" shape="circle" class="[&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover" />
                                         <input ref="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="uploadAvatar" />
                                         <div class="flex flex-wrap justify-center gap-2">
                                             <Button :label="$t('profile.changeAvatar')" icon="pi pi-camera" size="small" :loading="avatarUploading" @click="avatarInput?.click()" />
@@ -99,17 +99,13 @@
                                             size="small"
                                             @click="switchOrganization(entry.id)"
                                         />
-                                        <template v-else-if="entry.active">
-                                            <Button
-                                                v-for="screen in organizationScreens"
-                                                :key="screen.screenKey || screen.id"
-                                                :label="systemScreenLabel(screen)"
-                                                :icon="screen.icon || 'pi pi-arrow-right'"
-                                                text
-                                                size="small"
-                                                @click="router.push(screen.route)"
-                                            />
-                                        </template>
+                                        <Button
+                                            v-else-if="entry.active && organizationOverviewScreen"
+                                            :label="$t('profile.viewOrganization')"
+                                            icon="pi pi-arrow-right"
+                                            size="small"
+                                            @click="router.push(organizationOverviewScreen.route)"
+                                        />
                                     </div>
                                 </template>
                             </OrganizationCard>
@@ -168,7 +164,6 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import { useEntity } from '~/composables/useEntity';
 import { selectOptionText } from '~/utils/selectOptions';
-import { generatedScreenLabel } from '~/utils/generated-labels';
 
 definePageMeta({
     layout: "app",
@@ -177,15 +172,17 @@ definePageMeta({
 
 const router = useRouter();
 const toast = useToast();
-const { t, te, locale, locales, setLocale } = useI18n();
+const { t, locale, locales, setLocale } = useI18n();
 const organizationsEntity = useEntity('organization');
 
 const authStore = useAuthStore();
 const { user: userRef } = storeToRefs(authStore);
 const user = computed(() => userRef.value || {});
-const organizationScreens = computed(() => authStore.screenManifest
-    .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization'))
-    .sort((left, right) => organizationScreenOrder(left) - organizationScreenOrder(right)));
+const organizationOverviewScreen = computed(() => authStore.screenManifest.find(screen => (
+    screen.kind === 'system'
+    && screen.template === 'organizationOverview'
+    && screen.route === '/organization'
+)) || null);
 const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
 const avatarInput = ref(null);
@@ -206,20 +203,6 @@ const organizationMemberships = computed(() => authStore.memberships.map(members
         active: id === String(authStore.userData.organizationId || authStore.organizationData?._id || '')
     };
 }));
-
-function systemScreenLabel(screen = {}) {
-    return generatedScreenLabel(screen, { t, te });
-}
-
-function organizationScreenOrder(screen = {}) {
-    const order = {
-        organization_overview: 0,
-        organization_billing: 1,
-        organization_team: 2,
-        organization_process: 3
-    };
-    return order[screen.screenKey || screen.id] ?? 100;
-}
 
 const orgForm = ref({
     name: '',
