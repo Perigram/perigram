@@ -20,12 +20,20 @@ describe('reviewed UI rework contracts', () => {
     expect(read('../pages/chats.vue')).toContain('<ChatSupport embedded full-page />');
     expect(read('./ChatSupport.vue')).toContain("md:grid-cols-[20rem_minmax(0,1fr)]");
     expect(read('./ChatSupport.vue')).toContain("'hidden md:block': fullPage && activeConversation");
+    expect(read('./ChatSupport.vue')).toContain('grid-rows-[minmax(0,1fr)]');
   });
 
   it('renders profile organization navigation as a visible direct action', () => {
     expect(read('./entities/Organization/OrganizationCard.vue')).toContain('footer-display="inline"');
     expect(read('../pages/profile/index.vue')).toContain("$t('profile.viewOrganization')");
     expect(read('../pages/profile/index.vue')).not.toContain('v-for="screen in organizationScreens"');
+  });
+
+  it('renders organization navigation as direct actions around the canonical entity page', () => {
+    const overview = read('./generated/GeneratedOrganizationOverview.vue');
+    expect(overview).toContain('<EntityPage');
+    expect(overview).toContain('<ActionToolbar');
+    expect(overview).not.toContain('<Panel v-for');
   });
 
   it('builds organization breadcrumbs as organization then section', () => {

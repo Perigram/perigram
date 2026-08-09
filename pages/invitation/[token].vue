@@ -1,6 +1,9 @@
 <template>
     <div class="min-h-screen flex items-center justify-center bg-page p-4">
-        <Panel class="w-full max-w-md overflow-hidden">
+        <Panel
+            class="w-full max-w-md overflow-hidden"
+            :pt="{ header: { class: 'hidden' } }"
+        >
             <div class="mb-6 flex flex-col items-center gap-3 text-center">
                 <span class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-contrast">
                     <i class="pi pi-building text-xl" aria-hidden="true"></i>

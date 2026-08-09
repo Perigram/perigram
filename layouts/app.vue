@@ -155,6 +155,7 @@
             </div>
         </nav>
         <Button
+            data-testid="desktop-chat-launcher"
             icon="pi pi-comment"
             severity="secondary"
             rounded

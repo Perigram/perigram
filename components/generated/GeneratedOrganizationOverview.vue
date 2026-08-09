@@ -1,38 +1,54 @@
 <template>
-  <ResponsiveGrid variant="wide">
-    <Panel v-for="item in systemScreens" :key="item.screenKey || item.route">
-      <div class="flex h-full flex-col gap-4">
-        <div class="flex items-center gap-3">
-          <i :class="item.icon || 'pi pi-building'" class="text-xl text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
-          <div class="min-w-0">
-            <h2 class="m-0 text-base">{{ systemLabel(item.labelKey, item.screenKey) }}</h2>
-            <small v-if="item.descriptionKey" class="text-muted-color">{{ systemLabel(item.descriptionKey) }}</small>
-          </div>
-        </div>
-        <div class="mt-auto">
-          <Button icon="pi pi-arrow-right" :aria-label="systemLabel(item.labelKey, item.screenKey)" size="small" @click="router.push(item.route)" />
-        </div>
-      </div>
-    </Panel>
-  </ResponsiveGrid>
+  <EntityPage
+    v-if="organization"
+    :entity="organization"
+    entity-type="organization"
+    :show-status="false"
+    :show-trace="false"
+  >
+    <ActionToolbar v-if="systemScreens.length" :title="$t('organization.workspace')">
+      <template #actions>
+        <Button
+          v-for="item in systemScreens"
+          :key="item.screenKey || item.route"
+          :label="systemLabel(item.labelKey, item.screenKey)"
+          :icon="item.icon || 'pi pi-arrow-right'"
+          size="small"
+          @click="router.push(item.route)"
+        />
+      </template>
+    </ActionToolbar>
+
+    <DataBlock
+      entity-type="organization"
+      :entity="organization"
+      :fields="organizationFields"
+    />
+  </EntityPage>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
-import Panel from 'primevue/panel';
 import { useI18n } from 'vue-i18n';
-import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import EntityPage from '~/components/shared/EntityPage.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import { useAuthStore } from '~/stores/auth';
+import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
 });
 
 const router = useRouter();
+const authStore = useAuthStore();
 const { t, te } = useI18n();
 
+const organization = computed(() => authStore.organizationData);
 const systemScreens = computed(() => (props.screen.systemScreens || []).filter(item => item.route));
+const organizationFields = resolveEntityDisplayFields({ entityType: 'organization', surface: 'detail' });
 
 function systemLabel(key = '', fallback = '') {
   return key && te(key) ? t(key) : fallback || key;
