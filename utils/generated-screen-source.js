@@ -4,7 +4,16 @@ export function filterRootSourceItems(items = [], source = {}, sourceStates = {}
     .some(ref => accessibleIdsByType.get(ref.type)?.has(ref.id)));
 }
 
-export function shouldRenderHomeSection({ items = [], rawItems = [], source = {} } = {}) {
+export function shouldRenderHomeSection({ items = [], rawItems = [], source = {} } = {}, containment = []) {
+  const parentLineageKeys = (containment || [])
+    .filter(relation => normalizeType(relation.childType) === normalizeType(source.entityType))
+    .filter(relation => normalizeType(relation.parentType) !== 'organization')
+    .map(relation => relation.lineageKey)
+    .filter(Boolean);
+  if (parentLineageKeys.length && (
+    !rawItems.length
+    || rawItems.some(entity => parentLineageKeys.some(key => entity?.lineage?.[key]))
+  )) return false;
   if (items.length) return true;
   if (rawItems.length) return false;
   return !(source.rootLineageKeys || []).length;
