@@ -3341,10 +3341,14 @@ function processNodeSummary(node = {}) {
 }
 
 function constructibleEntityBlocks(entityType = '') {
-  return [...new Set(designer.fieldsForEntity(entityType)
+  const fieldBlocks = designer.fieldsForEntity(entityType)
     .filter(field => field.constructible !== false)
     .map(field => field.block)
-    .filter(block => block && !['origin', 'status', 'provenance', 'summary'].includes(block)))];
+    .filter(block => block && !managedProcessBlocks.has(block));
+  const openBlocks = designer.blocksForEntity(entityType)
+    .map(block => block.id)
+    .filter(block => designer.blockComposition(block) && !managedProcessBlocks.has(block));
+  return [...new Set([...fieldBlocks, ...openBlocks])];
 }
 
 function writableEntityBlocks(entityType = '') {

@@ -164,10 +164,16 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
     }
     if (node?.kind !== 'effect.createEntity' || !node.entityType) return [id, node];
     const schemas = entityFieldSchemas(domain, node.entityType);
-    const knownBlocks = new Set(schemas.map(field => field.block));
+    const declaredBlocks = new Set(entityBlocks(domain, node.entityType));
+    const knownBlocks = new Set([...schemas.map(field => field.block), ...declaredBlocks]);
     const allowedBlocks = new Set(schemas
       .filter(field => field.constructible !== false)
       .map(field => field.block));
+    for (const block of declaredBlocks) {
+      if (domain.blockComposition?.[block] && !['origin', 'status', 'provenance', 'summary'].includes(block)) {
+        allowedBlocks.add(block);
+      }
+    }
     const persistedBlocks = Array.isArray(node.blocks) ? node.blocks : [];
     const blocks = persistedBlocks.filter(block => !knownBlocks.has(block) || allowedBlocks.has(block));
     const removedBlocks = new Set(persistedBlocks.filter(block => knownBlocks.has(block) && !allowedBlocks.has(block)));
@@ -2933,6 +2939,7 @@ function validateDataflowEdges(process, domain) {
       && ['record.composeBlock', 'record.modifyBlock'].includes(sourceRecord.kind)
       && ['effect.createEntity', 'effect.updateEntity'].includes(targetRecord.kind)) {
       const requiredAccess = targetRecord.kind === 'effect.createEntity' ? 'constructible' : 'writable';
+      const targetBlocks = new Set(entityBlocks(domain, targetRecord.entityType));
       const sourcePaths = sourceRecord.compositionMode
         ? (sourceRecord.entries || []).map(entry => `${sourceRecord.block}.${entry.key}`).filter(path => !path.endsWith('.undefined'))
         : (sourceRecord.fields || []);
@@ -2940,11 +2947,15 @@ function validateDataflowEdges(process, domain) {
         const targetSchemas = entityFieldSchemas(domain, targetRecord.entityType)
           .filter(field => field.block === sourceRecord.block);
         const targetSchema = entityFieldSchema(domain, targetRecord.entityType, path);
+        const openBlockAccepted = targetRecord.kind === 'effect.createEntity'
+          && Boolean(sourceRecord.compositionMode)
+          && targetBlocks.has(sourceRecord.block)
+          && !['origin', 'status', 'provenance', 'summary'].includes(sourceRecord.block);
         const openRelationsAccepted = sourceRecord.compositionMode === 'relations'
           && targetSchemas.some(field => field[requiredAccess] !== false);
         const wholeBlockAccepted = path === sourceRecord.block
           && targetSchemas.some(field => field[requiredAccess] !== false);
-        if (!openRelationsAccepted && !wholeBlockAccepted && (!targetSchema || targetSchema[requiredAccess] === false)) {
+        if (!openBlockAccepted && !openRelationsAccepted && !wholeBlockAccepted && (!targetSchema || targetSchema[requiredAccess] === false)) {
           errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: field is not ${requiredAccess}`);
         }
         if (sourceRecord.compositionMode && sourceRecord.compositionMode !== 'relations' && targetSchema) {
