@@ -300,7 +300,8 @@ field selection and inline primitive fallbacks; collection changes happen in
 list/tree nodes before the block socket.
 At Create, an open canonical block is accepted when the target entity declares
 that block. Authored open entries are not reinterpreted as fixed leaf-field
-selectors. Fixed-field blocks still validate every selected path against entity
+selectors. Both node-level persistence validation and connected-edge validation
+use this same block boundary. Fixed-field blocks still validate every selected path against entity
 constructibility; managed Origin, Status, Provenance, and Summary remain excluded.
 A manual Update effect fed by a modified Relations block therefore compiles and
 renders like every other generated entity-detail action; a block or data wire
