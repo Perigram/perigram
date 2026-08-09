@@ -65,6 +65,25 @@
   - [X] Billing page has non-UI leaks (Пакеты задаются во внешней runtime-конфигурации, Токены принадлежат активной организации). It's status is artificial (should be only if tariff mode is applied, w/ current tariff; derived from deployment configuration). Need explanation message in tokens panel, which describes that tokens are used for work that demands compute, like nesting service or AI interactions.
     ** HOW YOU WRITE SENTENCES IS FUCKING DEGENERACY I HATE YOU
 ** Agent Notes
+   [2026-08-09 Sun 21:00 MSK]
+   Audited the reviewed UI task against rendered pages instead of the previous
+   source-string assertions. The audit found and repaired an authenticated
+   =/projects= 500, stale Nuxt runtime modules, a collapsed =/chats= layout,
+   inaccessible Profile membership content, a non-opening account menu, raw
+   invitation request errors and blank header chrome, and the rejected flat
+   organization navigation-card hub.
+
+   The current rendered contracts are: full-height two-pane Chats with no app
+   launcher on that route; a centered headerless invitation panel with localized
+   invalid/expired messaging; canonical organization detail data with direct
+   Billing/Team actions; visible Profile organization cards with direct
+   switch/open actions; and an account popover whose organization section lists
+   canonical names and contains organization selection only. Billing retains
+   deployment-derived tariff visibility and now uses concise compute-token copy.
+   Browser validation exercised Invitation, Projects, Chats, Profile,
+   Organization, and Billing against a clean restarted Nuxt process. Focused
+   Vitest coverage was updated for the repaired contracts.
+
    [2026-08-09 Sun 20:13 MSK]
    Reopened every reviewed item after user testing. The earlier home fix was
    ineffective for already-active process manifests; home now derives all

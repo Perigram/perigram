@@ -966,7 +966,10 @@ pre-auth request.
 The expanded `/chats` route keeps the persisted-conversation inbox visible as
 a desktop side rail while the selected conversation occupies the remaining
 width. It uses a single-pane interaction on mobile, and the app-shell floating
-launcher is hidden while that route is open.
+launcher is hidden while that route is open. The route opts into full-page mode
+with explicit boolean props; the full-page grid has one bounded workspace row,
+separate inbox/thread headers, cover-cropped participant avatars, and accepts
+attachment-only sends when the draft contains structured entity references.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data

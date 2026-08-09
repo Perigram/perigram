@@ -100,8 +100,10 @@ outside the app layout, but their content chrome should still come from
 PrimeVue/shared primitives instead of raw bordered containers.
 The invitation token page renders only the sanitized invitation DTO returned by
 its public endpoint; it does not fetch the protected organization record. Its
-bounded panel centers in the viewport, wraps long errors, and keeps recovery
-navigation as a standard PrimeVue button.
+headerless bounded panel centers in the viewport, presents invitation identity
+inside the content, maps missing/expired tokens to localized user-facing copy,
+and keeps recovery navigation as a standard PrimeVue button. Raw request paths
+and server error strings are not rendered.
 `pages/auth/register.vue` is a public signup form. Normal signup collects the
 new user's credentials plus organization name and starter process and submits them to
 `/api/auth/register`; invitation signup is selected by the `invitation` query
@@ -119,8 +121,10 @@ screens, not through a static asset route. Do not route library trace links to
 the cassette manager; cassettes are children of the library, not the library
 entity surface itself.
 
-Organization routes are first-class app areas. `/organization` is the
-workspace hub linked from profile organization cards; `/organization/users` owns team management; `/organization/process` owns the
+Organization routes are first-class app areas. `/organization` renders the
+active organization through the canonical `EntityPage`, real organization
+fields, and a compact direct-action toolbar for its generated child screens;
+it is not a grid of navigation cards. `/organization/users` owns team management; `/organization/process` owns the
 standalone Vue Flow process designer. It uses the shared full-height designer
 workspace rather than a padded page panel and frames persisted graph nodes after loading,
 so a saved viewport cannot hide the graph. Vue Flow renders client-side because
@@ -138,7 +142,9 @@ Profile remains a personal account/preferences/membership page and must not
 show project usage or user-owned credit purchase flows.
 Its account surface uploads/removes the current user's avatar through the user
 avatar API; every avatar image uses a square cover crop inside its circular
-frame. Organization memberships render canonical `OrganizationCard` surfaces
+frame. Account, preferences, and membership views use explicit button tabs
+whose content is controlled by the page rather than an unchanging tab value.
+Organization memberships render canonical `OrganizationCard` surfaces
 with visible footer actions: inactive memberships switch context, while the
 active membership has one direct action into the generated organization
 overview. Billing, team, and process navigation stays inside that overview.
@@ -147,7 +153,9 @@ overview. Billing, team, and process navigation stays inside that overview.
 conversation list and selected thread in a two-pane bounded workspace; mobile
 uses a single-pane list/thread flow. The app shell's floating chat launcher
 opens the same inbox as a compact drawer, whose expand control navigates here;
-the launcher is absent on `/chats` itself.
+the launcher is absent on `/chats` itself. The full route passes its layout mode
+explicitly, keeps independent inbox/thread headers, and fills the bounded app
+workspace even when there are no persisted conversations.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,
