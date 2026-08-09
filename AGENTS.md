@@ -1,8 +1,7 @@
 # AGENTS.md
 
-Coding agents in this repository work in strict documentation-first mode. This
-file is the operating protocol; project architecture details live in README.md
-files and must not be duplicated here.
+This repository operates in strict documentation-first mode. This file is the
+ operating protocol; project architecture details live in README.md files.
 
 ## Mandatory First Reads
 
@@ -38,28 +37,31 @@ first or in the same task before relying on implementation details.
 - Treat the primary checkout on `local` as the integration tree. Keep session
   changes inside the agent worktree until they are committed, then merge the
   session branch back into `local` from the primary checkout. If the merge is
-  not clean, stop and report the conflicted files instead of resolving unrelated
-  work opportunistically.
-- Remove the session worktree after its branch has been merged, unless the user
-  asks to keep it for inspection.
+  not clean, stop and report the conflicted files instead of resolving
+  unrelated work opportunistically.
+- Remove the session worktree after its branch has been merged, unless the
+  user asks to keep it for inspection.
 - State risky assumptions before making changes.
+- Avoid any hardcoding where possible. Always use existing architectural
+  patterns and abstractions, or create ones where appropriate, with task
+  goal as their implementation.
 - Prefer the smallest implementation that satisfies the task.
-- Change only files directly required by the task.
+- Change only files and code chunks directly required by the task.
 - Follow existing project structures, helpers, names, and conventions.
 - Do not add speculative abstractions, features, or future-proofing.
 - Do not refactor unrelated code.
-- Do not add compatibility bridges, legacy fallbacks, dual-read paths, or
-  adapter shims when changing data structures, permissions, routes, APIs, or
-  process protocols. Replace the old contract and migrate existing data in the
-  same task.
+- Do not add backward compatibility bridges, legacy fallbacks, dual-read
+  paths, or adapter shims when changing data structures, permissions, routes,
+  APIs, or process protocols, until asked for. Replace the old contract and
+  migrate existing data in the same task.
 - Do not revert or overwrite unrelated user/agent changes.
 - Do not run `npm run build` or start dev servers unless explicitly asked.
-- Continue until the task is implemented, documented, validated, and committed,
-  or clearly report the blocker.
-- When a user asks to implement a plan, execute the whole accepted plan. Do not
-  intentionally ship a partial plan slice unless the user explicitly narrows
-  scope or an external blocker makes completion impossible; report any blocker
-  before committing partial work.
+- Continue until the task is implemented, documented, validated, and
+  committed, or clearly report the blocker.
+- When a user asks to implement a plan, execute the whole accepted plan.
+  Do not intentionally ship a partial plan slice unless the user explicitly
+  narrows scope or an external blocker makes completion impossible; report
+  any blocker before committing partial work.
 
 ## Documentation Rules
 
@@ -69,7 +71,8 @@ first or in the same task before relying on implementation details.
   decisions. Avoid placeholders, guesses, and obvious file listings.
 - Keep AGENTS.md as protocol only. Move backend/frontend/domain-specific rules
   to the relevant README source of truth.
-- Do not create or fill `TODO.org` Agent Notes only to satisfy process. Update
+- If task is assigned via TODO.org, add Agent Notes section under this task as one level deeper heading, with timestamp and report what is done or discovered. If task is done, replace TODO status to WAITING.
+- Do not create or fill `TODO.org` Agent Notes only to satisfy process. Do not change task not written by you in TODO. Update
   `TODO.org` only when the task itself changes tracked work, status, or plans
   that belong there.
 
