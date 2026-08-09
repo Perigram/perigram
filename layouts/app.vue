@@ -84,7 +84,24 @@
         </main>
 
         <ChatSupport v-if="supportDialog && mobileActiveTab !== 'chats'" />
-        <Menu ref="userMenu" :model="userMenuItems" :popup="true" />
+        <Popover ref="userMenu">
+            <div class="flex min-w-56 flex-col gap-3">
+                <section v-for="group in userMenuItems" :key="group.label" class="flex flex-col gap-1">
+                    <small class="px-2 text-muted-color">{{ group.label }}</small>
+                    <Button
+                        v-for="item in group.items"
+                        :key="item.label"
+                        :label="item.label"
+                        :icon="item.icon"
+                        text
+                        severity="secondary"
+                        size="small"
+                        class="w-full !justify-start"
+                        @click="runUserMenuItem(item)"
+                    />
+                </section>
+            </div>
+        </Popover>
         <Menu ref="mobileScreenMenu" :model="mobileScreenMenuItems" :popup="true" />
         <nav
             v-if="authStore.userIsSet"
@@ -176,6 +193,7 @@
     import Button from 'primevue/button'
     import Badge from 'primevue/badge'
     import Menu from 'primevue/menu'
+    import Popover from 'primevue/popover'
     import Avatar from 'primevue/avatar'
     import ChatSupport from '~/components/ChatSupport.vue'
     import { useSupportDialog } from '~/composables/useModalState'
@@ -497,7 +515,11 @@
     const userMenu = ref();
     const mobileScreenMenu = ref();
     const toggleUserMenu = (event) => {
-        userMenu.value?.show?.(event);
+        userMenu.value?.toggle?.(event);
+    };
+    const runUserMenuItem = async (item) => {
+        userMenu.value?.hide?.();
+        await item?.command?.();
     };
     const organizationSystemScreens = computed(() => authStore.screenManifest
         .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization'))
