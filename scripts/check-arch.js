@@ -18,6 +18,7 @@ const CAPABILITY_FEATURES = [
   'entity-events',
   'files',
   'billing',
+  'artifact-conversions',
   'invitations',
   'material-options',
   'nesting',

@@ -58,6 +58,7 @@ import { cncFrontendEntities, cncSummaries } from './summaries.js';
 import { cncContainment, cncRelations } from './relationships.js';
 import { cncEntityRevisions } from './revisions.js';
 import { cncEntityProducers } from './producers.js';
+import { cncArtifactConversions } from './artifact-conversions.js';
 import { cncAttachmentKinds } from './attachment-kinds.js';
 import { cncEntityCreateInputs } from './entity-create-inputs.js';
 import { cncEntityConstruction } from './entity-construction.js';
@@ -82,6 +83,7 @@ export const cncDomain = {
   relations: cncRelations,
   revisions: cncEntityRevisions,
   producers: cncEntityProducers,
+  artifactConversions: cncArtifactConversions,
   attachmentKinds: cncAttachmentKinds,
   createInputs: cncEntityCreateInputs,
   construction: cncEntityConstruction,

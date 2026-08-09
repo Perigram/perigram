@@ -217,7 +217,7 @@
           <Select
             v-else-if="field.type === 'enum'"
             v-model="promptValues[field.id]"
-            :options="field.options || []"
+            :options="fieldOptions(field)"
           />
           <MultiSelect
             v-else-if="field.type === 'entityList'"
@@ -361,6 +361,7 @@ async function openInputDialog(action, entity = null, context = {}) {
     promptValues[field.id] = initialPromptValue(field);
   }
   await loadPromptOptions(promptedFields(action));
+  syncDependentOptionValues(fields);
   syncCassetteParameterValues(promptedFields(action));
   syncArtifactTemplateValues(promptedFields(action));
   inputDialogVisible.value = true;
@@ -458,6 +459,12 @@ async function postAction(action, entity = null, data = {}, context = {}) {
 
 function applyActionResult(action = {}, result = null) {
   if (!result || typeof result !== 'object') return;
+  if (action.actionKind === 'runCommand') {
+    for (const output of result.entities || []) {
+      if (output?.entity) applyEntitySnapshot(output.type, output.entity);
+    }
+    return;
+  }
   if (result.owner) applyEntitySnapshot(action.entityType, result.owner);
   if (result.created) applyEntitySnapshot(action.relationMutation?.targetType || action.entityType, result.created);
   if (!result.owner && !result.created) {
@@ -517,6 +524,28 @@ function initialPromptValue(field = {}) {
   const value = field.default ?? '';
   if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);
   return value;
+}
+
+function fieldOptions(field = {}) {
+  const options = field.options || [];
+  const sourceFieldId = field.optionsFromEntity;
+  if (!sourceFieldId) return options;
+  const sourceId = promptValues[sourceFieldId];
+  const source = sourceId
+    ? (promptOptions[sourceFieldId] || []).find(option => String(option.value) === String(sourceId))?.entity
+    : pendingEntity.value?.entity;
+  const sourceKind = source?.data?.type;
+  if (!sourceKind) return options;
+  return options.filter(option => !option.sourceKinds || option.sourceKinds.includes(sourceKind));
+}
+
+function syncDependentOptionValues(fields = []) {
+  for (const field of fields.filter(field => field.type === 'enum' && field.optionsFromEntity)) {
+    const options = fieldOptions(field);
+    if (!options.some(option => option.value === promptValues[field.id])) {
+      promptValues[field.id] = options[0]?.value || '';
+    }
+  }
 }
 
 function artifactTemplateVariableFields(field = {}) {
