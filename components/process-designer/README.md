@@ -172,7 +172,9 @@ single block output, never an unexplained map input. Get Field mirrors those
 same concerns, including restoring stored lineage ids to typed references.
 Entity decomposition/read nodes use `fieldSchemas` for entity membership, and
 Create/Modify Entity apply constructible/writable policy when accepting a
-connected block. Persisted fixed nodes keep selected paths, while open nodes
+connected block. Create accepts an open canonical block when that block belongs
+to the selected entity; it does not treat each open entry as a fixed entity
+field. Persisted fixed nodes keep selected paths, while open nodes
 keep stable entry ids plus their authored key/type qualifiers; neither stores
 schema snapshots.
 When the current entity schema makes every field in a persisted Create block

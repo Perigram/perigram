@@ -40,10 +40,7 @@ const rawEntityFieldSchemas = Object.fromEntries(cncEntities.map(entity => {
   const entityType = entity.type;
   const access = fieldAccessFor(entityType);
   const lineageFields = lineageFieldsFor(entityType);
-  const lineagePaths = new Set(lineageFields.map(schema => schema.path));
-  const descriptorFields = descriptorsFor(entityType)
-    .map(descriptor => descriptorField(descriptor))
-    .filter(schema => schema.block !== 'lineage' || lineagePaths.has(schema.path));
+  const descriptorFields = descriptorsFor(entityType).map(descriptor => descriptorField(descriptor));
   const exactAccessFields = ['read', 'write', 'admin']
     .flatMap(level => access[level] || [])
     .filter(path => !String(path).includes('*'))
@@ -135,7 +132,7 @@ function descriptorField(descriptor = {}) {
   return {
     ...field(descriptor.path, base, {
       shape,
-      entityType: base === 'entityRef' ? descriptor.entityType || '' : '',
+      entityType: base === 'entityRef' ? canonicalEntityType(descriptor.entityType) : '',
       itemType,
       unit: descriptorUnit(descriptor)
     }),
@@ -144,6 +141,11 @@ function descriptorField(descriptor = {}) {
     display: descriptor.display || '',
     role: descriptor.role || ''
   };
+}
+
+function canonicalEntityType(entityType = '') {
+  const normalized = normalizeFieldAccessEntityType(entityType);
+  return cncEntities.find(entity => normalizeFieldAccessEntityType(entity.type) === normalized)?.type || entityType;
 }
 
 function descriptorType(descriptor = {}) {

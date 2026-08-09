@@ -20,9 +20,8 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
   DTO redaction and frontend shared blocks.
 - `field-schemas.js` - exact process-programming field paths with canonical
   blocks, structured value/shape/domain/unit types, and read/write capability.
-  Lineage fields come only from canonical organization scope and
-  `cncContainment`; UI field descriptors may label those declared paths but
-  cannot create persistence or process-composition lineage slots.
+  Entity-reference descriptors normalize UI aliases such as `nestingRun` to
+  canonical process entity ids such as `nesting_run`.
   `origin.timestamp` and `status.timestamp` are date-time values, so process
   date operations preserve their time component when scheduling from a
   lifecycle entry.

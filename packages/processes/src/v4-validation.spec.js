@@ -242,6 +242,39 @@ describe('process v4 validation', () => {
     expect(result.errors).not.toContain('Edge compose-create cannot send lineage. to queue: field is not constructible');
   });
 
+  it('accepts an authored open Lineage block when the target entity declares the block', () => {
+    const artifactDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'artifact', blocks: ['lineage'] }, { type: 'nesting_run', blocks: ['identity'] }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        artifact: [{
+          path: 'lineage.organizationId',
+          block: 'lineage',
+          type: { base: 'entityRef', nullable: false, entityType: 'organization' },
+          constructible: false,
+          writable: false
+        }]
+      },
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', nullable: false } }]
+      }
+    };
+    const process = entityBlockProcess('nesting_run');
+    process.processNodes.compose.entries[0].key = 'nestingRunId';
+    process.processNodes.create.entityType = 'artifact';
+
+    const normalized = normalizeProcessDefinition(process, artifactDomain);
+    const result = validateProcessDefinition(process, artifactDomain);
+
+    expect(normalized.processNodes.create.blocks).toContain('lineage');
+    expect(result.errors).not.toContain(
+      'Edge compose-create cannot send lineage.nestingRunId to artifact: field is not constructible'
+    );
+  });
+
   it('keeps an explicitly authored lineage type when normalizing the saved graph', () => {
     const queueDomain = {
       ...domain,
