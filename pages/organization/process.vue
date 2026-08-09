@@ -2141,6 +2141,7 @@ function recomputeProcessPreview() {
 
 function syncNodeData() {
   dataflowPreview.value = null;
+  syncOpenBlockEntryContracts();
   for (const node of nodes.value) {
     if (!node.data?.refId) continue;
     const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
@@ -2224,6 +2225,30 @@ function syncNodeData() {
     node.data.summary = processNodeSummary(record);
     node.data.purpose = node.type === 'processNode' ? processNodeDescription(record) : '';
   }
+}
+
+function syncOpenBlockEntryContracts() {
+  const recordsByGraphId = new Map(nodes.value
+    .filter(node => node.type === 'processNode' && node.data?.refId)
+    .map(node => [node.id, draft.value?.data?.processNodes?.[node.data.refId]]));
+  for (const edge of edges.value) {
+    const target = recordsByGraphId.get(edge.target);
+    const entryId = String(edge.targetHandle || '').replace(/^(?:input|data):entry:/, '');
+    if (!target || !entryId || target.compositionMode !== 'ancestors') continue;
+    const entry = target.entries?.find(item => item.id === entryId);
+    const source = recordsByGraphId.get(edge.source);
+    if (!entry || !source) continue;
+    const sourcePort = portForHandle(resolveCatalogNodePorts(source, catalogContext(source)).outputs, edge.sourceHandle, 'output');
+    const entityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || source.entityType || '';
+    if (!entityType) continue;
+    entry.entityType = entityType;
+    if (!entry.key) entry.key = lineageEntryKey(entityType);
+  }
+}
+
+function lineageEntryKey(entityType = '') {
+  const camel = String(entityType).replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
+  return camel ? `${camel}Id` : '';
 }
 
 function ensureRecord(key, node, factory) {
@@ -4429,6 +4454,13 @@ function inferGenericNodeTypeFromConnection(connection = {}) {
   if (['value.string', 'value.math', 'value.dateTime'].includes(targetRecord.kind)
     && ['left', 'text', 'date', 'value', ''].includes(targetInput)) {
     targetRecord.type = { ...sourcePort.type };
+  }
+  const entryId = targetInput.replace(/^entry:/, '');
+  const entry = targetRecord.entries?.find(item => item.id === entryId);
+  const connectedEntityType = sourcePort.type?.entityType || sourcePort.type?.itemType?.entityType || sourceRecord.entityType || '';
+  if (entry && targetRecord.compositionMode === 'ancestors' && connectedEntityType) {
+    entry.entityType = connectedEntityType;
+    entry.key = lineageEntryKey(connectedEntityType);
   }
   syncProcessNode(targetRecord);
 }
