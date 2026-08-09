@@ -2807,6 +2807,13 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
         ? field.constructible !== false
         : field.writable !== false)
       .map(field => field.block));
+    if (node.kind === 'effect.createEntity') {
+      for (const block of entityBlocks(domain, node.entityType)) {
+        if (domain.blockComposition?.[block] && !['origin', 'status', 'provenance', 'summary'].includes(block)) {
+          allowedBlocks.add(block);
+        }
+      }
+    }
     for (const block of node.blocks || []) {
       if (!allowedBlocks.has(block) || ['origin', 'status', 'provenance', 'summary'].includes(block)) {
         errors.push(`Process node ${nodeId} cannot persist block ${block}`);

@@ -240,8 +240,11 @@ PrimeVue controls because their values are schemas, not entities.
 
 New Draft, Save, and Apply do not depend on a node selection or active
 inspector tab. New Draft exposes creation success or failure rather than
-silently failing; Save becomes active only when the graph is dirty. Apply saves
-and validates the draft first and refuses activation when validation fails. On
+silently failing. Save remains available for every loaded process and persists
+the authored graph as a draft even when it is incomplete or fails activation
+validation; dirty state is an attention indicator, never a persistence gate.
+Apply saves and validates the draft first and refuses activation when
+validation fails. On
 narrow layouts the bottom dock remains icon-only, both side rails become
 overlays, and either rail can be closed independently to recover the canvas.
 

@@ -273,6 +273,7 @@ describe('process v4 validation', () => {
     expect(result.errors).not.toContain(
       'Edge compose-create cannot send lineage.nestingRunId to artifact: field is not constructible'
     );
+    expect(result.errors).not.toContain('Process node create cannot persist block lineage');
   });
 
   it('keeps an explicitly authored lineage type when normalizing the saved graph', () => {
