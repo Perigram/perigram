@@ -46,26 +46,8 @@
                     </div>
                 </div>
 
-                <!-- Right: Chat & User -->
+                <!-- Right: User -->
                 <div class="flex items-center gap-2 shrink-0">
-                    <div v-if="authStore.userIsSet" class="relative flex items-center">
-                        <Button
-                            icon="pi pi-comments"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('support.openChat')"
-                            @click="openSupportDialog"
-                        />
-                        <Badge
-                            v-if="supportChatStore.totalUnread"
-                            :value="supportChatStore.totalUnread"
-                            severity="danger"
-                            size="small"
-                            class="absolute -right-1 -top-1"
-                        />
-                    </div>
-                    
                     <div class="relative flex items-center" v-if="authStore.userIsSet">
                         <Button 
                             type="button" 
@@ -175,10 +157,11 @@
             icon="pi pi-comment"
             severity="secondary"
             rounded
+            size="large"
             :aria-label="$t('support.openChat')"
             @click="openSupportDialog"
             v-if="!supportDialog"
-            class="fixed bottom-8 right-8 z-[999] hidden [box-shadow:var(--ck-shadow-overlay)] md:inline-flex"
+            class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 [box-shadow:var(--ck-shadow-overlay)] md:inline-flex"
         />
     </div>
 </template>
@@ -529,28 +512,17 @@
         const canOpenGeneratedRoute = (route) => !authStore.processActive || navStore.processAllowsRoute(route);
 
         // 1. Current Organization & Context
-        if (authStore.organizationData && organizationSystemScreens.value.length) {
-            const organizationItems = organizationSystemScreens.value.map(screen => ({
-                label: screenName(screen),
-                icon: screen.icon || screenIcon(screen),
-                command: () => router.push(screen.route)
-            }));
-            if (organizationItems.length) items.push({
-                label: authStore.organizationData.identity?.name || authStore.organizationData.name || t('organization.workspace'),
-                items: organizationItems
-            });
-        }
-
-        // 2. Organization Switcher (if multiple)
+        // Organization Switcher (if multiple)
         if (authStore.userOrganizations.length > 1) {
             items.push({
                 label: t('auth.organization'),
                 items: authStore.userOrganizations.map(org => ({
-                    label: org.name,
-                    icon: org.id === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
+                    label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
+                    icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
                     command: async () => {
-                        if (org.id !== authStore.userData.organizationId?.toString()) {
-                            await authStore.switchOrganization(org.id);
+                        const organizationId = org._id?.toString() || org.id?.toString();
+                        if (organizationId && organizationId !== authStore.userData.organizationId?.toString()) {
+                            await authStore.switchOrganization(organizationId);
                             router.push('/');
                         }
                     }
@@ -562,6 +534,11 @@
         items.push({
             label: authStore.userData.name || t('common.user'),
             items: [
+                {
+                    label: t('support.chatTitle'),
+                    icon: 'pi pi-comments',
+                    command: () => router.push('/chats')
+                },
                 {
                     label: t('common.toggleTheme'),
                     icon: themeIcon.value,

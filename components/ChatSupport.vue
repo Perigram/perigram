@@ -40,6 +40,16 @@
                     />
                     <Button
                         v-if="!embedded"
+                        icon="pi pi-external-link"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('common.open')"
+                        @click="openChatsPage"
+                    />
+                    <Button
+                        v-if="!embedded"
                         icon="pi pi-times"
                         severity="secondary"
                         text
@@ -304,26 +314,10 @@ const localizedEntityTypeLabel = (type) => {
     return type
 }
 
-const listedDirectUserIds = computed(() => new Set(displayConversations.value
-    .filter(conversation => conversation.conversationKind === 'direct')
-    .map(participantUserId)
-    .filter(Boolean)))
+const newChatUserOptions = computed(() => newChatUsers.value.filter(option => option.value !== currentUserId.value))
 
-const newChatUserOptions = computed(() => newChatUsers.value.filter(option => option.value !== currentUserId.value && !listedDirectUserIds.value.has(option.value)))
-
-const displayConversations = computed(() => {
-    const support = supportChatStore.supportConversation || {
-        conversationKey: currentSupportConversationKey.value,
-        conversationKind: 'support',
-        participant: { identity: { name: t('support.chatTitle') } },
-        lastMessage: '',
-        unreadCount: 0
-    }
-    const others = supportChatStore.conversations.filter(item => item.conversationKey !== support.conversationKey)
-    return [support, ...others]
-})
-
-const currentSupportConversationKey = computed(() => currentUserId.value ? `support:${currentUserId.value}` : 'support')
+const displayConversations = computed(() => supportChatStore.conversations
+    .filter(conversation => conversation.conversationKind === 'direct'))
 
 const chatTitle = computed(() => activeConversation.value ? conversationLabel(activeConversation.value) : t('support.chatTitle'))
 
@@ -618,6 +612,11 @@ const showInbox = () => {
 const closeChat = () => {
     showInbox()
     if (!props.embedded) supportDialog.value = false
+}
+
+const openChatsPage = () => {
+    closeChat()
+    navigateTo('/chats')
 }
 
 const openDirectTarget = async () => {

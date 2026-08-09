@@ -31,7 +31,7 @@ const effectiveTitle = computed(() => props.title || '');
     <div v-if="showHeader" class="flex flex-col gap-4" data-entity-page-header>
       <TraceChain v-if="showTrace" :entity="entity" :entity-type="entityType" />
 
-      <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div class="entity-page-header-content flex flex-col gap-3">
         <div class="flex min-w-0 flex-col gap-2">
           <div v-if="effectiveTitle" class="text-sm text-muted-color">
             {{ effectiveTitle }}
@@ -61,14 +61,32 @@ const effectiveTitle = computed(() => props.title || '');
 
     <Divider v-if="showHeader" class="m-0" />
 
-    <div :class="[ $slots.sidebar ? 'grid grid-cols-1 lg:grid-cols-12 gap-6' : 'flex flex-col gap-6' ]">
-      <div :class="[ $slots.sidebar ? 'lg:col-span-8 flex flex-col gap-6' : 'flex flex-col gap-6' ]">
+    <div :class="[ $slots.sidebar ? 'entity-page-content-grid grid grid-cols-1 gap-6' : 'flex flex-col gap-6' ]">
+      <div :class="[ $slots.sidebar ? 'entity-page-main flex flex-col gap-6' : 'flex flex-col gap-6' ]">
         <slot></slot>
       </div>
 
-      <div v-if="$slots.sidebar" class="lg:col-span-4 flex flex-col gap-6">
+      <div v-if="$slots.sidebar" class="entity-page-sidebar flex flex-col gap-6">
         <slot name="sidebar"></slot>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.entity-page {
+  container-type: inline-size;
+}
+
+@container (min-width: 48rem) {
+  .entity-page-header-content {
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .entity-page-content-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  }
+}
+</style>
