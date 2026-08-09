@@ -521,7 +521,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     const service = getEntityServiceForAction(action);
     if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
     const parentContext = await resolveParentCreationContext(action, entities, auth);
-    const createdEntity = await service.create(createActionPayload(action, data, entities, parentContext), auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
+    const createdEntity = await service.create(createActionPayload(action, data, entities, parentContext, organizationId), auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
     const created = assertCreatedParentContext(entityType, createdEntity, parentContext);
     await linkCreatedEntityToContextRelation({ action, data, entities, created, auth });
     const targetState = action.status?.to;
@@ -767,9 +767,15 @@ async function resolveProcessGraphEntityReference(record, source, auth = {}) {
   return multiple ? resolved : resolved[0];
 }
 
-function createActionPayload(action = {}, data = {}, entities = {}, parentContext = null) {
+function createActionPayload(action = {}, data = {}, entities = {}, parentContext = null, organizationId = '') {
   const payload = { ...(data || {}) };
   delete payload.linkCreatedTo;
+  if (organizationId) {
+    payload.lineage = {
+      ...(payload.lineage || {}),
+      organizationId
+    };
+  }
   if (action.parentEntityType) {
     const parentId = parentContext?.parentId || entityInputId(entities?.[action.parentEntityType]);
     if (!parentId) {
@@ -1533,7 +1539,7 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
     if (!service.create) throw new Error(`Entity service cannot create ${entityType}`);
     const parentContext = await resolveParentCreationContext(record, parentEntities, auth);
     const created = await service.create(
-      createActionPayload(record, draft, parentEntities, parentContext),
+      createActionPayload(record, draft, parentEntities, parentContext, resolveOrganizationId(auth)),
       auth.userId,
       resolveOrganizationId(auth),
       auth.role,

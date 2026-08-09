@@ -152,8 +152,9 @@ the exact reference supplied by the linked entity row. Persistence still
 delegates to the owner entity's `processUpdate` service. Auth hydration and
 execution resolve actions from the same freshly compiled canonical graph; the
 stored activation snapshot is not a second executable action source.
-Parent-scoped create actions also pass declared containment lineage and pinned
-parent revision provenance in the initial create payload. The owning feature
+Every Create Entity payload receives the active organization as canonical
+`lineage.organizationId`. Parent-scoped actions additionally pass declared
+containment lineage and pinned parent revision provenance. The owning feature
 service must persist that context during create; process definitions do not
 write child rows directly or patch another feature's collection after creation.
 Create Entity owns both generic and typed domain construction. Generic mode
