@@ -37,7 +37,6 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.type` | String | type field |
 | `data.values` | Array | values field |
 | `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
-
 ### cassette_designs
 *Cassette-designs - manages cassette designs*
 
