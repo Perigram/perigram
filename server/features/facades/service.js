@@ -4,12 +4,10 @@ import { createData, createIdentity } from '~/server/core/blocks/index.js';
 import { createProcessUpdateHandler } from '~/server/features/_template/process-update-handler.js';
 import * as artifactsService from '~/server/features/artifacts/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
-import * as projectsService from '~/server/features/projects/service.js';
 import * as repository from './repository.js';
 import { Facade } from './model.js';
 import { getLineageFilter, hasLineagePermission } from '~/server/utils/permissions.js';
 import { statusService } from '~/server/core/machines/service.js';
-import { toFlexibleId } from '~/server/utils/objectid.js';
 import { generateRandomString } from '~/server/utils/strings.js';
 
 const toDTO = raw => raw ? new Facade(raw).toJSON() : null;
@@ -36,17 +34,9 @@ async function assertSourceModel(sourceModel, auth) {
 }
 
 export async function create(input = {}, userId, userOrg, userRole, auth) {
-  const requestedLineage = input.lineage && typeof input.lineage === 'object' ? input.lineage : {};
-  const projectId = input.projectId || requestedLineage.projectId;
-  if (!projectId) throw createError({ statusCode: 400, message: 'Facade project lineage is required' });
-  const project = await projectsService.getById(projectId);
-  if (!project) throw createError({ statusCode: 404, message: 'Project not found' });
-  const lineage = {
-    ...requestedLineage,
-    ...(project.lineage || {}),
-    projectId: toFlexibleId(projectId),
-    organizationId: project.lineage?.organizationId || toFlexibleId(userOrg)
-  };
+  const lineage = input.lineage && typeof input.lineage === 'object' ? { ...input.lineage } : {};
+  if (!lineage.organizationId) throw createError({ statusCode: 400, message: 'Facade organization lineage is required' });
+  if (!lineage.projectId) throw createError({ statusCode: 400, message: 'Facade project lineage is required' });
   const origin = await statusService.initialStatusForOrganization('facade', lineage.organizationId, userId, { note: 'Facade created' });
   if (!hasLineagePermission(auth, { lineage, status: origin }, 'facades', 'write')) throw createError({ statusCode: 403, message: 'Permission denied for facades' });
   const source = input.relations?.sourceModel ? await assertSourceModel(input.relations.sourceModel, auth) : null;

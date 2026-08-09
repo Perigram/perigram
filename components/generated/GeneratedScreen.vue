@@ -268,7 +268,9 @@ import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCr
 import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useAuthStore } from '~/stores/auth';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
+import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
@@ -279,6 +281,7 @@ const props = defineProps({
 
 const toast = useToast();
 const { t, te } = useI18n();
+const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const screenRef = toRef(props, 'screen');
 const { screen, loading, error, load, applyEntitySnapshot, sourceState } = useGeneratedScreen(screenRef);
@@ -450,6 +453,7 @@ async function postAction(action, entity = null, data = {}, context = {}) {
       }
     });
     applyActionResult(action, result);
+    await openCreatedEntity(action, result);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
   } catch (err) {
     showActionError(err);
@@ -463,6 +467,19 @@ function applyActionResult(action = {}, result = null) {
   if (!result.owner && !result.created) {
     applyEntitySnapshot(action.entityType, result.entity || result);
   }
+}
+
+async function openCreatedEntity(action = {}, result = null) {
+  if (action.actionKind !== 'createEntity' || !result || typeof result !== 'object') return;
+  const entity = result.created || (!result.owner ? (result.entity || result) : null);
+  const entityType = action.relationMutation?.targetType || action.entityType;
+  const route = detailRouteForEntity({
+    entity,
+    entityType,
+    screenKey: screen.value.screenKey || screen.value.id,
+    manifest: authStore.screenManifest
+  });
+  if (route) await navigateTo(route);
 }
 
 function actionEntities(action = {}, entity = null, context = {}) {
