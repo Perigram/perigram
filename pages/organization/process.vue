@@ -1212,7 +1212,7 @@ const designerDockItems = computed(() => [
     icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
     label: t('common.save'),
     onClick: saveDraftFromDock,
-    disabled: (!isDirty.value && !isActiveProcess.value) || savingDraft.value || creatingDraft.value || applyingProcess.value,
+    disabled: !draft.value || savingDraft.value || creatingDraft.value || applyingProcess.value,
     attention: isDirty.value
   },
   {
