@@ -40,7 +40,10 @@ const rawEntityFieldSchemas = Object.fromEntries(cncEntities.map(entity => {
   const entityType = entity.type;
   const access = fieldAccessFor(entityType);
   const lineageFields = lineageFieldsFor(entityType);
-  const descriptorFields = descriptorsFor(entityType).map(descriptor => descriptorField(descriptor));
+  const lineagePaths = new Set(lineageFields.map(schema => schema.path));
+  const descriptorFields = descriptorsFor(entityType)
+    .map(descriptor => descriptorField(descriptor))
+    .filter(schema => schema.block !== 'lineage' || lineagePaths.has(schema.path));
   const exactAccessFields = ['read', 'write', 'admin']
     .flatMap(level => access[level] || [])
     .filter(path => !String(path).includes('*'))

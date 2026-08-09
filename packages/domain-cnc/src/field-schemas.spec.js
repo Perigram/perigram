@@ -57,6 +57,10 @@ describe('CNC entity field schemas', () => {
       base: 'entityRef',
       entityType: 'project'
     });
+    expect(getEntityFieldSchema('artifact', 'lineage.nestingRunId')).toBeNull();
+    expect(cncEntityFieldSchemas.artifact.filter(field => field.block === 'lineage')).toEqual([
+      expect.objectContaining({ path: 'lineage.organizationId', constructible: false })
+    ]);
   });
 
   it('separates create-time composition from update permission', () => {
