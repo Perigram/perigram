@@ -435,6 +435,13 @@ manifest. A queue command such as `solveNesting` must be present on that
 queue-detail screen because it is executed against the queue input; output
 entity grants for `nesting_runs` or `sheet_designs` must not be used to decide
 where the command panel renders.
+Generated command dialogs use the command input contract directly. A command
+can mark a context-bound entity input `prompt: false`; a process action wired
+to that entity then renders as its action button without a redundant picker.
+Enum options may declare `optionsFromEntity`; the dialog filters those choices
+using the selected/context entity DTO. Command results may include output DTOs
+beside their typed entity references, and the generated screen applies those
+snapshots to any matching loaded source immediately.
 Queue composition producers are resolved from the domain producer registry and
 then bound to the current user's compiled process action manifest where a
 process action provides the matching construction mode. Existing cassette

@@ -83,6 +83,17 @@ the source and template revision under `provenance`.
 replaces the rendered file. PDF generation without a template is rejected
 instead of creating a permanently pending record.
 
+## Conversion
+
+`convertArtifact` is an artifact command backed by the
+`artifact-conversions` capability. Its domain conversion registry controls both
+the process-designer contract and the allowed runtime source kind. The current
+artifact-to-artifact conversion copies `LAYOUT_DXF` bytes to a new
+`DXF_SOURCE` record; the copied artifact has its own file revision and records
+the source artifact in `provenance.derivedFrom`. `DXF_SOURCE` can instead be
+converted into a `cassette_design` through the existing cassette import
+service. The conversion layer does not infer arbitrary byte conversions.
+
 ## Related
 
 - [domain-cnc attachment kinds](../../../packages/domain-cnc/README.md)

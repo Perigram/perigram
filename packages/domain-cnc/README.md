@@ -133,6 +133,15 @@ name and file, while its stored metadata remains internal.
 `generateAttachment` is a polymorphic command: its process-designer contract is
 one abstract `Attachment source` input with `attachments.generate` capability
 and accepted source types.
+`artifact-conversions.js` declares supported source-kind to target contracts.
+`convertArtifact` is the corresponding process command: it accepts the current
+artifact, filters its target choices by source kind, and delegates the actual
+work to the server conversion capability. The current contracts are
+`LAYOUT_DXF → DXF_SOURCE`, which copies the stored DXF into the upload-backed
+source kind with artifact provenance, and `DXF_SOURCE → cassette_design`, which
+uses the typed cassette import constructor. New conversions belong in this
+registry and must have a server implementation; a matching MIME type alone is
+not an implicit conversion.
 `artifact_template` is separate organization-owned master data for DXF/PDF
 generation layouts. The command accepts it as an optional entity input and
 accepts typed assignments through `parameters.values`. Generated artifacts pin

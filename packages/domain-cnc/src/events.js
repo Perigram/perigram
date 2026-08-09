@@ -39,6 +39,11 @@ export const cncEvents = {
     label: 'Attachment generation failed',
     informational: true
   },
+  artifactConverted: {
+    id: 'artifact.converted',
+    label: 'Artifact converted',
+    informational: true
+  },
   configBotDraftGenerated: {
     id: 'configBot.draftGenerated',
     label: 'ConfigBot draft generated',

@@ -1,3 +1,5 @@
+import { cncArtifactConversions } from './artifact-conversions.js';
+
 export const cncServiceContracts = {
   nesting: {
     service: 'nesting',
@@ -12,7 +14,7 @@ export const cncServiceContracts = {
     label: 'Attachments service',
     inputs: ['sheet_design', 'nesting_run', 'cassette_design', 'cassette_instance', 'artifact_template'],
     outputs: ['artifact'],
-    actions: ['generateAttachment'],
+    actions: ['generateAttachment', 'convertArtifact'],
     triggers: ['attachment.generationRequested']
   },
   cassettes: {
@@ -137,6 +139,43 @@ export const cncCommands = {
       ],
       executionGrants: [
         { feature: 'artifact_templates', level: 'read', actions: { view: true } }
+      ]
+    }
+  },
+  convertArtifact: {
+    id: 'convertArtifact',
+    service: 'artifacts',
+    action: 'convert',
+    label: 'Convert artifact',
+    input: {
+      entities: [
+        { name: 'artifact', label: 'Artifact', type: 'artifact', required: true, prompt: false }
+      ],
+      parameters: [
+        {
+          name: 'conversion',
+          label: 'Convert to',
+          type: 'enum',
+          required: true,
+          options: cncArtifactConversions.map(({ id, label, sourceKinds }) => ({ value: id, label, sourceKinds })),
+          optionsFromEntity: 'artifact'
+        },
+        { name: 'name', label: 'Name', type: 'string' },
+        { name: 'layerMapping', label: 'Layer mapping', type: 'object', default: {} },
+        { name: 'parameters', label: 'Parameters', type: 'object', default: {} }
+      ]
+    },
+    output: {
+      entities: ['artifact', 'cassette_design'],
+      events: ['artifact.converted']
+    },
+    access: {
+      permissions: [
+        { feature: 'artifacts', level: 'write' }
+      ],
+      executionGrants: [
+        { feature: 'cassette_designs', level: 'write', actions: { create: true } },
+        { feature: 'cassettes', level: 'write', actions: { create: true } }
       ]
     }
   },

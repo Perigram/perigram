@@ -1500,7 +1500,7 @@ function commandActionInputs(command = {}) {
         entityType: input.type,
         kind: 'entity',
         required: false,
-        prompt: true,
+        prompt: input.prompt !== false,
         path: `entities.${input.name || input.type}`
       })),
     ...(command.input?.parameters || []).map(input => ({
@@ -1509,6 +1509,7 @@ function commandActionInputs(command = {}) {
       kind: input.type === 'object' ? 'json' : input.type || 'data',
       type: input.type || 'string',
       options: input.options || [],
+      optionsFromEntity: input.optionsFromEntity || '',
       default: input.default ?? null,
       required: false,
       prompt: input.display !== 'hidden',
