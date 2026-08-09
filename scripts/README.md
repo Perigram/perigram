@@ -13,8 +13,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
-  retired vocabulary, portable-runtime import rules, and non-blocking migration
-  inventory output for legacy lifecycle/service/UI hotspots.
+  retired vocabulary, portable-runtime import rules, concrete CNC domain leaks
+  in generic modules, duplicate object keys in domain registries, concrete
+  entity-name branches in `@cutkit/processes`, runtime legacy-process bridges,
+  cross-feature repository imports, and source-assertion test practices. Every
+  finding is blocking; there is no non-blocking migration inventory.
 - `check-agent-scope.js`: Diff guard for top-layer composition agents. It
   compares committed, staged, unstaged, and untracked files against
   `.agents/app-layer.allowlist` and fails if an agent touched core/runtime/shared
@@ -96,12 +99,8 @@ Non-entity capability directories must be added to the explicit capability list
 in `check-arch.js` and documented in `server/features/README.md`.
 
 The checker also blocks live entity UI that passes local `:status-actions`
-instead of relying on server-provided `EntityStatus` workflow actions. It prints
-a non-blocking migration inventory with file, line, symbol, and rule id for
-legacy `createStatus(...)`, raw target-state `statusService.transition(...)`,
-feature-service `db.collection(...)`, and hardcoded UI lifecycle literals.
-These entries document remaining refactor scope; only categories already
-migrated to a strict boundary fail the command.
+instead of relying on server-provided `EntityStatus` workflow actions. Every
+finding is a blocking error; there is no non-blocking migration inventory.
 
 `npm run agent:scope-check -- --base origin/local` is the mandatory guard for
 external top-layer agents before they commit or push. It is intentionally
