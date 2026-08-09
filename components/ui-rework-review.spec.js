@@ -29,7 +29,8 @@ describe('reviewed UI rework contracts', () => {
     expect(read('../pages/profile/index.vue')).toContain("$t('profile.viewOrganization')");
     expect(read('../pages/profile/index.vue')).not.toContain('v-for="screen in organizationScreens"');
     expect(read('../pages/profile/index.vue')).toContain("v-if=\"activeProfileTab === '0'\"");
-    expect(read('../pages/profile/index.vue')).toContain('<Tabs v-model:value="activeProfileTab">');
+    expect(read('../pages/profile/index.vue')).toContain('<Tabs :value="activeProfileTab">');
+    expect(read('../pages/profile/index.vue')).toContain("openProfileTab('organizations')");
   });
 
   it('renders organization navigation as direct actions around the canonical entity page', () => {

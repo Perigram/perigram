@@ -1,10 +1,10 @@
 <template>
     <StandardPage :title="$t('nav.profile')">
-        <Tabs v-model:value="activeProfileTab">
+        <Tabs :value="activeProfileTab">
             <TabList>
-                <Tab value="0">{{ $t('profile.account') }}</Tab>
-                <Tab value="1">{{ $t('profile.preferences') }}</Tab>
-                <Tab value="2">{{ $t('auth.organization') }}</Tab>
+                <Tab value="0" @click="openProfileTab('account')">{{ $t('profile.account') }}</Tab>
+                <Tab value="1" @click="openProfileTab('preferences')">{{ $t('profile.preferences') }}</Tab>
+                <Tab value="2" @click="openProfileTab('organizations')">{{ $t('auth.organization') }}</Tab>
             </TabList>
         </Tabs>
         <div>
@@ -140,7 +140,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { storeToRefs } from 'pinia';
@@ -168,6 +168,7 @@ definePageMeta({
 });
 
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
 const { t, locale, locales, setLocale } = useI18n();
 const organizationsEntity = useEntity('organization');
@@ -185,7 +186,19 @@ const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
 const avatarInput = ref(null);
 const avatarUploading = ref(false);
-const activeProfileTab = ref('0');
+const PROFILE_TAB_VALUES = {
+    account: '0',
+    preferences: '1',
+    organizations: '2'
+};
+const activeProfileTab = computed(() => PROFILE_TAB_VALUES[String(route.query.tab || 'account')] || '0');
+
+const openProfileTab = (tab) => {
+    const query = { ...route.query };
+    if (tab === 'account') delete query.tab;
+    else query.tab = tab;
+    return router.replace({ path: route.path, query });
+};
 
 const organizationMemberships = computed(() => authStore.memberships.map(membership => {
     const id = String(membership.organizationId || '');
