@@ -9,6 +9,13 @@ balances.
 
 ## Runtime Pricing
 
+Billing presentation is deployment-owned. `NUXT_BILLING_MODE` accepts
+`none`, `prepaidTokens`, or `tariff`. A tariff deployment may supply
+`NUXT_BILLING_CURRENT_TARIFF` and an optional localized
+`NUXT_BILLING_CURRENT_TARIFF_LABEL_KEY`; only that mode shows a current-tariff
+status in the organization account UI. The persisted billing-account `status`
+is not user-facing tariff state.
+
 Purchasable token packages come from runtime configuration:
 
 ```env
@@ -20,6 +27,9 @@ must not hardcode package prices or read package definitions from app database
 collections. Package display names should use `labelKey` so the generated
 organization account screen can resolve localized text; `label` is only the
 runtime-config fallback when no translation key is supplied.
+Runtime configuration remains an API implementation detail; the UI describes
+packages as organization token top-ups and explains that tokens fund
+compute-intensive services such as nesting and AI interactions.
 
 ## Collections
 

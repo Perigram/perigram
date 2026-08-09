@@ -12,7 +12,12 @@
                         <div class="md:col-span-4">
                             <Panel class="h-full" :header="$t('profile.title')">
                                     <div class="flex flex-col items-center text-center gap-4 py-4">
-                                        <Avatar :label="user.name ? user.name[0].toUpperCase() : 'U'" size="xlarge" shape="circle" />
+                                        <Avatar :image="user.avatarUrl || null" :label="!user.avatarUrl && user.name ? user.name[0].toUpperCase() : null" size="xlarge" shape="circle" />
+                                        <input ref="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="uploadAvatar" />
+                                        <div class="flex flex-wrap justify-center gap-2">
+                                            <Button :label="$t('profile.changeAvatar')" icon="pi pi-camera" size="small" :loading="avatarUploading" @click="avatarInput?.click()" />
+                                            <Button v-if="user.avatarUrl" :label="$t('profile.removeAvatar')" icon="pi pi-trash" severity="secondary" text size="small" :disabled="avatarUploading" @click="removeAvatar" />
+                                        </div>
                                         <div class="flex flex-col gap-1">
                                             <p class="m-0">{{ user.name }}</p>
                                             <p class="m-0 italic">{{ user.email }}</p>
@@ -75,44 +80,39 @@
                             </template>
                         </ActionToolbar>
 
-                        <!-- Memberships List -->
                         <ResponsiveGrid variant="wide">
-                            <Panel 
-                                v-for="membership in authStore.userData.memberships" 
-                                :key="membership.organizationId"
-                                class="relative overflow-hidden"
-                                :class="[membership.status === 'pending' ? 'opacity-50' : '']"
-                                @click="membership.status !== 'pending' && authStore.switchOrganization(membership.organizationId)"
+                            <OrganizationCard
+                                v-for="entry in organizationMemberships"
+                                :key="entry.id"
+                                :organization="entry.organization"
                             >
-                                    <div class="flex items-center justify-between mb-4">
-                                        <span class="text-lg">{{ getOrgName(membership.organizationId) }}</span>
-                                        <div class="flex gap-2">
-                                            <Tag v-if="membership.status === 'pending'" :value="$t('common.pending')" severity="warn" />
-                                            <Tag v-if="membership.organizationId === authStore.userData.organizationId" :value="$t('common.active')" severity="success" />
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-col gap-3 py-2">
-                                        <div class="flex items-center gap-2">
-                                            <i class="pi pi-shield"></i>
-                                            <span>{{ membership.role }}</span>
-                                        </div>
-                                        <div v-if="membership.status === 'pending'" class="mt-2 py-2 italic opacity-60">
-                                            {{ $t('profile.membershipPending') }}
-                                        </div>
-                                        <div v-else-if="membership.organizationId === authStore.userData.organizationId && organizationOverviewScreen" class="flex flex-wrap justify-end gap-2 mt-2 pt-2 border-t border-muted border-dashed">
-                                            <Button :label="$t('profile.viewOrganization')" icon="pi pi-building" text size="small" @click.stop="router.push(organizationOverviewScreen.route || '/organization')" />
+                                <template #context>
+                                    <Tag v-if="entry.membership.status === 'pending'" :value="$t('common.pending')" severity="warn" size="small" />
+                                    <Tag v-else-if="entry.active" :value="$t('common.active')" severity="success" size="small" />
+                                </template>
+                                <template #actions>
+                                    <div class="flex flex-wrap justify-end gap-2">
+                                        <Button
+                                            v-if="entry.membership.status !== 'pending' && !entry.active"
+                                            :label="$t('profile.switchOrganization')"
+                                            icon="pi pi-arrow-right-arrow-left"
+                                            size="small"
+                                            @click="switchOrganization(entry.id)"
+                                        />
+                                        <template v-else-if="entry.active">
                                             <Button
-                                                v-for="screen in organizationRouteScreens"
+                                                v-for="screen in organizationScreens"
                                                 :key="screen.screenKey || screen.id"
                                                 :label="systemScreenLabel(screen)"
                                                 :icon="screen.icon || 'pi pi-arrow-right'"
                                                 text
                                                 size="small"
-                                                @click.stop="router.push(screen.route)"
+                                                @click="router.push(screen.route)"
                                             />
-                                        </div>
+                                        </template>
                                     </div>
-                            </Panel>
+                                </template>
+                            </OrganizationCard>
                         </ResponsiveGrid>
                     </div>
                 </TabPanel>
@@ -165,6 +165,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import { useEntity } from '~/composables/useEntity';
 import { selectOptionText } from '~/utils/selectOptions';
 import { generatedScreenLabel } from '~/utils/generated-labels';
@@ -185,16 +186,26 @@ const user = computed(() => userRef.value || {});
 const organizationScreens = computed(() => authStore.screenManifest
     .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization'))
     .sort((left, right) => organizationScreenOrder(left) - organizationScreenOrder(right)));
-const organizationOverviewScreen = computed(() => organizationScreens.value.find(screen => screen.screenKey === 'organization_overview') || organizationScreens.value[0] || null);
-const organizationRouteScreens = computed(() => organizationScreens.value.filter(screen => screen.route && screen.screenKey !== organizationOverviewScreen.value?.screenKey));
-
 const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
+const avatarInput = ref(null);
+const avatarUploading = ref(false);
 
-const getOrgName = (orgId) => {
-    const org = authStore.userOrganizations.find(o => o._id.toString() === orgId.toString());
-    return org ? org.name : t('profile.unknownOrganization');
-};
+const organizationMemberships = computed(() => authStore.memberships.map(membership => {
+    const id = String(membership.organizationId || '');
+    const organization = authStore.userOrganizations.find(item => String(item._id || item.id) === id) || {
+        _id: id,
+        identity: { name: t('profile.unknownOrganization') },
+        lineage: {},
+        data: {}
+    };
+    return {
+        id,
+        membership,
+        organization,
+        active: id === String(authStore.userData.organizationId || authStore.organizationData?._id || '')
+    };
+}));
 
 function systemScreenLabel(screen = {}) {
     return generatedScreenLabel(screen, { t, te });
@@ -235,6 +246,38 @@ const createOrganization = async () => {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error.message || t('auth.organizationCreateFailed'), life: 3000 });
     } finally {
         submittingOrg.value = false;
+    }
+};
+
+const switchOrganization = async (organizationId) => {
+    await authStore.switchOrganization(organizationId);
+};
+
+const uploadAvatar = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    avatarUploading.value = true;
+    try {
+        const form = new FormData();
+        form.append('file', file);
+        await $fetch(`/api/users/${authStore.userData.userId || authStore.userData.id}/avatar`, { method: 'PUT', body: form });
+        await authStore.setUser();
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('profile.avatarUpdated'), life: 3000 });
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
+    } finally {
+        avatarUploading.value = false;
+        event.target.value = '';
+    }
+};
+
+const removeAvatar = async () => {
+    avatarUploading.value = true;
+    try {
+        await $fetch(`/api/users/${authStore.userData.userId || authStore.userData.id}/avatar`, { method: 'DELETE' });
+        await authStore.setUser();
+    } finally {
+        avatarUploading.value = false;
     }
 };
 

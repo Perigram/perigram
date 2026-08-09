@@ -314,7 +314,7 @@ const localizedEntityTypeLabel = (type) => {
     return type
 }
 
-const newChatUserOptions = computed(() => newChatUsers.value.filter(option => option.value !== currentUserId.value))
+const newChatUserOptions = computed(() => newChatUsers.value)
 
 const displayConversations = computed(() => supportChatStore.conversations
     .filter(conversation => conversation.conversationKind === 'direct'))

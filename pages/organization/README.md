@@ -16,6 +16,10 @@ same organization billing route group. User profile routes do not buy or hold
 credits. Billing checkout is a billing-screen action gated by
 `organizations:admin`; team management and process design are separate route
 screens gated by their own effective permissions.
+The account panel explains token use in compute-intensive services. It never
+exposes runtime-configuration implementation wording, and it shows a current
+tariff tag only when deployment billing mode is `tariff` and a current tariff
+is configured.
 
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the

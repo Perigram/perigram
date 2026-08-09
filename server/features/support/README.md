@@ -23,6 +23,9 @@ Direct user conversations are allowed only when the authenticated user is an
 admin or shares an organization membership with the target user. Admin support
 routes remain scoped to support conversations and do not list direct user
 threads.
+An explicit recipient equal to the authenticated user creates the deterministic
+`direct:<userId>:<userId>` self-conversation; only a missing recipient selects
+the legacy customer-support channel.
 
 Conversation read state is stored in `supportConversationReads` as
 `{ conversationKey, userId, lastReadAt, updatedAt }`. Conversation lists compute

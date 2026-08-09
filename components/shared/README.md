@@ -447,7 +447,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   location rows where direct route navigation is intended. Do not use it for
   entity relation summaries inside cards/details; use `EntityInlineRef` so the
   relation resolves through `useEntity` and the registered entity card.
-- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` — never pass raw ancestry arrays. Resolves names async via `useEntityStore`; cached per session.
+- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` — never pass raw ancestry arrays. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove ancestry already represented by an enclosing entity surface; generated child collections pass their displayed parent through this contract.
   Card title chrome uses compact trace mode: it shows the nearest parent
   lineage item and an ellipsis expander when more ancestry exists. Expanded
   popovers and detail pages render the full lineage breadcrumb chain. Supported

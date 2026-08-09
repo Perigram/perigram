@@ -98,6 +98,10 @@ an uncaught route promise.
 Public auth/invitation pages may use full-height shells because they run
 outside the app layout, but their content chrome should still come from
 PrimeVue/shared primitives instead of raw bordered containers.
+The invitation token page renders only the sanitized invitation DTO returned by
+its public endpoint; it does not fetch the protected organization record. Its
+bounded panel centers in the viewport, wraps long errors, and keeps recovery
+navigation as a standard PrimeVue button.
 `pages/auth/register.vue` is a public signup form. Normal signup collects the
 new user's credentials plus organization name and starter process and submits them to
 `/api/auth/register`; invitation signup is selected by the `invitation` query
@@ -132,6 +136,10 @@ The organization workspace is also the billing account surface: token packages,
 invoices, payment sync, and ledger rows belong to the active organization.
 Profile remains a personal account/preferences/membership page and must not
 show project usage or user-owned credit purchase flows.
+Its account surface uploads/removes the current user's avatar through the user
+avatar API. Organization memberships render canonical `OrganizationCard`
+surfaces: inactive memberships expose context switching, while the active card
+renders only routes from the generated organization system-screen manifest.
 
 `/chats` is the authenticated full-page conversation inbox. The app shell's
 floating chat launcher opens the same inbox as a compact drawer, whose expand

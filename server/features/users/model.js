@@ -32,10 +32,14 @@ export class User extends BaseEntity {
   }
 
   toJSON() {
-    const { passwordHash, ...safeData } = this.data;
+    const { passwordHash, avatar, ...safeData } = this.data;
+    const updatedAt = avatar?.updatedAt ? new Date(avatar.updatedAt).getTime() : null;
     return {
       ...super.toJSON(),
-      data: safeData
+      data: {
+        ...safeData,
+        ...(avatar?.fileId ? { avatarUrl: `/api/users/${this.id}/avatar${updatedAt ? `?v=${updatedAt}` : ''}` } : {})
+      }
     };
   }
 }

@@ -8,6 +8,7 @@
         <div class="flex flex-wrap gap-2">
           <Tag :value="organization.data?.type || $t('common.default')" severity="secondary" size="small" />
           <Tag v-if="organization.identity?.slug" :value="organization.identity.slug" severity="info" size="small" />
+          <slot name="context" />
         </div>
       </template>
       <template #compact-content>
@@ -21,6 +22,10 @@
           <span>{{ createdAt }}</span>
         </div>
       </div>
+      <template v-if="$slots.actions" #footer>
+        <Divider />
+        <slot name="actions" />
+      </template>
     </EntityCard>
   </div>
 </template>

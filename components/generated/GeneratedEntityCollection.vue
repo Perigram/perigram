@@ -64,11 +64,13 @@
       :entity-type="entityType"
       :surface="surface"
       variant="card"
+      :context-entity="actionContext.parentEntity"
+      :context-entity-type="actionContext.parentEntityType"
       @refresh="$emit('refresh')"
     >
       <template v-if="detailRouteFor(entity)" #title>
         <div class="flex min-w-0 flex-col gap-2">
-          <TraceChain :entity="entity" :entity-type="entityType" variant="compact" expandable />
+          <TraceChain :entity="entity" :entity-type="entityType" :exclude="traceExclusions" variant="compact" expandable />
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div class="flex min-w-0 flex-1 items-center">
               <button
@@ -198,6 +200,10 @@ const actionContext = computed(() => mergeCollectionActionContext({
   entityType: props.entityType,
   items: props.items
 }));
+const traceExclusions = computed(() => actionContext.value.parentEntity ? [{
+  type: actionContext.value.parentEntityType,
+  id: actionContext.value.parentEntity._id || actionContext.value.parentEntity.identity?.uid || actionContext.value.parentEntity.id
+}] : []);
 const tableFields = computed(() => resolveEntityDisplayContract({
   entityType: props.entityType,
   surface: props.surface || 'table'

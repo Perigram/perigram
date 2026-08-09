@@ -2,10 +2,18 @@ import { describe, it, expect, beforeEach, afterAll, beforeAll, vi } from 'vites
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, ObjectId } from 'mongodb';
 
-const { mockedConnectDB } = vi.hoisted(() => ({
-  mockedConnectDB: vi.fn()
+const { mockedConnectDB, mockedUploadFile, mockedDeleteFile, mockedGetFileStream } = vi.hoisted(() => ({
+  mockedConnectDB: vi.fn(),
+  mockedUploadFile: vi.fn(),
+  mockedDeleteFile: vi.fn(),
+  mockedGetFileStream: vi.fn()
 }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
+vi.mock('../files/service.js', () => ({
+  uploadFile: mockedUploadFile,
+  deleteFile: mockedDeleteFile,
+  getFileStream: mockedGetFileStream
+}));
 
 import * as userService from './service';
 import * as organizationService from '../organizations/service';
@@ -46,8 +54,45 @@ describe('User Management & Auth', () => {
   });
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     await db.collection('users').deleteMany({});
     await db.collection('organizations').deleteMany({});
+  });
+
+  it('stores avatar metadata behind a derived user avatar URL', async () => {
+    const user = await userService.register({
+      email: 'avatar@example.com',
+      password: 'password123',
+      name: 'Avatar User'
+    });
+    mockedUploadFile.mockResolvedValue({ id: 'avatar-file-1' });
+
+    const updated = await userService.saveAvatar(user.id, {
+      buffer: Buffer.from('image'),
+      filename: 'avatar.png',
+      mimeType: 'image/png'
+    }, { userId: user.id });
+
+    expect(updated.toJSON().data.avatarUrl).toMatch(new RegExp(`^/api/users/${user.id}/avatar\\?v=`));
+    expect(updated.toJSON().data.avatar).toBeUndefined();
+    expect(mockedUploadFile).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      expect.stringContaining(`avatar-${user.id}-`),
+      expect.objectContaining({ userId: String(user.id), mimeType: 'image/png' }),
+      'avatars'
+    );
+  });
+
+  it('rejects avatar changes for unrelated users', async () => {
+    const user = await userService.register({
+      email: 'protected-avatar@example.com',
+      password: 'password123',
+      name: 'Protected Avatar'
+    });
+    await expect(userService.saveAvatar(user.id, {
+      buffer: Buffer.from('image'),
+      mimeType: 'image/png'
+    }, { userId: 'other-user', memberships: [] })).rejects.toMatchObject({ statusCode: 403 });
   });
 
   it('registers identity without duplicating organization role state', async () => {

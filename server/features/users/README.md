@@ -59,6 +59,12 @@ attach the first organization.
   membership records, and queries both string and `ObjectId` organization-id
   forms. Process-auth contexts that omit expanded memberships still return
   same-organization users for pickers and chat lists.
+- User avatars are private GridFS files owned through the users service.
+  `PUT/GET/DELETE /api/users/:id/avatar` updates, streams, or removes JPEG,
+  PNG, and WebP images. Persisted `data.avatar` storage metadata is stripped
+  from DTOs; readable user DTOs expose only a versioned `data.avatarUrl`.
+  Users may edit their own avatar, and active-organization user administrators
+  may edit member avatars.
 
 ## Permission System
 - Organization context via `user.lineage.organizationId`

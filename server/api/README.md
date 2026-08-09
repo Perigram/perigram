@@ -102,6 +102,8 @@ Routes are grouped into sub-directories corresponding to features:
   `organizations/:id/billing`.
 - `users/`: Organization user listing, mutation, and single-user detail
   endpoints used by inline user references.
+  `PUT/GET/DELETE /api/users/:id/avatar` owns authenticated user avatar upload,
+  streaming, and removal through the users service.
 
 ## Conventions
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).

@@ -6,9 +6,9 @@
           <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
               <h2 class="m-0 text-base">{{ $t('billing.organizationAccount') }}</h2>
-              <small class="text-muted-color">{{ $t('billing.organizationAccountHint') }}</small>
+              <small class="text-muted-color">{{ $t('billing.tokensExplanation') }}</small>
             </div>
-            <Tag :value="accountStatusLabel" severity="info" />
+            <Tag v-if="currentTariffLabel" :value="currentTariffLabel" severity="info" />
           </div>
           <div class="flex items-end justify-between gap-3">
             <div class="flex flex-col gap-1">
@@ -111,6 +111,7 @@ const packages = ref([]);
 const invoices = ref([]);
 const ledger = ref([]);
 const checkoutPackageId = ref('');
+const billingConfiguration = ref({ mode: 'prepaidTokens', currentTariff: null, currentTariffLabelKey: null });
 
 const organizationId = computed(() => props.screen.scope?.organizationId || authStore.organizationData?._id || authStore.userData?.organizationId || authStore.user?.organizationId);
 const regions = computed(() => props.screen.regions || []);
@@ -118,7 +119,12 @@ const mainRegions = computed(() => regions.value.filter(region => (region.slot |
 const supportingRegions = computed(() => regions.value.filter(region => region.slot === 'supporting'));
 const screenActions = computed(() => props.screen.systemActions || []);
 const canCheckout = computed(() => screenActions.value.some(action => action.id === 'organization.billing.checkout'));
-const accountStatusLabel = computed(() => billingAccount.value?.status ? billingStatusLabel(billingAccount.value.status) : t('common.loading'));
+const currentTariffLabel = computed(() => {
+  if (billingConfiguration.value.mode !== 'tariff') return '';
+  const key = billingConfiguration.value.currentTariffLabelKey;
+  if (key && te(key)) return t(key);
+  return billingConfiguration.value.currentTariff || '';
+});
 
 onMounted(async () => {
   await Promise.all([loadBilling(), loadPackages()]);
@@ -141,6 +147,7 @@ async function loadBilling() {
   try {
     const data = await $fetch(`/api/organizations/${organizationId.value}/billing/account`);
     billingAccount.value = data.account;
+    billingConfiguration.value = data.billing || billingConfiguration.value;
     invoices.value = data.invoices || [];
     ledger.value = data.ledger || [];
   } catch (error) {
@@ -155,6 +162,7 @@ async function loadPackages() {
   try {
     const data = await $fetch(`/api/organizations/${organizationId.value}/billing/packages`);
     packages.value = data.packages || [];
+    billingConfiguration.value = data.billing || billingConfiguration.value;
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
   }
