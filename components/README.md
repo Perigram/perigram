@@ -129,8 +129,8 @@ The canvas is intentionally a compact semantic overview. Palette controls are
 grouped and labeled, node accent colors identify those groups, and executable
 nodes keep Manual/Automatic execution visible on the node. Socket rows align
 on fixed left/right rails; exact structured types are exposed by hover and
-assistive metadata rather than repeated beside every socket. Role access and
-retry policy remain secondary inspector configuration.
+assistive metadata rather than repeated beside every socket. Role access
+remains secondary inspector configuration; retry is not hidden node metadata.
 Canonical entity block choices come from `@cutkit/core` through the generic
 `@cutkit/processes` designer contract; concrete entity, workflow, field, and
 attachment choices come from the supplied domain

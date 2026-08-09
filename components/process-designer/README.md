@@ -15,7 +15,7 @@ authored status id updates the referenced value without breaking the wire.
 ## Palette and node concerns
 
 The runtime catalog remains exhaustive, but it is not the authoring palette.
-The palette has four non-overlapping authoring concerns.
+The palette has three non-overlapping authoring concerns.
 
 - **Entities** owns typed block assembly and persistence. Compose Block creates
   one canonical block from selected fields. Modify Block copies a connected
@@ -46,13 +46,10 @@ The palette has four non-overlapping authoring concerns.
   transforms. Collect Array converts one branch into one persisted array value;
   Expand Array performs the reverse. Matching is Longest by default, with
   Shortest and Cross available per node.
-- **Events** contains entry events, conditions, waits, and the paired For Each /
-  For Each End iteration boundary. Effects never vectorize implicitly.
 Every effect has one bottom execution switch: Manual exposes the operation to
 authorized users, while Automatic exposes an incoming event socket. Date
-scheduling is composed explicitly with date values and a wait-until control
-before that socket; entity and domain subscriptions remain entry nodes rather
-than effect modes. Every effect exposes one `completed` event there. Event handles use the same
+scheduling and event subscriptions are runtime contracts, not an authoring
+palette family. Every effect exposes one `completed` event there. Event handles use the same
 left-to-right direction as data sockets instead of pointing out of the bottom
 of the card. Pure value, list/tree, read, and deconstruct nodes do not render
 event chrome. Effect failures fail the run; retry behavior is not hidden effect
