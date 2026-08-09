@@ -100,11 +100,11 @@
                                             @click="switchOrganization(entry.id)"
                                         />
                                         <Button
-                                            v-else-if="entry.active && organizationOverviewScreen"
+                                            v-else-if="entry.active"
                                             :label="$t('profile.viewOrganization')"
                                             icon="pi pi-arrow-right"
                                             size="small"
-                                            @click="router.push(organizationOverviewScreen.route)"
+                                            @click="router.push(organizationOverviewRoute)"
                                         />
                                     </div>
                                 </template>
@@ -183,6 +183,7 @@ const organizationOverviewScreen = computed(() => authStore.screenManifest.find(
     && screen.template === 'organizationOverview'
     && screen.route === '/organization'
 )) || null);
+const organizationOverviewRoute = computed(() => organizationOverviewScreen.value?.route || '/organization');
 const showCreateOrgDialog = ref(false);
 const submittingOrg = ref(false);
 const avatarInput = ref(null);

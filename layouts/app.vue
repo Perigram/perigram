@@ -161,7 +161,7 @@
             size="large"
             :aria-label="$t('support.openChat')"
             @click="openSupportDialog"
-            v-if="!supportDialog && route.path !== '/chats'"
+            v-if="!supportDialog && !isChatsRoute"
             class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 [box-shadow:var(--ck-shadow-overlay)] md:inline-flex"
         />
     </div>
@@ -272,7 +272,7 @@
         resolveGeneratedScreenOverload(activeGeneratedScreen.value)
     ))
     const isStandaloneDesignerRoute = computed(() => route.path === '/organization/process')
-    const isChatsRoute = computed(() => route.path === '/chats')
+    const isChatsRoute = computed(() => route.path === '/chats' || route.path.startsWith('/chats/'))
     const isBoundedWorkspaceRoute = computed(() => (
         isGeneratedWorkspaceRoute.value
         || isStandaloneDesignerRoute.value
@@ -526,8 +526,8 @@
                         const organizationId = org._id?.toString() || org.id?.toString();
                         if (organizationId && organizationId !== authStore.userData.organizationId?.toString()) {
                             await authStore.switchOrganization(organizationId);
-                            router.push('/');
                         }
+                        router.push('/organization');
                     }
                 }))
             });
