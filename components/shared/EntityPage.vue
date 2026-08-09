@@ -8,7 +8,7 @@ import EntityStatus from './status/EntityStatus.vue';
 import TraceChain from './links/TraceChain.vue';
 import EntityActionsPopover from './EntityActionsPopover.vue';
 import Divider from 'primevue/divider';
-import { computed, provide } from 'vue';
+import { computed, inject, provide, unref } from 'vue';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -19,15 +19,17 @@ const props = defineProps({
   showHeader: { type: Boolean, default: true },
   showIdentity: { type: Boolean, default: true },
   showStatus: { type: Boolean, default: true },
+  actionsDisplay: { type: String, default: 'menu', validator: value => ['menu', 'inline'].includes(value) },
   statusActions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['refresh']);
 const effectiveTitle = computed(() => props.title || '');
-provide('displayedEntityContext', computed(() => ({
-  type: props.entityType,
-  entity: props.entity
-})));
+const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
+provide('displayedEntityContexts', computed(() => [
+  ...(unref(parentDisplayedEntityContexts) || []),
+  { type: props.entityType, entity: props.entity }
+]));
 </script>
 
 <template>
@@ -56,7 +58,10 @@ provide('displayedEntityContext', computed(() => ({
             @refresh="$emit('refresh')"
             @transitioned="$emit('refresh')"
           />
-          <EntityActionsPopover v-if="$slots.actions">
+          <div v-if="$slots.actions && actionsDisplay === 'inline'" class="flex flex-wrap items-center gap-2">
+            <slot name="actions"></slot>
+          </div>
+          <EntityActionsPopover v-else-if="$slots.actions">
             <slot name="actions"></slot>
           </EntityActionsPopover>
         </div>
@@ -82,7 +87,7 @@ provide('displayedEntityContext', computed(() => ({
   container-type: inline-size;
 }
 
-@container (min-width: 40rem) {
+@container (min-width: 32rem) {
   .entity-page-header-content {
     align-items: flex-start;
     flex-direction: row;
@@ -91,7 +96,7 @@ provide('displayedEntityContext', computed(() => ({
 
 }
 
-@container (min-width: 56rem) {
+@container (min-width: 48rem) {
   .entity-page-content-grid {
     grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
   }

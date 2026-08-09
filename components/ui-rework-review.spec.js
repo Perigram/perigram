@@ -8,12 +8,13 @@ describe('reviewed UI rework contracts', () => {
     expect(read('./shared/EntityPage.vue')).toContain('container-type: inline-size');
     expect(read('./shared/blocks/DataBlock.vue')).toContain('@container (min-width: 32rem)');
     expect(read('./shared/blocks/SpecsBlock.vue')).toContain('@container (min-width: 32rem)');
-    expect(read('./generated/GeneratedEntityCollection.vue')).toContain('responsive-context="container"');
+    expect(read('./generated/GeneratedEntityCollection.vue')).toContain('variant="template === \'workspaceLanes\' ? \'wide\' : \'bounded\'"');
   });
 
   it('suppresses a displayed parent from descendant lineage traces', () => {
-    expect(read('./shared/EntityPage.vue')).toContain("provide('displayedEntityContext'");
-    expect(read('./shared/links/TraceChain.vue')).toContain("inject('displayedEntityContext'");
+    expect(read('./shared/EntityPage.vue')).toContain("provide('displayedEntityContexts'");
+    expect(read('./shared/links/TraceChain.vue')).toContain("inject('displayedEntityContexts'");
+    expect(read('./generated/GeneratedProjectWorkspace.vue')).toContain("provide('displayedEntityContexts'");
   });
 
   it('keeps the chats inbox visible beside the selected conversation on the full route', () => {
@@ -28,13 +29,13 @@ describe('reviewed UI rework contracts', () => {
     expect(read('../pages/profile/index.vue')).toContain("$t('profile.viewOrganization')");
     expect(read('../pages/profile/index.vue')).not.toContain('v-for="screen in organizationScreens"');
     expect(read('../pages/profile/index.vue')).toContain("v-if=\"activeProfileTab === '0'\"");
-    expect(read('../pages/profile/index.vue')).toContain("@click=\"activeProfileTab = '2'\"");
+    expect(read('../pages/profile/index.vue')).toContain('<Tabs v-model:value="activeProfileTab">');
   });
 
   it('renders organization navigation as direct actions around the canonical entity page', () => {
     const overview = read('./generated/GeneratedOrganizationOverview.vue');
     expect(overview).toContain('<EntityPage');
-    expect(overview).toContain('<ActionToolbar');
+    expect(overview).toContain('actions-display="inline"');
     expect(overview).not.toContain('<Panel v-for');
   });
 
@@ -49,13 +50,14 @@ describe('reviewed UI rework contracts', () => {
     const invitation = read('../pages/invitation/[token].vue');
     expect(invitation).toContain('<h1 class="m-0 text-xl">{{ $t(\'auth.invitationTitle\') }}</h1>');
     expect(invitation).toContain("t('auth.invitationUnavailable')");
-    expect(read('./entities/User/UserCard.vue')).toContain('[&_.p-avatar-image]:object-cover');
+    expect(read('../assets/css/main.css')).toContain('object-fit: cover');
   });
 
   it('keeps attachment-only chat messages sendable and gives full-page threads their own header', () => {
     const chat = read('./ChatSupport.vue');
     expect(chat).toContain("(!message.value.trim() && !entityRefs.value.length)");
     expect(chat).toContain('v-if="fullPage" class="flex items-center gap-3 border-b');
+    expect(chat).toContain('dialogOpen || embedded');
   });
 
   it('imports i18n explicitly on the projects route', () => {

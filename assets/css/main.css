@@ -530,6 +530,19 @@ body {
     width: 100%;
 }
 
+/* PrimeVue Avatar's image defaults to `object-fit: fill`, which distorts
+   portrait uploads inside its square frame. Avatar media is always cropped. */
+.p-avatar {
+    overflow: hidden;
+}
+
+.p-avatar .p-avatar-image,
+.p-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 
 .p-tabs-list {
     overflow-x: auto;

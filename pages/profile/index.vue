@@ -1,10 +1,12 @@
 <template>
     <StandardPage :title="$t('nav.profile')">
-        <div class="flex flex-wrap gap-1 border-b border-content-border pb-2">
-            <Button :label="$t('profile.account')" text size="small" :severity="activeProfileTab === '0' ? 'primary' : 'secondary'" @click="activeProfileTab = '0'" />
-            <Button :label="$t('profile.preferences')" text size="small" :severity="activeProfileTab === '1' ? 'primary' : 'secondary'" @click="activeProfileTab = '1'" />
-            <Button :label="$t('auth.organization')" text size="small" :severity="activeProfileTab === '2' ? 'primary' : 'secondary'" @click="activeProfileTab = '2'" />
-        </div>
+        <Tabs v-model:value="activeProfileTab">
+            <TabList>
+                <Tab value="0">{{ $t('profile.account') }}</Tab>
+                <Tab value="1">{{ $t('profile.preferences') }}</Tab>
+                <Tab value="2">{{ $t('auth.organization') }}</Tab>
+            </TabList>
+        </Tabs>
         <div>
                 <section v-if="activeProfileTab === '0'">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6 py-4">
@@ -148,6 +150,9 @@ import Avatar from 'primevue/avatar';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import InputText from 'primevue/inputtext';
+import Tab from 'primevue/tab';
+import TabList from 'primevue/tablist';
+import Tabs from 'primevue/tabs';
 import { useToast } from 'primevue/usetoast';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
