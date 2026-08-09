@@ -1,10 +1,10 @@
 <template>
     <StandardPage :title="$t('nav.profile')">
-        <Tabs v-model:value="activeProfileTab">
+        <Tabs :value="activeProfileTab" @update:value="activeProfileTab = $event">
             <TabList>
-                <Tab value="0"><span>{{ $t('profile.account') }}</span></Tab>
-                <Tab value="1"><span>{{ $t('profile.preferences') }}</span></Tab>
-                <Tab value="2"><span>{{ $t('auth.organization') }}</span></Tab>
+                <Tab value="0" @click="activeProfileTab = '0'"><span>{{ $t('profile.account') }}</span></Tab>
+                <Tab value="1" @click="activeProfileTab = '1'"><span>{{ $t('profile.preferences') }}</span></Tab>
+                <Tab value="2" @click="activeProfileTab = '2'"><span>{{ $t('auth.organization') }}</span></Tab>
             </TabList>
             <TabPanels>
                 <TabPanel value="0">

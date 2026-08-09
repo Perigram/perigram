@@ -497,7 +497,7 @@
     const userMenu = ref();
     const mobileScreenMenu = ref();
     const toggleUserMenu = (event) => {
-        userMenu.value.toggle(event);
+        userMenu.value?.show?.(event);
     };
     const organizationSystemScreens = computed(() => authStore.screenManifest
         .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization'))
