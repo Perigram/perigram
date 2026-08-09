@@ -162,12 +162,12 @@ authors its stable storage key and element type; neither the connected producer
 nor a downstream entity consumer rewrites those choices. A single reference or
 an intrinsic `array<entityRef>` is composed like any other explicit value.
 Selection, ordering, aggregation, append, removal, and replacement are ordinary
-list/tree dataflow before persistence, not hidden relation-entry modes. Lineage remains stricter: its
-storage path resolves against the consuming entity's declared containment
-schema, and ambiguous or undeclared matches remain validation errors. The
-shared resolver is used by designer synchronization and definition
-normalization. Parentage remains a field of a composed Lineage block, not an
-extra Create socket. Once resolved, the compiler recognizes one lineage entity
+list/tree dataflow before persistence, not hidden relation-entry modes. A
+Lineage ancestor socket derives both its entity type and canonical camel-case
+id key from the connected entity output (`project` becomes `projectId`);
+definition normalization repeats that inference so a saved graph never depends
+on inspector state. Parentage remains a field of a composed Lineage block, not
+an extra Create socket. Once resolved, the compiler recognizes one lineage entity
 reference as contextual parent scope while the effect boundary persists its
 normalized id. Fixed-field and open-entry composers contribute to that same
 schema set, so contextual action placement does not depend on how the block was
