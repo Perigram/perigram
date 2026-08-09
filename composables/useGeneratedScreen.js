@@ -6,11 +6,12 @@ import { normalizeScreenContract } from '~/packages/processes/src/screen-contrac
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { filterRootSourceItems } from '~/utils/generated-screen-source.js';
-import { cncContainment } from '@cutkit/domain-cnc';
+import { useCutkitDomainUi } from './useCutkitDomainUi.js';
 
 export function useGeneratedScreen(screenRef) {
   const authStore = useAuthStore();
   const { activePermissions } = storeToRefs(authStore);
+  const domainUi = useCutkitDomainUi();
   const sourceStates = ref({});
   const loading = ref(false);
   const error = ref(null);
@@ -94,7 +95,7 @@ export function useGeneratedScreen(screenRef) {
     return {
       ...state,
       rawItems: state.items,
-      items: filterRootSourceItems(state.items, state.source, sourceStates.value, cncContainment)
+      items: filterRootSourceItems(state.items, state.source, sourceStates.value, domainUi.containment)
     };
   }
 

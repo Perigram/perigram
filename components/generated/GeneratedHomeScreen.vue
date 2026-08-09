@@ -118,7 +118,6 @@ import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppli
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
-import { cncContainment } from '@cutkit/domain-cnc';
 
 const props = defineProps({
   screen: { type: Object, required: true },
@@ -144,7 +143,7 @@ const sections = computed(() => props.screen.regions
       rawItems: state.rawItems || state.items || []
     };
   })
-  .filter(section => section.source.entityType && shouldRenderHomeSection(section, cncContainment)));
+  .filter(section => section.source.entityType && shouldRenderHomeSection(section, domainUi.containment)));
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)

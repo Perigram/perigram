@@ -1,11 +1,14 @@
 import { cncEntityConstruction } from './entity-construction.js';
 
 export const cncEntityCreateInputs = {
-  artifact: cncEntityConstruction.artifact.modeInputs.uploadArtifact,
   project: cncEntityConstruction.project.inputs,
   queue: cncEntityConstruction.queue.inputs,
   cassette_design: cncEntityConstruction.cassette_design.inputs,
   cassette_instance: cncEntityConstruction.cassette_instance.inputs,
+  artifact: [
+    { id: 'source', label: 'Attachment source', path: 'lineage', type: 'entity', capability: 'attachments.generate', required: true },
+    { id: 'file', label: 'File', path: 'attachments.primary', type: 'attachment', required: true }
+  ],
   geometryCapture: [
     { id: 'photo', label: 'Source photo', path: 'relations.sourcePhoto', type: 'entity', entityType: 'artifact', required: true },
     { id: 'prompt', label: 'Extraction prompt', path: 'data.extraction.prompt', type: 'object', required: false }
@@ -22,10 +25,6 @@ export const cncEntityCreateInputs = {
   warehouse: [
     { id: 'type', label: 'Warehouse type', path: 'data.type', type: 'string', required: true },
     { id: 'address', label: 'Address', path: 'data.address', type: 'string', required: false }
-  ],
-  artifact: [
-    { id: 'source', label: 'Attachment source', path: 'lineage', type: 'entity', capability: 'attachments.generate', required: true },
-    { id: 'file', label: 'File', path: 'attachments.primary', type: 'attachment', required: true }
   ]
 };
 
