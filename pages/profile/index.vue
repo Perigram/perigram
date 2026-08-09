@@ -1,13 +1,12 @@
 <template>
     <StandardPage :title="$t('nav.profile')">
-        <Tabs :value="activeProfileTab" @update:value="activeProfileTab = $event">
-            <TabList>
-                <Tab value="0" @click="activeProfileTab = '0'"><span>{{ $t('profile.account') }}</span></Tab>
-                <Tab value="1" @click="activeProfileTab = '1'"><span>{{ $t('profile.preferences') }}</span></Tab>
-                <Tab value="2" @click="activeProfileTab = '2'"><span>{{ $t('auth.organization') }}</span></Tab>
-            </TabList>
-            <TabPanels>
-                <TabPanel value="0">
+        <div class="flex flex-wrap gap-1 border-b border-content-border pb-2">
+            <Button :label="$t('profile.account')" text size="small" :severity="activeProfileTab === '0' ? 'primary' : 'secondary'" @click="activeProfileTab = '0'" />
+            <Button :label="$t('profile.preferences')" text size="small" :severity="activeProfileTab === '1' ? 'primary' : 'secondary'" @click="activeProfileTab = '1'" />
+            <Button :label="$t('auth.organization')" text size="small" :severity="activeProfileTab === '2' ? 'primary' : 'secondary'" @click="activeProfileTab = '2'" />
+        </div>
+        <div>
+                <section v-if="activeProfileTab === '0'">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6 py-4">
                         <div class="md:col-span-4">
                             <Panel class="h-full" :header="$t('profile.title')">
@@ -35,9 +34,9 @@
                             </Panel>
                         </div>
                     </div>
-                </TabPanel>
+                </section>
 
-                <TabPanel value="1">
+                <section v-else-if="activeProfileTab === '1'">
                     <div class="max-w-2xl py-4">
                         <Panel :header="$t('profile.settings')">
                                 <div class="flex flex-col gap-8 py-2">
@@ -69,9 +68,9 @@
                                 </div>
                         </Panel>
                     </div>
-                </TabPanel>
+                </section>
 
-                <TabPanel value="2">
+                <section v-else>
                     <div class="py-4 flex flex-col gap-6">
                         <!-- Create New Organization Button -->
                         <ActionToolbar :title="$t('profile.myOrganizations')">
@@ -111,10 +110,8 @@
                             </OrganizationCard>
                         </ResponsiveGrid>
                     </div>
-                </TabPanel>
-
-            </TabPanels>
-        </Tabs>
+                </section>
+        </div>
 
         <StandardDialog v-model:visible="showCreateOrgDialog" :header="$t('auth.createOrg')" size="sm">
             <form @submit.prevent="createOrganization" class="flex flex-col gap-4 pt-4">
@@ -146,11 +143,6 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
-import TabPanels from 'primevue/tabpanels';
-import TabPanel from 'primevue/tabpanel';
 import Panel from 'primevue/panel';
 import Avatar from 'primevue/avatar';
 import Select from '~/components/shared/EntitySelect.vue';
