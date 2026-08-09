@@ -15,6 +15,7 @@ export async function previewProcessDataflow(definition, sample = {}, environmen
   const nodes = {};
   for (const node of process.graph?.nodes || []) {
     if (node.type !== 'processNode') continue;
+    if (environment.targetNodeId && String(node.id) !== String(environment.targetNodeId)) continue;
     const record = process.processNodes?.[recordId(node)];
     if (!record || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) continue;
     const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
@@ -116,17 +117,8 @@ export async function advanceProcessRun(runInput, definition, environment = {}) 
     step.status = 'failed';
     step.error = serializeError(error);
     step.completedAt = instant(environment.now);
-    const retry = normalizeRetry(record.retry);
-    if (step.attempt < retry.maxAttempts) {
-      run.tokens.unshift({ ...current, attempt: step.attempt + 1 });
-      if (retry.delayMs) {
-        run.status = 'waiting';
-        run.wakeAt = new Date(new Date(step.completedAt).getTime() + retry.delayMs).toISOString();
-      }
-    } else {
-      run.status = 'failed';
-      run.error = step.error;
-    }
+    run.status = 'failed';
+    run.error = step.error;
   }
   if (run.status === 'running' && !run.tokens.length) run.status = 'succeeded';
   run.updatedAt = instant(environment.now);
@@ -391,7 +383,12 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
       throw error;
     }
   }
-  if (ports.inputs.some(port => port.role === 'data') && !Object.keys(inputs).length) {
+  const dataInputs = ports.inputs.filter(port => port.role === 'data');
+  const allowsInputlessEvaluation = record.kind.startsWith('source.') || record.kind.startsWith('read.');
+  if (!Object.keys(inputs).length && (
+    dataInputs.some(port => port.required)
+    || (dataInputs.length && !allowsInputlessEvaluation)
+  )) {
     const error = new Error(`Data node ${record.id || node.id} has no available inputs`);
     error.code = 'PROCESS_OUTPUT_UNAVAILABLE';
     throw error;
@@ -525,13 +522,6 @@ function durationMs(value) {
   const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/.exec(String(value || ''));
   if (!match) throw new Error(`Invalid ISO-8601 duration ${value}`);
   return (Number(match[1] || 0) * 3600 + Number(match[2] || 0) * 60 + Number(match[3] || 0)) * 1000;
-}
-
-function normalizeRetry(retry = {}) {
-  return {
-    maxAttempts: Math.max(1, Number(retry.maxAttempts) || 1),
-    delayMs: Math.max(0, Number(retry.delayMs) || 0)
-  };
 }
 
 function instant(now) {

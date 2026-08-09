@@ -516,10 +516,26 @@
                       <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(selectedProcessNode.inputTransforms?.[input.id]?.graft)" binary @update:model-value="value => updateInputTransform(selectedProcessNode, input.id, 'graft', value)" />{{ $t('processDesigner.graft') }}</label>
                     </div>
                   </div>
-                  <div class="flex flex-col gap-2">
-                    <Button icon="pi pi-eye" :label="$t('processDesigner.previewData')" size="small" outlined :loading="previewingData" @click="previewDataflow" />
+                  <div v-if="selectedNodeSupportsPreview" class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <label>{{ $t('processDesigner.outputPreview') }}</label>
+                      <Button icon="pi pi-refresh" :label="$t('processDesigner.refreshPreview')" size="small" text :loading="previewingData" @click="previewDataflow" />
+                    </div>
                     <Message v-if="selectedNodePreview?.error" severity="error">{{ selectedNodePreview.error }}</Message>
-                    <pre v-else-if="selectedNodePreview" class="max-h-64 overflow-auto rounded-ui border border-content-border bg-subtle p-2 text-xs">{{ JSON.stringify(selectedNodePreview.outputs, null, 2) }}</pre>
+                    <Message v-else-if="!selectedNodePreview" severity="secondary">{{ $t('processDesigner.previewHint') }}</Message>
+                    <div v-else class="flex flex-col gap-2">
+                      <section v-for="output in selectedNodePreviewOutputs" :key="output.id" class="rounded-ui border border-content-border bg-subtle p-2 text-xs">
+                        <div class="mb-2 flex items-center justify-between gap-2">
+                          <strong class="truncate">{{ output.label }}</strong>
+                          <span class="text-muted">{{ $t('processDesigner.previewCounts', { branches: output.tree.branchCount, items: output.tree.itemCount }) }}</span>
+                        </div>
+                        <div v-for="branch in output.tree.branches" :key="branch.path.join(';')" class="mb-1 grid grid-cols-[auto_minmax(0,1fr)] gap-2 last:mb-0">
+                          <code class="text-muted">{{ formatPreviewPath(branch.path) }}</code>
+                          <code class="min-w-0 whitespace-pre-wrap break-all">{{ formatPreviewItems(branch.items) }}</code>
+                        </div>
+                        <div v-if="output.tree.truncated" class="mt-1 text-muted">{{ $t('processDesigner.previewTruncated') }}</div>
+                      </section>
+                    </div>
                   </div>
                   <div v-if="selectedProcessNode.kind === 'effect.runCommand'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.service') }}</label>
@@ -735,18 +751,6 @@
                       />
                     </div>
                   </div>
-                  <Panel v-if="selectedProcessNode.kind?.startsWith('effect.')" :header="$t('processDesigner.retryPolicy')">
-                    <div class="grid grid-cols-2 gap-2">
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.retryAttempts') }}</label>
-                        <InputNumber v-model="selectedProcessNode.retry.maxAttempts" :min="1" :max="10" />
-                      </div>
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.retryDelay') }}</label>
-                        <InputNumber v-model="selectedProcessNode.retry.delayMs" :min="0" />
-                      </div>
-                    </div>
-                  </Panel>
                 </template>
 
               </div>
@@ -1253,6 +1257,19 @@ const emptyCanvasMessage = computed(() => {
 });
 const selectedNode = computed(() => nodes.value.find(node => node.id === selectedNodeId.value) || null);
 const selectedNodePreview = computed(() => selectedNode.value ? dataflowPreview.value?.nodes?.[selectedNode.value.id] || null : null);
+const selectedNodeSupportsPreview = computed(() => {
+  const kind = selectedProcessNode.value?.kind || '';
+  return Boolean(kind && !kind.startsWith('effect.') && !kind.startsWith('control.'));
+});
+const selectedNodePreviewOutputs = computed(() => {
+  const outputs = selectedNodePreview.value?.outputs || {};
+  const ports = processNodeOutputs(selectedProcessNode.value || {});
+  return Object.entries(outputs).map(([id, tree]) => ({
+    id,
+    label: ports.find(port => port.id === id)?.label || id,
+    tree
+  }));
+});
 const selectedRecord = computed(() => {
   if (!selectedNode.value) return {};
   return ensureRecord(recordKeyForType(selectedNode.value.type), selectedNode.value, factoryForType(selectedNode.value.type));
@@ -1512,19 +1529,27 @@ async function saveDraftFromDock() {
 }
 
 async function previewDataflow() {
-  if (!draft.value) return;
+  if (!draft.value || !selectedNodeSupportsPreview.value) return;
   previewingData.value = true;
   try {
     const definition = serializeProcess();
     dataflowPreview.value = await $fetch('/api/process-definitions/preview', {
       method: 'POST',
-      body: { definition, trigger: {}, inputs: {} }
+      body: { definition, nodeId: selectedNodeId.value, trigger: {}, inputs: {} }
     });
   } catch (error) {
     dataflowPreview.value = { nodes: { [selectedNodeId.value]: { error: error?.data?.message || error.message } } };
   } finally {
     previewingData.value = false;
   }
+}
+
+function formatPreviewPath(path = []) {
+  return `{${path.join(';')}}`;
+}
+
+function formatPreviewItems(items = []) {
+  return items.map(item => typeof item === 'string' ? JSON.stringify(item) : JSON.stringify(item)).join(', ');
 }
 
 async function activateDraft() {
@@ -2115,6 +2140,7 @@ function recomputeProcessPreview() {
 }
 
 function syncNodeData() {
+  dataflowPreview.value = null;
   for (const node of nodes.value) {
     if (!node.data?.refId) continue;
     const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
@@ -2381,7 +2407,6 @@ function createProcessNode(id, kind = 'source.literalItem') {
     value: kind === 'source.literalList' ? [] : kind === 'source.literalTree' ? { branches: [] } : null,
     fields: [],
     cases: [],
-    retry: { maxAttempts: 1, delayMs: 0 },
     icon: iconForProcessNode(kind),
     inputs: [],
     outputs: []
@@ -3061,7 +3086,7 @@ function syncProcessNode(node = {}) {
     node.type.entityType = node.entityType;
     if (node.value?.id) node.value = { ...node.value, type: node.entityType };
   }
-  if (node.kind.startsWith('effect.')) node.retry ||= { maxAttempts: 1, delayMs: 0 };
+  delete node.retry;
   if (node.kind.startsWith('effect.')) {
     node.trigger ||= { mode: 'manual' };
     if (!['manual', 'event'].includes(node.trigger.mode)) node.trigger.mode = 'event';
