@@ -65,6 +65,23 @@
   - [X] Billing page has non-UI leaks (Пакеты задаются во внешней runtime-конфигурации, Токены принадлежат активной организации). It's status is artificial (should be only if tariff mode is applied, w/ current tariff; derived from deployment configuration). Need explanation message in tokens panel, which describes that tokens are used for work that demands compute, like nesting service or AI interactions.
     ** HOW YOU WRITE SENTENCES IS FUCKING DEGENERACY I HATE YOU
 ** Agent Notes
+   [2026-08-09 Sun 21:24 MSK]
+   Reopened the task against the persisted =user-6a0590fd= account, active
+   =process-6a78b739= manifest, project =unnamed-project-3V1ZXt=, non-square
+   1080x1920 avatar, and real direct-message history. This invalidated the
+   earlier synthetic-account/browser claims: the full-page chat selected a
+   thread without connecting its SSE body, and the rendered PrimeVue avatar
+   computed to =object-fit: fill= despite source assertions for =cover=.
+
+   Fixed the reproduced contracts. Home now evaluates canonical lineage keys
+   that are absent from containment metadata and removes empty child sections;
+   entity contexts propagate through project panes, generated card collections
+   use bounded parent-responsive tracks, persisted embedded chats load their
+   message stream, and all PrimeVue avatar media uses runtime cover cropping.
+   Organization child routes now sit directly in the canonical organization
+   entity header, while Profile uses controlled PrimeVue tabs and canonical
+   membership cards instead of an artificial navigation list.
+
    [2026-08-09 Sun 21:00 MSK]
    Audited the reviewed UI task against rendered pages instead of the previous
    source-string assertions. The audit found and repaired an authenticated

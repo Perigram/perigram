@@ -211,10 +211,14 @@ Used by `<StatusHistory>` component.
 
 Generated home sources retain raw access-filtered list results and derive their
 visible top-level rows after every source has loaded. Runtime filtering walks
-the domain containment graph, so it also works for active manifests compiled
-before `rootLineageKeys` existed. A child is hidden when any readable
-non-organization ancestor is present in another home source; with no readable
-ancestor it remains top-level. Non-home sources are never root-filtered.
+the domain containment graph and matches canonical `lineage.*Id` keys against
+the entity types loaded by other Home sources, so it also works for active
+manifests compiled before `rootLineageKeys` or missing a containment declaration.
+The derived source state retains `rawItems` so the renderer can distinguish an
+empty top-level source from a child source whose rows were all suppressed. A
+child is hidden when any readable non-organization ancestor is present in
+another home source; with no readable ancestor it remains top-level. Non-home
+sources are never root-filtered.
 
 Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
 The composable normalizes the screen contract, checks source-level process

@@ -67,6 +67,10 @@ utility. The Tailwind primary scale includes `primary-50` to `primary-950`, so
 focus utilities such as `ring-primary-200` resolve through the active PrimeVue
 theme instead of falling back or disappearing.
 
+The runtime bridge also normalizes PrimeVue avatar media to a square
+`object-fit: cover` crop. PrimeVue's default image fit must not distort portrait
+or landscape uploads, and callers do not need page-local descendant selectors.
+
 The global `html` root font size is 14px. This keeps rem-based PrimeVue and
 Tailwind controls compact enough for information-dense engineering workflows;
 new shared sizing should remain token-backed rather than compensating with

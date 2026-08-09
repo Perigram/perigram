@@ -322,9 +322,13 @@ not invent static dashboard widgets, hardcoded domain routes, or per-card
 create buttons. Each home section resolves its open-list button from the
 compiled region route or the matching compiled entity-list screen in the
 current screen manifest; it must not construct list routes from entity names.
-Home root filtering is derived at runtime from the domain containment graph as
-well as compiled source metadata. This keeps already-active process manifests
-correct and suppresses a descendant when any non-organization ancestor is
+Home root filtering is derived at runtime from the domain containment graph,
+compiled source metadata, and canonical `lineage.*Id` references. The lineage
+fallback covers active manifests whose domain containment catalog does not
+declare every stored ancestor (for example a cassette design carrying
+`lineage.libraryId`). A child section with no remaining root records is omitted;
+empty top-level sections remain available when they own a top-level create
+action. This suppresses a descendant when any non-organization ancestor is
 readable, not only when its immediate parent is a home section.
 Home sections are true horizontal carousels: entity cards keep a stable
 non-shrinking width and overflow horizontally instead of shrinking every card
@@ -381,6 +385,10 @@ standalone repeated identity name, so the opened record keeps lineage context in
 the primary header while actions/status remain in the same header row.
 Child collection cards exclude the parent already displayed by the surrounding
 detail screen from that trace while preserving other readable ancestry.
+Displayed contexts form a propagated stack, so project workspaces also remove
+the project already represented by the shell from every nested entity trace.
+Generated card collections use bounded token-backed tracks; parent width adds
+tracks without squeezing operational cards into arbitrarily narrow columns.
 Entity reference popovers inside generated surfaces mirror the action affordances
 available on the referenced entity's generated detail screen. They resolve
 compiled detail-screen action ids through the same access/status visibility
