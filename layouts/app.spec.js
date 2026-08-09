@@ -21,6 +21,7 @@ describe('app standalone designer routes', () => {
   it('keeps the organization switcher visible and crops avatar images', () => {
     expect(source).toContain('if (authStore.userOrganizations.length)');
     expect(source).not.toContain('authStore.userOrganizations.length > 1');
+    expect(source).not.toContain('const adminItems = []');
     expect(source).toContain('[&_.p-avatar-image]:object-cover');
     expect(source).toContain('data-testid="user-menu-trigger"');
     expect(source).toContain('<Popover ref="userMenu">');

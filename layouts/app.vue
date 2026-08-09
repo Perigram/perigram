@@ -521,22 +521,8 @@
         userMenu.value?.hide?.();
         await item?.command?.();
     };
-    const organizationSystemScreens = computed(() => authStore.screenManifest
-        .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization'))
-        .sort((left, right) => organizationScreenOrder(left) - organizationScreenOrder(right)))
-    const organizationScreenOrder = (screen = {}) => {
-        const order = {
-            organization_overview: 0,
-            organization_billing: 1,
-            organization_team: 2,
-            organization_process: 3
-        }
-        return order[screen.screenKey || screen.id] ?? 100
-    }
-
     const userMenuItems = computed(() => {
         const items = [];
-        const canOpenGeneratedRoute = (route) => !authStore.processActive || navStore.processAllowsRoute(route);
 
         // 1. Current Organization & Context
         // Keep the organization context visible even for a single membership.
@@ -586,37 +572,6 @@
                 }
             ]
         });
-
-        // 4. Admin sections
-        const adminItems = [];
-        if (authStore.hasPermission('workbench', 'admin') && canOpenGeneratedRoute('/admin')) {
-            adminItems.push({
-                label: t('admin.workbench.title'),
-                icon: 'pi pi-wrench',
-                command: () => router.push('/admin')
-            });
-        }
-        if (authStore.hasTenantPermission('users', 'admin') && canOpenGeneratedRoute('/admin/users')) {
-            adminItems.push({
-                label: t('features.users'),
-                icon: 'pi pi-users',
-                command: () => router.push('/admin/users')
-            });
-        }
-        if (authStore.hasPermission('config_bot', 'admin') && canOpenGeneratedRoute('/admin/config-bot')) {
-            adminItems.push({
-                label: t('admin.configBot.title'),
-                icon: 'pi pi-sparkles',
-                command: () => router.push('/admin/config-bot')
-            });
-        }
-
-        if (adminItems.length > 0) {
-            items.push({
-                label: t('nav.admin'),
-                items: adminItems
-            });
-        }
 
         return items;
     });
