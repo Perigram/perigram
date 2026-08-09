@@ -1,12 +1,16 @@
 <template>
     <StandardPage :title="$t('nav.profile')">
-        <Tabs :value="activeProfileTab">
-            <TabList>
-                <Tab value="0" @click="openProfileTab('account')">{{ $t('profile.account') }}</Tab>
-                <Tab value="1" @click="openProfileTab('preferences')">{{ $t('profile.preferences') }}</Tab>
-                <Tab value="2" @click="openProfileTab('organizations')">{{ $t('auth.organization') }}</Tab>
-            </TabList>
-        </Tabs>
+        <nav class="flex min-w-0 overflow-x-auto border-b border-content-border" :aria-label="$t('nav.profile')">
+            <NuxtLink
+                v-for="tab in profileTabs"
+                :key="tab.key"
+                :to="profileTabRoute(tab.key)"
+                class="border-b-2 px-3 py-3 text-sm no-underline"
+                :class="activeProfileTab === tab.value ? 'border-primary text-primary' : 'border-transparent text-muted-color'"
+            >
+                {{ $t(tab.label) }}
+            </NuxtLink>
+        </nav>
         <div>
                 <section v-if="activeProfileTab === '0'">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6 py-4">
@@ -150,9 +154,6 @@ import Avatar from 'primevue/avatar';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import InputText from 'primevue/inputtext';
-import Tab from 'primevue/tab';
-import TabList from 'primevue/tablist';
-import Tabs from 'primevue/tabs';
 import { useToast } from 'primevue/usetoast';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
@@ -191,13 +192,18 @@ const PROFILE_TAB_VALUES = {
     preferences: '1',
     organizations: '2'
 };
+const profileTabs = [
+    { key: 'account', value: '0', label: 'profile.account' },
+    { key: 'preferences', value: '1', label: 'profile.preferences' },
+    { key: 'organizations', value: '2', label: 'auth.organization' }
+];
 const activeProfileTab = computed(() => PROFILE_TAB_VALUES[String(route.query.tab || 'account')] || '0');
 
-const openProfileTab = (tab) => {
+const profileTabRoute = (tab) => {
     const query = { ...route.query };
     if (tab === 'account') delete query.tab;
     else query.tab = tab;
-    return router.replace({ path: route.path, query });
+    return { path: route.path, query };
 };
 
 const organizationMemberships = computed(() => authStore.memberships.map(membership => {
