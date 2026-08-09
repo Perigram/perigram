@@ -13,7 +13,7 @@
             
             <div v-else-if="error" class="text-center py-8 flex flex-col gap-4">
                 <Message severity="error">{{ error }}</Message>
-                <Button :label="$t('errors.goHome')" @click="navigateTo('/')" text />
+                <Button :label="$t('errors.goHome')" @click="navigateTo('/')" />
             </div>
 
             <div v-else-if="invitation" class="flex flex-col gap-6 py-4">

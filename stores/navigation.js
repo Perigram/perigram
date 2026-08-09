@@ -286,24 +286,6 @@ export const useNavigationStore = defineStore('navigation', () => {
         }
 
         // --- Level 2: Admin Context ---
-        if (parts[0] === 'organization') {
-            const organizationTabs = [
-                { id: 'overview', name: t('organization.overview'), to: '/organization', entity: 'organizations', level: 'read' },
-                { id: 'users', name: t('organization.teamManagement'), to: '/organization/users', entity: 'users', level: 'admin' },
-                { id: 'process', name: t('processDesigner.title'), to: '/organization/process', entity: 'organizations', level: 'admin' },
-            ].filter(item => authStore.hasTenantPermission(item.entity, item.level));
-            const currentTabId = parts[1] || 'overview';
-            const currentTab = organizationTabs.find(tab => tab.id === currentTabId) || organizationTabs[0];
-            if (currentTab) {
-                nav.push({
-                    name: currentTab.name,
-                    to: currentTab.to,
-                    siblings: organizationTabs.map(tab => siblingOption(tab.name, tab.to))
-                });
-            }
-        }
-
-        // --- Level 2: Admin Context ---
         if (parts[0] === 'admin') {
              const adminTabs = [
                 { id: 'workbench', name: t('admin.workbench.title'), to: '/admin' },

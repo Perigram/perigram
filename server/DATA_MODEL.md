@@ -4,6 +4,22 @@ This document is procedurally generated from the actual codebase. It reflects th
 
 ## Collections
 
+### artifact_templates
+*Artifact-templates - manages artifact templates*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.activeRevisionId` | String | active revision id field |
+| `data.format` | String | format field |
+| `data.layout` | String | layout field |
+| `data.revisions` | Array | revisions field |
+| `data.variables` | Array | variables field |
+
 ### artifacts
 *Artifacts - manages artifacts*
 
@@ -14,8 +30,13 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `data.layout` | String | layout field |
 | `data.metadata` | String | metadata field |
+| `data.originalFilename` | String | original filename field |
+| `data.revisions` | Array | revisions field |
 | `data.type` | String | type field |
+| `data.values` | Array | values field |
+| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
 
 ### cassette_designs
 *Cassette-designs - manages cassette designs*
@@ -27,7 +48,6 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
-| `provenance.derivedFrom` | Object | source entity revision provenance |
 | `data.geometry` | String | geometry field |
 | `data.layerData` | String | layer data field |
 | `data.parameters` | Array | parameters field |
@@ -119,13 +139,39 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.contentHash` | String | content hash field |
-| `data.entityId` | String | entity id field |
-| `data.entityType` | String | entity type field |
 | `data.number` | String | number field |
 | `data.reason` | String | reason field |
 | `data.scope` | String | scope field |
 | `data.snapshot` | String | snapshot field |
+| `data.source` | String | source field |
 | `data.sourceStatus` | Array | source status field |
+
+### facade_patterns
+*Facade-patterns - manages facade patterns*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.graph` | String | graph field |
+| `data.revisions` | Array | revisions field |
+
+### facades
+*Facades - manages facades*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.partAssignments` | Array | part assignments field |
+| `data.parts` | Array | parts field |
+| `data.revisions` | Array | revisions field |
 
 ### geometry_captures
 *Geometry-captures - manages geometry captures*
@@ -196,6 +242,21 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.description` | String | description field |
 | `data.material` | String | material field |
 
+### machines
+*Machines - manages machines*
+
+| Field | Type | Description |
+|---|---|---|
+| `identity` | Object | Standard Identity Block (uid, name) |
+| `origin` | Object | Standard Origin Block (creation state) |
+| `status` | Object | Standard Status Block (current state) |
+| `lineage` | Object | Standard Lineage Block (ancestor IDs) |
+| `attachments` | Object | Standard Attachments Block (files) |
+| `data.boundaryOffset` | String | boundary offset field |
+| `data.description` | String | description field |
+| `data.systemKey` | String | system key field |
+| `data.workingArea` | String | working area field |
+
 ### material_options
 *Material-options - manages material options*
 
@@ -219,6 +280,7 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.color` | String | color field |
 | `data.material` | String | material field |
+| `data.note` | String | note field |
 | `data.serial` | String | serial field |
 | `data.specs` | Array | specs field |
 | `data.stock` | String | stock field |
@@ -263,9 +325,14 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.address` | String | address field |
+| `data.assignments` | Array | assignments field |
 | `data.email` | String | email field |
+| `data.invitations` | Array | invitations field |
 | `data.phone` | String | phone field |
+| `data.processes` | Array | processes field |
 | `data.processTemplateId` | String | process template id field |
+| `data.roleAssignments` | Array | role assignments field |
+| `data.roles` | Array | roles field |
 | `data.settings` | Array | settings field |
 | `data.type` | String | type field |
 
@@ -293,12 +360,13 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.activeProcessDefinitionId` | String | active process definition id field |
-| `data.assignments` | Array | assignments field |
 | `data.compiled` | String | compiled field |
 | `data.display` | String | display field |
 | `data.entityProfiles` | Array | entity profiles field |
 | `data.graph` | String | graph field |
-| `data.roles` | Array | roles field |
+| `data.relations` | Array | relations field |
+| `data.roleGrants` | Array | role grants field |
+| `data.runId` | String | run id field |
 | `data.schemaVersion` | String | schema version field |
 | `data.services` | Array | services field |
 | `data.sockets` | Array | sockets field |
@@ -341,15 +409,8 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.job` | String | job field |
-| `data.materialSource` | String | material source field |
 | `data.nestingSettings` | Array | nesting settings field |
-| `data.queueId` | String | queue id field |
 | `data.queueNumber` | String | queue number field |
-| `data.runId` | String | run id field |
-| `data.sheetDesignId` | String | sheet design id field |
-| `data.source` | String | source field |
-| `data.specs` | Array | specs field |
-| `data.virtualSource` | String | virtual source field |
 
 ### remnants
 *Remnants - manages remnants*
@@ -364,6 +425,8 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.attachment` | String | attachment field |
 | `data.geometry` | String | geometry field |
 | `data.isReusable` | String | is reusable field |
+| `data.note` | String | note field |
+| `data.queueId` | String | queue id field |
 | `data.serial` | String | serial field |
 | `data.source` | String | source field |
 | `data.specs` | Array | specs field |
@@ -383,9 +446,6 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.notes` | Array | notes field |
 | `data.requisitionNumber` | String | requisition number field |
 | `data.totalPrice` | String | total price field |
-| `lineage.manufacturerId` | ObjectId \| string | Lineage link to manufacturerId |
-| `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
-| `lineage.projectId` | ObjectId \| string | Lineage link to projectId |
 
 ### sessions
 *Sessions - manages sessions*
@@ -409,11 +469,16 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
 | `data.cassetteDesigns` | Array | cassette designs field |
+| `data.compositionHash` | String | composition hash field |
 | `data.geometry` | String | geometry field |
+| `data.machineSnapshot` | String | machine snapshot field |
 | `data.materialPool` | String | material pool field |
-| `data.nestingParams` | Array | nesting params field |
+| `data.materialSnapshot` | String | material snapshot field |
 | `data.revisions` | Array | revisions field |
+| `data.sheetCount` | String | sheet count field |
+| `data.solveParams` | Array | solve params field |
 | `data.specs` | Array | specs field |
+| `data.toolSnapshot` | String | tool snapshot field |
 
 ### sheets
 *Sheets - manages sheets*
@@ -425,12 +490,15 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `status` | Object | Standard Status Block (current state) |
 | `lineage` | Object | Standard Lineage Block (ancestor IDs) |
 | `attachments` | Object | Standard Attachments Block (files) |
+| `data.compositionHash` | String | composition hash field |
+| `data.machineSnapshot` | String | machine snapshot field |
+| `data.materialSnapshot` | String | material snapshot field |
 | `data.materialSource` | String | material source field |
-| `data.queueId` | String | queue id field |
-| `data.runId` | String | run id field |
+| `data.note` | String | note field |
 | `data.serial` | String | serial field |
-| `data.source` | String | source field |
+| `data.sheetIndex` | String | sheet index field |
 | `data.specs` | Array | specs field |
+| `data.toolSnapshot` | String | tool snapshot field |
 
 ### status_events
 *Statuses - manages status events*
@@ -487,7 +555,6 @@ This document is procedurally generated from the actual codebase. It reflects th
 | `data.memberships` | Array | memberships field |
 | `data.passwordHash` | String | password hash field |
 | `data.permissions` | Array | permissions field |
-| `data.role` | String | role field |
 | `lineage.organizationId` | ObjectId \| string | Lineage link to organizationId |
 
 ### warehouses

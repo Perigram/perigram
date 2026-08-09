@@ -116,14 +116,15 @@ the cassette manager; cassettes are children of the library, not the library
 entity surface itself.
 
 Organization routes are first-class app areas. `/organization` is the
-workspace hub linked from the user menu and profile organization cards;
-`/organization/users` owns team management; `/organization/process` owns the
+workspace hub linked from profile organization cards; `/organization/users` owns team management; `/organization/process` owns the
 standalone Vue Flow process designer. It uses the shared full-height designer
 workspace rather than a padded page panel and frames persisted graph nodes after loading,
 so a saved viewport cannot hide the graph. Vue Flow renders client-side because
 its generated accessibility ids are not stable across SSR hydration. Breadcrumbs expose these routes as
 organization siblings so users can move between overview, team management, and process
-design without going through profile/admin pages. Team management assigns users
+design without going through profile/admin pages. The user menu is only the
+active-organization switcher; organization capabilities remain on these
+organization routes. Team management assigns users
 to active process roles; the process designer activation defines available
 services, field policies, navigation, and lifecycle machines for the current
 organization.
@@ -131,6 +132,10 @@ The organization workspace is also the billing account surface: token packages,
 invoices, payment sync, and ledger rows belong to the active organization.
 Profile remains a personal account/preferences/membership page and must not
 show project usage or user-owned credit purchase flows.
+
+`/chats` is the authenticated full-page conversation inbox. The app shell's
+floating chat launcher opens the same inbox as a compact drawer, whose expand
+control navigates here; the desktop menubar does not duplicate that control.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,
