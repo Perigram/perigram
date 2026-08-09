@@ -23,7 +23,7 @@ should call `getAppRegistry()`.
   feature's concrete list/detail signatures; process entity nodes use those
   uniform boundaries instead of guessing positional service arguments.
 - Command handlers: `saveCassetteTemplate`, `solveNesting`,
-  `generateAttachment`, `generateConfigBotDraft`,
+  `generateAttachment`, `convertArtifact`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.
 - Task executors: `nesting.solve`, which bridges queued task runs to the
   FastAPI nesting worker. Polling workers claim other task definitions such as
