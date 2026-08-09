@@ -6,9 +6,10 @@ artifact and stores the selected source-model parts plus pattern assignments.
 
 ## Contract
 
-- `lineage.projectId` scopes a facade to a project; organization access is
-  inherited from that project. Process creation reads this declared lineage
-  block directly; the legacy top-level `projectId` is not required.
+- `lineage` is the canonical containment context supplied by the caller.
+  Process creation composes `lineage.projectId` through the declared
+  `project -> facade` containment relation. The facade service validates that
+  context exists but neither infers nor rewrites it.
 - `relations.sourceModel` is an artifact reference. The artifacts feature
   validates GLB bytes and rejects GLTF files with external buffers or images.
   Source files are immutable after upload.
