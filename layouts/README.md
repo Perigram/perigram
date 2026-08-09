@@ -17,6 +17,10 @@ not render the selected item label because the preceding breadcrumb link already
 owns that text. Trigger visibility is based on alternatives after removing the
 current route, so one real alternative still produces a chooser while a
 current-only sibling list does not.
+Organization routes have an explicit hierarchy: the active organization's
+canonical name is the first breadcrumb and billing, team, or process is the
+second. Those sections are siblings beneath the organization; removing the
+organization crumb is not a valid simplification.
 
 Project queue workspaces and generated screens with a registered screen
 overload use a viewport-bounded main area so scrolling remains inside their
@@ -41,19 +45,20 @@ an embedded mobile tab inside the app layout instead of the desktop overlay, so
 the chat close button is hidden there.
 Profile is not a tab; it opens the same account menu used on desktop. Theme
 switching lives in that account menu on both desktop and mobile.
-The embedded chats tab and account routes (`/profile` and `/organization`) use
+The embedded chats tab, `/chats`, and account routes (`/profile` and `/organization`) use
 a flush mobile surface with only bottom safe-area spacing for the fixed nav;
 desktop keeps the normal constrained page padding.
 Mobile bottom-panel navigation dispatches the shared transient close event
 before route changes so popovers, menus, and chat do not overlap the
 destination.
 
-The authenticated user menu links the current organization to `/organization`
-and exposes team management and process designer actions from explicit
-tenant-management grants via `authStore.hasTenantPermission()`. Generated
-process screens control operational navigation only; they must not hide
-organization management actions from admins or expose process design to ordinary
-process roles.
+The authenticated user menu always renders the organization section when at
+least one membership is available, including the common single-organization
+case. That section contains organization switching only and resolves names from
+canonical organization identity. Billing, team management, and process design
+remain children of `/organization`, not peer entries in the account menu. The
+floating desktop chat launcher is hidden on `/chats` because the full inbox is
+already present.
 
 ## Related
 

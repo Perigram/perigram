@@ -137,13 +137,17 @@ invoices, payment sync, and ledger rows belong to the active organization.
 Profile remains a personal account/preferences/membership page and must not
 show project usage or user-owned credit purchase flows.
 Its account surface uploads/removes the current user's avatar through the user
-avatar API. Organization memberships render canonical `OrganizationCard`
-surfaces: inactive memberships expose context switching, while the active card
-renders only routes from the generated organization system-screen manifest.
+avatar API; every avatar image uses a square cover crop inside its circular
+frame. Organization memberships render canonical `OrganizationCard` surfaces
+with visible footer actions: inactive memberships switch context, while the
+active membership has one direct action into the generated organization
+overview. Billing, team, and process navigation stays inside that overview.
 
-`/chats` is the authenticated full-page conversation inbox. The app shell's
-floating chat launcher opens the same inbox as a compact drawer, whose expand
-control navigates here; the desktop menubar does not duplicate that control.
+`/chats` is the authenticated full-page conversation inbox. Desktop keeps the
+conversation list and selected thread in a two-pane bounded workspace; mobile
+uses a single-pane list/thread flow. The app shell's floating chat launcher
+opens the same inbox as a compact drawer, whose expand control navigates here;
+the launcher is absent on `/chats` itself.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,
