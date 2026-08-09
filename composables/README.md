@@ -209,6 +209,12 @@ Used by `<StatusHistory>` component.
 
 ## useGeneratedScreen
 
+Generated home sources retain raw access-filtered list results and derive their
+visible top-level rows after every source has loaded. A child is hidden from the
+home screen only when its declared containment parent is present in another
+readable source; when that ancestor is not readable, the child is top-level for
+that user.
+
 Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
 The composable normalizes the screen contract, checks source-level process
 requirements against the active permission grants before fetching, and then

@@ -14,10 +14,11 @@ Organization card surface for tenant/manufacturer records.
   `data`.
 - Status and trace are hidden for organization cards unless a future workflow is
   added to the domain contract.
-- Shared entity-card navigation routes organization cards to
-  `/organization/users`, which is the existing organization management surface.
-  The card itself remains a read-oriented summary; invitations and permissions
-  still use custom endpoints.
+- The card exposes `context` and `actions` slots for membership state and
+  caller-owned system-screen actions. Profile organization membership surfaces
+  use these slots instead of rebuilding organization identity/data panels.
+- Organization management actions come from the active generated system-screen
+  manifest; invitations and permissions still use their custom endpoints.
 
 ## Related
 

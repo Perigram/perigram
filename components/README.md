@@ -375,6 +375,8 @@ and owns the status popover/history.
 Generated entity detail headers show the entity `TraceChain` instead of a
 standalone repeated identity name, so the opened record keeps lineage context in
 the primary header while actions/status remain in the same header row.
+Child collection cards exclude the parent already displayed by the surrounding
+detail screen from that trace while preserving other readable ancestry.
 Entity reference popovers inside generated surfaces mirror the action affordances
 available on the referenced entity's generated detail screen. They resolve
 compiled detail-screen action ids through the same access/status visibility
@@ -935,9 +937,9 @@ Support chat uses direct `$fetch`/SSE routes and the shared
 specific user selected from status history actor rows, and inline entity
 references must render through `EntityInlineRef` rather than local chips. The
 floating Chats drawer opens to an inbox backed by `/api/support/conversations`;
-that inbox includes readable users even before a first direct message exists and
-offers a header user picker for same-organization users not currently visible
-as conversation rows. Drawer rows show participant context and render latest
+that inbox contains only conversations with persisted messages and offers a
+header user picker to start a direct thread explicitly, including a direct
+self-chat. Drawer rows show participant context and render latest
 message entity tokens through `SupportMessageContent`, without per-row
 message-count badges. The composer loads attachment types from
 `/api/support/entity-types`, which derives them from the user's generated

@@ -18,6 +18,9 @@ Manages organization membership invitations.
    Registration from an invitation creates only the user account and preserves
    the redirect back to the invitation instead of asking for organization
    details.
+   The public token endpoint returns a sanitized invitation presentation with
+   the stored organization name and server-resolved role labels. The browser
+   never requests the protected organization entity while rendering the form.
 3. **Join**: The authenticated user accepts the invitation via token or code,
    creating a pending membership with no copied role state or permission preset
    and writing the invited role ids to the organization's authoritative role
