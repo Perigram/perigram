@@ -35,8 +35,20 @@ describe('reviewed UI rework contracts', () => {
     expect(navigation).toContain("currentScreen.route !== '/organization'");
   });
 
-  it('uses a standard invitation panel header and cropped user avatars', () => {
-    expect(read('../pages/invitation/[token].vue')).toContain('<Panel :header="$t(\'auth.invitationTitle\')"');
+  it('uses a centered invitation identity and cropped user avatars', () => {
+    const invitation = read('../pages/invitation/[token].vue');
+    expect(invitation).toContain('<h1 class="m-0 text-xl">{{ $t(\'auth.invitationTitle\') }}</h1>');
+    expect(invitation).toContain("t('auth.invitationUnavailable')");
     expect(read('./entities/User/UserCard.vue')).toContain('[&_.p-avatar-image]:object-cover');
+  });
+
+  it('keeps attachment-only chat messages sendable and gives full-page threads their own header', () => {
+    const chat = read('./ChatSupport.vue');
+    expect(chat).toContain("(!message.value.trim() && !entityRefs.value.length)");
+    expect(chat).toContain('v-if="fullPage" class="flex items-center gap-3 border-b');
+  });
+
+  it('imports i18n explicitly on the projects route', () => {
+    expect(read('../pages/projects/index.vue')).toContain("import { useI18n } from 'vue-i18n'");
   });
 });

@@ -12,7 +12,7 @@
                     : 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
                 : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content [box-shadow:var(--ck-shadow-overlay)] pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
         >
-            <div class="flex items-center justify-between border-b border-content-border bg-content p-4" :class="{ 'md:col-span-2': fullPage }">
+            <div v-if="!fullPage" class="flex items-center justify-between border-b border-content-border bg-content p-4">
                 <div class="flex min-w-0 items-center gap-2">
                     <Button
                         v-if="activeConversation"
@@ -66,13 +66,25 @@
 
             <aside
                 v-if="!activeConversation || fullPage"
-                class="min-h-0 overflow-y-auto p-2 md:p-3"
+                class="min-h-0 overflow-hidden"
                 :class="[
                     fullPage ? 'border-r border-content-border' : 'flex-1',
                     { 'hidden md:block': fullPage && activeConversation }
                 ]"
             >
-                <div v-if="newChatVisible" class="mb-2">
+                <div v-if="fullPage" class="flex items-center justify-between border-b border-content-border p-4">
+                    <h1 class="m-0 text-lg">{{ $t('support.chatTitle') }}</h1>
+                    <Button
+                        icon="pi pi-user-plus"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('support.openChat')"
+                        @click="toggleNewChat"
+                    />
+                </div>
+                <div v-if="newChatVisible" class="m-3">
                     <Select
                         v-model="newChatUserId"
                         :options="newChatUserOptions"
@@ -88,8 +100,8 @@
                         @update:model-value="openNewChatUser"
                     />
                 </div>
-                <StateBlock v-if="!displayConversations.length && !newChatVisible" :message="$t('support.noConversations')" icon="pi pi-comments" />
-                <div v-else class="flex flex-col gap-2">
+                <StateBlock v-if="!displayConversations.length && !newChatVisible" class="m-3" :message="$t('support.noConversations')" icon="pi pi-comments" />
+                <div v-else class="flex h-full min-h-0 flex-col gap-1 overflow-y-auto p-2 md:p-3">
                     <button
                         v-for="conversation in displayConversations"
                         :key="conversation.conversationKey"
@@ -98,10 +110,11 @@
                         @click="openConversation(conversation)"
                     >
                         <Avatar
+                            :image="conversationAvatar(conversation)"
                             :label="conversationLabel(conversation).charAt(0).toUpperCase()"
                             shape="circle"
                             size="normal"
-                            class="shrink-0 bg-primary text-primary-contrast"
+                            class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                         />
                         <div class="min-w-0 flex-1">
                             <div class="flex min-w-0 items-center gap-2">
@@ -126,6 +139,25 @@
             </div>
 
             <section v-if="activeConversation" class="flex min-h-0 min-w-0 flex-col overflow-hidden">
+                <div v-if="fullPage" class="flex items-center gap-3 border-b border-content-border p-4">
+                    <Button
+                        icon="pi pi-arrow-left"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        class="md:hidden"
+                        :aria-label="$t('common.back')"
+                        @click="showInbox"
+                    />
+                    <Avatar
+                        :image="conversationAvatar(activeConversation)"
+                        :label="conversationLabel(activeConversation).charAt(0).toUpperCase()"
+                        shape="circle"
+                        class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                    />
+                    <h2 class="m-0 min-w-0 truncate text-base">{{ conversationLabel(activeConversation) }}</h2>
+                </div>
                 <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-content custom-scrollbar md:p-4 md:gap-4">
                     <template
                         v-for="messageItem in messagesList"
@@ -346,7 +378,7 @@ const handleKeyDown = (event) => {
 }
 
 const sendMessage = async () => {
-    if (!message.value.trim() || !activeConversation.value) return
+    if ((!message.value.trim() && !entityRefs.value.length) || !activeConversation.value) return
 
     isLoading.value = true
 
@@ -664,6 +696,10 @@ const conversationLabel = (conversation) => {
         || conversation?.participant?.name
         || (conversation?.conversationKind === 'support' ? t('support.chatTitle') : t('common.user'))
 }
+
+const conversationAvatar = (conversation) => conversation?.participant?.avatarUrl
+    || conversation?.participant?.data?.avatarUrl
+    || ''
 
 const conversationPreviewMessage = (conversation) => ({
     message: conversation.lastMessage || '',

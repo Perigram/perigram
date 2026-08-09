@@ -4,10 +4,9 @@
       <template #before-identity>
         <Avatar :label="avatarLabel" shape="circle" size="large" />
       </template>
-      <template #subtitle v-if="variant !== 'card'">
+      <template #subtitle v-if="variant !== 'card' && (organization.data?.type || $slots.context)">
         <div class="flex flex-wrap gap-2">
-          <Tag :value="organization.data?.type || $t('common.default')" severity="secondary" size="small" />
-          <Tag v-if="organization.identity?.slug" :value="organization.identity.slug" severity="info" size="small" />
+          <Tag v-if="organization.data?.type" :value="organization.data.type" severity="secondary" size="small" />
           <slot name="context" />
         </div>
       </template>

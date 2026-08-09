@@ -1,6 +1,12 @@
 <template>
     <div class="min-h-screen flex items-center justify-center bg-page p-4">
-        <Panel :header="$t('auth.invitationTitle')" class="w-full max-w-md overflow-hidden">
+        <Panel class="w-full max-w-md overflow-hidden">
+            <div class="mb-6 flex flex-col items-center gap-3 text-center">
+                <span class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-contrast">
+                    <i class="pi pi-building text-xl" aria-hidden="true"></i>
+                </span>
+                <h1 class="m-0 text-xl">{{ $t('auth.invitationTitle') }}</h1>
+            </div>
             <StateBlock v-if="loading" state="loading" :message="$t('auth.fetchingInvitation')" />
             
             <div v-else-if="error" class="flex min-w-0 flex-col gap-4 py-8 text-center">
@@ -10,7 +16,6 @@
 
             <div v-else-if="invitation" class="flex flex-col gap-6 py-4">
                 <div class="flex flex-col items-center gap-3 text-center">
-                    <i class="pi pi-building text-2xl text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
                     <small>{{ $t('auth.invitedToJoin') }}</small>
                     <h2 class="m-0">{{ invitation.organizationName }}</h2>
                     <div class="mt-4 inline-flex items-center gap-2">
@@ -102,7 +107,10 @@ const fetchInvitation = async () => {
     try {
         invitation.value = await $fetch(`/api/invitations/${token}`);
     } catch (err) {
-        error.value = err.message || t('errors.loadFailed');
+        const status = err?.statusCode || err?.status || err?.response?.status;
+        error.value = status === 404 || status === 410
+            ? t('auth.invitationUnavailable')
+            : t('errors.loadFailed');
     } finally {
         loading.value = false;
     }
