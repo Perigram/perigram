@@ -326,10 +326,12 @@ Home root filtering is derived at runtime from the domain containment graph,
 compiled source metadata, and canonical `lineage.*Id` references. The lineage
 fallback covers active manifests whose domain containment catalog does not
 declare every stored ancestor (for example a cassette design carrying
-`lineage.libraryId`). A child section with no remaining root records is omitted;
-empty top-level sections remain available when they own a top-level create
-action. This suppresses a descendant when any non-organization ancestor is
-readable, not only when its immediate parent is a home section.
+`lineage.libraryId`). Sources with a declared non-organization containment
+parent are not rendered as Home sections when their records carry that parent;
+empty child sections are omitted as well. Empty top-level sections remain
+available when they own a top-level create action. Record filtering still
+suppresses a descendant when any non-organization ancestor is readable, not
+only when its immediate parent is a Home section.
 Home sections are true horizontal carousels: entity cards keep a stable
 non-shrinking width and overflow horizontally instead of shrinking every card
 to fit the viewport. The fixed width belongs on the carousel item wrapper, not

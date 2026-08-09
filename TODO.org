@@ -82,6 +82,13 @@
    entity header, while Profile uses controlled PrimeVue tabs and canonical
    membership cards instead of an artificial navigation list.
 
+   The first persisted-data acceptance run still exposed =Cassette Design= on
+   Home. Its records use =lineage.templateId=, while the domain omitted the
+   matching containment edge. Added =cassette -> cassette_design= to the CNC
+   domain contract and made Home omit structurally nested source bands when
+   loaded records carry that parent. This repair is validated against the
+   active manifest instead of requiring process reactivation.
+
    [2026-08-09 Sun 21:00 MSK]
    Audited the reviewed UI task against rendered pages instead of the previous
    source-string assertions. The audit found and repaired an authenticated

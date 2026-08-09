@@ -65,6 +65,10 @@ It also declares `cassette` as a `library` child through
 `lineage.libraryId`. Libraries are organization-scoped containers for cassette
 templates that share `data.material`; summary sync writes
 `summary.cassetteCount` on the parent library.
+`cassette_design` is a derived child of its source `cassette` template through
+`lineage.templateId`. The containment edge is shared by process source
+classification, generated hierarchy, and Home root selection; it is not a
+second relation beside the construction contract.
 `field-access.js` keeps `sheetDesign` on the `sheet_designs` access feature.
 Queue lineage scopes can restrict which layouts a user sees, but queue grants
 do not replace explicit sheet-design output grants from the active process.
