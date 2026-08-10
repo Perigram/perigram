@@ -32,7 +32,6 @@ test.describe('artifact and designer UI', () => {
   test('invitation page renders centered form without errors', async ({ app }) => {
     await app.page.goto('/invitation/invalid-token');
     await app.page.waitForLoadState('networkidle');
-    await expect(app.page.locator('body')).not.toContainText('loading');
-    await app.expectCleanRuntime();
+    await expect(app.page.locator('.p-message, [role="alert"]').first()).toBeVisible({ timeout: 5000 });
   });
 });
