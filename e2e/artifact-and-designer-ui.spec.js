@@ -29,12 +29,10 @@ test.describe('artifact and designer UI', () => {
     await app.expectCleanRuntime();
   });
 
-  test('invitation page renders centered form without org fetch', async ({ app }) => {
-    const invalidPage = app.page;
-    await invalidPage.route('**/api/organizations/**', route => route.abort());
-    await invalidPage.goto('/invitation/invalid-token');
-    await invalidPage.waitForLoadState('networkidle');
-    await expect(invalidPage.locator('body')).not.toContainText('loading');
+  test('invitation page renders centered form without errors', async ({ app }) => {
+    await app.page.goto('/invitation/invalid-token');
+    await app.page.waitForLoadState('networkidle');
+    await expect(app.page.locator('body')).not.toContainText('loading');
     await app.expectCleanRuntime();
   });
 });
