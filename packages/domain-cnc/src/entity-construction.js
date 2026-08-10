@@ -36,7 +36,8 @@ export const cncEntityConstruction = {
   cassette: {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',
-    inputs: []
+    inputs: [],
+    isConstructable: entity => entity.data?.type === 'STANDARD' || Boolean(entity.data?.definition?.extensions?.cutkit?.graphTree)
   },
   facade: {
     modes: ['genericCreate'],

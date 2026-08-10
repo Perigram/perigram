@@ -66,6 +66,7 @@ export function createDomainUiAdapter(domain = {}) {
     attachmentKindMap,
     containment: domain.containment || [],
     relations: domain.relations || [],
+    construction: domain.construction || {},
     getSingleEndpoint: (type, id) => getSingleEndpoint(endpointMap, type, id),
     getListEndpoint: (type, filters) => getListEndpoint(endpointMap, type, filters),
     getSurface: type => surfaceMap[type] || null,

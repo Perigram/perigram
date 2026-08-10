@@ -622,15 +622,11 @@ async function entityOptions(entityType, field = {}) {
     });
     return (items || []).map(entity => entityOption(entity, entityType));
   }
-  if (entityType === 'cassette') {
-    const items = await $fetch('/api/cassettes');
-    return items
-      .filter(isConstructableCassetteTemplate)
-      .map(entityOption);
-  }
   if (!entityType) return [];
   const items = await $fetch(domainUi.getListEndpoint(uiEntityType(entityType)));
+  const constructable = domainUi.construction[entityType]?.isConstructable;
   return (Array.isArray(items) ? items : items.items || items.data || [])
+    .filter(constructable || (entity => true))
     .filter(entity => !field.attachmentKinds?.length || field.attachmentKinds.includes(entity.data?.type))
     .map(entity => entityOption(entity, entityType));
 }
@@ -682,12 +678,6 @@ function showActionError(err) {
     detail: actionError.value,
     life: 4000
   });
-}
-
-function isConstructableCassetteTemplate(template = {}) {
-  if (template.data?.type === 'STANDARD') return true;
-  const definition = template.data?.definition || {};
-  return Boolean(definition.extensions?.cutkit?.graphTree);
 }
 
 function entityOption(entity = {}, entityType = '') {
