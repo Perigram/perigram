@@ -119,7 +119,14 @@ function recompileProcessData(data = {}, roles = {}) {
 
 function compiledSignature(compiled = {}) {
   const { activatedAt: _activatedAt, ...semantic } = compiled || {};
-  return JSON.stringify(semantic);
+  return JSON.stringify(stableValue(semantic));
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value instanceof Date) return value.toISOString();
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.keys(value).sort().map(key => [key, stableValue(value[key])]));
 }
 
 async function main() {
