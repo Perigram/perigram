@@ -1829,7 +1829,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
         graphContext,
         lineageBindings
       });
-      const contextualActions = contextualParentActions(role.actions || [], entityType, domain, actions, graphContext);
+      const contextualActions = contextualParentActions(role.actions || [], entityType, domain, actions, graphContext, lineageBindings);
       inferred[id] = {
         id,
         label: `${role.label || roleId} ${entityType}`,
@@ -1886,7 +1886,7 @@ function inferredDetailScreenActions(roleActions = [], feature) {
     .map(action => action.actionId);
 }
 
-function contextualParentActions(roleActions = [], parentEntityType = '', domain = {}, processActions = {}, graphContext = buildActionGraphContext({ actions: processActions })) {
+function contextualParentActions(roleActions = [], parentEntityType = '', domain = {}, processActions = {}, graphContext = buildActionGraphContext({ actions: processActions }), lineageBindings = []) {
   return roleActions
     .filter((roleAction) => {
       const actionId = roleAction.actionId || roleAction.id;
@@ -1896,7 +1896,7 @@ function contextualParentActions(roleActions = [], parentEntityType = '', domain
       const actionParent = effectiveActionParentEntityType({ ...processAction, ...roleAction }, domain, parentIncoming);
       if (actionParent !== parentEntityType) return false;
       const childEntityType = roleAction.entityType || processAction.entityType || '';
-      return !parentRelationForChild(domain, childEntityType, parentEntityType);
+      return !parentRelationForChild(domain, childEntityType, parentEntityType, lineageBindings);
     })
     .map(action => action.actionId);
 }
@@ -1944,7 +1944,7 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
     if (kind !== 'createEntity' || actionParent !== parentEntityType) continue;
     const childEntityType = action.entityType || processAction.entityType || '';
     if (!childEntityType) continue;
-    const parentRelation = parentRelationForChild(domain, childEntityType, parentEntityType);
+    const parentRelation = parentRelationForChild(domain, childEntityType, parentEntityType, lineageBindings);
     if (!parentRelation) continue;
     const childFeature = featureFromEntityType(domain, childEntityType);
     if (!childFeature) continue;
@@ -1993,7 +1993,15 @@ function ensureChildRegion({ sourcesByEntity, regions, childEntityType, childFea
   return region;
 }
 
-function parentRelationForChild(domain = {}, childEntityType = '', parentEntityType = '') {
+function parentRelationForChild(domain = {}, childEntityType = '', parentEntityType = '', lineageBindings = []) {
+  if (lineageBindings.length) {
+    const binding = lineageBindings.find(binding =>
+      binding.childEntityType === childEntityType
+      && (!parentEntityType || binding.ancestorEntityType === parentEntityType)
+      && binding.lineageKey
+    );
+    if (binding) return { childType: binding.childEntityType, parentType: binding.ancestorEntityType, lineageKey: binding.lineageKey };
+  }
   return (domain.containment || []).find(relation => (
     relation.childType === childEntityType
     && (!parentEntityType || relation.parentType === parentEntityType)
