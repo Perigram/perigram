@@ -8,6 +8,7 @@
     :body-actions="bodyActions"
     :screen-key="screenKey"
     :excluded-actions="excludedActions"
+    :trace-exclusions="traceExclusions"
     :open-actions-in-workspace="openInWorkspace"
     @refresh="$emit('refresh')"
     @open-page="page => $emit('open-page', page)"
@@ -48,7 +49,8 @@ const props = defineProps({
   excludedActions: { type: Array, default: () => [] },
   bodyActions: { type: Array, default: () => [] },
   actionContext: { type: Object, default: () => ({}) },
-  openInWorkspace: { type: Boolean, default: false }
+  openInWorkspace: { type: Boolean, default: false },
+  traceExclusions: { type: Array, default: () => [] }
 });
 
 defineEmits(['refresh', 'execute-action', 'open-entity', 'open-page']);

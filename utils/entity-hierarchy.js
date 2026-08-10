@@ -65,6 +65,14 @@ export function hierarchyReferences(entity = {}, entityType = '', containment = 
   return refs;
 }
 
+export function routeContextTraceExclusions(entity = {}, entityType = '', containment = [], routeQuery = {}) {
+  return containmentAncestors(entity, entityType, containment).filter(ref => {
+    const contextId = routeQuery?.[ref.lineageKey];
+    const value = Array.isArray(contextId) ? contextId[0] : contextId;
+    return value !== undefined && value !== null && String(value) === String(ref.id);
+  });
+}
+
 export function rootContainmentFilter(entityType = '', containment = []) {
   const keys = (containment || [])
     .filter(relation => normalizeHierarchyType(relation.childType) === normalizeHierarchyType(entityType))

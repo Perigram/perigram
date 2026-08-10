@@ -19,6 +19,7 @@ const props = defineProps({
   showHeader: { type: Boolean, default: true },
   showIdentity: { type: Boolean, default: true },
   showStatus: { type: Boolean, default: true },
+  traceExclusions: { type: Array, default: () => [] },
   actionsDisplay: { type: String, default: 'menu', validator: value => ['menu', 'inline'].includes(value) },
   statusActions: { type: Array, default: () => [] }
 });
@@ -35,7 +36,7 @@ provide('displayedEntityContexts', computed(() => [
 <template>
   <div class="entity-page flex w-full min-w-0 flex-col gap-6">
     <div v-if="showHeader" class="flex flex-col gap-4" data-entity-page-header>
-      <TraceChain v-if="showTrace" :entity="entity" :entity-type="entityType" />
+      <TraceChain v-if="showTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
 
       <div class="entity-page-header-content flex flex-col gap-3">
         <div class="flex min-w-0 flex-col gap-2">

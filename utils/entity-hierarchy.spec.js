@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { containmentAncestors, projectHierarchyRoute, rootContainmentFilter, siblingContainmentScope } from './entity-hierarchy.js';
+import { containmentAncestors, projectHierarchyRoute, rootContainmentFilter, routeContextTraceExclusions, siblingContainmentScope } from './entity-hierarchy.js';
 
 describe('entity containment hierarchy', () => {
   const lineageBindings = [
@@ -42,6 +42,17 @@ describe('entity containment hierarchy', () => {
 
   it('scopes siblings to the same declared parent', () => {
     expect(siblingContainmentScope({ lineage: { queueId: 'queue-1' } }, 'nesting_run', lineageBindings)).toEqual({ queueId: 'queue-1' });
+  });
+
+  it('omits only compiled ancestors already represented by the route context', () => {
+    const queue = { lineage: { organizationId: 'org-1', projectId: 'project-1' } };
+    expect(routeContextTraceExclusions(queue, 'queue', lineageBindings, {
+      projectId: 'project-1',
+      queueId: 'queue-1'
+    })).toEqual([{ type: 'project', id: 'project-1', lineageKey: 'projectId' }]);
+    expect(routeContextTraceExclusions(queue, 'queue', lineageBindings, {
+      projectId: 'another-project'
+    })).toEqual([]);
   });
 
   it('builds project-scoped routes from the resolved project identity', () => {
