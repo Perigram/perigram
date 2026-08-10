@@ -150,6 +150,7 @@ import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-
 import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
@@ -178,6 +179,7 @@ const emit = defineEmits(['refresh', 'execute-action']);
 const authStore = useAuthStore();
 const entityStore = useEntityStore();
 const domainUi = useCutkitDomainUi();
+const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 const explorerOpen = ref(true);
 const explorerSize = ref(15);
@@ -253,7 +255,8 @@ const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEnti
 const explorerHierarchy = computed(() => projectExplorerHierarchy({
   projectItem: projectItem.value,
   items: workspaceEntityItems.value,
-  linkedItemKeys: linkedEntityItems.value.map(item => item.key)
+  linkedItemKeys: linkedEntityItems.value.map(item => item.key),
+  containment: effectiveContainment()
 }));
 const linkedRefs = computed(() => Object.values(project.value?.relations || {})
   .flatMap(value => resolveEntityRelationRefs(value)));
