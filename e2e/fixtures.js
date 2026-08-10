@@ -33,21 +33,28 @@ export const test = base.extend({
       },
       async switchToAssignedOrganization() {
         const current = await (await request.get('/api/auth/me')).json();
-        const target = (current.memberships || []).find(membership => (
-          membership.roleId && String(membership.organizationId) !== String(current.organizationId)
-        ));
-        expect(target, 'Expected a secondary membership with a process role assignment').toBeTruthy();
-        const response = await request.post('/api/auth/switch-org', {
-          data: { organizationId: target.organizationId }
-        });
-        expect(response.ok(), await response.text()).toBeTruthy();
+        if ((current.roleAssignments?.roleIds || []).length) return current;
+        let assigned = null;
+        for (const membership of current.memberships || []) {
+          if (String(membership.organizationId) === String(current.organizationId)) continue;
+          const response = await request.post('/api/auth/switch-org', {
+            data: { organizationId: membership.organizationId }
+          });
+          expect(response.ok(), await response.text()).toBeTruthy();
+          const candidate = await (await request.get('/api/auth/me')).json();
+          if ((candidate.roleAssignments?.roleIds || []).length) {
+            assigned = candidate;
+            break;
+          }
+        }
+        expect(assigned, 'Expected a membership with a canonical process role assignment').toBeTruthy();
         helper.trackCleanup(async () => {
           await request.post('/api/auth/switch-org', {
             data: { organizationId: current.organizationId },
             failOnStatusCode: false
           });
         });
-        return await (await request.get('/api/auth/me')).json();
+        return assigned;
       },
       async createProject(name = helper.uniqueName('Project')) {
         const response = await request.post('/api/project', {
