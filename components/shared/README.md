@@ -450,12 +450,12 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   location rows where direct route navigation is intended. Do not use it for
   entity relation summaries inside cards/details; use `EntityInlineRef` so the
   relation resolves through `useEntity` and the registered entity card.
-- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` — never pass raw ancestry arrays. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove explicit ancestry, and it omits every entity in the propagated displayed-context stack, including the project already represented by a project workspace and the nearest enclosing `EntityPage`.
+- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` and an explicit canonical entity type—never pass raw ancestry arrays or infer types from lineage key spelling. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove explicit ancestry, and it omits every entity in the propagated displayed-context stack, including the project already represented by a project workspace and the nearest enclosing `EntityPage`. In process mode the chain follows the effective compiled Lineage bindings only.
   Card title chrome uses compact trace mode: it shows the nearest parent
   lineage item and an ellipsis expander when more ancestry exists. Expanded
   popovers and detail pages render the full lineage breadcrumb chain. Supported
-  lineage parents include `organizationId`, `libraryId`, `templateId`,
-  `warehouseId`, `projectId`, and `queueId`.
+  lineage parents are whatever exact keys the effective compiled bindings
+  declare; non-process routes may use canonical domain containment.
   Trace labels must resolve to entity display names from context or the entity
   store; raw lineage ids are link targets only and must not be shown as labels.
   Trace links must route through the represented entity surface. In active

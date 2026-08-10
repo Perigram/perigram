@@ -1,7 +1,62 @@
 import { connectDB } from '../db/mongo.js';
-import { cncDomain } from '../../packages/domain-cnc/src/index.js';
+import { canonicalEntityType, cncDomain } from '../../packages/domain-cnc/src/index.js';
 
 const APPLY = process.argv.includes('--apply');
+
+const ENTITY_TYPE_FIELDS = new Set([
+  'entityType',
+  'ownerType',
+  'targetType',
+  'parentType',
+  'childType',
+  'ancestorEntityType',
+  'childEntityType',
+  'sourceEntityType',
+  'outputEntityType'
+]);
+const ENTITY_TYPE_KEYED_FIELDS = new Set(['workflows', 'fieldPolicies']);
+
+export function migrateCanonicalEntityTypes(value) {
+  const unresolved = [];
+  let changed = false;
+
+  function visit(current, path = []) {
+    if (Array.isArray(current)) return current.map((item, index) => visit(item, [...path, index]));
+    if (!current || typeof current !== 'object') return current;
+
+    const result = {};
+    for (const [key, raw] of Object.entries(current)) {
+      const nextPath = [...path, key];
+      if (ENTITY_TYPE_KEYED_FIELDS.has(path.at(-1))) {
+        const canonicalKey = canonicalEntityType(key);
+        if (!canonicalKey) unresolved.push({ path: path.join('.'), value: key });
+        const targetKey = canonicalKey || key;
+        if (targetKey !== key) changed = true;
+        result[targetKey] = visit(raw, nextPath);
+        continue;
+      }
+      if (ENTITY_TYPE_FIELDS.has(key) && typeof raw === 'string' && raw) {
+        const canonical = canonicalEntityType(raw);
+        if (!canonical) unresolved.push({ path: nextPath.join('.'), value: raw });
+        result[key] = canonical || raw;
+        if (canonical && canonical !== raw) changed = true;
+        continue;
+      }
+      if (key === 'type' && typeof raw === 'string' && raw && (current.id || current.entityId || current.revisionId)) {
+        const canonical = canonicalEntityType(raw);
+        if (canonical) {
+          result[key] = canonical;
+          if (canonical !== raw) changed = true;
+          continue;
+        }
+      }
+      result[key] = visit(raw, nextPath);
+    }
+    return result;
+  }
+
+  return { changed, unresolved, value: visit(value) };
+}
 
 function stringId(value) {
   return value?.toString?.() || value || '';
@@ -130,6 +185,34 @@ async function migrateCollection(db, collection, cursor, transform, selectValue)
 async function main() {
   const db = await connectDB();
   const summary = {};
+  const canonicalUpdates = [];
+  const canonicalFailures = [];
+  const canonicalCollections = [...new Set([
+    'process_definitions',
+    ...(cncDomain.entities || []).map(entity => entity.collection).filter(Boolean)
+  ])];
+  for (const collection of canonicalCollections) {
+    const cursor = db.collection(collection).find({});
+    for await (const document of cursor) {
+      const result = migrateCanonicalEntityTypes(document);
+      if (result.unresolved.length) {
+        canonicalFailures.push({ collection, id: stringId(document._id), unresolved: result.unresolved });
+        continue;
+      }
+      if (result.changed) canonicalUpdates.push({ collection, id: document._id, document: result.value });
+    }
+  }
+  summary.canonicalEntityTypes = {
+    scannedCollections: canonicalCollections.length,
+    changed: canonicalUpdates.length,
+    invalid: canonicalFailures.length,
+    failures: canonicalFailures
+  };
+  if (APPLY && !canonicalFailures.length) {
+    for (const update of canonicalUpdates) {
+      await db.collection(update.collection).replaceOne({ _id: update.id }, update.document);
+    }
+  }
   summary.entityRevisions = await migrateCollection(
     db,
     'entity_revisions',
@@ -195,7 +278,7 @@ async function main() {
     );
   }
   console.log(`${APPLY ? '[apply]' : '[dry-run]'} ${JSON.stringify(summary)}`);
-  if (summary.cassetteDesigns.invalid || summary.parentRevisions.invalid) process.exitCode = 1;
+  if (summary.canonicalEntityTypes.invalid || summary.cassetteDesigns.invalid || summary.parentRevisions.invalid) process.exitCode = 1;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

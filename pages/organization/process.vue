@@ -965,6 +965,16 @@ import ProcessValueInputNode from '~/components/process-designer/ProcessValueInp
 import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
+import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
+import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
+import { useProcessDesignerPanels } from '~/composables/useProcessDesignerPanels.js';
+import { useProcessDesignerConnectionInference } from '~/composables/useProcessDesignerConnectionInference.js';
+import { useProcessDesignerPersistence } from '~/composables/useProcessDesignerPersistence.js';
+import { useProcessDesignerRoles } from '~/composables/useProcessDesignerRoles.js';
+import { useProcessDesignerScreens } from '~/composables/useProcessDesignerScreens.js';
+import { useProcessDesignerPalette } from '~/composables/useProcessDesignerPalette.js';
+import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
+import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 
 const { t, te } = useI18n();
 const toast = useToast();
@@ -981,8 +991,6 @@ const loadingProcess = ref(false);
 const processLoadError = ref('');
 const nodes = ref([]);
 const edges = ref([]);
-const selectedNodeId = ref(null);
-const selectedEdgeId = ref(null);
 const validation = ref(null);
 const dataflowPreview = ref(null);
 const previewingData = ref(false);
@@ -990,21 +998,11 @@ const applyingProcess = ref(false);
 const savingDraft = ref(false);
 const creatingDraft = ref(false);
 const savedDraftSignature = ref('');
-const paletteOpen = ref(true);
-const inspectorOpen = ref(true);
-const selectedRoleId = ref(null);
 const organizationRoles = ref({});
-const selectedPrincipalId = ref(null);
-const selectedScreenId = ref(null);
 const newStateId = ref('');
 const canvasFrame = ref(null);
-const processMenu = ref(null);
-const canvasMenu = ref(null);
-const dockPopover = ref(null);
-const pinnedDockPopover = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
-const inspectTab = ref('inspector');
 const paletteQuery = ref('');
 const contextPaletteSearch = ref(null);
 const contextPalette = ref({
@@ -1017,31 +1015,99 @@ const contextPalette = ref({
 });
 const canvasKeyboardActive = ref(false);
 const { fitView, getViewport, setViewport, zoomIn, zoomOut, zoomTo } = useVueFlow();
+const {
+  canvasMenu,
+  dockPopover,
+  inspectTab,
+  inspectorOpen,
+  paletteOpen,
+  pinnedDockPopover,
+  processMenu,
+  selectedPrincipalId,
+  selectedRoleId,
+  selectedScreenId
+} = useProcessDesignerPanels();
+const { compareProcessDefinitions, normalizeProcessList, pickInitialProcess } = useProcessDefinitionCatalog({ definitionToCanvas });
+const persistence = useProcessDesignerPersistence();
+const rolePersistence = useProcessDesignerRoles();
+const {
+  clearGraphSelection,
+  reset: resetGraphSelection,
+  selectEdge,
+  selectedEdgeId,
+  selectedNode,
+  selectedNodeId,
+  selectNode
+} = useProcessDesignerSelection({
+  nodes,
+  edges,
+  decorateEdge: value => decorateEdge(value),
+  closePalette: () => closeContextPalette(),
+  syncEdges: () => syncEdgeSelection()
+});
+const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInference({
+  nodes,
+  draft,
+  resolveOutputs: record => resolveCatalogNodePorts(record, catalogContext(record)).outputs,
+  portForHandle,
+  syncProcessNode
+});
+const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen });
 
 const designer = createProcessDesignerContract(cncDomain);
-const managedProcessBlocks = new Set(['origin', 'status', 'provenance', 'summary']);
-const paletteGroups = computed(() => {
-  const query = paletteQuery.value.trim().toLowerCase();
-  return designer.paletteGroups
-    .map(group => ({
-      ...group,
-      items: group.items.filter(item => (
-        !query || paletteSearchText(item).includes(query)
-      ))
-    }))
-    .filter(group => group.items.length);
+const {
+  ensureRecord,
+  factoryForType,
+  recordKeyForType,
+  selectedRecord,
+  selectedEntity,
+  selectedAction,
+  selectedService,
+  selectedSocket,
+  selectedStatusDefinition,
+  selectedValueInput,
+  selectedProcessNode
+} = useProcessDesignerInspector({
+  draft,
+  selectedNode,
+  factories: {
+    entity: createEntityProfile,
+    action: createAction,
+    service: createService,
+    socket: createSocket,
+    statusDefinition: createStatusDefinition,
+    valueInput: createValueInput,
+    processNode: createProcessNode
+  }
 });
-const contextPaletteGroups = computed(() => {
-  const query = contextPalette.value.query.trim().toLowerCase();
-  return designer.paletteGroups
-    .map(group => ({
-      ...group,
-      items: group.items.filter(item => (
-        (!query || paletteSearchText(item).includes(query))
-        && contextItemCompatible(item)
-      ))
-    }))
-    .filter(group => group.items.length);
+const {
+  deleteGraphSelection,
+  selectedGraphEdges,
+  selectedGraphNodes
+} = useProcessDesignerGraphEditing({
+  draft,
+  nodes,
+  edges,
+  selectedNode,
+  selectedNodeId,
+  selectedEdgeId,
+  recordKeyForType,
+  clearSemanticConnection,
+  syncInferredActionInputs,
+  onBlockedStatusNodes: () => toast.add({
+    severity: 'warn',
+    summary: t('processDesigner.statusInUse'),
+    detail: t('processDesigner.statusInUseHelp'),
+    life: 3000
+  })
+});
+const managedProcessBlocks = new Set(['origin', 'status', 'provenance', 'summary']);
+const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = useProcessDesignerPalette({
+  groups: designer.paletteGroups,
+  query: paletteQuery,
+  context: contextPalette,
+  searchText: paletteSearchText,
+  isCompatible: contextItemCompatible
 });
 const actionKindOptions = [
   { label: t('processDesigner.paletteItems.create'), value: 'createEntity' },
@@ -1256,7 +1322,6 @@ const emptyCanvasMessage = computed(() => {
   if (processLoadError.value) return processLoadError.value;
   return t('processDesigner.noActiveDraft');
 });
-const selectedNode = computed(() => nodes.value.find(node => node.id === selectedNodeId.value) || null);
 const selectedNodePreview = computed(() => selectedNode.value ? dataflowPreview.value?.nodes?.[selectedNode.value.id] || null : null);
 const selectedNodeSupportsPreview = computed(() => {
   const kind = selectedProcessNode.value?.kind || '';
@@ -1271,17 +1336,6 @@ const selectedNodePreviewOutputs = computed(() => {
     tree
   }));
 });
-const selectedRecord = computed(() => {
-  if (!selectedNode.value) return {};
-  return ensureRecord(recordKeyForType(selectedNode.value.type), selectedNode.value, factoryForType(selectedNode.value.type));
-});
-const selectedEntity = computed(() => selectedNode.value?.type === 'entity' ? ensureRecord('entityProfiles', selectedNode.value, createEntityProfile) : {});
-const selectedAction = computed(() => selectedNode.value?.type === 'action' ? ensureRecord('actions', selectedNode.value, createAction) : {});
-const selectedService = computed(() => selectedNode.value?.type === 'service' ? ensureRecord('services', selectedNode.value, createService) : {});
-const selectedSocket = computed(() => selectedNode.value?.type === 'socket' ? ensureRecord('sockets', selectedNode.value, createSocket) : {});
-const selectedStatusDefinition = computed(() => selectedNode.value?.type === 'statusDefinition'
-  ? ensureRecord('statusDefinitions', selectedNode.value, createStatusDefinition)
-  : {});
 const selectedStatusAttachmentEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.attachments || {})
   .map(([key, schema]) => ({ key, schema })));
 const selectedStatusSnapshotEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.snapshots || {})
@@ -1290,8 +1344,6 @@ const statusDefinitionList = computed(() => Object.values(draft.value?.data?.sta
 const processStatusOptions = computed(() => statusDefinitionList.value
   .filter(status => status.statusId)
   .map(status => ({ label: status.label || status.statusId, value: status.statusId, refId: status.id })));
-const selectedValueInput = computed(() => selectedNode.value?.type === 'valueInput' ? ensureRecord('valueInputs', selectedNode.value, createValueInput) : {});
-const selectedProcessNode = computed(() => selectedNode.value?.type === 'processNode' ? ensureRecord('processNodes', selectedNode.value, createProcessNode) : {});
 const selectedProcessNodeGrants = computed(() => selectedProcessNode.value.access?.grants || []);
 const nextSelectedProcessNodeRoleId = computed(() => {
   const selected = new Set(selectedProcessNodeGrants.value.map(grant => grant.roleId));
@@ -1392,13 +1444,9 @@ async function loadActiveOrCreateLocal() {
   processLoadError.value = '';
   try {
     const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
-    const [active, all, loadedRoles] = await Promise.all([
-      $fetch('/api/process-definitions/active').catch(() => null),
-      $fetch('/api/process-definitions').catch(() => []),
-      organizationId ? $fetch(`/api/organizations/${organizationId}/roles`) : {}
-    ]);
+    const { active, definitions, roles: loadedRoles } = await persistence.loadWorkspace(organizationId);
     organizationRoles.value = loadedRoles || {};
-    processDefinitions.value = normalizeProcessList(active, all);
+    processDefinitions.value = normalizeProcessList(active, definitions);
     const initial = pickInitialProcess(active, processDefinitions.value);
     if (initial) {
       setDraft(initial);
@@ -1413,46 +1461,11 @@ async function loadActiveOrCreateLocal() {
 async function loadOrganizationRoles() {
   const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
   organizationRoles.value = organizationId
-    ? await $fetch(`/api/organizations/${organizationId}/roles`)
+    ? await rolePersistence.list(organizationId)
     : {};
   selectedRoleId.value = organizationRoles.value[selectedRoleId.value]
     ? selectedRoleId.value
     : Object.keys(organizationRoles.value)[0] || null;
-}
-
-function normalizeProcessList(active, all = []) {
-  const byId = new Map();
-  for (const process of [active, ...(Array.isArray(all) ? all : [])].filter(Boolean)) {
-    byId.set(String(process._id), process);
-  }
-  return [...byId.values()].sort(compareProcessDefinitions);
-}
-
-function pickInitialProcess(active, processes = []) {
-  if (active && canProjectProcess(active)) return active;
-  return processes.find(process => process.status?.state?.primary === 'ACTIVE' && canProjectProcess(process))
-    || processes.find(process => process.status?.state?.primary === 'DRAFT' && canProjectProcess(process))
-    || processes.find(canProjectProcess)
-    || active
-    || processes[0]
-    || null;
-}
-
-function canProjectProcess(process) {
-  try {
-    definitionToCanvas(process?.data || {});
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function compareProcessDefinitions(left, right) {
-  const statusRank = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
-  const leftRank = statusRank[left?.status?.state?.primary] ?? 3;
-  const rightRank = statusRank[right?.status?.state?.primary] ?? 3;
-  if (leftRank !== rightRank) return leftRank - rightRank;
-  return new Date(right?.status?.timestamp || 0) - new Date(left?.status?.timestamp || 0);
 }
 
 function selectProcessDefinition(processId) {
@@ -1479,16 +1492,7 @@ async function createDraft({ copyActive = false, empty = false } = {}) {
       { dataflowVersion: PROCESS_DATAFLOW_VERSION }
     )
     : serializeProcess();
-  const created = await $fetch('/api/process-definitions', {
-    method: 'POST',
-    body: {
-      name,
-      data: {
-        ...data,
-        sourceProcessDefinitionId: sourceId
-      }
-    }
-  });
+  const created = await persistence.createDraft({ name, data, sourceProcessDefinitionId: sourceId });
   upsertProcessDefinition(created);
   setDraft(created);
   return created;
@@ -1518,10 +1522,7 @@ async function saveDraft() {
   try {
     syncNodeData();
     if (!draft.value?._id || isActiveProcess.value) return await createDraft({ copyActive: isActiveProcess.value });
-    const updated = await $fetch(`/api/process-definitions/${draft.value._id}`, {
-      method: 'PATCH',
-      body: { data: serializeProcess() }
-    });
+    const updated = await persistence.saveDraft(draft.value._id, serializeProcess());
     upsertProcessDefinition(updated);
     setDraft(updated);
     return updated;
@@ -1555,10 +1556,7 @@ async function previewDataflow() {
   previewingData.value = true;
   try {
     const definition = serializeProcess();
-    dataflowPreview.value = await $fetch('/api/process-definitions/preview', {
-      method: 'POST',
-      body: { definition, nodeId: selectedNodeId.value, trigger: {}, inputs: {} }
-    });
+    dataflowPreview.value = await persistence.previewDraft(definition, selectedNodeId.value);
   } catch (error) {
     dataflowPreview.value = { nodes: { [selectedNodeId.value]: { error: error?.data?.message || error.message } } };
   } finally {
@@ -1576,10 +1574,10 @@ function formatPreviewItems(items = []) {
 
 async function activateDraft() {
   await saveDraft();
-  const result = await $fetch(`/api/process-definitions/${draft.value._id}/validate`, { method: 'POST' });
+  const result = await persistence.validateDraft(draft.value._id);
   validation.value = result;
   if (!result.ok) throw new Error(result.errors?.[0] || t('processDesigner.validationFailed'));
-  const activated = await $fetch(`/api/process-definitions/${draft.value._id}/activate`, { method: 'POST' });
+  const activated = await persistence.activateDraft(draft.value._id);
   upsertProcessDefinition(activated);
   setDraft(activated);
   return activated;
@@ -1678,8 +1676,7 @@ function setDraft(value) {
     canvas = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
     validation.value = { ok: false, errors: [error.message], warnings: [] };
   }
-  selectedNodeId.value = null;
-  selectedEdgeId.value = null;
+  resetGraphSelection();
   nodes.value = canvas.nodes.map(enrichNodeData);
   edges.value = decorateEdges(canvas.edges);
   selectedRoleId.value = Object.keys(organizationRoles.value)[0] || null;
@@ -1747,27 +1744,6 @@ function addNode(item, position = nextNodePosition()) {
   selectedEdgeId.value = null;
   syncEdgeSelection();
   return node;
-}
-
-function selectNode(node) {
-  selectedNodeId.value = node.id;
-  selectedEdgeId.value = null;
-  syncEdgeSelection();
-}
-
-function selectEdge(edge) {
-  selectedEdgeId.value = edge.id;
-  selectedNodeId.value = null;
-  syncEdgeSelection();
-}
-
-function clearGraphSelection() {
-  closeContextPalette();
-  nodes.value = nodes.value.map(node => ({ ...node, selected: false }));
-  edges.value = edges.value.map(edge => decorateEdge({ ...edge, selected: false }));
-  selectedNodeId.value = null;
-  selectedEdgeId.value = null;
-  syncEdgeSelection();
 }
 
 function handleDesignerPointerDown(event) {
@@ -1970,65 +1946,6 @@ function handleCanvasKeydown(event) {
 function isTextEditingTarget(target) {
   const tagName = target?.tagName?.toLowerCase();
   return target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName);
-}
-
-function selectedGraphNodes() {
-  const selected = nodes.value.filter(node => node.selected);
-  if (selected.length) return selected;
-  return selectedNode.value ? [selectedNode.value] : [];
-}
-
-function selectedGraphEdges() {
-  const selected = edges.value.filter(edge => edge.selected);
-  if (selected.length) return selected;
-  const edge = edges.value.find(item => item.id === selectedEdgeId.value);
-  return edge ? [edge] : [];
-}
-
-function deleteGraphSelection() {
-  const selectedNodes = selectedGraphNodes();
-  const candidateNodeIds = new Set(selectedNodes.map(node => node.id));
-  const selectedProcessRefs = new Set(selectedNodes
-    .filter(node => node.type === 'processNode')
-    .map(node => node.data?.refId)
-    .filter(Boolean));
-  const remainingProcessNodes = Object.entries(draft.value?.data?.processNodes || {})
-    .filter(([refId]) => !selectedProcessRefs.has(refId))
-    .map(([, node]) => node);
-  const blockedStatusNodeIds = new Set(selectedNodes
-    .filter(node => node.type === 'statusDefinition')
-    .filter(node => remainingProcessNodes.some(record => record.statusRef === (node.data?.refId || node.id)))
-    .map(node => node.id));
-  const removedNodeIds = new Set([...candidateNodeIds].filter(id => !blockedStatusNodeIds.has(id)));
-  const protectedStatusEdges = new Set(edges.value
-    .filter(edge => blockedStatusNodeIds.has(edge.source) && !removedNodeIds.has(edge.target))
-    .map(edge => edge.id));
-  const removedEdgeIds = new Set(selectedGraphEdges()
-    .map(edge => edge.id)
-    .filter(id => !protectedStatusEdges.has(id)));
-  for (const edge of edges.value) {
-    if ((removedNodeIds.has(edge.source) || removedNodeIds.has(edge.target)) && !protectedStatusEdges.has(edge.id)) {
-      removedEdgeIds.add(edge.id);
-    }
-  }
-  for (const edge of edges.value.filter(edge => removedEdgeIds.has(edge.id))) clearSemanticConnection(edge);
-  for (const node of selectedNodes.filter(node => removedNodeIds.has(node.id))) {
-    const refId = node.data?.refId;
-    if (refId && draft.value?.data) delete draft.value.data[recordKeyForType(node.type)]?.[refId];
-  }
-  nodes.value = nodes.value.filter(node => !removedNodeIds.has(node.id));
-  edges.value = edges.value.filter(edge => !removedEdgeIds.has(edge.id));
-  if (blockedStatusNodeIds.size) {
-    toast.add({
-      severity: 'warn',
-      summary: t('processDesigner.statusInUse'),
-      detail: t('processDesigner.statusInUseHelp'),
-      life: 3000
-    });
-  }
-  selectedNodeId.value = nodes.value.find(node => blockedStatusNodeIds.has(node.id))?.id || null;
-  selectedEdgeId.value = null;
-  syncInferredActionInputs();
 }
 
 function decorateEdges(items = []) {
@@ -2272,32 +2189,7 @@ function syncOpenBlockEntryContracts() {
     const entityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || source.entityType || '';
     if (!entityType) continue;
     entry.entityType = entityType;
-    if (!entry.key) entry.key = lineageEntryKey(entityType);
   }
-}
-
-function lineageEntryKey(entityType = '') {
-  const camel = String(entityType).replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
-  return camel ? `${camel}Id` : '';
-}
-
-function ensureRecord(key, node, factory) {
-  if (!draft.value) draft.value = { data: {} };
-  draft.value.data[key] ||= {};
-  const refId = node?.data?.refId || node?.id || `${key}_${Date.now()}`;
-  draft.value.data[key][refId] ||= factory(refId);
-  if (key === 'services') {
-    draft.value.data[key][refId].billing ||= { mode: 'none', tokenCost: 0, meterKey: '' };
-  }
-  return draft.value.data[key][refId];
-}
-
-function recordKeyForType(type) {
-  return ({ entity: 'entityProfiles', action: 'actions', service: 'services', socket: 'sockets', statusDefinition: 'statusDefinitions', valueInput: 'valueInputs', processNode: 'processNodes' })[type] || 'entityProfiles';
-}
-
-function factoryForType(type) {
-  return ({ entity: createEntityProfile, action: createAction, service: createService, socket: createSocket, statusDefinition: createStatusDefinition, valueInput: createValueInput, processNode: createProcessNode })[type] || createEntityProfile;
 }
 
 function createServicePrincipal(id) {
@@ -2513,10 +2405,7 @@ function createProcessNode(id, kind = 'source.literalItem') {
 async function addRole() {
   const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
   try {
-    const role = await $fetch(`/api/organizations/${organizationId}/roles`, {
-      method: 'POST',
-      body: { label: `Role ${Object.keys(organizationRoles.value).length + 1}` }
-    });
+    const role = await rolePersistence.create(organizationId, `Role ${Object.keys(organizationRoles.value).length + 1}`);
     organizationRoles.value = { ...organizationRoles.value, [role.id]: role };
     selectedRoleId.value = role.id;
   } catch (error) {
@@ -2528,10 +2417,7 @@ async function saveSelectedRole() {
   if (!selectedRoleRecord.value) return;
   const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
   try {
-    const role = await $fetch(`/api/organizations/${organizationId}/roles/${selectedRoleId.value}`, {
-      method: 'PATCH',
-      body: { label: selectedRoleRecord.value.label }
-    });
+    const role = await rolePersistence.update(organizationId, selectedRoleId.value, selectedRoleRecord.value.label);
     organizationRoles.value = { ...organizationRoles.value, [role.id]: role };
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
@@ -2544,7 +2430,7 @@ async function removeSelectedRole() {
   const removedRoleId = selectedRoleId.value;
   const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
   try {
-    await $fetch(`/api/organizations/${organizationId}/roles/${removedRoleId}`, { method: 'DELETE' });
+    await rolePersistence.remove(organizationId, removedRoleId);
     const next = { ...organizationRoles.value };
     delete next[removedRoleId];
     organizationRoles.value = next;
@@ -2574,11 +2460,7 @@ function removeSelectedPrincipal() {
 }
 
 function addScreen() {
-  const id = `screen_${Date.now()}`;
-  draft.value ||= { data: {} };
-  draft.value.data.screens ||= {};
-  draft.value.data.screens[id] = createScreen(id);
-  selectedScreenId.value = id;
+  screenEditing.add();
 }
 
 function createScreen(id) {
@@ -2614,9 +2496,7 @@ function createScreen(id) {
 }
 
 function removeSelectedScreen() {
-  if (!selectedScreenId.value || !draft.value?.data?.screens) return;
-  delete draft.value.data.screens[selectedScreenId.value];
-  selectedScreenId.value = Object.keys(draft.value.data.screens)[0] || null;
+  screenEditing.removeSelected();
 }
 
 function syncSelectedScreenUi() {
@@ -4429,68 +4309,6 @@ function onConnect(connection) {
   applySemanticConnection(connection);
   syncEdgeSelection();
   syncInferredActionInputs();
-}
-
-function inferGenericNodeTypeFromConnection(connection = {}) {
-  const sourceNode = nodes.value.find(item => item.id === connection.source);
-  const targetNode = nodes.value.find(item => item.id === connection.target);
-  const sourceRecord = draft.value?.data?.processNodes?.[sourceNode?.data?.refId];
-  const targetRecord = draft.value?.data?.processNodes?.[targetNode?.data?.refId];
-  if (!sourceRecord || !targetRecord) return;
-  const sourcePort = portForHandle(
-    resolveCatalogNodePorts(sourceRecord, catalogContext(sourceRecord)).outputs,
-    connection.sourceHandle,
-    'output'
-  );
-  if (!sourcePort || sourcePort.role !== 'data') return;
-  if (sourceRecord.kind === 'control.manualTrigger'
-    && !sourceRecord.entityType
-    && targetRecord.entityType
-    && ['effect.updateEntity', 'record.getField', 'record.getBlock', 'record.deconstruct'].includes(targetRecord.kind)) {
-    sourceRecord.entityType = targetRecord.entityType;
-    syncProcessNode(sourceRecord);
-  }
-  const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
-  const genericKinds = new Set([
-    'collection.makeList',
-    'collection.packArray',
-    'collection.unpackArray',
-    'collection.concat',
-    'collection.itemAt',
-    'collection.slice',
-    'collection.count',
-    'collection.distinct',
-    'collection.sort',
-    'collection.groupBy',
-    'collection.filter',
-    'tree.flatten',
-    'tree.graft',
-    'tree.simplify',
-    'tree.branch',
-    'tree.zip',
-    'tree.unzip',
-    'tree.cross',
-    'tree.transpose'
-  ]);
-  const drivesGenericType = !targetInput || ['value', 'items', 'tree', 'left'].includes(targetInput);
-  if (genericKinds.has(targetRecord.kind) && drivesGenericType) {
-    targetRecord.type = { ...sourcePort.type };
-  }
-  if (targetRecord.kind === 'value.logic' && ['left', 'value', ''].includes(targetInput)) {
-    targetRecord.type = { ...sourcePort.type };
-  }
-  if (['value.string', 'value.math', 'value.dateTime'].includes(targetRecord.kind)
-    && ['left', 'text', 'date', 'value', ''].includes(targetInput)) {
-    targetRecord.type = { ...sourcePort.type };
-  }
-  const entryId = targetInput.replace(/^entry:/, '');
-  const entry = targetRecord.entries?.find(item => item.id === entryId);
-  const connectedEntityType = sourcePort.type?.entityType || sourcePort.type?.itemType?.entityType || sourceRecord.entityType || '';
-  if (entry && targetRecord.compositionMode === 'ancestors' && connectedEntityType) {
-    entry.entityType = connectedEntityType;
-    entry.key = lineageEntryKey(connectedEntityType);
-  }
-  syncProcessNode(targetRecord);
 }
 
 function connectionCompatibility(connection = {}) {

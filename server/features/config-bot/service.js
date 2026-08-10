@@ -6,8 +6,8 @@ import {
   cncAttachmentKinds,
   cncCommands,
   cncDesignSystem,
+  cncDomain,
   cncEntities,
-  cncFrontendEntities,
   cncHookContracts,
   cncServiceContracts,
   cncSummaries,
@@ -134,7 +134,6 @@ export function createConfigBotDraftPackage({
   const components = selectComponents(selectedEntities, manifest);
   const domainDraft = createDomainDraft({
     entities: cncEntities,
-    frontendEntities: cncFrontendEntities,
     workflows: cncWorkflows,
     summaries: cncSummaries,
     serviceContracts: cncServiceContracts,
@@ -188,7 +187,7 @@ export function createConfigBotManifest() {
   return createFrameworkManifest({
     packages: PACKAGE_NAMES.map(name => ({ name })),
     entities: cncEntities,
-    frontendEntities: cncFrontendEntities,
+    frontendEntities: cncDomain.ui.endpoints,
     workflows: cncWorkflows,
     summaries: cncSummaries,
     commands: cncCommands,

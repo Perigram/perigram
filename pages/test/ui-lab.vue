@@ -318,7 +318,7 @@
             </template>
 
             <template v-else-if="primitive.key === 'TraceChain'">
-              <TraceChain :entity="primitiveEntity" />
+              <TraceChain :entity="primitiveEntity" entity-type="queue" />
             </template>
 
             <template v-else-if="primitive.key === 'ActionToolbar'">

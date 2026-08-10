@@ -21,7 +21,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
@@ -29,6 +29,7 @@ import ArtifactLayoutEditor from '~/components/ArtifactLayoutEditor.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
+import { artifactRevisionOptions, resolveArtifactEditingContract } from '~/utils/artifact-detail.js';
 
 const props = defineProps({ artifact: { type: Object, required: true } });
 const emit = defineEmits(['saved']);
@@ -38,13 +39,13 @@ const revisions = ref([]);
 const selectedRevisionId = ref('');
 const layoutDraft = ref(null);
 const replacementInput = ref(null);
-const kind = computed(() => props.artifact.data?.type || '');
-const creation = computed(() => domainUi.getAttachmentCreation(kind.value));
-const editor = computed(() => domainUi.getAttachmentEditor(kind.value));
 const canEdit = computed(() => hasPermissionGrant({ permissions: authStore.activePermissions, feature: 'artifacts', level: 'write', entity: props.artifact, entityType: 'artifact' }));
-const canReplaceFile = computed(() => canEdit.value && ['upload', 'capture', 'editor'].includes(creation.value.mode));
+const editing = computed(() => resolveArtifactEditingContract({ artifact: props.artifact, domainUi, canEdit: canEdit.value }));
+const creation = computed(() => editing.value.creation);
+const editor = computed(() => editing.value.editor);
+const canReplaceFile = computed(() => editing.value.canReplaceFile);
 const revision = computed(() => revisions.value.find(item => String(item._id) === String(selectedRevisionId.value)) || null);
-const revisionOptions = computed(() => revisions.value.map(item => ({ label: `v${item.data?.number || 0}`, value: item._id })));
+const revisionOptions = computed(() => artifactRevisionOptions(revisions.value));
 
 async function loadRevisions() {
   revisions.value = await $fetch(`/api/entity-revisions?entityType=artifact&entityId=${encodeURIComponent(props.artifact._id)}&scope=file`);

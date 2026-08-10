@@ -54,6 +54,12 @@ blocked by unrelated shell noise.
   pane's linked Library child region opens the embedded cassette designer in the
   same pane; verifies pane tabs, icon-only status, suppressed embedded entity
   header, tab close behavior, and restoration after reload.
+- `home-and-entity-ui.spec.js`: creates a real project/queue pair, verifies the
+  compiled Home and detail-context placement, parent-responsive entity chrome,
+  and organization switching through the account menu.
+- `artifact-and-designer-ui.spec.js`: uploads and replaces a real DXF artifact,
+  verifies viewer dispatch and revision creation, and proves incompatible
+  conversion requests fail at the HTTP boundary.
 
 The queue nesting regression intentionally stops before the worker-backed
 solve. Full nesting tests need explicit fixture cassette geometry and a running

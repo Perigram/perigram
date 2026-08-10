@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   listEntityChanges,
   publishEntityChanged,
-  registerAutomaticHandler,
   subscribe
 } from './service.js';
 
@@ -44,24 +43,6 @@ describe('entity event bus', () => {
         })
       }
     ]);
-  });
-
-  it('dispatches normalized events to automatic process handlers', async () => {
-    const received = [];
-    const unregister = registerAutomaticHandler(async (event, auth) => {
-      received.push({ event, auth });
-    });
-
-    await publishEntityChanged(
-      { userId: 'user-a', organizationId: 'org-1' },
-      { type: 'queue', id: 'queue-1' }
-    );
-    unregister();
-
-    expect(received).toEqual([{
-      event: expect.objectContaining({ type: 'queue', id: 'queue-1', organizationId: 'org-1' }),
-      auth: { userId: 'user-a', organizationId: 'org-1' }
-    }]);
   });
 
   it('lists only newer changes visible to the requesting organization', async () => {

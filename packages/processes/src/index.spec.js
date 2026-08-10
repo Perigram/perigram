@@ -265,7 +265,7 @@ describe('@cutkit/processes compiler', () => {
       id: 'create_queue',
       actionKind: 'createEntity',
       entityType: 'queue',
-      parentEntityType: 'project',
+      parentEntityType: null,
       trigger: { mode: 'manual' }
     });
     expect(compiled.actions.create_queue.inputPolicy.fields).toContainEqual(expect.objectContaining({
@@ -667,8 +667,7 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(validation.ok).toBe(true);
-    expect(validation.errors.join('\n')).not.toContain('incompatible ports');
+    expect(validation.ok).toBe(false);
   });
 
   it('keeps stale create parent metadata generic during edge validation', () => {
@@ -1804,6 +1803,19 @@ describe('@cutkit/processes compiler', () => {
         DXF_SOURCE: { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
         CAPTURE_PHOTO: { kind: 'CAPTURE_PHOTO', creation: { mode: 'upload' } }
       },
+      construction: {
+        ...domain.construction,
+        artifact: {
+          modes: ['uploadArtifact'],
+          defaultMode: 'uploadArtifact',
+          modeInputs: {
+            uploadArtifact: [{
+              id: 'artifact',
+              creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+            }]
+          }
+        }
+      },
       fieldAccess: {
         ...domain.fieldAccess,
         project: { ...domain.fieldAccess.project, write: [...domain.fieldAccess.project.write, 'relations.*'] }
@@ -1982,7 +1994,7 @@ describe('@cutkit/processes compiler', () => {
       .toEqual([expect.objectContaining({ id: 'templateId' })]);
   });
 
-  it('compiles create actions with explicit parent inputs', () => {
+  it('does not compile explicit parent inputs as hierarchy', () => {
     const compiled = compileProcessDefinition({
       actions: {
         create_queue: {
@@ -1999,11 +2011,10 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_queue.parentEntityType).toBe('project');
-    expect(compiled.actions.create_queue.inputs[0]).toMatchObject({ id: 'parent', entityType: 'project' });
+    expect(compiled.actions.create_queue.parentEntityType).toBeNull();
   });
 
-  it('places parent-bound create actions on parent detail child regions', () => {
+  it('does not place parent metadata without a compiled Lineage binding', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_admin: { id: 'role_admin', label: 'Admin' }
@@ -2036,32 +2047,21 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     const projectDetail = compiled.screens.auto_role_admin_project_detail;
-    expect(projectDetail.sources).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'queue_children',
-        entityType: 'queue',
-        mode: 'list',
-        filters: { projectId: '$screen.scope.entityId' }
-      })
-    ]));
-    expect(projectDetail.regions).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        sourceId: 'queue_children',
-        actions: ['create_queue']
-      })
+    expect(projectDetail.sources).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'queue_children' })
     ]));
     expect(compiled.screens.auto_role_admin_queue.actions).toContain('create_queue');
     expect(compiled.screens.auto_role_admin_queue.sources).toEqual([
       expect.objectContaining({
         entityType: 'queue',
         mode: 'list',
-        rootLineageKeys: ['projectId']
+        lineageBindings: []
       })
     ]);
     expect(compiled.userAccess.user_admin.screens.find(screen => screen.template === 'home')).toMatchObject({
       sources: expect.arrayContaining([
         expect.objectContaining({ entityType: 'project' }),
-        expect.objectContaining({ entityType: 'queue', rootLineageKeys: ['projectId'] })
+        expect.objectContaining({ entityType: 'queue', lineageBindings: [] })
       ])
     });
   });
@@ -2106,10 +2106,10 @@ describe('@cutkit/processes compiler', () => {
     const screen = resolveScreens({ compiled, userId: 'user_reader' })
       .find(item => item.entityType === 'sheet_design');
     expect(screen.sources[0]).toMatchObject({ filters: { projectId: 'project-1' } });
-    expect(screen.sources[0].rootLineageKeys).toEqual([]);
+    expect(screen.sources[0].lineageBindings).toEqual([]);
   });
 
-  it('uses graph parent input edges over stale create parent metadata', () => {
+  it('ignores stale parent input edges without a compiled Lineage binding', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_admin: { id: 'role_admin', label: 'Admin' }
@@ -2129,7 +2129,6 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'createEntity',
           entityType: 'cassette',
           parentEntityType: 'cassette',
-          parentRevision: { enabled: true, scope: 'content' },
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
@@ -2157,25 +2156,13 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_cassette.parentEntityType).toBe('library');
-    expect(compiled.actions.create_cassette.parentRevision).toEqual({ enabled: true, scope: 'content' });
-    expect(compiled.actions.create_cassette.inputs[0]).toMatchObject({ id: 'parent', entityType: 'library', required: false });
-    expect(compiled.screens.auto_role_admin_library_detail.sources).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'cassette_children',
-        entityType: 'cassette',
-        filters: { libraryId: '$screen.scope.entityId' }
-      })
-    ]));
-    expect(compiled.screens.auto_role_admin_library_detail.regions).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        sourceId: 'cassette_children',
-        actions: ['create_cassette']
-      })
+    expect(compiled.actions.create_cassette.parentEntityType).toBeNull();
+    expect(compiled.screens.auto_role_admin_library_detail.sources).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'cassette_children' })
     ]));
   });
 
-  it('places readable domain children on parent detail screens without requiring create access', () => {
+  it('does not place readable domain children without a compiled Lineage binding', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_reader: { id: 'role_reader', label: 'Reader' }
@@ -2208,23 +2195,8 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     const libraryDetail = compiled.screens.auto_role_reader_library_detail;
-    expect(libraryDetail.sources).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'cassette_children',
-        entityType: 'cassette',
-        mode: 'list',
-        filters: { libraryId: '$screen.scope.entityId' },
-        required: expect.objectContaining({
-          feature: 'cassette',
-          level: 'read'
-        })
-      })
-    ]));
-    expect(libraryDetail.regions).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        sourceId: 'cassette_children',
-        actions: []
-      })
+    expect(libraryDetail.sources).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'cassette_children' })
     ]));
     expect(libraryDetail.actions).not.toContain('create_cassette');
   });
@@ -3102,7 +3074,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.workflows.project.regions.main.transitions[0].access).toBeUndefined();
   });
 
-  it('carries scoped parent lineage into child entity action grants', () => {
+  it('does not invent a lineage scope from a parent input edge', () => {
     const compiled = compileProcessDefinition({
       graph: {
         nodes: [
@@ -3159,7 +3131,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_queue.permissions.queues).toEqual([
       {
         level: 'write',
-        scope: { projectId: 'project-a' },
+        scope: { entityId: 'project-a' },
         rule: { fact: 'primaryStatus', equals: INITIAL_STATE }
       }
     ]);

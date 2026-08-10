@@ -10,9 +10,14 @@ export function resolveRelationOptionScope(creator = null) {
   };
 }
 
-export function resolveRelationOptionPath({ ownerType, sourceType, containment = [], actions = {} } = {}) {
-  const ownerParents = containment.filter(item => item.childType === ownerType && item.lineageKey);
-  const sourceParents = containment.filter(item => item.childType === sourceType && item.lineageKey);
+export function resolveRelationOptionPath({ ownerType, sourceType, lineageBindings = [], actions = {} } = {}) {
+  const bindings = lineageBindings.map(binding => ({
+    parentType: binding.ancestorEntityType,
+    childType: binding.childEntityType,
+    lineageKey: binding.lineageKey
+  }));
+  const ownerParents = bindings.filter(item => item.childType === ownerType && item.lineageKey);
+  const sourceParents = bindings.filter(item => item.childType === sourceType && item.lineageKey);
   if (ownerParents.length !== 1 || sourceParents.length !== 1) return null;
 
   const ownerParent = ownerParents[0];

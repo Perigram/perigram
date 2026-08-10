@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { filterRootSourceItems, shouldRenderHomeSection } from './generated-screen-source.js';
 
 describe('generated screen root sources', () => {
+  const bindings = (...rows) => rows.map(([ancestorEntityType, childEntityType, lineageKey]) => ({
+    ancestorEntityType,
+    childEntityType,
+    lineageKey
+  }));
+
   it('keeps only entities without any declared containment parent', () => {
     const root = { _id: 'root', lineage: {} };
     const designChild = { _id: 'design-child', lineage: { sheetDesignId: 'design-1' } };
@@ -9,15 +15,11 @@ describe('generated screen root sources', () => {
 
     expect(filterRootSourceItems(
       [root, designChild, pileChild],
-      { entityType: 'sheet', rootLineageKeys: ['sheetDesignId', 'pileId'] },
+      { entityType: 'sheet', lineageBindings: bindings(['sheet_design', 'sheet', 'sheetDesignId'], ['material_pile', 'sheet', 'pileId']) },
       {
         designs: { source: { entityType: 'sheet_design', mode: 'list' }, items: [{ _id: 'design-1' }] },
         piles: { source: { entityType: 'material_pile', mode: 'list' }, items: [{ _id: 'pile-1' }] }
-      },
-      [
-        { parentType: 'sheet_design', childType: 'sheet', lineageKey: 'sheetDesignId' },
-        { parentType: 'material_pile', childType: 'sheet', lineageKey: 'pileId' }
-      ]
+      }
     )).toEqual([root]);
   });
 
@@ -25,9 +27,8 @@ describe('generated screen root sources', () => {
     const child = { _id: 'child', lineage: { projectId: 'hidden-project' } };
     expect(filterRootSourceItems(
       [child],
-      { entityType: 'queue', rootLineageKeys: ['projectId'] },
-      { queues: { source: { entityType: 'queue', mode: 'list' }, items: [child] } },
-      [{ parentType: 'project', childType: 'queue', lineageKey: 'projectId' }]
+      { entityType: 'queue', lineageBindings: bindings(['project', 'queue', 'projectId']) },
+      { queues: { source: { entityType: 'queue', mode: 'list' }, items: [child] } }
     )).toEqual([child]);
   });
 
@@ -36,12 +37,11 @@ describe('generated screen root sources', () => {
     const queue = { _id: 'queue-1', lineage: { organizationId: 'org-1', projectId: 'project-1' } };
     expect(filterRootSourceItems(
       [queue],
-      { entityType: 'queue' },
+      { entityType: 'queue', lineageBindings: bindings(['project', 'queue', 'projectId']) },
       {
         projects: { source: { entityType: 'project', mode: 'list' }, items: [project] },
         queues: { source: { entityType: 'queue', mode: 'list' }, items: [queue] }
-      },
-      [{ parentType: 'project', childType: 'queue', lineageKey: 'projectId' }]
+      }
     )).toEqual([]);
   });
 
@@ -53,20 +53,19 @@ describe('generated screen root sources', () => {
     };
     expect(filterRootSourceItems(
       [sheet],
-      { entityType: 'sheet' },
+      { entityType: 'sheet', lineageBindings: bindings(
+        ['project', 'queue', 'projectId'],
+        ['queue', 'sheet_design', 'queueId'],
+        ['sheet_design', 'sheet', 'sheetDesignId']
+      ) },
       {
         projects: { source: { entityType: 'project', mode: 'list' }, items: [project] },
         sheets: { source: { entityType: 'sheet', mode: 'list' }, items: [sheet] }
-      },
-      [
-        { parentType: 'project', childType: 'queue', lineageKey: 'projectId' },
-        { parentType: 'queue', childType: 'sheet_design', lineageKey: 'queueId' },
-        { parentType: 'sheet_design', childType: 'sheet', lineageKey: 'sheetDesignId' }
-      ]
+      }
     )).toEqual([]);
   });
 
-  it('uses canonical lineage keys even when containment metadata omits the relation', () => {
+  it('does not infer hierarchy from arbitrary lineage keys without a compiled binding', () => {
     const library = { _id: 'library-1', lineage: { organizationId: 'org-1' } };
     const design = { _id: 'design-1', lineage: { organizationId: 'org-1', libraryId: 'library-1' } };
     expect(filterRootSourceItems(
@@ -77,29 +76,41 @@ describe('generated screen root sources', () => {
         designs: { source: { entityType: 'cassette_design', mode: 'list' }, items: [design] }
       },
       []
-    )).toEqual([]);
+    )).toEqual([design]);
   });
 
   it('removes empty child sections but retains empty top-level creation sections', () => {
     expect(shouldRenderHomeSection({
       items: [],
       rawItems: [],
-      source: { entityType: 'queue', rootLineageKeys: ['projectId'] }
-    }, [{ parentType: 'project', childType: 'queue', lineageKey: 'projectId' }])).toBe(false);
+      source: { entityType: 'queue', lineageBindings: bindings(['project', 'queue', 'projectId']) }
+    })).toBe(false);
     expect(shouldRenderHomeSection({
       items: [],
       rawItems: [{ _id: 'design-1', lineage: { libraryId: 'library-1' } }],
-      source: { entityType: 'cassette_design' }
-    }, [{ parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' }])).toBe(false);
+      source: { entityType: 'cassette_design', lineageBindings: bindings(['cassette', 'cassette_design', 'templateId']) }
+    })).toBe(false);
     expect(shouldRenderHomeSection({
       items: [{ _id: 'design-1', lineage: { templateId: 'cassette-1' } }],
       rawItems: [{ _id: 'design-1', lineage: { templateId: 'cassette-1' } }],
-      source: { entityType: 'cassette_design' }
-    }, [{ parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' }])).toBe(false);
+      source: { entityType: 'cassette_design', lineageBindings: bindings(['cassette', 'cassette_design', 'templateId']) }
+    })).toBe(false);
     expect(shouldRenderHomeSection({
       items: [],
       rawItems: [],
-      source: { entityType: 'project', rootLineageKeys: [] }
+      source: { entityType: 'project', lineageBindings: [] }
     })).toBe(true);
+  });
+
+  it('supports arbitrary compiled entity types without a registry row', () => {
+    const child = { _id: 'leaf-1', lineage: { branchRef: 'root-1' } };
+    expect(filterRootSourceItems(
+      [child],
+      { entityType: 'synthetic_leaf', lineageBindings: bindings(['synthetic_root', 'synthetic_leaf', 'branchRef']) },
+      {
+        roots: { source: { entityType: 'synthetic_root', mode: 'list' }, items: [{ _id: 'root-1' }] },
+        leaves: { source: { entityType: 'synthetic_leaf', mode: 'list' }, items: [child] }
+      }
+    )).toEqual([]);
   });
 });

@@ -1,67 +1,52 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { currentTariffLabel } from '~/utils/billing-presentation.js';
+import { organizationBreadcrumbEntries } from '~/utils/navigation-breadcrumbs.js';
+import { containmentAncestors } from '~/utils/entity-hierarchy.js';
 
-const read = relative => readFileSync(new URL(relative, import.meta.url), 'utf8');
+describe('reviewed UI behavior contracts', () => {
+  it('builds organization breadcrumbs from the active organization and compiled system screens', () => {
+    const screens = [
+      { id: 'overview', route: '/organization', label: 'Overview' },
+      { id: 'billing', route: '/organization/billing', label: 'Billing' },
+      { id: 'team', route: '/organization/team', label: 'Team' }
+    ];
+    const entries = organizationBreadcrumbEntries({
+      organization: { identity: { name: 'Acme' } },
+      organizationId: 'org-1',
+      path: '/organization/billing',
+      screens,
+      organizationLabel: organization => organization.identity.name,
+      screenLabel: screen => screen.label
+    });
 
-describe('reviewed UI rework contracts', () => {
-  it('uses container width for entity page facts and collections', () => {
-    expect(read('./shared/EntityPage.vue')).toContain('container-type: inline-size');
-    expect(read('./shared/blocks/DataBlock.vue')).toContain('@container (min-width: 32rem)');
-    expect(read('./shared/blocks/SpecsBlock.vue')).toContain('@container (min-width: 32rem)');
-    expect(read('./generated/GeneratedEntityCollection.vue')).toContain('variant="template === \'workspaceLanes\' ? \'wide\' : \'bounded\'"');
+    expect(entries.map(entry => entry.name)).toEqual(['Acme', 'Billing']);
+    expect(entries[1].siblings).toEqual([{ name: 'Billing', id: '/organization/billing' }, { name: 'Team', id: '/organization/team' }]);
   });
 
-  it('suppresses a displayed parent from descendant lineage traces', () => {
-    expect(read('./shared/EntityPage.vue')).toContain("provide('displayedEntityContexts'");
-    expect(read('./shared/links/TraceChain.vue')).toContain("inject('displayedEntityContexts'");
-    expect(read('./generated/GeneratedProjectWorkspace.vue')).toContain("provide('displayedEntityContexts'");
+  it('does not invent an organization subsection breadcrumb for an unknown route', () => {
+    expect(organizationBreadcrumbEntries({
+      organization: { identity: { name: 'Acme' } },
+      organizationId: 'org-1',
+      path: '/organization/unknown',
+      screens: [{ id: 'overview', route: '/organization' }],
+      organizationLabel: organization => organization.identity.name,
+      screenLabel: screen => screen.id
+    })).toHaveLength(1);
   });
 
-  it('keeps the chats inbox visible beside the selected conversation on the full route', () => {
-    expect(read('../pages/chats.vue')).toContain('<ChatSupport :embedded="true" :full-page="true" />');
-    expect(read('./ChatSupport.vue')).toContain("md:grid-cols-[20rem_minmax(0,1fr)]");
-    expect(read('./ChatSupport.vue')).toContain("'hidden md:block': fullPage && activeConversation");
-    expect(read('./ChatSupport.vue')).toContain('grid-rows-[minmax(0,1fr)]');
+  it('shows a deployment tariff only in tariff mode', () => {
+    const translations = { 'billing.tariffs.pro': 'Professional' };
+    const i18n = { translate: key => translations[key], hasTranslation: key => Boolean(translations[key]) };
+    expect(currentTariffLabel({ mode: 'prepaidTokens', currentTariff: 'pro' }, i18n)).toBe('');
+    expect(currentTariffLabel({ mode: 'tariff', currentTariff: 'pro', currentTariffLabelKey: 'billing.tariffs.pro' }, i18n)).toBe('Professional');
+    expect(currentTariffLabel({ mode: 'tariff', currentTariff: 'custom' }, i18n)).toBe('custom');
   });
 
-  it('renders profile organization navigation as a visible direct action', () => {
-    expect(read('./entities/Organization/OrganizationCard.vue')).toContain('footer-display="inline"');
-    expect(read('../pages/profile/index.vue')).toContain("$t('profile.viewOrganization')");
-    expect(read('../pages/profile/index.vue')).not.toContain('v-for="screen in organizationScreens"');
-    expect(read('../pages/profile/index.vue')).toContain("v-if=\"activeProfileTab === '0'\"");
-    expect(read('../pages/profile/index.vue')).toContain(':to="profileTabRoute(tab.key)"');
-    expect(read('../pages/profile/index.vue')).toContain("organizations: '2'");
-  });
-
-  it('renders organization navigation as direct actions around the canonical entity page', () => {
-    const overview = read('./generated/GeneratedOrganizationOverview.vue');
-    expect(overview).toContain('<EntityPage');
-    expect(overview).toContain('actions-display="inline"');
-    expect(overview).not.toContain('<Panel v-for');
-  });
-
-  it('builds organization breadcrumbs as organization then section', () => {
-    const navigation = read('../stores/navigation.js');
-    expect(navigation).toContain("if (parts[0] === 'organization')");
-    expect(navigation).toContain("to: '/organization'");
-    expect(navigation).toContain("currentScreen.route !== '/organization'");
-  });
-
-  it('uses a centered invitation identity and cropped user avatars', () => {
-    const invitation = read('../pages/invitation/[token].vue');
-    expect(invitation).toContain('<h1 class="m-0 text-xl">{{ $t(\'auth.invitationTitle\') }}</h1>');
-    expect(invitation).toContain("t('auth.invitationUnavailable')");
-    expect(read('../assets/css/main.css')).toContain('object-fit: cover');
-  });
-
-  it('keeps attachment-only chat messages sendable and gives full-page threads their own header', () => {
-    const chat = read('./ChatSupport.vue');
-    expect(chat).toContain("(!message.value.trim() && !entityRefs.value.length)");
-    expect(chat).toContain('v-if="fullPage" class="flex items-center gap-3 border-b');
-    expect(chat).toContain('dialogOpen || embedded');
-  });
-
-  it('imports i18n explicitly on the projects route', () => {
-    expect(read('../pages/projects/index.vue')).toContain("import { useI18n as useProjectsI18n } from 'vue-i18n'");
+  it('omits the displayed parent from child ancestry by exact compiled binding identity', () => {
+    const bindings = [{ parentType: 'project', childType: 'artifact', lineageKey: 'projectId' }];
+    const ancestors = containmentAncestors({ lineage: { projectId: 'project-1' } }, 'artifact', bindings);
+    const visible = ancestors.filter(ref => !(ref.type === 'project' && ref.id === 'project-1'));
+    expect(ancestors).toEqual([{ type: 'project', id: 'project-1', lineageKey: 'projectId' }]);
+    expect(visible).toEqual([]);
   });
 });

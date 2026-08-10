@@ -24,9 +24,9 @@ describe('relation option scope', () => {
 });
 
 describe('relation option path', () => {
-  const containment = [
-    { parentType: 'project', childType: 'queue', lineageKey: 'projectId' },
-    { parentType: 'library', childType: 'cassette', lineageKey: 'libraryId' }
+  const lineageBindings = [
+    { ancestorEntityType: 'project', childEntityType: 'queue', lineageKey: 'projectId' },
+    { ancestorEntityType: 'library', childEntityType: 'cassette', lineageKey: 'libraryId' }
   ];
   const actions = {
     linkLibrary: {
@@ -35,15 +35,15 @@ describe('relation option path', () => {
     }
   };
 
-  it('derives the scoped source path from domain containment and a process relation', () => {
+  it('derives the scoped source path from compiled lineage and a process relation', () => {
     expect(resolveRelationOptionPath({
       ownerType: 'queue',
       sourceType: 'cassette',
-      containment,
+      lineageBindings,
       actions
     })).toEqual({
-      ownerParent: containment[0],
-      sourceParent: containment[1],
+      ownerParent: { parentType: 'project', childType: 'queue', lineageKey: 'projectId' },
+      sourceParent: { parentType: 'library', childType: 'cassette', lineageKey: 'libraryId' },
       bridgeRelationKey: 'library'
     });
   });
@@ -52,13 +52,13 @@ describe('relation option path', () => {
     expect(resolveRelationOptionPath({
       ownerType: 'queue',
       sourceType: 'cassette',
-      containment,
+      lineageBindings,
       actions: {}
     })).toBeNull();
     expect(resolveRelationOptionPath({
       ownerType: 'queue',
       sourceType: 'cassette',
-      containment,
+      lineageBindings,
       actions: { ...actions, another: actions.linkLibrary }
     })).toBeNull();
   });

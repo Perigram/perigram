@@ -1,55 +1,49 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const mocks = vi.hoisted(() => ({
+  organizationService: { getProcessConfiguration: vi.fn() }
+}));
 vi.mock('./repository.js', () => ({ findActiveByOrganization: vi.fn() }));
-vi.mock('../organizations/repository.js', () => ({ findById: vi.fn() }));
+vi.mock('~/server/runtime/app-registry.js', () => ({
+  getAppRegistry: () => ({ getEntityService: () => mocks.organizationService })
+}));
 
 import * as repository from './repository.js';
-import * as organizationsRepository from '../organizations/repository.js';
 import { resolveProcessAuth } from './runtime.js';
+import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/test-data/persisted-acceptance.js';
 
 describe('process runtime auth hydration', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('combines the active process role contract with the organization assignment', async () => {
-    repository.findActiveByOrganization.mockResolvedValue({
-      data: {
-        roleGrants: {
-          role_operator: [{ feature: 'projects', level: 'read' }]
-        },
-        screens: {
-          projects: {
-            id: 'projects',
-            screenKey: 'projects',
-            template: 'entityList',
-            route: '/screens/projects',
-            roleIds: ['role_operator'],
-            required: { feature: 'projects', level: 'read' },
-            sources: [{ id: 'projects', entityType: 'project', mode: 'list' }]
-          }
-        }
-      }
-    });
-    organizationsRepository.findById.mockResolvedValue({
-      data: {
-        roles: { role_operator: { id: 'role_operator', label: 'Operator' } },
-        roleAssignments: { user_1: { userId: 'user_1', roleIds: ['role_operator'], bindings: {} } }
+    const fixture = createPersistedAcceptanceFixture();
+    repository.findActiveByOrganization.mockResolvedValue(fixture.processDefinition);
+    mocks.organizationService.getProcessConfiguration.mockResolvedValue({
+      roles: fixture.roles,
+      roleAssignments: {
+        [PERSISTED_ACCEPTANCE_IDS.user]: fixture.assignment
       }
     });
 
     const auth = await resolveProcessAuth({
-      userId: 'user_1',
-      organizationId: 'org_1',
-      memberships: [{ organizationId: 'org_1', status: 'active', permissions: {} }]
+      userId: PERSISTED_ACCEPTANCE_IDS.user,
+      organizationId: PERSISTED_ACCEPTANCE_IDS.organization,
+      memberships: [{ organizationId: PERSISTED_ACCEPTANCE_IDS.organization, status: 'active', permissions: {} }]
     });
 
-    expect(auth.effectivePermissions.projects).toEqual([{ level: 'read' }]);
-    expect(auth.screens).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'projects' })]));
-    expect(auth.roleAssignments.roleIds).toEqual(['role_operator']);
+    expect(auth.effectivePermissions.projects).toEqual(expect.arrayContaining([
+      expect.objectContaining({ level: 'write' })
+    ]));
+    expect(auth.screens).toEqual(expect.arrayContaining([
+      expect.objectContaining({ entityType: 'project' })
+    ]));
+    expect(auth.roleAssignments.roleIds).toEqual([PERSISTED_ACCEPTANCE_IDS.role]);
   });
 
   it('does not grant process access without an organization assignment', async () => {
-    repository.findActiveByOrganization.mockResolvedValue({ data: {} });
-    organizationsRepository.findById.mockResolvedValue({ data: { roles: {}, roleAssignments: {} } });
+    const fixture = createPersistedAcceptanceFixture();
+    repository.findActiveByOrganization.mockResolvedValue(fixture.processDefinition);
+    mocks.organizationService.getProcessConfiguration.mockResolvedValue({ roles: fixture.roles, roleAssignments: {} });
     const auth = await resolveProcessAuth({ userId: 'user_1', organizationId: 'org_1', memberships: [{ organizationId: 'org_1', status: 'active', permissions: {} }] });
     expect(auth.roleAssignments.roleIds).toEqual([]);
     expect(auth.effectivePermissions).toEqual({});

@@ -173,7 +173,7 @@ import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
 import {
     cncEntityFieldGroups,
-    cncFrontendEntities,
+    cncDomain,
     cncWorkflows,
     getEntityFieldAccessPolicy
 } from '@cutkit/domain-cnc';
@@ -194,56 +194,10 @@ const selectedGrantError = ref('');
 const entityOptionsLoading = ref(false);
 const entityOptionLists = ref({});
 const selectedRuleTree = ref(null);
-const entityLoaders = {
-    catalog: useEntity('catalog'),
-    cassetteInstance: useEntity('cassetteInstance'),
-    cassetteTemplate: useEntity('cassetteTemplate'),
-    geometryCapture: useEntity('geometryCapture'),
-    material: useEntity('material'),
-    nestingRun: useEntity('nestingRun'),
-    project: useEntity('project'),
-    sheetDesign: useEntity('sheetDesign'),
-    user: useEntity('user'),
-    warehouse: useEntity('warehouse')
-};
-
-const FEATURE_ENTITY_TYPE = {
-    artifacts: 'artifact',
-    catalogs: 'catalog',
-    cassettes: 'cassetteInstance',
-    geometry_captures: 'geometryCapture',
-    materials: 'material',
-    nesting_runs: 'nestingRun',
-    projects: 'project',
-    requisitions: 'requisition',
-    queues: 'queue',
-    sheet_designs: 'sheetDesign',
-    users: 'user',
-    warehouses: 'warehouse',
-    organizations: 'organization'
-};
-
-const RELATED_ENTITY_TYPES_BY_ENTITY = {
-    artifact: ['queue', 'nestingRun', 'project', 'organization'],
-    batchPile: ['requisition', 'warehouse', 'organization'],
-    catalog: ['organization'],
-    cassetteDesign: ['queue', 'project', 'organization'],
-    cassetteInstance: ['project', 'organization'],
-    cassetteTemplate: ['organization'],
-    color: ['catalog', 'organization'],
-    geometryCapture: ['project', 'warehouse', 'organization'],
-    material: ['organization'],
-    materialPile: ['warehouse', 'organization'],
-    nestingRun: ['queue', 'project', 'organization'],
-    project: ['organization'],
-    queue: ['project', 'organization'],
-    remnant: ['warehouse', 'organization'],
-    requisition: ['project', 'organization'],
-    sheet: ['warehouse', 'organization'],
-    sheetDesign: ['queue', 'project', 'organization'],
-    user: ['organization'],
-    warehouse: ['organization']
-};
+const entityLoaders = Object.fromEntries(cncDomain.entities.map(entity => [
+    entity.type,
+    useEntity(entity.surfaceKey)
+]));
 
 const PERMISSION_LEVELS = computed(() => [
     { label: t('auth.permissionLevels.read'),  value: 'read' },
@@ -291,7 +245,7 @@ const subjectOptionsForFeature = computed(() => [
 ]);
 
 const entityTypeOptions = computed(() => (
-    uniqueEntityTypes(cncFrontendEntities.map(entity => entity.type)).map(type => ({
+    uniqueEntityTypes(cncDomain.entities.map(entity => entity.type)).map(type => ({
         label: entityTypeLabel(type),
         value: type
     }))
@@ -299,9 +253,13 @@ const entityTypeOptions = computed(() => (
 
 const relatedEntityTypeOptions = computed(() => {
     const currentType = selectedFeatureEntityType();
-    const relatedTypes = selectedFeatureHasEntity()
-        ? RELATED_ENTITY_TYPES_BY_ENTITY[currentType] || []
-        : [];
+    const lineageBindings = authStore.lineageBindings || [];
+    const relatedTypes = selectedFeatureHasEntity() ? uniqueEntityTypes([
+        ...lineageBindings.filter(binding => binding.childEntityType === currentType).map(binding => binding.ancestorEntityType),
+        ...lineageBindings.filter(binding => binding.ancestorEntityType === currentType).map(binding => binding.childEntityType),
+        ...(cncDomain.relations || []).filter(relation => relation.ownerType === currentType).map(relation => relation.targetType),
+        ...(cncDomain.relations || []).filter(relation => relation.targetType === currentType).map(relation => relation.ownerType)
+    ]) : [];
     return relatedTypes.map(type => ({
         label: entityTypeLabel(type),
         value: type
@@ -790,11 +748,18 @@ function isStatusClause(clause = {}) {
 }
 
 function selectedFeatureEntityType() {
-    return FEATURE_ENTITY_TYPE[selectedFeatureKey.value] || entityTypeOptions.value[0]?.value || 'project';
+    return featureEntityDefinition()?.type || entityTypeOptions.value[0]?.value || 'project';
 }
 
 function selectedFeatureHasEntity() {
-    return Boolean(FEATURE_ENTITY_TYPE[selectedFeatureKey.value]);
+    return Boolean(featureEntityDefinition());
+}
+
+function featureEntityDefinition() {
+    return cncDomain.entities.find(entity => (
+        (entity.feature || entity.collection) === selectedFeatureKey.value
+        || entity.collection === selectedFeatureKey.value
+    )) || null;
 }
 
 function defaultRelatedEntityType() {
@@ -910,7 +875,7 @@ async function loadEntityOptions() {
             organization: organizationOptions()
         };
         const requiredTypes = entityTypesRequiredByRuleTree(selectedRuleTree.value);
-        const featureEntityType = FEATURE_ENTITY_TYPE[selectedFeatureKey.value];
+        const featureEntityType = featureEntityDefinition()?.type;
         if (featureEntityType) requiredTypes.add(featureEntityType);
 
         let projectEntities = [];

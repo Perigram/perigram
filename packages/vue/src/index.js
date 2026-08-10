@@ -18,37 +18,11 @@ export function createEndpointMap(definitions = []) {
 }
 
 export function createEndpointKeys(definition = {}) {
-  const type = definition.type || definition.entityType || '';
-  const collectionType = collectionToEntityType(definition.collection);
   return uniqueKeys([
-    definition.type,
     definition.entityType,
-    type,
-    camelToSnake(type),
-    snakeToCamel(type),
-    collectionType,
-    camelToSnake(collectionType),
-    snakeToCamel(collectionType)
+    definition.surfaceKey,
+    definition.type
   ]);
-}
-
-export function collectionToEntityType(collection = '') {
-  const normalized = String(collection).replace(/-/g, '_');
-  if (!normalized) return '';
-  if (normalized.endsWith('ies')) return `${normalized.slice(0, -3)}y`;
-  if (normalized.endsWith('s')) return normalized.slice(0, -1);
-  return normalized;
-}
-
-export function camelToSnake(value = '') {
-  return String(value)
-    .replace(/-/g, '_')
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-    .toLowerCase();
-}
-
-export function snakeToCamel(value = '') {
-  return String(value).replace(/[_-]([a-z0-9])/g, (_, char) => char.toUpperCase());
 }
 
 function uniqueKeys(keys) {
@@ -94,11 +68,7 @@ export function createSurfaceMap(surfaces = []) {
 export function createSurfaceKeys(surface = {}) {
   return uniqueKeys([
     surface.key,
-    surface.entityType,
-    camelToSnake(surface.key),
-    snakeToCamel(surface.key),
-    camelToSnake(surface.entityType),
-    snakeToCamel(surface.entityType)
+    surface.entityType
   ]);
 }
 

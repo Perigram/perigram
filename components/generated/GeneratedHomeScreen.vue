@@ -1,6 +1,11 @@
 <template>
   <div class="flex flex-col gap-6">
-    <section v-for="section in sections" :key="section.region.id" class="flex min-w-0 flex-col gap-3">
+    <section
+      v-for="section in sections"
+      :key="section.region.id"
+      class="flex min-w-0 flex-col gap-3"
+      :data-home-entity-type="section.source.entityType"
+    >
       <div class="flex min-w-0 items-center justify-between gap-3">
         <h2 class="m-0 min-w-0 truncate text-base font-semibold">
           {{ sectionLabel(section) }}
@@ -28,6 +33,7 @@
           v-for="entity in section.items.slice(0, 12)"
           :key="entity._id || entity.id || entity.identity?.uid"
           class="w-[18rem] min-w-[18rem] flex-none"
+          :data-entity-id="entity._id || entity.id || entity.identity?.uid"
         >
           <EntityCard
             class="h-full"
@@ -114,7 +120,6 @@ import { entityEditorActionFor, entityHasEditorAction } from '~/components/gener
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
-import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
@@ -130,7 +135,6 @@ const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
-const effectiveContainment = useEffectiveContainment();
 const hasEditorAction = entityHasEditorAction;
 const editorActionFor = entityEditorActionFor;
 const { t, te } = useI18n();
@@ -148,7 +152,7 @@ const sections = computed(() => props.screen.regions
       rawItems: state.rawItems || state.items || []
     };
   })
-  .filter(section => section.source.entityType && shouldRenderHomeSection(section, effectiveContainment())));
+  .filter(section => section.source.entityType && shouldRenderHomeSection(section)));
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)

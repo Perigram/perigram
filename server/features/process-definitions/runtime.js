@@ -8,7 +8,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import * as repository from './repository.js';
-import * as organizationsRepository from '../organizations/repository.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
 import { applyOwnerPermissionsToAuth } from '../users/organization-owner.js';
 
@@ -20,8 +20,10 @@ export async function getActiveProcessForOrganization(organizationId) {
 
 export async function getActiveCompiledProcess(organizationId) {
   const active = await getActiveProcessForOrganization(organizationId);
-  const organization = organizationId ? await organizationsRepository.findById(organizationId) : null;
-  return compileActiveProcessRuntime(active?.data || null, organization?.data?.roles || {});
+  const organization = organizationId
+    ? await getAppRegistry().getEntityService('organization').getProcessConfiguration(organizationId)
+    : null;
+  return compileActiveProcessRuntime(active?.data || null, organization?.roles || {});
 }
 
 export function compileActiveProcessRuntime(data = null, roles = {}) {
@@ -42,8 +44,8 @@ export async function resolveProcessAuth(auth = {}) {
     };
   }
   const userId = String(auth.userId || '');
-  const organization = await organizationsRepository.findById(organizationId);
-  const assignment = organization?.data?.roleAssignments?.[userId] || null;
+  const organization = await getAppRegistry().getEntityService('organization').getProcessConfiguration(organizationId);
+  const assignment = organization?.roleAssignments?.[userId] || null;
   const assignmentAccess = resolveRoleAssignmentAccess({ compiled, assignment, domain: cncDomain });
   const effectivePermissions = resolveEffectiveAccess({ access: assignmentAccess });
   const ownerAuth = applyOwnerPermissionsToAuth({ ...auth, effectivePermissions });

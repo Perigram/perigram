@@ -15,7 +15,7 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
   solve, attachment generation, and geometry capture extraction.
 - `attachment-kinds.js` - file/blob kinds, buckets, MIME types, preview modes.
 - `hooks.js` - typed transition hook parameter contracts.
-- `summaries.js` - aggregate summary contracts and frontend route metadata.
+- `summaries.js` - aggregate summary contracts.
 - `field-access.js` - per-entity field visibility policy consumed by backend
   DTO redaction and frontend shared blocks.
 - `field-schemas.js` - exact process-programming field paths with canonical
@@ -30,7 +30,8 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
   `uploadArtifact` constructor: it accepts only attachment kinds whose domain
   contract allows upload, capture, or editor creation, never a name-only
   generic artifact record.
-- `ui.js` - design-system policy metadata, not Vue components.
+- `ui.js` - design-system policy projected directly from the canonical entity
+  registry, not Vue components or a second entity registry.
 - `index.js` - public exports and aggregate `cncDomain`.
 
 Facade vocabulary includes project-scoped `facade` entities and organization-
@@ -63,14 +64,12 @@ because nesting output access, generated queue detail regions, and aggregate
 summary sync all use the same lineage relation contract. Services that create
 those outputs must persist `lineage.queueId` and, when available,
 `lineage.projectId`.
-It also declares `cassette` as a `library` child through
-`lineage.libraryId`. Libraries are organization-scoped containers for cassette
-templates that share `data.material`; summary sync writes
-`summary.cassetteCount` on the parent library.
-`cassette_design` is a derived child of its source `cassette` template through
-`lineage.templateId`. The containment edge is shared by process source
-classification, generated hierarchy, and Home root selection; it is not a
-second relation beside the construction contract.
+Libraries are organization-scoped containers for cassette templates that share
+`data.material`; summary sync writes `summary.cassetteCount` on the parent
+library. Static containment describes non-process domain relationships and may
+validate persisted data, but it never authors process source classification,
+generated hierarchy, or Home placement. Those concerns use compiled Lineage
+bindings from the active process graph.
 `field-access.js` keeps `sheetDesign` on the `sheet_designs` access feature.
 Queue lineage scopes can restrict which layouts a user sees, but queue grants
 do not replace explicit sheet-design output grants from the active process.

@@ -4,18 +4,16 @@ import { useCutkitDomainUi } from './useCutkitDomainUi.js';
 /**
  * Returns the effective hierarchy containment contract.
  *
- * When the active process compiles graph-derived lineage bindings, those
- * bindings are authoritative: a connected Compose Lineage block is the only
- * authored parentage source. Without bindings (or outside process mode) the
- * static domain containment registry is used as the fallback so existing
- * screens keep working until their processes are recompiled.
+ * Active processes use only graph-derived lineage bindings. Static domain
+ * containment remains available outside process mode for non-authored legacy
+ * application routes, but it never creates process hierarchy.
  */
 export function useEffectiveContainment() {
   const authStore = useAuthStore();
   const domainUi = useCutkitDomainUi();
   return () => {
     const bindings = authStore.lineageBindings || [];
-    if (bindings.length) {
+    if (authStore.processActive) {
       return bindings.map(binding => ({
         childType: binding.childEntityType,
         parentType: binding.ancestorEntityType,

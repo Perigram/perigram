@@ -44,6 +44,13 @@ into runtime contracts for graph-derived role permissions, screen manifests,
 navigation, entity workflows, field policies, action nodes, services, and
 sockets.
 
+Compiler entry points are separated by responsibility. `normalization.js`,
+`validation.js`, `action-compilation.js`, `screen-compilation.js`,
+`access-compilation.js`, and `hierarchy-projection.js` define the supported
+package boundaries; `index.js` is only the public barrel. Runtime and UI
+consumers import these public boundaries rather than compiler implementation
+state.
+
 Process definitions use canonical semantic records as the editing source of
 truth. `definitionToCanvas()` projects those records into deterministic Vue
 Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
@@ -171,9 +178,8 @@ an extra Create socket. The compiler emits `lineageBindings` from those graph
 edges: each binding carries `{ childEntityType, ancestorEntityType, lineageKey,
 sourceNode, consumingNode }`. Compiled lineage bindings are the authoritative
 hierarchy contract for the active process. Home eligibility, root scoping, and
-inferred child regions prefer those bindings over the static domain containment
-registry, which remains only a validation fallback for processes that have not
-been recompiled. Once resolved, the compiler recognizes one lineage entity
+inferred child regions use those bindings exclusively; static domain
+containment neither creates nor repairs process hierarchy. Once resolved, the compiler recognizes one lineage entity
 reference as contextual parent scope while the effect boundary persists its
 normalized id. Fixed-field and open-entry composers contribute to that same
 schema set, so contextual action placement does not depend on how the block was
@@ -517,7 +523,7 @@ that user has generated list screens. The home screen is prepended to the
 user's screen and navigation manifests so it becomes the process start screen.
 It is not an editable semantic screen record: it is a projection of the user's
 effective access. Home sources are top-level entity-list sources only. If the
-domain summary registry says one accessible list is a child of another
+compiled Lineage projection says one accessible list is a child of another
 accessible list, the child list is suppressed from the home screen and remains
 reachable through its own generated route or parent detail context. The home
 regions keep the target list route and the list-level manual action ids for

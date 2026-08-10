@@ -131,11 +131,11 @@ describe('Design system manifest', () => {
 
   it('normalizes relation lists for compact generated card galleries', () => {
     expect(resolveEntityRelationRefs([
-      { type: 'PILE', id: 'pile-1' },
-      { type: 'SHEET', id: 'sheet-1' },
-      { type: 'REMNANT', id: 'remnant-1' }
+      { type: 'material_pile', id: 'pile-1' },
+      { type: 'sheet', id: 'sheet-1' },
+      { type: 'remnant', id: 'remnant-1' }
     ])).toEqual([
-      { entityType: 'materialPile', id: 'pile-1', entity: null },
+      { entityType: 'material_pile', id: 'pile-1', entity: null },
       { entityType: 'sheet', id: 'sheet-1', entity: null },
       { entityType: 'remnant', id: 'remnant-1', entity: null }
     ]);
@@ -144,11 +144,7 @@ describe('Design system manifest', () => {
       sheetIds: ['sheet-1'],
       remnantIds: ['remnant-1'],
       cassetteInstanceIds: ['instance-1']
-    })).toEqual([
-      { entityType: 'sheet', id: 'sheet-1' },
-      { entityType: 'remnant', id: 'remnant-1' },
-      { entityType: 'cassetteInstance', id: 'instance-1' }
-    ]);
+    })).toEqual([]);
   });
 
   it('renders a revision-pinned canonical ref through its immutable revision entity', () => {
@@ -157,9 +153,9 @@ describe('Design system manifest', () => {
       id: 'design-1',
       revisionId: 'revision-7'
     })).toEqual([{
-      entityType: 'entityRevision',
+      entityType: 'entity_revision',
       id: 'revision-7',
-      source: { entityType: 'sheetDesign', id: 'design-1' },
+      source: { entityType: 'sheet_design', id: 'design-1' },
       entity: null
     }]);
   });

@@ -1,19 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { artifactRevisionOptions, resolveArtifactEditingContract } from '~/utils/artifact-detail.js';
 
-const source = readFileSync(new URL('./ArtifactDetail.vue', import.meta.url), 'utf8');
+const domainUi = {
+  getAttachmentCreation: type => ({ mode: type === 'DXF_SOURCE' ? 'upload' : 'generated', accept: '.dxf' }),
+  getAttachmentEditor: type => ({ mode: type === 'CSV_TABLE' ? 'csv' : type === 'LAYOUT_DXF' ? 'layout' : 'none' })
+};
 
-describe('artifact detail editor', () => {
-  it('supports upload-backed file replacement and affiliated layout editing without raw JSON', () => {
-    expect(source).toContain("domainUi.getAttachmentCreation(kind.value)");
-    expect(source).toContain("domainUi.getAttachmentEditor(kind.value)");
-    expect(source).toContain("method: 'PUT', body: form");
-    expect(source).toContain('event.target.files?.[0]');
-    expect(source).toContain("form.append('file', file, file.name)");
-    expect(source).toContain('ref="replacementInput"');
-    expect(source).not.toContain("from 'primevue/fileupload'");
-    expect(source).toContain('<ArtifactLayoutEditor v-model="layoutDraft" />');
-    expect(source).not.toContain('<Textarea');
-    expect(source).not.toContain('JSON.stringify');
+describe('artifact detail editing contract', () => {
+  it('allows replacement only for editable upload/capture/editor artifacts', () => {
+    const artifact = { data: { type: 'DXF_SOURCE' } };
+    expect(resolveArtifactEditingContract({ artifact, domainUi, canEdit: true }).canReplaceFile).toBe(true);
+    expect(resolveArtifactEditingContract({ artifact, domainUi, canEdit: false }).canReplaceFile).toBe(false);
+    expect(resolveArtifactEditingContract({ artifact: { data: { type: 'GENERATED' } }, domainUi, canEdit: true }).canReplaceFile).toBe(false);
+  });
+
+  it('selects the declared editor mode and produces stable revision choices', () => {
+    expect(resolveArtifactEditingContract({ artifact: { data: { type: 'CSV_TABLE' } }, domainUi, canEdit: true }).editor.mode).toBe('csv');
+    expect(artifactRevisionOptions([{ _id: 'r2', data: { number: 2 } }, { _id: 'r1', data: { number: 1 } }]))
+      .toEqual([{ label: 'v2', value: 'r2' }, { label: 'v1', value: 'r1' }]);
   });
 });

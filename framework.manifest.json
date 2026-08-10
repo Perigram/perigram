@@ -259,6 +259,31 @@
       ]
     },
     {
+      "action": "convert",
+      "attachments": [],
+      "events": [
+        "artifact.converted"
+      ],
+      "id": "convertArtifact",
+      "inputs": [
+        "artifact"
+      ],
+      "label": "Convert artifact",
+      "outputs": [
+        "artifact",
+        "cassette_design"
+      ],
+      "permissions": [
+        {
+          "feature": "artifacts",
+          "level": "write"
+        }
+      ],
+      "service": "artifacts",
+      "tasks": [],
+      "triggers": []
+    },
+    {
       "action": "generateDraft",
       "attachments": [],
       "events": [
@@ -1956,9 +1981,9 @@
   "relationships": [
     {
       "kind": "lineage",
-      "source": "manufacturer",
-      "target": "requisition",
-      "via": "lineage.manufacturerId"
+      "source": "organization",
+      "target": "artifact",
+      "via": "lineage.organizationId"
     },
     {
       "kind": "lineage",
@@ -1987,12 +2012,6 @@
     {
       "kind": "lineage",
       "source": "organization",
-      "target": "requisition",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
       "target": "user",
       "via": "lineage.organizationId"
     },
@@ -2001,12 +2020,6 @@
       "source": "organization",
       "target": "workflow_override",
       "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "project",
-      "target": "requisition",
-      "via": "lineage.projectId"
     },
     {
       "kind": "lineage",
@@ -2040,9 +2053,15 @@
     },
     {
       "kind": "summary",
-      "source": "project",
-      "target": "cassette_instance",
-      "via": "lineage.projectId"
+      "source": "material_pile",
+      "target": "sheet",
+      "via": "lineage.pileId"
+    },
+    {
+      "kind": "summary",
+      "source": "nesting_run",
+      "target": "sheet_design",
+      "via": "lineage.runId"
     },
     {
       "kind": "summary",
@@ -2058,102 +2077,18 @@
     },
     {
       "kind": "summary",
-      "source": "queue",
+      "source": "sheet_design",
       "target": "sheet",
-      "via": "lineage.queueId"
+      "via": "lineage.sheetDesignId"
     },
     {
       "kind": "summary",
-      "source": "queue",
-      "target": "sheet_design",
-      "via": "lineage.queueId"
+      "source": "sheet",
+      "target": "cassette_instance",
+      "via": "lineage.sheetId"
     }
   ],
   "routes": [
-    {
-      "collection": "materials",
-      "list": "/api/materials",
-      "single": "/api/materials/:id",
-      "type": "material"
-    },
-    {
-      "collection": "projects",
-      "list": "/api/project",
-      "single": "/api/project/:id",
-      "type": "project"
-    },
-    {
-      "collection": "queues",
-      "list": "/api/queue",
-      "single": "/api/queue/:id",
-      "type": "queue"
-    },
-    {
-      "collection": "requisitions",
-      "list": "/api/requisitions",
-      "single": "/api/requisitions/:id",
-      "type": "requisition"
-    },
-    {
-      "collection": "material-piles",
-      "list": "/api/material-piles",
-      "single": "/api/material-piles/:id",
-      "type": "batch"
-    },
-    {
-      "collection": "material-piles",
-      "list": "/api/material-piles",
-      "single": "/api/material-piles/:id",
-      "type": "pile"
-    },
-    {
-      "collection": "sheets",
-      "list": "/api/sheets",
-      "single": "/api/sheets/:id",
-      "type": "sheet"
-    },
-    {
-      "collection": "remnants",
-      "list": "/api/remnants",
-      "single": "/api/remnants/:id",
-      "type": "remnant"
-    },
-    {
-      "collection": "libraries",
-      "list": "/api/libraries",
-      "single": "/api/libraries/:id",
-      "type": "library"
-    },
-    {
-      "collection": "cassettes",
-      "list": "/api/cassettes",
-      "single": "/api/cassettes/:id",
-      "type": "cassette"
-    },
-    {
-      "collection": "cassettes",
-      "list": "/api/cassettes",
-      "single": "/api/cassettes/:id",
-      "type": "cassetteTemplate"
-    },
-    {
-      "collection": "cassette-instances",
-      "list": "/api/cassette-instances",
-      "single": "/api/cassette-instances/:id",
-      "type": "cassetteInstance"
-    },
-    {
-      "collection": "cassette-designs",
-      "list": "/api/cassette-designs",
-      "single": "/api/cassette-designs/:id",
-      "type": "cassetteDesign"
-    },
-    {
-      "collection": "sheet-designs",
-      "list": "/api/sheet-designs",
-      "single": "/api/sheet-designs/:id",
-      "type": "sheetDesign"
-    },
     {
       "collection": "artifacts",
       "list": "/api/artifacts",
@@ -2167,16 +2102,22 @@
       "type": "artifactTemplate"
     },
     {
-      "collection": "facades",
-      "list": "/api/facades",
-      "single": "/api/facades/:id",
-      "type": "facade"
+      "collection": "cassettes",
+      "list": "/api/cassettes",
+      "single": "/api/cassettes/:id",
+      "type": "cassette"
     },
     {
-      "collection": "facade-patterns",
-      "list": "/api/facade-patterns",
-      "single": "/api/facade-patterns/:id",
-      "type": "facadePattern"
+      "collection": "cassette-designs",
+      "list": "/api/cassette-designs",
+      "single": "/api/cassette-designs/:id",
+      "type": "cassetteDesign"
+    },
+    {
+      "collection": "cassette-instances",
+      "list": "/api/cassette-instances",
+      "single": "/api/cassette-instances/:id",
+      "type": "cassetteInstance"
     },
     {
       "collection": "catalogs",
@@ -2197,28 +2138,22 @@
       "type": "entityRevision"
     },
     {
+      "collection": "facades",
+      "list": "/api/facades",
+      "single": "/api/facades/:id",
+      "type": "facade"
+    },
+    {
+      "collection": "facade-patterns",
+      "list": "/api/facade-patterns",
+      "single": "/api/facade-patterns/:id",
+      "type": "facadePattern"
+    },
+    {
       "collection": "geometry-captures",
       "list": "/api/geometry-captures",
       "single": "/api/geometry-captures/:id",
       "type": "geometryCapture"
-    },
-    {
-      "collection": "profile-templates",
-      "list": "/api/profile-templates",
-      "single": "/api/profile-templates/:id",
-      "type": "profileTemplate"
-    },
-    {
-      "collection": "warehouses",
-      "list": "/api/warehouses",
-      "single": "/api/warehouses/:id",
-      "type": "warehouse"
-    },
-    {
-      "collection": "machines",
-      "list": "/api/machines",
-      "single": "/api/machines/:id",
-      "type": "machine"
     },
     {
       "collection": "layer-standards",
@@ -2227,10 +2162,34 @@
       "type": "layerStandard"
     },
     {
-      "collection": "users",
-      "list": "/api/users",
-      "single": "/api/users/:id",
-      "type": "user"
+      "collection": "libraries",
+      "list": "/api/libraries",
+      "single": "/api/libraries/:id",
+      "type": "library"
+    },
+    {
+      "collection": "machines",
+      "list": "/api/machines",
+      "single": "/api/machines/:id",
+      "type": "machine"
+    },
+    {
+      "collection": "materials",
+      "list": "/api/materials",
+      "single": "/api/materials/:id",
+      "type": "material"
+    },
+    {
+      "collection": "material-piles",
+      "list": "/api/material-piles",
+      "single": "/api/material-piles/:id",
+      "type": "materialPile"
+    },
+    {
+      "collection": "nesting-runs",
+      "list": "/api/nesting-runs",
+      "single": "/api/nesting-runs/:id",
+      "type": "nestingRun"
     },
     {
       "collection": "organizations",
@@ -2239,10 +2198,76 @@
       "type": "organization"
     },
     {
-      "collection": "nesting-runs",
-      "list": "/api/nesting-runs",
-      "single": "/api/nesting-runs/:id",
-      "type": "nestingRun"
+      "collection": "pen-templates",
+      "list": "/api/templates/pens",
+      "single": "/api/templates/pens/:id",
+      "type": "penTemplate"
+    },
+    {
+      "collection": "process-definitions",
+      "list": "/api/process-definitions",
+      "single": "/api/process-definitions/:id",
+      "type": "processDefinition"
+    },
+    {
+      "collection": "profile-templates",
+      "list": "/api/profile-templates",
+      "single": "/api/profile-templates/:id",
+      "type": "profileTemplate"
+    },
+    {
+      "collection": "projects",
+      "list": "/api/project",
+      "single": "/api/project/:id",
+      "type": "project"
+    },
+    {
+      "collection": "queues",
+      "list": "/api/queue",
+      "single": "/api/queue/:id",
+      "type": "queue"
+    },
+    {
+      "collection": "remnants",
+      "list": "/api/remnants",
+      "single": "/api/remnants/:id",
+      "type": "remnant"
+    },
+    {
+      "collection": "requisitions",
+      "list": "/api/requisitions",
+      "single": "/api/requisitions/:id",
+      "type": "requisition"
+    },
+    {
+      "collection": "sheets",
+      "list": "/api/sheets",
+      "single": "/api/sheets/:id",
+      "type": "sheet"
+    },
+    {
+      "collection": "sheet-designs",
+      "list": "/api/sheet-designs",
+      "single": "/api/sheet-designs/:id",
+      "type": "sheetDesign"
+    },
+    {
+      "collection": "tool-profiles",
+      "list": "/api/templates/tools",
+      "single": "/api/templates/tools/:id",
+      "type": "toolProfile"
+    },
+    {
+      "collection": "users",
+      "list": "/api/users",
+      "single": "/api/users/:id",
+      "type": "user"
+    },
+    {
+      "collection": "warehouses",
+      "list": "/api/warehouses",
+      "single": "/api/warehouses/:id",
+      "type": "warehouse"
     }
   ],
   "schemaVersion": 1,
@@ -2262,13 +2287,6 @@
       "sumFields": {}
     },
     {
-      "countField": "instanceCount",
-      "entityType": "cassette_instance",
-      "parentIdKey": "projectId",
-      "parentType": "project",
-      "sumFields": {}
-    },
-    {
       "countField": "runCount",
       "entityType": "nesting_run",
       "parentIdKey": "queueId",
@@ -2278,18 +2296,25 @@
     {
       "countField": "sheetDesignCount",
       "entityType": "sheet_design",
-      "parentIdKey": "queueId",
-      "parentType": "queue",
+      "parentIdKey": "runId",
+      "parentType": "nesting_run",
       "sumFields": {}
     },
     {
       "countField": "sheetCount",
       "entityType": "sheet",
-      "parentIdKey": "queueId",
-      "parentType": "queue",
+      "parentIdKey": "sheetDesignId",
+      "parentType": "sheet_design",
       "sumFields": {
         "area": "totalArea"
       }
+    },
+    {
+      "countField": "instanceCount",
+      "entityType": "cassette_instance",
+      "parentIdKey": "sheetId",
+      "parentType": "sheet",
+      "sumFields": {}
     },
     {
       "countField": "colorCount",
@@ -2297,6 +2322,15 @@
       "parentIdKey": "catalogId",
       "parentType": "catalog",
       "sumFields": {}
+    },
+    {
+      "countField": "sheetCount",
+      "entityType": "sheet",
+      "parentIdKey": "pileId",
+      "parentType": "material_pile",
+      "sumFields": {
+        "area": "totalArea"
+      }
     }
   ],
   "tasks": [

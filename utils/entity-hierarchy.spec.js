@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { containmentAncestors, projectHierarchyRoute, rootContainmentFilter, siblingContainmentScope } from './entity-hierarchy.js';
 
 describe('entity containment hierarchy', () => {
+  const lineageBindings = [
+    { parentType: 'project', childType: 'queue', lineageKey: 'projectId' },
+    { parentType: 'queue', childType: 'nesting_run', lineageKey: 'queueId' },
+    { parentType: 'nesting_run', childType: 'sheet_design', lineageKey: 'runId' },
+    { parentType: 'sheet_design', childType: 'sheet', lineageKey: 'sheetDesignId' }
+  ];
+
   it('resolves cumulative ancestry from explicit containment declarations', () => {
     const entity = {
       _id: 'sheet-1',
@@ -13,7 +20,7 @@ describe('entity containment hierarchy', () => {
         sheetDesignId: 'design-1'
       }
     };
-    expect(containmentAncestors(entity, 'sheet')).toEqual([
+    expect(containmentAncestors(entity, 'sheet', lineageBindings)).toEqual([
       { type: 'organization', id: 'org-1', lineageKey: 'organizationId' },
       { type: 'project', id: 'project-1', lineageKey: 'projectId' },
       { type: 'queue', id: 'queue-1', lineageKey: 'queueId' },
@@ -30,11 +37,11 @@ describe('entity containment hierarchy', () => {
     expect(containmentAncestors(project, 'project')).toEqual([
       { type: 'organization', id: 'org-1', lineageKey: 'organizationId' }
     ]);
-    expect(rootContainmentFilter('queue')).toEqual({ 'lineage.projectId': { $exists: false } });
+    expect(rootContainmentFilter('queue', lineageBindings)).toEqual({ 'lineage.projectId': { $exists: false } });
   });
 
   it('scopes siblings to the same declared parent', () => {
-    expect(siblingContainmentScope({ lineage: { queueId: 'queue-1' } }, 'nesting_run')).toEqual({ queueId: 'queue-1' });
+    expect(siblingContainmentScope({ lineage: { queueId: 'queue-1' } }, 'nesting_run', lineageBindings)).toEqual({ queueId: 'queue-1' });
   });
 
   it('builds project-scoped routes from the resolved project identity', () => {

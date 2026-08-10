@@ -8,6 +8,13 @@ const withRoutes = definition => ({
   routes: definition.routes || defaultRoutes(definition)
 });
 
+const toSurfaceKey = type => String(type || '').replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
+
+const withIdentityProjection = definition => ({
+  ...definition,
+  surfaceKey: definition.surfaceKey || toSurfaceKey(definition.type)
+});
+
 function defaultRoutes({ type = '', collection = '' }) {
   const routeBase = String(collection || `${type}s`).replace(/_/g, '-');
   const single = `/api/${routeBase}/:id`;
@@ -57,4 +64,19 @@ export const cncEntities = [
   { type: 'tool_profile', collection: 'tool_profiles', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], routes: { single: '/api/templates/tools/:id', list: '/api/templates/tools' } },
   { type: 'user', collection: 'users', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'warehouse', collection: 'warehouses', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] }
-].map(withReferenceBlocks).map(withRoutes);
+].map(withReferenceBlocks).map(withRoutes).map(withIdentityProjection);
+
+export function canonicalEntityType(value = '') {
+  const candidate = String(value || '');
+  const normalizedRouteType = candidate.replace(/-/g, '_');
+  return cncEntities.find(entity => (
+    entity.type === candidate
+    || entity.type === normalizedRouteType
+    || entity.surfaceKey === candidate
+  ))?.type || '';
+}
+
+export function entitySurfaceKey(value = '') {
+  const canonical = canonicalEntityType(value);
+  return cncEntities.find(entity => entity.type === canonical)?.surfaceKey || '';
+}

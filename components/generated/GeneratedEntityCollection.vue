@@ -142,7 +142,7 @@ import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import InputText from 'primevue/inputtext';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import { useI18n } from 'vue-i18n';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';

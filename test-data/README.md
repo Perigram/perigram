@@ -12,6 +12,15 @@ themselves through `~/test-data/...` at the call site.
 
 Test data comes from factory functions rather than inline mock objects, so overrides can be spread onto defaults.
 
+`persisted-acceptance.js` is the privacy-safe regression fixture for the current
+process protocol. It defines a synthetic organization/role assignment, a saved
+v4 `Project -> Compose Lineage -> Artifact` graph (including connections and
+viewport), representative block DTOs, and the expected compiled screens/actions.
+Its spec round-trips persisted graph state and asserts Lineage inference, Home
+filtering, project detail scoping, role-owned actions, selectors/status, and
+Artifact viewer dispatch. It must never be replaced with copied production
+records or credentials.
+
 ## Usage
 
 ### Basic Usage

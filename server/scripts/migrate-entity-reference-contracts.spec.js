@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   migrateLegacyDerivedFrom,
   migrateLegacyParentRevision,
-  migrateLegacyRevisionData
+  migrateLegacyRevisionData,
+  migrateCanonicalEntityTypes
 } from './migrate-entity-reference-contracts.js';
 
 describe('entity reference contract migration', () => {
@@ -64,5 +65,32 @@ describe('entity reference contract migration', () => {
       { data: { source: { type: 'project', id: 'p2' } } }
     );
     expect(result.changed).toBe(false);
+  });
+
+  it('canonicalizes known persisted entity-type fields and keyed compiled policies', () => {
+    const result = migrateCanonicalEntityTypes({
+      data: {
+        entityType: 'sheetDesign',
+        lineageBindings: [{ childEntityType: 'cassetteDesign', ancestorEntityType: 'project' }],
+        compiled: { fieldPolicies: { cassetteDesign: { read: ['identity.*'] } } }
+      },
+      relations: { source: { type: 'entityRevision', id: 'revision-1' } }
+    });
+
+    expect(result.unresolved).toEqual([]);
+    expect(result.value).toMatchObject({
+      data: {
+        entityType: 'sheet_design',
+        lineageBindings: [{ childEntityType: 'cassette_design', ancestorEntityType: 'project' }],
+        compiled: { fieldPolicies: { cassette_design: { read: ['identity.*'] } } }
+      },
+      relations: { source: { type: 'entity_revision', id: 'revision-1' } }
+    });
+  });
+
+  it('fails closed for unresolved authored entity types', () => {
+    const result = migrateCanonicalEntityTypes({ data: { entityType: 'unknownWidget' } });
+    expect(result.changed).toBe(false);
+    expect(result.unresolved).toEqual([{ path: 'data.entityType', value: 'unknownWidget' }]);
   });
 });

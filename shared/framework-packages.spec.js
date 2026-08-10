@@ -183,7 +183,6 @@ describe('Framework package contracts', () => {
       cncEntities,
       cncContainment,
       cncRelations,
-      cncFrontendEntities,
       cncCommands,
       cncTasks,
       cncWorkflows
@@ -194,7 +193,7 @@ describe('Framework package contracts', () => {
     const manifest = createFrameworkManifest({
       packages: [{ name: '@cutkit/core' }],
       entities: cncEntities,
-      frontendEntities: cncFrontendEntities,
+      frontendEntities: cncDomain.ui.endpoints,
       workflows: cncWorkflows,
       commands: cncCommands,
       tasks: cncTasks,
@@ -216,7 +215,7 @@ describe('Framework package contracts', () => {
       getEntity: type => cncEntities.find(entity => entity.type === type),
       getWorkflow: type => cncWorkflows[type],
       getFrameworkManifest: () => manifest,
-      listRoutes: () => summarizeRoutes(cncFrontendEntities),
+      listRoutes: () => summarizeRoutes(cncDomain.ui.endpoints),
       listSummaries: () => summarizeSummaries([]),
       listCommands: () => manifest.commands,
       listUiComponents: () => manifest.designSystem.components,
@@ -233,7 +232,12 @@ describe('Framework package contracts', () => {
     expect(cncEntities.every(entity => entity.blocks.includes('relations') && entity.blocks.includes('provenance'))).toBe(true);
     expect(cncContainment).toContainEqual({ parentType: 'project', childType: 'queue', lineageKey: 'projectId' });
     expect(cncContainment).toContainEqual({ parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' });
-    expect(cncRelations).toContainEqual({ ownerType: 'queue', key: 'cassettes', targetType: 'cassette_design', cardinality: 'many' });
+    expect(cncRelations).toContainEqual(expect.objectContaining({
+      ownerType: 'queue',
+      key: 'cassettes',
+      targetType: 'cassette_design',
+      cardinality: 'many'
+    }));
     expect(cncDomain.construction.cassette_design.modeInputs.bakeCassetteDesignFromTemplate
       .some(input => input.id === 'name')).toBe(false);
     expect(cncDomain.construction.cassette_design.modeInputs.importCassetteDesignFromArtifact
@@ -289,7 +293,7 @@ describe('Framework package contracts', () => {
     expect(cncTasks.nestingSolve.output.entities).toEqual(['nesting_run', 'sheet_design']);
     expect(cncTasks.nestingSolve.output).not.toHaveProperty('attachments');
     expect(cncAttachmentKinds.LAYOUT_DXF).toMatchObject({ bucket: 'nestDxf', preview: { mode: 'dxf' } });
-    const endpointMap = createEndpointMap(cncFrontendEntities);
+    const endpointMap = createEndpointMap(cncDomain.ui.endpoints);
     const domainUi = createDomainUiAdapter(cncDomain);
     expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/project/p-1');
     expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/cassette-instances?lineage.queueId=q-1');
