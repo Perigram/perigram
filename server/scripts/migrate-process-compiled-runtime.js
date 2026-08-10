@@ -117,6 +117,11 @@ function recompileProcessData(data = {}, roles = {}) {
   };
 }
 
+function compiledSignature(compiled = {}) {
+  const { activatedAt: _activatedAt, ...semantic } = compiled || {};
+  return JSON.stringify(semantic);
+}
+
 async function main() {
   const db = await connectDB();
   const cursor = db.collection('process_definitions').find({
@@ -134,7 +139,7 @@ async function main() {
     try {
       const roles = await loadOrganizationRoles(db, organizationId, process.data || {});
       const nextData = recompileProcessData(process.data || {}, roles);
-      if (JSON.stringify(nextData.compiled) === JSON.stringify(process.data?.compiled)) continue;
+      if (compiledSignature(nextData.compiled) === compiledSignature(process.data?.compiled)) continue;
       await db.collection('process_definitions').updateOne(
         { _id: process._id },
         { $set: { data: nextData } }
