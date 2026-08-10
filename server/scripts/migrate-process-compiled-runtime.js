@@ -123,6 +123,7 @@ function compiledSignature(compiled = {}) {
 }
 
 function stableValue(value) {
+  if (value === undefined) return null;
   if (Array.isArray(value)) return value.map(stableValue);
   if (value instanceof Date) return value.toISOString();
   if (!value || typeof value !== 'object') return value;
