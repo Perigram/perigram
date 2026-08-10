@@ -198,6 +198,7 @@
     import ChatSupport from '~/components/ChatSupport.vue'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
+    import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
     import { useSupportChatStore } from '~/stores/supportChat'
     import { useNavigationStore } from '~/stores/navigation'
     import { useGlobalStore } from '~/stores/global'
@@ -210,6 +211,7 @@
     const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
+    const domainUi = useCutkitDomainUi()
     provide('statusWorkflows', computed(() => authStore.statusWorkflows))
     const supportChatStore = useSupportChatStore()
     const navStore = useNavigationStore()
@@ -480,33 +482,7 @@
     const screenIcon = (screen = {}) => {
         if (screen.icon) return screen.icon
         if (screen.template === 'home') return 'pi pi-home'
-        const entityIcons = {
-            project: 'pi pi-folder',
-            queue: 'pi pi-list',
-            nestingRun: 'pi pi-list-check',
-            nesting_run: 'pi pi-list-check',
-            sheetDesign: 'pi pi-map',
-            sheet_design: 'pi pi-map',
-            cassette: 'pi pi-box',
-            cassetteDesign: 'pi pi-pencil',
-            cassette_design: 'pi pi-pencil',
-            cassetteTemplate: 'pi pi-palette',
-            cassette_template: 'pi pi-palette',
-            cassetteInstance: 'pi pi-box',
-            cassette_instance: 'pi pi-box',
-            library: 'pi pi-book',
-            artifact: 'pi pi-file',
-            geometryCapture: 'pi pi-camera',
-            geometry_capture: 'pi pi-camera',
-            warehouse: 'pi pi-building',
-            material: 'pi pi-database',
-            materialPile: 'pi pi-box',
-            material_pile: 'pi pi-box',
-            requisition: 'pi pi-shopping-cart',
-            user: 'pi pi-user',
-            organization: 'pi pi-building'
-        }
-        return entityIcons[screen.entityType] || 'pi pi-th-large'
+        return domainUi.getIcon(screen.entityType)
     }
 
     watch(mobileShortcutStorageKey, loadMobileShortcuts)
