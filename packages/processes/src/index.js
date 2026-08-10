@@ -16,7 +16,6 @@ import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalo
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForEntityType, hasScopedFilter, compiledLineageKeys, lineageRelationsForParent } from './hierarchy-utils.js';
-import { resolveRoleAssignmentAccess, resolveEffectiveAccess, resolveNavigation, resolveScreens, resolveWorkflow, resolveFieldPolicy } from './access.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -676,6 +675,36 @@ function compileLineageBindings(process = {}, domain = {}) {
     binding
   ]));
   return [...unique.values()];
+}
+
+export function resolveRoleAssignmentAccess({ compiled, assignment, domain = {} } = {}) {
+  if (!assignment || (assignment.status && assignment.status !== 'active')) return emptyAssignmentAccess();
+  return compileAssignmentAccess({ assignment, roles: compiled?.roles || {}, screens: compiled?.screens || {}, domain });
+}
+
+export function resolveEffectiveAccess({ access } = {}) {
+  return access?.permissions || {};
+}
+
+export function resolveNavigation({ access } = {}) {
+  return access?.navigation || [];
+}
+
+export function resolveScreens({ access } = {}) {
+  return access?.screens || [];
+}
+
+export function resolveWorkflow({ compiled, entityType, fallbackWorkflow = null } = {}) {
+  return compiled?.workflows?.[entityType] || fallbackWorkflow;
+}
+
+export function resolveFieldPolicy({ compiled, entityType, basePolicy = null } = {}) {
+  const processPolicy = compiled?.fieldPolicies?.[entityType];
+  if (!processPolicy) return basePolicy;
+  return {
+    ...(basePolicy || {}),
+    ...processPolicy
+  };
 }
 
 function normalizeGraph(graph = {}) {
