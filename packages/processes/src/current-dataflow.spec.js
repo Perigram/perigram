@@ -99,4 +99,49 @@ describe('current process dataflow contract', () => {
     ]);
     expect(canvasToDefinition(canvas, definition).actions).toEqual({});
   });
+
+  it('preserves valid graph nodes, viewport, and edges across Save and reload round trips', () => {
+    const processNode = { id: 'p1', kind: 'source.literalItem', fields: [] };
+    const processData = {
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      roleGrants: {},
+      processNodes: { p1: processNode },
+      entityProfiles: {}
+    };
+    const graph = {
+      nodes: [
+        { id: 'n1', type: 'processNode', position: { x: 100, y: 200 }, data: { refId: 'p1', label: 'Node 1' } },
+        { id: 'n2', type: 'processNode', position: { x: 300, y: 400 }, data: { refId: 'p1', label: 'Node 2', selected: true } }
+      ],
+      edges: [],
+      viewport: { x: 50, y: 60, zoom: 1.5 }
+    };
+
+    const saveSnapshot = canvasToDefinition(graph, processData);
+    expect(saveSnapshot.graph.nodes.length).toBe(2);
+    expect(saveSnapshot.graph.viewport).toEqual({ x: 50, y: 60, zoom: 1.5 });
+    const selectedNode = saveSnapshot.graph.nodes.find(n => n.id === 'n2');
+    expect(selectedNode.data.selected).toBe(true);
+
+    const reloadedCanvas = definitionToCanvas(saveSnapshot);
+    expect(reloadedCanvas.nodes.length).toBe(2);
+    expect(reloadedCanvas.viewport).toEqual({ x: 50, y: 60, zoom: 1.5 });
+
+    const resave = canvasToDefinition(reloadedCanvas, saveSnapshot);
+    expect(resave.graph.nodes.length).toBe(2);
+    expect(resave.graph.viewport).toEqual({ x: 50, y: 60, zoom: 1.5 });
+  });
+
+  it('survives Save with an empty graph after validation errors', () => {
+    const emptyData = { dataflowVersion: PROCESS_DATAFLOW_VERSION, processNodes: {}, roleGrants: {}, entityProfiles: {} };
+    const graph = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
+
+    const snapshot = canvasToDefinition(graph, emptyData);
+    expect(snapshot.graph.nodes.length).toBe(0);
+    expect(snapshot.graph.viewport).toEqual({ x: 0, y: 0, zoom: 1 });
+
+    const roundTrip = canvasToDefinition(definitionToCanvas(snapshot), snapshot);
+    expect(roundTrip.graph.nodes.length).toBe(0);
+    expect(roundTrip.graph.viewport).toEqual({ x: 0, y: 0, zoom: 1 });
+  });
 });
