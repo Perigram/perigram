@@ -262,7 +262,7 @@ import Popover from 'primevue/popover';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
-import { ENTITY_UI } from '~/utils/status-engine';
+import { entityUiFor } from '~/utils/status-engine';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
@@ -298,7 +298,7 @@ const inlineShowCassetteDesignerRef = inject('entityInlineShowCassetteDesigner',
 const inlineExecuteActionRef = inject('entityInlineExecuteAction', null);
 const statusWorkflowsRef = inject('statusWorkflows', null);
 
-const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi pi-box' });
+const entityConfig = computed(() => entityUiFor(props.entityType));
 const displayPlan = computed(() => resolveEntityDisplayContract({
     entityType: props.entityType,
     surface: props.surface || props.variant,

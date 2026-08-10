@@ -53,7 +53,7 @@ import { useLineage } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
-import { ENTITY_UI } from '~/utils/status-engine';
+import { entityUiFor } from '~/utils/status-engine';
 import { containmentAncestors, entityHierarchyIds, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute } from '~/utils/entity-hierarchy.js';
 
 const props = defineProps({
@@ -176,7 +176,7 @@ const routeForItem = (item) => {
     const project = projectItem ? resolvedEntities.value[labelKey(projectItem)] : null;
     const scopedRoute = projectHierarchyRoute({ type: item.type, id: item.id, entity: resolvedEntity, project });
     if (scopedRoute) return scopedRoute;
-    const config = ENTITY_UI[item.type];
+    const config = entityUiFor(item.type);
     return typeof config?.route === 'function'
         ? config.route(item.id, project?.identity?.slug || project?.identity?.uid || item.slug)
         : null;

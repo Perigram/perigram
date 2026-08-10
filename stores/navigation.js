@@ -9,7 +9,7 @@ import { generatedScreenLabel } from '~/utils/generated-labels.js';
 import { useEntityStore } from './entities.js';
 import { cncDomain } from '@cutkit/domain-cnc';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
-import { ENTITY_UI } from '~/utils/status-engine.js';
+import { entityUiFor } from '~/utils/status-engine.js';
 import { containmentAncestors, entityHierarchyId, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute, rootContainmentFilter, siblingContainmentScope } from '~/utils/entity-hierarchy.js';
 
 export const useNavigationStore = defineStore('navigation', () => {
@@ -125,7 +125,7 @@ export const useNavigationStore = defineStore('navigation', () => {
             || currentProject.value;
         const scopedRoute = projectHierarchyRoute({ ...item, project });
         if (scopedRoute) return scopedRoute;
-        const config = ENTITY_UI[hierarchyTypeAlias(item.type)] || ENTITY_UI[item.type];
+        const config = entityUiFor(item.type);
         return typeof config?.route === 'function'
             ? config.route(item.id, project?.identity?.slug || project?.identity?.uid || project?.slug)
             : null;

@@ -25,7 +25,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { ENTITY_UI } from '~/utils/status-engine';
+import { entityUiFor } from '~/utils/status-engine';
 import { requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const props = defineProps({
@@ -59,7 +59,7 @@ const props = defineProps({
     }
 });
 
-const config = computed(() => ENTITY_UI[props.type] || { icon: 'pi pi-link', route: () => '#' });
+const config = computed(() => entityUiFor(props.type));
 
 const route = computed(() => {
     if (props.to) return props.to;
