@@ -2131,8 +2131,14 @@ function syncEdgeSelection() {
 }
 
 function serializeProcess() {
-  syncNodeData();
-  return processDefinitionSnapshot();
+  const originalData = draft.value?.data;
+  draft.value.data = JSON.parse(JSON.stringify(originalData || {}));
+  try {
+    syncNodeData();
+    return processDefinitionSnapshot();
+  } finally {
+    draft.value.data = originalData;
+  }
 }
 
 function processDefinitionSnapshot() {
