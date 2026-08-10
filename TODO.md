@@ -127,18 +127,18 @@ same phase that replaces a contract.
 
 ### 6. Remove queue producer and relation-action parallel systems
 
-- [ ] Represent selection, creation, conversion, and linking as ordinary typed graph
+- [x] Represent selection, creation, conversion, and linking as ordinary typed graph
   operations. A producer is not a second action language and a relation is not a
   hidden constructor.
-- [ ] Delete `utils/queue-producers.js`, `utils/queue-design-producers.js`, and
+- [x] Delete `utils/queue-producers.js`, `utils/queue-design-producers.js`, and
   queue/project-specific action synthesis once their behavior is expressed by graph
   nodes and compiled actions.
-- [ ] Compile Link/Unlink only from a composed Relations block connected to a Modify
+- [x] Compile Link/Unlink only from a composed Relations block connected to a Modify
   Entity effect. Cardinality comes from data shape at the persistence boundary, not
   a global relation registry or page-specific mutation mode.
-- [ ] Keep artifact upload/conversion as declared constructors or commands. Do not
+- [x] Keep artifact upload/conversion as declared constructors or commands. Do not
   special-case Artifact relation rows inside the generic compiler.
-- [ ] Acceptance: adding another design-producing process requires only graph
+- [x] Acceptance: adding another design-producing process requires only graph
   authoring; Queue and Project UI expose it without new helper code.
 
 ### 7. Remove unrequested and unreliable Automation runtime
