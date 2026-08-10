@@ -1745,7 +1745,8 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}, 
     domain,
     entityProfiles: processOrScreens.entityProfiles || {},
     actions: processOrScreens.actions || {},
-    graph: processOrScreens.graph || {}
+    graph: processOrScreens.graph || {},
+    lineageBindings
   });
   return Object.fromEntries(Object.entries({ ...screens, ...inferredScreens }).map(([id, screen]) => {
     const normalized = normalizeScreenContract(screen);
@@ -1787,12 +1788,19 @@ function compiledLineageKeys(entityType = '', lineageBindings = []) {
   return keys.length ? keys : null;
 }
 
+function lineageRelationsForParent(parentEntityType = '', lineageBindings = []) {
+  const relations = (lineageBindings || [])
+    .filter(binding => binding.ancestorEntityType === parentEntityType && binding.childEntityType && binding.lineageKey)
+    .map(binding => ({ childType: binding.childEntityType, lineageKey: binding.lineageKey }));
+  return relations.length ? relations : null;
+}
+
 function hasScopedFilter(filters = {}, lineageKey = '') {
   return Object.prototype.hasOwnProperty.call(filters || {}, lineageKey)
     || Object.prototype.hasOwnProperty.call(filters || {}, `lineage.${lineageKey}`);
 }
 
-function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {}, graph = {} } = {}) {
+function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {}, graph = {}, lineageBindings = [] } = {}) {
   const inferred = {};
   const graphContext = buildActionGraphContext({ actions, graph });
   const existingKeys = new Set(Object.values(screens).flatMap(screen => {
@@ -1817,7 +1825,8 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
         parentEntityType: entityType,
         domain,
         actions,
-        graphContext
+        graphContext,
+        lineageBindings
       });
       const contextualActions = contextualParentActions(role.actions || [], entityType, domain, actions, graphContext);
       inferred[id] = {
@@ -1897,14 +1906,21 @@ function isParentBoundCreateAction(roleAction = {}, processAction = {}, domain =
   return kind === 'createEntity' && Boolean(parentEntityType);
 }
 
-function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain = {}, actions = {}, graphContext = buildActionGraphContext({ actions }) } = {}) {
+function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain = {}, actions = {}, graphContext = buildActionGraphContext({ actions }), lineageBindings = [] } = {}) {
   const sourcesByEntity = new Map();
   const regions = [];
   const actionIds = [];
   const grantsByFeature = groupGrantsByFeature(role.grants || []);
+  const childRelations = lineageRelationsForParent(parentEntityType, lineageBindings)
+    || (domain.containment || [])
+      .filter(relation => relation.parentType === parentEntityType && relation.childType && relation.lineageKey)
+      .map(relation => ({
+        childType: relation.childType,
+        lineageKey: relation.lineageKey
+      }));
 
-  for (const relation of domain.containment || []) {
-    if (relation.parentType !== parentEntityType || !relation.childType || !relation.lineageKey) continue;
+  for (const relation of childRelations) {
+    if (!relation.childType || !relation.lineageKey) continue;
     const childFeature = featureFromEntityType(domain, relation.childType);
     if (!childFeature) continue;
     const childGrants = grantsByFeature.get(childFeature) || [];
