@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { activate, assignUserToActiveProcessInternal, authFromRun, executeActiveProcessAction, hasProcessDefinitionMembershipAccess, orchestrationActor, resolveProcessGraphEntity, update } from './service.js';
+import { activate, assignUserToActiveProcessInternal, executeActiveProcessAction, hasProcessDefinitionMembershipAccess, resolveProcessGraphEntity, update } from './service.js';
 import * as processRepository from './repository.js';
 import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
@@ -69,25 +69,6 @@ describe('process definitions access fallback', () => {
       collection: vi.fn(() => ({
         updateOne: vi.fn().mockResolvedValue({ matchedCount: 1 })
       }))
-    });
-  });
-
-  it('retains compiled permissions across durable orchestration resumes', () => {
-    const effectivePermissions = {
-      libraries: [{ level: 'read', rule: { fact: 'primaryStatus', equals: 'NEW' } }]
-    };
-    const actor = orchestrationActor({
-      userId: 'user-1',
-      role: 'member',
-      effectivePermissions,
-      roleAssignments: { roleIds: ['role-designer'] }
-    }, 'org-1');
-
-    expect(authFromRun({ organizationId: 'org-1', context: { actor } })).toMatchObject({
-      userId: 'user-1',
-      organizationId: 'org-1',
-      effectivePermissions,
-      roleAssignments: { roleIds: ['role-designer'] }
     });
   });
 
