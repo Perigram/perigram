@@ -2483,7 +2483,7 @@ function isCanonicalBlockConstructionPath(path = '') {
 }
 
 function normalizeConstructionInput(input = {}, domain = {}) {
-  if (input.creator?.entityType !== 'artifact' || input.creator.attachmentKinds !== 'userCreatable') {
+  if (typeof input.creator?.attachmentKinds !== 'string') {
     return { ...input, required: false };
   }
   return {
@@ -2996,8 +2996,12 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
     keys.add(key);
     if (composition.mode === 'relations' && entry.attachmentKinds?.length) {
       const kinds = new Map(Object.values(domain.attachmentKinds || {}).map(kind => [kind.kind || kind.id, kind]));
-      if (entry.entityType !== 'artifact') {
-        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} can create targets only for artifact relations`);
+      const targetHasAttachmentKinds = Object.values(domain.attachmentKinds || {}).some(kind => (
+        (Array.isArray(kind.entityTypes) ? kind.entityTypes.includes(entry.entityType) : true)
+        && ['upload', 'capture', 'editor'].includes(kind.creation?.mode)
+      ));
+      if (!targetHasAttachmentKinds) {
+        errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} can create upload targets only for entities with user-creatable attachment kinds`);
       }
       if (!entry.attachmentKinds?.length) {
         errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} must select an upload attachment kind`);
