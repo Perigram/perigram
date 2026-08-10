@@ -37,6 +37,11 @@ node server/scripts/migrate-artifact-sources.js # Backfill artifact source refs 
 node server/scripts/repair-nesting-run-completions.js # Complete runs that already have solver results but were blocked by missing process system intents
 ```
 
+`migrate-process-compiled-runtime.js` intentionally scans only `ACTIVE`
+definitions. Drafts have no runtime authority, and archived compiled snapshots
+are audit history that may use a superseded graph protocol; neither is silently
+rewritten as an active runtime migration.
+
 ## What Gets Created
 
 ### Layer Standards
