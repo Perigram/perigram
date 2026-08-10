@@ -44,10 +44,10 @@ same phase that replaces a contract.
 - [ ] Remove process and generated-screen dependence on `cncContainment`, including
   `parentSupportedByDomain`, `parentRelationForChild`, `withRootEntityScope`, and
   browser-side containment imports. Do not replace it by guessing every `*Id` key.
-- [ ] Decide whether any static containment metadata is still needed outside process
+- [x] Decide whether any static containment metadata is still needed outside process
   authoring. If a domain invariant truly exists, keep it as validation of a compiled
   graph binding only; it must not create, override, or place process hierarchy.
-- [ ] Migrate active process definitions so their compiled lineage bindings are
+- [x] Migrate active process definitions so their compiled lineage bindings are
   regenerated from their saved graph, then remove old `rootLineageKeys` and static
   parent metadata from persisted screen contracts.
 - [ ] Acceptance: `Project -> Compose Lineage(projectId) -> Artifact` makes Artifact
@@ -98,10 +98,10 @@ same phase that replaces a contract.
 - [x] Keep canonical block composition separate from constructors: generic Create
   consumes composed blocks; a typed constructor consumes only its declared service
   inputs plus explicitly declared block inputs.
-- [ ] Remove implicit `name`, `parent`, `fields`, `attachments.primary`, and other
+- [x] Remove implicit `name`, `parent`, `fields`, `attachments.primary`, and other
   guessed Create inputs. Required fallback editing lives on the typed input socket;
   optional configuration lives in the inspector.
-- [ ] Migrate every saved create node to the selected current constructor mode and
+- [x] Migrate every saved create node to the selected current constructor mode and
   delete stale construction/input-policy fields instead of interpreting both shapes.
 - [x] Acceptance: Artifact upload, generic entities, cassette templates, cassette
   designs, and facade creation all derive their sockets and generated forms from the
@@ -202,10 +202,10 @@ same phase that replaces a contract.
 - [x] Treat project explorer folders, tabs, pane bodies, and standalone generated
   screens as projections of the same entity/screen contracts. Remove hardcoded Queue,
   Artifact, Cassette, or designer placement branches.
-- [ ] Decide and document workspace persistence ownership. If layouts must follow a
+- [x] Decide and document workspace persistence ownership. If layouts must follow a
   user across devices, replace localStorage-only persistence with an organization/user
   preference service; otherwise state explicitly that it is device-local.
-- [ ] Remove planning archives from component source directories and keep component
+- [x] Remove planning archives from component source directories and keep component
   architecture in README files.
 - [ ] Acceptance: the same entity screen behaves consistently on Home, standalone,
   and inside a project pane without duplicate headers/actions or special-case code.
