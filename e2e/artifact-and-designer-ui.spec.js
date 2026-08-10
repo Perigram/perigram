@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 
 test.describe('artifact and designer UI', () => {
   test('artifact detail selects its file viewer and replacement creates a revision', async ({ app }) => {
+    await app.switchToAssignedOrganization();
     const project = await app.createProject();
     const firstDxf = Buffer.from('0\nSECTION\n2\nENTITIES\n0\nENDSEC\n0\nEOF');
     const createdResponse = await app.request.post('/api/artifacts', {
