@@ -48,6 +48,12 @@ that storage object as arbitrary JSON. When a process owns the artifact
 lifecycle, the hidden `artifactFileStored` system intent is recorded without
 replacing the process-authored current state.
 
+Before authorizing an artifact create, the service resolves the organization's
+initial Artifact status and evaluates the `create` permission against that
+status and the requested Lineage. This lets status-scoped process grants
+authorize their declared constructor output without bypassing the shared access
+engine or checking an incomplete pre-status DTO.
+
 Upload and replacement routes enforce each attachment kind's allowed extension,
 MIME type, and byte limit. Deleting an artifact as an administrator cascades to
 its revisions and retained GridFS blobs.

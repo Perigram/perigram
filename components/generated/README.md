@@ -135,6 +135,11 @@ collection itself is the authoritative child surface. An entity detail with one
 or more compiled child regions applies the same suppression to its parent body,
 so a library does not repeat cassette totals/previews above its cassette region;
 unrelated operational fields such as material and description remain visible.
+For a standalone generated detail route, `GeneratedScreen` compares route ids
+with the open entity through exact compiled Lineage bindings and forwards only
+matching ancestors as trace exclusions. This prevents the app breadcrumb and
+entity trace from repeating the same ancestor without treating arbitrary route
+parameters or `*Id` fields as hierarchy.
 When a child file opens, its actions come from that entity type's compiled
 detail screen in the current user's effective screen manifest. Parent-workspace
 region actions are merged only when they also apply to the selected entity.

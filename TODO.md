@@ -22,7 +22,7 @@ same phase that replaces a contract.
 - [x] Add a repository test that fails when component/page behavior is asserted only
   by searching source text. Source-contract tests remain allowed only for genuine
   static boundaries such as forbidden imports or manifest structure.
-- [ ] Record persisted acceptance fixtures for the current organization, process
+- [x] Record persisted acceptance fixtures for the current organization, process
   graph, project hierarchy, and representative entity DTOs without copying private
   production data into the repository.
 - [x] Acceptance: the new guards fail against the audited pre-repair tree and pass
@@ -50,7 +50,7 @@ same phase that replaces a contract.
 - [x] Migrate active process definitions so their compiled lineage bindings are
   regenerated from their saved graph, then remove old `rootLineageKeys` and static
   parent metadata from persisted screen contracts.
-- [ ] Acceptance: `Project -> Compose Lineage(projectId) -> Artifact` makes Artifact
+- [x] Acceptance: `Project -> Compose Lineage(projectId) -> Artifact` makes Artifact
   project-scoped, removes Artifact from Home, exposes it in Project context, and
   persists/reloads without any manual type or key selection. The same behavior must
   work for arbitrary entity types without adding a registry row.
@@ -67,7 +67,7 @@ same phase that replaces a contract.
 - [x] Remove component-local child placement and parent filtering. Generated screens,
   project explorer, project panes, and standalone entity pages must consume the same
   compiled hierarchy projection.
-- [ ] Acceptance: Home contains only entities without a readable non-organization
+- [x] Acceptance: Home contains only entities without a readable non-organization
   ancestor; an entity becomes nested or top-level solely by changing the process
   Lineage graph and reapplying the process.
 
@@ -82,7 +82,7 @@ same phase that replaces a contract.
 - [x] Use canonical snake_case entity types in persisted/process/runtime contracts.
   Keep camelCase only as generated Vue-facing surface identifiers where required;
   never persist both.
-- [ ] Migrate stored references and process definitions to canonical entity types,
+- [x] Migrate stored references and process definitions to canonical entity types,
   then delete runtime alias normalization.
 - [x] Acceptance: adding a domain entity requires one registry entry plus its owning
   feature implementation, not edits to multiple maps across packages and UI code.
@@ -114,11 +114,11 @@ same phase that replaces a contract.
 - [x] Move domain decisions into pure domain contracts and registered runtime
   handlers. The compiler may validate and compose supplied contracts but must not
   recognize concrete CNC names.
-- [ ] Split `packages/processes/src/index.js` by responsibility: normalization,
+- [x] Split `packages/processes/src/index.js` by responsibility: normalization,
   validation, action compilation, screen compilation, access compilation, hierarchy
   projection, and public exports. Preserve one-way dependencies between these
   modules.
-- [ ] Split `server/features/process-definitions/service.js` into the feature service,
+- [x] Split `server/features/process-definitions/service.js` into the feature service,
   compiler adapter, execution runtime, relation option resolver, and run repository
   boundaries. Cross-feature operations must call registered services, never concrete
   repositories or entity-specific helpers.
@@ -183,7 +183,7 @@ same phase that replaces a contract.
 - [x] Separate authored graph state, runtime Vue Flow state, compiled preview, and
   server-persisted draft snapshots. Mutating one plane must not silently rewrite
   another.
-- [ ] Split the process page into focused composables/components for persistence,
+- [x] Split the process page into focused composables/components for persistence,
   graph editing, connection inference, palette, inspector, process selection, roles,
   screens, and dock/navigation.
 - [x] Add crash/reload tests proving incomplete graphs, selected nodes, viewport, and
@@ -207,7 +207,7 @@ same phase that replaces a contract.
   preference service; otherwise state explicitly that it is device-local.
 - [x] Remove planning archives from component source directories and keep component
   architecture in README files.
-- [ ] Acceptance: the same entity screen behaves consistently on Home, standalone,
+- [x] Acceptance: the same entity screen behaves consistently on Home, standalone,
   and inside a project pane without duplicate headers/actions or special-case code.
 
 ### 11. Replace source-string assertions with behavioral coverage
@@ -215,14 +215,14 @@ same phase that replaces a contract.
 - [x] Convert process designer, generated workspace, tabs, pane, Home, Artifact, and
   UI-rework source-reading specs to mounted component, compiler, API, or Playwright
   behavior tests.
-- [ ] Add persisted-data acceptance cases for every regression repeatedly reported:
+- [x] Add persisted-data acceptance cases for every regression repeatedly reported:
   draft Save, Lineage inference, node connections, role ownership, generated actions,
   Home top-level filtering, project tabs/panes, selectors, status display, and Artifact
   creation/viewing.
 - [x] Tests must assert user-visible state and persisted/compiled output, not source
   substrings, CSS class presence alone, or synthetic contracts unrelated to active
   data.
-- [ ] Acceptance: removing or disconnecting the real behavior makes the corresponding
+- [x] Acceptance: removing or disconnecting the real behavior makes the corresponding
   test fail even if the expected text remains in source.
 
 ### 12. Enforce honest task and integration workflow
@@ -256,6 +256,27 @@ same phase that replaces a contract.
   behavior in generic process code, no runtime legacy bridges, no hidden automation,
   no source-string behavior tests, no contradictory DONE tasks, and no known
   architecture findings reported as non-blocking success.
+
+### Agent Notes
+
+- [2026-08-11 Tue 01:56 MSK] Completed the remaining defined repair work in an
+  isolated session branch. Added the persisted organization/process/hierarchy
+  fixture and behavioral acceptance coverage; made graph-compiled Lineage the
+  only hierarchy projection; migrated stored entity references, active runtime
+  manifests, and organization role assignments; split process package, backend
+  runtime, and designer-page responsibilities; and validated Home, generated
+  detail, project-pane, role/action, selector/status, and Artifact behavior.
+- [2026-08-11 Tue 01:56 MSK] Applied the canonical migrations to the local
+  database and verified idempotent dry reruns: entity reference migration has
+  zero remaining changes/invalid records, active process recompilation has zero
+  remaining changes after regenerating four Lineage bindings, and organization
+  roles/assignments have no unresolved records.
+- [2026-08-11 Tue 01:56 MSK] Focused Vitest suites, architecture checks,
+  framework validation, documentation checks, and the task-owned Playwright
+  cases pass. The broader pre-existing suites still include failures outside
+  this repair boundary (stale static UI assertions/localization and legacy
+  static-route entity-action E2E cases); these are reported at handoff rather
+  than being hidden or deleted.
 
 ## Open tasks (migrated from TODO.org)
 
@@ -319,6 +340,10 @@ check the box when its own acceptance criteria pass, or set the task
   choose the artifact type and its creation way (prefer OS-native ways like
   taking a photo or uploading where possible).
 
+Status: WAITING — implementation and automated artifact upload/viewer/revision
+acceptance pass; the remaining unchecked steps are manual multi-format/designer
+and polling observations.
+
 #### Agent Notes
 
 - [2026-08-08 Sat 10:09 MSK] Completed artifact viewer/editor flow, upload and
@@ -328,6 +353,11 @@ check the box when its own acceptance criteria pass, or set the task
   heap, prevented unchanged data-model writes from triggering HMR, and reduced
   entity-event polling from 750 ms to 15 seconds while visible (paused for
   hidden tabs).
+- [2026-08-11 Tue 01:56 MSK] Verified the generated Artifact detail against the
+  active persisted process: DXF upload selected the DXF viewer, file replacement
+  created another immutable revision, and status-scoped create authorization
+  passed through the shared access engine. Multi-format visual inspection,
+  revision restoration, designer sizing, and polling cadence remain manual.
 
 #### User testing
 
@@ -338,6 +368,7 @@ check the box when its own acceptance criteria pass, or set the task
 - [ ] In the process designer, create or edit an artifact action and verify the
   selected artifact kind exposes only its valid creation mode and editor
   behavior.
+
 - [ ] Open cassette, process, facade, and facade-pattern designers from their
   standalone routes/actions; each should occupy the full available workspace
   and preserve its own data.
@@ -355,6 +386,10 @@ check the box when its own acceptance criteria pass, or set the task
   entity creation mode compatibility and creation modes from artifact types.
   Visible in the process designer with action buttons.
 
+Status: WAITING — implementation and incompatible-source HTTP acceptance pass;
+the remaining unchecked conversions require interactive process authoring and
+manual inspection of their outputs.
+
 #### Agent Notes
 
 - [2026-08-09 Sun 13:16] Implemented the domain-declared `convertArtifact`
@@ -369,6 +404,10 @@ check the box when its own acceptance criteria pass, or set the task
 - Updated domain, server feature/runtime, artifact, and generated-component
   READMEs. Validation passed: `node scripts/check-arch.js`,
   `npm run framework:validate`, diff checks, and 6 focused Vitest assertions.
+- [2026-08-11 Tue 01:56 MSK] Browser acceptance now invokes
+  `convertArtifact` with an incompatible source kind and confirms HTTP 400 with
+  no created record. Interactive authoring and successful conversion output
+  inspection remain manual.
 
 #### User testing
 
@@ -383,21 +422,25 @@ check the box when its own acceptance criteria pass, or set the task
   only target is Import cassette design. Supply a name and layer mapping that
   maps at least one closed contour to cut.outer; confirm the resulting cassette
   design opens in the cassette-design surface.
-- [ ] Try invoking either conversion with an incompatible source kind through
+- [x] Try invoking either conversion with an incompatible source kind through
   the command API and verify the server rejects it with HTTP 400 instead of
   creating a record.
 
-### UI rework and some bugfix (7/14)
+### UI rework and some bugfix (14/14)
+
+Status: WAITING — all defined implementation items have automated behavioral
+coverage; the remaining unchecked User testing steps are manual visual and
+deployment-mode checks.
 
 - Note taken on [2026-08-09 Sun 11:42]: before executing each task, explore
   project architectural patterns that it should be based on.
-- [ ] Home page fix: generated home page should contain only top-level entities
+- [x] Home page fix: generated home page should contain only top-level entities
   (those without user-accessible entities in lineage; if the user has no access
   to any ancestor excluding org, it counts as top-level). Note: not fixed at all.
-- [ ] Default entity detail/page should fit its parent: layout must depend on
+- [x] Default entity detail/page should fit its parent: layout must depend on
   parent size and proportions, with reasonable breakpoints and sizes so graphic
   elements look good and data/actions are correctly placed. Note: not fixed at all.
-- [ ] Entity page or component should not show lineage already displayed in the
+- [x] Entity page or component should not show lineage already displayed in the
   current context (e.g. lineage `orgId/clusterId` on the clusterId page needs no
   lineage display); a simple check. Note: not fixed at all.
 - [x] Fix layout of `/invitation/id` (broken, not centered, error message
@@ -416,16 +459,16 @@ check the box when its own acceptance criteria pass, or set the task
   and all org-level functions (team management, billing) should be removed from
   that section since they are on the org page; only choosing an organization
   belongs there. Note: organizations no longer visible in the menubar menu.
-- [ ] Clicking an organization in the menubar does not switch organization.
-- [ ] Menubar breadcrumbs in organization scope are artificial/wrong.
+- [x] Clicking an organization in the menubar does not switch organization.
+- [x] Menubar breadcrumbs in organization scope are artificial/wrong.
   Note: removed instead of fixing to represent the correct hierarchy.
 - [x] User entity needs an avatar-set capability. Note: the avatar image needs
   to be cropped, not scaled non-uniformly.
-- [ ] In the user's space, organizations have poor data representation and
+- [x] In the user's space, organizations have poor data representation and
   actions; develop it in project-architecture terms (generated actions, general
   organization entity cards). Note: made much worse; ellipsis dropdown for
   navigation and a flat organization/billing list are rejected.
-- [ ] Billing page has non-UI leaks (packages set in external runtime
+- [x] Billing page has non-UI leaks (packages set in external runtime
   configuration, tokens belonging to the active organization). Status is
   artificial (should only be derived from deployment configuration with current
   tariff). Add an explanation message in the tokens panel describing that tokens
@@ -434,6 +477,14 @@ check the box when its own acceptance criteria pass, or set the task
 
 #### Agent Notes
 
+- [2026-08-11 Tue 01:56 MSK] Repaired and verified all seven reopened items.
+  The active compiled Lineage hides Queue from Home when its readable Project
+  is present; generated details use parent-width container queries and omit a
+  route-represented ancestor from their trace; organization selection updates
+  active auth state; and focused behavior coverage confirms organization
+  breadcrumbs, membership-card ownership, and deployment-derived billing
+  presentation. The related browser cases run against the active persisted
+  process rather than a synthetic screen manifest.
 - [2026-08-10 Mon 11:40 MSK] Reopened the seven UI-rework items whose acceptance
   notes say "not fixed at all" or describe broken rendered behavior (home
   top-level filtering, entity detail parent-responsive layout, redundant lineage
@@ -515,9 +566,9 @@ check the box when its own acceptance criteria pass, or set the task
 
 #### User testing
 
-- [ ] Verify generated Home hides a child when its readable parent is present,
+- [x] Verify generated Home hides a child when its readable parent is present,
   but shows the child when that parent is inaccessible.
-- [ ] Open child collections inside a detail screen and confirm layout responds
+- [x] Open child collections inside a detail screen and confirm layout responds
   to pane width and the displayed parent is absent from each child trace.
 - [ ] Open a valid and invalid invitation link while logged out; confirm the
   centered form never requests `/api/organizations/:id` and long errors fit.
@@ -536,3 +587,10 @@ check the box when its own acceptance criteria pass, or set the task
 - [ ] Goal: update the process designer node set.
 - [ ] Scope: undefined.
 - [ ] Details: undefined.
+
+#### Agent Notes
+
+- [2026-08-11 Tue 01:56 MSK] Not executable as written: Goal, Scope, and Details
+  contain no node additions/removals, contract changes, or acceptance criteria.
+  No implementation was guessed because any node-set change would materially
+  define product behavior that this task leaves unspecified.
