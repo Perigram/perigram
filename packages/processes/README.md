@@ -372,12 +372,8 @@ entity/entity-list construction references at the effect boundary.
 
 `orchestration.js` executes the full runtime control plane. Effect nodes have
 only two execution modes: `manual`, which is exposed through authorized UI, and
-`event`, which requires an incoming control socket. Date scheduling is an
-explicit `control.waitUntil` step fed by date algebra before an automatic
-effect. Entity-change and domain-event subscriptions are process-entry
-concerns and are not stored as effect modes.
-Runs carry
-durable control tokens, foreach scopes, join arrivals, wake times, attempts,
+`event`, which requires an incoming control socket. Runs carry
+durable control tokens, foreach scopes, join arrivals, attempts,
 and step outputs. Data subgraphs are evaluated lazily for the operational node
 that consumes them. Arbitrary data or control cycles are rejected during
 activation.

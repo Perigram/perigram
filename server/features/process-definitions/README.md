@@ -24,31 +24,17 @@ Normalization used by validation and compilation is an in-memory projection;
 draft saves and activation persist the authored graph and semantic records
 without replacing them with that projection.
 
-## Durable orchestration
+## Process execution
 
-The feature persists orchestration capability records in
-`orchestration_runs` and `orchestration_step_runs`. These are not domain
-entities and are not registered in the CNC entity catalog. A run owns its
-definition id, organization id, trigger payload, control tokens, foreach
-scopes, join arrivals, wake time, retry state, terminal result/error, and an
-optimistic `revision`. A step receipt owns one effect idempotency key and its
-running/succeeded/failed result. Unique step keys prevent a resumed request
-from applying the same external effect twice.
-
-`POST /api/process-definitions/:id/runs` starts a manual v4 trigger and drives
-it until success, failure, or a wait boundary.
-`POST /api/process-definitions/runs/:id/resume` provides an explicit recovery
-resume, and `GET /api/process-definitions/runs/:id` reads the authorized run.
-The process-orchestration Nitro plugin polls due `wakeAt` records. Effect nodes
-are either manual or automatic-from-socket. Date algebra feeds an explicit
-wait-until control step, which persists the wake boundary before forwarding its
-event to the automatic effect. Entity/domain subscriptions require a separate
-process-entry contract and are not inferred from effect configuration.
-The originating actor/access snapshot is stored with the run so a due
-continuation re-enters the normal feature access boundary. The snapshot includes
-the compiled `effectivePermissions` consumed by entity adapters, so a resumed
-read has the same access context as the action that started the run. API handlers do not
-touch orchestration collections.
+Manual process actions run synchronously in memory. `POST
+/api/process-definitions/:id/runs` starts a manual v4 trigger and drives it to a
+terminal state without persisting run/step collections. Effect nodes are either
+manual or automatic-from-socket. There is no scheduled/wait boundary and no
+durable run persistence; date or event-triggered automation is not part of the
+supported process contract. The originating actor/access snapshot is carried on
+the run object so the action re-enters the normal feature access boundary; it
+includes the compiled `effectivePermissions` consumed by entity adapters, so
+the execution has the same access context as the action that started it.
 
 The pure scheduler lives in `@cutkit/processes`. This service supplies only
 authorized read adapters and effect adapters. Reads use registered entity
@@ -230,8 +216,8 @@ queue job edits still require the separate `queues:write` entity grant. A queue
 write grant alone does not expose the command action, and a command action
 grant does not expose queue mutation controls.
 For dataflow v4, Run Service sockets are resolved from the current registered
-command definition at authoring, validation, and durable-resume boundaries.
-The durable executor partitions those flat typed socket values into the
+command definition at authoring and validation boundaries.
+The executor partitions those flat typed socket values into the
 command runtime's `entities` and `parameters` envelope; it does not accept a
 generic nested parameters socket. Command results are projected back onto
 typed entity and attachment output sockets while the full result remains the
