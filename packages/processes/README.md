@@ -167,7 +167,13 @@ Lineage ancestor socket derives both its entity type and canonical camel-case
 id key from the connected entity output (`project` becomes `projectId`);
 definition normalization repeats that inference so a saved graph never depends
 on inspector state. Parentage remains a field of a composed Lineage block, not
-an extra Create socket. Once resolved, the compiler recognizes one lineage entity
+an extra Create socket. The compiler emits `lineageBindings` from those graph
+edges: each binding carries `{ childEntityType, ancestorEntityType, lineageKey,
+sourceNode, consumingNode }`. Compiled lineage bindings are the authoritative
+hierarchy contract for the active process. Home eligibility, root scoping, and
+inferred child regions prefer those bindings over the static domain containment
+registry, which remains only a validation fallback for processes that have not
+been recompiled. Once resolved, the compiler recognizes one lineage entity
 reference as contextual parent scope while the effect boundary persists its
 normalized id. Fixed-field and open-entry composers contribute to that same
 schema set, so contextual action placement does not depend on how the block was
