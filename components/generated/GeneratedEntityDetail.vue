@@ -6,6 +6,7 @@
     :show-trace="!embedded"
     :show-header="!embedded"
     :show-identity="showIdentity || forceIdentityForEditor"
+    :trace-exclusions="traceExclusions"
     @refresh="$emit('refresh')"
   >
     <GeneratedEntityDetailBody
@@ -76,7 +77,8 @@ const props = defineProps({
   showIdentity: { type: Boolean, default: false },
   openActionsInWorkspace: { type: Boolean, default: false },
   embedded: { type: Boolean, default: false },
-  suppressChildSummaries: { type: Boolean, default: false }
+  suppressChildSummaries: { type: Boolean, default: false },
+  traceExclusions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['refresh', 'execute-action', 'open-page']);

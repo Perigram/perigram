@@ -71,6 +71,7 @@
       :excluded-actions="detailChildActionIds"
       :body-actions="detailChildActionIds"
       :suppress-child-summaries="detailChildRegions.length > 0"
+      :trace-exclusions="detailTraceExclusions"
       @refresh="load"
       @execute-action="executeAction"
     >
@@ -274,6 +275,7 @@ import { detailRouteForEntity } from '~/components/generated/entity-detail-routi
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
+import { routeContextTraceExclusions } from '~/utils/entity-hierarchy.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -282,6 +284,7 @@ const props = defineProps({
 const toast = useToast();
 const { t, te } = useI18n();
 const authStore = useAuthStore();
+const route = useRoute();
 const domainUi = useCutkitDomainUi();
 const screenRef = toRef(props, 'screen');
 const { screen, loading, error, load, applyEntitySnapshot, sourceState } = useGeneratedScreen(screenRef);
@@ -310,6 +313,19 @@ const detailActionContext = computed(() => {
     parentEntity: state?.entity || null,
     parentEntityType: state?.source?.entityType || ''
   };
+});
+const detailTraceExclusions = computed(() => {
+  const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;
+  return routeContextTraceExclusions(
+    state?.entity || {},
+    state?.source?.entityType || '',
+    (authStore.lineageBindings || []).map(binding => ({
+      parentType: binding.ancestorEntityType,
+      childType: binding.childEntityType,
+      lineageKey: binding.lineageKey
+    })),
+    route.query
+  );
 });
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 const promptFields = computed(() => promptedFields(pendingAction.value));
