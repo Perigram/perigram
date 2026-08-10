@@ -10,6 +10,9 @@
  *     contracts (entity registries, DTO blocks, machines, lineage, auth
  *     context, workflow actions) must live in one canonical README and be
  *     linked, not restated.
+ *  3. Duplicated fenced code blocks: canonical examples (workflow shapes,
+ *     DTO snapshots, socket contracts) must also live in one canonical README
+ *     and be linked, not re-pasted.
  *
  * Run from the repository root: `node scripts/check-docs.js`.
  */
@@ -35,6 +38,8 @@ const SKIP_FILES = new Set(['TODO.org_archive']);
 const FENCE_RE = /^```/;
 
 const MIN_DUPLICATE_LENGTH = 180;
+
+const MIN_CODE_DUPLICATE_LENGTH = 60;
 
 function walk(dir) {
   const out = [];
@@ -114,6 +119,7 @@ function main() {
   }
 
   failures.push(...findDuplicateParagraphs(files));
+  failures.push(...findDuplicateCodeBlocks(files));
 
   if (failures.length > 0) {
     console.error('Blocking findings:');
@@ -144,6 +150,30 @@ function findDuplicateParagraphs(files) {
         } else {
           seen.set(normalized, rel);
         }
+      }
+    }
+  }
+
+  return duplicates;
+}
+
+function findDuplicateCodeBlocks(files) {
+  const seen = new Map();
+  const duplicates = [];
+
+  for (const file of files) {
+    const content = readFileSync(file, 'utf8');
+    const rel = path.relative(REPO_ROOT, file);
+    for (const { text, inCode } of splitOutsideFences(content)) {
+      if (!inCode) continue;
+      const normalized = text.replace(/\s+/g, ' ').trim();
+      if (normalized.length < MIN_CODE_DUPLICATE_LENGTH) continue;
+      if (seen.has(normalized)) {
+        duplicates.push(
+          `Duplicated code block in ${rel} and ${seen.get(normalized)}`
+        );
+      } else {
+        seen.set(normalized, rel);
       }
     }
   }

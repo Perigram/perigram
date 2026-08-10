@@ -153,14 +153,7 @@ Direct `$fetch` is reserved for non-standard workflows:
 
 ## Verification
 
-Use these checks after relevant changes:
-
-```bash
-npx vitest run shared/design-system.spec.js
-node -e "import('./assets/presets/re_l.js').then(() => console.log('preset ok'))"
-npm run framework:write-manifest
-npm run framework:manifest
-```
+Run the focused design-system checks listed in [SKILL.md](../SKILL.md).
 
 Run architecture checks for backend tasks, but do not run Nuxt dev servers or
 `npm build` unless the user explicitly asks.

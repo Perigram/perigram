@@ -45,19 +45,8 @@ and hook dispatch.
 Workflow definitions are v2 region machines. Flat lifecycles are represented as
 the `main` region; nested or parallel lifecycles add more regions under
 `workflow.regions`. Entity `status.state` is a structured snapshot, not a
-string:
-
-```js
-{
-  schemaVersion: 2,
-  primary: 'READY',
-  active: { main: 'READY', qa: 'OPEN' },
-  regions: {
-    main: { state: 'READY', path: ['READY'] },
-    qa: { state: 'OPEN', path: ['OPEN'] }
-  }
-}
-```
+string; the canonical snapshot shape and workflow definition examples live in
+[`@cutkit/workflows`](../../../packages/workflows/README.md).
 
 Use `getPrimaryState(status)` for primary lifecycle reads and
 `getRegionState(status, regionId)` for scoped reads. Primary-state indexes and
