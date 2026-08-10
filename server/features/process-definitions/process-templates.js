@@ -15,7 +15,7 @@ const COMMON_ENTITY_PROFILES = {
     entityType: 'queue',
     label: 'Queue',
     lifecycle: { mode: 'domainDefault', workflow: null },
-    fields: { read: ['identity.*', 'status.*', 'lineage.*', 'data.queueNumber'], write: ['data.job.*'], private: [] },
+    fields: { read: ['identity.*', 'status.*', 'lineage.*', 'data.queueNumber'], write: ['data.job.items', 'data.job.materialPool', 'data.nestingSettings.*'], private: [] },
     stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
     allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
   },
