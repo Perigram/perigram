@@ -16,7 +16,7 @@ export const test = base.extend({
     page.on('response', response => {
       const status = response.status();
       const url = response.url();
-      if (status >= 500 || shouldFailOnClientError(url, status)) {
+      if (status >= 500 || shouldFailOnClientError(url, status, response.request().method())) {
         errors.push(`HTTP ${status}: ${url}`);
       }
     });
@@ -89,8 +89,9 @@ export const test = base.extend({
 
 export { expect };
 
-function shouldFailOnClientError(url, status) {
+function shouldFailOnClientError(url, status, method = 'GET') {
   if (status < 400 || status >= 500) return false;
+  if (method !== 'GET' && method !== 'HEAD') return true;
   if (url.includes('/api/status/actions')) return true;
   if (url.includes('/api/status/transition')) return true;
   if (url.includes('/api/queue/') && (url.endsWith('/nest') || url.includes('/choose-run'))) return true;
@@ -98,5 +99,6 @@ function shouldFailOnClientError(url, status) {
 }
 
 function isIgnoredConsoleError(text) {
-  return text === 'Hydration completed but contains mismatches.';
+  return text === 'Hydration completed but contains mismatches.'
+    || /^Failed to load resource: the server responded with a status of 4\d\d \(/.test(text);
 }
