@@ -24,10 +24,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   paths outside the allowed app-layer surface.
 - `check-docs.js`: Documentation integrity guardrail for the README tree. It
   fails on broken internal markdown links (relative targets that do not resolve
-  to an existing file) and on duplicated canonical-contract passages (verbatim
-  paragraphs of meaningful length repeated across more than one README).
-  Canonical contracts must live in a single canonical README and be linked, not
-  restated. Run as `npm run docs:validate`.
+  to an existing file) and on duplicated canonical-contract passages — both
+  verbatim paragraphs and fenced code blocks of meaningful length repeated
+  across more than one README. Canonical contracts and examples must live in a
+  single canonical README and be linked, not restated. Run as
+  `npm run docs:validate`.
 - `framework-inspect.js`: Framework/package inspection utility used during
   extraction checks.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
