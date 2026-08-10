@@ -166,35 +166,6 @@ export function formatProcessType(type = {}) {
   return `${base}${unit}${nullable}`;
 }
 
-export function legacyProcessType(kind = 'data', metadata = {}) {
-  let clean = String(kind || 'data');
-  if (clean.endsWith('_list')) {
-    clean = clean.slice(0, -5);
-  }
-  if (clean === 'entityList') {
-    clean = 'entity';
-  }
-  const base = ({
-    object: 'json',
-    data: 'json',
-    list: 'json',
-    projection: 'entity',
-    attachment: 'attachmentRef',
-    task: 'taskRef'
-  })[clean] || clean;
-  const supported = PROCESS_BASE_TYPES.includes(base) ? base : 'opaque';
-  const supportsEntityType = ['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(supported);
-  return normalizeProcessType({
-    base: supported,
-    nullable: Boolean(metadata.optional),
-    entityType: supportsEntityType ? metadata.entityType : undefined,
-    block: supported === 'block' ? metadata.block : undefined,
-    capability: metadata.capability,
-    accepts: metadata.accepts,
-    opaqueType: supported === 'opaque' ? clean : undefined
-  });
-}
-
 function sameQualifiedType(source, target) {
   if (source.base !== target.base) return false;
   for (const qualifier of ['unit', 'enumId', 'schema', 'block', 'opaqueType', 'attachmentKind', 'eventType', 'taskType']) {

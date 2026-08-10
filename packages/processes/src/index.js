@@ -30,8 +30,7 @@ export {
 export {
   PROCESS_TEMPLATES,
   createProcessFromTemplate,
-  getProcessTemplate,
-  legacyTypeToTemplateId
+  getProcessTemplate
 } from './templates.js';
 
 export {
@@ -438,10 +437,10 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       targetType: declared?.targetType || entry.entityType,
       cardinality: declared?.cardinality || (entry.type?.base === 'array' ? 'many' : 'one'),
       ...(processCreator ? { creator: processCreator } : {}),
-      ...((declared?.targetType || entry.entityType) === 'artifact' ? {
+      ...(hasDomainAttachmentKinds(declared?.targetType || entry.entityType, domain) ? {
         creator: {
-          entityType: 'artifact',
-          attachmentKinds: artifactCreatorKinds(entry.attachmentKinds, domain)
+          entityType: declared?.targetType || entry.entityType,
+          attachmentKinds: attachmentCreatorKinds(entry.attachmentKinds, domain)
         }
       } : {})
     };
@@ -457,7 +456,15 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
   };
 }
 
-function artifactCreatorKinds(selectedKinds = [], domain = {}) {
+function hasDomainAttachmentKinds(entityType = '', domain = {}) {
+  const kinds = Object.values(domain.attachmentKinds || {});
+  if (!kinds.length) return false;
+  return kinds.some(kind => 
+    Array.isArray(kind.entityTypes) ? kind.entityTypes.includes(entityType) : true
+  );
+}
+
+function attachmentCreatorKinds(selectedKinds = [], domain = {}) {
   const definitions = Object.values(domain.attachmentKinds || {});
   const kinds = selectedKinds.length
     ? selectedKinds.map(kind => typeof kind === 'string' ? kind : kind.kind)

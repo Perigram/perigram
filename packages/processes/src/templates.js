@@ -155,7 +155,7 @@ export const PROCESS_TEMPLATES = {
 };
 
 export function getProcessTemplate(id = 'contractor') {
-  return PROCESS_TEMPLATES[id] || PROCESS_TEMPLATES[legacyTypeToTemplateId(id)] || PROCESS_TEMPLATES.contractor;
+  return PROCESS_TEMPLATES[id] || PROCESS_TEMPLATES.contractor;
 }
 
 export function createProcessFromTemplate({ templateId = 'contractor', organizationId }) {
@@ -175,14 +175,6 @@ export function createProcessFromTemplate({ templateId = 'contractor', organizat
 
 function clonePlain(value) {
   return JSON.parse(JSON.stringify(value || {}));
-}
-
-export function legacyTypeToTemplateId(type = '') {
-  const key = String(type || '').toLowerCase();
-  if (key === 'manufacturer') return 'manufacturer';
-  if (key === 'customer') return 'customer';
-  if (key === 'serviceprovider' || key === 'service-provider') return 'serviceProvider';
-  return 'contractor';
 }
 
 function createTemplate({ id, label, adminLabel, grants, entities, services }) {

@@ -6,7 +6,7 @@ import { getLineageFilter } from '../../utils/permissions.js';
 import { Organization } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
-import { getProcessTemplate, legacyTypeToTemplateId } from '~/packages/processes/src/index.js';
+import { getProcessTemplate } from '~/packages/processes/src/index.js';
 import * as processDefinitionsService from '../process-definitions/service.js';
 import * as invitationsService from '../invitations/service.js';
 import { ownerMembership } from '../users/organization-owner.js';
@@ -20,7 +20,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
-  const processTemplateId = data.processTemplateId || legacyTypeToTemplateId(data.type);
+  const processTemplateId = data.processTemplateId || 'contractor';
   const template = getProcessTemplate(processTemplateId);
   const org = new Organization({
     identity: { uid: `org-${new ObjectId().toString().substring(0, 8)}`, name: data.name || 'New Organization' },
@@ -59,7 +59,7 @@ export async function createInitialForUser(userId, data = {}) {
   if (!userId) throw createError({ statusCode: 400, message: 'Missing user id' });
   if (!data.name) throw createError({ statusCode: 400, message: 'Missing organization name' });
 
-  const processTemplateId = data.processTemplateId || legacyTypeToTemplateId(data.type || 'contractor');
+  const processTemplateId = data.processTemplateId || 'contractor';
   const template = getProcessTemplate(processTemplateId);
   const org = new Organization({
     identity: { uid: `org-${new ObjectId().toString().substring(0, 8)}`, name: data.name },
