@@ -193,7 +193,7 @@ same phase that replaces a contract.
 
 ### 10. Repair generated UI and project workspace ownership
 
-- [ ] Generated UI renders compiled contracts only. Remove direct domain hierarchy
+- [x] Generated UI renders compiled contracts only. Remove direct domain hierarchy
   imports and component-specific reconstruction of actions, parents, sources, status,
   or routes.
 - [ ] Define one action ownership rule: collection actions live in collection bodies,
@@ -212,14 +212,14 @@ same phase that replaces a contract.
 
 ### 11. Replace source-string assertions with behavioral coverage
 
-- [ ] Convert process designer, generated workspace, tabs, pane, Home, Artifact, and
+- [x] Convert process designer, generated workspace, tabs, pane, Home, Artifact, and
   UI-rework source-reading specs to mounted component, compiler, API, or Playwright
   behavior tests.
 - [ ] Add persisted-data acceptance cases for every regression repeatedly reported:
   draft Save, Lineage inference, node connections, role ownership, generated actions,
   Home top-level filtering, project tabs/panes, selectors, status display, and Artifact
   creation/viewing.
-- [ ] Tests must assert user-visible state and persisted/compiled output, not source
+- [x] Tests must assert user-visible state and persisted/compiled output, not source
   substrings, CSS class presence alone, or synthetic contracts unrelated to active
   data.
 - [ ] Acceptance: removing or disconnecting the real behavior makes the corresponding
