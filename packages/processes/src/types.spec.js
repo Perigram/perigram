@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { formatProcessType, normalizeProcessSocket, processType, processTypesCompatible } from './types.js';
+import { formatProcessType, normalizeProcessSocket, processType, processTypesCompatible, sanitizeProcessType } from './types.js';
 
 describe('process v4 type algebra', () => {
+  it('sanitizes stale qualifiers from stored process types', () => {
+    const stale = sanitizeProcessType({ base: 'json', shape: 'item', nullable: false, entityType: 'queue' });
+    expect(stale.entityType).toBeUndefined();
+    expect(stale.base).toBe('json');
+    const entity = sanitizeProcessType({ base: 'entity', entityType: 'queue' });
+    expect(entity.entityType).toBe('queue');
+    const block = sanitizeProcessType({ base: 'block', block: 'identity' });
+    expect(block.block).toBe('identity');
+    expect(sanitizeProcessType({ base: 'json', block: 'identity' }).block).toBeUndefined();
+  });
+
   it('keeps element type independent from tree access', () => {
     const type = processType('entity', { entityType: 'queue', nullable: true, shape: 'tree' });
     expect(type).toEqual({ base: 'entity', nullable: true, entityType: 'queue' });

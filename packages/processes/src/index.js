@@ -13,7 +13,7 @@ import {
   validateProcessEdges
 } from './ports.js';
 import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
-import { normalizeProcessType, processSocketsCompatible, processType } from './types.js';
+import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
@@ -58,6 +58,7 @@ export {
   formatProcessType,
   normalizeProcessSocket,
   normalizeProcessType,
+  sanitizeProcessType,
   processSocketsCompatible,
   processType,
   processTypesCompatible
@@ -2947,7 +2948,7 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
   }
   if (node.type) {
     try {
-      normalizeProcessType(node.type);
+      normalizeProcessType(sanitizeProcessType(node.type));
     } catch (error) {
       errors.push(`Process node ${nodeId} has invalid type: ${error.message}`);
     }
@@ -3014,7 +3015,7 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
     }
     if (composition.mode === 'entries') {
       try {
-        normalizeProcessType(entry.type);
+        normalizeProcessType(sanitizeProcessType(entry.type));
       } catch (error) {
         errors.push(`Process node ${nodeId} entry ${entry.id || '(unknown)'} has invalid type: ${error.message}`);
       }

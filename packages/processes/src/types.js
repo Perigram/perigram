@@ -74,6 +74,24 @@ export function processType(base = 'json', options = {}) {
   return normalizeProcessType({ base, ...options });
 }
 
+const ENTITY_TYPE_BASES = new Set(['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status']);
+
+/**
+ * Sanitizes a stored process type by dropping qualifiers that the base type
+ * cannot legally carry (for example `entityType` on a `json` base). Stored
+ * process definitions compiled by older compiler versions may carry redundant
+ * qualifiers; sanitizing keeps recompilation idempotent without weakening
+ * strict validation of freshly authored types.
+ */
+export function sanitizeProcessType(type = {}) {
+  if (!type || typeof type !== 'object' || Array.isArray(type) || !type.base) return type;
+  const clean = { ...type };
+  if (clean.entityType && !ENTITY_TYPE_BASES.has(clean.base)) delete clean.entityType;
+  if (clean.accepts && !ENTITY_TYPE_BASES.has(clean.base)) delete clean.accepts;
+  if (clean.block && clean.base !== 'block') delete clean.block;
+  return clean;
+}
+
 export function normalizeProcessType(type = {}) {
   if (!type || typeof type !== 'object' || Array.isArray(type)) {
     throw new Error('Process type must be a structured object');

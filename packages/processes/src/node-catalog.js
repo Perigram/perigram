@@ -539,8 +539,29 @@ function binary(left, right, output = left) {
 }
 
 function processTypeFrom(value, fallback) {
-  return value && typeof value === 'object' && value.base ? processType(value.base, value) : fallback;
+  if (!value || typeof value !== 'object' || !value.base) return fallback;
+  const qualifiers = {};
+  if (ENTITY_TYPE_BASES.has(value.base)) {
+    if (value.entityType) qualifiers.entityType = value.entityType;
+    if (value.accepts) qualifiers.accepts = value.accepts;
+  } else if (value.base === 'block' && value.block) {
+    qualifiers.block = value.block;
+  }
+  if (value.base === 'array') qualifiers.itemType = value.itemType;
+  if (value.base === 'map') {
+    qualifiers.keyType = value.keyType;
+    qualifiers.valueType = value.valueType;
+  }
+  for (const key of ['unit', 'enumId', 'schema', 'opaqueType', 'attachmentKind', 'eventType', 'taskType', 'capability']) {
+    if (value[key]) qualifiers[key] = value[key];
+  }
+  return processType(value.base, {
+    nullable: value.nullable,
+    ...qualifiers
+  });
 }
+
+const ENTITY_TYPE_BASES = new Set(['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status']);
 
 function dynamicFields(record, context) {
   const selected = Array.isArray(record.fields) ? record.fields : [];
