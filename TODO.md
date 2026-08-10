@@ -73,29 +73,29 @@ same phase that replaces a contract.
 
 ### 3. Establish one canonical entity identity and frontend projection
 
-- [ ] Make the domain entity registry the sole owner of canonical entity type,
+- [x] Make the domain entity registry the sole owner of canonical entity type,
   collection, feature, routes, UI surface key, and aliases required at external
   boundaries.
-- [ ] Generate frontend endpoint/surface projections from that registry. Remove
+- [x] Generate frontend endpoint/surface projections from that registry. Remove
   `cncFrontendEntities`, `TYPE_ALIASES`, `ENTITY_TYPE_ALIASES`, `SOURCE_TYPE_MAP`,
   `OBJECT_LIST_KEY_TYPES`, and page-local type maps.
-- [ ] Use canonical snake_case entity types in persisted/process/runtime contracts.
+- [x] Use canonical snake_case entity types in persisted/process/runtime contracts.
   Keep camelCase only as generated Vue-facing surface identifiers where required;
   never persist both.
 - [ ] Migrate stored references and process definitions to canonical entity types,
   then delete runtime alias normalization.
-- [ ] Acceptance: adding a domain entity requires one registry entry plus its owning
+- [x] Acceptance: adding a domain entity requires one registry entry plus its owning
   feature implementation, not edits to multiple maps across packages and UI code.
 
 ### 4. Replace the three creation contracts with one typed constructor boundary
 
-- [ ] Define one domain constructor contract per entity/mode. It owns typed inputs,
+- [x] Define one domain constructor contract per entity/mode. It owns typed inputs,
   prompt policy, produced entity type, accepted blocks, service/command binding, and
   whether the result is derived.
-- [ ] Delete `cncEntityCreateInputs` and the duplicate `artifact` property. Delete
+- [x] Delete `cncEntityCreateInputs` and the duplicate `artifact` property. Delete
   node-catalog snapshots and UI-specific constructor rewrites that duplicate the
   domain contract.
-- [ ] Keep canonical block composition separate from constructors: generic Create
+- [x] Keep canonical block composition separate from constructors: generic Create
   consumes composed blocks; a typed constructor consumes only its declared service
   inputs plus explicitly declared block inputs.
 - [ ] Remove implicit `name`, `parent`, `fields`, `attachments.primary`, and other
@@ -103,15 +103,15 @@ same phase that replaces a contract.
   optional configuration lives in the inspector.
 - [ ] Migrate every saved create node to the selected current constructor mode and
   delete stale construction/input-policy fields instead of interpreting both shapes.
-- [ ] Acceptance: Artifact upload, generic entities, cassette templates, cassette
+- [x] Acceptance: Artifact upload, generic entities, cassette templates, cassette
   designs, and facade creation all derive their sockets and generated forms from the
   same constructor contract with no entity-specific designer branch.
 
 ### 5. Restore the generic process package boundary
 
-- [ ] Remove explicit Artifact, Cassette, Cassette Design, Queue, Project, Library,
+- [x] Remove explicit Artifact, Cassette, Cassette Design, Queue, Project, Library,
   attachment-kind, and CNC construction-mode branches from `@cutkit/processes`.
-- [ ] Move domain decisions into pure domain contracts and registered runtime
+- [x] Move domain decisions into pure domain contracts and registered runtime
   handlers. The compiler may validate and compose supplied contracts but must not
   recognize concrete CNC names.
 - [ ] Split `packages/processes/src/index.js` by responsibility: normalization,
