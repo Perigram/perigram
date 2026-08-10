@@ -1,7 +1,5 @@
 # COMPONENT: Frontend Assets
 
-This directory contains global frontend assets used by Nuxt.
-
 ## Design Tokens And Theme
 
 - `tokens/index.js` is the app-level visual-token source, including the
