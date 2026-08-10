@@ -94,9 +94,15 @@ function normalizeStaleServiceRoles(data = {}) {
   return changed ? next : data;
 }
 
-async function loadOrganizationRoles(db, organizationId) {
+async function loadOrganizationRoles(db, organizationId, processData = {}) {
   const organization = await db.collection('organizations').findOne({ _id: organizationId });
-  return organization?.data?.roles || {};
+  const orgRoles = organization?.data?.roles || {};
+  const roleGrantIds = Object.keys(processData.roleGrants || {});
+  if (!roleGrantIds.length) return orgRoles;
+  if (!Object.keys(orgRoles).length) {
+    return Object.fromEntries(roleGrantIds.map(id => [id, { id, label: id }]));
+  }
+  return { ...Object.fromEntries(roleGrantIds.filter(id => !orgRoles[id]).map(id => [id, { id, label: id }])), ...orgRoles };
 }
 
 function recompileProcessData(data = {}, roles = {}) {
