@@ -137,6 +137,7 @@ async function main() {
   });
   let scanned = 0;
   let updated = 0;
+  const updatedIds = [];
   const unresolved = [];
 
   for await (const process of cursor) {
@@ -152,12 +153,14 @@ async function main() {
         { $set: { data: nextData } }
       );
       updated++;
+      updatedIds.push(String(process._id));
     } catch (error) {
       unresolved.push({ id: String(process._id), reason: error.message });
     }
   }
 
   console.log(`Scanned ${scanned} active compiled process definitions; recompiled ${updated}.`);
+  if (updatedIds.length) console.log(`Recompiled ids: ${updatedIds.join(', ')}`);
   if (unresolved.length) {
     console.log(`Unresolved ${unresolved.length} process definitions that fail recompilation:`);
     for (const item of unresolved) {
