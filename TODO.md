@@ -175,9 +175,9 @@ same phase that replaces a contract.
 
 ### 9. Repair persistence and editing boundaries
 
-- [ ] Keep Save as unconditional draft persistence for any structurally serializable
+- [x] Keep Save as unconditional draft persistence for any structurally serializable
   graph. Save must never compile, activate, or require semantic validation.
-- [ ] Remove synchronous full compilation from the deep `[draft, nodes, edges]`
+- [x] Remove synchronous full compilation from the deep `[draft, nodes, edges]`
   watcher. Replace it with explicit Apply validation and bounded, cancellable preview
   compilation only when a preview surface is open.
 - [ ] Separate authored graph state, runtime Vue Flow state, compiled preview, and
@@ -199,7 +199,7 @@ same phase that replaces a contract.
 - [ ] Define one action ownership rule: collection actions live in collection bodies,
   entity actions live in entity/detail bodies, tab headers carry identity/status only,
   and pane controls live in the pane menu.
-- [ ] Treat project explorer folders, tabs, pane bodies, and standalone generated
+- [x] Treat project explorer folders, tabs, pane bodies, and standalone generated
   screens as projections of the same entity/screen contracts. Remove hardcoded Queue,
   Artifact, Cassette, or designer placement branches.
 - [ ] Decide and document workspace persistence ownership. If layouts must follow a
