@@ -12,6 +12,13 @@ exposes one typed `status` output backed by its stable definition reference.
 Modify Entity consumes that output through `status.state.primary`; changing the
 authored status id updates the referenced value without breaking the wire.
 
+The route is a composition surface, not the owner of every editor concern.
+Focused composables own process selection, draft persistence, graph selection
+and deletion, connection inference, palette queries, inspector record access,
+roles, screens, and dock/panel state. Their contracts are exercised directly in
+behavior tests so a disconnected Save, selection, or graph mutation fails even
+when labels remain in the page source.
+
 ## Palette and node concerns
 
 The runtime catalog remains exhaustive, but it is not the authoring palette.
@@ -34,7 +41,8 @@ The palette has three non-overlapping authoring concerns.
   Cassette creation is generic block composition; it does not expose a
   cassette-specific template-name constructor socket.
 - Containment is authored through the target entity's `lineage` block. The
-  compiler resolves declared parent/child relations from that block; Create
+  compiler derives the ancestor entity type and lineage key from the connected
+  entity socket and emits a compiled Lineage binding; Create
   Entity does not assign an entity-specific parent or add a parent socket.
 - Select Entities is the organization-scoped source for an existing typed
   entity list. Registered commands use the single Run Service operation, whose

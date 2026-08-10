@@ -9,6 +9,12 @@ organization data, not from hardcoded organization type branches.
 - `service.js`: Business logic, type validation, permissions
 - API endpoints in `server/api/organizations/`
 
+The registered organization entity service exposes
+`getProcessConfiguration(id)` and `setActiveProcessDefinition(id,
+processDefinitionId)` for the process-definition feature. Process compilation
+and activation use this boundary instead of importing the organization
+repository across feature boundaries.
+
 ## Data Structure
 Collection: `organizations`
 

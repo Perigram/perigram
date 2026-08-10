@@ -206,18 +206,23 @@ Used by `<StatusHistory>` component.
 ## useGeneratedScreen
 
 Generated home sources retain raw access-filtered list results and derive their
-visible top-level rows after every source has loaded. Runtime filtering walks
-the domain containment graph and matches canonical `lineage.*Id` keys against
-the entity types loaded by other Home sources, so it also works for active
-manifests compiled before `rootLineageKeys` or missing a containment declaration.
+visible top-level rows after every source has loaded. Runtime filtering reads
+the active process's compiled `lineageBindings` and matches their exact
+ancestor keys against the entities loaded by other Home sources. Process mode
+has no alias, arbitrary-`*Id`, or static-containment fallback; an active
+definition must be reapplied after a Lineage/compiler contract change.
 The derived source state retains `rawItems` so the renderer can distinguish an
 empty top-level source from a child source whose rows were all suppressed. A
-child is hidden when any readable non-organization ancestor is present in
-another home source; with no readable ancestor it remains top-level. Non-home
-sources are never root-filtered. The Home renderer separately omits a source
-section when the domain declares a non-organization parent and loaded records
-carry that parent lineage, preventing derived operational types from becoming
-full dashboard bands merely because their parent is absent from the Home data.
+child is hidden when any readable non-organization ancestor identified by a
+compiled binding is present in another home source; with no readable ancestor
+it remains top-level. Non-home sources are never root-filtered.
+
+The organization process page delegates process catalog selection, persistence,
+graph selection/editing, connection inference, palette filtering, inspector
+records, roles, screens, and dock/panel state to focused
+`useProcessDesigner*` composables. The page remains the view composition root;
+these composables own mutations for their concern and are behavior-tested
+without reading Vue source text.
 
 Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
 The composable normalizes the screen contract, checks source-level process

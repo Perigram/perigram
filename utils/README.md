@@ -58,6 +58,14 @@ Shared frontend utility modules used by Vue pages/components.
   MultiSelect wrappers. Entity rendering requires a canonical DTO plus an
   explicit entity type from the control or option metadata; it never infers a
   type from mutable entity data or lifecycle status.
+- `generated-screen-source.js`: Applies exact compiled Lineage bindings to
+  generated source filters and Home visibility. It never guesses arbitrary id
+  keys or imports static CNC containment in active-process mode.
+- `artifact-viewer.js` and `artifact-detail.js`: Pure Artifact presentation
+  dispatch for preview/editor mode and detail revision/file state.
+- `navigation-breadcrumbs.js` and `billing-presentation.js`: Pure organization
+  breadcrumb and deployment-derived billing presentation contracts used by the
+  app shell/account surfaces.
 - `process-navigation.js`: Pure helpers for filtering process-compiled
   navigation and screen manifests by the active permission grants. Scoped
   screen requirements are matched against scoped grants structurally because

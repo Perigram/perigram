@@ -9,8 +9,8 @@ Relation Link dialogs load their options through the active action contract.
 When the relation is fed by a process Create Entity effect, the dialog offers a
 compact `Create new` path using that embedded constructor and links the returned
 entity in the same submission. Both existing target choices and constructor
-source choices are scoped by the opened owner, process-authored ancestor
-relations, domain containment, and derivation provenance; the component never
+source choices are scoped by the opened owner, compiled process Lineage
+bindings, declared relations, and derivation provenance; the component never
 substitutes a global entity list for that scoped contract.
 
 ## Overload Registry

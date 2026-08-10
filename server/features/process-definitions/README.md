@@ -24,6 +24,14 @@ Normalization used by validation and compilation is an in-memory projection;
 draft saves and activation persist the authored graph and semantic records
 without replacing them with that projection.
 
+The feature boundary is split into explicit collaborators. `compiler-adapter.js`
+owns current-protocol validation and activation projections,
+`relation-option-resolver.js` owns scoped relation choices, `run-repository.js`
+owns the intentionally ephemeral manual-run lifecycle, and `runtime.js` owns
+active-process compilation/auth hydration. Organization configuration is read
+and changed through the registered organization service. Neither runtime nor
+the feature service imports another feature's repository.
+
 ## Process execution
 
 Manual process actions run synchronously in memory. `POST
@@ -41,8 +49,9 @@ authorized read adapters and effect adapters. Reads use registered entity
 services. Effects delegate to command, entity, status, projection, producer, or
 attachment services and never write another feature's repository. Generic
 Create consumes connected canonical blocks. Update flattens only writable
-fields present in connected replacement blocks. Lineage entity references are
-normalized to stored ids at this boundary, while lifecycle status remains a
+fields present in connected replacement blocks. Composed Lineage entity
+references are copied from the compiled binding into the creation payload; no
+parent key or entity type is guessed from a domain containment table. Lifecycle status remains a
 dedicated status-runtime input.
 Pure block operations resolve exact paths from the domain's entity-independent
 block schema registry. The effect adapter deliberately switches back to the
