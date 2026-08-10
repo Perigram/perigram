@@ -25,9 +25,7 @@ imported through server modules that Nitro externalizes.
   evaluator as the server access engine.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
 
-`scripts/check-arch.js` enforces the no-Nuxt-root-alias rule for portable
-runtime modules under `shared/`, `test-data/`, and `packages/`, and rejects
-parent-relative cross-root imports from `shared/` and `test-data/`.
+Import-alias rules are defined in [scripts/README.md](../scripts/README.md).
 
 ## Permission Model
 Access uses feature keys such as `projects`, `queues`, `cassettes`,

@@ -325,7 +325,9 @@ definition without treating the definition as an executable step.
 Socket types are structured element contracts. `base` describes the value;
 nullable, entity type, schema, block, enum, unit, attachment, event, and
 capability qualifiers remain orthogonal. Socket `access` declares Item, List,
-or Tree consumption without duplicating topology in the element type. Runtime
+or Tree consumption without duplicating topology in the element type. (The
+visual-designer view of these types is in
+[components/process-designer/README.md](../../components/process-designer/README.md).) Runtime
 values always use ordered `{ branches: [{ path, items }] }` trees. Per-input
 Simplify, Flatten, and Graft run before Longest, Shortest, or Cross matching.
 Longest repeats the last branch/item, Shortest truncates, and Cross computes

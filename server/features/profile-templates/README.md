@@ -31,18 +31,16 @@ Key fields:
   saved sketch/profile snapshot.
 - `data.occsProfile`: normalized OCCS `profile.section` and `profile.sweep` snapshot.
 
-Profile templates are reusable library records. Cassette Designer v2 does not
+Cassette Designer v2 does not
 insert them as independent cassette graph workpieces; hanger features load a
 saved template by id and store a geometry snapshot for reproducible
 cut-in-parent rendering. Saving a system profile template from the designer
 creates an owned copy because system templates are read-only.
 Profile-template API access derives from the `cassettes` feature grants on the
 template lineage. Service DTOs preserve the storage `_id` rather than the
-identity UID so selectors can use the returned id for subsequent patch/load
-requests. Older user-scoped templates without organization lineage are
+identity UID. Older user-scoped templates without organization lineage are
 normalized to the active membership organization in read DTOs when they belong
-to the current user, which keeps previously saved profiles visible to the
-cassette designer without making system templates editable.
+to the current user.
 Designer list/save requests include the active `cassetteTemplateId` when one is
 available. The service loads that cassette and authorizes against the real
 cassette entity so entity-id-scoped cassette grants work for profile template

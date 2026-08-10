@@ -18,6 +18,8 @@ material data and cassette child counts from the domain field groups.
 
 - Every entity card renders a single `EntityCard :variant="variant"` and leaves
   identity, trace, status, popover, and footer chrome to the shared primitive.
+  See [components/shared/README.md](../shared/README.md) for the default-slot
+  body contract.
 - Standard facts must resolve from the domain display constructor in
   `@cutkit/domain-cnc` field groups. Do not add new local `DataBlock` path arrays
   to entity cards; add or extend a field group and make sure the path is covered

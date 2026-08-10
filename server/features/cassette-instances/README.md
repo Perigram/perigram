@@ -17,10 +17,9 @@ Individual physical products cut from material sheets.
 1. **Creation**: Instantiated from `sheetsService.finishMilling()`,
    `cassetteInstancesService.createFromSheet()`, or queue-cut physical output
    creation through `createFromCutSheet()`.
-2. **Status Tracking**: `updateStatus()` manages state transitions (e.g. READY -> IN-WORK -> COMPLETED).
-3. **On-Site Tracking**: State updates as the piece moves through the logistics and installation chain.
-4. **Traceability**: Indexed by any ancestor in the lineage.
-5. **Queue Production Output**: `createFromCutSheet()` creates `CUT`
+2. **Status Tracking**: `updateStatus()` manages state transitions.
+3. **Traceability**: Indexed by `lineage` ancestor keys.
+4. **Queue Production Output**: `createFromCutSheet()` creates `CUT`
    physical cassette instances for each generated sheet design cassette count.
    For queue-cut output it can receive a non-persisted source sheet descriptor,
    so instances carry pile, warehouse, queue, run, design, and sheet-design

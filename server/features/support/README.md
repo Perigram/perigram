@@ -30,7 +30,7 @@ the legacy customer-support channel.
 Conversation read state is stored in `supportConversationReads` as
 `{ conversationKey, userId, lastReadAt, updatedAt }`. Conversation lists compute
 unread counts from messages sent after `lastReadAt` by another sender.
-The user-facing conversation list contains only persisted conversations. The
+The user-facing conversation list contains only persisted conversations; the
 Chats inbox starts a direct thread explicitly through its user picker, rather
 than pre-creating empty conversations for every reachable organization user.
 Conversation summaries include the last message's `entityRefs` so the inbox can

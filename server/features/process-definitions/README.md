@@ -87,6 +87,8 @@ Auth hydration resolves the active organization assignment against that
 contract on every request, so editing a team assignment does not mutate or
 recompile the active process and a draft can never overwrite assignments.
 
+## Manual action execution
+
 Manual generated-screen actions execute through the active process definition,
 not through client-selected entity routes. For v4 definitions,
 `executeActiveProcessAction()` verifies the compiled role assignment, resolves
@@ -103,9 +105,7 @@ runtime, treating it as the process initial state for that new record rather
 than a transition from the feature service default. When the compiled action
 status includes process-authored `label`, `color`/`severity`, or `icon`
 metadata, create and status-mutating update execution stores that display contract under
-`status.metadata.display` so generated screens and shared entity cards render
-the actual process status badge instead of falling back to global raw-state
-labels.
+`status.metadata.display`. Status-badge rendering for generated screens and shared entity cards is defined in [server/core/machines/README.md](../core/machines/README.md).
 If an already-active compiled action was produced before that metadata was
 embedded, execution resolves the action `statusRef` or target status against
 the semantic `data.statusDefinitions` record and writes the same display
@@ -127,8 +127,7 @@ constructible blocks.
 Generic Update receives replacement blocks through the same typed process
 dataflow. Relation collection changes are composed with ordinary list/tree
 operations before Modify Block receives the replacement value, then persisted
-through the target feature's `processUpdate()` contract. They do not bypass the
-owning service. Manual Update
+through the target feature's `processUpdate()` contract. Manual Update
 effects compile into the normal generated action manifest; Relations data
 connections without an effect remain non-executable dataflow.
 Compiled process-relation actions execute directly at the active-definition
@@ -141,8 +140,7 @@ stored activation snapshot is not a second executable action source.
 Every Create Entity payload receives the active organization as canonical
 `lineage.organizationId`. Parent-scoped actions additionally pass declared
 containment lineage and pinned parent revision provenance. The owning feature
-service must persist that context during create; process definitions do not
-write child rows directly or patch another feature's collection after creation.
+service must persist that context during create.
 Create Entity owns both generic and typed domain construction. Generic mode
 receives canonical blocks; other declared modes receive their fixed
 `construction.inputs` together with canonical constructible blocks and delegate
@@ -222,12 +220,13 @@ command runtime's `entities` and `parameters` envelope; it does not accept a
 generic nested parameters socket. Command results are projected back onto
 typed entity and attachment output sockets while the full result remains the
 fallback output for commands without declared entity/attachment outputs.
-Entity query nodes also stay inside feature access boundaries. The application
-registry gives every registered entity service one explicit
-`processList(filters, auth)` adapter and one `processGetById(id, auth)` adapter
-matching that feature's real list and detail signatures. Process evaluation
-calls only these adapters; it never guesses positional feature-service auth
-arguments. This covers current/exact entity reads, parent resolution,
+
+## Feature access boundaries
+
+Entity query nodes also stay inside feature access boundaries. Registered services
+expose `processList`/`processGetById` adapters as defined in
+[server/runtime/README.md](../runtime/README.md). Process evaluation calls only
+these adapters; it never guesses positional feature-service auth arguments. This covers current/exact entity reads, parent resolution,
 relation-target validation, update-target loading, and socket projection.
 Returned models are serialized before entity-typed field predicates are evaluated in memory. Predicate
 conditions and gates remain process algebra values; they are not translated
@@ -293,6 +292,8 @@ until edited, then replace the target-status role set with the node's selected
 grants. Parent lineage scopes are preserved by the compiler, so child actions
 created from a scoped parent branch emit lineage-scoped grants such as
 `scope.projectId` instead of global child-entity permissions.
+
+## Socket projection and auth hydration
 
 Socket projection is exposed as a runtime operation for outbound sockets. The
 socket API loads the source entity through the app registry, enforces read

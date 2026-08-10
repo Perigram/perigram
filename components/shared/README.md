@@ -1,6 +1,6 @@
 # COMPONENT: Shared UI Components
 
-This directory contains reusable, standardized UI components and blocks that MUST be used across the application to ensure consistency and traceability.
+This directory contains reusable, standardized UI components and blocks that MUST be used across the application.
 
 ---
 

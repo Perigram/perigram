@@ -1,6 +1,6 @@
 # COMPONENT: Cassette Templates (v24 Standardized)
 
-Manages cassette templates (Standard and Parametric) using standardized v24 architecture. Templates represent the digital logic/source for creating designs.
+Manages cassette templates (Standard and Parametric). Templates are the digital logic/source for creating designs.
 
 ## Core Files
 - `repository.js`: Database operations on `cassettes` collection.
@@ -123,13 +123,10 @@ not the template id.
 
 ### Update Operations
 - Cassette Designer v2 persists the entity it edits through `POST /api/cassettes`
-  and `PUT /api/cassettes/:id`. This keeps editor persistence on the cassette
-  feature boundary and does not require the active process to expose an
-  unrelated command service. OCCS stays canonical under `data.definition`.
-- Cassette Designer v2 keeps its dialog open after Save so the active editing
-  session is not destroyed by a refresh. Save As posts a distinct template and switches the
-  editor to that saved record. Escape clears the current
-  face/workpiece/attachment selection instead of closing the designer dialog.
+  and `PUT /api/cassettes/:id`, keeping editor persistence on the cassette
+  feature boundary. OCCS stays canonical under `data.definition`.
+- Save, Save As (posts a distinct template and switches the editor to it), and
+  Escape-selection clearing are UI behaviors on the same endpoints.
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.
 - **`updateParameters`**: Updates the list of configurable parameters for the template.
 - **`ensureCurrentGeometryRevision`**: Creates or reuses the current geometry

@@ -15,7 +15,6 @@ Inherits all `BaseEntity` fields.
 
 **Identity Block:**
 - `uid`: `user-XXXX` format
-- `name`: User's full name
 
 **Data Block:**
 - `email`: User's email (lowercase)
@@ -70,15 +69,12 @@ attach the first organization.
 - Organization context via `user.lineage.organizationId`
 - Per-organization permissions in `memberships` are explicit stored grants used
   only by tenant-management recovery paths.
-- `membership.owner: true` is the ultimate tenant admin flag. Owner
-  memberships always materialize `organizations:admin` and `users:admin`, and
-  auth hydration merges those grants after active-process compilation so the
-  process graph cannot lock the owner out. Legacy active memberships or active
-  user permission snapshots with both `organizations:admin` and `users:admin`
-  are treated as owner recovery until
+- Legacy active memberships or active user permission snapshots with both
+  `organizations:admin` and `users:admin` are treated as owner recovery until
   `server/scripts/migrate-organization-owner-admins.js` writes the explicit
   `owner` flag. User mutation paths reject removing the last active
-  organization user or the last active owner.
+  organization user or the last active owner. Canonical owner recovery grant
+  semantics live in [organizations](../organizations/README.md).
 - When `server/middleware/auth.js` resolves an active process, it combines the
   organization's `data.roleAssignments[userId]` with compiled process roles to
   produce effective permissions, navigation, screens, and actions.
@@ -88,11 +84,9 @@ attach the first organization.
 - Default access presets live in [shared permission templates](../../../shared/README.md)
   so browser dev tools and server user creation read the same grant contract.
 - Organization role ids and bindings are never stored on users or memberships.
-  Creator memberships are owner memberships and store explicit
-  `organizations:admin` and `users:admin` recovery grants. `User` model reads
-  do not expand ordinary permissions from
-  persisted memberships must carry the explicit recovery grant object used by
-  tenant-management authorization.
+  `User` model reads do not expand ordinary permissions from persisted
+  memberships; persisted memberships must carry the explicit recovery grant
+  object used by tenant-management authorization.
 - System materials, layer standards, pens, and tools are not exposed through
   copied user grants. They carry the public system catalogue marker documented
   in [server architecture](../../README.md), and read access is evaluated from

@@ -1,7 +1,5 @@
 # COMPONENT: Components
 
-This directory contains Vue components used in the Cutkit-Demo application.
-
 ## Style Guide
 - **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
 - **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets and `assets/tokens/` projections. No custom CSS except for layout purposes.
@@ -16,7 +14,7 @@ This directory contains Vue components used in the Cutkit-Demo application.
   otherwise ambiguous or blocked. Controls, placement, icons, and typed data
   labels should carry the interface before explanatory copy is added.
 - **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app. See [components/shared/README.md](./shared/README.md) for the full list.
-- **Use Variants:** Components should support different visual variants (`inline`, `compact`, `card`) to ensure flexibility in different contexts.
+- **Use Variants:** Components support visual variants (`inline`, `compact`, `card`).
 - **Localization:** User-facing static template copy and visible component
   props must use i18n keys. `shared/localization.spec.js` parses active Vue
   templates and fails on hardcoded labels/placeholders/messages, while allowing
@@ -379,9 +377,8 @@ not display English verbs such as `Create` or raw target statuses such as
 and status-mutating update actions show a localized operation label without
 exposing the state id in the button text.
 Generated non-status action surfaces, including detail header buttons and card
-footers, must not render status-mutating update actions. Lifecycle/status
-transitions belong only in `EntityStatus`, which loads server-filtered actions
-and owns the status popover/history.
+footers, must not render status-mutating update actions. `EntityStatus` loads
+server-filtered actions and owns the status popover/history.
 Generated entity detail headers show the entity `TraceChain` instead of a
 standalone repeated identity name, so the opened record keeps lineage context in
 the primary header while actions/status remain in the same header row.
@@ -569,8 +566,7 @@ Child collection regions inside an entity detail must preserve the opened
 parent context when executing create actions. They may not replace that context
 with the child collection entity type, otherwise a `library -> cassette` action
 loses the concrete library id and creates unscoped children.
-`EntityStatus` remains owned by the canonical workflow/status API and must not
-receive locally synthesized process actions.
+`EntityStatus` must not receive locally synthesized process actions.
 Generated action setup and execution failures must be visible in the screen:
 prompt option loading errors, missing required entity options, and execution
 errors all surface through `StateBlock` and PrimeVue toast feedback instead of
@@ -598,11 +594,11 @@ definitions. Cards for DTOs without workflows should set `:show-status="false"`
 or use a read-only badge only when the data model requires it; do not invent
 component-local lifecycle states.
 Entity-specific card components should use `before-identity`, `subtitle`, body, and footer slots; do not override `#title`, because that bypasses standardized identity/status layout. Subtitle slots that render entity facts must be hidden for `variant === 'card'`; the full card body is the only owner of those facts.
-Entity-specific cards should render a single `EntityCard :variant="variant"`.
-Inline/compact/card branching inside entity cards is a smell unless the entity
-has a genuinely different structural surface. The default slot is the canonical
-body and is reused by `EntityCard` for both full cards and inline/compact
-expansion.
+Entity-specific cards should render a single `EntityCard :variant="variant"` and
+pass their canonical body once through the default slot (see
+[components/shared/README.md](./shared/README.md)). Inline/compact/card
+branching inside entity cards is a smell unless the entity has a genuinely
+different structural surface.
 Entity detail components should use `EntityPage` for trace, identity, status, and page actions instead of rebuilding header rows locally.
 Single-field rename/edit actions should use `NameEditPopover` near the relevant
 identity or action cluster; reserve `StandardDialog` for creation flows,

@@ -21,8 +21,6 @@ validation step for CNC workflow definitions from `@cutkit/domain-cnc`.
 - `validateActorGuard(context)`
 - `createTransitionEngine(adapters)`
 
-## Lifecycle Validation
-
 ## Workflow Shape
 
 Workflows use the v2 region contract. A simple lifecycle is a single `main`
