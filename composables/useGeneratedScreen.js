@@ -6,12 +6,12 @@ import { normalizeScreenContract } from '~/packages/processes/src/screen-contrac
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { filterRootSourceItems } from '~/utils/generated-screen-source.js';
-import { useCutkitDomainUi } from './useCutkitDomainUi.js';
+import { useEffectiveContainment } from './useEffectiveContainment.js';
 
 export function useGeneratedScreen(screenRef) {
   const authStore = useAuthStore();
   const { activePermissions } = storeToRefs(authStore);
-  const domainUi = useCutkitDomainUi();
+  const effectiveContainment = useEffectiveContainment();
   const sourceStates = ref({});
   const loading = ref(false);
   const error = ref(null);
@@ -97,18 +97,6 @@ export function useGeneratedScreen(screenRef) {
       rawItems: state.items,
       items: filterRootSourceItems(state.items, state.source, sourceStates.value, effectiveContainment())
     };
-  }
-
-  function effectiveContainment() {
-    const bindings = authStore.lineageBindings || [];
-    if (bindings.length) {
-      return bindings.map(binding => ({
-        childType: binding.childEntityType,
-        parentType: binding.ancestorEntityType,
-        lineageKey: binding.lineageKey
-      }));
-    }
-    return domainUi.containment;
   }
 
   function applyEntitySnapshot(entityType, entity = null) {
