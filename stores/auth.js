@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
     const fieldPolicies = computed(() => user.value?.fieldPolicies || {});
     const processActive = computed(() => user.value?.process?.active === true);
     const statusWorkflows = computed(() => user.value?.process?.workflows || null);
+    const lineageBindings = computed(() => user.value?.process?.lineageBindings || []);
 
     const canManagePlatform = computed(() => hasTenantPermission('organizations', 'admin') || hasTenantPermission('users', 'admin') || hasPermission('workbench', 'admin') || hasPermission('domain_builder', 'admin') || hasPermission('config_bot', 'admin'));
 
@@ -192,6 +193,7 @@ export const useAuthStore = defineStore('auth', () => {
         fieldPolicies,
         processActive,
         statusWorkflows,
+        lineageBindings,
         canManagePlatform,
         setUser,
         fetchUserOrgs,

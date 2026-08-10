@@ -95,8 +95,20 @@ export function useGeneratedScreen(screenRef) {
     return {
       ...state,
       rawItems: state.items,
-      items: filterRootSourceItems(state.items, state.source, sourceStates.value, domainUi.containment)
+      items: filterRootSourceItems(state.items, state.source, sourceStates.value, effectiveContainment())
     };
+  }
+
+  function effectiveContainment() {
+    const bindings = authStore.lineageBindings || [];
+    if (bindings.length) {
+      return bindings.map(binding => ({
+        childType: binding.childEntityType,
+        parentType: binding.ancestorEntityType,
+        lineageKey: binding.lineageKey
+      }));
+    }
+    return domainUi.containment;
   }
 
   function applyEntitySnapshot(entityType, entity = null) {

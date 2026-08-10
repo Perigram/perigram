@@ -3528,4 +3528,79 @@ describe('@cutkit/processes compiler', () => {
       }
     }, commandDomain)).toEqual(['nesting_run', 'sheet_design', 'sheet']);
   });
+
+  it('compiles lineage bindings from a Project -> Compose Lineage -> Queue graph', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      roles: { operator: { id: 'operator', label: 'Operator' } },
+      processNodes: {
+        project_source: {
+          id: 'project_source',
+          kind: 'effect.createEntity',
+          entityType: 'project',
+          label: 'Create project',
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE }
+        },
+        queue_lineage: {
+          id: 'queue_lineage',
+          kind: 'record.composeBlock',
+          block: 'lineage',
+          compositionMode: 'ancestors',
+          entries: [{ id: 'project' }],
+          targetEntityType: 'queue'
+        },
+        create_queue: {
+          id: 'create_queue',
+          kind: 'effect.createEntity',
+          entityType: 'queue',
+          label: 'Create queue',
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE },
+          blocks: ['lineage'],
+          fields: [],
+          inputs: [],
+          outputs: []
+        }
+      },
+      graph: {
+        nodes: ['project_source', 'queue_lineage', 'create_queue'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          {
+            id: 'project-to-lineage',
+            source: 'project_source',
+            sourceHandle: 'data:result',
+            target: 'queue_lineage',
+            targetHandle: 'entry:project'
+          },
+          {
+            id: 'lineage-to-queue',
+            source: 'queue_lineage',
+            sourceHandle: 'data:block',
+            target: 'create_queue',
+            targetHandle: 'data:lineage',
+            role: 'data'
+          }
+        ]
+      }
+    }, {
+      ...domain,
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      }
+    });
+
+    const binding = compiled.lineageBindings.find(item => (
+      item.childEntityType === 'queue'
+      && item.ancestorEntityType === 'project'
+    ));
+    expect(binding).toBeDefined();
+    expect(binding.lineageKey).toBe('projectId');
+    expect(binding.sourceNode).toBe('project_source');
+    expect(binding.consumingNode).toBe('queue_lineage');
+  });
 });

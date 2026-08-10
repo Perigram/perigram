@@ -616,7 +616,8 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
 
   const process = validation.definition;
   const compiledRoles = compileRoles(process, domain, organizationRoles);
-  const compiledScreens = compileScreens(process, domain, compiledRoles);
+  const lineageBindings = compileLineageBindings(process, domain);
+  const compiledScreens = compileScreens(process, domain, compiledRoles, lineageBindings);
   const workflows = compileWorkflows(process, domain);
 
   return {
@@ -633,8 +634,54 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
     services: compileServices(process.services),
     sockets: compileSockets(process.sockets),
     screens: compiledScreens,
+    lineageBindings,
     warnings: validation.warnings
   };
+}
+
+function compileLineageBindings(process = {}, domain = {}) {
+  const bindings = [];
+  const processNodes = process.processNodes || {};
+  const graph = process.graph || {};
+  const recordsByGraphId = new Map((graph.nodes || []).map(node => [
+    String(node.id),
+    processNodes[String(node.data?.refId || node.id)]
+  ]));
+  for (const edge of graph.edges || []) {
+    const target = recordsByGraphId.get(String(edge.target));
+    if (!target || target.compositionMode !== 'ancestors') continue;
+    const entryId = normalizeHandle(edge.targetHandle).replace(/^entry:/, '');
+    const entry = target.entries?.find(item => item.id === entryId);
+    if (!entry) continue;
+    const source = recordsByGraphId.get(String(edge.source));
+    if (!source) continue;
+    let outputs = [];
+    try { outputs = resolveCatalogNodePorts(source, catalogContext(domain, source)).outputs; } catch { outputs = []; }
+    const sourcePort = catalogPortForHandle(outputs, edge.sourceHandle);
+    const ancestorType = sourcePort?.type?.entityType
+      || sourcePort?.type?.itemType?.entityType
+      || source.entityType
+      || entry.entityType
+      || '';
+    if (!ancestorType) continue;
+    const childEntityType = target.targetEntityType
+      || target.entityType
+      || '';
+    const lineageKey = entry.key || lineageKeyForEntityType(ancestorType);
+    if (!childEntityType || !lineageKey || ancestorType === 'organization') continue;
+    bindings.push({
+      childEntityType,
+      ancestorEntityType: ancestorType,
+      lineageKey,
+      sourceNode: String(edge.source),
+      consumingNode: String(edge.target)
+    });
+  }
+  const unique = new Map(bindings.map(binding => [
+    `${binding.childEntityType}:${binding.ancestorEntityType}:${binding.lineageKey}`,
+    binding
+  ]));
+  return [...unique.values()];
 }
 
 export function resolveRoleAssignmentAccess({ compiled, assignment, domain = {} } = {}) {
@@ -1690,7 +1737,7 @@ function emptyAssignmentAccess() {
   return { roleIds: [], bindings: {}, permissions: {}, screens: [], navigation: [], actions: [], incompleteBindings: [] };
 }
 
-function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) {
+function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}, lineageBindings = []) {
   const screens = processOrScreens.screens || processOrScreens;
   const inferredScreens = inferScreensFromRoleGrants({
     screens,
@@ -1702,7 +1749,7 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
   });
   return Object.fromEntries(Object.entries({ ...screens, ...inferredScreens }).map(([id, screen]) => {
     const normalized = normalizeScreenContract(screen);
-    const sources = normalized.sources.map(source => withRootEntityScope(source, normalized, domain));
+    const sources = normalized.sources.map(source => withRootEntityScope(source, normalized, domain, lineageBindings));
     return [id, {
       id: normalized.id || id,
       label: normalized.label || normalized.id || id,
@@ -1723,13 +1770,21 @@ function compileScreens(processOrScreens = {}, domain = {}, compiledRoles = {}) 
   }));
 }
 
-function withRootEntityScope(source = {}, screen = {}, domain = {}) {
+function withRootEntityScope(source = {}, screen = {}, domain = {}, lineageBindings = []) {
   if (screen.template !== 'entityList' || source.mode !== 'list' || source.entityType !== screen.entityType) return source;
-  const lineageKeys = [...new Set((domain.containment || [])
-    .filter(relation => relation.childType === source.entityType && relation.lineageKey)
-    .map(relation => relation.lineageKey))];
+  const lineageKeys = compiledLineageKeys(source.entityType, lineageBindings)
+    || [...new Set((domain.containment || [])
+      .filter(relation => relation.childType === source.entityType && relation.lineageKey)
+      .map(relation => relation.lineageKey))];
   if (!lineageKeys.length || lineageKeys.some(key => hasScopedFilter(source.filters, key))) return source;
   return { ...source, rootLineageKeys: lineageKeys };
+}
+
+function compiledLineageKeys(entityType = '', lineageBindings = []) {
+  const keys = [...new Set((lineageBindings || [])
+    .filter(binding => binding.childEntityType === entityType && binding.lineageKey)
+    .map(binding => binding.lineageKey))];
+  return keys.length ? keys : null;
 }
 
 function hasScopedFilter(filters = {}, lineageKey = '') {

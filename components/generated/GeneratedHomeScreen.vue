@@ -143,7 +143,19 @@ const sections = computed(() => props.screen.regions
       rawItems: state.rawItems || state.items || []
     };
   })
-  .filter(section => section.source.entityType && shouldRenderHomeSection(section, domainUi.containment)));
+  .filter(section => section.source.entityType && shouldRenderHomeSection(section, effectiveContainment())));
+
+function effectiveContainment() {
+  const bindings = authStore.lineageBindings || [];
+  if (bindings.length) {
+    return bindings.map(binding => ({
+      childType: binding.childEntityType,
+      parentType: binding.ancestorEntityType,
+      lineageKey: binding.lineageKey
+    }));
+  }
+  return domainUi.containment;
+}
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)
