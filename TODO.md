@@ -57,9 +57,9 @@ same phase that replaces a contract.
 
 ### 2. Remove the parallel hierarchy and summary implementations
 
-- [ ] Delete or reduce `utils/entity-hierarchy.js`, `utils/generated-screen-source.js`,
+- [x] Delete or reduce `utils/entity-hierarchy.js`, `utils/generated-screen-source.js`,
   and related browser inference to consumers of compiled lineage bindings.
-- [ ] Remove hierarchy facts duplicated by `cncSummaries`. Define aggregates as
+- [x] Remove hierarchy facts duplicated by `cncSummaries`. Define aggregates as
   explicit derived fields/queries whose scope references compiled lineage, not a
   second parent type/key table.
 - [ ] Remove UI fallbacks that infer hierarchy from camelCase/snake_case aliases,
@@ -180,7 +180,7 @@ same phase that replaces a contract.
 - [x] Remove synchronous full compilation from the deep `[draft, nodes, edges]`
   watcher. Replace it with explicit Apply validation and bounded, cancellable preview
   compilation only when a preview surface is open.
-- [ ] Separate authored graph state, runtime Vue Flow state, compiled preview, and
+- [x] Separate authored graph state, runtime Vue Flow state, compiled preview, and
   server-persisted draft snapshots. Mutating one plane must not silently rewrite
   another.
 - [ ] Split the process page into focused composables/components for persistence,
