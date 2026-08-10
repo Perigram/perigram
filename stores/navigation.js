@@ -18,6 +18,18 @@ export const useNavigationStore = defineStore('navigation', () => {
     const entityStore = useEntityStore();
     const { t, te } = useI18n();
 
+    function effectiveContainment() {
+        const bindings = authStore.lineageBindings || [];
+        if (bindings.length) {
+            return bindings.map(binding => ({
+                childType: binding.childEntityType,
+                parentType: binding.ancestorEntityType,
+                lineageKey: binding.lineageKey
+            }));
+        }
+        return cncDomain.containment;
+    }
+
     // Store-managed state for project context
     const currentProject = ref(null);
     const currentHierarchy = ref([]);
@@ -63,7 +75,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         if (!target?.entityType || !target?.id) return;
         const current = await entityStore.fetchEntity(hierarchyTypeAlias(target.entityType), target.id, false, { ...fetchOptions, silent: true });
         if (!current) return;
-        const ancestorRefs = containmentAncestors(current, target.entityType);
+        const ancestorRefs = containmentAncestors(current, target.entityType, effectiveContainment());
         const ancestors = [];
         for (const ref of ancestorRefs) {
             const entity = await entityStore.fetchEntity(hierarchyTypeAlias(ref.type), ref.id, false, { ...fetchOptions, silent: true });
@@ -88,10 +100,10 @@ export const useNavigationStore = defineStore('navigation', () => {
     async function fetchHierarchySiblings(entity, entityType, fetchOptions = {}) {
         const endpoint = entityEndpoint(entityType);
         if (!endpoint?.routes?.list) return [];
-        const scope = siblingContainmentScope(entity, entityType);
+        const scope = siblingContainmentScope(entity, entityType, effectiveContainment());
         try {
             const items = await $fetch(endpoint.routes.list, { ...fetchOptions, query: scope });
-            const rootKeys = Object.keys(rootContainmentFilter(entityType)).map(key => key.replace(/^lineage\./, ''));
+            const rootKeys = Object.keys(rootContainmentFilter(entityType, effectiveContainment())).map(key => key.replace(/^lineage\./, ''));
             return (Array.isArray(items) ? items : []).filter(item => (
                 Object.entries(scope).every(([key, value]) => item.lineage?.[key]?.toString?.() === value?.toString?.())
                 && (Object.keys(scope).length || rootKeys.every(key => !item.lineage?.[key]))
