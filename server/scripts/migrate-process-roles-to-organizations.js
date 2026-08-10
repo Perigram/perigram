@@ -22,11 +22,31 @@ export function planOrganizationRoleMigration({ organization, processes = [], us
     }
   }
 
-  const roleAssignments = Object.fromEntries(Object.entries(assignmentSource?.data?.assignments || {}).map(([userId, assignment]) => [String(userId), {
+  for (const [roleId, role] of Object.entries(organization.data?.roles || {})) {
+    roles[roleId] ||= { id: roleId, label: role.label || roleId };
+  }
+
+  const roleAssignments = Object.fromEntries(Object.entries({
+    ...(organization.data?.roleAssignments || {}),
+    ...(assignmentSource?.data?.assignments || {})
+  }).map(([userId, assignment]) => [String(userId), {
     userId: String(userId),
     roleIds: [...new Set(assignment.roleIds || [])],
     bindings: assignment.bindings && typeof assignment.bindings === 'object' ? assignment.bindings : {}
   }]));
+  const organizationId = String(organization._id || '');
+  for (const user of users) {
+    if (roleAssignments[String(user._id)]) continue;
+    const membership = (user.data?.memberships || []).find(item => (
+      String(item.organizationId || '') === organizationId && item.roleId
+    ));
+    if (!membership) continue;
+    roleAssignments[String(user._id)] = {
+      userId: String(user._id),
+      roleIds: [String(membership.roleId)],
+      bindings: {}
+    };
+  }
   const knownUserIds = new Set(users.map(user => String(user._id)));
   const unresolved = [
     ...Object.values(roleAssignments).flatMap(assignment => assignment.roleIds.filter(roleId => !roles[roleId]).map(roleId => `assignment ${assignment.userId} -> ${roleId}`)),
@@ -58,6 +78,7 @@ export function migrateUserData(data = {}) {
   next.memberships = (next.memberships || []).map(membership => {
     const clean = { ...membership };
     delete clean.role;
+    delete clean.roleId;
     delete clean.roleIds;
     delete clean.bindings;
     return clean;
