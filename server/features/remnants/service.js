@@ -122,7 +122,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   }
 
   if (updates.status) {
-    await statusService.transition('remnant', remnant._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'remnant',
+      targetId: remnant._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     delete updates.status;
   }
 

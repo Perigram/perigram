@@ -91,7 +91,14 @@ export async function getById(uid, userId, userOrg, userRole, userPermissions) {
 }
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
-  return await statusService.transition('nesting_run', id, newState, userId, createTransitionAuth(userId, userRole), metadata);
+  const result = await statusService.transitionWithResult({
+    entityType: 'nesting_run',
+    targetId: id,
+    targetState: newState,
+    auth: createTransitionAuth(userId, userRole),
+    context: metadata
+  });
+  return result.status;
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {

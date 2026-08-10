@@ -69,7 +69,13 @@ export async function update(id, updates = {}, userId, userOrg, userRole, userPe
   }
 
   if (updates.status && typeof updates.status === 'string') {
-    await statusService.transition('library', current._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'library',
+      targetId: current._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     return await getById(id, userId, userOrg, userRole, userPermissions);
   }
 

@@ -161,7 +161,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
   // Status updates must go through statusService
   if (updates.status) {
-    await statusService.transition('cassette_instance', instance._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'cassette_instance',
+      targetId: instance._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     delete updates.status;
   }
 
@@ -184,7 +190,14 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
 export async function updateStatus(id, state, note, user) {
   const instance = await getById(id, user.userId, user.organizationId, user.role, user);
-  return await statusService.transition('cassette_instance', instance._id || instance.id, state, user.userId, createTransitionAuth(user.userId, user), { note });
+  const result = await statusService.transitionWithResult({
+    entityType: 'cassette_instance',
+    targetId: instance._id || instance.id,
+    targetState: state,
+    auth: createTransitionAuth(user.userId, user),
+    context: { note }
+  });
+  return result.status;
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {

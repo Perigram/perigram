@@ -107,7 +107,13 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   }
 
   if (updates.status) {
-    await statusService.transition('material_pile', pile._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'material_pile',
+      targetId: pile._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     return await getById(uid);
   }
 
@@ -172,7 +178,14 @@ export async function updateStatus(id, state, note, user, additionalData = {}) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  return await statusService.transition('material_pile', pile._id, state, user.userId, createTransitionAuth(user.userId, user), { note, ...additionalData });
+  const result = await statusService.transitionWithResult({
+    entityType: 'material_pile',
+    targetId: pile._id,
+    targetState: state,
+    auth: createTransitionAuth(user.userId, user),
+    context: { note, ...additionalData }
+  });
+  return result.status;
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {

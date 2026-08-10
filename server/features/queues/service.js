@@ -230,7 +230,13 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   }
   
   if (updates.status) {
-    await statusService.transition('queue', queue._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'queue',
+      targetId: queue._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     return await getById(uid, userId, userOrg, userRole, userPermissions);
   }
 

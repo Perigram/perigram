@@ -273,7 +273,13 @@ export async function update(id, updates, userId, userRole, userPermissions) {
   }
 
   if (updates.status) {
-    await statusService.transition('cassette_design', design._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'cassette_design',
+      targetId: design._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     delete updates.status;
   }
 

@@ -2,7 +2,7 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import { createIdentity } from '../../core/blocks/index.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
-import { statusService } from '../../core/machines/service.js';
+import { statusService, createTransitionAuth } from '../../core/machines/service.js';
 import { EntityName } from './model.js';
 
 /**
@@ -77,7 +77,14 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
  * Standard Status Transition
  */
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
-  return await statusService.transition('feature_name', id, newState, userId, userRole, metadata);
+  const result = await statusService.transitionWithResult({
+    entityType: 'feature_name',
+    targetId: id,
+    targetState: newState,
+    auth: createTransitionAuth(userId, userRole),
+    context: metadata
+  });
+  return result.status;
 }
 
 /**

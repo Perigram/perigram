@@ -522,7 +522,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   }
 
   if (updates.status && typeof updates.status === 'string') {
-    await statusService.transition('cassette', cassette._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'cassette',
+      targetId: cassette._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     delete updates.status;
   }
 

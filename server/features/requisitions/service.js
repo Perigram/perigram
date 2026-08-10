@@ -147,7 +147,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
     }
 
     if (updates.status) {
-        await statusService.transition('requisition', requisition._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+        await statusService.transitionWithResult({
+            entityType: 'requisition',
+            targetId: requisition._id,
+            targetState: updates.status,
+            auth: createTransitionAuth(userId, userRole, userPermissions),
+            context: updates.statusMeta || {}
+        });
         delete updates.status;
     }
 
@@ -168,12 +174,19 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
 export async function transition(id, targetState, metadata, userId, userOrg, userRole, userPermissions) {
     const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
-    return await statusService.transition('requisition', requisition._id, targetState, userId, createTransitionAuth(userId, userRole, {
-        organizationId: userOrg,
-        memberships: userPermissions?.memberships || [],
-        effectivePermissions: userPermissions?.effectivePermissions || null,
-        permissions: userPermissions?.permissions || {}
-    }), metadata);
+    const result = await statusService.transitionWithResult({
+        entityType: 'requisition',
+        targetId: requisition._id,
+        targetState,
+        auth: createTransitionAuth(userId, userRole, {
+            organizationId: userOrg,
+            memberships: userPermissions?.memberships || [],
+            effectivePermissions: userPermissions?.effectivePermissions || null,
+            permissions: userPermissions?.permissions || {}
+        }),
+        context: metadata
+    });
+    return result.status;
 }
 
 export async function send(id, userId, userOrg, userRole, userPermissions) {
