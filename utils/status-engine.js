@@ -1,3 +1,5 @@
+import { cncStatusUi } from '@cutkit/domain-cnc';
+
 /**
  * Central registry for Entity-specific UI properties.
  * Maps entity types to their icons and routing patterns.
@@ -42,66 +44,8 @@ export const ENTITY_UI = {
 };
 
 /**
- * Maps all system statuses to PrimeVue severities and icons.
+ * Status display mapping derived from the canonical domain `cncStatusUi`.
+ * The domain owns status labels/severity/icon contracts; this is a projection,
+ * not a second registry.
  */
-export const STATUS_MAPPINGS = {
-    // Requisition
-    draft: { label: 'status.draft', severity: 'secondary', icon: 'pi pi-pencil' },
-    sent: { label: 'status.sent', severity: 'info', icon: 'pi pi-send' },
-    approved: { label: 'status.approved', severity: 'success', icon: 'pi pi-check-circle' },
-    rejected: { label: 'status.rejected', severity: 'danger', icon: 'pi pi-times-circle' },
-    in_fulfillment: { label: 'status.fulfilling', severity: 'warn', icon: 'pi pi-cog' },
-    fulfilled: { label: 'status.fulfilled', severity: 'success', icon: 'pi pi-box' },
-    canceled: { label: 'status.canceled', severity: 'danger', icon: 'pi pi-ban' },
-
-    // Batch (Delivery)
-    requested: { label: 'status.requested', severity: 'secondary', icon: 'pi pi-clock' },
-    assembled: { label: 'status.assembled', severity: 'info', icon: 'pi pi-briefcase' },
-    arrived: { label: 'status.arrived', severity: 'success', icon: 'pi pi-map-marker' },
-    in_stock: { label: 'status.inStock', severity: 'success', icon: 'pi pi-home' },
-    partially_used: { label: 'status.partiallyUsed', severity: 'warn', icon: 'pi pi-chart-pie' },
-    used_up: { label: 'status.usedUp', severity: 'danger', icon: 'pi pi-trash' },
-
-    // Queue (Production)
-    DRAFT: { label: 'status.draft', severity: 'info', icon: 'pi pi-pencil' },
-    NESTING: { label: 'status.nesting', severity: 'warn', icon: 'pi pi-cog' },
-    READY: { label: 'status.ready', severity: 'success', icon: 'pi pi-check' },
-    CUT: { label: 'status.cut', severity: 'success', icon: 'pi pi-scissors' },
-    CLOSED: { label: 'status.closed', severity: 'secondary', icon: 'pi pi-lock' },
-    ARCHIVED: { label: 'status.archived', severity: 'secondary', icon: 'pi pi-archive' },
-    COMPLETE: { label: 'status.complete', severity: 'success', icon: 'pi pi-check-circle' },
-    ERROR: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
-    CHOSEN: { label: 'status.chosen', severity: 'success', icon: 'pi pi-star' },
-    ACTIVE: { label: 'status.active', severity: 'success', icon: 'pi pi-check-circle' },
-    RECORDED: { label: 'status.recorded', severity: 'secondary', icon: 'pi pi-code-branch' },
-    PENDING: { label: 'status.pending', severity: 'warn', icon: 'pi pi-clock' },
-    AVAILABLE: { label: 'status.available', severity: 'success', icon: 'pi pi-box' },
-    STOCKED: { label: 'status.stocked', severity: 'success', icon: 'pi pi-database' },
-    DEPLETED: { label: 'status.depleted', severity: 'secondary', icon: 'pi pi-inbox' },
-    USED: { label: 'status.used', severity: 'secondary', icon: 'pi pi-check-circle' },
-    'IN-CUTTING': { label: 'status.inCutting', severity: 'warn', icon: 'pi pi-scissors' },
-    MILLED: { label: 'status.milled', severity: 'success', icon: 'pi pi-check-square' },
-    IN_STOCK: { label: 'status.inStock', severity: 'success', icon: 'pi pi-home' },
-    SENT: { label: 'status.sent', severity: 'info', icon: 'pi pi-send' },
-    SUBMITTED: { label: 'status.submitted', severity: 'info', icon: 'pi pi-send' },
-    MANUFACTURED: { label: 'status.manufactured', severity: 'info', icon: 'pi pi-cog' },
-    APPROVED: { label: 'status.approved', severity: 'success', icon: 'pi pi-check-circle' },
-    FULFILLED: { label: 'status.fulfilled', severity: 'success', icon: 'pi pi-box' },
-    REJECTED: { label: 'status.rejected', severity: 'danger', icon: 'pi pi-times-circle' },
-    PRODUCED: { label: 'status.produced', severity: 'info', icon: 'pi pi-box' },
-    INSTALLED: { label: 'status.installed', severity: 'success', icon: 'pi pi-check' },
-    GENERATING: { label: 'status.generating', severity: 'warn', icon: 'pi pi-spin pi-cog' },
-    PROCESSING: { label: 'status.processing', severity: 'warn', icon: 'pi pi-spin pi-cog' },
-    FAILED: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
-    SCRAP: { label: 'status.scrap', severity: 'danger', icon: 'pi pi-trash' },
-
-    // Cassette Instance
-    nested: { label: 'status.nested', severity: 'secondary', icon: 'pi pi-th-large' },
-    manufactured: { label: 'status.manufactured', severity: 'info', icon: 'pi pi-cog' },
-    'on-site': { label: 'status.onSite', severity: 'warn', icon: 'pi pi-map-marker' },
-    installed: { label: 'status.installed', severity: 'success', icon: 'pi pi-check' },
-
-    // Sheet
-    'in cutting': { label: 'status.inCutting', severity: 'warn', icon: 'pi pi-scissors' },
-    milled: { label: 'status.milled', severity: 'success', icon: 'pi pi-check-square' }
-};
+export const STATUS_MAPPINGS = cncStatusUi;

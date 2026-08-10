@@ -30,6 +30,7 @@ export const cncStatusUi = {
   GENERATING: { label: 'status.generating', severity: 'warn', icon: 'pi pi-spin pi-cog' },
   PROCESSING: { label: 'status.processing', severity: 'warn', icon: 'pi pi-spin pi-cog' },
   FAILED: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
+  PENDING: { label: 'status.pending', severity: 'warn', icon: 'pi pi-clock' },
   SCRAP: { label: 'status.scrap', severity: 'danger', icon: 'pi pi-trash' }
 };
 

@@ -1,10 +1,19 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { API_ROUTES } from '~/composables/apiRoutes';
 import { resolveUiPermission } from '~/shared/ui-permissions';
 import { hasPermissionGrant } from '~/shared/access-control';
 import { composeEffectiveScreens } from '~/utils/process-navigation';
 
+/**
+ * Canonical authenticated-user contract.
+ *
+ * `user` is the auth context returned by `GET /api/auth/me`: a flattened,
+ * access-ready shape with `userId`, `name`, `email`, `avatarUrl`,
+ * `organizationId`, `role`, `permissions`, `memberships`, `effectivePermissions`,
+ * `screens`, `navigation`, `roleAssignments`, `fieldPolicies`, and `process`.
+ * The server builds it from the canonical user DTO plus the compiled process
+ * access; the store never reads raw `user.data.*` DTO paths.
+ */
 export const useAuthStore = defineStore('auth', () => {
     const user = ref({});
     const organization = ref(null);
@@ -15,7 +24,7 @@ export const useAuthStore = defineStore('auth', () => {
     const userData = computed(() => user.value);
     const organizationData = computed(() => organization.value);
     const userOrganizations = computed(() => userOrgs.value);
-    const memberships = computed(() => user.value?.memberships || user.value?.data?.memberships || []);
+    const memberships = computed(() => user.value?.memberships || []);
     const activeMembership = computed(() => {
         const activeOrgId = user.value?.organizationId || organization.value?._id;
         return activeOrgId
@@ -23,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
             : memberships.value[0];
     });
     const activePermissions = computed(() => {
-        return user.value?.effectivePermissions || activeMembership.value?.permissions || user.value?.permissions || user.value?.data?.permissions || {};
+        return user.value?.effectivePermissions || activeMembership.value?.permissions || user.value?.permissions || {};
     });
     const tenantPermissions = computed(() => activeMembership.value?.permissions || {});
     const navigationManifest = computed(() => user.value?.navigation || []);
