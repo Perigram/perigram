@@ -15,6 +15,7 @@ import {
 import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
+import { normalizeHandle, lineageKeyForEntityType, hasScopedFilter, compiledLineageKeys, lineageRelationsForParent } from './hierarchy-utils.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -159,11 +160,6 @@ function inferOpenBlockEntries(processNodes = {}, graph = {}, domain = {}) {
   return inferred;
 }
 
-function lineageKeyForEntityType(entityType = '') {
-  const camel = String(entityType).replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
-  return camel ? `${camel}Id` : '';
-}
-
 function normalizeProcessInputDefaults(processNodes = {}, domain = {}) {
   return Object.fromEntries(Object.entries(processNodes).map(([id, record]) => {
     if (!record?.inputDefaults) return [id, record];
@@ -221,10 +217,6 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
       ...(node.inputDefaults ? { inputDefaults } : {})
     }];
   }));
-}
-
-function normalizeHandle(handle = '') {
-  return String(handle).replace(/^(input|output|data):/, '');
 }
 
 function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}) {
@@ -1780,25 +1772,6 @@ function withRootEntityScope(source = {}, screen = {}, domain = {}, lineageBindi
       .map(relation => relation.lineageKey))];
   if (!lineageKeys.length || lineageKeys.some(key => hasScopedFilter(source.filters, key))) return source;
   return { ...source, rootLineageKeys: lineageKeys };
-}
-
-function compiledLineageKeys(entityType = '', lineageBindings = []) {
-  const keys = [...new Set((lineageBindings || [])
-    .filter(binding => binding.childEntityType === entityType && binding.lineageKey)
-    .map(binding => binding.lineageKey))];
-  return keys.length ? keys : null;
-}
-
-function lineageRelationsForParent(parentEntityType = '', lineageBindings = []) {
-  const relations = (lineageBindings || [])
-    .filter(binding => binding.ancestorEntityType === parentEntityType && binding.childEntityType && binding.lineageKey)
-    .map(binding => ({ childType: binding.childEntityType, lineageKey: binding.lineageKey }));
-  return relations.length ? relations : null;
-}
-
-function hasScopedFilter(filters = {}, lineageKey = '') {
-  return Object.prototype.hasOwnProperty.call(filters || {}, lineageKey)
-    || Object.prototype.hasOwnProperty.call(filters || {}, `lineage.${lineageKey}`);
 }
 
 function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {}, graph = {}, lineageBindings = [] } = {}) {
