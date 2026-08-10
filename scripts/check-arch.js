@@ -9,10 +9,17 @@ import { cncCommands } from '../packages/domain-cnc/src/commands.js';
 import { cncTasks } from '../packages/domain-cnc/src/tasks.js';
 import { cncEvents } from '../packages/domain-cnc/src/events.js';
 import { cncEffects } from '../packages/domain-cnc/src/effects.js';
+import { cncWorkflows } from '../packages/domain-cnc/src/workflows.js';
 
 const FEATURES_DIR = './server/features';
 const API_DIR = './server/api';
 const ENTITY_FEATURES = cncEntities.map(entity => entity.feature || entityTypeToFeature(entity.type));
+const featureToEntityTypeMap = new Map(
+  cncEntities.map(entity => [entity.feature || entityTypeToFeature(entity.type), entity.type])
+);
+function featureToEntityType(feature) {
+  return featureToEntityTypeMap.get(feature) || null;
+}
 const CAPABILITY_FEATURES = [
   'config-bot',
   'entity-events',
@@ -69,6 +76,7 @@ function collectLineMatches(files, checks) {
     const lines = content.split('\n');
     lines.forEach((line, index) => {
       checks.forEach(check => {
+        if (check.excludeFile?.(file)) return;
         const match = line.match(check.pattern);
         if (match) {
           addInventory(check.rule, file, index + 1, match[1] || check.symbol || 'n/a', check.message);
@@ -379,7 +387,12 @@ collectLineMatches(featureServiceFiles, [
   {
     rule: 'status.initialization.createStatus',
     pattern: /\b(createStatus)\s*\(/,
-    message: 'legacy status block creation; migrate entity creation to statusService.initialStatus()'
+    message: 'legacy status block creation; migrate entity creation to statusService.initialStatus()',
+    excludeFile: file => {
+      const feature = path.basename(path.dirname(file));
+      const entityType = featureToEntityType(feature);
+      return !entityType || !cncWorkflows[entityType];
+    }
   },
   {
     rule: 'status.transition.rawState',
