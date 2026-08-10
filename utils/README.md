@@ -61,6 +61,10 @@ Shared frontend utility modules used by Vue pages/components.
 - `generated-screen-source.js`: Applies exact compiled Lineage bindings to
   generated source filters and Home visibility. It never guesses arbitrary id
   keys or imports static CNC containment in active-process mode.
+- `entity-hierarchy.js`: Consumes canonical entity identity and effective
+  compiled Lineage projections for ancestry, root/sibling scope, and trace
+  context. Route trace exclusions require the route value to match both the
+  compiled lineage key and the entity's actual ancestor id.
 - `artifact-viewer.js` and `artifact-detail.js`: Pure Artifact presentation
   dispatch for preview/editor mode and detail revision/file state.
 - `navigation-breadcrumbs.js` and `billing-presentation.js`: Pure organization
