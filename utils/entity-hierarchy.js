@@ -4,7 +4,8 @@ const TYPE_ALIASES = {
   ...Object.fromEntries(
     cncEntities.map(entity => [camelCase(entity.type), entity.type])
   ),
-  batchPile: 'material_pile'
+  batchPile: 'material_pile',
+  cassetteTemplate: 'cassette'
 };
 
 function camelCase(type = '') {

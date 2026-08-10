@@ -18,6 +18,7 @@ import { generatedDetailActionIds } from '~/components/generated/detail-screen-a
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
+import { normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
@@ -248,39 +249,11 @@ function withNestingRunOutputRefs(entity) {
 }
 
 function contextTypeCandidates(type) {
-  const aliases = {
-    nestingRun: 'nesting_run',
-    sheetDesign: 'sheet_design',
-    cassetteDesign: 'cassette_design',
-    cassetteTemplate: 'cassette',
-    cassetteInstance: 'cassette_instance',
-    materialPile: 'material_pile',
-    batchPile: 'material_pile',
-    entityRevision: 'entity_revision',
-    geometryCapture: 'geometry_capture',
-    toolProfile: 'tool_profile',
-    penTemplate: 'pen_template',
-    layerStandard: 'layer_standard'
-  };
-  return Array.from(new Set([type, aliases[type]].filter(Boolean)));
+  return Array.from(new Set([type, normalizeHierarchyType(type)].filter(Boolean)));
 }
 
 function generatedEntityTypeFor(type) {
-  const aliases = {
-    nestingRun: 'nesting_run',
-    sheetDesign: 'sheet_design',
-    cassetteDesign: 'cassette_design',
-    cassetteTemplate: 'cassette',
-    cassetteInstance: 'cassette_instance',
-    materialPile: 'material_pile',
-    batchPile: 'material_pile',
-    entityRevision: 'entity_revision',
-    geometryCapture: 'geometry_capture',
-    toolProfile: 'tool_profile',
-    penTemplate: 'pen_template',
-    layerStandard: 'layer_standard'
-  };
-  return aliases[type] || type;
+  return normalizeHierarchyType(type);
 }
 
 function isConsumedDetailAction(action = {}) {
