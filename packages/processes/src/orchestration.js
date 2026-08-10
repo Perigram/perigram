@@ -231,16 +231,6 @@ async function executeOperationalNode({ run, process, node, record, current, ste
     }
     return;
   }
-  if (record.kind === 'control.waitDuration' || record.kind === 'control.waitUntil') {
-    const wakeAt = record.kind === 'control.waitDuration'
-      ? new Date(new Date(instant(environment.now)).getTime() + durationMs(packetValue(inputs.duration))).toISOString()
-      : new Date(packetValue(inputs.at)).toISOString();
-    enqueueEdges(run, outgoingControl(process, node.id, 'out'), current);
-    run.status = 'waiting';
-    run.wakeAt = wakeAt;
-    step.status = 'waiting';
-    return;
-  }
   if (record.kind === 'control.stopSuccess') {
     run.tokens = [];
     run.status = 'succeeded';

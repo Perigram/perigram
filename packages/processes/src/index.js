@@ -59,7 +59,6 @@ export {
   PROCESS_DATA_ACCESS,
   PROCESS_SOCKET_ROLES,
   formatProcessType,
-  legacyProcessType,
   normalizeProcessSocket,
   normalizeProcessType,
   processSocketsCompatible,
@@ -234,7 +233,7 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
   const derived = { ...(actions || {}) };
   for (const [nodeId, node] of Object.entries(processNodes)) {
     if (!node.kind?.startsWith('effect.')) continue;
-    const actionId = String(node.legacyActionId || node.id || nodeId);
+    const actionId = String(node.id || nodeId);
     const actionKind = ({
       'effect.createEntity': 'createEntity',
       'effect.runProducer': 'createEntity',
@@ -432,7 +431,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       const sourceRecord = entryEdge ? recordByGraphNode.get(String(entryEdge.source)) : null;
       const processCreator = sourceRecord?.kind === 'effect.createEntity'
         && sourceRecord.entityType === (declared?.targetType || entry.entityType)
-        ? { actionId: String(sourceRecord.legacyActionId || sourceRecord.id) }
+        ? { actionId: String(sourceRecord.id) }
         : null;
       return {
       key: declared?.key || entry.key,
@@ -1264,7 +1263,7 @@ function buildActionGraphContext(process = {}) {
     const refId = String(node.data?.refId || node.id || '');
     const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
     if (node.type !== 'action' && !processNode?.kind?.startsWith('effect.')) continue;
-    const actionId = String(processNode?.legacyActionId || refId);
+    const actionId = String(processNode?.id || refId);
     if (!actionId) continue;
     actionNodeById.set(actionId, node);
     actionIdByNodeId.set(String(node.id), actionId);
@@ -2650,7 +2649,7 @@ function inferConnectedActionEntityType(actionId, process = {}) {
       const refId = String(node.data?.refId || node.id);
       const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
       return (node.type === 'action' && refId === String(actionId))
-        || (processNode?.kind?.startsWith('effect.') && String(processNode.legacyActionId || refId) === String(actionId));
+        || (processNode?.kind?.startsWith('effect.') && String(processNode.id || refId) === String(actionId));
     })
     .map(node => String(node.id)));
   for (const edge of process.graph?.edges || []) {
@@ -2660,7 +2659,7 @@ function inferConnectedActionEntityType(actionId, process = {}) {
     const sourceRecord = sourceNode?.type === 'processNode' ? process.processNodes?.[sourceRefId] : null;
     const sourceActionId = sourceNode?.type === 'action'
       ? sourceRefId
-      : sourceRecord?.kind?.startsWith('effect.') ? String(sourceRecord.legacyActionId || sourceRefId) : '';
+      : sourceRecord?.kind?.startsWith('effect.') ? String(sourceRecord.id || sourceRefId) : '';
     const sourceAction = process.actions?.[sourceActionId];
     const sourceType = sourceAction && actionEntityType(sourceAction);
     if (sourceType) return sourceType;
@@ -2869,13 +2868,6 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
   }
   if (node.kind.startsWith('effect.') && !['manual', 'event'].includes(node.trigger?.mode || 'manual')) {
     errors.push(`Process node ${nodeId} uses unknown trigger mode ${node.trigger?.mode}`);
-  }
-  if (node.kind === 'control.entityChangedTrigger' && !node.entityType) {
-    errors.push(`Process node ${nodeId} must select an entity type`);
-  }
-  if (node.kind === 'control.domainEventTrigger') {
-    const events = new Set(Object.values(domain.events || {}).map(event => event.id).filter(Boolean));
-    if (!node.eventId || !events.has(node.eventId)) errors.push(`Process node ${nodeId} must select a registered event`);
   }
   if (node.type) {
     try {

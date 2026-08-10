@@ -1,5 +1,4 @@
 const subscribers = new Map();
-const automaticHandlers = new Set();
 const recentEvents = [];
 const MAX_RECENT_EVENTS = 500;
 let nextSubscriberId = 1;
@@ -17,12 +16,6 @@ export function subscribe(auth = {}, push) {
   };
 }
 
-export function registerAutomaticHandler(handler) {
-  if (typeof handler !== 'function') return () => {};
-  automaticHandlers.add(handler);
-  return () => automaticHandlers.delete(handler);
-}
-
 export async function publishEntityChanged(auth = {}, detail = {}) {
   const event = normalizeEvent(auth, detail);
   if (!event) return null;
@@ -38,11 +31,6 @@ export async function publishEntityChanged(auth = {}, detail = {}) {
   await Promise.all([...subscribers.values()]
     .filter(subscriber => canReceive(subscriber.auth, event))
     .map(subscriber => subscriber.push(payload).catch(() => null)));
-  await Promise.all([...automaticHandlers].map(handler => (
-    Promise.resolve().then(() => handler(event, auth)).catch(error => {
-      console.error('[Entity Events] Automatic process trigger failed:', error.message);
-    })
-  )));
 
   return event;
 }

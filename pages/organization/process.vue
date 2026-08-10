@@ -2442,7 +2442,6 @@ function createProcessNode(id, kind = 'source.literalItem') {
   if (kind.startsWith('effect.')) {
     node.trigger = { mode: 'manual' };
     node.access = { level: 'write', grants: [] };
-    node.legacyActionId = id;
     node.entryTriggerId = id;
   }
   if (kind === 'source.literalList') node.access = 'list';
@@ -3116,7 +3115,6 @@ function syncProcessNode(node = {}) {
     node.trigger ||= { mode: 'manual' };
     if (!['manual', 'event'].includes(node.trigger.mode)) node.trigger.mode = 'event';
     node.access = normalizeDesignerAccess(node.access);
-    node.legacyActionId ||= node.id;
     node.entryTriggerId = node.id;
   }
   if (['effect.createEntity', 'effect.runProducer'].includes(node.kind)) syncProcessNodeConstruction(node);

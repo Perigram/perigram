@@ -278,69 +278,51 @@ export async function startRun(id, payload = {}, auth = {}) {
     throw createError({ statusCode: 409, message: `Process must use dataflow version ${PROCESS_DATAFLOW_VERSION} before it can run` });
   }
   const organizationId = resolveOrganizationId(auth);
-  const run = createProcessRun(definition, payload.trigger || {}, {
+  const actor = buildRunActor(auth, organizationId);
+  let run = createProcessRun(definition, payload.trigger || {}, {
     processDefinitionId: definition._id || definition.id,
-    context: {
-      inputs: payload.inputs || {},
-      actor: orchestrationActor(auth, organizationId)
-    }
+    context: { inputs: payload.inputs || {}, actor }
   });
-  const created = await repository.createRun({ ...run, organizationId });
-  return await resumeRunUntilBoundary(created._id, auth);
-}
-
-export async function resumeDueRuns(now = new Date()) {
-  const due = await repository.findDueRuns(now);
-  const results = [];
-  for (const run of due) {
-    try {
-      results.push(await resumeRunUntilBoundary(run._id, authFromRun(run)));
-    } catch (error) {
-      results.push({ id: String(run._id), status: 'failed-to-resume', error: error.message });
-    }
-  }
-  return results;
-}
-
-async function resumeRunUntilBoundary(id, auth = {}) {
-  let run = await resumeRun(id, auth);
   for (let index = 0; run.status === 'running' && index < 999; index += 1) {
-    run = await resumeRun(id, auth);
+    const advanced = await advanceProcessRun(run, definition.data, {
+      executeEffect: request => executeDurableEffect(request, auth, run, definition.data),
+      catalogContext: catalogContextFromDefinition(definition.data),
+      data: processDataEnvironment(auth, run)
+    });
+    if (JSON.stringify(advanced) === JSON.stringify(run)) break;
+    run = advanced;
   }
-  if (run.status === 'running') throw new Error(`Process run ${run.id || id} exceeded 1000 steps`);
+  if (run.status === 'running') throw new Error('Process run exceeded 1000 steps');
   return run;
 }
 
-export async function getRun(id, auth = {}) {
-  const run = await loadAuthorizedRun(id, auth);
-  return serializeRun(run);
+function buildRunActor(auth, organizationId) {
+  return {
+    userId: auth.userId,
+    organizationId,
+    role: auth.role,
+    isAdmin: Boolean(auth.isAdmin),
+    memberships: auth.memberships || [],
+    roleAssignments: auth.roleAssignments || {},
+    permissions: auth.permissions || [],
+    effectivePermissions: auth.effectivePermissions || {}
+  };
 }
 
-export async function resumeRun(id, auth = {}) {
-  let run = await loadAuthorizedRun(id, auth, 'write');
-  const definitionRaw = await repository.findById(run.processDefinitionId);
-  if (!definitionRaw) throw createError({ statusCode: 404, message: 'Process definition for run not found' });
-  const before = JSON.stringify(run);
-  const advanced = await advanceProcessRun(serializeRun(run), definitionRaw.data, {
-    executeEffect: request => executeDurableEffect(request, auth, run, definitionRaw.data),
-    catalogContext: record => {
-      const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
-      return {
-        fieldSchema: structural
-          ? getBlockFieldSchema(record.path)
-          : getEntityFieldSchema(record.entityType, record.path),
-        fieldSchemas: structural
-          ? getBlockFieldSchemas(record.block)
-          : getEntityFieldSchemas(record.entityType),
-        blockComposition: cncDomain.blockComposition?.[record.block] || null,
-        command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null
-      };
-    },
-    data: processDataEnvironment(auth, run)
-  });
-  if (JSON.stringify(advanced) === before) return serializeRun(run);
-  run = await repository.updateRun({ ...run, ...advanced, _id: run._id, revision: run.revision });
-  return serializeRun(run);
+function catalogContextFromDefinition(processData) {
+  return record => {
+    const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
+    return {
+      fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.entityType, record.path),
+      fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.entityType),
+      blockComposition: cncDomain.blockComposition?.[record.block] || null,
+      command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null
+    };
+  };
+}
+
+export async function resumeDueRuns() {
+  return [];
 }
 
 export async function preview({ definition, nodeId = '', trigger = {}, inputs = {} } = {}, auth = {}) {
@@ -679,7 +661,7 @@ async function resolveManualRelationMutation(entityType, targetId, mutation = {}
 
 async function executeDataflowActionRun({ process, actionId, entityId, data, parameters, entities, targetOrganizationId }, auth) {
   const effect = Object.values(process.data.processNodes || {})
-    .find(node => node.legacyActionId === actionId && node.kind?.startsWith('effect.'));
+    .find(node => node.id === actionId && node.kind?.startsWith('effect.'));
   if (!effect || (effect.trigger?.mode || 'manual') !== 'manual') {
     throw createError({ statusCode: 409, message: `Action ${actionId} has no entry trigger` });
   }
@@ -696,14 +678,8 @@ async function executeDataflowActionRun({ process, actionId, entityId, data, par
       targetOrganizationId
     }
   }, auth);
-  for (let index = 0; index < 100 && run.status === 'running'; index += 1) {
-    run = await resumeRun(run.id, auth);
-  }
   if (run.status === 'failed') {
-    throw createError({ statusCode: 400, message: run.error?.message || `Action ${actionId} failed`, data: { runId: run.id } });
-  }
-  if (run.status === 'waiting') {
-    return { runId: run.id, status: run.status, wakeAt: run.wakeAt };
+    throw createError({ statusCode: 400, message: run.error?.message || `Action ${actionId} failed` });
   }
   const effectStep = [...(run.steps || [])].reverse().find(step => step.kind?.startsWith('effect.'));
   return effectStep?.output ?? run.result;
@@ -1424,26 +1400,6 @@ function serializeRun(run = {}) {
   };
 }
 
-export function orchestrationActor(auth = {}, organizationId = null) {
-  return {
-    userId: auth.userId,
-    organizationId,
-    role: auth.role,
-    isAdmin: Boolean(auth.isAdmin),
-    memberships: auth.memberships || [],
-    roleAssignments: auth.roleAssignments || {},
-    permissions: auth.permissions || [],
-    effectivePermissions: auth.effectivePermissions || {}
-  };
-}
-
-export function authFromRun(run = {}) {
-  return {
-    ...(run.context?.actor || {}),
-    organizationId: run.organizationId?.toString?.() || run.organizationId
-  };
-}
-
 function processDataEnvironment(auth, run) {
   return {
     currentEntity: async entityType => {
@@ -1461,28 +1417,7 @@ function processDataEnvironment(auth, run) {
 }
 
 async function executeDurableEffect(request, auth, run, processData) {
-  const claimed = await repository.claimStep({
-    runId: run._id,
-    nodeId: request.record.id,
-    idempotencyKey: request.idempotencyKey,
-    kind: request.kind,
-    attempt: request.attempt || 1
-  });
-  if (!claimed.claimed) {
-    if (claimed.step?.status === 'succeeded') return claimed.step.result;
-    throw new Error(`Effect ${request.idempotencyKey} is already ${claimed.step?.status || 'running'}`);
-  }
-  try {
-    const result = await performDurableEffect(request, auth, processData);
-    await repository.completeStep(request.idempotencyKey, { status: 'succeeded', result });
-    return result;
-  } catch (error) {
-    await repository.completeStep(request.idempotencyKey, {
-      status: 'failed',
-      error: { name: error?.name || 'Error', message: error?.message || String(error) }
-    });
-    throw error;
-  }
+  return await performDurableEffect(request, auth, processData);
 }
 
 async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {

@@ -1,4 +1,4 @@
-import { legacyProcessType, normalizeProcessSocket, processType } from './types.js';
+import { normalizeProcessSocket, processType } from './types.js';
 
 const DATA = 'data';
 const CONTROL = 'control';
@@ -85,9 +85,6 @@ const definitions = [
   effect('effect.generateAttachment', 'generateAttachment'),
 
   trigger('control.manualTrigger', 'manualTrigger'),
-  trigger('control.domainEventTrigger', 'domainEventTrigger'),
-  trigger('control.entityChangedTrigger', 'entityChangedTrigger'),
-  trigger('control.scheduleTrigger', 'scheduleTrigger'),
   trigger('control.webhookTrigger', 'webhookTrigger'),
   control('control.if', 'ifElse'),
   control('control.switch', 'switch'),
@@ -96,8 +93,6 @@ const definitions = [
   control('control.joinAny', 'joinAny'),
   control('control.forEach', 'forEach'),
   control('control.forEachEnd', 'forEachEnd'),
-  control('control.waitDuration', 'waitDuration'),
-  control('control.waitUntil', 'waitUntil'),
   control('control.stopSuccess', 'stopSuccess'),
   control('control.stopFailure', 'stopFailure')
 ];
@@ -500,14 +495,6 @@ function catalogPorts(record = {}, context = {}) {
     outputs: [socket('each', event, CONTROL), socket('item', configured), socket('path', processType('array', { itemType: processType('integer') })), socket('index', processType('integer')), socket('done', event, CONTROL)]
   };
   if (kind === 'control.forEachEnd') return { inputs: controlInput, outputs: [] };
-  if (kind === 'control.waitDuration') return {
-    inputs: [...controlInput, socket('duration', processType('duration'), DATA, true)],
-    outputs: [socket('out', event, CONTROL)]
-  };
-  if (kind === 'control.waitUntil') return {
-    inputs: [...controlInput, socket('at', processType('dateTime'), DATA, true)],
-    outputs: [socket('out', event, CONTROL)]
-  };
   if (kind === 'control.stopSuccess' || kind === 'control.stopFailure') return { inputs: controlInput, outputs: [] };
   throw new Error(`Node ${kind} has no port contract`);
 }
@@ -703,7 +690,7 @@ function constructionInputs(record = {}) {
       ? multiple
         ? processType('array', { itemType: processType('entityRef', { entityType: input.entityType, accepts: input.accepts }) })
         : processType('entityRef', { entityType: input.entityType, accepts: input.accepts })
-      : legacyProcessType(input.type || 'json');
+      : processType(input.type || 'json');
     return { ...input, id: input.id || input.path, type };
   }).filter(input => input.id);
 }
