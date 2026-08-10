@@ -2,37 +2,29 @@ import { test, expect } from './fixtures.js';
 
 test.describe('generated project workspace', () => {
   test('opens a linked library child cassette in its editor tab and restores it', async ({ app }) => {
+    const auth = await app.switchToAssignedOrganization();
+    const projectScreen = (auth.screens || []).find(screen => (
+      screen.template === 'entityDetail' && screen.entityType === 'project'
+    ));
+    expect(projectScreen?.route).toBeTruthy();
     const project = entity('project-1', 'Project One', {
+      lineage: { organizationId: auth.organizationId },
       relations: { library: { entityType: 'library', id: 'library-1' } }
     });
     const library = entity('library-1', 'Library One', {
+      lineage: { organizationId: auth.organizationId },
       summary: { cassetteCount: 1, cassettePreview: [{ entityType: 'cassette', id: 'cassette-1' }] },
       data: { description: 'Library summary marker' }
     });
     const queue = entity('queue-1', 'Queue One', {
-      lineage: { organizationId: 'org-demo-acme', projectId: 'project-1' }
+      lineage: { organizationId: auth.organizationId, projectId: 'project-1' }
     });
     const cassette = entity('cassette-1', 'Cassette One', {
-      lineage: { organizationId: 'org-demo-acme', libraryId: 'library-1' },
+      lineage: { organizationId: auth.organizationId, libraryId: 'library-1' },
       status: lifecycleStatus('ACTIVE'),
       data: { definition: { occs: '0.4-draft', documentType: 'template', parameters: {}, definitions: { workpieces: [] } } }
     });
 
-    await app.page.route('**/api/auth/me', async route => {
-      const response = await route.fetch();
-      const current = await response.json();
-      await route.fulfill({
-        response,
-        json: {
-          ...current,
-          screens: [...(current.screens || []), ...workspaceScreens()],
-          roleAssignments: {
-            ...(current.roleAssignments || {}),
-            actions: [...(current.roleAssignments?.actions || []), ...workspaceActions()]
-          }
-        }
-      });
-    });
     await fulfillJson(app.page, '**/api/project/project-1', project);
     await fulfillJson(app.page, '**/api/libraries/library-1', library);
     await fulfillJson(app.page, '**/api/queue?**', [queue]);
@@ -42,15 +34,15 @@ test.describe('generated project workspace', () => {
     await fulfillJson(app.page, '**/api/templates/pens', []);
     await fulfillJson(app.page, '**/api/layer-standards**', []);
 
-    await app.page.goto('/screens/project_workspace_test?entityId=project-1');
+    await app.page.goto(`${projectScreen.route}?entityId=project-1&projectId=project-1`);
     await app.page.evaluate(() => {
       for (const key of Object.keys(localStorage)) {
         if (key.includes('project-workspace')) localStorage.removeItem(key);
       }
     });
     await app.page.reload();
-    await expect(app.page.locator('[data-project-action-palette]').getByRole('button', { name: /^cassette$/i })).toHaveCount(1);
-    await expect(app.page.getByRole('treeitem', { name: /^queues$/i })).toBeVisible();
+    await expect(app.page.locator('[data-project-action-palette]').getByRole('button', { name: /^queue$/i })).toHaveCount(1);
+    await expect(app.page.getByRole('treeitem', { name: /^queue$/i })).toBeVisible();
 
     await app.page.getByRole('treeitem', { name: /linked entities/i }).getByRole('button').click();
     await app.page.getByText('Library One', { exact: true }).first().click();
@@ -113,69 +105,6 @@ function entity(id, name, overrides = {}) {
     data: {},
     ...overrides
   };
-}
-
-function workspaceScreens() {
-  return [
-    detailScreen('project_workspace_test', 'project', [
-      source('project', 'project', 'single'),
-      { ...source('queue_children', 'queue', 'list'), filters: { projectId: '$screen.scope.entityId' } }
-    ], [
-      { ...region('main', 'project'), actions: ['create_cassette_a', 'create_cassette_b'] },
-      region('queue_children_region', 'queue_children', 'card')
-    ]),
-    { ...detailScreen('library_detail_test', 'library', [
-      source('library', 'library', 'single'),
-      { ...source('cassette_children', 'cassette', 'list'), filters: { libraryId: '$screen.scope.entityId' } }
-    ], [region('main', 'library'), { ...region('cassette_children_region', 'cassette_children', 'card'), actions: ['create_cassette_for_library'] }]), actions: ['create_cassette_for_library'] },
-    detailScreen('cassette_detail_test', 'cassette', [
-      source('cassette', 'cassette', 'single')
-    ], [region('main', 'cassette')])
-  ];
-}
-
-function workspaceActions() {
-  return ['create_cassette_a', 'create_cassette_b'].map(actionId => ({
-    actionId,
-    actionKind: 'createEntity',
-    entityType: 'cassette',
-    parentEntityType: 'project',
-    inputs: []
-  })).concat({
-    actionId: 'create_cassette_for_library',
-    actionKind: 'createEntity',
-    entityType: 'cassette',
-    parentEntityType: 'library',
-    inputs: [{ id: 'parent', entityType: 'library', required: true }]
-  });
-}
-
-function detailScreen(screenKey, entityType, sources, regions) {
-  return {
-    id: screenKey,
-    screenKey,
-    route: `/screens/${screenKey}`,
-    entityType,
-    template: 'entityDetail',
-    placement: 'detail',
-    sources,
-    regions,
-    actions: []
-  };
-}
-
-function source(id, entityType, mode) {
-  return {
-    id,
-    entityType,
-    mode,
-    required: { feature: entityType === 'cassette' ? 'cassettes' : 'projects', level: 'read' },
-    ...(mode === 'single' ? { identifier: '$screen.scope.entityId' } : {})
-  };
-}
-
-function region(id, sourceId, surface = 'detail') {
-  return { id, slot: 'main', sourceId, surface, actions: [] };
 }
 
 function lifecycleStatus(primary) {
