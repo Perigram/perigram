@@ -122,7 +122,7 @@ same phase that replaces a contract.
   compiler adapter, execution runtime, relation option resolver, and run repository
   boundaries. Cross-feature operations must call registered services, never concrete
   repositories or entity-specific helpers.
-- [ ] Acceptance: process package tests run against a synthetic domain containing no
+- [x] Acceptance: process package tests run against a synthetic domain containing no
   CNC entity names, while CNC integration tests prove the supplied domain contracts.
 
 ### 6. Remove queue producer and relation-action parallel systems
@@ -186,9 +186,9 @@ same phase that replaces a contract.
 - [ ] Split the process page into focused composables/components for persistence,
   graph editing, connection inference, palette, inspector, process selection, roles,
   screens, and dock/navigation.
-- [ ] Add crash/reload tests proving incomplete graphs, selected nodes, viewport, and
+- [x] Add crash/reload tests proving incomplete graphs, selected nodes, viewport, and
   every authored edge survive Save and reload after validation errors.
-- [ ] Acceptance: repeated edits do not increase heap without bound; Save completes
+- [x] Acceptance: repeated edits do not increase heap without bound; Save completes
   while the graph is invalid; Apply alone reports semantic errors.
 
 ### 10. Repair generated UI and project workspace ownership
