@@ -176,7 +176,9 @@ definition normalization repeats that inference so a saved graph never depends
 on inspector state. Parentage remains a field of a composed Lineage block, not
 an extra Create socket. The compiler emits `lineageBindings` from those graph
 edges: each binding carries `{ childEntityType, ancestorEntityType, lineageKey,
-sourceNode, consumingNode }`. Compiled lineage bindings are the authoritative
+sourceNode, sourceSocket, consumingNode, consumingSocket }`. The child type is
+derived from the Create/Modify entity consumer wired to the composed block, so
+persisted composers need no manually selected `targetEntityType`. Compiled lineage bindings are the authoritative
 hierarchy contract for the active process. Home eligibility, root scoping, and
 inferred child regions use those bindings exclusively; static domain
 containment neither creates nor repairs process hierarchy. Once resolved, the compiler recognizes one lineage entity
