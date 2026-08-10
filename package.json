@@ -29,7 +29,8 @@
     "framework:manifest": "node scripts/framework-inspect.js check-manifest",
     "framework:write-manifest": "node scripts/framework-inspect.js write-manifest",
     "framework:validate": "node scripts/framework-inspect.js validate",
-    "agent:scope-check": "node scripts/check-agent-scope.js"
+    "agent:scope-check": "node scripts/check-agent-scope.js",
+    "docs:validate": "node scripts/check-docs.js"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
