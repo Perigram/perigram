@@ -1,6 +1,6 @@
 ---
 name: cutkit-project-workflow
-description: Follow CutKit Demo repository workflow when doing coding-agent work in this repo, especially documentation-first context assembly, README synchronization, TODO.org Agent Notes, validation selection, commit discipline, branch discipline, and keeping AGENTS.md as the mandatory source of truth.
+description: Follow CutKit Demo repository workflow when doing coding-agent work in this repo, especially documentation-first context assembly, README synchronization, TODO.md Agent Notes, validation selection, commit discipline, branch discipline, and keeping AGENTS.md as the mandatory source of truth.
 ---
 
 # CutKit Project Workflow
@@ -37,6 +37,6 @@ inspection for context.
 
 - Synchronize the relevant README files when behavior, structure, workflows, or
   public contracts changed.
-- Add an `Agent Notes` entry under the relevant `TODO.org` task with date, task,
+- Add an `Agent Notes` entry under the relevant `TODO.md` task with date, task,
   files changed, docs updated, and key decisions.
 - Use a `neo: ...` commit message for documentation-only commits.

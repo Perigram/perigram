@@ -122,17 +122,7 @@ file and domain JSON tabs.
 `data-model-review.vue` compares extracted Mongo collection fields with the
 framework manifest and stores review decisions in localStorage.
 
-## Marketing Animations
-
-`marketing-animations.vue` previews reusable public marketing visuals under the
-authenticated admin route. It currently hosts the cassette workflow animation
-used by the public landing page, including motion metadata and reduced-motion
-support notes. The animation itself lives in
-`components/marketing/CassetteMarketingAnimation.vue` so public and admin
-surfaces render the same asset.
-
 ## Related
 
 - [Runtime registry](../../server/runtime/README.md)
 - [domain-cnc](../../packages/domain-cnc/README.md)
-- [marketing components](../../components/marketing/README.md)

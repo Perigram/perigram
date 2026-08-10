@@ -57,5 +57,5 @@ local README before editing.
 
 ## Documentation
 
-Update the local feature README, parent component README, and `TODO.org` Agent
+Update the local feature README, parent component README, and `TODO.md` Agent
 Notes whenever backend behavior, contracts, registration, or workflows change.

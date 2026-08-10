@@ -165,8 +165,8 @@ masked.
 5. Parent's `summary` block is updated via `aggregator.js` (if `triggerAggregator` hook was called).
 
 ## Related
-- [server/core/blocks/](../core/blocks/) (Standard Block classes)
-- [server/utils/objectid.js](../utils/objectid.js) (Flexible ID handling)
+- [server/core/blocks/](../blocks/) (Standard Block classes)
+- [server/utils/objectid.js](../../utils/objectid.js) (Flexible ID handling)
 - [server/runtime/README.md](../../runtime/README.md) (Entity registry helpers)
 - [packages/workflows/README.md](../../../packages/workflows/README.md) (Framework workflow package)
 - [server/core/effects/README.md](../effects/README.md) (Effect processor)

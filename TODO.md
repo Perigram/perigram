@@ -256,3 +256,283 @@ same phase that replaces a contract.
   behavior in generic process code, no runtime legacy bridges, no hidden automation,
   no source-string behavior tests, no contradictory DONE tasks, and no known
   architecture findings reported as non-blocking success.
+
+## Open tasks (migrated from TODO.org)
+
+Tasks moved from `TODO.org` on 2026-08-10 when the operational task
+registration moved to this markdown file. Status and acceptance criteria are
+preserved verbatim from the org source. Update task status the same way here:
+check the box when its own acceptance criteria pass, or set the task
+`WAITING` when it is implemented and awaiting user validation.
+
+### Facade designer v0.1
+
+- [x] Implement facade designer as part of cnc-domain, with a designer (same as
+  cassette designer or process designer; their architecture needs to be
+  abstractionized, centralized and formalized according to project guidelines if
+  still not; especially layout responsibility) with three.js for display, so
+  mesh and cladding elements type and library define which patterns can be
+  applied, including a facade entity holding a 3d artifact, a pattern entity
+  holding a generation algorithm, and optional libraries in the relations block.
+  Patterns should be applied to 3d meshes by loose parts and customized in the
+  designer.
+
+#### Agent Notes
+
+- [2026-08-08 Sat 10:11 MSK] Completed facade designer v0.1. Added the shared
+  DesignerWorkspace/ThreeViewport abstraction used by cassette and process
+  designers; added project-scoped facade and organization-scoped facade_pattern
+  entities, APIs, revisions, permissions, artifact validation for immutable
+  GLB/self-contained GLTF sources, generated-detail integrations, mesh-part
+  pattern assignment, and a Vue Flow pattern editor. Removed the process
+  designer Automation palette section on request; runtime event/wait operations
+  were later removed entirely from the supported process contract.
+- [2026-08-08 Sat 10:39 MSK] Superseded by the 11:27 repair below: construction
+  metadata must not declare a facade-specific parent.
+- [2026-08-08 Sat 11:27 MSK] Repaired facade creation to use the existing
+  generic containment contract. Facade construction has no parent declaration
+  and Create Entity has no facade-specific parent socket; process authors
+  compose the facade Lineage block with the declared projectId reference. The
+  compiler then resolves project context and generated placement from that
+  shared lineage connection. Updated Process Designer and facade documentation,
+  with construction/compiler/catalog validation passing.
+- [2026-08-08 Sat 11:58 MSK] Fixed v3 generic Create execution: block-connected
+  creates now retain non-block construction inputs such as facade
+  sourceModelId, merge them into the effect payload, and project composed
+  Lineage ids to the owning service's top-level creation inputs. This lets the
+  facade service receive projectId while preserving the shared Lineage
+  containment contract.
+
+### File viewers set for artifacts v0.1
+
+- [x] Implement artifact editors and viewers for all the artifact types and
+  improve artifact flow. Scope: same as all the designer modules (process
+  designer, cassette designer, facade designer, etc) on the architectural level.
+  Details: for all artifact types reasonably possible (DXF, PDF, SVG,
+  txt/docx, xslx/csv, jpeg/png) develop centralized viewers and, where makes
+  sense, editors, including multi-format ones (table editor for xslx/csv, img
+  viewer for jpeg/png/svg, etc), using good lightweight opensource solutions.
+  Centralize designer and viewer components (adjust cassette and process
+  designers if still not). Add proper upload and revision tracking per artifact
+  type; artifact page and element must use the matching viewer and editor when
+  available for the file type and user access rights. In the process designer,
+  choose the artifact type and its creation way (prefer OS-native ways like
+  taking a photo or uploading where possible).
+
+#### Agent Notes
+
+- [2026-08-08 Sat 10:09 MSK] Completed artifact viewer/editor flow, upload and
+  revision handling, and process-defined artifact creation modes. Shared
+  designer surfaces now provide the common fullscreen host structure for
+  operational designers. Follow-up stability fixes capped the development Node
+  heap, prevented unchanged data-model writes from triggering HMR, and reduced
+  entity-event polling from 750 ms to 15 seconds while visible (paused for
+  hidden tabs).
+
+#### User testing
+
+- [ ] Open an artifact detail page and verify that its viewer matches the file
+  type: DXF/SVG, PDF, image, text/document, or table data.
+- [ ] Replace an artifact file, confirm the preview updates, then inspect the
+  revision history and restore/open an earlier revision if available.
+- [ ] In the process designer, create or edit an artifact action and verify the
+  selected artifact kind exposes only its valid creation mode and editor
+  behavior.
+- [ ] Open cassette, process, facade, and facade-pattern designers from their
+  standalone routes/actions; each should occupy the full available workspace
+  and preserve its own data.
+- [ ] On `http://0.0.0.0:3000/screens/auto_project_detail?entityId=unnamed-project-3V1ZXt&projectId=unnamed-project-3V1ZXt`,
+  leave DevTools Network open for at least 20 seconds. `/api/entity-events`
+  should appear once on initial load and then roughly every 15 seconds, never
+  repeatedly at sub-second intervals. Switch to another tab for 20 seconds and
+  confirm no additional entity-event requests occur; returning to the tab
+  triggers one prompt refresh.
+
+### Artifact conversion
+
+- [x] Add a layer that converts artifacts from one type to another or into other
+  entities (probably as a server service/command, or multiple ones), including
+  entity creation mode compatibility and creation modes from artifact types.
+  Visible in the process designer with action buttons.
+
+#### Agent Notes
+
+- [2026-08-09 Sun 13:16] Implemented the domain-declared `convertArtifact`
+  command and the server artifact-conversions capability. The first supported
+  conversions are `LAYOUT_DXF -> DXF_SOURCE`, preserving the copied file with
+  artifact provenance and its own revision, and `DXF_SOURCE -> cassette_design`
+  through the existing typed cassette import constructor.
+- Process command inputs now support context-bound entities without a redundant
+  picker, conversion choices are filtered by the selected artifact kind, and
+  command output DTOs are applied immediately to matching generated-screen
+  sources.
+- Updated domain, server feature/runtime, artifact, and generated-component
+  READMEs. Validation passed: `node scripts/check-arch.js`,
+  `npm run framework:validate`, diff checks, and 6 focused Vitest assertions.
+
+#### User testing
+
+- [ ] In the process designer, connect an artifact entity to a Run Command
+  node, choose `convertArtifact`, expose it as a manual action, and activate
+  the process.
+- [ ] Open a `LAYOUT_DXF` artifact detail generated by that process. Run
+  Convert artifact and verify the only target is Create DXF source; after
+  completion, confirm the new `DXF_SOURCE` appears without reloading and
+  downloads/previews the same DXF.
+- [ ] Open a `DXF_SOURCE` artifact detail. Run Convert artifact and verify the
+  only target is Import cassette design. Supply a name and layer mapping that
+  maps at least one closed contour to cut.outer; confirm the resulting cassette
+  design opens in the cassette-design surface.
+- [ ] Try invoking either conversion with an incompatible source kind through
+  the command API and verify the server rejects it with HTTP 400 instead of
+  creating a record.
+
+### UI rework and some bugfix (7/14)
+
+- Note taken on [2026-08-09 Sun 11:42]: before executing each task, explore
+  project architectural patterns that it should be based on.
+- [ ] Home page fix: generated home page should contain only top-level entities
+  (those without user-accessible entities in lineage; if the user has no access
+  to any ancestor excluding org, it counts as top-level). Note: not fixed at all.
+- [ ] Default entity detail/page should fit its parent: layout must depend on
+  parent size and proportions, with reasonable breakpoints and sizes so graphic
+  elements look good and data/actions are correctly placed. Note: not fixed at all.
+- [ ] Entity page or component should not show lineage already displayed in the
+  current context (e.g. lineage `orgId/clusterId` on the clusterId page needs no
+  lineage display); a simple check. Note: not fixed at all.
+- [x] Fix layout of `/invitation/id` (broken, not centered, error message
+  doesn't fit, and the button is text not a button). Note: modal header is awful.
+- [x] `/invitation/id` must not fetch an organization the user cannot access,
+  which causes an inline 404 in the invitation form.
+- [x] In the app menubar there is no need for a chat icon; the floating chat
+  icon on the bottom right should be bigger. Note: moved to menu, which was not
+  asked for; accepted but noted with frustration.
+- [x] Chat window should have an expand button with a separate route to chats
+  (with generated actions etc, viewed as general organization entity cards).
+  Note: chats layout is awful and the floating chat icon should not be in chats.
+- [x] Chats need refactor: "support" appears instead of self-chat, and existing
+  chats with every user are wrong; each must be launched explicitly.
+- [x] In the app menubar menu, the organization list is broken (no names shown)
+  and all org-level functions (team management, billing) should be removed from
+  that section since they are on the org page; only choosing an organization
+  belongs there. Note: organizations no longer visible in the menubar menu.
+- [ ] Clicking an organization in the menubar does not switch organization.
+- [ ] Menubar breadcrumbs in organization scope are artificial/wrong.
+  Note: removed instead of fixing to represent the correct hierarchy.
+- [x] User entity needs an avatar-set capability. Note: the avatar image needs
+  to be cropped, not scaled non-uniformly.
+- [ ] In the user's space, organizations have poor data representation and
+  actions; develop it in project-architecture terms (generated actions, general
+  organization entity cards). Note: made much worse; ellipsis dropdown for
+  navigation and a flat organization/billing list are rejected.
+- [ ] Billing page has non-UI leaks (packages set in external runtime
+  configuration, tokens belonging to the active organization). Status is
+  artificial (should only be derived from deployment configuration with current
+  tariff). Add an explanation message in the tokens panel describing that tokens
+  are used for compute work like the nesting service or AI interactions.
+  Note: sentence construction strongly rejected.
+
+#### Agent Notes
+
+- [2026-08-10 Mon 11:40 MSK] Reopened the seven UI-rework items whose acceptance
+  notes say "not fixed at all" or describe broken rendered behavior (home
+  top-level filtering, entity detail parent-responsive layout, redundant lineage
+  display, organization switching, breadcrumbs, user-space organization cards,
+  and billing UI leaks). The task header now reads [7/14]; the reopened items
+  must be verified against persisted data/browser behavior before being marked
+  DONE again.
+- [2026-08-09 Sun 21:24 MSK] Reopened the task against the persisted
+  user-6a0590fd account, active process-6a78b739 manifest, project
+  unnamed-project-3V1ZXt, non-square 1080x1920 avatar, and real direct-message
+  history. This invalidated the earlier synthetic-account/browser claims: the
+  full-page chat selected a thread without connecting its SSE body, and the
+  rendered PrimeVue avatar computed to object-fit: fill despite source
+  assertions for cover.
+  Fixed the reproduced contracts. Home now evaluates canonical lineage keys
+  that are absent from containment metadata and removes empty child sections;
+  entity contexts propagate through project panes, generated card collections
+  use bounded parent-responsive tracks, persisted embedded chats load their
+  message stream, and all PrimeVue avatar media uses runtime cover cropping.
+  Organization child routes now sit directly in the canonical organization
+  entity header, while Profile uses controlled PrimeVue tabs and canonical
+  membership cards instead of an artificial navigation list.
+  The first persisted-data acceptance run still exposed Cassette Design on Home.
+  Its records use lineage.templateId, while the domain omitted the matching
+  containment edge. Added cassette -> cassette_design to the CNC domain contract
+  and made Home omit structurally nested source bands when loaded records carry
+  that parent. This repair is validated against the active manifest instead of
+  requiring process reactivation.
+  The next rendered pass proved the Profile tab chrome still did not change
+  content. Replaced component-local tab state with route-backed
+  ?tab=preferences/organizations navigation; membership cards are now
+  addressable and survive reload instead of depending on inert visual tabs. The
+  acceptance retry showed PrimeVue tab events were still inert on this page, so
+  the final control is a semantic route-link tab strip.
+- [2026-08-09 Sun 21:00 MSK] Audited the reviewed UI task against rendered pages
+  instead of the previous source-string assertions. The audit found and repaired
+  an authenticated /projects 500, stale Nuxt runtime modules, a collapsed /chats
+  layout, inaccessible Profile membership content, a non-opening account menu,
+  raw invitation request errors and blank header chrome, and the rejected flat
+  organization navigation-card hub. The current rendered contracts are:
+  full-height two-pane Chats with no app launcher on that route; a centered
+  headerless invitation panel with localized invalid/expired messaging; canonical
+  organization detail data with direct Billing/Team actions; visible Profile
+  organization cards with direct switch/open actions; and an account popover
+  whose organization section lists canonical names and contains organization
+  selection only. Billing retains deployment-derived tariff visibility and now
+  uses concise compute-token copy. Browser validation exercised Invitation,
+  Projects, Chats, Profile, Organization, and Billing against a clean restarted
+  Nuxt process. Focused Vitest coverage was updated for the repaired contracts.
+- [2026-08-09 Sun 20:13 MSK] Reopened every reviewed item after user testing.
+  The earlier home fix was ineffective for already-active process manifests;
+  home now derives all readable non-organization ancestors from the domain
+  containment graph at runtime. Entity pages, facts, specs, and generated child
+  grids now respond to their actual parent width, and descendant traces
+  automatically omit the entity already displayed by the enclosing EntityPage.
+  Reworked the reported visual/navigation failures: invitation uses a normal
+  panel header; /chats is a bounded two-pane desktop workspace with the launcher
+  hidden on that route; the organization switcher is visible for one or many
+  organizations; organization breadcrumbs are organization name -> section;
+  profile organization cards have visible direct actions and only open/switch at
+  that level; avatar images use cover cropping; billing uses a dedicated
+  explanation message with rewritten English and Russian copy. Added focused
+  regression coverage for these reviewed contracts.
+- [2026-08-09 Sun 19:31 MSK] Completed all 14 UI-rework items. Generated home
+  filtering now hides a child only when its declared containment parent is
+  actually readable in the user's loaded generated sources. Entity detail layout
+  uses parent-width container breakpoints, and child collection traces omit the
+  displayed parent. Invitation presentation is sanitized and server-resolves
+  organization/role labels without a protected browser fetch. Chat navigation,
+  explicit direct conversation creation, and direct self-chat are complete.
+  Organization switching uses canonical DTO ids/names; profile memberships
+  render OrganizationCard with generated system-screen actions. User avatar
+  upload, authenticated streaming, removal, DTO projection, profile editing, and
+  app shell/card display use the users/files service boundaries. Billing UI now
+  receives deployment mode/current tariff explicitly, hides artificial account
+  status outside tariff mode, and explains compute-token usage without runtime
+  configuration leaks. Updated component, composable, page, API, users,
+  invitations, support, and billing documentation.
+
+#### User testing
+
+- [ ] Verify generated Home hides a child when its readable parent is present,
+  but shows the child when that parent is inaccessible.
+- [ ] Open child collections inside a detail screen and confirm layout responds
+  to pane width and the displayed parent is absent from each child trace.
+- [ ] Open a valid and invalid invitation link while logged out; confirm the
+  centered form never requests `/api/organizations/:id` and long errors fit.
+- [ ] Open Chats from the floating launcher, expand to `/chats`, start a new
+  user chat and a self-chat, and confirm untouched users have no empty rows.
+- [ ] Switch organizations from the user menu and profile cards; verify names,
+  active state, generated organization actions, and breadcrumbs.
+- [ ] Upload, replace, and remove JPEG/PNG/WebP avatars; verify profile, user
+  cards, and the app-shell avatar update.
+- [ ] Check billing in prepaid-token and tariff deployments; only tariff mode
+  shows the configured tariff, and the token explanation mentions nesting and AI
+  compute work.
+
+### INBOX Process designer node set update
+
+- [ ] Goal: update the process designer node set.
+- [ ] Scope: undefined.
+- [ ] Details: undefined.

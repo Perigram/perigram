@@ -212,6 +212,6 @@ runtimes consume those registry definitions after access checks.
 
 ## Related
 
-- [server/features/README.md](../features/README.md) — Feature public API contract
+- [server/features/README.md](../../features/README.md) — Feature public API contract
 - [server/core/machines/README.md](../machines/README.md) — State machine engine
 - [composables/README.md](../../../composables/README.md) — Frontend entity composable
