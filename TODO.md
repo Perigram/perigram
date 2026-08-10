@@ -242,17 +242,17 @@ same phase that replaces a contract.
 
 ### Required execution order and completion gate
 
-- [ ] Execute phases 0–3 before changing Home or child placement again.
-- [ ] Execute phases 4–6 before adding or repairing entity constructors, relation
+- [x] Execute phases 0–3 before changing Home or child placement again.
+- [x] Execute phases 4–6 before adding or repairing entity constructors, relation
   actions, or producer UI.
-- [ ] Execute phases 7–9 before extending process runtime behavior.
-- [ ] Execute phases 10–12 only on the canonical contracts established earlier; do
+- [x] Execute phases 7–9 before extending process runtime behavior.
+- [x] Execute phases 10–12 only on the canonical contracts established earlier; do
   not add temporary compatibility paths to keep old UI alive.
-- [ ] For every phase: update the relevant README source of truth, add focused tests,
+- [x] For every phase: update the relevant README source of truth, add focused tests,
   run `node scripts/check-arch.js` and `npm run framework:validate`, migrate affected
   persisted data, validate against the real saved process/project fixture, commit in
   an isolated worktree, and merge cleanly into `local`.
-- [ ] Final gate: no parallel hierarchy/creation/entity registries, no concrete CNC
+- [x] Final gate: no parallel hierarchy/creation/entity registries, no concrete CNC
   behavior in generic process code, no runtime legacy bridges, no hidden automation,
   no source-string behavior tests, no contradictory DONE tasks, and no known
   architecture findings reported as non-blocking success.
