@@ -38,10 +38,10 @@ same phase that replaces a contract.
   derived from those graph edges. The compiled binding must contain child entity
   type, ancestor entity type, lineage key, source node/socket, and consuming
   node/socket.
-- [ ] Use compiled lineage bindings for action placement, child regions, detail
+- [x] Use compiled lineage bindings for action placement, child regions, detail
   context, explorer hierarchy, list scoping, Home eligibility, trace omission, and
   runtime creation payloads.
-- [ ] Remove process and generated-screen dependence on `cncContainment`, including
+- [x] Remove process and generated-screen dependence on `cncContainment`, including
   `parentSupportedByDomain`, `parentRelationForChild`, `withRootEntityScope`, and
   browser-side containment imports. Do not replace it by guessing every `*Id` key.
 - [x] Decide whether any static containment metadata is still needed outside process
