@@ -93,4 +93,13 @@ describe('entity reference contract migration', () => {
     expect(result.changed).toBe(false);
     expect(result.unresolved).toEqual([{ path: 'data.entityType', value: 'unknownWidget' }]);
   });
+
+  it('preserves non-reference entityType metadata in entity payloads', () => {
+    const result = migrateCanonicalEntityTypes({
+      data: { layerData: [{ entityType: 'LWPOLYLINE', layer: 'cut.outer' }] }
+    }, { strictEntityTypeFields: false });
+
+    expect(result.unresolved).toEqual([]);
+    expect(result.value.data.layerData[0].entityType).toBe('LWPOLYLINE');
+  });
 });

@@ -16,7 +16,7 @@ const ENTITY_TYPE_FIELDS = new Set([
 ]);
 const ENTITY_TYPE_KEYED_FIELDS = new Set(['workflows', 'fieldPolicies']);
 
-export function migrateCanonicalEntityTypes(value) {
+export function migrateCanonicalEntityTypes(value, { strictEntityTypeFields = true } = {}) {
   const unresolved = [];
   let changed = false;
 
@@ -37,7 +37,9 @@ export function migrateCanonicalEntityTypes(value) {
       }
       if (ENTITY_TYPE_FIELDS.has(key) && typeof raw === 'string' && raw) {
         const canonical = canonicalEntityType(raw);
-        if (!canonical) unresolved.push({ path: nextPath.join('.'), value: raw });
+        if (!canonical && (key !== 'entityType' || strictEntityTypeFields)) {
+          unresolved.push({ path: nextPath.join('.'), value: raw });
+        }
         result[key] = canonical || raw;
         if (canonical && canonical !== raw) changed = true;
         continue;
@@ -194,7 +196,9 @@ async function main() {
   for (const collection of canonicalCollections) {
     const cursor = db.collection(collection).find({});
     for await (const document of cursor) {
-      const result = migrateCanonicalEntityTypes(document);
+      const result = migrateCanonicalEntityTypes(document, {
+        strictEntityTypeFields: collection === 'process_definitions'
+      });
       if (result.unresolved.length) {
         canonicalFailures.push({ collection, id: stringId(document._id), unresolved: result.unresolved });
         continue;
