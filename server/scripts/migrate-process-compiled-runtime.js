@@ -131,7 +131,7 @@ async function main() {
     const organizationId = process.data?.lineage?.organizationId
       || process.lineage?.organizationId;
     try {
-      const roles = await loadOrganizationRoles(db, organizationId);
+      const roles = await loadOrganizationRoles(db, organizationId, process.data || {});
       const nextData = recompileProcessData(process.data || {}, roles);
       if (JSON.stringify(nextData.compiled) === JSON.stringify(process.data?.compiled)) continue;
       await db.collection('process_definitions').updateOne(
