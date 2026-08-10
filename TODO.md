@@ -62,9 +62,9 @@ same phase that replaces a contract.
 - [x] Remove hierarchy facts duplicated by `cncSummaries`. Define aggregates as
   explicit derived fields/queries whose scope references compiled lineage, not a
   second parent type/key table.
-- [ ] Remove UI fallbacks that infer hierarchy from camelCase/snake_case aliases,
+- [x] Remove UI fallbacks that infer hierarchy from camelCase/snake_case aliases,
   arbitrary `*Id` fields, loaded neighboring sources, or route shape.
-- [ ] Remove component-local child placement and parent filtering. Generated screens,
+- [x] Remove component-local child placement and parent filtering. Generated screens,
   project explorer, project panes, and standalone entity pages must consume the same
   compiled hierarchy projection.
 - [ ] Acceptance: Home contains only entities without a readable non-organization
@@ -196,7 +196,7 @@ same phase that replaces a contract.
 - [x] Generated UI renders compiled contracts only. Remove direct domain hierarchy
   imports and component-specific reconstruction of actions, parents, sources, status,
   or routes.
-- [ ] Define one action ownership rule: collection actions live in collection bodies,
+- [x] Define one action ownership rule: collection actions live in collection bodies,
   entity actions live in entity/detail bodies, tab headers carry identity/status only,
   and pane controls live in the pane menu.
 - [x] Treat project explorer folders, tabs, pane bodies, and standalone generated
@@ -232,12 +232,12 @@ same phase that replaces a contract.
   persisted/browser acceptance cases pass.
 - [x] Remove completion narratives that contradict current behavior; update relevant
   READMEs to describe only implemented contracts.
-- [ ] Enforce worktree/session-branch commits and clean merges. Add a CI/history guard
+- [x] Enforce worktree/session-branch commits and clean merges. Add a CI/history guard
   where practical so coding-agent implementation commits cannot land directly on the
   integration branch.
-- [ ] Preserve separate implementation and `neo:` documentation commits. Do not use a
+- [x] Preserve separate implementation and `neo:` documentation commits. Do not use a
   documentation commit to claim unverified implementation completion.
-- [ ] Acceptance: handoff reports contain commit hashes, exact validations, known
+- [x] Acceptance: handoff reports contain commit hashes, exact validations, known
   failures, and remaining dirty files; task status matches those results.
 
 ### Required execution order and completion gate
