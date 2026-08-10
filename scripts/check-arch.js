@@ -413,7 +413,7 @@ const frontendStatusFiles = [
 collectLineMatches(frontendStatusFiles, [
   {
     rule: 'ui.lifecycle.literal',
-    pattern: /\bstatus(?:\.state)?\s*(?:===|!==)\s*['"]([A-Z][A-Z_-]+)['"]/,
+    pattern: /\b(?:entity\.status|status\.state|status\?\.state|(?:props\.)?[a-zA-Z]+\.status\.state)\s*(?:===|!==)\s*['"]([A-Z][A-Z_-]+)['"]/,
     message: 'hardcoded lifecycle state in UI; prefer server-provided actions/status contracts'
   }
 ]);

@@ -1,4 +1,4 @@
-import { normalizeProcessSocket, processType } from './types.js';
+import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
 
 const DATA = 'data';
 const CONTROL = 'control';
@@ -690,7 +690,7 @@ function constructionInputs(record = {}) {
       ? multiple
         ? processType('array', { itemType: processType('entityRef', { entityType: input.entityType, accepts: input.accepts }) })
         : processType('entityRef', { entityType: input.entityType, accepts: input.accepts })
-      : processType(input.type || 'json');
+      : mapDomainInputType(input.type || 'json');
     return { ...input, id: input.id || input.path, type };
   }).filter(input => input.id);
 }

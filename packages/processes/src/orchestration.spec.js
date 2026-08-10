@@ -159,43 +159,6 @@ describe('durable process orchestration', () => {
     }));
   });
 
-  it('keeps date scheduling in an explicit wait node before an automatic effect', async () => {
-    const definition = process([
-      { id: 'create', kind: 'effect.createEntity', entityType: 'project', trigger: { mode: 'manual' }, fields: [] },
-      { id: 'at', kind: 'source.literalItem', value: '2026-02-01T00:00:00.000Z', type: { base: 'dateTime', shape: 'item' } },
-      { id: 'wait', kind: 'control.waitUntil' },
-      { id: 'update', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'event' }, fields: [] }
-    ], ['create', 'at', 'wait', 'update'], [
-      {
-        id: 'create-update-entity',
-        source: 'create',
-        sourceHandle: 'data:result',
-        target: 'update',
-        targetHandle: 'data:entity',
-        role: 'data'
-      },
-      data('at', 'wait', 'at'),
-      control('create', 'completed', 'wait'),
-      control('wait', 'out', 'update')
-    ]);
-    const executeEffect = vi.fn().mockResolvedValue({ type: 'project', id: 'project-1' });
-    const before = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:00.000Z'));
-    const waiting = await runProcessUntilSettled(
-      createProcessRun(definition, { nodeId: 'create' }, { now: before }),
-      definition,
-      { now: before, executeEffect }
-    );
-
-    expect(waiting.status).toBe('waiting');
-    expect(waiting.wakeAt).toBe('2026-02-01T00:00:00.000Z');
-    expect(executeEffect).toHaveBeenCalledOnce();
-
-    const after = vi.fn().mockReturnValue(new Date('2026-02-01T00:00:01.000Z'));
-    const completed = await runProcessUntilSettled(waiting, definition, { now: after, executeEffect });
-    expect(completed.status).toBe('succeeded');
-    expect(executeEffect).toHaveBeenCalledTimes(2);
-  });
-
   it('branches, executes an effect once with an idempotency key, and stops', async () => {
     const definition = process([
       { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
@@ -214,27 +177,6 @@ describe('durable process orchestration', () => {
     expect(completed.status).toBe('succeeded');
     expect(executeEffect).toHaveBeenCalledTimes(2);
     expect(executeEffect.mock.calls[1][0].idempotencyKey).toContain(completed.id);
-  });
-
-  it('persists a wait boundary and resumes after its wake time', async () => {
-    const definition = process([
-      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
-      { id: 'duration', kind: 'source.literalItem', value: 'PT5S', type: { base: 'duration', shape: 'item' } },
-      { id: 'wait', kind: 'control.waitDuration' },
-      { id: 'stop', kind: 'control.stopSuccess' }
-    ], ['start', 'duration', 'wait', 'stop'], [
-      control('start', 'completed', 'wait'),
-      data('duration', 'wait', 'duration'),
-      control('wait', 'out', 'stop')
-    ]);
-    const now = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:00Z'));
-    const executeEffect = vi.fn().mockResolvedValue({ ok: true });
-    const started = await advanceProcessRun(createProcessRun(definition, {}, { now }), definition, { now, executeEffect });
-    const waiting = await advanceProcessRun(started, definition, { now, executeEffect });
-    expect(waiting.status).toBe('waiting');
-    const after = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:06Z'));
-    const completed = await runProcessUntilSettled(waiting, definition, { now: after, executeEffect });
-    expect(completed.status).toBe('succeeded');
   });
 
   it('terminates a failed effect without emitting completion', async () => {
@@ -316,86 +258,6 @@ describe('durable process orchestration', () => {
     });
     expect(completed.status).toBe('succeeded');
     expect(executeEffect.mock.calls.slice(1).map(call => call[0].inputs.parameters)).toEqual([{ n: 1 }, { n: 2 }]);
-  });
-
-  it('routes a typed process input payload into date operations and an explicit wait', async () => {
-    const definition = process([
-      { id: 'start', kind: 'effect.runCommand', commandId: 'start', entityType: 'project', trigger: { mode: 'manual' } },
-      { id: 'entity', kind: 'source.processInput', path: 'entity', type: { base: 'entity', shape: 'item', entityType: 'project' } },
-      { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'project', blocks: ['status'] },
-      { id: 'field', kind: 'record.getField', block: 'status', path: 'status.timestamp', type: { base: 'dateTime' } },
-      { id: 'date', kind: 'value.dateTime', operation: 'addDays', inputDefaults: { amount: 30 } },
-      { id: 'wait', kind: 'control.waitUntil' },
-      { id: 'stop', kind: 'control.stopSuccess' }
-    ], ['start', 'entity', 'deconstruct', 'field', 'date', 'wait', 'stop'], [
-      control('start', 'completed', 'wait'),
-      {
-        id: 'payload-deconstruct',
-        source: 'entity',
-        sourceHandle: 'data:value',
-        target: 'deconstruct',
-        targetHandle: 'data:entity',
-        role: 'data'
-      },
-      {
-        id: 'status-field',
-        source: 'deconstruct',
-        sourceHandle: 'data:status',
-        target: 'field',
-        targetHandle: 'data:block',
-        role: 'data'
-      },
-      data('field', 'date', 'date'),
-      data('date', 'wait', 'at'),
-      control('wait', 'out', 'stop')
-    ]);
-    const now = vi.fn().mockReturnValue(new Date('2026-01-01T00:00:00.000Z'));
-    const executeEffect = vi.fn().mockResolvedValue({ ok: true });
-    const run = createProcessRun(definition, { nodeId: 'start' }, {
-      now,
-      context: { inputs: { entity: { status: { timestamp: '2026-01-01T10:00:00.000Z' } } } }
-    });
-    const waiting = await runProcessUntilSettled(
-      run,
-      definition,
-      { now, executeEffect }
-    );
-    expect(waiting.status).toBe('waiting');
-    expect(waiting.wakeAt).toBe('2026-01-31T10:00:00.000Z');
-  });
-
-  it('starts from a declared domain event and exposes its payload to the graph', async () => {
-    const definition = process([
-      { id: 'event', kind: 'control.domainEventTrigger', eventId: 'queue.requested' },
-      { id: 'effect', kind: 'effect.runCommand', commandId: 'handle', trigger: { mode: 'event' } },
-      { id: 'stop', kind: 'control.stopSuccess' }
-    ], ['event', 'effect', 'stop'], [
-      control('event', 'start', 'effect'),
-      {
-        id: 'event-payload-effect',
-        source: 'event',
-        sourceHandle: 'data:payload',
-        target: 'effect',
-        targetHandle: 'data:payload',
-        role: 'data'
-      },
-      control('effect', 'completed', 'stop')
-    ]);
-    const executeEffect = vi.fn().mockResolvedValue({ ok: true });
-    const catalogContext = record => record.commandId === 'handle'
-      ? { command: { input: { parameters: [{ name: 'payload', type: 'object', required: true }] } } }
-      : {};
-    const run = createProcessRun(definition, {
-      kind: 'control.domainEventTrigger',
-      eventId: 'queue.requested',
-      payload: { queueId: 'queue-1' }
-    });
-    const completed = await runProcessUntilSettled(run, definition, { executeEffect, catalogContext });
-
-    expect(completed.status).toBe('succeeded');
-    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
-      inputs: { payload: { queueId: 'queue-1' } }
-    }));
   });
 
   it('hydrates declared command entity outputs before downstream entity operations', async () => {

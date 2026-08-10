@@ -41,6 +41,35 @@ export const PROCESS_BASE_TYPES = Object.freeze([
 export const PROCESS_DATA_ACCESS = Object.freeze(['item', 'list', 'tree']);
 export const PROCESS_SOCKET_ROLES = Object.freeze(['data', 'control', 'success', 'failure']);
 
+export function mapDomainInputType(kind = 'json', metadata = {}) {
+  let clean = String(kind || 'json');
+  if (clean.endsWith('_list')) {
+    clean = clean.slice(0, -5);
+  }
+  if (clean === 'entityList') {
+    clean = 'entity';
+  }
+  const base = ({
+    object: 'json',
+    data: 'json',
+    list: 'json',
+    projection: 'entity',
+    attachment: 'attachmentRef',
+    task: 'taskRef'
+  })[clean] || clean;
+  const supported = PROCESS_BASE_TYPES.includes(base) ? base : 'opaque';
+  const supportsEntityType = ['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(supported);
+  return normalizeProcessType({
+    base: supported,
+    nullable: Boolean(metadata.optional),
+    entityType: supportsEntityType ? metadata.entityType : undefined,
+    block: supported === 'block' ? metadata.block : undefined,
+    capability: metadata.capability,
+    accepts: metadata.accepts,
+    opaqueType: supported === 'opaque' ? clean : undefined
+  });
+}
+
 export function processType(base = 'json', options = {}) {
   return normalizeProcessType({ base, ...options });
 }

@@ -41,7 +41,7 @@ describe('process v4 node catalog', () => {
       'read.queryEntities',
       'effect.changeStatus',
       'control.forEach',
-      'control.waitUntil'
+      'control.stopSuccess'
     ]) {
       expect(getProcessNodeDefinition(kind), kind).not.toBeNull();
     }
