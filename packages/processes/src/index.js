@@ -231,7 +231,7 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
   const derived = { ...(actions || {}) };
   for (const [nodeId, node] of Object.entries(processNodes)) {
     if (!node.kind?.startsWith('effect.')) continue;
-    const actionId = String(node.id || nodeId);
+    const actionId = String(node.entryTriggerId || node.id || nodeId);
     const actionKind = ({
       'effect.createEntity': 'createEntity',
       'effect.runProducer': 'createEntity',
@@ -1316,7 +1316,7 @@ function buildActionGraphContext(process = {}) {
     const refId = String(node.data?.refId || node.id || '');
     const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
     if (node.type !== 'action' && !processNode?.kind?.startsWith('effect.')) continue;
-    const actionId = String(processNode?.id || refId);
+    const actionId = String(processNode?.entryTriggerId || processNode?.id || refId);
     if (!actionId) continue;
     actionNodeById.set(actionId, node);
     actionIdByNodeId.set(String(node.id), actionId);
@@ -2726,7 +2726,7 @@ function inferConnectedActionEntityType(actionId, process = {}) {
       const refId = String(node.data?.refId || node.id);
       const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
       return (node.type === 'action' && refId === String(actionId))
-        || (processNode?.kind?.startsWith('effect.') && String(processNode.id || refId) === String(actionId));
+        || (processNode?.kind?.startsWith('effect.') && String(processNode.entryTriggerId || processNode.id || refId) === String(actionId));
     })
     .map(node => String(node.id)));
   for (const edge of process.graph?.edges || []) {
