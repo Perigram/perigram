@@ -2,6 +2,7 @@ import { test, expect } from './fixtures.js';
 
 test.describe('home and entity UI', () => {
   test('home page renders a readable parent and hides its lineage-bound child section', async ({ app }) => {
+    await app.switchToAssignedOrganization();
     const project = await app.createProject();
     await app.createQueue(project);
     await app.page.goto('/');
@@ -12,6 +13,7 @@ test.describe('home and entity UI', () => {
   });
 
   test('child detail layout follows its pane width and does not repeat its displayed parent trace', async ({ app }) => {
+    await app.switchToAssignedOrganization();
     const project = await app.createProject();
     const queue = await app.createQueue(project);
     const auth = await app.request.get('/api/auth/me');
@@ -51,10 +53,14 @@ test.describe('home and entity UI', () => {
   test('organization selection refreshes active organization state', async ({ app }) => {
     const originalResponse = await app.request.get('/api/auth/me');
     const original = await originalResponse.json();
-    const organizationName = app.uniqueName('Organization');
-    const createdResponse = await app.request.post('/api/organizations', { data: { name: organizationName, processTemplateId: 'contractor' } });
-    expect(createdResponse.ok(), await createdResponse.text()).toBeTruthy();
-    const created = await createdResponse.json();
+    const targetMembership = (original.memberships || []).find(membership => (
+      String(membership.organizationId) !== String(original.organizationId)
+    ));
+    expect(targetMembership).toBeTruthy();
+    const targetResponse = await app.request.get(`/api/organizations/${targetMembership.organizationId}`);
+    expect(targetResponse.ok(), await targetResponse.text()).toBeTruthy();
+    const target = await targetResponse.json();
+    const organizationName = target.identity?.name || target.data?.name || target.name;
     await app.page.goto('/');
     await app.page.waitForLoadState('networkidle');
     const userMenuTrigger = app.page.locator('[data-testid="user-menu-trigger"]');
@@ -63,8 +69,7 @@ test.describe('home and entity UI', () => {
     const switchResponse = app.page.waitForResponse(response => response.url().endsWith('/api/auth/switch-org') && response.request().method() === 'POST');
     await app.page.getByText(organizationName, { exact: true }).click();
     expect((await switchResponse).ok()).toBe(true);
-    await expect.poll(async () => (await (await app.request.get('/api/auth/me')).json()).organizationId).toBe(String(created._id));
-    await app.request.delete(`/api/organizations/${created._id}`, { failOnStatusCode: false });
+    await expect.poll(async () => (await (await app.request.get('/api/auth/me')).json()).organizationId).toBe(String(targetMembership.organizationId));
     await app.request.post('/api/auth/switch-org', { data: { organizationId: original.organizationId } });
     await app.expectCleanRuntime();
   });
