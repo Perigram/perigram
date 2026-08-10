@@ -65,7 +65,7 @@ describe('status service lifecycle payloads', () => {
       status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
-    await statusService.transition('cassetteTemplate', 'cassette-1', 'ARCHIVED', 'admin-1', {
+    await statusService.transition('cassette', 'cassette-1', 'ARCHIVED', 'admin-1', {
       userId: 'admin-1',
       memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
     });
@@ -273,7 +273,7 @@ describe('status service lifecycle payloads', () => {
     ]));
   });
 
-  it('executes process-role transitions without requiring target-status grants on the source entity', async () => {
+  it('ignores stale compiled-only process workflows that have no current semantic graph', async () => {
     await db.collection('process_definitions').insertOne({
       _id: 'process-active-transition-role',
       identity: { uid: 'process-active-transition-role', name: 'Process' },
@@ -348,19 +348,19 @@ describe('status service lifecycle payloads', () => {
     };
 
     const actions = await statusService.getActions('queue', 'queue-process-transition-1', auth);
-    expect(actions.actions).toEqual(expect.arrayContaining([
+    expect(actions.actions).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ from: 'Создано', to: 'Отправлено' })
     ]));
 
-    await statusService.transitionWithResult({
+    await expect(statusService.transitionWithResult({
       entityType: 'queue',
       targetId: 'queue-process-transition-1',
       targetState: 'Отправлено',
       auth
-    });
+    })).rejects.toThrow();
 
     const queue = await db.collection('queues').findOne({ _id: 'queue-process-transition-1' });
-    expect(queue.status.state.primary).toBe('Отправлено');
+    expect(queue.status.state.primary).toBe('Создано');
   });
 
   it('keeps domain system intents available when an active process defines custom statuses', async () => {

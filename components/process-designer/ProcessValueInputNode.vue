@@ -75,7 +75,7 @@ import { Handle, Position } from '@vue-flow/core';
 import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';

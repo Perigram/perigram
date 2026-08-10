@@ -54,7 +54,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { entityUiFor } from '~/utils/status-engine';
-import { containmentAncestors, entityHierarchyIds, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute } from '~/utils/entity-hierarchy.js';
+import { containmentAncestors, entityHierarchyIds, normalizeHierarchyType, projectHierarchyRoute } from '~/utils/entity-hierarchy.js';
 
 const props = defineProps({
     entity: { type: Object, default: null },
@@ -78,7 +78,7 @@ const resolvedEntities = ref({});
 const FALLBACK_LABELS = {
     organization: 'Organization',
     library: 'Library',
-    cassetteTemplate: 'Cassette',
+    cassette: 'Cassette',
     warehouse: 'Warehouse',
     project: 'Project',
     queue: 'Queue'
@@ -101,52 +101,23 @@ const effectiveExclusions = computed(() => {
 
 const items = computed(() => containmentAncestors(
     { ...(props.entity || {}), lineage: activeLineage.value || {} },
-    props.entityType || props.entity?.entityType || inferEntityType(activeLineage.value || {}),
+    props.entityType || props.entity?.entityType || '',
     effectiveContainment()
-).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) }))
-  .filter(ref => !effectiveExclusions.value.some(item => (
+).filter(ref => !effectiveExclusions.value.some(item => (
     normalizeHierarchyType(item?.type) === normalizeHierarchyType(ref.type)
     && String(item?.id || '') === String(ref.id || '')
   ))));
-
-function inferEntityType(lineage = {}) {
-    const candidates = ['sheetDesignId', 'runId', 'queueId', 'projectId', 'libraryId', 'catalogId', 'pileId'];
-    const key = candidates.find(item => lineage[item]);
-    return ({
-        sheetDesignId: 'sheet',
-        runId: 'sheet_design',
-        queueId: 'nesting_run',
-        projectId: 'queue',
-        libraryId: 'cassette',
-        catalogId: 'color',
-        pileId: 'sheet'
-    })[key] || '';
-}
 
 const findContextEntity = (type, id) => {
     const context = unref(entityContext);
     if (!context?.entities || !type || !id) return null;
     const key = id.toString();
-    for (const candidate of contextTypeCandidates(type)) {
-        const byType = context.entities[candidate];
-        if (byType?.[key]) return byType[key];
-        if (Array.isArray(byType)) {
-            const match = byType.find(entity => entity?._id?.toString() === key) || null;
-            if (match) return match;
-            continue;
-        }
-        const match = Object.values(byType || {}).find(entity => entity?._id?.toString() === key) || null;
-        if (match) return match;
+    const byType = context.entities[normalizeHierarchyType(type)];
+    if (byType?.[key]) return byType[key];
+    if (Array.isArray(byType)) {
+        return byType.find(entity => entity?._id?.toString() === key) || null;
     }
-    return null;
-};
-
-const contextTypeCandidates = (type) => {
-    const aliases = {
-        cassetteTemplate: 'cassette',
-        sheetDesign: 'sheet_design'
-    };
-    return Array.from(new Set([type, aliases[type]].filter(Boolean)));
+    return Object.values(byType || {}).find(entity => entity?._id?.toString() === key) || null;
 };
 
 const labelKey = (item) => `${item.type}:${item.id}`;

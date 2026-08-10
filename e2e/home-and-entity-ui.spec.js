@@ -1,20 +1,29 @@
 import { test, expect } from './fixtures.js';
 
 test.describe('home and entity UI', () => {
-  test('home page loads top-level entity sections without errors', async ({ app }) => {
+  test('home page renders a readable parent and hides its lineage-bound child section', async ({ app }) => {
+    const project = await app.createProject();
+    await app.createQueue(project);
     await app.page.goto('/');
     await app.page.waitForLoadState('networkidle');
-    await expect(app.page.locator('body')).not.toContainText('loading');
+    await expect(app.page.locator('[data-home-entity-type="project"] [data-entity-id]').filter({ hasText: project.identity?.name || project.name })).toBeVisible();
+    await expect(app.page.locator('[data-home-entity-type="queue"]')).toHaveCount(0);
     await app.expectCleanRuntime();
   });
 
-  test('entity page shows trace chain', async ({ app }) => {
-    await app.page.goto('/');
+  test('child detail layout follows its pane width and does not repeat its displayed parent trace', async ({ app }) => {
+    const project = await app.createProject();
+    const queue = await app.createQueue(project);
+    const auth = await app.request.get('/api/auth/me');
+    const context = await auth.json();
+    const detail = (context.screens || []).find(screen => screen.template === 'entityDetail' && screen.entityType === 'queue');
+    test.skip(!detail?.route, 'Active process has no generated queue detail screen');
+    await app.page.goto(`${detail.route}?entityId=${encodeURIComponent(queue._id)}&queueId=${encodeURIComponent(queue._id)}&projectId=${encodeURIComponent(project._id)}`);
     await app.page.waitForLoadState('networkidle');
-    await app.page.waitForTimeout(2000);
-    const traceChain = app.page.locator('nav[aria-label]');
-    const count = await traceChain.count();
-    expect(count).toBeGreaterThanOrEqual(0);
+    const entityPage = app.page.locator('.entity-page').first();
+    await expect(entityPage).toBeVisible();
+    expect(await entityPage.evaluate(element => getComputedStyle(element).containerType)).toBe('inline-size');
+    await expect(entityPage.locator('nav').filter({ hasText: project.identity?.name || project.name })).toHaveCount(0);
     await app.expectCleanRuntime();
   });
 
@@ -39,13 +48,24 @@ test.describe('home and entity UI', () => {
     await app.expectCleanRuntime();
   });
 
-  test('organization switching is visible in user menu', async ({ app }) => {
+  test('organization selection refreshes active organization state', async ({ app }) => {
+    const originalResponse = await app.request.get('/api/auth/me');
+    const original = await originalResponse.json();
+    const organizationName = app.uniqueName('Organization');
+    const createdResponse = await app.request.post('/api/organizations', { data: { name: organizationName, processTemplateId: 'contractor' } });
+    expect(createdResponse.ok(), await createdResponse.text()).toBeTruthy();
+    const created = await createdResponse.json();
     await app.page.goto('/');
     await app.page.waitForLoadState('networkidle');
-    await app.page.waitForTimeout(2000);
     const userMenuTrigger = app.page.locator('[data-testid="user-menu-trigger"]');
-    const visible = await userMenuTrigger.isVisible().catch(() => false);
-    expect(visible).toBeTruthy();
+    await expect(userMenuTrigger).toBeVisible();
+    await userMenuTrigger.click();
+    const switchResponse = app.page.waitForResponse(response => response.url().endsWith('/api/auth/switch-org') && response.request().method() === 'POST');
+    await app.page.getByText(organizationName, { exact: true }).click();
+    expect((await switchResponse).ok()).toBe(true);
+    await expect.poll(async () => (await (await app.request.get('/api/auth/me')).json()).organizationId).toBe(String(created._id));
+    await app.request.delete(`/api/organizations/${created._id}`, { failOnStatusCode: false });
+    await app.request.post('/api/auth/switch-org', { data: { organizationId: original.organizationId } });
     await app.expectCleanRuntime();
   });
 });

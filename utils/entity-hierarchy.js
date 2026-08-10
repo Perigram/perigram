@@ -1,24 +1,11 @@
-import { cncEntities } from '@cutkit/domain-cnc';
-
-const TYPE_ALIASES = {
-  ...Object.fromEntries(
-    cncEntities.map(entity => [camelCase(entity.type), entity.type])
-  ),
-  batchPile: 'material_pile',
-  cassetteTemplate: 'cassette'
-};
-
-function camelCase(type = '') {
-  return String(type || '').replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
-}
+import { canonicalEntityType, entitySurfaceKey } from '@cutkit/domain-cnc';
 
 export function normalizeHierarchyType(type = '') {
-  return TYPE_ALIASES[type] || String(type || '').replace(/-/g, '_');
+  return canonicalEntityType(type);
 }
 
 export function hierarchyTypeAlias(type = '') {
-  const normalized = normalizeHierarchyType(type);
-  return Object.entries(TYPE_ALIASES).find(([, value]) => value === normalized)?.[0] || normalized;
+  return entitySurfaceKey(type);
 }
 
 export function entityHierarchyId(entity = {}) {

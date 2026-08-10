@@ -11,6 +11,7 @@ import { cncDomain } from '@cutkit/domain-cnc';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { entityUiFor } from '~/utils/status-engine.js';
 import { containmentAncestors, entityHierarchyId, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute, rootContainmentFilter, siblingContainmentScope } from '~/utils/entity-hierarchy.js';
+import { organizationBreadcrumbEntries } from '~/utils/navigation-breadcrumbs.js';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
@@ -20,7 +21,7 @@ export const useNavigationStore = defineStore('navigation', () => {
 
     function effectiveContainment() {
         const bindings = authStore.lineageBindings || [];
-        if (bindings.length) {
+        if (authStore.processActive) {
             return bindings.map(binding => ({
                 childType: binding.childEntityType,
                 parentType: binding.ancestorEntityType,
@@ -228,24 +229,14 @@ export const useNavigationStore = defineStore('navigation', () => {
             const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId;
             const organization = authStore.organizationData
                 || authStore.userOrganizations.find(item => String(item._id || item.id) === String(organizationId || ''));
-            nav.push({
-                id: String(organizationId || 'organization'),
-                name: entitySelectLabel(organization, t('auth.organization')),
-                to: '/organization',
-                siblings: []
+            return organizationBreadcrumbEntries({
+                organization,
+                organizationId,
+                path,
+                screens: organizationSystemScreens.value,
+                organizationLabel: value => entitySelectLabel(value, t('auth.organization')),
+                screenLabel: screenName
             });
-            const currentScreen = organizationSystemScreens.value.find(screen => screen.route === path);
-            if (currentScreen?.route && currentScreen.route !== '/organization') {
-                nav.push({
-                    id: currentScreen.screenKey || currentScreen.id,
-                    name: screenName(currentScreen),
-                    to: currentScreen.route,
-                    siblings: organizationSystemScreens.value
-                        .filter(screen => screen.route !== '/organization')
-                        .map(screen => siblingOption(screenName(screen), screen.route))
-                });
-            }
-            return nav;
         }
 
         // --- Level 1: Hub Logic ---

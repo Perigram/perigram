@@ -1,14 +1,14 @@
-export function filterRootSourceItems(items = [], source = {}, sourceStates = {}, containment = []) {
+export function filterRootSourceItems(items = [], source = {}, sourceStates = {}) {
   const accessibleIdsByType = accessibleEntityIds(sourceStates);
-  return items.filter(entity => !ancestorRefs(entity, source.entityType, containment, accessibleIdsByType)
+  return items.filter(entity => !ancestorRefs(entity, source.entityType, source.lineageBindings || [])
     .some(ref => accessibleIdsByType.get(ref.type)?.has(ref.id)));
 }
 
-export function shouldRenderHomeSection({ items = [], rawItems = [], source = {} } = {}, containment = []) {
-  const parentLineageKeys = (containment || [])
-    .filter(relation => normalizeType(relation.childType) === normalizeType(source.entityType))
-    .filter(relation => normalizeType(relation.parentType) !== 'organization')
-    .map(relation => relation.lineageKey)
+export function shouldRenderHomeSection({ items = [], rawItems = [], source = {} } = {}) {
+  const parentLineageKeys = (source.lineageBindings || [])
+    .filter(binding => normalizeType(binding.childEntityType) === normalizeType(source.entityType))
+    .filter(binding => normalizeType(binding.ancestorEntityType) !== 'organization')
+    .map(binding => binding.lineageKey)
     .filter(Boolean);
   if (parentLineageKeys.length && (
     !rawItems.length
@@ -16,7 +16,7 @@ export function shouldRenderHomeSection({ items = [], rawItems = [], source = {}
   )) return false;
   if (items.length) return true;
   if (rawItems.length) return false;
-  return !(source.rootLineageKeys || []).length;
+  return !parentLineageKeys.length;
 }
 
 function accessibleEntityIds(sourceStates = {}) {
@@ -35,17 +35,17 @@ function accessibleEntityIds(sourceStates = {}) {
   return result;
 }
 
-function ancestorRefs(entity = {}, entityType = '', containment = [], accessibleIdsByType = new Map()) {
+function ancestorRefs(entity = {}, entityType = '', lineageBindings = []) {
   const lineage = entity?.lineage || {};
   const refs = [];
   const visitedTypes = new Set([normalizeType(entityType)]);
   const pendingTypes = [normalizeType(entityType)];
   while (pendingTypes.length) {
     const childType = pendingTypes.shift();
-    for (const relation of containment || []) {
-      if (normalizeType(relation.childType) !== childType) continue;
-      const parentId = lineage[relation.lineageKey];
-      const parentType = normalizeType(relation.parentType);
+    for (const binding of lineageBindings || []) {
+      if (normalizeType(binding.childEntityType) !== childType) continue;
+      const parentId = lineage[binding.lineageKey];
+      const parentType = normalizeType(binding.ancestorEntityType);
       if (parentType === 'organization' || parentId === undefined || parentId === null || parentId === '') continue;
       refs.push({ type: parentType, id: String(parentId) });
       if (!visitedTypes.has(parentType)) {
@@ -54,21 +54,9 @@ function ancestorRefs(entity = {}, entityType = '', containment = [], accessible
       }
     }
   }
-  for (const [key, value] of Object.entries(lineage)) {
-    if (!key.endsWith('Id') || value === undefined || value === null || value === '') continue;
-    const lineageTypeKey = comparableType(key.slice(0, -2));
-    for (const accessibleType of accessibleIdsByType.keys()) {
-      if (accessibleType === 'organization' || comparableType(accessibleType) !== lineageTypeKey) continue;
-      refs.push({ type: accessibleType, id: String(value) });
-    }
-  }
   return [...new Map(refs.map(ref => [`${ref.type}:${ref.id}`, ref])).values()];
 }
 
 function normalizeType(type = '') {
   return String(type || '').replace(/-/g, '_');
-}
-
-function comparableType(type = '') {
-  return normalizeType(type).replace(/_/g, '').toLowerCase();
 }

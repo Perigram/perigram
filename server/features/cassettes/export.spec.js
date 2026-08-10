@@ -16,7 +16,8 @@ vi.mock('h3', () => ({
 vi.mock('./repository.js', () => ({
   findById: findByIdMock,
   find: vi.fn(),
-  findDesignByTemplateId: vi.fn()
+  findDesignByTemplateId: vi.fn(),
+  updateById: vi.fn()
 }));
 vi.mock('../parametric-cassettes/service.js', () => ({
   evaluateTemplate: evaluateTemplateMock,

@@ -7,18 +7,6 @@ export function lineageKeyForEntityType(entityType = '') {
   return camel ? `${camel}Id` : '';
 }
 
-export function hasScopedFilter(filters = {}, lineageKey = '') {
-  return Object.prototype.hasOwnProperty.call(filters || {}, lineageKey)
-    || Object.prototype.hasOwnProperty.call(filters || {}, `lineage.${lineageKey}`);
-}
-
-export function compiledLineageKeys(entityType = '', lineageBindings = []) {
-  const keys = [...new Set((lineageBindings || [])
-    .filter(binding => binding.childEntityType === entityType && binding.lineageKey)
-    .map(binding => binding.lineageKey))];
-  return keys.length ? keys : null;
-}
-
 export function lineageRelationsForParent(parentEntityType = '', lineageBindings = []) {
   const relations = (lineageBindings || [])
     .filter(binding => binding.ancestorEntityType === parentEntityType && binding.childEntityType && binding.lineageKey)

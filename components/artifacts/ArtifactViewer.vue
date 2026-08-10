@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-0 min-w-0 flex-1 overflow-auto">
+  <div class="min-h-0 min-w-0 flex-1 overflow-auto" data-artifact-viewer :data-viewer-mode="mode">
     <DrawingCanvas
       v-if="hasFile && ['dxf', 'svg'].includes(mode)"
       :source="fileUrl"
@@ -31,6 +31,7 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { resolveArtifactViewer } from '~/utils/artifact-viewer.js';
 
 const props = defineProps({ artifact: { type: Object, required: true }, revision: { type: Object, default: null } });
 const domainUi = useCutkitDomainUi();
@@ -40,11 +41,10 @@ const rows = ref([]);
 const columns = ref([]);
 const error = ref('');
 const blobUrl = ref('');
-const mode = computed(() => domainUi.getAttachmentPreview(props.artifact.data?.type || '').mode);
-const hasFile = computed(() => Boolean(props.revision?.attachments?.primary?.fileId || props.artifact.attachments?.primary?.fileId));
-const fileUrl = computed(() => !hasFile.value ? '' : props.revision?._id
-  ? `/api/entity-revisions/${encodeURIComponent(props.revision._id)}/file`
-  : domainUi.getDownloadEndpoint('artifact', props.artifact._id));
+const viewer = computed(() => resolveArtifactViewer({ artifact: props.artifact, revision: props.revision, domainUi }));
+const mode = computed(() => viewer.value.mode);
+const hasFile = computed(() => viewer.value.hasFile);
+const fileUrl = computed(() => viewer.value.fileUrl);
 
 function releaseBlob() {
   if (blobUrl.value) URL.revokeObjectURL(blobUrl.value);

@@ -1,4 +1,4 @@
-import { cncFrontendEntities } from './summaries.js';
+import { cncEntities } from './entities.js';
 import { cncWorkflows } from './workflows.js';
 import { cncEntityFieldGroups } from './ui-fields.js';
 import { createEntitySurfaceContracts } from './ui-surfaces.js';
@@ -128,13 +128,13 @@ export const cncDesignSystem = {
   surfaces: cncEntitySurfaceContracts
 };
 
-export const cncUiSurfaces = cncFrontendEntities.map(definition => ({
-  key: definition.type,
-  entityType: definition.collection?.replace(/-/g, '_').replace(/s$/, '') || definition.type,
+export const cncUiSurfaces = cncEntities.map(definition => ({
+  key: definition.surfaceKey,
+  entityType: definition.type,
   routes: definition.routes,
-  icon: iconForType(definition.type),
+  icon: iconForType(definition.surfaceKey),
   display: {
-    status: cncWorkflows[definition.type] || cncWorkflows[definition.collection?.replace(/-/g, '_').replace(/s$/, '')] ? 'interactive' : 'hidden',
+    status: cncWorkflows[definition.type] ? 'interactive' : 'hidden',
     trace: !['material', 'machine', 'tool_profile', 'pen_template', 'organization'].includes(definition.type),
     title: 'identity.name'
   }

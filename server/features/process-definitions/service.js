@@ -6,7 +6,6 @@ import { assertEntityAccess } from '~/server/core/access/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
-import * as organizationsRepository from '~/server/features/organizations/repository.js';
 import * as cassetteService from '~/server/features/cassettes/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import * as entityEventService from '~/server/features/entity-events/service.js';
@@ -15,16 +14,10 @@ import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
   compileProcessDefinition,
   hasCanonicalProcessSource,
-  normalizeProcessDefinition,
   PROCESS_DATAFLOW_VERSION,
-  advanceProcessRun,
   applyPatch,
-  createProcessRun,
   evaluateEntityPredicate,
   previewProcessDataflow,
-  resolveProcessActionInputContext,
-  requiredEntityProfileTypes,
-  validateProcessDefinition,
   validateRoundTrip
 } from '~/packages/processes/src/index.js';
 import { createProcessFromTemplate } from '~/server/features/process-definitions/process-templates.js';
@@ -43,7 +36,13 @@ import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
 import { compileActiveProcessRuntime } from './runtime.js';
-import { resolveRelationOptionPath, resolveRelationOptionScope } from './relation-options.js';
+import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
+import {
+  assertCurrentProcessDefinition,
+  currentProcessDefinition,
+  validateActivatableProcess
+} from './compiler-adapter.js';
+import { executeManualRun, resumeDueRuns as resumeStoredRuns } from './run-repository.js';
 
 export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
@@ -86,47 +85,24 @@ export async function getActiveRelationOptions({ actionId, entityId, source = fa
   const raw = await repository.findActiveByOrganization(organizationId);
   if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
   const process = new ProcessDefinition(raw);
-  const organization = await organizationsRepository.findById(organizationId);
-  const compiled = compileActiveProcessRuntime(process.data, organization?.data?.roles || {});
+  const organization = await loadOrganizationProcessConfiguration(organizationId);
+  const compiled = compileActiveProcessRuntime(process.data, organization.roles);
   const action = compiled?.actions?.[actionId];
   if (!action?.relationMutation || action.relationMutation.operation !== 'link') {
     throw createError({ statusCode: 400, message: 'Action does not provide relation options' });
   }
   assertCompiledActionAvailable(actionId, auth);
   const owner = await resolveProcessGraphEntity(action.entityType, entityId, { auth });
-  const creator = action.relationMutation.creator;
-  const optionScope = resolveRelationOptionScope(creator);
-  if (!optionScope.scoped) return queryProcessGraphEntities(action.relationMutation.targetType, auth);
-  const sourceInput = optionScope.sourceInput;
-  if (!sourceInput) return [];
-
-  const domain = getDomain();
-  const optionPath = resolveRelationOptionPath({
-    ownerType: action.entityType,
-    sourceType: sourceInput.entityType,
-    containment: domain.containment || [],
-    actions: compiled.actions || {}
+  return resolveCompiledRelationOptions({
+    action,
+    compiled,
+    owner,
+    source,
+    auth,
+    registry: getAppRegistry(),
+    createExecutionAuth: createActionExecutionAuth,
+    resolveEntity: (entityType, id, executionAuth) => resolveProcessGraphEntity(entityType, id, { auth: executionAuth })
   });
-  if (!optionPath) return [];
-  const { ownerParent, sourceParent, bridgeRelationKey } = optionPath;
-  const ancestorId = ownerParent && owner.lineage?.[ownerParent.lineageKey];
-  if (!ancestorId) return [];
-  const ancestor = await resolveProcessGraphEntity(ownerParent.parentType, ancestorId, { auth });
-  const refs = ancestor.relations?.[bridgeRelationKey];
-  const parentIds = (Array.isArray(refs) ? refs : refs ? [refs] : [])
-    .map(ref => normalizeEntityRef(ref)?.id)
-    .filter(Boolean);
-  if (!parentIds.length) return [];
-  const creatorAction = compiled.actions?.[creator.actionId];
-  if (!creatorAction) return [];
-  const optionAuth = createActionExecutionAuth(auth, creatorAction);
-  const sourceService = getAppRegistry().getEntityService(sourceInput.entityType);
-  const targetService = getAppRegistry().getEntityService(action.relationMutation.targetType);
-  const sources = (await Promise.all(parentIds.map(id => sourceService.processList({ [sourceParent.lineageKey]: String(id) }, optionAuth)))).flat();
-  if (source) return sources.map(item => item?.toJSON ? item.toJSON() : item);
-  const sourceIds = [...new Set(sources.map(entityInputId).filter(Boolean).map(String))];
-  const targets = (await Promise.all(sourceIds.map(id => targetService.processList({ templateId: id }, optionAuth)))).flat();
-  return Array.from(new Map(targets.map(item => [String(entityInputId(item)), item?.toJSON ? item.toJSON() : item])).values());
 }
 
 export async function getById(id, auth) {
@@ -193,12 +169,7 @@ export async function activate(id, auth) {
   await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
   applyProcessStatus(process, 'ACTIVE', auth.userId, 'Process activated');
   const updated = await repository.updateById(id, process);
-  await organizationsRepository.updateById(process.lineage.organizationId, {
-    data: {
-      ...(await organizationsRepository.findById(process.lineage.organizationId))?.data,
-      activeProcessDefinitionId: updated._id
-    }
-  });
+  await organizationProcessService().setActiveProcessDefinition(process.lineage.organizationId, updated._id);
   return new ProcessDefinition(updated).toJSON();
 }
 
@@ -225,43 +196,9 @@ export async function createActiveFromTemplate({ organizationId, templateId, act
 
   await repository.archiveActiveByOrganization(organizationId, actorId || 'SYSTEM');
   const created = await repository.create(process);
-  await organizationsRepository.updateById(organizationId, {
-    data: {
-      ...(await organizationsRepository.findById(organizationId))?.data,
-      activeProcessDefinitionId: created._id
-    }
-  });
+  await organizationProcessService().setActiveProcessDefinition(organizationId, created._id);
 
   return new ProcessDefinition(created).toJSON();
-}
-
-function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
-  const validation = validateProcessDefinition(data, domain, { roles });
-  const process = validation.definition || normalizeProcessDefinition(data);
-  const requiredTypes = requiredEntityProfileTypes(process, domain);
-  if (!requiredTypes.length) return validation;
-  const profiledTypes = new Set(Object.values(process.entityProfiles || {}).map(profile => profile.entityType));
-  const missing = requiredTypes.filter(entityType => !profiledTypes.has(entityType));
-  if (!missing.length) return validation;
-  const errors = [
-    ...(validation.errors || []),
-    `Nesting exposure requires entity profiles and workflows for: ${missing.join(', ')}`
-  ];
-  return { ...validation, ok: false, errors };
-}
-
-function assertCurrentProcessDefinition(data = {}) {
-  if (Number(data.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
-    throw createError({
-      statusCode: 409,
-      message: `Process dataflow version ${PROCESS_DATAFLOW_VERSION} is required`
-    });
-  }
-}
-
-function currentProcessDefinition(data = {}) {
-  assertCurrentProcessDefinition(data);
-  return structuredClone(data);
 }
 
 export async function archive(id, auth) {
@@ -279,21 +216,12 @@ export async function startRun(id, payload = {}, auth = {}) {
   }
   const organizationId = resolveOrganizationId(auth);
   const actor = buildRunActor(auth, organizationId);
-  let run = createProcessRun(definition, payload.trigger || {}, {
-    processDefinitionId: definition._id || definition.id,
-    context: { inputs: payload.inputs || {}, actor }
+  return executeManualRun(definition, payload, {
+    actor,
+    executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
+    catalogContext: catalogContextFromDefinition(definition.data),
+    data: run => processDataEnvironment(auth, run)
   });
-  for (let index = 0; run.status === 'running' && index < 999; index += 1) {
-    const advanced = await advanceProcessRun(run, definition.data, {
-      executeEffect: request => executeDurableEffect(request, auth, run, definition.data),
-      catalogContext: catalogContextFromDefinition(definition.data),
-      data: processDataEnvironment(auth, run)
-    });
-    if (JSON.stringify(advanced) === JSON.stringify(run)) break;
-    run = advanced;
-  }
-  if (run.status === 'running') throw new Error('Process run exceeded 1000 steps');
-  return run;
 }
 
 function buildRunActor(auth, organizationId) {
@@ -322,7 +250,7 @@ function catalogContextFromDefinition(processData) {
 }
 
 export async function resumeDueRuns() {
-  return [];
+  return resumeStoredRuns();
 }
 
 export async function preview({ definition, nodeId = '', trigger = {}, inputs = {} } = {}, auth = {}) {
@@ -396,8 +324,8 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
   if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
 
   const process = new ProcessDefinition(raw);
-  const organization = await organizationsRepository.findById(organizationId);
-  const compiled = compileActiveProcessRuntime(process.data, organization?.data?.roles || {});
+  const organization = await loadOrganizationProcessConfiguration(organizationId);
+  const compiled = compileActiveProcessRuntime(process.data, organization.roles);
   const action = compiled?.actions?.[actionId];
   if (!action) throw createError({ statusCode: 404, message: 'Action not found in active process' });
   assertCompiledActionAvailable(actionId, auth);
@@ -433,138 +361,16 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     }
     return await executeCompiledRelationMutationAction({ action, actionId, entityId, data, entities }, auth);
   }
-  if (Number(process.data.dataflowVersion) === PROCESS_DATAFLOW_VERSION) {
-    return await executeDataflowActionRun({
-      process,
-      actionId,
-      entityId,
-      data,
-      parameters,
-      entities,
-      targetOrganizationId
-    }, auth);
-  }
-  try {
-    const resolved = await resolveProcessActionInputContext(process.data, actionId, { data, parameters, entities }, {
-      resolveEntity: (entityType, candidate) => resolveProcessGraphEntity(entityType, candidate, { entityId, entities, auth }),
-      resolveEntityReference: (record, source) => resolveProcessGraphEntityReference(record, source, auth),
-      queryEntities: entityType => queryProcessGraphEntities(entityType, auth)
-    });
-    data = resolved.data;
-    parameters = resolved.parameters;
-    entities = resolved.entities;
-  } catch (error) {
-    throw createError({ statusCode: 400, message: error.message });
-  }
-
-  if (action.actionKind === 'runCommand') {
-    if (!action.commandId) throw createError({ statusCode: 400, message: `Action ${actionId} has no command` });
-    const result = await executeCommand(action.commandId, { entities, parameters }, createActionExecutionAuth(auth, action));
-    if (!hasAsyncOutputBoundary(result)) {
-      await applyProcessOutputStatuses({ actionId, result, processData: process.data, organizationId, auth });
-    }
-    return result;
-  }
-
-  if (action.actionKind === 'sendToOrganization') {
-    return await projectEntityThroughSocket({
-      socketId: action.socketId || action.projection?.socketId || action.targetSocketId,
-      entityId,
-      targetOrganizationId
-    }, auth);
-  }
-
-  if (action.actionKind === 'createEntity') {
-    const entityType = resolveActionEntityType(action);
-    if (entityType === 'cassette_design' && action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-      const created = await executeBakeCassetteDesign(action, data, organizationId, auth, process.data, entities);
-      await linkCreatedEntityToContextRelation({ action, data, entities, created, auth });
-      await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
-      return created;
-    }
-    if (entityType === 'cassette_design' && action.construction?.mode === 'importCassetteDesignFromArtifact') {
-      const imported = await cassetteService.importFromArtifact(
-        data.artifactId,
-        data.name,
-        auth.userId,
-        organizationId,
-        auth.role,
-        createActionExecutionAuth(auth, action),
-        data.layerMapping || null,
-        data.parameters || null
-      );
-      await linkCreatedEntityToContextRelation({ action, data, entities, created: imported.design, auth });
-      await publishActionEntityEvent(auth, entityType, imported.design, 'created', 'process-create');
-      return imported.design;
-    }
-    if (entityType === 'cassette_design') {
-      throw createError({ statusCode: 400, message: 'cassette_design requires typed construction' });
-    }
-    const service = getEntityServiceForAction(action);
-    if (!service.create) throw createError({ statusCode: 500, message: `Entity service cannot create ${action.entityType}` });
-    const parentContext = await resolveParentCreationContext(action, entities, auth);
-    const createdEntity = await service.create(createActionPayload(action, data, entities, parentContext, organizationId), auth.userId, organizationId, auth.role, createActionExecutionAuth(auth, action));
-    const created = assertCreatedParentContext(entityType, createdEntity, parentContext);
-    await linkCreatedEntityToContextRelation({ action, data, entities, created, auth });
-    const targetState = action.status?.to;
-    if (!targetState) {
-      await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
-      return created;
-    }
-    const createdDto = created?.toJSON ? created.toJSON() : created;
-    const targetId = createdDto?._id || createdDto?.identity?.uid;
-    if (!targetId) {
-      await publishActionEntityEvent(auth, entityType, created, 'created', 'process-create');
-      return created;
-    }
-    const status = await statusService.setInitialStateForOrganization(
-      entityType,
-      targetId,
-      targetState,
-      organizationId,
-      auth.userId,
-      processStatusMetadata(action, `Created by process action ${action.id || actionId}`, process.data)
-    );
-    const result = {
-      ...createdDto,
-      status
-    };
-    await publishActionEntityEvent(auth, entityType, result, 'created', 'process-create');
-    return result;
-  }
-
-  if (action.actionKind === 'updateEntity') {
-    const targetValue = entityId || entities?.entity || entities?.[action.entityType];
-    const targetId = normalizeEntityRef(targetValue)?.id || targetValue;
-    if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
-    const entityType = resolveActionEntityType(action);
-    const executionAuth = createActionExecutionAuth(auth, action);
-    const mutation = await normalizeProcessMutation(entityType, pickMutationData(data, action, entities), action, executionAuth);
-    const targetState = action.status?.to || action.access?.statusTo || '';
-    if (targetState) {
-      const result = await statusService.transitionWithResult({
-        entityType,
-        targetId,
-        targetState,
-        auth: executionAuth,
-        context: processTransitionContext(action, data, process.data),
-        patch: flattenMutationPatch(mutation)
-      });
-      await publishStatusResultEvents(auth, entityType, targetId, result, 'process-entity-update');
-      return result;
-    }
-    if (!Object.keys(mutation).length) throw createError({ statusCode: 400, message: `Action ${actionId} has no connected mutation inputs` });
-    const updated = await persistProcessEntityPatch(
-      entityType,
-      targetId,
-      flattenMutationPatch(mutation),
-      executionAuth
-    );
-    await publishActionEntityEvent(auth, entityType, updated || { _id: targetId }, 'updated', 'process-update');
-    return updated;
-  }
-
-  throw createError({ statusCode: 400, message: `Unsupported action kind ${action.actionKind}` });
+  assertCurrentProcessDefinition(process.data);
+  return executeDataflowActionRun({
+    process,
+    actionId,
+    entityId,
+    data,
+    parameters,
+    entities,
+    targetOrganizationId
+  }, auth);
 }
 
 async function executeCompiledRelationMutationAction({ action, actionId, entityId, data = {}, entities = {} } = {}, auth = {}) {
@@ -707,43 +513,7 @@ async function queryProcessGraphEntities(entityType, auth = {}) {
   return (entities || []).map(entity => entity?.toJSON ? entity.toJSON() : entity);
 }
 
-async function resolveProcessGraphEntityReference(record, source, auth = {}) {
-  if (!source || typeof source !== 'object') throw new Error(`Process node ${record.id} requires an entity input`);
-  let references;
-  if (record.mode === 'related') references = source.relations?.[record.relationKey];
-  if (record.mode === 'parent') {
-    const targetType = record.relationEntityType;
-    references = source.lineage?.[`${targetType}Id`];
-  }
-  if (record.mode === 'children') {
-    const domain = getAppRegistry().getDomain();
-    const containment = (domain.containment || []).find(item => (
-      item.parentType === record.entityType && item.childType === record.relationEntityType
-    ));
-    if (!containment?.lineageKey) {
-      throw new Error(`Process node ${record.id} has no declared ${record.entityType} to ${record.relationEntityType} containment`);
-    }
-    const parentId = source.identity?.uid || source._id || source.id;
-    const service = getAppRegistry().getEntityService(record.relationEntityType);
-    if (!service?.list) throw new Error(`Entity service cannot list ${record.relationEntityType}`);
-    const children = await service.list({ [containment.lineageKey]: String(parentId) }, auth);
-    return (children || [])
-      .map(child => child?.toJSON ? child.toJSON() : child)
-      .filter(child => String(child?.lineage?.[containment.lineageKey] || '') === String(parentId));
-  }
-  const values = Array.isArray(references) ? references : [references];
-  const resolved = [];
-  for (const value of values.filter(Boolean)) {
-    const ref = normalizeEntityRef(value);
-    const entityType = ref?.type || record.relationEntityType;
-    resolved.push(await resolveProcessGraphEntity(entityType, ref || value, { auth }));
-  }
-  if (!resolved.length) throw new Error(`Process node ${record.id} could not resolve ${record.mode} entity`);
-  const multiple = record.relationCardinality === 'many';
-  return multiple ? resolved : resolved[0];
-}
-
-function createActionPayload(action = {}, data = {}, entities = {}, parentContext = null, organizationId = '') {
+function createActionPayload(data = {}, organizationId = '') {
   const payload = { ...(data || {}) };
   delete payload.linkCreatedTo;
   if (organizationId) {
@@ -751,28 +521,6 @@ function createActionPayload(action = {}, data = {}, entities = {}, parentContex
       ...(payload.lineage || {}),
       organizationId
     };
-  }
-  if (action.parentEntityType) {
-    const parentId = parentContext?.parentId || entityInputId(entities?.[action.parentEntityType]);
-    if (!parentId) {
-      throw createError({
-        statusCode: 400,
-        message: `${action.parentEntityType} parent is required`
-      });
-    }
-    const lineageKey = parentContext?.relation?.lineageKey || `${camelCase(action.parentEntityType)}Id`;
-    payload[lineageKey] = parentId;
-    payload.lineage = {
-      ...(payload.lineage || {}),
-      ...(parentContext?.lineage || {}),
-      [lineageKey]: parentId
-    };
-    if (parentContext?.provenance) {
-      payload.provenance = {
-        ...(payload.provenance || {}),
-        parent: parentContext.provenance
-      };
-    }
   }
   return normalizeCreationPayload(payload);
 }
@@ -825,84 +573,10 @@ async function linkCreatedEntityToContextRelation({ action = {}, data = {}, enti
   return updated;
 }
 
-async function resolveParentCreationContext(action = {}, entities = {}, auth = {}) {
-  const parentEntityType = normalizeEntityType(action.parentEntityType || '');
-  if (!parentEntityType) return null;
-  const childEntityType = resolveActionEntityType(action);
-  const relation = (getDomain().containment || []).find(item => (
-    normalizeEntityType(item.parentType) === parentEntityType
-    && normalizeEntityType(item.childType) === childEntityType
-    && item.lineageKey
-  ));
-  if (!relation) {
-    throw createError({ statusCode: 400, message: `${parentEntityType} is not a declared containment parent of ${childEntityType}` });
-  }
-  const parentId = entityInputId(entities?.[parentEntityType]);
-  if (!parentId) throw createError({ statusCode: 400, message: `${parentEntityType} parent is required` });
-
-  const parentService = getAppRegistry().getEntityService(parentEntityType);
-  const executionAuth = createActionExecutionAuth(auth, action);
-  const parentResult = await parentService?.processGetById?.(parentId, executionAuth);
-  const parent = parentResult?.toJSON ? parentResult.toJSON() : parentResult;
-  if (!parent) throw createError({ statusCode: 404, message: `${parentEntityType} parent not found` });
-  const parentDefinition = (getDomain().entities || []).find(item => normalizeEntityType(item.type) === parentEntityType);
-  assertEntityAccess({
-    entity: parent,
-    entityType: parentEntityType,
-    feature: resolveEntityFeature(parentDefinition?.type || parentEntityType),
-    level: 'read',
-    action: 'view',
-    auth: executionAuth
-  });
-
-  const canonicalParentId = entityInputId(parent) || parentId;
-  const lineage = {
-    ...(parent.lineage || {}),
-    [relation.lineageKey]: parent._id || parent.identity?.uid || canonicalParentId
-  };
-  let provenance = null;
-  if (action.parentRevision?.enabled === true) {
-    const scope = action.parentRevision.scope || getDomain().revisions?.[parentEntityType]?.defaultScope;
-    if (!scope) throw createError({ statusCode: 400, message: `${parentEntityType} revision scope is required` });
-    const revision = await entityRevisionsService.getCurrentForEntity(parentEntityType, canonicalParentId, scope);
-    if (!revision) {
-      throw createError({ statusCode: 409, message: `${parentEntityType} has no current ${scope} revision to pin` });
-    }
-    provenance = {
-      source: normalizeEntityRef({ type: parentEntityType, id: canonicalParentId, revisionId: revision._id }),
-      scope,
-      revisionNumber: revision.data?.number || null,
-      contentHash: revision.data?.contentHash || ''
-    };
-  }
-  return { relation, parentEntityType, parentId: canonicalParentId, lineage, provenance };
-}
-
-function assertCreatedParentContext(entityType, createdEntity, context = null) {
-  if (!context) return createdEntity;
-  const created = createdEntity?.toJSON ? createdEntity.toJSON() : createdEntity;
-  const lineagePatch = Object.fromEntries(Object.entries(context.lineage || {}).filter(([key, value]) => (
-    String(created?.lineage?.[key] ?? '') !== String(value ?? '')
-  )));
-  const needsProvenance = Boolean(context.provenance) && !sameEntityRef(created?.provenance?.parent?.source, context.provenance.source);
-  if (!Object.keys(lineagePatch).length && !needsProvenance) return createdEntity;
-  throw createError({
-    statusCode: 500,
-    message: `Created ${entityType} did not persist declared containment context`
-  });
-}
-
 function entityInputId(value) {
   if (!value) return null;
   if (typeof value !== 'object') return value;
   return value.id || value._id || value.identity?.uid || null;
-}
-
-function sameEntityRef(left, right) {
-  return Boolean(left && right)
-    && normalizeEntityType(left.type) === normalizeEntityType(right.type)
-    && String(left.id) === String(right.id)
-    && String(left.revisionId || '') === String(right.revisionId || '');
 }
 
 function normalizeCreationPayload(payload = {}) {
@@ -921,10 +595,6 @@ function normalizeCreationPayload(payload = {}) {
     }
   }
   return normalized;
-}
-
-function camelCase(value = '') {
-  return String(value).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
 }
 
 async function applyProcessOutputStatuses({ actionId, result = {}, processData = {}, organizationId, auth = {} } = {}) {
@@ -1456,9 +1126,8 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
       return { ...created, status };
     }
     if (!service.create) throw new Error(`Entity service cannot create ${entityType}`);
-    const parentContext = await resolveParentCreationContext(record, parentEntities, auth);
     const created = await service.create(
-      createActionPayload(record, draft, parentEntities, parentContext, resolveOrganizationId(auth)),
+      createActionPayload(draft, resolveOrganizationId(auth)),
       auth.userId,
       resolveOrganizationId(auth),
       auth.role,
@@ -1709,9 +1378,21 @@ function assertCanonicalProcessSource(data = {}) {
 }
 
 async function loadOrganizationRoles(organizationId) {
-  const organization = await organizationsRepository.findById(organizationId);
+  return (await loadOrganizationProcessConfiguration(organizationId)).roles;
+}
+
+function organizationProcessService() {
+  const service = getAppRegistry().getEntityService('organization');
+  if (!service?.getProcessConfiguration || !service?.setActiveProcessDefinition) {
+    throw createError({ statusCode: 500, message: 'Organization process service is not registered' });
+  }
+  return service;
+}
+
+async function loadOrganizationProcessConfiguration(organizationId) {
+  const organization = await organizationProcessService().getProcessConfiguration(organizationId);
   if (!organization) throw createError({ statusCode: 404, message: 'Organization not found' });
-  return organization.data?.roles || {};
+  return organization;
 }
 
 function projectEntityFields(entity, projection = {}) {

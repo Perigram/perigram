@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   repository: {
-    find: vi.fn()
+    find: vi.fn(),
+    findById: vi.fn(),
+    updateById: vi.fn()
   },
   permissions: {
     getLineageFilter: vi.fn(() => ({ 'lineage.organizationId': 'org-1' })),

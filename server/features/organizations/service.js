@@ -134,6 +134,29 @@ export async function getByIds(ids) {
   return raws.map(raw => new Organization(raw).toJSON());
 }
 
+// Process runtime integration is exposed through the registered organization
+// service so process features never reach into this feature's repository.
+export async function getProcessConfiguration(organizationId) {
+  const raw = await repository.findById(organizationId);
+  if (!raw) return null;
+  return {
+    roles: structuredClone(raw.data?.roles || {}),
+    roleAssignments: structuredClone(raw.data?.roleAssignments || {}),
+    activeProcessDefinitionId: raw.data?.activeProcessDefinitionId || null
+  };
+}
+
+export async function setActiveProcessDefinition(organizationId, processDefinitionId) {
+  const raw = await repository.findById(organizationId);
+  if (!raw) throw createError({ statusCode: 404, message: 'Organization not found' });
+  await repository.updateById(organizationId, {
+    data: {
+      ...(raw.data || {}),
+      activeProcessDefinitionId: processDefinitionId
+    }
+  });
+}
+
 export async function listRoles(organizationId, auth = {}) {
   const org = await loadManagedOrganization(organizationId, auth, 'read');
   return org.data.roles;

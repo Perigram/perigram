@@ -59,7 +59,7 @@ export const useEntityStore = defineStore('entities', () => {
         try {
             const authStore = useAuthStore();
             const bindings = authStore.lineageBindings || [];
-            if (bindings.length) {
+            if (authStore.processActive) {
                 return bindings.map(binding => ({
                     childType: binding.childEntityType,
                     parentType: binding.ancestorEntityType,
@@ -67,9 +67,9 @@ export const useEntityStore = defineStore('entities', () => {
                 }));
             }
         } catch {
-            // auth store unavailable outside app context; fall through
+            // Auth store unavailable outside app context.
         }
-        return cncDomain.containment;
+        return cncDomain.containment || [];
     }
 
     function entityEndpoint(type = '') {

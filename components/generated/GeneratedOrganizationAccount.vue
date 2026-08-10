@@ -95,6 +95,7 @@ import { useI18n } from 'vue-i18n';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useAuthStore } from '~/stores/auth';
+import { currentTariffLabel as resolveCurrentTariffLabel } from '~/utils/billing-presentation.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -120,12 +121,10 @@ const mainRegions = computed(() => regions.value.filter(region => (region.slot |
 const supportingRegions = computed(() => regions.value.filter(region => region.slot === 'supporting'));
 const screenActions = computed(() => props.screen.systemActions || []);
 const canCheckout = computed(() => screenActions.value.some(action => action.id === 'organization.billing.checkout'));
-const currentTariffLabel = computed(() => {
-  if (billingConfiguration.value.mode !== 'tariff') return '';
-  const key = billingConfiguration.value.currentTariffLabelKey;
-  if (key && te(key)) return t(key);
-  return billingConfiguration.value.currentTariff || '';
-});
+const currentTariffLabel = computed(() => resolveCurrentTariffLabel(billingConfiguration.value, {
+  translate: t,
+  hasTranslation: te
+}));
 
 onMounted(async () => {
   await Promise.all([loadBilling(), loadPackages()]);
