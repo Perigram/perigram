@@ -21,8 +21,7 @@ redirect gate for authenticated users.
   `/organization` are still not process entry candidates.
   Authenticated users without an active process use
   the static projects workspace.
-- Anonymous visitors stay on the landing page, which embeds
-  `CassetteMarketingAnimation` as the first-viewport visual and links to login
+- Anonymous visitors stay on the landing page, which links to login
   and registration.
 
 ## Authenticated Areas
@@ -160,4 +159,3 @@ architecturally meaningful are not deleted during UI refactors.
 
 - [admin pages](./admin/README.md)
 - [organization pages](./organization/README.md)
-- [marketing components](../components/marketing/README.md)

@@ -64,5 +64,5 @@ cassette, parametric-cassette, or nesting code.
 ## Documentation
 
 Update `docs/specs/README.md`, the relevant OCCS spec file, `utils/occs/README.md`,
-feature/component READMEs, and `TODO.org` Agent Notes when contracts, supported
+feature/component READMEs, and `TODO.md` Agent Notes when contracts, supported
 shapes, layers, validation behavior, or migration behavior change.

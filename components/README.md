@@ -103,7 +103,6 @@ All entity-related components MUST use these patterns:
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 | Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `entity-type` |
 | Compact contextual canvas/workspace actions | `<MotionDock :items="..." />` |
-| Public marketing animation | `components/marketing/CassetteMarketingAnimation.vue` |
 
 `WorkflowDesignerV2.vue` is the shared v2 state-machine editor used by the admin
 workbench and organization workflow overrides page. It normalizes flat legacy
@@ -1001,7 +1000,6 @@ process access rather than local role checks.
 PrimeVue Button, Tag, Badge do not inherit font-size from containers. Always add `size="small"` to these elements inside compact and inline variant contexts.
 
 ## Related
-- [components/marketing/README.md](./marketing/README.md) — public and admin-preview marketing visuals
 - [components/hubs/README.md](./hubs/README.md) — workflow-level pages that compose entity cards and shared primitives
 - [components/entities/README.md](./entities/README.md) — manifest-backed entity card contracts
 - [components/shared/README.md](./shared/README.md) — shared block components, layout containers

@@ -105,7 +105,7 @@ runtime, treating it as the process initial state for that new record rather
 than a transition from the feature service default. When the compiled action
 status includes process-authored `label`, `color`/`severity`, or `icon`
 metadata, create and status-mutating update execution stores that display contract under
-`status.metadata.display`. Status-badge rendering for generated screens and shared entity cards is defined in [server/core/machines/README.md](../core/machines/README.md).
+`status.metadata.display`. Status-badge rendering for generated screens and shared entity cards is defined in [server/core/machines/README.md](../../core/machines/README.md).
 If an already-active compiled action was produced before that metadata was
 embedded, execution resolves the action `statusRef` or target status against
 the semantic `data.statusDefinitions` record and writes the same display
@@ -225,7 +225,7 @@ fallback output for commands without declared entity/attachment outputs.
 
 Entity query nodes also stay inside feature access boundaries. Registered services
 expose `processList`/`processGetById` adapters as defined in
-[server/runtime/README.md](../runtime/README.md). Process evaluation calls only
+[server/runtime/README.md](../../runtime/README.md). Process evaluation calls only
 these adapters; it never guesses positional feature-service auth arguments. This covers current/exact entity reads, parent resolution,
 relation-target validation, update-target loading, and socket projection.
 Returned models are serialized before entity-typed field predicates are evaluated in memory. Predicate

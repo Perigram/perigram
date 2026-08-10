@@ -14,7 +14,7 @@ stores/navigation.js
 i18n/locales/en.json
 i18n/locales/ru.json
 test-data/**
-TODO.org
+TODO.md
 
 # Workflow override extension point.
 server/features/workflow-overrides/**

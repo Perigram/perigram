@@ -22,6 +22,12 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   compares committed, staged, unstaged, and untracked files against
   `.agents/app-layer.allowlist` and fails if an agent touched core/runtime/shared
   paths outside the allowed app-layer surface.
+- `check-docs.js`: Documentation integrity guardrail for the README tree. It
+  fails on broken internal markdown links (relative targets that do not resolve
+  to an existing file) and on duplicated canonical-contract passages (verbatim
+  paragraphs of meaningful length repeated across more than one README).
+  Canonical contracts must live in a single canonical README and be linked, not
+  restated. Run as `npm run docs:validate`.
 - `framework-inspect.js`: Framework/package inspection utility used during
   extraction checks.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
@@ -106,6 +112,11 @@ external top-layer agents before they commit or push. It is intentionally
 allowlist-based: new composition surfaces must be added to
 `.agents/app-layer.allowlist` by the repository owner instead of letting the
 agent edit core files ad hoc.
+
+`npm run docs:validate` is the mandatory documentation guardrail. It resolves
+every internal relative link in the README tree against the repository and
+flags verbatim paragraphs that appear in more than one README, so canonical
+contracts stay in one canonical file instead of being restated in several.
 
 ## Related
 
