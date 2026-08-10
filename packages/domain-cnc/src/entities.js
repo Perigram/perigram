@@ -9,13 +9,13 @@ const withRoutes = definition => ({
 });
 
 function defaultRoutes({ type = '', collection = '' }) {
-  const base = collection || `${type}s`;
-  const single = `/api/${base}/:id`;
+  const routeBase = String(collection || `${type}s`).replace(/_/g, '-');
+  const single = `/api/${routeBase}/:id`;
   if (type === 'artifact') {
-    return { single: `${single}/metadata`, download: `/api/${base}/:id`, list: `/api/${base}` };
+    return { single: `${single}/metadata`, download: `/api/${routeBase}/:id`, list: `/api/${routeBase}` };
   }
   if (type === 'artifact_template') {
-    return { single, download: `${single}/source`, list: `/api/${base}` };
+    return { single, download: `${single}/source`, list: `/api/${routeBase}` };
   }
   if (type === 'project') {
     return { single: '/api/project/:id', list: '/api/project' };
@@ -23,7 +23,7 @@ function defaultRoutes({ type = '', collection = '' }) {
   if (type === 'queue') {
     return { single: '/api/queue/:id', list: '/api/queue' };
   }
-  return { single, list: `/api/${base}` };
+  return { single, list: `/api/${routeBase}` };
 }
 
 export const cncEntities = [

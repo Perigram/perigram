@@ -5,16 +5,21 @@ function toCamelCase(type = '') {
   return String(type || '').replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
 }
 
+function toRouteCollection(collection = '') {
+  return String(collection || '').replace(/_/g, '-');
+}
+
 /**
  * Frontend entity projection derived from the canonical domain entity
- * registry. Each entry carries the canonical snake_case type, its collection,
- * and its API routes. Route defaults come from the registry's `routes`
- * contract; this array is a derived projection, not a second registry.
+ * registry. Each entry carries the canonical camelCase type, its kebab-case
+ * route collection, and its API routes. Route defaults come from the
+ * registry's `routes` contract; this array is a derived projection, not a
+ * second registry.
  */
 export const cncFrontendEntities = cncEntities
   .map(entity => ({
     type: toCamelCase(entity.type),
-    collection: entity.collection,
+    collection: toRouteCollection(entity.collection),
     routes: entity.routes || {}
   }))
   .filter(entry => entry.type && entry.collection);
