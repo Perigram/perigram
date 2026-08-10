@@ -57,9 +57,13 @@ test.describe('home and entity UI', () => {
       String(membership.organizationId) !== String(original.organizationId)
     ));
     expect(targetMembership).toBeTruthy();
-    const targetResponse = await app.request.get(`/api/organizations/${targetMembership.organizationId}`);
-    expect(targetResponse.ok(), await targetResponse.text()).toBeTruthy();
-    const target = await targetResponse.json();
+    const organizationsResponse = await app.request.get('/api/auth/organizations');
+    expect(organizationsResponse.ok(), await organizationsResponse.text()).toBeTruthy();
+    const organizations = await organizationsResponse.json();
+    const target = organizations.find(organization => (
+      String(organization._id || organization.id) === String(targetMembership.organizationId)
+    ));
+    expect(target).toBeTruthy();
     const organizationName = target.identity?.name || target.data?.name || target.name;
     await app.page.goto('/');
     await app.page.waitForLoadState('networkidle');
