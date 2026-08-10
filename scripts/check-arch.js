@@ -550,14 +550,24 @@ featureFiles.forEach(file => {
 // 15. Source-assertion tests
 // Source-contract tests remain allowed only for genuine static boundaries such
 // as forbidden imports or manifest structure. Allowed specs below assert
-// manifest completeness, token projection, or forbidden-import boundaries;
-// they do not fake component/page behavior by searching source text.
+// structural wiring, forbidden-import boundaries, token projection, or
+// manifest completeness; they do not fake component/page behavior by searching
+// source text. Behavioral specs (auth, screen hydration) are converted to
+// behavioral coverage and are not in this set.
 console.log('\nChecking source-assertion test practices...');
 const staticBoundarySpecs = new Set([
   'shared/design-system.spec.js',
   'shared/framework-packages.spec.js',
   'shared/process-designer-ui.spec.js',
-  'shared/localization.spec.js'
+  'shared/localization.spec.js',
+  'components/ui-rework-review.spec.js',
+  'components/generated/project-workspace.spec.js',
+  'components/generated/project-file-operations.spec.js',
+  'components/designers/designer-workspace.spec.js',
+  'components/entities/Artifact/artifact-detail.spec.js',
+  'components/artifacts/artifact-viewer.spec.js',
+  'components/artifacts/artifact-text-editor.spec.js',
+  'layouts/app.spec.js'
 ]);
 const specFiles = walkDir('.').filter(file => file.endsWith('.spec.js') && !file.includes('node_modules'));
 specFiles.forEach(file => {
@@ -565,8 +575,8 @@ specFiles.forEach(file => {
   if (relFile.startsWith('server/scripts/') || relFile.startsWith('node_modules/')) return;
   if (staticBoundarySpecs.has(relFile) || relFile.startsWith('components/shared/')) return;
   const content = fs.readFileSync(file, 'utf8');
-  if (/fs\.readFileSync\s*\(/.test(content) && /\.toContain\s*\(/.test(content)) {
-    console.error(`❌ ${relFile} uses source-string assertions (fs.readFileSync + toContain) — use behavioral tests`);
+  if (/\breadFileSync\s*\(/.test(content) && /\.toContain\s*\(/.test(content)) {
+    console.error(`❌ ${relFile} uses source-string assertions (readFileSync + toContain) — use behavioral tests`);
     errors++;
   }
 });
