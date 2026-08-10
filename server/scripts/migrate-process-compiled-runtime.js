@@ -6,6 +6,22 @@ function isServiceRoleId(id = '') {
   return String(id).startsWith('service_') || String(id).startsWith('principal_');
 }
 
+const QUEUE_WRITE_FIELDS = ['data.job.items', 'data.job.materialPool', 'data.nestingSettings.*'];
+
+function normalizeStaleEntityProfiles(data = {}) {
+  if (!data.entityProfiles || typeof data.entityProfiles !== 'object') return data;
+  let changed = false;
+  const entityProfiles = Object.fromEntries(Object.entries(data.entityProfiles).map(([profileId, profile]) => {
+    if (!profile || typeof profile !== 'object') return [profileId, profile];
+    const fields = profile.fields || {};
+    if (!Array.isArray(fields.write) || !fields.write.includes('data.job.*')) return [profileId, profile];
+    const write = fields.write.filter(field => field !== 'data.job.*').concat(QUEUE_WRITE_FIELDS);
+    changed = true;
+    return [profileId, { ...profile, fields: { ...fields, write } }];
+  }));
+  return changed ? { ...data, entityProfiles } : data;
+}
+
 function normalizeStaleServiceRoles(data = {}) {
   let changed = false;
   const next = { ...data };
@@ -85,7 +101,7 @@ async function loadOrganizationRoles(db, organizationId) {
 
 function recompileProcessData(data = {}, roles = {}) {
   if (!data.compiled) return data;
-  const normalized = normalizeStaleServiceRoles(data);
+  const normalized = normalizeStaleEntityProfiles(normalizeStaleServiceRoles(data));
   return {
     ...normalized,
     compiled: compileProcessDefinition({
