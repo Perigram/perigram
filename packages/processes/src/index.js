@@ -1107,7 +1107,7 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}) {
         feature,
         entityType: resolvedEntityType,
         parentEntityType: parentEntityType || null,
-        parentRevision: normalizeParentRevision(action.parentRevision, parentEntityType, domain),
+        parentRevision: resolveParentRevision(action.parentRevision, parentEntityType, domain),
         status: actionStatusForExposure(action, actionWindow, access, process),
         relationMutation: action.relationMutation || null,
         construction: (action.actionKind || 'createEntity') === 'createEntity'
@@ -2233,7 +2233,7 @@ function compileActions(actions = {}, process = {}, domain = {}) {
       actionKind: action.actionKind || 'createEntity',
       entityType: resolvedEntityType,
       parentEntityType: parentEntityType || null,
-      parentRevision: normalizeParentRevision(action.parentRevision, parentEntityType, domain),
+      parentRevision: resolveParentRevision(action.parentRevision, parentEntityType, domain),
       commandId: action.commandId || null,
       status: compileActionStatus(action, process),
       mutation: action.mutation || { fields: [] },
@@ -2427,7 +2427,7 @@ function normalizeConstructionInput(input = {}, domain = {}) {
   };
 }
 
-function normalizeParentRevision(parentRevision = {}, parentEntityType = '', domain = {}) {
+function resolveParentRevision(parentRevision = {}, parentEntityType = '', domain = {}) {
   const contract = domain.revisions?.[parentEntityType] || {};
   const scopes = Array.isArray(contract.scopes) ? contract.scopes : [];
   const requestedScope = parentRevision.scope || contract.defaultScope || scopes[0] || '';

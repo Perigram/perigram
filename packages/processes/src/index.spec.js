@@ -218,7 +218,6 @@ describe('@cutkit/processes compiler', () => {
         },
         create_queue: {
           id: 'create_queue',
-          legacyActionId: 'create_queue',
           kind: 'effect.createEntity',
           label: 'Create queue',
           entityType: 'queue',

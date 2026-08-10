@@ -496,8 +496,7 @@ const allSourceFiles = [
 const legacyPatterns = [
   { pattern: /\blegacyActionId\b/, name: 'legacyActionId' },
   { pattern: /\blegacyProcessType\b/, name: 'legacyProcessType' },
-  { pattern: /\blegacyTypeToTemplateId\b/, name: 'legacyTypeToTemplateId' },
-  { pattern: /\bnormalizeParentRevision\b/, name: 'normalizeParentRevision' }
+  { pattern: /\blegacyTypeToTemplateId\b/, name: 'legacyTypeToTemplateId' }
 ];
 legacyPatterns.forEach(({ pattern, name }) => {
   allSourceFiles.forEach(file => {
