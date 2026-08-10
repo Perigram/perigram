@@ -1,4 +1,4 @@
-import { cncContainment, cncEntities } from '@cutkit/domain-cnc';
+import { cncEntities } from '@cutkit/domain-cnc';
 
 const TYPE_ALIASES = {
   ...Object.fromEntries(
@@ -35,7 +35,7 @@ export function entityHierarchyIds(entity = {}) {
   return [...new Set(ids)];
 }
 
-export function containmentParent(entityType = '', lineage = {}, containment = cncContainment) {
+export function containmentParent(entityType = '', lineage = {}, containment = []) {
   const childType = normalizeHierarchyType(entityType);
   const candidates = (containment || []).filter(relation => (
     normalizeHierarchyType(relation.childType) === childType && lineage?.[relation.lineageKey]
@@ -45,7 +45,7 @@ export function containmentParent(entityType = '', lineage = {}, containment = c
   return candidates.find(candidate => !parentTypesInCandidates.has(childType) && lineage?.[candidate.lineageKey]) || candidates[0];
 }
 
-export function containmentAncestors(entity = {}, entityType = '', containment = cncContainment) {
+export function containmentAncestors(entity = {}, entityType = '', containment = []) {
   const lineage = entity?.lineage || {};
   const refs = [];
   const visited = new Set();
@@ -70,7 +70,7 @@ export function containmentAncestors(entity = {}, entityType = '', containment =
   return refs;
 }
 
-export function hierarchyReferences(entity = {}, entityType = '', containment = cncContainment) {
+export function hierarchyReferences(entity = {}, entityType = '', containment = []) {
   const refs = containmentAncestors(entity, entityType, containment);
   const id = entityHierarchyId(entity);
   const type = normalizeHierarchyType(entityType || entity?.entityType);
@@ -78,14 +78,14 @@ export function hierarchyReferences(entity = {}, entityType = '', containment = 
   return refs;
 }
 
-export function rootContainmentFilter(entityType = '', containment = cncContainment) {
+export function rootContainmentFilter(entityType = '', containment = []) {
   const keys = (containment || [])
     .filter(relation => normalizeHierarchyType(relation.childType) === normalizeHierarchyType(entityType))
     .map(relation => relation.lineageKey);
   return Object.fromEntries([...new Set(keys)].map(key => [`lineage.${key}`, { $exists: false }]));
 }
 
-export function siblingContainmentScope(entity = {}, entityType = '', containment = cncContainment) {
+export function siblingContainmentScope(entity = {}, entityType = '', containment = []) {
   const relation = containmentParent(entityType, entity?.lineage || {}, containment);
   if (!relation) return {};
   return { [relation.lineageKey]: entity.lineage[relation.lineageKey] };
