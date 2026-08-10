@@ -663,18 +663,30 @@ export function compileLineageBindings(process = {}, domain = {}) {
       || entry.entityType
       || '';
     if (!ancestorType) continue;
-    const childEntityType = target.targetEntityType
-      || target.entityType
-      || '';
     const lineageKey = entry.key || lineageKeyForEntityType(ancestorType);
-    if (!childEntityType || !lineageKey || ancestorType === 'organization') continue;
-    bindings.push({
-      childEntityType,
-      ancestorEntityType: ancestorType,
-      lineageKey,
-      sourceNode: String(edge.source),
-      consumingNode: String(edge.target)
-    });
+    const downstreamTypes = (graph.edges || [])
+      .filter(candidate => String(candidate.source) === String(edge.target))
+      .filter(candidate => normalizeHandle(candidate.sourceHandle) === 'block')
+      .filter(candidate => normalizeHandle(candidate.targetHandle) === 'lineage')
+      .map(candidate => recordsByGraphId.get(String(candidate.target))?.entityType)
+      .filter(Boolean);
+    const childTypes = [...new Set([
+      target.targetEntityType,
+      target.entityType,
+      ...downstreamTypes
+    ].filter(Boolean))];
+    if (!childTypes.length || !lineageKey || ancestorType === 'organization') continue;
+    for (const childEntityType of childTypes) {
+      bindings.push({
+        childEntityType,
+        ancestorEntityType: ancestorType,
+        lineageKey,
+        sourceNode: String(edge.source),
+        sourceSocket: String(edge.sourceHandle || ''),
+        consumingNode: String(edge.target),
+        consumingSocket: String(edge.targetHandle || '')
+      });
+    }
   }
   const unique = new Map(bindings.map(binding => [
     `${binding.childEntityType}:${binding.ancestorEntityType}:${binding.lineageKey}`,

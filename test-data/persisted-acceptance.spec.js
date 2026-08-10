@@ -42,7 +42,9 @@ describe('persisted architecture acceptance fixture', () => {
       childEntityType: 'artifact',
       lineageKey: 'projectId',
       sourceNode: 'project_source',
-      consumingNode: 'artifact_lineage'
+      sourceSocket: 'data:result',
+      consumingNode: 'artifact_lineage',
+      consumingSocket: 'entry:project'
     });
     expect(artifactSource.lineageBindings).toContainEqual(binding);
     expect(filterRootSourceItems(

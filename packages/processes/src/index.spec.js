@@ -3520,8 +3520,7 @@ describe('@cutkit/processes compiler', () => {
           kind: 'record.composeBlock',
           block: 'lineage',
           compositionMode: 'ancestors',
-          entries: [{ id: 'project' }],
-          targetEntityType: 'queue'
+          entries: [{ id: 'project' }]
         },
         create_queue: {
           id: 'create_queue',
@@ -3573,6 +3572,8 @@ describe('@cutkit/processes compiler', () => {
     expect(binding).toBeDefined();
     expect(binding.lineageKey).toBe('projectId');
     expect(binding.sourceNode).toBe('project_source');
+    expect(binding.sourceSocket).toBe('data:result');
     expect(binding.consumingNode).toBe('queue_lineage');
+    expect(binding.consumingSocket).toBe('entry:project');
   });
 });
