@@ -120,7 +120,8 @@ function recompileProcessData(data = {}, roles = {}) {
 async function main() {
   const db = await connectDB();
   const cursor = db.collection('process_definitions').find({
-    'data.compiled': { $exists: true, $ne: null }
+    'data.compiled': { $exists: true, $ne: null },
+    'status.state.primary': 'ACTIVE'
   });
   let scanned = 0;
   let updated = 0;
@@ -144,7 +145,7 @@ async function main() {
     }
   }
 
-  console.log(`Scanned ${scanned} compiled process definitions; recompiled ${updated}.`);
+  console.log(`Scanned ${scanned} active compiled process definitions; recompiled ${updated}.`);
   if (unresolved.length) {
     console.log(`Unresolved ${unresolved.length} process definitions that fail recompilation:`);
     for (const item of unresolved) {
