@@ -37,6 +37,20 @@ describe('entity reference contract migration', () => {
     expect(result.design.lineage).toEqual({ organizationId: 'org-1' });
   });
 
+  it('uses the stored template lineage when legacy derivation fields are empty', () => {
+    const result = migrateLegacyDerivedFrom({
+      lineage: { organizationId: 'org-1', templateId: 'template-1' },
+      data: { derivedFrom: { entityType: null, entityId: null, parameters: { A: 100 } } }
+    });
+
+    expect(result.invalid).toBe(false);
+    expect(result.design.lineage).toEqual({ organizationId: 'org-1' });
+    expect(result.design.provenance.derivedFrom).toEqual({
+      source: { type: 'cassette', id: 'template-1' },
+      parameters: { A: 100 }
+    });
+  });
+
   it('rejects a lineage template that disagrees with recorded provenance', () => {
     const result = migrateLegacyDerivedFrom({
       lineage: { templateId: 'template-2' },

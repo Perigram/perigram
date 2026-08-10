@@ -92,7 +92,9 @@ export function migrateLegacyDerivedFrom(design = {}) {
     id: legacy?.entityId || legacy?.id,
     ...(legacy?.revisionId ? { revisionId: stringId(legacy.revisionId) } : {})
   };
-  const source = existing?.source || legacySource;
+  const source = existing?.source
+    || (legacySource.type && legacySource.id ? legacySource : null)
+    || (templateId ? { type: 'cassette', id: stringId(templateId) } : null);
   if (!source?.type || !source?.id) {
     return { changed: false, invalid: Boolean(legacy || templateId), design };
   }
