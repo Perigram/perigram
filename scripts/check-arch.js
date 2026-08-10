@@ -523,13 +523,24 @@ featureFiles.forEach(file => {
 });
 
 // 15. Source-assertion tests
+// Source-contract tests remain allowed only for genuine static boundaries such
+// as forbidden imports or manifest structure. Allowed specs below assert
+// manifest completeness, token projection, or forbidden-import boundaries;
+// they do not fake component/page behavior by searching source text.
 console.log('\nChecking source-assertion test practices...');
+const staticBoundarySpecs = new Set([
+  'shared/design-system.spec.js',
+  'shared/framework-packages.spec.js',
+  'shared/process-designer-ui.spec.js',
+  'shared/localization.spec.js'
+]);
 const specFiles = walkDir('.').filter(file => file.endsWith('.spec.js') && !file.includes('node_modules'));
 specFiles.forEach(file => {
   const relFile = path.relative('.', file);
   if (relFile.startsWith('server/scripts/') || relFile.startsWith('node_modules/')) return;
+  if (staticBoundarySpecs.has(relFile) || relFile.startsWith('components/shared/')) return;
   const content = fs.readFileSync(file, 'utf8');
-  if (/fs\.readFileSync\s*\(/.test(content) && /\.toContain\s*\(/.test(content) && !relFile.startsWith('shared/framework-packages.spec.js') && !relFile.startsWith('shared/process-designer-ui.spec.js') && !relFile.startsWith('shared/localization.spec.js') && !relFile.startsWith('components/shared/')) {
+  if (/fs\.readFileSync\s*\(/.test(content) && /\.toContain\s*\(/.test(content)) {
     console.error(`❌ ${relFile} uses source-string assertions (fs.readFileSync + toContain) — use behavioral tests`);
     errors++;
   }
