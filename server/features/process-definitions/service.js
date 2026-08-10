@@ -1384,22 +1384,6 @@ function setByPath(target, path, value) {
   if (parts[0]) cursor[parts[0]] = value;
 }
 
-async function loadAuthorizedRun(id, auth, level = 'read') {
-  const run = await repository.findRunById(id);
-  if (!run) throw createError({ statusCode: 404, message: 'Process run not found' });
-  await assertOrgAccess(auth, run.organizationId, level);
-  return run;
-}
-
-function serializeRun(run = {}) {
-  return {
-    ...run,
-    id: String(run._id || run.id),
-    processDefinitionId: String(run.processDefinitionId || ''),
-    organizationId: String(run.organizationId || '')
-  };
-}
-
 function processDataEnvironment(auth, run) {
   return {
     currentEntity: async entityType => {
