@@ -1,14 +1,15 @@
-import { cncContainment } from '@cutkit/domain-cnc';
+import { cncContainment, cncEntities } from '@cutkit/domain-cnc';
 
 const TYPE_ALIASES = {
-  cassetteTemplate: 'cassette',
-  cassetteDesign: 'cassette_design',
-  cassetteInstance: 'cassette_instance',
-  nestingRun: 'nesting_run',
-  sheetDesign: 'sheet_design',
-  materialPile: 'material_pile',
-  batchPile: 'batch_pile'
+  ...Object.fromEntries(
+    cncEntities.map(entity => [camelCase(entity.type), entity.type])
+  ),
+  batchPile: 'material_pile'
 };
+
+function camelCase(type = '') {
+  return String(type || '').replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
+}
 
 export function normalizeHierarchyType(type = '') {
   return TYPE_ALIASES[type] || String(type || '').replace(/-/g, '_');

@@ -1,68 +1,21 @@
-const ENTITY_TYPE_ALIASES = {
-  artifact: 'artifact',
-  batch_pile: 'batchPile',
-  cassette: 'cassette',
-  cassette_design: 'cassetteDesign',
-  cassette_instance: 'cassetteInstance',
-  cassette_template: 'cassetteTemplate',
-  catalog: 'catalog',
-  color: 'color',
-  entity_revision: 'entityRevision',
-  geometry_capture: 'geometryCapture',
-  layer_standard: 'layerStandard',
-  library: 'library',
-  material: 'material',
-  material_pile: 'materialPile',
-  nesting_run: 'nestingRun',
-  organization: 'organization',
-  pen_template: 'penTemplate',
-  profile_template: 'profileTemplate',
-  project: 'project',
-  queue: 'queue',
-  remnant: 'remnant',
-  requisition: 'requisition',
-  sheet: 'sheet',
-  sheet_design: 'sheetDesign',
-  tool_profile: 'toolProfile',
-  user: 'user',
-  warehouse: 'warehouse'
-};
+import { cncEntities } from '@cutkit/domain-cnc';
 
-const SOURCE_TYPE_MAP = {
-  ARTIFACT: 'artifact',
-  CASSETTE: 'cassette',
-  CASSETTE_DESIGN: 'cassetteDesign',
-  CASSETTE_INSTANCE: 'cassetteInstance',
-  CATALOG: 'catalog',
-  COLOR: 'color',
-  LIBRARY: 'library',
-  MATERIAL: 'material',
-  NESTING_RUN: 'nestingRun',
-  ORGANIZATION: 'organization',
-  PILE: 'materialPile',
-  PROJECT: 'project',
-  QUEUE: 'queue',
-  REMNANT: 'remnant',
-  REQUISITION: 'requisition',
-  SHEET: 'sheet',
-  SHEET_DESIGN: 'sheetDesign',
-  USER: 'user',
-  WAREHOUSE: 'warehouse'
-};
+const toCamelCase = (type = '') => String(type || '').replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
 
+const ENTITY_TYPE_ALIASES = Object.fromEntries(
+  cncEntities.map(entity => [entity.type, toCamelCase(entity.type)])
+);
+const SOURCE_TYPE_MAP = Object.fromEntries(
+  cncEntities
+    .filter(entity => entity.type !== 'batch_pile' && entity.type !== 'pile')
+    .map(entity => [entity.type.toUpperCase(), toCamelCase(entity.type)])
+);
 const OBJECT_LIST_KEY_TYPES = {
-  artifactIds: 'artifact',
-  cassetteDesignIds: 'cassetteDesign',
-  cassetteIds: 'cassette',
-  cassetteInstanceIds: 'cassetteInstance',
-  colorIds: 'color',
-  materialPileIds: 'materialPile',
-  pileIds: 'materialPile',
-  queueIds: 'queue',
-  remnantIds: 'remnant',
+  ...Object.fromEntries(
+    cncEntities.map(entity => [`${toCamelCase(entity.type)}Ids`, toCamelCase(entity.type)])
+  ),
   runIds: 'nestingRun',
-  sheetDesignIds: 'sheetDesign',
-  sheetIds: 'sheet'
+  pileIds: 'materialPile'
 };
 
 export function resolveEntityRelationRefs(rawValue, field = {}) {
