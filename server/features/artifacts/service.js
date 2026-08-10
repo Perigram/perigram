@@ -29,8 +29,15 @@ export async function create(data, userId = 'SYSTEM', userOrg = null, userRole =
   };
   if (!lineage.organizationId && userOrg) lineage.organizationId = toFlexibleId(userOrg);
   if (!lineage.organizationId) throw createError({ statusCode: 400, message: 'Artifact organization lineage is required' });
-  if (auth) assertEntityAccess({ entity: { lineage }, entityType: 'artifact', feature: 'artifacts', level: 'write', auth });
   const origin = await statusService.initialStatusForOrganization('artifact', lineage.organizationId, userId, { note: 'Artifact record created' });
+  if (auth) assertEntityAccess({
+    entity: { lineage, status: origin },
+    entityType: 'artifact',
+    feature: 'artifacts',
+    level: 'write',
+    action: 'create',
+    auth
+  });
 
   const artifactData = {
     identity: createIdentity(data.name || 'New Artifact', `artifact-${generateRandomString(12)}`),
