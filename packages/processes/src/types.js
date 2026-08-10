@@ -136,7 +136,7 @@ export function normalizeProcessSocket(socket = {}, fallback = {}) {
   return {
     id: String(source.id || fallback.id || ''),
     label: source.label || fallback.label || source.id || fallback.id || '',
-    type: normalizeProcessType(type),
+    type: normalizeProcessType(sanitizeProcessType(type)),
     role,
     required: source.required === true || (source.required == null && fallback.required === true),
     access: PROCESS_DATA_ACCESS.includes(source.access)
