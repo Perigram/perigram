@@ -23,6 +23,7 @@ export const generatedEntityDetailOverloads = [
   {
     entityType: 'cassette',
     component: GeneratedCassetteDesignerWorkspacePage,
+    ownsActionSurface: true,
     props: ({ entity }) => ({ cassette: entity })
   },
   {
@@ -38,6 +39,7 @@ export const generatedEntityDetailOverloads = [
   {
     entityType: 'queue',
     component: GeneratedQueueDetail,
+    ownsActionSurface: true,
     props: ({ entity, screenKey, queueDetailActions, mode }) => ({
       queue: entity,
       screenKey,
@@ -48,6 +50,7 @@ export const generatedEntityDetailOverloads = [
   {
     entityType: 'sheet_design',
     component: SheetDesignEditor,
+    ownsActionSurface: true,
     props: ({ entity, canEditSheetDesign }) => ({
       design: entity,
       editable: canEditSheetDesign
