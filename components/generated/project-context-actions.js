@@ -9,11 +9,12 @@ export function projectContextActionEntries({
   projectContext = {}
 } = {}) {
   if (!project) return [];
+  const parentType = projectContext?.parentEntityType || project.entityType || 'project';
 
   const childActionIds = new Set(childSections.flatMap(section => (
     (section.region?.actions || []).filter(actionId => {
       const action = actionManifest.find(candidate => candidate.actionId === actionId);
-      return action?.actionKind === 'createEntity' && parentEntityType(action) === 'project';
+      return action?.actionKind === 'createEntity' && parentEntityType(action) === parentType;
     })
   )));
   const projectEntries = entriesForProject(
@@ -25,7 +26,8 @@ export function projectContextActionEntries({
   const childCreateEntries = childSections.flatMap(section => childCreateActions({
     section,
     actionManifest,
-    project
+    project,
+    parentType
   }));
 
   return uniqueEntries([...projectEntries, ...childCreateEntries], actionManifest);
@@ -36,7 +38,7 @@ function entriesForProject(actionIds, actionManifest, project, context) {
     .map(actionId => actionManifest.find(action => action.actionId === actionId))
     .filter(Boolean)
     .filter(isGeneratedSurfaceAction)
-    .filter(action => actionAppliesToEntity(action, project, 'project'))
+    .filter(action => actionAppliesToEntity(action, project, context?.parentEntityType || project.entityType || 'project'))
     .map(action => ({
       key: `project:${action.actionId}`,
       actionId: action.actionId,
@@ -45,7 +47,7 @@ function entriesForProject(actionIds, actionManifest, project, context) {
     }));
 }
 
-function childCreateActions({ section = {}, actionManifest = [], project = null } = {}) {
+function childCreateActions({ section = {}, actionManifest = [], project = null, parentType = 'project' } = {}) {
   return [...new Set(section.region?.actions || [])]
     .map(actionId => actionManifest.find(action => action.actionId === actionId))
     .filter(Boolean)
@@ -53,8 +55,8 @@ function childCreateActions({ section = {}, actionManifest = [], project = null 
     .filter(action => (
       action.actionKind === 'createEntity'
       && action.entityType === section.entityType
-      && parentEntityType(action) === 'project'
-      && actionAppliesToEntity(action, project, 'project')
+      && parentEntityType(action) === parentType
+      && actionAppliesToEntity(action, project, parentType)
     ))
     .map(action => ({
       key: `collection:${section.region?.id || section.entityType}:${action.actionId}`,

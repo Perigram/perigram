@@ -11,30 +11,30 @@ same phase that replaces a contract.
 
 ### 0. Freeze the evidence and strengthen enforcement
 
-- [ ] Add executable architecture guards for the violations found by the audit:
+- [x] Add executable architecture guards for the violations found by the audit:
   concrete CNC imports in generic process/generated UI modules, duplicate object
   keys, cross-feature repository imports, concrete entity-name branches in
   `@cutkit/processes`, runtime legacy-process bridges, and multiple structural
   registries for hierarchy or creation.
-- [ ] Make every architecture finding blocking. Delete the “non-blocking migration
+- [x] Make every architecture finding blocking. Delete the “non-blocking migration
   inventory” success path; `check-arch` must not print Golden Path success while
   reporting violations.
-- [ ] Add a repository test that fails when component/page behavior is asserted only
+- [x] Add a repository test that fails when component/page behavior is asserted only
   by searching source text. Source-contract tests remain allowed only for genuine
   static boundaries such as forbidden imports or manifest structure.
 - [ ] Record persisted acceptance fixtures for the current organization, process
   graph, project hierarchy, and representative entity DTOs without copying private
   production data into the repository.
-- [ ] Acceptance: the new guards fail against the audited pre-repair tree and pass
+- [x] Acceptance: the new guards fail against the audited pre-repair tree and pass
   only after the relevant later phases are complete.
 
 ### 1. Make process Lineage the only authored hierarchy contract
 
-- [ ] Define hierarchy as typed Lineage dataflow: a connected entity value determines
+- [x] Define hierarchy as typed Lineage dataflow: a connected entity value determines
   the ancestor type and canonical lineage key; the downstream entity receives that
   composed Lineage block. Graph structure, not an entity selector or global table,
   owns authored parentage.
-- [ ] Extend the normalized/compiled process contract with explicit lineage bindings
+- [x] Extend the normalized/compiled process contract with explicit lineage bindings
   derived from those graph edges. The compiled binding must contain child entity
   type, ancestor entity type, lineage key, source node/socket, and consuming
   node/socket.
@@ -143,34 +143,34 @@ same phase that replaces a contract.
 
 ### 7. Remove unrequested and unreliable Automation runtime
 
-- [ ] Remove hidden `control.domainEventTrigger`, `control.entityChangedTrigger`,
+- [x] Remove hidden `control.domainEventTrigger`, `control.entityChangedTrigger`,
   wait/scheduler nodes, automatic handler registration, and the three-second Nitro
   orchestration poller unless a separately reviewed process-events specification is
   accepted.
-- [ ] Remove `orchestration_runs`/step persistence and APIs that exist only for the
+- [x] Remove `orchestration_runs`/step persistence and APIs that exist only for the
   removed hidden operations. Migrate or explicitly delete existing run records after
   confirming they carry no required business history.
-- [ ] Keep the requested node-bottom manual/socket trigger switch. Event output policy
+- [x] Keep the requested node-bottom manual/socket trigger switch. Event output policy
   can be designed later as explicit graph data/control nodes.
-- [ ] If durable automation is later approved, design it around one durable queue,
+- [x] If durable automation is later approved, design it around one durable queue,
   leases/idempotency, multi-instance delivery, recovery, authorization, and observable
   failure states—not process-local Sets and per-instance polling.
-- [ ] Acceptance: the palette, persisted node catalog, validator, compiler, runtime,
+- [x] Acceptance: the palette, persisted node catalog, validator, compiler, runtime,
   APIs, and documentation expose the same supported operation set; no hidden nodes
   remain executable.
 
 ### 8. Eliminate runtime compatibility bridges
 
-- [ ] Inventory every use of `legacyActionId`, `legacyProcessType`,
+- [x] Inventory every use of `legacyActionId`, `legacyProcessType`,
   `legacyTypeToTemplateId`, stale-parent normalization, old handle reconstruction,
   old action/status normalization, and entity aliases.
-- [ ] Write one idempotent migration for each persisted contract still present in the
+- [x] Write one idempotent migration for each persisted contract still present in the
   database. Migrations must fail closed and report unresolved records.
-- [ ] Run migrations for drafts and active definitions, recompile active manifests,
+- [x] Run migrations for drafts and active definitions, recompile active manifests,
   and verify round-trip equality under the current protocol.
-- [ ] Delete the runtime dual-read/normalization paths and the superseded migration
+- [x] Delete the runtime dual-read/normalization paths and the superseded migration
   code after data verification. Current code must accept exactly one process protocol.
-- [ ] Acceptance: fixtures using an old protocol fail with a clear migration-required
+- [x] Acceptance: fixtures using an old protocol fail with a clear migration-required
   error; current persisted records need no stale/legacy fallback to load or execute.
 
 ### 9. Repair persistence and editing boundaries
@@ -227,10 +227,10 @@ same phase that replaces a contract.
 
 ### 12. Enforce honest task and integration workflow
 
-- [ ] Reopen tasks whose own acceptance notes say “not fixed,” “not fixed at all,” or
+- [x] Reopen tasks whose own acceptance notes say “not fixed,” “not fixed at all,” or
   describe broken rendered behavior. A task is complete only after its stated
   persisted/browser acceptance cases pass.
-- [ ] Remove completion narratives that contradict current behavior; update relevant
+- [x] Remove completion narratives that contradict current behavior; update relevant
   READMEs to describe only implemented contracts.
 - [ ] Enforce worktree/session-branch commits and clean merges. Add a CI/history guard
   where practical so coding-agent implementation commits cannot land directly on the

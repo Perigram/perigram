@@ -3,6 +3,29 @@ const withReferenceBlocks = definition => ({
   blocks: [...new Set([...(definition.blocks || []), 'relations', 'provenance'])]
 });
 
+const withRoutes = definition => ({
+  ...definition,
+  routes: definition.routes || defaultRoutes(definition)
+});
+
+function defaultRoutes({ type = '', collection = '' }) {
+  const base = collection || `${type}s`;
+  const single = `/api/${base}/:id`;
+  if (type === 'artifact') {
+    return { single: `${single}/metadata`, download: `/api/${base}/:id`, list: `/api/${base}` };
+  }
+  if (type === 'artifact_template') {
+    return { single, download: `${single}/source`, list: `/api/${base}` };
+  }
+  if (type === 'project') {
+    return { single: '/api/project/:id', list: '/api/project' };
+  }
+  if (type === 'queue') {
+    return { single: '/api/queue/:id', list: '/api/queue' };
+  }
+  return { single, list: `/api/${base}` };
+}
+
 export const cncEntities = [
   { type: 'artifact', collection: 'artifacts', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'artifact_template', collection: 'artifact_templates', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
@@ -34,4 +57,4 @@ export const cncEntities = [
   { type: 'tool_profile', collection: 'tool_profiles', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'user', collection: 'users', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'warehouse', collection: 'warehouses', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] }
-].map(withReferenceBlocks);
+].map(withReferenceBlocks).map(withRoutes);

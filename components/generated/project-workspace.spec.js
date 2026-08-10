@@ -82,8 +82,8 @@ describe('generated project workspace architecture', () => {
     expect(source).toContain('sourceStateForRegion');
     expect(source).toContain('projectContextActionEntries');
     expect(source).toContain('props.screenActions');
-    expect(projectContextActionsSource).toContain("parentEntityType(action) === 'project'");
-    expect(projectContextActionsSource).toContain('actionAppliesToEntity(action, project, \'project\')');
+    expect(projectContextActionsSource).toContain('parentEntityType(action) === parentType');
+    expect(projectContextActionsSource).toContain('actionAppliesToEntity(action, project, parentType)');
     expect(source).not.toContain('cncRelations');
     expect(source).not.toContain('relationKeysForAction');
     expect(source).not.toContain('authStore.actionManifest.filter');

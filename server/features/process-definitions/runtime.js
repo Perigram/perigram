@@ -55,7 +55,8 @@ export async function resolveProcessAuth(auth = {}) {
     process: {
       active: true,
       schemaVersion: compiled.schemaVersion,
-      workflows: compiled.workflows || {}
+      workflows: compiled.workflows || {},
+      lineageBindings: compiled.lineageBindings || []
     },
     fieldPolicies: compiled.fieldPolicies || {},
     navigation: [...system.navigation, ...processNavigation],

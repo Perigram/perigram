@@ -175,7 +175,7 @@
 
       <template v-if="inspectorOpen" #inspector>
         <aside class="flex w-[26rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
-        <Tabs value="inspector" class="flex min-h-0 flex-1 flex-col">
+        <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
             <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
@@ -1004,6 +1004,7 @@ const dockPopover = ref(null);
 const pinnedDockPopover = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
+const inspectTab = ref('inspector');
 const paletteQuery = ref('');
 const contextPaletteSearch = ref(null);
 const contextPalette = ref({
@@ -1354,7 +1355,27 @@ const compiledScreenPreview = computed(() => Object.values(compiledPreview.value
   .sort((left, right) => String(left.label || left.id).localeCompare(String(right.label || right.id))));
 
 watch(selectedScreenRecord, () => syncSelectedScreenUi(), { immediate: true });
-watch([draft, nodes, edges], () => recomputeProcessPreview(), { deep: true });
+
+let previewRecomputeTimer = null;
+let previewRecomputeSequence = 0;
+watch([draft, nodes, edges], () => schedulePreviewRecompute(), { deep: true });
+watch(inspectTab, () => schedulePreviewRecompute());
+
+function schedulePreviewRecompute() {
+  if (previewRecomputeTimer) {
+    clearTimeout(previewRecomputeTimer);
+    previewRecomputeTimer = null;
+  }
+  if (inspectTab.value !== 'screens') {
+    previewRecomputeSequence += 1;
+    return;
+  }
+  previewRecomputeTimer = setTimeout(() => {
+    previewRecomputeTimer = null;
+    const sequence = ++previewRecomputeSequence;
+    recomputeProcessPreview(() => sequence === previewRecomputeSequence);
+  }, 120);
+}
 
 onMounted(() => {
   loadActiveOrCreateLocal();
@@ -1363,6 +1384,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleCanvasKeydown);
   if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
+  if (previewRecomputeTimer) clearTimeout(previewRecomputeTimer);
 });
 
 async function loadActiveOrCreateLocal() {
@@ -2124,12 +2146,14 @@ function processDefinitionSnapshot() {
   };
 }
 
-function recomputeProcessPreview() {
+function recomputeProcessPreview(shouldApply = () => true) {
+  if (inspectTab.value !== 'screens') return;
   if (!draft.value?.data) {
     compiledPreview.value = null;
     compiledPreviewError.value = '';
     return;
   }
+  if (!shouldApply()) return;
   try {
     compiledPreview.value = compileProcessDefinition(processDefinitionSnapshot(), cncDomain, { roles: organizationRoles.value });
     compiledPreviewError.value = '';

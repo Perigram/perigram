@@ -52,6 +52,7 @@ import { detailRouteForEntity } from '~/components/generated/entity-detail-routi
 import { useLineage } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities';
+import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { ENTITY_UI } from '~/utils/status-engine';
 import { containmentAncestors, entityHierarchyIds, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute } from '~/utils/entity-hierarchy.js';
 
@@ -66,6 +67,7 @@ const props = defineProps({
 
 const entityStore = useEntityStore();
 const authStore = useAuthStore();
+const effectiveContainment = useEffectiveContainment();
 const entityContext = inject('entityContext', null);
 const displayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 const isExpanded = ref(!props.expandable);
@@ -99,7 +101,8 @@ const effectiveExclusions = computed(() => {
 
 const items = computed(() => containmentAncestors(
     { ...(props.entity || {}), lineage: activeLineage.value || {} },
-    props.entityType || props.entity?.entityType || inferEntityType(activeLineage.value || {})
+    props.entityType || props.entity?.entityType || inferEntityType(activeLineage.value || {}),
+    effectiveContainment()
 ).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) }))
   .filter(ref => !effectiveExclusions.value.some(item => (
     normalizeHierarchyType(item?.type) === normalizeHierarchyType(ref.type)

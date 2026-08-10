@@ -447,7 +447,6 @@ genericUiFiles.forEach(file => {
 // 11. Duplicate object keys in domain registry files
 console.log('\nChecking duplicate object keys...');
 const objectKeyFiles = [
-  'packages/domain-cnc/src/entity-create-inputs.js',
   'packages/domain-cnc/src/summaries.js',
   'packages/domain-cnc/src/relationships.js'
 ];
@@ -457,15 +456,28 @@ objectKeyFiles.forEach(file => {
   let braceDepth = 0;
   let arrayDepth = 0;
   const keyPositions = new Map();
+  let inTopLevelObject = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (/^export const \w+\s*=\s*\{/.test(line.trim())) {
+      inTopLevelObject = true;
+      braceDepth = 0;
+      arrayDepth = 0;
+      keyPositions.clear();
+      continue;
+    }
+    if (!inTopLevelObject) continue;
     braceDepth += (line.match(/\{/g) || []).length;
     braceDepth -= (line.match(/\}/g) || []).length;
+    if (braceDepth <= 0) {
+      inTopLevelObject = false;
+      continue;
+    }
     arrayDepth += (line.match(/\[/g) || []).length;
     arrayDepth -= (line.match(/\]/g) || []).length;
     if (arrayDepth > 0) continue;
     const keyMatch = line.match(/^\s*(\w+)\s*:\s*/);
-    if (keyMatch && braceDepth <= 2) {
+    if (keyMatch && braceDepth === 1) {
       const key = keyMatch[1];
       if (keyPositions.has(key)) {
         console.error(`❌ ${file}:${i + 1} duplicate object key [${key}] (also at line ${keyPositions.get(key)})`);

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { cncDomain } from '@cutkit/domain-cnc';
+import { useAuthStore } from './auth';
 import { containmentAncestors, hierarchyTypeAlias, normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 
 let syncListenerAttached = false;
@@ -51,7 +52,24 @@ export const useEntityStore = defineStore('entities', () => {
      * Resolves the chain of parent references for an entity.
      */
     function getAncestry(type, data) {
-        return containmentAncestors(data, type).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) }));
+        return containmentAncestors(data, type, effectiveContainment()).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) }));
+    }
+
+    function effectiveContainment() {
+        try {
+            const authStore = useAuthStore();
+            const bindings = authStore.lineageBindings || [];
+            if (bindings.length) {
+                return bindings.map(binding => ({
+                    childType: binding.childEntityType,
+                    parentType: binding.ancestorEntityType,
+                    lineageKey: binding.lineageKey
+                }));
+            }
+        } catch {
+            // auth store unavailable outside app context; fall through
+        }
+        return cncDomain.containment;
     }
 
     function entityEndpoint(type = '') {

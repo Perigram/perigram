@@ -1,41 +1,72 @@
-export const cncSummaries = [
-  { entityType: 'cassette', parentType: 'library', parentIdKey: 'libraryId', countField: 'cassetteCount' },
-  { entityType: 'queue', parentType: 'project', parentIdKey: 'projectId', countField: 'queueCount' },
-  { entityType: 'cassette_instance', parentType: 'project', parentIdKey: 'projectId', countField: 'instanceCount' },
-  { entityType: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId', countField: 'runCount' },
-  { entityType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId', countField: 'sheetDesignCount' },
-  { entityType: 'sheet', parentType: 'queue', parentIdKey: 'queueId', countField: 'sheetCount', sumFields: { area: 'totalArea' } },
-  { entityType: 'color', parentType: 'catalog', parentIdKey: 'catalogId', countField: 'colorCount' }
-];
+import { cncEntities } from './entities.js';
+import { cncContainment } from './relationships.js';
 
-export const cncFrontendEntities = [
-  { type: 'material', collection: 'materials', routes: { single: '/api/materials/:id', list: '/api/materials' } },
-  { type: 'project', collection: 'projects', routes: { single: '/api/project/:id', list: '/api/project' } },
-  { type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' } },
-  { type: 'requisition', collection: 'requisitions', routes: { single: '/api/requisitions/:id', list: '/api/requisitions' } },
-  { type: 'batch', collection: 'material-piles', routes: { single: '/api/material-piles/:id', list: '/api/material-piles' } },
-  { type: 'pile', collection: 'material-piles', routes: { single: '/api/material-piles/:id', list: '/api/material-piles' } },
-  { type: 'sheet', collection: 'sheets', routes: { single: '/api/sheets/:id', list: '/api/sheets' } },
-  { type: 'remnant', collection: 'remnants', routes: { single: '/api/remnants/:id', list: '/api/remnants' } },
-  { type: 'library', collection: 'libraries', routes: { single: '/api/libraries/:id', list: '/api/libraries' } },
-  { type: 'cassette', collection: 'cassettes', routes: { single: '/api/cassettes/:id', list: '/api/cassettes' } },
-  { type: 'cassetteTemplate', collection: 'cassettes', routes: { single: '/api/cassettes/:id', list: '/api/cassettes' } },
-  { type: 'cassetteInstance', collection: 'cassette-instances', routes: { single: '/api/cassette-instances/:id', list: '/api/cassette-instances' } },
-  { type: 'cassetteDesign', collection: 'cassette-designs', routes: { single: '/api/cassette-designs/:id', list: '/api/cassette-designs' } },
-  { type: 'sheetDesign', collection: 'sheet-designs', routes: { single: '/api/sheet-designs/:id', list: '/api/sheet-designs' } },
-  { type: 'artifact', collection: 'artifacts', routes: { single: '/api/artifacts/:id/metadata', download: '/api/artifacts/:id', list: '/api/artifacts' } },
-  { type: 'artifactTemplate', collection: 'artifact-templates', routes: { single: '/api/artifact-templates/:id', download: '/api/artifact-templates/:id/source', list: '/api/artifact-templates' } },
-  { type: 'facade', collection: 'facades', routes: { single: '/api/facades/:id', list: '/api/facades' } },
-  { type: 'facadePattern', collection: 'facade-patterns', routes: { single: '/api/facade-patterns/:id', list: '/api/facade-patterns' } },
-  { type: 'catalog', collection: 'catalogs', routes: { single: '/api/catalogs/:id', list: '/api/catalogs' } },
-  { type: 'color', collection: 'colors', routes: { single: '/api/colors/:id', list: '/api/colors' } },
-  { type: 'entityRevision', collection: 'entity-revisions', routes: { single: '/api/entity-revisions/:id', list: '/api/entity-revisions' } },
-  { type: 'geometryCapture', collection: 'geometry-captures', routes: { single: '/api/geometry-captures/:id', list: '/api/geometry-captures' } },
-  { type: 'profileTemplate', collection: 'profile-templates', routes: { single: '/api/profile-templates/:id', list: '/api/profile-templates' } },
-  { type: 'warehouse', collection: 'warehouses', routes: { single: '/api/warehouses/:id', list: '/api/warehouses' } },
-  { type: 'machine', collection: 'machines', routes: { single: '/api/machines/:id', list: '/api/machines' } },
-  { type: 'layerStandard', collection: 'layer-standards', routes: { single: '/api/layer-standards/:id', list: '/api/layer-standards' } },
-  { type: 'user', collection: 'users', routes: { single: '/api/users/:id', list: '/api/users' } },
-  { type: 'organization', collection: 'organizations', routes: { single: '/api/organizations/:id', list: '/api/organizations' } },
-  { type: 'nestingRun', collection: 'nesting-runs', routes: { single: '/api/nesting-runs/:id', list: '/api/nesting-runs' } }
-];
+function toCamelCase(type = '') {
+  return String(type || '').replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
+}
+
+/**
+ * Frontend entity projection derived from the canonical domain entity
+ * registry. Each entry carries the canonical snake_case type, its collection,
+ * and its API routes. Route defaults come from the registry's `routes`
+ * contract; this array is a derived projection, not a second registry.
+ */
+export const cncFrontendEntities = cncEntities
+  .map(entity => ({
+    type: toCamelCase(entity.type),
+    collection: entity.collection,
+    routes: entity.routes || {}
+  }))
+  .filter(entry => entry.type && entry.collection);
+
+/**
+ * Per-child summary field names. These are persisted `summary.*` contracts
+ * written by the parent aggregator and read by entity surfaces; they stay
+ * stable even though the hierarchy relation is derived from `cncContainment`.
+ */
+const COUNT_FIELD_BY_CHILD = {
+  cassette: 'cassetteCount',
+  queue: 'queueCount',
+  cassette_instance: 'instanceCount',
+  nesting_run: 'runCount',
+  sheet_design: 'sheetDesignCount',
+  sheet: 'sheetCount',
+  color: 'colorCount'
+};
+
+const SUM_FIELDS_BY_CHILD = {
+  sheet: { area: 'totalArea' }
+};
+
+/**
+ * Curated summary relations. Only these parent/child pairs carry persisted
+ * summary aggregates; not every containment edge does. Each key is the
+ * child type.
+ */
+const SUMMARY_CHILD_TYPES = new Set([
+  'cassette',
+  'queue',
+  'cassette_instance',
+  'nesting_run',
+  'sheet_design',
+  'sheet',
+  'color'
+]);
+
+/**
+ * Summary count hierarchy derived from the canonical containment graph. Each
+ * row scopes a child list under its declared parent and exposes the matching
+ * count field name. This is a projection of `cncContainment`, not a parallel
+ * parent table.
+ */
+export const cncSummaries = cncContainment
+  .filter(relation => SUMMARY_CHILD_TYPES.has(relation.childType)
+    && relation.parentType && relation.lineageKey)
+  .map(relation => ({
+    entityType: relation.childType,
+    parentType: relation.parentType,
+    parentIdKey: relation.lineageKey,
+    countField: COUNT_FIELD_BY_CHILD[relation.childType]
+      || `${relation.childType.replace(/_/g, '')}Count`,
+    ...(SUM_FIELDS_BY_CHILD[relation.childType] ? { sumFields: SUM_FIELDS_BY_CHILD[relation.childType] } : {})
+  }));

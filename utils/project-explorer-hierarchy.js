@@ -1,6 +1,6 @@
 import { containmentParent, normalizeHierarchyType } from './entity-hierarchy.js';
 
-export function projectExplorerHierarchy({ projectItem = null, items = [], linkedItemKeys = [] } = {}) {
+export function projectExplorerHierarchy({ projectItem = null, items = [], linkedItemKeys = [], containment = null } = {}) {
   if (!projectItem) return { childrenByKey: new Map(), rootItems: [], linkedRootItems: [], orphanItems: [] };
   const uniqueItems = [...new Map(items.filter(item => item?.key).map(item => [item.key, item])).values()];
   const byIdentity = new Map(uniqueItems.map(item => [identityKey(item.type, entityId(item.entity)), item]));
@@ -12,7 +12,7 @@ export function projectExplorerHierarchy({ projectItem = null, items = [], linke
 
   for (const item of uniqueItems) {
     if (item.key === projectItem.key) continue;
-    const parent = containmentParent(item.type, item.entity?.lineage || {});
+    const parent = containmentParent(item.type, item.entity?.lineage || {}, containment);
     const parentId = parent && item.entity?.lineage?.[parent.lineageKey];
     const parentItem = parentId ? byIdentity.get(identityKey(parent.parentType, parentId)) : null;
     if (parentItem) {

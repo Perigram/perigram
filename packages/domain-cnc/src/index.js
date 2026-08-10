@@ -10,7 +10,6 @@ export { cncContainment, cncRelations } from './relationships.js';
 export { cncEntityRevisions } from './revisions.js';
 export { cncEntityProducers } from './producers.js';
 export { cncAttachmentKinds } from './attachment-kinds.js';
-export { cncEntityCreateInputs, getEntityCreateInputs } from './entity-create-inputs.js';
 export { cncEntityConstruction, getEntityConstruction } from './entity-construction.js';
 export {
   cncEntityFieldAccess,
@@ -60,7 +59,6 @@ import { cncEntityRevisions } from './revisions.js';
 import { cncEntityProducers } from './producers.js';
 import { cncArtifactConversions } from './artifact-conversions.js';
 import { cncAttachmentKinds } from './attachment-kinds.js';
-import { cncEntityCreateInputs } from './entity-create-inputs.js';
 import { cncEntityConstruction } from './entity-construction.js';
 import { cncEntityFieldAccess } from './field-access.js';
 import { cncDesignSystem, cncStatusUi, cncUiSurfaces, cncEntitySurfaceContracts } from './ui.js';
@@ -85,7 +83,6 @@ export const cncDomain = {
   producers: cncEntityProducers,
   artifactConversions: cncArtifactConversions,
   attachmentKinds: cncAttachmentKinds,
-  createInputs: cncEntityCreateInputs,
   construction: cncEntityConstruction,
   fieldAccess: cncEntityFieldAccess,
   designSystem: cncDesignSystem,

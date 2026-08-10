@@ -377,14 +377,14 @@ function closeInputDialog() {
 }
 
 function hasUploadCreator(field = {}) {
-  return field.creator?.entityType === 'artifact'
+  return Boolean(field.creator?.entityType)
     && field.creator.attachmentKinds?.some(item => ['upload', 'capture', 'editor'].includes(item.creation?.mode));
 }
 
 function artifactCreatorForAction(action = {}) {
-  if (action.actionKind !== 'createEntity' || action.entityType !== 'artifact') return null;
+  if (action.actionKind !== 'createEntity' || !action.entityType) return null;
   const field = [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
-    .find(input => input.creator?.entityType === 'artifact');
+    .find(input => input.creator?.entityType);
   return hasUploadCreator(field) ? field.creator : null;
 }
 
@@ -407,7 +407,7 @@ function selectCreatedArtifact(artifact = {}) {
   const field = artifactCreatorField.value;
   const id = entityIdentifier(artifact);
   if (!field || !id) return;
-  if (pendingAction.value?.entityType === 'artifact') {
+  if (pendingAction.value?.entityType && pendingAction.value.entityType === field.creator?.entityType) {
     artifactCreatorField.value = null;
     pendingAction.value = null;
     pendingEntity.value = null;
@@ -501,7 +501,11 @@ function selectedTemplateIdForField(field = {}) {
 function selectedTemplateForField(field = {}) {
   const templateId = selectedTemplateIdForField(field);
   const pending = pendingEntity.value?.entity;
-  if (pending && (pending.origin?.type === 'cassette' || pendingEntity.value?.context?.entityType === 'cassette')) {
+  const templateEntityType = field.templateEntityType || field.entityType || '';
+  if (pending && templateEntityType && (
+    pending.origin?.type === templateEntityType
+    || pendingEntity.value?.context?.entityType === templateEntityType
+  )) {
     const pendingId = entityIdentifier(pending);
     if (!templateId || pendingId?.toString() === templateId?.toString()) return pending;
   }
@@ -602,10 +606,11 @@ async function loadPromptOptions(fields = []) {
 function promptFieldHidden(field = {}, action = pendingAction.value) {
   if (!field) return false;
   const parentType = action?.parentEntityType || action?.inputs?.find(input => input.id === 'parent')?.entityType || '';
+  const templateEntityType = field.templateEntityType || field.entityType || '';
   return action?.actionKind === 'createEntity'
-    && action?.entityType === 'cassette_design'
-    && parentType === 'cassette'
-    && field.id === 'templateId';
+    && templateEntityType
+    && parentType === templateEntityType
+    && field.id === (field.templateFieldId || 'templateId');
 }
 
 async function entityOptions(entityType, field = {}) {

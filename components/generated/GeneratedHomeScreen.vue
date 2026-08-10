@@ -112,7 +112,7 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
@@ -127,7 +127,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
-const domainUi = useCutkitDomainUi();
+const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 provide('generatedExecuteAction', (action, entity, context = {}) => {
   emit('execute-action', action, entity, context);
@@ -143,7 +143,7 @@ const sections = computed(() => props.screen.regions
       rawItems: state.rawItems || state.items || []
     };
   })
-  .filter(section => section.source.entityType && shouldRenderHomeSection(section, domainUi.containment)));
+  .filter(section => section.source.entityType && shouldRenderHomeSection(section, effectiveContainment())));
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)
