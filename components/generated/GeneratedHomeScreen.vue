@@ -64,7 +64,7 @@
               suppress-child-summaries
               relation-variant="compact"
             />
-            <template v-if="section.source.entityType === 'cassette' || entityActionsFor(section, entity).length || entityCanDelete(section, entity) || detailRouteFor(section, entity)" #footer>
+            <template v-if="hasEditorAction(section.source.entityType) || entityActionsFor(section, entity).length || entityCanDelete(section, entity) || detailRouteFor(section, entity)" #footer>
               <div class="flex flex-wrap justify-end gap-2">
                 <Button
                   v-if="detailRouteFor(section, entity)"
@@ -75,8 +75,9 @@
                   :aria-label="$t('common.open')"
                   @click.stop="openEntity(section, entity)"
                 />
-                <GeneratedCassetteDesignerAction
-                  v-if="section.source.entityType === 'cassette'"
+                <component
+                  :is="editorActionFor(section.source.entityType)"
+                  v-if="editorActionFor(section.source.entityType)"
                   :entity="entity"
                   @refresh="$emit('refresh')"
                 />
@@ -109,7 +110,7 @@ import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
@@ -130,6 +131,8 @@ const emit = defineEmits(['refresh', 'execute-action']);
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const effectiveContainment = useEffectiveContainment();
+const hasEditorAction = entityHasEditorAction;
+const editorActionFor = entityEditorActionFor;
 const { t, te } = useI18n();
 provide('generatedExecuteAction', (action, entity, context = {}) => {
   emit('execute-action', action, entity, context);

@@ -5,7 +5,7 @@
     :entity-type="entityType"
     :show-trace="!embedded"
     :show-header="!embedded"
-    :show-identity="showIdentity || entityType === 'sheet_design'"
+    :show-identity="showIdentity || forceIdentityForEditor"
     @refresh="$emit('refresh')"
   >
     <GeneratedEntityDetailBody
@@ -18,9 +18,10 @@
       @refresh="$emit('refresh')"
     />
     <slot />
-    <template v-if="entityType === 'cassette' || headerActionIds.length || entityCanDelete" #actions>
-      <GeneratedCassetteDesignerAction
-        v-if="entityType === 'cassette'"
+    <template v-if="editorActionComponent || headerActionIds.length || entityCanDelete" #actions>
+      <component
+        :is="editorActionComponent"
+        v-if="editorActionComponent"
         :entity="entity"
         menu-item
         :open-in-workspace="openActionsInWorkspace"
@@ -48,11 +49,11 @@
 import { computed, provide } from 'vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import GeneratedEntityDetailBody from '~/components/generated/GeneratedEntityDetailBody.vue';
-import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { entityEditorActionFor, entityEditorForcesIdentity } from '~/components/generated/entity-editor-action.js';
 import {
   isGeneratedSurfaceAction,
   resolveGeneratedEntityActions,
@@ -82,6 +83,8 @@ const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
+const editorActionComponent = computed(() => entityEditorActionFor(props.entityType));
+const forceIdentityForEditor = computed(() => entityEditorForcesIdentity(props.entityType));
 provide('generatedExecuteAction', (action, entity, context = {}) => {
   emit('execute-action', action, entity, context);
 });

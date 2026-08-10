@@ -100,7 +100,7 @@
         suppress-child-summaries
         relation-variant="compact"
       />
-      <template v-if="entityType === 'cassette' || entityActionsFor(entity).length || entityCanDelete(entity) || detailRouteFor(entity)" #footer>
+      <template v-if="hasEditorAction || entityActionsFor(entity).length || entityCanDelete(entity) || detailRouteFor(entity)" #footer>
         <div class="flex flex-wrap justify-end gap-2">
           <Button
             v-if="detailRouteFor(entity)"
@@ -111,8 +111,9 @@
             :aria-label="$t('common.open')"
             @click.stop="openEntity(entity)"
           />
-          <GeneratedCassetteDesignerAction
-            v-if="entityType === 'cassette'"
+          <component
+            :is="editorActionComponent"
+            v-if="editorActionComponent"
             :entity="entity"
             :open-in-workspace="openInWorkspace"
             @open-page="page => $emit('open-page', page)"
@@ -152,7 +153,7 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
@@ -181,6 +182,8 @@ const emit = defineEmits(['refresh', 'execute-action', 'open-entity', 'open-page
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
+const editorActionComponent = computed(() => entityEditorActionFor(props.entityType));
+const hasEditorAction = computed(() => entityHasEditorAction(props.entityType));
 const { t } = useI18n();
 const searchQuery = ref('');
 const statusFilter = ref('');
