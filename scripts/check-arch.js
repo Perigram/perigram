@@ -447,7 +447,6 @@ genericUiFiles.forEach(file => {
 // 11. Duplicate object keys in domain registry files
 console.log('\nChecking duplicate object keys...');
 const objectKeyFiles = [
-  'packages/domain-cnc/src/entity-create-inputs.js',
   'packages/domain-cnc/src/summaries.js',
   'packages/domain-cnc/src/relationships.js'
 ];
