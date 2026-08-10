@@ -1,9 +1,17 @@
 import { ObjectId } from 'mongodb';
 import { connectDB } from '../db/mongo.js';
-import { createProcessFromTemplate, legacyTypeToTemplateId } from '../../packages/processes/src/templates.js';
+import { createProcessFromTemplate } from '../features/process-definitions/process-templates.js';
 import { compileProcessDefinition } from '../../packages/processes/src/index.js';
 import { cncDomain } from '../../packages/domain-cnc/src/index.js';
 import { createStatusState } from '../../packages/core/src/index.js';
+
+function legacyTypeToTemplateId(type = '') {
+  const key = String(type || '').toLowerCase();
+  if (key === 'manufacturer') return 'manufacturer';
+  if (key === 'customer') return 'customer';
+  if (key === 'serviceprovider' || key === 'service-provider') return 'serviceProvider';
+  return 'contractor';
+}
 
 function statusBlock(primary, userId = 'SYSTEM', note = '') {
   return {

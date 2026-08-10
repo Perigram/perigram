@@ -6,7 +6,7 @@ import { getLineageFilter } from '../../utils/permissions.js';
 import { Organization } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
-import { getProcessTemplate } from '~/packages/processes/src/index.js';
+import { getProcessTemplate } from '~/server/features/process-definitions/process-templates.js';
 import * as processDefinitionsService from '../process-definitions/service.js';
 import * as invitationsService from '../invitations/service.js';
 import { ownerMembership } from '../users/organization-owner.js';

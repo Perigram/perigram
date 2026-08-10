@@ -14,7 +14,6 @@ import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
   compileProcessDefinition,
-  createProcessFromTemplate,
   hasCanonicalProcessSource,
   normalizeProcessDefinition,
   PROCESS_DATAFLOW_VERSION,
@@ -28,6 +27,7 @@ import {
   validateProcessDefinition,
   validateRoundTrip
 } from '~/packages/processes/src/index.js';
+import { createProcessFromTemplate } from '~/server/features/process-definitions/process-templates.js';
 import {
   cncDomain,
   getBlockFieldSchema,

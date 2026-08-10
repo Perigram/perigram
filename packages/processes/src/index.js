@@ -28,9 +28,7 @@ export {
 } from './transpiler.js';
 
 export {
-  PROCESS_TEMPLATES,
-  createProcessFromTemplate,
-  getProcessTemplate
+  createTemplate
 } from './templates.js';
 
 export {

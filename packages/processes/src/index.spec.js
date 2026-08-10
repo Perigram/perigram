@@ -2,11 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   canvasToDefinition,
   compileProcessDefinition as compileContract,
-  createProcessFromTemplate,
   createDefaultCreatedWorkflow,
+  createTemplate,
   definitionToCanvas,
-  getProcessTemplate,
-  legacyTypeToTemplateId,
   normalizeProcessDefinition,
   portSpecsCompatible,
   requiredEntityProfileTypes,
@@ -3480,17 +3478,36 @@ describe('@cutkit/processes compiler', () => {
     ]));
   });
 
-  it('creates compilable starter process definitions from legacy organization types', () => {
-    const process = createProcessFromTemplate({
-      templateId: legacyTypeToTemplateId('Manufacturer'),
-      organizationId: 'org-1'
+  it('creates compilable starter process definitions from a synthetic template', () => {
+    const template = createTemplate({
+      id: 'synthetic-manufacturer',
+      label: 'Synthetic manufacturer',
+      adminLabel: 'Synthetic admin',
+      grants: { libraries: 'admin', catalogs: 'admin' },
+      entities: {
+        library: {
+          id: 'library',
+          entityType: 'library',
+          label: 'Library',
+          lifecycle: { mode: 'domainDefault', workflow: null },
+          fields: { read: ['identity.*'], write: [], private: [] },
+          stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
+          allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
+        }
+      },
+      services: {}
     });
-    const roles = getProcessTemplate('manufacturer').organizationRoles;
-    const compiled = compileContract(process.data, domain, { roles });
+    const definition = JSON.parse(JSON.stringify(template.definition));
+    definition.compiled = null;
+    const process = {
+      identity: { uid: `process-${template.id}-org-1`, name: template.label, slug: template.id },
+      lineage: { organizationId: 'org-1' },
+      data: definition
+    };
+    const compiled = compileContract(process.data, domain, { roles: template.organizationRoles });
     const access = resolveRoleAssignmentAccess({ compiled, assignment: { userId: 'user-1', roleIds: ['role_admin'], bindings: {} }, domain });
 
-    expect(process.data.sourceTemplateId).toBe('manufacturer');
-    expect(access.permissions.organizations[0].level).toBe('admin');
+    expect(process.data.sourceTemplateId).toBe('synthetic-manufacturer');
     expect(access.screens.length).toBeGreaterThan(0);
   });
 

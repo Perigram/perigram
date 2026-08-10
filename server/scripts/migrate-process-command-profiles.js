@@ -2,10 +2,10 @@ import { connectDB } from '../db/mongo.js';
 import { cncDomain } from '../../packages/domain-cnc/src/index.js';
 import {
   compileProcessDefinition,
-  getProcessTemplate,
   requiredEntityProfileTypes,
   validateProcessDefinition
 } from '../../packages/processes/src/index.js';
+import { getProcessTemplate } from '../features/process-definitions/process-templates.js';
 
 const apply = process.env.APPLY === '1';
 
