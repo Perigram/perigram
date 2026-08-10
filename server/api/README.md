@@ -1,7 +1,5 @@
 # COMPONENT: API Endpoints
 
-This directory contains the Nitro server API routes for the Nuxt application. Endpoints are organized by resource and use file-based routing.
-
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
 - `artifacts/`: Metadata, deletion, and streaming for generated files.
@@ -52,7 +50,7 @@ Routes are grouped into sub-directories corresponding to features:
 - `project/`: Main project orchestration and nesting triggers.
   The project list route returns authorized project DTOs with canonical
   identity, status, origin, lineage, safe project data, summary fields, and
-  queue previews so shared entity cards can render directly from the response.
+  queue previews.
   Collection routes for process-generated screens accept `primaryStatus` or
   comma-separated `primaryStatuses` when a role screen is scoped to one or more
   lifecycle windows.
@@ -114,7 +112,7 @@ Responsibilities:
 - Runs on ALL requests.
 - Reads `sessionId` from cookies.
 - Fetches user from the database.
-- Attaches session info: `event.context.auth = { userId, isAdmin }`.
+- Attaches the canonical auth context (see [server/utils/README.md](../utils/README.md#auth-context-object) for the shape).
 
 `auth/login.post.js` sets the `sessionId` cookie after password login. The cookie
 is secure in production by default, but `SESSION_COOKIE_SECURE=false` can be set

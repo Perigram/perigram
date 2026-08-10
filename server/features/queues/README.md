@@ -16,8 +16,8 @@ Defines a specific nesting job, bridging the digital production intent with phys
   with `ARCHIVED` available from any queue state).
 
 ## Key Workflows
-1. **Job Initialization**: Selecting baked cassette designs and specifying
-   quantities. Parametric templates must be baked into a concrete
+1. **Job Initialization**: Baked cassette designs are selected with quantities.
+   Parametric templates must be baked into a concrete
    `cassette_design` before they enter a queue.
 2. **Material Allocation**: Defining which warehouse piles, sheets, or remnants are allowed for the run.
    Queue edits persist these selections as `data.job.materialPool` with source

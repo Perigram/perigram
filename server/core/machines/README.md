@@ -1,6 +1,6 @@
 # COMPONENT: State Machine Engine & Aggregator - v24 Standardized
 
-Centralized logic for governing entity lifecycles, enforcing business rules, and maintaining cross-entity data integrity (aggregations).
+Governs entity lifecycles and maintains cross-entity data integrity (aggregations).
 
 ## Architecture
 The system consists of three main parts: the transition engine, the dynamic hook registry, and the centralized aggregator.
@@ -89,7 +89,7 @@ runtime captures readable entity refs/counts into
 `status.lifecycle.data.snapshots` during the transition.
 
 ### 2. Dynamic Hook Registry (`hooks.js` & App Registry)
-Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks, manufacturing-specific logic is NOT implemented in the core engine.
+Acts as a decoupled dispatcher for side-effects. Manufacturing-specific logic is NOT implemented in the core engine.
 - **Global Hooks (`hooks.js`)**: System-wide primitives (e.g., `propagateToChildren`, `triggerAggregator`).
 - **Feature Hooks**: Feature hook handlers are bound explicitly in `server/runtime/app-registry.js` or exported from the owning feature service.
 - **Resolution**: The engine reads hook handlers from the active app registry, then falls back to feature-service hooks for transitional compatibility.

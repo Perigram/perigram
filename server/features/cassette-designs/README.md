@@ -12,7 +12,7 @@ Aligned with `@PROPOSED_DATA_MODEL.md` Section 5:
 - **`_id`**: ObjectId
 - **`identity`**: `{ name, slug, serial, reference }`
 - **`origin`**: Creation snapshot [StatusBlock].
-- **`status`**: Current snapshot [StatusBlock] (Used for design approval lifecycle).
+- **`status`**: Current snapshot [StatusBlock].
 - **`lineage`**: `{ organizationId, projectId?, queueId? }`
 - **`geometry`**: 
     - `data`: Object (Baked SVG/Polygons)

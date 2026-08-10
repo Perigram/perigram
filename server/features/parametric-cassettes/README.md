@@ -1,6 +1,6 @@
 # COMPONENT: Parametric Cassettes
 
-Handles the evaluation and "baking" of parametric cassette templates into static DXF files. This allows parametric designs to be used by the generic nesting engine and provides instant downloads for users. Legacy templates use Nodi; OCCS v2 templates with CutKit graph-tree extensions use the canonical OCCS helpers.
+Handles the evaluation and "baking" of parametric cassette templates into static DXF files that feed the generic nesting engine and instant export. Legacy templates use Nodi; OCCS v2 templates with CutKit graph-tree extensions use the canonical OCCS helpers.
 
 ## Core Files
 - `service.js`: Business logic for geometry evaluation and baking.
@@ -86,8 +86,7 @@ Legacy templates use the same `nodi-modular` WASM engine and
 templates use the same graph-tree, trapezoid, Clipper, and layer helpers as
 Cassette Designer v2 previews, so saved workbench templates feed nesting
 without re-entering Nodi.
-Runtime requires `nodi-modular/index_bg.wasm` to be present in the production image (copied from node_modules or bundled in the Nuxt output).
-Runtime also requires `public/Cassette.json` to be present in the production image.
+Runtime requires `nodi-modular/index_bg.wasm` (copied from node_modules or bundled in the Nuxt output) and `public/Cassette.json` to be present in the production image.
 The engine instance is stateful and not concurrency-safe for parallel `loadGraph`/`evaluate`.
 `service.js` enforces this with a process-wide evaluation lock and per-call deep cloning of the template graph before `loadGraph`.
 

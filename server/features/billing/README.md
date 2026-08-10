@@ -27,9 +27,8 @@ must not hardcode package prices or read package definitions from app database
 collections. Package display names should use `labelKey` so the generated
 organization account screen can resolve localized text; `label` is only the
 runtime-config fallback when no translation key is supplied.
-Runtime configuration remains an API implementation detail; the UI describes
-packages as organization token top-ups and explains that tokens fund
-compute-intensive services such as nesting and AI interactions.
+Runtime configuration is an API implementation detail; the UI renders packages
+as organization token top-ups that fund compute-intensive services.
 
 ## Collections
 

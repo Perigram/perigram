@@ -1,7 +1,5 @@
 # COMPONENT: Invitations
 
-Manages organization membership invitations.
-
 ## Core Files
 - `repository.js`: Database operations for `invitations` collection.
 - `service.js`: Invitation generation and processing.
@@ -28,9 +26,8 @@ Manages organization membership invitations.
    management. Pending membership prevents runtime tenant access; rejection
    removes both membership and organization assignment.
 
-Invitation organization ids use the repository `toFlexibleId()` convention so
-both string organization ids such as `org-...` and Mongo ObjectIds can own and
-query invitations.
+Invitation organization ids use the repository `toFlexibleId()` convention
+covered by the [feature template](../_template/README.md).
 
 ## API / Functions
 - `generateInvitation()`: Creates a new invitation after team-management

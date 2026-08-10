@@ -8,7 +8,6 @@ Material procurement system connecting contractors and manufacturers using v24 s
 
 ## Data Structure (v24)
 - **`identity`**: `{ name, serial }` (e.g., REQ-000451).
-- **`status`**: Managed by `requisition` state machine.
 - **`lineage`**: `{ organizationId, manufacturerId, projectId? }`.
 - **`items`**: Array of ordered sheets with `specs` and `priceSnapshot`.
 
@@ -27,9 +26,8 @@ Governed by `server/core/machines/definitions.js`:
 
 ## ID Handling
 
-- Requisition lineage references use flexible ids. Organization, manufacturer,
-  and project ids may be stored as string UIDs or Mongo `ObjectId` values
-  depending on how the organization and process were bootstrapped.
+- Requisition lineage references use flexible ids (string UIDs or Mongo
+  `ObjectId`, depending on how the organization and process were bootstrapped).
 - Store lineage fields through `toFlexibleId()` and list by matching both the
   flexible value and its string form. Do not cast authenticated organization
   ids to `ObjectId` in this feature.

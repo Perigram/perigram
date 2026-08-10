@@ -53,8 +53,7 @@ before route changes so popovers, menus, and chat do not overlap the
 destination.
 
 The authenticated user control opens a PrimeVue popover and always renders the organization section when at
-least one membership is available, including the common single-organization
-case. That section contains organization switching only and resolves names from
+least one membership is available. That section contains organization switching only and resolves names from
 canonical organization identity. Billing, team management, and process design
 remain children of `/organization`; administrative organization functions are
 not duplicated elsewhere in the account popover. Clicking the active

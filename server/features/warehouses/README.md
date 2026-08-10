@@ -30,7 +30,7 @@ Key fields:
 - `list()`: List warehouses filtered by organization
 - `update()`: Update warehouse details (name, address, contact)
 - `updateInventoryCounts()`: Internal method to increment/decrement inventory
-  counts; cached counters are clamped at zero to avoid negative stale stats
+  counts
 - `remove()`: Delete warehouse (only if empty)
 
 ## Inventory Management

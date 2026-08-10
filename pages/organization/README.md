@@ -75,13 +75,13 @@ design system supplies its compact scale, spring, token-backed shell, and
 reduced-motion policy. This keeps the external block's proximity interaction
 without introducing its published fixed black surface, border, or shadow
 treatment.
-When older saved graphs still contain role/user layout nodes, the route filters
-those non-canvas nodes out and reconstructs entity/service/socket nodes from
-the process records so active definitions do not open to a blank canvas. Truly
-empty processes render compact canvas add controls for the same three object
-types.
-The route now delegates process round-tripping to `@cutkit/processes`:
-canonical semantic records project into Vue Flow nodes through
+Saved graphs containing legacy role/user layout nodes have those non-canvas
+nodes filtered out at load, and entity/service/socket nodes are reconstructed
+from the process records so active definitions do not open to a blank canvas.
+Truly empty processes render compact canvas add controls for the same three
+object types.
+Route process round-tripping delegates to `@cutkit/processes`: canonical
+semantic records project into Vue Flow nodes through
 `definitionToCanvas()`, and saving writes the visible canvas back through
 `canvasToDefinition()`. Canvas layout is therefore presentation state; roles,
 entity lifecycles, action definitions, services, organization sends, screens,
@@ -112,29 +112,35 @@ Derived input/output socket specifications remain on the node rails and their
 hover/focus metadata; the inspector does not duplicate them as a table. The
 remaining inspector surfaces are:
 
-- the roles tab owns human process role labels and derived access summaries;
-- the service access tab owns service runtime identities used by service run/view access;
-- the screens tab owns screen id, label, generated UI template, source entity/mode rows, display region rows, route, placement, required access, role ids, assignment binding, and screen action ids;
-- entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
-- the action-node inspector owns fixed action kind, trigger mode, per-role access level, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket; the canvas node shows only the accurate semantic summary and ports;
-- process algebra nodes own their entity/field/block/type/operation controls
-  and typed inline fallbacks. Create/modify/deconstruct expose selected domain
-  fields directly as sockets. Generic value/list/tree nodes infer transported
-  type and structure from incoming wires, so reading a field across an entity
-  list, producing a logic mask, and filtering the original list is ordinary
-  aligned dataflow rather than a special query-node language;
-- Relations block entries own only their storage key; entity type and one/many
-  cardinality are inferred from the connected socket. Manual generic Create
-  actions prompt for an unwired identity name and accept canonical field-path
-  values without requiring a block-composer node. Wired dynamic sources remain
-  lazy and suppress the corresponding manual prompt;
-- artifact Relations entries always show the upload-backed attachment kinds
-  allowed by that Link action. An empty selection allows every upload-backed
-  domain kind, while an explicit selection narrows the creator. These options come from the
-  domain attachment-kind creation contract;
+- the roles tab edits labels and shows a derived access summary;
+- the service access tab owns service runtime identities;
+- entity nodes own entity type, lifecycle mode, inline status-machine
+  states/transitions, transition role access, node role access, and
+  public/write/private field policy;
+- the action-node inspector owns fixed action kind, trigger mode, per-role
+  access level, target entity or command, target status, update fields,
+  projection fields, derived typed data sockets, and the completion event
+  socket;
+- process algebra nodes expose selected domain fields directly as sockets;
+  generic value/list/tree nodes infer transported type and structure from
+  incoming wires;
+- Relations block entries own only their storage key, with entity type and
+  one/many cardinality inferred from the connected socket. Manual generic
+  Create actions prompt for an unwired identity name and accept canonical
+  field-path values;
+- artifact Relations entries show the upload-backed attachment kinds allowed
+  by that Link action (empty selection allows every upload-backed domain
+  kind; explicit selection narrows the creator), from the domain
+  attachment-kind creation contract;
 - service nodes own command selection, run/view service identities, prepaid
   token billing metadata, and command-derived inputs/outputs;
-- socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
+- socket nodes own direction, entity type, projected/excluded fields,
+  send/receive roles, and receiver lifecycle.
+
+The screens tab owns screen id, label, generated UI template, source
+entity/mode rows, display region rows, route, placement, required access, role
+ids, assignment binding, and screen action ids; that surface follows the
+generated-screen manifest described above.
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are
 reusable human process responsibilities assigned onto entity access rules,

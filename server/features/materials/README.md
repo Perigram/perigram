@@ -1,6 +1,6 @@
 # COMPONENT: Materials
 
-This directory contains the Materials feature, managing the global collection of production materials (Aluminium Composite, Plywood, etc).
+Global collection of production materials (Aluminium Composite, Plywood, etc).
 
 ## Data Structure
 ### Material (Global)

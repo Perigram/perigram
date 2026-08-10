@@ -125,118 +125,27 @@ Layer standard seed flow:
 3. `layer-standards.service.seed()` upserts records by `data.code`.
 4. The script removes known legacy seed records and reports the resulting catalogue.
 
-Use `server/scripts/assign-default-pens.js` only as a repair helper for
-standards missing `data.defaultPenId`; it uses the same OCCS code/group pen
-mapping instead of round-robin assignment.
+### Migration & Repair Scripts
 
-Use `server/scripts/migrate-public-system-data.js` after adopting or repairing
-the public system catalogue contract. It marks existing records in `materials`,
-system `layer_standards`, system `pen_templates`, and system `tool_profiles`
-as public-read without modifying user grants.
-
-Use `server/scripts/migrate-org-types-to-processes.js` once when introducing
-process definitions to existing data. It maps stored `organization.data.type`
-labels to starter process templates, creates an active compiled
-`process_definition` for organizations without `data.activeProcessDefinitionId`,
-and removes organization type branching from runtime behavior.
-
-Use `server/scripts/migrate-process-action-access-grants.js` after adopting
-action access grants. It rewrites stored process actions so `trigger` contains
-only execution mode, rewrites old trigger/access role ids into
-`access.grants: [{ roleId, level }]`, defaults missing grant levels to `write`,
-derives status-action access conditions into `access.statusFrom/statusTo`, and
-recompiles active process contracts.
-
-Use `server/scripts/migrate-process-screens-to-generated-ui.js` after adopting
-generated operational screens. It normalizes stored screen records into fixed
-template/source/region contracts, filters stale screen action ids that are not
-defined in the process actions, preserves the previous route as `sourceRoute`,
-recompiles active process contracts, and picks up compiler-inferred screens
-from role grants for processes that have role access but no authored screens.
-
-Use `server/scripts/migrate-process-roles-to-organizations.js` for the role
-ownership cutover. The default run is read-only and reports label divergence,
-orphan assignment users, and invalid invitation role ids per organization.
-Active-process labels win; roles introduced by current drafts are promoted;
-archived-only roles are audit history. `--apply` moves identity and assignments
-to organization data, moves role grants into each process, recompiles active
-contracts, clears draft compiled output, removes user/membership role copies,
-and removes invitation scalar roles. An organization with unresolved references
-is not changed, and repeated apply runs are idempotent.
-
-The superseded `migrate-process-role-memberships.js` was used after changing
-membership/process role separation. It clears copied permission presets from
-memberships whose `role` or `roleIds` are process role ids (`role_*`) while
-preserving the process role assignment data. It also promotes an active
-team-management member to explicit `organizations:admin` when an organization
-has no tenant admin, so creator/admin recovery does not depend on membership
-role labels.
-
-Use `server/scripts/migrate-organization-owner-admins.js` after adopting owner
-memberships. It marks one active membership per organization as
-`owner: true`, preferring the organization creator, then an active admin
-membership, then the first active member. The selected owner receives
-`organizations:admin` and `users:admin` so every organization keeps at least
-one permanent tenant admin.
-
-Use `server/scripts/migrate-process-update-actions.js` after adopting unified
-process updates. It rewrites stored `changeStatus` action records to
-`updateEntity` actions with status inputs, preserves status window metadata,
-and recompiles stored runtime contracts.
-
-Use `server/scripts/migrate-entity-reference-contracts.js` after adopting
-canonical entity references. It migrates legacy revision `entityType/entityId`
-fields to `data.source`, moves cassette-design `data.derivedFrom` and
-`lineage.templateId` into `provenance.derivedFrom.source`, and persists parent
-revision provenance where configured.
-
-Use `server/scripts/migrate-queue-nesting-contracts.js` after adopting the
-current queue nesting contract. It converts legacy `data.nestingParams` and
-ambiguous queue items into `data.nestingSettings` plus strict
-`cassette_design` job items, resolving old template/source ids through existing
-design provenance and concrete parameters. It seeds the system default machine
-id when legacy queues have no machine selection.
-
-Use `server/scripts/migrate-sheet-design-compositions.js` after adopting sheet
-layout collapse by cassette composition. It stores normalized cassette-design
-composition metadata so same-multiset sheet layouts collapse to one sheet
-design per run without geometry comparison.
-
-Use `server/scripts/migrate-artifact-sources.js` after adopting artifact source
-refs. It backfills source relations for existing artifacts and cassette upload
-records so file provenance flows through canonical entity refs.
-
-Use `server/scripts/migrate-process-command-output-statuses.js` after adding
-runtime projection from command output handles to downstream process status
-nodes. It scans active process graphs, finds `runCommand -> updateEntity`
-edges, builds v2 status snapshots from the compiled workflow, and updates
-existing command output entities whose current status is outside the active
-process state window. It supports `--dry-run` and must remain graph-derived,
-not status-name-specific.
-
-Use `server/scripts/migrate-process-transition-role-access.js` after separating
-process-role transition authority from target-status access grants. It removes
-compiled workflow `access.permissions` from transitions that already have
-`processRoleIds`, including both v2 region transitions and root transition
-mirrors. It does not alter semantic action grants, user assignments, or
-status-scoped entity access windows.
-
-Use `server/scripts/migrate-process-definition-draft-names.js` to repair process
-identities created by the old clone loop. It reports the number of names that
-would change by default; set `APPLY=1` to collapse any repeated trailing
-`draft` suffixes to one. It does not rename ordinary process names.
-
-Use `server/scripts/migrate-process-command-profiles.js` after adding
-command-declared profile requirements. It adds missing, visible entity-profile
-nodes from the contractor starter profile contract, derives their initial role
-access from authored command/actions, validates the repaired definition, and
-recompiles it. The default run is read-only; set `APPLY=1` to persist.
-
-Use `server/scripts/repair-nesting-run-completions.js` after fixing process
-workflow resolution for domain system intents. It finds `nesting_run` records
-that are still in `NESTING` but already have solver `data.results` and
-`data.sheetDesignIds`, then writes the normal `COMPLETE` status snapshot and
-status event without calling the nesting worker or recreating sheet designs.
+| Script | When to run | What it does |
+|---|---|---|
+| `assign-default-pens.js` | Repair helper for standards missing `data.defaultPenId` | Uses the same OCCS code/group pen mapping instead of round-robin assignment. |
+| `migrate-public-system-data.js` | After adopting or repairing the public system catalogue contract | Marks existing records in `materials`, system `layer_standards`, system `pen_templates`, and system `tool_profiles` as public-read without modifying user grants. |
+| `migrate-org-types-to-processes.js` | Once when introducing process definitions to existing data | Maps stored `organization.data.type` labels to starter process templates, creates an active compiled `process_definition` for organizations without `data.activeProcessDefinitionId`, and removes organization type branching from runtime behavior. |
+| `migrate-process-action-access-grants.js` | After adopting action access grants | Rewrites stored process actions so `trigger` contains only execution mode, rewrites old trigger/access role ids into `access.grants: [{ roleId, level }]`, defaults missing grant levels to `write`, derives status-action access conditions into `access.statusFrom/statusTo`, and recompiles active process contracts. |
+| `migrate-process-screens-to-generated-ui.js` | After adopting generated operational screens | Normalizes stored screen records into fixed template/source/region contracts, filters stale screen action ids that are not defined in the process actions, preserves the previous route as `sourceRoute`, recompiles active process contracts, and picks up compiler-inferred screens from role grants for processes that have role access but no authored screens. |
+| `migrate-process-roles-to-organizations.js` | For the role ownership cutover | Default run is read-only and reports label divergence, orphan assignment users, and invalid invitation role ids per organization. Active-process labels win; roles introduced by current drafts are promoted; archived-only roles are audit history. `--apply` moves identity and assignments to organization data, moves role grants into each process, recompiles active contracts, clears draft compiled output, removes user/membership role copies, and removes invitation scalar roles. An organization with unresolved references is not changed, and repeated apply runs are idempotent. |
+| `migrate-organization-owner-admins.js` | After adopting owner memberships | Marks one active membership per organization as `owner: true`, preferring the organization creator, then an active admin membership, then the first active member. The selected owner receives `organizations:admin` and `users:admin` so every organization keeps at least one permanent tenant admin. |
+| `migrate-process-update-actions.js` | After adopting unified process updates | Rewrites stored `changeStatus` action records to `updateEntity` actions with status inputs, preserves status window metadata, and recompiles stored runtime contracts. |
+| `migrate-entity-reference-contracts.js` | After adopting canonical entity references | Migrates legacy revision `entityType/entityId` fields to `data.source`, moves cassette-design `data.derivedFrom` and `lineage.templateId` into `provenance.derivedFrom.source`, and persists parent revision provenance where configured. |
+| `migrate-queue-nesting-contracts.js` | After adopting the current queue nesting contract | Converts legacy `data.nestingParams` and ambiguous queue items into `data.nestingSettings` plus strict `cassette_design` job items, resolving old template/source ids through existing design provenance and concrete parameters. Seeds the system default machine id when legacy queues have no machine selection. |
+| `migrate-sheet-design-compositions.js` | After adopting sheet layout collapse by cassette composition | Stores normalized cassette-design composition metadata so same-multiset sheet layouts collapse to one sheet design per run without geometry comparison. |
+| `migrate-artifact-sources.js` | After adopting artifact source refs | Backfills source relations for existing artifacts and cassette upload records so file provenance flows through canonical entity refs. |
+| `migrate-process-command-output-statuses.js` | After adding runtime projection from command output handles to downstream process status nodes | Scans active process graphs, finds `runCommand -> updateEntity` edges, builds v2 status snapshots from the compiled workflow, and updates existing command output entities whose current status is outside the active process state window. Supports `--dry-run` and must remain graph-derived, not status-name-specific. |
+| `migrate-process-transition-role-access.js` | After separating process-role transition authority from target-status access grants | Removes compiled workflow `access.permissions` from transitions that already have `processRoleIds`, including both v2 region transitions and root transition mirrors. Does not alter semantic action grants, user assignments, or status-scoped entity access windows. |
+| `migrate-process-definition-draft-names.js` | Repair for process identities with repeated trailing `draft` suffixes | Reports the number of names that would change by default; set `APPLY=1` to collapse any repeated trailing `draft` suffixes to one. Does not rename ordinary process names. |
+| `migrate-process-command-profiles.js` | After adding command-declared profile requirements | Adds missing, visible entity-profile nodes from the contractor starter profile contract, derives their initial role access from authored command/actions, validates the repaired definition, and recompiles it. Default run is read-only; set `APPLY=1` to persist. |
+| `repair-nesting-run-completions.js` | After fixing process workflow resolution for domain system intents | Finds `nesting_run` records that are still in `NESTING` but already have solver `data.results` and `data.sheetDesignIds`, then writes the normal `COMPLETE` status snapshot and status event without calling the nesting worker or recreating sheet designs. |
 
 ## Entity Revision Migration
 

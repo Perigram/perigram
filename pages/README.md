@@ -10,9 +10,7 @@ redirect gate for authenticated users.
 - The landing shell renders immediately for anonymous visitors. Entry auth is
   resolved on the server when cookies are present, and client mount re-checks
   auth only to redirect authenticated sessions. The public first paint must not
-  block on a client-side `/api/auth/me` round trip, because that leaves mobile
-  and constrained-network clients stuck on a spinner even though the landing
-  page itself is public.
+  block on a client-side `/api/auth/me` round trip.
 - Authenticated users with an active process go to the generated process entry
   route: the generated `home` screen first, then the first generated hub/list
   screen, then `/screens` only when no navigable generated screen exists. The
@@ -121,25 +119,18 @@ screens, not through a static asset route. Do not route library trace links to
 the cassette manager; cassettes are children of the library, not the library
 entity surface itself.
 
-Organization routes are first-class app areas. `/organization` renders the
-active organization through the canonical `EntityPage`, real organization
-fields, and a compact direct-action toolbar for its generated child screens;
-it is not a grid of navigation cards. `/organization/users` owns team management; `/organization/process` owns the
-standalone Vue Flow process designer. It uses the shared full-height designer
-workspace rather than a padded page panel and frames persisted graph nodes after loading,
-so a saved viewport cannot hide the graph. Vue Flow renders client-side because
-its generated accessibility ids are not stable across SSR hydration. Breadcrumbs expose these routes as
-organization siblings so users can move between overview, team management, and process
-design without going through profile/admin pages. The user menu is only the
-active-organization switcher; organization capabilities remain on these
-organization routes. Team management assigns users
-to active process roles; the process designer activation defines available
-services, field policies, navigation, and lifecycle machines for the current
-organization.
-The organization workspace is also the billing account surface: token packages,
-invoices, payment sync, and ledger rows belong to the active organization.
-Profile remains a personal account/preferences/membership page and must not
-show project usage or user-owned credit purchase flows.
+Organization routes are first-class app areas. `/organization`,
+`/organization/users`, and `/organization/process` routing, billing, team, and
+process ownership are covered in
+[pages/organization/README.md](./organization/README.md). The overview is not a
+grid of navigation cards. Vue Flow renders client-side because its generated
+accessibility ids are not stable across SSR hydration. Breadcrumbs expose these
+routes as organization siblings so users can move between overview, team
+management, and process design without going through profile/admin pages. The
+user menu is only the active-organization switcher; organization capabilities
+remain on these organization routes. Profile remains a personal
+account/preferences/membership page and must not show project usage or
+user-owned credit purchase flows.
 Its account surface uploads/removes the current user's avatar through the user
 avatar API; every avatar image uses a square cover crop inside its circular
 frame. Account, preferences, and membership views use semantic navigation links

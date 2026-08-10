@@ -3,7 +3,7 @@
 System and user-owned CNC tool definitions used by nesting, cassette processing, and layer/tool mapping flows.
 
 ## Core Files
-- `service.js`: Validates tool profile data and exposes CRUD-style operations.
+- `service.js`: Validates tool profile data and implements tool-profile CRUD.
 - `repository.js`: MongoDB access for `tool_profiles`.
 - `index.js`: Public feature entry point exporting the service namespace.
 

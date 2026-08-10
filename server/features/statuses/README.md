@@ -36,7 +36,7 @@ card-only data; use `lineage` only for ancestry and `attachments` only for file
 references.
 
 ### Audit Log: `status_events`
-Every state transition is recorded in the `status_events` collection for full traceability.
+Every state transition is recorded in the `status_events` collection.
 
 ```javascript
 {
@@ -62,7 +62,7 @@ actor: {
 }
 ```
 
-This display actor is not written back to the status block. The status block
+The display actor is not written back to the status block: the status block
 keeps the immutable `userId` audit value, while UI surfaces can render the
 human name when the user still exists.
 
@@ -77,7 +77,7 @@ Transitions are governed by declarative machines in `server/core/machines/`.
 ## Usage
 
 ### Reading Status
-Entity status is available directly on the object. For history, use the specific status service or API.
+For history, use the specific status service or API.
 
 ### Updating Status
 **NEVER** update `status` blocks manually. Always use the `statusService.transition()` from the machine engine.

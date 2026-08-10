@@ -9,7 +9,7 @@ Individual physical units tracked throughout the production lifecycle.
 
 ## Key Workflows
 1. **Instantiation**: Multiple sheets are created from a single `material_pile` via `sheetsService.createFromPile()`.
-2. **Batch Allocation**: `allocateFromPile()` provides a high-level bridge for creating sheets from piles.
+2. **Batch Allocation**: `allocateFromPile()` creates sheets from piles.
 3. **Nesting Hand-off**: Assigned to a `nesting_run` (digital link).
 4. **Queue Production Output**: chosen nesting runs consume pile stock but do
    not create `sheet` inventory rows for sheets that were immediately cut.

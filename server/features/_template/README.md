@@ -1,6 +1,7 @@
 # COMPONENT: Feature Template (Golden Path)
 
-This directory serves as the canonical implementation of the **v24 Absolute Final** architecture. Every feature in `server/features/` must follow this structure strictly.
+This directory is the canonical feature template. Every feature in
+`server/features/` must follow this structure strictly.
 
 ## Directory Structure
 
@@ -12,6 +13,8 @@ This directory serves as the canonical implementation of the **v24 Absolute Fina
 | `index.js` | Exports the service and relevant types. |
 
 ## The Golden Rules
+
+Feature contracts shared with the wider backend are documented in [server/features/README.md](../README.md).
 
 1.  **Strict Service-Repository**: Services never touch `db.collection`. Repositories never check permissions.
 2.  **Flexible IDs**: Always use `toFlexibleId()` in Repositories to support both string UIDs and ObjectIds.
