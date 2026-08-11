@@ -64,6 +64,9 @@ export function assertTransitionAccess({ transition, entity, auth }) {
 }
 
 export function createLineageFilter(auth) {
+  if (auth?.organizationId) {
+    return { 'lineage.organizationId': toFlexibleId(auth.organizationId) };
+  }
   const orgIds = (auth?.memberships || [])
     .map(membership => membership.organizationId ? toFlexibleId(membership.organizationId) : null)
     .filter(Boolean);
@@ -77,6 +80,8 @@ export function hasEntityAccess({ entity, feature, level = 'read', action = null
   if (!auth) return false;
 
   const orgId = entity?.lineage?.organizationId?.toString();
+  const activeOrgId = auth.organizationId?.toString();
+  if (orgId && activeOrgId && orgId !== activeOrgId) return false;
   const membership = orgId
     ? (auth.memberships || []).find(item => item.organizationId?.toString() === orgId)
     : (auth.memberships || [])[0];
