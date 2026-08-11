@@ -96,6 +96,21 @@ git config core.sshCommand 'ssh -p 2222 -i ~/.ssh/cutkit_r240_ed25519 -o Identit
 The R240 checkout clones/pushes over the same Forgejo SSH transport using the
 R240 deploy key `~/.ssh/cutkit_git_deploy`.
 
+## MongoDB DNS Note
+
+The main stack's services connect to MongoDB via `MONGODB_URI`/`MONGO_URI`
+using the Swarm service name `cutkit_mongo`:
+
+```
+mongodb://cutkit_mongo:27017/cutkit_dev
+```
+
+Do not point them at the bare service name `mongo`. The separate
+`cutkit-demo-agent` compose stack attaches its own `mongo` container to the
+same `cutkit-network` overlay with the alias `mongo`, so the short name
+resolves to both databases and the driver can land on the wrong one (an empty
+`cutkit_dev`), producing `Invalid credentials (User not found: ...)` on login.
+
 ## Deploy Staging
 
 Pushing to the `staging` branch on Forgejo auto-deploys. The deploy runner
