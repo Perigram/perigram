@@ -332,9 +332,9 @@ const promptFields = computed(() => promptedFields(pendingAction.value));
 const relationCreatorFields = computed(() => pendingAction.value?.relationMutation?.creator?.inputPolicy?.fields
   ?.filter(field => field.prompt) || []);
 const pendingActionLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.confirm'));
-const dialogSaveLabel = computed(() => pendingAction.value?.relationMutation?.operation === 'link'
-  ? t('common.add')
-  : pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.save'));
+const dialogSaveLabel = computed(() => pendingAction.value
+  ? generatedActionLabel(pendingAction.value, '', { t, te })
+  : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
 const pageTitle = computed(() => screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
