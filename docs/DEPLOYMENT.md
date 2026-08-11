@@ -50,8 +50,12 @@ Operational notes:
 
 For production on your own server.
 
-For the R240 deployment path, VPN/SSH targets, and Swarm rollout
-commands, use [REMOTE_ACCESS.md](./REMOTE_ACCESS.md).
+For the R240 deployment path, VPN/SSH targets, Forgejo git server, and the
+push-to-deploy workflow, use [REMOTE_ACCESS.md](./REMOTE_ACCESS.md).
+
+Pushing to the `staging` branch of the Forgejo origin auto-deploys the Swarm
+app via the webhook receiver and `deploy/deploy-staging.sh`; see
+[deploy/README.md](../deploy/README.md). Manual setup for a fresh host:
 
 1.  **Init Swarm**: `docker swarm init`
 2.  **Secrets**:
