@@ -1,12 +1,30 @@
 {
   "attachmentKinds": [
     {
+      "bucket": "facadeModels",
+      "key": "FACADE_MODEL_SOURCE",
+      "kind": "FACADE_MODEL_SOURCE",
+      "mimeType": "model/gltf-binary",
+      "preview": {
+        "mode": "model3d"
+      }
+    },
+    {
+      "bucket": "artifactTemplates",
+      "key": "ARTIFACT_TEMPLATE_SOURCE",
+      "kind": "ARTIFACT_TEMPLATE_SOURCE",
+      "mimeType": "application/octet-stream",
+      "preview": {
+        "mode": "attachment"
+      }
+    },
+    {
       "bucket": "userDxf",
       "key": "DXF_SOURCE",
       "kind": "DXF_SOURCE",
       "mimeType": "application/dxf",
       "preview": {
-        "mode": "download"
+        "mode": "dxf"
       }
     },
     {
@@ -62,6 +80,87 @@
       "preview": {
         "mode": "pdf"
       }
+    },
+    {
+      "bucket": "uploads",
+      "key": "SVG_FILE",
+      "kind": "SVG_FILE",
+      "mimeType": "image/svg+xml",
+      "preview": {
+        "mode": "svg"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "IMAGE_FILE",
+      "kind": "IMAGE_FILE",
+      "mimeType": "image/*",
+      "preview": {
+        "mode": "image"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "PDF_DOCUMENT",
+      "kind": "PDF_DOCUMENT",
+      "mimeType": "application/pdf",
+      "preview": {
+        "mode": "pdf"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "DOCX_DOCUMENT",
+      "kind": "DOCX_DOCUMENT",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "preview": {
+        "mode": "docx"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "TEXT_FILE",
+      "kind": "TEXT_FILE",
+      "mimeType": "text/plain",
+      "preview": {
+        "mode": "text"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "TEXT_DOCUMENT",
+      "kind": "TEXT_DOCUMENT",
+      "mimeType": "text/plain",
+      "preview": {
+        "mode": "text"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "CSV_FILE",
+      "kind": "CSV_FILE",
+      "mimeType": "text/csv",
+      "preview": {
+        "mode": "table"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "CSV_TABLE",
+      "kind": "CSV_TABLE",
+      "mimeType": "text/csv",
+      "preview": {
+        "mode": "table"
+      }
+    },
+    {
+      "bucket": "uploads",
+      "key": "XLSX_WORKBOOK",
+      "kind": "XLSX_WORKBOOK",
+      "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "preview": {
+        "mode": "workbook"
+      }
     }
   ],
   "commands": [
@@ -109,7 +208,8 @@
       "label": "Solve nesting",
       "outputs": [
         "nesting_run",
-        "sheet_design"
+        "sheet_design",
+        "sheet"
       ],
       "permissions": [
         {
@@ -159,6 +259,31 @@
       ]
     },
     {
+      "action": "convert",
+      "attachments": [],
+      "events": [
+        "artifact.converted"
+      ],
+      "id": "convertArtifact",
+      "inputs": [
+        "artifact"
+      ],
+      "label": "Convert artifact",
+      "outputs": [
+        "artifact",
+        "cassette_design"
+      ],
+      "permissions": [
+        {
+          "feature": "artifacts",
+          "level": "write"
+        }
+      ],
+      "service": "artifacts",
+      "tasks": [],
+      "triggers": []
+    },
+    {
       "action": "generateDraft",
       "attachments": [],
       "events": [
@@ -202,6 +327,36 @@
   "designSystem": {
     "components": [
       {
+        "componentPath": null,
+        "docs": [
+          "components/entities/Facade/README.md",
+          "server/features/facades/README.md"
+        ],
+        "entityType": "facade",
+        "fieldPaths": [],
+        "group": "production",
+        "key": "facade",
+        "labelKey": "entities.facade",
+        "propName": "facade",
+        "status": "interactive",
+        "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "components/entities/FacadePattern/README.md",
+          "server/features/facade-patterns/README.md"
+        ],
+        "entityType": "facade_pattern",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "facadePattern",
+        "labelKey": "entities.facadePattern",
+        "propName": "facadePattern",
+        "status": "interactive",
+        "trace": true
+      },
+      {
         "componentPath": "components/entities/Project/ProjectCard.vue",
         "docs": [
           "components/entities/Project/README.md",
@@ -226,7 +381,6 @@
         ],
         "entityType": "queue",
         "fieldPaths": [
-          "data.job.items.length",
           "data.queueNumber",
           "summary.runCount",
           "summary.sheetCount",
@@ -573,6 +727,20 @@
         "trace": false
       },
       {
+        "componentPath": null,
+        "docs": [
+          "server/features/machines/README.md"
+        ],
+        "entityType": "machine",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "machine",
+        "labelKey": "entities.machine",
+        "propName": "machine",
+        "status": "hidden",
+        "trace": false
+      },
+      {
         "componentPath": "components/entities/PenTemplate/PenTemplateCard.vue",
         "docs": [
           "server/features/pen-templates/README.md"
@@ -656,8 +824,22 @@
         "key": "artifact",
         "labelKey": "entities.artifact",
         "propName": "artifact",
-        "status": "hidden",
+        "status": "interactive",
         "trace": true
+      },
+      {
+        "componentPath": null,
+        "docs": [
+          "server/features/artifact-templates/README.md"
+        ],
+        "entityType": "artifact_template",
+        "fieldPaths": [],
+        "group": "master",
+        "key": "artifactTemplate",
+        "labelKey": "entities.artifactTemplate",
+        "propName": "artifactTemplate",
+        "status": "hidden",
+        "trace": false
       }
     ],
     "groups": [
@@ -696,6 +878,26 @@
         "key": "EntityPage",
         "kind": "entity-layout",
         "purpose": "Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots."
+      },
+      {
+        "componentPath": "components/shared/EntitySelect.vue",
+        "docs": [
+          "components/shared/README.md",
+          "docs/DESIGN_SYSTEM.md"
+        ],
+        "key": "EntitySelect",
+        "kind": "entity-input",
+        "purpose": "PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger."
+      },
+      {
+        "componentPath": "components/shared/EntityMultiSelect.vue",
+        "docs": [
+          "components/shared/README.md",
+          "docs/DESIGN_SYSTEM.md"
+        ],
+        "key": "EntityMultiSelect",
+        "kind": "entity-input",
+        "purpose": "PrimeVue MultiSelect wrapper that renders entity options as compact cards and selected entities outside the chip area with a compact change trigger."
       },
       {
         "componentPath": "components/shared/blocks/IdentityBlock.vue",
@@ -773,6 +975,46 @@
         "key": "DrawingCanvas",
         "kind": "block",
         "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions."
+      },
+      {
+        "componentPath": "components/shared/DesignerSurface.vue",
+        "docs": [
+          "components/designers/README.md",
+          "components/shared/README.md"
+        ],
+        "key": "DesignerSurface",
+        "kind": "layout",
+        "purpose": "Shared full-height flex boundary for operational designer route, pane, and dialog hosts."
+      },
+      {
+        "componentPath": "components/shared/DesignerWorkspace.vue",
+        "docs": [
+          "components/designers/README.md",
+          "components/shared/README.md"
+        ],
+        "key": "DesignerWorkspace",
+        "kind": "layout",
+        "purpose": "Shared responsive palette/canvas/inspector workspace for operational designers."
+      },
+      {
+        "componentPath": "components/shared/DesignerDialog.vue",
+        "docs": [
+          "components/designers/README.md",
+          "components/shared/README.md"
+        ],
+        "key": "DesignerDialog",
+        "kind": "layout",
+        "purpose": "Viewport-sized dialog host for standalone designer launches."
+      },
+      {
+        "componentPath": "components/shared/ThreeViewport.vue",
+        "docs": [
+          "components/designers/README.md",
+          "components/shared/README.md"
+        ],
+        "key": "ThreeViewport",
+        "kind": "viewport",
+        "purpose": "Shared Three.js renderer lifecycle and selectable scene viewport for designers."
       },
       {
         "componentPath": "components/shared/GeometryPreview.vue",
@@ -859,48 +1101,154 @@
     ],
     "tokens": {
       "cssVariableTokens": {
-        "--ck-chrome-background": "color-mix(in srgb, var(--p-content-background), transparent 6%)",
+        "--ck-border-subtle": "var(--p-content-border-color)",
+        "--ck-bounded-grid-item-max-width": "32rem",
+        "--ck-bounded-grid-item-min-width": "24rem",
+        "--ck-chrome-background": "#fefefc",
+        "--ck-chrome-border": "#c7c7bf",
+        "--ck-chrome-foreground": "#0c0c0b",
+        "--ck-chrome-muted": "#6d6d66",
+        "--ck-chrome-signal-height": "0.25rem",
+        "--ck-chrome-subtle": "#f4f4f0",
+        "--ck-compact-preview-width": "10rem",
         "--ck-details-gap": "1.5rem",
         "--ck-dialog-lg": "56rem",
         "--ck-dialog-md": "42rem",
         "--ck-dialog-sm": "24rem",
         "--ck-dialog-xl": "72rem",
+        "--ck-dock-gap": "0.25rem",
+        "--ck-dock-indicator-inset": "0.125rem",
+        "--ck-dock-indicator-size": "0.375rem",
+        "--ck-dock-inset": "0.75rem",
+        "--ck-dock-label-offset": "0.5rem",
+        "--ck-dock-label-padding": "0.125rem 0.5rem",
+        "--ck-dock-padding": "0.25rem",
+        "--ck-ease-enter": "cubic-bezier(0, 0, 0, 1)",
+        "--ck-ease-exit": "cubic-bezier(0.3, 0, 1, 1)",
+        "--ck-ease-standard": "cubic-bezier(0.2, 0, 0, 1)",
         "--ck-entity-popover-min-width": "18.75rem",
+        "--ck-entity-tone-command": "#ff4b00",
+        "--ck-entity-tone-fabrication": "#dc3a45",
+        "--ck-entity-tone-material": "#0d9069",
+        "--ck-entity-tone-output": "#3f5eff",
+        "--ck-entity-tone-system": "#795ee5",
         "--ck-floating-menu-min-width": "12.5rem",
+        "--ck-font-mono": "'JetBrains Mono', monospace",
+        "--ck-font-ui": "'JetBrains Mono', monospace",
         "--ck-grid-gap": "1.25rem",
-        "--ck-motion-fast": "120ms",
-        "--ck-motion-normal": "200ms",
-        "--ck-page-background": "var(--p-surface-50)",
+        "--ck-label-tracking": "0.04em",
+        "--ck-motion-emphasis": "220ms",
+        "--ck-motion-fast": "100ms",
+        "--ck-motion-normal": "160ms",
+        "--ck-page-background": "var(--p-surface-100)",
         "--ck-page-max-width": "1600px",
         "--ck-preview-dialog-height": "95vh",
-        "--ck-radius-panel": "0.625rem",
-        "--ck-radius-ui": "0.5rem",
-        "--ck-shadow-card": "0 1px 2px rgb(15 23 42 / 0.06), 0 1px 1px rgb(15 23 42 / 0.04)",
-        "--ck-shadow-card-hover": "0 10px 24px rgb(15 23 42 / 0.10), 0 2px 6px rgb(15 23 42 / 0.06)",
-        "--ck-shadow-overlay": "0 18px 48px rgb(15 23 42 / 0.18)",
+        "--ck-primary-100": "#ffdaca",
+        "--ck-primary-200": "#ffb396",
+        "--ck-primary-300": "#ff8b60",
+        "--ck-primary-400": "#ff6733",
+        "--ck-primary-50": "#fff0e9",
+        "--ck-primary-500": "#ff4b00",
+        "--ck-primary-600": "#db4100",
+        "--ck-primary-700": "#a93300",
+        "--ck-primary-800": "#7c2600",
+        "--ck-primary-900": "#5c1c00",
+        "--ck-primary-950": "#321000",
+        "--ck-primary-ink": "#a93300",
+        "--ck-process-canvas-background": "var(--p-surface-50)",
+        "--ck-radius-full": "9999px",
+        "--ck-radius-panel": "6px",
+        "--ck-radius-ui": "3px",
+        "--ck-selection-background": "color-mix(in srgb, var(--p-primary-color) 20%, transparent)",
+        "--ck-shadow-card": "none",
+        "--ck-shadow-overlay": "0 12px 28px rgb(16 16 14 / 0.14)",
+        "--ck-signal-data": "var(--ck-entity-tone-material)",
+        "--ck-signal-decision": "var(--ck-primary-500)",
+        "--ck-signal-effect": "var(--ck-entity-tone-fabrication)",
+        "--ck-signal-entity": "var(--ck-entity-tone-command)",
+        "--ck-signal-external": "var(--ck-entity-tone-output)",
+        "--ck-signal-identity": "var(--p-surface-500)",
+        "--ck-signal-projection": "var(--ck-entity-tone-system)",
+        "--ck-signal-quantity": "#d39700",
+        "--ck-signal-reference": "var(--ck-entity-tone-output)",
+        "--ck-signal-structure": "var(--ck-entity-tone-system)",
+        "--ck-signal-temporal": "var(--ck-entity-tone-output)",
+        "--ck-signal-value": "var(--ck-entity-tone-system)",
+        "--ck-status-danger": "var(--p-red-600)",
+        "--ck-status-info": "var(--p-primary-color)",
+        "--ck-status-neutral": "var(--p-surface-500)",
+        "--ck-status-success": "var(--p-emerald-600)",
+        "--ck-status-warning": "var(--p-amber-700)",
         "--ck-subtle-background": "var(--p-surface-100)",
         "--ck-support-chat-admin-height": "calc(100vh - 12rem)",
         "--ck-support-chat-admin-message-max": "80%",
         "--ck-support-chat-height": "31.25rem",
         "--ck-support-chat-message-max": "85%",
         "--ck-support-chat-width": "25rem",
+        "--ck-surface-0": "#fefefc",
+        "--ck-surface-100": "#ecece7",
+        "--ck-surface-200": "#dfdfd9",
+        "--ck-surface-300": "#c7c7bf",
+        "--ck-surface-400": "#999992",
+        "--ck-surface-50": "#f4f4f0",
+        "--ck-surface-500": "#6d6d66",
+        "--ck-surface-600": "#4e4e49",
+        "--ck-surface-700": "#343431",
+        "--ck-surface-800": "#232321",
+        "--ck-surface-900": "#161615",
+        "--ck-surface-950": "#0c0c0b",
+        "--ck-surface-raised": "var(--p-content-background)",
         "--ck-swatch-size": "2.625rem",
         "--ck-table-action-column-width": "3rem"
       },
       "designTokens": {
         "color": {
+          "borderSubtle": "var(--ck-border-subtle)",
           "chrome": "var(--ck-chrome-background)",
+          "chromeBorder": "var(--ck-chrome-border)",
+          "chromeForeground": "var(--ck-chrome-foreground)",
+          "chromeMuted": "var(--ck-chrome-muted)",
+          "chromeSubtle": "var(--ck-chrome-subtle)",
           "content": "var(--p-content-background)",
           "contentBorder": "var(--p-content-border-color)",
           "page": "var(--ck-page-background)",
           "primary": "var(--p-primary-color)",
           "primaryContrast": "var(--p-primary-contrast-color)",
           "primaryEmphasis": "var(--p-primary-emphasis-color)",
+          "primaryInk": "var(--ck-primary-ink)",
+          "processCanvas": "var(--ck-process-canvas-background)",
+          "raised": "var(--ck-surface-raised)",
+          "selection": "var(--ck-selection-background)",
           "subtle": "var(--ck-subtle-background)",
           "text": "var(--p-text-color)",
           "textMuted": "var(--p-text-muted-color)"
         },
+        "dock": {
+          "baseItemSize": 32,
+          "distance": 96,
+          "gap": "0.25rem",
+          "height": 64,
+          "indicatorInset": "0.125rem",
+          "indicatorSize": "0.375rem",
+          "inset": "0.75rem",
+          "labelOffset": "0.5rem",
+          "labelPadding": "0.125rem 0.5rem",
+          "magnification": 40,
+          "padding": "0.25rem",
+          "panelHeight": 40
+        },
+        "entityTone": {
+          "command": "var(--ck-entity-tone-command)",
+          "fabrication": "var(--ck-entity-tone-fabrication)",
+          "material": "var(--ck-entity-tone-material)",
+          "output": "var(--ck-entity-tone-output)",
+          "system": "var(--ck-entity-tone-system)"
+        },
         "layout": {
+          "boundedGridItemMaxWidth": "32rem",
+          "boundedGridItemMinWidth": "24rem",
+          "chromeSignalHeight": "0.25rem",
+          "compactPreviewWidth": "10rem",
           "detailsGap": "1.5rem",
           "dialogLg": "56rem",
           "dialogMd": "42rem",
@@ -920,18 +1268,90 @@
           "tableActionColumnWidth": "3rem"
         },
         "motion": {
-          "fast": "120ms",
-          "normal": "200ms"
+          "easing": {
+            "enter": "cubic-bezier(0, 0, 0, 1)",
+            "exit": "cubic-bezier(0.3, 0, 1, 1)",
+            "standard": "cubic-bezier(0.2, 0, 0, 1)"
+          },
+          "emphasis": "220ms",
+          "fast": "100ms",
+          "normal": "160ms",
+          "seconds": {
+            "emphasis": 0.22,
+            "fast": 0.1,
+            "normal": 0.16
+          },
+          "spring": {
+            "dock": {
+              "damping": 16,
+              "mass": 0.1,
+              "stiffness": 180
+            }
+          }
+        },
+        "palette": {
+          "primary": {
+            "50": "#fff0e9",
+            "100": "#ffdaca",
+            "200": "#ffb396",
+            "300": "#ff8b60",
+            "400": "#ff6733",
+            "500": "#ff4b00",
+            "600": "#db4100",
+            "700": "#a93300",
+            "800": "#7c2600",
+            "900": "#5c1c00",
+            "950": "#321000"
+          },
+          "surface": {
+            "0": "#fefefc",
+            "50": "#f4f4f0",
+            "100": "#ecece7",
+            "200": "#dfdfd9",
+            "300": "#c7c7bf",
+            "400": "#999992",
+            "500": "#6d6d66",
+            "600": "#4e4e49",
+            "700": "#343431",
+            "800": "#232321",
+            "900": "#161615",
+            "950": "#0c0c0b"
+          }
         },
         "radius": {
           "full": "9999px",
-          "panel": "0.625rem",
-          "ui": "0.5rem"
+          "panel": "6px",
+          "ui": "3px"
         },
         "shadow": {
-          "card": "0 1px 2px rgb(15 23 42 / 0.06), 0 1px 1px rgb(15 23 42 / 0.04)",
-          "cardHover": "0 10px 24px rgb(15 23 42 / 0.10), 0 2px 6px rgb(15 23 42 / 0.06)",
-          "overlay": "0 18px 48px rgb(15 23 42 / 0.18)"
+          "card": "none",
+          "overlay": "0 12px 28px rgb(16 16 14 / 0.14)"
+        },
+        "signal": {
+          "data": "var(--ck-signal-data)",
+          "decision": "var(--ck-signal-decision)",
+          "effect": "var(--ck-signal-effect)",
+          "entity": "var(--ck-signal-entity)",
+          "external": "var(--ck-signal-external)",
+          "identity": "var(--ck-signal-identity)",
+          "projection": "var(--ck-signal-projection)",
+          "quantity": "var(--ck-signal-quantity)",
+          "reference": "var(--ck-signal-reference)",
+          "structure": "var(--ck-signal-structure)",
+          "temporal": "var(--ck-signal-temporal)",
+          "value": "var(--ck-signal-value)"
+        },
+        "status": {
+          "danger": "var(--ck-status-danger)",
+          "info": "var(--ck-status-info)",
+          "neutral": "var(--ck-status-neutral)",
+          "success": "var(--ck-status-success)",
+          "warning": "var(--ck-status-warning)"
+        },
+        "typography": {
+          "labelTracking": "0.04em",
+          "mono": "'JetBrains Mono', monospace",
+          "ui": "'JetBrains Mono', monospace"
         }
       },
       "tailwindThemeExtension": {
@@ -941,17 +1361,63 @@
         },
         "boxShadow": {
           "card": "var(--ck-shadow-card)",
-          "card-hover": "var(--ck-shadow-card-hover)",
           "overlay": "var(--ck-shadow-overlay)"
         },
         "colors": {
           "chrome": "var(--ck-chrome-background)",
+          "chrome-border": "var(--ck-chrome-border)",
+          "chrome-foreground": "var(--ck-chrome-foreground)",
+          "chrome-muted": "var(--ck-chrome-muted)",
+          "chrome-subtle": "var(--ck-chrome-subtle)",
           "content": "var(--p-content-background)",
           "content-border": "var(--p-content-border-color)",
+          "entity": {
+            "command": "var(--ck-entity-tone-command)",
+            "fabrication": "var(--ck-entity-tone-fabrication)",
+            "material": "var(--ck-entity-tone-material)",
+            "output": "var(--ck-entity-tone-output)",
+            "system": "var(--ck-entity-tone-system)"
+          },
           "page": "var(--ck-page-background)",
-          "primary": "var(--p-primary-color)",
-          "primary-contrast": "var(--p-primary-contrast-color)",
-          "primary-emphasis": "var(--p-primary-emphasis-color)",
+          "primary": {
+            "50": "var(--p-primary-50)",
+            "100": "var(--p-primary-100)",
+            "200": "var(--p-primary-200)",
+            "300": "var(--p-primary-300)",
+            "400": "var(--p-primary-400)",
+            "500": "var(--p-primary-500)",
+            "600": "var(--p-primary-600)",
+            "700": "var(--p-primary-700)",
+            "800": "var(--p-primary-800)",
+            "900": "var(--p-primary-900)",
+            "950": "var(--p-primary-950)",
+            "DEFAULT": "var(--p-primary-color)",
+            "contrast": "var(--p-primary-contrast-color)",
+            "emphasis": "var(--p-primary-emphasis-color)",
+            "ink": "var(--ck-primary-ink)"
+          },
+          "process-canvas": "var(--ck-process-canvas-background)",
+          "signal": {
+            "data": "var(--ck-signal-data)",
+            "decision": "var(--ck-signal-decision)",
+            "effect": "var(--ck-signal-effect)",
+            "entity": "var(--ck-signal-entity)",
+            "external": "var(--ck-signal-external)",
+            "identity": "var(--ck-signal-identity)",
+            "projection": "var(--ck-signal-projection)",
+            "quantity": "var(--ck-signal-quantity)",
+            "reference": "var(--ck-signal-reference)",
+            "structure": "var(--ck-signal-structure)",
+            "temporal": "var(--ck-signal-temporal)",
+            "value": "var(--ck-signal-value)"
+          },
+          "status": {
+            "danger": "var(--ck-status-danger)",
+            "info": "var(--ck-status-info)",
+            "neutral": "var(--ck-status-neutral)",
+            "success": "var(--ck-status-success)",
+            "warning": "var(--ck-status-warning)"
+          },
           "subtle": "var(--ck-subtle-background)",
           "surface": {
             "0": "var(--p-surface-0)",
@@ -969,11 +1435,18 @@
           },
           "text-muted": "var(--p-text-muted-color)"
         },
+        "fontFamily": {
+          "mono": "var(--ck-font-mono)",
+          "sans": "var(--ck-font-ui)"
+        },
         "height": {
           "preview-dialog": "var(--ck-preview-dialog-height)",
           "support-chat": "var(--ck-support-chat-height)",
           "support-chat-admin": "var(--ck-support-chat-admin-height)",
           "swatch": "var(--ck-swatch-size)"
+        },
+        "letterSpacing": {
+          "label": "var(--ck-label-tracking)"
         },
         "maxWidth": {
           "app": "var(--ck-page-max-width)",
@@ -989,8 +1462,15 @@
           "support-chat": "var(--ck-support-chat-height)"
         },
         "transitionDuration": {
+          "DEFAULT": "var(--ck-motion-normal)",
+          "emphasis": "var(--ck-motion-emphasis)",
           "fast": "var(--ck-motion-fast)",
           "normal": "var(--ck-motion-normal)"
+        },
+        "transitionTimingFunction": {
+          "DEFAULT": "var(--ck-ease-standard)",
+          "enter": "var(--ck-ease-enter)",
+          "exit": "var(--ck-ease-exit)"
         },
         "width": {
           "swatch": "var(--ck-swatch-size)"
@@ -1011,7 +1491,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "artifacts",
       "lineage": {},
@@ -1024,7 +1506,25 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "artifact_templates",
+      "lineage": {},
+      "meta": true,
+      "type": "artifact_template"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "cassettes",
       "lineage": {},
@@ -1037,7 +1537,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "cassette_designs",
       "lineage": {},
@@ -1050,7 +1552,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "cassette_instances",
       "lineage": {},
@@ -1064,7 +1568,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "catalogs",
       "lineage": {},
@@ -1077,7 +1583,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "colors",
       "lineage": {},
@@ -1090,7 +1598,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "entity_revisions",
       "lineage": {},
@@ -1105,7 +1615,40 @@
         "status",
         "attachments",
         "data",
-        "specs"
+        "relations",
+        "provenance"
+      ],
+      "collection": "facades",
+      "lineage": {},
+      "type": "facade"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "facade_patterns",
+      "lineage": {},
+      "meta": true,
+      "type": "facade_pattern"
+    },
+    {
+      "blocks": [
+        "identity",
+        "lineage",
+        "origin",
+        "status",
+        "attachments",
+        "data",
+        "specs",
+        "relations",
+        "provenance"
       ],
       "collection": "geometry_captures",
       "lineage": {},
@@ -1118,7 +1661,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "layer_standards",
       "lineage": {},
@@ -1133,7 +1678,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "libraries",
       "lineage": {},
@@ -1142,10 +1689,28 @@
     {
       "blocks": [
         "identity",
+        "lineage",
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
+      ],
+      "collection": "machines",
+      "lineage": {},
+      "meta": true,
+      "type": "machine"
+    },
+    {
+      "blocks": [
+        "identity",
+        "origin",
+        "status",
+        "attachments",
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "materials",
       "lineage": {},
@@ -1158,7 +1723,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "material_piles",
       "lineage": {},
@@ -1171,7 +1738,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "nesting_runs",
       "lineage": {},
@@ -1183,7 +1752,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "organizations",
       "lineage": {},
@@ -1197,7 +1768,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "pen_templates",
       "lineage": {},
@@ -1211,7 +1784,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "process_definitions",
       "lineage": {},
@@ -1225,7 +1800,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "profile_templates",
       "lineage": {},
@@ -1240,7 +1817,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "projects",
       "lineage": {},
@@ -1254,7 +1833,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "queues",
       "lineage": {},
@@ -1267,7 +1848,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "remnants",
       "lineage": {},
@@ -1280,7 +1863,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "requisitions",
       "lineage": {},
@@ -1294,7 +1879,9 @@
         "status",
         "attachments",
         "data",
-        "specs"
+        "specs",
+        "relations",
+        "provenance"
       ],
       "collection": "sheets",
       "lineage": {},
@@ -1307,7 +1894,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "sheet_designs",
       "lineage": {},
@@ -1320,7 +1909,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "tool_profiles",
       "lineage": {},
@@ -1334,7 +1925,9 @@
         "origin",
         "status",
         "attachments",
-        "data"
+        "data",
+        "relations",
+        "provenance"
       ],
       "collection": "users",
       "lineage": {},
@@ -1349,7 +1942,9 @@
         "status",
         "attachments",
         "data",
-        "summary"
+        "summary",
+        "relations",
+        "provenance"
       ],
       "collection": "warehouses",
       "lineage": {},
@@ -1386,9 +1981,9 @@
   "relationships": [
     {
       "kind": "lineage",
-      "source": "manufacturer",
-      "target": "requisition",
-      "via": "lineage.manufacturerId"
+      "source": "organization",
+      "target": "artifact",
+      "via": "lineage.organizationId"
     },
     {
       "kind": "lineage",
@@ -1417,12 +2012,6 @@
     {
       "kind": "lineage",
       "source": "organization",
-      "target": "requisition",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
       "target": "user",
       "via": "lineage.organizationId"
     },
@@ -1431,12 +2020,6 @@
       "source": "organization",
       "target": "workflow_override",
       "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "project",
-      "target": "requisition",
-      "via": "lineage.projectId"
     },
     {
       "kind": "lineage",
@@ -1470,9 +2053,15 @@
     },
     {
       "kind": "summary",
-      "source": "project",
-      "target": "cassette_instance",
-      "via": "lineage.projectId"
+      "source": "material_pile",
+      "target": "sheet",
+      "via": "lineage.pileId"
+    },
+    {
+      "kind": "summary",
+      "source": "nesting_run",
+      "target": "sheet_design",
+      "via": "lineage.runId"
     },
     {
       "kind": "summary",
@@ -1488,71 +2077,29 @@
     },
     {
       "kind": "summary",
-      "source": "queue",
+      "source": "sheet_design",
       "target": "sheet",
-      "via": "lineage.queueId"
+      "via": "lineage.sheetDesignId"
     },
     {
       "kind": "summary",
-      "source": "queue",
-      "target": "sheet_design",
-      "via": "lineage.queueId"
+      "source": "sheet",
+      "target": "cassette_instance",
+      "via": "lineage.sheetId"
     }
   ],
   "routes": [
     {
-      "collection": "materials",
-      "list": "/api/materials",
-      "single": "/api/materials/:id",
-      "type": "material"
+      "collection": "artifacts",
+      "list": "/api/artifacts",
+      "single": "/api/artifacts/:id/metadata",
+      "type": "artifact"
     },
     {
-      "collection": "projects",
-      "list": "/api/project",
-      "single": "/api/project/:id",
-      "type": "project"
-    },
-    {
-      "collection": "queues",
-      "list": "/api/queue",
-      "single": "/api/queue/:id",
-      "type": "queue"
-    },
-    {
-      "collection": "requisitions",
-      "list": "/api/requisitions",
-      "single": "/api/requisitions/:id",
-      "type": "requisition"
-    },
-    {
-      "collection": "material-piles",
-      "list": "/api/material-piles",
-      "single": "/api/material-piles/:id",
-      "type": "batch"
-    },
-    {
-      "collection": "material-piles",
-      "list": "/api/material-piles",
-      "single": "/api/material-piles/:id",
-      "type": "pile"
-    },
-    {
-      "collection": "sheets",
-      "list": "/api/sheets",
-      "single": "/api/sheets/:id",
-      "type": "sheet"
-    },
-    {
-      "collection": "remnants",
-      "list": "/api/remnants",
-      "single": "/api/remnants/:id",
-      "type": "remnant"
-    },
-    {
-      "collection": "libraries",
-      "list": "/api/libraries",
-      "single": "/api/libraries/:id",
-      "type": "library"
+      "collection": "artifact-templates",
+      "list": "/api/artifact-templates",
+      "single": "/api/artifact-templates/:id",
+      "type": "artifactTemplate"
     },
     {
       "collection": "cassettes",
@@ -1561,34 +2108,16 @@
       "type": "cassette"
     },
     {
-      "collection": "cassettes",
-      "list": "/api/cassettes",
-      "single": "/api/cassettes/:id",
-      "type": "cassetteTemplate"
-    },
-    {
-      "collection": "cassette-instances",
-      "list": "/api/cassette-instances",
-      "single": "/api/cassette-instances/:id",
-      "type": "cassetteInstance"
-    },
-    {
       "collection": "cassette-designs",
       "list": "/api/cassette-designs",
       "single": "/api/cassette-designs/:id",
       "type": "cassetteDesign"
     },
     {
-      "collection": "sheet-designs",
-      "list": "/api/sheet-designs",
-      "single": "/api/sheet-designs/:id",
-      "type": "sheetDesign"
-    },
-    {
-      "collection": "artifacts",
-      "list": "/api/artifacts",
-      "single": "/api/artifacts/:id/metadata",
-      "type": "artifact"
+      "collection": "cassette-instances",
+      "list": "/api/cassette-instances",
+      "single": "/api/cassette-instances/:id",
+      "type": "cassetteInstance"
     },
     {
       "collection": "catalogs",
@@ -1609,22 +2138,22 @@
       "type": "entityRevision"
     },
     {
+      "collection": "facades",
+      "list": "/api/facades",
+      "single": "/api/facades/:id",
+      "type": "facade"
+    },
+    {
+      "collection": "facade-patterns",
+      "list": "/api/facade-patterns",
+      "single": "/api/facade-patterns/:id",
+      "type": "facadePattern"
+    },
+    {
       "collection": "geometry-captures",
       "list": "/api/geometry-captures",
       "single": "/api/geometry-captures/:id",
       "type": "geometryCapture"
-    },
-    {
-      "collection": "profile-templates",
-      "list": "/api/profile-templates",
-      "single": "/api/profile-templates/:id",
-      "type": "profileTemplate"
-    },
-    {
-      "collection": "warehouses",
-      "list": "/api/warehouses",
-      "single": "/api/warehouses/:id",
-      "type": "warehouse"
     },
     {
       "collection": "layer-standards",
@@ -1633,10 +2162,34 @@
       "type": "layerStandard"
     },
     {
-      "collection": "users",
-      "list": "/api/users",
-      "single": "/api/users/:id",
-      "type": "user"
+      "collection": "libraries",
+      "list": "/api/libraries",
+      "single": "/api/libraries/:id",
+      "type": "library"
+    },
+    {
+      "collection": "machines",
+      "list": "/api/machines",
+      "single": "/api/machines/:id",
+      "type": "machine"
+    },
+    {
+      "collection": "materials",
+      "list": "/api/materials",
+      "single": "/api/materials/:id",
+      "type": "material"
+    },
+    {
+      "collection": "material-piles",
+      "list": "/api/material-piles",
+      "single": "/api/material-piles/:id",
+      "type": "materialPile"
+    },
+    {
+      "collection": "nesting-runs",
+      "list": "/api/nesting-runs",
+      "single": "/api/nesting-runs/:id",
+      "type": "nestingRun"
     },
     {
       "collection": "organizations",
@@ -1645,10 +2198,76 @@
       "type": "organization"
     },
     {
-      "collection": "nesting-runs",
-      "list": "/api/nesting-runs",
-      "single": "/api/nesting-runs/:id",
-      "type": "nestingRun"
+      "collection": "pen-templates",
+      "list": "/api/templates/pens",
+      "single": "/api/templates/pens/:id",
+      "type": "penTemplate"
+    },
+    {
+      "collection": "process-definitions",
+      "list": "/api/process-definitions",
+      "single": "/api/process-definitions/:id",
+      "type": "processDefinition"
+    },
+    {
+      "collection": "profile-templates",
+      "list": "/api/profile-templates",
+      "single": "/api/profile-templates/:id",
+      "type": "profileTemplate"
+    },
+    {
+      "collection": "projects",
+      "list": "/api/project",
+      "single": "/api/project/:id",
+      "type": "project"
+    },
+    {
+      "collection": "queues",
+      "list": "/api/queue",
+      "single": "/api/queue/:id",
+      "type": "queue"
+    },
+    {
+      "collection": "remnants",
+      "list": "/api/remnants",
+      "single": "/api/remnants/:id",
+      "type": "remnant"
+    },
+    {
+      "collection": "requisitions",
+      "list": "/api/requisitions",
+      "single": "/api/requisitions/:id",
+      "type": "requisition"
+    },
+    {
+      "collection": "sheets",
+      "list": "/api/sheets",
+      "single": "/api/sheets/:id",
+      "type": "sheet"
+    },
+    {
+      "collection": "sheet-designs",
+      "list": "/api/sheet-designs",
+      "single": "/api/sheet-designs/:id",
+      "type": "sheetDesign"
+    },
+    {
+      "collection": "tool-profiles",
+      "list": "/api/templates/tools",
+      "single": "/api/templates/tools/:id",
+      "type": "toolProfile"
+    },
+    {
+      "collection": "users",
+      "list": "/api/users",
+      "single": "/api/users/:id",
+      "type": "user"
+    },
+    {
+      "collection": "warehouses",
+      "list": "/api/warehouses",
+      "single": "/api/warehouses/:id",
+      "type": "warehouse"
     }
   ],
   "schemaVersion": 1,
@@ -1668,13 +2287,6 @@
       "sumFields": {}
     },
     {
-      "countField": "instanceCount",
-      "entityType": "cassette_instance",
-      "parentIdKey": "projectId",
-      "parentType": "project",
-      "sumFields": {}
-    },
-    {
       "countField": "runCount",
       "entityType": "nesting_run",
       "parentIdKey": "queueId",
@@ -1684,18 +2296,25 @@
     {
       "countField": "sheetDesignCount",
       "entityType": "sheet_design",
-      "parentIdKey": "queueId",
-      "parentType": "queue",
+      "parentIdKey": "runId",
+      "parentType": "nesting_run",
       "sumFields": {}
     },
     {
       "countField": "sheetCount",
       "entityType": "sheet",
-      "parentIdKey": "queueId",
-      "parentType": "queue",
+      "parentIdKey": "sheetDesignId",
+      "parentType": "sheet_design",
       "sumFields": {
         "area": "totalArea"
       }
+    },
+    {
+      "countField": "instanceCount",
+      "entityType": "cassette_instance",
+      "parentIdKey": "sheetId",
+      "parentType": "sheet",
+      "sumFields": {}
     },
     {
       "countField": "colorCount",
@@ -1703,6 +2322,15 @@
       "parentIdKey": "catalogId",
       "parentType": "catalog",
       "sumFields": {}
+    },
+    {
+      "countField": "sheetCount",
+      "entityType": "sheet",
+      "parentIdKey": "pileId",
+      "parentType": "material_pile",
+      "sumFields": {
+        "area": "totalArea"
+      }
     }
   ],
   "tasks": [
@@ -1807,7 +2435,8 @@
       },
       "id": "vision.extractGeometry",
       "inputs": [
-        "geometry_capture"
+        "geometry_capture",
+        "artifact"
       ],
       "key": "visionExtractGeometry",
       "label": "Extract geometry from capture photo",
@@ -1823,6 +2452,31 @@
     "ok": true
   },
   "workflows": [
+    {
+      "initial": "DRAFT",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "DRAFT",
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 3,
+      "type": "facade"
+    },
+    {
+      "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 1,
+      "type": "facade_pattern"
+    },
     {
       "initial": "DRAFT",
       "regions": [
@@ -1880,6 +2534,30 @@
       "type": "cassette"
     },
     {
+      "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 1,
+      "type": "cassette_design"
+    },
+    {
+      "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 1,
+      "type": "library"
+    },
+    {
       "initial": "AVAILABLE",
       "regions": [
         "main"
@@ -1919,6 +2597,42 @@
       ],
       "transitionCount": 11,
       "type": "geometry_capture"
+    },
+    {
+      "initial": "PENDING",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "PENDING",
+        "AVAILABLE",
+        "FAILED"
+      ],
+      "transitionCount": 2,
+      "type": "artifact"
+    },
+    {
+      "initial": "ACTIVE",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "transitionCount": 1,
+      "type": "artifact_template"
+    },
+    {
+      "initial": "RECORDED",
+      "regions": [
+        "main"
+      ],
+      "states": [
+        "RECORDED"
+      ],
+      "transitionCount": 0,
+      "type": "entity_revision"
     },
     {
       "initial": "AVAILABLE",

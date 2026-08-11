@@ -1,14 +1,14 @@
 # COMPONENT: Projects
 
-The root entity for Contractor operations, managing the high-level production context.
+The root entity for Contractor operations.
 
 ## v24 Architecture
-Refactored to use standardized blocks and the centralized State Machine engine.
+Standardized blocks and the centralized State Machine engine.
 
 - **Status**: Governed by `ProjectMachine` (DRAFT -> ACTIVE -> CLOSED).
 - **Lineage**: Always contains `organizationId` for multi-tenant scoping.
-- **Summary**: Stores a cached `stateDistribution` map for instant dashboard rendering.
-  The `/api/project` list route augments the project DTO summary with
+- **Summary**: Stores a cached `stateDistribution` map. The `/api/project` list
+  route augments the project DTO summary with
   `queuePreview` for the project browser, while preserving canonical identity
   and status blocks for shared entity-card rendering.
 
@@ -37,3 +37,7 @@ Refactored to use standardized blocks and the centralized State Machine engine.
   summary: { stateDistribution, totalArea, totalWeight }
 }
 ```
+
+Projects have no built-in Library relation. Like every canonical entity, they
+may persist generic non-owning references in `relations`; the service preserves
+those entries without assigning containment or cassette-specific semantics.

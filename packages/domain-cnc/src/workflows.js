@@ -12,6 +12,20 @@ const mainWorkflow = ({ initial, states, transitions }) => ({
 });
 
 const workflowDefinitions = {
+  facade: {
+    initial: 'DRAFT',
+    states: { DRAFT: { canUpdateMeta: true }, ACTIVE: { canUpdateMeta: true }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
+    transitions: [
+      { from: 'DRAFT', to: 'ACTIVE', access: { permissions: [{ feature: 'facades', level: 'write' }] } },
+      { from: 'DRAFT', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'facades', level: 'admin' }] } },
+      { from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'facades', level: 'admin' }] } }
+    ]
+  },
+  facade_pattern: {
+    initial: 'ACTIVE',
+    states: { ACTIVE: { canUpdateMeta: true }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
+    transitions: [{ from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'facade_patterns', level: 'admin' }] } }]
+  },
   project: {
     initial: 'DRAFT',
     states: { DRAFT: { canUpdateMeta: true }, ACTIVE: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false } },
@@ -28,7 +42,7 @@ const workflowDefinitions = {
     states: { DRAFT: { canUpdateMeta: true }, NESTING: { canUpdateMeta: true }, READY: { canUpdateMeta: true }, ERROR: { canUpdateMeta: true }, CLOSED: { isTerminal: true, canUpdateMeta: false }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
     transitions: [
       { from: 'DRAFT', to: 'NESTING', intent: 'requestNesting', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'DRAFT', to: 'READY', display: 'hidden', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'DRAFT', to: 'READY', intent: 'completeNestingProduction', display: 'hidden', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'READY', intent: 'completeNestingProduction', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'ERROR', intent: 'nestingSolveFailed', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'READY', to: 'CLOSED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
@@ -55,7 +69,7 @@ const workflowDefinitions = {
       { from: 'NESTING', to: 'ERROR', intent: 'nestingSolveFailed', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'COMPLETE', to: 'CHOSEN', intent: 'acceptNestingRun', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'preflightChosenNestingRun', phase: 'before' }, { handler: 'applyChosenNestingRun', mode: 'sync' }, { handler: 'triggerAggregator' }] },
       { from: 'COMPLETE', to: 'REJECTED', display: 'menu', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
-      { from: 'CHOSEN', to: 'COMPLETE', access: { permissions: [{ feature: 'queues', level: 'write' }] }, hooks: [{ handler: 'triggerAggregator' }] },
+      { from: 'CHOSEN', to: 'COMPLETE', intent: 'supersedeChosenRun', display: 'hidden', access: { system: true }, hooks: [{ handler: 'triggerAggregator' }] },
       { from: 'NESTING', to: 'NESTING', access: { system: true } },
       { from: 'COMPLETE', to: 'COMPLETE', access: { permissions: [{ feature: 'queues', level: 'write' }] } },
       { from: 'ERROR', to: 'ERROR', access: { system: true } }
@@ -65,6 +79,20 @@ const workflowDefinitions = {
     initial: 'ACTIVE',
     states: { ACTIVE: { canUpdateMeta: true }, ARCHIVED: { isTerminal: true } },
     transitions: [{ from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'cassettes', level: 'admin' }] } }]
+  },
+  cassette_design: {
+    initial: 'ACTIVE',
+    states: { ACTIVE: { canUpdateMeta: true }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
+    transitions: [
+      { from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'cassette_designs', level: 'admin' }] } }
+    ]
+  },
+  library: {
+    initial: 'ACTIVE',
+    states: { ACTIVE: { canUpdateMeta: true }, ARCHIVED: { isTerminal: true, canUpdateMeta: false } },
+    transitions: [
+      { from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'libraries', level: 'admin' }] } }
+    ]
   },
   sheet: {
     initial: 'AVAILABLE',
@@ -76,7 +104,7 @@ const workflowDefinitions = {
     },
     transitions: [
       { from: 'AVAILABLE', to: 'IN-CUTTING', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
-      { from: 'IN-CUTTING', to: 'MILLED', access: { permissions: [{ feature: 'materials', level: 'write' }], capabilities: ['operator'] } },
+      { from: 'IN-CUTTING', to: 'MILLED', intent: 'completeMilling', access: { permissions: [{ feature: 'materials', level: 'write' }], capabilities: ['operator'] } },
       { from: 'AVAILABLE', to: 'SCRAP', display: 'menu', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
       { from: 'IN-CUTTING', to: 'SCRAP', display: 'menu', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
     ]
@@ -88,7 +116,7 @@ const workflowDefinitions = {
       DEPLETED: { canUpdateMeta: true, isTerminal: true }
     },
     transitions: [
-      { from: 'STOCKED', to: 'DEPLETED', access: { system: true } },
+      { from: 'STOCKED', to: 'DEPLETED', intent: 'depleteMaterialPile', access: { system: true } },
       { from: 'STOCKED', to: 'STOCKED', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
       { from: 'DEPLETED', to: 'DEPLETED', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
     ]
@@ -116,6 +144,35 @@ const workflowDefinitions = {
       { from: 'READY', to: 'READY', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
     ]
   },
+  artifact: {
+    initial: 'PENDING',
+    states: {
+      PENDING: { canUpdateMeta: false },
+      AVAILABLE: { isTerminal: true, canUpdateMeta: false },
+      FAILED: { isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: [
+      { from: 'PENDING', to: 'AVAILABLE', intent: 'artifactFileStored', display: 'hidden', access: { system: true } },
+      { from: 'PENDING', to: 'FAILED', intent: 'artifactGenerationFailed', display: 'hidden', access: { system: true } }
+    ]
+  },
+  artifact_template: {
+    initial: 'ACTIVE',
+    states: {
+      ACTIVE: { canUpdateMeta: true },
+      ARCHIVED: { isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: [
+      { from: 'ACTIVE', to: 'ARCHIVED', display: 'menu', access: { permissions: [{ feature: 'artifact_templates', level: 'admin' }] } }
+    ]
+  },
+  entity_revision: {
+    initial: 'RECORDED',
+    states: {
+      RECORDED: { isTerminal: true, canUpdateMeta: false }
+    },
+    transitions: []
+  },
   remnant: {
     initial: 'AVAILABLE',
     states: {
@@ -123,7 +180,7 @@ const workflowDefinitions = {
       USED: { canUpdateMeta: true, isTerminal: true }
     },
     transitions: [
-      { from: 'AVAILABLE', to: 'USED', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
+      { from: 'AVAILABLE', to: 'USED', intent: 'consumeRemnant', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
       { from: 'AVAILABLE', to: 'AVAILABLE', access: { permissions: [{ feature: 'materials', level: 'write' }] } },
       { from: 'USED', to: 'USED', access: { permissions: [{ feature: 'materials', level: 'write' }] } }
     ]
@@ -158,10 +215,10 @@ const workflowDefinitions = {
     initial: 'DRAFT',
     states: { DRAFT: {}, SENT: {}, APPROVED: {}, FULFILLED: { isTerminal: true }, REJECTED: { isTerminal: true } },
     transitions: [
-      { from: 'DRAFT', to: 'SENT', access: { permissions: [{ feature: 'requisitions', level: 'write' }] } },
-      { from: 'SENT', to: 'APPROVED', access: { permissions: [{ feature: 'requisitions', level: 'admin' }] } },
-      { from: 'SENT', to: 'REJECTED', display: 'menu', access: { permissions: [{ feature: 'requisitions', level: 'admin' }] } },
-      { from: 'APPROVED', to: 'FULFILLED', access: { permissions: [{ feature: 'requisitions', level: 'admin' }] } }
+      { from: 'DRAFT', to: 'SENT', intent: 'submitRequisition', access: { permissions: [{ feature: 'requisitions', level: 'write' }] } },
+      { from: 'SENT', to: 'APPROVED', intent: 'approveRequisition', access: { permissions: [{ feature: 'requisitions', level: 'admin' }] } },
+      { from: 'SENT', to: 'REJECTED', intent: 'rejectRequisition', display: 'menu', access: { permissions: [{ feature: 'requisitions', level: 'admin' }] } },
+      { from: 'APPROVED', to: 'FULFILLED', intent: 'fulfillRequisition', access: { permissions: [{ feature: 'requisitions', level: 'admin' }] } }
     ]
   }
 };

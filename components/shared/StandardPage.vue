@@ -1,5 +1,12 @@
 <template>
-    <div class="flex flex-col gap-6 w-full max-w-app mx-auto">
+    <div
+        :class="[
+            'flex w-full flex-col',
+            workspace
+                ? 'h-full min-h-0 max-w-none flex-1 gap-0 overflow-hidden'
+                : 'mx-auto max-w-app gap-6'
+        ]"
+    >
         <div v-if="title || $slots.header" class="flex flex-col gap-2">
             <slot v-if="$slots.header" name="header"></slot>
             <slot name="breadcrumbs"></slot>
@@ -25,6 +32,7 @@ import ActionToolbar from './ActionToolbar.vue';
 
 defineProps({
     title: { type: String, default: null },
-    subtitle: { type: String, default: null }
+    subtitle: { type: String, default: null },
+    workspace: { type: Boolean, default: false }
 });
 </script>

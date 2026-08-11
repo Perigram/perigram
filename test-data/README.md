@@ -10,33 +10,16 @@ repository package imports such as `#shared/...`, `#packages/...`, and
 `#utils/...` for cross-root contracts; Nuxt UI code may import the factories
 themselves through `~/test-data/...` at the call site.
 
-## Why Factory Functions?
+Test data comes from factory functions rather than inline mock objects, so overrides can be spread onto defaults.
 
-### ❌ Anti-Pattern (Inline Mocks):
-```javascript
-const mockProject = {
-  name: 'Test',
-  customer: 'Acme' // Inconsistent, duplicated everywhere
-};
-```
-
-### ✅ Enterprise Pattern (Factories):
-```javascript
-import { createMockProject } from '~/test-data/factories';
-
-const mockProject = createMockProject({
-  name: 'Custom Name' // Override only what you need
-});
-```
-
-## Benefits
-
-1. **Single Source of Truth** - Schema changes happen in one place
-2. **Consistent Test Data** - All tests use the same realistic structure
-3. **Easy Overrides** - Customize only what you need
-4. **Type Safety** - Can be easily typed with TypeScript
-5. **Documentation** - Factory functions document the expected schema
-6. **Reusability** - Use across tests and UI lab.
+`persisted-acceptance.js` is the privacy-safe regression fixture for the current
+process protocol. It defines a synthetic organization/role assignment, a saved
+v4 `Project -> Compose Lineage -> Artifact` graph (including connections and
+viewport), representative block DTOs, and the expected compiled screens/actions.
+Its spec round-trips persisted graph state and asserts Lineage inference, Home
+filtering, project detail scoping, role-owned actions, selectors/status, and
+Artifact viewer dispatch. It must never be replaced with copied production
+records or credentials.
 
 ## Usage
 
@@ -45,7 +28,6 @@ const mockProject = createMockProject({
 import { createMockProject } from '~/test-data/factories';
 
 const project = createMockProject();
-// Returns a complete project with all required fields
 ```
 
 ### With Overrides
@@ -54,13 +36,11 @@ const customProject = createMockProject({
   identity: { name: 'My Custom Project' },
   data: { customer: 'Different Corp' }
 });
-// Merges your overrides with defaults
 ```
 
 ### Creating Multiple Items
 ```javascript
 const projects = createMockProjectsList(5);
-// Returns array of 5 projects
 ```
 
 ## Available Factories
@@ -80,19 +60,7 @@ const projects = createMockProjectsList(5);
 
 ## Extending
 
-To add a new factory:
-
-```javascript
-export function createMockYourEntity(overrides = {}) {
-  return {
-    _id: new ObjectId(),
-    identity: { uid: 'your-entity-1', name: 'Your Entity' },
-    status: { state: 'ACTIVE' },
-    data: {},
-    ...overrides // Always spread at the end
-  };
-}
-```
+New factories follow the same `factories.js` pattern shown above.
 
 ## Design-System Alignment
 
@@ -103,7 +71,6 @@ Factories are built from:
   compatibility exports in `utils/design-system-contract.js`
 - Workflow state definitions in `packages/domain-cnc/src/index.js`
 
-This ensures mock data matches what your API actually expects/returns.
 Factory modules avoid Nuxt root aliases internally so direct Node imports,
 server scripts, and Nitro-generated chunks resolve the same dependency graph.
 They also avoid parent-relative cross-root imports because Nitro may move

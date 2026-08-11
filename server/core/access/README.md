@@ -7,9 +7,15 @@ Centralized authorization for entity services, workflow transitions, and command
 - `assertEntityAccess()`: Checks one entity against a feature permission level.
 - `assertCommandAccess()`: Checks command permission requirements before a handler runs.
 - `assertTransitionAccess()`: Checks workflow transition access requirements.
-- `createLineageFilter()`: Builds organization lineage filters from memberships.
+- `createLineageFilter()`: Builds the active-organization lineage filter, with
+  membership-derived filtering only for legacy auth contexts that do not carry
+  an active organization id.
 
 Access is derived from membership permission grants and entity lineage.
+Ordinary entity access is isolated to `auth.organizationId`: an entity from a
+different membership cannot consume the active organization's compiled
+`effectivePermissions`. Collection services use the same active organization
+as their coarse lineage prefilter before applying per-entity grants.
 Legacy grants are simple levels (`queues: 'write'`). Granular grants can scope a
 level to lineage ids, entity ids, UI actions, workflow transitions, or a
 logical rule:

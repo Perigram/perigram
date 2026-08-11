@@ -10,9 +10,7 @@ redirect gate for authenticated users.
 - The landing shell renders immediately for anonymous visitors. Entry auth is
   resolved on the server when cookies are present, and client mount re-checks
   auth only to redirect authenticated sessions. The public first paint must not
-  block on a client-side `/api/auth/me` round trip, because that leaves mobile
-  and constrained-network clients stuck on a spinner even though the landing
-  page itself is public.
+  block on a client-side `/api/auth/me` round trip.
 - Authenticated users with an active process go to the generated process entry
   route: the generated `home` screen first, then the first generated hub/list
   screen, then `/screens` only when no navigable generated screen exists. The
@@ -23,8 +21,7 @@ redirect gate for authenticated users.
   `/organization` are still not process entry candidates.
   Authenticated users without an active process use
   the static projects workspace.
-- Anonymous visitors stay on the landing page, which embeds
-  `CassetteMarketingAnimation` as the first-viewport visual and links to login
+- Anonymous visitors stay on the landing page, which links to login
   and registration.
 
 ## Authenticated Areas
@@ -37,10 +34,10 @@ active organization processes. It looks up the current user's compiled screen
 manifest from the auth store and renders it through the fixed generated screen
 runtime, including the compiler-synthesized `home` template. Process navigation
 points to `/screens/:screenKey`; the route does not load arbitrary Vue
-components from process data. On mount and screen-key changes it refreshes
-`/api/auth/me` before rendering, so generated screens use the current active
-process screen/action manifest instead of stale client-side process
-assignments.
+components from process data. The auth middleware is the sole hydration
+boundary: generated routes must render the hydrated manifest directly and not
+re-fetch `/api/auth/me` on mount or screen-key changes, because replacing that
+manifest unmounts an already-rendered operational workspace.
 
 Operational pages use shared UI shell primitives:
 
@@ -98,6 +95,12 @@ an uncaught route promise.
 Public auth/invitation pages may use full-height shells because they run
 outside the app layout, but their content chrome should still come from
 PrimeVue/shared primitives instead of raw bordered containers.
+The invitation token page renders only the sanitized invitation DTO returned by
+its public endpoint; it does not fetch the protected organization record. Its
+headerless bounded panel centers in the viewport, presents invitation identity
+inside the content, maps missing/expired tokens to localized user-facing copy,
+and keeps recovery navigation as a standard PrimeVue button. Raw request paths
+and server error strings are not rendered.
 `pages/auth/register.vue` is a public signup form. Normal signup collects the
 new user's credentials plus organization name and starter process and submits them to
 `/api/auth/register`; invitation signup is selected by the `invitation` query
@@ -115,19 +118,37 @@ screens, not through a static asset route. Do not route library trace links to
 the cassette manager; cassettes are children of the library, not the library
 entity surface itself.
 
-Organization routes are first-class app areas. `/organization` is the
-workspace hub linked from the user menu and profile organization cards;
-`/organization/users` owns team management; `/organization/process` owns the
-Vue Flow process designer. Breadcrumbs expose these routes as organization
-siblings so users can move between overview, team management, and process
-design without going through profile/admin pages. Team management assigns users
-to active process roles; the process designer activation defines available
-services, field policies, navigation, and lifecycle machines for the current
-organization.
-The organization workspace is also the billing account surface: token packages,
-invoices, payment sync, and ledger rows belong to the active organization.
-Profile remains a personal account/preferences/membership page and must not
-show project usage or user-owned credit purchase flows.
+Organization routes are first-class app areas. `/organization`,
+`/organization/users`, and `/organization/process` routing, billing, team, and
+process ownership are covered in
+[pages/organization/README.md](./organization/README.md). The overview is not a
+grid of navigation cards. Vue Flow renders client-side because its generated
+accessibility ids are not stable across SSR hydration. Breadcrumbs expose these
+routes as organization siblings so users can move between overview, team
+management, and process design without going through profile/admin pages. The
+user menu is only the active-organization switcher; organization capabilities
+remain on these organization routes. Profile remains a personal
+account/preferences/membership page and must not show project usage or
+user-owned credit purchase flows.
+Its account surface uploads/removes the current user's avatar through the user
+avatar API; every avatar image uses a square cover crop inside its circular
+frame. Account, preferences, and membership views use semantic navigation links
+backed by the route's `tab` query. Each tab performs real navigation so browser
+history, reloads, and direct membership links retain the selected view.
+Organization memberships render canonical `OrganizationCard` surfaces
+with visible footer actions: inactive memberships switch context, while the
+active membership has one direct action into the generated organization
+overview. Billing, team, and process navigation stays inside that overview.
+
+`/chats` is the authenticated full-page conversation inbox. Desktop keeps the
+conversation list and selected thread in a two-pane bounded workspace; mobile
+uses a single-pane list/thread flow. The app shell's floating chat launcher
+opens the same inbox as a compact drawer, whose expand control navigates here;
+the launcher is absent on `/chats` itself. The full route passes its layout mode
+explicitly, keeps independent inbox/thread headers, and fills the bounded app
+workspace even when there are no persisted conversations. Selecting a persisted
+thread starts its SSE message stream on either the drawer or embedded route;
+stream connection is not conditional on the floating-dialog state.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,
@@ -138,4 +159,3 @@ architecturally meaningful are not deleted during UI refactors.
 
 - [admin pages](./admin/README.md)
 - [organization pages](./organization/README.md)
-- [marketing components](../components/marketing/README.md)

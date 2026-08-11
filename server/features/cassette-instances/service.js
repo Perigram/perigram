@@ -1,12 +1,11 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
   createIdentity,
-  createStatus,
   inheritLineage,
-  createData,
-  getPrimaryState
+  createData
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
@@ -20,19 +19,7 @@ import { ObjectId } from 'mongodb';
  */
 
 function serializeInstance(raw) {
-  const instance = new CassetteInstance(raw).toJSON();
-  if (instance.data?.source === 'QUEUE_CUT' && getPrimaryState(instance.status) === 'NESTED') {
-    instance.status = {
-      ...instance.status,
-      state: {
-        schemaVersion: 2,
-        primary: 'CUT',
-        active: { main: 'CUT' },
-        regions: { main: { state: 'CUT', path: ['CUT'] } }
-      }
-    };
-  }
-  return instance;
+  return new CassetteInstance(raw).toJSON();
 }
 
 
@@ -48,7 +35,12 @@ export async function createFromSheet(sheet, designs, userId, userRole, userPerm
   const created = [];
   for (const designEntry of designs) {
     // designEntry: { designId, instanceNumber, reference }
-    const origin = createStatus('CUT', userId, { note: 'Instantiated from cut sheet' });
+    const origin = await statusService.initialStatusForOrganization(
+      'cassette_instance',
+      baseLineage.organizationId,
+      userId,
+      { note: 'Instantiated from cut sheet' }
+    );
 
     // Merge lineages: digital from design + physical from sheet
     const instanceLineage = {
@@ -91,7 +83,12 @@ export async function createFromCutSheet(sheet, designs = [], userId = 'SYSTEM')
       instanceOffset += 1;
       const uid = `ci-${new ObjectId().toString().slice(-8)}-${instanceOffset}`;
       const serial = designEntry.serial || `${sheet.identity?.serial || 'CUT'}-${instanceOffset}`;
-      const origin = createStatus('CUT', userId, { note: 'Produced from queue cut' });
+      const origin = await statusService.initialStatusForOrganization(
+        'cassette_instance',
+        baseLineage.organizationId,
+        userId,
+        { note: 'Produced from queue cut' }
+      );
       const instanceLineage = {
         ...(baseLineage.toJSON?.() || baseLineage),
         designId: toFlexibleId(designEntry.designId || designEntry.cassetteDesignId),
@@ -164,7 +161,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
   // Status updates must go through statusService
   if (updates.status) {
-    await statusService.transition('cassette_instance', instance._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'cassette_instance',
+      targetId: instance._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     delete updates.status;
   }
 
@@ -187,7 +190,14 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
 export async function updateStatus(id, state, note, user) {
   const instance = await getById(id, user.userId, user.organizationId, user.role, user);
-  return await statusService.transition('cassette_instance', instance._id || instance.id, state, user.userId, createTransitionAuth(user.userId, user), { note });
+  const result = await statusService.transitionWithResult({
+    entityType: 'cassette_instance',
+    targetId: instance._id || instance.id,
+    targetState: state,
+    auth: createTransitionAuth(user.userId, user),
+    context: { note }
+  });
+  return result.status;
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
@@ -199,3 +209,9 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 
   return await repository.deleteById(id);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'cassette_instance',
+  repository,
+  Model: CassetteInstance
+});

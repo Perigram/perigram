@@ -64,7 +64,7 @@
             :show-delete="false"
           />
           <div class="flex min-w-0 flex-col gap-3">
-            <div class="rounded-ui border border-content-border bg-surface-50 p-3">
+            <div class="rounded-ui border border-content-border bg-subtle p-3">
               <EntitySurfaceContent
                 :entity="activeQueue"
                 entity-type="queue"

@@ -3,15 +3,19 @@ import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import { hooks } from '~/server/core/machines/hooks.js';
 
 import * as artifactsService from '~/server/features/artifacts/service.js';
+import * as artifactTemplatesService from '~/server/features/artifact-templates/service.js';
 import * as cassetteDesignsService from '~/server/features/cassette-designs/service.js';
 import * as cassetteInstancesService from '~/server/features/cassette-instances/service.js';
 import * as cassettesService from '~/server/features/cassettes/service.js';
 import * as catalogsService from '~/server/features/catalogs/service.js';
 import * as colorsService from '~/server/features/colors/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
+import * as facadesService from '~/server/features/facades/service.js';
+import * as facadePatternsService from '~/server/features/facade-patterns/service.js';
 import * as geometryCapturesService from '~/server/features/geometry-captures/service.js';
 import * as layerStandardsService from '~/server/features/layer-standards/service.js';
 import * as librariesService from '~/server/features/libraries/service.js';
+import * as machinesService from '~/server/features/machines/service.js';
 import * as materialsService from '~/server/features/materials/service.js';
 import * as materialPilesService from '~/server/features/material-piles/service.js';
 import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
@@ -32,6 +36,7 @@ import * as warehousesService from '~/server/features/warehouses/service.js';
 import { saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
 import { executeNestingSolveTask, solveNesting } from '~/server/features/nesting/operations.js';
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
+import { convertArtifact } from '~/server/features/artifact-conversions/operations.js';
 import { generateConfigBotDraft, reindexConfigBotKnowledge } from '~/server/features/config-bot/operations.js';
 
 let appRegistry = null;
@@ -53,7 +58,11 @@ export function getAppRegistry() {
 
 function registerAppBindings(registry) {
   for (const [type, service] of Object.entries(entityServices)) {
-    registry.registerEntityService(type, service);
+    const processList = entityProcessLists[type];
+    const processGetById = entityProcessReads[type];
+    if (!processList) throw new Error(`Entity service ${type} requires an explicit processList binding`);
+    if (!processGetById) throw new Error(`Entity service ${type} requires an explicit processGetById binding`);
+    registry.registerEntityService(type, { ...service, processList, processGetById });
   }
   for (const [id, handler] of Object.entries(commandHandlers)) {
     registry.registerCommandHandler(id, handler);
@@ -76,15 +85,19 @@ export const resetCutkitRegistryForTests = resetAppRegistryForTests;
 
 const entityServices = {
   artifact: artifactsService,
+  artifact_template: artifactTemplatesService,
   cassette_design: cassetteDesignsService,
   cassette_instance: cassetteInstancesService,
   cassette: cassettesService,
   catalog: catalogsService,
   color: colorsService,
   entity_revision: entityRevisionsService,
+  facade: facadesService,
+  facade_pattern: facadePatternsService,
   geometry_capture: geometryCapturesService,
   layer_standard: layerStandardsService,
   library: librariesService,
+  machine: machinesService,
   material: materialsService,
   material_pile: materialPilesService,
   nesting_run: nestingRunsService,
@@ -103,10 +116,100 @@ const entityServices = {
   warehouse: warehousesService
 };
 
+const authFirstList = service => (filters, auth) => service.list(
+  auth.userId,
+  auth.organizationId,
+  auth.role,
+  auth,
+  filters
+);
+
+const authLastRead = service => (id, auth) => service.getById(
+  id,
+  auth.userId,
+  auth.organizationId,
+  auth.role,
+  auth
+);
+
+const authWithoutOrganizationRead = service => (id, auth) => service.getById(
+  id,
+  auth.userId,
+  auth.role,
+  auth
+);
+
+const entityProcessLists = {
+  artifact: (filters, auth) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  artifact_template: (filters, auth) => artifactTemplatesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  cassette: authFirstList(cassettesService),
+  cassette_design: authFirstList(cassetteDesignsService),
+  cassette_instance: authFirstList(cassetteInstancesService),
+  catalog: authFirstList(catalogsService),
+  color: authFirstList(colorsService),
+  entity_revision: authFirstList(entityRevisionsService),
+  facade: authFirstList(facadesService),
+  facade_pattern: authFirstList(facadePatternsService),
+  geometry_capture: authFirstList(geometryCapturesService),
+  layer_standard: filters => layerStandardsService.list(filters),
+  library: authFirstList(librariesService),
+  machine: (_filters, auth) => machinesService.list(auth.userId, auth.organizationId, auth.role, auth),
+  material: filters => materialsService.list(filters),
+  material_pile: authFirstList(materialPilesService),
+  nesting_run: authFirstList(nestingRunsService),
+  organization: authFirstList(organizationsService),
+  pen_template: (_filters, auth) => penTemplatesService.listAll(auth.userId),
+  process_definition: (_filters, auth) => processDefinitionsService.list(auth),
+  profile_template: (filters, auth) => profileTemplatesService.listAll(auth, filters),
+  project: authFirstList(projectsService),
+  queue: (filters, auth) => queuesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  remnant: authFirstList(remnantsService),
+  requisition: (_filters, auth) => requisitionsService.list(auth.userId, auth.organizationId, auth.role, auth),
+  sheet_design: authFirstList(sheetDesignsService),
+  sheet: authFirstList(sheetsService),
+  tool_profile: (_filters, auth) => toolProfilesService.listAll(auth.userId),
+  user: (_filters, auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth),
+  warehouse: authFirstList(warehousesService)
+};
+
+const entityProcessReads = {
+  artifact: authLastRead(artifactsService),
+  artifact_template: authLastRead(artifactTemplatesService),
+  cassette: authLastRead(cassettesService),
+  cassette_design: authWithoutOrganizationRead(cassetteDesignsService),
+  cassette_instance: authLastRead(cassetteInstancesService),
+  catalog: id => catalogsService.getById(id),
+  color: id => colorsService.getById(id),
+  entity_revision: authWithoutOrganizationRead(entityRevisionsService),
+  facade: authLastRead(facadesService),
+  facade_pattern: authLastRead(facadePatternsService),
+  geometry_capture: authLastRead(geometryCapturesService),
+  layer_standard: id => layerStandardsService.getById(id),
+  library: authLastRead(librariesService),
+  machine: authLastRead(machinesService),
+  material: id => materialsService.getById(id),
+  material_pile: id => materialPilesService.getById(id),
+  nesting_run: authLastRead(nestingRunsService),
+  organization: id => organizationsService.getById(id),
+  pen_template: (id, auth) => penTemplatesService.getById(id, auth.userId),
+  process_definition: (id, auth) => processDefinitionsService.getById(id, auth),
+  profile_template: (id, auth) => profileTemplatesService.getById(id, auth),
+  project: id => projectsService.getById(id),
+  queue: authLastRead(queuesService),
+  remnant: authLastRead(remnantsService),
+  requisition: authLastRead(requisitionsService),
+  sheet_design: authLastRead(sheetDesignsService),
+  sheet: id => sheetsService.getById(id),
+  tool_profile: (id, auth) => toolProfilesService.getById(id, auth.userId),
+  user: id => usersService.getById(id),
+  warehouse: id => warehousesService.getById(id)
+};
+
 const commandHandlers = {
   saveCassetteTemplate,
   solveNesting,
   generateAttachment,
+  convertArtifact,
   generateConfigBotDraft,
   reindexConfigBotKnowledge
 };

@@ -44,11 +44,8 @@ Each gets a placement mode:
 { "mode": "root" }
 ```
 
-or:
-
-```json
-{ "mode": "edge", "parentPolygon": "$faces.main.boundary", "parentEdgeIndex": 2, "attachEdge": "E0" }
-```
+or the edge placement documented in the
+[operation contract](./nodi-operation-contract.md).
 
 If Nodi3d optional branches are inconvenient, create wrapper graphs:
 
@@ -84,16 +81,8 @@ connect an adapter `Polyline` created from the cached parent boundary vertices.
 If the graph has a test parent polygon for authoring, CutKit replaces that
 connection for child instances.
 
-Point-rule trapezoid:
-
-```json
-{
-  "P0": { "from": "start", "u": "baseStartOffset", "v": 0 },
-  "P1": { "from": "end", "u": "-baseEndOffset", "v": 0 },
-  "P2": { "from": "P1", "u": "-topEndOffset", "v": "p2Height || height" },
-  "P3": { "from": "P0", "u": "topStartOffset", "v": "p3Height || height" }
-}
-```
+The trapezoid point rule (`P0..P3`) is defined in the
+[operation contract](./nodi-operation-contract.md).
 
 ## Manifest Template
 

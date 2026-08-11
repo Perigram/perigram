@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  collectionToEntityType,
   createDomainUiAdapter,
   createEndpointMap,
   getListEndpoint,
@@ -12,6 +11,8 @@ describe('@cutkit/vue endpoint map', () => {
     const endpointMap = createEndpointMap([
       {
         type: 'cassetteInstance',
+        entityType: 'cassette_instance',
+        surfaceKey: 'cassetteInstance',
         collection: 'cassette-instances',
         routes: {
           single: '/api/cassette-instances/:id',
@@ -24,10 +25,12 @@ describe('@cutkit/vue endpoint map', () => {
     expect(getSingleEndpoint(endpointMap, 'cassette_instance', 'ci-1')).toBe('/api/cassette-instances/ci-1');
   });
 
-  it('registers list aliases for hyphenated master-data collections', () => {
+  it('registers canonical and generated surface endpoint keys', () => {
     const endpointMap = createEndpointMap([
       {
         type: 'layerStandard',
+        entityType: 'layer_standard',
+        surfaceKey: 'layerStandard',
         collection: 'layer-standards',
         routes: {
           single: '/api/layer-standards/:id',
@@ -43,7 +46,9 @@ describe('@cutkit/vue endpoint map', () => {
   it('keeps cassette design endpoints separate from cassette templates', () => {
     const endpointMap = createEndpointMap([
       {
-        type: 'cassetteTemplate',
+        type: 'cassette',
+        entityType: 'cassette',
+        surfaceKey: 'cassette',
         collection: 'cassettes',
         routes: {
           single: '/api/cassettes/:id',
@@ -52,6 +57,8 @@ describe('@cutkit/vue endpoint map', () => {
       },
       {
         type: 'cassetteDesign',
+        entityType: 'cassette_design',
+        surfaceKey: 'cassetteDesign',
         collection: 'cassette-designs',
         routes: {
           single: '/api/cassette-designs/:id',
@@ -60,12 +67,12 @@ describe('@cutkit/vue endpoint map', () => {
       }
     ]);
 
-    expect(getSingleEndpoint(endpointMap, 'cassetteTemplate', 'ct-1')).toBe('/api/cassettes/ct-1');
+    expect(getSingleEndpoint(endpointMap, 'cassette', 'ct-1')).toBe('/api/cassettes/ct-1');
     expect(getSingleEndpoint(endpointMap, 'cassetteDesign', 'cd-1')).toBe('/api/cassette-designs/cd-1');
     expect(getSingleEndpoint(endpointMap, 'cassette_design', 'cd-1')).toBe('/api/cassette-designs/cd-1');
   });
 
-  it('derives singular snake_case keys from collection names', () => {
+  it('does not infer entity identity from collection names', () => {
     const endpointMap = createEndpointMap([
       {
         type: 'batch',
@@ -77,8 +84,7 @@ describe('@cutkit/vue endpoint map', () => {
       }
     ]);
 
-    expect(collectionToEntityType('material-piles')).toBe('material_pile');
-    expect(getSingleEndpoint(endpointMap, 'material_pile', 'pile-1')).toBe('/api/material-piles/pile-1');
+    expect(endpointMap.material_pile).toBeUndefined();
   });
 
   it('registers surface aliases for UI keys and backend entity types', () => {

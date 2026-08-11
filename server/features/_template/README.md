@@ -1,6 +1,7 @@
 # COMPONENT: Feature Template (Golden Path)
 
-This directory serves as the canonical implementation of the **v24 Absolute Final** architecture. Every feature in `server/features/` must follow this structure strictly.
+This directory is the canonical feature template. Every feature in
+`server/features/` must follow this structure strictly.
 
 ## Directory Structure
 
@@ -13,12 +14,15 @@ This directory serves as the canonical implementation of the **v24 Absolute Fina
 
 ## The Golden Rules
 
+Feature contracts shared with the wider backend are documented in [server/features/README.md](../README.md).
+
 1.  **Strict Service-Repository**: Services never touch `db.collection`. Repositories never check permissions.
 2.  **Flexible IDs**: Always use `toFlexibleId()` in Repositories to support both string UIDs and ObjectIds.
 3.  **Standard Blocks**: Every entity must have `identity`, `status`, `origin`, and `lineage` blocks.
 4.  **Serialized Outputs**: Services must return `Model.toJSON()` results, never raw DB documents.
 5.  **Central Registry**: `server/runtime/app-registry.js` explicitly registers every entity service.
 6.  **Explicit Side-Effects**: Use the `hooks` object in the service to define side-effects triggered by the Status Engine.
+7.  **Process Updates Stay Owned**: If a feature can be mutated by non-status process `updateEntity` actions, its service exports a `processUpdate(id, patch, auth)` handler. The handler applies field-policy-approved canonical block paths through that feature's own repository/model boundary; process definitions must not call generic update signatures or write the feature collection directly.
 
 ## Boilerplate Snippets
 

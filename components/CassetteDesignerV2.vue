@@ -1,5 +1,8 @@
 <template>
-  <div class="relative flex h-[calc(100dvh-10rem)] min-h-0 min-w-0 flex-col gap-3 overflow-hidden" @keydown.esc.capture="handleDesignerEscape">
+  <DesignerSurface
+    class="relative gap-3"
+    @keydown.esc.capture="handleDesignerEscape"
+  >
     <div
       v-if="showOnboardingRail"
       class="absolute z-[140] w-80 rounded-ui border border-content-border bg-content p-3 [box-shadow:var(--ck-shadow-overlay)]"
@@ -28,7 +31,8 @@
       </div>
     </div>
 
-    <div class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(18rem,1fr)_16rem_12rem] gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)_14rem] xl:grid-cols-[18rem_minmax(0,1fr)_20rem] xl:grid-rows-1 2xl:grid-cols-[20rem_minmax(0,1fr)_22rem]">
+    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
+      <template #palette>
       <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border bg-content p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
 
       <div class="flex shrink-0 flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
@@ -42,6 +46,7 @@
           :options="templateOptions"
           option-label="label"
           option-value="value"
+          entity-type="cassette"
           :placeholder="$t('cassette.v2.loadTemplate')"
           class="w-full"
           @update:model-value="value => emit('load-template', value)"
@@ -206,6 +211,7 @@
         <Textarea :model-value="occsJson" readonly rows="22" class="min-h-0 w-full flex-1 font-mono text-xs" />
       </div>
       </aside>
+      </template>
 
       <section ref="editorSurfaceRef" class="relative order-1 min-h-0 min-w-0 overflow-hidden xl:order-2">
       <DrawingCanvas
@@ -546,6 +552,7 @@
       </div>
       </section>
 
+      <template #inspector>
       <aside class="order-2 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden xl:order-3">
         <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3">
           <div class="flex items-center justify-between gap-2">
@@ -731,7 +738,8 @@
           />
         </div>
       </aside>
-    </div>
+      </template>
+    </DesignerWorkspace>
 
     <StandardDialog
       v-model:visible="profileDialogVisible"
@@ -767,6 +775,7 @@
           :options="profileTemplateOptions"
           option-label="label"
           option-value="value"
+          entity-type="profileTemplate"
           :placeholder="$t('cassette.v2.profileEditor.loadTemplate')"
           append-to="self"
           class="w-full"
@@ -800,7 +809,7 @@
         </div>
       </template>
     </StandardDialog>
-  </div>
+  </DesignerSurface>
 </template>
 
 <script setup>
@@ -812,7 +821,7 @@ import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import ScrollPanel from 'primevue/scrollpanel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import CassetteExpressionEditor from '~/components/CassetteExpressionEditor.vue';
@@ -821,13 +830,15 @@ import ProfileSketchEditor from '~/components/ProfileSketchEditor.vue';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useEntity } from '~/composables/useEntity.js';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { buildCassetteV2FoldedPreview } from '~/utils/cassetteV2FoldedPreview.js';
-import { labelValueSelectOptions } from '~/utils/selectOptions.js';
+import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions.js';
 import {
   addCassetteV2GraphChild,
   addCassetteV2HardwareWorkpiece,
@@ -1090,10 +1101,11 @@ const profileProcessOptions = computed(() => OCCS_PROFILE_PROCESSES.map(process 
 const profileTemplateItems = computed(() => (
   Array.isArray(profileTemplateEntity.items.value) ? profileTemplateEntity.items.value : []
 ));
-const profileTemplateOptions = computed(() => labelValueSelectOptions(
-  profileTemplateItems.value,
-  t('cassette.v2.profileEditor.defaultName')
-));
+const profileTemplateOptions = computed(() => profileTemplateItems.value.map(profile => ({
+  label: entitySelectLabel(profile, t('cassette.v2.profileEditor.defaultName')),
+  value: entitySelectValue(profile),
+  entity: profile
+})).filter(option => option.value));
 const profileTemplateListFilters = () => ({
   ...(selectedTemplateId.value ? { cassetteTemplateId: selectedTemplateId.value } : {})
 });
@@ -1521,24 +1533,28 @@ const saveTemplate = async ({ saveAs = false } = {}) => {
 
   savingTemplate.value = true;
   try {
+    const updating = !saveAs && selectedTemplateIsPersisted.value && payload.id;
     const body = {
-      entities: !saveAs && selectedTemplateIsPersisted.value && payload.id ? { cassette: payload.id } : {},
-      parameters: {
-        name: payload.name,
-        type: 'PARAMETRIC',
-        definition: payload.definition,
-        parameters: payload.parameters
-      }
+      name: payload.name,
+      type: 'PARAMETRIC',
+      definition: payload.definition,
+      parameters: payload.parameters,
+      ...(!updating && props.template?.lineage?.libraryId
+        ? { libraryId: props.template.lineage.libraryId }
+        : {})
     };
-    const response = await $fetch('/api/commands/saveCassetteTemplate/run', { method: 'POST', body });
-    const savedId = response?.result?.data?.cassetteId ||
-      response?.result?.entities?.find(entity => entity.type === 'cassette')?.id ||
-      payload.id;
+    const response = await $fetch(
+      updating ? `/api/cassettes/${encodeURIComponent(payload.id)}` : '/api/cassettes',
+      { method: updating ? 'PUT' : 'POST', body }
+    );
+    const savedId = response?._id || response?.identity?.uid || payload.id;
     if (savedId) {
       suppressAutosave = true;
       persistedTemplateIdOverride.value = savedId;
     }
-    const savedEntity = savedId ? await $fetch(`/api/cassettes/${encodeURIComponent(savedId)}`).catch(() => null) : null;
+    const savedEntity = response || (savedId
+      ? await $fetch(`/api/cassettes/${encodeURIComponent(savedId)}`).catch(() => null)
+      : null);
     if (process.client) {
       window.sessionStorage.removeItem(draftKeyBeforeSave);
       window.sessionStorage.removeItem(autosaveStorageKey.value);
@@ -1548,8 +1564,7 @@ const saveTemplate = async ({ saveAs = false } = {}) => {
     emit('save-template', {
       ...payload,
       id: savedId || payload.id,
-      savedEntity,
-      commandResult: response?.result || null
+      savedEntity
     });
   } catch {
     toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.saveFailed'), life: 3000 });

@@ -17,7 +17,7 @@
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
-            <TraceChain v-if="effectivePopupShowTrace" :entity="entity" />
+            <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
                     <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
                         {{ inlineTypeLabel }}
                     </small>
@@ -39,32 +39,38 @@
                         </slot>
                         <slot name="footer" />
                     </div>
-                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
+                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex justify-end" @click.stop>
+                      <EntityActionsPopover>
                         <GeneratedCassetteDesignerAction
                             v-if="inlineShowCassetteDesigner"
                             :entity="inlineActionEntity"
+                            menu-item
                         />
                         <GeneratedActionButton
                             v-for="actionId in inlineActionIds"
                             :key="actionId"
                             :action-id="actionId"
+                            menu-item
                             @execute="executeInlineAction"
                         />
                         <GeneratedDeleteButton
                             v-if="inlineCanDelete"
                             :entity="inlineActionEntity"
                             :entity-type="inlineActionEntityType"
+                            menu-item
                             @deleted="closePopup"
                         />
                         <Button
                             v-if="inlineDetailRoute"
+                            :label="$t('common.open')"
                             icon="pi pi-external-link"
                             text
-                            rounded
                             size="small"
+                            class="w-full justify-start"
                             :aria-label="$t('common.open')"
                             @click="openInlineDetail"
                         />
+                      </EntityActionsPopover>
                     </div>
                 </div>
             </div>
@@ -74,7 +80,7 @@
     <!-- Compact: identity + status in a card row -->
     <template v-else-if="variant === 'compact'">
         <Card
-            class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal"
+            class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] transition-colors duration-normal hover:border-primary"
             :class="[{ 'cursor-pointer': expandable }, compactDensityClass]"
             :role="expandable ? 'button' : undefined"
             :tabindex="expandable ? 0 : undefined"
@@ -118,7 +124,7 @@
         <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
-                    <TraceChain v-if="effectivePopupShowTrace" :entity="entity" />
+                    <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
                     <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
                         {{ inlineTypeLabel }}
                     </small>
@@ -140,32 +146,38 @@
                         </slot>
                         <slot name="footer" />
                     </div>
-                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
+                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex justify-end" @click.stop>
+                      <EntityActionsPopover>
                         <GeneratedCassetteDesignerAction
                             v-if="inlineShowCassetteDesigner"
                             :entity="inlineActionEntity"
+                            menu-item
                         />
                         <GeneratedActionButton
                             v-for="actionId in inlineActionIds"
                             :key="actionId"
                             :action-id="actionId"
+                            menu-item
                             @execute="executeInlineAction"
                         />
                         <GeneratedDeleteButton
                             v-if="inlineCanDelete"
                             :entity="inlineActionEntity"
                             :entity-type="inlineActionEntityType"
+                            menu-item
                             @deleted="closePopup"
                         />
                         <Button
                             v-if="inlineDetailRoute"
+                            :label="$t('common.open')"
                             icon="pi pi-external-link"
                             text
-                            rounded
                             size="small"
+                            class="w-full justify-start"
                             :aria-label="$t('common.open')"
                             @click="openInlineDetail"
                         />
+                      </EntityActionsPopover>
                     </div>
                 </div>
             </div>
@@ -174,7 +186,7 @@
 
     <!-- Card: full chrome — tracechain / identity+status / body / footer -->
     <template v-else>
-        <Card class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] hover:[box-shadow:var(--ck-shadow-card-hover)] transition-shadow duration-normal">
+        <Card class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] transition-colors duration-normal hover:border-primary">
             <template #header v-if="$slots.header">
                 <slot name="header" />
             </template>
@@ -183,7 +195,7 @@
                     <slot name="title" />
                 </template>
                 <template v-else>
-                    <TraceChain v-if="effectiveShowTrace" :entity="entity" variant="compact" expandable class="mb-2" />
+                    <TraceChain v-if="effectiveShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" variant="compact" expandable class="mb-2" />
                     <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />
@@ -211,7 +223,12 @@
                 <slot />
             </template>
             <template #footer>
-                <slot name="footer" />
+                <div v-if="$slots.footer" class="flex justify-end" @click.stop>
+                  <EntityActionsPopover v-if="footerDisplay === 'menu'">
+                    <slot name="footer" />
+                  </EntityActionsPopover>
+                  <slot v-else name="footer" />
+                </div>
             </template>
         </Card>
     </template>
@@ -238,15 +255,18 @@ import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
+import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Popover from 'primevue/popover';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
-import { ENTITY_UI } from '~/utils/status-engine';
+import { entityUiFor } from '~/utils/status-engine';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
+import { entityHierarchyIds } from '~/utils/entity-hierarchy.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const props = defineProps({
@@ -260,7 +280,10 @@ const props = defineProps({
     density: { type: String, default: 'default' },
     statusActions: { type: Array, default: () => [] },
     displayExtensions: { type: Object, default: null },
-    displayOverrides: { type: Object, default: null }
+    displayOverrides: { type: Object, default: null },
+    contextEntity: { type: Object, default: null },
+    contextEntityType: { type: String, default: '' },
+    footerDisplay: { type: String, default: 'menu', validator: value => ['menu', 'inline'].includes(value) }
 });
 
 const emit = defineEmits(['refresh']);
@@ -273,8 +296,9 @@ const inlineActionEntityTypeRef = inject('entityInlineActionEntityType', '');
 const inlineCanDeleteRef = inject('entityInlineCanDelete', false);
 const inlineShowCassetteDesignerRef = inject('entityInlineShowCassetteDesigner', false);
 const inlineExecuteActionRef = inject('entityInlineExecuteAction', null);
+const statusWorkflowsRef = inject('statusWorkflows', null);
 
-const entityConfig = computed(() => ENTITY_UI[props.entityType] || { icon: 'pi pi-box' });
+const entityConfig = computed(() => entityUiFor(props.entityType));
 const displayPlan = computed(() => resolveEntityDisplayContract({
     entityType: props.entityType,
     surface: props.surface || props.variant,
@@ -283,6 +307,7 @@ const displayPlan = computed(() => resolveEntityDisplayContract({
     overrides: props.displayOverrides
 }));
 const effectiveShowStatus = computed(() => {
+    if (!hasMeaningfulWorkflowStatus(props.entityType, unref(statusWorkflowsRef) || undefined)) return false;
     if (props.showStatus !== null) return props.showStatus;
     return displayPlan.value.surfaceContract.status === 'interactive'
         || displayPlan.value.surfaceContract.status === 'readonly';
@@ -292,6 +317,13 @@ const effectiveShowTrace = computed(() => {
     return displayPlan.value.surfaceContract.trace !== 'hidden';
 });
 const effectivePopupShowTrace = computed(() => effectiveShowTrace.value || Boolean(unref(inlineForceTraceRef)));
+const traceExclusions = computed(() => {
+    if (!props.contextEntity || !props.contextEntityType) return [];
+    return entityHierarchyIds(props.contextEntity).map(id => ({
+        type: props.contextEntityType,
+        id
+    }));
+});
 const compactDensityClass = computed(() => props.density === 'dense'
     ? '[&_.p-card-body]:!p-3 [&_.p-card-content]:!p-0'
     : ''

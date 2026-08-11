@@ -1,13 +1,15 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as catalogRepository from '../catalogs/repository.js';
 import * as colorRepository from '../colors/repository.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { ObjectId } from 'mongodb';
-import { createIdentity, createStatus, inheritLineage, createData } from '~/server/core/blocks/index.js';
+import { createIdentity, createData } from '~/server/core/blocks/index.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { toFlexibleId } from '~/server/utils/objectid.js';
+import { Requisition } from './model.js';
 
 /**
  * Requisitions Service - v24 Standardized
@@ -55,17 +57,23 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   }
   
   const serial = await repository.getNextRequisitionNumber();
-  const origin = createStatus('DRAFT', userId, { note: 'Initial requisition draft' });
-  
+  const lineage = {
+    organizationId: toFlexibleId(userOrg),
+    manufacturerId: toFlexibleId(data.manufacturerId),
+    projectId: data.projectId ? toFlexibleId(data.projectId) : null
+  };
+  const origin = await statusService.initialStatusForOrganization(
+    'requisition',
+    lineage.organizationId,
+    userId,
+    { note: 'Initial requisition' }
+  );
+
   const requisitionData = {
     identity: createIdentity(data.name || `REQ-${serial}`, '', serial),
     origin,
     status: origin,
-    lineage: {
-      organizationId: toFlexibleId(userOrg),
-      manufacturerId: toFlexibleId(data.manufacturerId),
-      projectId: data.projectId ? toFlexibleId(data.projectId) : null
-    },
+    lineage,
     data: createData({
       items: snapshotItems,
       notes: data.notes || ''
@@ -139,7 +147,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
     }
 
     if (updates.status) {
-        await statusService.transition('requisition', requisition._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+        await statusService.transitionWithResult({
+            entityType: 'requisition',
+            targetId: requisition._id,
+            targetState: updates.status,
+            auth: createTransitionAuth(userId, userRole, userPermissions),
+            context: updates.statusMeta || {}
+        });
         delete updates.status;
     }
 
@@ -160,37 +174,59 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
 export async function transition(id, targetState, metadata, userId, userOrg, userRole, userPermissions) {
     const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
-    return await statusService.transition('requisition', requisition._id, targetState, userId, createTransitionAuth(userId, userRole, {
-        organizationId: userOrg,
-        memberships: userPermissions?.memberships || [],
-        effectivePermissions: userPermissions?.effectivePermissions || null,
-        permissions: userPermissions?.permissions || {}
-    }), metadata);
+    const result = await statusService.transitionWithResult({
+        entityType: 'requisition',
+        targetId: requisition._id,
+        targetState,
+        auth: createTransitionAuth(userId, userRole, {
+            organizationId: userOrg,
+            memberships: userPermissions?.memberships || [],
+            effectivePermissions: userPermissions?.effectivePermissions || null,
+            permissions: userPermissions?.permissions || {}
+        }),
+        context: metadata
+    });
+    return result.status;
 }
 
 export async function send(id, userId, userOrg, userRole, userPermissions) {
-    return await transition(id, 'SENT', { note: 'Requisition sent' }, userId, userOrg, userRole, userPermissions);
+    return await applyRequisitionIntent(id, 'submitRequisition', { note: 'Requisition submitted' }, userId, userOrg, userRole, userPermissions);
 }
 
 export async function approve(id, userId, userOrg, userRole, userPermissions) {
-    return await transition(id, 'APPROVED', { note: 'Requisition approved' }, userId, userOrg, userRole, userPermissions);
+    return await applyRequisitionIntent(id, 'approveRequisition', { note: 'Requisition approved' }, userId, userOrg, userRole, userPermissions);
 }
 
 export async function reject(id, userId, userOrg, userRole, userPermissions) {
-    return await transition(id, 'REJECTED', { note: 'Requisition rejected' }, userId, userOrg, userRole, userPermissions);
+    return await applyRequisitionIntent(id, 'rejectRequisition', { note: 'Requisition rejected' }, userId, userOrg, userRole, userPermissions);
 }
 
 export async function fulfill(id, userId, userOrg, userRole, userPermissions) {
-    return await transition(id, 'FULFILLED', { note: 'Requisition fulfilled' }, userId, userOrg, userRole, userPermissions);
+    return await applyRequisitionIntent(id, 'fulfillRequisition', { note: 'Requisition fulfilled' }, userId, userOrg, userRole, userPermissions);
 }
 
 export async function startFulfillment(id, userId, userOrg, userRole, userPermissions) {
-    // Note: v24 might not have separate state for start fulfillment, using APPROVED or similar
-    return await transition(id, 'APPROVED', { note: 'Fulfillment started' }, userId, userOrg, userRole, userPermissions);
+    return await applyRequisitionIntent(id, 'approveRequisition', { note: 'Fulfillment started' }, userId, userOrg, userRole, userPermissions);
 }
 
 export async function cancel(id, userId, userOrg, userRole, userPermissions) {
-    return await transition(id, 'REJECTED', { note: 'Requisition canceled' }, userId, userOrg, userRole, userPermissions);
+    return await applyRequisitionIntent(id, 'rejectRequisition', { note: 'Requisition canceled' }, userId, userOrg, userRole, userPermissions);
+}
+
+async function applyRequisitionIntent(id, intent, metadata, userId, userOrg, userRole, userPermissions) {
+    const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
+    return await statusService.applyIntent(
+        'requisition',
+        requisition._id,
+        intent,
+        createTransitionAuth(userId, userRole, {
+            organizationId: userOrg,
+            memberships: userPermissions?.memberships || [],
+            effectivePermissions: userPermissions?.effectivePermissions || null,
+            permissions: userPermissions?.permissions || {}
+        }),
+        metadata
+    );
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
@@ -200,3 +236,9 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
     }
     return await repository.deleteById(id);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'requisition',
+  repository,
+  Model: Requisition
+});

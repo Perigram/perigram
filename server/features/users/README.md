@@ -15,15 +15,12 @@ Inherits all `BaseEntity` fields.
 
 **Identity Block:**
 - `uid`: `user-XXXX` format
-- `name`: User's full name
 
 **Data Block:**
 - `email`: User's email (lowercase)
 - `passwordHash`: Argon2id hash
-- `role`: Compatibility label. When an active organization process exists,
-  runtime authorization uses the process assignment instead of this label.
-- `permissions`: Per-entity access levels (none/read/write/admin)
-- `memberships`: Array of organization memberships `{ organizationId, role, roleIds?, permissions, status, owner? }`; memberships establish tenant relationship and approval state
+- `permissions`: Tenant recovery grants; ordinary process access is not copied here.
+- `memberships`: Array of organization memberships `{ organizationId, permissions, status, owner? }`; memberships establish tenant relationship and approval state only
 - `isActive`: Boolean flag
 
 ## Authentication Flow
@@ -38,7 +35,7 @@ Inherits all `BaseEntity` fields.
 `organizationName` is supplied, creates the first organization through the
 organizations service. The new user receives an active membership, lineage
 organization, an owner membership with permanent tenant-management grants, and
-an active process assignment in the selected starter process.
+an organization role assignment seeded from the selected starter template.
 Invitation signup intentionally omits
 organization fields: the account is created without a membership, then the user
 logs in and accepts `/invitation/:token` to create a pending membership for the
@@ -61,36 +58,35 @@ attach the first organization.
   membership records, and queries both string and `ObjectId` organization-id
   forms. Process-auth contexts that omit expanded memberships still return
   same-organization users for pickers and chat lists.
+- User avatars are private GridFS files owned through the users service.
+  `PUT/GET/DELETE /api/users/:id/avatar` updates, streams, or removes JPEG,
+  PNG, and WebP images. Persisted `data.avatar` storage metadata is stripped
+  from DTOs; readable user DTOs expose only a versioned `data.avatarUrl`.
+  Users may edit their own avatar, and active-organization user administrators
+  may edit member avatars.
 
 ## Permission System
 - Organization context via `user.lineage.organizationId`
 - Per-organization permissions in `memberships` are explicit stored grants used
   only by tenant-management recovery paths.
-- `membership.owner: true` is the ultimate tenant admin flag. Owner
-  memberships always materialize `organizations:admin` and `users:admin`, and
-  auth hydration merges those grants after active-process compilation so the
-  process graph cannot lock the owner out. Legacy active memberships or active
-  user permission snapshots with both `organizations:admin` and `users:admin`
-  are treated as owner recovery until
+- Legacy active memberships or active user permission snapshots with both
+  `organizations:admin` and `users:admin` are treated as owner recovery until
   `server/scripts/migrate-organization-owner-admins.js` writes the explicit
   `owner` flag. User mutation paths reject removing the last active
-  organization user or the last active owner.
-- When `server/middleware/auth.js` resolves an active process, the user's
-  `effectivePermissions`, navigation, field policies, and role assignment come
-  from the compiled process definition.
+  organization user or the last active owner. Canonical owner recovery grant
+  semantics live in [organizations](../organizations/README.md).
+- When `server/middleware/auth.js` resolves an active process, it combines the
+  organization's `data.roleAssignments[userId]` with compiled process roles to
+  produce effective permissions, navigation, screens, and actions.
 - User management checks use the compiled `users:admin` grant first, then a
   narrow recovery path for active membership `users:admin` grants. Membership
   role labels and sole-member status do not imply management access.
 - Default access presets live in [shared permission templates](../../../shared/README.md)
   so browser dev tools and server user creation read the same grant contract.
-- Permission presets are materialized only when a caller explicitly creates a
-  non-process user role. Process-role invitation memberships store no copied
-  permissions and rely on active process assignments for runtime access.
-  Creator memberships are owner memberships and store explicit
-  `organizations:admin` and `users:admin` recovery grants. `User` model reads
-  do not expand ordinary permissions from
-  `data.role`; persisted memberships must carry the explicit grant object used
-  by authorization.
+- Organization role ids and bindings are never stored on users or memberships.
+  `User` model reads do not expand ordinary permissions from persisted
+  memberships; persisted memberships must carry the explicit recovery grant
+  object used by tenant-management authorization.
 - System materials, layer standards, pens, and tools are not exposed through
   copied user grants. They carry the public system catalogue marker documented
   in [server architecture](../../README.md), and read access is evaluated from

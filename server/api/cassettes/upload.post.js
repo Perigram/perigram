@@ -1,6 +1,7 @@
 import { createError, defineEventHandler, readMultipartFormData } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
 import * as cassetteService from '~/server/features/cassettes/service';
+import * as artifactService from '~/server/features/artifacts/service.js';
 
 export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);
@@ -14,9 +15,16 @@ export default defineEventHandler(async (event) => {
   const mapping = formData.find(f => f.name === 'layerMapping')?.data.toString();
   const parameters = formData.find(f => f.name === 'parameters')?.data.toString();
   
-  return await cassetteService.upload(
-    file.data,
-    file.filename,
+  const artifact = await artifactService.createUploaded({
+    buffer: file.data,
+    filename: file.filename,
+    mimeType: file.type || 'application/dxf',
+    type: 'DXF_SOURCE',
+    metadata: { purpose: 'cassette-import' }
+  }, auth);
+
+  return await cassetteService.importFromArtifact(
+    artifact._id,
     name,
     auth.userId,
     auth.organizationId,

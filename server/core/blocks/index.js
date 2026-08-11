@@ -4,6 +4,8 @@ import {
   Identity,
   Status,
   Lineage,
+  Relations,
+  Provenance,
   Specs
 } from '#packages/core/src/index.js';
 
@@ -11,6 +13,8 @@ export {
   Identity,
   Status,
   Lineage,
+  Relations,
+  Provenance,
   Specs,
   BaseEntity,
   createRegistry,
@@ -18,6 +22,7 @@ export {
   createAttachmentRef,
   createCommandResult,
   createEntityRef,
+  createProvenance,
   createTaskResult,
   createData,
   createStatusState,

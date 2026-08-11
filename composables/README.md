@@ -1,7 +1,5 @@
 # COMPONENT: Composables & Stores — v24 Standardized
 
-Centralized frontend logic for state management, API interactions, and UI behaviors.
-
 ---
 
 ## useEntity — Primary Entity Composable
@@ -58,8 +56,17 @@ or dependent refreshes should listen to that contract rather than wiring
 page-local callbacks for each CRUD button.
 On the client, those same successful CRUD calls also publish a typed
 invalidation to `POST /api/entity-events`, which fans out to other authenticated
-sessions over SSE. Server events intentionally carry ids and change metadata,
+sessions through cursor-based event polling. Server events intentionally carry ids and change metadata,
 not full DTOs; receiving surfaces refetch through their normal entity APIs.
+Generated screens treat those refetches as background synchronization, preserving
+the rendered source snapshot and ignoring stale completions (see
+[components/README.md](../components/README.md) for the reconciliation rules).
+The page-level loading state is reserved for initial screen hydration, so ordinary
+create/update/delete events do not unmount and rebuild the page.
+Action responses are applied immediately to matching source snapshots before
+that reconciliation begins. Local entity events likewise upsert or remove
+their included entity snapshot immediately; the following server fetch remains
+authoritative and corrects membership or derived fields.
 `state` is the primary lifecycle string derived from structured
 `status.state.primary`; `stateObject` and `statusRegions` expose the full v2
 machine state when a surface needs region details.
@@ -110,6 +117,7 @@ server API routes.
 | `cassetteDesign` | `/api/cassette-designs/:id` | `/api/cassette-designs` |
 | `sheetDesign` | `/api/sheet-designs/:id` | `/api/sheet-designs` |
 | `artifact` | `/api/artifacts/:id` | `/api/artifacts` |
+| `artifactTemplate` | `/api/artifact-templates/:id` | `/api/artifact-templates` |
 | `catalog` | `/api/catalogs/:id` | `/api/catalogs` |
 | `color` | `/api/colors/:id` | `/api/colors` |
 | `warehouse` | `/api/warehouses/:id` | `/api/warehouses` |
@@ -136,9 +144,22 @@ intended card contract.
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 ```
 
-⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `EntityStatus.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components or the computed refs from `useEntity` instead.
+⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `EntityStatus.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components or the computed refs from `useEntity` instead. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
 
-Exception: `useStatus` may be used in entity cards for a `v-if` conditional (not display).
+---
+
+## useReducedMotion
+
+```js
+const reducedMotion = useReducedMotion();
+```
+
+Returns a readonly boolean ref for the operating system's
+`prefers-reduced-motion` setting. Shared design-system primitives that use
+JavaScript motion must consume it to remove spatial movement while retaining
+the control's state and keyboard behavior. CSS duration overrides live beside
+the same media query in `assets/css/main.css`; do not add a separate page-level
+preference implementation.
 
 ---
 
@@ -184,6 +205,25 @@ Used by `<StatusHistory>` component.
 
 ## useGeneratedScreen
 
+Generated home sources retain raw access-filtered list results and derive their
+visible top-level rows after every source has loaded. Runtime filtering reads
+the active process's compiled `lineageBindings` and matches their exact
+ancestor keys against the entities loaded by other Home sources. Process mode
+has no alias, arbitrary-`*Id`, or static-containment fallback; an active
+definition must be reapplied after a Lineage/compiler contract change.
+The derived source state retains `rawItems` so the renderer can distinguish an
+empty top-level source from a child source whose rows were all suppressed. A
+child is hidden when any readable non-organization ancestor identified by a
+compiled binding is present in another home source; with no readable ancestor
+it remains top-level. Non-home sources are never root-filtered.
+
+The organization process page delegates process catalog selection, persistence,
+graph selection/editing, connection inference, palette filtering, inspector
+records, roles, screens, and dock/panel state to focused
+`useProcessDesigner*` composables. The page remains the view composition root;
+these composables own mutations for their concern and are behavior-tested
+without reading Vue source text.
+
 Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
 The composable normalizes the screen contract, checks source-level process
 requirements against the active permission grants before fetching, and then
@@ -191,9 +231,11 @@ loads entity data through `useEntity()`. It supports list and single-entity
 sources, assignment-bound filters/identifiers, and exposes source states to the
 generated renderer.
 Generated screens listen to the shared browser-local entity sync event and
-reload when an event targets one of their visible source entity types. This is
-the generated-screen side of cross-device entity synchronization; the backend
-still enforces whether the refreshed source can read each changed entity.
+apply its complete entity snapshot directly to matching source state. A local
+create, update, or delete therefore becomes visible immediately without a
+polling request or a manual page reload. Events without a complete snapshot are
+the only case that schedules a source reload; API routes still enforce whether
+the source may read the changed entity.
 
 Generated screens are UI composition only. They decide which regions, sources,
 and action buttons are visible, while API routes still enforce real access.

@@ -36,6 +36,7 @@ describe('Projects & Multi-tenant Ownership', () => {
 
   beforeEach(async () => {
     await db.collection('projects').deleteMany({});
+    await db.collection('libraries').deleteMany({});
   });
 
   const contractor1 = {
@@ -87,6 +88,30 @@ describe('Projects & Multi-tenant Ownership', () => {
     const list2 = await projectService.list(contractor2.userId, contractor2.organizationId, null, contractor2.permissions);
     expect(list2).toHaveLength(1);
     expect(list2[0].toJSON().identity.name).toBe('Org 2 Proj');
+  });
+
+  it('persists generic relations without assigning containment semantics', async () => {
+    const project = await projectService.create({
+      name: 'Related project',
+      relations: {
+        source: { type: 'artifact', id: 'artifact-1' }
+      }
+    }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+
+    expect(project.toJSON()).toMatchObject({
+      lineage: { organizationId: contractor1.organizationId },
+      relations: {
+        source: { type: 'artifact', id: 'artifact-1' }
+      }
+    });
+
+    const updated = await projectService.update(project._id, {
+      relations: { result: [{ type: 'artifact', id: 'artifact-2' }] }
+    }, contractor1.userId, contractor1.organizationId, null, contractor1.permissions);
+    expect(updated.toJSON().relations).toEqual({
+      source: { type: 'artifact', id: 'artifact-1' },
+      result: [{ type: 'artifact', id: 'artifact-2' }]
+    });
   });
 
   it('should deny access to other organization projects', async () => {

@@ -33,18 +33,31 @@
             text
             @click.stop="downloadArtifact(artifact)" 
           />
-          <Button 
-            icon="pi pi-trash" 
-            severity="danger"
-            text
-            @click.stop="confirmDelete(artifact)" 
-          />
+          <GeneratedDeleteButton entity-type="artifact" :entity="artifact" @deleted="refreshArtifacts" />
         </div>
       </div>
     </div>
 
     <!-- Preview Dialog -->
     <StandardDialog v-model:visible="showPreview" :header="previewArtifactData?.identity?.name || $t('artifacts.previewTitle')" size="full" class="h-preview-dialog" :pt="{ content: { class: 'flex-1 flex flex-col overflow-hidden h-full p-0' } }">
+        <div v-if="editableLayout" class="flex justify-end gap-2 p-2">
+            <Button
+                :label="editingLayout ? $t('common.cancel') : $t('artifactTemplates.editLayout')"
+                :icon="editingLayout ? 'pi pi-times' : 'pi pi-pencil'"
+                size="small"
+                severity="secondary"
+                @click="toggleLayoutEditor"
+            />
+            <Button
+                v-if="editingLayout"
+                :label="$t('common.save')"
+                icon="pi pi-check"
+                size="small"
+                :loading="savingLayout"
+                @click="saveArtifactLayout"
+            />
+        </div>
+        <ArtifactLayoutEditor v-if="editingLayout && layoutDraft" v-model="layoutDraft" class="min-h-0 flex-1 overflow-auto p-3" />
         <div class="flex h-full">
             <div v-if="previewLoading" class="flex-1 flex flex-col items-center justify-center gap-4">
                 <ProgressSpinner />
@@ -54,29 +67,12 @@
                 <i class="pi pi-exclamation-circle text-4xl"></i>
                 <p>{{ previewError }}</p>
             </div>
-            <div v-else class="flex-1 flex overflow-hidden">
-                <DrawingCanvas
-                    v-if="drawingSource"
-                    :source="drawingSource"
-                    :source-type="drawingSourceType"
-                    mode="viewer"
-                    show-layer-panel
-                    @error="handlePreviewError"
-                />
-                <!-- PDF Fallback -->
-                <div v-else-if="isPdf" class="flex-1 flex flex-col items-center justify-center gap-6">
-                    <i class="pi pi-file-pdf text-6xl opacity-20"></i>
-                    <div class="text-center">
-                        <p>{{ $t('artifacts.pdfPreviewUnavailable') }}</p>
-                        <small>{{ $t('artifacts.downloadFilePrompt') }}</small>
-                    </div>
-                    <Button :label="$t('common.download')" icon="pi pi-download" @click="downloadArtifact(previewArtifactData)" />
-                </div>
+            <div v-else-if="!editingLayout" class="flex-1 flex overflow-hidden">
+                <ArtifactViewer :artifact="previewArtifactData" />
             </div>
         </div>
     </StandardDialog>
 
-    <ConfirmDialog />
   </div>
 </template>
 
@@ -88,13 +84,16 @@ import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
-import ConfirmDialog from 'primevue/confirmdialog';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
-import { useConfirm } from 'primevue/useconfirm';
+import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
+import ArtifactLayoutEditor from '~/components/ArtifactLayoutEditor.vue';
 import { useToast } from 'primevue/usetoast';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { getPrimaryState } from '~/packages/core/src/index.js';
+import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
+import { useAuthStore } from '~/stores/auth';
+import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
   batchId: { type: String, required: false },
@@ -105,7 +104,7 @@ const props = defineProps({
 
 const { t } = useI18n();
 const artifactsStore = useArtifactsStore();
-const confirm = useConfirm();
+const authStore = useAuthStore();
 const toast = useToast();
 const { artifacts: storeArtifacts, loading } = storeToRefs(artifactsStore);
 const artifacts = computed(() => props.artifacts || storeArtifacts.value);
@@ -118,6 +117,21 @@ const previewError = ref(null);
 const drawingSource = ref(null);
 const drawingSourceType = ref('dxf-url');
 const isPdf = computed(() => artifactPreviewMode(previewArtifactData.value) === 'pdf');
+const editableLayout = computed(() => Boolean(
+    domainUi.getAttachmentEditor(artifactType(previewArtifactData.value)).mode === 'layout'
+    && previewArtifactData.value?.data?.layout
+    && previewArtifactData.value?.provenance?.template?.source?.id
+    && hasPermissionGrant({
+        permissions: authStore.activePermissions,
+        feature: 'artifacts',
+        action: 'update',
+        entity: previewArtifactData.value,
+        entityType: 'artifact'
+    })
+));
+const editingLayout = ref(false);
+const savingLayout = ref(false);
+const layoutDraft = ref(null);
 
 onMounted(async () => {
   if (props.batchId && !props.artifacts) {
@@ -154,11 +168,40 @@ const previewArtifact = async (artifact) => {
     previewError.value = null;
     drawingSource.value = null;
     previewLoading.value = false;
+    editingLayout.value = false;
+    layoutDraft.value = null;
 
     const previewMode = artifactPreviewMode(artifact);
     if (previewMode === 'dxf' || previewMode === 'svg') {
         drawingSource.value = domainUi.getDownloadEndpoint('artifact', artifact._id);
         drawingSourceType.value = `${previewMode}-url`;
+    }
+};
+
+const toggleLayoutEditor = () => {
+    editingLayout.value = !editingLayout.value;
+    layoutDraft.value = editingLayout.value
+        ? JSON.parse(JSON.stringify(previewArtifactData.value?.data?.layout || null))
+        : null;
+};
+
+const saveArtifactLayout = async () => {
+    if (!previewArtifactData.value?._id || !layoutDraft.value) return;
+    savingLayout.value = true;
+    try {
+        const updated = await $fetch(`/api/artifacts/${previewArtifactData.value._id}/layout`, {
+            method: 'PUT',
+            body: { layout: layoutDraft.value, values: previewArtifactData.value.data?.values || {} }
+        });
+        previewArtifactData.value = updated;
+        editingLayout.value = false;
+        layoutDraft.value = null;
+        drawingSource.value = domainUi.getDownloadEndpoint('artifact', updated._id);
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('artifactTemplates.saved') });
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message });
+    } finally {
+        savingLayout.value = false;
     }
 };
 
@@ -170,21 +213,8 @@ const onArtifactClick = (artifact) => {
     previewArtifact(artifact);
 };
 
-const confirmDelete = (artifact) => {
-  confirm.require({
-      message: t('artifacts.deleteConfirm'),
-      header: t('common.confirmation'),
-      icon: 'pi pi-exclamation-triangle',
-      accept: async () => {
-          try {
-              await $fetch(`/api/artifacts/${artifact._id}`, { method: 'DELETE' });
-              toast.add({ severity: 'success', summary: t('common.success'), detail: t('artifacts.deleted') });
-              if (props.batchId) artifactsStore.fetchArtifacts(props.batchId);
-          } catch (e) {
-              toast.add({ severity: 'error', summary: t('common.error'), detail: e.message });
-          }
-      }
-  });
+const refreshArtifacts = () => {
+    if (props.batchId) artifactsStore.fetchArtifacts(props.batchId);
 };
 
 defineExpose({

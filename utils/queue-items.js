@@ -2,31 +2,19 @@ function stringId(value) {
   return value?.toString?.() || value || '';
 }
 
-function parameterSignature(parameters = {}) {
-  return JSON.stringify(Object.entries(parameters || {})
-    .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .sort(([left], [right]) => left.localeCompare(right)));
-}
-
-function designMatchesLegacySource(design = {}, sourceId = '', parameters = {}) {
-  const originalId = stringId(design.lineage?.originalCassetteId);
-  if (!sourceId || originalId !== sourceId) return false;
-  const designParameters = design.data?.parameters || design.data?.dimensions || {};
-  return parameterSignature(designParameters) === parameterSignature(parameters);
-}
-
 export function resolveQueueItemEntity(item = {}, sources = {}) {
-  const id = stringId(item.id || item.cassetteTemplateId);
+  const id = stringId(item.id);
   if (!id) return null;
 
   const cassettes = Array.isArray(sources.cassettes) ? sources.cassettes : [];
   const cassetteDesigns = Array.isArray(sources.cassetteDesigns) ? sources.cassetteDesigns : [];
-  const direct = [...cassettes, ...cassetteDesigns].find(entity => stringId(entity?._id) === id);
-  if (direct) return direct;
-
-  return cassetteDesigns.find(design => designMatchesLegacySource(design, id, item.parameters || item.dimensions || {}))
-    || cassetteDesigns.find(design => stringId(design.lineage?.originalCassetteId) === id)
-    || null;
+  if (item.entityType === 'cassette') {
+    return cassettes.find(entity => stringId(entity?._id) === id) || null;
+  }
+  if (item.entityType === 'cassette_design') {
+    return cassetteDesigns.find(entity => stringId(entity?._id) === id) || null;
+  }
+  return cassetteDesigns.find(entity => stringId(entity?._id) === id) || null;
 }
 
 export function canonicalQueueItem(item = {}, sources = {}) {
@@ -34,14 +22,18 @@ export function canonicalQueueItem(item = {}, sources = {}) {
   if (!entity) return null;
   const id = stringId(entity._id);
   if (!id) return null;
-  const entityType = entity.data?.geometry || entity.data?.polygonParts || entity.data?.layerData
-    ? 'cassette_design'
-    : 'cassette';
-
+  const isCassette = (Array.isArray(sources.cassettes) ? sources.cassettes : [])
+    .some(candidate => stringId(candidate?._id) === id);
   return {
     ...item,
     id,
-    cassetteTemplateId: id,
-    entityType
+    entityType: item.entityType || (isCassette ? 'cassette' : 'cassette_design')
   };
+}
+
+export function queueItemTemplateId(item = {}, sourceEntity = null) {
+  if (item.entityType === 'cassette') return stringId(item.id);
+  const source = sourceEntity?.provenance?.derivedFrom?.source;
+  if (source?.type !== 'cassette') return '';
+  return stringId(source.id);
 }

@@ -1,6 +1,6 @@
 # COMPONENT: Shared UI Components
 
-This directory contains reusable, standardized UI components and blocks that MUST be used across the application to ensure consistency and traceability.
+This directory contains reusable, standardized UI components and blocks that MUST be used across the application.
 
 ---
 
@@ -29,6 +29,12 @@ plus canonical blocks only. Display identity through `IdentityBlock` or
 
 ### `IdentityBlock.vue`
 Standardized identity display block. Always use this — never render `entity.identity.*` directly in templates.
+
+Inline identity chips are hard-bounded by their containing entity surface:
+their label is a shrinkable, ellipsized flex item. Entity picker selections
+must not clip the whole card to enforce that boundary because status badges and
+other card content need to remain fully visible. Arbitrarily long stored names
+must never expand a card, toolbar, or screen beyond its assigned width.
 
 **Variants:**
 
@@ -79,6 +85,9 @@ Props: `entity-type` (required), `:entity` (required), `:access-entity` (optiona
 **Field schema:** `{ path, i18n, suffix?, prefix? }` — `path` is dot-notation into entity object, `i18n` is the translation key for the label. Rows with null/undefined values are hidden automatically.
 Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden. Fields with `display: 'parameterMap'` render scalar object entries as exact named parameters such as `A=1200, B=400`; use this for materialized cassette design values, not symbolic template parameter lists.
 Default layout renders a semantic `<dl>` grid for card bodies; compact layout renders inline facts for popovers, relation rows, and tight embedded surfaces.
+The default `DataBlock` and `SpecsBlock` layouts use their own inline-size
+containers, so columns follow the width assigned by a page or split pane rather
+than the browser viewport.
 Inline entity popovers mark their body with `entity-card-popup-content`, and
 `DataBlock` collapses default grid rows to compact inline facts inside that
 scope. Do not add entity-local popup data layouts just to make popovers denser;
@@ -117,14 +126,52 @@ If no previewable child refs are available, the original numeric count row
 stays visible instead of leaving the card empty. Specialized production cards
 may still use custom slots where the workflow needs more than the default
 body.
+The overflow popover passes the requested relation variant through to every
+`EntityInlineRef`, so compact galleries remain compact after opening `+N`.
 
 ### `EntityWorkspace.vue`
 Canonical entity-detail workspace layout for operational editors embedded
 inside `EntityPage`. Use it when an entity detail needs a primary working
 region plus a supporting/status/results region, such as queue composition with
-nesting runs. The layout uses one column on small screens and a stable 8/4
-main/support split on large screens. Route-level production pages that need
-navigation, center work area, and right rail still use `WorkspaceLanes`.
+nesting runs. The layout is a CSS query container: it uses one column while its
+own allocated width is narrow and a stable 8/4 main/support split when the
+container is wide enough. Callers whose support slot is conditional must pass a
+full-width `mainSpan` while that slot is absent; an invisible support region
+must not reserve four columns. This is intentionally independent from viewport
+breakpoints so entity workspaces remain usable inside recursively split file
+panes. `ResponsiveGrid` accepts `responsive-context="container"` for repeated
+content inside this layout. Its `wide` variant introduces a second column only
+at a 48rem container width, preserving useful card width inside split panes.
+The `bounded` variant uses token-defined minimum and maximum track widths with
+`auto-fill`: cards retain a finite readable width and extra container space
+creates additional tracks instead of enlarging existing cards without limit.
+Route-level production pages that need navigation, center work area, and right
+rail still use `WorkspaceLanes`.
+
+### `DesignerWorkspace.vue`
+
+Shared full-height shell for operational designers. It owns responsive lane
+layout and overflow; feature designers supply `toolbar`, `palette`, default
+canvas, `inspector`, `support`, and `dock` slots. Use `layout="lanes"` for
+persistent editor panels and `layout="canvas"` for a full canvas with overlay
+palette and inspector. Do not recreate designer breakpoint grids or viewport
+height calculations in a feature component.
+
+### `DesignerSurface.vue` and `DesignerDialog.vue`
+
+`DesignerSurface` is the shared full-height flex boundary for every operational
+designer before it mounts `DesignerWorkspace`; it works consistently in routes,
+generated workspace panes, and dialog content. `DesignerDialog` is the only
+dialog host for standalone designer launches. It fills the viewport and mounts
+its content through `DesignerSurface`, so a cassette designer opened from an
+entity action uses the same sizing contract as route and pane designers.
+
+### `ThreeViewport.vue`
+
+Shared Three.js host for designer previews. It owns renderer/camera/control
+lifecycle, resize, selection raycasting, and disposal. Feature code supplies a
+scene group and stores selectable metadata in `object.userData.designerItem`;
+it must not create another renderer or global pointer listener.
 
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.
@@ -140,7 +187,14 @@ status names render as data, not as missing translation keys.
 ### `EntityStatus.vue`
 Interactive status component for display + state-machine transitions. Status-changing action buttons must live here (not in parent layouts).
 
-Props: `:entity`, `entity-type`, `variant` (`inline` | `compact` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
+Props: `:entity`, `entity-type`, `variant` (`icon` | `inline` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
+`variant="icon"` renders the primary status as an accessible icon-only badge
+while retaining the normal interactive popover, transitions, location, and
+history. Icon mode is a bare semantic status dot with no Tag fill or border. In
+pane/tool chrome it still renders a DTO-backed state when no
+multi-state workflow is registered, while transition loading remains limited
+to registered workflows. It is intended for constrained pane/tool chrome; regular cards and
+pages continue to use `inline` or `full`.
 Rendering guard: component renders only when `props.entity` is present.
 Behavior: component auto-expands when lifecycle `actions` are provided; otherwise inline mode uses badge + popover. The popover is compact UI, not a labeled detail page: it renders lifecycle controls, current location, notes, and the status timeline without section headings or empty placeholder copy.
 Successful server transitions emit the `transitioned` event from
@@ -164,6 +218,11 @@ loaded from the canonical status API so access and preflight filtering stay
 server-side. When an action includes `intent`, `EntityStatus` posts that intent
 with the target state so frontend components do not infer business meaning from
 raw lifecycle state names.
+When the effective organization or domain workflow declares exactly one unique
+state, shared entity surfaces hide the status chrome because it carries no
+lifecycle information. The canonical `status` block remains persisted for
+audit and DTO consistency. Visibility derives from the supplied workflow
+contract, never a hardcoded entity or status list.
 `EntityStatus` renders the primary lifecycle badge from `status.state.primary`.
 Additional active workflow regions render as compact status chips and actions
 carry `region` / `path` metadata back to the status API so parallel machines can
@@ -241,7 +300,9 @@ designer markers before they reach `DrawingCanvas`. The shared canvas renders
 those layers but does not own hardware family, production-mode, curve-boolean,
 or edge-array placement math.
 
-Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, source layer styling, then the default pen. Geometry previews that provide `standardCode`, `code`, or an OCCS dot-code layer name load layer standards and pen templates before normalization; when a standard exists but its configured pen is missing, the source layer `color`/`weight` is preserved. Standard and pen data are read from canonical v24 DTO fields (`standard.data.code`, `standard.data.defaultPenId`, `standard.data.orgPenId`, `pen.data.stroke`) with flat fallbacks only for migration compatibility. Card and thumbnail canvases choose a portrait or landscape aspect from the resolved viewBox so sheet-layout previews are not forced into a wide frame, and they own that aspect-ratio height instead of requiring parent cards to provide a fixed height. Preview-mode `dimension.cassette` text is intentionally enlarged so cassette thumbnails keep dimension labels readable, and geometry-normalized layer-data previews include dimension text points in the viewBox bounds so those labels are not clipped. Generic baked `geometry.type === 'dimension'` entries render as extension lines plus an offset dimension line with the text placed off that line, instead of a raw midpoint label on the measured segment. Geometry-first cassette-design thumbnails prefer baked `layerData` over stored `geometry.preview.layers` so stale preview-layer snapshots do not override the persisted design geometry contract. In thumbnail/card mode, `DrawingCanvas` sizes `dimension.cassette` text from the rendered SVG viewport instead of raw geometry extents, so labels stay visually stable across cassette and cassette-design previews, and the displayed viewBox gets its breathing room from the canvas inset rather than wrapper padding. `CassetteThumbnail` prefers baked geometry-preview / layer-data sources over DXF when that data is available and narrows production previews to `cut.outer`, `fold.route`, `cut.inner`, `cut.hole`, and `dimension.cassette` when those layers exist. Use this component for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
+Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, source layer styling, then the default pen. Geometry previews that provide `standardCode`, `code`, or an OCCS dot-code layer name load layer standards and pen templates before normalization; when a standard exists but its configured pen is missing, the source layer `color`/`weight` is preserved. Standard and pen data are read from canonical v24 DTO fields (`standard.data.code`, `standard.data.defaultPenId`, `standard.data.orgPenId`, `pen.data.stroke`) with flat fallbacks only for migration compatibility. Card and thumbnail canvases choose a portrait or landscape aspect from the resolved viewBox so sheet-layout previews are not forced into a wide frame, and they own that aspect-ratio height instead of requiring parent cards to provide a fixed height. Bounded operational cards may opt into `CassetteThumbnail`'s `fixedFrame`; that mode uses the caller's fixed square width and height and fits the complete SVG inside without cropping or suppressing layers. Preview-mode `dimension.cassette` text is intentionally enlarged so cassette thumbnails keep dimension labels readable, and geometry-normalized layer-data previews include dimension text points in the viewBox bounds so those labels are not clipped. Generic baked `geometry.type === 'dimension'` entries render as extension lines plus an offset dimension line with the text placed off that line, instead of a raw midpoint label on the measured segment. Geometry-first cassette-design thumbnails prefer baked `layerData` over stored `geometry.preview.layers` so stale preview-layer snapshots do not override the persisted design geometry contract. In thumbnail/card mode, `DrawingCanvas` sizes `dimension.cassette` text from the rendered SVG viewport instead of raw geometry extents, so labels stay visually stable across cassette and cassette-design previews, and the displayed viewBox gets its breathing room from the canvas inset rather than wrapper padding. `CassetteThumbnail` prefers baked geometry-preview / layer-data sources over DXF when that data is available and narrows production previews to `cut.outer`, `fold.route`, `cut.inner`, `cut.hole`, and `dimension.cassette` when those layers exist. Use this component for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
+Layer-standard pen references may point to either the pen Mongo `_id` or its
+canonical `identity.uid`; both resolve to the same pen DTO.
 
 The optional viewer layer panel is part of the shared canvas surface but must
 render CutKit concepts through existing CutKit system components. Source DXF
@@ -283,8 +344,9 @@ readable.
 
 ### `EntityInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
-It loads the DTO through `useEntity(type)` when only an id is provided, resolves
-the matching design-system entity card, and renders that card with
+When only an id is provided, it resolves the DTO through the entity store's
+access-filtered optional-reference lookup, resolves the matching design-system
+entity card, and renders that card with
 `variant="inline"`. The referenced entity card owns the click/keyboard popover
 and reuses its canonical body inside that popover. In generated surfaces,
 the popover action row is access-aware: `EntityInlineRef` resolves the
@@ -297,8 +359,8 @@ context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
 Inline chips now carry a restrained semantic tone in addition to the icon. The
-hue comes from the entity family (`project/queue`, cassette family, sheet/run
-family, stock/material family, admin/meta family), while the surface treatment
+hue comes from the tokenized entity family roles (`project/queue`, cassette
+family, sheet/run family, stock/material family, admin/meta family), while the surface treatment
 comes from the entity role: containers render as the strongest filled chips,
 templates/designs/revisions render as mid-strength definition chips, and
 concrete items/instances render as lighter outlined chips. This keeps inline
@@ -306,6 +368,8 @@ refs visually legible in both light and dark themes without changing the
 popover card body. The collapsed inline ref remains a real text-inline chip: it
 stays on one line inside prose, truncates with ellipsis, and keeps the same
 semantic color treatment without inflating surrounding line height.
+`EntityInlineRef` maps entity families to `--ck-entity-tone-*` values only; it
+must not introduce PrimeVue primitive color assignments of its own.
 `variant="compact"` renders a horizontal micro card instead of a chip. That
 compact ref uses the compact surface contract directly: a real preview on the
 left when the entity has one, the same semantic inline chip for identity on the
@@ -320,8 +384,10 @@ Use canonical design-system surface keys for new references, for example
 `entityRevision`. Backend snake-case aliases continue to resolve through the
 domain UI adapter for compatibility, but they should not appear in new entity
 component templates.
-Inline reference fetches are silent by default: stale or deleted relation ids
-fall back to an id chip without flooding the browser console.
+Inline reference hydration uses the entity collection boundary rather than the
+protected detail route. Unreadable, stale, or deleted relation/provenance ids
+therefore fall back to an id chip without producing expected 403/404 browser
+failures; direct detail navigation retains its normal authorization errors.
 Callers can pass `:fetch="false"` when the parent surface intentionally has
 only a scoped relation id and should not probe a protected entity endpoint. In
 that mode `EntityInlineRef` renders the typed id chip unless an `entity` prop or
@@ -387,12 +453,12 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   location rows where direct route navigation is intended. Do not use it for
   entity relation summaries inside cards/details; use `EntityInlineRef` so the
   relation resolves through `useEntity` and the registered entity card.
-- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` — never pass raw ancestry arrays. Resolves names async via `useEntityStore`; cached per session.
+- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` and an explicit canonical entity type—never pass raw ancestry arrays or infer types from lineage key spelling. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove explicit ancestry, and it omits every entity in the propagated displayed-context stack, including the project already represented by a project workspace and the nearest enclosing `EntityPage`. Generated detail routes also exclude an ancestor only when the route carries that compiled Lineage key with the same entity id, preventing the app breadcrumb and entity trace from repeating the same context. In process mode the chain follows the effective compiled Lineage bindings only.
   Card title chrome uses compact trace mode: it shows the nearest parent
   lineage item and an ellipsis expander when more ancestry exists. Expanded
   popovers and detail pages render the full lineage breadcrumb chain. Supported
-  lineage parents include `organizationId`, `libraryId`, `templateId`,
-  `warehouseId`, `projectId`, and `queueId`.
+  lineage parents are whatever exact keys the effective compiled bindings
+  declare; non-process routes may use canonical domain containment.
   Trace labels must resolve to entity display names from context or the entity
   store; raw lineage ids are link targets only and must not be shown as labels.
   Trace links must route through the represented entity surface. In active
@@ -422,7 +488,8 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   compact grid below the normal desktop breakpoint and become a stacked rail at
   `lg` and wider.
 - **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and
-  repeated item surfaces. Variants: `cards` (default), `dense`, `wide`. Grid
+  repeated item surfaces. Variants: `cards` (default), `dense`, `wide`,
+  `bounded`. Grid
   children align to the start of each row so cards and panels keep natural
   height instead of stretching to the tallest item.
 - **`WorkspaceLanes.vue`**: Three-lane production workspace shell. The parent
@@ -432,17 +499,47 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   left lane is hidden. By default the center lane scrolls as a lane; pass
   `:center-scroll="false"` when bounded child surfaces such as `ScrollablePanel`
   own their own body scrolling.
+- **`WorkspaceSplitNode.vue`**: Recursive PrimeVue splitter renderer for
+  IDE-style file workspaces. Split nodes select horizontal or vertical layout;
+  leaf nodes expose one scoped file slot and an active-pane marker. Split-tree
+  mutation remains pure state owned by the caller.
+- **`EntityActionsPopover.vue`**: Shared ellipsis trigger and compact action
+  popover for entity-local commands. `EntityPage`, full `EntityCard` footers,
+  inline-card popovers, and generated entity files place edit/process/delete
+  commands inside this surface instead of expanding action buttons beside
+  identity and status. `EntityCard footer-display="inline"` is reserved for a
+  small caller-owned primary navigation choice, such as opening or switching
+  the organization represented by a profile card.
+- **`MotionDock.vue`**: Shared compact bottom action dock adapted from the Vue
+  Bits Dock block and backed by `motion-v`. Use it for a small, contextual set
+  of canvas or workspace commands—not global navigation or ordinary page
+  actions. Callers supply `{ icon, label, onClick, pressed?, disabled?,
+  attention?, hasPopup?, onHoverStart?, onHoverEnd?, onFocus?, onBlur? }`
+  items; the primitive owns its token-backed geometry, spring, labels,
+  keyboard buttons, focus state, and surface treatment. Use the optional
+  hover/focus hooks only when a caller owns a contextual popover anchored to
+  that action; the dock does not own page-specific panels. Its rendered button
+  refs bind pointer, focus, and click listeners after mount so contextual
+  actions remain interactive after SSR hydration.
+  `useReducedMotion()` disables magnification and label travel while retaining
+  static labels and every action's normal keyboard behavior. Do not recreate
+  the interaction with a page-local toolbar or add fixed dark surfaces,
+  shadows, or motion constants.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
   sections whose header remains fixed while the panel content scrolls. It
   supports an `actions` slot for header controls and `:scroll-content="false"`
-  for content-height panels.
+  for content-height panels. `density="compact"` reduces header and content
+  padding for IDE-style navigation and inspector lanes without changing the
+  global PrimeVue panel density.
 - **`StateBlock.vue`**: Standard loading/empty/error state block with icon, message, optional description, and action slot.
 - **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces; owns the token-backed DataTable header-cell background override.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Route-level page shell for title, subtitle,
   breadcrumbs, and page actions. The authenticated `app` layout owns outer
   route padding; `StandardPage` owns max width and header spacing only, so
-  pages do not accumulate nested padding.
+  pages do not accumulate nested padding. `workspace` turns off the normal
+  max-width and vertical gap and establishes a bounded `h-full/min-h-0`
+  propagation chain for registered full-screen workspaces.
 - **`TypedSettingsForm.vue`**: Contract-driven form for simple typed field
   descriptors (`string`, `number`, `boolean`, `enum`, `entityId`,
   `entityType`, `workflowState`, `array`, `object`). Used by admin operation
@@ -452,10 +549,27 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 - **`EntityRefInput.vue`**: Typed entity reference selector used by
   `TypedSettingsForm` for `entityId` fields. It prefers workbench/scenario
   entity options and falls back to a manual id input only when no typed options
-  are available.
+  are available. Its typed picker delegates to `EntitySelect`.
+- **`EntitySelect.vue` / `EntityMultiSelect.vue`**: Application-wide wrappers
+  around PrimeVue Select/MultiSelect. Ordinary scalar, enum, role, and process
+  record options preserve PrimeVue rendering and caller slots unchanged. When
+  options contain either canonical entity DTOs or
+  `{ label, value, entity }` records and an explicit `entity-type`, option rows
+  render through `EntityInlineRef variant="compact"`. Once a value is selected,
+  the selected entity card or card list renders outside the PrimeVue
+  value/chip area and the PrimeVue control becomes a compact change trigger.
+  That keeps the selected preview, identity, status, and access-filtered facts
+  visible without embedding cards or empty value slots inside an input surface.
+  Multi-select values render as a compact-card list rather than chips.
+  App components import these wrappers under their local `Select` /
+  `MultiSelect` names; direct PrimeVue imports are owned only by the wrappers.
+  Entity type comes from the picker prop or option record and is never inferred
+  from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
-- **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, so generated details do not need a second local history widget unless the workflow needs a dedicated sidebar timeline. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome.
-- **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title. PrimeVue `Card`/`Panel` roots are globally overflow-clipped in `assets/css/main.css` so header media and top-slot backgrounds cannot paint outside the token-backed rounded border.
+- **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`; callers can pass exact `traceExclusions` derived from the current compiled context. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, and normally collapse the `actions` slot into `EntityActionsPopover`; canonical hub entities may select `actionsDisplay="inline"` for a small set of primary child-screen routes. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome. Pane adapters pass `:show-header="false"` so their own tabs/status/actions remain the sole chrome while the canonical body and sidebar layout are retained. The wrapper is an inline-size query container: the header splits at 32rem and the sidebar receives its second track at 48rem of actual parent width. It appends its entity to the displayed-context stack so nested traces do not repeat any represented ancestor. Operational overloads compose their workspace primitives inside this canonical shell instead of adding overload-specific layout modes to `EntityPage`.
+- **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title. PrimeVue `Card`/`Panel` roots are globally overflow-clipped in `assets/css/main.css` so header media and top-slot backgrounds cannot paint outside the token-backed rounded border. Card hover feedback is an in-place primary border, rather than an outward shadow, so it remains visible inside that clipping boundary.
+  Full-card footer actions and generated inline/compact popover actions render
+  through `EntityActionsPopover`, including access-gated deletion.
   Compact cards can opt into `density="dense"` for selector/list rows that need
   tighter padding while keeping the same identity/status contract.
 - **`NameEditPopover.vue`**: Compact single-field rename control for entity names and other one-field edits. Use it near identity or action clusters instead of opening a full dialog when the only editable field is a name.

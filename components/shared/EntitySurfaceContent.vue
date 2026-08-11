@@ -17,6 +17,7 @@
     <EntityRelationsBlock
       v-if="relationFields.length"
       :entity="entity"
+      :entity-type="entityType"
       :fields="relationFields"
       :item-variant="relationVariant"
     />
@@ -28,8 +29,6 @@ import { computed } from 'vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityPreview from '~/components/shared/EntityPreview.vue';
 import EntityRelationsBlock from '~/components/shared/EntityRelationsBlock.vue';
-import { resolveDataPath } from '~/utils/data-display.js';
-import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 
 const props = defineProps({
@@ -37,7 +36,7 @@ const props = defineProps({
   entityType: { type: String, required: true },
   surface: { type: String, default: 'card' },
   accessEntity: { type: Object, default: null },
-  suppressChildCounts: { type: Boolean, default: false },
+  suppressChildSummaries: { type: Boolean, default: false },
   relationVariant: { type: String, default: 'inline' },
   displayExtensions: { type: Object, default: null },
   displayOverrides: { type: Object, default: null }
@@ -50,11 +49,13 @@ const display = computed(() => resolveEntityDisplayContract({
   overrides: props.displayOverrides
 }));
 
-const renderableFields = computed(() => display.value.fields.filter(field => field.role !== 'previewSource'));
+const renderableFields = computed(() => display.value.fields.filter(field => (
+  field.role !== 'previewSource'
+  && !(props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath))
+)));
 const dataFields = computed(() => renderableFields.value.filter(field =>
   field.display !== 'entityRef'
   && field.display !== 'entityRefList'
-  && !(props.suppressChildCounts && suppressedChildCountPaths.value.has(field.path))
 ));
 const relationFields = computed(() => renderableFields.value.filter(field =>
   field.display === 'entityRef' || field.display === 'entityRefList'
@@ -65,11 +66,4 @@ const dataVariant = computed(() =>
     ? 'compact'
     : 'default'
 );
-const suppressedChildCountPaths = computed(() => {
-  if (!props.suppressChildCounts) return new Set();
-  return new Set(relationFields.value
-    .filter(field => field.replacesCountPath)
-    .filter(field => resolveEntityRelationRefs(resolveDataPath(props.entity, field.path), field).length)
-    .map(field => field.replacesCountPath));
-});
 </script>

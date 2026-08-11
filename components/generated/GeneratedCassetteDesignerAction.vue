@@ -1,17 +1,19 @@
 <template>
   <Button
     v-if="canEdit"
+    :label="menuItem ? $t('common.edit') : undefined"
     icon="pi pi-pencil"
     text
-    rounded
+    :rounded="!menuItem"
     size="small"
+    :class="menuItem ? 'w-full justify-start' : null"
     :aria-label="$t('common.edit')"
     @click="openDesigner"
   />
-  <StandardDialog
+  <DesignerDialog
+    v-if="!openInWorkspace"
     v-model:visible="visible"
     :header="$t('cassette.designerTitle')"
-    size="full"
     :close-on-escape="false"
   >
     <CassetteDesignerV2
@@ -21,7 +23,7 @@
       @load-template="loadTemplate"
       @save-template="handleSaved"
     />
-  </StandardDialog>
+  </DesignerDialog>
 </template>
 
 <script setup>
@@ -29,15 +31,17 @@ import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import CassetteDesignerV2 from '~/components/CassetteDesignerV2.vue';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
+import DesignerDialog from '~/components/shared/DesignerDialog.vue';
 import { useAuthStore } from '~/stores/auth';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
-  entity: { type: Object, required: true }
+  entity: { type: Object, required: true },
+  menuItem: { type: Boolean, default: false },
+  openInWorkspace: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['refresh']);
+const emit = defineEmits(['open-page', 'refresh']);
 
 const authStore = useAuthStore();
 const { activePermissions } = storeToRefs(authStore);
@@ -56,12 +60,21 @@ const templateOptions = computed(() => {
   const source = cassettes.value.length ? cassettes.value : [entity.value].filter(Boolean);
   return source.map(cassette => ({
     label: cassette.identity?.name || cassette.identity?.slug || cassette._id,
-    value: cassette._id?.toString()
+    value: cassette._id?.toString(),
+    entity: cassette
   }));
 });
 const persistedTemplateIds = computed(() => templateOptions.value.map(item => item.value).filter(Boolean));
 
 async function openDesigner() {
+  if (props.openInWorkspace) {
+    emit('open-page', {
+      pageId: 'cassette-designer',
+      entity: props.entity,
+      entityType: 'cassette'
+    });
+    return;
+  }
   visible.value = true;
   if (!cassettes.value.length) {
     cassettes.value = await $fetch('/api/cassettes').catch(() => [props.entity]);

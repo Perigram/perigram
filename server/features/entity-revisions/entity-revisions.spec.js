@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   derivedFromRevision,
-  hashRevisionContent
+  hashRevisionContent,
+  revisionIdentity
 } from './service.js';
+import { EntityRevision } from './model.js';
 
 describe('entity revision helpers', () => {
   it('hashes canonical content independent of object key order', () => {
@@ -21,12 +23,20 @@ describe('entity revision helpers', () => {
     expect(first).toMatch(/^sha256:/);
   });
 
+  it('creates revision identities unique to the source entity', () => {
+    const first = revisionIdentity('cassette', 'cassette-1', 'geometry', 1);
+    const second = revisionIdentity('cassette', 'cassette-2', 'geometry', 1);
+
+    expect(first.uid).toBe('revision:cassette:cassette-1:geometry:1');
+    expect(second.uid).toBe('revision:cassette:cassette-2:geometry:1');
+    expect(first.uid).not.toBe(second.uid);
+  });
+
   it('builds derivedFrom provenance from a revision DTO', () => {
     const revision = {
       _id: 'rev-1',
       data: {
-        entityType: 'cassette',
-        entityId: 'cassette-1',
+        source: { type: 'cassette', id: 'cassette-1' },
         scope: 'geometry',
         number: 3,
         contentHash: 'sha256:abc',
@@ -35,14 +45,48 @@ describe('entity revision helpers', () => {
     };
 
     expect(derivedFromRevision(revision, { A: 500 })).toEqual({
-      entityType: 'cassette',
-      entityId: 'cassette-1',
+      source: { type: 'cassette', id: 'cassette-1', revisionId: 'rev-1' },
       scope: 'geometry',
-      revisionId: 'rev-1',
       revisionNumber: 3,
       contentHash: 'sha256:abc',
       sourceStatus: { state: 'ACTIVE' },
       parameters: { A: 500 }
+    });
+  });
+
+  it('builds derivedFrom provenance from legacy revision source fields', () => {
+    const revision = {
+      _id: 'rev-legacy',
+      data: {
+        entityType: 'cassette',
+        entityId: 'cassette-legacy',
+        scope: 'geometry',
+        number: 2,
+        contentHash: 'sha256:legacy'
+      }
+    };
+
+    expect(derivedFromRevision(revision)).toMatchObject({
+      source: { type: 'cassette', id: 'cassette-legacy', revisionId: 'rev-legacy' },
+      scope: 'geometry',
+      revisionNumber: 2,
+      contentHash: 'sha256:legacy'
+    });
+  });
+
+  it('normalizes legacy revision source fields in DTOs', () => {
+    const revision = new EntityRevision({
+      _id: 'rev-legacy',
+      data: {
+        entityType: 'cassette',
+        entityId: 'cassette-legacy',
+        scope: 'geometry'
+      }
+    }).toJSON();
+
+    expect(revision.data.source).toMatchObject({
+      type: 'cassette',
+      id: 'cassette-legacy'
     });
   });
 });

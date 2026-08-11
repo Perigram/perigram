@@ -189,7 +189,7 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
               :href="attachment.url"
               target="_blank"
               rel="noopener"
-              class="inline-flex min-w-0 items-center gap-1 text-sm text-primary no-underline"
+              class="inline-flex min-w-0 items-center gap-1 text-sm text-[var(--ck-primary-ink)] no-underline"
             >
               <i class="pi pi-paperclip shrink-0"></i>
               <span class="truncate">{{ attachment.label }}</span>

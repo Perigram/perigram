@@ -3,6 +3,7 @@
  */
 
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { createIdentity, createStatus, createData } from '../../core/blocks/index.js';
 import { PenTemplate } from './model.js';
@@ -94,3 +95,9 @@ export async function remove(id, userId) {
   await repository.deleteById(id);
   return { success: true };
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'pen_template',
+  repository,
+  Model: PenTemplate
+});

@@ -1,47 +1,69 @@
 <template>
   <div :class="nodeFrameClass">
-    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui" :style="{ backgroundColor: toneColor }"></div>
-    <div class="flex min-w-0 items-center">
-      <Tag
-        :severity="data.severity || 'secondary'"
-        :value="displayValue"
-        :icon="data.icon || 'pi pi-circle-fill'"
+    <div class="absolute inset-x-0 top-0 h-0.5 rounded-t-ui" :style="{ backgroundColor: toneColor }"></div>
+    <div class="flex items-center gap-1.5">
+      <i :class="record.icon || 'pi pi-circle-fill'" class="text-xs" :style="{ color: toneColor }" aria-hidden="true"></i>
+      <strong class="min-w-0 flex-1 truncate text-xs">{{ $t('processDesigner.paletteItems.defineStatus') }}</strong>
+    </div>
+
+    <div class="nodrag nowheel mt-1.5 grid gap-1" @mousedown.stop @click.stop>
+      <InputText
+        :model-value="record.statusId"
         size="small"
-        class="max-w-full"
+        class="w-full"
+        :placeholder="$t('processDesigner.statusId')"
+        @update:model-value="value => update({ statusId: value })"
+      />
+      <InputText
+        :model-value="record.label"
+        size="small"
+        class="w-full"
+        :placeholder="$t('common.label')"
+        @update:model-value="value => update({ label: value })"
       />
     </div>
-    <Handle id="status" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2" :style="{ borderColor: toneColor, backgroundColor: toneColor }" />
+
+    <div class="relative mt-1.5 rounded-ui bg-subtle py-0.5 pl-2 pr-2.5 text-right" :title="$t('processDesigner.socketLabels.status')">
+      <Handle
+        id="data:status"
+        type="source"
+        :position="Position.Right"
+        class="!right-0 !top-1/2 !h-2.5 !w-2.5 !translate-x-1/2 !-translate-y-1/2 !rounded-full"
+        :style="statusHandleStyle"
+        :aria-label="$t('processDesigner.socketLabels.status')"
+      />
+      <span class="block truncate text-[11px] leading-5">{{ record.label || record.statusId || $t('processDesigner.socketLabels.status') }}</span>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
-import Tag from 'primevue/tag';
+import InputText from 'primevue/inputtext';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
   selected: { type: Boolean, default: false }
 });
 
+const record = computed(() => props.data.statusDefinitionRecord || props.data);
 const toneColor = computed(() => ({
-  success: 'var(--p-green-500)',
-  info: 'var(--p-blue-500)',
-  warn: 'var(--p-amber-500)',
-  warning: 'var(--p-amber-500)',
-  danger: 'var(--p-red-500)',
-  error: 'var(--p-red-500)',
-  secondary: 'var(--p-surface-500)',
-  contrast: 'var(--p-surface-700)'
-})[props.data.severity || props.data.color] || 'var(--p-amber-500)');
-const displayValue = computed(() => {
-  const statusId = props.data.statusId || props.data.refId || 'STATUS';
-  const label = String(props.data.label || '').trim();
-  if (!label || label === statusId) return statusId;
-  return label;
-});
+  success: 'var(--ck-status-success)',
+  info: 'var(--ck-status-info)',
+  warn: 'var(--ck-status-warning)',
+  warning: 'var(--ck-status-warning)',
+  danger: 'var(--ck-status-danger)',
+  secondary: 'var(--ck-status-neutral)'
+})[record.value.severity || record.value.color] || 'var(--ck-status-info)');
+const statusHandleStyle = computed(() => processSocketHandleStyle({ type: { base: 'status' } }));
 const nodeFrameClass = computed(() => [
-  'relative min-w-56 rounded-ui border bg-content px-2 py-2 pt-3 shadow-card transition-colors',
-  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+  'relative w-56 rounded-ui border bg-content p-2 pt-2.5 shadow-card transition-colors',
+  props.selected ? 'border-primary' : 'border-content-border'
 ]);
+
+function update(updates) {
+  props.data.onStatusDefinitionUpdate?.(updates);
+}
 </script>

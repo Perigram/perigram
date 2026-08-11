@@ -133,6 +133,15 @@ export async function updateGlobalPermissions(userId, permissions) {
   );
 }
 
+export async function updateAvatar(userId, avatar) {
+  const db = await connectDB();
+  const update = avatar
+    ? { $set: { 'data.avatar': avatar } }
+    : { $unset: { 'data.avatar': '' } };
+  await db.collection(COLLECTION).updateOne({ _id: toFlexibleId(userId) }, update);
+  return await findById(userId);
+}
+
 export async function deleteById(id) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(id) });

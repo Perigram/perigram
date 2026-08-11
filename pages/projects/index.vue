@@ -17,14 +17,10 @@
         </StateBlock>
 
         <div v-else class="flex flex-col gap-6">
-            <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <section class="grid grid-cols-1 gap-3 lg:grid-cols-3">
                 <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                     <small class="text-muted-color">{{ $t('nav.projects') }}</small>
                     <div class="mt-1 text-2xl font-semibold">{{ projectStats.total }}</div>
-                </div>
-                <div class="rounded-ui border border-content-border bg-content px-4 py-3">
-                    <small class="text-muted-color">{{ $t('common.active') }}</small>
-                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.active }}</div>
                 </div>
                 <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                     <small class="text-muted-color">{{ $t('project.queues') }}</small>
@@ -108,7 +104,7 @@
     import { ref, computed, onMounted } from 'vue'
     import Button from 'primevue/button'
     import InputText from 'primevue/inputtext'
-    import Select from 'primevue/select'
+    import Select from '~/components/shared/EntitySelect.vue'
     import ConfirmDialog from 'primevue/confirmdialog'
     import ProjectIndexCard from '~/components/entities/Project/ProjectIndexCard.vue'
     import StandardDialog from '~/components/shared/StandardDialog.vue'
@@ -119,14 +115,14 @@
     import { useToast } from 'primevue/usetoast'
     import { useConfirm } from 'primevue/useconfirm'
     import { useEntity } from '~/composables/useEntity'
-    import { getPrimaryState } from '~/packages/core/src/index.js'
+    import { useI18n as useProjectsI18n } from 'vue-i18n'
 
     definePageMeta({
         layout: 'app',
         middleware: 'auth',
     })
 
-    const { t } = useI18n()
+    const { t } = useProjectsI18n()
     const router = useRouter()
     const globalStore = useGlobalStore()
     const toast = useToast()
@@ -154,7 +150,6 @@
         const rows = projects.value || []
         return {
             total: rows.length,
-            active: rows.filter(project => getPrimaryState(project.status, 'UNKNOWN') === 'ACTIVE').length,
             queues: rows.reduce((sum, project) => sum + Number(project.summary?.queueCount || 0), 0),
             totalArea: formatNumber(rows.reduce((sum, project) => sum + Number(project.summary?.totalArea || 0), 0)),
         }

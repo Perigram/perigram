@@ -25,12 +25,17 @@ export function generatedRegionLabel(region = {}, source = {}, { t, te } = {}) {
 }
 
 export function generatedActionLabel(action = {}, fallback = '', { t, te } = {}) {
+  if (action.actionKind === 'createEntity') return generatedEntityLabel(action.entityType, { t, te }) || fallback;
+  if (action.relationMutation?.operation === 'link' && action.relationMutation.targetType) {
+    return t('generatedScreen.actions.addRelated', {
+      entity: generatedEntityLabel(action.relationMutation.targetType, { t, te })
+    });
+  }
+
   const explicit = String(action.label || '').trim();
   if (explicit && !isGenericActionLabel(explicit, action)) return explicit;
 
-  if (action.actionKind === 'createEntity') return generatedEntityLabel(action.entityType, { t, te }) || fallback;
-  if (action.actionKind === 'changeStatus') return t('generatedScreen.actions.change');
-  if (action.actionKind === 'updateEntity') return t('common.edit');
+  if (action.actionKind === 'updateEntity') return action.status?.to ? t('generatedScreen.actions.change') : t('common.edit');
   if (action.actionKind === 'runCommand') return meaningfulLabel(action.commandId) || t('generatedScreen.actions.run');
   if (action.actionKind === 'sendToOrganization') return t('generatedScreen.actions.send');
   return fallback || t('common.confirm');

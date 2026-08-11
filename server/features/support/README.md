@@ -23,13 +23,16 @@ Direct user conversations are allowed only when the authenticated user is an
 admin or shares an organization membership with the target user. Admin support
 routes remain scoped to support conversations and do not list direct user
 threads.
+An explicit recipient equal to the authenticated user creates the deterministic
+`direct:<userId>:<userId>` self-conversation; only a missing recipient selects
+the legacy customer-support channel.
 
 Conversation read state is stored in `supportConversationReads` as
 `{ conversationKey, userId, lastReadAt, updatedAt }`. Conversation lists compute
 unread counts from messages sent after `lastReadAt` by another sender.
-The user-facing conversation list also merges reachable same-organization
-users as empty direct conversations, so the Chats drawer can start a direct
-thread before any message exists.
+The Chats inbox starts a direct thread explicitly through its user picker,
+rather than pre-creating empty conversations for every reachable organization
+user.
 Conversation summaries include the last message's `entityRefs` so the inbox can
 render entity chips in message previews.
 The app-shell badge owns unread notification counts; individual drawer rows do

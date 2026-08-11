@@ -66,7 +66,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Textarea from 'primevue/textarea';
 import ConfigBotCitationList from '~/components/config-bot/ConfigBotCitationList.vue';
 import ConfigBotDraftPreview from '~/components/config-bot/ConfigBotDraftPreview.vue';

@@ -1,5 +1,5 @@
 <template>
-    <div class="flex min-h-screen items-center justify-center bg-[var(--ck-page-background)] p-4">
+    <div class="flex min-h-screen items-center justify-center bg-page p-4">
         <Panel class="w-full max-w-md">
             <div class="flex flex-col items-center gap-2 mb-8">
                 <i class="pi pi-box text-4xl"></i>
@@ -64,7 +64,7 @@ import { useI18n } from 'vue-i18n';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Panel from 'primevue/panel';
 import Message from 'primevue/message';
 

@@ -84,31 +84,15 @@ revision. Set `GEOMETRY_CAPTURE_MODEL_FIRST=0` to force OpenCV auto behavior.
 
 ## Docker
 
-`docker-compose.dev.yml` starts this worker with the app stack. For host-run app
-development, `docker-compose.local.yml` starts it against
-`http://host.docker.internal:3000` by default.
+The neural-network geometry-capture worker is not part of the repository Docker
+compose stacks. `docker-compose.dev.yml`, `docker-compose.local.yml`,
+`start-dev.sh`, and `build-images.sh` do not build or start it, no Dockerfile
+is maintained for it, and no compose model-cache volume is declared.
 
-Model dependencies are opt-in because Torch/SAM2/GroundingDINO are large:
-
-```bash
-GEOMETRY_CAPTURE_ML=1 docker compose -f docker-compose.dev.yml up -d --build geometry-capture-worker
-```
-
-`requirements-ml.txt` keeps the PyTorch CPU wheel index configured while using
-plain Torch/Torchvision version pins, because the CPU index now resolves those
-versions without the local `+cpu` suffix.
-
-The project `start-dev.sh` and `build-images.sh` scripts default
-`GEOMETRY_CAPTURE_ML` to `1` for this worker, so script-driven local/dev image
-builds run the model-first worker unless `GEOMETRY_CAPTURE_ML=0` is set.
-`build-images.sh` tags the image as
-`ghcr.io/1suo/geometry-capture-worker:latest`; the stack files run the same
-image with the model cache mounted at `/models`.
-
-Compose mounts `geometry-model-cache` at `/models` and sets `HF_HOME` there so
-downloaded Hugging Face weights survive container rebuilds. With
-`GEOMETRY_CAPTURE_ML=1`, the worker preloads SAM2 and GroundingDINO at startup
-unless `GEOMETRY_CAPTURE_PRELOAD_MODELS=0`.
+`requirements-ml.txt` remains available for non-compose/manual worker
+experiments. If a developer runs this worker outside the compose stack, they
+must provide `CUTKIT_API_URL`, `WORKER_TOKEN`, and any model/cache environment
+explicitly.
 
 ## Related
 

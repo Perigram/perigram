@@ -3,6 +3,8 @@ export const DOMAIN_BUILDER_STORAGE_KEY = 'cutkit:domain-builder:v1';
 export const CANONICAL_BLOCKS = [
   'identity',
   'lineage',
+  'relations',
+  'provenance',
   'origin',
   'status',
   'specs',
@@ -13,11 +15,10 @@ export const CANONICAL_BLOCKS = [
 
 export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'entityType', 'workflowState', 'array', 'object']);
 
-export function createDomainDraft({ entities = [], frontendEntities = [], workflows = {}, summaries = [], serviceContracts = {}, commands = {}, hookContracts = {} } = {}) {
+export function createDomainDraft({ entities = [], workflows = {}, summaries = [], serviceContracts = {}, commands = {}, hookContracts = {} } = {}) {
   const normalizedCommands = commands && typeof commands === 'object' ? commands : {};
   return deepClone({
     entities,
-    frontendEntities,
     workflows,
     summaries,
     serviceContracts,
@@ -30,7 +31,6 @@ export function validateDomainDraft(draft = {}) {
   const issues = [];
   const warnings = [];
   const entities = Array.isArray(draft.entities) ? draft.entities : [];
-  const frontendEntities = Array.isArray(draft.frontendEntities) ? draft.frontendEntities : [];
   const summaries = Array.isArray(draft.summaries) ? draft.summaries : [];
   const serviceContracts = draft.serviceContracts && typeof draft.serviceContracts === 'object' ? draft.serviceContracts : {};
   const commands = draft.commands && typeof draft.commands === 'object' ? draft.commands : {};
@@ -48,18 +48,12 @@ export function validateDomainDraft(draft = {}) {
     if (entity?.type) entityTypes.add(entity.type);
     if (entity?.collection) collections.add(entity.collection);
 
+    if (!entity?.routes?.single || !entity?.routes?.list) {
+      issues.push({ area: 'routes', severity: 'error', message: `${entity?.type || `Entity #${index + 1}`} must define single and list routes` });
+    }
+
     for (const block of entity.blocks || []) {
       if (!blockSet.has(block)) issues.push({ area: 'entities', severity: 'error', message: `${entity.type} uses unknown block: ${block}` });
-    }
-  }
-
-  for (const route of frontendEntities) {
-    const target = entities.find(entity => normalizeCollection(entity.collection) === normalizeCollection(route.collection));
-    if (!target) {
-      issues.push({ area: 'routes', severity: 'error', message: `${route.type || route.collection} route references unknown collection: ${route.collection}` });
-    }
-    if (!route.routes?.single || !route.routes?.list) {
-      issues.push({ area: 'routes', severity: 'error', message: `${route.type || route.collection} route must define single and list paths` });
     }
   }
 
@@ -301,8 +295,6 @@ export function generateDomainCncSource(draft = {}) {
     `export const cncCommands = ${formatExport(normalized.commands)};`,
     '',
     `export const cncHookContracts = ${formatExport(normalized.hookContracts)};`,
-    '',
-    `export const cncFrontendEntities = ${formatExport(normalized.frontendEntities)};`,
     ''
   ].join('\n');
 }

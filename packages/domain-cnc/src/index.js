@@ -1,13 +1,15 @@
-export { cncEntities } from './entities.js';
+export { canonicalEntityType, cncEntities, entitySurfaceKey } from './entities.js';
 export { cncWorkflows } from './workflows.js';
 export { cncEvents } from './events.js';
 export { cncEffects } from './effects.js';
 export { cncServiceContracts, cncCommands } from './commands.js';
 export { cncTasks } from './tasks.js';
 export { cncHookContracts } from './hooks.js';
-export { cncSummaries, cncFrontendEntities } from './summaries.js';
+export { cncSummaries } from './summaries.js';
+export { cncContainment, cncRelations } from './relationships.js';
+export { cncEntityRevisions } from './revisions.js';
+export { cncEntityProducers } from './producers.js';
 export { cncAttachmentKinds } from './attachment-kinds.js';
-export { cncEntityCreateInputs, getEntityCreateInputs } from './entity-create-inputs.js';
 export { cncEntityConstruction, getEntityConstruction } from './entity-construction.js';
 export {
   cncEntityFieldAccess,
@@ -26,6 +28,15 @@ export {
 } from './ui.js';
 export { cncEntityFieldGroups, getEntityFieldGroups } from './ui-fields.js';
 export {
+  cncBlockComposition,
+  cncBlockFieldSchemas,
+  cncEntityFieldSchemas,
+  getBlockFieldSchema,
+  getBlockFieldSchemas,
+  getEntityFieldSchema,
+  getEntityFieldSchemas
+} from './field-schemas.js';
+export {
   CNC_SURFACES,
   CNC_PREVIEW_MODES,
   CNC_DATA_DISPLAYS,
@@ -42,13 +53,25 @@ import { cncEffects } from './effects.js';
 import { cncServiceContracts, cncCommands } from './commands.js';
 import { cncTasks } from './tasks.js';
 import { cncHookContracts } from './hooks.js';
-import { cncFrontendEntities, cncSummaries } from './summaries.js';
+import { cncSummaries } from './summaries.js';
+import { cncContainment, cncRelations } from './relationships.js';
+import { cncEntityRevisions } from './revisions.js';
+import { cncEntityProducers } from './producers.js';
+import { cncArtifactConversions } from './artifact-conversions.js';
 import { cncAttachmentKinds } from './attachment-kinds.js';
-import { cncEntityCreateInputs } from './entity-create-inputs.js';
 import { cncEntityConstruction } from './entity-construction.js';
 import { cncEntityFieldAccess } from './field-access.js';
 import { cncDesignSystem, cncStatusUi, cncUiSurfaces, cncEntitySurfaceContracts } from './ui.js';
 import { cncEntityFieldGroups } from './ui-fields.js';
+import { cncBlockComposition, cncBlockFieldSchemas, cncEntityFieldSchemas } from './field-schemas.js';
+
+const entityEndpoints = cncEntities.map(entity => ({
+  type: entity.surfaceKey,
+  entityType: entity.type,
+  surfaceKey: entity.surfaceKey,
+  collection: String(entity.collection || '').replace(/_/g, '-'),
+  routes: entity.routes || {}
+}));
 
 export const cncDomain = {
   id: 'cnc',
@@ -62,16 +85,23 @@ export const cncDomain = {
   tasks: cncTasks,
   hooks: cncHookContracts,
   summaries: cncSummaries,
+  containment: cncContainment,
+  relations: cncRelations,
+  revisions: cncEntityRevisions,
+  producers: cncEntityProducers,
+  artifactConversions: cncArtifactConversions,
   attachmentKinds: cncAttachmentKinds,
-  createInputs: cncEntityCreateInputs,
   construction: cncEntityConstruction,
   fieldAccess: cncEntityFieldAccess,
   designSystem: cncDesignSystem,
   fieldGroups: cncEntityFieldGroups,
+  blockComposition: cncBlockComposition,
+  blockSchemas: cncBlockFieldSchemas,
+  fieldSchemas: cncEntityFieldSchemas,
   surfaceContracts: cncEntitySurfaceContracts,
   uiSurfaces: cncUiSurfaces,
   ui: {
-    endpoints: cncFrontendEntities,
+    endpoints: entityEndpoints,
     surfaces: cncUiSurfaces,
     status: cncStatusUi,
     designSystem: cncDesignSystem

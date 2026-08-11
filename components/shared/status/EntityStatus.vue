@@ -16,13 +16,13 @@ import StatusLocation from '~/components/shared/status/StatusLocation.vue';
 import StatusTransitionDialog from '~/components/shared/status/StatusTransitionDialog.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useStatusController } from '~/composables/useStatusController';
-import { createStatusAction, getWorkflowStatusActions, hasWorkflow } from '~/utils/status-actions.js';
+import { createStatusAction, getWorkflowStatusActions, hasMeaningfulWorkflowStatus, hasWorkflow } from '~/utils/status-actions.js';
 import { onEntityChanged } from '~/utils/entity-events.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
   entityType: { type: String, required: true }, // e.g. 'project', 'queue'
-  variant: { type: String, default: 'inline' }, // inline, full
+  variant: { type: String, default: 'inline' }, // icon, inline, full
   showActions: { type: Boolean, default: true },
   actions: { type: Array, default: () => [] }, // preferred action API
   manualActions: { type: Array, default: () => [] }, // backward compatibility
@@ -50,6 +50,10 @@ const toggle = (event) => {
 
 const entityId = computed(() => props.entity?._id || props.entity?.identity?.uid || props.entity?.identity?.slug);
 const localWorkflows = computed(() => props.workflows || unref(providedWorkflows) || null);
+const displaysLifecycleStatus = computed(() => hasMeaningfulWorkflowStatus(
+    props.entityType,
+    localWorkflows.value || undefined
+) || (props.variant === 'icon' && Boolean(props.entity?.status?.state)));
 const hasRegisteredWorkflow = computed(() => hasWorkflow(props.entityType, localWorkflows.value || undefined));
 const useServerActions = computed(() => props.showActions && !localWorkflows.value && hasRegisteredWorkflow.value);
 const useLocalTransition = computed(() => Boolean(localWorkflows.value && localTransitionHandler));
@@ -265,7 +269,7 @@ function normalizeEventType(type) {
 
 <template>
   <div
-    v-if="props.entity"
+    v-if="props.entity && displaysLifecycleStatus"
     class="entity-status inline-flex min-w-0 max-w-full justify-end"
     data-entity-card-interactive="true"
     data-entity-status="true"
@@ -275,7 +279,13 @@ function normalizeEventType(type) {
   >
     <template v-if="!isExpanded">
       <div class="flex min-w-0 max-w-48 flex-wrap items-center justify-end gap-1.5 sm:max-w-56">
-        <StatusBadge :state="state" :display="statusDisplay" class="cursor-pointer min-w-0 max-w-full shrink" @click.stop="toggle" />
+        <StatusBadge
+          :state="state"
+          :display="statusDisplay"
+          :icon-only="variant === 'icon'"
+          class="cursor-pointer min-w-0 max-w-full shrink"
+          @click.stop="toggle"
+        />
         <StatusBadge
           v-for="region in secondaryRegions"
           :key="region.id"

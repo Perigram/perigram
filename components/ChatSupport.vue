@@ -7,10 +7,12 @@
         <div
             v-if="supportDialog || embedded"
             :class="embedded
-                ? 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
-                : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content shadow-lg pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
+                ? fullPage
+                    ? 'grid h-full min-h-0 w-full grid-rows-[minmax(0,1fr)] overflow-hidden border border-content-border bg-content pointer-events-auto md:grid-cols-[20rem_minmax(0,1fr)] md:rounded-ui'
+                    : 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
+                : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content [box-shadow:var(--ck-shadow-overlay)] pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
         >
-            <div class="flex items-center justify-between p-4 border-b border-content-border bg-content">
+            <div v-if="!fullPage" class="flex items-center justify-between border-b border-content-border bg-content p-4">
                 <div class="flex min-w-0 items-center gap-2">
                     <Button
                         v-if="activeConversation"
@@ -19,6 +21,7 @@
                         text
                         rounded
                         size="small"
+                        :class="{ 'md:hidden': fullPage }"
                         :aria-label="$t('common.back')"
                         @click="showInbox"
                     />
@@ -29,7 +32,7 @@
                 </div>
                 <div class="flex shrink-0 items-center gap-1">
                     <Button
-                        v-if="!activeConversation"
+                        v-if="!activeConversation || fullPage"
                         icon="pi pi-user-plus"
                         severity="secondary"
                         text
@@ -37,6 +40,16 @@
                         size="small"
                         :aria-label="$t('support.openChat')"
                         @click="toggleNewChat"
+                    />
+                    <Button
+                        v-if="!embedded"
+                        icon="pi pi-external-link"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('common.open')"
+                        @click="openChatsPage"
                     />
                     <Button
                         v-if="!embedded"
@@ -51,13 +64,33 @@
                 </div>
             </div>
 
-            <div v-if="!activeConversation" class="flex-1 overflow-y-auto p-2 md:p-3">
-                <div v-if="newChatVisible" class="mb-2">
+            <aside
+                v-if="!activeConversation || fullPage"
+                class="flex min-h-0 flex-col overflow-hidden"
+                :class="[
+                    fullPage ? 'border-r border-content-border' : 'flex-1',
+                    { 'hidden md:block': fullPage && activeConversation }
+                ]"
+            >
+                <div v-if="fullPage" class="flex items-center justify-between border-b border-content-border p-4">
+                    <h1 class="m-0 text-lg">{{ $t('support.chatTitle') }}</h1>
+                    <Button
+                        icon="pi pi-user-plus"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('support.openChat')"
+                        @click="toggleNewChat"
+                    />
+                </div>
+                <div v-if="newChatVisible" class="m-3">
                     <Select
                         v-model="newChatUserId"
                         :options="newChatUserOptions"
                         option-label="label"
                         option-value="value"
+                        entity-type="user"
                         filter
                         size="small"
                         class="w-full"
@@ -65,16 +98,10 @@
                         :placeholder="$t('common.user')"
                         :aria-label="$t('common.user')"
                         @update:model-value="openNewChatUser"
-                    >
-                        <template #option="{ option }">
-                            <div class="flex min-w-0 flex-col">
-                                <span class="truncate">{{ option.label }}</span>
-                                <small class="truncate text-muted-color">{{ option.value }}</small>
-                            </div>
-                        </template>
-                    </Select>
+                    />
                 </div>
-                <div class="flex flex-col gap-2">
+                <StateBlock v-if="!displayConversations.length && !newChatVisible" class="m-3" :message="$t('support.noConversations')" icon="pi pi-comments" />
+                <div v-else class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2 md:p-3">
                     <button
                         v-for="conversation in displayConversations"
                         :key="conversation.conversationKey"
@@ -83,10 +110,11 @@
                         @click="openConversation(conversation)"
                     >
                         <Avatar
+                            :image="conversationAvatar(conversation)"
                             :label="conversationLabel(conversation).charAt(0).toUpperCase()"
                             shape="circle"
                             size="normal"
-                            class="shrink-0 bg-primary text-primary-contrast"
+                            class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                         />
                         <div class="min-w-0 flex-1">
                             <div class="flex min-w-0 items-center gap-2">
@@ -104,9 +132,32 @@
                         <small v-if="conversation.timestamp" class="shrink-0 text-muted-color">{{ shortTime(conversation.timestamp) }}</small>
                     </button>
                 </div>
+            </aside>
+
+            <div v-if="fullPage && !activeConversation" class="hidden min-h-0 items-center justify-center md:flex">
+                <StateBlock :message="$t('support.selectConversation')" icon="pi pi-comments" />
             </div>
 
-            <template v-else>
+            <section v-if="activeConversation" class="flex min-h-0 min-w-0 flex-col overflow-hidden">
+                <div v-if="fullPage" class="flex items-center gap-3 border-b border-content-border p-4">
+                    <Button
+                        icon="pi pi-arrow-left"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        class="md:hidden"
+                        :aria-label="$t('common.back')"
+                        @click="showInbox"
+                    />
+                    <Avatar
+                        :image="conversationAvatar(activeConversation)"
+                        :label="conversationLabel(activeConversation).charAt(0).toUpperCase()"
+                        shape="circle"
+                        class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                    />
+                    <h2 class="m-0 min-w-0 truncate text-base">{{ conversationLabel(activeConversation) }}</h2>
+                </div>
                 <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-content custom-scrollbar md:p-4 md:gap-4">
                     <template
                         v-for="messageItem in messagesList"
@@ -125,7 +176,7 @@
                             :class="isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start'"
                         >
                             <div
-                                class="px-4 py-2 rounded-ui text-sm shadow-sm"
+                                class="px-4 py-2 rounded-ui text-sm [box-shadow:var(--ck-shadow-card)]"
                                 :class="isOwnMessage(messageItem)
                                     ? 'bg-primary text-primary-contrast rounded-tr-none'
                                     : 'bg-content border border-content-border rounded-tl-none'"
@@ -156,20 +207,14 @@
                             :options="entityOptions"
                             option-label="label"
                             option-value="value"
+                            :entity-type="entityDraft.type"
                             filter
                             size="small"
                             class="min-w-0"
                             :loading="entityOptionsLoading"
                             :placeholder="$t('support.entityId')"
                             :aria-label="$t('support.entityId')"
-                        >
-                            <template #option="{ option }">
-                                <div class="flex min-w-0 flex-col">
-                                    <span class="truncate">{{ option.label }}</span>
-                                    <small class="truncate text-muted-color">{{ option.value }}</small>
-                                </div>
-                            </template>
-                        </Select>
+                        />
                         <Button
                             icon="pi pi-plus"
                             size="small"
@@ -206,7 +251,7 @@
                             />
                         </div>
                     </div>
-                    <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-xs text-amber-700">
+                    <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-xs text-status-warning">
                         <small
                             v-for="ref in recipientLimitedRefs"
                             :key="`${ref.type}-${ref.id}`"
@@ -247,7 +292,7 @@
                         />
                     </div>
                 </div>
-            </template>
+            </section>
         </div>
     </div>
 </template>
@@ -256,11 +301,12 @@
 import { ref, onMounted, onBeforeUnmount, unref, computed, nextTick, watch } from 'vue'
 import Avatar from 'primevue/avatar'
 import Button from 'primevue/button'
-import Select from 'primevue/select'
+import Select from '~/components/shared/EntitySelect.vue'
 import Textarea from 'primevue/textarea'
 import { useI18n } from 'vue-i18n'
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
+import StateBlock from '~/components/shared/StateBlock.vue'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
@@ -269,7 +315,8 @@ const props = defineProps({
     embedded: {
         type: Boolean,
         default: false
-    }
+    },
+    fullPage: { type: Boolean, default: false }
 })
 
 const { t } = useI18n()
@@ -316,26 +363,10 @@ const localizedEntityTypeLabel = (type) => {
     return type
 }
 
-const listedDirectUserIds = computed(() => new Set(displayConversations.value
-    .filter(conversation => conversation.conversationKind === 'direct')
-    .map(participantUserId)
-    .filter(Boolean)))
+const newChatUserOptions = computed(() => newChatUsers.value)
 
-const newChatUserOptions = computed(() => newChatUsers.value.filter(option => option.value !== currentUserId.value && !listedDirectUserIds.value.has(option.value)))
-
-const displayConversations = computed(() => {
-    const support = supportChatStore.supportConversation || {
-        conversationKey: currentSupportConversationKey.value,
-        conversationKind: 'support',
-        participant: { identity: { name: t('support.chatTitle') } },
-        lastMessage: '',
-        unreadCount: 0
-    }
-    const others = supportChatStore.conversations.filter(item => item.conversationKey !== support.conversationKey)
-    return [support, ...others]
-})
-
-const currentSupportConversationKey = computed(() => currentUserId.value ? `support:${currentUserId.value}` : 'support')
+const displayConversations = computed(() => supportChatStore.conversations
+    .filter(conversation => conversation.conversationKind === 'direct'))
 
 const chatTitle = computed(() => activeConversation.value ? conversationLabel(activeConversation.value) : t('support.chatTitle'))
 
@@ -347,7 +378,7 @@ const handleKeyDown = (event) => {
 }
 
 const sendMessage = async () => {
-    if (!message.value.trim() || !activeConversation.value) return
+    if ((!message.value.trim() && !entityRefs.value.length) || !activeConversation.value) return
 
     isLoading.value = true
 
@@ -433,9 +464,12 @@ watch(supportDialog, (isOpen) => {
     if (isOpen && chatTarget.value?.userId) openDirectTarget()
 })
 
-watch(activeConversation, () => {
-    if (supportDialog.value && activeConversation.value) connect()
-})
+watch(
+    [activeConversation, supportDialog, () => props.embedded],
+    ([conversation, dialogOpen, embedded]) => {
+        if (conversation && (dialogOpen || embedded)) connect()
+    }
+)
 
 const formatTime = (timestamp, withoutTime) => {
     const date = new Date(timestamp)
@@ -632,6 +666,11 @@ const closeChat = () => {
     if (!props.embedded) supportDialog.value = false
 }
 
+const openChatsPage = () => {
+    closeChat()
+    navigateTo('/chats')
+}
+
 const openDirectTarget = async () => {
     if (!chatTarget.value?.userId) return
     activeConversation.value = {
@@ -661,6 +700,10 @@ const conversationLabel = (conversation) => {
         || (conversation?.conversationKind === 'support' ? t('support.chatTitle') : t('common.user'))
 }
 
+const conversationAvatar = (conversation) => conversation?.participant?.avatarUrl
+    || conversation?.participant?.data?.avatarUrl
+    || ''
+
 const conversationPreviewMessage = (conversation) => ({
     message: conversation.lastMessage || '',
     entityRefs: conversation.entityRefs || [],
@@ -689,7 +732,7 @@ const directConversationKey = (left, right) => {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: var(--p-content-border-color);
-    border-radius: 10px;
+    border-radius: var(--ck-radius-full);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: var(--p-primary-color);

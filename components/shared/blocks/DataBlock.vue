@@ -1,8 +1,8 @@
 <template>
+  <div v-if="visibleRows.length" class="data-block-container">
   <dl
-    v-if="visibleRows.length"
     class="data-block m-0"
-    :class="variant === 'compact' ? 'flex flex-wrap gap-x-4 gap-y-1 text-sm' : 'grid grid-cols-1 gap-3 sm:grid-cols-2'"
+    :class="variant === 'compact' ? 'flex flex-wrap gap-x-4 gap-y-1 text-sm' : 'data-block-default grid grid-cols-1 gap-3'"
   >
     <div
       v-for="row in visibleRows"
@@ -22,6 +22,7 @@
       </dd>
     </div>
   </dl>
+  </div>
 </template>
 
 <script setup>
@@ -87,3 +88,15 @@ function resolveFirstDisplayPath(entity, field) {
     return undefined;
 }
 </script>
+
+<style scoped>
+.data-block-container {
+    container-type: inline-size;
+}
+
+@container (min-width: 32rem) {
+    .data-block-default {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+</style>

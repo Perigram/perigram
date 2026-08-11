@@ -179,8 +179,8 @@ import { computed } from 'vue';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
-import MultiSelect from 'primevue/multiselect';
-import Select from 'primevue/select';
+import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
+import Select from '~/components/shared/EntitySelect.vue';
 
 defineOptions({ name: 'PermissionRuleBuilder' });
 

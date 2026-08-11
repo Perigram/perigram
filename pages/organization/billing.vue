@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -19,18 +19,8 @@ definePageMeta({
 });
 
 const authStore = useAuthStore();
-const refreshingAuth = ref(true);
+const refreshingAuth = ref(!authStore.userIsSet);
 
 const organizationScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'organizationAccount' || screen.screenKey === 'organization_billing') || null);
 
-onMounted(() => refreshProcessManifest());
-
-async function refreshProcessManifest() {
-  refreshingAuth.value = true;
-  try {
-    await authStore.setUser();
-  } finally {
-    refreshingAuth.value = false;
-  }
-}
 </script>

@@ -6,8 +6,9 @@
 import IdentityBlock from './blocks/IdentityBlock.vue';
 import EntityStatus from './status/EntityStatus.vue';
 import TraceChain from './links/TraceChain.vue';
+import EntityActionsPopover from './EntityActionsPopover.vue';
 import Divider from 'primevue/divider';
-import { computed } from 'vue';
+import { computed, inject, provide, unref } from 'vue';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -15,21 +16,29 @@ const props = defineProps({
   title: { type: String, default: null },
   loading: { type: Boolean, default: false },
   showTrace: { type: Boolean, default: false },
+  showHeader: { type: Boolean, default: true },
   showIdentity: { type: Boolean, default: true },
   showStatus: { type: Boolean, default: true },
+  traceExclusions: { type: Array, default: () => [] },
+  actionsDisplay: { type: String, default: 'menu', validator: value => ['menu', 'inline'].includes(value) },
   statusActions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['refresh']);
 const effectiveTitle = computed(() => props.title || '');
+const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
+provide('displayedEntityContexts', computed(() => [
+  ...(unref(parentDisplayedEntityContexts) || []),
+  { type: props.entityType, entity: props.entity }
+]));
 </script>
 
 <template>
-  <div class="entity-page flex flex-col gap-6">
-    <div class="flex flex-col gap-4">
-      <TraceChain v-if="showTrace" :entity="entity" />
+  <div class="entity-page flex w-full min-w-0 flex-col gap-6">
+    <div v-if="showHeader" class="flex flex-col gap-4" data-entity-page-header>
+      <TraceChain v-if="showTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
 
-      <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div class="entity-page-header-content flex flex-col gap-3">
         <div class="flex min-w-0 flex-col gap-2">
           <div v-if="effectiveTitle" class="text-sm text-muted-color">
             {{ effectiveTitle }}
@@ -50,21 +59,47 @@ const effectiveTitle = computed(() => props.title || '');
             @refresh="$emit('refresh')"
             @transitioned="$emit('refresh')"
           />
-          <slot name="actions"></slot>
+          <div v-if="$slots.actions && actionsDisplay === 'inline'" class="flex flex-wrap items-center gap-2">
+            <slot name="actions"></slot>
+          </div>
+          <EntityActionsPopover v-else-if="$slots.actions">
+            <slot name="actions"></slot>
+          </EntityActionsPopover>
         </div>
       </div>
     </div>
 
-    <Divider class="m-0" />
+    <Divider v-if="showHeader" class="m-0" />
 
-    <div :class="[ $slots.sidebar ? 'grid grid-cols-1 lg:grid-cols-12 gap-6' : 'flex flex-col gap-6' ]">
-      <div :class="[ $slots.sidebar ? 'lg:col-span-8 flex flex-col gap-6' : 'flex flex-col gap-6' ]">
+    <div :class="[ $slots.sidebar ? 'entity-page-content-grid grid grid-cols-1 gap-6' : 'flex flex-col gap-6' ]">
+      <div :class="[ $slots.sidebar ? 'entity-page-main flex min-w-0 flex-col gap-6' : 'flex min-w-0 flex-col gap-6' ]">
         <slot></slot>
       </div>
 
-      <div v-if="$slots.sidebar" class="lg:col-span-4 flex flex-col gap-6">
+      <div v-if="$slots.sidebar" class="entity-page-sidebar flex min-w-0 flex-col gap-6">
         <slot name="sidebar"></slot>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.entity-page {
+  container-type: inline-size;
+}
+
+@container (min-width: 32rem) {
+  .entity-page-header-content {
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+}
+
+@container (min-width: 48rem) {
+  .entity-page-content-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  }
+}
+</style>

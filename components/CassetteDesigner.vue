@@ -155,7 +155,7 @@
     import Button from 'primevue/button'
     import InputNumber from 'primevue/inputnumber'
     import InputText from 'primevue/inputtext'
-    import Select from 'primevue/select'
+    import Select from '~/components/shared/EntitySelect.vue'
     import Toast from 'primevue/toast'
     import Inplace from 'primevue/inplace'
     import ProgressSpinner from 'primevue/progressspinner'

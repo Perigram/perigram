@@ -1,0 +1,524 @@
+import { createDataPacket, packetValue } from './data-tree.js';
+import { executeProcessDataNode } from './evaluator.js';
+import { resolveCatalogNodePorts } from './node-catalog.js';
+
+export const PROCESS_RUN_STATUSES = Object.freeze(['running', 'waiting', 'succeeded', 'failed', 'cancelled']);
+export const PROCESS_STEP_STATUSES = Object.freeze(['pending', 'running', 'waiting', 'succeeded', 'failed', 'skipped']);
+
+export async function previewProcessDataflow(definition, sample = {}, environment = {}) {
+  const process = processData(definition);
+  const run = {
+    trigger: structuredClone(sample.trigger || {}),
+    context: { inputs: structuredClone(sample.inputs || {}) }
+  };
+  const tokenContext = { scope: 'preview', values: {} };
+  const nodes = {};
+  for (const node of process.graph?.nodes || []) {
+    if (node.type !== 'processNode') continue;
+    if (environment.targetNodeId && String(node.id) !== String(environment.targetNodeId)) continue;
+    const record = process.processNodes?.[recordId(node)];
+    if (!record || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) continue;
+    const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
+    const outputs = {};
+    let error = null;
+    for (const port of ports.outputs.filter(item => item.role === 'data')) {
+      try {
+        const tree = await evaluateNodeOutput(process, node.id, port.id, run, environment, tokenContext, new Set());
+        outputs[port.id] = previewTree(tree, environment.previewLimit);
+      } catch (cause) {
+        error ||= cause.message;
+      }
+    }
+    nodes[node.id] = { outputs, ...(error ? { error } : {}) };
+  }
+  return { nodes };
+}
+
+function previewTree(tree, limit = 100) {
+  let remaining = Math.max(1, Number(limit) || 100);
+  const itemCount = tree.branches.reduce((total, branch) => total + branch.items.length, 0);
+  return {
+    branchCount: tree.branches.length,
+    itemCount,
+    branches: tree.branches.map(branch => {
+      const items = branch.items.slice(0, remaining).map(redactPreviewValue);
+      remaining -= items.length;
+      return { path: [...branch.path], itemCount: branch.items.length, items };
+    }),
+    truncated: remaining === 0 && itemCount > limit
+  };
+}
+
+function redactPreviewValue(value) {
+  if (value?.secretRef || value?.opaqueType) return '[redacted]';
+  return structuredClone(value);
+}
+
+export function createProcessRun(definition = {}, trigger = {}, options = {}) {
+  const process = processData(definition);
+  const triggerNode = findTriggerNode(process, trigger);
+  const now = instant(options.now);
+  return {
+    id: options.id || crypto.randomUUID(),
+    processDefinitionId: String(options.processDefinitionId || definition._id || definition.id || ''),
+    protocolVersion: 4,
+    status: 'running',
+    trigger: structuredClone(trigger),
+    context: structuredClone(options.context || {}),
+    tokens: [token(triggerNode.id)],
+    joins: {},
+    loops: {},
+    steps: [],
+    wakeAt: null,
+    result: null,
+    error: null,
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+export async function advanceProcessRun(runInput, definition, environment = {}) {
+  const run = structuredClone(runInput);
+  run.loops ||= {};
+  const process = processData(definition);
+  if (!['running', 'waiting'].includes(run.status)) return run;
+  const now = instant(environment.now);
+  if (run.status === 'waiting') {
+    if (!run.wakeAt || new Date(run.wakeAt) > new Date(now)) return run;
+    run.status = 'running';
+    run.wakeAt = null;
+  }
+  const current = run.tokens.shift();
+  if (!current) {
+    run.status = 'succeeded';
+    run.updatedAt = now;
+    return run;
+  }
+  const node = processNode(process, current.nodeId);
+  const record = process.processNodes[recordId(node)];
+  const step = {
+    id: `${run.id}:${run.steps.length + 1}`,
+    nodeId: node.id,
+    kind: record.kind,
+    status: 'running',
+    attempt: current.attempt || 1,
+    idempotencyKey: `${run.id}:${node.id}:${current.scope || 'root'}:${current.attempt || 1}`,
+    startedAt: now,
+    completedAt: null,
+    output: null,
+    error: null
+  };
+  run.steps.push(step);
+  try {
+    await executeOperationalNode({ run, process, node, record, current, step, environment });
+    if (step.status === 'running') step.status = 'succeeded';
+    step.completedAt = instant(environment.now);
+  } catch (error) {
+    step.status = 'failed';
+    step.error = serializeError(error);
+    step.completedAt = instant(environment.now);
+    run.status = 'failed';
+    run.error = step.error;
+  }
+  if (run.status === 'running' && !run.tokens.length) run.status = 'succeeded';
+  run.updatedAt = instant(environment.now);
+  return run;
+}
+
+export async function runProcessUntilSettled(run, definition, environment = {}, options = {}) {
+  const maxSteps = Number(options.maxSteps) || 1000;
+  let current = run;
+  for (let index = 0; index < maxSteps && ['running', 'waiting'].includes(current.status); index += 1) {
+    const previous = current;
+    current = await advanceProcessRun(current, definition, environment);
+    if (current.status === 'waiting' && current.updatedAt === previous.updatedAt) return current;
+  }
+  if (current.status === 'running') throw new Error(`Process run exceeded ${maxSteps} steps`);
+  return current;
+}
+
+async function executeOperationalNode({ run, process, node, record, current, step, environment }) {
+  const inputs = await resolveNodeInputs(process, node, run, environment, current);
+  if (record.kind.endsWith('Trigger')) {
+    const payload = run.trigger?.payload ?? run.trigger?.entity ?? run.trigger;
+    enqueueEdges(run, outgoingControl(process, node.id, 'start'), {
+      ...current,
+      values: {
+        ...(current.values || {}),
+        [`${node.id}:payload`]: createDataPacket(structuredClone(payload))
+      }
+    });
+    return;
+  }
+  if (record.kind.startsWith('effect.')) {
+    if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
+    const result = await environment.executeEffect({
+      kind: record.kind,
+      record,
+      inputs: Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, packetValue(packet, 'item')])),
+      idempotencyKey: step.idempotencyKey,
+      attempt: step.attempt,
+      run
+    });
+    step.output = structuredClone(result);
+    const outputValues = await effectOutputValues(node.id, record, result, environment);
+    enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {
+      ...current,
+      values: {
+        ...(current.values || {}),
+        ...outputValues
+      }
+    });
+    return;
+  }
+  if (record.kind === 'control.if') {
+    const branch = packetValue(inputs.condition) ? 'true' : 'false';
+    enqueueEdges(run, outgoingControl(process, node.id, branch), current);
+    return;
+  }
+  if (record.kind === 'control.switch') {
+    const value = packetValue(inputs.value);
+    const selected = (record.cases || []).find(item => Object.is(item.value, value));
+    enqueueEdges(run, outgoingControl(process, node.id, selected ? String(selected.id || selected.value) : 'default'), current);
+    return;
+  }
+  if (record.kind === 'control.fork') {
+    enqueueEdges(run, outgoingControl(process, node.id), current);
+    return;
+  }
+  if (record.kind === 'control.joinAll' || record.kind === 'control.joinAny') {
+    const key = `${node.id}:${current.scope || 'root'}`;
+    const arrivals = new Set(run.joins[key] || []);
+    arrivals.add(current.sourceNodeId || 'unknown');
+    run.joins[key] = [...arrivals];
+    const required = incomingControl(process, node.id).length;
+    if (record.kind === 'control.joinAny' || arrivals.size >= required) {
+      delete run.joins[key];
+      enqueueEdges(run, outgoingControl(process, node.id, 'out'), current);
+    } else step.status = 'waiting';
+    return;
+  }
+  if (record.kind === 'control.forEach') {
+    const packet = inputs.items;
+    const eachEdges = outgoingControl(process, node.id, 'each');
+    const total = packet.branches.reduce((count, branch) => count + branch.items.length, 0);
+    const loopKey = `${current.scope || 'root'}/${node.id}`;
+    run.loops[loopKey] = { expected: total, completed: 0, doneEdges: outgoingControl(process, node.id, 'done'), parent: current };
+    packet.branches.forEach(branch => branch.items.forEach((item, index) => enqueueEdges(run, eachEdges, {
+      ...current,
+      loopKey,
+      scope: `${current.scope || 'root'}/${node.id}/${branch.path.join('.') || 'root'}/${index}`,
+      values: {
+        ...(current.values || {}),
+        [`${node.id}:item`]: { branches: [{ path: [...branch.path], items: [structuredClone(item)] }] },
+        [`${node.id}:path`]: createDataPacket([...branch.path]),
+        [`${node.id}:index`]: createDataPacket(index)
+      }
+    })));
+    if (!total) {
+      enqueueEdges(run, run.loops[loopKey].doneEdges, current);
+      delete run.loops[loopKey];
+    }
+    return;
+  }
+  if (record.kind === 'control.forEachEnd') {
+    const loop = current.loopKey && run.loops[current.loopKey];
+    if (!loop) throw new Error(`For Each End ${record.id || node.id} was reached outside an iteration`);
+    loop.completed += 1;
+    if (loop.completed >= loop.expected) {
+      enqueueEdges(run, loop.doneEdges, loop.parent);
+      delete run.loops[current.loopKey];
+    }
+    return;
+  }
+  if (record.kind === 'control.stopSuccess') {
+    run.tokens = [];
+    run.status = 'succeeded';
+    run.result = structuredClone(record.result || null);
+    return;
+  }
+  if (record.kind === 'control.stopFailure') {
+    run.tokens = [];
+    run.status = 'failed';
+    run.error = { name: 'ProcessStopped', message: record.message || 'Process stopped with failure' };
+    return;
+  }
+  throw new Error(`Token reached non-operational node ${record.kind}`);
+}
+
+async function effectOutputValues(nodeId, record, result, environment) {
+  const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
+  const values = {};
+  for (const port of ports.outputs.filter(item => item.role === 'data')) {
+    let value = result;
+    if (record.kind === 'effect.runCommand' && port.id !== 'result') {
+      if (port.id.startsWith('attachment:')) {
+        value = (result?.attachments || []).filter(item => item.kind === port.id.slice('attachment:'.length));
+      } else {
+        const refs = (result?.entities || []).filter(item => item.type === port.id);
+        value = environment.data?.resolveEntityRef
+          ? await Promise.all(refs.map(ref => environment.data.resolveEntityRef(ref)))
+          : refs;
+      }
+    }
+    values[`${nodeId}:${port.id}`] = createDataPacket(value, port.access || 'item');
+  }
+  return values;
+}
+
+async function resolveNodeInputs(process, node, run, environment, tokenContext) {
+  const record = process.processNodes[recordId(node)];
+  const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
+  const dataInputs = ports.inputs.filter(port => port.role === 'data');
+  const inputs = {};
+  for (const port of dataInputs) {
+    const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment);
+    if (runValue !== undefined) {
+      inputs[port.id] = createDataPacket(structuredClone(runValue), port.access || 'item');
+      continue;
+    }
+    const edge = incomingData(process, node.id, port.id);
+    if (!edge) {
+      if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
+        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.access || 'item');
+        continue;
+      }
+      continue;
+    }
+    try {
+      inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, new Set());
+    } catch (error) {
+      if (error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
+      throw error;
+    }
+  }
+  return inputs;
+}
+
+function processRunInput(inputs = {}, record = {}, portId = '', environment = {}) {
+  if (portId === 'entity') {
+    return inputs.entity ?? inputs.entities?.[record.entityType];
+  }
+  if (Object.hasOwn(inputs.data || {}, portId)) return inputs.data[portId];
+  if (portId.startsWith('entry:') && Array.isArray(record.entries)) {
+    const entry = record.entries.find(item => `entry:${item.id}` === portId);
+    if (entry?.key) {
+      const value = readInputPath(inputs.data, `${record.block}.${entry.key}`);
+      if (value !== undefined) return value;
+    }
+  }
+  const nested = readInputPath(inputs.data, portId);
+  if (nested !== undefined) return nested;
+  const field = (environment.catalogContext?.(record)?.fieldSchemas || [])
+    .find(schema => schema.path === portId);
+  const relatedType = field?.type?.entityType;
+  if (relatedType && Object.hasOwn(inputs.entities || {}, relatedType)) {
+    return inputs.entities[relatedType];
+  }
+  if (Object.hasOwn(inputs.parameters || {}, portId)) return inputs.parameters[portId];
+  return undefined;
+}
+
+function readInputPath(value, path = '') {
+  return String(path).split('.').filter(Boolean)
+    .reduce((current, key) => current == null ? undefined : current[key], value);
+}
+
+async function evaluateNodeOutput(process, nodeId, outputId, run, environment, tokenContext, resolving) {
+  const graphNode = (process.graph?.nodes || []).find(item => String(item.id) === String(nodeId));
+  if (graphNode?.type === 'statusDefinition') {
+    const definition = process.statusDefinitions?.[recordId(graphNode)];
+    if (!definition?.statusId) throw new Error(`Status definition ${recordId(graphNode)} does not exist`);
+    return createDataPacket(definition.statusId);
+  }
+  const node = processNode(process, nodeId);
+  const record = process.processNodes[recordId(node)];
+  const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
+  const resolvedOutputId = resolveDataOutputId(ports.outputs, outputId, record);
+  const cacheKey = `${nodeId}:${resolvedOutputId}:${tokenContext.scope || 'root'}`;
+  if (tokenContext.values?.[cacheKey]) return tokenContext.values[cacheKey];
+  if (tokenContext.values?.[`${nodeId}:${resolvedOutputId}`]) return tokenContext.values[`${nodeId}:${resolvedOutputId}`];
+  const contextualOutput = await resolveContextualEntityOutput(
+    ports.outputs.find(port => port.id === resolvedOutputId),
+    run.context?.inputs || {},
+    environment
+  );
+  if (contextualOutput) return contextualOutput;
+  if (record.kind.endsWith('Trigger') || record.kind.startsWith('effect.') || record.kind.startsWith('control.')) {
+    const error = new Error(`Operational node ${record.id || node.id} has not emitted data output ${resolvedOutputId}`);
+    error.code = 'PROCESS_OUTPUT_UNAVAILABLE';
+    throw error;
+  }
+  if (resolving.has(cacheKey)) throw new Error(`Data cycle detected at ${nodeId}:${outputId}`);
+  resolving.add(cacheKey);
+  const inputs = {};
+  for (const port of ports.inputs.filter(item => item.role === 'data')) {
+    const edge = incomingData(process, node.id, port.id);
+    if (!edge) {
+      if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
+        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.access || 'item');
+        continue;
+      }
+      const runValue = processRunInput(run.context?.inputs || {}, record, port.id);
+      if (runValue !== undefined) {
+        inputs[port.id] = createDataPacket(structuredClone(runValue), port.access || 'item');
+        continue;
+      }
+      continue;
+    }
+    try {
+      inputs[port.id] = await evaluateNodeOutput(process, edge.source, cleanHandle(edge.sourceHandle), run, environment, tokenContext, resolving);
+    } catch (error) {
+      if (error?.code === 'PROCESS_OUTPUT_UNAVAILABLE') continue;
+      throw error;
+    }
+  }
+  const dataInputs = ports.inputs.filter(port => port.role === 'data');
+  const allowsInputlessEvaluation = record.kind.startsWith('source.') || record.kind.startsWith('read.');
+  if (!Object.keys(inputs).length && (
+    dataInputs.some(port => port.required)
+    || (dataInputs.length && !allowsInputlessEvaluation)
+  )) {
+    const error = new Error(`Data node ${record.id || node.id} has no available inputs`);
+    error.code = 'PROCESS_OUTPUT_UNAVAILABLE';
+    throw error;
+  }
+  const packet = await executeProcessDataNode(record, inputs, {
+    ...(environment.data || {}),
+    inputs: run.context?.inputs,
+    trigger: run.trigger,
+    now: environment.now,
+    outputId
+  });
+  resolving.delete(cacheKey);
+  return packet;
+}
+
+async function resolveContextualEntityOutput(port = {}, inputs = {}, environment = {}) {
+  const type = port.type || {};
+  if (!['entity', 'entityRef'].includes(type.base) || port.access !== 'item' || !type.entityType) return null;
+  const candidate = inputs.entities?.[type.entityType] ?? inputs.entity;
+  if (candidate == null || candidate === '') return null;
+  const reference = typeof candidate === 'object'
+    ? { type: candidate.type || type.entityType, id: candidate.id || candidate._id || candidate.identity?.uid }
+    : { type: type.entityType, id: candidate };
+  if (!reference.id) return null;
+  if (type.base === 'entityRef') return createDataPacket(reference);
+  if (typeof candidate === 'object' && (candidate._id || candidate.identity)) return createDataPacket(candidate);
+  const entity = environment.data?.resolveEntityRef
+    ? await environment.data.resolveEntityRef(reference)
+    : reference;
+  return createDataPacket(entity);
+}
+
+function resolveDataOutputId(outputs = [], requestedId = '', record = {}) {
+  const dataOutputs = outputs.filter(port => port.role === 'data');
+  const requested = cleanHandle(requestedId);
+  const matched = dataOutputs.find(port => port.id === requested);
+  if (matched) return matched.id;
+  if (dataOutputs.length === 1) return dataOutputs[0].id;
+  throw new Error(`Node ${record.id || record.kind} does not expose data output ${requested || '(default)'}`);
+}
+
+function processData(definition) {
+  const process = definition?.data?.graph ? definition.data : definition;
+  if (Number(process?.dataflowVersion) !== 4) throw new Error('Durable orchestration requires process dataflow version 4');
+  return process;
+}
+
+function findTriggerNode(process, trigger) {
+  const nodes = (process.graph?.nodes || []).filter(node => {
+    const record = process.processNodes?.[recordId(node)] || {};
+    return record.kind?.endsWith('Trigger')
+      || (record.kind?.startsWith('effect.') && (record.trigger?.mode || 'manual') === 'manual');
+  });
+  const match = trigger.nodeId
+    ? nodes.find(node => String(node.id) === String(trigger.nodeId))
+    : nodes.find(node => {
+      const record = process.processNodes[recordId(node)];
+      if (trigger.kind && record.kind !== trigger.kind) return false;
+      if (trigger.eventId && record.eventId !== trigger.eventId) return false;
+      if (trigger.entityType && record.entityType !== trigger.entityType) return false;
+      if (trigger.mode && record.trigger?.mode !== trigger.mode) return false;
+      return true;
+    });
+  if (!match) throw new Error(`Process trigger ${trigger.nodeId || trigger.kind || '(default)'} not found`);
+  return match;
+}
+
+function processNode(process, id) {
+  const node = (process.graph?.nodes || []).find(item => String(item.id) === String(id));
+  if (!node || node.type !== 'processNode' || !process.processNodes?.[recordId(node)]) {
+    throw new Error(`Process node ${id} does not exist`);
+  }
+  return node;
+}
+
+function outgoingControl(process, nodeId, handle) {
+  return (process.graph?.edges || []).filter(edge => (
+    String(edge.source) === String(nodeId)
+    && edgeRole(edge) === 'control'
+    && (!handle || cleanHandle(edge.sourceHandle) === handle)
+  ));
+}
+
+function incomingControl(process, nodeId) {
+  return (process.graph?.edges || []).filter(edge => String(edge.target) === String(nodeId) && edgeRole(edge) === 'control');
+}
+
+function incomingData(process, nodeId, handle) {
+  return (process.graph?.edges || []).find(edge => (
+    String(edge.target) === String(nodeId)
+    && edgeRole(edge) === 'data'
+    && cleanHandle(edge.targetHandle) === handle
+  ));
+}
+
+function edgeRole(edge) {
+  return edge.role || (String(edge.sourceHandle || '').startsWith('control:') || String(edge.targetHandle || '').startsWith('control:') ? 'control' : 'data');
+}
+
+function cleanHandle(handle = '') {
+  return String(handle).replace(/^(input|output|data|control|success|failure):/, '');
+}
+
+function token(nodeId, targetHandle, inherited = {}) {
+  return {
+    nodeId: String(nodeId),
+    targetHandle: cleanHandle(targetHandle),
+    sourceNodeId: inherited.sourceNodeId || null,
+    scope: inherited.scope || 'root',
+    values: inherited.values || {},
+    loopKey: inherited.loopKey || null,
+    attempt: 1
+  };
+}
+
+function enqueueEdges(run, edges, inherited) {
+  for (const edge of edges) {
+    run.tokens.push(token(edge.target, edge.targetHandle, {
+      ...inherited,
+      sourceNodeId: edge.source
+    }));
+  }
+}
+
+function recordId(node) {
+  return String(node?.data?.refId || node?.id || '');
+}
+
+function durationMs(value) {
+  if (typeof value === 'number') return value;
+  const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/.exec(String(value || ''));
+  if (!match) throw new Error(`Invalid ISO-8601 duration ${value}`);
+  return (Number(match[1] || 0) * 3600 + Number(match[2] || 0) * 60 + Number(match[3] || 0)) * 1000;
+}
+
+function instant(now) {
+  const value = typeof now === 'function' ? now() : new Date();
+  return new Date(value).toISOString();
+}
+
+function serializeError(error) {
+  return { name: error?.name || 'Error', message: error?.message || String(error) };
+}

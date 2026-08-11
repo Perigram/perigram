@@ -1,10 +1,10 @@
 <template>
   <div :class="nodeFrameClass">
-    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-amber-500"></div>
+    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-signal-decision"></div>
     <div class="flex items-start justify-between gap-2">
       <div class="min-w-0">
         <div class="flex items-center gap-1">
-          <i class="pi pi-cog text-amber-600" aria-hidden="true"></i>
+          <i class="pi pi-cog text-signal-decision" aria-hidden="true"></i>
           <strong class="truncate text-sm">{{ data.label || data.commandId || data.refId }}</strong>
         </div>
         <small class="text-muted-color">{{ data.commandId || $t('processDesigner.commandId') }}</small>
@@ -12,7 +12,7 @@
     </div>
 
     <div class="relative mt-2 rounded-ui border border-content-border px-2 py-1">
-      <Handle id="run-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2 !border-amber-500 !bg-amber-500" />
+      <Handle id="run-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2" :style="handleStyle({ kind: 'event' })" />
       <div class="flex min-w-0 flex-wrap items-center gap-1">
         <span class="text-xs text-muted-color">{{ $t('processDesigner.runAccess') }}</span>
         <span v-for="principal in runPrincipalLabels" :key="principal" class="truncate text-xs">
@@ -28,7 +28,7 @@
           :key="input.id"
           :class="socketClass(input, 'left')"
         >
-          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" />
+          <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" :style="handleStyle(input)" />
           <span class="block truncate text-xs">{{ input.label }}</span>
         </div>
       </div>
@@ -38,7 +38,7 @@
           :key="output.id"
           :class="socketClass(output, 'right')"
         >
-          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" />
+          <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" :style="handleStyle(output)" />
           <span class="block truncate text-xs">{{ output.label }}</span>
         </div>
       </div>
@@ -49,6 +49,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -57,7 +58,7 @@ const props = defineProps({
 
 const nodeFrameClass = computed(() => [
   'relative min-w-72 rounded-ui border bg-content px-2 py-2 pt-3 shadow-card transition-colors',
-  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+  props.selected ? 'border-primary' : 'border-content-border'
 ]);
 const inputSpecs = computed(() => normalizeSpecs(props.data.inputSpecs || props.data.inputLabels || []));
 const outputSpecs = computed(() => normalizeSpecs(props.data.outputSpecs || props.data.outputLabels || []));
@@ -67,9 +68,10 @@ function normalizeSpecs(items = []) {
   return items.map((item, index) => {
     if (typeof item === 'string') return { id: `${item}-${index}`, label: item, kind: 'data' };
     return {
+      ...item,
       id: item.id || item.label || index,
       label: item.label || item.entityType || item.id,
-      kind: item.kind || 'data'
+      kind: item.kind || item.type?.base || 'data'
     };
   });
 }
@@ -81,25 +83,18 @@ function socketHandleId(kind, item, index, items) {
 
 function socketClass(item, side) {
   return [
-    'relative min-w-0 rounded-ui border px-2 py-0.5',
+    'relative min-w-0 border-b border-content-border py-0.5',
     side === 'left' ? 'pl-3' : 'pr-3 text-right',
-    socketTone(item).row
   ];
 }
 
 function handleClass(item, side) {
   return [
-    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
-    socketTone(item).handle
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];
 }
 
-function socketTone(item = {}) {
-  return ({
-    entity: { row: 'border-content-border bg-content', handle: '!border-sky-500 !bg-sky-500' },
-    data: { row: 'border-content-border bg-content', handle: '!border-emerald-500 !bg-emerald-500' },
-    attachment: { row: 'border-content-border bg-content', handle: '!border-orange-500 !bg-orange-500' },
-    task: { row: 'border-content-border bg-content', handle: '!border-surface-500 !bg-surface-500' }
-  })[item.kind] || { row: 'border-content-border', handle: '!border-amber-500 !bg-amber-500' };
+function handleStyle(item) {
+  return processSocketHandleStyle(item);
 }
 </script>

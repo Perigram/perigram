@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { onEntityChanged } from '~/utils/entity-events.js';
+import { cncDomain } from '@cutkit/domain-cnc';
+import { useAuthStore } from './auth';
+import { containmentAncestors, hierarchyTypeAlias, normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 
 let syncListenerAttached = false;
 
@@ -11,59 +14,13 @@ let syncListenerAttached = false;
  */
 export const useEntityStore = defineStore('entities', () => {
     // Cache structure: { [entityType]: { [id]: data } }
-    const registry = ref({
-        organization: {},
-        project: {},
-        queue: {},
-        sheetDesign: {},
-        cassetteDesign: {},
-        cassetteInstance: {},
-        warehouse: {},
-        catalog: {},
-        requisition: {},
-        batch: {},
-        batchPile: {},
-        sheet: {},
-        remnant: {},
-        cassetteTemplate: {},
-        library: {}
-    });
+    const registry = ref(Object.fromEntries((cncDomain.entities || []).map(entity => [entity.type, {}])));
 
     const loading = ref(false);
     const error = ref(null);
+    const pendingFetches = new Map();
 
     ensureSyncListener();
-
-    /**
-     * Map of how entities relate to their parents (The Ancestry Tree)
-     */
-    const ancestryMap = {
-        cassetteInstance: (data) => [
-            { type: 'cassetteDesign', id: data.cassetteDesignId },
-            { type: 'sheet', id: data.sheetId },
-            { type: 'project', id: data.projectSlug, isSlug: true }
-        ],
-        sheet: (data) => [
-            { type: 'batchPile', id: data.pileId },
-            { type: 'batch', id: data.batchId },
-            { type: 'warehouse', id: data.warehouseId }
-        ],
-        batch: (data) => [
-            { type: 'requisition', id: data.requisitionId }
-        ],
-        batchPile: (data) => [
-            { type: 'batch', id: data.batchId }
-        ],
-        queue: (data) => [
-            { type: 'project', id: data.projectSlug, isSlug: true }
-        ],
-        requisition: (data) => [
-            { type: 'catalog', id: data.catalogId }
-        ],
-        remnant: (data) => [
-            { type: 'sheet', id: data.sheetId }
-        ]
-    };
 
     /**
      * Fetch an entity and store it in the registry.
@@ -73,45 +30,80 @@ export const useEntityStore = defineStore('entities', () => {
         registry.value[type] ||= {};
         if (!force && registry.value[type][id]) return registry.value[type][id];
 
-        loading.value = true;
-        try {
-            const endpointMap = {
-                organization: `/api/organizations/${id}`,
-                project: `/api/project/${id}`,
-                queue: `/api/queue/${id}`,
-                warehouse: `/api/warehouses/${id}`,
-                requisition: `/api/requisitions/${id}`,
-                batch: `/api/material-piles/${id}`,
-                cassetteInstance: `/api/cassette-instances/${id}`,
-                cassetteTemplate: `/api/cassettes/${id}`,
-                cassetteDesign: `/api/cassette-designs/${id}`,
-                sheetDesign: `/api/sheet-designs/${id}`,
-                library: `/api/libraries/${id}`,
-                // ... others as endpoints are implemented
-            };
+        const requestKey = `${normalizeHierarchyType(type)}:${id}`;
+        if (!force && pendingFetches.has(requestKey)) return await pendingFetches.get(requestKey);
 
-            const url = endpointMap[type] || `/api/${type}/${id}`;
-            const data = await $fetch(url);
-            
-            registry.value[type][id] = data;
-            return data;
-        } catch (err) {
-            if (!options.silent) {
-                console.error(`Failed to fetch ${type} with id ${id}:`, err);
-            }
-            error.value = err.message;
-            return null;
-        } finally {
-            loading.value = false;
-        }
+        loading.value = true;
+        const request = resolveReadableReference(type, id, options)
+            .then(data => {
+                if (data) registry.value[type][id] = data;
+                return data;
+            })
+            .catch(err => {
+                if (!options.silent) {
+                    console.error(`Failed to fetch ${type} with id ${id}:`, err);
+                }
+                error.value = err.message;
+                return null;
+            })
+            .finally(() => {
+                pendingFetches.delete(requestKey);
+                loading.value = false;
+            });
+        pendingFetches.set(requestKey, request);
+        return await request;
+    }
+
+    async function resolveReadableReference(type, id, options = {}) {
+        const route = entityEndpoint(type)?.routes?.list;
+        if (!route) return null;
+        const query = new URLSearchParams({ _id: id.toString() });
+        const { silent: _silent, ...fetchOptions } = options;
+        const response = await $fetch(`${route}?${query}`, fetchOptions);
+        return collectionItems(response).find(entity => entityIds(entity).includes(id.toString())) || null;
     }
 
     /**
      * Resolves the chain of parent references for an entity.
      */
     function getAncestry(type, data) {
-        if (!ancestryMap[type]) return [];
-        return ancestryMap[type](data).filter(ref => ref.id);
+        return containmentAncestors(data, type, effectiveContainment()).map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) }));
+    }
+
+    function effectiveContainment() {
+        try {
+            const authStore = useAuthStore();
+            const bindings = authStore.lineageBindings || [];
+            if (authStore.processActive) {
+                return bindings.map(binding => ({
+                    childType: binding.childEntityType,
+                    parentType: binding.ancestorEntityType,
+                    lineageKey: binding.lineageKey
+                }));
+            }
+        } catch {
+            // Auth store unavailable outside app context.
+        }
+        return cncDomain.containment || [];
+    }
+
+    function entityEndpoint(type = '') {
+        const normalized = normalizeHierarchyType(type);
+        return (cncDomain.ui?.endpoints || []).find(endpoint => normalizeHierarchyType(endpoint.type) === normalized);
+    }
+
+    function collectionItems(response) {
+        if (Array.isArray(response)) return response;
+        for (const key of ['items', 'projects', 'data']) {
+            if (Array.isArray(response?.[key])) return response[key];
+        }
+        return [];
+    }
+
+    function entityIds(entity = {}) {
+        return [entity._id, entity.id, entity.identity?.uid]
+            .map(value => value?.toString?.() || value)
+            .filter(Boolean);
     }
 
     function ensureSyncListener() {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { assertCommandAccess, assertTransitionAccess, hasEntityAccess } from './service.js';
+import { assertCommandAccess, assertTransitionAccess, createLineageFilter, hasEntityAccess } from './service.js';
 import { hasLineagePermission } from '../../utils/permissions.js';
 
 vi.mock('h3', () => ({
@@ -53,6 +53,25 @@ describe('access engine', () => {
       feature: 'queues',
       level: 'read',
       auth: { memberships: [{ organizationId: 'org-2', permissions: { queues: 'admin' } }] }
+    })).toBe(false);
+  });
+
+  it('scopes collection filters and entity access to the active organization', () => {
+    const multiOrgAuth = {
+      organizationId: 'org-1',
+      effectivePermissions: { queues: 'admin' },
+      memberships: [
+        { organizationId: 'org-1', permissions: { queues: 'read' } },
+        { organizationId: 'org-2', permissions: { queues: 'admin' } }
+      ]
+    };
+
+    expect(createLineageFilter(multiOrgAuth)).toEqual({ 'lineage.organizationId': 'org-1' });
+    expect(hasEntityAccess({
+      entity: { lineage: { organizationId: 'org-2' } },
+      feature: 'queues',
+      level: 'read',
+      auth: multiOrgAuth
     })).toBe(false);
   });
 

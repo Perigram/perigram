@@ -1,11 +1,13 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as queuesRepository from '../queues/repository.js';
 import * as entityRevisionsService from '../entity-revisions/service.js';
+import * as artifactsService from '../artifacts/service.js';
+import * as filesService from '../files/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
   createIdentity,
-  createStatus,
   inheritLineage,
   createData
 } from '../../core/blocks/index.js';
@@ -38,8 +40,15 @@ function normalizePrimaryStatuses(value) {
   return value.split(',').map(item => item.trim()).filter(Boolean);
 }
 
-async function derivedFromTemplate(templateId, parameters = {}, explicitDerivedFrom = null) {
-  if (explicitDerivedFrom) return explicitDerivedFrom;
+function derivedFromTemplateFilter(templateId) {
+  return {
+    'provenance.derivedFrom.source.type': 'cassette',
+    'provenance.derivedFrom.source.id': templateId?.toString?.() || templateId
+  };
+}
+
+async function derivedFromTemplate(templateId, parameters = {}, explicitProvenance = null) {
+  if (explicitProvenance) return explicitProvenance;
   if (!templateId) return null;
   const revision = await entityRevisionsService.getCurrentForEntity('cassette', templateId, 'geometry');
   return revision ? entityRevisionsService.derivedFromRevision(revision, parameters) : null;
@@ -56,24 +65,32 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
 
   // 2. Lineage Inheritance
   const lineage = inheritLineage(queue, 'queue');
-  if (data.templateId) {
-      lineage.templateId = toFlexibleId(data.templateId);
-  }
 
-  const origin = createStatus('DRAFT', userId, { note: 'Cassette design initialized' });
+  const origin = await statusService.initialStatusForOrganization(
+    'cassette_design',
+    lineage.organizationId,
+    userId,
+    { note: 'Cassette design initialized' }
+  );
 
   const designData = {
     identity: createIdentity(data.name || 'Cassette Design'),
     origin,
     status: origin,
     lineage,
+    provenance: {
+      derivedFrom: await derivedFromTemplate(
+        data.templateId,
+        data.parameters || {},
+        data.provenance?.derivedFrom
+      )
+    },
     data: createData({
       geometry: {
         data: data.geometryData || null,
         dxfId: data.dxfId ? toFlexibleId(data.dxfId) : null
       },
-      parameters: data.parameters || {},
-      derivedFrom: await derivedFromTemplate(data.templateId, data.parameters || {}, data.derivedFrom)
+      parameters: data.parameters || {}
     })
   };
 
@@ -82,15 +99,29 @@ export async function createFromQueue(queueId, data, userId, userRole, userPermi
 }
 
 export async function createFromTemplateUpload(data, userId, userPermissions = null) {
-  const origin = createStatus('ACTIVE', userId, { note: 'Initial design from upload' });
+  const lineage = { ...(data.lineage || {}) };
+  if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassette_designs', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied for cassette designs' });
+  }
+  const origin = await statusService.initialStatusForOrganization(
+    'cassette_design',
+    lineage.organizationId,
+    userId,
+    { note: 'Initial design from upload' }
+  );
   const slug = data.slug || `cassette-design-${generateRandomString(10)}`;
   const designData = {
     identity: createIdentity(data.name || 'Cassette Design', slug),
     origin,
     status: origin,
-    lineage: {
-      ...(data.lineage || {}),
-      templateId: toFlexibleId(data.templateId)
+    lineage,
+    relations: data.relations || {},
+    provenance: {
+      derivedFrom: await derivedFromTemplate(
+        data.templateId,
+        data.parameters || {},
+        data.provenance?.derivedFrom
+      )
     },
     data: createData({
       polygonParts: data.polygonParts || [],
@@ -99,8 +130,7 @@ export async function createFromTemplateUpload(data, userId, userPermissions = n
         data: data.geometryData || null,
         dxfId: data.dxfId ? toFlexibleId(data.dxfId) : null
       },
-      parameters: data.parameters || {},
-      derivedFrom: await derivedFromTemplate(data.templateId, data.parameters || {}, data.derivedFrom)
+      parameters: data.parameters || {}
     })
   };
 
@@ -153,7 +183,7 @@ export async function getById(id, userId, userRole, userPermissions) {
 export async function getByTemplateId(templateId, userId, userOrg, userRole, userPermissions) {
   const filter = {
     ...getLineageFilter(userPermissions || {}),
-    'lineage.templateId': toFlexibleId(templateId)
+    ...derivedFromTemplateFilter(templateId)
   };
 
   const designs = await repository.find(filter);
@@ -163,7 +193,7 @@ export async function getByTemplateId(templateId, userId, userOrg, userRole, use
 export async function exportDxf(id, userId, userRole, userPermissions) {
   const flexId = toFlexibleId(id);
   const raw = await repository.findById(flexId) ||
-    (await repository.find({ 'lineage.templateId': flexId }))[0];
+    (await repository.find(derivedFromTemplateFilter(id)))[0];
   if (!raw) throw createError({ statusCode: 404, message: 'Cassette design not found' });
   const design = new CassetteDesign(raw);
 
@@ -173,6 +203,17 @@ export async function exportDxf(id, userId, userRole, userPermissions) {
 
   const layeredDxf = layeredDxfFromDesignData(design.data);
   if (layeredDxf) return layeredDxf;
+
+  const sourceDxfRef = design.relations?.sourceDxf;
+  if (sourceDxfRef?.id) {
+    const artifact = await artifactsService.getById(sourceDxfRef.id, userId, null, userRole, userPermissions);
+    const attachment = artifact.attachments?.primary;
+    if (!attachment?.fileId) throw createError({ statusCode: 404, message: 'Source DXF artifact has no file' });
+    return await filesService.getFileStream(
+      attachment.fileId,
+      attachment.metadata?.bucketName || attachment.bucketName || 'userDxf'
+    );
+  }
 
   const dxfId = design.data?.geometry?.dxfId;
   if (dxfId) {
@@ -199,7 +240,7 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     delete processedFilter.queueId;
   }
   if (processedFilter.templateId) {
-    processedFilter['lineage.templateId'] = toFlexibleId(processedFilter.templateId);
+    Object.assign(processedFilter, derivedFromTemplateFilter(processedFilter.templateId));
     delete processedFilter.templateId;
   }
   const statuses = normalizePrimaryStatuses(processedFilter.primaryStatuses);
@@ -232,11 +273,29 @@ export async function update(id, updates, userId, userRole, userPermissions) {
   }
 
   if (updates.status) {
-    await statusService.transition('cassette_design', design._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'cassette_design',
+      targetId: design._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     delete updates.status;
   }
 
-  const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;
+  const {
+    identity,
+    origin,
+    status,
+    lineage,
+    relations,
+    provenance,
+    attachments,
+    specs,
+    summary,
+    data: updatesData,
+    ...clean
+  } = updates;
 
   if (updates.name) design.identity.name = updates.name;
 
@@ -262,3 +321,9 @@ export async function remove(id, userId, userRole, userPermissions) {
 
   return await repository.deleteById(id);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'cassette_design',
+  repository,
+  Model: CassetteDesign
+});

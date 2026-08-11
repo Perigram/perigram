@@ -1,7 +1,5 @@
 # COMPONENT: Invitations
 
-Manages organization membership invitations.
-
 ## Core Files
 - `repository.js`: Database operations for `invitations` collection.
 - `service.js`: Invitation generation and processing.
@@ -18,20 +16,22 @@ Manages organization membership invitations.
    Registration from an invitation creates only the user account and preserves
    the redirect back to the invitation instead of asking for organization
    details.
+   The public token endpoint returns a sanitized invitation presentation with
+   the stored organization name and server-resolved role labels. The browser
+   never requests the protected organization entity while rendering the form.
 3. **Join**: The authenticated user accepts the invitation via token or code,
-   creating a pending membership with the invited process role ids and no copied
-   permission preset. Organization admins approve or reject the pending
-   membership from team management. Approval activates the matching assignment
-   in the organization's active process definition, which is the runtime access
-   source for the invited user.
+   creating a pending membership with no copied role state or permission preset
+   and writing the invited role ids to the organization's authoritative role
+   assignment. Organization admins approve or reject the membership from team
+   management. Pending membership prevents runtime tenant access; rejection
+   removes both membership and organization assignment.
 
-Invitation organization ids use the repository `toFlexibleId()` convention so
-both string organization ids such as `org-...` and Mongo ObjectIds can own and
-query invitations.
+Invitation organization ids use the repository `toFlexibleId()` convention
+covered by the [feature template](../_template/README.md).
 
 ## API / Functions
 - `generateInvitation()`: Creates a new invitation after team-management
-  authorization and stores one or more invited process role ids.
+  authorization, validates organization role ids, and stores those ids.
 - `listByOrgForUser()`: Lists active organization invitations after
   team-management authorization.
 - `revokeInvitation()`: Revokes an invitation after team-management

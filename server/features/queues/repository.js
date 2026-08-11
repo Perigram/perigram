@@ -41,15 +41,6 @@ export async function getNextQueueNumber({ projectId = null, organizationId = nu
   return await db.collection(COLLECTION).countDocuments(filter) + 1;
 }
 
-export async function findChosenNestingRun(queueId) {
-  const db = await connectDB();
-  const flexibleId = toFlexibleId(queueId);
-  return await db.collection('nesting_runs').findOne({
-    'lineage.queueId': { $in: [flexibleId, queueId?.toString()] },
-    'status.state.primary': 'CHOSEN'
-  });
-}
-
 export async function deleteById(uid) {
   const db = await connectDB();
   return await db.collection(COLLECTION).deleteOne({ _id: toFlexibleId(uid) });

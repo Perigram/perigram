@@ -28,11 +28,28 @@ export async function find(filter = {}, options = {}) {
     .toArray();
 }
 
+export async function deleteForSource(entityType, entityId) {
+  const db = await connectDB();
+  const id = toFlexibleId(entityId).toString();
+  const filter = {
+    $or: [
+      { 'data.source.type': entityType, 'data.source.id': id },
+      { 'data.entityType': entityType, 'data.entityId': id }
+    ]
+  };
+  const revisions = await db.collection(COLLECTION).find(filter).toArray();
+  await db.collection(COLLECTION).deleteMany(filter);
+  return revisions;
+}
+
 export async function findByHash(entityType, entityId, scope, contentHash) {
   const db = await connectDB();
+  const id = toFlexibleId(entityId).toString();
   return await db.collection(COLLECTION).findOne({
-    'data.entityType': entityType,
-    'data.entityId': toFlexibleId(entityId),
+    $or: [
+      { 'data.source.type': entityType, 'data.source.id': id },
+      { 'data.entityType': entityType, 'data.entityId': id }
+    ],
     'data.scope': scope,
     'data.contentHash': contentHash
   });
@@ -40,10 +57,13 @@ export async function findByHash(entityType, entityId, scope, contentHash) {
 
 export async function findLatest(entityType, entityId, scope) {
   const db = await connectDB();
+  const id = toFlexibleId(entityId).toString();
   return await db.collection(COLLECTION)
     .find({
-      'data.entityType': entityType,
-      'data.entityId': toFlexibleId(entityId),
+      $or: [
+        { 'data.source.type': entityType, 'data.source.id': id },
+        { 'data.entityType': entityType, 'data.entityId': id }
+      ],
       'data.scope': scope
     })
     .sort({ 'data.number': -1, _id: -1 })
@@ -53,22 +73,35 @@ export async function findLatest(entityType, entityId, scope) {
 
 export async function ensureIndexes() {
   const db = await connectDB();
-  await db.collection(COLLECTION).createIndex(
-    {
-      'data.entityType': 1,
-      'data.entityId': 1,
-      'data.scope': 1,
-      'data.contentHash': 1
-    },
-    { unique: true, name: 'entity_revision_content_hash' }
-  );
-  await db.collection(COLLECTION).createIndex(
-    {
-      'data.entityType': 1,
-      'data.entityId': 1,
-      'data.scope': 1,
-      'data.number': -1
-    },
-    { name: 'entity_revision_latest' }
-  );
+  const collection = db.collection(COLLECTION);
+  await ensureIndex(collection, {
+    'data.source.type': 1,
+    'data.source.id': 1,
+    'data.scope': 1,
+    'data.contentHash': 1
+  }, { unique: true, name: 'entity_revision_content_hash' });
+  await ensureIndex(collection, {
+    'data.source.type': 1,
+    'data.source.id': 1,
+    'data.scope': 1,
+    'data.number': -1
+  }, { name: 'entity_revision_latest' });
+}
+
+async function ensureIndex(collection, key, options = {}) {
+  const existing = await collection.indexes();
+  const current = existing.find(index => index.name === options.name);
+  if (current && !sameIndexKey(current.key, key)) {
+    await collection.dropIndex(options.name);
+  }
+  await collection.createIndex(key, options);
+}
+
+function sameIndexKey(left = {}, right = {}) {
+  const leftEntries = Object.entries(left);
+  const rightEntries = Object.entries(right);
+  if (leftEntries.length !== rightEntries.length) return false;
+  return leftEntries.every(([key, value], index) => (
+    key === rightEntries[index]?.[0] && value === rightEntries[index]?.[1]
+  ));
 }

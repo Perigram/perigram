@@ -31,8 +31,7 @@ Key fields:
   area and is not a lifecycle status.
 
 ## Reusability Rules
-- **Minimum reusable area: 0.1 m²** (100,000 mm²)
-- Remnants below threshold marked as non-reusable (waste)
+- Remnants with area ≥ 0.1 m² (100,000 mm²) are reusable; below that threshold they are waste.
 - Only reusable remnants shown in nesting search
 
 ## Key Operations
@@ -64,13 +63,6 @@ Key fields:
    - Search for reusable remnants matching material/size
    - Call `markAsUsed()` to reserve remnant
    - Remnant geometry used as "hole" in nesting
-
-## Business Rules
-- Auto-generates unique remnant numbers (REM-XXXXXX)
-- Stores full DXF geometry for use in future nesting
-- Reusability automatically determined by area threshold
-- Can't delete used remnants
-- Warehouse counts updated on create/use/delete
 
 ## Related Components
 - [sheets](../sheets/README.md) - Source of remnants

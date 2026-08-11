@@ -10,6 +10,20 @@ export function findBillingPackage(packageId, runtimeConfig = {}) {
   return getBillingCatalog(runtimeConfig).find(item => item.id === packageId) || null;
 }
 
+export function getBillingConfiguration(runtimeConfig = {}) {
+  const configuredMode = String(runtimeConfig.billing?.mode || 'prepaidTokens');
+  const mode = ['none', 'prepaidTokens', 'tariff'].includes(configuredMode)
+    ? configuredMode
+    : 'prepaidTokens';
+  const currentTariff = String(runtimeConfig.billing?.currentTariff || '').trim();
+  const currentTariffLabelKey = String(runtimeConfig.billing?.currentTariffLabelKey || '').trim();
+  return {
+    mode,
+    currentTariff: mode === 'tariff' && currentTariff ? currentTariff : null,
+    currentTariffLabelKey: mode === 'tariff' && currentTariffLabelKey ? currentTariffLabelKey : null
+  };
+}
+
 function parseCatalog(rawCatalog) {
   if (Array.isArray(rawCatalog)) return rawCatalog;
   if (!rawCatalog || typeof rawCatalog !== 'string') return [];

@@ -18,9 +18,12 @@ should call `getAppRegistry()`.
 ## Registered Bindings
 
 - Entity services for every persisted domain entity declared in
-  `@cutkit/domain-cnc`.
+  `@cutkit/domain-cnc`. Registration adds an explicit
+  `processList(filters, auth)` and `processGetById(id, auth)` bindings for each
+  feature's concrete list/detail signatures; process entity nodes use those
+  uniform boundaries instead of guessing positional service arguments.
 - Command handlers: `saveCassetteTemplate`, `solveNesting`,
-  `generateAttachment`, `generateConfigBotDraft`,
+  `generateAttachment`, `convertArtifact`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.
 - Task executors: `nesting.solve`, which bridges queued task runs to the
   FastAPI nesting worker. Polling workers claim other task definitions such as

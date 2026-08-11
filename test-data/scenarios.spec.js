@@ -15,7 +15,7 @@ describe('CNC fixture scenarios', () => {
     expect(scenario.refs.sheetDesign).toBeTruthy();
     expect(scenario.entities.queue[0].data.job.items[0].id).toBe(scenario.refs.cassetteTemplate);
     expect(scenario.entities.cassette[0].data.definition.occs).toBe('0.4-draft');
-    expect(scenario.entities.queue[0].data.job.items[0].parameters).toEqual({ A: 500, B: 400, R: 35 });
+    expect(scenario.entities.queue[0].data.job.items[0].parameters).toEqual({ A: 500, B: 400, R: 35, T: 1 });
     expect(scenario.entities.sheet_design[0].data.placements[0].cassetteDesignId).toBe(scenario.refs.cassetteDesign);
     expect(scenario.entities.layer_standard[0].data.defaultPenId).toBe(scenario.refs.penTemplate);
 

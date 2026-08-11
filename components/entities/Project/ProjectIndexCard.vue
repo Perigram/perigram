@@ -59,7 +59,7 @@ function normalizeStatusBlock(status) {
 }
 
 function queueState(queue) {
-  return getPrimaryState(normalizeStatusBlock(queue.status || queue.state || 'DRAFT'), 'DRAFT');
+  return getPrimaryState(normalizeStatusBlock(queue.status || queue.state || 'UNKNOWN'), 'UNKNOWN');
 }
 </script>
 

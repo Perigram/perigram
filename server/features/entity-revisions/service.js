@@ -3,13 +3,15 @@ import * as repository from './repository.js';
 import { createError } from 'h3';
 import {
   createData,
-  createIdentity,
-  createStatus
+  createEntityRef,
+  createProvenance,
+  Identity
 } from '../../core/blocks/index.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { pluralize } from '../../utils/strings.js';
 import { EntityRevision } from './model.js';
+import { statusService } from '../../core/machines/service.js';
 
 const DEFAULT_SCOPE = 'content';
 
@@ -39,15 +41,19 @@ export function hashRevisionContent(content = {}) {
     .digest('hex')}`;
 }
 
-function revisionIdentity(entityType, scope, number) {
-  return createIdentity(`${entityType} ${scope} v${number}`);
+export function revisionIdentity(entityType, entityId, scope, number) {
+  const sourceId = toFlexibleId(entityId).toString();
+  return new Identity(
+    `revision:${entityType}:${sourceId}:${scope}:${number}`,
+    `${entityType} ${scope} v${number}`
+  );
 }
 
 function canReadRevision(userPermissions, revision) {
   if (!userPermissions) return true;
   const user = userPermissions;
   const lineage = revision?.lineage || {};
-  const sourceFeature = pluralize(revision?.data?.entityType || '');
+  const sourceFeature = pluralize(revision?.data?.source?.type || '');
   if (sourceFeature && hasLineagePermission(user, lineage, sourceFeature, 'read')) {
     return true;
   }
@@ -57,16 +63,20 @@ function canReadRevision(userPermissions, revision) {
 
 export function derivedFromRevision(revision, parameters = {}) {
   const data = revision?.data || revision || {};
-  return {
-    entityType: data.entityType,
-    entityId: data.entityId,
+  const source = data.source || {
+    type: data.entityType,
+    id: data.entityId
+  };
+  return createProvenance(
+    createEntityRef(source.type, source.id, revision?._id || data.revisionId || data.id),
+    {
     scope: data.scope,
-    revisionId: revision?._id || data.revisionId || data.id || null,
     revisionNumber: data.number,
     contentHash: data.contentHash,
     sourceStatus: data.sourceStatus || null,
     parameters: parameters || {}
-  };
+    }
+  );
 }
 
 export async function ensureForEntitySnapshot({
@@ -75,6 +85,7 @@ export async function ensureForEntitySnapshot({
   scope = DEFAULT_SCOPE,
   content,
   snapshot,
+  attachments = {},
   userId = 'SYSTEM',
   reason = 'content-change'
 } = {}) {
@@ -91,19 +102,24 @@ export async function ensureForEntitySnapshot({
 
   const latest = await repository.findLatest(entityType, entityId, scope);
   const number = Number(latest?.data?.number || 0) + 1;
-  const origin = createStatus('ACTIVE', userId, { note: 'Entity revision created' });
+  const origin = await statusService.initialStatusForOrganization(
+    'entity_revision',
+    entity.lineage?.organizationId,
+    userId,
+    { note: 'Entity revision created' }
+  );
 
   const doc = {
-    identity: revisionIdentity(entityType, scope, number),
+    identity: revisionIdentity(entityType, entityId, scope, number),
     origin,
     status: origin,
     lineage: {
       ...(entity.lineage || {}),
       [`${entityType}Id`]: entityId
     },
+    attachments,
     data: createData({
-      entityType,
-      entityId,
+      source: createEntityRef(entityType, entityId),
       scope,
       number,
       contentHash,
@@ -120,7 +136,8 @@ export async function ensureForEntitySnapshot({
     return toDTO(await repository.create(doc));
   } catch (error) {
     if (error?.code === 11000) {
-      return toDTO(await repository.findByHash(entityType, entityId, scope, contentHash));
+      const concurrent = await repository.findByHash(entityType, entityId, scope, contentHash);
+      if (concurrent) return toDTO(concurrent);
     }
     throw error;
   }
@@ -145,11 +162,11 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     : {};
   const processed = { ...filter };
   if (processed.entityId) {
-    processed['data.entityId'] = toFlexibleId(processed.entityId);
+    processed['data.source.id'] = toFlexibleId(processed.entityId).toString();
     delete processed.entityId;
   }
   if (processed.entityType) {
-    processed['data.entityType'] = processed.entityType;
+    processed['data.source.type'] = processed.entityType;
     delete processed.entityType;
   }
   if (processed.scope) {
@@ -158,5 +175,9 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   }
 
   const revisions = await repository.find({ ...lineageFilter, ...processed });
-  return revisions.map(toDTO);
+  return revisions.filter(revision => canReadRevision(userPermissions, revision)).map(toDTO);
+}
+
+export async function removeForEntity(entityType, entityId) {
+  return await repository.deleteForSource(entityType, entityId);
 }

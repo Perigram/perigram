@@ -158,7 +158,7 @@ For every UI implementation change:
 - Update the relevant local README if behavior, structure, primitives, tokens,
   or contracts changed.
 - Add related README links when adding a new component area.
-- Add an `Agent Notes` entry under the relevant task in `TODO.org` with date,
+- Add an `Agent Notes` entry under the relevant task in `TODO.md` with date,
   task, files changed, docs updated, and key decisions.
 - Keep code and documentation commits separate when committing: implementation
   commit first, docs/TODO commit with `neo: ...` prefix.

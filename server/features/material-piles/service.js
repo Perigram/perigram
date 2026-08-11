@@ -1,8 +1,9 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as warehouseService from '../warehouses/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createSpecs, createStatus } from '~/server/core/blocks/index.js';
+import { createSpecs } from '~/server/core/blocks/index.js';
 import { MaterialPile } from './model.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { generateRandomString } from '~/server/utils/strings';
@@ -21,8 +22,8 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   if (!warehouseId || !catalogId || !colorId) {
     throw createError({ statusCode: 400, message: 'warehouseId, catalogId, and colorId are required' });
   }
-  if (totalQuantity < 0) {
-    throw createError({ statusCode: 400, message: 'quantity must be non-negative' });
+  if (!Number.isInteger(totalQuantity) || totalQuantity < 0) {
+    throw createError({ statusCode: 400, message: 'quantity must be a non-negative integer' });
   }
 
   const lineage = {
@@ -66,7 +67,14 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     note: 'Initial material stocking'
   });
 
-  pile.applyStatus('STOCKED', userId, { note: 'Initial material stocking' });
+  const initialStatus = await statusService.initialStatusForOrganization(
+    'material_pile',
+    userOrg,
+    userId,
+    { note: 'Initial material stocking' }
+  );
+  pile.origin = initialStatus;
+  pile.status = initialStatus;
 
   const createdRaw = await repository.create(pile);
   await warehouseService.updateInventoryCounts(warehouseId, {
@@ -99,7 +107,13 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   }
 
   if (updates.status) {
-    await statusService.transition('material_pile', pile._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'material_pile',
+      targetId: pile._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     return await getById(uid);
   }
 
@@ -164,7 +178,14 @@ export async function updateStatus(id, state, note, user, additionalData = {}) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  return await statusService.transition('material_pile', pile._id, state, user.userId, createTransitionAuth(user.userId, user), { note, ...additionalData });
+  const result = await statusService.transitionWithResult({
+    entityType: 'material_pile',
+    targetId: pile._id,
+    targetState: state,
+    auth: createTransitionAuth(user.userId, user),
+    context: { note, ...additionalData }
+  });
+  return result.status;
 }
 
 export async function remove(id, userId, userOrg, userRole, userPermissions) {
@@ -192,8 +213,10 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 }
 
 export async function allocate(uid, count, userId, userRole, meta = {}) {
-  const allocationCount = Math.floor(Number(count || 0));
-  if (allocationCount <= 0) throw new Error('Allocation count must be positive');
+  const allocationCount = Number(count || 0);
+  if (!Number.isInteger(allocationCount) || allocationCount <= 0) {
+    throw new Error('Allocation count must be a positive integer');
+  }
   const pileRaw = await repository.findById(uid);
   if (!pileRaw) throw new Error('Pile not found');
   const pile = new MaterialPile(pileRaw);
@@ -209,49 +232,24 @@ export async function allocate(uid, count, userId, userRole, meta = {}) {
     ...meta
   });
 
-  await repository.updateById(uid, pile);
+  const depleted = pile.data.stock.used >= pile.data.stock.total;
+  if (depleted) {
+    await statusService.transitionWithResult({
+      entityType: 'material_pile',
+      targetId: uid,
+      intent: 'depleteMaterialPile',
+      auth: createTransitionAuth('SYSTEM', 'SYSTEM'),
+      context: { metadata: { note: `All ${pile.data.stock.total} sheets allocated` } },
+      patch: { data: pile.data }
+    });
+  } else {
+    await repository.updateById(uid, pile);
+  }
   if (pile.lineage?.warehouseId) {
     await warehouseService.updateInventoryCounts(pile.lineage.warehouseId, { totalSheets: -allocationCount });
   }
   
-  if (pile.data.stock.used >= pile.data.stock.total) {
-    await statusService.transition('material_pile', uid, 'DEPLETED', 'SYSTEM', { system: true, userId: 'SYSTEM' }, {
-      note: `All ${pile.data.stock.total} sheets allocated`
-    });
-  }
-  
   return await getById(uid);
-}
-
-export async function allocateSheets(uid, pileId, count, userId) {
-  const allocationCount = Math.floor(Number(count || 0));
-  if (allocationCount <= 0) throw createError({ statusCode: 400, message: 'Allocation count must be positive' });
-  const pileRaw = await repository.findById(uid);
-  if (!pileRaw) throw createError({ statusCode: 404, message: 'Material pile not found' });
-  const pile = new MaterialPile(pileRaw);
-
-  const available = (pile.data?.stock?.total || 0) - (pile.data?.stock?.used || 0);
-  if (available < allocationCount) {
-    throw createError({ statusCode: 400, message: 'Insufficient sheets in pile' });
-  }
-
-  pile.data.stock.used += allocationCount;
-  appendStockMovement(pile, {
-    type: 'ALLOCATION',
-    quantity: -allocationCount,
-    userId,
-    pileId
-  });
-  await repository.updateById(uid, pile);
-
-  return {
-    success: true,
-    sheets: Array.from({ length: allocationCount }, (_, index) => ({
-      id: `${pileId || uid}-${index + 1}`,
-      pileId: pileId || uid,
-      userId
-    }))
-  };
 }
 
 function appendStockMovement(pile, movement = {}) {
@@ -283,3 +281,9 @@ function appendStockMovement(pile, movement = {}) {
 function cleanMovementEntry(entry = {}) {
   return Object.fromEntries(Object.entries(entry).filter(([, value]) => value !== undefined));
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'material_pile',
+  repository,
+  Model: MaterialPile
+});

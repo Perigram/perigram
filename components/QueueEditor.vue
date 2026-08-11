@@ -1,6 +1,10 @@
 <template>
     <div class="flex h-full min-h-0 min-w-0 flex-col">
-        <component :is="workspaceComponent" :center-scroll="false">
+        <component
+            :is="workspaceComponent"
+            :center-scroll="false"
+            v-bind="workspaceLayoutProps"
+        >
             <template v-if="showQueueNavigation && queues?.length > 0" #left>
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
                     <span class="font-medium">{{ $t('project.queues') }}</span>
@@ -40,14 +44,11 @@
                         :options="queueOptions"
                         option-label="name"
                         option-value="_id"
+                        entity-type="queue"
                         class="w-full"
                         size="small"
                         @update:modelValue="$emit('select-queue', $event)"
-                    >
-                        <template #value>
-                            <span class="block truncate font-semibold">{{ queueName }}</span>
-                        </template>
-                    </Select>
+                    />
                     <Button
                         v-if="canCreateQueue"
                         icon="pi pi-plus"
@@ -60,7 +61,12 @@
                     />
                 </div>
 
-                <ScrollablePanel v-if="showNestingCommandRegion" class="shrink-0" :scroll-content="false">
+                <ScrollablePanel
+                    v-if="showNestingCommandRegion"
+                    class="shrink-0"
+                    :class="{ '!rounded-none !border-0': flush }"
+                    :scroll-content="false"
+                >
                     <template #header>
                         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                             <SelectButton
@@ -74,10 +80,22 @@
                                 :disabled="!canRunNesting"
                             />
                             <Select
+                                v-model="nestingOptions.machineId"
+                                :options="machineOptions"
+                                optionLabel="name"
+                                optionValue="_id"
+                                entity-type="machine"
+                                :placeholder="$t('nesting.selectMachine')"
+                                class="min-w-48 flex-1"
+                                size="small"
+                                :disabled="!canRunNesting"
+                            />
+                            <Select
                                 v-model="nestingOptions.toolProfileId"
                                 :options="toolOptions"
                                 optionLabel="name"
                                 optionValue="_id"
+                                entity-type="toolProfile"
                                 :placeholder="$t('nesting.selectTool')"
                                 class="min-w-48 flex-1"
                                 size="small"
@@ -100,9 +118,10 @@
                         <div class="flex flex-col gap-4">
                             <!-- Virtual Mode -->
                             <div v-if="nestingOptions.materialMode === 'VIRTUAL'" class="flex flex-col gap-3">
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="queue-editor__nesting-inputs grid grid-cols-1 gap-4">
                                     <InputNumber v-model="nestingOptions.virtualWidth" :min="100" :placeholder="$t('nesting.width')" size="small" />
                                     <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" size="small" />
+                                    <InputNumber v-model="nestingOptions.virtualThickness" :min="0.01" :min-fraction-digits="1" :max-fraction-digits="3" :placeholder="$t('nesting.thickness')" size="small" />
                                 </div>
                                 <div class="rounded-panel border border-content-border bg-content p-3">
                                     <div class="flex items-center justify-between gap-3">
@@ -117,7 +136,7 @@
 
                             <!-- Warehouse Mode -->
                             <div v-else class="flex flex-col gap-4">
-                                <div class="flex flex-col gap-2 sm:flex-row">
+                                <div class="queue-editor__inventory-controls flex flex-col gap-2">
                                     <Select
                                         :model-value="null"
                                         :options="unselectedInventoryOptions"
@@ -182,74 +201,77 @@
                     />
                 </ScrollablePanel>
 
-                <ScrollablePanel :header="$t('queues.cassettes')" class="min-h-0 flex-1">
+                <ScrollablePanel
+                    :header="$t('queues.cassettes')"
+                    class="min-h-0 flex-1"
+                    :class="{ '!rounded-none !border-0': flush }"
+                >
                     <template #actions>
                         <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
                         <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
                         <Button
-                            v-if="canEditQueue"
-                            :label="$t('queues.addFromTemplate')"
+                            v-if="canAddQueueEntry"
+                            :label="$t('queues.addCassette')"
                             icon="pi pi-plus"
-                            text
                             severity="secondary"
                             size="small"
-                            @click="showAddDialog = true"
+                            :disabled="!producerResourcesReady"
+                            :loading="!producerResourcesReady"
+                            @click="event => producerMenu.toggle(event)"
                         />
-                        <FileUpload
-                            v-if="canEditQueue"
-                            mode="basic"
-                            name="file"
-                            accept=".dxf"
-                            :auto="true"
-                            :customUpload="true"
-                            @select="onInstantUploadSelect"
-                            :chooseLabel="$t('queues.uploadCassette')"
-                            :choose-button-props="{ severity: 'secondary', text: true, size: 'small' }"
-                        />
+                        <Menu ref="producerMenu" :model="producerMenuItems" popup />
                     </template>
                     <div class="flex flex-col gap-6">
-                        <ResponsiveGrid v-if="viewMode === 'grid'" variant="wide">
+                        <ResponsiveGrid v-if="viewMode === 'grid'" variant="bounded" responsive-context="container">
                             <template v-for="entry in entries" :key="entry?._key">
                                 <QueueEntryCard
                                     v-if="entry"
                                     :entry="entry"
-                                    :cassette="getEntryCassetteData(entry)"
+                                    :cassette="getEntryEntityData(entry)"
+                                    :template="getEntryTemplateData(entry)"
+                                    :template-id="getEntryTemplateId(entry)"
                                     :parameters="getEntryParameters(entry)"
-                            :disabled="!canEditQueue"
+                                    :configurable="canConfigureEntry(entry)"
+                                    :saving="configuringEntryIds.has(entry.id?.toString?.() || entry.id)"
+                                    :disabled="!canEditQueue"
+                                    @configure="parameters => configureEntry(entry, parameters)"
                                     @update-quantity="value => updateEntryQuantity(entry, value)"
-                                    @update-dimension="(param, value) => updateEntryDimension(entry, param, value)"
                                     @remove="confirmDelete(entry)"
                                 />
                             </template>
                         </ResponsiveGrid>
 
                         <TableFrame v-else>
-                            <DataTable :value="entries" dataKey="_key" :editMode="canEditQueue ? 'cell' : null" @cell-edit-complete="onRowEditSave">
-                                <Column field="cassetteTemplateId" :header="$t('queues.cassette')">
-                                    <template #body="{ data }"><span>{{ getCassetteName(data.cassetteTemplateId) }}</span></template>
-                                </Column>
-                                <Column field="quantity" :header="$t('queues.quantity')">
-                                    <template #editor="{ data }"><InputNumber v-model="data.quantity" :min="1" fluid size="small" /></template>
+                            <DataTable :value="entries" dataKey="_key">
+                                <Column field="id" :header="$t('queues.cassette')">
+                                    <template #body="{ data }"><span>{{ getCassetteName(data) }}</span></template>
                                 </Column>
                                 <Column v-for="param in allParameters" :key="param" :header="param" :field="`dimensions.${param}`">
                                     <template #body="{ data }">
-                                        <span v-if="isParametricEntry(data)">{{ data.dimensions?.[param] || '-' }}</span>
+                                        <span v-if="hasEditableEntryParameters(data)">{{ data.dimensions?.[param] ?? '-' }}</span>
                                         <span v-else class="text-muted-color">-</span>
                                     </template>
-                                    <template #editor="{ data }">
-                                        <InputNumber v-if="isParametricEntry(data)" v-model="data.dimensions[param]" fluid size="small" />
-                                    </template>
                                 </Column>
+                                <Column field="quantity" :header="$t('common.quantity')" />
                                 <Column v-if="canEditQueue" style="width: var(--ck-table-action-column-width)">
-                                    <template #body="{ data }"><Button icon="pi pi-trash" severity="danger" text :aria-label="$t('common.delete')" @click="confirmDelete(data)" size="small" /></template>
+                                    <template #body="{ data }">
+                                        <div class="flex items-center justify-end gap-1">
+                                            <Button icon="pi pi-trash" severity="danger" text :aria-label="$t('common.delete')" @click="confirmDelete(data)" size="small" />
+                                        </div>
+                                    </template>
                                 </Column>
                             </DataTable>
                         </TableFrame>
                     </div>
                 </ScrollablePanel>
 
-                <ScrollablePanel v-if="hasPhysicalOutputs" :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`" class="flex-1">
-                    <ResponsiveGrid>
+                <ScrollablePanel
+                    v-if="hasPhysicalOutputs"
+                    :header="`${$t('project.cassettes')} ${$t('cassetteInstance.instances')}`"
+                    class="flex-1"
+                    :class="{ '!rounded-none !border-0': flush }"
+                >
+                    <ResponsiveGrid responsive-context="container">
                         <CassetteInstanceCard
                             v-for="instance in instances"
                             :key="instance._id"
@@ -260,25 +282,14 @@
                 </ScrollablePanel>
             </div>
             <template v-if="showNestingRunRegion" #[supportSlot]>
-                <Panel :header="`${$t('queue.runs')} (${readableQueueRuns.length})`">
-                    <div v-if="readableQueueRuns.length > 0" class="flex min-h-0 min-w-0 flex-col gap-3">
-                        <Select
-                            :model-value="selectedRunId"
-                            :options="runOptions"
-                            option-label="name"
-                            option-value="id"
-                            class="w-full"
-                            size="small"
-                            @update:model-value="selectedRunId = $event"
-                        />
+                <Panel :header="$t('queue.runs')" :class="{ '!rounded-none !border-0': flush }">
+                    <div v-if="activeRun" class="flex min-h-0 min-w-0 flex-col gap-3">
                         <NestingRunCard
-                            v-if="activeRun"
                             :key="activeRun._id"
                             :run="activeRun"
                             :sheet-designs="sheetDesigns"
                             :active="true"
-                            :is-chosen="getPrimaryState(activeRun.status) === 'CHOSEN'"
-                            @select="selectedRunId = $event.toString()"
+                            :is-chosen="isAcceptedRun(activeRun)"
                             @choose="chooseRunHandler"
                             @refresh="handleRunStatusChanged"
                             @delete="deleteRunHandler"
@@ -291,32 +302,64 @@
         </component>
 
 
-        <!-- Add Entry Dialog -->
-        <StandardDialog v-model:visible="showAddDialog" :header="$t('queues.addEntry')">
+        <StandardDialog v-model:visible="showAddDialog" :header="selectedProducer ? producerLabel(selectedProducer) : $t('queues.addEntry')">
             <div class="flex flex-col gap-4 py-4">
-                <div class="flex flex-col gap-2">
-                    <label>{{ $t('queues.cassette') }}</label>
-                    <Select v-model="newEntry.cassetteTemplateId" :options="allAvailableCassettes" optionLabel="name" optionValue="_id" class="w-full" size="small" @change="onNewCassetteChange" />
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label>{{ $t('queues.quantity') }}</label>
-                    <InputNumber v-model="newEntry.quantity" :min="1" fluid size="small" />
-                </div>
+                <template>
+                    <div v-for="field in visibleProducerFields" :key="field.id" class="flex flex-col gap-2">
+                        <label>{{ field.label || field.id }}</label>
+                        <Select
+                            v-if="field.type === 'entity'"
+                            v-model="producerValues[field.id]"
+                            :options="producerFieldOptions[field.id] || []"
+                            option-label="label"
+                            option-value="value"
+                            :entity-type="field.entityType || field.accepts?.[0] || ''"
+                            class="w-full"
+                            size="small"
+                            :disabled="field.id === 'templateId' && !producerValues.libraryId"
+                            @change="onProducerFieldChange(field)"
+                        />
+                        <MultiSelect
+                            v-else-if="field.type === 'entityList'"
+                            v-model="producerValues[field.id]"
+                            :options="producerFieldOptions[field.id] || []"
+                            option-label="label"
+                            option-value="value"
+                            :entity-type="field.entityType || field.accepts?.[0] || ''"
+                            class="w-full"
+                            size="small"
+                        />
+                        <InputNumber v-else-if="field.type === 'number'" v-model="producerValues[field.id]" fluid size="small" />
+                        <Textarea v-else-if="field.type === 'object'" v-model="producerValues[field.id]" rows="3" auto-resize />
+                        <InputText v-else-if="field.type !== 'cassetteParameters'" v-model="producerValues[field.id]" class="w-full" size="small" />
+                        <div v-else class="grid grid-cols-2 gap-3">
+                            <div v-for="parameter in producerParameterNames" :key="parameter" class="flex flex-col gap-1">
+                                <label>{{ parameter }}</label>
+                                <InputNumber v-model="producerParameters[parameter]" :disabled="parameter === 'T'" fluid size="small" />
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
             <template #footer>
                 <Button :label="$t('common.cancel')" text severity="secondary" size="small" @click="showAddDialog = false" />
-                <Button :label="$t('common.add')" severity="secondary" size="small" @click="() => addEntry()" :disabled="!newEntry.cassetteTemplateId" />
+                <Button :label="$t('common.add')" severity="secondary" size="small" :loading="producerExecuting" @click="executeSelectedProducer" :disabled="!producerReady" />
             </template>
         </StandardDialog>
 
-        <CassetteEditorDialog v-model:modelValue="showUploadDialog" @saved="onCassetteUploaded" ref="uploadDialogRef" />
+        <CassetteEditorDialog
+            v-model:modelValue="showUploadDialog"
+            :producer-action-id="selectedProducer?.actionId || ''"
+            :producer-action-body="uploadProducerActionBody"
+            @saved="onCassetteUploaded"
+        />
 
         <ConfirmDialog />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -329,10 +372,14 @@ import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
+import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import SelectButton from 'primevue/selectbutton';
 import Message from 'primevue/message';
 import InputNumber from 'primevue/inputnumber';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Menu from 'primevue/menu';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -351,9 +398,12 @@ import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
-import { canonicalQueueItem } from '~/utils/queue-items.js';
+import { canonicalQueueItem, queueItemTemplateId } from '~/utils/queue-items.js';
+import { currentQueueRun } from '~/utils/queue-runs.js';
+import { queueEntryParameterNames } from '~/utils/queue-entry-parameters.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
+import { cncDomain } from '@cutkit/domain-cnc';
 
 const props = defineProps({
     queue: { type: Object, required: true },
@@ -361,7 +411,8 @@ const props = defineProps({
     projectSlug: { type: String, required: true },
     showQueueNavigation: { type: Boolean, default: true },
     editMode: { type: String, default: 'workflow' },
-    processActions: { type: Array, default: () => [] }
+    processActions: { type: Array, default: () => [] },
+    flush: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted']);
@@ -371,7 +422,6 @@ const toast = useToast();
 const authStore = useAuthStore();
 
 const queueState = computed(() => getPrimaryState(props.queue.status, 'UNKNOWN'));
-const queueName = computed(() => props.queue.identity?.name || props.queue.identity?.slug || t('common.unnamed'));
 const isProcessMode = computed(() => props.editMode === 'process');
 const showQueueNavigation = computed(() => props.showQueueNavigation);
 const workspaceComponent = computed(() => showQueueNavigation.value ? WorkspaceLanes : EntityWorkspace);
@@ -386,23 +436,32 @@ const { runs, nestingCompleted } = storeToRefs(queuesStore);
 const nestingInProgress = ref(false);
 const showAddDialog = ref(false);
 const showUploadDialog = ref(false);
-const uploadDialogRef = ref(null);
+const configuringEntryIds = ref(new Set());
+const producerMenu = ref(null);
+const selectedProducer = ref(null);
+const producerValues = ref({});
+const producerFieldOptions = ref({});
+const producerParameters = ref({});
+const producerExecuting = ref(false);
+const producerResourcesReady = ref(false);
 const cassettes = ref([]);
 const cassetteDesigns = ref([]);
 const sheetDesigns = ref([]);
 const warehouses = ref([]);
+const libraries = ref([]);
+const machines = ref([]);
+const project = ref(null);
 const availableInventory = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
-const selectedRunId = ref(null);
 const instances = ref([]);
 const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
 const queueList = computed(() => [...props.queues].reverse());
 const toolOptions = computed(() => namedSelectOptions(tools.value, t('common.unnamed')));
+const machineOptions = computed(() => namedSelectOptions(machines.value, t('common.unnamed')));
 const warehouseOptions = computed(() => namedSelectOptions(warehouses.value, t('common.unnamed')));
 const canCreateQueue = computed(() => authStore.can('queues', 'create'));
 const canEditQueue = computed(() => {
-    if (!isProcessMode.value) return queueState.value === 'DRAFT';
     return hasPermissionGrant({
         permissions: authStore.activePermissions,
         feature: 'queues',
@@ -411,11 +470,350 @@ const canEditQueue = computed(() => {
         entityType: 'queue'
     });
 });
+const hasFeatureAccess = (feature, level) => authStore.hasPermission(feature, level);
+const canAddQueueEntry = computed(() => producerMenuItems.value.length > 0);
+const queueDesignRelation = (cncDomain.relations || []).find(relation => (
+    relation.ownerType === 'queue' && relation.targetType === 'cassette_design'
+));
+const configureRelationAction = computed(() => {
+    if (!isProcessMode.value || !queueDesignRelation) return null;
+    return props.processActions.find(action => (
+        action.relationMutation?.operation === 'link'
+        && action.relationMutation.key === queueDesignRelation.key
+        && action.relationMutation.targetType === queueDesignRelation.targetType
+        && action.relationMutation.creator?.actionId
+    )) || null;
+});
+const availableProducers = computed(() => {
+    return resolveQueueDesignProducers({
+        domain: cncDomain,
+        processMode: isProcessMode.value,
+        processActions: props.processActions,
+        canEditQueue: canEditQueue.value,
+        hasFeatureAccess
+    });
+});
+const producerMenuItems = computed(() => availableProducers.value.map(producer => ({
+    label: producerLabel(producer),
+    command: () => startProducer(producer)
+})));
+const producerFields = computed(() => {
+    const producer = selectedProducer.value;
+    if (!producer) return [];
+    if (producer.action) {
+        const fields = producer.action.inputPolicy?.fields || producer.action.construction?.inputs || [];
+        return producerSourceFields(
+            producer,
+            producerFieldsForAction(producer.action, fields, ['queue', 'project'])
+        );
+    }
+    return producerSourceFields(producer, constructionFields(producer.constructionMode));
+});
+const visibleProducerFields = computed(() => producerFields.value.filter(field => !usesServerDefaultTemplate(field)));
+const libraryOptions = computed(() => libraries.value
+    .filter(library => libraryHasReadableTemplates(library))
+    .map(library => ({
+        label: entitySelectLabel(library, t('entities.library')),
+        value: library._id?.toString(),
+        entity: library
+    })));
+const producerParameterNames = computed(() => {
+    const template = templateForProducer();
+    return template ? getCassetteParameters(template) : [];
+});
+const uploadProducerActionBody = computed(() => {
+    if (!selectedProducer.value?.actionId) return {};
+    return {
+        data: {
+            ...(isProcessMode.value ? { linkCreatedTo: { ownerType: 'queue', relationKey: 'cassettes' } } : {})
+        },
+        entities: {
+            queue: props.queue._id || props.queue.identity?.uid,
+            ...(project.value?._id ? { project: project.value._id } : {})
+        }
+    };
+});
+const producerReady = computed(() => {
+    if (!selectedProducer.value) return false;
+    return producerFields.value.every(field => !field.required || hasProducerValue(field));
+});
 const processRunNestingAction = computed(() => {
     if (!isProcessMode.value) return null;
     return props.processActions
         .find(action => action?.actionKind === 'runCommand' && action.commandId === 'solveNesting') || null;
 });
+
+function producerLabel(producer = {}) {
+    return producer.labelKey ? t(producer.labelKey) : (producer.label || producer.id);
+}
+
+function libraryHasReadableTemplates(library = {}) {
+    const libraryId = library._id?.toString?.() || library._id;
+    if (!libraryId) return false;
+    if ((library.summary?.cassettePreview || []).length > 0) return true;
+    return cassettes.value.some(template => {
+        const templateLibraryId = template.lineage?.libraryId?.toString?.() || template.lineage?.libraryId;
+        return templateLibraryId?.toString() === libraryId.toString();
+    });
+}
+
+function constructionFields(mode = '') {
+    const contract = cncDomain.construction?.cassette_design || {};
+    return contract.modeInputs?.[mode] || contract.inputs || [];
+}
+
+function producerSourceFields(producer = {}, fields = []) {
+    if (producer.constructionMode !== 'bakeCassetteDesignFromTemplate') return fields;
+    const byId = new Map(fields.filter(field => field?.id).map(field => [field.id, field]));
+    return [
+        {
+            id: 'libraryId',
+            label: t('entities.library'),
+            type: 'entity',
+            entityType: 'library',
+            required: true,
+            prompt: true,
+            uiOnly: true
+        },
+        byId.get('templateId') || {
+            id: 'templateId',
+            label: t('entities.cassetteTemplate'),
+            path: 'templateId',
+            type: 'entity',
+            entityType: 'cassette',
+            required: true,
+            prompt: true
+        },
+        ...fields.filter(field => field.id !== 'templateId')
+    ];
+}
+
+function availableTemplateEntities() {
+    const selectedLibraryId = producerValues.value.libraryId?.toString?.() || producerValues.value.libraryId;
+    if (selectedLibraryId) {
+        return cassettes.value.filter(template => {
+            const libraryId = template.lineage?.libraryId?.toString?.() || template.lineage?.libraryId;
+            return libraryId?.toString() === selectedLibraryId.toString();
+        });
+    }
+    return cassettes.value;
+}
+
+async function loadTemplatesForSelectedLibrary() {
+    const selectedLibraryId = producerValues.value.libraryId?.toString?.() || producerValues.value.libraryId;
+    if (!selectedLibraryId) {
+        producerFieldOptions.value.templateId = [];
+        producerValues.value.templateId = null;
+        syncProducerParameters();
+        return;
+    }
+    const scoped = await optionalList(() => $fetch('/api/cassettes', {
+        query: { libraryId: selectedLibraryId }
+    }));
+    const known = new Map(cassettes.value.map(template => [template._id?.toString?.() || template._id, template]));
+    for (const template of scoped) {
+        const id = template._id?.toString?.() || template._id;
+        if (id) known.set(id, template);
+    }
+    cassettes.value = Array.from(known.values());
+    producerFieldOptions.value.templateId = scoped.map(template => ({
+        label: entitySelectLabel(template, t('entities.cassette')),
+        value: template._id?.toString(),
+        entity: template
+    }));
+    producerValues.value.templateId = producerFieldOptions.value.templateId.length === 1
+        ? producerFieldOptions.value.templateId[0].value
+        : null;
+    syncProducerParameters();
+}
+
+async function onProducerFieldChange(field = {}) {
+    if (field.id === 'libraryId') {
+        await loadTemplatesForSelectedLibrary();
+        return;
+    }
+    if (field.id === 'templateId') syncProducerParameters();
+}
+
+async function startProducer(producer) {
+    await loadProducerResources();
+    selectedProducer.value = producer;
+    producerValues.value = {};
+    producerFieldOptions.value = {};
+    producerParameters.value = {};
+    if (producer.constructionMode === 'importCassetteDesignFromArtifact') {
+        showUploadDialog.value = true;
+        return;
+    }
+    for (const field of producerFields.value) {
+        if (field.default !== undefined) producerValues.value[field.id] = field.default;
+        if (field.type === 'entity' || field.type === 'entityList') {
+            producerFieldOptions.value[field.id] = await loadProducerEntityOptions(field);
+            if (field.required && producerFieldOptions.value[field.id].length === 1) {
+                const value = producerFieldOptions.value[field.id][0].value;
+                producerValues.value[field.id] = field.type === 'entityList' ? [value] : value;
+            }
+        }
+    }
+    syncProducerParameters();
+    showAddDialog.value = true;
+}
+
+async function loadProducerEntityOptions(field = {}) {
+    const entityType = field.entityType || field.accepts?.[0] || '';
+    const entities = entityType === 'library'
+        ? libraries.value
+        : entityType === 'cassette'
+        ? availableTemplateEntities()
+        : entityType === 'cassette_design'
+            ? cassetteDesigns.value
+            : await optionalList(() => $fetch(`/api/${domainCollection(entityType)}`));
+    return entities.map(entity => ({
+        label: entitySelectLabel(entity, entityType),
+        value: entity._id?.toString(),
+        entity
+    }));
+}
+
+function domainCollection(entityType = '') {
+    return (cncDomain.entities || []).find(entity => entity.type === entityType)?.collection || `${entityType}s`;
+}
+
+function hasProducerValue(field = {}) {
+    if (usesServerDefaultTemplate(field)) return true;
+    if (field.type === 'cassetteParameters') return true;
+    const value = producerValues.value[field.id];
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== undefined && value !== null && value !== '';
+}
+
+function usesServerDefaultTemplate(field = {}) {
+    if (selectedProducer.value?.constructionMode === 'bakeCassetteDesignFromTemplate') return false;
+    return isProcessMode.value
+        && selectedProducer.value?.constructionMode === 'bakeCassetteDesignFromTemplate'
+        && field.id === 'templateId'
+        && (producerFieldOptions.value[field.id] || []).length === 0;
+}
+
+function templateForProducer() {
+    const templateId = producerValues.value.templateId;
+    return cassettes.value.find(template => template._id?.toString() === templateId?.toString()) || null;
+}
+
+function selectedMaterialThickness() {
+    if (nestingOptions.value.materialMode === 'WAREHOUSE') {
+        return Number(selectedMaterialPool.value[0]?.dimensions?.thickness || 0) || null;
+    }
+    return Number(nestingOptions.value.virtualThickness || 0) || null;
+}
+
+function syncProducerParameters() {
+    const template = templateForProducer();
+    if (!template) {
+        const thickness = selectedMaterialThickness();
+        producerParameters.value = thickness ? { T: thickness } : {};
+        return;
+    }
+    const definitions = template.data?.definition?.parameters || {};
+    const thickness = selectedMaterialThickness();
+    producerParameters.value = Object.fromEntries(getCassetteParameters(template).map(name => {
+        const definition = definitions[name] || {};
+        const value = name === 'T' && thickness
+            ? thickness
+            : Number(definition.default ?? definition.value ?? definition.min ?? 0);
+        return [name, Number.isFinite(value) ? value : 0];
+    }));
+}
+
+function producerData() {
+    const data = {};
+    for (const field of producerFields.value) {
+        if (field.uiOnly) continue;
+        let value = field.type === 'cassetteParameters' ? producerParameters.value : producerValues.value[field.id];
+        if (field.type === 'object' && typeof value === 'string') {
+            try { value = JSON.parse(value || '{}'); } catch { value = {}; }
+        }
+        if (value !== undefined && value !== '') setProducerPath(data, field.path || field.id, value);
+    }
+    return data;
+}
+
+function setProducerPath(target, path, value) {
+    const parts = String(path || '').split('.').filter(Boolean);
+    let cursor = target;
+    while (parts.length > 1) {
+        const key = parts.shift();
+        cursor[key] ||= {};
+        cursor = cursor[key];
+    }
+    if (parts[0]) cursor[parts[0]] = value;
+}
+
+function isAcceptedRun(run = {}) {
+    return props.queue.data?.materialConsumption?.runId?.toString() === run._id?.toString();
+}
+
+async function executeSelectedProducer() {
+    if (!producerReady.value || producerExecuting.value) return;
+    producerExecuting.value = true;
+    try {
+        let produced;
+        if (selectedProducer.value.actionId) {
+            const data = producerData();
+            const request = buildProducerActionRequest({
+                action: selectedProducer.value.action,
+                fields: producerFields.value,
+                values: producerValues.value,
+                data: {
+                    ...data,
+                    ...(isProcessMode.value ? { linkCreatedTo: { ownerType: 'queue', relationKey: 'cassettes' } } : {})
+                },
+                contextEntities: { queue: props.queue, project: project.value }
+            });
+            request.entities = {
+                ...(request.entities || {}),
+                queue: props.queue._id || props.queue.identity?.uid,
+                ...(project.value?._id ? { project: project.value._id } : {})
+            };
+            produced = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(selectedProducer.value.actionId)}/execute`, {
+                method: 'POST',
+                body: request
+            });
+            if (isProcessMode.value) {
+                const design = await resolveProducedDesign(produced);
+                if (!design) throw new Error(t('queues.invalidCassetteEntry'));
+                await loadQueueData();
+                emit('updated');
+                showAddDialog.value = false;
+                return;
+            }
+        } else if (selectedProducer.value.constructionMode === 'bakeCassetteDesignFromTemplate') {
+            const data = producerData();
+            produced = await $fetch(`/api/cassettes/${encodeURIComponent(data.templateId)}/designs`, {
+                method: 'POST',
+                body: { parameters: data.parameters || {}, name: data.name || '' }
+            });
+        }
+        const design = await resolveProducedDesign(produced);
+        if (!design) throw new Error(t('queues.invalidCassetteEntry'));
+        await addEntry(design);
+        showAddDialog.value = false;
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: requestErrorMessage(error) });
+    } finally {
+        producerExecuting.value = false;
+    }
+}
+
+async function resolveProducedDesign(result) {
+    const entity = result?.design || result?.entity || (result?.data?.geometry ? result : null);
+    if (entity?._id) {
+        if (!cassetteDesigns.value.some(item => item._id?.toString() === entity._id?.toString())) cassetteDesigns.value.push(entity);
+        return entity;
+    }
+    const ref = (result?.entities || []).find(item => item?.type === 'cassette_design');
+    return ref?.id ? await $fetch(`/api/cassette-designs/${encodeURIComponent(ref.id)}`) : null;
+}
 const canRunNesting = computed(() => isProcessMode.value ? Boolean(processRunNestingAction.value) : canEditQueue.value);
 const showNestingCommandRegion = computed(() => !isProcessMode.value || canRunNesting.value);
 const requestErrorMessage = (error) => error?.data?.message || error?.response?._data?.message || error?.message || t('common.error');
@@ -426,6 +824,24 @@ const optionalList = async (loader) => {
     } catch {
         return [];
     }
+};
+
+let producerResourcesPromise = null;
+const loadProducerResources = () => {
+    if (producerResourcesPromise) return producerResourcesPromise;
+    producerResourcesReady.value = false;
+    producerResourcesPromise = Promise.all([
+        optionalList(() => cassettesStore.fetchCassettes()),
+        optionalList(() => $fetch('/api/cassette-designs')),
+        optionalList(() => $fetch('/api/libraries'))
+    ]).then(([cassetteResult, designResult, libraryResult]) => {
+        cassettes.value = cassetteResult;
+        cassetteDesigns.value = designResult;
+        libraries.value = libraryResult;
+    }).finally(() => {
+        producerResourcesReady.value = true;
+    });
+    return producerResourcesPromise;
 };
 const isSelectedQueue = (item = {}) => item._id?.toString() === props.queue._id?.toString();
 const materialSourceOptions = computed(() => [
@@ -466,7 +882,8 @@ const inventoryDimensions = (entity = {}) => {
     const specs = entity.specs || entity.data?.specs || {};
     const width = Number(specs.width || specs.w || 0);
     const length = Number(specs.length || specs.height || specs.h || 0);
-    return { width, length };
+    const thickness = Number(specs.thickness || entity.data?.thickness || 0);
+    return { width, length, thickness };
 };
 
 const inventoryGeometryData = (entity = {}) => (
@@ -541,9 +958,10 @@ const selectedMaterialPool = computed(() => (
 ));
 const nestingCommandParameters = computed(() => ({
     materialMode: nestingOptions.value.materialMode,
+    machineId: nestingOptions.value.machineId,
     virtualWidth: nestingOptions.value.virtualWidth,
     virtualLength: nestingOptions.value.virtualLength,
-    spacing: nestingOptions.value.spacing,
+    virtualThickness: nestingOptions.value.virtualThickness,
     inventoryItems: nestingOptions.value.inventoryItems,
     materialPool: selectedMaterialPool.value,
     toolProfileId: nestingOptions.value.toolProfileId
@@ -578,21 +996,14 @@ const removeInventoryItem = (uniqueId) => {
     nestingOptions.value.inventoryItems = nestingOptions.value.inventoryItems.filter(item => item !== uniqueId);
 };
 
-const newEntry = ref({
-    cassetteTemplateId: null,
-    quantity: 1,
-    dimensions: {}
-});
-
 const entryKeyFor = (item = {}, index = 0) => (
     item._key ||
     item.entryKey ||
-    `entry_${item.id || item.cassetteTemplateId || 'unknown'}_${index}`
+    `entry_${item.id || 'unknown'}_${index}`
 );
 
 const queueItemEntityType = (item = {}, entity = null) => (
-    item.entityType ||
-    (entity?.data?.geometry || entity?.data?.polygonParts || entity?.data?.layerData ? 'cassette_design' : 'cassette')
+    item.entityType || (entity ? 'cassette_design' : '')
 );
 
 const makeQueueEntry = (item = {}, index = 0) => {
@@ -602,7 +1013,6 @@ const makeQueueEntry = (item = {}, index = 0) => {
         ...canonical,
         id,
         _key: entryKeyFor({ ...canonical, id }, index),
-        cassetteTemplateId: id,
         entityType: queueItemEntityType(canonical),
         dimensions: canonical.parameters || canonical.dimensions || {},
         type: canonical.type || 'STATIC'
@@ -612,58 +1022,92 @@ const makeQueueEntry = (item = {}, index = 0) => {
 const getCassetteData = (id) => {
     const idStr = id?.toString();
     if (!idStr) return null;
-    return cassettes.value.find(c => c._id?.toString() === idStr) ||
-           cassetteDesigns.value.find(d => d._id?.toString() === idStr);
+    return cassetteDesigns.value.find(d => d._id?.toString() === idStr)
+        || cassettes.value.find(template => template._id?.toString() === idStr);
+};
+const getEntryEntityData = (entry = {}) => {
+    const idStr = entry?.id?.toString();
+    if (!idStr) return null;
+    if (entry.entityType === 'cassette') {
+        return cassettes.value.find(template => template._id?.toString() === idStr) || null;
+    }
+    if (entry.entityType === 'cassette_design') {
+        return cassetteDesigns.value.find(design => design._id?.toString() === idStr) || null;
+    }
+    return getCassetteData(idStr);
 };
 
-const getCassetteName = (id) => {
-    const data = getCassetteData(id);
+const getCassetteName = (entry) => {
+    const data = getEntryTemplateData(entry);
     if (!data) return t('common.unknown');
     return data.identity?.name || data.identity?.slug || t('common.unnamed');
 };
 
-const getCassetteType = (data) => data?.data?.type || '';
 const isCassetteDesignEntity = (data) => Boolean(data?.data?.geometry || data?.data?.polygonParts || data?.data?.layerData);
 const getCassetteParameters = (data) => {
     const explicit = data?.data?.parameters;
     if (Array.isArray(explicit) && explicit.length) return explicit;
+    if (explicit && typeof explicit === 'object') return Object.keys(explicit);
     return occsParameterNames(data?.data?.definition || {});
 };
-const getEntryCassetteData = (entry) => getCassetteData(entry?.cassetteTemplateId || entry?.id);
-const isParametricEntry = (entry) => {
-    const data = getEntryCassetteData(entry);
-    if (data) return !isCassetteDesignEntity(data) && getCassetteParameters(data).length > 0;
-    return entry?.type === 'PARAMETRIC';
+const getEntryCassetteData = (entry) => getCassetteData(entry?.id);
+const getEntryTemplateId = (entry) => queueItemTemplateId(entry, getEntryEntityData(entry));
+const getEntryTemplateData = (entry) => {
+    const templateId = getEntryTemplateId(entry);
+    return cassettes.value.find(template => template._id?.toString() === templateId?.toString()) || null;
 };
+const canConfigureEntry = entry => Boolean(
+    configureRelationAction.value
+    && getEntryEntityData(entry)
+    && getEntryTemplateData(entry)
+);
 
+async function configureEntry(entry, parameters) {
+    if (!canConfigureEntry(entry)) return;
+    const designId = entry.id?.toString?.() || entry.id;
+    const templateId = getEntryTemplateId(entry);
+    const action = configureRelationAction.value;
+    configuringEntryIds.value = new Set([...configuringEntryIds.value, designId]);
+    try {
+        await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(action.actionId || action.id)}/execute`, {
+            method: 'POST',
+            body: {
+                entityId: props.queue._id || props.queue.identity?.uid,
+                entities: { queue: props.queue._id || props.queue.identity?.uid },
+                data: {
+                    relationCreator: { templateId, parameters },
+                    relationReplaces: { type: action.relationMutation.targetType, id: designId }
+                }
+            }
+        });
+        await loadQueueData();
+        emit('updated');
+    } catch (error) {
+        toast.add({
+            severity: 'error',
+            summary: t('common.error'),
+            detail: requestErrorMessage(error),
+            life: 4000
+        });
+    } finally {
+        const next = new Set(configuringEntryIds.value);
+        next.delete(designId);
+        configuringEntryIds.value = next;
+    }
+}
 const getEntryParameters = (e) => {
-    const data = getEntryCassetteData(e);
-    if (!data || isCassetteDesignEntity(data)) return [];
-    if (getCassetteType(data) === 'PARAMETRIC') return getCassetteParameters(data);
-    return [];
+    const data = getEntryEntityData(e);
+    return queueEntryParameterNames(e, data ? getCassetteParameters(data) : []);
 };
-
-const allAvailableCassettes = computed(() => {
-    const items = [...cassettes.value, ...cassetteDesigns.value];
-    return namedSelectOptions(items, t('common.unnamed'));
-});
+const hasEditableEntryParameters = (entry) => getEntryParameters(entry).length > 0;
 
 const allParameters = computed(() => {
     const params = new Set();
     entries.value.forEach(e => {
-        const data = getEntryCassetteData(e);
-        if (data) {
-            getCassetteParameters(data).forEach(p => params.add(p));
-        }
+        getEntryParameters(e).forEach(param => params.add(param));
     });
     return Array.from(params);
 });
-
-const findDesignForTemplate = (templateId) => {
-    const id = templateId?.toString();
-    if (!id) return null;
-    return cassetteDesigns.value.find(design => design.lineage?.templateId?.toString() === id) || null;
-};
 
 const resolveUploadedQueueItem = (payload) => {
     if (!payload) return null;
@@ -675,14 +1119,15 @@ const resolveUploadedQueueItem = (payload) => {
         return design;
     }
 
-    const template = payload.template || payload;
-    return findDesignForTemplate(template._id) || template;
+    return null;
 };
 
 const defaultNestingSettings = () => ({
     materialMode: 'VIRTUAL',
     virtualWidth: 3000,
     virtualLength: 1500,
+    virtualThickness: null,
+    machineId: 'machine-system-default',
     warehouseId: null,
     inventoryItems: [],
     toolProfileId: null,
@@ -690,11 +1135,11 @@ const defaultNestingSettings = () => ({
 });
 
 const queueNestingSettings = (queue = {}) => {
-    const settings = queue.data?.nestingSettings || queue.data?.nestingParams || {};
+    const settings = queue.data?.nestingSettings || {};
     return {
         ...defaultNestingSettings(),
         ...settings,
-        toolProfileId: settings.toolProfileId || settings.toolId || null,
+        toolProfileId: settings.toolProfileId || null,
         inventoryItems: Array.isArray(settings.inventoryItems) ? [...settings.inventoryItems] : [],
         requestedArtifacts: Array.isArray(settings.requestedArtifacts) ? [...settings.requestedArtifacts] : []
     };
@@ -711,21 +1156,20 @@ const canReadNestingRun = (run = {}) => hasPermissionGrant({
     entityType: 'nesting_run'
 });
 const readableQueueRuns = computed(() => isProcessMode.value ? queueRuns.value.filter(canReadNestingRun) : queueRuns.value);
-const showNestingRunRegion = computed(() => !isProcessMode.value || readableQueueRuns.value.length > 0 || canRunNesting.value);
-const runOptions = computed(() => readableQueueRuns.value.map(run => ({
-    ...run,
-    id: run._id?.toString(),
-    name: entitySelectLabel(run, t('entities.nestingRun'))
-})));
-const activeRun = computed(() => readableQueueRuns.value.find(run => run._id?.toString() === selectedRunId.value?.toString()) || readableQueueRuns.value[0] || null);
+const currentRun = computed(() => currentQueueRun(readableQueueRuns.value, props.queue));
+const showNestingRunRegion = computed(() => !isProcessMode.value || Boolean(currentRun.value) || canRunNesting.value);
+const workspaceLayoutProps = computed(() => showQueueNavigation.value
+    ? {}
+    : { mainSpan: showNestingRunRegion.value ? 8 : 12 }
+);
+const activeRun = computed(() => currentRun.value);
 const hasPhysicalOutputs = computed(() => Boolean(props.queue.data?.physicalOutputs?.cassetteInstanceIds?.length));
 const warehouseShortage = computed(() => {
     if (nestingOptions.value.materialMode !== 'WAREHOUSE') return null;
     if (queueRuns.value.length === 0) return null;
 
     const latestRun = queueRuns.value[queueRuns.value.length - 1];
-    const latestState = getPrimaryState(latestRun.status);
-    if (latestState !== 'COMPLETE' && latestState !== 'CHOSEN') return null;
+    if (!runSheetCount(latestRun)) return null;
 
     const totalAvailable = selectedMaterialPool.value.reduce((sum, item) => sum + (item.available || 1), 0);
 
@@ -743,10 +1187,14 @@ const warehouseShortage = computed(() => {
 
 const isNestingReady = computed(() => {
     if (entries.value.length === 0) return false;
+    if (!nestingOptions.value.machineId || !nestingOptions.value.toolProfileId) return false;
 
     if (nestingOptions.value.materialMode === 'WAREHOUSE') {
         if (nestingOptions.value.inventoryItems.length === 0) return false;
         if (selectedStockSizeConflict.value) return false;
+        if (!selectedMaterialPool.value.every(item => Number(item.dimensions?.thickness) > 0)) return false;
+    } else if (!(Number(nestingOptions.value.virtualThickness) > 0)) {
+        return false;
     }
 
     return true;
@@ -808,13 +1256,18 @@ const onCustomSheetUpload = (event) => {
 
 const runSheetCount = (run = {}) => Number(run.data?.results?.sheetCount || run.summary?.sheetCount || run.layoutCount || 0);
 const runParams = (run = {}) => run.data?.params || run.params || {};
-const latestRunId = (runsForQueue = queueRuns.value) => runsForQueue.at(-1)?._id?.toString?.() || null;
 
 const loadQueueData = async () => {
     try {
         const data = await queuesStore.getQueue(props.queue._id);
         if (data) {
-            entries.value = (data.data?.job?.items || []).map(makeQueueEntry);
+            const jobItems = Array.isArray(data.data?.job?.items) ? data.data.job.items : [];
+            entries.value = (data.relations?.cassettes || []).map((reference, index) => {
+                const associated = jobItems.find(item => item.id?.toString?.() === reference.id?.toString?.());
+                return makeQueueEntry({ ...reference, ...(associated || {}), quantity: associated?.quantity || 1 }, index);
+            });
+            entries.value.forEach(syncEntryWithCassette);
+            await hydrateMissingEntryDesigns();
             entries.value.forEach(syncEntryWithCassette);
             nestingOptions.value = queueNestingSettings(data);
             if (nestingOptions.value.warehouseId) {
@@ -827,9 +1280,26 @@ const loadQueueData = async () => {
     } catch (e) { console.error('Failed to load queue data:', e); }
 };
 
+const hydrateMissingEntryDesigns = async () => {
+    const missingIds = Array.from(new Set(entries.value
+        .filter(entry => entry.entityType !== 'cassette')
+        .map(entry => entry.id?.toString?.() || entry.id)
+        .filter(Boolean)
+        .filter(id => !cassetteDesigns.value.some(design => design._id?.toString?.() === id.toString()))));
+    if (!missingIds.length) return;
+    const loaded = await Promise.all(missingIds.map(id => (
+        $fetch(`/api/cassette-designs/${encodeURIComponent(id)}`).catch(() => null)
+    )));
+    for (const design of loaded.filter(Boolean)) {
+        if (!cassetteDesigns.value.some(item => item._id?.toString?.() === design._id?.toString())) {
+            cassetteDesigns.value.push(design);
+        }
+    }
+};
+
 const loadSheetDesigns = async () => {
     try {
-        const runIds = readableQueueRuns.value.map(run => run._id?.toString()).filter(Boolean);
+        const runIds = activeRun.value?._id ? [activeRun.value._id.toString()] : [];
         sheetDesigns.value = await $fetch('/api/sheet-designs', {
             query: runIds.length
                 ? { queueId: props.queue._id, runIds: runIds.join(',') }
@@ -871,14 +1341,16 @@ const handleRunStatusChanged = async () => {
 };
 
 onMounted(async () => {
-    const [cassetteResult, designResult, whRes] = await Promise.all([
-        optionalList(() => cassettesStore.fetchCassettes()),
-        optionalList(() => $fetch('/api/cassette-designs')),
-        optionalList(() => $fetch('/api/warehouses'))
+    const projectId = props.queue.lineage?.projectId;
+    const [, whRes, machineResult, projectResult] = await Promise.all([
+        loadProducerResources(),
+        optionalList(() => $fetch('/api/warehouses')),
+        optionalList(() => $fetch('/api/machines')),
+        projectId ? $fetch(`/api/project/${encodeURIComponent(projectId)}`).catch(() => null) : null
     ]);
-    cassettes.value = cassetteResult || [];
-    cassetteDesigns.value = designResult || [];
     warehouses.value = whRes || [];
+    machines.value = machineResult || [];
+    project.value = projectResult;
     await toolProfilesStore.fetchTools();
     await queuesStore.fetchRuns(props.queue._id);
     await loadSheetDesigns();
@@ -912,33 +1384,11 @@ watch(nestingCompleted, async (event) => {
     }
 });
 
-watch(readableQueueRuns, (runsForQueue) => {
-    if (!runsForQueue.length) {
-        selectedRunId.value = null;
-        return;
-    }
-    if (!runsForQueue.some(run => run._id?.toString() === selectedRunId.value?.toString())) {
-        selectedRunId.value = runsForQueue[runsForQueue.length - 1]._id?.toString();
-    }
-}, { immediate: true });
-
 watch(() => props.queue._id, async () => {
     await loadQueueData();
     await queuesStore.fetchRuns(props.queue._id);
     await loadSheetDesigns();
 });
-
-const formatDate = (d) => new Date(d).toLocaleString();
-
-const onNewCassetteChange = () => {
-    const data = getCassetteData(newEntry.value.cassetteTemplateId);
-    if (getCassetteParameters(data).length > 0) {
-        newEntry.value.dimensions = {};
-        getCassetteParameters(data).forEach(p => newEntry.value.dimensions[p] = 0);
-    } else {
-        newEntry.value.dimensions = {};
-    }
-};
 
 const syncEntryWithCassette = (entry) => {
     const canonical = canonicalQueueItem(entry, { cassettes: cassettes.value, cassetteDesigns: cassetteDesigns.value });
@@ -949,60 +1399,46 @@ const syncEntryWithCassette = (entry) => {
         return entry;
     }
 
-    const isDesign = isCassetteDesignEntity(data);
-    const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
+    const type = entry.type === 'PARAMETRIC' || Object.prototype.hasOwnProperty.call(entry.dimensions || {}, 'T') ? 'PARAMETRIC' : 'STATIC';
     entry.type = type;
     entry.entityType = queueItemEntityType(entry, data);
 
-    if (type === 'PARAMETRIC') {
-        entry.dimensions = entry.dimensions || {};
-        getCassetteParameters(data).forEach((param) => {
-            if (entry.dimensions[param] === undefined) entry.dimensions[param] = 0;
-        });
-    }
+    entry.dimensions = entry.dimensions || {};
+    const sourceParameterValues = (
+        data.data?.parameters
+        && !Array.isArray(data.data.parameters)
+        && typeof data.data.parameters === 'object'
+    ) ? data.data.parameters : {};
+    getCassetteParameters(data).forEach((param) => {
+        if (entry.dimensions[param] !== undefined) return;
+        if (sourceParameterValues[param] !== undefined) {
+            entry.dimensions[param] = sourceParameterValues[param];
+        } else if (type === 'PARAMETRIC') {
+            entry.dimensions[param] = 0;
+        }
+    });
 
     return entry;
 };
 
 const updateEntryQuantity = async (entry, quantity) => {
     if (!canEditQueue.value) return;
-    entry.quantity = quantity;
-    await saveQueue({ notify: false });
-};
-
-const updateEntryDimension = async (entry, param, value) => {
-    if (!canEditQueue.value) return;
-    entry.dimensions = {
-        ...(entry.dimensions || {}),
-        [param]: value
-    };
+    entry.quantity = Math.max(1, Math.trunc(Number(quantity) || 1));
     await saveQueue({ notify: false });
 };
 
 const addEntry = async (item = null) => {
     if (!canEditQueue.value) return;
-    const data = item || getCassetteData(newEntry.value.cassetteTemplateId);
-    if (!data) return;
-
-    const isDesign = isCassetteDesignEntity(data);
-    const type = (!isDesign && getCassetteParameters(data).length > 0) ? 'PARAMETRIC' : 'STATIC';
-
-    const entryData = item ? {
-        cassetteTemplateId: data._id,
-        quantity: 1,
-        dimensions: {}
-    } : { ...newEntry.value };
-
+    const data = item;
+    if (!data || !isCassetteDesignEntity(data)) throw new Error(t('queues.invalidCassetteEntry'));
     entries.value.push(syncEntryWithCassette({
-        ...entryData,
         _key: `entry_${data._id}_${Date.now()}_${entries.value.length}`,
-        entityType: queueItemEntityType({}, data),
-        type,
-        id: data._id
+        entityType: 'cassette_design',
+        id: data._id,
+        quantity: 1
     }));
 
     await saveQueue();
-    newEntry.value = { cassetteTemplateId: null, quantity: 1, dimensions: {} };
     showAddDialog.value = false;
 };
 
@@ -1010,20 +1446,23 @@ const saveQueue = async ({ notify = true } = {}) => {
     if (!canEditQueue.value) return false;
     try {
         entries.value.forEach(syncEntryWithCassette);
-        const invalidEntry = entries.value.find(entry => !getEntryCassetteData(entry));
+        const invalidEntry = entries.value.find(entry => entry.entityType !== 'cassette_design' || !getEntryCassetteData(entry));
         if (invalidEntry) {
             throw new Error(t('queues.invalidCassetteEntry'));
         }
         await queuesStore.updateQueue(
             props.queue._id,
             {
+                relations: {
+                    ...(props.queue.relations || {}),
+                    cassettes: entries.value.map(e => ({ type: 'cassette_design', id: e.id }))
+                },
                 job: {
-                    items: entries.value.map(e => ({
-                        type: e.type,
-                        entityType: e.entityType,
-                        id: e.id || e.cassetteTemplateId,
-                        quantity: e.quantity,
-                        parameters: e.dimensions
+                    items: entries.value.map(entry => ({
+                        type: 'cassette_design',
+                        entityType: 'cassette_design',
+                        id: entry.id,
+                        quantity: Math.max(1, Math.trunc(Number(entry.quantity) || 1))
                     })),
                     materialPool: selectedMaterialPool.value
                 },
@@ -1053,14 +1492,12 @@ const runNesting = async () => {
                 }
             });
             const refreshedRuns = await queuesStore.fetchRuns(queueId);
-            selectedRunId.value = latestRunId(refreshedRuns);
             queuesStore.pollQueueStatus(queueId);
             emit('updated');
         } else {
             await saveQueue();
             await queuesStore.startNesting(queueId);
-            const refreshedRuns = await queuesStore.fetchRuns(queueId);
-            selectedRunId.value = latestRunId(refreshedRuns);
+            await queuesStore.fetchRuns(queueId);
         }
         await loadSheetDesigns();
         toast.add({ severity: 'info', summary: t('queues.nestingStarted'), life: 3000 });
@@ -1136,7 +1573,6 @@ const confirmDelete = (entry) => {
     });
 };
 
-const onRowEditSave = async () => await saveQueue();
 
 const loadInstances = async () => {
     try {
@@ -1146,6 +1582,11 @@ const loadInstances = async () => {
 
 const onCassetteUploaded = async (newItem) => {
     showUploadDialog.value = false;
+    if (isProcessMode.value && selectedProducer.value?.actionId) {
+        await loadQueueData();
+        emit('updated');
+        return;
+    }
     const [cRes, dRes] = await Promise.all([
         optionalList(() => cassettesStore.fetchCassettes()),
         optionalList(() => $fetch('/api/cassette-designs'))
@@ -1153,17 +1594,111 @@ const onCassetteUploaded = async (newItem) => {
     cassettes.value = cRes || [];
     cassetteDesigns.value = dRes || [];
     const queueItem = resolveUploadedQueueItem(newItem);
-    if (queueItem) await addEntry(queueItem);
+    if (queueItem) await addEntry(queueItem, 1);
 };
 
-const onInstantUploadSelect = (event) => {
-    if (event.files && event.files.length > 0) {
-        showUploadDialog.value = true;
-        nextTick(() => {
-            if (uploadDialogRef.value) {
-                uploadDialogRef.value.handleFileSelect({ files: [event.files[0]] });
-            }
-        });
+function entityId(value) {
+  if (!value) return '';
+  if (typeof value !== 'object') return value?.toString?.() || value;
+  return value._id?.toString?.() || value.id?.toString?.() || value.identity?.uid?.toString?.() || '';
+}
+
+function getByPath(source = {}, path = '') {
+  return String(path || '').split('.').filter(Boolean).reduce((cursor, key) => cursor?.[key], source);
+}
+
+function producerFieldsForAction(action = {}, fields = [], autoEntityTypes = []) {
+  const autoTypes = new Set(autoEntityTypes);
+  const next = [...fields];
+  for (const contract of action.contracts?.inputs || []) {
+    if (!contract?.entityType || autoTypes.has(contract.entityType)) continue;
+    const represented = next.some(field => (
+      field?.id === contract.id
+      || field?.entityType === contract.entityType
+      || (Array.isArray(field?.accepts) && field.accepts.includes(contract.entityType))
+    ));
+    if (represented) continue;
+    next.push({
+      id: contract.id || contract.entityType,
+      path: contract.id || contract.entityType,
+      label: contract.label || contract.id || contract.entityType,
+      type: contract.kind === 'entity_list' ? 'entityList' : 'entity',
+      entityType: contract.entityType,
+      required: contract.required !== false,
+      prompt: true
+    });
+  }
+  return [...new Map(next.filter(field => field?.id).map(field => [field.id, field])).values()];
+}
+
+function buildProducerActionRequest({ action = {}, fields = [], values = {}, data = {}, contextEntities = {} } = {}) {
+  const entities = {};
+  for (const contract of action.contracts?.inputs || []) {
+    if (!contract?.entityType) continue;
+    const field = fields.find(candidate => candidate.id === contract.id)
+      || fields.find(candidate => candidate.entityType === contract.entityType)
+      || fields.find(candidate => Array.isArray(candidate.accepts) && candidate.accepts.includes(contract.entityType));
+    const raw = contextEntities[contract.entityType] || values[contract.id] || (field ? values[field.id] : null) || (field ? getByPath(data, field.path || field.id) : null);
+    const value = contract.kind === 'entity_list' ? (Array.isArray(raw) ? raw : [raw].filter(Boolean)).map(entityId).filter(Boolean) : entityId(raw);
+    if ((Array.isArray(value) && !value.length) || !value) continue;
+    entities[contract.id || contract.entityType] = value;
+    if (entities[contract.entityType] === undefined) entities[contract.entityType] = value;
+  }
+  return { data, entities, parameters: data.parameters && typeof data.parameters === 'object' ? data.parameters : data };
+}
+
+function featureForEntity(domain = {}, entityType = '') {
+  return (domain.entities || []).find(entity => entity.type === entityType)?.collection || `${entityType}s`;
+}
+
+function actionConstructionMode(action = {}) {
+  return action.construction?.mode || action.constructionMode || '';
+}
+
+function canReadFeature(hasFeatureAccess, feature) {
+  return Boolean(feature && hasFeatureAccess(feature, 'read'));
+}
+
+function directProducerAvailable(producer = {}, { canEditQueue = false, hasFeatureAccess = () => false, domain = {} } = {}) {
+  if (!canEditQueue) return false;
+  const sourceEntityType = producer.source?.entityType || producer.output?.entityType || '';
+  const sourceFeature = featureForEntity(domain, sourceEntityType);
+  if (producer.kind === 'entitySource') return canReadFeature(hasFeatureAccess, sourceFeature);
+  if (producer.constructionMode === 'importCassetteDesignFromArtifact') return hasFeatureAccess(featureForEntity(domain, 'artifact'), 'write') && hasFeatureAccess(featureForEntity(domain, 'cassette_design'), 'write');
+  if (producer.constructionMode === 'bakeCassetteDesignFromTemplate') return canReadFeature(hasFeatureAccess, sourceFeature) && hasFeatureAccess(featureForEntity(domain, 'cassette_design'), 'write');
+  return true;
+}
+
+function resolveQueueDesignProducers({ domain = {}, processMode = false, processActions = [], canEditQueue = false, hasFeatureAccess = () => false, outputEntityType = 'cassette_design' } = {}) {
+  const domainProducers = (domain.producers || []).filter(producer => producer.output?.entityType === outputEntityType);
+  const actionByConstructionMode = new Map(processActions.filter(action => action?.contracts?.outputs?.some(output => (typeof output === 'string' ? output : output?.entityType) === outputEntityType)).map(action => [actionConstructionMode(action), action]).filter(([mode]) => mode));
+  const boundConstructionModes = new Set();
+  const resolved = domainProducers.map(producer => {
+    if (!processMode) return directProducerAvailable(producer, { canEditQueue, hasFeatureAccess, domain }) ? { ...producer, sourceKind: 'domainProducer' } : null;
+    if (producer.kind === 'entitySource') {
+      const sourceFeature = featureForEntity(domain, producer.source?.entityType || producer.output?.entityType);
+      return canEditQueue && canReadFeature(hasFeatureAccess, sourceFeature) ? { ...producer, sourceKind: 'domainProducer' } : null;
     }
-};
+    const action = actionByConstructionMode.get(producer.constructionMode);
+    if (!action) return null;
+    boundConstructionModes.add(producer.constructionMode);
+    return { ...producer, sourceKind: 'processAction', actionId: action.actionId || action.id, action };
+  }).filter(Boolean);
+  const extraActions = processMode ? processActions.filter(action => action?.contracts?.outputs?.some(output => (typeof output === 'string' ? output : output?.entityType) === outputEntityType)).filter(action => { const mode = actionConstructionMode(action); return !mode || !boundConstructionModes.has(mode); }).map(action => ({ id: action.actionId || action.id, actionId: action.actionId || action.id, label: action.label || action.actionId || action.id, kind: 'processAction', sourceKind: 'processAction', constructionMode: actionConstructionMode(action), action, output: { entityType: outputEntityType } })) : [];
+  return [...resolved, ...extraActions];
+}
 </script>
+
+<style scoped>
+@container (min-width: 36rem) {
+    .queue-editor__inventory-controls {
+        flex-direction: row;
+    }
+}
+
+@container (min-width: 48rem) {
+    .queue-editor__nesting-inputs {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+</style>

@@ -29,7 +29,8 @@
     "framework:manifest": "node scripts/framework-inspect.js check-manifest",
     "framework:write-manifest": "node scripts/framework-inspect.js write-manifest",
     "framework:validate": "node scripts/framework-inspect.js validate",
-    "agent:scope-check": "node scripts/check-agent-scope.js"
+    "agent:scope-check": "node scripts/check-agent-scope.js",
+    "docs:validate": "node scripts/check-docs.js"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
@@ -42,14 +43,18 @@
     "archiver": "^7.0.1",
     "argon2": "^0.44.0",
     "clipper2-wasm": "^0.4.0",
+    "docx-preview": "^0.4.0",
     "dxf-parser": "^1.1.2",
     "formidable": "^3.5.4",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "6.8",
+    "motion-v": "^1.10.3",
     "multiparty": "^4.2.3",
     "nodemailer": "^7.0.3",
     "nodi-modular": "^0.0.41",
     "nuxt": "^3.15.3",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.4.149",
     "pdfkit": "^0.17.2",
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",

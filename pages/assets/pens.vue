@@ -114,7 +114,7 @@ import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Message from 'primevue/message';
 import StandardPage from '~/components/shared/StandardPage.vue';

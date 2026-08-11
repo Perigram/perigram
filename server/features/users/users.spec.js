@@ -2,10 +2,18 @@ import { describe, it, expect, beforeEach, afterAll, beforeAll, vi } from 'vites
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, ObjectId } from 'mongodb';
 
-const { mockedConnectDB } = vi.hoisted(() => ({
-  mockedConnectDB: vi.fn()
+const { mockedConnectDB, mockedUploadFile, mockedDeleteFile, mockedGetFileStream } = vi.hoisted(() => ({
+  mockedConnectDB: vi.fn(),
+  mockedUploadFile: vi.fn(),
+  mockedDeleteFile: vi.fn(),
+  mockedGetFileStream: vi.fn()
 }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
+vi.mock('../files/service.js', () => ({
+  uploadFile: mockedUploadFile,
+  deleteFile: mockedDeleteFile,
+  getFileStream: mockedGetFileStream
+}));
 
 import * as userService from './service';
 import * as organizationService from '../organizations/service';
@@ -46,24 +54,60 @@ describe('User Management & Auth', () => {
   });
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     await db.collection('users').deleteMany({});
     await db.collection('organizations').deleteMany({});
   });
 
-  it('should register a user with correct permission template', async () => {
+  it('stores avatar metadata behind a derived user avatar URL', async () => {
+    const user = await userService.register({
+      email: 'avatar@example.com',
+      password: 'password123',
+      name: 'Avatar User'
+    });
+    mockedUploadFile.mockResolvedValue({ id: 'avatar-file-1' });
+
+    const updated = await userService.saveAvatar(user.id, {
+      buffer: Buffer.from('image'),
+      filename: 'avatar.png',
+      mimeType: 'image/png'
+    }, { userId: user.id });
+
+    expect(updated.toJSON().data.avatarUrl).toMatch(new RegExp(`^/api/users/${user.id}/avatar\\?v=`));
+    expect(updated.toJSON().data.avatar).toBeUndefined();
+    expect(mockedUploadFile).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      expect.stringContaining(`avatar-${user.id}-`),
+      expect.objectContaining({ userId: String(user.id), mimeType: 'image/png' }),
+      'avatars'
+    );
+  });
+
+  it('rejects avatar changes for unrelated users', async () => {
+    const user = await userService.register({
+      email: 'protected-avatar@example.com',
+      password: 'password123',
+      name: 'Protected Avatar'
+    });
+    await expect(userService.saveAvatar(user.id, {
+      buffer: Buffer.from('image'),
+      mimeType: 'image/png'
+    }, { userId: 'other-user', memberships: [] })).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('registers identity without duplicating organization role state', async () => {
     const data = {
       email: 'test@example.com',
       password: 'password123',
       name: 'Test User',
-      role: 'ManufacturerAdmin'
     };
 
     const user = await userService.register(data);
     
     const dto = user.toJSON();
     expect(dto.data.email).toBe('test@example.com');
-    expect(dto.data.role).toBe('ManufacturerAdmin');
-    expect(dto.data.permissions.catalogs).toBe('admin');
+    expect(dto.data.role).toBeUndefined();
+    expect(dto.data.permissions).toEqual({});
     expect(dto.data.isActive).toBe(true);
     expect(dto).not.toHaveProperty('email');
     expect(dto).not.toHaveProperty('role');
@@ -101,11 +145,7 @@ describe('User Management & Auth', () => {
     const rawUser = await db.collection('users').findOne({ 'data.email': 'owner@example.com' });
     expect(organization.toJSON().identity.name).toBe('Owner Workshop');
     expect(rawUser.lineage.organizationId.toString()).toBe(organization.id);
-    expect(rawUser.data.role).toBe('role_admin');
-    expect(rawUser.data.permissions).toEqual({
-      organizations: { level: 'admin' },
-      users: { level: 'admin' }
-    });
+    expect(rawUser.data.role).toBeUndefined();
     expect(rawUser.data.memberships[0].organizationId.toString()).toBe(organization.id);
     expect(rawUser.data.memberships[0].owner).toBe(true);
     expect(rawUser.data.memberships[0].permissions).toEqual({
@@ -113,6 +153,8 @@ describe('User Management & Auth', () => {
       users: { level: 'admin' }
     });
     expect(rawUser.data.memberships[0].status).toBe('active');
+    const rawOrganization = await db.collection('organizations').findOne({ _id: rawUser.data.memberships[0].organizationId });
+    expect(rawOrganization.data.roleAssignments[String(user.id)].roleIds).toEqual(['role_admin']);
   });
 
   it('should recover a pre-organization signup only with the existing password', async () => {
@@ -148,7 +190,7 @@ describe('User Management & Auth', () => {
     const updatedUser = await userService.switchOrganization(user.insertedId.toString(), org2.toString());
     
     expect(updatedUser.toJSON().lineage.organizationId.toString()).toBe(org2.toString());
-    expect(updatedUser.toJSON().data.role).toBe('IndividualUser');
+    expect(updatedUser.toJSON().data.role).toBeUndefined();
   });
 
   it('does not expand preset labels into permissions when loading users', () => {

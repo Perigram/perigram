@@ -7,11 +7,13 @@ parametric/OCCS definitions.
 
 | File | Purpose |
 |---|---|
-| `CassetteDesignCard.vue` | Geometry-first design card with parent template context. |
+| `CassetteDesignCard.vue` | Geometry-first design card identified only by its parent cassette template. |
 
 ## Contract
 
 - Expects a v24 `cassette_design` DTO with `identity`, `lineage`, and `data`.
+  Source template context is an entity relation/provenance fact, not
+  containment lineage.
 - Geometry is rendered by `CassetteThumbnail`, which resolves stored DXF,
   baked cassette `data.layerData` / `data.polygonParts`, geometry previews,
   OCCS definitions, or parametric definitions.
@@ -28,14 +30,21 @@ parametric/OCCS definitions.
 - Generated entity surfaces display exact design parameters from
   `data.parameters` as named values such as `A=1200, B=400`. If an older DTO
   lacks that top-level snapshot, the display contract may fall back to
-  `data.derivedFrom.parameters`; template parameter counts are not shown on
-  design cards.
-- Parent template context belongs in `lineage.templateId` and is rendered by
-  the shared trace chrome as the nearest parent, matching how cassette cards
-  render their `lineage.libraryId` parent. The card body does not duplicate that
-  parent as a separate relation row.
-- Exact source geometry revision is loaded from `data.derivedFrom.revisionId`
+  `provenance.derivedFrom.parameters`; template parameter counts are not shown
+  on design cards.
+- Template context comes from `provenance.derivedFrom.source` and optional
+  explicit `relations`, and is rendered as relation/provenance content rather
+  than as a trace parent.
+- Exact source geometry revision is loaded from
+  `provenance.derivedFrom.source.revisionId`
   and rendered as a compact `EntityInlineRef` when present.
+- Cassette designs do not expose a separate user-authored design name. Their
+  persisted identity is derived from the source cassette, and cards present the
+  parent cassette relation instead of the derived entity identity.
+- Parameter configuration is copy-on-write inside the owning queue cassette
+  card. The card initializes fields from the source OCCS template and current
+  concrete snapshot, then asks the active relation action to replace the queue
+  reference with the newly baked design.
 - The footer DXF action downloads from
   `/api/cassette-designs/:id/export`, so saved designs can serve their own
   stored or regenerated DXF independently of their source template.

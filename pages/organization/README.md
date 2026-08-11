@@ -16,6 +16,10 @@ same organization billing route group. User profile routes do not buy or hold
 credits. Billing checkout is a billing-screen action gated by
 `organizations:admin`; team management and process design are separate route
 screens gated by their own effective permissions.
+The account panel explains token use in compute-intensive services. It never
+exposes runtime-configuration implementation wording, and it shows a current
+tariff tag only when deployment billing mode is `tariff` and a current tariff
+is configured.
 
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the
@@ -40,33 +44,53 @@ process definitions with Vue Flow, persists drafts through
 activates compiled runtime contracts for access, screen manifests, navigation,
 entity workflows, services, sockets, and field policies. The checkmark apply
 button saves or forks the visible graph, activates the resulting process
-definition, and surfaces activation warnings/errors in the validation panel so
-operators can tell when the graph became the organization's active process.
-The route uses the
-authenticated app layout with a full canvas workspace and compact floating
-controls over it. The graph palette is a one-line icon button set that creates
-action nodes for entity creation, entity data updates, status changes, command
-runs, sending projected entity data to another organization, and inbound or
-outbound organization socket nodes. It also creates non-effect process algebra
-nodes for entity references, entity block decomposition, block field reads,
-string operations, comparisons, logic, and basic collection transforms; those
-nodes are typed source/transform records and do not execute mutations.
+definition, and records activation warnings/errors in the validation popup so
+operators can inspect the result without a persistent canvas panel.
+The route uses the authenticated app layout with a full canvas workspace and
+the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. Its graph palette,
+inspector, and dock are supplied through the shell's named slots, matching the
+shared designer contract used by Cassette, Facade, and Facade Pattern. The
+graph palette is a compact, descriptive control with four
+concerns only: Entities, Values, Lists and trees, and Events. Its framework
+metadata comes from `createProcessDesignerContract(cncDomain)`; the route
+supplies CNC as the active domain implementation rather than importing
+separate CNC field/construction registries. The palette is deliberately not
+the exhaustive runtime catalog: casts, patches, predicates, ambient current
+entity reads, and trigger-payload plumbing cannot be added as unexplained empty
+nodes. Value input selects its type in one node. Logic/comparison, text, math,
+and date each select their operation in one node. Grasshopper-style list/tree
+operations provide selection and structure work without a second entity-query
+language. The persistent panel renders those operations as a readable
+two-column grid; the full job description is a tooltip, not permanent panel
+prose.
 The properties pane is a bounded floating aside; its tab body owns vertical
 scrolling so long entity lifecycle and role forms remain reachable without
-moving the canvas.
-When older saved graphs still contain role/user layout nodes, the route filters
-those non-canvas nodes out and reconstructs entity/service/socket nodes from
-the process records so active definitions do not open to a blank canvas. Truly
-empty processes render compact canvas add controls for the same three object
-types.
-The route now delegates process round-tripping to `@cutkit/processes`:
-canonical semantic records project into Vue Flow nodes through
+moving the canvas. Palette and inspector rails are opaque structural surfaces
+around a compact icon-only bottom dock. Process selection and New Draft live in
+a focused popup; validation and view controls open their own popups. Unsaved
+work is signaled by the active save control and a dot rather than a text badge.
+The dock is the shared `MotionDock.vue` installation of the Vue Bits Dock
+interaction: `process.vue` maps the page actions into its item API, while the
+design system supplies its compact scale, spring, token-backed shell, and
+reduced-motion policy. This keeps the external block's proximity interaction
+without introducing its published fixed black surface, border, or shadow
+treatment.
+Saved graphs containing legacy role/user layout nodes have those non-canvas
+nodes filtered out at load, and entity/service/socket nodes are reconstructed
+from the process records so active definitions do not open to a blank canvas.
+Truly empty processes render compact canvas add controls for the same three
+object types.
+Route process round-tripping delegates to `@cutkit/processes`: canonical
+semantic records project into Vue Flow nodes through
 `definitionToCanvas()`, and saving writes the visible canvas back through
 `canvasToDefinition()`. Canvas layout is therefore presentation state; roles,
 entity lifecycles, action definitions, services, organization sends, screens,
 and assignments remain the process source of truth. If a stored process contains
 only compiled runtime data and no semantic records, the designer shows a clear
 validation error instead of guessing a canvas.
+Palette captions are presentation-only and are localized when the canvas is
+rendered. Persisted process-node labels keep the canonical operation kind, so
+the locale used while authoring cannot leak into generated action buttons.
 On load, the route fetches the active process and the current process list,
 selects the active process first, and falls back to the newest usable draft or
 saved definition only when active is unavailable. Empty canvases show a passive
@@ -83,23 +107,40 @@ defaults are derived from the domain entity registry. The designer must not
 hardcode app navigation routes or concrete CNC entity names as generic process
 defaults; concrete starter graphs belong in process templates.
 
-The inspector edits compiler-owned fields directly:
+The inspector edits secondary configuration for the selected canvas record.
+Derived input/output socket specifications remain on the node rails and their
+hover/focus metadata; the inspector does not duplicate them as a table. The
+remaining inspector surfaces are:
 
-- the roles tab owns human process role labels and derived access summaries;
-- the service access tab owns service runtime identities used by service run/view access;
-- the screens tab owns screen id, label, generated UI template, source entity/mode rows, display region rows, route, placement, required access, role ids, assignment binding, and screen action ids;
-- entity nodes own entity type, lifecycle mode, inline status-machine states/transitions, transition role access, node role access, and public/write/private field policy;
-- action nodes own fixed action kind, trigger mode, access level, access-granted roles, target entity or command, target status, update fields, projection fields, derived typed data sockets, and completion event socket;
-- process algebra nodes own task-specific controls for their palette type:
-  traversal for entity references, entity-to-block decomposition, block/path
-  output selection, text transform, comparison condition, boolean composition,
-  or collection result; the route derives kind, operation/mode, and typed
-  sockets from those controls. Entity and block settings are recalculated from
-  incoming wires during graph sync, so process nodes that read entities or
-  blocks follow the connected source contract in real time;
+- the roles tab edits labels and shows a derived access summary;
+- the service access tab owns service runtime identities;
+- entity nodes own entity type, lifecycle mode, inline status-machine
+  states/transitions, transition role access, node role access, and
+  public/write/private field policy;
+- the action-node inspector owns fixed action kind, trigger mode, per-role
+  access level, target entity or command, target status, update fields,
+  projection fields, derived typed data sockets, and the completion event
+  socket;
+- process algebra nodes expose selected domain fields directly as sockets;
+  generic value/list/tree nodes infer transported type and structure from
+  incoming wires;
+- Relations block entries own only their storage key, with entity type and
+  one/many cardinality inferred from the connected socket. Manual generic
+  Create actions prompt for an unwired identity name and accept canonical
+  field-path values;
+- artifact Relations entries show the upload-backed attachment kinds allowed
+  by that Link action (empty selection allows every upload-backed domain
+  kind; explicit selection narrows the creator), from the domain
+  attachment-kind creation contract;
 - service nodes own command selection, run/view service identities, prepaid
   token billing metadata, and command-derived inputs/outputs;
-- socket nodes own direction, entity type, projected/excluded fields, send/receive roles, and receiver lifecycle;
+- socket nodes own direction, entity type, projected/excluded fields,
+  send/receive roles, and receiver lifecycle.
+
+The screens tab owns screen id, label, generated UI template, source
+entity/mode rows, display region rows, route, placement, required access, role
+ids, assignment binding, and screen action ids; that surface follows the
+generated-screen manifest described above.
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are
 reusable human process responsibilities assigned onto entity access rules,
@@ -139,12 +180,16 @@ Canvas nodes show explicit expected input and produced output socket labels
 instead of input/output counts: action and service node handles are labeled
 with typed entity/status contracts, socket node handles are labeled with the
 transfer input and projected output fields, and entity nodes render their field
-policy as the process data contract. Socket rows use theme surfaces while
-handles use stable contract colors for entity, block, data, status, event,
-projection, attachment, and task ports, and the canvas keeps only the contract
-label visible so path/required metadata does not duplicate the socket name. New
-palette nodes are placed at the center of the current viewport, and wires use
-curved Vue Flow edges rather than orthogonal step routing.
+policy as the process data contract. Socket rows are unboxed structural rails;
+the shared semantic mapping gives each source handle and its wire the same
+contract tone for entity, block, data, status, event, projection, attachment,
+and task ports. The canvas keeps only the contract label visible so
+path/required metadata does not duplicate the socket name. New palette nodes
+are placed at the nearest unoccupied grid position around the current viewport
+center so a later node cannot cover an earlier node's socket hit targets. Wires
+use curved Vue Flow edges rather than orthogonal step routing.
+Open input sockets do not display error badges: they show where composition is
+possible. Required-input failures belong to explicit graph validation.
 The designer resolves the source and target handle contracts before saving a
 wire. Incompatible concrete ports are rejected immediately with a localized
 toast and are also reported by process compiler validation when stale persisted
@@ -168,6 +213,19 @@ identities stay in service access controls rather than manual trigger
 selectors. Change-status action grants also store the status transition
 condition under `action.access.statusFrom/statusTo`, derived from the incoming
 entity socket and target status.
+Entity decomposition and value composition use the complete canonical block
+vocabulary exported by `@cutkit/core`. The selected domain entity narrows which
+blocks exist, while core block entries plus domain field access/field groups
+drive the editable field choices. Typed construction modes expose their
+mode-specific inputs on create nodes, so derived constructors do not render an
+empty generic input contract. Typed constructors augment, rather than replace,
+the canonical constructible block sockets and the initial-status socket. A
+connected block is applied after the constructor creates its complete derived
+entity, preserving constructor-owned geometry and provenance unless that block
+is explicitly authored. The mode selector is shown only when the selected
+derived entity genuinely has multiple construction strategies; ordinary entity
+creation, including cassette creation, exposes blocks without a meaningless
+single-option selector.
 Status-definition nodes are entity agnostic. They render the final status tag
 directly on the node, edit status id, label, severity, icon, and lifecycle
 evidence requirements, and apply to whichever entity lifecycle or action target

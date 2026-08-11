@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, beforeAll, vi } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoClient, ObjectId } from 'mongodb';
 
 const { mockedConnectDB } = vi.hoisted(() => ({
@@ -30,7 +30,7 @@ describe('status service lifecycle payloads', () => {
   let db;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);
@@ -65,7 +65,7 @@ describe('status service lifecycle payloads', () => {
       status: { state: 'ACTIVE', userId: 'creator', timestamp: new Date(), metadata: {} }
     });
 
-    await statusService.transition('cassetteTemplate', 'cassette-1', 'ARCHIVED', 'admin-1', {
+    await statusService.transition('cassette', 'cassette-1', 'ARCHIVED', 'admin-1', {
       userId: 'admin-1',
       memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
     });
@@ -95,6 +95,86 @@ describe('status service lifecycle payloads', () => {
 
     expect(allowed.actions.map(action => action.to)).toEqual(['ARCHIVED']);
     expect(denied.actions).toEqual([]);
+  });
+
+  it('preflights a named intent without mutating status', async () => {
+    await db.collection('queues').insertOne({
+      _id: 'queue-intent-preflight',
+      identity: { uid: 'queue-intent-preflight', name: 'Queue' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} }
+    });
+
+    await expect(statusService.assertIntentAvailable(
+      'queue',
+      'queue-intent-preflight',
+      'completeNestingProduction',
+      { userId: 'SYSTEM', role: 'SYSTEM', system: true }
+    )).resolves.toMatchObject({ from: 'DRAFT', to: 'READY' });
+
+    const queue = await db.collection('queues').findOne({ _id: 'queue-intent-preflight' });
+    expect(queue.status.state).toBe('DRAFT');
+    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-intent-preflight' })).toBe(0);
+  });
+
+  it('commits an intent transition and entity patch through one transition boundary', async () => {
+    await db.collection('queues').insertOne({
+      _id: 'queue-intent-patch',
+      identity: { uid: 'queue-intent-patch', name: 'Queue' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} },
+      data: { marker: 'before' }
+    });
+
+    await statusService.transitionWithResult({
+      entityType: 'queue',
+      targetId: 'queue-intent-patch',
+      intent: 'completeNestingProduction',
+      auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
+      patch: { data: { marker: 'after' } }
+    });
+
+    const queue = await db.collection('queues').findOne({ _id: 'queue-intent-patch' });
+    expect(queue.status.state.primary).toBe('READY');
+    expect(queue.data.marker).toBe('after');
+    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-intent-patch' })).toBe(1);
+  });
+
+  it('rejects combined status/entity writes when Mongo topology rejects transactions', async () => {
+    await db.collection('queues').insertOne({
+      _id: 'queue-standalone-patch',
+      identity: { uid: 'queue-standalone-patch', name: 'Queue' },
+      lineage: { organizationId: 'org-1' },
+      status: { state: 'DRAFT', userId: 'creator', timestamp: new Date(), metadata: {} },
+      data: { marker: 'before' }
+    });
+    const session = {
+      withTransaction: vi.fn(async () => {
+        throw new Error('Transaction numbers are only allowed on a replica set member or mongos');
+      }),
+      endSession: vi.fn()
+    };
+    const standaloneDb = {
+      collection: db.collection.bind(db),
+      client: { startSession: vi.fn(() => session) }
+    };
+    mockedConnectDB.mockReturnValue(standaloneDb);
+
+    await expect(statusService.transitionWithResult({
+      entityType: 'queue',
+      targetId: 'queue-standalone-patch',
+      intent: 'completeNestingProduction',
+      auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
+      patch: { data: { marker: 'after' } }
+    })).rejects.toThrow('Transaction numbers are only allowed on a replica set member or mongos');
+
+    const queue = await db.collection('queues').findOne({ _id: 'queue-standalone-patch' });
+    expect(standaloneDb.client.startSession).toHaveBeenCalled();
+    expect(session.withTransaction).toHaveBeenCalled();
+    expect(session.endSession).toHaveBeenCalled();
+    expect(queue.status.state).toBe('DRAFT');
+    expect(queue.data.marker).toBe('before');
+    expect(await db.collection('status_events').countDocuments({ targetId: 'queue-standalone-patch' })).toBe(0);
   });
 
   it('returns archive as a queue menu action from every queue lifecycle state', async () => {
@@ -143,7 +223,7 @@ describe('status service lifecycle payloads', () => {
         actions: [{
           actionId: 'move_old',
           label: 'Move project OLD',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'project',
           status: { from: 'NEWS', to: 'OLD' }
         }]
@@ -181,7 +261,7 @@ describe('status service lifecycle payloads', () => {
         actions: [{
           actionId: 'mark_cut',
           label: 'Mark cut',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'project',
           status: { to: 'CUT' }
         }]
@@ -193,7 +273,7 @@ describe('status service lifecycle payloads', () => {
     ]));
   });
 
-  it('executes process-role transitions without requiring target-status grants on the source entity', async () => {
+  it('ignores stale compiled-only process workflows that have no current semantic graph', async () => {
     await db.collection('process_definitions').insertOne({
       _id: 'process-active-transition-role',
       identity: { uid: 'process-active-transition-role', name: 'Process' },
@@ -268,19 +348,19 @@ describe('status service lifecycle payloads', () => {
     };
 
     const actions = await statusService.getActions('queue', 'queue-process-transition-1', auth);
-    expect(actions.actions).toEqual(expect.arrayContaining([
+    expect(actions.actions).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ from: 'Создано', to: 'Отправлено' })
     ]));
 
-    await statusService.transitionWithResult({
+    await expect(statusService.transitionWithResult({
       entityType: 'queue',
       targetId: 'queue-process-transition-1',
       targetState: 'Отправлено',
       auth
-    });
+    })).rejects.toThrow();
 
     const queue = await db.collection('queues').findOne({ _id: 'queue-process-transition-1' });
-    expect(queue.status.state.primary).toBe('Отправлено');
+    expect(queue.status.state.primary).toBe('Создано');
   });
 
   it('keeps domain system intents available when an active process defines custom statuses', async () => {

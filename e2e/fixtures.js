@@ -16,7 +16,7 @@ export const test = base.extend({
     page.on('response', response => {
       const status = response.status();
       const url = response.url();
-      if (status >= 500 || shouldFailOnClientError(url, status)) {
+      if (status >= 500 || shouldFailOnClientError(url, status, response.request().method())) {
         errors.push(`HTTP ${status}: ${url}`);
       }
     });
@@ -30,6 +30,31 @@ export const test = base.extend({
       },
       trackCleanup(fn) {
         cleanup.push(fn);
+      },
+      async switchToAssignedOrganization() {
+        const current = await (await request.get('/api/auth/me')).json();
+        if ((current.roleAssignments?.roleIds || []).length) return current;
+        let assigned = null;
+        for (const membership of current.memberships || []) {
+          if (String(membership.organizationId) === String(current.organizationId)) continue;
+          const response = await request.post('/api/auth/switch-org', {
+            data: { organizationId: membership.organizationId }
+          });
+          expect(response.ok(), await response.text()).toBeTruthy();
+          const candidate = await (await request.get('/api/auth/me')).json();
+          if ((candidate.roleAssignments?.roleIds || []).length) {
+            assigned = candidate;
+            break;
+          }
+        }
+        expect(assigned, 'Expected a membership with a canonical process role assignment').toBeTruthy();
+        helper.trackCleanup(async () => {
+          await request.post('/api/auth/switch-org', {
+            data: { organizationId: current.organizationId },
+            failOnStatusCode: false
+          });
+        });
+        return assigned;
       },
       async createProject(name = helper.uniqueName('Project')) {
         const response = await request.post('/api/project', {
@@ -64,8 +89,9 @@ export const test = base.extend({
 
 export { expect };
 
-function shouldFailOnClientError(url, status) {
+function shouldFailOnClientError(url, status, method = 'GET') {
   if (status < 400 || status >= 500) return false;
+  if (method !== 'GET' && method !== 'HEAD') return true;
   if (url.includes('/api/status/actions')) return true;
   if (url.includes('/api/status/transition')) return true;
   if (url.includes('/api/queue/') && (url.endsWith('/nest') || url.includes('/choose-run'))) return true;
@@ -73,5 +99,6 @@ function shouldFailOnClientError(url, status) {
 }
 
 function isIgnoredConsoleError(text) {
-  return text === 'Hydration completed but contains mismatches.';
+  return text === 'Hydration completed but contains mismatches.'
+    || /^Failed to load resource: the server responded with a status of 4\d\d \(/.test(text);
 }

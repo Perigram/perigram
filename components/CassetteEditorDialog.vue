@@ -91,6 +91,7 @@
                   :options="layerStandards"
                   optionLabel="label"
                   optionValue="value"
+                  entity-type="layerStandard"
                   :placeholder="$t('cassette.selectLayerType')"
                   class="w-full"
                   size="small"
@@ -135,7 +136,7 @@ import { useI18n } from 'vue-i18n';
 import { useCassettesStore } from '~/stores/cassettes';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { storeToRefs } from 'pinia';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
 import InputText from 'primevue/inputtext';
@@ -160,6 +161,14 @@ const props = defineProps({
   cassetteId: {
     type: String,
     default: null
+  },
+  producerActionId: {
+    type: String,
+    default: ''
+  },
+  producerActionBody: {
+    type: Object,
+    default: () => ({})
   }
 });
 
@@ -211,7 +220,8 @@ const layerStandards = computed(() => {
     return {
       label: translatedName && translatedName !== code ? `${code} · ${translatedName}` : code,
       value: code,
-      category: data.category
+      category: data.category,
+      entity: standard
     };
   });
 
@@ -317,15 +327,31 @@ const handleUpload = async () => {
       }
     });
 
-    const formData = new FormData();
-    formData.append('file', selectedFile.value);
-    formData.append('name', name.value);
-    formData.append('layerMapping', JSON.stringify(mappings));
-
-    const uploadResult = await $fetch('/api/cassettes/upload', {
+    const artifactForm = new FormData();
+    artifactForm.append('file', selectedFile.value);
+    artifactForm.append('type', 'DXF_SOURCE');
+    artifactForm.append('metadata', JSON.stringify({ purpose: 'cassette-import' }));
+    const artifact = await $fetch('/api/artifacts', {
       method: 'POST',
-      body: formData
+      body: artifactForm
     });
+    const data = {
+      artifactId: artifact._id,
+      name: name.value,
+      layerMapping: mappings
+    };
+    const uploadResult = props.producerActionId
+      ? await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(props.producerActionId)}/execute`, {
+          method: 'POST',
+          body: {
+            ...props.producerActionBody,
+            data: {
+              ...(props.producerActionBody?.data || {}),
+              ...data
+            }
+          }
+        })
+      : await $fetch('/api/cassette-designs/import', { method: 'POST', body: data });
     const uploadedTemplate = uploadResult?.template || uploadResult;
 
     emit('uploaded', uploadedTemplate);

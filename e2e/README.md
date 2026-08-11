@@ -20,6 +20,10 @@ Useful variants:
 
 The config uses `.playwright/.auth/user.json` for session state and writes
 failure traces/screenshots under Playwright's ignored output folders.
+The suite runs with one worker because every browser context starts from the
+same stored user session and organization selection is server-side session
+state. Tests that enter another organization must restore the original through
+fixture cleanup; parallel workers would otherwise race on that shared context.
 By default setup logs in as `e2e@cutkit.local` and registers that user on first
 run against `org-demo-acme` with a `ContractorAdmin` role. Override
 `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, or `E2E_ORG_ID` when using another
@@ -27,10 +31,13 @@ database. If local Playwright browsers are not installed, the config uses
 `/usr/bin/brave-browser` when available or `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`
 when set.
 
-The shared fixture fails tests on page exceptions, server errors, and guarded
-client errors such as queue nesting or status action/transition failures. It ignores only
-Vue's exact dev-mode hydration summary message so smoke workflows are not
-blocked by unrelated shell noise.
+The shared fixture fails tests on page exceptions, server errors, every failed
+non-read HTTP request, and guarded read errors such as queue nesting or status
+action/transition failures. Generic browser messages for caught read-only 4xx
+reference hydration are ignored because they contain no URL; the response
+listener remains the authoritative HTTP failure boundary. Vue's exact dev-mode
+hydration summary is also ignored so smoke workflows are not blocked by shell
+noise.
 
 ## Coverage
 
@@ -39,7 +46,9 @@ blocked by unrelated shell noise.
   nonexistent warehouse workflow actions.
 - `queue-workflow.spec.js`: project/queue creation opens the queue editor and
   `/api/queue/:id/nest` accepts `WAREHOUSE` material-pool command input before
-  returning the expected business validation error for an empty queue.
+  returning the expected business validation error for an empty queue. The
+  nesting request supplies a readable tool profile because `solveNesting`
+  validates required command entities before checking queue contents.
 - `entity-actions.spec.js`: verifies user clicks on entity action buttons send
   the expected command/API requests, verifies a generic shared `EntityStatus`
   transition against a project workflow, sheet-design DXF action downloads the
@@ -48,6 +57,17 @@ blocked by unrelated shell noise.
 - `process-generated-screen.spec.js`: verifies generated process screens have a
   live canonical queue collection endpoint at `/api/queue` and that the removed
   `/api/queues` route is not treated as valid.
+- `project-workspace.spec.js`: uses the active compiled Project detail screen
+  and verifies a cassette reached through its linked Library region opens the
+  embedded cassette designer in the same pane; verifies pane tabs, icon-only
+  status, suppressed embedded entity header, tab close behavior, and restoration
+  after reload.
+- `home-and-entity-ui.spec.js`: creates a real project/queue pair, verifies the
+  compiled Home and detail-context placement, parent-responsive entity chrome,
+  and organization switching through the account menu.
+- `artifact-and-designer-ui.spec.js`: uploads and replaces a real DXF artifact,
+  verifies viewer dispatch and revision creation, and proves incompatible
+  conversion requests fail at the HTTP boundary.
 
 The queue nesting regression intentionally stops before the worker-backed
 solve. Full nesting tests need explicit fixture cassette geometry and a running

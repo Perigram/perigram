@@ -2,12 +2,14 @@ import { createError } from 'h3';
 import { getPrimaryState, inheritLineage } from '../../core/blocks/index.js';
 import * as queuesService from '../queues/service.js';
 import * as projectsService from '../projects/service.js';
-import * as cassetteService from '../cassettes/service.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
-import { bakeTemplateInstance } from '../parametric-cassettes/service.js';
+import * as parametricCassettesService from '../parametric-cassettes/service.js';
+import * as machinesService from '../machines/service.js';
+import * as toolProfilesService from '../tool-profiles/service.js';
 import * as nestingRunsRepository from '../nesting-runs/repository.js';
 import * as nestingRunsService from '../nesting-runs/service.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
+import * as sheetsService from '../sheets/service.js';
 import * as nestingJobs from './jobs.js';
 import { createTaskRun, getTaskRunById } from '../../core/tasks/service.js';
 import { statusService } from '../../core/machines/service.js';
@@ -17,9 +19,13 @@ import { toFlexibleId } from '../../utils/objectid.js';
 const activeQueueNestLocks = new Set();
 
 export async function solveNesting({ entities, parameters = {}, data = {}, auth }) {
-  const settings = { ...data, ...parameters };
   const queue = entities.queue;
   if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
+  const settings = {
+    ...queuesService.getQueueNestingSettings(queue),
+    ...data,
+    ...parameters
+  };
   const queueId = queue._id?.toString();
 
   if (activeQueueNestLocks.has(queueId)) {
@@ -29,23 +35,20 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
 
   try {
     await clearStaleActiveNestingJob(queue._id);
-    if (await nestingJobs.findActiveByQueue(queue._id) || getPrimaryState(queue.status) === 'NESTING') {
+    if (await nestingJobs.findActiveByQueue(queue._id)) {
       throw createError({ statusCode: 400, message: 'Queue is already nesting' });
     }
-    if (!queue.data?.job?.items || queue.data.job.items.length === 0) {
+    if (queuesService.queueCassetteDesignRefs(queue).length === 0) {
       throw createError({ statusCode: 400, message: 'Queue has no entries' });
     }
-    const jobFiles = await buildJobFiles(queue, auth);
     const nestingSlug = `queue-${queue.data?.queueNumber ?? queue._id.toString().slice(-6)}-${generateRandomString(6)}`;
     const materialPool = resolveNestingMaterialPool(settings, queue);
-    const params = resolveNestingParams({
+    const execution = await resolveNestingExecution({
       ...settings,
       materialPool
-    });
-    const nestingContext = resolveNestingContext({
-      ...settings,
-      materialPool
-    });
+    }, auth);
+    const params = execution.params;
+    const jobFiles = await buildJobFiles(queueWithMaterialThickness(queue, execution.materialSnapshot.thickness), auth);
 
     const runNumber = await nestingRunsService.getNextRunNumber(queue._id);
     const runUid = generateRandomString(12);
@@ -54,9 +57,12 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
       runNumber,
       data: {
         runNumber,
-        materialMode: nestingContext.materialMode,
+        materialMode: execution.materialSnapshot.mode,
         params,
-        materialPool: nestingContext.materialPool
+        materialPool,
+        machineSnapshot: execution.machineSnapshot,
+        toolSnapshot: execution.toolSnapshot,
+        materialSnapshot: execution.materialSnapshot
       },
       lineage: inheritLineage(queue, 'queue')
     }, auth.userId);
@@ -79,7 +85,10 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
       taskRunId: toFlexibleId(taskRun._id),
       files: jobFiles,
       params,
-      materialPool: nestingContext.materialPool,
+      materialPool,
+      machineSnapshot: execution.machineSnapshot,
+      toolSnapshot: execution.toolSnapshot,
+      materialSnapshot: execution.materialSnapshot,
       status: 'pending',
       createdAt: new Date(),
       ownerId: auth.userId
@@ -98,7 +107,6 @@ export async function solveNesting({ entities, parameters = {}, data = {}, auth 
       events: queueNestingEvent ? [queueNestingEvent] : [],
       data: {
         nestingSlug,
-        status: 'NESTING',
         taskRunId: taskRun._id.toString(),
         runId: runId.toString()
       }
@@ -126,44 +134,26 @@ async function queueNestingRequestedEvent(queue, settings, taskRun, runId, auth)
 
 export async function buildJobFiles(queue, auth) {
   const jobFiles = [];
-  for (const entry of queue.data.job.items) {
+  const evaluatedDesigns = new Map();
+  for (const entry of queuesService.queueCassetteDesignRefs(queue)) {
     try {
       const entryParameters = entry.parameters || entry.dimensions || {};
-      if (entry.type === 'PARAMETRIC') {
-        const template = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth);
-        const bakedCassette = await bakeTemplateInstance(toFlexibleId(template._id), entryParameters, auth.userId);
-        jobFiles.push({
-          cassetteId: bakedCassette._id.toString(),
-          count: entry.quantity,
-          dimensions: hasEntries(entryParameters) ? entryParameters : bakedCassette.data?.dimensions || {},
-          polygonParts: getPolygonParts(bakedCassette),
-          layerData: getLayerData(bakedCassette)
-        });
-        continue;
+      if (entry.type !== 'cassette_design') {
+        throw createError({ statusCode: 400, message: `Queue item ${entry.id} must reference a cassette_design` });
       }
-
-      let item = await cassetteDesignService.getById(entry.id, auth.userId, auth.role, auth).catch(() => null);
-      if (!item) {
-        item = await cassetteService.getById(entry.id, auth.userId, auth.organizationId, auth.role, auth).catch(() => null);
-      }
-      if (!item) throw createError({ statusCode: 400, message: `Cassette item ${entry.id} not found in any collection` });
-
-      if (isParametricTemplate(item)) {
-        const bakedCassette = await bakeTemplateInstance(toFlexibleId(item._id), entryParameters, auth.userId);
-        jobFiles.push({
-          cassetteId: bakedCassette._id.toString(),
-          count: entry.quantity,
-          dimensions: hasEntries(entryParameters) ? entryParameters : bakedCassette.data?.dimensions || {},
-          polygonParts: getPolygonParts(bakedCassette),
-          layerData: getLayerData(bakedCassette)
-        });
-        continue;
-      }
+      const sourceDesign = await cassetteDesignService.getById(entry.id, auth.userId, auth.role, auth).catch(() => null);
+      const item = await resolveQueueDesignGeometry({
+        entry,
+        sourceDesign,
+        parameters: entryParameters,
+        cache: evaluatedDesigns
+      });
+      if (!item) throw createError({ statusCode: 400, message: `Cassette design ${entry.id} not found` });
 
       jobFiles.push({
         cassetteId: item._id.toString(),
-        count: entry.quantity,
-        dimensions: hasEntries(entryParameters) ? entryParameters : item.data?.dimensions || item.data?.parameters || {},
+        count: Math.max(1, Math.trunc(Number(entry.quantity) || 1)),
+        dimensions: item.data?.dimensions || item.data?.parameters || {},
         polygonParts: getPolygonParts(item),
         layerData: getLayerData(item)
       });
@@ -172,6 +162,63 @@ export async function buildJobFiles(queue, auth) {
     }
   }
   return jobFiles;
+}
+
+async function resolveQueueDesignGeometry({ entry, sourceDesign, parameters = {}, cache = new Map() } = {}) {
+  if (!sourceDesign) return null;
+  const sourceParameters = hasEntries(sourceDesign.data?.parameters)
+    ? sourceDesign.data.parameters
+    : (sourceDesign.provenance?.derivedFrom?.parameters || {});
+  const effectiveParameters = { ...sourceParameters, ...(parameters || {}) };
+  const canDeriveParametricGeometry = hasEntries(sourceParameters);
+  if (!canDeriveParametricGeometry || sameParameterMap(effectiveParameters, sourceParameters)) return sourceDesign;
+
+  const sourceRef = sourceDesign.provenance?.derivedFrom?.source;
+  if (sourceRef?.type !== 'cassette' || !sourceRef.id) {
+    throw createError({ statusCode: 400, message: `Parametric cassette design ${entry.id} has no source cassette template provenance` });
+  }
+
+  const cacheKey = `${sourceRef.id}:${stableParameterKey(effectiveParameters)}`;
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  const evaluated = await parametricCassettesService.evaluateTemplate(sourceRef.id, effectiveParameters);
+  const polygonParts = evaluated.nestingPolygons?.length ? evaluated.nestingPolygons : evaluated.polygons;
+  if (!polygonParts?.length) {
+    throw createError({ statusCode: 400, message: `Parametric cassette template ${sourceRef.id} produced no geometry` });
+  }
+  const design = {
+    ...sourceDesign,
+    data: {
+      ...(sourceDesign.data || {}),
+      parameters: evaluated.dimensions || effectiveParameters,
+      polygonParts,
+      layerData: evaluated.layerData || sourceDesign.data?.layerData || [],
+      geometry: {
+        ...(sourceDesign.data?.geometry || {}),
+        data: {
+          ...(sourceDesign.data?.geometry?.data || {}),
+          dimensions: evaluated.dimensions || effectiveParameters,
+          polygonParts,
+          layerData: evaluated.layerData || sourceDesign.data?.geometry?.data?.layerData || []
+        }
+      }
+    }
+  };
+  cache.set(cacheKey, design);
+  return design;
+}
+
+function stableParameterKey(parameters = {}) {
+  return JSON.stringify(Object.keys(parameters || {}).sort().map(key => [key, normalizeParameterValue(parameters[key])]));
+}
+
+function sameParameterMap(left = {}, right = {}) {
+  return stableParameterKey(left) === stableParameterKey(right);
+}
+
+function normalizeParameterValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : value;
 }
 
 export async function executeNestingSolveTask({ run, input, auth = {} }) {
@@ -193,14 +240,16 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
 
     const summary = summarizeNestingResult(result, input.parameters || {});
     const currentRun = await nestingRunsRepository.findById(runId);
-    const sheetDesigns = await createSheetDesignsForLayouts(currentRun, result, summary, input.parameters || {}, auth);
+    const { sheetDesigns, sheets } = await createSheetDesignsForLayouts(currentRun, result, summary, input.parameters || {}, auth);
     const sheetDesignIds = sheetDesigns.map(design => design._id?.toString()).filter(Boolean);
+    const sheetIds = sheets.map(sheet => sheet._id?.toString()).filter(Boolean);
     await nestingRunsRepository.updateById(runId, {
       data: {
         ...(currentRun?.data || {}),
         results: summary,
         layoutData: result,
-        sheetDesignIds
+        sheetDesignIds,
+        sheetIds
       }
     });
 
@@ -216,20 +265,24 @@ export async function executeNestingSolveTask({ run, input, auth = {} }) {
     return {
       entities: [
         { type: 'nesting_run', id: runId },
-        ...sheetDesignIds.map(id => ({ type: 'sheet_design', id }))
+        ...sheetDesignIds.map(id => ({ type: 'sheet_design', id })),
+        ...sheetIds.map(id => ({ type: 'sheet', id }))
       ],
       events: [
         {
           type: 'nesting.solveCompleted',
           source: { type: 'nesting_run', id: runId },
-          entities: sheetDesignIds.map(id => ({ type: 'sheet_design', id })),
+          entities: [
+            ...sheetDesignIds.map(id => ({ type: 'sheet_design', id })),
+            ...sheetIds.map(id => ({ type: 'sheet', id }))
+          ],
           data: { taskRunId: run._id.toString(), results: summary }
         }
       ],
       data: {
-        status: 'COMPLETE',
         runId,
         sheetDesignIds,
+        sheetIds,
         results: summary
       }
     };
@@ -287,40 +340,190 @@ export function resolveNestingMaterialPool(settings = {}, queue = {}) {
 }
 
 export function resolveNestingContext(settings = {}) {
-  const materialPool = Array.isArray(settings.materialPool) ? settings.materialPool : [];
-  const stockSources = materialPool.map(normalizeMaterialPoolSource).filter(source => source.width > 0 && source.height > 0 && source.available > 0);
-  const usesWarehouseStock = settings.materialMode === 'WAREHOUSE' || stockSources.length > 0;
-
-  if (usesWarehouseStock && !stockSources.length) {
-    throw createError({ statusCode: 400, message: 'Selected warehouse stock must include sheet dimensions' });
+  const { machineSnapshot, toolSnapshot, materialSnapshot } = settings;
+  if (!machineSnapshot?.source?.id) throw createError({ statusCode: 400, message: 'Machine snapshot is required' });
+  if (!toolSnapshot?.source?.id) throw createError({ statusCode: 400, message: 'Tool snapshot is required' });
+  if (!materialSnapshot?.mode) throw createError({ statusCode: 400, message: 'Material snapshot is required' });
+  if (!(Number(toolSnapshot.kerf) > 0)) throw createError({ statusCode: 400, message: 'Selected tool must define a positive kerf' });
+  if (!(Number(machineSnapshot.workingArea?.width) > 0) || !(Number(machineSnapshot.workingArea?.length) > 0)) {
+    throw createError({ statusCode: 400, message: 'Selected machine must define a positive working area' });
   }
-
-  if (usesWarehouseStock) {
-    const sizeKeys = new Set(stockSources.map(source => `${source.width}x${source.height}`));
-    if (sizeKeys.size > 1) {
-      throw createError({ statusCode: 400, message: 'Selected warehouse stock must share one sheet size' });
-    }
-    const [source] = stockSources;
-    return {
-      width: source.width,
-      height: source.height,
-      space: settings.spacing || settings.space || 5,
-      sheetCount: stockSources.reduce((sum, item) => sum + item.available, 0),
-      sheet_polygon: normalizeSheetPolygonShape(settings.sheet_polygon) || source.sheetPolygon || null,
-      materialMode: 'WAREHOUSE',
-      materialPool: stockSources
-    };
+  if (!(Number(materialSnapshot.width) > 0) || !(Number(materialSnapshot.length) > 0) || !(Number(materialSnapshot.thickness) > 0)) {
+    throw createError({ statusCode: 400, message: 'Selected material must define width, length, and thickness' });
   }
-
+  if (!Number.isInteger(Number(materialSnapshot.sheetCount)) || Number(materialSnapshot.sheetCount) <= 0) {
+    throw createError({ statusCode: 400, message: 'Selected material must provide at least one sheet' });
+  }
   return {
-    width: settings.virtualWidth || settings.width || 1220,
-    height: settings.virtualLength || settings.height || 2440,
-    space: settings.spacing || settings.space || 5,
-    sheetCount: settings.sheetCount || 1000,
-    sheet_polygon: normalizeSheetPolygonShape(settings.sheet_polygon) || null,
-    materialMode: settings.materialMode || 'VIRTUAL',
-    inventoryItems: settings.inventoryItems || [],
-    materialPool
+    width: Number(materialSnapshot.width),
+    height: Number(materialSnapshot.length),
+    space: Number(toolSnapshot.kerf),
+    sheetCount: Number(materialSnapshot.sheetCount),
+    sheet_polygon: normalizeSheetPolygonShape(materialSnapshot.usableSheetPolygon),
+    materialMode: materialSnapshot.mode,
+    materialPool: materialSnapshot.sources || []
+  };
+}
+
+export async function resolveNestingExecution(settings = {}, auth = {}) {
+  if (!settings.machineId) throw createError({ statusCode: 400, message: 'Machine is required before nesting' });
+  if (!settings.toolProfileId) throw createError({ statusCode: 400, message: 'Tool profile is required before nesting' });
+  const [machine, tool] = await Promise.all([
+    machinesService.getById(settings.machineId, auth.userId, auth.organizationId, auth.role, auth),
+    toolProfilesService.getById(settings.toolProfileId, auth.userId)
+  ]);
+  const machineSnapshot = {
+    source: { type: 'machine', id: machine._id.toString() },
+    workingArea: {
+      width: Number(machine.data?.workingArea?.width || 0),
+      length: Number(machine.data?.workingArea?.length || 0)
+    },
+    boundaryOffset: Number(machine.data?.boundaryOffset || 0)
+  };
+  const toolSnapshot = {
+    source: { type: 'tool_profile', id: tool._id.toString() },
+    diameter: Number(tool.data?.diameter || 0),
+    angle: Number(tool.data?.angle || 0),
+    kerf: Number(tool.data?.kerf || 0)
+  };
+  if (!(toolSnapshot.kerf > 0)) throw createError({ statusCode: 400, message: 'Selected tool must define a positive kerf' });
+  const materialSnapshot = await resolveMaterialSnapshot(settings, machineSnapshot);
+  const context = { machineSnapshot, toolSnapshot, materialSnapshot };
+  return { ...context, params: resolveNestingParams(context) };
+}
+
+async function resolveMaterialSnapshot(settings, machineSnapshot) {
+  const materialPool = Array.isArray(settings.materialPool) ? settings.materialPool : [];
+  const warehouse = settings.materialMode === 'WAREHOUSE';
+  const stockSources = materialPool.map(normalizeMaterialPoolSource);
+  if (warehouse && !stockSources.length) {
+    throw createError({ statusCode: 400, message: 'Warehouse material is required before nesting' });
+  }
+  const width = warehouse ? stockSources[0]?.width : Number(settings.virtualWidth || 0);
+  const length = warehouse ? stockSources[0]?.height : Number(settings.virtualLength || 0);
+  const thickness = warehouse ? stockSources[0]?.thickness : Number(settings.virtualThickness || 0);
+  if (!(width > 0) || !(length > 0) || !(thickness > 0)) {
+    throw createError({ statusCode: 400, message: 'Material width, length, and thickness are required before nesting' });
+  }
+  if (warehouse) {
+    const sizeKeys = new Set(stockSources.map(source => `${source.width}x${source.height}x${source.thickness}`));
+    if (sizeKeys.size > 1) throw createError({ statusCode: 400, message: 'Selected warehouse stock must share one sheet size and thickness' });
+  }
+  if (width > machineSnapshot.workingArea.width || length > machineSnapshot.workingArea.length) {
+    throw createError({ statusCode: 400, message: 'Selected material does not fit the machine working area' });
+  }
+  const physicalPolygon = stockSources[0]?.sheetPolygon || {
+    outer: [[0, 0], [width, 0], [width, length], [0, length], [0, 0]],
+    inner: []
+  };
+  const usableSheetPolygon = await insetSheetPolygon(physicalPolygon, machineSnapshot.boundaryOffset);
+  return {
+    mode: warehouse ? 'WAREHOUSE' : 'VIRTUAL',
+    width,
+    length,
+    thickness,
+    sheetCount: warehouse ? stockSources.reduce((sum, source) => sum + source.available, 0) : Number(settings.sheetCount || 1000),
+    sources: warehouse ? stockSources.map(source => ({
+      type: source.type,
+      id: source.id?.toString?.() || source.id,
+      available: source.available
+    })) : [],
+    physicalSheetPolygon: normalizeSheetPolygonShape(physicalPolygon),
+    usableSheetPolygon
+  };
+}
+
+export async function insetSheetPolygon(polygon, offset = 0) {
+  const normalized = normalizeSheetPolygonShape(polygon);
+  if (!normalized) throw createError({ statusCode: 400, message: 'Material sheet polygon is invalid' });
+  const inset = Number(offset || 0);
+  if (!(inset > 0)) return normalized;
+  const { default: createClipper } = await import('clipper2-wasm');
+  const clipper = await createClipper();
+  const paths = new clipper.PathsD();
+  try {
+    const orientedRings = [
+      orientRing(normalized.outer, true),
+      ...normalized.inner.map(ring => orientRing(ring, false))
+    ];
+    for (const ring of orientedRings) {
+      const path = new clipper.PathD();
+      for (const [x, y] of ring.slice(0, -1)) {
+        const point = new clipper.PointD(x, y, 0);
+        path.push_back(point);
+        point.delete();
+      }
+      paths.push_back(path);
+      path.delete();
+    }
+    const result = clipper.InflatePathsD(paths, -inset, clipper.JoinType.Miter, clipper.EndType.Polygon, 2, 3, 0);
+    try {
+      const rings = [];
+      for (let index = 0; index < result.size(); index += 1) {
+        const path = result.get(index);
+        const ring = [];
+        for (let pointIndex = 0; pointIndex < path.size(); pointIndex += 1) {
+          const point = path.get(pointIndex);
+          ring.push([point.x, point.y]);
+          point.delete();
+        }
+        path.delete();
+        const closed = normalizeSheetPolygon(ring);
+        if (closed) rings.push(closed);
+      }
+      if (!rings.length) throw createError({ statusCode: 400, message: 'Machine boundary offset leaves no usable material area' });
+      const outerRings = rings.filter(ring => signedPolygonArea(ring) > 0);
+      const innerRings = rings.filter(ring => signedPolygonArea(ring) < 0);
+      if (outerRings.length !== 1) {
+        throw createError({ statusCode: 400, message: 'Machine boundary offset creates disconnected usable material areas' });
+      }
+      return {
+        outer: orientRing(outerRings[0], true),
+        inner: innerRings.map(ring => orientRing(ring, false))
+      };
+    } finally {
+      result.delete();
+    }
+  } finally {
+    paths.delete();
+  }
+}
+
+function signedPolygonArea(ring = []) {
+  if (!Array.isArray(ring) || ring.length < 3) return 0;
+  let twiceArea = 0;
+  for (let index = 0; index < ring.length - 1; index += 1) {
+    const [x1, y1] = ring[index];
+    const [x2, y2] = ring[index + 1];
+    twiceArea += x1 * y2 - x2 * y1;
+  }
+  return twiceArea / 2;
+}
+
+function orientRing(ring, counterClockwise) {
+  const normalized = normalizeSheetPolygon(ring);
+  if (!normalized) return ring;
+  const isCounterClockwise = signedPolygonArea(normalized) > 0;
+  const points = normalized.slice(0, -1);
+  if (isCounterClockwise !== counterClockwise) points.reverse();
+  const firstIndex = points.reduce((bestIndex, point, index) => {
+    const best = points[bestIndex];
+    return point[0] < best[0] || (point[0] === best[0] && point[1] < best[1]) ? index : bestIndex;
+  }, 0);
+  const canonical = [...points.slice(firstIndex), ...points.slice(0, firstIndex)];
+  return [...canonical, canonical[0]];
+}
+
+function queueWithMaterialThickness(queue, thickness) {
+  return {
+    ...queue,
+    relations: {
+      ...(queue.relations || {}),
+      cassettes: queuesService.queueCassetteDesignRefs(queue).map(item => ({
+        ...item,
+        parameters: { ...(item.parameters || {}), T: thickness }
+      }))
+    }
   };
 }
 
@@ -379,7 +582,7 @@ export function enrichNestingResult(result = {}, request = {}) {
 }
 
 async function createSheetDesignsForLayouts(run, result, summary, params, auth = {}) {
-  const layouts = result.solution?.layouts || result.layouts || [];
+  const groups = sheetDesignsService.collapseNestingLayoutsByComposition(result);
   const specs = {
     width: Number(params.width || params.virtualWidth || 1220),
     length: Number(params.height || params.virtualLength || 2440)
@@ -387,25 +590,38 @@ async function createSheetDesignsForLayouts(run, result, summary, params, auth =
   specs.area = (specs.width * specs.length) / 1000000;
 
   const runName = run?.identity?.name || run?._id?.toString() || 'Nesting run';
-  const designs = [];
-  for (let index = 0; index < layouts.length; index += 1) {
-    const sheetResult = sheetDesignsService.nestingResultForLayout(result, index);
+  const sheetDesigns = [];
+  const sheets = [];
+  for (let index = 0; index < groups.length; index += 1) {
+    const group = groups[index];
+    const sheetResult = sheetDesignsService.nestingResultForLayout(result, group.representativeLayoutIndex);
     const sheetSummary = summarizeNestingResult(sheetResult, params);
-    designs.push(await sheetDesignsService.createFromRun(run, {
-      name: `${runName} sheet ${index + 1}`,
+    const design = await sheetDesignsService.createFromRun(run, {
+      name: `${runName} design ${index + 1}`,
       serial: `${run?.identity?.serial || run?._id || 'RUN'}-S${index + 1}`,
       specs,
       geometry: {
         data: sheetResult,
-        preview: sheetDesignsService.nestingResultToPreview(result, params, { layoutIndex: index }),
+        preview: sheetDesignsService.nestingResultToPreview(result, params, { layoutIndex: group.representativeLayoutIndex }),
         summary: sheetSummary
       },
+      cassetteDesigns: group.composition,
+      compositionHash: group.compositionHash,
+      sheetCount: group.sheetCount,
       materialPool: run?.data?.materialPool || [],
-      nestingParams: params,
+      solveParams: params,
+      machineSnapshot: run?.data?.machineSnapshot || null,
+      toolSnapshot: run?.data?.toolSnapshot || null,
+      materialSnapshot: run?.data?.materialSnapshot || null,
       summary: sheetSummary || summary
-    }, auth.userId || 'SYSTEM'));
+    }, auth.userId || 'SYSTEM');
+    sheetDesigns.push(design);
+    sheets.push(...await sheetsService.createFromSheetDesign(design, group.sheetCount, {
+      organizationId: auth.organizationId || run?.lineage?.organizationId,
+      userId: auth.userId || 'SYSTEM'
+    }));
   }
-  return designs;
+  return { sheetDesigns, sheets };
 }
 
 export function summarizeNestingResult(result = {}, params = {}) {
@@ -600,15 +816,6 @@ function hasEntries(value = {}) {
   return value && typeof value === 'object' && Object.keys(value).length > 0;
 }
 
-function isParametricTemplate(entity = {}) {
-  if (entity.data?.geometry) return false;
-  const definition = entity.data?.definition || entity.definition || {};
-  return entity.data?.type === 'PARAMETRIC' ||
-    Boolean(definition?.occs && definition?.documentType) ||
-    Boolean(definition?.params) ||
-    Boolean(definition?.parameters);
-}
-
 function normalizeCoordinates(coords = []) {
   return coords
     .filter(point => Array.isArray(point) && point.length >= 2)
@@ -644,11 +851,13 @@ function normalizeMaterialPoolSource(source = {}) {
   const width = Number(dimensions.width || dimensions.w || parsed.width || 0);
   const height = Number(dimensions.length || dimensions.height || dimensions.h || parsed.height || 0);
   const available = Number(source.available || source.availableCount || source.quantity || source.count || 1);
+  const thickness = Number(dimensions.thickness || source.thickness || 0);
   const sheetPolygon = resolveMaterialSheetPolygon(source);
   return {
     ...source,
     width,
     height,
+    thickness,
     sheetPolygon,
     available: Number.isFinite(available) && available > 0 ? Math.floor(available) : 1
   };

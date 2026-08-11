@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getBillingCatalog, findBillingPackage } from './pricing.js';
+import { getBillingCatalog, findBillingPackage, getBillingConfiguration } from './pricing.js';
 import { getServiceTokenCost } from './service.js';
 
 describe('organization billing', () => {
@@ -14,6 +14,7 @@ describe('organization billing', () => {
 
     expect(getBillingCatalog(runtimeConfig)).toEqual([{
       id: 'starter',
+      labelKey: null,
       label: 'Starter',
       tokenAmount: 25,
       stripePriceId: 'price_123',
@@ -37,5 +38,18 @@ describe('organization billing', () => {
   it('derives service token cost only from prepaid service contracts', () => {
     expect(getServiceTokenCost({ billing: { mode: 'prepaidTokens', tokenCost: 2 } })).toBe(2);
     expect(getServiceTokenCost({ billing: { mode: 'none', tokenCost: 2 } })).toBe(0);
+  });
+
+  it('exposes a current tariff only when tariff deployment mode is configured', () => {
+    expect(getBillingConfiguration({ billing: { mode: 'prepaidTokens', currentTariff: 'pro' } })).toEqual({
+      mode: 'prepaidTokens',
+      currentTariff: null,
+      currentTariffLabelKey: null
+    });
+    expect(getBillingConfiguration({ billing: { mode: 'tariff', currentTariff: 'pro', currentTariffLabelKey: 'billing.tariffs.pro' } })).toEqual({
+      mode: 'tariff',
+      currentTariff: 'pro',
+      currentTariffLabelKey: 'billing.tariffs.pro'
+    });
   });
 });

@@ -1,6 +1,6 @@
 <template>
-  <div class="relative min-w-60 rounded-ui border border-slate-300 bg-content px-3 py-3 shadow-card">
-    <Handle id="assignment" type="source" :position="Position.Right" class="!border-slate-500 !bg-slate-500" />
+  <div class="relative min-w-60 rounded-ui border border-content-border bg-content px-3 py-3 shadow-card">
+    <Handle id="assignment" type="source" :position="Position.Right" :style="processSocketHandleStyle({ type: { base: 'entityRef' } })" />
 
     <div class="flex items-start justify-between gap-3">
       <div class="flex min-w-0 items-center gap-2">
@@ -19,6 +19,7 @@
 import { Handle, Position } from '@vue-flow/core';
 import Avatar from 'primevue/avatar';
 import Badge from 'primevue/badge';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 defineProps({ data: { type: Object, default: () => ({}) } });
 </script>

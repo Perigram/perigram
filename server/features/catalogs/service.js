@@ -1,4 +1,5 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
 import { normalizePermissionGrants } from '#shared/access-control.js';
@@ -72,7 +73,13 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   }
 
   if (updates.status) {
-    await statusService.transition('catalog', catalog._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'catalog',
+      targetId: catalog._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     return await getById(uid);
   }
 
@@ -92,3 +99,9 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
   }
   return await repository.deleteById(uid);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'catalog',
+  repository,
+  Model: Catalog
+});

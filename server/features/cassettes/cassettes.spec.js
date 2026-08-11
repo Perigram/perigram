@@ -52,10 +52,10 @@ describe('Cassette Management & Ownership', () => {
   };
 
   user1.permissions = {
-    memberships: [{ organizationId: user1.organizationId, permissions: { cassettes: 'admin' } }]
+    memberships: [{ organizationId: user1.organizationId, permissions: { cassettes: 'admin', cassette_designs: 'admin' } }]
   };
   user2.permissions = {
-    memberships: [{ organizationId: user2.organizationId, permissions: { cassettes: 'admin' } }]
+    memberships: [{ organizationId: user2.organizationId, permissions: { cassettes: 'admin', cassette_designs: 'admin' } }]
   };
 
   it('should create a standard cassette', async () => {
@@ -69,21 +69,7 @@ describe('Cassette Management & Ownership', () => {
     expect(result.lineage.organizationId.toString()).toBe(user1.organizationId.toString());
   });
 
-  it('should create a parametric cassette and extract params', async () => {
-    const data = { 
-      name: 'Smart Box',
-      data: {
-        params: { width: 100, height: 200 }
-      }
-    };
-    const result = await cassetteService.create(data, user1.userId, user1.organizationId, null, user1.permissions);
-
-    expect(result.data.type).toBe('PARAMETRIC');
-    expect(result.data.definition.params.width).toBe(100);
-    expect(result.data.definition.params.height).toBe(200);
-  });
-
-  it('creates a named default OCCS cassette template for process construction', async () => {
+  it('always creates a named editable OCCS cassette', async () => {
     const libraryId = new ObjectId();
     await db.collection('libraries').insertOne({
       _id: libraryId,
@@ -92,8 +78,8 @@ describe('Cassette Management & Ownership', () => {
       summary: { cassetteCount: 0 }
     });
 
-    const result = await cassetteService.createDefaultOccsTemplate(
-      { name: 'Generated Template', libraryId },
+    const result = await cassetteService.create(
+      { identity: { name: 'Generated Template' }, libraryId },
       user1.userId,
       user1.organizationId,
       null,
@@ -106,7 +92,7 @@ describe('Cassette Management & Ownership', () => {
       id: 'face_1',
       operation: 'face.trapezoid'
     });
-    expect(result.data.parameters).toEqual(['A', 'B', 'R']);
+    expect(result.data.parameters).toEqual(['A', 'B', 'R', 'T']);
     expect(result.lineage.libraryId.toString()).toBe(libraryId.toString());
 
     const library = await db.collection('libraries').findOne({ _id: libraryId });
@@ -153,8 +139,7 @@ describe('Cassette Management & Ownership', () => {
       user1.userId,
       user1.organizationId,
       null,
-      user1.permissions,
-      { name: 'Design from incomplete template' }
+      user1.permissions
     )).rejects.toThrow(/no construction definition/);
   });
 

@@ -1,6 +1,6 @@
 # COMPONENT: State Machine Engine & Aggregator - v24 Standardized
 
-Centralized logic for governing entity lifecycles, enforcing business rules, and maintaining cross-entity data integrity (aggregations).
+Governs entity lifecycles and maintains cross-entity data integrity (aggregations).
 
 ## Architecture
 The system consists of three main parts: the transition engine, the dynamic hook registry, and the centralized aggregator.
@@ -21,7 +21,11 @@ The system consists of three main parts: the transition engine, the dynamic hook
   when a process workflow overrides an entity lifecycle. Service-owned flows
   such as `nesting_run` solver completion still need their hidden
   `NESTING -> COMPLETE` / `NESTING -> ERROR` intents even when the user-facing
-  process adds custom statuses.
+  process adds custom statuses. If a process-authored state does not declare a
+  domain system intent, workflow composition adds a hidden self-transition for
+  that intent. This lets internal events such as `artifactFileStored` complete
+  and enter status history without replacing the process-owned state or
+  invalidating status-scoped grants.
   Process-authored user transitions are authorized by their compiled
   `processRoleIds`. Status-scoped entity grants produced by the target status
   node describe access after the transition and must not be required on the
@@ -41,19 +45,8 @@ and hook dispatch.
 Workflow definitions are v2 region machines. Flat lifecycles are represented as
 the `main` region; nested or parallel lifecycles add more regions under
 `workflow.regions`. Entity `status.state` is a structured snapshot, not a
-string:
-
-```js
-{
-  schemaVersion: 2,
-  primary: 'READY',
-  active: { main: 'READY', qa: 'OPEN' },
-  regions: {
-    main: { state: 'READY', path: ['READY'] },
-    qa: { state: 'OPEN', path: ['OPEN'] }
-  }
-}
-```
+string; the canonical snapshot shape and workflow definition examples live in
+[`@cutkit/workflows`](../../../packages/workflows/README.md).
 
 Use `getPrimaryState(status)` for primary lifecycle reads and
 `getRegionState(status, regionId)` for scoped reads. Primary-state indexes and
@@ -85,7 +78,7 @@ runtime captures readable entity refs/counts into
 `status.lifecycle.data.snapshots` during the transition.
 
 ### 2. Dynamic Hook Registry (`hooks.js` & App Registry)
-Acts as a decoupled dispatcher for side-effects. To prevent architectural leaks, manufacturing-specific logic is NOT implemented in the core engine.
+Acts as a decoupled dispatcher for side-effects. Manufacturing-specific logic is NOT implemented in the core engine.
 - **Global Hooks (`hooks.js`)**: System-wide primitives (e.g., `propagateToChildren`, `triggerAggregator`).
 - **Feature Hooks**: Feature hook handlers are bound explicitly in `server/runtime/app-registry.js` or exported from the owning feature service.
 - **Resolution**: The engine reads hook handlers from the active app registry, then falls back to feature-service hooks for transitional compatibility.
@@ -115,7 +108,7 @@ Interactive UI status changes use the canonical status endpoints:
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. It also includes compiled manual process `changeStatus` actions from the current role assignment when their entity type and source status match the target entity. |
+| `GET /api/status/actions?entityType=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. It also includes compiled manual process status-mutating `updateEntity` actions from the current role assignment when their entity type and source status match the target entity. |
 | `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. Optional `statusMeta.region` / `statusMeta.path` scopes a transition to a non-primary region. `statusMeta.metadata.note` carries the operator description, and `statusMeta.lifecycle.attachments` carries uploaded proof refs for schema-declared slots. |
 
 Entity-specific PATCH routes must not be the primary status API for standard
@@ -148,6 +141,10 @@ masked.
    boundary, or `POST /api/status/transition`.
 2. Transition is validated against the domain workflow, access requirements, lifecycle schema, and actor/capability assignments.
 3. Entity's structured `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged with `fromState`, `toState`, `fromStatePrimary`, `toStatePrimary`, and `region`.
+   When a status mutation also carries an entity patch, the service requires a
+   Mongo transaction for the status event plus entity snapshot. Standalone
+   Mongo deployments that reject transactions fail the combined mutation
+   without falling back to partial ordered writes.
 4. **Hook Execution**:
     - Engine executes any `phase: 'before'` hooks before writing the new status.
     - It writes the event and entity status snapshot.
@@ -157,8 +154,8 @@ masked.
 5. Parent's `summary` block is updated via `aggregator.js` (if `triggerAggregator` hook was called).
 
 ## Related
-- [server/core/blocks/](../core/blocks/) (Standard Block classes)
-- [server/utils/objectid.js](../utils/objectid.js) (Flexible ID handling)
+- [server/core/blocks/](../blocks/) (Standard Block classes)
+- [server/utils/objectid.js](../../utils/objectid.js) (Flexible ID handling)
 - [server/runtime/README.md](../../runtime/README.md) (Entity registry helpers)
 - [packages/workflows/README.md](../../../packages/workflows/README.md) (Framework workflow package)
 - [server/core/effects/README.md](../effects/README.md) (Effect processor)

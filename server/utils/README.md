@@ -135,6 +135,10 @@ The extractor is code-aware but not a schema compiler. It reads feature `model.j
 
 Extraction output includes `source` and `issues` fields so `/admin/data-model-review` can flag suspicious generated fields before refactoring. Treat `server/DATA_MODEL.md` as review input, not the final contract, when a field is marked with issues.
 
+The command writes `server/DATA_MODEL.md` only when its generated content has
+changed. This prevents Nuxt development file watching from restarting the app
+for an unchanged generated document.
+
 The admin review page compares extracted collections against the committed framework manifest after excluding support/runtime collections. This keeps audit/auth/template data visible for cleanup without requiring those collections to become public framework entities.
 
 ## cassetteGraphBuilder.js

@@ -451,9 +451,9 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import MultiSelect from 'primevue/multiselect';
+import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import TypedSettingsForm from '~/components/shared/TypedSettingsForm.vue';
@@ -1502,7 +1502,6 @@ function workflowNodeStyle(node) {
     minHeight: `${node.height}px`,
     borderRadius: 'var(--ck-radius-ui)',
     border: selected ? '2px solid var(--p-primary-color)' : '1px solid var(--p-content-border-color)',
-    boxShadow: selected ? 'var(--ck-shadow-card-hover)' : 'var(--ck-shadow-card)',
     fontFamily: 'inherit',
     fontWeight: 600
   };

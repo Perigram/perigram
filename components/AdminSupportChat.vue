@@ -124,7 +124,7 @@ import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Message from 'primevue/message';
 import ProgressSpinner from 'primevue/progressspinner';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue';
 
 const { t } = useI18n();

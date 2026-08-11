@@ -8,7 +8,7 @@
               <h2 class="m-0 text-base">{{ $t('billing.organizationAccount') }}</h2>
               <small class="text-muted-color">{{ $t('billing.organizationAccountHint') }}</small>
             </div>
-            <Tag :value="accountStatusLabel" severity="info" />
+            <Tag v-if="currentTariffLabel" :value="currentTariffLabel" severity="info" />
           </div>
           <div class="flex items-end justify-between gap-3">
             <div class="flex flex-col gap-1">
@@ -17,6 +17,7 @@
             </div>
             <Button icon="pi pi-refresh" :label="$t('common.refresh')" size="small" text :loading="loadingBilling" @click="loadBilling" />
           </div>
+          <Message severity="secondary" :closable="false">{{ $t('billing.tokensExplanation') }}</Message>
           <Message v-if="billingError" severity="error">{{ billingError }}</Message>
         </div>
       </Panel>
@@ -24,14 +25,14 @@
       <Panel v-if="hasRegion('billingPackages')">
         <div class="flex h-full flex-col gap-4">
           <div class="flex items-center gap-3">
-            <i class="pi pi-shopping-cart text-xl text-primary" aria-hidden="true"></i>
+            <i class="pi pi-shopping-cart text-xl text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
             <div class="min-w-0">
               <h2 class="m-0 text-base">{{ $t('billing.tokenPackages') }}</h2>
               <small class="text-muted-color">{{ $t('billing.tokenPackagesHint') }}</small>
             </div>
           </div>
           <div v-if="packages.length" class="flex flex-col gap-2">
-            <div v-for="pack in packages" :key="pack.id" class="flex items-center justify-between gap-3 rounded-md border border-surface-200 p-3 dark:border-surface-700">
+            <div v-for="pack in packages" :key="pack.id" class="flex items-center justify-between gap-3 rounded-ui border border-surface-200 p-3 dark:border-surface-700">
               <div class="min-w-0">
                 <p class="m-0 font-medium">{{ packageLabel(pack) }}</p>
                 <small class="text-muted-color">{{ pack.tokenAmount }} {{ $t('billing.tokens') }}</small>
@@ -94,6 +95,7 @@ import { useI18n } from 'vue-i18n';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useAuthStore } from '~/stores/auth';
+import { currentTariffLabel as resolveCurrentTariffLabel } from '~/utils/billing-presentation.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -111,6 +113,7 @@ const packages = ref([]);
 const invoices = ref([]);
 const ledger = ref([]);
 const checkoutPackageId = ref('');
+const billingConfiguration = ref({ mode: 'prepaidTokens', currentTariff: null, currentTariffLabelKey: null });
 
 const organizationId = computed(() => props.screen.scope?.organizationId || authStore.organizationData?._id || authStore.userData?.organizationId || authStore.user?.organizationId);
 const regions = computed(() => props.screen.regions || []);
@@ -118,7 +121,10 @@ const mainRegions = computed(() => regions.value.filter(region => (region.slot |
 const supportingRegions = computed(() => regions.value.filter(region => region.slot === 'supporting'));
 const screenActions = computed(() => props.screen.systemActions || []);
 const canCheckout = computed(() => screenActions.value.some(action => action.id === 'organization.billing.checkout'));
-const accountStatusLabel = computed(() => billingAccount.value?.status ? billingStatusLabel(billingAccount.value.status) : t('common.loading'));
+const currentTariffLabel = computed(() => resolveCurrentTariffLabel(billingConfiguration.value, {
+  translate: t,
+  hasTranslation: te
+}));
 
 onMounted(async () => {
   await Promise.all([loadBilling(), loadPackages()]);
@@ -141,6 +147,7 @@ async function loadBilling() {
   try {
     const data = await $fetch(`/api/organizations/${organizationId.value}/billing/account`);
     billingAccount.value = data.account;
+    billingConfiguration.value = data.billing || billingConfiguration.value;
     invoices.value = data.invoices || [];
     ledger.value = data.ledger || [];
   } catch (error) {
@@ -155,6 +162,7 @@ async function loadPackages() {
   try {
     const data = await $fetch(`/api/organizations/${organizationId.value}/billing/packages`);
     packages.value = data.packages || [];
+    billingConfiguration.value = data.billing || billingConfiguration.value;
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
   }

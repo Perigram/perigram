@@ -14,8 +14,7 @@ export class CassetteDesign extends BaseEntity {
         data: null,
         dxfId: null
       },
-      parameters: raw.data?.parameters || {},
-      derivedFrom: raw.data?.derivedFrom || null
+      parameters: raw.data?.parameters || {}
     };
   }
 

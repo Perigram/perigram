@@ -1,8 +1,9 @@
 import { ObjectId } from 'mongodb';
 import { createError } from 'h3';
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { Library } from './model.js';
-import { createData, createIdentity, createStatus } from '~/server/core/blocks/index.js';
+import { createData, createIdentity } from '~/server/core/blocks/index.js';
 import { statusService, createTransitionAuth } from '~/server/core/machines/service';
 import { getLineageFilter, hasLineagePermission } from '~/server/utils/permissions';
 import { mapLineageQuery } from '~/server/utils/query';
@@ -21,7 +22,7 @@ export async function create(data = {}, userId, userOrg, userRole, userPermissio
     throw createError({ statusCode: 403, message: 'Permission denied for libraries' });
   }
 
-  const origin = createStatus('ACTIVE', userId, { note: 'Library created' });
+  const origin = await statusService.initialStatusForOrganization('library', organizationId, userId, { note: 'Library created' });
   const library = new Library({
     identity: createIdentity(data.name || 'New Library', data.slug || `library-${new ObjectId().toString().slice(0, 8)}`),
     origin,
@@ -68,7 +69,13 @@ export async function update(id, updates = {}, userId, userOrg, userRole, userPe
   }
 
   if (updates.status && typeof updates.status === 'string') {
-    await statusService.transition('library', current._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'library',
+      targetId: current._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     return await getById(id, userId, userOrg, userRole, userPermissions);
   }
 
@@ -98,3 +105,9 @@ function normalizePrimaryStatuses(value) {
   if (typeof value !== 'string') return [];
   return value.split(',').map(item => item.trim()).filter(Boolean);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'library',
+  repository,
+  Model: Library
+});

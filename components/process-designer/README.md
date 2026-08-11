@@ -1,191 +1,269 @@
-# COMPONENT: Process Designer Nodes
+# COMPONENT: Process Designer
 
-Vue Flow node components for the organization process designer. The canvas is
-moving toward executable process steps: action nodes describe creation, status
-changes, and command runs. Entity contracts, transfer ports, abstract
-roles, and concrete user assignments are edited as process records in the
-route-level side panel, then assigned onto action nodes, service/socket access
-rules, and lifecycle transitions.
+The organization process designer authors the `@cutkit/processes`
+`dataflowVersion: 4` contract. Executable canvas records are `processNode`
+operations. Entity profiles, screens, role grants, service principals, and
+statuses are definition-plane records. Role identities are organization data,
+and the Roles panel performs immediate organization CRUD independently of
+process Save/Apply. Assignments belong to Team Management. Statuses have a
+definition item in the Entities palette and render as inline-editable canvas
+nodes; they are not inspector tabs or process-selector controls. A status node
+exposes one typed `status` output backed by its stable definition reference.
+Modify Entity consumes that output through `status.state.primary`; changing the
+authored status id updates the referenced value without breaking the wire.
 
-Each node type is visually and functionally distinct. All node components render
-the Vue Flow selected state as a primary border/ring, and each process node type
-uses a compact colored top stripe plus typed socket handles so the canvas can
-be scanned without adding explanatory chrome. Socket row backgrounds stay on
-theme surfaces; handle colors carry the contract distinction: entity sockets
-are blue, canonical block sockets are cyan, data/value sockets are green,
-status sockets are amber, event sockets are violet, projected transfer payloads
-are fuchsia, attachments are orange, and task outputs are neutral.
+The route is a composition surface, not the owner of every editor concern.
+Focused composables own process selection, draft persistence, graph selection
+and deletion, connection inference, palette queries, inspector record access,
+roles, screens, and dock/panel state. Their contracts are exercised directly in
+behavior tests so a disconnected Save, selection, or graph mutation fails even
+when labels remain in the page source.
 
-- `ProcessEntityNode.vue` represents an entity contract. It exposes left-side
-  standard block/status sockets that can accept status and block nodes, and
-  right-side entity/block sockets that downstream action nodes can consume. The
-  node summarizes lifecycle states, transition count, and the explicit
-  public/write data contract exposed by the entity profile.
-- `ProcessActionNode.vue` represents an executable process step. It exposes
-  event trigger input, data input/output, and completion event output handles on
-  the node sides. The node owns inline editing for action access grants,
-  trigger mode, command selection,
-  creation target, update fields, and projection fields. The action kind is fixed by the
-  palette item that created the node and is displayed as a compact verb such as
-  `create`, `update`, or `service`. Create actions derive their parent from the incoming
-  data socket instead of a parent-type selector. The optional parent socket is
-  always visible so it can be connected; root create actions keep it generic and
-  compile without a parent until a concrete entity edge is wired. Update actions consume an
-  incoming entity and expose selected mutable data fields as left-side data
-  sockets, status-change actions consume
-  an incoming entity without selecting an entity type or editing the existing
-  status, and command actions show command entity inputs/outputs. Create actions
-  derive their left-side data sockets from the domain construction contract:
-  promptable constructor inputs become generated-screen dialog fields, and
-  typed derived entities such as `cassette_design` keep their construction mode
-  on the action record instead of pretending they are generic inserts.
-  A parent wire is accepted as a canvas authoring socket, but the compiler only
-  treats it as semantic when the connected entity is a valid domain lineage
-  parent. Constructor entity inputs such as a cassette-design `templateId`
-  remain data/constructor sockets, not create-action parents.
-  Update actions derive promptable editor fields from selected domain field
-  policy entries, so a manual modify action collects values for concrete fields
-  instead of free-form paths before it calls the active process action runtime.
-  Status-change actions use the target status definition label, or the target
-  state id when no label exists, as the node's primary title. Generic palette
-  labels such as `status` or stale `Action` values are ignored in this mode so
-  the canvas reads as the actual transition being authored.
-- `ProcessStatusDefinitionNode.vue` represents an entity-agnostic reusable
-  status value for the same canvas. The node renders the same PrimeVue status
-  tag shape that the resulting status uses, and its inspector edits status id,
-  optional label, severity, icon, and lifecycle evidence requirements. New
-  status nodes start from a neutral `STATUS` id and no label rather than
-  inventing a domain state such as `Created`. Connecting it to an entity node
-  adds the state to that entity lifecycle; connecting it to a create or
-  status-change action writes the action target state and lets the compiler
-  apply status label/color/severity/icon metadata plus lifecycle evidence schema
-  to the generated workflow, compiled action status, and runtime
-  `status.metadata.display` payload used by generated screens. Evidence
-  requirements are stored on the status definition as `lifecycle.description`,
-  `lifecycle.attachments`, and `lifecycle.snapshots`; runtime status actions
-  collect descriptions/proof files and capture declared snapshots when entering
-  that state. The inspector does not render the generic node label for
-  status-definition nodes; the explicit status label field is the only display
-  label, and the node itself renders a single badge with no separate socket
-  text.
-- `ProcessValueInputNode.vue` represents a canonical block value
-  (`identity`, `data`, `specs`, `summary`, `attachments`, or status metadata).
-  Wiring it into an entity node adds that canonical path to the entity field
-  policy. Wiring it into a construction data socket binds that value to the
-  matched construction field, while wiring it into an update action adds the
-  block path as a concrete mutation field. Empty update actions expose a generic
-  field socket until the first block is connected; after that the node displays
-  exact mutation sockets using domain field labels.
-- `ProcessNode.vue` represents non-effect process algebra records. Entity
-  reference nodes traverse entity relations. Blocks nodes decompose an incoming
-  entity into canonical DTO block sockets (`identity`, `status`, `lineage`,
-  `data`, `specs`, `summary`, and `attachments`). Field nodes read a scalar or
-  JSON value from one incoming block. Text, comparison, logic, and collection
-  nodes transform typed values without mutating persistent state; mutations and
-  external work stay on action nodes. Each node keeps the palette icon on the
-  canvas, while socket handle colors come from the socket data type rather than
-  the node kind.
-- `ProcessServiceNode.vue` represents a command-backed service. It exposes
-  service-identity access, typed input, and output handles and summarizes
-  exact command inputs and outputs as labeled sockets in the same
-  expected/produced visual contract as action nodes.
-- `ProcessSocketNode.vue` represents cross-organization entity transfer.
-  Outbound socket nodes consume an entity on the left and produce a projected
-  payload on the right. Inbound socket nodes represent receiver inputs from
-  another organization and produce the received entity on the right. Direction
-  decides whether send-role or receive-role access is summarized as chips on
-  the node; access is not a graph socket.
+## Palette and node concerns
 
-Entity, service, and socket nodes remain process-resource surfaces, while
-action nodes are directly editable because most process behavior belongs on the
-executable step itself. The route-level designer still owns process record
-mutation, role and user assignment records, inline lifecycle workflow mutation,
-compiler fields, and Vue Flow edge persistence. Role or user node components
-should not be added to the palette; roles stay reusable process metadata
-instead of layout objects.
-Input and output data is not rendered as a detached summary and nodes do not
-label columns as "inputs" or "outputs". Data flow is left-to-right: expected
-data is labeled on left handles, and produced data is labeled on right handles.
-Sockets render a single contract label; required/multiple/path metadata belongs
-to the semantic record and generated runtime contract, not duplicate second-line
-canvas text.
-Event flow also uses side sockets: an `event` trigger enters the left side of
-an action and the action completion event leaves the right side in a separated
-bottom band. Action nodes expose only two trigger modes: `manual`, which creates
-a user-facing action for roles granted through `action.access`, and `event`,
-which runs automatically from another node's event edge. Service identities
-remain service access records, not manual trigger choices. Multi-socket command
-nodes derive handle ids from the socket contract.
+The runtime catalog remains exhaustive, but it is not the authoring palette.
+The palette has three non-overlapping authoring concerns.
 
-Status-change action grants edit access for the exact entity type carried by
-the incoming data edge, not generic entity access and not status access. During
-node sync the designer derives the entity type and existing status from the
-wired source socket, stores `action.access.statusFrom` and
-`action.access.statusTo`, carries that same entity type to the output socket,
-and labels both data sockets with the concrete type. By default the node
-inherits role-level grants from the incoming entity-producing node; editing
-the access controls marks the node as explicitly modified, and the reset button
-restores the inherited parent access. Each action access row is a process-role
-dropdown plus an access level (`read`, `write`, or `admin`), so one action can
-grant different levels to different roles without promoting all roles to the
-highest level. Unwired status-change nodes do not invent a generic access
-target. The compiler emits transition metadata plus a target-state rule on the
-entity grant. The role selector lists process roles directly because selecting
-a role on an action creates the entity grant;
-entity-profile grants must not hide roles from action grant authoring. Action
-nodes also render compact role/level chips for inherited access and roles that
-already have matching entity access from entity profiles or other status/action
-grants.
+- **Entities** owns typed block assembly and persistence. Compose Block creates
+  one canonical block from selected fields. Modify Block copies a connected
+  block and replaces only its connected selected fields. Deconstruct Entity
+  exposes declared blocks, Get Block extracts one block, and Get Field reads
+  one field from a block. Create Entity accepts constructible blocks plus lifecycle
+  status; Modify Entity accepts the current entity, replacement blocks, and
+  status, and changes only connected blocks. Neither persistence node exposes
+  leaf constructor fields.
+- Create Entity first selects the domain entity. Generic construction consumes
+  canonical blocks; when a derived entity declares multiple real construction
+  strategies, a selector chooses the typed inputs. Single-option internal modes
+  are not shown as authoring choices. Producer identifiers
+  remain runtime/domain contracts and do not leak into the palette as one-off
+  upload/source nodes.
+  Cassette creation is generic block composition; it does not expose a
+  cassette-specific template-name constructor socket.
+- Containment is authored through the target entity's `lineage` block. The
+  compiler derives the ancestor entity type and lineage key from the connected
+  entity socket and emits a compiled Lineage binding; Create
+  Entity does not assign an entity-specific parent or add a parent socket.
+- Select Entities is the organization-scoped source for an existing typed
+  entity list. Registered commands use the single Run Service operation, whose
+  sockets are projected from the selected command's entity, parameter, and
+  output contracts.
+- **Values** contains one typed value input and one operation-switching node
+  each for logic/comparison, text, math, and date-time work.
+- **Lists and trees** contains branch-local list operations and explicit tree
+  transforms. Collect Array converts one branch into one persisted array value;
+  Expand Array performs the reverse. Matching is Longest by default, with
+  Shortest and Cross available per node.
+Every effect has one bottom execution switch: Manual exposes the operation to
+authorized users, while Automatic exposes an incoming event socket. Date
+scheduling and event subscriptions are runtime contracts, not an authoring
+palette family. Every effect exposes one `completed` event there. Event handles use the same
+left-to-right direction as data sockets instead of pointing out of the bottom
+of the card. Pure value, list/tree, read, and deconstruct nodes do not render
+event chrome. Effect failures fail the run; retry behavior is not hidden effect
+metadata and must be introduced later as explicit event/control dataflow.
 
-Node components must not embed concrete domain entity names. Domain-specific
-construction modes, entity lists, feature keys, and stale-label cleanup are
-owned by the route-level domain registry and process compiler. Status-definition
-nodes only decide whether to display the authored label or the status id; they
-do not know which entity types exist.
+There is no advanced reveal and no separate “starts and inputs”, “process
+flow”, or “selection and filtering” taxonomy. Filtering is ordinary dataflow:
+deconstruct/read a field over an entity list, evaluate it with Logic to obtain
+a Boolean mask, then feed that mask and the original list to Filter.
 
-The route-level process designer computes a live compiled preview from the
-current graph after node, edge, role, and screen edits. The service-identity
-editor is not a top-level tab; service principals remain internal records edited
-only where command-backed service nodes need them. The screens tab shows the
-actual compiled screens, including compiler-inferred role/entity screens, before
-the lower authored-screen editor. `ProcessScreenPreview.vue` renders those
-compiled screens as simplified role-grouped layouts: it shows the screen
-template, regions, sources, filters, and actions from the normalized manifest,
-but it must not fetch live entities or mount the runtime generated-screen
-renderer.
+## Authoring capability matrix
 
-Canvas wires are selectable curved edges. `Delete` / `Backspace` removes the
-selected node or selected wire, and runtime edge selection styling is stripped
-before process serialization. Palette-created nodes are positioned at the
-center of the active viewport so adding a node while zoomed or panned does not
-drop it back near the original canvas origin.
-Wires are checked against the process package's typed port contract before they
-are persisted. Clear type mismatches, such as event-to-entity, status-to-data,
-or different concrete entity types, are rejected with a localized toast. Generic
-authoring sockets such as create-action parent inputs stay connectable so the
-compiler can apply domain lineage validation afterward. Stale labels or saved
-parent entity metadata on a create action do not narrow the visual `parent`
-handle during edge validation. Command outputs that return collections can feed
-same-entity row actions through the standard `entity` input.
+| User goal | Authoring path | Runtime boundary |
+|---|---|---|
+| Create an entity | Value/block nodes → Create Entity; select a typed construction mode when declared | Entity service or declared construction service |
+| Select and filter entities | Select Entities → Deconstruct/Get Block/Get Field → Logic → Filter List | Organization-scoped readable entity query |
+| Read entity structure | Entity → Deconstruct Entity or Get Block → Get Field | Pure evaluator |
+| Compose or modify a block | Values → Compose Block, or Block + values → Modify Block | Pure evaluator with canonical block schema |
+| Persist replacements/status | Entity/block/status → Modify Entity | Entity field policy and Status engine |
+| Run a service | Typed values/entities → Run Service | Registered command handler |
+| Run manually or chain effects | Manual effect, or completion → Automatic effect | Durable orchestration |
+| Reshape collections | Branch-local list operations and explicit tree transforms | Pure data-tree evaluator |
 
-Command sockets should expose abstract domain contracts when a command is
-polymorphic. For example, `generateAttachment` presents one `Attachment source`
-socket with `attachments.generate` capability and accepted source types instead
-of separate `sheet_design` and `nesting_run` sockets.
+The exhaustive runtime catalog, producer effects, predicates, patches,
+conversions, and trigger-payload helpers have no direct authoring entry.
 
-New process behavior should use `createEntity`, `updateEntity`, `changeStatus`,
-`runCommand`, status-definition nodes, value-input nodes, and inbound/outbound
-socket nodes. Archive is represented as a `changeStatus`
-action targeting an archive status, not as a separate node type. Entity naming
-is a construction input: generated create actions prompt for the domain
-contract's name field or consume a connected block/value default. A block node
-wired to a named construction socket uses that socket's contract path (`name`,
-`templateId`, `parameters`, etc.) instead of the block node's display path, so
-typed constructors such as cassette-design baking receive the domain payload
-they require. They should not create unnamed records unless the entity contract
-explicitly allows it.
-Generic process-algebra nodes now exist for the semantic records that
-`@cutkit/processes` can round-trip and type-check: entity references, field
-reads, string operations, comparisons, logic, and basic collection transforms.
-Guard and switch nodes are still not palette nodes because they need explicit
-runtime control-flow semantics rather than only value ports.
+Runtime-only payload extraction, casts, parsing, nullable removal,
+entity-reference conversion, JSON conversion, predicates, and patch assembly
+are never ordinary palette choices. Safe coercions such as integer-to-number
+and entity-to-reference are wire semantics; an unsafe connection is rejected
+instead of creating an unexplained empty conversion node.
+
+`ProcessNode.vue` renders the catalog's resolved ports, not stored UI guesses.
+Inputs and outputs share explicit rows, and every handle is centered on the
+outer node rail rather than inheriting a position from variable-height content.
+Socket labels stay concise; the exact element type, access, qualifier, and
+description are available on hover and to assistive technology instead of
+being repeated beside every socket. Color communicates transported base type,
+handle shape communicates Item/List/Tree access, and the thin node stripe
+communicates operation concern. The shared `processDesignerSocketTone` mapping
+drives both a source handle and its wire, so a contract has one semantic tone
+throughout the canvas. Port labels sit on unboxed left/right rails rather than
+inside independently colored chips. When selected, an unconnected primitive
+input reveals a compact inline typed fallback editor; this keeps inactive nodes
+quiet while preserving immediate authoring without a separate constant node.
+A connected wire always wins. An open socket is a composition affordance, not
+an error. Process sockets are always optional; validation only rejects invalid
+wires, duplicate single-value connections, and invalid authored contracts.
+
+Fallback/default policy is omission-first. A connected value wins; otherwise
+an explicit authored `inputDefaults` value is used. If neither exists, the
+input is omitted. Defaults
+declared by a construction mode or command are applied only by that owning
+domain/runtime contract—generic block authoring does not guess them. Generated
+identity uid, Mongo `_id`, origin, status history, and other service-owned
+fields have no authoring fallback and cannot be composed or modified. Initial
+status is the separate lifecycle input.
+
+Entity and block bindings are explicit. Query Entities chooses its entity type;
+open block rows choose their key and element type. Neither a source socket nor
+a downstream consumer rewrites those choices. Filtering is Query → Get Field →
+Logic → Cull Pattern/Dispatch. Several references become one stored collection
+only through Collect Array.
+
+Only configuration that defines the operation or its ports stays on the node:
+value/type, entity, field, block, operation, trigger identity/mode, and socket
+fallback. Access grants, selected compose/modify field sets, and
+other secondary record policy live in the contextual inspector. A status node
+still authors its identity and exposes its output on the canvas; color, icon,
+and lifecycle evidence schemas are edited in the inspector.
+Resolved input/output contracts are shown by the node's labelled socket rails
+and hover/focus metadata; the inspector does not repeat a socket-specification
+table.
+Pure and read nodes expose an on-demand Output data inspector. It evaluates
+only the selected node and its upstream data dependencies, then renders each
+output as branch paths, sampled values, and branch/item counts. Effects and
+control nodes never show this inspection action because preview execution
+deliberately suppresses them.
+The palette and inspector are independently collapsible and scrollable. Palette search matches
+localized job names and descriptions as well as internal kinds. The persistent
+palette uses a readable two-column grid with grouped headings; operation
+descriptions are available on hover instead of occupying canvas space.
+Right-clicking empty canvas opens the palette at that graph position.
+Dropping a socket wire on empty canvas opens the same palette filtered to
+operations with a compatible opposite socket; choosing one creates and
+connects it immediately.
+
+## Types and connections
+
+Types are structured `{ base, nullable, ...qualifiers }` element contracts.
+Every data value travels in a path-addressed tree. Socket `access` independently
+declares whether a node consumes an Item, each branch as a List, or the entire
+Tree.
+Collection-valued fields use the `array` base with an `itemType`. Exact entity types, blocks, schemas, enums, units, capabilities, and
+attachment/event kinds are preserved on sockets.
+Collect Array converts a branch into one array-valued item; Expand Array does
+the reverse. This boundary keeps composing a collection field from accidentally
+producing one block per list element.
+
+The designer checks element compatibility before persisting a wire. The runtime
+solver obtains topology from actual source trees. Item access maps over matched
+items; List access executes independently for every branch; Tree access receives
+the complete structure. Per-input Simplify, Flatten, and Graft run before the
+node's Longest, Shortest, or Cross matching rule.
+
+Deconstruct Entity consumes one typed entity or aligned entity structure and
+emits one typed socket per declared canonical block. Field-level work is an
+explicit Get Field operation over a block. Entity decomposition, block
+composition, and leaf value operations therefore remain separate concerns.
+
+Compose Block, Modify Block, and Get Field consume entity-independent
+`cncDomain.blockSchemas` and `blockComposition`; they have a block selector but
+no entity selector. The schemas are explicit canonical contracts, not a union
+of observed entity fields. Fixed blocks expose fixed field sockets. Open blocks
+use typed rows with stable socket ids: Lineage derives its key and typed
+ancestor reference from the connected entity socket; Relations authors a key and referenced entity
+type; Attachments uses a named attachment kind; and
+Data, Summary, and Provenance use a named value type. The composed map is the
+single block output, never an unexplained map input. Get Field mirrors those
+same concerns, including restoring stored lineage ids to typed references.
+Entity decomposition/read nodes use `fieldSchemas` for entity membership, and
+Create/Modify Entity apply constructible/writable policy when accepting a
+connected block. Create accepts an open canonical block when that block belongs
+to the selected entity; it does not treat each open entry as a fixed entity
+field. Persisted fixed nodes keep selected paths, while open nodes
+keep stable entry ids plus their authored key/type qualifiers; neither stores
+schema snapshots.
+When the current entity schema makes every field in a persisted Create block
+non-constructible, process normalization removes that stale block and its
+defaults before the designer validates or saves the definition. This keeps
+service-owned blocks such as cassette-design identity out of the node record,
+not merely hidden from its sockets.
+Wildcard access rules do not appear as fields. Compose/Modify Block expose only
+the explicitly selected field set as dynamic sockets; Create/Modify Entity never
+select leaf fields. Origin, provenance, status history, and summary are not
+generic writable block inputs. A literal never asks for a field path. Effect
+access is edited as explicit role plus access-level rows rather than flattening
+every selected role into a write grant.
+
+## Canvas behavior and diagnostics
+
+Nodes are added to the nearest unoccupied grid position around the visible
+viewport center. A newly inserted node must not cover an existing node or its
+socket hit targets. Left drag box-selects, Shift extends selection, two-finger
+touchpad scroll pans, pinch zooms around the pointer, and Space plus left drag
+provides keyboard-assisted panning without a middle mouse button. A selected
+node uses one primary border only; it does not add an outer ring or second
+outline.
+The canvas uses its own token-backed work surface. Opaque palette and inspector
+rails leave the graph clear behind one compact bottom dock. The dock is
+icon-only and ordered by concern: four-square Palette, Inspector, Save, Apply,
+hover/focus Navigation, then the final Folder for process selection and New
+Draft. There is no standalone Validate control: Apply saves, validates, and
+activates as one operation, while the result remains visible as feedback on the
+canvas. Navigation opens framing and zoom controls on hover/focus. The Folder
+opens the process chooser and New Draft action the same way, with click as a
+touch fallback. The process chooser uses the shared `EntitySelect` value event
+directly, pins the Folder panel while its option overlay is open, and closes
+only after an actual selection; selected process cards remain outside the
+change trigger.
+
+New Draft starts from an empty graph. Save on an active process is the explicit
+copy-to-draft operation; saving an ordinary draft updates that draft. Dirty
+state is a primary save affordance plus a small dot, not a persistent text
+badge. `components/shared/MotionDock.vue` is the shared, Vue Bits-derived
+`motion-v` block: the page supplies action data and optional contextual
+hover/focus hooks while the design-system primitive owns proximity scaling,
+keyboard buttons, and hover labels. Its compact scale comes from
+`designTokens.dock`, its spring from `designTokens.motion.spring.dock`, and its
+surface/border/indicator styling from PrimeVue variables. `useReducedMotion()`
+keeps the same accessible actions without magnification or label travel, so the
+route must not replace it with a hand-built toolbar, fixed dark colors, or
+shadows.
+Delete/Backspace removes all selected nodes and edges together while preserving
+definition records that are still referenced. Home frames the graph,
+Numpad Decimal frames the selection, and the dock's view popup exposes
+frame/zoom controls without requiring shortcuts. Zoom spans 0.1x through 4x,
+and the live viewport is persisted with the graph. Runtime-only selection
+styles are stripped before serialization. Validation reports missing sockets,
+incompatible types, guessed/undeclared fields, unreachable operational nodes,
+and data or control cycles. The compiled screen preview remains separate from
+operation execution.
+
+Entity selectors use the shared `EntitySelect`/`EntityMultiSelect` contract:
+selected entity cards render outside the input and the compact change chevron
+remains a separate trigger. Process-node field/type selectors use ordinary
+PrimeVue controls because their values are schemas, not entities.
+
+New Draft, Save, and Apply do not depend on a node selection or active
+inspector tab. New Draft exposes creation success or failure rather than
+silently failing. Save remains available for every loaded process and persists
+the authored graph as a draft even when it is incomplete or fails activation
+validation; dirty state is an attention indicator, never a persistence gate.
+Apply saves and validates the draft first and refuses activation when
+validation fails. On
+narrow layouts the bottom dock remains icon-only, both side rails become
+overlays, and either rail can be closed independently to recover the canvas.
+
+Legacy canvas records are not interpreted by the designer. The v4 migration
+rewrites supported v3 records before editing or activation and fails closed
+when an old mutation cannot be represented without changing meaning. New
+palette operations use `ProcessNode.vue` exclusively.
+
+Canvas accents and Vue Flow handles use the global `signal-*` aliases, not raw
+Tailwind hues. The aliases identify roles such as entity, data, structure,
+decision, projection, and effect, so the process canvas stays legible when the
+application theme changes. Status-definition severities use `status-*` aliases
+for the same reason; a node maps a severity to a role but never to a primitive
+theme color.

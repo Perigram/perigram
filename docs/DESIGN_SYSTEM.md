@@ -16,16 +16,69 @@ CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The des
 
 ## Token Policy
 
-Use PrimeVue semantic variables for color and component state. Use CutKit `--ck-*` tokens for app layout, radius, and motion values that PrimeVue does not own.
+Use PrimeVue semantic variables for shared component state. Use CutKit `--ck-*`
+tokens for the app surface stack, typography, geometry, elevation, motion, and
+domain signal roles that PrimeVue does not own.
 
-The active visual language is a quiet operational UI: zinc-neutral surfaces, teal primary actions, compact 8-10px radii, subtle card elevation, and visible focus rings. Avoid adding decorative gradients, large ornamental backgrounds, or page-local theme colors; promote durable visual decisions to `assets/tokens/index.js`.
+Motion is reserved for direct interaction feedback: compact contextual controls
+may use the semantic duration/easing/spring scale through shared primitives,
+but operational screens must not acquire ambient animation. CSS and JavaScript
+motion share the same reduced-motion policy, preserving control state and
+keyboard behavior without spatial travel.
+
+The active visual language is a hard editorial engineering instrument:
+near-white chrome and work surfaces in light mode, ink chrome in dark mode, a
+single signal-orange action channel, 3px control radii, 6px container radii,
+structural rules, and elevation only for overlays. JetBrains Mono is the global
+application face, keeping dense labels, values, controls, and technical content
+visually coherent. Signal orange marks intent, selection, and keyboard focus
+rather than ambient decoration; the rail uses the same token as a slim signal
+rule. Structural cards use border feedback on hover instead of an outward
+shadow, because their roots clip media. Light and dark schemes have distinct
+form and table surfaces, so a component must not force a light token into dark
+mode. Avoid gradients, ornamental backgrounds, and page-local theme colors;
+promote durable visual decisions to `assets/tokens/index.js`.
+
+`status-*` aliases are for application feedback (`info`, `success`, `warning`,
+`danger`, and `neutral`). `entity-*` aliases own the compact family tones used
+by shared entity references. `signal-*` aliases are for process-canvas roles
+such as `entity`, `data`, `structure`, `decision`, and `effect`; the name
+describes the meaning, not a fixed hue. Do not use raw Tailwind palette
+utilities for app chrome, entity-reference tones, or process handles. The
+process canvas uses its own surface token; a source socket and its wire consume
+the same semantic signal token, while node stripes retain their separate
+operation-concern role. Drawing
+and user data colors (for example DXF layers and pen strokes) remain literal
+data and are intentionally exempt.
 
 Do not add page or panel headers, descriptions, helper bubbles, notes, tips, or
 empty-state prose unless the workflow would be ambiguous or blocked without
 them. Prefer compact controls, clear placement, icons, typed labels, and
 domain-specific data surfaces over explanatory text.
 
-The production app shell (`layouts/app.vue`), UI lab shell, and shared entity cards consume the same `--ck-*` CSS variables directly for page background, chrome background, and elevation. This makes visual changes verifiable through CSS variable updates even when Tailwind alias generation requires a dev-server restart.
+The production app shell (`layouts/app.vue`), UI lab shell, shared entity cards,
+and process canvas consume the same projections. `cssVariableTokens` is
+mirrored in `assets/css/main.css`, which also owns a narrow PrimeVue runtime
+bridge for the active `--p-*` surface, form, action, card, table, and overlay
+variables. This makes a hot-reloaded screen render the same palette as a fresh
+PrimeVue preset boot. The design-system test checks that every declared runtime
+token exists and that no route-active component uses a raw Tailwind palette
+utility. The Tailwind primary scale includes `primary-50` to `primary-950`, so
+focus utilities such as `ring-primary-200` resolve through the active PrimeVue
+theme instead of falling back or disappearing.
+
+The runtime bridge also normalizes PrimeVue avatar media to a square
+`object-fit: cover` crop. PrimeVue's default image fit must not distort portrait
+or landscape uploads, and callers do not need page-local descendant selectors.
+
+The global `html` root font size is 14px. This keeps rem-based PrimeVue and
+Tailwind controls compact enough for information-dense engineering workflows;
+new shared sizing should remain token-backed rather than compensating with
+page-local font-size overrides.
+
+Interactive controls suppress browser and PrimeVue fallback outlines/shadows.
+Components own their selected and keyboard-focus presentation and must not add
+a second generic focus border.
 
 Allowed local hardcoded visual values are limited to real data, such as pen stroke colors, DXF layer colors, or uploaded asset metadata. Page-local decorative colors, radii, animation durations, chat/dialog dimensions, swatch sizes, and max-widths must be promoted to tokens or removed.
 
@@ -83,10 +136,19 @@ lifecycle snapshot sources instead of reading arbitrary page state.
 Shared ownership:
 
 - `EntityCard` owns card chrome and is the only non-legacy direct owner of PrimeVue `Card`.
+- `EntitySelect` and `EntityMultiSelect` own PrimeVue Select/MultiSelect in app
+  components. Canonical entity options use compact `EntityInlineRef` cards with
+  previews. Selected entity refs render outside the PrimeVue value/chip area;
+  the bound PrimeVue control stays present as a compact change trigger so
+  overlay, keyboard, and selection behavior remain owned by PrimeVue. Non-entity
+  options delegate without changing PrimeVue slots or behavior.
 - Entity-specific cards pass custom lifecycle commands through `EntityCard` `statusActions`; they should not rebuild identity/status title rows just to customize status buttons.
 - `StandardDialog` owns dialog chrome and is the only direct owner of PrimeVue `Dialog`.
 - `StandardPage` owns page shell width and spacing.
 - `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, and `TableFrame` own repeated page-level layout patterns.
+- `ResponsiveGrid`'s `bounded` variant uses the shared bounded-item min/max
+  width tokens for operational cards that must not grow indefinitely; extra
+  width creates additional tracks.
 - `IdentityBlock`, `EntityStatus`, `StatusBadge`, `TraceChain`, `SpecsBlock`, and `DataBlock` own v24 block visualization.
 - `StatusLocation` renders typed mutable location facts from `status.lifecycle.data.location` so cards do not hardcode warehouse ids or coordinate text as static fields.
 - `DrawingCanvas` owns layer-aware SVG canvas rendering for DXF/SVG previews, cassette thumbnails, mapping previews, and cassette designer interactions. Sources must normalize into its `{ viewBox, layers }` contract and provide layer standard metadata explicitly; the shared canvas does not invent production layer codes.

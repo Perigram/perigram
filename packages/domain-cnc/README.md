@@ -15,13 +15,30 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
   solve, attachment generation, and geometry capture extraction.
 - `attachment-kinds.js` - file/blob kinds, buckets, MIME types, preview modes.
 - `hooks.js` - typed transition hook parameter contracts.
-- `summaries.js` - aggregate summary contracts and frontend route metadata.
+- `summaries.js` - aggregate summary contracts.
 - `field-access.js` - per-entity field visibility policy consumed by backend
   DTO redaction and frontend shared blocks.
+- `field-schemas.js` - exact process-programming field paths with canonical
+  blocks, structured value/shape/domain/unit types, and read/write capability.
+  Entity-reference descriptors normalize UI aliases such as `nestingRun` to
+  canonical process entity ids such as `nesting_run`.
+  `origin.timestamp` and `status.timestamp` are date-time values, so process
+  date operations preserve their time component when scheduling from a
+  lifecycle entry.
 - `entity-construction.js` - create-time construction contracts used by process
-  action nodes and generated action dialogs.
-- `ui.js` - design-system policy metadata, not Vue components.
+  action nodes and generated action dialogs. `artifact` is a derived
+  `uploadArtifact` constructor: it accepts only attachment kinds whose domain
+  contract allows upload, capture, or editor creation, never a name-only
+  generic artifact record.
+- `ui.js` - design-system policy projected directly from the canonical entity
+  registry, not Vue components or a second entity registry.
 - `index.js` - public exports and aggregate `cncDomain`.
+
+Facade vocabulary includes project-scoped `facade` entities and organization-
+scoped `facade_pattern` entities. A facade points to an immutable GLB or
+self-contained GLTF artifact and records mesh-part pattern placements. A
+pattern holds a validated typed visual graph and an immutable algorithm
+revision. Neither entity bakes cassette designs or starts nesting.
 
 ## Vocabulary
 
@@ -31,7 +48,14 @@ kinds declare how a file should be stored and previewed.
 
 The `solveNesting` command accepts virtual-sheet parameters or warehouse
 material context (`materialMode: WAREHOUSE`, `inventoryItems`, and normalized
-`materialPool`). `solveNesting` and the `nesting.solve` task produce
+`materialPool`), plus a selected machine and tool profile. The machine supplies
+the working-area preset and boundary offset; the selected material source still
+supplies the actual sheet size/thickness, and the tool profile supplies kerf.
+For parametric queue designs, the nesting handler overlays material thickness as
+request-local `T` and uses source cassette provenance to evaluate worker
+geometry. It does not mutate the linked design or create another persisted
+cassette design for that nesting run.
+`solveNesting` and the `nesting.solve` task produce
 `nesting_run` and `sheet_design` entities only. DXF/SVG/PDF files are requested
 later through the artifacts service and `AttachmentKind` contracts, not as
 primary nesting-run outputs.
@@ -40,10 +64,12 @@ because nesting output access, generated queue detail regions, and aggregate
 summary sync all use the same lineage relation contract. Services that create
 those outputs must persist `lineage.queueId` and, when available,
 `lineage.projectId`.
-It also declares `cassette` as a `library` child through
-`lineage.libraryId`. Libraries are organization-scoped containers for cassette
-templates that share `data.material`; summary sync writes
-`summary.cassetteCount` on the parent library.
+Libraries are organization-scoped containers for cassette templates that share
+`data.material`; summary sync writes `summary.cassetteCount` on the parent
+library. Static containment describes non-process domain relationships and may
+validate persisted data, but it never authors process source classification,
+generated hierarchy, or Home placement. Those concerns use compiled Lineage
+bindings from the active process graph.
 `field-access.js` keeps `sheetDesign` on the `sheet_designs` access feature.
 Queue lineage scopes can restrict which layouts a user sees, but queue grants
 do not replace explicit sheet-design output grants from the active process.
@@ -68,6 +94,10 @@ status names:
 Nesting run acceptance still declares a synchronous preflight hook and a
 synchronous application hook, but the hook now emits declared effects that the
 status runtime executes after the status snapshot is written.
+Machine entities store CNC working-area presets. The domain ships a public
+system default through the machines feature, while organization-owned machines
+use normal `machines` grants for writes/admin changes.
+
 Material pile and remnant workflows are also declared here: material piles use
 `STOCKED -> DEPLETED`, while remnants use `AVAILABLE -> USED`. `ui.js` contains
 matching status labels/icons so live cards and framework/UI-lab previews use the
@@ -87,9 +117,41 @@ write generated Vue/domain files to the repository.
 
 `artifact` remains the current persisted entity type for generated file records.
 File behavior is declared by `AttachmentKind`.
+Each attachment kind also declares its creation affiliation (`upload`,
+`capture`, `editor`, `command`, or `workflow`), preview mode, editor
+affiliation (`none`, `text`, `csv`, or `layout`), and server-enforced file
+rules. UI
+surfaces resolve those capabilities through the domain UI adapter instead of
+branching on artifact names. A kind marked `layout` opens the shared artifact
+layout editor only when the persisted artifact carries editable layout and
+template provenance; an upload-backed kind supports primary-file replacement,
+while workflow preview files remain read-only.
+File creation contracts also declare accepted file types, byte limits, and
+creator fields. `capture` uses the browser-native camera chooser and `editor`
+creates a blank TXT/CSV artifact.
+The shared artifact creator and detail editor consume that contract, so adding
+an upload-backed kind does not require a relation-, cassette-, or page-specific
+upload implementation. Creator fields are user-authored typed values only;
+storage metadata such as the original filename is maintained by the artifact
+service and is not a generic JSON form field. `DXF_SOURCE` therefore asks for a
+name and file, while its stored metadata remains internal.
 `generateAttachment` is a polymorphic command: its process-designer contract is
 one abstract `Attachment source` input with `attachments.generate` capability
 and accepted source types.
+`artifact-conversions.js` declares supported source-kind to target contracts.
+`convertArtifact` is the corresponding process command: it accepts the current
+artifact, filters its target choices by source kind, and delegates the actual
+work to the server conversion capability. The current contracts are
+`LAYOUT_DXF → DXF_SOURCE`, which copies the stored DXF into the upload-backed
+source kind with artifact provenance, and `DXF_SOURCE → cassette_design`, which
+uses the typed cassette import constructor. New conversions belong in this
+registry and must have a server implementation; a matching MIME type alone is
+not an implicit conversion.
+`artifact_template` is separate organization-owned master data for DXF/PDF
+generation layouts. The command accepts it as an optional entity input and
+accepts typed assignments through `parameters.values`. Generated artifacts pin
+the selected template revision in provenance and keep a separate revision-backed
+editable layout.
 
 `entity-construction.js` declares create-time construction contracts. These are
 not authorization rules and not display fields. A construction contract names
@@ -97,22 +159,38 @@ the supported construction modes and required inputs for each entity type:
 ordinary entities use `genericCreate`, while derived entities such as
 `cassette_design` use a typed mode (`bakeCassetteDesignFromTemplate`) so the
 runtime can call the correct construction service and preserve editor
-contracts. `cassette` templates also use a typed constructor,
-`createDefaultOccsTemplate`, which requires a prompted name and creates a full
-default OCCS template document instead of an empty generic row.
+contracts. `cassette` uses the ordinary entity-create contract because a valid
+OCCS template is an invariant of the cassette service, not an optional
+construction strategy. Without an explicit definition, every create receives
+the complete starter OCCS document. The construction contract declares no
+constructor-field inputs: process nodes compose cassette identity, lineage, and
+other canonical blocks like any ordinary entity.
 When a `cassette` create action is connected to a `library` parent, the process
-runtime sends `libraryId` to that typed constructor so the resulting template
+runtime sends `libraryId` to the cassette service so the resulting template
 is stored as a child of the library.
-Queue creation is intentionally a shell creation contract: `jobItems`,
-`materialPool`, and nesting parameters are optional construction inputs because
+Queue creation is intentionally a shell creation contract: `materialPool` and
+nesting parameters are optional construction inputs because
 queue composition belongs to the queue editor and nesting command readiness
 checks, not to the initial create action dialog. Queue creation still requires
 a prompted `name` input so process-generated queues do not enter the system as
 unnamed shells.
-`cassette_design` creation uses `bakeCassetteDesignFromTemplate` with a
-prompted `name`, a source `cassette` template, and typed `cassetteParameters`.
+Queue composition is declared as the `queue.cassettes -> cassette_design`
+many-valued relationship. Producers create or import a complete design and then
+link it; no queue construction socket or embedded item contract duplicates the
+design.
+`cassette_design` creation uses `bakeCassetteDesignFromTemplate` with a source
+`cassette` template and typed `cassetteParameters`. Design identity is derived
+by the owning creation service from that source; it is not a separate required
+constructor input.
 The frontend must derive those parameter controls from the chosen cassette's
 OCCS definition instead of asking users to enter a raw object string.
+`producers.js` declares source categories that can provide derived entities to
+workspaces and fixed construction services at runtime. These declarations do
+not become one-off process palette nodes. Queue UI resolves the domain
+producers and binds matching process actions at runtime instead of hardcoding
+page-local source buttons. Linking an existing design to a queue is not a
+producer: it is the process compiler's generated mutation action for the
+declared `queue.cassettes` relation.
 `entity-create-inputs.js` projects those construction contracts into
 process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an
@@ -129,6 +207,36 @@ This package may declare UI policy: entity surface keys, status visibility,
 icons, docs, component paths, field groups, surface contracts, and field paths.
 It must not import Vue components. `@cutkit/vue` turns this metadata into
 frontend lookup helpers.
+
+`cncBlockFieldSchemas` projects the explicit framework-owned
+`CANONICAL_BLOCK_SCHEMAS`; it is not generated from entity field inventories.
+Fixed blocks expose their fixed fields. `cncBlockComposition` declares how open
+blocks are authored as typed named entries, so entity-specific paths never
+accumulate into a global selector and users never have to manufacture a raw
+map. Lineage and Relations rows do not aggregate domain relationship names into
+global selectors. Relations derive their key, referenced entity type, and
+cardinality from the connected entity socket. Lineage resolves its key from the
+consumer's declared containment ancestry, so a consuming Create/Modify node can
+validate a generic Lineage block without teaching the block composer about that
+consumer.
+`cncEntityFieldSchemas` separately declares which of those fields belong to an
+entity and whether they are readable, writable, or constructible. The registry
+also preserves framework structural capabilities: `identity.uid` remains
+readable for inspection but is excluded from Compose/Modify Block because uid
+generation belongs to the owning feature service. The registry
+keeps intrinsic arrays (`base: array` plus `itemType`) separate from process
+packet shape (`item`, `list`, or `tree`), so a field containing entity refs does
+not turn one composed block into a list of blocks.
+`field-access.js` wildcards authorize families of fields but never generate a
+selectable field or a guessed type. A new process-visible field must therefore
+be added to the structural registry (normally through its UI descriptor or an
+explicit exact access entry) before record, predicate, or patch nodes can use
+it.
+
+Commands that persist an entity hierarchy beyond their immediate return refs
+declare `requiredEntityProfiles`. `solveNesting` requires `nesting_run`,
+`sheet_design`, and physical `sheet` profiles, and declares all three output
+entity types because task completion persists all three.
 
 Display constructor metadata is split from access policy:
 

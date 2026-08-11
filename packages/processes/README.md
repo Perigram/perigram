@@ -1,38 +1,114 @@
 # COMPONENT: @cutkit/processes
 
+## Designer Contract
+
+`createProcessDesignerContract(domain)` is the framework-owned projection used
+by visual process designers. A designer supplies one `defineDomain`-shaped
+implementation, such as `cncDomain`, and receives normalized entity, workflow,
+command, task, event, hook, effect, attachment-kind, construction, field-policy,
+field-group, canonical-block, and grouped-palette contracts. The generic
+designer package does not import a concrete domain.
+
+Canonical entity decomposition starts from
+`@cutkit/core/CANONICAL_ENTITY_BLOCKS` and is narrowed to blocks declared by the
+selected domain entity. Structural block operations instead read the domain's
+explicit canonical `blockSchemas` plus `blockComposition`. These contracts are
+never inferred by unioning entity fields. Open canonical blocks use authored,
+typed entries with stable socket ids while the resulting block remains one
+map/object value. Entity
+`fieldSchemas` own membership plus
+read/write/construct policy, while wildcard access patterns remain
+authorization rules only. Compose Block, Modify Block, and Get Field therefore
+never select or encode an entity type. Create and Update validate connected
+block fields against their target entity policy at the consumer boundary.
+
+The grouped authoring palette is a curated framework projection, separate from
+the exhaustive runtime catalog. It exposes Entities, Values, and Lists and
+trees, with stable localization and description ids. Create Entity resolves either canonical block sockets or the
+selected domain construction mode's typed inputs. Run Service resolves the
+selected command definition into typed entity/parameter inputs and typed
+command-result outputs. Producer effects, conversions, predicates, patches,
+and trigger-payload plumbing remain runtime-only. Applications may change
+layout, but entity types, construction modes, commands, attachment kinds,
+blocks, and fields always come from the supplied domain contract.
+Palette translations are authoring presentation and are never process data.
+Executable process nodes persist their canonical kind; generated create-action
+captions are derived from the typed target entity at render time.
+Process definitions use only the current dataflow protocol. New definitions and
+starter templates are authored at `dataflowVersion: 4`; package normalization
+does not infer a missing version or rewrite an older graph. Callers must provide
+the current semantic graph directly.
+
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,
 navigation, entity workflows, field policies, action nodes, services, and
 sockets.
 
+Compiler entry points are separated by responsibility. `normalization.js`,
+`validation.js`, `action-compilation.js`, `screen-compilation.js`,
+`access-compilation.js`, and `hierarchy-projection.js` define the supported
+package boundaries; `index.js` is only the public barrel. Runtime and UI
+consumers import these public boundaries rather than compiler implementation
+state.
+
 Process definitions use canonical semantic records as the editing source of
 truth. `definitionToCanvas()` projects those records into deterministic Vue
 Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
-preserving role, service-identity, lifecycle, action, service, socket, and
-assignment records.
+preserving role-grant, service-identity, lifecycle, service, and socket
+records.
+
+Durable orchestration resolves every data edge through the source node's
+declared data ports before reading or evaluating it. A sole data output is the
+canonical source when an edge uses the node-level handle. Trigger and effect
+outputs are read only from the token's emitted-value cache; operational nodes
+are never dispatched through the pure data/read evaluator.
+For the manually started operational node, an explicit run input is authoritative
+for its matching port and the connected data edge is only the fallback. This is
+how an embedded relation creator consumes the entity selected in its generated
+form without executing an upstream Create effect merely because that effect
+defines the designer-time source socket.
+When a manual downstream action is exposed in an existing entity context, an
+upstream entity-producing effect socket may bind to the matching typed entity
+from `context.inputs.entities`. This represents the current entity window; it
+does not recompute or rerun the upstream effect.
+If no matching context exists, manual execution omits that input. A manual
+action never runs a separate operational node merely to obtain its data output.
+Executable effects are represented only by their `processNode` canvas node.
+Compiler-derived action records are not projected as separate action nodes and
+are removed when the canvas is serialized.
 `validateRoundTrip()` verifies that `definition -> canvas -> definition` does
 not change process semantics before activation. Vue Flow node positions are
 presentation data; runtime behavior must come from the semantic records.
+Canvas projection identifies records by both node type and stable semantic
+reference. When a derived action and its executable effect share an id, the
+saved executable node keeps its graph id and the missing definition-plane node
+receives a namespaced canvas id. Both retain the same `data.refId`, so neither
+record shadows or deletes the other during round-trip validation.
 
 Process lifecycle profiles and action nodes compile directly to normalized
 `@cutkit/workflows` v2 state machines. Entity profiles may provide a full
 workflow, but action-only graphs also synthesize workflows: create actions add
-their target status as a state, and change-status actions add transitions with
-the process role ids and entity access requirements from the action grant.
+their target status as a state, and status-mutating `updateEntity` actions add
+transitions with the process role ids and entity access requirements from the
+action grant.
 Runtime adapters must not treat lifecycle data as visual-only metadata.
 
 `src/templates.js` contains starter process templates for organization
-bootstrap. They create process graphs and role assignments; runtime behavior is
-driven only by the activated process definition, not by organization type
-branching.
+bootstrap. Each template exposes organization role identities separately from
+its process definition. The definition stores `roleGrants`; runtime behavior is
+driven only by the activated process plus current organization assignment.
 
-Role access is compositional. Process role records represent human
-responsibilities and may store explicit access grants, but they do not own
-navigation routes. The compiler combines explicit role grants with grants
+Role access is compositional. Organization records own immutable role ids and
+editable labels. Process definitions own mappings from those ids to behavior;
+they never own role identity or user assignment. Effect grants retain explicit `{ roleId, level }`
+rows; authoring never coerces every selected role to `write`. The compiler
+receives the organization role catalog explicitly and combines `roleGrants` with grants
 derived from entity-profile `allowedRoles`, action access grants, and screen
 `required` contracts.
-Assignments compile against those derived roles and produce effective
-permissions, screens, and navigation for each user. Services use separate
+The compiled contract is user-independent. `resolveRoleAssignmentAccess()`
+combines one organization assignment with compiled roles and screens at auth
+time to produce effective permissions, actions, screens, and navigation.
+Services use separate
 service identities stored in `servicePrincipals` plus
 `access.runPrincipals` / `access.viewPrincipals`; those service identities are
 not selectable as manual user triggers.
@@ -41,8 +117,7 @@ prepaidTokens` with a positive `tokenCost` compiles into the runtime service
 contract, and the command runtime debits the active organization's billing
 account after successful command execution. Token package prices stay outside
 process definitions in runtime billing configuration.
-At runtime those compiled permissions are the organization's active access
-source.
+At runtime this resolved view is the organization's active access source.
 When an assignment contains multiple role ids, generated and authored screens
 from every selected role are merged into that user's screen manifest. Explicit
 screen records that name several roles still compile to one shared screen key;
@@ -60,8 +135,8 @@ rather than operational work. Their grants still compile into effective
 permissions, and an authored/system screen may expose them explicitly.
 
 Action records represent executable process steps on the visual canvas. The
-compiler validates `createEntity`, `updateEntity`, `changeStatus`,
-`runCommand`, and `sendToOrganization` actions against the domain entity,
+compiler validates `createEntity`, `updateEntity`, `runCommand`, and
+`sendToOrganization` actions against the domain entity,
 construction, field-policy, status-definition, value-input, and command
 registries, preserves their typed inputs/outputs, preserves completion events,
 and emits trigger contracts. `trigger.mode` is only the execution mode:
@@ -73,13 +148,13 @@ actions, while `admin` includes write/read and is required for destructive or
 approval-style operations. `read` grants describe access to the resulting entity
 window but must not expose a runnable manual create/update/run action. Manual
 action availability uses the same
-status-scoped access window as grants: a change-status action with unmodified
-access inherits role-level grants from the incoming action output, so a status
-step placed after a create step appears for users who received access to the
-created state. For status-change actions, run availability is derived from the
-incoming entity window: roles with write/admin access to the current state can
-execute the transition, while the action's grant rows define access after the
-target state is reached. The compiled workflow transition uses those same
+status-scoped access window as grants: a status-mutating update action with
+unmodified access inherits role-level grants from the incoming action output,
+so a status step placed after a create step appears for users who received
+access to the created state. For status-mutating updates, run availability is
+derived from the incoming entity window: roles with write/admin access to the
+current state can execute the transition, while the action's grant rows define
+access after the target state is reached. The compiled workflow transition uses those same
 incoming run roles in `processRoleIds`; the status engine treats that process
 role match as the transition authority. The target-state entity grant is not
 also written into the workflow transition, because that grant describes access
@@ -88,16 +163,56 @@ as the execution permission: a status node can grant admin access after the
 transition without requiring admin access before it. Designers select from process roles directly when authoring
 action grants; pre-existing
 entity-profile grants are an independent grant source, not a filter for action
-grant creation. Entity creation exposes an
-optional parent input socket plus domain-declared construction sockets from
-`cncEntityConstruction`; the visual designer derives the parent from the
-incoming edge instead of a parent-type selector. Generated screens prompt for
-construction fields declared by `action.inputPolicy` and post those values to
-the active process action endpoint. Derived entities must use typed
-construction modes. For example, `cassette_design` creation compiles as
-`bakeCassetteDesignFromTemplate` and runtime execution delegates to the
-cassette template construction service, preserving baked geometry and editor
-contracts instead of creating a generic row.
+grant creation. Generic Entity creation accepts typed canonical block values.
+Entity-valued sockets carry explicit element types. An open Relations entry
+authors its stable storage key and element type; neither the connected producer
+nor a downstream entity consumer rewrites those choices. A single reference or
+an intrinsic `array<entityRef>` is composed like any other explicit value.
+Selection, ordering, aggregation, append, removal, and replacement are ordinary
+list/tree dataflow before persistence, not hidden relation-entry modes. A
+Lineage ancestor socket derives both its entity type and canonical camel-case
+id key from the connected entity output (`project` becomes `projectId`);
+definition normalization repeats that inference so a saved graph never depends
+on inspector state. Parentage remains a field of a composed Lineage block, not
+an extra Create socket. The compiler emits `lineageBindings` from those graph
+edges: each binding carries `{ childEntityType, ancestorEntityType, lineageKey,
+sourceNode, sourceSocket, consumingNode, consumingSocket }`. The child type is
+derived from the Create/Modify entity consumer wired to the composed block, so
+persisted composers need no manually selected `targetEntityType`. Compiled lineage bindings are the authoritative
+hierarchy contract for the active process. Home eligibility, root scoping, and
+inferred child regions use those bindings exclusively; static domain
+containment neither creates nor repairs process hierarchy. Once resolved, the compiler recognizes one lineage entity
+reference as contextual parent scope while the effect boundary persists its
+normalized id. Fixed-field and open-entry composers contribute to that same
+schema set, so contextual action placement does not depend on how the block was
+authored. Persisted field paths are resolved against the effect's target entity
+schema first; an open structural block schema describes its container, not the
+entity-specific fields stored inside it. Derived
+entities are not selectable in generic Create. Domain constructors project as
+fixed producer-service effects; for example,
+`bakeCassetteDesignFromTemplate` delegates to the cassette template
+construction service with its own typed inputs.
+For derived entity constructors, the current domain input contract is
+authoritative: stale authored construction inputs and prompt fields that are no
+longer declared are discarded during compilation instead of resurfacing in
+designer nodes or generated dialogs.
+Create-node normalization applies the same rule to canonical blocks. When an
+entity's current field schema marks every field in a previously persisted block
+as non-constructible, that block and its inline defaults are removed before
+action derivation and validation. Unknown blocks remain validation errors; this
+normalization only removes blocks whose ownership is explicitly declared by the
+current domain schema.
+Derived relation actions normalize their embedded creator from that same
+current construction contract. Generated Link dialogs therefore cannot revive
+removed constructor fields from the creator action's persisted input-policy or
+construction snapshots. Canonical block composition suppresses separate typed
+inputs only for `genericCreate`; a typed constructor may also accept canonical
+blocks, but its domain-declared service inputs remain present in the compiled
+creator and generated form.
+The canonical node catalog resolves operation ports. Persisted socket snapshots
+do not override catalog contracts, and connecting a wire never mutates an open
+entry's semantic key or type. Lifecycle and control values retain their
+semantic port kinds (`status` and `event`) during edge validation.
 Graph edges are validated through exported typed port helpers:
 `normalizePortSpec()`, `portSpecsCompatible()`, `resolveNodePort()`, and
 `validateProcessEdges()`. The v1 contract covers existing process values only:
@@ -147,57 +262,156 @@ and the queue service creates organization-root lineage instead of requiring a
 project concept that the process graph did not define.
 Compilation hydrates create-action construction and prompt policy from the
 domain construction contract. A sparse visual action for `cassette_design`
-therefore still compiles with required `name` and `templateId` prompt fields,
+therefore still compiles with promptable `name` and `templateId` fields,
 so generated screens open the input dialog even when the draft did not persist
-`construction.inputs` or `inputPolicy.fields`. `cassette` creation actions
-compile to `createDefaultOccsTemplate`, prompt for a template name, and create
-a complete OCCS template. When stored actions carry a construction mode that no
+`construction.inputs` or `inputPolicy.fields`. Generic `cassette` creation
+keeps the canonical constructible block sockets; the cassette entity service
+owns the invariant that every created cassette has a complete editable OCCS
+template. When stored actions carry a construction mode that no
 longer belongs to the selected entity type, compilation normalizes the mode to
-the current domain default and the process-construction migration persists that
-normalization before recompiling active runtime contracts.
+the current domain default before compiling the active runtime contract.
+Formerly generic Artifact create nodes therefore compile as the domain's typed
+upload constructor. Its selected upload/capture/editor kinds travel in that
+construction contract, so generated artifact actions open the file creator
+rather than the generic identity-name dialog.
 Domain construction contracts own structural input metadata during compilation:
-field id, label, path, type, accepted entity types, and `required` status come
-from the current domain registry, not from stale action snapshots. Stored graph
-inputs may keep non-structural values such as defaults, but they cannot make a
-now-optional domain input required again. Queue creation relies on this rule so
-old processes that stored `jobItems.required: true` compile to an empty queue
-shell action instead of blocking on cassette-design selection.
+field id, label, path, type, and accepted entity types come from the current
+domain registry, not stale action snapshots. Process projections set every
+input `required: false`; stored graph inputs may keep non-structural values
+such as defaults but cannot make an input required. Queue creation therefore
+compiles to an empty queue shell action instead of blocking on cassette-design
+selection.
+Relations composed by the process graph are executable process contracts even
+when they are not global CNC-domain relations. A manual effect that consumes a
+composed relation derives `Link <target>` for the owner action surface and a
+contextual `Unlink <target>` operation for each rendered linked reference. Both
+carry the exact relation key, target type, cardinality, and access grants. Link
+prompts for a target; Unlink receives the already-rendered target reference and
+therefore never opens an entity selector.
+When a relation entry is fed by a typed Create Entity effect, the compiled Link
+contract retains that effect as its embedded creator. The creator is not exposed
+as an unrelated top-level action: it is authorized and executed only through
+the Link action. Its connected entity source and containment path also define
+the eligible existing targets and creator sources in the current owner context,
+so generated pickers do not fall back to a global target collection.
+Artifact relation entries select declared upload-backed `AttachmentKind`
+values in their always-visible creation selector. An empty selection uses every
+upload-backed kind declared by the domain; selecting values narrows that set.
+The compiler places that creator
+contract on the Link input and grants the exposed role scoped artifact write
+access through the same action window. Command- and workflow-produced kinds
+remain separate process effects and are not presented as file uploads.
 The compiler fallback construction mode is only `genericCreate`; any
 entity-specific constructor such as baked cassette designs or OCCS template
 creation must be declared by the domain construction registry. This keeps the
 process compiler reusable and prevents hidden domain behavior from living in the
 generic package.
-Update actions consume an entity from the incoming data socket, expose one data
-input socket per selected mutable field, validate those fields against the
-active domain field-access policy, and compile into write/admin grants on the
-concrete incoming entity feature. Manual generated screens prompt for the
-selected mutation fields through `action.inputPolicy`, while event-driven
-updates can receive the same field payload from wired value/data nodes.
-Process value inputs are canonical block values, not detached notes. A value
-input may identify `identity`, `data`, `specs`, `summary`, `attachments`, or
-status metadata, carries the exact path and optional default, and compiles that
-metadata for round-trip editing. When a value input is connected to a
-construction socket, the socket's construction field id/path wins so the active
-runtime receives domain payload keys such as `name`, `templateId`, and
-`parameters`. When a value input is connected to an update action, its block
-path becomes a mutation field and a non-prompt `inputPolicy` field, so generated
-screens submit the graph-provided default without adding useless dialog chrome.
-Process algebra nodes are canonical non-effect records under `processNodes`.
-They cover the first source/transform layer from the process algebra note:
-`entityRef`, `fieldRead`, `blockRead`, `stringOp`, `compare`, `logic`, and
-`collection`. `fieldRead` is the entity decomposition node: it consumes an
-entity and produces canonical block sockets. `blockRead` consumes one canonical
-block and produces a scalar/json value from a field path. These records preserve
-kind, operation/mode, entity contracts, block ids, field paths, inputs, and
-outputs through `definitionToCanvas()`, `canvasToDefinition()`, validation, and
-compilation. They do not mutate persistent state and they do not replace effect
-actions; create/update/status/command/send behavior remains owned by action
-records. Runtime action execution may consume their typed edges only after an
-effect node declares the corresponding input contract.
-Change-status actions consume their entity from the incoming data socket and
-only require a target status; they do not need a separate entity-type selector.
-The target may be a literal `action.status.to` or a `statusRef` produced by a
-status-definition node. Status definitions compile into workflow state metadata
+Create and update effects never own leaf mutation fields. Create consumes
+constructible typed blocks plus a dedicated status value. Update consumes an entity,
+connected modified/replacement blocks, and status; only values present in connected
+blocks reach the owning feature update boundary. Compose and Modify Block own
+field selection and inline primitive fallbacks; collection changes happen in
+list/tree nodes before the block socket.
+At Create, an open canonical block is accepted when the target entity declares
+that block. Authored open entries are not reinterpreted as fixed leaf-field
+selectors. Both node-level persistence validation and connected-edge validation
+use this same block boundary. Fixed-field blocks still validate every selected path against entity
+constructibility; managed Origin, Status, Provenance, and Summary remain excluded.
+A manual Update effect fed by a modified Relations block therefore compiles and
+renders like every other generated entity-detail action; a block or data wire
+alone never creates an action. Manual screen input policy is
+traced from connected block composers, so generated forms and graph execution
+use the same field contract.
+V4 effect records also derive the semantic action manifest consumed by screen
+and access compilation. Their selected process-role grants, trigger mode,
+entity type, fields, construction contract, command, and status target are
+therefore the same contract used by durable execution and generated UI; a new
+canvas effect is not a runtime-only box.
+`dataflowVersion: 4` is the sole current operation protocol. Every executable
+canvas record lives under `processNodes` and has a namespaced kind from the
+catalog: `source.*`, `value.*`, `collection.*`/`tree.*`, `record.*`,
+`predicate.*`, `read.*`, `effect.*`, or `control.*`. Roles, entity profiles,
+screens, assignments, and status definitions are definition-plane records and
+are not executable operations. Status definitions alone may project a typed
+status value socket; orchestration resolves that socket from the referenced
+definition without treating the definition as an executable step.
+
+Socket types are structured element contracts. `base` describes the value;
+nullable, entity type, schema, block, enum, unit, attachment, event, and
+capability qualifiers remain orthogonal. Socket `access` declares Item, List,
+or Tree consumption without duplicating topology in the element type. (The
+visual-designer view of these types is in
+[components/process-designer/README.md](../../components/process-designer/README.md).) Runtime
+values always use ordered `{ branches: [{ path, items }] }` trees. Per-input
+Simplify, Flatten, and Graft run before Longest, Shortest, or Cross matching.
+Longest repeats the last branch/item, Shortest truncates, and Cross computes
+the Cartesian match. Safe integer-to-number, date-to-date-time,
+entity-to-entity-reference, and JSON transport coercions are implicit wire
+semantics and do not create graph nodes. Nullable-to-required, unit-changing,
+narrowing, and restructuring connections require explicit author intent and
+are rejected when the selected node contract cannot express that intent.
+
+`data-tree.js` owns the universal tree solver. `evaluator.js` executes pure data
+nodes and authorized reads through it. Item access maps matched items, List
+access runs once per matched branch, and Tree access receives the complete
+structure. The authoring projection filters any typed list
+with the same data algebra: read/deconstruct the compared field over the list,
+evaluate it through the polymorphic Logic node to obtain an aligned Boolean
+mask, and pass the original list plus mask to `collection.filter`. The runtime
+retains lower-level predicate and patch operations for execution/migration,
+but they are not separate authoring concepts. Only `effect.*` nodes may
+persist changes or invoke external work.
+
+Structural selectors come from `domain.blockSchemas`; open-block entry behavior
+comes from `domain.blockComposition`; entity readers and
+effect boundaries use `domain.fieldSchemas`. Each entry has an exact path,
+canonical block, and structured type, while entity schemas additionally own
+read/write/construct capability. Intrinsic collection values use
+`array<itemType>` and do not overload tree topology.
+Wildcard field-access entries remain authorization patterns and never become
+field choices or guessed sockets. Fixed-block Compose/Modify expose selected
+fields. Open-block Compose/Modify expose stable `entry:<id>` sockets: Lineage
+entries author a storage key plus typed entity reference. Relations author a
+storage key and referenced element type explicitly. Their value can be one
+reference or an array assembled by Collect Array. Modify Relations replaces the
+connected entry value; list operations express collection changes beforehand.
+Attachments accept named typed
+attachment references, and Data/Summary/Provenance accept named typed values.
+Renaming an entry does not break its wire. The evaluator lowers Lineage entity
+references to the declared stored id key and Get Field restores that id as the
+declared typed reference. Get Field on other open blocks authors the local key
+and output type explicitly rather than selecting invented global fields;
+Deconstruct Entity exposes blocks; Get Field reads one selected field from a
+block. Status remains a dedicated lifecycle socket and never travels through a
+generic mutable block. Producer services resolve their declared
+entity/entity-list construction references at the effect boundary.
+
+`orchestration.js` executes the full runtime control plane. Effect nodes have
+only two execution modes: `manual`, which is exposed through authorized UI, and
+`event`, which requires an incoming control socket. Runs carry
+durable control tokens, foreach scopes, join arrivals, attempts,
+and step outputs. Data subgraphs are evaluated lazily for the operational node
+that consumes them. Arbitrary data or control cycles are rejected during
+activation.
+
+Manual effect inputs resolve the supplied entity from the persisted run context
+when no data wire overrides that socket. Entity access remains resolved from
+persisted run input through the authorized feature service.
+Manual generic Create actions expose `identity.name` as a prompt when
+no Identity block supplies it. Manual field values are resolved into either
+fixed field sockets or stable open-block entry sockets by canonical field path,
+so a composer node is optional for user-entered creation data. Wired sources
+take precedence and suppress the corresponding prompt. Source nodes such as
+Current Time remain lazy and are evaluated when the consuming effect runs;
+date/date-time values may flow into string fields as their canonical temporal
+representation.
+
+`effect.changeStatus` consumes an entity reference, a typed status value, and
+an optional patch. The status may be supplied by a literal or configured from a
+definition-plane status record. A status definition projects one typed `status`
+output into the authoring graph; the persisted wire stores the stable
+definition reference while execution resolves its current status id. Status
+definitions compile into workflow state metadata
 (`label`, `color`, `severity`, `icon`) and into the compiled action target
 state, so runtime execution and UI status rendering use the same value and
 visual metadata. They also carry lifecycle evidence schema
@@ -211,7 +425,7 @@ applies the referenced severity/icon/color/label and lifecycle schema there.
 The same display metadata is preserved on each compiled role action manifest
 entry, because generated screens read `role.actions[].status` when filtering
 and rendering process action buttons.
-Status-change action labels are also derived from that target status
+Status-mutating update action labels are also derived from that target status
 definition label, or the target state id when no label exists, whenever the
 authored label is only a generic palette placeholder such as `Action`, `status`,
 or the raw action kind.
@@ -227,13 +441,17 @@ role may access after the status change. Create-action access grants are
 conditioned by the created status in the same way, so `admin` on "create project
 as NEW" means admin over `project` entities whose current primary status is
 `NEW`, not global project admin.
+`requiredEntityProfileTypes(definition, domain)` projects command-declared
+profile requirements across `runCommand` actions and command-backed services.
+Activation validation and designer authoring consume that projection instead
+of embedding command-specific entity lists.
 Action access compiles through status-scoped access windows. A create action
-opens the first window for the created entity state. A status-change action
-inherits the incoming entity window until its `action.access.modified` flag is
-set; once modified, the selected role grant rows on that node become the
-complete grant set for the target state. Removing a role from a modified
-status-change node therefore removes that role's access to entities in the
-resulting status instead of leaving an older additive grant behind. Parent-scoped
+opens the first window for the created entity state. A status-mutating update
+action inherits the incoming entity window until its `action.access.modified`
+flag is set; once modified, the selected role grant rows on that node become
+the complete grant set for the target state. Removing a role from a modified
+status-mutating update node therefore removes that role's access to entities in
+the resulting status instead of leaving an older additive grant behind. Parent-scoped
 windows carry lineage scope forward: a queue created from a project window scoped to
 `$assignment.projectId` receives a `scope.projectId` grant, so access for one
 project branch does not apply to queues under another project branch.
@@ -252,12 +470,12 @@ a queue status node can have both a create input and a later reject/retry input,
 and the compiler must not let the loop edge overwrite the resolvable source
 edge that feeds downstream command output grants.
 Workflow synthesis also preserves those repeated incoming entity edges. If a
-single change-status action is reused from several source states, such as
+single status-mutating update action is reused from several source states, such as
 `Создано -> Отправлено` and `Отклонено -> Отправлено`, the compiled workflow
 emits one transition per source state while keeping the same target status
 definition and using the executable role window from each source edge.
-At runtime, a command output wired into a downstream change-status node receives
-that process-authored target state after the command returns its entity refs.
+At runtime, a command output wired into a downstream status-mutating update node
+receives that process-authored target state after the command returns its entity refs.
 The state projection is derived from graph edges and typed output handles such
 as `output:nesting_run`; it is not a domain-specific queue rule.
 Manual command actions preserve `commandId` in each compiled user action
@@ -269,11 +487,10 @@ feature, not by the command output feature. A `solveNesting` button belongs on
 the queue detail because the user executes it against a queue, while the same
 graph window still grants access to produced `nesting_run` and `sheet_design`
 records through command output windows.
-Stored active process definitions keep compiled runtime contracts in MongoDB.
-After compiler changes that alter generated screens, action exposure, workflow
-output, or grants, run
-`server/scripts/migrate-process-compiled-runtime.js` to recompile existing
-active definitions from their canonical process data.
+Stored active process definitions keep a compiled activation snapshot for
+inspection. Auth hydration and manual action execution both compile the current
+canonical process graph at access time, so visible actions and executable
+actions cannot come from different compiler versions.
 After runtime changes that introduce command-output status projection, run
 `server/scripts/migrate-process-command-output-statuses.js` so existing command
 outputs are moved into the active process status windows derived from the
@@ -308,7 +525,7 @@ that user has generated list screens. The home screen is prepended to the
 user's screen and navigation manifests so it becomes the process start screen.
 It is not an editable semantic screen record: it is a projection of the user's
 effective access. Home sources are top-level entity-list sources only. If the
-domain summary registry says one accessible list is a child of another
+compiled Lineage projection says one accessible list is a child of another
 accessible list, the child list is suppressed from the home screen and remains
 reachable through its own generated route or parent detail context. The home
 regions keep the target list route and the list-level manual action ids for
@@ -343,11 +560,26 @@ does not attach them to unrelated parent `entityDetail` screens. For example, a
 cassette-to-create-cassette-design graph compiles cassette design creation as a
 target-list action with a `templateId` constructor input, not as a cassette
 detail action.
+Typed create nodes expose their mode-specific constructor inputs together with
+canonical constructible block inputs and `status.state.primary`. Canonical
+blocks do not change the selected typed construction mode; they augment the
+entity produced by that constructor.
+Relation-derived actions are update actions and therefore carry no create
+construction contract. On an entity-detail surface the opened entity is the
+implicit relation owner; only the relation target is prompted. When the domain
+declares one relationship for that owner/target pair, its key and cardinality
+replace the composer's provisional socket-derived key.
 Incoming graph parent edges are validated against lineage contracts. If an edge
 connects an unsupported parent, such as `queue -> create cassette_design`, the
 compiler ignores that parent edge and compiles the action as an unparented
-target-list create. Queues link to baked designs as consumers through
-`queue.data.job.items[]`, not by parenting the design creation action.
+target-list create. Relationship context is separate from lineage: after a
+design is created, the action runtime may link it through a declared domain
+relationship such as `queue.relations.cassettes`.
+The designer removes incoming data edges whenever a node contract change
+removes their target socket. Before serializing a draft it derives a filtered
+edge list without mutating reactive canvas state, so saved drafts cannot retain
+edges to deleted composed entries or construction inputs and preview
+recomputation cannot recursively trigger itself.
 Navigation is compiled from the screen manifest. When a role has access grants
 but no authored screen for that entity feature, the compiler creates a generated
 entity-list screen for that role/feature so process-active users do not fall
@@ -380,3 +612,10 @@ Compiled-only runtime contracts are not editable process sources. If a stored
 process definition has `data.compiled` but no canonical semantic records, the
 designer and activation path fail clearly instead of inferring a visual design
 from runtime output.
+
+Command action sockets are projected from the current command definition during
+designer synchronization and compilation. `generateAttachment` exposes its
+abstract attachment source, optional `artifact_template`, `kind`, and `values`
+inputs. This replaces stale stored command-input copies such as the former inert
+`pdfTemplateId`. Generated manual actions prompt for the same unconnected
+inputs; wired process values and manual values reach the same command contract.

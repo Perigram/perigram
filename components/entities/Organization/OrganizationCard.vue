@@ -1,18 +1,21 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="organization" entity-type="organization" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="organization" entity-type="organization" :variant="variant" :show-trace="false" :show-status="false" footer-display="inline">
       <template #before-identity>
         <Avatar :label="avatarLabel" shape="circle" size="large" />
       </template>
-      <template #subtitle v-if="variant !== 'card'">
+      <template #subtitle v-if="variant !== 'card' && (organization.data?.type || $slots.context)">
         <div class="flex flex-wrap gap-2">
-          <Tag :value="organization.data?.type || $t('common.default')" severity="secondary" size="small" />
-          <Tag v-if="organization.identity?.slug" :value="organization.identity.slug" severity="info" size="small" />
+          <Tag v-if="organization.data?.type" :value="organization.data.type" severity="secondary" size="small" />
+          <slot name="context" />
         </div>
       </template>
       <template #compact-content>
         <div v-if="organization.data?.email" class="mt-3 text-sm text-muted-color">{{ organization.data.email }}</div>
       </template>
+      <div v-if="$slots.context && variant === 'card'" class="mb-3 flex flex-wrap gap-2">
+        <slot name="context" />
+      </div>
       <Divider />
       <div class="flex flex-col gap-2">
         <DataBlock entity-type="organization" :entity="organization" :fields="ORGANIZATION_FIELDS" />
@@ -21,6 +24,10 @@
           <span>{{ createdAt }}</span>
         </div>
       </div>
+      <template v-if="$slots.actions" #footer>
+        <Divider />
+        <slot name="actions" />
+      </template>
     </EntityCard>
   </div>
 </template>

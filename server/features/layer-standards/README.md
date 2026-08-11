@@ -48,7 +48,7 @@ Important `data` fields:
   the system/default catalogue without organization pen overrides; authenticated
   organization users receive the same standards with their org override merged
   into `data.orgPenId`.
-- `repository.findByCode()` and the unique database index use `data.code`.
+- A unique database index on `data.code` enforces it as the canonical key.
 - Services return `Model.toJSON()` results and do not expose raw Mongo documents.
 - Default layer standards are seeded from the OCCS registry through
   `server/scripts/occs-layer-standards.js`; do not duplicate hardcoded layer
@@ -58,7 +58,9 @@ Important `data` fields:
   with group-level fallback only for unknown future codes.
 - Visual drawing code resolves pens from layer standards through canonical DTO
   fields first: `standard.data.code`, `standard.data.defaultPenId`,
-  `standard.data.orgPenId`, and `pen.data.stroke`.
+  `standard.data.orgPenId`, and `pen.data.stroke`. Pen references may contain
+  the pen Mongo `_id` or canonical `pen.identity.uid`; shared resolution must
+  support both.
 
 ## Related
 

@@ -2,8 +2,8 @@
  * v24 DTO factories used by UI lab and lightweight component tests.
  *
  * Factories model API DTOs, not raw MongoDB documents. They keep only
- * canonical blocks (`identity`, `origin`, `status`, `lineage`, `attachments`,
- * `data`, `summary`, `specs`) plus root `_id`.
+ * canonical blocks (`identity`, `origin`, `status`, `lineage`, `relations`,
+ * `provenance`, `attachments`, `data`, `summary`, `specs`) plus root `_id`.
  */
 import { ObjectId } from 'bson';
 import { PERMISSION_TEMPLATES } from '#shared/permission-templates.js';
@@ -39,6 +39,8 @@ const createEntity = ({
   reference,
   state = 'DRAFT',
   lineage = {},
+  relations = {},
+  provenance = {},
   specs = null,
   attachments = {},
   data = {},
@@ -54,6 +56,8 @@ const createEntity = ({
     origin,
     status: origin,
     lineage,
+    relations,
+    provenance,
     specs,
     attachments,
     data,
@@ -62,6 +66,8 @@ const createEntity = ({
 };
 
 export const MOCK_IDS = {
+  facadeId: 'facade-demo-atrium',
+  facadePatternId: 'facade-pattern-demo-grid',
   organizationId: 'org-demo-acme',
   manufacturerId: 'org-demo-maker',
   warehouseId: 'wh-demo-main',
@@ -182,7 +188,7 @@ export function createMockCassette(overrides = {}) {
       name: 'Cassette Type A',
       slug: 'cassette-type-a',
       state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId, templateId: MOCK_IDS.cassetteTemplateId },
+      lineage: { organizationId: MOCK_IDS.organizationId },
       data: {
         type: 'PARAMETRIC',
         parameters: ['A', 'B', 'C'],
@@ -230,20 +236,24 @@ export function createMockCassetteDesign(overrides = {}) {
       uid: MOCK_IDS.cassetteDesignId,
       name: 'Standard Type A',
       serial: 'CD-FACADE-01',
-      state: 'APPROVED',
-      lineage: { projectId: MOCK_IDS.projectId, templateId: MOCK_IDS.cassetteTemplateId },
-      data: {
-        geometry,
-        parameters,
+      state: 'ACTIVE',
+      lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId },
+      provenance: {
         derivedFrom: {
-          entityType: 'cassette',
-          entityId: MOCK_IDS.cassetteTemplateId,
+          source: {
+            type: 'cassette',
+            id: MOCK_IDS.cassetteTemplateId,
+            revisionId: MOCK_IDS.entityRevisionId
+          },
           scope: 'geometry',
-          revisionId: MOCK_IDS.entityRevisionId,
           revisionNumber: 1,
           contentHash: 'sha256:demo1234567890',
           parameters
         }
+      },
+      data: {
+        geometry,
+        parameters
       }
     }),
     ...overrides
@@ -255,14 +265,13 @@ export function createMockEntityRevision(overrides = {}) {
     ...createEntity({
       uid: MOCK_IDS.entityRevisionId,
       name: 'cassette geometry v1',
-      state: 'ACTIVE',
+      state: 'RECORDED',
       lineage: {
         organizationId: MOCK_IDS.organizationId,
         cassetteId: MOCK_IDS.cassetteTemplateId
       },
       data: {
-        entityType: 'cassette',
-        entityId: MOCK_IDS.cassetteTemplateId,
+        source: { type: 'cassette', id: MOCK_IDS.cassetteTemplateId },
         scope: 'geometry',
         number: 1,
         contentHash: 'sha256:demo1234567890',
@@ -460,13 +469,11 @@ export function createMockGeometryCapture(overrides = {}) {
         organizationId: MOCK_IDS.organizationId,
         warehouseId: MOCK_IDS.warehouseId
       },
-      specs: { width: 1200, height: 720, area: 0.8172 },
-      attachments: {
-        primary: createAttachmentEntry('CAPTURE_PHOTO', 'capture-photo-demo-001', 'remnant-photo.jpg', {
-          bucketName: 'capturePhotos',
-          mimeType: 'image/jpeg'
-        })
+      relations: {
+        sourcePhoto: { type: 'artifact', id: 'artifact-demo-capture-photo' }
       },
+      specs: { width: 1200, height: 720, area: 0.8172 },
+      attachments: {},
       data: {
         mode: 'REMNANT',
         calibration: { mode: 'knownDimension', knownWidth: 1200 },
@@ -698,13 +705,60 @@ export function createMockArtifact(overrides = {}) {
     ...createEntity({
       uid: 'artifact-demo-layout-dxf',
       name: 'Queue Q-001 - Layout DXF',
-      state: 'GENERATING',
+      state: 'AVAILABLE',
       lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
       attachments: { primary: attachment },
       data: { type: 'LAYOUT_DXF', metadata: { requestedBy: 'ui-lab' } }
     }),
     ...overrides
   };
+}
+
+export function createMockArtifactTemplate(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: 'artifact-template-demo',
+      name: 'Production passport',
+      state: 'ACTIVE',
+      lineage: { organizationId: MOCK_IDS.organizationId },
+      attachments: {
+        source: createAttachmentEntry('ARTIFACT_TEMPLATE_SOURCE', 'file-artifact-template', 'passport.pdf', {
+          bucket: 'artifactTemplates'
+        })
+      },
+      data: {
+        format: 'PDF',
+        variables: [{ name: 'projectName', type: 'string', default: 'Project' }],
+        activeRevisionId: 'artifact-template-revision-1',
+        layout: { format: 'PDF', unit: 'pt', pages: [] }
+      }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockMachine(overrides = {}) {
+  return {
+    ...createEntity({
+      uid: 'machine-system-default',
+      name: 'Default 3000 × 1500 machine',
+      lineage: { scope: 'system', public: true },
+      data: {
+        workingArea: { width: 3000, length: 1500 },
+        boundaryOffset: 0,
+        visibility: { public: true }
+      }
+    }),
+    ...overrides
+  };
+}
+
+export function createMockFacade(overrides = {}) {
+  return { ...createEntity({ uid: MOCK_IDS.facadeId, name: 'Atrium facade', state: 'DRAFT', lineage: { organizationId: MOCK_IDS.organizationId, projectId: MOCK_IDS.projectId }, relations: {}, data: { parts: [], partAssignments: [], revisions: {} } }), ...overrides };
+}
+
+export function createMockFacadePattern(overrides = {}) {
+  return { ...createEntity({ uid: MOCK_IDS.facadePatternId, name: 'Panel grid', state: 'ACTIVE', lineage: { organizationId: MOCK_IDS.organizationId }, relations: {}, data: { graph: { schemaVersion: 1, nodes: [], edges: [], outputs: [], parameters: [] }, revisions: {} } }), ...overrides };
 }
 
 export function createMockHistory(statuses = ['DRAFT', 'ACTIVE', 'CLOSED']) {

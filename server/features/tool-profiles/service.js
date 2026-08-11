@@ -3,6 +3,7 @@
  */
 
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createIdentity, createStatus, createData } from '../../core/blocks/index.js';
 import { createError } from 'h3';
 import { ToolProfile } from './model.js';
@@ -95,3 +96,9 @@ export async function remove(id, userId) {
   await repository.deleteById(id);
   return { success: true };
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'tool_profile',
+  repository,
+  Model: ToolProfile
+});

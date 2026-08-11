@@ -1,12 +1,14 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as warehouseService from '../warehouses/service.js';
 import * as sheetsRepository from '../sheets/repository.js'; 
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '~/server/utils/permissions';
-import { createIdentity, createStatus, inheritLineage, createData, createAttachment } from '~/server/core/blocks/index.js';
+import { createIdentity, inheritLineage, createData, createAttachment } from '~/server/core/blocks/index.js';
 import { createTransitionAuth, statusService } from '~/server/core/machines/service';
 import { mapLineageQuery } from '~/server/utils/query';
 import { ObjectId } from 'mongodb';
+import { Remnant } from './model.js';
 
 /**
  * Remnants Service - v24 Standardized
@@ -49,7 +51,12 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   }
 
   const remnantNumber = await repository.getNextRemnantNumber();
-  const origin = createStatus('AVAILABLE', userId, { note: 'Remnant created' });
+  const origin = await statusService.initialStatusForOrganization(
+    'remnant',
+    lineage.organizationId,
+    userId,
+    { note: 'Remnant created' }
+  );
   
   // Calculate if reusable
   const minReusableArea = 0.1; // Could be from settings
@@ -115,7 +122,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   }
 
   if (updates.status) {
-    await statusService.transition('remnant', remnant._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'remnant',
+      targetId: remnant._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     delete updates.status;
   }
 
@@ -137,8 +150,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 export async function searchReusable(userId, organizationId, userRole, userPermissions) {
   const filter = {
     ...getLineageFilter(userPermissions),
-    isReusable: true,
-    'status.state.primary': 'AVAILABLE'
+    'data.isReusable': true
   };
   const remnants = await repository.find(filter);
   return remnants.map(toDTO);
@@ -150,7 +162,12 @@ export async function createFromCutSheet(sheet, { area = 0, width = 0, height = 
     : inheritLineage(sheet, 'sheet');
   const specs = sheet.specs || sheet.data?.specs || {};
   const remnantNumber = await repository.getNextRemnantNumber();
-  const origin = createStatus('AVAILABLE', userId, { note: 'Created from queue cut' });
+  const origin = await statusService.initialStatusForOrganization(
+    'remnant',
+    lineage.organizationId,
+    userId,
+    { note: 'Created from queue cut' }
+  );
   const isReusable = Number(area || 0) >= 0.1;
   const remnantData = {
     identity: createIdentity(`Remnant ${remnantNumber}`, remnantNumber, `${remnantNumber}-${index + 1}`),
@@ -198,9 +215,14 @@ export async function markAsUsed(id, queueId, user) {
     usedInQueueId: queueId,
     isReusable: false
   };
-  const status = createStatus('USED', user?.userId || 'SYSTEM', { note: 'Remnant used in queue', queueId });
-
-  await repository.updateById(id, { data, status });
+  await statusService.transitionWithResult({
+    entityType: 'remnant',
+    targetId: id,
+    intent: 'consumeRemnant',
+    auth: createTransitionAuth(user?.userId || 'SYSTEM', user?.role, user),
+    context: { metadata: { note: 'Remnant used in queue', queueId } },
+    patch: { data }
+  });
 
   const warehouseId = remnant.lineage?.warehouseId || remnant.warehouseId;
   if (warehouseId) {
@@ -210,3 +232,9 @@ export async function markAsUsed(id, queueId, user) {
   const updated = await repository.findById(id);
   return toDTO(updated);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'remnant',
+  repository,
+  Model: Remnant
+});

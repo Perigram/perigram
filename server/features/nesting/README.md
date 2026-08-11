@@ -13,10 +13,13 @@ Command handler and compatibility job metadata for queue nesting.
   that case the `nesting_job` lock plus linked `nesting_run`/task own execution
   state and the command must not fail after successfully scheduling the worker.
 - Command output is initially the `nesting_run` plus task/job references.
-  `sheet_design` entities are created only after the worker returns, one entity
-  per physical sheet layout in `solution.layouts[]`. Generated files are
-  requested separately through artifact/attachment commands; the queue nesting
-  API does not request attachments unless explicitly told to. Because
+  `sheet_design` entities are created only after the worker returns. Layouts
+  with the same cassette-design/count composition collapse into one
+  representative `sheet_design`; `data.sheetCount` records the physical
+  multiplicity, and one physical `sheet` twin is created per collapsed count.
+  Generated files are requested separately through artifact/attachment
+  commands; the queue nesting API does not request attachments unless
+  explicitly told to. Because
   `solveNesting` is asynchronous, active-process command-output status
   projection must not move the returned `nesting_run` to a downstream process
   status before the `nesting.solve` task completes; task completion owns the
@@ -25,8 +28,8 @@ Command handler and compatibility job metadata for queue nesting.
   cassette polygon parts or dimension fallback rectangles, carries baked OCCS
   `layerData` as request-side source layers, calls `NESTING_WORKER_URL`,
   enriches stripped worker responses with source request geometry, source
-  layers, and bin shape data, creates one `sheet_design` per returned layout,
-  stores their IDs on `nesting_run.data.sheetDesignIds`, updates the
+  layers, and bin shape data, creates composition-collapsed `sheet_design`
+  records, stores their IDs on `nesting_run.data.sheetDesignIds`, updates the
   compatibility job, and returns solver completion/failure effects for the task
   runtime to apply. Queue lifecycle changes now happen through the declared
   effect policy rather than directly inside the executor.
@@ -62,16 +65,21 @@ Command handler and compatibility job metadata for queue nesting.
   non-placeable material zones, not fake movable nesting items.
 
 `buildJobFiles()` is exported for focused coverage of the handoff from queue
-items to worker files. Parametric queue entries must load the cassette template,
-bake it with the entry `parameters`, and pass the baked cassette ID plus baked
-`polygonParts` into `buildNestingWorkerRequest()`. The fetched cassette entity
-is the source of truth for whether an item is parametric; a stale queue item
-`type` must not make an OCCS template skip baking and fall back to a rectangle.
+items to worker files. Parametric queue entries load their saved
+`cassette_design` and compare queued parameters with that design's baked
+parameters. If material selection changed the material-bound `T` parameter or
+any other parameter differs, nesting resolves the source cassette template from
+`provenance.derivedFrom.source`, evaluates that template for the effective
+parameters without persisting a derived `cassette_design`, and passes the
+evaluated `polygonParts` into `buildNestingWorkerRequest()` under the queued
+design id. The fetched cassette design is the source of truth for whether an
+item is parametric; a stale queue item `type` must not make an OCCS-derived
+design skip evaluation and fall back to a rectangle.
 Because `solveNesting` consumes saved queue item references, the command
-contract declares transient read execution grants for cassette templates and
-cassette designs. Process action execution applies those grants only for the
-command run, so generated queue users can run nesting without receiving
-standalone cassette-design list/detail access.
+contract declares transient read grants for cassette templates and cassette
+designs. Process action execution applies those grants only for the command run,
+so generated queue users can run nesting without receiving standalone
+cassette-design list/detail access.
 The command's queue lifecycle event is optional by workflow capability, not a
 legacy fallback. Domain queues in `DRAFT` still emit `queue.nestingRequested`
 through the status API, while process queues whose active status machine does

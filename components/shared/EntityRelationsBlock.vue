@@ -19,6 +19,7 @@
             :id="item.id"
             :entity="item.entity || null"
             :variant="itemVariant"
+            :context-action-entries="unlinkEntries(relation, item)"
           />
           <Button
             v-if="relation.hiddenCount && isCompactGallery"
@@ -52,6 +53,8 @@
           :type="item.entityType"
           :id="item.id"
           :entity="item.entity || null"
+          :variant="itemVariant"
+          :context-action-entries="unlinkEntries(overflowRelation, item)"
         />
       </div>
     </Popover>
@@ -66,14 +69,17 @@ import Popover from 'primevue/popover';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { resolveDataPath } from '~/utils/data-display.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
+import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
   entity: { type: Object, required: true },
+  entityType: { type: String, required: true },
   fields: { type: Array, default: () => [] },
   itemVariant: { type: String, default: 'inline' }
 });
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 const overflowPopover = ref();
 const overflowRelation = ref(null);
 const isCompactGallery = computed(() => props.itemVariant === 'compact');
@@ -108,5 +114,28 @@ const overflowItems = computed(() => overflowRelation.value?.overflowItems || []
 function openOverflow(event, relation) {
   overflowRelation.value = relation;
   overflowPopover.value?.toggle(event);
+}
+
+function unlinkEntries(relation = {}, item = {}) {
+  const key = relation.path?.split('.').filter(Boolean).at(-1) || '';
+  if (!key || !item.id) return [];
+  return authStore.actionManifest
+    .filter(action => (
+      action.entityType === props.entityType
+      && action.relationMutation?.operation === 'unlink'
+      && action.relationMutation?.key === key
+      && action.relationMutation?.targetType === item.entityType
+    ))
+    .map(action => ({
+      actionId: action.actionId,
+      entity: props.entity,
+      context: {
+        data: {
+          relations: {
+            [key]: { type: item.entityType, id: item.id }
+          }
+        }
+      }
+    }));
 }
 </script>

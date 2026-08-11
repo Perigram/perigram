@@ -1,4 +1,22 @@
 export const cncEntityConstruction = {
+  artifact: {
+    modes: ['uploadArtifact'],
+    defaultMode: 'uploadArtifact',
+    derived: true,
+    modeInputs: {
+      uploadArtifact: [
+        {
+          id: 'artifact',
+          label: 'Artifact file',
+          type: 'artifactUpload',
+          required: true,
+          prompt: true,
+          creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+        }
+      ]
+    },
+    inputs: []
+  },
   project: {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',
@@ -11,16 +29,21 @@ export const cncEntityConstruction = {
     defaultMode: 'genericCreate',
     inputs: [
       { id: 'name', label: 'Queue name', path: 'name', type: 'string', required: true, prompt: true },
-      { id: 'jobItems', label: 'Queue items', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: false },
       { id: 'materialPool', label: 'Material pool', path: 'job.materialPool', type: 'entityList', accepts: ['material_pile', 'sheet', 'remnant'], required: false },
-      { id: 'nestingParams', label: 'Nesting parameters', path: 'nestingParams', type: 'object', required: false }
+      { id: 'nestingSettings', label: 'Nesting settings', path: 'nestingSettings', type: 'object', required: false }
     ]
   },
   cassette: {
-    modes: ['createDefaultOccsTemplate'],
-    defaultMode: 'createDefaultOccsTemplate',
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: [],
+    isConstructable: entity => entity.data?.type === 'STANDARD' || Boolean(entity.data?.definition?.extensions?.cutkit?.graphTree)
+  },
+  facade: {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
     inputs: [
-      { id: 'name', label: 'Template name', path: 'name', type: 'string', required: true, prompt: true }
+      { id: 'name', label: 'Facade name', path: 'name', type: 'string', required: true, prompt: true }
     ]
   },
   library: {
@@ -32,14 +55,21 @@ export const cncEntityConstruction = {
     ]
   },
   cassette_design: {
-    modes: ['bakeCassetteDesignFromTemplate'],
+    modes: ['bakeCassetteDesignFromTemplate', 'importCassetteDesignFromArtifact'],
     defaultMode: 'bakeCassetteDesignFromTemplate',
     derived: true,
-    inputs: [
-      { id: 'name', label: 'Design name', path: 'name', type: 'string', required: true, prompt: true },
-      { id: 'templateId', label: 'Cassette template', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true },
-      { id: 'parameters', label: 'Parameters', path: 'parameters', type: 'cassetteParameters', templateFieldId: 'templateId', required: false, prompt: true }
-    ]
+    modeInputs: {
+      bakeCassetteDesignFromTemplate: [
+        { id: 'templateId', label: 'Cassette template', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true },
+        { id: 'parameters', label: 'Parameters', path: 'parameters', type: 'cassetteParameters', templateFieldId: 'templateId', required: false, prompt: true }
+      ],
+      importCassetteDesignFromArtifact: [
+        { id: 'artifactId', label: 'DXF artifact', path: 'artifactId', type: 'entity', entityType: 'artifact', attachmentKinds: ['DXF_SOURCE'], required: true, prompt: true },
+        { id: 'layerMapping', label: 'Layer mapping', path: 'layerMapping', type: 'object', required: false, prompt: true },
+        { id: 'parameters', label: 'Parameters', path: 'parameters', type: 'object', required: false, prompt: true }
+      ]
+    },
+    inputs: []
   },
   cassette_instance: {
     modes: ['genericCreate'],

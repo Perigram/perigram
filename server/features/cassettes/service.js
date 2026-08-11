@@ -1,11 +1,13 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
 import * as entityRevisionsService from '../entity-revisions/service.js';
+import * as artifactsService from '../artifacts/service.js';
+import * as filesService from '../files/service.js';
 import { createError } from 'h3';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import {
   createIdentity,
-  createStatus,
   createData
 } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
@@ -163,22 +165,30 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const libraryId = data.libraryId || data.data?.libraryId;
   if (libraryId) lineage.libraryId = toFlexibleId(libraryId);
 
-  if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassettes', 'write')) {
+  const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Template created' });
+
+  if (userPermissions && !hasLineagePermission(userPermissions, { lineage, status: origin }, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
   }
 
-  const slug = data.slug || `${standardSlugify(data.name || 'template', { keepCase: false })}-${generateRandomString(6)}`;
-  const origin = createStatus('ACTIVE', userId, { note: 'Template created' });
+  const name = data.name || data.identity?.name || 'New Template';
+  const slug = data.slug || data.identity?.slug || `${standardSlugify(name, { keepCase: false })}-${generateRandomString(6)}`;
+  const suppliedDefinition = data.definition || data.data?.definition;
+  if (suppliedDefinition && !isOccsDocument(suppliedDefinition)) {
+    throw createError({ statusCode: 400, message: 'Cassette definition must be a valid OCCS document' });
+  }
+  const definition = suppliedDefinition || createDefaultOccsCassetteTemplateDefinition();
 
   const cassetteData = {
-    identity: createIdentity(data.name || 'New Template', slug),
+    identity: createIdentity(name, slug),
     origin,
     status: origin,
     lineage,
+    provenance: data.provenance || {},
     data: createData({
         type: data.type || 'PARAMETRIC', // PARAMETRIC | STANDARD
-        definition: data.definition || data.data || null,
-        parameters: data.parameters || []
+        definition,
+        parameters: data.parameters || data.data?.parameters || Object.keys(definition.parameters || {})
     })
   };
 
@@ -188,20 +198,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   return toDTO(updated);
 }
 
-export async function createDefaultOccsTemplate(data = {}, userId, userOrg, userRole, userPermissions) {
-  const name = data.name || data.identity?.name;
-  if (!name) throw createError({ statusCode: 400, message: 'Cassette template name is required' });
-  const definition = createDefaultOccsCassetteTemplateDefinition();
-  return await create({
-    name,
-    libraryId: data.libraryId || data.data?.libraryId,
-    type: 'PARAMETRIC',
-    definition,
-    parameters: Object.keys(definition.parameters || {})
-  }, userId, userOrg, userRole, userPermissions);
-}
-
-export async function upload(fileBuffer, fileName, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {
+export async function importFromArtifact(artifactId, name, userId, userOrg, userRole, userPermissions, mapping, parameters) {
   const targetOrgId = userOrg || userId;
   const lineage = { organizationId: toFlexibleId(targetOrgId) };
 
@@ -209,6 +206,14 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
+  const artifact = await artifactsService.getById(artifactId, userId, userOrg, userRole, userPermissions);
+  if (artifact.data?.type !== 'DXF_SOURCE' || !artifact.attachments?.primary?.fileId) {
+    throw createError({ statusCode: 400, message: 'Cassette import requires a DXF_SOURCE artifact with a file' });
+  }
+  const attachment = artifact.attachments.primary;
+  const bucketName = attachment.metadata?.bucketName || attachment.bucketName || 'userDxf';
+  const fileBuffer = await filesService.getFileBuffer(attachment.fileId, bucketName);
+  const fileName = attachment.name || artifact.identity?.name || 'cassette.dxf';
   const layerMapping = mapping || {};
   const polygonParts = extractNestingPolygons(fileBuffer, layerMapping, OCCS_LAYER_CUT_OUTER);
   if (!polygonParts.length) {
@@ -219,28 +224,16 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
   }
   const layerData = buildMappedLayerData(fileBuffer, layerMapping);
 
-  const db = await connectDB();
-  const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
-  const uploadStream = bucket.openUploadStream(fileName, {
-    metadata: { userId, organizationId: targetOrgId }
-  });
-
-  await new Promise((resolve, reject) => {
-    uploadStream.on('finish', resolve);
-    uploadStream.on('error', reject);
-    uploadStream.write(fileBuffer);
-    uploadStream.end();
-  });
-
   // 1. Create Template
   const slug = `${standardSlugify(name || fileName, { keepCase: false })}-${generateRandomString(6)}`;
-  const origin = createStatus('ACTIVE', userId, { note: 'Standard template uploaded' });
+  const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Standard template uploaded' });
 
   const templateData = {
     identity: createIdentity(name || fileName, slug),
     origin,
     status: origin,
     lineage,
+    relations: { sourceDxf: { type: 'artifact', id: artifact._id.toString() } },
     data: createData({
       type: 'STANDARD',
       definition: { mapping: layerMapping },
@@ -261,10 +254,10 @@ export async function upload(fileBuffer, fileName, name, userId, userOrg, userRo
       polygonParts,
       layerData
     },
-    dxfId: uploadStream.id,
     parameters: {},
-    derivedFrom: derivedFromGeometryRevision(revision, {})
-  }, userId);
+    relations: { sourceDxf: { type: 'artifact', id: artifact._id.toString() } },
+    provenance: { derivedFrom: derivedFromGeometryRevision(revision, {}) }
+  }, userId, userPermissions);
 
   return {
     template: toDTO(updatedTemplate),
@@ -430,23 +423,21 @@ export async function exportDxf(id, dimensions, userId, userOrg, userRole, userP
       ? generateLayeredDxf({ layerData, polygonParts: nestingPolygons?.length ? nestingPolygons : polygons })
       : generateSimpleDxf(polygons);
   } else {
-    const db = await connectDB();
     const design = await repository.findDesignByTemplateId(id);
-
-    if (!design?.data?.geometry?.dxfId) {
-      throw createError({ statusCode: 404, message: 'DXF not found for this template' });
-    }
-
-    const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
-    return bucket.openDownloadStream(toFlexibleId(design.data.geometry.dxfId));
+    if (!design) throw createError({ statusCode: 404, message: 'DXF not found for this template' });
+    return await cassetteDesignService.exportDxf(design._id, userId, userRole, userPermissions);
   }
 }
 
-export async function createDesignFromTemplate(id, parameters, userId, userOrg, userRole, userPermissions, options = {}) {
+export async function createDesignFromTemplate(id, parameters, userId, userOrg, userRole, userPermissions) {
   const template = await getById(id, userId, userOrg, userRole, userPermissions);
 
-  if (!hasLineagePermission(userPermissions || {}, template.lineage, 'cassettes', 'write')) {
+  if (!hasLineagePermission(userPermissions || {}, template.lineage, 'cassettes', 'read')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
+  }
+  const outputLineage = { organizationId: toFlexibleId(userOrg || template.lineage?.organizationId || userId) };
+  if (!hasLineagePermission(userPermissions || {}, outputLineage, 'cassette_designs', 'write')) {
+    throw createError({ statusCode: 403, message: 'Permission denied for cassette designs' });
   }
 
   if (template.data?.type === 'PARAMETRIC') {
@@ -505,8 +496,8 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
   });
 
   return await cassetteDesignService.createFromTemplateUpload({
-    name: options.name || `${templateName} Design`,
-    lineage: template.lineage,
+    name: templateName,
+    lineage: outputLineage,
     templateId: id,
     polygonParts: nestingPolygons?.length ? nestingPolygons : [polygons[0]],
     layerData,
@@ -517,7 +508,7 @@ export async function createDesignFromTemplate(id, parameters, userId, userOrg, 
     },
     dxfId,
     parameters: dimensions || constructionParameters,
-    derivedFrom
+    provenance: { derivedFrom }
   }, userId, userPermissions);
 }
 
@@ -531,7 +522,13 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   }
 
   if (updates.status && typeof updates.status === 'string') {
-    await statusService.transition('cassette', cassette._id, updates.status, userId, createTransitionAuth(userId, userRole, userPermissions), updates.statusMeta || {});
+    await statusService.transitionWithResult({
+      entityType: 'cassette',
+      targetId: cassette._id,
+      targetState: updates.status,
+      auth: createTransitionAuth(userId, userRole, userPermissions),
+      context: updates.statusMeta || {}
+    });
     delete updates.status;
   }
 
@@ -609,3 +606,9 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 
   return await repository.deleteById(id);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'cassette',
+  repository,
+  Model: Cassette
+});

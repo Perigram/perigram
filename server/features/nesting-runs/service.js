@@ -1,6 +1,7 @@
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
-import { getPrimaryState, inheritLineage } from '../../core/blocks/index.js';
+import { inheritLineage } from '../../core/blocks/index.js';
 import { createTransitionAuth, statusService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
 import { ObjectId } from 'mongodb';
@@ -8,6 +9,7 @@ import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.
 import { toFlexibleId } from '../../utils/objectid.js';
 import { NestingRun } from './model.js';
 import * as queuesService from '../queues/service.js';
+import * as workflowOverridesService from '../workflow-overrides/service.js';
 import { serializeForAccess } from '../../utils/entity-redaction.js';
 
 /**
@@ -16,9 +18,12 @@ import { serializeForAccess } from '../../utils/entity-redaction.js';
 
 
 export async function create(runData, userId) {
-  const initialStatus = runData.status || statusService.initialStatus('nesting_run', userId || 'SYSTEM', {
-    note: 'Nesting run initialized'
-  });
+  const initialStatus = runData.status || await statusService.initialStatusForOrganization(
+    'nesting_run',
+    runData.lineage?.organizationId,
+    userId || 'SYSTEM',
+    { note: 'Nesting run initialized' }
+  );
   const run = new NestingRun(runData);
   run.origin = run.origin || initialStatus;
   run.status = run.status || initialStatus;
@@ -34,7 +39,12 @@ export async function create(runData, userId) {
 
 export async function createFromQueue(queue, results, userId) {
   const lineage = inheritLineage(queue, 'queue');
-  const origin = statusService.initialStatus('nesting_run', userId || 'SYSTEM', { note: 'Nesting run initialized' });
+  const origin = await statusService.initialStatusForOrganization(
+    'nesting_run',
+    lineage.organizationId,
+    userId || 'SYSTEM',
+    { note: 'Nesting run initialized' }
+  );
 
   const runData = {
     identity: { uid: `run-${new ObjectId().toString().substring(0, 8)}` },
@@ -81,7 +91,14 @@ export async function getById(uid, userId, userOrg, userRole, userPermissions) {
 }
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
-  return await statusService.transition('nesting_run', id, newState, userId, createTransitionAuth(userId, userRole), metadata);
+  const result = await statusService.transitionWithResult({
+    entityType: 'nesting_run',
+    targetId: id,
+    targetState: newState,
+    auth: createTransitionAuth(userId, userRole),
+    context: metadata
+  });
+  return result.status;
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
@@ -153,14 +170,6 @@ export async function chooseRun(queueId, runId, userId, userOrg, userRole, userP
     throw createError({ statusCode: 400, message: 'Nesting run does not belong to this queue' });
   }
   
-  if (!hasLineagePermission(userPermissions, run, 'nesting_runs', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  if (getPrimaryState(run.status) !== 'COMPLETE') {
-    throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
-  }
-
   await statusService.applyIntent(
     'nesting_run',
     runId,
@@ -194,11 +203,6 @@ async function preflightChosenNestingRun({ entity, targetId, userId, userRole, a
     throw createError({ statusCode: 400, message: 'Nesting run is missing queue lineage' });
   }
 
-  if (getPrimaryState(run.status) !== 'COMPLETE') {
-    throw createError({ statusCode: 400, message: 'Only completed nesting runs can be chosen for production' });
-  }
-
-  await queuesService.ensureReadyForCompletedRun(queueId, run.toJSON());
   await queuesService.preflightChosenRunProduction(
     queueId,
     run.toJSON(),
@@ -219,13 +223,17 @@ async function applyChosenNestingRun({ targetId, userId, userRole, auth }) {
     throw createError({ statusCode: 400, message: 'Nesting run is missing queue lineage' });
   }
 
+  const chosenState = await primaryStateForIntent('nesting_run', auth?.organizationId, 'acceptNestingRun', 'to');
+  const previousRuns = chosenState
+    ? await repository.findRunsByPrimaryState(queueId, chosenState, targetId)
+    : [];
   return {
     entities: [{ type: 'nesting_run', id: chosenRun._id?.toString?.() || chosenRun._id, entity: chosenRun }],
     effects: [
-      ...(await repository.findChosenRuns(queueId, targetId)).map(previousRun => ({
+      ...previousRuns.map(previousRun => ({
         type: 'transition',
         entity: { type: 'nesting_run', id: previousRun._id?.toString?.() || previousRun._id },
-        targetState: 'COMPLETE',
+        intent: 'supersedeChosenRun',
         metadata: { note: 'Another nesting run was chosen for production' }
       })),
       {
@@ -237,6 +245,12 @@ async function applyChosenNestingRun({ targetId, userId, userRole, auth }) {
       }
     ]
   };
+}
+
+async function primaryStateForIntent(entityType, organizationId, intent, edge = 'to') {
+  const workflow = await workflowOverridesService.resolveActiveWorkflow({ entityType, organizationId });
+  const region = workflow?.regions?.[workflow.primaryRegion || 'main'];
+  return region?.transitions?.find(transition => transition.intent === intent)?.[edge] || '';
 }
 
 export const hooks = {
@@ -287,3 +301,9 @@ function nestingRunPreview(run = {}, userPermissions = null) {
   };
   return serializeForAccess('nestingRun', preview, userPermissions);
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'nesting_run',
+  repository,
+  Model: NestingRun
+});

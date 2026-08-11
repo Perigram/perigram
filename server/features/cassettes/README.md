@@ -1,11 +1,11 @@
 # COMPONENT: Cassette Templates (v24 Standardized)
 
-Manages cassette templates (Standard and Parametric) using standardized v24 architecture. Templates represent the digital logic/source for creating designs.
+Manages cassette templates (Standard and Parametric). Templates are the digital logic/source for creating designs.
 
 ## Core Files
 - `repository.js`: Database operations on `cassettes` collection.
 - `service.js`: Template management and permission handling.
-- `operations.js`: Domain operation handler for `saveCassetteTemplate`.
+- `operations.js`: Domain operation handler for process-invoked cassette saves.
 
 ## Data Structure (v24)
 
@@ -40,6 +40,9 @@ Every template save resolves an `entity_revision` with `scope: "geometry"` from
 `data.type`, `data.definition`, and `data.parameters`. The template stores only
 the current pointer under `data.revisions.geometry`; the immutable source
 snapshot lives in `entity_revisions`.
+Revision identities include the cassette source id, so separate templates can
+each create geometry revision 1 without colliding before design provenance is
+built.
 
 ### Template-to-Design Creation
 `POST /api/cassettes/:id/designs` calls `createDesignFromTemplate()` and creates
@@ -47,16 +50,17 @@ or returns a `cassette_design` for the selected template.
 - Parametric templates are evaluated with the supplied concrete parameter map,
   generate a layer-aware DXF into the `cassettes` GridFS bucket, and create a
   design with `data.polygonParts`, `data.layerData`, `data.geometry.dxfId`, and
-  `data.derivedFrom` pointing to the source geometry revision.
+  `provenance.derivedFrom` pointing to the source geometry revision.
 - Standard uploaded templates already create their initial base design during
   upload. The route returns that existing design when available instead of
   duplicating the uploaded DXF.
 
 The same constructor is used by process `createEntity` actions whose
 construction mode is `bakeCassetteDesignFromTemplate`. Process execution passes
-the prompted template id, parameter object, and optional design name into
-`createDesignFromTemplate()` so a process-created `cassette_design` has the
-same baked geometry, `data.derivedFrom`, DXF/gridfs references, and editor
+the prompted template id and parameter object into `createDesignFromTemplate()`.
+The resulting `cassette_design` derives its identity name from the source
+cassette; no separate design-name input exists in the process or API contract.
+It has the same baked geometry, `provenance.derivedFrom`, DXF/gridfs references, and editor
 contract as a design created from the cassette UI. Process runtime status is
 applied after construction by the process-definition service. Parametric
 templates must be construction-ready before this path runs: OCCS templates need
@@ -69,12 +73,15 @@ standard template only when no parametric template is available. Process
 construction uses that selector when a graph action is executed without an
 explicit template id.
 
-Process `createEntity` actions that target `cassette` use
-`createDefaultOccsTemplate`. The service requires a prompted template name and
-stores the default OCCS v2 graph-tree document from `utils/occs/templates.js`,
+Process `createEntity` actions target the ordinary cassette service; cassette
+creation has no alternate process construction mode. The service stores the
+supplied OCCS definition or creates the default OCCS v2 graph-tree document
+from `utils/occs/templates.js`,
 including the standard parameter list and geometry revision pointer. A
 process-created template therefore opens in `CassetteDesignerV2` with an
 editable OCCS document instead of `data.definition: null`.
+Supplied definitions are validated as OCCS before persistence; arbitrary data
+objects cannot create a cassette record that the designer cannot open.
 If the graph action has a `library` parent input, process execution passes
 `libraryId` into the typed constructor and the cassette service persists it
 under `lineage.libraryId`. A parent-scoped process action must provide that
@@ -115,19 +122,11 @@ created template and its initial design; queue uploads should add the design id,
 not the template id.
 
 ### Update Operations
-- **`saveCassetteTemplate`**: Domain operation used by `CassetteDesigner` and
-  `CassetteDesignerV2`. Creates a new template or updates the selected template
-  through the service layer while preserving OCCS documents under
-  `data.definition`. Callers should pass `entities.cassette` only for templates
-  already loaded from the database; generated fixture/demo ids should be saved
-  without an entity ref so the operation creates a real cassette row. App
-  surfaces use `CassetteDesignerV2`; the legacy designer is kept for dev/test
-  fixture flows.
-- Cassette Designer v2 keeps its dialog open after Save so the active editing
-  session is not destroyed by a refresh. Save As runs the same command without
-  an input cassette entity, creating a distinct template and switching the
-  editor to that saved record. Escape clears the current
-  face/workpiece/attachment selection instead of closing the designer dialog.
+- Cassette Designer v2 persists the entity it edits through `POST /api/cassettes`
+  and `PUT /api/cassettes/:id`, keeping editor persistence on the cassette
+  feature boundary. OCCS stays canonical under `data.definition`.
+- Save, Save As (posts a distinct template and switches the editor to it), and
+  Escape-selection clearing are UI behaviors on the same endpoints.
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.
 - **`updateParameters`**: Updates the list of configurable parameters for the template.
 - **`ensureCurrentGeometryRevision`**: Creates or reuses the current geometry
@@ -155,6 +154,9 @@ delete must pass the full cassette DTO/model to `hasLineagePermission()`, not
 only `cassette.lineage`, because process grants can be scoped by current
 status. A generated cassette designer save for a `CREATED` template therefore
 uses the same status-scoped grant as the detail read.
+Creation evaluates the candidate lineage together with the initial process
+status, so a role granted cassette writes in `NEW` can create or Save As a
+template through the cassette entity endpoint.
 
 ## Related
 - [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.

@@ -11,7 +11,10 @@ export class Artifact extends BaseEntity {
     this.data = {
       ...this.data,
       type: raw.data?.type || '',
-      metadata: raw.data?.metadata || {}
+      metadata: raw.data?.metadata || {},
+      layout: raw.data?.layout || null,
+      values: raw.data?.values || {},
+      revisions: raw.data?.revisions || {}
     };
   }
 

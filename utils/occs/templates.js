@@ -5,7 +5,7 @@ export const createDefaultOccsCassetteTemplateDefinition = () => ({
   documentType: 'template',
   id: 'cassette-v2-tree',
   units: 'mm',
-  parameters: { A: '500', B: '400', R: '35' },
+  parameters: { A: '500', B: '400', R: '35', T: '1' },
   definitions: {
     workpieces: [
       {
@@ -54,7 +54,7 @@ export const createDefaultOccsCassetteTemplateDefinition = () => ({
     cutkit: {
       graphTree: {
         version: '0.4',
-        parameters: { A: '500', B: '400', R: '35' },
+        parameters: { A: '500', B: '400', R: '35', T: '1' },
         rootId: 'face_1',
         workpieces: [
           {

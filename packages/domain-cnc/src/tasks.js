@@ -60,7 +60,10 @@ export const cncTasks = {
     label: 'Extract geometry from capture photo',
     executor: { type: 'worker', workerType: 'geometry-capture' },
     input: {
-      entities: [{ name: 'geometryCapture', type: 'geometry_capture', required: true }],
+      entities: [
+        { name: 'geometryCapture', type: 'geometry_capture', required: true },
+        { name: 'sourcePhoto', type: 'artifact', required: true }
+      ],
       parameters: [
         { name: 'mode', label: 'Capture mode', type: 'enum', options: ['REMNANT', 'FACADE'], required: true },
         { name: 'revisionId', label: 'Capture revision id', type: 'string' },

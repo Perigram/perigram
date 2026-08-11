@@ -4,21 +4,12 @@
  */
 
 import * as repository from './repository.js';
-import { connectDB } from '../../db/mongo.js';
-import { GridFSBucket } from 'mongodb';
 import { buildNodiGraph } from '../../utils/cassetteGraphBuilder.js';
 import init, { Modular } from 'nodi-modular';
 import fs from 'fs/promises';
 import path from 'path';
-import { toFlexibleId } from '../../utils/objectid.js';
 import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 import { isOccsDocument } from '#utils/occs/parameters.js';
-import { 
-  createIdentity, 
-  createStatus, 
-  createData, 
-  createAttachment 
-} from '../../core/blocks/index.js';
 
 let wasmInitialized = false;
 let baseTemplateGraph = null;
@@ -44,15 +35,6 @@ function resolveTemplateDefinition(template = {}) {
       (candidate.parameters && !Array.isArray(candidate.parameters))
     )) ||
     {};
-}
-
-function isReusableBakedInstance(existing = {}, isOccsTemplate = false) {
-  if (!existing) return false;
-  if (!isOccsTemplate) return true;
-  const polygonParts = existing.data?.polygonParts || [];
-  const layerData = existing.data?.layerData || [];
-  return polygonParts.some(part => part.workpieceId) &&
-    layerData.some(item => item.layer === OCCS_LAYER_CUT_OUTER);
 }
 
 async function runWithEvaluationLock(task) {
@@ -404,88 +386,4 @@ export async function evaluateTemplate(cassetteId, dimensions) {
       throw new Error(`Geometry evaluation failed: ${e.message}`);
     }
   });
-}
-
-/**
- * Generate and store a DXF for a parametric cassette entry
- */
-export async function bakeTemplateInstance(cassetteId, dimensions, userId) {
-  const template = await repository.findTemplateById(cassetteId);
-  if (!template) throw new Error('Template not found');
-
-  const existing = await repository.findExistingBakedInstance(cassetteId, dimensions);
-  const definitionData = resolveTemplateDefinition(template);
-  const occsTemplate = isOccsDocument(definitionData);
-  if (isReusableBakedInstance(existing, occsTemplate)) return existing;
-
-  const {
-    polygons,
-    dimensions: evalDims,
-    nestingPolygons: evaluatedNestingPolygons,
-    layerData: evaluatedLayerData,
-    annotations: evaluatedAnnotations,
-    dimensionEntities: evaluatedDimensionEntities
-  } = await evaluateTemplate(cassetteId, dimensions);
-  
-  const usesOccsCutLayer = evaluatedLayerData?.some(item => item.layer === OCCS_LAYER_CUT_OUTER);
-  const nestingLayer = usesOccsCutLayer ? OCCS_LAYER_CUT_OUTER : OCCS_FLAT_PATTERN_LAYER;
-  const internalLayer = OCCS_CASSETTE_FACE_LAYER;
-  
-  const dxfContent = generateSimpleDxf(polygons, nestingLayer, internalLayer);
-  
-  const db = await connectDB();
-  const bucket = new GridFSBucket(db, { bucketName: 'cassettes' });
-  const filename = `baked-${cassetteId}-${Date.now()}.dxf`;
-  
-  const fileId = await new Promise((resolve, reject) => {
-    const uploadStream = bucket.openUploadStream(filename, {
-      metadata: { userId, type: 'BAKED_PARAMETRIC' }
-    });
-    uploadStream.on('finish', () => resolve(uploadStream.id));
-    uploadStream.on('error', reject);
-    uploadStream.write(dxfContent);
-    uploadStream.end();
-  });
-
-  const templateName = template.identity?.name || 'Unnamed';
-  const templateSlug = template.identity?.slug || 'unnamed';
-  
-  // ONLY use the largest polygon for nesting to avoid duplicate items
-  const nestingPolygons = evaluatedNestingPolygons?.length ? evaluatedNestingPolygons : [polygons[0]];
-  
-  // Store all polygons with their target layers in layerData for artifacts generation
-  const layerData = evaluatedLayerData || polygons.map((p, idx) => ({
-    layer: idx === 0 ? nestingLayer : internalLayer,
-    coordinates: p.coordinates,
-    handles: [(256 + idx).toString(16).toUpperCase()]
-  }));
-
-  const origin = createStatus('READY', userId || 'SYSTEM', { note: 'Parametric template baked' });
-
-  const bakedData = {
-    identity: createIdentity(`${templateName} (${evalDims.A}x${evalDims.B})`, `baked-${templateSlug}-${Date.now()}`),
-    origin,
-    status: origin,
-    lineage: {
-      originalCassetteId: toFlexibleId(cassetteId)
-    },
-    data: createData({
-      type: 'BAKED_PARAMETRIC',
-      attachment: createAttachment('DXF', fileId, filename, { userId, type: 'BAKED_PARAMETRIC' }),
-      polygonParts: nestingPolygons.map((p, i) => ({
-        coordinates: p.coordinates,
-        handles: p.handles?.length ? p.handles : [(256 + i).toString(16).toUpperCase()],
-        workpieceId: p.workpieceId,
-        workpieceDefinitionId: p.workpieceDefinitionId,
-        occurrenceId: p.occurrenceId
-      })),
-      layerData: layerData,
-      dimensions: evalDims,
-      annotations: evaluatedAnnotations || {
-        dimensions: evaluatedDimensionEntities || []
-      }
-    })
-  };
-
-  return await repository.createBakedInstance(bakedData);
 }

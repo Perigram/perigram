@@ -166,6 +166,6 @@ describe('Requisition Lifecycle', () => {
     });
 
     const result = await requisitionService.send(reqId.toString(), mockContractor.userId, mockContractor.organizationId, null, mockContractor.permissions);
-    expect(result.state.primary).toBe('SENT');
+    expect(result.status.state.primary).toBe('SENT');
   });
 });

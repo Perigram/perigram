@@ -1,69 +1,4 @@
-const ENTITY_TYPE_ALIASES = {
-  artifact: 'artifact',
-  batch_pile: 'batchPile',
-  cassette: 'cassette',
-  cassette_design: 'cassetteDesign',
-  cassette_instance: 'cassetteInstance',
-  cassette_template: 'cassetteTemplate',
-  catalog: 'catalog',
-  color: 'color',
-  entity_revision: 'entityRevision',
-  geometry_capture: 'geometryCapture',
-  layer_standard: 'layerStandard',
-  library: 'library',
-  material: 'material',
-  material_pile: 'materialPile',
-  nesting_run: 'nestingRun',
-  organization: 'organization',
-  pen_template: 'penTemplate',
-  profile_template: 'profileTemplate',
-  project: 'project',
-  queue: 'queue',
-  remnant: 'remnant',
-  requisition: 'requisition',
-  sheet: 'sheet',
-  sheet_design: 'sheetDesign',
-  tool_profile: 'toolProfile',
-  user: 'user',
-  warehouse: 'warehouse'
-};
-
-const SOURCE_TYPE_MAP = {
-  ARTIFACT: 'artifact',
-  CASSETTE: 'cassette',
-  CASSETTE_DESIGN: 'cassetteDesign',
-  CASSETTE_INSTANCE: 'cassetteInstance',
-  CATALOG: 'catalog',
-  COLOR: 'color',
-  LIBRARY: 'library',
-  MATERIAL: 'material',
-  NESTING_RUN: 'nestingRun',
-  ORGANIZATION: 'organization',
-  PILE: 'materialPile',
-  PROJECT: 'project',
-  QUEUE: 'queue',
-  REMNANT: 'remnant',
-  REQUISITION: 'requisition',
-  SHEET: 'sheet',
-  SHEET_DESIGN: 'sheetDesign',
-  USER: 'user',
-  WAREHOUSE: 'warehouse'
-};
-
-const OBJECT_LIST_KEY_TYPES = {
-  artifactIds: 'artifact',
-  cassetteDesignIds: 'cassetteDesign',
-  cassetteIds: 'cassette',
-  cassetteInstanceIds: 'cassetteInstance',
-  colorIds: 'color',
-  materialPileIds: 'materialPile',
-  pileIds: 'materialPile',
-  queueIds: 'queue',
-  remnantIds: 'remnant',
-  runIds: 'nestingRun',
-  sheetDesignIds: 'sheetDesign',
-  sheetIds: 'sheet'
-};
+import { canonicalEntityType } from '@cutkit/domain-cnc';
 
 export function resolveEntityRelationRefs(rawValue, field = {}) {
   const refs = [];
@@ -83,10 +18,8 @@ function appendRelationValue(refs, rawValue, fallbackEntityType = null) {
   }
 
   if (typeof rawValue === 'object') {
-    for (const [key, value] of Object.entries(rawValue)) {
-      if (!Array.isArray(value) || !value.length) continue;
-      appendRelationValue(refs, value, OBJECT_LIST_KEY_TYPES[key] || fallbackEntityType);
-    }
+    const ref = normalizeRelationRef(rawValue, fallbackEntityType);
+    if (ref) refs.push(ref);
   }
 }
 
@@ -100,23 +33,23 @@ function normalizeRelationRef(value, fallbackEntityType = null) {
   if (typeof value !== 'object') return null;
 
   const id = value.id || value.entityId || value._id || value.value;
-  const entityType = normalizeEntityType(value.entityType || value.type || fallbackEntityType);
+  const entityType = canonicalEntityType(value.entityType || value.type || fallbackEntityType);
   if (!id || !entityType) return null;
+
+  if (value.revisionId) {
+    return {
+      entityType: 'entity_revision',
+      id: String(value.revisionId),
+      source: { entityType, id: String(id) },
+      entity: null
+    };
+  }
 
   return {
     entityType,
     id: String(id),
     entity: value.identity || value.data || value.status || value.lineage ? value : null
   };
-}
-
-function normalizeEntityType(value) {
-  if (!value) return null;
-  const sourceType = String(value);
-  return ENTITY_TYPE_ALIASES[sourceType]
-    || ENTITY_TYPE_ALIASES[sourceType.toLowerCase()]
-    || SOURCE_TYPE_MAP[sourceType.toUpperCase()]
-    || sourceType;
 }
 
 function dedupeRelationRefs(refs = []) {

@@ -5,6 +5,7 @@ import { useEntity } from '~/composables/useEntity';
 import { normalizeScreenContract } from '~/packages/processes/src/screen-contract.js';
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
 import { onEntityChanged } from '~/utils/entity-events.js';
+import { filterRootSourceItems } from '~/utils/generated-screen-source.js';
 
 export function useGeneratedScreen(screenRef) {
   const authStore = useAuthStore();
@@ -12,56 +13,120 @@ export function useGeneratedScreen(screenRef) {
   const sourceStates = ref({});
   const loading = ref(false);
   const error = ref(null);
+  let loadSequence = 0;
+  let refreshTimer = null;
 
   const screen = computed(() => normalizeScreenContract(unrefScreen(screenRef) || {}));
 
   const visibleSources = computed(() => screen.value.sources.filter(source => canReadSource(source, activePermissions.value)));
 
-  async function load() {
+  async function load({ initial = false } = {}) {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
+      refreshTimer = null;
+    }
+    const sequence = ++loadSequence;
     const sources = visibleSources.value;
-    sourceStates.value = Object.fromEntries(sources.map(source => [source.id, emptyState(source)]));
-    if (!sources.length) return;
+    if (!sources.length) {
+      sourceStates.value = {};
+      loading.value = false;
+      return;
+    }
 
-    loading.value = true;
-    error.value = null;
+    const firstLoad = initial || !sources.some(source => sourceStates.value[source.id]);
+    if (firstLoad) loading.value = true;
+    if (firstLoad) error.value = null;
     try {
-      for (const source of sources) {
+      const loaded = await Promise.all(sources.map(async source => {
         const entityApi = useEntity(source.entityType);
         if (source.mode === 'single') {
           const identifier = resolveSourceIdentifier(source, screen.value);
           if (!identifier) {
-            sourceStates.value[source.id] = { ...emptyState(source), error: 'missing-identifier' };
-            continue;
+            return [source.id, { ...emptyState(source), error: 'missing-identifier' }];
           }
           const entity = await entityApi.fetch(identifier, { silent: true });
-          sourceStates.value[source.id] = { ...emptyState(source), entity };
-          continue;
+          return [source.id, { ...emptyState(source), entity }];
         }
         const items = await entityApi.list(resolveSourceFilters(source, screen.value));
-        sourceStates.value[source.id] = { ...emptyState(source), items };
-      }
+        return [source.id, { ...emptyState(source), items }];
+      }));
+      if (sequence !== loadSequence) return;
+      sourceStates.value = Object.fromEntries(loaded);
+      error.value = null;
     } catch (err) {
-      error.value = err;
+      if (sequence === loadSequence && firstLoad) error.value = err;
     } finally {
-      loading.value = false;
+      if (sequence === loadSequence) loading.value = false;
     }
   }
 
   watch(screen, () => {
-    load();
+    sourceStates.value = {};
+    load({ initial: true });
   }, { immediate: true, deep: true });
 
-  const stopEntityChangeListener = onEntityChanged(({ type }) => {
-    if (!type || !visibleSources.value.some(source => source.entityType === type)) return;
-    load();
+  const stopEntityChangeListener = onEntityChanged(change => {
+    if (!entityChangeAffectsSources(change, visibleSources.value, screen.value)) return;
+    if (change.change === 'deleted') {
+      removeEntitySnapshot(change.type, change.id);
+      return;
+    }
+    if (change.entity) {
+      applyEntitySnapshot(change.type, change.entity);
+      return;
+    }
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      refreshTimer = null;
+      load();
+    }, 80);
   });
 
   onUnmounted(() => {
+    if (refreshTimer) clearTimeout(refreshTimer);
     stopEntityChangeListener();
   });
 
   function sourceState(sourceId) {
-    return sourceStates.value[sourceId] || emptyState({ id: sourceId });
+    const state = sourceStates.value[sourceId] || emptyState({ id: sourceId });
+    if (state.source?.mode === 'single' || screen.value.template !== 'home') return state;
+    return {
+      ...state,
+      rawItems: state.items,
+      items: filterRootSourceItems(state.items, state.source, sourceStates.value)
+    };
+  }
+
+  function applyEntitySnapshot(entityType, entity = null) {
+    const id = entity?._id?.toString?.() || entity?._id || entity?.identity?.uid?.toString?.() || entity?.identity?.uid;
+    if (!entityType || !id || !entity) return;
+    sourceStates.value = Object.fromEntries(Object.entries(sourceStates.value).map(([sourceId, state]) => {
+      if (state.source?.entityType !== entityType) return [sourceId, state];
+      if (state.source.mode === 'single') {
+        const sourceIdValue = resolveSourceIdentifier(state.source, screen.value);
+        return String(sourceIdValue) === String(id) ? [sourceId, { ...state, entity }] : [sourceId, state];
+      }
+      const index = (state.items || []).findIndex(item => String(item?._id || item?.identity?.uid) === String(id));
+      if (index < 0) {
+        return entityMatchesSource(entity, state.source, screen.value)
+          ? [sourceId, { ...state, items: [...(state.items || []), entity] }]
+          : [sourceId, state];
+      }
+      const items = [...state.items];
+      items[index] = entity;
+      return [sourceId, { ...state, items }];
+    }));
+  }
+
+  function removeEntitySnapshot(entityType, id) {
+    if (!entityType || !id) return;
+    sourceStates.value = Object.fromEntries(Object.entries(sourceStates.value).map(([sourceId, state]) => {
+      if (state.source?.entityType !== entityType || state.source.mode === 'single') return [sourceId, state];
+      return [sourceId, {
+        ...state,
+        items: (state.items || []).filter(item => String(item?._id || item?.identity?.uid) !== String(id))
+      }];
+    }));
   }
 
   return {
@@ -71,8 +136,29 @@ export function useGeneratedScreen(screenRef) {
     error,
     visibleSources,
     load,
+    applyEntitySnapshot,
     sourceState
   };
+}
+
+function entityMatchesSource(entity = {}, source = {}, screen = {}) {
+  const filters = resolveSourceFilters(source, screen);
+  return Object.entries(filters).every(([path, expected]) => {
+    if (path === 'primaryStatus') return entity.status?.state?.primary === expected;
+    if (path === 'primaryStatuses') return String(expected).split(',').includes(entity.status?.state?.primary);
+    if (expected && typeof expected === 'object') return false;
+    const actual = path.split('.').reduce((value, key) => value?.[key], entity);
+    return String(actual ?? '') === String(expected ?? '');
+  });
+}
+
+function entityChangeAffectsSources(change = {}, sources = [], screen = {}) {
+  if (!change.type) return false;
+  return sources.some(source => {
+    if (source.entityType !== change.type) return false;
+    if (source.mode !== 'single' || !change.id) return true;
+    return String(resolveSourceIdentifier(source, screen)) === String(change.id);
+  });
 }
 
 function canReadSource(source = {}, permissions = {}) {
@@ -96,7 +182,7 @@ function resolveSourceIdentifier(source = {}, screen = {}) {
     || '';
 }
 
-function resolveSourceFilters(source = {}, screen = {}) {
+export function resolveSourceFilters(source = {}, screen = {}) {
   const filters = resolveValue(source.filters || {}, screen) || {};
   const statuses = statusFiltersFromRequirement(source.required || screen.required || {});
   if (!statuses.length) return filters;

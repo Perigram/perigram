@@ -1,16 +1,16 @@
 <template>
-    <div class="flex flex-col min-h-screen bg-[var(--ck-page-background)]">
-        <header class="sticky top-0 z-50 border-b border-content-border bg-[var(--ck-chrome-background)] backdrop-blur">
+    <div class="flex flex-col min-h-screen bg-page">
+        <header class="chrome-signal-rule sticky top-0 z-50 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2">
                 <!-- Left: Logo -->
                 <div class="flex items-center h-full min-w-0 flex-1">
                     <NuxtLink
                         to="/test/ui-lab"
-                        class="flex items-center gap-2 no-underline text-[var(--p-primary-color)] text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0"
+                        class="flex items-center gap-2 no-underline text-primary text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0"
                     >
                         <span>{{ $t('uiLab.shellTitle') }}</span>
                     </NuxtLink>
-                    <div class="px-2 py-0.5 rounded-ui bg-[var(--ck-subtle-background)] text-[10px] font-bold uppercase text-muted-color border border-content-border">
+                    <div class="px-2 py-0.5 rounded-ui border [border-color:var(--ck-chrome-border)] bg-[var(--ck-chrome-subtle)] text-[10px] font-bold uppercase text-[var(--ck-chrome-muted)]">
                         {{ $t('uiLab.testMode') }}
                     </div>
                 </div>
@@ -26,12 +26,12 @@
                     />
                     
                     <div class="relative flex items-center">
-                        <div class="flex items-center gap-2 px-2 py-1 rounded-ui hover:bg-[var(--ck-subtle-background)] cursor-pointer">
+                        <div class="flex items-center gap-2 px-2 py-1 rounded-ui hover:bg-[var(--ck-chrome-subtle)] cursor-pointer">
                             <Avatar 
                                 label="T"
                                 shape="circle" 
                                 size="normal" 
-                                class="bg-[var(--p-primary-color)] text-[var(--p-primary-contrast-color)]"
+                                class="bg-primary text-primary-contrast"
                             />
                             <span class="text-sm font-bold hidden sm:block">{{ $t('uiLab.testUser') }}</span>
                         </div>

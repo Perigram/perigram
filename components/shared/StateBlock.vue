@@ -1,9 +1,9 @@
 <template>
-  <div class="flex flex-col items-center justify-center gap-4 rounded-panel border border-dashed border-content-border bg-[var(--ck-subtle-background)] px-6 py-14 text-center">
+  <div class="flex flex-col items-center justify-center gap-4 rounded-panel border border-dashed border-content-border bg-subtle px-6 py-14 text-center">
     <ProgressSpinner v-if="state === 'loading'" />
     <i v-else :class="[icon, 'text-4xl text-muted-color']" />
     <div class="flex max-w-md flex-col gap-1">
-      <p class="m-0 font-medium" :class="{ 'text-red-500': state === 'error' }">
+      <p class="m-0 font-medium" :class="{ 'text-status-danger': state === 'error' }">
         <slot>{{ message }}</slot>
       </p>
       <small v-if="description || $slots.description" class="text-muted-color">

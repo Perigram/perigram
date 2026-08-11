@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll, beforeAll, vi } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoClient, ObjectId } from 'mongodb';
 
 const { mockedConnectDB } = vi.hoisted(() => ({
@@ -28,12 +28,12 @@ describe('Material Batch & Sheet Allocation', () => {
 
   beforeAll(async () => {
     // Explicit WiredTiger and ReplicaSet for transactions
-    mongoServer = await MongoMemoryServer.create({ 
-      replSet: { 
+    mongoServer = await MongoMemoryReplSet.create({
+      replSet: {
         name: 'rs0',
         count: 1,
         storageEngine: 'wiredTiger'
-      } 
+      }
     });
     const uri = mongoServer.getUri();
     con = await MongoClient.connect(uri);
@@ -136,19 +136,17 @@ describe('Material Batch & Sheet Allocation', () => {
     expect(result[0]._id).toBe('pile-a');
   });
 
-  it('should allocate sheets and update pile usedCount', async () => {
+  it('should allocate stock and update the pile used count', async () => {
     const batchId = new ObjectId();
-    const pileId = new ObjectId();
     await db.collection('material_piles').insertOne({
       _id: batchId,
       identity: { uid: batchId, name: 'Pile' },
       data: { stock: { total: 10, used: 0 } }
     });
 
-    const allocation = await batchService.allocateSheets(batchId.toString(), pileId.toString(), 3, 'user1');
+    const allocation = await batchService.allocate(batchId.toString(), 3, 'user1');
     
-    expect(allocation.success).toBe(true);
-    expect(allocation.sheets).toHaveLength(3);
+    expect(allocation.data.stock.used).toBe(3);
     
     const updatedBatch = await db.collection('material_piles').findOne({ _id: batchId });
     expect(updatedBatch.data.stock.used).toBe(3);
@@ -157,27 +155,25 @@ describe('Material Batch & Sheet Allocation', () => {
 
   it('should fail allocation if insufficient sheets in pile', async () => {
     const batchId = new ObjectId();
-    const pileId = new ObjectId();
     await db.collection('material_piles').insertOne({
       _id: batchId,
       identity: { uid: batchId, name: 'Pile' },
       data: { stock: { total: 5, used: 5 } }
     });
 
-    await expect(batchService.allocateSheets(batchId.toString(), pileId.toString(), 1, 'user1'))
-      .rejects.toThrow(/Insufficient sheets/);
+    await expect(batchService.allocate(batchId.toString(), 1, 'user1'))
+      .rejects.toThrow(/Insufficient stock/);
   });
 
   it('should reject non-positive allocation counts', async () => {
     const batchId = new ObjectId();
-    const pileId = new ObjectId();
     await db.collection('material_piles').insertOne({
       _id: batchId,
       identity: { uid: batchId, name: 'Pile' },
       data: { stock: { total: 5, used: 0 } }
     });
 
-    await expect(batchService.allocateSheets(batchId.toString(), pileId.toString(), 0, 'user1'))
+    await expect(batchService.allocate(batchId.toString(), 0, 'user1'))
       .rejects.toThrow(/positive/);
     await expect(batchService.allocate(batchId.toString(), -1, 'user1'))
       .rejects.toThrow(/positive/);

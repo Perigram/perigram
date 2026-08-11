@@ -1,11 +1,11 @@
 <template>
     <div
         :class="[
-            'flex flex-col bg-[var(--ck-page-background)]',
+            'flex flex-col bg-page',
             isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'
         ]"
     >
-    <header class="sticky top-0 z-50 hidden shrink-0 border-b border-content-border bg-[var(--ck-chrome-background)] backdrop-blur-md md:block">
+    <header class="chrome-signal-rule sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
@@ -24,20 +24,20 @@
                             :key="index"
                             class="flex items-center gap-0 shrink-0"
                         >
-                            <span v-if="index > 0" class="mx-0.5 text-muted opacity-50 shrink-0">/</span>
+                            <span v-if="index > 0" class="mx-0.5 shrink-0 text-[var(--ck-chrome-muted)] opacity-50">/</span>
                             <NuxtLink
                                 :to="crumb.to"
-                                class="p-button p-component p-button-text p-button-secondary text-xs md:text-sm whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
+                                class="p-button p-component p-button-text p-button-secondary !text-[var(--ck-chrome-foreground)] text-xs md:text-sm whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
                             >
                                 {{ crumb.name }}
                             </NuxtLink>
                             <Button
-                                v-if="crumb.siblings && crumb.siblings.length > 1"
+                                v-if="breadcrumbAlternatives(crumb).length"
                                 icon="pi pi-chevron-down"
                                 text
                                 severity="secondary"
                                 size="small"
-                                class="mr-1"
+                                class="mr-1 !text-[var(--ck-chrome-foreground)]"
                                 :aria-label="crumb.name"
                                 @click="openBreadcrumbMenu($event, crumb)"
                             />
@@ -46,38 +46,22 @@
                     </div>
                 </div>
 
-                <!-- Right: Chat & User -->
+                <!-- Right: User -->
                 <div class="flex items-center gap-2 shrink-0">
-                    <div v-if="authStore.userIsSet" class="relative flex items-center">
-                        <Button
-                            icon="pi pi-comments"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('support.openChat')"
-                            @click="openSupportDialog"
-                        />
-                        <Badge
-                            v-if="supportChatStore.totalUnread"
-                            :value="supportChatStore.totalUnread"
-                            severity="danger"
-                            size="small"
-                            class="absolute -right-1 -top-1"
-                        />
-                    </div>
-                    
                     <div class="relative flex items-center" v-if="authStore.userIsSet">
                         <Button 
+                            data-testid="user-menu-trigger"
                             type="button" 
                             @click="toggleUserMenu" 
                             class="p-0.5 rounded-full overflow-hidden border-2 border-transparent transition-colors"
                             text
                         >
                             <Avatar 
-                                :label="authStore.userData.name ? authStore.userData.name[0].toUpperCase() : 'U'" 
+                                :image="authStore.userData.avatarUrl || null"
+                                :label="!authStore.userData.avatarUrl && authStore.userData.name ? authStore.userData.name[0].toUpperCase() : null"
                                 shape="circle" 
                                 size="normal" 
-                                class="bg-primary text-primary-contrast"
+                                class="bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                             />
                         </Button>
                     </div>
@@ -88,8 +72,10 @@
         <main
             :class="[
                 'flex min-h-0 w-full flex-1 flex-col mx-auto',
-                isFlushMobileSurface ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-w-[var(--ck-page-max-width)] md:overflow-visible md:p-6 lg:p-8'
-                    : isBoundedWorkspaceRoute ? 'max-w-[var(--ck-page-max-width)] overflow-hidden px-3 pt-3 pb-24 md:p-4'
+                isStandaloneDesignerRoute ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
+                    : isFlushMobileSurface ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-w-[var(--ck-page-max-width)] md:overflow-visible md:p-6 lg:p-8'
+                    : isGeneratedWorkspaceRoute ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
+                        : isBoundedWorkspaceRoute ? 'max-w-[var(--ck-page-max-width)] overflow-hidden px-3 pt-3 pb-24 md:p-4'
                         : 'max-w-[var(--ck-page-max-width)] px-4 pt-4 pb-24 md:p-6 lg:p-8'
             ]"
         >
@@ -98,11 +84,28 @@
         </main>
 
         <ChatSupport v-if="supportDialog && mobileActiveTab !== 'chats'" />
-        <Menu ref="userMenu" :model="userMenuItems" :popup="true" />
+        <Popover ref="userMenu">
+            <div class="flex min-w-56 flex-col gap-3">
+                <section v-for="group in userMenuItems" :key="group.label" class="flex flex-col gap-1">
+                    <small class="px-2 text-muted-color">{{ group.label }}</small>
+                    <Button
+                        v-for="item in group.items"
+                        :key="item.label"
+                        :label="item.label"
+                        :icon="item.icon"
+                        text
+                        severity="secondary"
+                        size="small"
+                        class="w-full !justify-start"
+                        @click="runUserMenuItem(item)"
+                    />
+                </section>
+            </div>
+        </Popover>
         <Menu ref="mobileScreenMenu" :model="mobileScreenMenuItems" :popup="true" />
         <nav
             v-if="authStore.userIsSet"
-            class="fixed inset-x-0 bottom-0 z-[998] border-t border-content-border bg-[var(--ck-chrome-background)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 [box-shadow:var(--ck-shadow-overlay)] md:hidden"
+            class="chrome-signal-rule fixed inset-x-0 bottom-0 z-[998] border-t [border-color:var(--ck-chrome-border)] bg-chrome px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 [box-shadow:var(--ck-shadow-overlay)] md:hidden"
             :aria-label="$t('nav.home')"
         >
             <div class="mx-auto flex max-w-md items-center justify-around gap-1">
@@ -170,42 +173,47 @@
             </div>
         </nav>
         <Button
+            data-testid="desktop-chat-launcher"
             icon="pi pi-comment"
             severity="secondary"
             rounded
+            size="large"
             :aria-label="$t('support.openChat')"
             @click="openSupportDialog"
-            v-if="!supportDialog"
-            class="fixed bottom-8 right-8 z-[999] hidden [box-shadow:var(--ck-shadow-overlay)] md:inline-flex"
+            v-if="!supportDialog && !isChatsRoute"
+            class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 [box-shadow:var(--ck-shadow-overlay)] md:inline-flex"
         />
     </div>
 </template>
 
 <script setup>
-    import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+    import { ref, computed, provide, watch, onMounted, onUnmounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
     import Badge from 'primevue/badge'
     import Menu from 'primevue/menu'
+    import Popover from 'primevue/popover'
     import Avatar from 'primevue/avatar'
     import ChatSupport from '~/components/ChatSupport.vue'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
+    import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
     import { useSupportChatStore } from '~/stores/supportChat'
-    import { useEntityEventsStore } from '~/stores/entityEvents'
     import { useNavigationStore } from '~/stores/navigation'
     import { useGlobalStore } from '~/stores/global'
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
     import { generatedScreenLabel } from '~/utils/generated-labels.js'
+    import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js'
 
     const router = useRouter()
     const route = useRoute()
     const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
+    const domainUi = useCutkitDomainUi()
+    provide('statusWorkflows', computed(() => authStore.statusWorkflows))
     const supportChatStore = useSupportChatStore()
-    const entityEventsStore = useEntityEventsStore()
     const navStore = useNavigationStore()
     const globalStore = useGlobalStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
@@ -225,6 +233,10 @@
         }
     }, { immediate: true })
 
+    watch([() => route.fullPath, () => authStore.userIsSet], async ([, isSet]) => {
+        if (isSet) await navStore.fetchRouteHierarchy(route.path, route.query, ssrFetchOptions)
+    }, { immediate: true })
+
     // Fetch projects list once for breadcrumb siblings
     onMounted(async () => {
         if (authStore.userIsSet && globalStore.projectsList.length === 0) {
@@ -242,10 +254,8 @@
     watch(() => authStore.userIsSet, (isSet) => {
         if (isSet) {
             supportChatStore.connect()
-            entityEventsStore.connect()
         } else {
             supportChatStore.disconnect()
-            entityEventsStore.disconnect()
         }
     }, { immediate: true })
 
@@ -263,16 +273,36 @@
     const breadcrumbMenu = ref()
     const breadcrumbMenuItems = ref([])
     const openBreadcrumbMenu = (event, crumb) => {
-        breadcrumbMenuItems.value = (crumb.siblings || []).map((sibling) => ({
+        breadcrumbMenuItems.value = breadcrumbAlternatives(crumb).map((sibling) => ({
             label: sibling.name,
             command: () => router.push(sibling.id || sibling.to)
         }))
         breadcrumbMenu.value?.toggle(event)
     }
+    const breadcrumbAlternatives = (crumb = {}) => (crumb.siblings || [])
+        .filter(sibling => (sibling.id || sibling.to) && (sibling.id || sibling.to) !== crumb.to)
 
-    const isBoundedWorkspaceRoute = computed(() => /^\/project\/[^/]+\/queues\/?$/.test(route.path))
+    const activeGeneratedScreen = computed(() => {
+        if (!route.path.startsWith('/screens/')) return null
+        const rawKey = route.params.screenKey
+        const screenKey = Array.isArray(rawKey) ? rawKey.join('/') : rawKey
+        return authStore.screenManifest.find(screen => (
+            screen.screenKey === screenKey || screen.id === screenKey
+        )) || null
+    })
+    const isGeneratedWorkspaceRoute = computed(() => Boolean(
+        resolveGeneratedScreenOverload(activeGeneratedScreen.value)
+    ))
+    const isStandaloneDesignerRoute = computed(() => route.path === '/organization/process')
+    const isChatsRoute = computed(() => route.path === '/chats' || route.path.startsWith('/chats/'))
+    const isBoundedWorkspaceRoute = computed(() => (
+        isGeneratedWorkspaceRoute.value
+        || isStandaloneDesignerRoute.value
+        || isChatsRoute.value
+        || /^\/project\/[^/]+\/queues\/?$/.test(route.path)
+    ))
     const isAccountRoute = computed(() => route.path === '/profile' || route.path.startsWith('/organization'))
-    const isFlushMobileSurface = computed(() => mobileActiveTab.value === 'chats' || isAccountRoute.value)
+    const isFlushMobileSurface = computed(() => mobileActiveTab.value === 'chats' || isAccountRoute.value || isChatsRoute.value)
     const screenName = (screen) => generatedScreenLabel(screen, { t, te })
     const mobileShortcutStorageKey = computed(() => [
         'cutkit.mobileScreenShortcuts.v1',
@@ -452,33 +482,7 @@
     const screenIcon = (screen = {}) => {
         if (screen.icon) return screen.icon
         if (screen.template === 'home') return 'pi pi-home'
-        const entityIcons = {
-            project: 'pi pi-folder',
-            queue: 'pi pi-list',
-            nestingRun: 'pi pi-list-check',
-            nesting_run: 'pi pi-list-check',
-            sheetDesign: 'pi pi-map',
-            sheet_design: 'pi pi-map',
-            cassette: 'pi pi-box',
-            cassetteDesign: 'pi pi-pencil',
-            cassette_design: 'pi pi-pencil',
-            cassetteTemplate: 'pi pi-palette',
-            cassette_template: 'pi pi-palette',
-            cassetteInstance: 'pi pi-box',
-            cassette_instance: 'pi pi-box',
-            library: 'pi pi-book',
-            artifact: 'pi pi-file',
-            geometryCapture: 'pi pi-camera',
-            geometry_capture: 'pi pi-camera',
-            warehouse: 'pi pi-building',
-            material: 'pi pi-database',
-            materialPile: 'pi pi-box',
-            material_pile: 'pi pi-box',
-            requisition: 'pi pi-shopping-cart',
-            user: 'pi pi-user',
-            organization: 'pi pi-building'
-        }
-        return entityIcons[screen.entityType] || 'pi pi-th-large'
+        return domainUi.getIcon(screen.entityType)
     }
 
     watch(mobileShortcutStorageKey, loadMobileShortcuts)
@@ -487,50 +491,29 @@
     const userMenu = ref();
     const mobileScreenMenu = ref();
     const toggleUserMenu = (event) => {
-        userMenu.value.toggle(event);
+        userMenu.value?.toggle?.(event);
     };
-    const organizationSystemScreens = computed(() => authStore.screenManifest
-        .filter(screen => screen.kind === 'system' && typeof screen.route === 'string' && screen.route.startsWith('/organization'))
-        .sort((left, right) => organizationScreenOrder(left) - organizationScreenOrder(right)))
-    const organizationScreenOrder = (screen = {}) => {
-        const order = {
-            organization_overview: 0,
-            organization_billing: 1,
-            organization_team: 2,
-            organization_process: 3
-        }
-        return order[screen.screenKey || screen.id] ?? 100
-    }
-
+    const runUserMenuItem = async (item) => {
+        userMenu.value?.hide?.();
+        await item?.command?.();
+    };
     const userMenuItems = computed(() => {
         const items = [];
-        const canOpenGeneratedRoute = (route) => !authStore.processActive || navStore.processAllowsRoute(route);
 
         // 1. Current Organization & Context
-        if (authStore.organizationData && organizationSystemScreens.value.length) {
-            const organizationItems = organizationSystemScreens.value.map(screen => ({
-                label: screenName(screen),
-                icon: screen.icon || screenIcon(screen),
-                command: () => router.push(screen.route)
-            }));
-            if (organizationItems.length) items.push({
-                label: authStore.organizationData.identity?.name || authStore.organizationData.name || t('organization.workspace'),
-                items: organizationItems
-            });
-        }
-
-        // 2. Organization Switcher (if multiple)
-        if (authStore.userOrganizations.length > 1) {
+        // Keep the organization context visible even for a single membership.
+        if (authStore.userOrganizations.length) {
             items.push({
-                label: t('auth.organization'),
+                label: t('profile.myOrganizations'),
                 items: authStore.userOrganizations.map(org => ({
-                    label: org.name,
-                    icon: org.id === authStore.userData.organizationId?.toString() ? 'pi pi-check text-green-500' : 'pi pi-building',
+                    label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
+                    icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
                     command: async () => {
-                        if (org.id !== authStore.userData.organizationId?.toString()) {
-                            await authStore.switchOrganization(org.id);
-                            router.push('/');
+                        const organizationId = org._id?.toString() || org.id?.toString();
+                        if (organizationId && organizationId !== authStore.userData.organizationId?.toString()) {
+                            await authStore.switchOrganization(organizationId);
                         }
+                        router.push('/organization');
                     }
                 }))
             });
@@ -540,6 +523,11 @@
         items.push({
             label: authStore.userData.name || t('common.user'),
             items: [
+                {
+                    label: t('support.chatTitle'),
+                    icon: 'pi pi-comments',
+                    command: () => router.push('/chats')
+                },
                 {
                     label: t('common.toggleTheme'),
                     icon: themeIcon.value,
@@ -560,37 +548,6 @@
                 }
             ]
         });
-
-        // 4. Admin sections
-        const adminItems = [];
-        if (authStore.hasPermission('workbench', 'admin') && canOpenGeneratedRoute('/admin')) {
-            adminItems.push({
-                label: t('admin.workbench.title'),
-                icon: 'pi pi-wrench',
-                command: () => router.push('/admin')
-            });
-        }
-        if (authStore.hasTenantPermission('users', 'admin') && canOpenGeneratedRoute('/admin/users')) {
-            adminItems.push({
-                label: t('features.users'),
-                icon: 'pi pi-users',
-                command: () => router.push('/admin/users')
-            });
-        }
-        if (authStore.hasPermission('config_bot', 'admin') && canOpenGeneratedRoute('/admin/config-bot')) {
-            adminItems.push({
-                label: t('admin.configBot.title'),
-                icon: 'pi pi-sparkles',
-                command: () => router.push('/admin/config-bot')
-            });
-        }
-
-        if (adminItems.length > 0) {
-            items.push({
-                label: t('nav.admin'),
-                items: adminItems
-            });
-        }
 
         return items;
     });
@@ -646,9 +603,3 @@
         }
     })
 </script>
-
-<style scoped lang="scss">
-html {
-    font-size: 14px;
-}
-</style>

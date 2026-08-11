@@ -33,7 +33,7 @@
                         {{ $t('queue.jobComposition') }}
                     </h3>
                     <TableFrame>
-                    <DataTable :value="queue.data?.job?.items || []" responsiveLayout="scroll">
+                    <DataTable :value="queue.relations?.cassettes || []" responsiveLayout="scroll">
                         <Column :header="$t('file.type')">
                             <template #body="{ data }">
                                 <Tag :value="data.type" severity="secondary" />
@@ -42,14 +42,6 @@
                         <Column field="id" :header="$t('queue.entryId')">
                              <template #body="{ data }">
                                 <span class="opacity-60 italic">{{ data.id }}</span>
-                            </template>
-                        </Column>
-                        <Column field="quantity" :header="$t('common.quantity')" />
-                        <Column :header="$t('queue.dimensions')">
-                             <template #body="{ data }">
-                                <div class="flex flex-wrap gap-1.5">
-                                    <Tag v-for="(val, key) in data.parameters" :key="key" :value="`${key}: ${val}`" text />
-                                </div>
                             </template>
                         </Column>
                     </DataTable>
@@ -102,7 +94,6 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
-import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
     queue: { type: Object, required: true }
@@ -124,7 +115,6 @@ function materialSourceEntityType(source = {}) {
 }
 
 const queueCommandActions = computed(() => {
-    if (getPrimaryState(props.queue.status) !== 'DRAFT') return [];
     return [{
         label: t('queues.runNesting'),
         icon: 'pi pi-play',

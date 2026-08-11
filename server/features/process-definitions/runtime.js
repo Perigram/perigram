@@ -1,10 +1,14 @@
 import {
+  compileProcessDefinition,
+  resolveRoleAssignmentAccess,
   resolveEffectiveAccess,
   resolveNavigation,
   resolveScreens,
   resolveWorkflow
 } from '~/packages/processes/src/index.js';
+import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import * as repository from './repository.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
 import { applyOwnerPermissionsToAuth } from '../users/organization-owner.js';
 
@@ -16,7 +20,15 @@ export async function getActiveProcessForOrganization(organizationId) {
 
 export async function getActiveCompiledProcess(organizationId) {
   const active = await getActiveProcessForOrganization(organizationId);
-  return active?.data?.compiled || null;
+  const organization = organizationId
+    ? await getAppRegistry().getEntityService('organization').getProcessConfiguration(organizationId)
+    : null;
+  return compileActiveProcessRuntime(active?.data || null, organization?.roles || {});
+}
+
+export function compileActiveProcessRuntime(data = null, roles = {}) {
+  if (!data) return null;
+  return compileProcessDefinition({ ...data, compiled: null }, cncDomain, { roles });
 }
 
 export async function resolveProcessAuth(auth = {}) {
@@ -32,18 +44,26 @@ export async function resolveProcessAuth(auth = {}) {
     };
   }
   const userId = String(auth.userId || '');
-  const effectivePermissions = resolveEffectiveAccess({ compiled, userId });
+  const organization = await getAppRegistry().getEntityService('organization').getProcessConfiguration(organizationId);
+  const assignment = organization?.roleAssignments?.[userId] || null;
+  const assignmentAccess = resolveRoleAssignmentAccess({ compiled, assignment, domain: cncDomain });
+  const effectivePermissions = resolveEffectiveAccess({ access: assignmentAccess });
   const ownerAuth = applyOwnerPermissionsToAuth({ ...auth, effectivePermissions });
   const system = resolveOrganizationSystemScreens(ownerAuth);
-  const processScreens = resolveScreens({ compiled, userId });
-  const processNavigation = resolveNavigation({ compiled, userId });
+  const processScreens = resolveScreens({ access: assignmentAccess });
+  const processNavigation = resolveNavigation({ access: assignmentAccess });
   return {
     ...ownerAuth,
-    process: { active: true, schemaVersion: compiled.schemaVersion },
+    process: {
+      active: true,
+      schemaVersion: compiled.schemaVersion,
+      workflows: compiled.workflows || {},
+      lineageBindings: compiled.lineageBindings || []
+    },
     fieldPolicies: compiled.fieldPolicies || {},
     navigation: [...system.navigation, ...processNavigation],
     screens: [...system.screens, ...processScreens],
-    roleAssignments: compiled.userAccess?.[userId] || null
+    roleAssignments: assignmentAccess
   };
 }
 

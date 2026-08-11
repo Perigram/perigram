@@ -35,6 +35,10 @@ cassette service persists that parent as `lineage.libraryId` and synchronizes
 Access uses the `libraries` feature key and organization lineage. Create and
 update require `libraries:write`; delete requires `libraries:admin` with delete
 authority.
+Process graph reads use the registry's `processGetById(id, auth)` adapter, which
+maps the unified process auth object to this feature's positional service
+signature. Parent Lineage evaluation therefore performs the ordinary library
+read check with the complete compiled permission context.
 
 ## Related
 

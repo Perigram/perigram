@@ -1,8 +1,9 @@
+import crypto from 'node:crypto';
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as nestingRunsRepository from '../nesting-runs/repository.js';
 import { createError } from 'h3';
 import {
-  createStatus,
   inheritLineage,
   createData,
   createAttachment
@@ -34,7 +35,7 @@ function geometryRevisionContent(design) {
   return {
     geometry: design.data?.geometry || null,
     cassetteDesigns: design.data?.cassetteDesigns || [],
-    nestingParams: design.data?.nestingParams || {},
+    solveParams: design.data?.solveParams || {},
     specs: design.specs || {}
   };
 }
@@ -289,6 +290,51 @@ export function cassetteDesignsForNestingResult(result = {}) {
   return Array.from(counts.values()).sort((left, right) => left.cassetteDesignId.localeCompare(right.cassetteDesignId));
 }
 
+export function cassetteCompositionForLayout(result = {}, layout = {}) {
+  const itemsById = new Map((result.items || [])
+    .map(item => [item.id?.toString(), item])
+    .filter(([id]) => id !== undefined));
+  const counts = new Map();
+  for (const placedItem of layout.placed_items || layout.items || []) {
+    const source = itemsById.get(itemSourceId(placedItem)?.toString()) || placedItem;
+    const cassetteDesignId = source.cassette_id || source.cassetteId || placedItem.cassette_id || placedItem.cassetteDesignId;
+    if (!cassetteDesignId) continue;
+    const id = cassetteDesignId.toString();
+    counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([cassetteDesignId, count]) => ({ cassetteDesignId, count }))
+    .sort((left, right) => left.cassetteDesignId.localeCompare(right.cassetteDesignId));
+}
+
+export function compositionHash(composition = []) {
+  const value = composition.map(item => [String(item.cassetteDesignId), Number(item.count || 0)]);
+  return `sha256:${crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
+}
+
+export function collapseNestingLayoutsByComposition(result = {}) {
+  const layouts = result.solution?.layouts || result.layouts || [];
+  const groups = new Map();
+  layouts.forEach((layout, layoutIndex) => {
+    const composition = cassetteCompositionForLayout(result, layout);
+    const hash = compositionHash(composition);
+    const group = groups.get(hash);
+    if (group) {
+      group.sheetCount += 1;
+      group.layoutIndexes.push(layoutIndex);
+      return;
+    }
+    groups.set(hash, {
+      compositionHash: hash,
+      composition,
+      sheetCount: 1,
+      representativeLayoutIndex: layoutIndex,
+      layoutIndexes: [layoutIndex]
+    });
+  });
+  return [...groups.values()];
+}
+
 export function nestingResultForLayout(result = {}, layoutIndex = 0) {
   const layouts = result.solution?.layouts || result.layouts || [];
   const layout = layouts[layoutIndex];
@@ -378,9 +424,14 @@ export async function createFromRun(run, data, userId) {
   const lineage = inheritLineage(run, 'run');
   const uid = `sheet-design-${new ObjectId().toString().slice(-8)}`;
 
-  const origin = createStatus('READY', userId || 'SYSTEM', { note: 'Sheet design generated from nesting run' });
   const geometryData = data.geometry?.data || data.geometryData || {};
   const cassetteDesigns = data.cassetteDesigns || cassetteDesignsForNestingResult(geometryData);
+  const compositionKey = data.compositionHash || compositionHash(cassetteDesigns);
+  const existing = (await repository.find({
+    'lineage.runId': toFlexibleId(run._id),
+    'data.compositionHash': compositionKey
+  }))[0];
+  if (existing) return toDTO(existing);
   const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
 
   const designData = {
@@ -390,8 +441,6 @@ export async function createFromRun(run, data, userId) {
       slug: uid,
       serial: data.serial || uid.toUpperCase()
     },
-    origin,
-    status: origin,
     lineage,
     specs: data.specs || {},
     data: createData({
@@ -399,8 +448,13 @@ export async function createFromRun(run, data, userId) {
         data: data.geometryData || null
       },
       cassetteDesigns,
+      compositionHash: compositionKey,
+      sheetCount: Math.max(Number(data.sheetCount || 1), 1),
       materialPool: data.materialPool || run.data?.materialPool || [],
-      nestingParams: data.nestingParams || run.data?.params || {},
+      solveParams: data.solveParams || run.data?.params || {},
+      machineSnapshot: data.machineSnapshot || run.data?.machineSnapshot || null,
+      toolSnapshot: data.toolSnapshot || run.data?.toolSnapshot || null,
+      materialSnapshot: data.materialSnapshot || run.data?.materialSnapshot || null,
       attachments: {
         svg: data.svgId ? createAttachment('SVG', data.svgId, 'Design SVG') : null,
         dxf: data.dxfId ? createAttachment('DXF', data.dxfId, 'Design DXF') : null
@@ -410,7 +464,8 @@ export async function createFromRun(run, data, userId) {
     summary: {
       ...(data.summary || {}),
       cassetteDesignCount: cassetteDesigns.length,
-      cassettePlacementCount
+      cassettePlacementCount,
+      sheetCount: Math.max(Number(data.sheetCount || 1), 1)
     }
   };
 
@@ -479,7 +534,7 @@ export async function updateLayout(id, { items = [], placedItems = [] } = {}, us
     }
   };
   const params = {
-    ...(design.data?.nestingParams || {}),
+    ...(design.data?.solveParams || {}),
     width: design.specs?.width,
     height: design.specs?.length
   };
@@ -602,5 +657,18 @@ export async function listForRunOutput(queueId, runId, sheetDesignIds = []) {
 }
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
-  return await statusService.transition('sheet_design', id, newState, userId, createTransitionAuth(userId, userRole), metadata);
+  const result = await statusService.transitionWithResult({
+    entityType: 'sheet_design',
+    targetId: id,
+    targetState: newState,
+    auth: createTransitionAuth(userId, userRole),
+    context: metadata
+  });
+  return result.status;
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'sheet_design',
+  repository,
+  Model: SheetDesign
+});

@@ -1,17 +1,20 @@
 # COMPONENT: Components
 
-This directory contains Vue components used in the Cutkit-Demo application.
-
 ## Style Guide
 - **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
 - **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets and `assets/tokens/` projections. No custom CSS except for layout purposes.
+- **Motion:** Motion is contextual feedback, not ambient decoration. Use the
+  semantic duration/easing/spring values in `assets/tokens/` through shared
+  primitives such as `MotionDock`; JavaScript motion must respect
+  `useReducedMotion()`. Do not add perpetual, global, or page-local animation
+  to otherwise static operational controls.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
 - **Minimal Text Chrome:** Do not add page/panel headers, descriptions,
   helper bubbles, notes, tips, or empty-state prose unless the user workflow is
   otherwise ambiguous or blocked. Controls, placement, icons, and typed data
   labels should carry the interface before explanatory copy is added.
 - **Standard Components:** Create reusable components for common UI patterns (cards, modals, forms, tables) and use them consistently across the app. See [components/shared/README.md](./shared/README.md) for the full list.
-- **Use Variants:** Components should support different visual variants (`inline`, `compact`, `card`) to ensure flexibility in different contexts.
+- **Use Variants:** Components support visual variants (`inline`, `compact`, `card`).
 - **Localization:** User-facing static template copy and visible component
   props must use i18n keys. `shared/localization.spec.js` parses active Vue
   templates and fails on hardcoded labels/placeholders/messages, while allowing
@@ -91,13 +94,15 @@ All entity-related components MUST use these patterns:
 | Repeated card grids | `<ResponsiveGrid>` |
 | Entity-local workspaces | `<EntityWorkspace>` |
 | Three-lane production workspaces | `<WorkspaceLanes>` |
+| Operational designers | `<DesignerWorkspace layout="lanes|canvas">` owns layout; feature components own state and persistence |
 | Bounded scrolling workspace sections | `<ScrollablePanel>` |
 | Loading/empty/error surfaces | `<StateBlock>` |
 | Data table frame | `<TableFrame><DataTable ... /></TableFrame>` |
 | Dialog container | `<StandardDialog>` |
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
-| Public marketing animation | `components/marketing/CassetteMarketingAnimation.vue` |
+| Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `entity-type` |
+| Compact contextual canvas/workspace actions | `<MotionDock :items="..." />` |
 
 `WorkflowDesignerV2.vue` is the shared v2 state-machine editor used by the admin
 workbench and organization workflow overrides page. It normalizes flat legacy
@@ -105,16 +110,40 @@ workflows into a `regions` contract, edits the selected region's states and
 transitions, and keeps lifecycle metadata, transition capabilities, access JSON,
 and hooks JSON editable.
 The organization process designer keeps lifecycle design inside the same Vue
-Flow workspace: entity node inspectors edit inline status-machine states and
-transitions, and entity nodes summarize those states directly on the canvas.
-Entity lifecycle data must save as a workflow draft that compiles into a runtime
-status machine. Abstract roles and user assignments are process-panel records,
-not graph nodes; roles are assigned onto nodes and lifecycle transitions.
+Flow workspace: status definitions are created from the Entities palette and
+edited on their own definition nodes, while Modify Entity applies those states
+through a dedicated typed status socket. Entity lifecycle data compiles into the runtime
+status machine. The Roles panel immediately manages organization-owned role
+identities; it is not process draft state. Process records map those role ids
+onto executable nodes, screens, and lifecycle transitions. User assignments are
+managed by Team Management and never serialized with the canvas.
 Process designer nodes live under `components/process-designer/` and must show
 typed Vue Flow handles that match the process compiler contract: role access,
 service input/output, and socket projection/transfer. Do not reduce these nodes
 to generic cards; their surface should expose the entity/service/socket
 semantics that the active process runtime consumes.
+The canvas is intentionally a compact semantic overview. Palette controls are
+grouped and labeled, node accent colors identify those groups, and executable
+nodes keep Manual/Automatic execution visible on the node. Socket rows align
+on fixed left/right rails; exact structured types are exposed by hover and
+assistive metadata rather than repeated beside every socket. Role access
+remains secondary inspector configuration; retry is not hidden node metadata.
+Canonical entity block choices come from `@cutkit/core` through the generic
+`@cutkit/processes` designer contract; concrete entity, workflow, field, and
+attachment choices come from the supplied domain
+implementation. Compose/Modify Block own leaf fields. Create/Modify Entity
+consume blocks and lifecycle status rather than recreating CRUD forms.
+Open canonical blocks expose inspector-authored typed entry rows rather than a
+global union of entity fields or a raw map input. Entry ids own wire stability;
+keys and qualifiers own the stored block shape.
+Relations entries on Modify Block expose Link, Unlink, and Replace operations.
+Their entity type and one/many cardinality still come from the connected exact,
+socket, or filtered entity value. Before a socket is connected, the inspector
+can establish the same typed entry so an exact entity id can be entered inline;
+a later connection remains authoritative and updates type, cardinality, and key.
+The resulting block must feed a manual Modify
+Entity effect to produce generated entity-detail action chrome; block nodes do
+not create buttons independently.
 The process designer also exposes non-effect process algebra nodes for typed
 source/transform work: entity references, field reads, string operations,
 comparisons, logic, and collection transforms. These nodes are semantic
@@ -142,6 +171,119 @@ roles that touch the same entity screen, the process compiler merges those
 role-derived screens into one route with combined source requirements and
 combined runnable actions. Generated components should render the supplied
 screen contract directly and must not reintroduce role-level duplicate routes.
+App default screen/body overloads are registered in
+`components/generated/overloads.js` and are resolved only after that
+user-specific manifest has been composed and loaded. Do not hardcode new
+entity-specific generated branches in `GeneratedScreen` or `GeneratedEntityDetail`;
+register the overload there so it receives only the sources, regions, actions,
+and scope available to the current user. Project `entityDetail` screens use
+this path to render an IDE-style operational workspace over the generated
+project source and generated child collection sources. Its Explorer owns child
+rows from generated source regions and can collapse so the recursive pane area
+uses the full width without rebuilding or changing the recursive pane tree.
+Relations declared on the project are rendered in a dedicated **Linked entities**
+Explorer section. They use the same typed relation references and entity-detail
+workspace files as every other entity; this section is navigation, not a second
+containment model, and does not depend on relation-key naming conventions.
+Project-context actions live in a fixed workspace strip above both Explorer and
+panes; the strip's left control owns Explorer visibility. Explorer contains
+source navigation only, while panes contain the canonical entity page for their
+selected entity or a registered workspace page, plus pane-local controls. Each
+pane header owns its IDE-style file tabs: each entity tab carries its compact
+lifecycle status and close affordance, followed by a standalone add-tab control.
+Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
+hidden, matching an IDE file-tab strip.
+Pane split/close commands live in a pane-level ellipsis menu. Generated entity
+actions not already owned by an operational editor belong to the active tab body
+below the tab strip. Action presentation has one concern-based owner: collection
+creation stays with its region, relation mutation stays with the relation-aware
+entity surface, and entity operations stay with the opened entity. Inside
+Project, CRUD deletion is a management action owned only by the Explorer
+entity-row ellipsis. It uses the canonical permission gate and confirmation and
+closes every affected entity/page tab after success.
+Explorer parent entities remain selectable files and become expandable folders
+when declared containment and loaded lineage establish children. Linked roots
+stay in the separate Linked entities section rather than being presented as
+containment; declared descendants may nest beneath a linked parent.
+Active-pane emphasis uses the neutral chrome-subtle token on its tab header,
+and empty panes retain an open-content prompt. The embedded entity page suppresses its
+duplicate title, lineage, lifecycle, and action header while retaining the full
+canonical detail body. A pane must not substitute a compact
+summary/detail-body-only surface. It scopes
+and loads the selected entity's own compiled detail screen so child regions
+remain available inside Project. Explorer starts as a compact 15% rail;
+project mutation actions, including relation Link, remain in the strip even
+when a child region references the same compiled action. Unlink is not an owner
+strip command: each linked `EntityInlineRef` receives the matching contextual
+Unlink operation in its own actions, with both owner and target already bound.
+Only project-bound child-create actions move to collection context.
+When a generated Link input carries an artifact creator contract, its entity
+picker exposes a dedicated upload dialog for the allowed upload-backed kinds.
+The created artifact is selected into the same typed Link input; exact-id and
+existing-entity selection remain available. Entity Link prompts use one
+full-width picker with the creator as a separate labeled action below it; the
+shared entity picker renders its selected reference inside a normal full-width
+Select rather than replacing the control with a card and icon-only edit button.
+Artifact creator/editor surfaces render only domain-declared typed inputs. They
+must not expose the persisted `data.metadata` object as a raw JSON textarea.
+its tree starts directly below the workspace action strip without a redundant
+Explorer header. Collapse hides that mounted panel and its gutter so reopening
+restores the 15/85 split instead of inserting a new equally sized panel. The
+initial pane and new split targets stay unselected until an explicit Explorer
+selection, while still rendering a blank pane header with their local
+split/close controls. Nested workspace headers use neutral structural borders
+instead of the signal-orange action boundary. A workspace pane can be a pane-native entity
+file or an app-registered workspace page; process data selects neither arbitrary
+Vue components nor page-local markup. Entity files reuse registered entity-detail
+body overloads, so a queue file is the operational queue editor instead of a
+generic summary block; generic child entities continue to use their contract-driven
+detail surface. The project entity itself uses that standard detail body. The
+action strip receives only screen/main action ids
+compiled for the project plus direct project-child creation actions from its
+loaded child regions, then resolves and filters them through the effective user
+action manifest and project status. Create actions with different internal ids
+but the same visible entity/parent operation collapse to one button, matching
+the generated create-button label contract.
+The cassette designer is an entity-bound registered page that mounts inside a
+pane and receives only workspace-visible cassette templates. Source-loaded
+children and explicitly linked entities use the same page-opening contract, so
+an accessible linked cassette can open the embedded designer. Entity links and
+actions inside a linked entity's own child regions stay in the active project
+pane as well; they must not fall back to route navigation or a dialog merely
+because the entity was discovered one detail level deeper. The recursive
+pane tree, split proportions, Explorer width/visibility, active pane, ordered
+tabs and their pane-local selections, and opened registered pages persist as
+versioned browser UI state
+scoped to the current user, organization, and project; only stable references
+are stored. Operational bodies
+receive file mode and remove redundant rounded panel borders when the file pane
+already owns the boundary. Panes can be recursively split right or down and
+retain pane-local selections. An overload must not discover extra sources or
+actions from domain registries or the global action manifest, and it must not
+invent upload/link controls outside compiled process actions.
+Child files resolve their own detail-screen actions from the same effective
+user screen manifest used by normal generated detail routes. Registered
+operational bodies may consume those actions—for example queue nesting and
+cassette-design producer actions—while the tab body keeps the remaining
+applicable commands. Operational bodies receive only this compiled action set;
+main/screen and child-region actions are delivered as separate channels so
+child operations can reach an editor without reappearing in its surrounding
+header. Operational bodies never supplement this set by scanning the global
+action manifest.
+Within a queue file, `EntityWorkspace` gives the composition editor all twelve
+columns when no readable nesting-run/support region exists and uses the normal
+8/4 split only while that region is present. Queue entry cards use their own
+container width to place a bounded preview beside compact quantity/parameter
+controls; narrow cards stack internally. Queue composition uses the bounded
+grid contract, so entry cards have finite token-backed track and preview widths
+while additional pane space produces more columns. Editable queue-item
+parameter snapshots render regardless of `STATIC`/`PARAMETRIC` nesting
+behavior; that behavior flag is not a field-visibility policy. An entry's fixed
+fitted preview spans the left column; its source-template badge and row actions
+lead the right column, with inline-labeled parameter controls below.
+Registered screen overloads run in the app layout's flush bounded frame: the
+route body cannot scroll, and Explorer and file panes own their scrolling
+independently.
 Role-prefixed compiled screens remain process/designer records, not separate
 operational navigation entries for a multi-role user. The auth store exposes
 that same effective screen manifest to frontend consumers, so stale
@@ -152,7 +294,13 @@ list screen and must not appear as duplicate sibling entries with the same
 entity label. Generated
 action buttons post to the active process action endpoint and then refresh the
 screen's entity sources; they do not call arbitrary entity URLs from the
-browser. Collection-level and detail-level generated actions are limited to the
+browser. Action completion and the corresponding SSE entity event may request
+the same refresh; generated source loading preserves the current render,
+coalesces event bursts, and ignores stale request completions instead of
+switching the whole page back to its initial loading state. The action response
+is applied to matching rendered sources first, so the user sees the mutation
+before background reconciliation completes. Collection-level
+and detail-level generated actions are limited to the
 action ids compiled onto the current screen or region; generated components must
 not scan the whole user action manifest and inject every parent-bound action
 that happens to match the row or detail entity type. Collection actions emit the
@@ -171,6 +319,16 @@ not invent static dashboard widgets, hardcoded domain routes, or per-card
 create buttons. Each home section resolves its open-list button from the
 compiled region route or the matching compiled entity-list screen in the
 current screen manifest; it must not construct list routes from entity names.
+Home root filtering is derived at runtime from the domain containment graph,
+compiled source metadata, and canonical `lineage.*Id` references. The lineage
+fallback covers active manifests whose domain containment catalog does not
+declare every stored ancestor (for example a cassette design carrying
+`lineage.libraryId`). Sources with a declared non-organization containment
+parent are not rendered as Home sections when their records carry that parent;
+empty child sections are omitted as well. Empty top-level sections remain
+available when they own a top-level create action. Record filtering still
+suppresses a descendant when any non-organization ancestor is readable, not
+only when its immediate parent is a Home section.
 Home sections are true horizontal carousels: entity cards keep a stable
 non-shrinking width and overflow horizontally instead of shrinking every card
 to fit the viewport. The fixed width belongs on the carousel item wrapper, not
@@ -184,7 +342,11 @@ micro cards when the DTO already carries relation-backed child refs, including
 `summary.*Preview` payloads such as queue runs/sheets, library cassettes, or
 catalog colors. These galleries render as a bounded grid with two visible refs
 and an in-grid overflow control for hidden refs, not as a nested horizontal
-scroller. If no previewable child refs exist, keep the numeric count row.
+scroller. Generated collection surfaces suppress child-count and child-preview
+rows because the loaded collection is already the authoritative child view.
+Generated entity details do the same when their screen has a compiled child
+region. Outside those collection contexts, keep the numeric count when no
+previewable child refs exist.
 Generated card footers may add an icon-only open-detail action, and generated
 cassette cards also expose the access-gated `CassetteDesignerV2` action in the
 footer so collection/home cards are not detail-only dead ends. Detail
@@ -211,15 +373,20 @@ That resolver prefers screen/region `labelKey`, then domain entity label keys,
 and only humanizes ids as a last fallback. Generic process action labels must
 not display English verbs such as `Create` or raw target statuses such as
 `DELETED`; create actions show the localized entity name beside the plus icon,
-and status-change actions show a localized operation label without exposing the
-state id in the button text.
+and status-mutating update actions show a localized operation label without
+exposing the state id in the button text.
 Generated non-status action surfaces, including detail header buttons and card
-footers, must not render `changeStatus` actions. Lifecycle/status transitions
-belong only in `EntityStatus`, which loads server-filtered actions and owns the
-status popover/history.
+footers, must not render status-mutating update actions. `EntityStatus` loads
+server-filtered actions and owns the status popover/history.
 Generated entity detail headers show the entity `TraceChain` instead of a
 standalone repeated identity name, so the opened record keeps lineage context in
 the primary header while actions/status remain in the same header row.
+Child collection cards exclude the parent already displayed by the surrounding
+detail screen from that trace while preserving other readable ancestry.
+Displayed contexts form a propagated stack, so project workspaces also remove
+the project already represented by the shell from every nested entity trace.
+Generated card collections use bounded token-backed tracks; parent width adds
+tracks without squeezing operational cards into arbitrarily narrow columns.
 Entity reference popovers inside generated surfaces mirror the action affordances
 available on the referenced entity's generated detail screen. They resolve
 compiled detail-screen action ids through the same access/status visibility
@@ -247,11 +414,20 @@ registered entity workspaces are not duplicated as generic detail-header
 buttons. Entity-local operational editors should use the canonical
 main/supporting proportions from
 `EntityWorkspace` rather than inventing local stacked or sidebar grids.
+`EntityWorkspace` and queue card grids use container breakpoints, so the
+main/supporting split and repeated cards respond to the actual editor pane
+width after a workspace split instead of the browser viewport width.
 Sheet-design details similarly mount `SheetDesignEditor` when the active user
 has a concrete `sheet_designs:write` grant. The editor mutates nesting source
-items and placements, snaps moves to the saved solver spacing, supports
-existing/uploaded cassette designs, and persists through immutable geometry
-revisions. Read-only generated details keep the standard geometry display.
+items and placements, resolves OCCS layer pens through the shared layer
+standards, snaps transformed cassette production-contour edges with tool-kerf
+clearance, checks transformed polygon clearance before accepting a placement,
+clamps complete rotated geometry inside the usable sheet polygon when one is
+present, falls back to rectangular sheet bounds for virtual rectangle sheets,
+supports existing/uploaded cassette designs, and persists through immutable
+geometry revisions. Generated
+sheet-design details keep the sheet identity visible in `EntityPage`; read-only
+details keep the standard geometry display.
 The queue detail support region for nesting runs follows the same contract:
 process mode separates command controls from result viewing. The nesting
 command/settings panel renders only when the opened queue detail receives a
@@ -271,10 +447,46 @@ manifest. A queue command such as `solveNesting` must be present on that
 queue-detail screen because it is executed against the queue input; output
 entity grants for `nesting_runs` or `sheet_designs` must not be used to decide
 where the command panel renders.
+Generated command dialogs use the command input contract directly. A command
+can mark a context-bound entity input `prompt: false`; a process action wired
+to that entity then renders as its action button without a redundant picker.
+Enum options may declare `optionsFromEntity`; the dialog filters those choices
+using the selected/context entity DTO. Command results may include output DTOs
+beside their typed entity references, and the generated screen applies those
+snapshots to any matching loaded source immediately.
+Queue composition producers are resolved from the domain producer registry and
+then bound to the current user's compiled process action manifest where a
+process action provides the matching construction mode. Existing cassette
+designs, library cassette templates, DXF/artifact import, and additional
+process actions that output `cassette_design` remain distinct source menu
+items. Construction producers remain in the operational editor. Existing-entity
+linking stays on the generic generated-action surface: a compiler-generated Link
+action for any declared relation renders as **Add {target entity}**, uses the
+shared scoped option/creator dialog, and never enters QueueEditor as a producer.
+Process-mode producer actions are accepted only when their current
+compiled action contract exposes a `cassette_design` output through
+`contracts.outputs`.
+When a process producer is executed from a queue detail, the queue id is sent as
+action context and the server appends the produced design through the queue
+feature's `processUpdate()` boundary. The browser does not rely on a generic
+queue PATCH grant for that process-scoped append.
+Queue item rows hydrate their referenced `cassette_design` records through the
+canonical detail endpoint when the collection list did not include a saved
+queue item. The row header renders the cassette-design identity from that
+canonical DTO when available, and otherwise renders a typed id chip without
+nesting another entity card inside the queue item panel.
 Cassette details expose `CassetteDesignerV2` as an access-gated entity editor
 action instead of routing users to a static asset page, and generated cassette
 collection/home cards mirror that same editor action in their footers when the
 user has `cassettes:write` on the concrete cassette.
+The generated entity-detail overload registry also maps `cassette` directly to
+the `CassetteDesignerV2` surface. Project panes and ordinary generated cassette
+detail routes therefore use the same editor affiliation and shared full-height
+designer host.
+It also maps `facade` to `FacadeDesigner` and `facade_pattern` to
+`FacadePatternDesigner`. Both use the shared designer shell: the facade editor
+owns immutable-model part assignment, while the pattern editor owns only its
+safe visual graph document.
 Entity-bound generated actions are filtered before
 rendering: the action entity type must match the region source, and
 status-change actions render only when the entity's current primary status
@@ -302,10 +514,24 @@ numeric control per OCCS parameter discovered from that cassette definition.
 When the action is already scoped to a cassette parent, the template selector
 is hidden and the current parent cassette supplies both the construction
 template id and the parameter set.
+Generated relation Link dialogs always render the shared entity select for the
+declared target type. They bind the opened detail entity as owner context and do
+not fall back to a raw exact-id text field when the authorized option list is
+empty or still loading.
+When a Link relation has an embedded creator, switching to Create new replaces
+the relation selector with the creator's actual fields instead of nesting them
+under a redundant raw entity label. The dialog keeps the action name as its
+header, uses Add as the submit command, and exposes Select existing to return to
+the relation picker.
 Generated cassette-design creation must be scoped to a cassette template. A
-queue is linked after creation by adding the baked design id to
-`queue.data.job.items[]`; generated screens must not treat a queue as the
-parent/source for `bakeCassetteDesignFromTemplate`.
+queue links the resulting design through `queue.relations.cassettes`; generated
+screens must not treat a queue as the parent/source for
+`bakeCassetteDesignFromTemplate`.
+Queue cassette cards present the source cassette as their identity and keep
+OCCS parameter controls inline. Parameter saves use the contextual Link action
+to replace the immutable design, while queue-local quantity is stored in the
+matching `data.job.items` association and sent to nesting as the production
+count.
 Generated collections may turn `identity.name` into a link only through the
 screen manifest: the collection looks for an `entityDetail` screen with a
 single source for the same entity type, preferring the detail screen paired
@@ -339,8 +565,7 @@ Child collection regions inside an entity detail must preserve the opened
 parent context when executing create actions. They may not replace that context
 with the child collection entity type, otherwise a `library -> cassette` action
 loses the concrete library id and creates unscoped children.
-`EntityStatus` remains owned by the canonical workflow/status API and must not
-receive locally synthesized process actions.
+`EntityStatus` must not receive locally synthesized process actions.
 Generated action setup and execution failures must be visible in the screen:
 prompt option loading errors, missing required entity options, and execution
 errors all surface through `StateBlock` and PrimeVue toast feedback instead of
@@ -368,11 +593,11 @@ definitions. Cards for DTOs without workflows should set `:show-status="false"`
 or use a read-only badge only when the data model requires it; do not invent
 component-local lifecycle states.
 Entity-specific card components should use `before-identity`, `subtitle`, body, and footer slots; do not override `#title`, because that bypasses standardized identity/status layout. Subtitle slots that render entity facts must be hidden for `variant === 'card'`; the full card body is the only owner of those facts.
-Entity-specific cards should render a single `EntityCard :variant="variant"`.
-Inline/compact/card branching inside entity cards is a smell unless the entity
-has a genuinely different structural surface. The default slot is the canonical
-body and is reused by `EntityCard` for both full cards and inline/compact
-expansion.
+Entity-specific cards should render a single `EntityCard :variant="variant"` and
+pass their canonical body once through the default slot (see
+[components/shared/README.md](./shared/README.md)). Inline/compact/card
+branching inside entity cards is a smell unless the entity has a genuinely
+different structural surface.
 Entity detail components should use `EntityPage` for trace, identity, status, and page actions instead of rebuilding header rows locally.
 Single-field rename/edit actions should use `NameEditPopover` near the relevant
 identity or action cluster; reserve `StandardDialog` for creation flows,
@@ -398,14 +623,14 @@ field-access policy.
 
 `assets/tokens/index.js` is the source for app-level visual tokens. Tailwind aliases, PrimeVue component overrides, and global `--ck-*` CSS variables must stay aligned with it.
 
-Current app chrome uses `bg-page`, `bg-chrome`, `bg-subtle`, `rounded-ui`, `rounded-panel`, `shadow-card`, `shadow-card-hover`, and `shadow-overlay`. New shared wrappers should consume these aliases instead of local shadows, arbitrary backgrounds, or one-off radii.
+Current app chrome uses `bg-page`, `bg-chrome`, `bg-process-canvas`, `chrome-signal-rule`, `bg-subtle`, `rounded-ui`, `rounded-panel`, `shadow-card`, and `shadow-overlay`. `bg-chrome` is a near-white utility bar in light mode and the ink instrument rail in dark mode, while `bg-process-canvas` is the dedicated graph-work surface and `chrome-signal-rule` renders its token-backed action boundary; their foreground and border tokens are consumed with direct CSS-variable utilities where HMR needs to see the change immediately. Structural cards are deliberately non-elevated and use in-place border feedback on hover; `shadow-overlay` is reserved for floating UI. JetBrains Mono is the token-backed global interface face; `font-mono` remains available when a component needs to state that technical treatment explicitly. New shared wrappers should consume these aliases instead of local shadows, arbitrary backgrounds, or one-off radii.
 
 For shell/layout chrome that must update reliably during Nuxt dev HMR, direct CSS-variable utilities such as `bg-[var(--ck-page-background)]` and `[box-shadow:var(--ck-shadow-card)]` are acceptable. This avoids depending on a Tailwind config restart for newly added aliases.
 Nested active app surfaces must use semantic aliases such as `bg-content` or
 `bg-subtle`, not raw palette utilities like `bg-surface-50`, so dark mode uses
 the app token overrides consistently.
 
-Use token-backed classes such as `max-w-app`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, or transition durations. Legacy global grid helpers are not used in active components; detail surfaces spell out their responsive grid tracks locally when a shared primitive is not a fit.
+Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Legacy global grid helpers are not used in active components; detail surfaces spell out their responsive grid tracks locally when a shared primitive is not a fit.
 
 ## UI Inventory Policy
 
@@ -456,6 +681,12 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   lifecycle action design remains a workflow-machine concern, not a local card
   action override.
 - `CassetteDesignerV2` owns OCCS cassette-template editing. It uses
+  `DesignerWorkspace` for its responsive palette/canvas/inspector layout; the
+  shared workspace owns layout only and does not interpret OCCS state.
+- `FacadeDesigner` owns GLB/GLTF mesh-part selection and facade-pattern
+  assignments through `ThreeViewport`; `FacadePatternDesigner` owns the
+  persisted typed Vue Flow graph. Neither designer creates production designs
+  or nesting records.
   `StandardDialog` for the profile sketch popup and `ProfileSketchEditor` for
   reusable `profile_template` sketches. Profile drawing saves library templates;
   cassette geometry consumes those templates from the selected hanger feature's
@@ -499,20 +730,23 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `TraceLink` for relation summaries inside cards/details; reserve it for rows
   whose explicit purpose is route navigation.
 - Never hardcode values or make assumptions about data structure — check `server/DATA_MODEL.md` first.
-- For cassette templates and queue entries, derive parametric vs static display from the cassette DTO itself, not only from saved queue item flags. Prefer `data.parameters` when present and fall back to OCCS `data.definition.parameters` so updated OCCS templates do not appear static in queues. Template/source cassette cards must not render parameter counts; generated cassette-design surfaces render exact materialized values from `data.parameters` with `data.derivedFrom.parameters` only as a display fallback.
-- `QueueEditor` keeps a UI-only `_key` for queue rows because persisted
-  `queue.data.job.items[]` entries intentionally store only the cassette/design
-  `id`, source `entityType`, nesting `type`, quantity, and parameters. Delete
-  actions must use `_key`; nesting payload saves must persist `id` and
-  `entityType` without leaking the UI key. Queue relation rows must not fetch a
-  protected cassette/design endpoint when the surrounding queue DTO did not
-  include that related DTO; render the typed id chip instead.
-  When older queue rows contain a baked cassette source id such as
-  `lineage.originalCassetteId`, `QueueEditor` resolves the matching loaded
-  `cassette_design` by parameter values and persists the canonical design id
-  before saving or running nesting. Rows that cannot be resolved to a loaded
-  cassette or cassette design are rejected before the queue save so the nesting
-  command never receives an unresolvable job item.
+- For cassette templates and queue entries, derive parametric vs static display
+  from the cassette/design DTO itself, not only from saved queue item flags.
+  Prefer `data.parameters` when present and fall back to OCCS
+  `data.definition.parameters` for templates so updated OCCS templates do not
+  appear static in selectors. Template/source cassette cards must not render
+  parameter counts; generated cassette-design surfaces render exact
+  materialized values from `data.parameters` with
+  `provenance.derivedFrom.parameters` only as a display fallback.
+- `QueueEditor` keeps a UI-only `_key` for rendered rows while persisting only
+  canonical `{ type: "cassette_design", id }` references in
+  `queue.relations.cassettes`. Delete actions use `_key` without leaking it into
+  the relationship. Queue relation rows
+  render the already-hydrated cassette-design identity or a typed id chip in
+  the row header; they must not nest a full relation card/popover inside the
+  queue item panel. Rows that cannot be resolved to a loaded cassette design
+  are rejected before ordinary queue saves so the nesting command never
+  receives an unresolvable job item.
 - `QueueEditor` is a production workspace: desktop layout uses a left queue
   lane rendered newest-first as compact queue entity rows, a center lane for nesting settings and wide
   cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
@@ -686,8 +920,9 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   materials, outline edges, lights, and raycast workpiece selection. The
   preview panel must not stop document-level pointer movement, because
   OrbitControls registers drag continuation on `ownerDocument`. The designer
-  root uses a fixed viewport-height work area with
-  internal side-panel/canvas overflow instead of growing below the window.
+  root uses a fixed viewport-height work area in standalone/dialog contexts and
+  fills its supplied workspace pane in embedded mode, with internal
+  side-panel/canvas overflow instead of growing below its owner.
   Edges already represented by either side of a fold are not clickable. Inline
   coordinate/expression popups are draggable, remember their session-local
   position, keep close controls in the input line, and close on Enter or
@@ -711,9 +946,9 @@ Support chat uses direct `$fetch`/SSE routes and the shared
 specific user selected from status history actor rows, and inline entity
 references must render through `EntityInlineRef` rather than local chips. The
 floating Chats drawer opens to an inbox backed by `/api/support/conversations`;
-that inbox includes readable users even before a first direct message exists and
-offers a header user picker for same-organization users not currently visible
-as conversation rows. Drawer rows show participant context and render latest
+that inbox contains only conversations with persisted messages and offers a
+header user picker to start a direct thread explicitly, including a direct
+self-chat. Drawer rows show participant context and render latest
 message entity tokens through `SupportMessageContent`, without per-row
 message-count badges. The composer loads attachment types from
 `/api/support/entity-types`, which derives them from the user's generated
@@ -733,6 +968,13 @@ only messages are valid and must stay sendable when the draft has at least one
 selected entity ref. The conversation snapshot is auth-
 gated by the store so direct user candidates are not lost behind a failed
 pre-auth request.
+The expanded `/chats` route keeps the persisted-conversation inbox visible as
+a desktop side rail while the selected conversation occupies the remaining
+width. It uses a single-pane interaction on mobile, and the app-shell floating
+launcher is hidden while that route is open. The route opts into full-page mode
+with explicit boolean props; the full-page grid has one bounded workspace row,
+separate inbox/thread headers, cover-cropped participant avatars, and accepts
+attachment-only sends when the draft contains structured entity references.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data
@@ -740,6 +982,13 @@ pre-auth request.
   `identity.name`; PrimeVue expects the resolved label to be a string.
 
 ## Localization
+
+Artifact-template management lives at `pages/assets/templates.vue` and uses the
+`ArtifactTemplateCard` entity surface. `ArtifactLayoutEditor` edits normalized
+template and generated-artifact items and emits data only; owning surfaces call
+the canonical revision-backed APIs. Template and artifact deletion uses
+`GeneratedDeleteButton`, so visibility follows entity capability plus active
+process access rather than local role checks.
 
 - User-visible labels, headings, dialog headers, toast summaries/details, placeholders, and accessible labels must use `$t(...)` in templates or `t(...)` from `useI18n()` in script.
 - Keep `i18n/locales/en.json` and `i18n/locales/ru.json` structurally aligned whenever adding keys.
@@ -751,7 +1000,6 @@ pre-auth request.
 PrimeVue Button, Tag, Badge do not inherit font-size from containers. Always add `size="small"` to these elements inside compact and inline variant contexts.
 
 ## Related
-- [components/marketing/README.md](./marketing/README.md) — public and admin-preview marketing visuals
 - [components/hubs/README.md](./hubs/README.md) — workflow-level pages that compose entity cards and shared primitives
 - [components/entities/README.md](./entities/README.md) — manifest-backed entity card contracts
 - [components/shared/README.md](./shared/README.md) — shared block components, layout containers

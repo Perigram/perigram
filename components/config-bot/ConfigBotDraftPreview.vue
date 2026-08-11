@@ -69,13 +69,13 @@
               <strong class="font-mono">{{ file.path }}</strong>
               <Tag :value="file.language" severity="secondary" size="small" />
             </div>
-            <pre class="max-h-96 overflow-auto rounded-ui border border-content-border bg-[var(--ck-subtle-background)] p-3 text-xs"><code>{{ file.content }}</code></pre>
+            <pre class="max-h-96 overflow-auto rounded-ui border border-content-border bg-subtle p-3 text-xs"><code>{{ file.content }}</code></pre>
           </div>
         </div>
       </Panel>
 
       <Panel v-else :header="$t('admin.configBot.domainDraft')">
-        <pre class="max-h-[32rem] overflow-auto rounded-ui border border-content-border bg-[var(--ck-subtle-background)] p-3 text-xs"><code>{{ JSON.stringify(draftPackage.domainDraft, null, 2) }}</code></pre>
+        <pre class="max-h-[32rem] overflow-auto rounded-ui border border-content-border bg-subtle p-3 text-xs"><code>{{ JSON.stringify(draftPackage.domainDraft, null, 2) }}</code></pre>
       </Panel>
     </template>
   </div>

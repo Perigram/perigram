@@ -60,7 +60,7 @@
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Textarea from 'primevue/textarea';
 import EntityRefInput from '~/components/shared/EntityRefInput.vue';
 

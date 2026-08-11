@@ -1,5 +1,5 @@
 <template>
-  <StandardPage :title="pageTitle">
+  <StandardPage :title="pageTitle" :workspace="Boolean(screenOverload)">
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="error" state="error" :message="errorMessage" />
     <StateBlock v-else-if="actionError" state="error" :message="actionError" />
@@ -17,6 +17,15 @@
     <GeneratedOrganizationOverview
       v-else-if="screen.template === 'organizationOverview'"
       :screen="screen"
+    />
+    <component
+      :is="screenOverload.component"
+      v-else-if="screenOverload"
+      :screen="screen"
+      :source-state="sourceState"
+      :screen-actions="screen.actions || []"
+      @refresh="load"
+      @execute-action="executeAction"
     />
     <WorkspaceLanes v-else-if="screen.template === 'workspaceLanes'" class="min-h-[32rem]">
       <template v-if="regionBySlot.left" #left>
@@ -60,6 +69,9 @@
       :template="screen.template"
       :screen-actions="screen.actions || []"
       :excluded-actions="detailChildActionIds"
+      :body-actions="detailChildActionIds"
+      :suppress-child-summaries="detailChildRegions.length > 0"
+      :trace-exclusions="detailTraceExclusions"
       @refresh="load"
       @execute-action="executeAction"
     >
@@ -103,17 +115,8 @@
         <span>{{ pendingActionLabel }}</span>
       </template>
       <div class="flex flex-col gap-3">
-        <label v-if="parentSelectionRequired" class="flex flex-col gap-1">
-          <span class="text-xs text-muted-color">{{ parentSelectionLabel }}</span>
-          <Select
-            v-model="promptValues[parentSelectionFieldId]"
-            :options="parentSelectionOptions"
-            option-label="label"
-            option-value="value"
-          />
-        </label>
-        <label v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
-          <span class="text-xs text-muted-color">{{ field.label || field.id }}</span>
+        <div v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
+          <span v-if="!(relationCreatorMode && field.creator?.actionId)" class="text-xs text-muted-color">{{ field.label || field.id }}</span>
           <div
             v-if="field.type === 'cassetteParameters'"
             class="grid grid-cols-2 gap-2"
@@ -130,18 +133,92 @@
               />
             </label>
           </div>
+          <div
+            v-else-if="field.editor === 'artifactTemplateValues'"
+            class="grid grid-cols-2 gap-2"
+          >
+            <label
+              v-for="variable in artifactTemplateVariableFields(field)"
+              :key="variable.name"
+              class="flex flex-col gap-1"
+            >
+              <span class="text-xs text-muted-color">{{ variable.name }}</span>
+              <Select
+                v-if="variable.type === 'boolean'"
+                v-model="promptValues[field.id][variable.name]"
+                :options="booleanOptions"
+                option-label="label"
+                option-value="value"
+              />
+              <InputText
+                v-else
+                v-model="promptValues[field.id][variable.name]"
+                :type="variable.type === 'number' ? 'number' : 'text'"
+              />
+            </label>
+          </div>
           <Textarea
             v-else-if="field.type === 'object'"
             v-model="promptValues[field.id]"
             rows="3"
             auto-resize
           />
+          <div v-else-if="field.type === 'entity'" class="flex flex-col gap-2">
+            <Select
+              v-if="!relationCreatorMode"
+              v-model="promptValues[field.id]"
+              :options="promptOptions[field.id] || []"
+              option-label="label"
+              option-value="value"
+              :entity-type="field.entityType || field.accepts?.[0] || ''"
+              class="w-full"
+            />
+            <Button
+              v-if="hasUploadCreator(field)"
+              icon="pi pi-upload"
+              :label="$t('generatedScreen.createArtifact')"
+              size="small"
+              severity="secondary"
+              outlined
+              class="self-start"
+              @click="openArtifactCreator(field)"
+            />
+            <Button
+              v-if="field.creator?.actionId"
+              icon="pi pi-plus"
+              :label="relationCreatorMode ? $t('generatedScreen.selectExisting') : $t('generatedScreen.createRelatedEntity')"
+              size="small"
+              severity="secondary"
+              outlined
+              class="self-start"
+              @click="toggleRelationCreator(field)"
+            />
+            <div v-if="relationCreatorMode && field.creator?.actionId" class="flex flex-col gap-3">
+              <label v-for="creatorField in relationCreatorFields" :key="creatorField.id" class="flex flex-col gap-1">
+                <span class="text-xs text-muted-color">{{ creatorField.label || creatorField.id }}</span>
+                <Select
+                  v-if="creatorField.type === 'entity'"
+                  v-model="relationCreatorValues[creatorField.id]"
+                  :options="relationCreatorOptions[creatorField.id] || []"
+                  option-label="label"
+                  option-value="value"
+                  :entity-type="creatorField.entityType || ''"
+                  @update:model-value="syncRelationCreatorParameters"
+                />
+                <div v-else-if="creatorField.type === 'cassetteParameters'" class="grid grid-cols-2 gap-2">
+                  <label v-for="parameter in relationCreatorParameterFields(creatorField)" :key="parameter.name" class="flex flex-col gap-1">
+                    <span class="text-xs text-muted-color">{{ parameter.name }}</span>
+                    <InputText v-model="relationCreatorValues[creatorField.id][parameter.name]" type="number" />
+                  </label>
+                </div>
+                <InputText v-else v-model="relationCreatorValues[creatorField.id]" :type="creatorField.type === 'number' ? 'number' : 'text'" />
+              </label>
+            </div>
+          </div>
           <Select
-            v-else-if="field.type === 'entity'"
+            v-else-if="field.type === 'enum'"
             v-model="promptValues[field.id]"
-            :options="promptOptions[field.id] || []"
-            option-label="label"
-            option-value="value"
+            :options="fieldOptions(field)"
           />
           <MultiSelect
             v-else-if="field.type === 'entityList'"
@@ -149,6 +226,7 @@
             :options="promptOptions[field.id] || []"
             option-label="label"
             option-value="value"
+            :entity-type="field.entityType || field.accepts?.[0] || ''"
             display="chip"
             class="w-full"
           />
@@ -157,17 +235,25 @@
             v-model="promptValues[field.id]"
             :type="field.type === 'number' ? 'number' : 'text'"
           />
-        </label>
+        </div>
       </div>
     </StandardDialog>
+    <GeneratedArtifactCreator
+      v-if="artifactCreatorField"
+      v-model="artifactCreatorVisible"
+      :creator="artifactCreatorField.creator"
+      :lineage="artifactCreatorLineage"
+      @created="selectCreatedArtifact"
+    />
   </StandardPage>
 </template>
 
 <script setup>
 import { computed, reactive, ref, toRef, watch } from 'vue';
+import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import MultiSelect from 'primevue/multiselect';
-import Select from 'primevue/select';
+import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
+import Select from '~/components/shared/EntitySelect.vue';
 import Textarea from 'primevue/textarea';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
@@ -179,12 +265,17 @@ import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue'
 import GeneratedOrganizationAccount from '~/components/generated/GeneratedOrganizationAccount.vue';
 import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
-import { entityIdentifier, generatedActionRequiresParent, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
+import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue';
+import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useAuthStore } from '~/stores/auth';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
-import { generatedActionLabel, generatedEntityLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
+import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
+import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
+import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
+import { routeContextTraceExclusions } from '~/utils/entity-hierarchy.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -192,9 +283,11 @@ const props = defineProps({
 
 const toast = useToast();
 const { t, te } = useI18n();
+const authStore = useAuthStore();
+const route = useRoute();
 const domainUi = useCutkitDomainUi();
 const screenRef = toRef(props, 'screen');
-const { screen, loading, error, load, sourceState } = useGeneratedScreen(screenRef);
+const { screen, loading, error, load, applyEntitySnapshot, sourceState } = useGeneratedScreen(screenRef);
 const inputDialogVisible = ref(false);
 const submittingAction = ref(false);
 const pendingAction = ref(null);
@@ -202,6 +295,11 @@ const pendingEntity = ref(null);
 const actionError = ref('');
 const promptValues = reactive({});
 const promptOptions = reactive({});
+const artifactCreatorVisible = ref(false);
+const artifactCreatorField = ref(null);
+const relationCreatorMode = ref(false);
+const relationCreatorValues = reactive({});
+const relationCreatorOptions = reactive({});
 
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
@@ -216,29 +314,54 @@ const detailActionContext = computed(() => {
     parentEntityType: state?.source?.entityType || ''
   };
 });
+const detailTraceExclusions = computed(() => {
+  const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;
+  return routeContextTraceExclusions(
+    state?.entity || {},
+    state?.source?.entityType || '',
+    (authStore.lineageBindings || []).map(binding => ({
+      parentType: binding.ancestorEntityType,
+      childType: binding.childEntityType,
+      lineageKey: binding.lineageKey
+    })),
+    route.query
+  );
+});
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 const promptFields = computed(() => promptedFields(pendingAction.value));
+const relationCreatorFields = computed(() => pendingAction.value?.relationMutation?.creator?.inputPolicy?.fields
+  ?.filter(field => field.prompt) || []);
 const pendingActionLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.confirm'));
-const dialogSaveLabel = computed(() => pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.save'));
+const dialogSaveLabel = computed(() => pendingAction.value?.relationMutation?.operation === 'link'
+  ? t('common.add')
+  : pendingAction.value ? generatedActionLabel(pendingAction.value, '', { t, te }) : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
-const parentSelectionFieldId = '__parentEntityId';
-const parentSelectionType = computed(() => requiredParentType(pendingAction.value, pendingEntity.value?.entity, pendingEntity.value?.context));
-const parentSelectionRequired = computed(() => Boolean(parentSelectionType.value));
-const parentSelectionLabel = computed(() => parentSelectionType.value ? generatedEntityLabel(parentSelectionType.value, { t, te }) : '');
-const parentSelectionOptions = computed(() => promptOptions[parentSelectionFieldId] || pendingEntity.value?.context?.parentOptions || []);
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
 const pageTitle = computed(() => screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
+const screenOverload = computed(() => resolveGeneratedScreenOverload(screen.value));
+const booleanOptions = computed(() => [
+  { label: t('common.yes'), value: true },
+  { label: t('common.no'), value: false }
+]);
 
 async function executeAction(action, entity = null, context = {}) {
   actionError.value = '';
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    if (['createEntity', 'updateEntity'].includes(action.actionKind) && (promptedFields(action).length || requiredParentType(action, entity, context))) {
+    const artifactCreator = artifactCreatorForAction(action);
+    if (artifactCreator) {
+      pendingAction.value = action;
+      pendingEntity.value = { entity, context };
+      artifactCreatorField.value = { id: 'artifact', creator: artifactCreator };
+      artifactCreatorVisible.value = true;
+      return;
+    }
+    if (['createEntity', 'updateEntity', 'runCommand'].includes(action.actionKind) && promptedFields(action).length) {
       await openInputDialog(action, entity, context);
       return;
     }
-    await postAction(action, entity, promptData(collectActionInputFields(action), {}), context);
+    await postAction(action, entity, context.data || promptData(collectActionInputFields(action), {}), context);
   } catch (err) {
     showActionError(err);
   }
@@ -249,19 +372,17 @@ async function openInputDialog(action, entity = null, context = {}) {
   pendingEntity.value = { entity, context };
   for (const key of Object.keys(promptValues)) delete promptValues[key];
   for (const key of Object.keys(promptOptions)) delete promptOptions[key];
+  relationCreatorMode.value = false;
+  for (const key of Object.keys(relationCreatorValues)) delete relationCreatorValues[key];
+  for (const key of Object.keys(relationCreatorOptions)) delete relationCreatorOptions[key];
   const fields = collectActionInputFields(action);
   for (const field of fields) {
     promptValues[field.id] = initialPromptValue(field);
   }
-  const parentType = requiredParentType(action, entity, context);
-  if (parentType) {
-    const options = await loadParentSelectionOptions(parentType, context, action);
-    if (!options.length) throw new Error(t('generatedScreen.noOptions', { field: parentType }));
-    promptOptions[parentSelectionFieldId] = options;
-    promptValues[parentSelectionFieldId] = options[0]?.value || '';
-  }
   await loadPromptOptions(promptedFields(action));
+  syncDependentOptionValues(fields);
   syncCassetteParameterValues(promptedFields(action));
+  syncArtifactTemplateValues(promptedFields(action));
   inputDialogVisible.value = true;
 }
 
@@ -271,15 +392,63 @@ function closeInputDialog() {
   pendingEntity.value = null;
 }
 
+function hasUploadCreator(field = {}) {
+  return Boolean(field.creator?.entityType)
+    && field.creator.attachmentKinds?.some(item => ['upload', 'capture', 'editor'].includes(item.creation?.mode));
+}
+
+function artifactCreatorForAction(action = {}) {
+  if (action.actionKind !== 'createEntity' || !action.entityType) return null;
+  const field = [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
+    .find(input => input.creator?.entityType);
+  return hasUploadCreator(field) ? field.creator : null;
+}
+
+function openArtifactCreator(field = {}) {
+  artifactCreatorField.value = field;
+  artifactCreatorVisible.value = true;
+}
+
+const artifactCreatorLineage = computed(() => {
+  const owner = pendingEntity.value?.entity || {};
+  const ownerType = pendingEntity.value?.context?.entityType || pendingAction.value?.entityType || '';
+  const ownerId = entityIdentifier(owner);
+  return {
+    ...(owner.lineage || {}),
+    ...(ownerType && ownerId ? { [`${camelEntityType(ownerType)}Id`]: ownerId } : {})
+  };
+});
+
+function selectCreatedArtifact(artifact = {}) {
+  const field = artifactCreatorField.value;
+  const id = entityIdentifier(artifact);
+  if (!field || !id) return;
+  if (pendingAction.value?.entityType && pendingAction.value.entityType === field.creator?.entityType) {
+    artifactCreatorField.value = null;
+    pendingAction.value = null;
+    pendingEntity.value = null;
+    return;
+  }
+  promptOptions[field.id] = [...(promptOptions[field.id] || []), entityOption(artifact, 'artifact')];
+  promptValues[field.id] = id;
+}
+
+function camelEntityType(entityType = '') {
+  return String(entityType).replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
+}
+
 async function submitPromptedAction() {
   if (!pendingAction.value) return;
   submittingAction.value = true;
   try {
+    const data = relationCreatorMode.value
+      ? { relationCreator: promptData(relationCreatorFields.value, relationCreatorValues) }
+      : promptData(actionInputFields.value, promptValues);
     await postAction(
       pendingAction.value,
       pendingEntity.value?.entity || null,
-      promptData(actionInputFields.value, promptValues),
-      contextWithSelectedParent(pendingEntity.value?.context || {})
+      data,
+      pendingEntity.value?.context || {}
     );
     closeInputDialog();
   } finally {
@@ -291,20 +460,49 @@ async function postAction(action, entity = null, data = {}, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
+    const result = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
       method: 'POST',
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
-        entities: actionEntities(action, entity, context),
+        entities: { ...actionEntities(action, entity, context), ...(data?.entities || {}) },
         data,
-        parameters: context?.parameters || data?.parameters || {}
+        parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }
       }
     });
+    applyActionResult(action, result);
+    await openCreatedEntity(action, result);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
-    await load();
   } catch (err) {
     showActionError(err);
   }
+}
+
+function applyActionResult(action = {}, result = null) {
+  if (!result || typeof result !== 'object') return;
+  if (action.actionKind === 'runCommand') {
+    for (const output of result.entities || []) {
+      if (output?.entity) applyEntitySnapshot(output.type, output.entity);
+    }
+    return;
+  }
+  if (result.owner) applyEntitySnapshot(action.entityType, result.owner);
+  if (result.created) applyEntitySnapshot(action.relationMutation?.targetType || action.entityType, result.created);
+  if (!result.owner && !result.created) {
+    applyEntitySnapshot(action.entityType, result.entity || result);
+  }
+}
+
+async function openCreatedEntity(action = {}, result = null) {
+  if (action.actionKind !== 'createEntity' || !result || typeof result !== 'object') return;
+  const entity = result.created || (!result.owner ? (result.entity || result) : null);
+  const entityType = action.relationMutation?.targetType || action.entityType;
+  const route = detailRouteForEntity({
+    entity,
+    entityType,
+    screenKey: screen.value.screenKey || screen.value.id,
+    manifest: authStore.screenManifest
+  });
+  if (route) await navigateTo(route);
 }
 
 function actionEntities(action = {}, entity = null, context = {}) {
@@ -313,21 +511,22 @@ function actionEntities(action = {}, entity = null, context = {}) {
 
 function selectedTemplateIdForField(field = {}) {
   const templateFieldId = field.templateFieldId || 'templateId';
-  return promptValues[templateFieldId] || promptValues[parentSelectionFieldId] || '';
+  return promptValues[templateFieldId] || '';
 }
 
 function selectedTemplateForField(field = {}) {
   const templateId = selectedTemplateIdForField(field);
   const pending = pendingEntity.value?.entity;
-  if (pending && (pending.origin?.type === 'cassette' || pendingEntity.value?.context?.entityType === 'cassette')) {
+  const templateEntityType = field.templateEntityType || field.entityType || '';
+  if (pending && templateEntityType && (
+    pending.origin?.type === templateEntityType
+    || pendingEntity.value?.context?.entityType === templateEntityType
+  )) {
     const pendingId = entityIdentifier(pending);
     if (!templateId || pendingId?.toString() === templateId?.toString()) return pending;
   }
   if (!templateId) return null;
-  const templateOptions = [
-    ...(promptOptions[field.templateFieldId || 'templateId'] || []),
-    ...(promptOptions[parentSelectionFieldId] || [])
-  ];
+  const templateOptions = promptOptions[field.templateFieldId || 'templateId'] || [];
   return templateOptions.find(option => option.value?.toString() === templateId?.toString())?.entity || null;
 }
 
@@ -354,72 +553,131 @@ function syncCassetteParameterValues(fields = promptedFields(pendingAction.value
   }
 }
 
-function requiredParentType(action = {}, entity = null, context = {}) {
-  return generatedActionRequiresParent({ action, entity, context, screen: screen.value });
-}
-
-async function loadParentSelectionOptions(parentType = '', context = {}, action = {}) {
-  const contextOptions = context?.parentEntityType === parentType && Array.isArray(context?.parentOptions) ? context.parentOptions : [];
-  const options = contextOptions.length ? contextOptions : await entityOptions(parentType);
-  return options.filter(option => !option.entity || actionAppliesToEntity(action, option.entity, parentType));
-}
-
-function contextWithSelectedParent(context = {}) {
-  const parentType = requiredParentType(pendingAction.value, pendingEntity.value?.entity, context);
-  if (!parentType) return context;
-  const parentId = promptValues[parentSelectionFieldId];
-  const selected = (promptOptions[parentSelectionFieldId] || []).find(option => option.value === parentId);
-  return {
-    ...context,
-    parentEntityType: parentType,
-    parentEntityId: parentId,
-    parentEntity: selected?.entity || null
-  };
-}
-
 function initialPromptValue(field = {}) {
   if (field.type === 'entityList') return Array.isArray(field.default) ? field.default : [];
   if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
+  if (field.editor === 'artifactTemplateValues') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
+  if (field.type === 'enum') return field.default ?? field.options?.[0] ?? '';
   const value = field.default ?? '';
   if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);
   return value;
+}
+
+function fieldOptions(field = {}) {
+  const options = field.options || [];
+  const sourceFieldId = field.optionsFromEntity;
+  if (!sourceFieldId) return options;
+  const sourceId = promptValues[sourceFieldId];
+  const source = sourceId
+    ? (promptOptions[sourceFieldId] || []).find(option => String(option.value) === String(sourceId))?.entity
+    : pendingEntity.value?.entity;
+  const sourceKind = source?.data?.type;
+  if (!sourceKind) return options;
+  return options.filter(option => !option.sourceKinds || option.sourceKinds.includes(sourceKind));
+}
+
+function syncDependentOptionValues(fields = []) {
+  for (const field of fields.filter(field => field.type === 'enum' && field.optionsFromEntity)) {
+    const options = fieldOptions(field);
+    if (!options.some(option => option.value === promptValues[field.id])) {
+      promptValues[field.id] = options[0]?.value || '';
+    }
+  }
+}
+
+function artifactTemplateVariableFields(field = {}) {
+  const templateId = promptValues[field.templateFieldId || 'template'];
+  const option = (promptOptions[field.templateFieldId || 'template'] || [])
+    .find(item => String(item.value) === String(templateId));
+  return option?.entity?.data?.variables || [];
+}
+
+function syncArtifactTemplateValues(fields = promptedFields(pendingAction.value)) {
+  for (const field of fields.filter(item => item.editor === 'artifactTemplateValues')) {
+    const templateFieldId = field.templateFieldId || 'template';
+    const templateId = promptValues[templateFieldId];
+    const template = (promptOptions[templateFieldId] || [])
+      .find(item => String(item.value) === String(templateId))?.entity;
+    if (template?.data?.format === 'PDF') promptValues.kind = 'PDF_PASSPORT';
+    if (template?.data?.format === 'DXF') promptValues.kind = 'LAYOUT_DXF';
+    const current = promptValues[field.id] && typeof promptValues[field.id] === 'object' && !Array.isArray(promptValues[field.id])
+      ? promptValues[field.id]
+      : {};
+    promptValues[field.id] = Object.fromEntries(artifactTemplateVariableFields(field).map(variable => [
+      variable.name,
+      current[variable.name] ?? variable.default ?? ''
+    ]));
+  }
 }
 
 async function loadPromptOptions(fields = []) {
   await Promise.all(fields
     .filter(field => ['entity', 'entityList'].includes(field.type))
     .map(async (field) => {
-      const options = await entityOptions(field.entityType || field.accepts?.[0]);
+      const options = await entityOptions(field.entityType || field.accepts?.[0], field).catch(() => []);
       promptOptions[field.id] = options;
-      if (field.required && !options.length) {
-        throw new Error(t('generatedScreen.noOptions', { field: field.label || field.id }));
-      }
-      if (field.type !== 'entityList' && field.required && !promptValues[field.id] && options[0]?.value) {
-        promptValues[field.id] = options[0].value;
-      }
     }));
 }
 
 function promptFieldHidden(field = {}, action = pendingAction.value) {
   if (!field) return false;
   const parentType = action?.parentEntityType || action?.inputs?.find(input => input.id === 'parent')?.entityType || '';
+  const templateEntityType = field.templateEntityType || field.entityType || '';
   return action?.actionKind === 'createEntity'
-    && action?.entityType === 'cassette_design'
-    && parentType === 'cassette'
-    && field.id === 'templateId';
+    && templateEntityType
+    && parentType === templateEntityType
+    && field.id === (field.templateFieldId || 'templateId');
 }
 
-async function entityOptions(entityType) {
-  if (entityType === 'cassette') {
-    const items = await $fetch('/api/cassettes');
-    return items
-      .filter(isConstructableCassetteTemplate)
-      .map(entityOption);
+async function entityOptions(entityType, field = {}) {
+  if (field.relationKey && pendingAction.value?.relationMutation?.operation === 'link') {
+    const actionId = pendingAction.value.actionId || pendingAction.value.id;
+    const ownerId = entityIdentifier(pendingEntity.value?.entity);
+    const items = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/options`, {
+      query: { entityId: ownerId }
+    });
+    return (items || []).map(entity => entityOption(entity, entityType));
   }
   if (!entityType) return [];
   const items = await $fetch(domainUi.getListEndpoint(uiEntityType(entityType)));
+  const constructable = domainUi.construction[entityType]?.isConstructable;
   return (Array.isArray(items) ? items : items.items || items.data || [])
+    .filter(constructable || (entity => true))
+    .filter(entity => !field.attachmentKinds?.length || field.attachmentKinds.includes(entity.data?.type))
     .map(entity => entityOption(entity, entityType));
+}
+
+async function toggleRelationCreator(field = {}) {
+  relationCreatorMode.value = !relationCreatorMode.value;
+  if (!relationCreatorMode.value) return;
+  for (const creatorField of relationCreatorFields.value) {
+    relationCreatorValues[creatorField.id] = initialPromptValue(creatorField);
+  }
+  const actionId = pendingAction.value?.actionId || pendingAction.value?.id;
+  const ownerId = entityIdentifier(pendingEntity.value?.entity);
+  for (const creatorField of relationCreatorFields.value.filter(item => item.type === 'entity')) {
+    const items = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/options`, {
+      query: { entityId: ownerId, source: 'creator' }
+    });
+    relationCreatorOptions[creatorField.id] = (items || []).map(entity => entityOption(entity, creatorField.entityType));
+  }
+  syncRelationCreatorParameters();
+}
+
+function relationCreatorParameterFields(field = {}) {
+  const templateId = relationCreatorValues[field.templateFieldId || 'templateId'];
+  const template = (relationCreatorOptions[field.templateFieldId || 'templateId'] || [])
+    .find(item => String(item.value) === String(templateId))?.entity;
+  return Object.keys(occsQueueParameters(cassetteParameterDefinition(template))).map(name => ({ name }));
+}
+
+function syncRelationCreatorParameters() {
+  for (const field of relationCreatorFields.value.filter(item => item.type === 'cassetteParameters')) {
+    const templateId = relationCreatorValues[field.templateFieldId || 'templateId'];
+    const template = (relationCreatorOptions[field.templateFieldId || 'templateId'] || [])
+      .find(item => String(item.value) === String(templateId))?.entity;
+    relationCreatorValues[field.id] = { ...occsQueueParameters(cassetteParameterDefinition(template)) };
+  }
 }
 
 function uiEntityType(entityType = '') {
@@ -438,12 +696,6 @@ function showActionError(err) {
   });
 }
 
-function isConstructableCassetteTemplate(template = {}) {
-  if (template.data?.type === 'STANDARD') return true;
-  const definition = template.data?.definition || {};
-  return Boolean(definition.extensions?.cutkit?.graphTree);
-}
-
 function entityOption(entity = {}, entityType = '') {
   return {
     label: entity.identity?.name || entity.identity?.uid || entity._id,
@@ -454,6 +706,15 @@ function entityOption(entity = {}, entityType = '') {
 }
 
 function collectActionInputFields(action = {}) {
+  if (action.actionKind === 'runCommand') {
+    return (action.inputs || [])
+      .filter(field => field.prompt !== false)
+      .map(field => ({
+        ...field,
+        type: field.entityType ? 'entity' : (field.type || (field.kind === 'json' ? 'object' : field.kind) || 'string'),
+        path: field.path || (field.entityType ? `entities.${field.id}` : `parameters.${field.id}`)
+      }));
+  }
   const policyFields = action.inputPolicy?.fields || [];
   const constructionFields = action.construction?.inputs || action.inputs || [];
   return [...policyFields, ...constructionFields]
@@ -502,16 +763,24 @@ function normalizeCassetteParameters(value = {}) {
 }
 
 watch(
-  () => [promptValues.templateId, promptValues[parentSelectionFieldId], pendingAction.value?.actionId || pendingAction.value?.id || ''],
+  () => [promptValues.templateId, pendingAction.value?.actionId || pendingAction.value?.id || ''],
   () => {
     if (!inputDialogVisible.value) return;
     syncCassetteParameterValues();
   }
 );
 
+watch(
+  () => [promptValues.template, pendingAction.value?.actionId || pendingAction.value?.id || ''],
+  () => {
+    if (!inputDialogVisible.value) return;
+    syncArtifactTemplateValues();
+  }
+);
+
 function normalizeEntityListValue(field = {}, value = []) {
   const ids = Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean);
-  if (field.path === 'job.items' || field.accepts?.includes('cassette_design')) {
+  if (field.accepts?.includes('cassette_design')) {
     return ids.map((id, index) => ({
       entryId: `${field.id || 'entry'}_${index + 1}`,
       id,

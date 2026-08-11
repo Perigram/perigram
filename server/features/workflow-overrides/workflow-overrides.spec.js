@@ -15,10 +15,21 @@ vi.mock('~/server/runtime/cutkit-registry.js', () => ({
           initial: 'DRAFT',
           states: { DRAFT: {}, ACTIVE: {} },
           transitions: [{ from: 'DRAFT', to: 'ACTIVE' }]
+        },
+        artifact: {
+          initial: 'PENDING',
+          states: { PENDING: {}, AVAILABLE: {} },
+          transitions: [{
+            from: 'PENDING',
+            to: 'AVAILABLE',
+            intent: 'artifactFileStored',
+            display: 'hidden',
+            access: { system: true }
+          }]
         }
       }
     }),
-    getEntityDefinition: (type) => (type === 'project' ? { type: 'project', collection: 'projects' } : null)
+    getEntityDefinition: (type) => (['project', 'artifact'].includes(type) ? { type, collection: `${type}s` } : null)
   })
 }));
 
@@ -26,8 +37,13 @@ vi.mock('~/server/core/access/service.js', () => ({
   assertEntityAccess: vi.fn(() => true)
 }));
 
+vi.mock('~/server/features/process-definitions/runtime.js', () => ({
+  resolveProcessWorkflow: vi.fn(async () => null)
+}));
+
 import * as repository from './repository.js';
 import * as service from './service.js';
+import { resolveProcessWorkflow } from '~/server/features/process-definitions/runtime.js';
 
 const auth = {
   userId: 'user-1',
@@ -90,5 +106,26 @@ describe('workflow overrides service', () => {
     });
 
     expect(workflow.initial).toBe('DRAFT');
+  });
+
+  it('keeps process states while making hidden system intents executable', async () => {
+    resolveProcessWorkflow.mockResolvedValueOnce({
+      initial: 'NEW',
+      states: { NEW: {} },
+      transitions: []
+    });
+    repository.findActiveByEntity.mockResolvedValue(null);
+    const workflow = await service.resolveActiveWorkflow({
+      entityType: 'artifact',
+      organizationId: auth.memberships[0].organizationId
+    });
+
+    expect(workflow.initial).toBe('NEW');
+    expect(workflow.transitions).toContainEqual(expect.objectContaining({
+      from: 'NEW',
+      to: 'NEW',
+      intent: 'artifactFileStored',
+      access: { system: true }
+    }));
   });
 });

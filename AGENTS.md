@@ -1,8 +1,7 @@
 # AGENTS.md
 
-Coding agents in this repository work in strict documentation-first mode. This
-file is the operating protocol; project architecture details live in README.md
-files and must not be duplicated here.
+This repository operates in strict documentation-first mode. This file is the
+ operating protocol; project architecture details live in README.md files.
 
 ## Mandatory First Reads
 
@@ -38,28 +37,31 @@ first or in the same task before relying on implementation details.
 - Treat the primary checkout on `local` as the integration tree. Keep session
   changes inside the agent worktree until they are committed, then merge the
   session branch back into `local` from the primary checkout. If the merge is
-  not clean, stop and report the conflicted files instead of resolving unrelated
-  work opportunistically.
-- Remove the session worktree after its branch has been merged, unless the user
-  asks to keep it for inspection.
+  not clean, stop and report the conflicted files instead of resolving
+  unrelated work opportunistically.
+- Remove the session worktree after its branch has been merged, unless the
+  user asks to keep it for inspection.
 - State risky assumptions before making changes.
+- Avoid any hardcoding where possible. Always use existing architectural
+  patterns and abstractions, or create ones where appropriate, with task
+  goal as their implementation.
 - Prefer the smallest implementation that satisfies the task.
-- Change only files directly required by the task.
+- Change only files and code chunks directly required by the task.
 - Follow existing project structures, helpers, names, and conventions.
 - Do not add speculative abstractions, features, or future-proofing.
 - Do not refactor unrelated code.
-- Do not add compatibility bridges, legacy fallbacks, dual-read paths, or
-  adapter shims when changing data structures, permissions, routes, APIs, or
-  process protocols. Replace the old contract and migrate existing data in the
-  same task.
+- Do not add backward compatibility bridges, legacy fallbacks, dual-read
+  paths, or adapter shims when changing data structures, permissions, routes,
+  APIs, or process protocols, until asked for. Replace the old contract and
+  migrate existing data in the same task.
 - Do not revert or overwrite unrelated user/agent changes.
 - Do not run `npm run build` or start dev servers unless explicitly asked.
-- Continue until the task is implemented, documented, validated, and committed,
-  or clearly report the blocker.
-- When a user asks to implement a plan, execute the whole accepted plan. Do not
-  intentionally ship a partial plan slice unless the user explicitly narrows
-  scope or an external blocker makes completion impossible; report any blocker
-  before committing partial work.
+- Continue until the task is implemented, documented, validated, and
+  committed, or clearly report the blocker.
+- When a user asks to implement a plan, execute the whole accepted plan.
+  Do not intentionally ship a partial plan slice unless the user explicitly
+  narrows scope or an external blocker makes completion impossible; report
+  any blocker before committing partial work.
 
 ## Documentation Rules
 
@@ -69,9 +71,32 @@ first or in the same task before relying on implementation details.
   decisions. Avoid placeholders, guesses, and obvious file listings.
 - Keep AGENTS.md as protocol only. Move backend/frontend/domain-specific rules
   to the relevant README source of truth.
-- Do not create or fill `TODO.org` Agent Notes only to satisfy process. Update
-  `TODO.org` only when the task itself changes tracked work, status, or plans
-  that belong there.
+- If task is assigned via TODO.md, add an Agent Notes subsection under that task
+  as one level deeper heading, with timestamp and report what is done or
+  discovered. If task is done, replace its status to WAITING.
+- Do not create or fill `TODO.md` Agent Notes only to satisfy process. Do not
+  change a task not written by you. Update `TODO.md` only when the task itself
+  changes tracked work, status, or plans that belong there.
+
+## Context Assembly
+
+Before writing or editing code, assemble atomic context from the mandatory
+first reads and the canonical contracts they reference. Check each section or
+component README being touched, then follow links outbound to entity, feature,
+API, machine, and shared-component contract docs until the changed concern is
+fully understood.
+
+- Read the README for the touched area before changing its code.
+- Follow the source-of-truth links to related contracts from that README.
+- Do not restate or duplicate a canonical contract (entity registries, DTO
+  blocks, status/process machines, lineage, auth context, workflow actions)
+  in another README; link to the canonical doc instead.
+- Keep reads bounded to the touched concern, but do not skip a contract that
+  the changed code consumes or extends.
+- If a required README is missing or stale, fix the README in the same task
+  before relying on implementation details.
+- Before committing, run `node scripts/check-docs.js` and resolve any broken
+  internal links or duplicated canonical-contract passages it reports.
 
 ## Validation Rules
 
@@ -83,6 +108,8 @@ first or in the same task before relying on implementation details.
 - External top-layer/app-composition agents must run
   `npm run agent:scope-check -- --base origin/local` before committing or
   pushing.
+- Documentation changes are incomplete until `node scripts/check-docs.js`
+  passes.
 - Report any validation that could not be run.
 
 ## Commit Rules
@@ -95,8 +122,8 @@ Committing is mandatory for completed work.
 3. Stage only files that belong to the completed task.
 4. Commit implementation changes first with a normal conventional prefix such
    as `feat:`, `fix:`, `refactor:`, or `test:`.
-5. Commit documentation separately. Any README.md, TODO.org, or TODO.org_archive
-   changes must be in a separate commit whose message starts with `neo:`.
+5. Commit documentation separately. Any README.md or TODO.md changes must be
+   in a separate commit whose message starts with `neo:`.
 6. If a task has both code and docs, the final state must include both commits.
 7. Do not leave completed work uncommitted because the worktree was already
    dirty. Instead, inspect the dirty set, separate unrelated changes, and commit

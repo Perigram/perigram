@@ -67,13 +67,6 @@ override from `/api/workflow-overrides/:entityType`, and saves normalized v2
 workflow definitions through the same endpoint. Reset reloads the domain default
 into the editor without saving it.
 
-The Workbench no longer exposes a cassette designer section. Cassette template
-editing belongs to the production app cassette surface; Workbench keeps only
-Entities, Context, and Commands sections. The Context section can still create a
-local cassette fixture through the legacy non-persisted `CassetteDesigner` so
-command scenarios can receive cassette-template inputs without routing users
-through a second production designer.
-
 Workbench command runs can submit a per-run `testAccess` object with custom
 `userId`, `organizationId`, optional compatibility label, memberships, permission
 grants, and `restrictedTo` data. The server preserves that object shape and
@@ -82,14 +75,10 @@ requests, including optional logical `grant.rule` predicates, so fixture
 ownership and scoped access experiments do not need compatibility-label
 branches.
 
-The workflow tab delegates state/transition editing to
-`components/WorkflowDesignerV2.vue`, keeping Workbench on the same workflow
-graph editor as the admin workflow surface.
+Workbench uses the same `WorkflowDesignerV2` graph editor as the admin workflow
+surface.
 
-`workflows.vue` is the admin workflow override page. It loads committed domain
-workflows from `/api/admin/domain`, fetches an organization override from
-`/api/workflow-overrides/:entityType`, and saves edited workflow JSON through
-the same override endpoint.
+See the `workflows.vue` note above.
 
 ## Users
 
@@ -133,17 +122,7 @@ file and domain JSON tabs.
 `data-model-review.vue` compares extracted Mongo collection fields with the
 framework manifest and stores review decisions in localStorage.
 
-## Marketing Animations
-
-`marketing-animations.vue` previews reusable public marketing visuals under the
-authenticated admin route. It currently hosts the cassette workflow animation
-used by the public landing page, including motion metadata and reduced-motion
-support notes. The animation itself lives in
-`components/marketing/CassetteMarketingAnimation.vue` so public and admin
-surfaces render the same asset.
-
 ## Related
 
 - [Runtime registry](../../server/runtime/README.md)
 - [domain-cnc](../../packages/domain-cnc/README.md)
-- [marketing components](../../components/marketing/README.md)

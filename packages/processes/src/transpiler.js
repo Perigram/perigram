@@ -12,7 +12,7 @@ const RECORD_NODE_TYPES = Object.keys(CANVAS_RECORD_KEYS);
 
 export function hasCanonicalProcessSource(definition = {}) {
   const data = definition.data || definition;
-  return ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'assignments']
+  return ['roleGrants', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens']
     .some(key => data[key] && typeof data[key] === 'object' && Object.keys(data[key]).length > 0);
 }
 
@@ -21,14 +21,17 @@ export function definitionToCanvas(definition = {}) {
   assertEditableSource(process);
 
   const projectedNodes = projectRecordNodes(process);
-  const projectedById = new Map(projectedNodes.map(node => [node.id, node]));
+  const projectedBySemanticId = new Map(projectedNodes.map(node => [semanticNodeId(node), node]));
   const savedNodes = (process.graph.nodes || [])
     .filter(node => RECORD_NODE_TYPES.includes(node.type))
-    .filter(node => projectedById.has(node.id))
-    .map(node => mergeProjectedNode(projectedById.get(node.id), node));
+    .filter(node => projectedBySemanticId.has(semanticNodeId(node)))
+    .map(node => mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node));
 
-  const savedIds = new Set(savedNodes.map(node => node.id));
-  const missingProjectedNodes = projectedNodes.filter(node => !savedIds.has(node.id));
+  const savedSemanticIds = new Set(savedNodes.map(semanticNodeId));
+  const occupiedNodeIds = new Set(savedNodes.map(node => node.id));
+  const missingProjectedNodes = projectedNodes
+    .filter(node => !savedSemanticIds.has(semanticNodeId(node)))
+    .map(node => withUniqueCanvasNodeId(node, occupiedNodeIds));
   const nodes = [...savedNodes, ...missingProjectedNodes];
   const nodeIds = new Set(nodes.map(node => node.id));
   const edges = (process.graph.edges || [])
@@ -40,6 +43,20 @@ export function definitionToCanvas(definition = {}) {
     edges,
     viewport: process.graph.viewport || { x: 0, y: 0, zoom: 1 }
   };
+}
+
+function semanticNodeId(node = {}) {
+  return `${node.type}:${String(node.data?.refId || node.id || '')}`;
+}
+
+function withUniqueCanvasNodeId(node, occupiedNodeIds) {
+  let id = String(node.id);
+  if (occupiedNodeIds.has(id)) id = semanticNodeId(node);
+  let suffix = 2;
+  const base = id;
+  while (occupiedNodeIds.has(id)) id = `${base}:${suffix++}`;
+  occupiedNodeIds.add(id);
+  return id === node.id ? node : { ...node, id };
 }
 
 export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
@@ -113,10 +130,11 @@ function normalizeProcessLike(definition = {}) {
   const data = definition.data || definition;
   return {
     schemaVersion: data.schemaVersion || 1,
+    dataflowVersion: data.dataflowVersion,
     sourceTemplateId: data.sourceTemplateId || null,
     sourceProcessDefinitionId: data.sourceProcessDefinitionId || null,
     graph: normalizeGraph(data.graph),
-    roles: normalizeRecord(data.roles),
+    roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
     entityProfiles: normalizeRecord(data.entityProfiles),
     actions: normalizeRecord(data.actions),
@@ -126,7 +144,6 @@ function normalizeProcessLike(definition = {}) {
     valueInputs: normalizeRecord(data.valueInputs),
     processNodes: normalizeRecord(data.processNodes),
     screens: normalizeRecord(data.screens),
-    assignments: normalizeRecord(data.assignments),
     compiled: data.compiled || null
   };
 }
@@ -134,7 +151,6 @@ function normalizeProcessLike(definition = {}) {
 function projectRecordNodes(process) {
   return [
     ...projectRecords(process.entityProfiles, 'entity', 260),
-    ...projectRecords(process.actions, 'action', 560),
     ...projectRecords(process.services, 'service', 860),
     ...projectRecords(process.sockets, 'socket', 1160),
     ...projectRecords(process.statusDefinitions, 'statusDefinition', 560),
@@ -185,7 +201,7 @@ function collectCanvasRefs(nodes = []) {
 
 function compareSemanticRecords(source, next) {
   const errors = [];
-  for (const key of ['roles', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'assignments']) {
+  for (const key of ['roleGrants', 'servicePrincipals', 'entityProfiles', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens']) {
     const sourceJson = JSON.stringify(sortObject(source[key] || {}));
     const nextJson = JSON.stringify(sortObject(next[key] || {}));
     if (sourceJson !== nextJson) errors.push(`Round-trip changed ${key}`);

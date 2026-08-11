@@ -45,28 +45,12 @@ export async function deleteById(uid) {
   return await db.collection(COLLECTION).deleteOne({ _id: flexId });
 }
 
-export async function resetChosenRuns(queueId) {
-  const db = await connectDB();
-  const flexibleId = toFlexibleId(queueId);
-  return await db.collection(COLLECTION).updateMany(
-    { 'lineage.queueId': { $in: [flexibleId, queueId?.toString()] }, 'status.state.primary': 'CHOSEN' },
-    {
-      $set: {
-        'status.state.primary': 'COMPLETE',
-        'status.state.active.main': 'COMPLETE',
-        'status.state.regions.main.state': 'COMPLETE',
-        'status.state.regions.main.path': ['COMPLETE']
-      }
-    }
-  );
-}
-
-export async function findChosenRuns(queueId, excludeRunId = null) {
+export async function findRunsByPrimaryState(queueId, primaryState, excludeRunId = null) {
   const db = await connectDB();
   const flexibleQueueId = toFlexibleId(queueId);
   const filter = {
     'lineage.queueId': { $in: [flexibleQueueId, queueId?.toString()] },
-    'status.state.primary': 'CHOSEN'
+    'status.state.primary': primaryState
   };
 
   if (excludeRunId !== null && excludeRunId !== undefined) {

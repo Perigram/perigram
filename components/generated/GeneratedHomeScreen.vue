@@ -1,6 +1,11 @@
 <template>
   <div class="flex flex-col gap-6">
-    <section v-for="section in sections" :key="section.region.id" class="flex min-w-0 flex-col gap-3">
+    <section
+      v-for="section in sections"
+      :key="section.region.id"
+      class="flex min-w-0 flex-col gap-3"
+      :data-home-entity-type="section.source.entityType"
+    >
       <div class="flex min-w-0 items-center justify-between gap-3">
         <h2 class="m-0 min-w-0 truncate text-base font-semibold">
           {{ sectionLabel(section) }}
@@ -28,6 +33,7 @@
           v-for="entity in section.items.slice(0, 12)"
           :key="entity._id || entity.id || entity.identity?.uid"
           class="w-[18rem] min-w-[18rem] flex-none"
+          :data-entity-id="entity._id || entity.id || entity.identity?.uid"
         >
           <EntityCard
             class="h-full"
@@ -42,7 +48,7 @@
               <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
-                  class="min-w-0 max-w-full flex-1 text-left text-primary underline-offset-4 hover:underline"
+                  class="min-w-0 max-w-full flex-1 text-left text-[var(--ck-primary-ink)] underline-offset-4 hover:underline"
                   @click.stop="openEntity(section, entity)"
                 >
                   <IdentityBlock :entity="entity" />
@@ -61,10 +67,10 @@
               :entity="entity"
               :entity-type="section.source.entityType"
               :surface="section.region.surface || 'card'"
-              suppress-child-counts
+              suppress-child-summaries
               relation-variant="compact"
             />
-            <template v-if="section.source.entityType === 'cassette' || entityActionsFor(section, entity).length || entityCanDelete(section, entity) || detailRouteFor(section, entity)" #footer>
+            <template v-if="hasEditorAction(section.source.entityType) || entityActionsFor(section, entity).length || entityCanDelete(section, entity) || detailRouteFor(section, entity)" #footer>
               <div class="flex flex-wrap justify-end gap-2">
                 <Button
                   v-if="detailRouteFor(section, entity)"
@@ -75,8 +81,9 @@
                   :aria-label="$t('common.open')"
                   @click.stop="openEntity(section, entity)"
                 />
-                <GeneratedCassetteDesignerAction
-                  v-if="section.source.entityType === 'cassette'"
+                <component
+                  :is="editorActionFor(section.source.entityType)"
+                  v-if="editorActionFor(section.source.entityType)"
                   :entity="entity"
                   @refresh="$emit('refresh')"
                 />
@@ -109,7 +116,7 @@ import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
+import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
@@ -117,6 +124,7 @@ import { detailRouteForEntity } from '~/components/generated/entity-detail-routi
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
+import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 
 const props = defineProps({
   screen: { type: Object, required: true },
@@ -127,6 +135,8 @@ const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
+const hasEditorAction = entityHasEditorAction;
+const editorActionFor = entityEditorActionFor;
 const { t, te } = useI18n();
 provide('generatedExecuteAction', (action, entity, context = {}) => {
   emit('execute-action', action, entity, context);
@@ -138,10 +148,11 @@ const sections = computed(() => props.screen.regions
     return {
       region,
       source: state.source || {},
-      items: state.items || []
+      items: state.items || [],
+      rawItems: state.rawItems || state.items || []
     };
   })
-  .filter(section => section.source.entityType));
+  .filter(section => section.source.entityType && shouldRenderHomeSection(section)));
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)

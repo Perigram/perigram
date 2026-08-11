@@ -115,7 +115,7 @@ export function createCncFixtureScenario({ workflows = cncWorkflows, commands = 
       cassette_design: [createMockCassetteDesign({
         status: undefined,
         origin: undefined,
-        lineage: { organizationId: refs.organization, projectId: refs.project, templateId: refs.cassetteTemplate },
+        lineage: { organizationId: refs.organization, projectId: refs.project },
         data: {
           parameters: occsQueueParameters(cassetteTemplateDefinition),
           geometry: {

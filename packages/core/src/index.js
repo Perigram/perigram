@@ -249,6 +249,94 @@ export function createRegistry({ id = 'app' } = {}) {
 
 export const createCutkitRegistry = createRegistry;
 
+export const CANONICAL_ENTITY_BLOCKS = Object.freeze([
+  'identity',
+  'origin',
+  'status',
+  'lineage',
+  'relations',
+  'provenance',
+  'specs',
+  'attachments',
+  'data',
+  'summary'
+]);
+
+export const CANONICAL_BLOCK_SCHEMAS = Object.freeze({
+  identity: Object.freeze([
+    canonicalBlockField('identity.uid', 'string', { writable: false, constructible: false }),
+    canonicalBlockField('identity.name', 'string'),
+    canonicalBlockField('identity.slug', 'string'),
+    canonicalBlockField('identity.serial', 'string'),
+    canonicalBlockField('identity.reference', 'string')
+  ]),
+  origin: Object.freeze([
+    canonicalBlockField('origin.state.primary', 'status'),
+    canonicalBlockField('origin.userId', 'string'),
+    canonicalBlockField('origin.timestamp', 'dateTime'),
+    canonicalBlockField('origin.metadata', 'json'),
+    canonicalBlockField('origin.eventId', 'string'),
+    canonicalBlockField('origin.lifecycle', 'json')
+  ]),
+  status: Object.freeze([
+    canonicalBlockField('status.state.primary', 'status'),
+    canonicalBlockField('status.userId', 'string'),
+    canonicalBlockField('status.timestamp', 'dateTime'),
+    canonicalBlockField('status.metadata', 'json'),
+    canonicalBlockField('status.eventId', 'string'),
+    canonicalBlockField('status.lifecycle', 'json')
+  ]),
+  lineage: Object.freeze([
+    canonicalBlockField('lineage', 'map', {
+      keyType: canonicalValueType('string', { nullable: false }),
+      valueType: canonicalValueType('id', { nullable: false })
+    })
+  ]),
+  relations: Object.freeze([canonicalBlockField('relations', 'json')]),
+  provenance: Object.freeze([canonicalBlockField('provenance', 'json')]),
+  specs: Object.freeze([
+    canonicalBlockField('specs.width', 'number', { unit: 'mm' }),
+    canonicalBlockField('specs.length', 'number', { unit: 'mm' }),
+    canonicalBlockField('specs.area', 'number', { unit: 'm2' }),
+    canonicalBlockField('specs.sheetThickness', 'number', { unit: 'mm' }),
+    canonicalBlockField('specs.foilThickness', 'number', { unit: 'mm' })
+  ]),
+  attachments: Object.freeze([canonicalBlockField('attachments', 'json')]),
+  data: Object.freeze([canonicalBlockField('data', 'json')]),
+  summary: Object.freeze([canonicalBlockField('summary', 'json')])
+});
+
+export const CANONICAL_BLOCK_COMPOSITION = Object.freeze({
+  lineage: Object.freeze({ mode: 'ancestors', valueBase: 'entityRef' }),
+  relations: Object.freeze({ mode: 'relations', valueBase: 'entityRef' }),
+  provenance: Object.freeze({ mode: 'entries', valueBase: 'json' }),
+  attachments: Object.freeze({ mode: 'attachments', valueBase: 'attachmentRef' }),
+  data: Object.freeze({ mode: 'entries', valueBase: 'json' }),
+  summary: Object.freeze({ mode: 'entries', valueBase: 'json' })
+});
+
+function canonicalBlockField(path, base, qualifiers = {}) {
+  const {
+    readable = true,
+    writable = true,
+    constructible = true,
+    ...typeQualifiers
+  } = qualifiers;
+  return Object.freeze({
+    path,
+    block: String(path).split('.')[0],
+    label: path,
+    type: Object.freeze(canonicalValueType(base, typeQualifiers)),
+    readable,
+    writable,
+    constructible
+  });
+}
+
+function canonicalValueType(base, qualifiers = {}) {
+  return Object.freeze({ base, shape: 'item', nullable: true, ...qualifiers });
+}
+
 export class Identity {
   constructor(uid = null, name = '', slug = '', serial = '', reference = '') {
     if (!uid) throw new Error('Identity: uid is required');
@@ -409,6 +497,50 @@ export class Lineage {
   }
 }
 
+export function normalizeEntityRef(value = null) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (!value.type || !value.id) return null;
+  const ref = {
+    type: String(value.type),
+    id: value.id.toString()
+  };
+  if (value.revisionId) ref.revisionId = value.revisionId.toString();
+  return ref;
+}
+
+export class Relations {
+  constructor(raw = {}) {
+    for (const [key, value] of Object.entries(raw || {})) {
+      if (Array.isArray(value)) {
+        const refs = value.map(normalizeEntityRef).filter(Boolean);
+        if (refs.length) this[key] = refs;
+        continue;
+      }
+      const ref = normalizeEntityRef(value);
+      if (ref) this[key] = ref;
+    }
+  }
+
+  toJSON() {
+    return Object.fromEntries(Object.entries(this));
+  }
+}
+
+export class Provenance {
+  constructor(raw = {}) {
+    for (const [key, value] of Object.entries(raw || {})) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+      const source = normalizeEntityRef(value.source);
+      if (!source) continue;
+      this[key] = { ...value, source };
+    }
+  }
+
+  toJSON() {
+    return Object.fromEntries(Object.entries(this));
+  }
+}
+
 export class Specs {
   constructor(raw = {}) {
     this.sheetThickness = Number(raw.sheetThickness || 0);
@@ -440,6 +572,8 @@ export class BaseEntity {
       raw.identity?.reference || ''
     );
     this.lineage = new Lineage(raw.lineage || {});
+    this.relations = new Relations(raw.relations || {});
+    this.provenance = new Provenance(raw.provenance || {});
     this.origin = raw.origin?.state ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp, raw.origin.lifecycle) : null;
     this.status = raw.status?.state ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp, raw.status.lifecycle) : null;
     this.specs = raw.specs ? new Specs(raw.specs) : null;
@@ -468,6 +602,8 @@ export class BaseEntity {
       _id: this._id,
       identity: this.identity.toJSON(),
       lineage: this.lineage.toJSON(),
+      relations: this.relations.toJSON(),
+      provenance: this.provenance.toJSON(),
       origin: this.origin?.toJSON() || null,
       status: this.status?.toJSON() || null,
       specs: this.specs?.toJSON() || null,
@@ -478,9 +614,15 @@ export class BaseEntity {
   }
 }
 
-export function createEntityRef(type, id) {
+export function createEntityRef(type, id, revisionId = null) {
   if (!type || !id) throw new Error('EntityRef requires type and id');
-  return { type, id: id.toString() };
+  return normalizeEntityRef({ type, id, revisionId });
+}
+
+export function createProvenance(source, facts = {}) {
+  const normalizedSource = normalizeEntityRef(source);
+  if (!normalizedSource) throw new Error('Provenance requires a canonical source EntityRef');
+  return { ...facts, source: normalizedSource };
 }
 
 export function createAttachmentRef({ entityId, kind, name = '', metadata = {} } = {}) {
@@ -571,6 +713,17 @@ export function validateEffectDefinition(definition) {
 
 export function validateAttachmentKindDefinition(definition) {
   if (!definition?.kind) throw new Error('Attachment kind definition requires kind');
+  const creationMode = definition.creation?.mode || 'workflow';
+  if (!['upload', 'capture', 'editor', 'command', 'workflow'].includes(creationMode)) {
+    throw new Error(`Attachment kind ${definition.kind} has invalid creation mode ${creationMode}`);
+  }
+  if (creationMode === 'command' && !definition.creation?.commandId) {
+    throw new Error(`Attachment kind ${definition.kind} command creation requires commandId`);
+  }
+  const editorMode = definition.editor?.mode || 'none';
+  if (!['none', 'text', 'csv', 'layout'].includes(editorMode)) {
+    throw new Error(`Attachment kind ${definition.kind} has invalid editor mode ${editorMode}`);
+  }
 }
 
 function deepFreeze(value) {

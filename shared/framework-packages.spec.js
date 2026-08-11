@@ -6,8 +6,11 @@ describe('Framework package contracts', () => {
   it('registers entity definitions in @cutkit/core', async () => {
     const {
       BaseEntity,
+      CANONICAL_BLOCK_SCHEMAS,
+      CANONICAL_ENTITY_BLOCKS,
       createRegistry,
       createEntityRef,
+      createProvenance,
       createCommandResult,
       createTaskResult
     } = await import('../packages/core/src/index.js');
@@ -33,6 +36,20 @@ describe('Framework package contracts', () => {
     });
     expect(entity.toJSON()).not.toHaveProperty('id');
     expect(entity.toJSON()).not.toHaveProperty('name');
+    expect(CANONICAL_ENTITY_BLOCKS).toEqual([
+      'identity',
+      'origin',
+      'status',
+      'lineage',
+      'relations',
+      'provenance',
+      'specs',
+      'attachments',
+      'data',
+      'summary'
+    ]);
+    expect(CANONICAL_BLOCK_SCHEMAS.lineage.map(field => field.path)).toEqual(['lineage']);
+    expect(CANONICAL_BLOCK_SCHEMAS.identity.map(field => field.path)).toContain('identity.name');
 
     const command = registry.defineCommand({
       id: 'runTest',
@@ -54,6 +71,12 @@ describe('Framework package contracts', () => {
       bucket: 'reports',
       mimeType: 'application/pdf'
     });
+    const captureKind = registry.defineAttachmentKind({
+      kind: 'TEST_CAPTURE',
+      bucket: 'captures',
+      creation: { mode: 'capture' },
+      editor: { mode: 'text' }
+    });
     const domain = registry.defineDomain({
       id: 'test-domain',
       entities: [{ type: 'domain_entity', collection: 'domain_entities' }],
@@ -70,6 +93,7 @@ describe('Framework package contracts', () => {
     expect(registry.getTaskDefinition('test.task')).toEqual(task);
     expect(registry.listTaskDefinitions()).toContainEqual(task);
     expect(registry.getAttachmentKindDefinition('TEST_REPORT')).toEqual(attachmentKind);
+    expect(registry.getAttachmentKindDefinition('TEST_CAPTURE')).toEqual(captureKind);
     expect(registry.listAttachmentKindDefinitions()).toContainEqual(attachmentKind);
     expect(registry.getDomain('test-domain')).toEqual(domain);
     expect(registry.listDomains()).toContainEqual(domain);
@@ -77,6 +101,36 @@ describe('Framework package contracts', () => {
     await expect(handler()).resolves.toMatchObject({
       commandId: 'runTest',
       entities: [{ type: 'test_entity', id: 'test-1' }]
+    });
+    expect(createEntityRef('test_entity', 'test-1', 'revision-2')).toEqual({
+      type: 'test_entity',
+      id: 'test-1',
+      revisionId: 'revision-2'
+    });
+    expect(createProvenance(createEntityRef('test_entity', 'test-1', 'revision-2'), { scope: 'geometry' })).toEqual({
+      source: { type: 'test_entity', id: 'test-1', revisionId: 'revision-2' },
+      scope: 'geometry'
+    });
+    expect(new BaseEntity({
+      identity: { uid: 'derived-1', name: 'Derived' },
+      relations: {
+        library: { type: 'library', id: 'library-1' },
+        invalid: { entityType: 'library', entityId: 'legacy-library' }
+      },
+      provenance: {
+        derivedFrom: {
+          source: { type: 'test_entity', id: 'test-1', revisionId: 'revision-2' },
+          scope: 'geometry'
+        }
+      }
+    }).toJSON()).toMatchObject({
+      relations: { library: { type: 'library', id: 'library-1' } },
+      provenance: {
+        derivedFrom: {
+          source: { type: 'test_entity', id: 'test-1', revisionId: 'revision-2' },
+          scope: 'geometry'
+        }
+      }
     });
     expect(createTaskResult({ taskId: 'test.task' })).toMatchObject({ taskId: 'test.task', ok: true });
 
@@ -127,7 +181,8 @@ describe('Framework package contracts', () => {
       cncDesignSystemEntityContracts,
       cncDomain,
       cncEntities,
-      cncFrontendEntities,
+      cncContainment,
+      cncRelations,
       cncCommands,
       cncTasks,
       cncWorkflows
@@ -138,7 +193,7 @@ describe('Framework package contracts', () => {
     const manifest = createFrameworkManifest({
       packages: [{ name: '@cutkit/core' }],
       entities: cncEntities,
-      frontendEntities: cncFrontendEntities,
+      frontendEntities: cncDomain.ui.endpoints,
       workflows: cncWorkflows,
       commands: cncCommands,
       tasks: cncTasks,
@@ -160,7 +215,7 @@ describe('Framework package contracts', () => {
       getEntity: type => cncEntities.find(entity => entity.type === type),
       getWorkflow: type => cncWorkflows[type],
       getFrameworkManifest: () => manifest,
-      listRoutes: () => summarizeRoutes(cncFrontendEntities),
+      listRoutes: () => summarizeRoutes(cncDomain.ui.endpoints),
       listSummaries: () => summarizeSummaries([]),
       listCommands: () => manifest.commands,
       listUiComponents: () => manifest.designSystem.components,
@@ -174,6 +229,22 @@ describe('Framework package contracts', () => {
     });
 
     expect(cncEntities.find(entity => entity.type === 'queue')?.collection).toBe('queues');
+    expect(cncEntities.every(entity => entity.blocks.includes('relations') && entity.blocks.includes('provenance'))).toBe(true);
+    expect(cncContainment).toContainEqual({ parentType: 'project', childType: 'queue', lineageKey: 'projectId' });
+    expect(cncContainment).toContainEqual({ parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' });
+    expect(cncRelations).toContainEqual(expect.objectContaining({
+      ownerType: 'queue',
+      key: 'cassettes',
+      targetType: 'cassette_design',
+      cardinality: 'many'
+    }));
+    expect(cncDomain.construction.cassette_design.modeInputs.bakeCassetteDesignFromTemplate
+      .some(input => input.id === 'name')).toBe(false);
+    expect(cncDomain.construction.cassette_design.modeInputs.importCassetteDesignFromArtifact
+      .some(input => input.id === 'name')).toBe(false);
+    expect(cncRelations).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ ownerType: 'project', targetType: 'library' })
+    ]));
     expect(cncEntities.find(entity => entity.type === 'user')?.meta).toBe(true);
     expect(cncEntities).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'layer_standard', collection: 'layer_standards' }),
@@ -222,13 +293,23 @@ describe('Framework package contracts', () => {
     expect(cncTasks.nestingSolve.output.entities).toEqual(['nesting_run', 'sheet_design']);
     expect(cncTasks.nestingSolve.output).not.toHaveProperty('attachments');
     expect(cncAttachmentKinds.LAYOUT_DXF).toMatchObject({ bucket: 'nestDxf', preview: { mode: 'dxf' } });
-    const endpointMap = createEndpointMap(cncFrontendEntities);
+    const endpointMap = createEndpointMap(cncDomain.ui.endpoints);
     const domainUi = createDomainUiAdapter(cncDomain);
     expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/project/p-1');
     expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/cassette-instances?lineage.queueId=q-1');
     expect(existsSync('server/api/cassette-instances/index.get.js')).toBe(true);
     expect(domainUi.getSingleEndpoint('project', 'p-1')).toBe('/api/project/p-1');
     expect(domainUi.getAttachmentPreview('LAYOUT_DXF')).toEqual({ mode: 'dxf' });
+    expect(domainUi.getAttachmentCreation('DXF_SOURCE')).toMatchObject({
+      mode: 'upload',
+      accept: '.dxf,application/dxf',
+      fields: [
+        { id: 'name', path: 'identity.name', type: 'string', required: true }
+      ]
+    });
+    expect(domainUi.getAttachmentCreation('LAYOUT_DXF')).toEqual({ mode: 'command', commandId: 'generateAttachment' });
+    expect(domainUi.getAttachmentEditor('LAYOUT_DXF')).toEqual({ mode: 'layout' });
+    expect(domainUi.getAttachmentEditor('DXF_SOURCE')).toEqual({ mode: 'none' });
     expect(domainUi.getDownloadEndpoint('artifact', 'a-1')).toBe('/api/artifacts/a-1');
     await expect(handlers.list_entities()).resolves.toContainEqual(expect.objectContaining({ type: 'project' }));
     await expect(handlers.get_entity_schema({ type: 'queue' })).resolves.toMatchObject({ collection: 'queues' });

@@ -6,39 +6,23 @@
       :options="options"
       option-label="label"
       option-value="value"
+      :entity-type="entityType"
       class="w-full"
       @update:model-value="value => emit('update:modelValue', value)"
-    >
-      <template #option="{ option }">
-        <div class="flex min-w-0 flex-col">
-          <span class="truncate">{{ option.label }}</span>
-          <small class="truncate text-muted-color">{{ option.value }}</small>
-        </div>
-      </template>
-      <template #value="{ value, placeholder }">
-        <span v-if="value" class="font-mono text-sm">{{ labelFor(value) }}</span>
-        <span v-else>{{ placeholder }}</span>
-      </template>
-    </Select>
+    />
     <InputText
       v-else
       :model-value="modelValue ?? ''"
       class="w-full font-mono"
       @update:model-value="value => emit('update:modelValue', value)"
     />
-    <div v-if="selectedEntity" class="flex flex-wrap items-center gap-2">
-      <StatusBadge :state="getPrimaryState(selectedEntity.status)" />
-      <small class="truncate text-muted-color">{{ selectedEntity.identity?.uid || selectedEntity._id }}</small>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import InputText from 'primevue/inputtext';
-import Select from 'primevue/select';
-import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
-import { getPrimaryState } from '~/packages/core/src/index.js';
+import Select from '~/components/shared/EntitySelect.vue';
 
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
@@ -57,10 +41,4 @@ const options = computed(() => {
   }));
 });
 
-const selectedEntity = computed(() => options.value.find(option => option.value === props.modelValue)?.entity || null);
-
-function labelFor(value) {
-  const selected = options.value.find(option => option.value === value);
-  return selected ? selected.label : value;
-}
 </script>

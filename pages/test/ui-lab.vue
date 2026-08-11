@@ -230,6 +230,28 @@
               </EntityPage>
             </template>
 
+            <template v-else-if="primitive.key === 'EntitySelect'">
+              <EntitySelect
+                v-model="primitiveSelectedQueueId"
+                :options="primitiveQueueOptions"
+                option-label="label"
+                option-value="value"
+                entity-type="queue"
+                class="w-full"
+              />
+            </template>
+
+            <template v-else-if="primitive.key === 'EntityMultiSelect'">
+              <EntityMultiSelect
+                v-model="primitiveSelectedQueueIds"
+                :options="primitiveQueueOptions"
+                option-label="label"
+                option-value="value"
+                entity-type="queue"
+                class="w-full"
+              />
+            </template>
+
             <template v-else-if="primitive.key === 'IdentityBlock'">
             <IdentityBlock :entity="primitiveEntity" variant="header" :fields="['slug', 'serial', 'reference']" />
             <IdentityBlock :entity="primitiveEntity" variant="compact" :fields="['slug', 'serial']" />
@@ -273,12 +295,30 @@
               <DrawingCanvas :source="sheetDesignEntity" source-type="geometry-preview" mode="card" />
             </template>
 
+            <template v-else-if="primitive.key === 'DesignerSurface'">
+              <DesignerSurface class="h-48 rounded-ui border border-content-border p-2">
+                <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-image" />
+              </DesignerSurface>
+            </template>
+
+            <template v-else-if="primitive.key === 'DesignerWorkspace'">
+              <DesignerWorkspace layout="lanes" class="h-48 rounded-ui border border-content-border p-2">
+                <template #palette><StateBlock :message="$t('common.details')" /></template>
+                <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-image" />
+                <template #inspector><StateBlock :message="$t('common.settings')" /></template>
+              </DesignerWorkspace>
+            </template>
+
+            <template v-else-if="primitive.key === 'ThreeViewport'">
+              <ThreeViewport class="h-48 rounded-ui border border-content-border" />
+            </template>
+
             <template v-else-if="primitive.key === 'TraceLink'">
               <TraceLink type="project" :id="primitiveEntity.lineage.projectId" :label="$t('uiLab.fixtures.downtownComplex')" slug="downtown-complex" />
             </template>
 
             <template v-else-if="primitive.key === 'TraceChain'">
-              <TraceChain :entity="primitiveEntity" />
+              <TraceChain :entity="primitiveEntity" entity-type="queue" />
             </template>
 
             <template v-else-if="primitive.key === 'ActionToolbar'">
@@ -322,6 +362,16 @@
               >
                 <DataBlock entity-type="materialPile" :entity="pileEntity" :fields="pileFields" />
               </StandardDialog>
+            </template>
+
+            <template v-else-if="primitive.key === 'DesignerDialog'">
+              <Button :label="$t('common.open')" icon="pi pi-window-maximize" @click="designerDialogVisible = true" />
+              <DesignerDialog
+                v-model:visible="designerDialogVisible"
+                :header="$t('cassette.designerTitle')"
+              >
+                <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-image" />
+              </DesignerDialog>
             </template>
 
             <template v-else-if="primitive.key === 'StandardPage'">
@@ -403,7 +453,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Panel from 'primevue/panel';
-import Select from 'primevue/select';
+import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -423,12 +473,18 @@ import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import DesignerDialog from '~/components/shared/DesignerDialog.vue';
+import DesignerSurface from '~/components/shared/DesignerSurface.vue';
+import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import ThreeViewport from '~/components/shared/ThreeViewport.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import EntityCard from '~/components/shared/EntityCard.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
+import EntitySelect from '~/components/shared/EntitySelect.vue';
+import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import {
@@ -458,6 +514,8 @@ const ENTITY_COLLECTION_BY_TYPE = new Map((frameworkManifest.entities || []).map
 const PRIMITIVE_EXAMPLE_KEYS = [
   'EntityCard',
   'EntityPage',
+  'EntitySelect',
+  'EntityMultiSelect',
   'IdentityBlock',
   'DataBlock',
   'SpecsBlock',
@@ -466,6 +524,10 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'StatusLocation',
   'StatusHistory',
   'DrawingCanvas',
+  'DesignerSurface',
+  'DesignerWorkspace',
+  'DesignerDialog',
+  'ThreeViewport',
   'GeometryPreview',
   'TraceLink',
   'TraceChain',
@@ -492,6 +554,7 @@ const expandedReviews = ref(new Set());
 
 const activeSection = ref(groups[0]?.id || 'contract');
 const dialogVisible = ref(false);
+const designerDialogVisible = ref(false);
 const activeGroup = computed(() => groups.find((group) => group.id === activeSection.value));
 const activeRows = computed(() => rows.filter((row) => row.group === activeSection.value));
 const activeRowsWithModels = computed(() => activeRows.value.map((row) => ({
@@ -500,6 +563,22 @@ const activeRowsWithModels = computed(() => activeRows.value.map((row) => ({
 })));
 
 const primitiveEntity = createMockQueue();
+const primitiveAlternateQueue = createMockQueue({
+  _id: 'queue-demo-evening',
+  identity: {
+    ...primitiveEntity.identity,
+    uid: 'queue-demo-evening',
+    name: 'Evening Production Run',
+    slug: 'evening-production-run'
+  }
+});
+const primitiveQueueOptions = [primitiveEntity, primitiveAlternateQueue].map(entity => ({
+  label: entity.identity.name,
+  value: entity._id,
+  entity
+}));
+const primitiveSelectedQueueId = ref(primitiveEntity._id);
+const primitiveSelectedQueueIds = ref(primitiveQueueOptions.map(option => option.value));
 const pileEntity = createMockPile();
 const sheetEntity = createMockSheet();
 const sheetDesignEntity = createMockSheetDesign();

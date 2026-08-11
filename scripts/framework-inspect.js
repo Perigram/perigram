@@ -10,8 +10,8 @@ import {
   cncDesignSystemGroups,
   cncDesignSystemPrimitives,
   cncDesignSystemVariants,
+  cncDomain,
   cncEntities,
-  cncFrontendEntities,
   cncCommands,
   cncTasks,
   cncSummaries,
@@ -70,7 +70,7 @@ const COMPATIBILITY_ALIASES = {
 };
 
 const workflows = Object.entries(cncWorkflows).map(([type, workflow]) => ({ type, workflow }));
-const routes = summarizeRoutes(cncFrontendEntities);
+const routes = summarizeRoutes(cncDomain.ui.endpoints);
 const dataModelFields = loadDataModelFields('server/DATA_MODEL.md');
 const componentInventory = createComponentInventory();
 const manifest = createManifest();
@@ -98,7 +98,7 @@ const docsCorpus = loadDocs([
 
 const handlers = createReadOnlyToolHandlers({
   listEntities: () => cncEntities,
-  getEntity: type => cncEntities.find(entity => entity.type === type) || cncFrontendEntities.find(entity => entity.type === type) || null,
+  getEntity: type => cncEntities.find(entity => entity.type === type || entity.surfaceKey === type) || null,
   getWorkflow: type => cncWorkflows[type] || null,
   getFrameworkManifest: () => manifest,
   listRoutes: () => routes,
@@ -254,7 +254,7 @@ function createManifest() {
   return createFrameworkManifest({
     packages: PACKAGE_NAMES.map(name => ({ name })),
     entities: cncEntities,
-    frontendEntities: cncFrontendEntities,
+    frontendEntities: cncDomain.ui.endpoints,
     workflows: cncWorkflows,
     summaries: cncSummaries,
     commands: cncCommands,

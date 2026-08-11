@@ -1,10 +1,10 @@
 <template>
   <div :class="nodeFrameClass">
-    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-violet-500"></div>
+    <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-signal-value"></div>
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <div class="flex items-center gap-2">
-          <i class="pi pi-share-alt text-violet-600" aria-hidden="true"></i>
+          <i class="pi pi-share-alt text-signal-value" aria-hidden="true"></i>
           <strong class="truncate">{{ data.label || data.entityType || data.refId }}</strong>
         </div>
         <small class="text-muted-color">{{ data.entityType || $t('processDesigner.entityType') }}</small>
@@ -29,15 +29,15 @@
         <span class="block truncate text-xs">{{ accessLabel }}</span>
       </div>
       <div v-if="!isInbound" :class="socketClass('entity', 'left')">
-        <Handle id="entity-projection" type="target" :position="Position.Left" :class="handleClass('entity', 'left')" />
+        <Handle id="entity-projection" type="target" :position="Position.Left" :class="handleClass('entity', 'left')" :style="handleStyle('entity')" />
         <Tag :value="inputLabel" size="small" severity="secondary" />
       </div>
       <div v-else :class="socketClass('entity', 'right')">
-        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('entity', 'right')" />
+        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('entity', 'right')" :style="handleStyle('entity')" />
         <Tag :value="receivedLabel" size="small" severity="success" />
       </div>
       <div v-if="!isInbound" :class="socketClass('projection', 'right')">
-        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('projection', 'right')" />
+        <Handle id="output" type="source" :position="Position.Right" :class="handleClass('projection', 'right')" :style="handleStyle('projection')" />
         <div class="flex flex-wrap gap-1">
           <Tag v-for="field in visibleProjectedFields" :key="field" :value="field" size="small" />
           <Tag v-if="hiddenProjectedFieldCount > 0" :value="`+${hiddenProjectedFieldCount}`" size="small" />
@@ -53,6 +53,7 @@ import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
+import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -62,7 +63,7 @@ const { t } = useI18n();
 
 const nodeFrameClass = computed(() => [
   'relative min-w-72 rounded-ui border bg-content px-3 py-3 pt-4 shadow-card transition-colors',
-  props.selected ? 'border-primary ring-2 ring-primary-200' : 'border-content-border'
+  props.selected ? 'border-primary' : 'border-content-border'
 ]);
 const isInbound = computed(() => props.data.direction === 'inbound');
 const inputLabel = computed(() => props.data.entityType || props.data.refId);
@@ -77,23 +78,18 @@ const accessRoleLabels = computed(() => isInbound.value ? receiveRoleLabels.valu
 
 function socketClass(kind, side) {
   return [
-    'relative rounded-ui border py-1',
+    'relative min-w-0 border-b border-content-border py-1',
     side === 'left' ? 'pl-3 pr-2' : 'pl-2 pr-3 text-right',
-    socketTone(kind).row
   ];
 }
 
 function handleClass(kind, side) {
   return [
-    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2',
-    socketTone(kind).handle
+    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];
 }
 
-function socketTone(kind) {
-  return ({
-    entity: { row: 'border-content-border bg-content', handle: '!border-sky-500 !bg-sky-500' },
-    projection: { row: 'border-content-border bg-content', handle: '!border-fuchsia-500 !bg-fuchsia-500' }
-  })[kind] || { row: 'border-content-border', handle: '!border-violet-500 !bg-violet-500' };
+function handleStyle(kind) {
+  return processSocketHandleStyle({ kind });
 }
 </script>

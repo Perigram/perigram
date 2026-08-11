@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cncEntities, cncFrontendEntities, cncHookContracts, cncCommands, cncServiceContracts, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { cncEntities, cncHookContracts, cncCommands, cncServiceContracts, cncSummaries, cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import {
   buildWorkflowGraph,
   createDomainDraft,
@@ -11,7 +11,6 @@ describe('domain builder utilities', () => {
   it('validates the current CNC domain definitions', () => {
     const draft = createDomainDraft({
       entities: cncEntities,
-      frontendEntities: cncFrontendEntities,
       workflows: cncWorkflows,
       summaries: cncSummaries,
       serviceContracts: cncServiceContracts,
@@ -25,10 +24,9 @@ describe('domain builder utilities', () => {
   it('rejects duplicate entities and invalid workflow states', () => {
     const draft = createDomainDraft({
       entities: [
-        { type: 'queue', collection: 'queues', blocks: ['identity', 'status'] },
-        { type: 'queue', collection: 'queues_copy', blocks: ['identity', 'status'] }
+        { type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' }, blocks: ['identity', 'status'] },
+        { type: 'queue', collection: 'queues_copy', routes: { single: '/api/queue-copy/:id', list: '/api/queue-copy' }, blocks: ['identity', 'status'] }
       ],
-      frontendEntities: [],
       workflows: {
         queue: {
           initial: 'MISSING',
@@ -41,14 +39,13 @@ describe('domain builder utilities', () => {
 
     const messages = validateDomainDraft(draft).issues.map(issue => issue.message);
     expect(messages).toContain('Duplicate entity type: queue');
-    expect(messages).toContain('queue initial state does not exist: MISSING');
-    expect(messages).toContain('queue transition #1 has unknown to state: READY');
+    expect(messages).toContain('queue.main initial state does not exist: MISSING');
+    expect(messages).toContain('queue.main transition #1 has unknown to state: READY');
   });
 
   it('validates typed command parameters and hook params', () => {
     const draft = createDomainDraft({
-      entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'status'] }],
-      frontendEntities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' } }],
+      entities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' }, blocks: ['identity', 'status'] }],
       workflows: {
         queue: {
           initial: 'DRAFT',
@@ -78,13 +75,12 @@ describe('domain builder utilities', () => {
 
     const messages = validateDomainDraft(draft).issues.map(issue => issue.message);
     expect(messages).toContain('runQueue parameters field #1 has invalid type: invalid');
-    expect(messages).toContain('queue transition #1 propagateToChildren params missing required field: childState');
+    expect(messages).toContain('queue.main transition #1 propagateToChildren params missing required field: childState');
   });
 
   it('generates deterministic domain-cnc source exports', () => {
     const source = generateDomainCncSource({
-      entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'status'] }],
-      frontendEntities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' } }],
+      entities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' }, blocks: ['identity', 'status'] }],
       workflows: { queue: { initial: 'DRAFT', states: { DRAFT: {} }, transitions: [] } },
       summaries: []
     });
@@ -95,7 +91,7 @@ describe('domain builder utilities', () => {
     expect(source).toContain('export const cncServiceContracts = {');
     expect(source).toContain('export const cncCommands = {');
     expect(source).toContain('export const cncHookContracts = {');
-    expect(source).toContain('export const cncFrontendEntities = [');
+    expect(source).not.toContain('FrontendEntities');
     expect(source).toContain("type: 'queue'");
   });
 

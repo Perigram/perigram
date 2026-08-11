@@ -52,7 +52,7 @@ describe('invitations', () => {
     await db.collection('organizations').insertOne({
       _id: organizationId,
       identity: { uid: organizationId, name: 'Cutkit Org' },
-      data: {}
+      data: { roles: { role_operator: { id: 'role_operator', label: 'Operator' } } }
     });
     await db.collection('users').insertOne({
       _id: userId,
@@ -62,10 +62,10 @@ describe('invitations', () => {
       }
     });
 
-    const invitation = await invitationsService.generateInvitation(organizationId, 'role_operator', {
+    const invitation = await invitationsService.generateInvitation(organizationId, ['role_operator'], {
       userId,
       memberships: [{ organizationId, role: 'team-manager', permissions: { users: { level: 'admin' } }, status: 'active' }]
-    }, ['role_operator']);
+    });
     const rows = await invitationsService.listByOrgForUser(organizationId, {
       userId,
       memberships: [{ organizationId, role: 'team-manager', permissions: { users: { level: 'admin' } }, status: 'active' }]
@@ -75,6 +75,11 @@ describe('invitations', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].organizationId).toBe(organizationId);
     expect(rows[0].roleIds).toEqual(['role_operator']);
+    await expect(invitationsService.getPublicByToken(invitation.token)).resolves.toEqual({
+      organizationName: 'Cutkit Org',
+      roleLabels: ['Operator'],
+      expiresAt: expect.any(Date)
+    });
   });
 
   it('denies invitation management to ordinary members when another active member exists', async () => {
@@ -83,7 +88,7 @@ describe('invitations', () => {
     await db.collection('organizations').insertOne({
       _id: organizationId,
       identity: { uid: organizationId.toString(), name: 'Cutkit Org' },
-      data: {}
+      data: { roles: { role_viewer: { id: 'role_viewer', label: 'Viewer' } } }
     });
     await db.collection('users').insertMany([{
       _id: memberId,
@@ -112,7 +117,10 @@ describe('invitations', () => {
     await db.collection('organizations').insertOne({
       _id: organizationId,
       identity: { uid: organizationId, name: 'Cutkit Org' },
-      data: {}
+      data: { roles: {
+        role_operator: { id: 'role_operator', label: 'Operator' },
+        role_reviewer: { id: 'role_reviewer', label: 'Reviewer' }
+      } }
     });
     await db.collection('users').insertMany([{
       _id: creatorId,
@@ -128,20 +136,24 @@ describe('invitations', () => {
       }
     }]);
 
-    const invitation = await invitationsService.generateInvitation(organizationId, 'role_operator', {
+    const invitation = await invitationsService.generateInvitation(organizationId, ['role_operator', 'role_reviewer'], {
       userId: creatorId,
       memberships: [{ organizationId, role: 'team-manager', permissions: { users: { level: 'admin' } }, status: 'active' }]
-    }, ['role_operator', 'role_reviewer']);
+    });
 
     await invitationsService.joinByToken(invitation.token, { userId: invitedUserId });
 
     const user = await db.collection('users').findOne({ _id: invitedUserId });
     expect(user.data.memberships[0]).toMatchObject({
       organizationId,
-      role: 'role_operator',
-      roleIds: ['role_operator', 'role_reviewer'],
       permissions: {},
       status: 'pending'
+    });
+    const organization = await db.collection('organizations').findOne({ _id: organizationId });
+    expect(organization.data.roleAssignments[invitedUserId]).toEqual({
+      userId: invitedUserId,
+      roleIds: ['role_operator', 'role_reviewer'],
+      bindings: {}
     });
   });
 });

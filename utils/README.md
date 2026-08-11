@@ -6,6 +6,10 @@ Shared frontend utility modules used by Vue pages/components.
 
 - `design-system-contract.js`: Compatibility exports and validation for the CNC design-system contract now owned by `@cutkit/domain-cnc`. It does not import Vue components.
 - `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
+- `processDesignerSocketTone.js`: Pure process-port resolver used by every
+  designer node form and source edge. It maps structured port type/role data to
+  a semantic signal token so a socket and the wire it produces cannot drift
+  into separate color contracts.
 - `entity-display-contract.js`: Pure resolver for the UI constructor. It merges
   core domain field groups/surfaces, optional app extensions, and per-call
   overrides, then returns the effective surface contract and ordered field
@@ -32,6 +36,17 @@ Shared frontend utility modules used by Vue pages/components.
   popovers, menus, and the chat drawer listen and close themselves. Chat open
   actions can dispatch the same event without viewport gating to close popups
   before the drawer opens.
+- `workspace-splits.js`: Pure recursive split-tree operations for IDE-style
+  workspaces. It creates leaves, splits a targeted leaf horizontally or
+  vertically, updates pane-local selection and split proportions, collapses
+  parents when a file closes, and enumerates leaves without coupling state
+  mutation to Vue or PrimeVue.
+- `project-workspace-state.js`: Versioned serialization and defensive
+  normalization for project workspace UI state. Storage keys are scoped by
+  user, organization, and project; payloads contain pane/page references,
+  references for entities discovered through nested detail regions, and layout
+  preferences including each pane's ordered tab keys and selected tab, never
+  entity DTOs.
 - `interactive-target.js`: Shared DOM guard for entity cards that have parent
   click/select actions. It detects nested links, buttons, form controls, status
   controls, geometry previews, and nested inline/compact entity cards so parent
@@ -39,6 +54,22 @@ Shared frontend utility modules used by Vue pages/components.
 - `selectOptions.js`: Pure helpers for PrimeVue Select option arrays. Use it to
   normalize canonical DTOs (`identity.name`, `identity.slug`, `_id`) into flat
   string `name`/id values before passing them to `optionLabel="name"` controls.
+- `entity-select.js`: Pure option resolution for the shared entity Select and
+  MultiSelect wrappers. Entity rendering requires a canonical DTO plus an
+  explicit entity type from the control or option metadata; it never infers a
+  type from mutable entity data or lifecycle status.
+- `generated-screen-source.js`: Applies exact compiled Lineage bindings to
+  generated source filters and Home visibility. It never guesses arbitrary id
+  keys or imports static CNC containment in active-process mode.
+- `entity-hierarchy.js`: Consumes canonical entity identity and effective
+  compiled Lineage projections for ancestry, root/sibling scope, and trace
+  context. Route trace exclusions require the route value to match both the
+  compiled lineage key and the entity's actual ancestor id.
+- `artifact-viewer.js` and `artifact-detail.js`: Pure Artifact presentation
+  dispatch for preview/editor mode and detail revision/file state.
+- `navigation-breadcrumbs.js` and `billing-presentation.js`: Pure organization
+  breadcrumb and deployment-derived billing presentation contracts used by the
+  app shell/account surfaces.
 - `process-navigation.js`: Pure helpers for filtering process-compiled
   navigation and screen manifests by the active permission grants. Scoped
   screen requirements are matched against scoped grants structurally because
@@ -50,6 +81,8 @@ Shared frontend utility modules used by Vue pages/components.
   role-prefixed labels, generic action words, and status ids as fallback data
   rather than primary visible copy.
 - `drawingPreview.js`: Pure drawing preview helpers for `DrawingCanvas`. It normalizes entity geometry previews, baked cassette `data.layerData` / `data.polygonParts` (including migration fallback under `data.geometry.data`), polygon-only remnant geometry, and cassette render results into the shared `{ viewBox, layers }` drawing contract, extracts designer edge overlays, and resolves layer pens by explicit source mapping, caller-provided `standardCode`, layer-name standard fallback, source layer styling, then default pen. If a matched layer standard points to a pen that is not loaded or no longer exists, normalization preserves the source layer `color` and `weight` before falling back to the default pen. It must not hardcode production layer standard codes; source/caller data owns layer semantics.
+  Pen lookup accepts both `_id` and canonical `identity.uid`, matching the
+  layer-standard persistence contract.
 - `occs/`: Canonical OCCS helpers for semantic layer ids, parameter
   extraction, arithmetic expression evaluation, Clipper-backed production
   layout, default dimension annotation entities, DrawingCanvas conversion,
@@ -69,7 +102,9 @@ Shared frontend utility modules used by Vue pages/components.
 - `sheetLayoutEditor.js`: Pure sheet-layout editor adapters. It extracts the
   first physical layout, resolves source polygons and placement transforms,
   snaps sheet coordinates, and converts cassette-design polygon/layer data into
-  nesting source items without coupling geometry logic to Vue.
+  nesting source items without coupling geometry logic to Vue. Bounds helpers
+  rotate source geometry around the nesting origin and clamp the complete shape
+  to snap-aligned coordinates inside the material sheet.
 - `domain-builder.js`: Browser-side helpers for `/admin/domain-builder`. It clones CNC package definitions into a draft, validates entity/workflow/summary consistency including multi-region workflows, builds automatic Vue Flow node/edge layout data with reciprocal-transition metadata used unless the page has browser-local manual node positions, and generates deterministic `@cutkit/domain-cnc` source for manual export.
 - `workflow-compiler.js`: Shared workbench/domain-builder compiler wrapper for live workflow drafts. It normalizes single-region and multi-region workflow shapes, validates draft machines, exposes state options for typed forms, and derives permission summaries used by fixture scenarios and workbench test access. If a caller has not loaded entity or hook definitions yet, it falls back to committed CNC contracts so workflow validation does not report every known workflow/hook as unknown.
 - `cassette.js` / `cassetteRenderer.js`: Browser cassette designer helpers. ID generation must work on plain HTTP LAN deployments where `crypto.randomUUID` may be unavailable; use local helpers that fall back to `crypto.getRandomValues` before non-cryptographic IDs.

@@ -44,7 +44,7 @@ export async function getUserConversationContext(auth, recipientUserId = null) {
     const userId = auth?.userId;
     if (!userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
 
-    if (!recipientUserId || recipientUserId === userId) {
+    if (!recipientUserId) {
         return {
             kind: 'support',
             conversationKey: supportConversationKey(userId),
@@ -56,16 +56,19 @@ export async function getUserConversationContext(auth, recipientUserId = null) {
 
     const recipient = await usersService.getById(recipientUserId);
     if (!recipient) throw createError({ statusCode: 404, message: 'User not found' });
-    if (!auth.isAdmin && !sharesOrganization(auth, recipient)) {
+    if (recipientUserId !== userId && !auth.isAdmin && !sharesOrganization(auth, recipient)) {
         throw createError({ statusCode: 403, message: 'Forbidden' });
     }
 
-    const participants = [userId, recipientUserId].map(String).sort();
+    const participants = recipientUserId === userId
+        ? [String(userId)]
+        : [userId, recipientUserId].map(String).sort();
+    const conversationKey = directConversationKey(userId, recipientUserId);
     return {
         kind: 'direct',
-        conversationKey: `direct:${participants.join(':')}`,
+        conversationKey,
         participants,
-        match: { conversationKey: `direct:${participants.join(':')}` },
+        match: { conversationKey },
         recipient: recipient.toJSON()
     };
 }
@@ -91,8 +94,7 @@ export async function listUserConversations(auth) {
     const userId = auth?.userId;
     if (!userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
     const messages = await repository.findConversationMessages(userConversationsMatch(userId), messageProjection());
-    const conversations = await buildConversationSummaries(messages, auth);
-    return await addReachableUserConversations(conversations, auth);
+    return await buildConversationSummaries(messages, auth);
 }
 
 export async function listAdminSupportConversations(auth) {
@@ -312,7 +314,8 @@ async function resolveConversationParticipant(summary, auth) {
         }
         return { _id: 'support', identity: { name: 'Support' }, data: {} };
     }
-    const otherUserId = summary.participants.find(participant => participant !== auth.userId);
+    const otherUserId = summary.participants.find(participant => participant !== auth.userId)
+        || summary.participants[0];
     if (!otherUserId) return null;
     const user = await usersService.getById(otherUserId).catch(() => null);
     return user ? user.toJSON() : { _id: otherUserId, identity: { name: otherUserId }, data: {} };
@@ -326,7 +329,7 @@ async function getConversationContextByKey(auth, conversationKey) {
     if (conversationKey.startsWith('direct:')) {
         const parts = conversationKey.split(':').slice(1);
         if (!parts.includes(auth.userId)) throw createError({ statusCode: 403, message: 'Forbidden' });
-        const recipientUserId = parts.find(part => part !== auth.userId);
+        const recipientUserId = parts.find(part => part !== auth.userId) || auth.userId;
         return await getUserConversationContext(auth, recipientUserId);
     }
     if (auth.isAdmin && conversationKey.startsWith('support:')) {

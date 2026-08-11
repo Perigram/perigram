@@ -1,18 +1,20 @@
+import { cncArtifactConversions } from './artifact-conversions.js';
+
 export const cncServiceContracts = {
   nesting: {
     service: 'nesting',
     label: 'Nesting service',
-    inputs: ['queue', 'sheet', 'remnant', 'tool_profile'],
-    outputs: ['nesting_run', 'sheet_design'],
+    inputs: ['queue', 'sheet', 'remnant', 'machine', 'tool_profile'],
+    outputs: ['nesting_run', 'sheet_design', 'sheet'],
     actions: ['solveNesting'],
     triggers: ['queue.nestingRequested']
   },
   artifacts: {
     service: 'artifacts',
     label: 'Attachments service',
-    inputs: ['sheet_design', 'nesting_run', 'cassette_design', 'cassette_instance'],
+    inputs: ['sheet_design', 'nesting_run', 'cassette_design', 'cassette_instance', 'artifact_template'],
     outputs: ['artifact'],
-    actions: ['generateAttachment'],
+    actions: ['generateAttachment', 'convertArtifact'],
     triggers: ['attachment.generationRequested']
   },
   cassettes: {
@@ -31,7 +33,7 @@ export const cncServiceContracts = {
     actions: ['generateConfigBotDraft', 'reindexConfigBotKnowledge'],
     triggers: []
   },
-  geometryCapture: {
+  'geometry-captures': {
     service: 'geometry-captures',
     label: 'Geometry capture vision service',
     inputs: ['geometry_capture'],
@@ -71,24 +73,23 @@ export const cncCommands = {
     service: 'nesting',
     action: 'solve',
     label: 'Solve nesting',
+    requiredEntityProfiles: ['nesting_run', 'sheet_design', 'sheet'],
     input: {
       entities: [{ name: 'queue', type: 'queue', required: true }],
       parameters: [
-        { name: 'materialMode', label: 'Material mode', type: 'enum', options: ['VIRTUAL', 'WAREHOUSE', 'INVENTORY'], default: 'VIRTUAL' },
-        { name: 'width', label: 'Sheet width', type: 'number', default: 1220, min: 1, unit: 'mm' },
-        { name: 'height', label: 'Sheet height', type: 'number', default: 2440, min: 1, unit: 'mm' },
+        { name: 'materialMode', label: 'Material mode', type: 'enum', options: ['VIRTUAL', 'WAREHOUSE'], default: 'VIRTUAL' },
+        { name: 'machineId', label: 'Machine', type: 'entityId', entityType: 'machine', required: true },
         { name: 'virtualWidth', label: 'Virtual sheet width', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
         { name: 'virtualLength', label: 'Virtual sheet length', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
-        { name: 'spacing', label: 'Spacing', type: 'number', default: 5, min: 0, unit: 'mm' },
-        { name: 'sheet_polygon', label: 'Sheet polygon', type: 'object', display: 'hidden', source: 'scenario.sheetSource.geometry' },
+        { name: 'virtualThickness', label: 'Virtual sheet thickness', type: 'number', min: 0.01, unit: 'mm', display: 'hidden' },
         { name: 'inventoryItems', label: 'Inventory items', type: 'array', default: [], display: 'hidden', source: 'scenario.inventorySource.items' },
         { name: 'materialPool', label: 'Material pool', type: 'array', display: 'hidden', source: 'scenario.inventorySource.materialPool' },
-        { name: 'toolProfileId', label: 'Tool profile', type: 'entityId', entityType: 'tool_profile' }
+        { name: 'toolProfileId', label: 'Tool profile', type: 'entityId', entityType: 'tool_profile', required: true }
       ]
     },
     triggers: [{ event: 'queue.nestingRequested' }],
     output: {
-      entities: ['nesting_run', 'sheet_design'],
+      entities: ['nesting_run', 'sheet_design', 'sheet'],
       tasks: ['nesting.solve'],
       events: ['queue.nestingRequested', 'nesting.solveStarted']
     },
@@ -119,11 +120,12 @@ export const cncCommands = {
       ],
       entities: [
         { name: 'sheetDesign', type: 'sheet_design' },
-        { name: 'nestingRun', type: 'nesting_run' }
+        { name: 'nestingRun', type: 'nesting_run' },
+        { name: 'template', label: 'Artifact template', type: 'artifact_template', required: false }
       ],
       parameters: [
         { name: 'kind', label: 'Attachment kind', type: 'enum', options: ['LAYOUT_DXF', 'PDF_PASSPORT'], required: true },
-        { name: 'pdfTemplateId', label: 'PDF template', type: 'string', display: 'hidden', source: 'artifactTemplate' }
+        { name: 'values', label: 'Template values', type: 'object', default: {}, editor: 'artifactTemplateValues', templateFieldId: 'template' }
       ]
     },
     triggers: [{ event: 'attachment.generationRequested' }],
@@ -134,6 +136,46 @@ export const cncCommands = {
     access: {
       permissions: [
         { feature: 'artifacts', level: 'write' }
+      ],
+      executionGrants: [
+        { feature: 'artifact_templates', level: 'read', actions: { view: true } }
+      ]
+    }
+  },
+  convertArtifact: {
+    id: 'convertArtifact',
+    service: 'artifacts',
+    action: 'convert',
+    label: 'Convert artifact',
+    input: {
+      entities: [
+        { name: 'artifact', label: 'Artifact', type: 'artifact', required: true, prompt: false }
+      ],
+      parameters: [
+        {
+          name: 'conversion',
+          label: 'Convert to',
+          type: 'enum',
+          required: true,
+          options: cncArtifactConversions.map(({ id, label, sourceKinds }) => ({ value: id, label, sourceKinds })),
+          optionsFromEntity: 'artifact'
+        },
+        { name: 'name', label: 'Name', type: 'string' },
+        { name: 'layerMapping', label: 'Layer mapping', type: 'object', default: {} },
+        { name: 'parameters', label: 'Parameters', type: 'object', default: {} }
+      ]
+    },
+    output: {
+      entities: ['artifact', 'cassette_design'],
+      events: ['artifact.converted']
+    },
+    access: {
+      permissions: [
+        { feature: 'artifacts', level: 'write' }
+      ],
+      executionGrants: [
+        { feature: 'cassette_designs', level: 'write', actions: { create: true } },
+        { feature: 'cassettes', level: 'write', actions: { create: true } }
       ]
     }
   },

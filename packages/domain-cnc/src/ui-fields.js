@@ -11,7 +11,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.queueNumber', i18n: 'queue.name', display: 'text', priority: 10 }
     ],
     summary: [
-      { path: 'data.job.items.length', i18n: 'queue.jobItems', display: 'count', priority: 10 },
+      { path: 'relations.cassettes', i18n: 'queue.jobItems', display: 'entityRefList', entityType: 'cassetteDesign', priority: 10 },
       { path: 'summary.runCount', i18n: 'queue.nestingRuns', display: 'count', role: 'childCount', priority: 20 },
       { path: 'summary.runPreview', i18n: 'queue.nestingRuns', display: 'entityRefList', entityType: 'nestingRun', replacesCountPath: 'summary.runCount', priority: 25 },
       { path: 'summary.sheetCount', i18n: 'results.sheets', display: 'count', role: 'childCount', priority: 30 },
@@ -65,7 +65,7 @@ export const cncEntityFieldGroups = {
     summary: [
       {
         path: 'data.parameters',
-        fallbackPaths: ['data.derivedFrom.parameters'],
+        fallbackPaths: ['provenance.derivedFrom.parameters'],
         i18n: 'cassette.parametersTitle',
         display: 'parameterMap',
         priority: 10
@@ -75,7 +75,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
     ],
     provenance: [
-      { path: 'data.sourceRevisionId', i18n: 'revision.sourceRevision', display: 'entityRef', entityType: 'entityRevision', priority: 40 }
+      { path: 'provenance.derivedFrom.source', i18n: 'revision.sourceRevision', display: 'entityRef', priority: 40 }
     ]
   },
   cassetteInstance: {
@@ -168,7 +168,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.shortHash', i18n: 'revision.hash', display: 'code', priority: 30 }
     ],
     relations: [
-      { path: 'data.entityId', i18n: 'revision.source', display: 'entityRef', priority: 40 }
+      { path: 'data.source', i18n: 'revision.source', display: 'entityRef', priority: 40 }
     ]
   },
   geometryCapture: {
@@ -210,6 +210,13 @@ export const cncEntityFieldGroups = {
       { path: 'data.kerf', i18n: 'toolProfile.kerf', suffix: ' mm', display: 'dimension', priority: 30 }
     ]
   },
+  machine: {
+    summary: [
+      { path: 'data.workingArea.width', i18n: 'machine.width', suffix: ' mm', display: 'dimension', priority: 10 },
+      { path: 'data.workingArea.length', i18n: 'machine.length', suffix: ' mm', display: 'dimension', priority: 20 },
+      { path: 'data.boundaryOffset', i18n: 'machine.boundaryOffset', suffix: ' mm', display: 'dimension', priority: 30 }
+    ]
+  },
   penTemplate: {
     summary: [
       { path: 'data.stroke.color', i18n: 'penTemplate.color', display: 'color', priority: 10 },
@@ -248,8 +255,44 @@ export const cncEntityFieldGroups = {
     relations: [
       { path: 'lineage.nestingRunId', i18n: 'entities.nestingRun', display: 'entityRef', entityType: 'nestingRun', priority: 40 }
     ]
+  },
+  artifactTemplate: {
+    summary: [
+      { path: 'data.format', i18n: 'file.type', display: 'text', priority: 10 },
+      { path: 'data.variables.length', i18n: 'artifactTemplates.variables', display: 'count', priority: 20 }
+    ],
+    provenance: [
+      { path: 'data.activeRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', entityType: 'entityRevision', priority: 30 }
+    ]
   }
 };
+
+const PARENT_REVISION_FIELD = {
+  path: 'provenance.parent.source',
+  i18n: 'revision.parentRevision',
+  display: 'entityRef',
+  priority: 90
+};
+
+const PINNED_PARENT_ENTITY_KEYS = [
+  'cassette',
+  'cassetteInstance',
+  'color',
+  'nestingRun',
+  'queue',
+  'remnant',
+  'sheet',
+  'sheetDesign'
+];
+
+for (const key of PINNED_PARENT_ENTITY_KEYS) {
+  const groups = cncEntityFieldGroups[key];
+  if (!groups) continue;
+  groups.provenance = [
+    ...(groups.provenance || []),
+    ...(groups.provenance?.some(field => field.path === PARENT_REVISION_FIELD.path) ? [] : [PARENT_REVISION_FIELD])
+  ];
+}
 
 export function getEntityFieldGroups(entityKey) {
   return cncEntityFieldGroups[entityKey] || {};

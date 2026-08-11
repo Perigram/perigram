@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   canvasToDefinition,
-  compileProcessDefinition,
-  createProcessFromTemplate,
+  compileProcessDefinition as compileContract,
   createDefaultCreatedWorkflow,
+  createTemplate,
   definitionToCanvas,
-  legacyTypeToTemplateId,
+  normalizeProcessDefinition,
   portSpecsCompatible,
-  resolveScreens,
-  validateProcessDefinition,
+  requiredEntityProfileTypes,
+  resolveRoleAssignmentAccess,
+  resolveScreens as resolveAccessScreens,
+  validateProcessDefinition as validateContract,
   validateRoundTrip
 } from './index.js';
 
@@ -16,6 +18,43 @@ const SOURCE_STATE = 'SOURCE_STATE';
 const TARGET_STATE = 'TARGET_STATE';
 const INITIAL_STATE = 'INITIAL_STATE';
 const NEXT_STATE = 'NEXT_STATE';
+
+function externalizeTestRoles(definition = {}) {
+  const next = structuredClone(definition);
+  const data = next.data || next;
+  const storedRoles = data.roles || {};
+  const roles = Object.keys(storedRoles).length
+    ? Object.fromEntries(Object.entries(storedRoles).map(([roleId, role]) => [roleId, { id: role.id || roleId, label: role.label || roleId }]))
+    : Object.fromEntries(Object.keys(data.roleGrants || {}).map(roleId => [roleId, { id: roleId, label: roleId }]));
+  const assignments = data.assignments || {};
+  data.roleGrants = {
+    ...(data.roleGrants || {}),
+    ...Object.fromEntries(Object.entries(storedRoles)
+      .filter(([, role]) => Array.isArray(role.grants))
+      .map(([roleId, role]) => [roleId, role.grants]))
+  };
+  delete data.roles;
+  delete data.assignments;
+  return { definition: next, roles, assignments };
+}
+
+function validateProcessDefinition(definition, testDomain = {}) {
+  const external = externalizeTestRoles(definition);
+  return validateContract(external.definition, testDomain, { roles: external.roles });
+}
+
+function compileProcessDefinition(definition, testDomain = {}) {
+  const external = externalizeTestRoles(definition);
+  const compiled = compileContract(external.definition, testDomain, { roles: external.roles });
+  compiled.userAccess = Object.fromEntries(Object.entries(external.assignments).map(([userId, assignment]) => [userId,
+    resolveRoleAssignmentAccess({ compiled, assignment, domain: testDomain })
+  ]));
+  return compiled;
+}
+
+function resolveScreens({ compiled, userId } = {}) {
+  return resolveAccessScreens({ access: compiled?.userAccess?.[String(userId)] });
+}
 
 const domain = {
   entities: [
@@ -44,6 +83,15 @@ const domain = {
     { entityType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId' },
     { entityType: 'cassette', parentType: 'library', parentIdKey: 'libraryId' }
   ],
+  containment: [
+    { childType: 'queue', parentType: 'project', lineageKey: 'projectId' },
+    { childType: 'nesting_run', parentType: 'queue', lineageKey: 'queueId' },
+    { childType: 'sheet_design', parentType: 'queue', lineageKey: 'queueId' },
+    { childType: 'cassette', parentType: 'library', lineageKey: 'libraryId' }
+  ],
+  revisions: {
+    library: { scopes: ['content'], defaultScope: 'content' }
+  },
   workflows: {
     project: {
       schemaVersion: 2,
@@ -67,7 +115,7 @@ const domain = {
     queue: {
       feature: 'queues',
       read: ['identity.*', 'status.*', 'lineage.*'],
-      write: ['data.*'],
+      write: ['identity.name', 'data.*'],
       admin: ['attachments.*']
     },
     cassette_design: {
@@ -89,6 +137,37 @@ const domain = {
       admin: ['attachments.*']
     }
   },
+  fieldSchemas: {
+    queue: [
+      {
+        path: 'identity.name',
+        block: 'identity',
+        type: { base: 'string', shape: 'item', nullable: false },
+        readable: true,
+        writable: true
+      },
+      {
+        path: 'lineage.projectId',
+        block: 'lineage',
+        type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'project' },
+        readable: true,
+        writable: false,
+        constructible: true
+      }
+    ]
+  },
+  blockSchemas: {
+    identity: [{
+      path: 'identity.name',
+      block: 'identity',
+      type: { base: 'string', shape: 'item', nullable: false }
+    }],
+    lineage: [{
+      path: 'lineage.projectId',
+      block: 'lineage',
+      type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'project' }
+    }]
+  },
   construction: {
     queue: {
       modes: ['genericCreate'],
@@ -100,18 +179,15 @@ const domain = {
       ]
     },
     cassette: {
-      modes: ['createDefaultOccsTemplate'],
-      defaultMode: 'createDefaultOccsTemplate',
-      inputs: [
-        { id: 'name', path: 'name', type: 'string', required: true, prompt: true }
-      ]
+      modes: ['genericCreate'],
+      defaultMode: 'genericCreate',
+      inputs: []
     },
     cassette_design: {
       modes: ['bakeCassetteDesignFromTemplate'],
       defaultMode: 'bakeCassetteDesignFromTemplate',
       derived: true,
       inputs: [
-        { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
         { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true },
         { id: 'parameters', path: 'parameters', type: 'cassetteParameters', templateFieldId: 'templateId', required: false, prompt: true }
       ]
@@ -120,6 +196,274 @@ const domain = {
 };
 
 describe('@cutkit/processes compiler', () => {
+  it('derives runnable action contracts from authored effect nodes', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      roles: { operator: { id: 'operator', label: 'Operator' } },
+      processNodes: {
+        queue_identity: {
+          id: 'queue_identity',
+          kind: 'record.composeBlock',
+          block: 'identity',
+          fields: ['identity.name'],
+          inputDefaults: { 'identity.name': 'Queue' }
+        },
+        queue_lineage: {
+          id: 'queue_lineage',
+          kind: 'record.composeBlock',
+          block: 'lineage',
+          compositionMode: 'ancestors',
+          entries: [{ id: 'project', key: 'projectId', entityType: 'project' }],
+          inputDefaults: { 'entry:project': { type: 'project', id: 'project-1' } }
+        },
+        create_queue: {
+          id: 'create_queue',
+          kind: 'effect.createEntity',
+          label: 'Create queue',
+          entityType: 'queue',
+          construction: domain.construction.queue,
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE },
+          blocks: ['identity', 'lineage'],
+          fields: [],
+          inputs: [],
+          outputs: []
+        }
+      },
+      graph: {
+        nodes: ['queue_identity', 'queue_lineage', 'create_queue'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          {
+            id: 'queue-identity-create',
+            source: 'queue_identity',
+            sourceHandle: 'data:block',
+            target: 'create_queue',
+            targetHandle: 'data:identity',
+            role: 'data'
+          },
+          {
+            id: 'queue-lineage-create',
+            source: 'queue_lineage',
+            sourceHandle: 'data:block',
+            target: 'create_queue',
+            targetHandle: 'data:lineage',
+            role: 'data'
+          }
+        ]
+      }
+    }, {
+      ...domain,
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      }
+    });
+
+    expect(compiled.actions.create_queue).toMatchObject({
+      id: 'create_queue',
+      actionKind: 'createEntity',
+      entityType: 'queue',
+      parentEntityType: null,
+      trigger: { mode: 'manual' }
+    });
+    expect(compiled.actions.create_queue.inputPolicy.fields).toContainEqual(expect.objectContaining({
+      path: 'identity.name',
+      type: 'string',
+      prompt: false,
+      default: 'Queue'
+    }));
+    expect(compiled.roles.operator.actions).toContainEqual(expect.objectContaining({ actionId: 'create_queue' }));
+  });
+
+  it('prompts for identity name when a manual create has no identity wire', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      processNodes: {
+        create_project: {
+          id: 'create_project',
+          kind: 'effect.createEntity',
+          entityType: 'queue',
+          trigger: { mode: 'manual' },
+          construction: domain.construction.queue,
+          blocks: ['identity'],
+          status: { to: SOURCE_STATE }
+        }
+      },
+      graph: {
+        nodes: [{ id: 'create_project', type: 'processNode', data: { refId: 'create_project' } }],
+        edges: []
+      }
+    }, domain);
+
+    expect(compiled.actions.create_project.inputPolicy).toMatchObject({
+      prompt: true,
+      fields: [expect.objectContaining({ path: 'identity.name', type: 'string', prompt: true, required: false })]
+    });
+  });
+
+  it('keeps non-block construction inputs when generic create consumes blocks', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      processNodes: {
+        create_facade: {
+          id: 'create_facade',
+          kind: 'effect.createEntity',
+          entityType: 'facade',
+          trigger: { mode: 'manual' },
+          construction: { mode: 'genericCreate' },
+          blocks: ['identity', 'lineage'],
+          status: { to: SOURCE_STATE }
+        }
+      },
+      graph: {
+        nodes: [{ id: 'create_facade', type: 'processNode', data: { refId: 'create_facade' } }],
+        edges: []
+      }
+    }, {
+      ...domain,
+      entities: [...domain.entities, { type: 'facade' }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        facade: domain.fieldSchemas.queue
+      },
+      construction: {
+        ...domain.construction,
+        facade: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+            { id: 'customLabel', path: 'customLabel', type: 'string', required: false, prompt: true }
+          ]
+        }
+      }
+    });
+
+    expect(compiled.actions.create_facade.construction.inputs).toEqual([
+      expect.objectContaining({ id: 'customLabel', type: 'string', prompt: true })
+    ]);
+  });
+
+  it('does not infer persistence contracts from connected data topology', () => {
+    const definition = normalizeProcessDefinition({
+      dataflowVersion: 4,
+      processNodes: {
+        library: {
+          id: 'library',
+          kind: 'source.literalItem',
+          type: { base: 'entityRef', entityType: 'library' }
+        },
+        relations: {
+          id: 'relations',
+          kind: 'record.composeBlock',
+          block: 'relations',
+          compositionMode: 'relations',
+          entries: [{ id: 'library', key: 'library', entityType: 'project' }]
+        }
+      },
+      graph: {
+        nodes: ['library', 'relations'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [{
+          id: 'library-relations',
+          source: 'library',
+          sourceHandle: 'data:value',
+          target: 'relations',
+          targetHandle: 'data:entry:library',
+          role: 'data'
+        }]
+      }
+    }, domain);
+
+    expect(definition.processNodes.relations.entries[0]).toMatchObject({
+      entityType: 'project',
+      key: 'library'
+    });
+  });
+
+  it('reprojects attachment command sockets from the current typed template contract', () => {
+    const attachmentDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'artifact_template', collection: 'artifact_templates' }],
+      commands: {
+        ...domain.commands,
+        generateAttachment: {
+          id: 'generateAttachment',
+          input: {
+            abstractEntities: [{ name: 'source', capability: 'attachments.generate', accepts: ['sheet_design'], required: true }],
+            entities: [{ name: 'sheetDesign', type: 'sheet_design' }, { name: 'template', type: 'artifact_template' }],
+            parameters: [
+              { name: 'kind', type: 'enum', options: ['LAYOUT_DXF', 'PDF_PASSPORT'], required: true },
+              { name: 'values', type: 'object', default: {} }
+            ]
+          },
+          output: { attachments: ['LAYOUT_DXF', 'PDF_PASSPORT'] }
+        }
+      },
+      fieldAccess: {
+        ...domain.fieldAccess,
+        artifactTemplate: { feature: 'artifact_templates', read: ['identity.*'], write: ['data.*'], admin: ['data.*'] }
+      }
+    };
+    const compiled = compileProcessDefinition({
+      roles: { operator: { id: 'operator' } },
+      actions: {
+        generate: {
+          id: 'generate',
+          actionKind: 'runCommand',
+          commandId: 'generateAttachment',
+          access: { roleIds: ['operator'], level: 'write' },
+          inputs: [{ id: 'pdfTemplateId', kind: 'string' }]
+        }
+      }
+    }, attachmentDomain);
+
+    expect(compiled.actions.generate.inputs.map(input => input.id)).toEqual(['source', 'template', 'kind', 'values']);
+    expect(compiled.actions.generate.inputs.find(input => input.id === 'template')).toMatchObject({
+      entityType: 'artifact_template',
+      path: 'entities.template',
+      prompt: true
+    });
+    expect(compiled.actions.generate.inputs.find(input => input.id === 'values')).toMatchObject({
+      kind: 'json',
+      path: 'parameters.values'
+    });
+  });
+
+  it('normalizes legacy changeStatus actions at the compiler boundary', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        operator: { id: 'operator' }
+      },
+      entityProfiles: {
+        queue: {
+          id: 'queue',
+          entityType: 'queue',
+          lifecycle: { mode: 'defaultCreated' }
+        }
+      },
+      actions: {
+        send_queue: {
+          id: 'send_queue',
+          actionKind: 'changeStatus',
+          entityType: 'queue',
+          status: { from: 'DRAFT', to: 'SENT' },
+          access: { roleIds: ['operator'], level: 'write' }
+        }
+      }
+    }, domain);
+
+    expect(compiled.actions.send_queue.actionKind).toBe('updateEntity');
+    expect(compiled.actions.send_queue.access).toMatchObject({
+      statusFrom: 'DRAFT',
+      statusTo: 'SENT'
+    });
+    expect(compiled.actions.send_queue.contracts.outputs).toContainEqual(expect.objectContaining({
+      entityType: 'queue'
+    }));
+  });
+
   it('compiles custom entity lifecycle directly to a v2 workflow', () => {
     const compiled = compileProcessDefinition({
       entityProfiles: {
@@ -287,6 +631,7 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'createEntity',
           entityType: 'cassette',
           parentEntityType: 'library',
+          parentRevision: { enabled: true, scope: 'content' },
           status: { to: SOURCE_STATE },
           access: { roleIds: ['role_operator'], level: 'write' },
           inputs: [{ id: 'parent', entityType: 'library' }],
@@ -305,7 +650,7 @@ describe('@cutkit/processes compiler', () => {
         },
         mark_run_cut: {
           id: 'mark_run_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           status: { to: 'CUT' },
           access: { roleIds: ['role_operator'], level: 'write' },
           inputs: [{ id: 'entity', entityType: 'nesting_run' }],
@@ -313,7 +658,7 @@ describe('@cutkit/processes compiler', () => {
         },
         mark_sheet_cut: {
           id: 'mark_sheet_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           status: { to: 'CUT' },
           access: { roleIds: ['role_operator'], level: 'write' },
           inputs: [{ id: 'entity', entityType: 'sheet_design' }],
@@ -322,8 +667,7 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(validation.ok).toBe(true);
-    expect(validation.errors.join('\n')).not.toContain('incompatible ports');
+    expect(validation.ok).toBe(false);
   });
 
   it('keeps stale create parent metadata generic during edge validation', () => {
@@ -415,13 +759,13 @@ describe('@cutkit/processes compiler', () => {
         },
         mark_run_cut: {
           id: 'mark_run_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           inputs: [{ id: 'entity', label: 'nesting_run', entityType: 'nesting_run', multiple: true }],
           outputs: [{ id: 'entity', entityType: 'nesting_run' }]
         },
         mark_sheet_cut: {
           id: 'mark_sheet_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           inputs: [{ id: 'entity', label: 'sheet_design', entityType: 'sheet_design', multiple: true }],
           outputs: [{ id: 'entity', entityType: 'sheet_design' }]
         }
@@ -459,7 +803,7 @@ describe('@cutkit/processes compiler', () => {
       processNodes: {
         decompose_queue: {
           id: 'decompose_queue',
-          kind: 'fieldRead',
+          kind: 'entityDecompose',
           entityType: 'queue',
           inputs: [{ id: 'entity', kind: 'entity', entityType: 'queue' }],
           outputs: [{ id: 'identity', kind: 'block', block: 'identity' }]
@@ -467,16 +811,19 @@ describe('@cutkit/processes compiler', () => {
         read_name: {
           id: 'read_name',
           kind: 'blockRead',
+          entityType: 'queue',
           block: 'identity',
-          path: 'name',
+          path: 'identity.name',
           valueType: 'string',
           inputs: [{ id: 'block', kind: 'block', block: 'identity' }],
-          outputs: [{ id: 'value', kind: 'string', block: 'identity', dataPath: 'name' }]
+          outputs: [{ id: 'value', kind: 'string', block: 'identity', dataPath: 'identity.name' }]
         },
         name_exists: {
           id: 'name_exists',
           kind: 'compare',
           operation: 'exists',
+          valueType: 'string',
+          structure: 'item',
           inputs: [{ id: 'left', kind: 'data' }],
           outputs: [{ id: 'result', kind: 'boolean' }]
         }
@@ -492,6 +839,21 @@ describe('@cutkit/processes compiler', () => {
     expect(validation.errors.join('\n')).not.toContain('Process node');
   });
 
+  it('rejects block composition outside the selected entity contract', () => {
+    const validation = validateProcessDefinition({
+      processNodes: {
+        invalid_block: {
+          id: 'invalid_block',
+          kind: 'entityModify',
+          entityType: 'project',
+          block: 'summary'
+        }
+      }
+    }, domain);
+
+    expect(validation.errors).toContain('Process node invalid_block uses block summary outside project');
+  });
+
   it('rejects fields outside the domain field policy', () => {
     const validation = validateProcessDefinition({
       entityProfiles: {
@@ -505,6 +867,53 @@ describe('@cutkit/processes compiler', () => {
 
     expect(validation.ok).toBe(false);
     expect(validation.errors.join('\n')).toContain('billing.secret');
+  });
+
+  it('does not let write-level update actions mutate admin-only fields', () => {
+    const validation = validateProcessDefinition({
+      roles: { role_editor: { id: 'role_editor' } },
+      actions: {
+        update_project_admin_data: {
+          id: 'update_project_admin_data',
+          actionKind: 'updateEntity',
+          mutation: { fields: ['data.internal'] },
+          access: { level: 'write', roleIds: ['role_editor'] },
+          inputs: [{ id: 'entity', entityType: 'project' }],
+          outputs: [{ id: 'entity', entityType: 'project' }]
+        }
+      }
+    }, domain);
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join('\n')).toContain('data.internal');
+  });
+
+  it('rejects mixed action grants when a lower grant reaches an admin-only mutation', () => {
+    const validation = validateProcessDefinition({
+      roles: {
+        role_admin: { id: 'role_admin' },
+        role_editor: { id: 'role_editor' }
+      },
+      actions: {
+        update_project_admin_data: {
+          id: 'update_project_admin_data',
+          actionKind: 'updateEntity',
+          mutation: { fields: ['data.internal'] },
+          access: {
+            grants: [
+              { roleId: 'role_admin', level: 'admin' },
+              { roleId: 'role_editor', level: 'write' }
+            ]
+          },
+          inputs: [{ id: 'entity', entityType: 'project' }],
+          outputs: [{ id: 'entity', entityType: 'project' }]
+        }
+      }
+    }, domain);
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join('\n')).toContain('role_editor');
+    expect(validation.errors.join('\n')).toContain('admin-only field data.internal');
   });
 
   it('compiles screen requirements into user-specific grants', () => {
@@ -554,7 +963,7 @@ describe('@cutkit/processes compiler', () => {
         action_accept: {
           id: 'action_accept',
           label: 'Accept',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'queue',
           status: { to: 'NEXT_STATUS' },
           access: { roleIds: ['role_operator'], level: 'write' }
@@ -964,7 +1373,7 @@ describe('@cutkit/processes compiler', () => {
         },
         approve_project: {
           id: 'approve_project',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           status: { to: 'APPROVED' },
           access: { level: 'admin', roleIds: [] }
         }
@@ -989,7 +1398,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_a.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({
         actionId: 'approve_project',
-        actionKind: 'changeStatus',
+        actionKind: 'updateEntity',
         feature: 'projects',
         entityType: 'project',
         status: { from: 'NEW', to: 'APPROVED' }
@@ -1284,27 +1693,308 @@ describe('@cutkit/processes compiler', () => {
         activate_incoming: {
           id: 'activate_incoming',
           label: 'Activate incoming',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           status: { to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: [] },
-          inputs: [{ id: 'entity', label: 'Incoming entity' }],
-          outputs: [{ id: 'entity', label: 'Same entity', status: TARGET_STATE }],
+          inputs: [{ id: 'entity', label: 'Incoming entity', entityType: 'project' }],
+          outputs: [{ id: 'entity', label: 'Same entity', entityType: 'project', status: TARGET_STATE }],
           events: [{ id: 'completed', label: 'Activate incoming completed', kind: 'event' }]
         }
       }
     }, domain);
 
     expect(compiled.actions.activate_incoming).toMatchObject({
-      actionKind: 'changeStatus',
-      entityType: null,
+      actionKind: 'updateEntity',
+      entityType: 'project',
       status: { to: TARGET_STATE },
       trigger: { mode: 'manual' },
       events: [{ id: 'completed', kind: 'event' }]
     });
   });
 
-  it('compiles create actions with explicit parent inputs', () => {
+  it('exposes manual relation updates as generated entity-detail actions', () => {
+    const relationDomain = {
+      ...domain,
+      fieldAccess: {
+        ...domain.fieldAccess,
+        project: { ...domain.fieldAccess.project, write: [...domain.fieldAccess.project.write, 'relations.*'] }
+      },
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        project: [{
+          path: 'relations.library',
+          block: 'relations',
+          type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'library' },
+          readable: true,
+          writable: true
+        }]
+      },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }]
+      },
+      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } }
+    };
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      roles: {
+        role_admin: { id: 'role_admin', label: 'Admin' }
+      },
+      processNodes: {
+        current: { id: 'current', kind: 'read.currentEntity', entityType: 'project' },
+        deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'project', blocks: ['relations'] },
+        library: {
+          id: 'library',
+          kind: 'source.literalItem',
+          type: { base: 'entityRef', shape: 'item', entityType: 'library' },
+          value: { type: 'library', id: 'library-1' }
+        },
+        modify: {
+          id: 'modify',
+          kind: 'record.modifyBlock',
+          block: 'relations',
+          compositionMode: 'relations',
+          entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one', operation: 'append' }]
+        },
+        update_relations: {
+          id: 'update_relations',
+          kind: 'effect.updateEntity',
+          label: 'Link library',
+          entityType: 'project',
+          blocks: ['relations'],
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] },
+          inputs: [
+            { id: 'entity', entityType: 'project', required: true },
+            { id: 'relations', block: 'relations' }
+          ],
+          outputs: [{ id: 'result', entityType: 'project' }]
+        }
+      },
+      graph: {
+        nodes: ['current', 'deconstruct', 'library', 'modify', 'update_relations']
+          .map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'current-deconstruct', source: 'current', sourceHandle: 'data:entity', target: 'deconstruct', targetHandle: 'data:entity', role: 'data' },
+          { id: 'current-update', source: 'current', sourceHandle: 'data:entity', target: 'update_relations', targetHandle: 'data:entity', role: 'data' },
+          { id: 'deconstruct-modify', source: 'deconstruct', sourceHandle: 'data:relations', target: 'modify', targetHandle: 'data:block', role: 'data' },
+          { id: 'library-modify', source: 'library', sourceHandle: 'data:value', target: 'modify', targetHandle: 'data:entry:library', role: 'data' },
+          { id: 'modify-update', source: 'modify', sourceHandle: 'data:block', target: 'update_relations', targetHandle: 'data:relations', role: 'data' }
+        ]
+      }
+    }, relationDomain);
+
+    expect(compiled.actions.update_relations).toMatchObject({
+      actionKind: 'updateEntity',
+      entityType: 'project',
+      mutation: { blocks: ['relations'] }
+    });
+    expect(compiled.screens.auto_role_admin_project_detail.regions
+      .find(region => region.id === 'main').actions).toContain('update_relations');
+  });
+
+  it('derives Link and Unlink detail actions from a process-composed relation', () => {
+    const relationDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'artifact', collection: 'artifacts' }],
+      relations: [{ ownerType: 'project', key: 'libraries', targetType: 'library', cardinality: 'many' }],
+      attachmentKinds: {
+        DXF_SOURCE: { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
+        CAPTURE_PHOTO: { kind: 'CAPTURE_PHOTO', creation: { mode: 'upload' } }
+      },
+      construction: {
+        ...domain.construction,
+        artifact: {
+          modes: ['uploadArtifact'],
+          defaultMode: 'uploadArtifact',
+          modeInputs: {
+            uploadArtifact: [{
+              id: 'artifact',
+              creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+            }]
+          }
+        }
+      },
+      fieldAccess: {
+        ...domain.fieldAccess,
+        project: { ...domain.fieldAccess.project, write: [...domain.fieldAccess.project.write, 'relations.*'] }
+      },
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        project: [{
+          path: 'relations.library',
+          block: 'relations',
+          type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'library' },
+          readable: true,
+          writable: true,
+          constructible: true
+        }]
+      },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }]
+      },
+      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } }
+    };
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
+      processNodes: {
+        library: {
+          id: 'library',
+          kind: 'effect.createEntity',
+          entityType: 'library',
+          construction: {
+            mode: 'genericCreate',
+            inputs: [{ id: 'name', path: 'name', label: 'Library name', type: 'string', required: true, prompt: true }]
+          },
+          status: { to: INITIAL_STATE },
+          outputs: [{ id: 'result', role: 'data', type: { base: 'entity', shape: 'item', entityType: 'library' } }],
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
+        },
+        artifact: {
+          id: 'artifact',
+          kind: 'source.literalItem',
+          type: { base: 'entityRef', shape: 'item', entityType: 'artifact' },
+          value: { type: 'artifact', id: 'artifact-1' }
+        },
+        relations: {
+          id: 'relations',
+          kind: 'record.composeBlock',
+          block: 'relations',
+          compositionMode: 'relations',
+          entries: [
+            { id: 'library', key: 'library', entityType: 'library', cardinality: 'one' },
+            {
+              id: 'artifact',
+              key: 'artifact',
+              entityType: 'artifact',
+              cardinality: 'one',
+              attachmentKinds: []
+            }
+          ]
+        },
+        create: {
+          id: 'create',
+          kind: 'effect.createEntity',
+          label: 'Create project',
+          entityType: 'project',
+          blocks: ['relations'],
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
+        }
+      },
+      graph: {
+        nodes: ['library', 'artifact', 'relations', 'create'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'library-relations', source: 'library', sourceHandle: 'data:result', target: 'relations', targetHandle: 'data:entry:library', role: 'data' },
+          { id: 'artifact-relations', source: 'artifact', sourceHandle: 'data:value', target: 'relations', targetHandle: 'data:entry:artifact', role: 'data' },
+          { id: 'relations-create', source: 'relations', sourceHandle: 'data:block', target: 'create', targetHandle: 'data:relations', role: 'data' }
+        ]
+      }
+    }, relationDomain);
+
+    expect(compiled.actions['create:link:libraries']).toMatchObject({
+      label: 'Link library',
+      actionKind: 'updateEntity',
+      entityType: 'project',
+      relationMutation: {
+        key: 'libraries',
+        targetType: 'library',
+        cardinality: 'many',
+        operation: 'link',
+        creator: expect.objectContaining({ actionId: 'library', entityType: 'library' })
+      }
+    });
+    expect(compiled.roles.role_admin.actions.find(action => action.actionId === 'create:link:libraries')?.construction).toBeNull();
+    expect(compiled.actions['create:unlink:libraries']).toMatchObject({
+      label: 'Unlink library',
+      relationMutation: { key: 'libraries', targetType: 'library', operation: 'unlink' },
+      inputPolicy: { prompt: false, fields: [] }
+    });
+    expect(compiled.actions['create:link:artifact']).toMatchObject({
+      relationMutation: {
+        creator: {
+          entityType: 'artifact',
+          attachmentKinds: [
+            { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
+            { kind: 'CAPTURE_PHOTO', creation: { mode: 'upload' } }
+          ]
+        }
+      },
+      inputPolicy: {
+        fields: [expect.objectContaining({
+          entityType: 'artifact',
+          creator: expect.objectContaining({ entityType: 'artifact' })
+        })]
+      }
+    });
+    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'artifacts', level: 'write' }));
+    expect(compiled.roles.role_admin.grants).toContainEqual(expect.objectContaining({ feature: 'libraries', level: 'write' }));
+    expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
+      'create:link:libraries',
+      'create:unlink:libraries'
+    ]));
+  });
+
+  it('normalizes embedded relation creators against the current derived construction contract', () => {
+    const normalized = normalizeProcessDefinition({
+      actions: {
+        create_design: {
+          id: 'create_design',
+          actionKind: 'createEntity',
+          entityType: 'cassette_design',
+          construction: {
+            mode: 'bakeCassetteDesignFromTemplate',
+            blockComposed: true,
+            inputs: [
+              { id: 'name', type: 'string', required: true, prompt: true },
+              { id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
+            ]
+          },
+          inputPolicy: {
+            fields: [
+              { id: 'name', type: 'string', required: true, prompt: true },
+              { id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
+            ]
+          }
+        },
+        update_queue: {
+          id: 'update_queue',
+          actionKind: 'updateEntity',
+          entityType: 'queue',
+          mutation: {
+            relationContracts: [{
+              ownerType: 'queue',
+              key: 'cassettes',
+              targetType: 'cassette_design',
+              cardinality: 'many',
+              creator: { actionId: 'create_design' }
+            }]
+          }
+        }
+      }
+    }, {
+      construction: {
+        cassette_design: {
+          modes: ['bakeCassetteDesignFromTemplate'],
+          defaultMode: 'bakeCassetteDesignFromTemplate',
+          derived: true,
+          inputs: [{ id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }]
+        }
+      }
+    });
+
+    expect(normalized.actions['update_queue:link:cassettes'].relationMutation.creator.inputPolicy.fields)
+      .toEqual([expect.objectContaining({ id: 'templateId' })]);
+    expect(normalized.actions['update_queue:link:cassettes'].relationMutation.creator.construction.inputs)
+      .toEqual([expect.objectContaining({ id: 'templateId' })]);
+  });
+
+  it('does not compile explicit parent inputs as hierarchy', () => {
     const compiled = compileProcessDefinition({
       actions: {
         create_queue: {
@@ -1321,11 +2011,10 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_queue.parentEntityType).toBe('project');
-    expect(compiled.actions.create_queue.inputs[0]).toMatchObject({ id: 'parent', entityType: 'project' });
+    expect(compiled.actions.create_queue.parentEntityType).toBeNull();
   });
 
-  it('places parent-bound create actions on parent detail child regions', () => {
+  it('does not place parent metadata without a compiled Lineage binding', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_admin: { id: 'role_admin', label: 'Admin' }
@@ -1358,24 +2047,69 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     const projectDetail = compiled.screens.auto_role_admin_project_detail;
-    expect(projectDetail.sources).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'queue_children',
-        entityType: 'queue',
-        mode: 'list',
-        filters: { projectId: '$screen.scope.entityId' }
-      })
-    ]));
-    expect(projectDetail.regions).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        sourceId: 'queue_children',
-        actions: ['create_queue']
-      })
+    expect(projectDetail.sources).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'queue_children' })
     ]));
     expect(compiled.screens.auto_role_admin_queue.actions).toContain('create_queue');
+    expect(compiled.screens.auto_role_admin_queue.sources).toEqual([
+      expect.objectContaining({
+        entityType: 'queue',
+        mode: 'list',
+        lineageBindings: []
+      })
+    ]);
+    expect(compiled.userAccess.user_admin.screens.find(screen => screen.template === 'home')).toMatchObject({
+      sources: expect.arrayContaining([
+        expect.objectContaining({ entityType: 'project' }),
+        expect.objectContaining({ entityType: 'queue', lineageBindings: [] })
+      ])
+    });
   });
 
-  it('uses graph parent input edges over stale create parent metadata', () => {
+  it('does not mark an explicitly parent-filtered list source as a root source', () => {
+    const scopedDomain = {
+      ...domain,
+      containment: [
+        ...domain.containment,
+        { parentType: 'project', childType: 'sheet_design', lineageKey: 'projectId' },
+        { parentType: 'nesting_run', childType: 'sheet_design', lineageKey: 'runId' }
+      ]
+    };
+    const compiled = compileProcessDefinition({
+      roles: { role_reader: { id: 'role_reader' } },
+      screens: {
+        project_designs: {
+          id: 'project_designs',
+          label: 'Project designs',
+          route: '/project-designs',
+          template: 'entityList',
+          entityType: 'sheet_design',
+          roleIds: ['role_reader'],
+          sources: [{
+            id: 'sheet_designs',
+            entityType: 'sheet_design',
+            mode: 'list',
+            filters: { projectId: '$assignment.projectId' }
+          }]
+        }
+      },
+      assignments: {
+        user_reader: {
+          userId: 'user_reader',
+          roleIds: ['role_reader'],
+          bindings: { projectId: 'project-1' },
+          status: 'active'
+        }
+      }
+    }, scopedDomain);
+
+    const screen = resolveScreens({ compiled, userId: 'user_reader' })
+      .find(item => item.entityType === 'sheet_design');
+    expect(screen.sources[0]).toMatchObject({ filters: { projectId: 'project-1' } });
+    expect(screen.sources[0].lineageBindings).toEqual([]);
+  });
+
+  it('ignores stale parent input edges without a compiled Lineage binding', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_admin: { id: 'role_admin', label: 'Admin' }
@@ -1422,24 +2156,13 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_cassette.parentEntityType).toBe('library');
-    expect(compiled.actions.create_cassette.inputs[0]).toMatchObject({ id: 'parent', entityType: 'library', required: true });
-    expect(compiled.screens.auto_role_admin_library_detail.sources).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'cassette_children',
-        entityType: 'cassette',
-        filters: { libraryId: '$screen.scope.entityId' }
-      })
-    ]));
-    expect(compiled.screens.auto_role_admin_library_detail.regions).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        sourceId: 'cassette_children',
-        actions: ['create_cassette']
-      })
+    expect(compiled.actions.create_cassette.parentEntityType).toBeNull();
+    expect(compiled.screens.auto_role_admin_library_detail.sources).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'cassette_children' })
     ]));
   });
 
-  it('places readable domain children on parent detail screens without requiring create access', () => {
+  it('does not place readable domain children without a compiled Lineage binding', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_reader: { id: 'role_reader', label: 'Reader' }
@@ -1472,23 +2195,8 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     const libraryDetail = compiled.screens.auto_role_reader_library_detail;
-    expect(libraryDetail.sources).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'cassette_children',
-        entityType: 'cassette',
-        mode: 'list',
-        filters: { libraryId: '$screen.scope.entityId' },
-        required: expect.objectContaining({
-          feature: 'cassette',
-          level: 'read'
-        })
-      })
-    ]));
-    expect(libraryDetail.regions).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        sourceId: 'cassette_children',
-        actions: []
-      })
+    expect(libraryDetail.sources).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'cassette_children' })
     ]));
     expect(libraryDetail.actions).not.toContain('create_cassette');
   });
@@ -1708,6 +2416,8 @@ describe('@cutkit/processes compiler', () => {
       icon: 'pi pi-eye'
     });
     expect(compiled.actions.create_design.construction.mode).toBe('bakeCassetteDesignFromTemplate');
+    expect(compiled.actions.create_design.construction.inputs.map(input => input.id)).toEqual(['templateId', 'parameters']);
+    expect(compiled.actions.create_design.inputPolicy.fields.map(field => field.id)).not.toContain('name');
     expect(compiled.statusDefinitions.status_review).toMatchObject({
       statusId: 'REVIEW',
       severity: 'warn',
@@ -1723,8 +2433,6 @@ describe('@cutkit/processes compiler', () => {
       }
     });
     expect(compiled.valueInputs.design_name).toMatchObject({
-      block: 'identity',
-      path: 'identity.name',
       value: 'Named design',
       icon: 'pi pi-id-card'
     });
@@ -1763,7 +2471,7 @@ describe('@cutkit/processes compiler', () => {
         delete_queue: {
           id: 'delete_queue',
           label: 'Action',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           statusRef: 'status_deleted',
           status: { from: 'CREATED' },
           access: { level: 'admin', roleIds: ['role_admin'] },
@@ -1850,16 +2558,15 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.create_design.construction).toMatchObject({
       mode: 'bakeCassetteDesignFromTemplate',
       inputs: expect.arrayContaining([
-        expect.objectContaining({ id: 'name', prompt: true, required: true }),
-        expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
+        expect.objectContaining({ id: 'templateId', prompt: true, required: false }),
         expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
       ])
     });
     expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', prompt: true, required: true }),
-      expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
+      expect.objectContaining({ id: 'templateId', prompt: true, required: false }),
       expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
     ]));
+    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields.map(field => field.id)).not.toContain('name');
   });
 
   it('does not require queue job items during queue creation', () => {
@@ -1903,7 +2610,7 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.create_queue.construction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true }),
+      expect.objectContaining({ id: 'name', required: false, prompt: true }),
       expect.objectContaining({ id: 'jobItems', required: false }),
       expect.objectContaining({ id: 'materialPool', required: false })
     ]));
@@ -1919,11 +2626,11 @@ describe('@cutkit/processes compiler', () => {
       expect.objectContaining({ id: 'data:jobItems', required: false })
     ]));
     expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true }),
+      expect.objectContaining({ id: 'name', required: false, prompt: true }),
       expect.objectContaining({ id: 'jobItems', required: false })
     ]));
     expect(exposedQueueAction.inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true })
+      expect.objectContaining({ id: 'name', required: false, prompt: true })
     ]));
     expect(exposedQueueAction.inputPolicy.fields).not.toContainEqual(expect.objectContaining({ id: 'jobItems' }));
   });
@@ -1955,12 +2662,10 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.create_template.construction).toMatchObject({
-      mode: 'createDefaultOccsTemplate',
-      inputs: [expect.objectContaining({ id: 'name', required: true, prompt: true })]
+      mode: 'genericCreate',
+      inputs: []
     });
-    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual([
-      expect.objectContaining({ id: 'name', required: true, prompt: true })
-    ]);
+    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual([]);
   });
 
   it('compiles update actions with field mutation sockets', () => {
@@ -2131,56 +2836,33 @@ describe('@cutkit/processes compiler', () => {
           lifecycle: { mode: 'defaultCreated' },
           fields: { read: ['identity.*'], write: [], private: [] }
         }
-      },
-      actions: {
-        create_project: {
-          id: 'create_project',
-          label: 'Create project',
-          actionKind: 'createEntity',
-          entityType: 'project',
-          status: { to: INITIAL_STATE },
-          trigger: { mode: 'manual' },
-          access: { level: 'write', roleIds: ['role_admin'] },
-          inputs: [],
-          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
-        }
       }
     };
 
     const canvas = definitionToCanvas(definition);
     const roundTrip = validateRoundTrip(definition);
 
-    expect(canvas.nodes.map(node => node.id)).toEqual(['project_profile', 'create_project']);
+    expect(canvas.nodes.map(node => node.id)).toEqual(['project_profile']);
     expect(canvas.nodes[0].data.semanticId).toBe('entity:project_profile');
     expect(roundTrip.ok).toBe(true);
   });
 
   it('converts canvas deletion back into semantic record deletion', () => {
     const definition = {
-      actions: {
-        create_project: {
-          id: 'create_project',
-          actionKind: 'createEntity',
-          entityType: 'project',
-          status: { to: INITIAL_STATE },
-          trigger: { mode: 'event' },
-          access: { level: 'write', roleIds: [] }
-        },
-        send_project: {
-          id: 'send_project',
-          actionKind: 'sendToOrganization',
-          entityType: 'project',
-          projection: { fields: ['identity.*'], excludeFields: [] },
-          trigger: { mode: 'event' },
-          access: { level: 'write', roleIds: [] }
-        }
+      processNodes: {
+        create_project: { id: 'create_project', kind: 'source.literalItem', value: 'create' },
+        send_project: { id: 'send_project', kind: 'source.literalItem', value: 'send' }
+      },
+      graph: {
+        nodes: ['create_project', 'send_project'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: []
       }
     };
 
     const canvas = definitionToCanvas(definition);
     const next = canvasToDefinition({ ...canvas, nodes: canvas.nodes.filter(node => node.id !== 'send_project') }, definition);
 
-    expect(Object.keys(next.actions)).toEqual(['create_project']);
+    expect(Object.keys(next.processNodes)).toEqual(['create_project']);
   });
 
   it('rejects compiled-only process definitions as editable sources', () => {
@@ -2196,7 +2878,7 @@ describe('@cutkit/processes compiler', () => {
     const validation = validateProcessDefinition({
       actions: {
         activate_project: {
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'project',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
@@ -2296,7 +2978,7 @@ describe('@cutkit/processes compiler', () => {
       actions: {
         activate_project: {
           id: 'activate_project',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
@@ -2357,7 +3039,7 @@ describe('@cutkit/processes compiler', () => {
         },
         activate_project: {
           id: 'activate_project',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           status: { to: TARGET_STATE },
           access: {
             level: 'admin',
@@ -2392,7 +3074,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.workflows.project.regions.main.transitions[0].access).toBeUndefined();
   });
 
-  it('carries scoped parent lineage into child entity action grants', () => {
+  it('does not invent a lineage scope from a parent input edge', () => {
     const compiled = compileProcessDefinition({
       graph: {
         nodes: [
@@ -2449,7 +3131,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_queue.permissions.queues).toEqual([
       {
         level: 'write',
-        scope: { projectId: 'project-a' },
+        scope: { entityId: 'project-a' },
         rule: { fact: 'primaryStatus', equals: INITIAL_STATE }
       }
     ]);
@@ -2539,7 +3221,7 @@ describe('@cutkit/processes compiler', () => {
         },
         send_queue: {
           id: 'send_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'queue',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
@@ -2559,7 +3241,7 @@ describe('@cutkit/processes compiler', () => {
         },
         mark_run_cut: {
           id: 'mark_run_cut',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'nesting_run',
           status: { to: 'CUT' },
           trigger: { mode: 'manual' },
@@ -2567,7 +3249,7 @@ describe('@cutkit/processes compiler', () => {
         },
         reject_queue: {
           id: 'reject_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'queue',
           status: { from: TARGET_STATE, to: 'REJECTED' },
           trigger: { mode: 'manual' },
@@ -2612,7 +3294,7 @@ describe('@cutkit/processes compiler', () => {
         },
         send_queue: {
           id: 'send_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           entityType: 'queue',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
@@ -2669,7 +3351,7 @@ describe('@cutkit/processes compiler', () => {
         },
         activate_project: {
           id: 'activate_project',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
@@ -2737,7 +3419,7 @@ describe('@cutkit/processes compiler', () => {
         },
         send_queue: {
           id: 'send_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           status: { from: INITIAL_STATE, to: TARGET_STATE },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: INITIAL_STATE, statusTo: TARGET_STATE },
           inputs: [{ id: 'entity', entityType: 'queue', status: INITIAL_STATE }],
@@ -2745,7 +3427,7 @@ describe('@cutkit/processes compiler', () => {
         },
         reject_queue: {
           id: 'reject_queue',
-          actionKind: 'changeStatus',
+          actionKind: 'updateEntity',
           status: { from: TARGET_STATE, to: NEXT_STATE },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: TARGET_STATE, statusTo: NEXT_STATE },
           inputs: [{ id: 'entity', entityType: 'queue', status: TARGET_STATE }],
@@ -2767,16 +3449,131 @@ describe('@cutkit/processes compiler', () => {
     ]));
   });
 
-  it('creates compilable starter process definitions from legacy organization types', () => {
-    const process = createProcessFromTemplate({
-      templateId: legacyTypeToTemplateId('Manufacturer'),
-      organizationId: 'org-1',
-      userId: 'user-1'
+  it('creates compilable starter process definitions from a synthetic template', () => {
+    const template = createTemplate({
+      id: 'synthetic-manufacturer',
+      label: 'Synthetic manufacturer',
+      adminLabel: 'Synthetic admin',
+      grants: { libraries: 'admin', catalogs: 'admin' },
+      entities: {
+        library: {
+          id: 'library',
+          entityType: 'library',
+          label: 'Library',
+          lifecycle: { mode: 'domainDefault', workflow: null },
+          fields: { read: ['identity.*'], write: [], private: [] },
+          stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
+          allowedRoles: { read: ['role_admin'], write: ['role_admin'], admin: ['role_admin'] }
+        }
+      },
+      services: {}
     });
-    const compiled = compileProcessDefinition(process.data, domain);
+    const definition = JSON.parse(JSON.stringify(template.definition));
+    definition.compiled = null;
+    const process = {
+      identity: { uid: `process-${template.id}-org-1`, name: template.label, slug: template.id },
+      lineage: { organizationId: 'org-1' },
+      data: definition
+    };
+    const compiled = compileContract(process.data, domain, { roles: template.organizationRoles });
+    const access = resolveRoleAssignmentAccess({ compiled, assignment: { userId: 'user-1', roleIds: ['role_admin'], bindings: {} }, domain });
 
-    expect(process.data.sourceTemplateId).toBe('manufacturer');
-    expect(compiled.userAccess['user-1'].permissions.organizations[0].level).toBe('admin');
-    expect(compiled.userAccess['user-1'].screens.length).toBeGreaterThan(0);
+    expect(process.data.sourceTemplateId).toBe('synthetic-manufacturer');
+    expect(access.screens.length).toBeGreaterThan(0);
+  });
+
+  it('projects command-required entity profiles from actions and services', () => {
+    const commandDomain = {
+      commands: {
+        solveNesting: {
+          requiredEntityProfiles: ['nesting_run', 'sheet_design', 'sheet']
+        }
+      }
+    };
+
+    expect(requiredEntityProfileTypes({
+      actions: {
+        solve: { actionKind: 'runCommand', commandId: 'solveNesting' }
+      },
+      services: {
+        nesting: { commandId: 'solveNesting' }
+      }
+    }, commandDomain)).toEqual(['nesting_run', 'sheet_design', 'sheet']);
+  });
+
+  it('compiles lineage bindings from a Project -> Compose Lineage -> Queue graph', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      roles: { operator: { id: 'operator', label: 'Operator' } },
+      processNodes: {
+        project_source: {
+          id: 'project_source',
+          kind: 'effect.createEntity',
+          entityType: 'project',
+          label: 'Create project',
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE }
+        },
+        queue_lineage: {
+          id: 'queue_lineage',
+          kind: 'record.composeBlock',
+          block: 'lineage',
+          compositionMode: 'ancestors',
+          entries: [{ id: 'project' }]
+        },
+        create_queue: {
+          id: 'create_queue',
+          kind: 'effect.createEntity',
+          entityType: 'queue',
+          label: 'Create queue',
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE },
+          blocks: ['lineage'],
+          fields: [],
+          inputs: [],
+          outputs: []
+        }
+      },
+      graph: {
+        nodes: ['project_source', 'queue_lineage', 'create_queue'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          {
+            id: 'project-to-lineage',
+            source: 'project_source',
+            sourceHandle: 'data:result',
+            target: 'queue_lineage',
+            targetHandle: 'entry:project'
+          },
+          {
+            id: 'lineage-to-queue',
+            source: 'queue_lineage',
+            sourceHandle: 'data:block',
+            target: 'create_queue',
+            targetHandle: 'data:lineage',
+            role: 'data'
+          }
+        ]
+      }
+    }, {
+      ...domain,
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      }
+    });
+
+    const binding = compiled.lineageBindings.find(item => (
+      item.childEntityType === 'queue'
+      && item.ancestorEntityType === 'project'
+    ));
+    expect(binding).toBeDefined();
+    expect(binding.lineageKey).toBe('projectId');
+    expect(binding.sourceNode).toBe('project_source');
+    expect(binding.sourceSocket).toBe('data:result');
+    expect(binding.consumingNode).toBe('queue_lineage');
+    expect(binding.consumingSocket).toBe('entry:project');
   });
 });

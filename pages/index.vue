@@ -1,9 +1,9 @@
 <template>
-  <main class="min-h-screen bg-[var(--ck-page-background)] text-[var(--p-text-color)]">
+  <main class="min-h-screen bg-page text-color">
     <section class="relative min-h-[88vh] overflow-hidden border-b border-content-border">
 
       <header class="relative z-10 mx-auto flex max-w-[var(--ck-page-max-width)] items-center justify-between gap-4 px-4 py-5 md:px-8">
-        <NuxtLink to="/" class="text-xl font-semibold text-primary no-underline">CutKit</NuxtLink>
+        <NuxtLink to="/" class="text-xl font-semibold text-[var(--ck-primary-ink)] no-underline">CutKit</NuxtLink>
         <div class="flex items-center gap-2">
           <Button :label="$t('auth.login')" text @click="navigateTo('/auth/login')" />
           <Button :label="$t('auth.signup')" icon="pi pi-arrow-right" @click="navigateTo('/auth/register')" />
@@ -30,7 +30,7 @@
     <section class="mx-auto grid max-w-[var(--ck-page-max-width)] grid-cols-1 gap-4 px-4 py-8 md:grid-cols-3 md:px-8">
       <Panel v-for="item in valueProps" :key="item.title" class="h-full">
         <div class="flex flex-col gap-2">
-          <i :class="item.icon" class="text-xl text-primary" aria-hidden="true"></i>
+          <i :class="item.icon" class="text-xl text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
           <h2 class="m-0 text-base font-semibold">{{ item.title }}</h2>
           <p class="m-0 text-sm text-muted-color">{{ item.description }}</p>
         </div>

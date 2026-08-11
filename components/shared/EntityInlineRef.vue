@@ -14,17 +14,23 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
+import { generatedDetailActionIds } from '~/components/generated/detail-screen-actions.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
+import { normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
+import { useEntityStore } from '~/stores/entities';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const CARD_COMPONENTS = {
+  facade: defineAsyncComponent(() => import('~/components/entities/Facade/FacadeCard.vue')),
+  facadePattern: defineAsyncComponent(() => import('~/components/entities/FacadePattern/FacadePatternCard.vue')),
   project: defineAsyncComponent(() => import('~/components/entities/Project/ProjectCard.vue')),
   queue: defineAsyncComponent(() => import('~/components/entities/Queue/QueueCard.vue')),
   nestingRun: defineAsyncComponent(() => import('~/components/entities/NestingRun/NestingRunCard.vue')),
@@ -49,7 +55,8 @@ const CARD_COMPONENTS = {
   layerStandard: defineAsyncComponent(() => import('~/components/entities/LayerStandard/LayerStandardCard.vue')),
   user: defineAsyncComponent(() => import('~/components/entities/User/UserCard.vue')),
   organization: defineAsyncComponent(() => import('~/components/entities/Organization/OrganizationCard.vue')),
-  artifact: defineAsyncComponent(() => import('~/components/entities/Artifact/ArtifactCard.vue'))
+  artifact: defineAsyncComponent(() => import('~/components/entities/Artifact/ArtifactCard.vue')),
+  artifactTemplate: defineAsyncComponent(() => import('~/components/entities/ArtifactTemplate/ArtifactTemplateCard.vue'))
 };
 
 const props = defineProps({
@@ -59,15 +66,17 @@ const props = defineProps({
   fetch: { type: Boolean, default: true },
   fields: { type: Array, default: () => ['serial'] },
   allowDetailRoute: { type: Boolean, default: true },
-  variant: { type: String, default: 'inline' }
+  interactive: { type: Boolean, default: true },
+  variant: { type: String, default: 'inline' },
+  contextActionEntries: { type: Array, default: () => [] }
 });
 
 const loaded = ref(null);
 const compactOp = ref();
 const authStore = useAuthStore();
+const entityStore = useEntityStore();
 const domainUi = useCutkitDomainUi();
 const { t } = useI18n();
-const entityApi = useEntity(props.type);
 const sheetDesignApi = useEntity('sheetDesign');
 const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
@@ -140,16 +149,21 @@ const compactPreviewHideDimensionLayer = computed(() =>
   ['cassette', 'cassette_design', 'sheet_design'].includes(generatedEntityType.value)
 );
 const compactStatusState = computed(() => {
+  if (!hasMeaningfulWorkflowStatus(generatedEntityType.value, authStore.statusWorkflows || undefined)) return '';
   const state = resolved.value?.status?.state;
   if (typeof state === 'string') return state;
   return state?.primary || state?.active?.main || '';
 });
 const compactStatusDisplay = computed(() => resolved.value?.status?.metadata?.display || null);
-const popupDetailActionIds = computed(() => detailActionIdsForEntityType(generatedEntityType.value));
+const popupDetailActionIds = computed(() => generatedDetailActionIds({
+  screens: authStore.screenManifest,
+  entityType: generatedEntityType.value,
+  preferredRoute: typeof detailRoute.value === 'string' ? detailRoute.value : detailRoute.value?.path
+}));
 const hasGeneratedActionExecutor = computed(() => typeof unref(generatedExecuteAction) === 'function');
 const popupActions = computed(() => {
   if (!hasGeneratedActionExecutor.value) return [];
-  return resolveGeneratedEntityActions({
+  const standard = resolveGeneratedEntityActions({
     actionIds: popupDetailActionIds.value,
     actionManifest: authStore.actionManifest,
     entity: resolved.value,
@@ -157,6 +171,11 @@ const popupActions = computed(() => {
   })
     .filter(isGeneratedSurfaceAction)
     .filter(action => !isConsumedDetailAction(action));
+  const contextual = props.contextActionEntries
+    .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
+    .filter(Boolean);
+  return Array.from(new Map([...standard, ...contextual]
+    .map(action => [action.actionId, action])).values());
 });
 const popupActionIds = computed(() => popupActions.value.map(action => action.actionId));
 const popupCanDelete = computed(() => canDeleteGeneratedEntity({
@@ -182,13 +201,13 @@ watch(
 
     const provided = props.entity || contextEntity.value;
     if (!provided) {
-      loaded.value = await entityApi.fetch(relationFetchId.value, { silent: true }).catch(() => null);
+      loaded.value = await entityStore.fetchEntity(props.type, relationFetchId.value, false, { silent: true });
       await hydrateNestingRunOutputs(loaded.value);
       return;
     }
 
     if (needsNestingRunHydration(provided)) {
-      hydrated.value = await entityApi.fetch(relationFetchId.value, { silent: true }).catch(() => null);
+      hydrated.value = await entityStore.fetchEntity(props.type, relationFetchId.value, false, { silent: true });
     }
     await hydrateNestingRunOutputs(hydrated.value || provided);
   },
@@ -231,74 +250,11 @@ function withNestingRunOutputRefs(entity) {
 }
 
 function contextTypeCandidates(type) {
-  const aliases = {
-    nestingRun: 'nesting_run',
-    sheetDesign: 'sheet_design',
-    cassetteDesign: 'cassette_design',
-    cassetteTemplate: 'cassette',
-    cassetteInstance: 'cassette_instance',
-    materialPile: 'material_pile',
-    batchPile: 'material_pile',
-    entityRevision: 'entity_revision',
-    geometryCapture: 'geometry_capture',
-    toolProfile: 'tool_profile',
-    penTemplate: 'pen_template',
-    layerStandard: 'layer_standard'
-  };
-  return Array.from(new Set([type, aliases[type]].filter(Boolean)));
+  return Array.from(new Set([type, normalizeHierarchyType(type)].filter(Boolean)));
 }
 
 function generatedEntityTypeFor(type) {
-  const aliases = {
-    nestingRun: 'nesting_run',
-    sheetDesign: 'sheet_design',
-    cassetteDesign: 'cassette_design',
-    cassetteTemplate: 'cassette',
-    cassetteInstance: 'cassette_instance',
-    materialPile: 'material_pile',
-    batchPile: 'material_pile',
-    entityRevision: 'entity_revision',
-    geometryCapture: 'geometry_capture',
-    toolProfile: 'tool_profile',
-    penTemplate: 'pen_template',
-    layerStandard: 'layer_standard'
-  };
-  return aliases[type] || type;
-}
-
-function detailActionIdsForEntityType(entityType) {
-  const screen = detailScreenForEntityType(entityType);
-  if (!screen) return [];
-  const mainRegion = detailMainRegion(screen, entityType);
-  const actionIds = mainRegion?.actions?.length ? mainRegion.actions : screen.actions;
-  return Array.isArray(actionIds) ? actionIds : [];
-}
-
-function detailScreenForEntityType(entityType) {
-  const screens = Array.isArray(authStore.screenManifest) ? authStore.screenManifest : [];
-  const candidates = screens.filter(screen => (
-    screen?.template === 'entityDetail'
-    && screenHasSingleEntitySource(screen, entityType)
-  ));
-  if (!candidates.length) return null;
-  const routePath = typeof detailRoute.value === 'string' ? detailRoute.value : detailRoute.value?.path;
-  return candidates.find(screen => screen.route === routePath) || candidates[0];
-}
-
-function detailMainRegion(screen = {}, entityType = '') {
-  const regions = Array.isArray(screen.regions) ? screen.regions : [];
-  return regions.find(region => (
-    region?.sourceId
-    && (screen.sources || []).some(source => (
-      source.id === region.sourceId
-      && source.entityType === entityType
-      && source.mode === 'single'
-    ))
-  )) || regions.find(region => region.actions?.length) || null;
-}
-
-function screenHasSingleEntitySource(screen = {}, entityType = '') {
-  return (screen.sources || []).some(source => source.entityType === entityType && source.mode === 'single');
+  return normalizeHierarchyType(type);
 }
 
 function isConsumedDetailAction(action = {}) {
@@ -308,6 +264,7 @@ function isConsumedDetailAction(action = {}) {
 }
 
 function toggleCompactPopup(event) {
+  if (!props.interactive) return;
   if (isInteractiveEventTarget(event)) return;
   compactOp.value?.toggle(event);
 }
@@ -328,7 +285,8 @@ function openDetail(event) {
 function executePopupAction(action) {
   const executor = unref(generatedExecuteAction);
   if (typeof executor !== 'function' || !resolved.value) return;
-  executor(action, resolved.value);
+  const contextual = props.contextActionEntries.find(entry => entry.actionId === action.actionId);
+  executor(action, contextual?.entity || resolved.value, contextual?.context || {});
 }
 
 function closeCompactPopup() {
@@ -336,10 +294,12 @@ function closeCompactPopup() {
 }
 
 onMounted(() => {
+  if (!props.interactive) return;
   window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeCompactPopup);
 });
 
 onUnmounted(() => {
+  if (!props.interactive) return;
   window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeCompactPopup);
 });
 
@@ -350,11 +310,11 @@ function entityToneStyle(type) {
 }
 
 function entityFamilyAccent(type) {
-  if (['project', 'queue'].includes(type)) return 'var(--p-blue-500)';
-  if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance', 'profileTemplate'].includes(type)) return 'var(--p-orange-500)';
-  if (['sheet', 'sheetDesign', 'remnant', 'nestingRun'].includes(type)) return 'var(--p-teal-500)';
-  if (['material', 'materialPile', 'batchPile', 'warehouse', 'catalog', 'color'].includes(type)) return 'var(--p-green-500)';
-  if (['organization', 'library', 'requisition', 'artifact', 'entityRevision', 'toolProfile', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--p-purple-500)';
+  if (['project', 'queue'].includes(type)) return 'var(--ck-entity-tone-command)';
+  if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance', 'profileTemplate'].includes(type)) return 'var(--ck-entity-tone-fabrication)';
+  if (['sheet', 'sheetDesign', 'remnant', 'nestingRun'].includes(type)) return 'var(--ck-entity-tone-output)';
+  if (['material', 'materialPile', 'batchPile', 'warehouse', 'catalog', 'color'].includes(type)) return 'var(--ck-entity-tone-material)';
+  if (['organization', 'library', 'requisition', 'artifact', 'entityRevision', 'toolProfile', 'penTemplate', 'layerStandard', 'user'].includes(type)) return 'var(--ck-entity-tone-system)';
   return 'var(--p-surface-500)';
 }
 
@@ -423,12 +383,12 @@ function tonePalette(role) {
   >
     <span
       class="entity-inline-compact min-w-0 max-w-full"
-      :class="{ 'cursor-pointer': Boolean(resolved) }"
-      :role="resolved ? 'button' : undefined"
-      :tabindex="resolved ? 0 : undefined"
-      data-entity-card-interactive="true"
-      @click="resolved ? toggleCompactPopup($event) : undefined"
-      @keydown="resolved ? onCompactKeydown($event) : undefined"
+      :class="{ 'cursor-pointer': Boolean(resolved) && interactive }"
+      :role="resolved && interactive ? 'button' : undefined"
+      :tabindex="resolved && interactive ? 0 : undefined"
+      :data-entity-card-interactive="interactive ? 'true' : undefined"
+      @click="resolved && interactive ? toggleCompactPopup($event) : undefined"
+      @keydown="resolved && interactive ? onCompactKeydown($event) : undefined"
     >
       <span
         v-if="resolved && compactHasPreview"
@@ -476,10 +436,10 @@ function tonePalette(role) {
       </span>
     </span>
 
-    <Popover ref="compactOp" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+    <Popover v-if="interactive" ref="compactOp" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
       <div class="w-[min(34rem,calc(100vw-3rem))]">
         <div class="flex flex-col gap-4 p-4">
-          <TraceChain v-if="resolved" :entity="resolved" />
+          <TraceChain v-if="resolved" :entity="resolved" :entity-type="type" />
           <small class="text-xs uppercase tracking-[0.08em] text-muted-color">
             {{ compactTypeLabel }}
           </small>
@@ -498,7 +458,7 @@ function tonePalette(role) {
               :entity="resolved"
               :entity-type="generatedEntityType"
               surface="card"
-              suppress-child-counts
+              suppress-child-summaries
               relation-variant="compact"
               :display-overrides="{ dataDisplay: 'compact' }"
             />

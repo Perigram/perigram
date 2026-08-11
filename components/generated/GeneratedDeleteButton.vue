@@ -1,11 +1,13 @@
 <template>
   <Button
     v-if="visible"
+    :label="menuItem ? t('common.delete') : undefined"
     icon="pi pi-trash"
     text
-    rounded
+    :rounded="!menuItem"
     severity="danger"
     size="small"
+    :class="menuItem ? 'w-full justify-start' : null"
     :aria-label="t('common.delete')"
     :loading="loading"
     @click.stop="removeEntity"
@@ -16,6 +18,7 @@
 import { computed, ref } from 'vue';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { useEntity } from '~/composables/useEntity.js';
@@ -24,7 +27,8 @@ import { canDeleteGeneratedEntity, uiEntityType } from '~/components/generated/d
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true }
+  entityType: { type: String, required: true },
+  menuItem: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['deleted']);
@@ -32,6 +36,7 @@ const emit = defineEmits(['deleted']);
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();
 const toast = useToast();
+const confirm = useConfirm();
 const { t } = useI18n();
 const loading = ref(false);
 
@@ -44,8 +49,17 @@ const visible = computed(() => canDeleteGeneratedEntity({
 }));
 const entityId = computed(() => props.entity?._id || props.entity?.identity?.uid || '');
 
-async function removeEntity() {
+function removeEntity() {
   if (!visible.value || loading.value) return;
+  confirm.require({
+    message: t('messages.confirmDelete'),
+    header: t('common.confirmation'),
+    icon: 'pi pi-exclamation-triangle',
+    accept: performDelete
+  });
+}
+
+async function performDelete() {
   loading.value = true;
   try {
     await useEntity(normalizedType.value, entityId.value).remove(entityId.value);

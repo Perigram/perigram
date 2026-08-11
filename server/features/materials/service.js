@@ -3,6 +3,7 @@
  */
 
 import * as repository from './repository.js';
+import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { createIdentity, createStatus, createData } from '~/server/core/blocks/index.js';
 import { Material } from './model.js';
@@ -82,3 +83,9 @@ export async function remove(id) {
   }
   return { success: true };
 }
+
+export const processUpdate = createProcessUpdateHandler({
+  entityType: 'material',
+  repository,
+  Model: Material
+});

@@ -36,11 +36,10 @@ environment/secrets.
 Build workers from the project root. `cassette-processing` imports code from the
 file-processing worker, so root build context is required.
 
-`build-images.sh` builds the app image plus file-processing, nesting,
-cassette-processing, and geometry-capture worker images. Geometry capture is
-built with `GEOMETRY_CAPTURE_ML=1` by default so the resulting image includes
-SAM2/GroundingDINO dependencies; set `GEOMETRY_CAPTURE_ML=0` before running the
-script to build the OpenCV-only image.
+`build-images.sh` builds the app image plus file-processing, nesting, and
+cassette-processing worker images. The geometry-capture worker source remains
+in this directory, but the neural-network capture worker is not built or
+started by the Docker compose files and does not maintain a Dockerfile.
 
 ## Related
 

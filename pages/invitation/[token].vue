@@ -1,19 +1,20 @@
 <template>
-    <div class="min-h-screen flex items-center justify-center bg-[var(--ck-page-background)] p-4">
-        <Panel class="w-full max-w-md">
-            <template #header>
-                <div class="flex flex-col items-center gap-4 text-center">
-                    <div class="w-16 h-16 border rounded-full flex items-center justify-center">
-                        <i class="pi pi-building text-3xl"></i>
-                    </div>
-                    <h1 class="m-0">{{ $t('auth.invitationTitle') }}</h1>
-                </div>
-            </template>
+    <div class="min-h-screen flex items-center justify-center bg-page p-4">
+        <Panel
+            class="w-full max-w-md overflow-hidden"
+            :pt="{ header: { class: 'hidden' } }"
+        >
+            <div class="mb-6 flex flex-col items-center gap-3 text-center">
+                <span class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-contrast">
+                    <i class="pi pi-building text-xl" aria-hidden="true"></i>
+                </span>
+                <h1 class="m-0 text-xl">{{ $t('auth.invitationTitle') }}</h1>
+            </div>
             <StateBlock v-if="loading" state="loading" :message="$t('auth.fetchingInvitation')" />
             
-            <div v-else-if="error" class="text-center py-8 flex flex-col gap-4">
-                <Message severity="error">{{ error }}</Message>
-                <Button :label="$t('errors.goHome')" @click="navigateTo('/')" text />
+            <div v-else-if="error" class="flex min-w-0 flex-col gap-4 py-8 text-center">
+                <Message severity="error" class="w-full min-w-0 [&_.p-message-text]:break-words">{{ error }}</Message>
+                <Button :label="$t('errors.goHome')" @click="navigateTo('/')" />
             </div>
 
             <div v-else-if="invitation" class="flex flex-col gap-6 py-4">
@@ -22,7 +23,7 @@
                     <h2 class="m-0">{{ invitation.organizationName }}</h2>
                     <div class="mt-4 inline-flex items-center gap-2">
                         <i class="pi pi-shield"></i>
-                        <Tag :value="invitation.role" />
+                        <Tag :value="invitation.roleLabels?.join(', ')" />
                     </div>
                 </div>
 
@@ -109,7 +110,10 @@ const fetchInvitation = async () => {
     try {
         invitation.value = await $fetch(`/api/invitations/${token}`);
     } catch (err) {
-        error.value = err.message || t('errors.loadFailed');
+        const status = err?.statusCode || err?.status || err?.response?.status;
+        error.value = status === 404 || status === 410
+            ? t('auth.invitationUnavailable')
+            : t('errors.loadFailed');
     } finally {
         loading.value = false;
     }
