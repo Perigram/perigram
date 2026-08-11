@@ -60,7 +60,7 @@ if [ -n "${EXISTING}" ]; then
 else
   curl -fsS -X POST -H "Authorization: token ${ADMIN_TOKEN}" \
     -H "Content-Type: application/json" \
-    -d "{\"type\":\"forgejo\",\"active\":true,\"events\":[\"push\"],\"url\":\"${HOOK_URL}\",\"secret\":\"${SECRET_VALUE}\",\"http_method\":\"POST\"}" \
+    -d "{\"type\":\"forgejo\",\"active\":true,\"events\":[\"push\"],\"config\":{\"url\":\"${HOOK_URL}\",\"content_type\":\"json\",\"secret\":\"${SECRET_VALUE}\",\"http_method\":\"POST\"}}" \
     "http://${FORGEJO_HTTP}/api/v1/repos/${REPO}/hooks" -o /dev/null
   echo "[install] registered webhook at ${HOOK_URL}"
 fi
