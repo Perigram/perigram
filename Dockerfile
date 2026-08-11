@@ -37,6 +37,8 @@ COPY --from=build /src/server/features /src/server/features
 COPY --from=build /src/public /src/public
 # Include nodi-modular WASM for parametric engine at runtime
 COPY --from=build /src/node_modules/nodi-modular /src/node_modules/nodi-modular
+# Include @napi-rs/canvas so pdfjs-dist can polyfill DOMMatrix in Node at runtime
+COPY --from=build /src/node_modules/@napi-rs /src/node_modules/@napi-rs
 # We need node_modules for runtime? Nuxt .output should have them bundled or in server/node_modules?
 # Usually Nuxt output is standalone if configured, but let's keep existing pattern + strict requirement
 # If using server/scripts/generate_nest_dxf.py, we need that file in the final image!

@@ -1,30 +1,65 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { useAuthStore } from '~/stores/auth';
 
 const standardCode = (standard) => standard?.data?.code || standard?.code || null;
 const standardCategory = (standard) => standard?.data?.category || standard?.category || null;
 
 export const useLayerStandardsStore = defineStore('layerStandards', () => {
+    const authStore = useAuthStore();
     const standards = ref([]);
     const loading = ref(false);
     const error = ref(null);
+    const pendingFetches = new Map();
+    let loadedScope = null;
+
+    const currentScope = () => {
+        const user = authStore.userData || {};
+        const userId = user.userId || user.id || 'anonymous';
+        const organizationId = user.organizationId || authStore.organizationData?._id || 'none';
+        return `${userId}:${organizationId}`;
+    };
 
     async function fetchStandards(category = null) {
+        const scope = currentScope();
+        const requestKey = `${scope}:${category || 'all'}`;
+        if (pendingFetches.has(requestKey)) return pendingFetches.get(requestKey);
+
         loading.value = true;
         error.value = null;
-        try {
-            const url = category 
-                ? `/api/layer-standards?category=${category}`
-                : '/api/layer-standards';
-            
-            const data = await $fetch(url);
-            standards.value = data;
-        } catch (err) {
-            error.value = err.message;
-            console.error('Failed to fetch layer standards:', err);
-        } finally {
-            loading.value = false;
-        }
+        const request = (async () => {
+            try {
+                const url = category
+                    ? `/api/layer-standards?category=${category}`
+                    : '/api/layer-standards';
+
+                const data = await $fetch(url);
+                if (currentScope() === scope) {
+                    standards.value = data || [];
+                    if (!category) loadedScope = scope;
+                }
+                return data || [];
+            } catch (err) {
+                if (currentScope() === scope) {
+                    error.value = err.message;
+                    if (!category) loadedScope = null;
+                }
+                console.error('Failed to fetch layer standards:', err);
+            } finally {
+                pendingFetches.delete(requestKey);
+                loading.value = pendingFetches.size > 0;
+            }
+        })();
+
+        pendingFetches.set(requestKey, request);
+        return request;
+    }
+
+    async function ensureStandards() {
+        const scope = currentScope();
+        if (loadedScope === scope) return standards.value;
+        if (loadedScope !== null) standards.value = [];
+        return fetchStandards();
     }
 
     function getByCategory(category) {
@@ -61,6 +96,7 @@ export const useLayerStandardsStore = defineStore('layerStandards', () => {
         loading,
         error,
         fetchStandards,
+        ensureStandards,
         getByCategory,
         getByCode,
         setOrgPenOverride,
