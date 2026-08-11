@@ -39,6 +39,8 @@ COPY --from=build /src/public /src/public
 COPY --from=build /src/node_modules/nodi-modular /src/node_modules/nodi-modular
 # Include @napi-rs/canvas so pdfjs-dist can polyfill DOMMatrix in Node at runtime
 COPY --from=build /src/node_modules/@napi-rs /src/node_modules/@napi-rs
+# Include xlsx so Nitro-bundled chunks can resolve its cpexcel.js codepage data
+COPY --from=build /src/node_modules/xlsx /src/node_modules/xlsx
 # We need node_modules for runtime? Nuxt .output should have them bundled or in server/node_modules?
 # Usually Nuxt output is standalone if configured, but let's keep existing pattern + strict requirement
 # If using server/scripts/generate_nest_dxf.py, we need that file in the final image!
