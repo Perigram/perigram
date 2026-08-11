@@ -18,6 +18,7 @@ export const useEntityStore = defineStore('entities', () => {
 
     const loading = ref(false);
     const error = ref(null);
+    const pendingFetches = new Map();
 
     ensureSyncListener();
 
@@ -29,23 +30,37 @@ export const useEntityStore = defineStore('entities', () => {
         registry.value[type] ||= {};
         if (!force && registry.value[type][id]) return registry.value[type][id];
 
+        const requestKey = `${normalizeHierarchyType(type)}:${id}`;
+        if (!force && pendingFetches.has(requestKey)) return await pendingFetches.get(requestKey);
+
         loading.value = true;
-        try {
-            const route = entityEndpoint(type)?.routes?.single;
-            const url = route ? route.replace(':id', encodeURIComponent(id)) : `/api/${normalizeHierarchyType(type)}/${encodeURIComponent(id)}`;
-            const data = await $fetch(url);
-            
-            registry.value[type][id] = data;
-            return data;
-        } catch (err) {
-            if (!options.silent) {
-                console.error(`Failed to fetch ${type} with id ${id}:`, err);
-            }
-            error.value = err.message;
-            return null;
-        } finally {
-            loading.value = false;
-        }
+        const request = resolveReadableReference(type, id, options)
+            .then(data => {
+                if (data) registry.value[type][id] = data;
+                return data;
+            })
+            .catch(err => {
+                if (!options.silent) {
+                    console.error(`Failed to fetch ${type} with id ${id}:`, err);
+                }
+                error.value = err.message;
+                return null;
+            })
+            .finally(() => {
+                pendingFetches.delete(requestKey);
+                loading.value = false;
+            });
+        pendingFetches.set(requestKey, request);
+        return await request;
+    }
+
+    async function resolveReadableReference(type, id, options = {}) {
+        const route = entityEndpoint(type)?.routes?.list;
+        if (!route) return null;
+        const query = new URLSearchParams({ _id: id.toString() });
+        const { silent: _silent, ...fetchOptions } = options;
+        const response = await $fetch(`${route}?${query}`, fetchOptions);
+        return collectionItems(response).find(entity => entityIds(entity).includes(id.toString())) || null;
     }
 
     /**
@@ -75,6 +90,20 @@ export const useEntityStore = defineStore('entities', () => {
     function entityEndpoint(type = '') {
         const normalized = normalizeHierarchyType(type);
         return (cncDomain.ui?.endpoints || []).find(endpoint => normalizeHierarchyType(endpoint.type) === normalized);
+    }
+
+    function collectionItems(response) {
+        if (Array.isArray(response)) return response;
+        for (const key of ['items', 'projects', 'data']) {
+            if (Array.isArray(response?.[key])) return response[key];
+        }
+        return [];
+    }
+
+    function entityIds(entity = {}) {
+        return [entity._id, entity.id, entity.identity?.uid]
+            .map(value => value?.toString?.() || value)
+            .filter(Boolean);
     }
 
     function ensureSyncListener() {

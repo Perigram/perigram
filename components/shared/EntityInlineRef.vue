@@ -21,6 +21,7 @@ import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
+import { useEntityStore } from '~/stores/entities';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
@@ -73,9 +74,9 @@ const props = defineProps({
 const loaded = ref(null);
 const compactOp = ref();
 const authStore = useAuthStore();
+const entityStore = useEntityStore();
 const domainUi = useCutkitDomainUi();
 const { t } = useI18n();
-const entityApi = useEntity(props.type);
 const sheetDesignApi = useEntity('sheetDesign');
 const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
@@ -200,13 +201,13 @@ watch(
 
     const provided = props.entity || contextEntity.value;
     if (!provided) {
-      loaded.value = await entityApi.fetch(relationFetchId.value, { silent: true }).catch(() => null);
+      loaded.value = await entityStore.fetchEntity(props.type, relationFetchId.value, false, { silent: true });
       await hydrateNestingRunOutputs(loaded.value);
       return;
     }
 
     if (needsNestingRunHydration(provided)) {
-      hydrated.value = await entityApi.fetch(relationFetchId.value, { silent: true }).catch(() => null);
+      hydrated.value = await entityStore.fetchEntity(props.type, relationFetchId.value, false, { silent: true });
     }
     await hydrateNestingRunOutputs(hydrated.value || provided);
   },
