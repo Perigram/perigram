@@ -576,6 +576,12 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 
 `EntityStatus` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and only lifecycle transitions should be passed into the status surface. Inline/card status surfaces use the badge itself as the popover trigger and do not render a second ellipsis button beside the badge; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.
 
+`TraceChain` omits ancestry already represented by the surrounding entity
+context. The active organization is always part of the authenticated app
+context, so its lineage reference is not repeated on generated cards, entity
+pages, or inline popovers; other project and production ancestors remain
+visible unless their exact entity is also displayed by an enclosing context.
+
 `EntityCard` owns inline and compact expansion. Inline and compact variants open
 the shared entity popover on click/keyboard activation. Entity-specific card
 components should render one `EntityCard :variant="variant"` and pass their
