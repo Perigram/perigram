@@ -17,8 +17,11 @@ passwords, full WireGuard configs, cookies, or tokens.
 | R240 SSH target | `cutkit@192.168.0.106` |
 | R240 app URL | `http://192.168.0.106:7100` |
 | Remote checkout | `/home/cutkit/cutkit-demo` |
-| Remote bare repo | `/home/cutkit/cutkit-demo.git` |
+| Forgejo (git server) | `http://192.168.0.106:3002` (HTTP), `ssh://git@192.168.0.106:2222` (Git SSH) |
+| Git origin | `git@192.168.0.106:cutkit/cutkit-demo.git` via port `2222` |
+| GitHub mirror | `github` remote at `https://github.com/1suo/cutkit-demo.git` |
 | Swarm app service | `cutkit_app` |
+| Autodeploy webhook | `http://192.168.0.106:8088/hook` (push to `staging`) |
 
 The VPN-only LAN address is expected. A public internet connection first goes to
 the WireGuard endpoint, then SSH/app traffic goes through the VPN to
@@ -32,8 +35,17 @@ These files may exist on the workstation but must not be committed:
   contains private material.
 - `~/.config/cutkit-wireguard/isuo-workstation.key` - WireGuard private key.
 - `~/.config/cutkit-wireguard/isuo-workstation.pub` - WireGuard public key.
-- `~/.ssh/cutkit_r240_ed25519` - SSH private key for `cutkit-r240`.
+- `~/.ssh/cutkit_r240_ed25519` - SSH private key for `cutkit-r240`; also
+  registered in Forgejo as the workstation key.
 - `~/.ssh/config` - contains the `cutkit-r240` host alias.
+
+On R240 (not committed anywhere):
+
+- `~/forgejo` - Forgejo data directory (admin credentials and DB secrets live
+  in the SQLite database / `app.ini`).
+- `~/autodeploy/webhook.env` - autodeploy webhook HMAC secret (mode `0600`).
+- `~/.ssh/cutkit_git_deploy` - R240 SSH key registered in Forgejo for the
+  checkout/deploy transport.
 
 Store complete secrets only in a password manager or the local root-owned/key
 files above. Do not put them in git, TODO notes, Obsidian, or chat transcripts.
@@ -54,29 +66,55 @@ client WireGuard config for this workstation, the server public key, endpoint,
 assigned client IP, allowed IPs/routes, and confirmation that this workstation's
 SSH public key is present in `/home/cutkit/.ssh/authorized_keys` on R240.
 
-## Deploy From Local Branch
+## Git Server: Forgejo on R240
 
-Use the `local` branch. Push to the remote bare repo through the SSH alias:
+Forgejo runs as a Docker container on R240 and is the primary git remote for
+this repository. Ports are bound to the private LAN address only:
+
+- HTTP web UI / API: `http://192.168.0.106:3002`
+- Git over SSH: `ssh://git@192.168.0.106:2222/<owner>/<repo>.git`
+- Container data: `/home/cutkit/forgejo` (persistent; includes `app.ini`, the
+  SQLite database, repositories, and SSH keys)
+- Container: `forgejo` (restart `unless-stopped`)
+
+The workstation `origin` remote points at Forgejo:
 
 ```bash
-git -c core.sshCommand='ssh -F /home/isuo/.ssh/config -o StrictHostKeyChecking=accept-new' \
-  push cutkit-r240:/home/cutkit/cutkit-demo.git local:local
+git remote -v
+# origin  git@192.168.0.106:cutkit/cutkit-demo.git (fetch)
+# origin  git@192.168.0.106:cutkit/cutkit-demo.git (push)
+# github  https://github.com/1suo/cutkit-demo.git (fetch/push)   <- mirror
 ```
 
-Then update the remote checkout, build, and roll the service:
+Git SSH to Forgejo uses port `2222` with the workstation key
+`~/.ssh/cutkit_r240_ed25519`:
+
+```bash
+git config core.sshCommand 'ssh -p 2222 -i ~/.ssh/cutkit_r240_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new'
+```
+
+The R240 checkout clones/pushes over the same Forgejo SSH transport using the
+R240 deploy key `~/.ssh/cutkit_git_deploy`.
+
+## Deploy Staging
+
+Pushing to the `staging` branch on Forgejo auto-deploys. The deploy runner
+(`deploy/deploy-staging.sh`) is triggered by the Forgejo push webhook through
+the receiver service (`deploy/webhook-receiver.py`). See
+[deploy/README.md](../deploy/README.md) for the pipeline and installer.
+
+Manual staging deploy from the workstation:
+
+```bash
+git push origin staging
+```
+
+Then monitor the R240 Swarm roll:
 
 ```bash
 ssh -F /home/isuo/.ssh/config cutkit-r240 \
-  'cd /home/cutkit/cutkit-demo && git fetch /home/cutkit/cutkit-demo.git local && git checkout local && git reset --hard FETCH_HEAD && git rev-parse --short HEAD'
-
-ssh -F /home/isuo/.ssh/config cutkit-r240 \
-  'cd /home/cutkit/cutkit-demo && docker build -t cutkit-app:local-<commit> -t cutkit-app:latest .'
-
-ssh -F /home/isuo/.ssh/config cutkit-r240 \
-  'docker service update --image cutkit-app:local-<commit> --detach=false cutkit_app'
+  'docker service ps cutkit_app --no-trunc --format "{{.Name}} {{.Image}} {{.CurrentState}} {{.Error}}" | head -5'
 ```
-
-Replace `<commit>` with the short commit hash from the remote checkout.
 
 ## Verify
 
@@ -95,3 +133,7 @@ ssh -F /home/isuo/.ssh/config cutkit-r240 \
 - `BASE_URL` and `NUXT_PUBLIC_BASE_URL` may still show the historical
   `192.168.0.67:7100` in the Swarm service environment; direct app testing here
   uses `http://192.168.0.106:7100`.
+- The legacy bare repo `/home/cutkit/cutkit-demo.git` and the `lan` remote are
+  retired in favor of Forgejo; the checkout and deploys now go through the
+  Forgejo origin. The `local` branch is a local integration branch only and is
+  not pushed to Forgejo.
