@@ -652,6 +652,13 @@ describe('Design system manifest', () => {
     expect(generatedHome).not.toContain('min-w-64 max-w-72');
   });
 
+  it('keeps generated Home layout sizing off variant entity-card roots', () => {
+    const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
+
+    expect(generatedHome).toContain('class="w-[18rem] min-w-[18rem] flex-none"');
+    expect(generatedHome).not.toMatch(/<EntityCard\s+class=/);
+  });
+
   it('keeps queue entity controls scoped to the concrete queue', () => {
     const queueCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Queue/QueueCard.vue'), 'utf8');
     const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
