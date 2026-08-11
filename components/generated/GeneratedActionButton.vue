@@ -35,6 +35,7 @@ const { t, te } = useI18n();
 const action = computed(() => authStore.actionManifest.find(item => item.actionId === props.actionId));
 const actionLabel = computed(() => generatedActionLabel(action.value || {}, props.actionId, { t, te }));
 const actionIcon = computed(() => {
+  if (action.value?.relationMutation?.operation === 'link') return 'pi pi-link';
   if (action.value?.actionKind === 'createEntity') return 'pi pi-plus';
   if (action.value?.actionKind === 'updateEntity' && action.value?.status?.to) return 'pi pi-arrow-right-arrow-left';
   if (action.value?.actionKind === 'updateEntity') return 'pi pi-pencil';

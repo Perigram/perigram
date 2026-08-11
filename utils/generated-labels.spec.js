@@ -8,10 +8,10 @@ const messages = {
   'generatedScreen.actions.change': 'Change',
   'generatedScreen.actions.run': 'Run',
   'generatedScreen.actions.send': 'Send',
-  'generatedScreen.actions.addRelated': ({ entity }) => `Add ${entity}`,
   'entities.cassette': 'Cassette',
   'entities.cassetteDesign': 'Cassette design'
 };
+
 const i18n = {
   t: (key, params) => typeof messages[key] === 'function' ? messages[key](params) : (messages[key] || key),
   te: key => Object.hasOwn(messages, key)
@@ -55,6 +55,6 @@ describe('generated labels', () => {
         targetType: 'cassette_design',
         operation: 'link'
       }
-    }, '', i18n)).toBe('Add Cassette design');
+    }, '', i18n)).toBe('Cassette design');
   });
 });

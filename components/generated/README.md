@@ -169,6 +169,10 @@ file panes own their scrolling independently.
 `GeneratedCassetteDesignerAction` render in the active project tab body.
 Regular entity pages and cards may use their menu-item presentation inside
 entity ellipsis menus; presentation does not change action resolution or access.
+Generated relation-link actions render with a link icon and the target entity
+label only (no verb), so the button does not repeat an "add" word; their label
+and icon come from the shared `generatedActionLabel`/`GeneratedActionButton`
+contract.
 Operational editors may consume commands and construction producers they
 implement, but generated relation mutations always remain on this generic action
 surface. Their target entity, scoped choices, optional creator, execution, and
