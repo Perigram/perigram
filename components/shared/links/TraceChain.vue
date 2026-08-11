@@ -54,7 +54,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { entityUiFor } from '~/utils/status-engine';
-import { containmentAncestors, entityHierarchyIds, normalizeHierarchyType, projectHierarchyRoute } from '~/utils/entity-hierarchy.js';
+import { containmentAncestors, normalizeHierarchyType, projectHierarchyRoute, traceContextExclusions, visibleTraceAncestors } from '~/utils/entity-hierarchy.js';
 
 const props = defineProps({
     entity: { type: Object, default: null },
@@ -85,28 +85,20 @@ const FALLBACK_LABELS = {
 };
 
 const activeLineage = computed(() => props.lineage || entityLineage.value);
-const effectiveExclusions = computed(() => {
-    const contextExclusions = (unref(displayedEntityContexts) || []).flatMap(displayed => {
-        if (!displayed?.type) return [];
-        return entityHierarchyIds(displayed.entity || {}).map(id => ({
-            type: displayed.type,
-            id
-        }));
-    });
-    return [
-        ...props.exclude,
-        ...contextExclusions
-    ].filter(displayed => displayed.type && displayed.id);
-});
+const effectiveExclusions = computed(() => traceContextExclusions({
+    exclusions: props.exclude,
+    displayedContexts: unref(displayedEntityContexts) || [],
+    activeOrganizationId: authStore.organizationData?._id || authStore.userData?.organizationId || ''
+}));
 
-const items = computed(() => containmentAncestors(
-    { ...(props.entity || {}), lineage: activeLineage.value || {} },
-    props.entityType || props.entity?.entityType || '',
-    effectiveContainment()
-).filter(ref => !effectiveExclusions.value.some(item => (
-    normalizeHierarchyType(item?.type) === normalizeHierarchyType(ref.type)
-    && String(item?.id || '') === String(ref.id || '')
-  ))));
+const items = computed(() => visibleTraceAncestors(
+    containmentAncestors(
+        { ...(props.entity || {}), lineage: activeLineage.value || {} },
+        props.entityType || props.entity?.entityType || '',
+        effectiveContainment()
+    ),
+    effectiveExclusions.value
+));
 
 const findContextEntity = (type, id) => {
     const context = unref(entityContext);

@@ -73,6 +73,25 @@ export function routeContextTraceExclusions(entity = {}, entityType = '', contai
   });
 }
 
+export function traceContextExclusions({ exclusions = [], displayedContexts = [], activeOrganizationId = '' } = {}) {
+  const displayed = (displayedContexts || []).flatMap(context => {
+    if (!context?.type) return [];
+    return entityHierarchyIds(context.entity || {}).map(id => ({ type: context.type, id }));
+  });
+  const activeOrganization = activeOrganizationId
+    ? [{ type: 'organization', id: activeOrganizationId?.toString?.() || activeOrganizationId }]
+    : [];
+  return [...exclusions, ...displayed, ...activeOrganization]
+    .filter(ref => ref?.type && ref?.id !== undefined && ref?.id !== null && ref?.id !== '');
+}
+
+export function visibleTraceAncestors(ancestors = [], exclusions = []) {
+  return (ancestors || []).filter(ref => !(exclusions || []).some(exclusion => (
+    normalizeHierarchyType(exclusion?.type) === normalizeHierarchyType(ref?.type)
+    && String(exclusion?.id || '') === String(ref?.id || '')
+  )));
+}
+
 export function rootContainmentFilter(entityType = '', containment = []) {
   const keys = (containment || [])
     .filter(relation => normalizeHierarchyType(relation.childType) === normalizeHierarchyType(entityType))
