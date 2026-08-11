@@ -1,0 +1,14 @@
+[Unit]
+Description=CutKit Forgejo autodeploy webhook receiver
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/autodeploy/webhook.env
+ExecStart=/usr/bin/python3 %h/autodeploy/webhook-receiver.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
