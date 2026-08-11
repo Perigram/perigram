@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { containmentAncestors, projectHierarchyRoute, rootContainmentFilter, routeContextTraceExclusions, siblingContainmentScope } from './entity-hierarchy.js';
+import {
+  containmentAncestors,
+  projectHierarchyRoute,
+  rootContainmentFilter,
+  routeContextTraceExclusions,
+  siblingContainmentScope,
+  traceContextExclusions,
+  visibleTraceAncestors
+} from './entity-hierarchy.js';
 
 describe('entity containment hierarchy', () => {
   const lineageBindings = [
@@ -53,6 +61,22 @@ describe('entity containment hierarchy', () => {
     expect(routeContextTraceExclusions(queue, 'queue', lineageBindings, {
       projectId: 'another-project'
     })).toEqual([]);
+  });
+
+  it('omits the active organization and displayed entities from trace ancestry', () => {
+    const ancestors = [
+      { type: 'organization', id: 'org-1', lineageKey: 'organizationId' },
+      { type: 'project', id: 'project-1', lineageKey: 'projectId' },
+      { type: 'queue', id: 'queue-1', lineageKey: 'queueId' }
+    ];
+    const exclusions = traceContextExclusions({
+      displayedContexts: [{ type: 'project', entity: { _id: 'project-1' } }],
+      activeOrganizationId: 'org-1'
+    });
+
+    expect(visibleTraceAncestors(ancestors, exclusions)).toEqual([
+      { type: 'queue', id: 'queue-1', lineageKey: 'queueId' }
+    ]);
   });
 
   it('builds project-scoped routes from the resolved project identity', () => {
