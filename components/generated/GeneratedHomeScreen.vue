@@ -36,7 +36,6 @@
           :data-entity-id="entity._id || entity.id || entity.identity?.uid"
         >
           <EntityCard
-            class="h-full"
             :entity="entity"
             :entity-type="section.source.entityType"
             :surface="section.region.surface || 'card'"

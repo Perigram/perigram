@@ -184,8 +184,8 @@ const applyPreviewInset = (box) => {
 
 const loadStores = async () => {
   await Promise.all([
-    standardsStore.fetchStandards?.(),
-    pensStore.fetchPens?.()
+    standardsStore.ensureStandards?.(),
+    pensStore.ensurePens?.()
   ]);
 };
 
