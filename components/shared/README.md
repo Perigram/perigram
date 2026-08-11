@@ -344,8 +344,9 @@ readable.
 
 ### `EntityInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
-It loads the DTO through `useEntity(type)` when only an id is provided, resolves
-the matching design-system entity card, and renders that card with
+When only an id is provided, it resolves the DTO through the entity store's
+access-filtered optional-reference lookup, resolves the matching design-system
+entity card, and renders that card with
 `variant="inline"`. The referenced entity card owns the click/keyboard popover
 and reuses its canonical body inside that popover. In generated surfaces,
 the popover action row is access-aware: `EntityInlineRef` resolves the
@@ -383,8 +384,10 @@ Use canonical design-system surface keys for new references, for example
 `entityRevision`. Backend snake-case aliases continue to resolve through the
 domain UI adapter for compatibility, but they should not appear in new entity
 component templates.
-Inline reference fetches are silent by default: stale or deleted relation ids
-fall back to an id chip without flooding the browser console.
+Inline reference hydration uses the entity collection boundary rather than the
+protected detail route. Unreadable, stale, or deleted relation/provenance ids
+therefore fall back to an id chip without producing expected 403/404 browser
+failures; direct detail navigation retains its normal authorization errors.
 Callers can pass `:fetch="false"` when the parent surface intentionally has
 only a scoped relation id and should not probe a protected entity endpoint. In
 that mode `EntityInlineRef` renders the typed id chip unless an `entity` prop or

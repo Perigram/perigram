@@ -3,7 +3,17 @@
 Pinia stores for client state and API orchestration.
 
 ## Core Stores
-- `entities.js`: Universal entity registry and cache for all system entity types. `fetchEntity(type, id, force?, options?)` fetches from the appropriate API endpoint and caches in `registry[type][id]`; `options.silent` suppresses expected protected lookup errors. Used by TraceChain for lineage name resolution. Supports: organization, project, queue, warehouse, requisition, batch, cassetteInstance, and others. The store also subscribes to the shared browser-local entity sync contract from `utils/entity-events.js`, so successful `useEntity()` CRUD calls and status transitions upsert or remove matching cached entities automatically.
+- `entities.js`: Universal entity registry and cache for all system entity
+  types. `fetchEntity(type, id, force?, options?)` is the optional-reference
+  resolver used by trace, relation, and persisted-workspace hydration. It asks
+  the entity's access-filtered collection endpoint for that exact `_id`, caches
+  only an exact readable match, and coalesces concurrent lookups. An unreadable,
+  stale, or deleted reference therefore resolves to `null` without probing a
+  protected detail endpoint and producing expected 403/404 browser failures.
+  `options.silent` still suppresses genuine collection-boundary errors. The
+  store also subscribes to the shared browser-local entity sync contract from
+  `utils/entity-events.js`, so successful `useEntity()` CRUD calls and status
+  transitions upsert or remove matching cached entities automatically.
 - `layerStandards.js`: Loads the canonical layer-standard catalogue. Lookups use
   `standard.data.code` / `standard.data.category` with root-field fallbacks only
   for migration compatibility, and pen overrides update `data.orgPenId`.
