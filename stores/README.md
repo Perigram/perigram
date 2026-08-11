@@ -17,9 +17,14 @@ Pinia stores for client state and API orchestration.
 - `layerStandards.js`: Loads the canonical layer-standard catalogue. Lookups use
   `standard.data.code` / `standard.data.category` with root-field fallbacks only
   for migration compatibility, and pen overrides update `data.orgPenId`.
+  Preview consumers call `ensureStandards()`, which shares an in-flight request
+  and reuses the completed catalogue for the active user and organization;
+  management surfaces retain `fetchStandards()` for an explicit refresh.
 - `penTemplates.js`: Loads system and user pen DTOs. System/user grouping is
   based on `pen.lineage.userId`; stroke rendering data lives under
-  `pen.data.stroke`.
+  `pen.data.stroke`. `ensurePens()` follows the same authenticated-scope cache
+  contract as layer standards, while `fetchPens()` remains the explicit refresh
+  operation.
 - `batches.js`: Batch list/current batch, nesting actions, status polling.
 - `artifacts.js`: Batch artifacts fetching and cache.
 - `supportChat.js`: Chats drawer conversation snapshot state, unread totals,
