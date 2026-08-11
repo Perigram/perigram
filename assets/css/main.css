@@ -338,7 +338,6 @@ body {
 
 :where(.p-button-label, .p-tab-label, .p-datatable-column-title, .p-tag-value) {
     letter-spacing: var(--ck-label-tracking);
-    text-transform: uppercase;
 }
 
 .entity-inline-chip {
