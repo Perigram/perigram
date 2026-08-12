@@ -807,9 +807,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `R`, ...), and keeps actual OCCS workpieces as graph nodes connected by
   OCCS cassette joints. The designer shell separates document actions,
   geometry editing, global settings, assembly topology, and folded 3D preview:
-  the `DesignerWorkspace` toolbar owns the active cassette name, saved/modified
-  text state, template load, Save, Save as, and Reset; document type and units
-  stay in the OCCS document rather than consuming permanent toolbar chips.
+  the `DesignerWorkspace` toolbar owns the active cassette name, OCCS document
+  type/units, saved/modified state, template load, Save, Save as, and Reset;
   the canvas owns only CAD interaction; the left settings rail owns global
   parameters, layer visibility, and read-only OCCS JSON through one controlled
   PrimeVue settings tab list. Settings and assembly section headers use an

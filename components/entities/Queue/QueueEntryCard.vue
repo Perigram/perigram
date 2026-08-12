@@ -52,7 +52,16 @@
           </div>
         </div>
 
-        <section v-if="parameterNames.length" class="flex flex-col gap-2" :aria-label="$t('cassette.parameters')">
+        <section v-if="parameterNames.length" class="flex flex-col gap-2" aria-labelledby="queue-entry-parameters">
+          <div class="flex flex-wrap items-center gap-1 rounded-ui bg-section px-2 py-1">
+            <small id="queue-entry-parameters" class="text-muted-color">{{ $t('cassette.parameters') }}</small>
+            <Tag v-if="units" :value="units" severity="secondary" size="small" />
+            <Tag
+              :value="configurable ? $t('queue.parametersConfigurable') : $t('queue.parametersLocked')"
+              :severity="configurable ? 'success' : 'secondary'"
+              size="small"
+            />
+          </div>
           <div class="queue-entry-card__parameters grid gap-2">
             <label v-for="parameter in parameterNames" :key="parameter" class="flex items-center gap-2">
               <small class="min-w-6 text-muted-color">{{ parameter }}</small>
@@ -61,6 +70,12 @@
                 :disabled="disabled || !configurable || lockedParameters.includes(parameter)"
                 size="small"
                 fluid
+              />
+              <Tag
+                v-if="lockedParameters.includes(parameter)"
+                :value="$t('queue.parameterLocked')"
+                severity="secondary"
+                size="small"
               />
             </label>
             <Button
@@ -75,6 +90,32 @@
             />
           </div>
         </section>
+        <div v-if="selected" class="flex min-w-0 flex-wrap items-center gap-1 text-xs text-muted-color" data-queue-entry-context>
+          <Tag :value="designContextLabel" severity="secondary" size="small" />
+          <i v-if="template || templateId" class="pi pi-arrow-right text-xs" aria-hidden="true" />
+          <Tag v-if="template || templateId" :value="$t('queue.sourceTemplate')" severity="secondary" size="small" />
+          <Tag v-else :value="$t('queue.sourceUnavailable')" severity="warn" size="small" />
+        </div>
+        <div v-if="selected && (canOpenDesign || canOpenTemplate)" class="flex flex-wrap items-center gap-1" data-entity-card-interactive="true" @click.stop>
+          <Button
+            v-if="canOpenDesign"
+            :label="$t('queue.inspectDesign')"
+            icon="pi pi-eye"
+            severity="secondary"
+            text
+            size="small"
+            @click="emit('open-design')"
+          />
+          <Button
+            v-if="canOpenTemplate"
+            :label="$t('queue.openTemplate')"
+            icon="pi pi-pencil"
+            severity="secondary"
+            text
+            size="small"
+            @click="emit('open-template')"
+          />
+        </div>
       </div>
     </div>
   </Panel>
@@ -96,14 +137,17 @@ const props = defineProps({
   template: { type: Object, default: null },
   templateId: { type: String, default: '' },
   parameters: { type: Array, default: () => [] },
+  units: { type: String, default: '' },
   lockedParameters: { type: Array, default: () => ['T'] },
   configurable: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
-  selected: { type: Boolean, default: false }
+  selected: { type: Boolean, default: false },
+  canOpenDesign: { type: Boolean, default: false },
+  canOpenTemplate: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['configure', 'update-quantity', 'remove', 'select']);
+const emit = defineEmits(['configure', 'update-quantity', 'remove', 'select', 'open-design', 'open-template']);
 const { t } = useI18n();
 const panelPt = {
   header: { class: '!hidden' },
@@ -135,6 +179,7 @@ const sourceTypeLabel = computed(() => {
   return props.entry.entityType || t('entities.cassetteDesign');
 });
 const sourceLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value || t('common.unknown')}`);
+const designContextLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value || t('common.unknown')}`);
 </script>
 
 <style scoped>

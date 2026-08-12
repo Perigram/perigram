@@ -75,13 +75,13 @@ Production queue card and detail surface.
   Because PrimeVue `Panel` always renders its header container, the entry card
   hides that unused container so content begins at the card's top padding
   instead of reserving an empty header band.
-- Queue entry parameters remain a compact inline input grid below the canonical
-  source template and queue-local quantity. Disabled inputs communicate a
-  non-configurable or locked value; the card does not add status chips, unit
-  chips, or per-field lock labels. The current OCCS parameter contract is a
-  scalar map, so the UI must not invent per-parameter units, ranges, steps, or
-  descriptions from shorthand names; those input constraints may be added only
-  when a canonical parameter-metadata contract exists.
+- Queue entry parameters are grouped with the canonical source template and
+  queue-local quantity. The card shows the OCCS document-level `units` value
+  when the readable source template supplies one, plus an explicit configurable
+  or locked state. The current OCCS parameter contract is a scalar map, so the
+  UI must not invent per-parameter units, ranges, steps, or descriptions from
+  shorthand names; those input constraints may be added only when a canonical
+  parameter-metadata contract exists.
 - The cassette section view control is one labelled pressed-state grid/table
   selector. Table row selection uses the same local queue-entry context as a
   grid card; destructive removal remains confirmed by the Queue owner and is
@@ -118,11 +118,14 @@ Production queue card and detail surface.
   points to one real cassette design; quantity belongs to the queue entry and
   is passed to nesting without being copied onto or into that design.
 - Selecting a `QueueEntryCard` is local editor state for the queue association,
-  never an Explorer entity. Selection only identifies the active queue item;
-  it does not add a second source/context strip or designer-launch controls to
-  the card. The canonical source template remains the single compact identity
-  row, while configuration continues to use the compiled replacement relation
-  action.
+  never an Explorer entity. A selected readable `cassette_design` can be opened
+  for inspection through the generated workspace event path. Its source
+  `cassette` template may open in the registered cassette designer only with
+  cassette write access. These actions do not mutate the selected design;
+  configuration continues to use the compiled replacement relation action.
+  The selected card visibly shows the typed `cassette_design -> source cassette`
+  chain; missing provenance remains a typed design-id fallback and never implies
+  editability.
 - Queue editor selected warehouse sources use compact `QueueSourceCard` tiles
   instead of embedding pile/sheet/remnant cards. It draws remnant polygons when
   present and rectangular sheet previews for stock sources without stored
