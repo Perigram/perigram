@@ -207,8 +207,10 @@
                     :class="{ '!rounded-none !border-0': flush }"
                 >
                     <template #actions>
-                        <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
-                        <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
+                        <span class="inline-flex items-center gap-1" role="group" :aria-label="$t('queue.viewMode')">
+                            <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" :aria-pressed="viewMode === 'grid'" @click="viewMode = 'grid'" text :severity="viewMode === 'grid' ? 'primary' : 'secondary'" size="small" />
+                            <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" :aria-pressed="viewMode === 'table'" @click="viewMode = 'table'" text :severity="viewMode === 'table' ? 'primary' : 'secondary'" size="small" />
+                        </span>
                         <Button
                             v-if="canAddQueueEntry"
                             :label="$t('queues.addCassette')"
@@ -248,7 +250,7 @@
                         </ResponsiveGrid>
 
                         <TableFrame v-else>
-                            <DataTable :value="entries" dataKey="_key">
+                            <DataTable :value="entries" dataKey="_key" @row-click="event => selectEntry(event.data)">
                                 <Column field="id" :header="$t('queues.cassette')">
                                     <template #body="{ data }"><span>{{ getCassetteName(data) }}</span></template>
                                 </Column>

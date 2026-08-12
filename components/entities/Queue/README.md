@@ -75,6 +75,10 @@ Production queue card and detail surface.
   Because PrimeVue `Panel` always renders its header container, the entry card
   hides that unused container so content begins at the card's top padding
   instead of reserving an empty header band.
+- The cassette section view control is one labelled pressed-state grid/table
+  selector. Table row selection uses the same local queue-entry context as a
+  grid card; destructive removal remains confirmed by the Queue owner and is
+  visually quiet until the entry row is hovered or focused.
 - In generated process queue details, cassette producer actions come from the
   current user's compiled action manifest and must expose a current
   `contracts.outputs[]` entry for `cassette_design`. QueueEditor does not
