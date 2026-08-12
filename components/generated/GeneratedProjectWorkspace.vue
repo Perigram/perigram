@@ -1,5 +1,5 @@
 <template>
-  <div v-if="project" class="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-workspace">
+  <div v-if="project" class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
     <header
       class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]"
       data-project-actions-strip
@@ -18,8 +18,6 @@
         :action-entries="projectActions"
         @execute-action="executeWorkspaceAction"
       />
-      <Button icon="pi pi-window-maximize" text rounded size="small" severity="secondary" :aria-label="$t('project.workspaceLayouts')" v-tooltip.bottom="$t('project.workspaceLayouts')" @click="layoutPresetsVisible = true" />
-      <Button icon="pi pi-search" text rounded size="small" severity="secondary" :aria-label="$t('project.quickOpen')" v-tooltip.bottom="$t('project.quickOpen')" @click="quickOpenVisible = true" />
     </header>
 
     <div class="min-h-0 flex-1 overflow-hidden">
@@ -35,7 +33,7 @@
           :min-size="10"
           :class="['min-h-0 min-w-0 overflow-hidden !border-0', { '!hidden': !explorerOpen }]"
         >
-          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-pane">
+          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content">
             <Tree
               v-model:selection-keys="selectionKeys"
               v-model:expanded-keys="expandedKeys"
@@ -73,7 +71,7 @@
           class="min-h-0 min-w-0 overflow-hidden !border-0"
         >
           <WorkspaceSplitNode
-            :node="displayedPaneTree"
+            :node="paneTree"
             :active-pane-id="activePaneId"
             @activate="activatePane"
             @resize="resizePaneSplit"
@@ -83,22 +81,12 @@
                 :item="itemForPane(pane)"
                 :tabs="tabItemsForPane(pane)"
                 :available-tabs="workspaceItems"
-                :dirty-tab-keys="dirtyTabKeys"
-                :pane-id="pane.id"
                 :action-entries="actionEntriesForPane(pane)"
                 :closeable="paneCount > 1"
-                :maximizable="paneCount > 1"
-                :maximized="maximizedPaneId === pane.id"
-                :can-reopen="recentlyClosedRefs.length > 0"
                 @execute-action="executeWorkspaceAction"
                 @open-entity="openWorkspaceEntity"
                 @open-page="openWorkspacePage"
                 @refresh="$emit('refresh')"
-                @dirty-change="updateFileDirty"
-                @reorder-tab="payload => reorderPaneTab(pane.id, payload)"
-                @move-tab="movePaneTab"
-                @toggle-maximize="togglePaneMaximize(pane.id)"
-                @reopen="reopenLastClosed(pane.id)"
                 @select-tab="key => selectPaneTab(pane.id, key)"
                 @close-tab="key => closePaneTab(pane.id, key)"
                 @add-tab="key => selectPaneTab(pane.id, key)"
@@ -126,67 +114,29 @@
           :item="itemForPane(activePane)"
           :tabs="tabItemsForPane(activePane)"
           :available-tabs="workspaceItems"
-          :dirty-tab-keys="dirtyTabKeys"
-          :pane-id="activePane?.id || ''"
           :action-entries="actionEntriesForPane(activePane)"
           :splittable="false"
-          :maximizable="false"
-          :can-reopen="recentlyClosedRefs.length > 0"
           @execute-action="executeWorkspaceAction"
           @open-entity="openWorkspaceEntity"
           @open-page="openWorkspacePage"
           @refresh="$emit('refresh')"
-          @dirty-change="updateFileDirty"
-          @reorder-tab="payload => reorderPaneTab(activePane.id, payload)"
-          @move-tab="movePaneTab"
-          @reopen="reopenLastClosed(activePane.id)"
           @select-tab="key => selectPaneTab(activePane.id, key)"
           @close-tab="key => closePaneTab(activePane.id, key)"
           @add-tab="key => selectPaneTab(activePane.id, key)"
         />
       </div>
     </div>
-    <StandardDialog v-model:visible="quickOpenVisible" size="lg">
-      <template #header>{{ $t('project.quickOpen') }}</template>
-      <div class="flex flex-col gap-2">
-        <InputText v-model="quickOpenQuery" autofocus :placeholder="$t('project.quickOpenPlaceholder')" />
-        <Button v-for="item in quickOpenItems" :key="item.key" :label="item.label" :icon="item.icon" text class="w-full justify-start" @click="openQuickItem(item.key)" />
-      </div>
-    </StandardDialog>
-    <StandardDialog v-model:visible="layoutPresetsVisible" size="lg">
-      <template #header>{{ $t('project.workspaceLayouts') }}</template>
-      <div class="flex flex-col gap-3">
-        <p class="m-0 text-sm text-muted-color">{{ $t('project.workspaceLayoutsHelp') }}</p>
-        <div class="flex gap-2">
-          <InputText v-model="layoutPresetNameDraft" class="min-w-0 flex-1" :placeholder="$t('project.workspaceLayoutName')" @keydown.enter.prevent="saveWorkspaceLayoutPreset" />
-          <Button :label="$t('project.saveLayout')" icon="pi pi-save" size="small" :disabled="!layoutPresetNameDraft.trim()" @click="saveWorkspaceLayoutPreset" />
-        </div>
-        <div v-if="layoutPresets.length" class="flex flex-col gap-1">
-          <div v-for="preset in layoutPresets" :key="preset.id" class="flex min-w-0 items-center gap-1 rounded-ui border border-content-border px-2 py-1">
-            <span class="min-w-0 flex-1 truncate text-sm">{{ preset.name }}</span>
-            <Button :label="$t('project.applyLayout')" text size="small" @click="applyWorkspaceLayoutPreset(preset)" />
-            <Button icon="pi pi-pencil" text rounded size="small" severity="secondary" :aria-label="$t('project.renameLayout')" v-tooltip.top="$t('project.renameLayout')" @click="renameWorkspaceLayoutPreset(preset)" />
-            <Button icon="pi pi-trash" text rounded size="small" severity="danger" :aria-label="$t('project.deleteLayout')" v-tooltip.top="$t('project.deleteLayout')" @click="deleteWorkspaceLayoutPreset(preset.id)" />
-          </div>
-        </div>
-        <Message v-else severity="secondary" :closable="false">{{ $t('project.noWorkspaceLayouts') }}</Message>
-        <Button :label="$t('project.resetWorkspaceLayout')" icon="pi pi-refresh" severity="secondary" text size="small" class="self-start" @click="resetWorkspaceLayout" />
-      </div>
-    </StandardDialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
-import Message from 'primevue/message';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import EntitySelect from '~/components/shared/EntitySelect.vue';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
@@ -205,8 +155,7 @@ import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
-import { linkedExplorerPreviewRefs } from '~/utils/project-linked-preview-items.js';
-import { workspaceFilePresentation } from '~/utils/workspace-file-presentation.js';
+import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import {
   closeWorkspaceLeaf,
   createWorkspaceLeaf,
@@ -218,8 +167,7 @@ import {
 import {
   loadProjectWorkspaceState,
   projectWorkspaceStorageKey,
-  saveProjectWorkspaceState,
-  workspaceLayoutPresetFromState
+  saveProjectWorkspaceState
 } from '~/utils/project-workspace-state.js';
 
 const props = defineProps({
@@ -245,18 +193,11 @@ const paneTree = ref(createWorkspaceLeaf('pane-1'));
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const linkedEntityItems = ref([]);
-const linkedPreviewItems = ref([]);
+const linkedChildItems = ref([]);
 const openedEntityItems = ref([]);
-const dirtyFileKeys = ref(new Set());
-const maximizedPaneId = ref('');
-const recentlyClosedRefs = ref([]);
-const layoutPresets = ref([]);
-const quickOpenVisible = ref(false);
-const quickOpenQuery = ref('');
-const layoutPresetsVisible = ref(false);
-const layoutPresetNameDraft = ref('');
 const hydratedStorageKey = ref('');
 let openedEntityLoadSequence = 0;
+let linkedChildLoadSequence = 0;
 const explorerTreePt = {
   root: { class: '!min-w-0 !max-w-full !overflow-hidden' },
   node: { class: '!min-w-0 !max-w-full !overflow-hidden' },
@@ -312,7 +253,7 @@ const entityItems = computed(() => [
     region: section.region
   })))
 ].filter(item => item?.entity && entityId(item.entity)));
-const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value, ...linkedPreviewItems.value, ...openedEntityItems.value]
+const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value, ...linkedChildItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
 const explorerHierarchy = computed(() => projectExplorerHierarchy({
   projectItem: projectItem.value,
@@ -322,8 +263,9 @@ const explorerHierarchy = computed(() => projectExplorerHierarchy({
 }));
 const linkedRefs = computed(() => Object.values(project.value?.relations || {})
   .flatMap(value => resolveEntityRelationRefs(value)));
-const linkedPreviewRefs = computed(() => linkedExplorerPreviewRefs({
+const linkedChildSources = computed(() => linkedExplorerChildSources({
   linkedItems: linkedEntityItems.value,
+  screens: authStore.screenManifest,
   containment: effectiveContainment()
 }));
 const cassetteItems = computed(() => workspaceEntityItems.value.filter(item => item.type === 'cassette'));
@@ -358,30 +300,14 @@ const workspaceItems = computed(() => [
   ...openedPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
-)).map(item => workspaceFilePresentation(item, {
-  label: workspaceItemLabel(item),
-  icon: item.kind === 'entity'
-    ? domainUi.getIcon(item.entityType || item.type || '')
-    : resolveGeneratedWorkspacePage(item.pageId)?.icon || 'pi pi-file',
-  modified: dirtyFileKeys.value.has(item.key)
-})));
-const dirtyTabKeys = computed(() => [...dirtyFileKeys.value]);
+)));
 const panes = computed(() => workspaceLeaves(paneTree.value));
 const paneCount = computed(() => panes.value.length);
 const activePane = computed(() => panes.value.find(pane => pane.id === activePaneId.value) || panes.value[0]);
-const displayedPaneTree = computed(() => {
-  if (!maximizedPaneId.value) return paneTree.value;
-  const pane = panes.value.find(item => item.id === maximizedPaneId.value);
-  return pane || paneTree.value;
-});
 const mobileWorkspaceOptions = computed(() => workspaceItems.value.map(item => ({
   label: workspaceItemLabel(item),
   value: item.key
 })));
-const quickOpenItems = computed(() => {
-  const query = quickOpenQuery.value.trim().toLocaleLowerCase();
-  return workspaceItems.value.filter(item => !query || item.label.toLocaleLowerCase().includes(query));
-});
 const explorerNodes = computed(() => {
   if (!projectItem.value) return [];
   return [{
@@ -394,7 +320,7 @@ const explorerNodes = computed(() => {
         label: t('project.linkedEntities'),
         data: { linked: true },
         selectable: false,
-        children: explorerHierarchy.value.linkedRootItems.map(item => explorerEntityNode(item))
+        children: explorerHierarchy.value.linkedRootItems.map(item => explorerEntityNode(item, 'linked'))
       }] : []),
       ...childSections.value.map(section => ({
         key: `section:${section.region.id}`,
@@ -429,15 +355,12 @@ watch(workspaceStorageKey, key => {
   explorerSize.value = state.explorerSize;
   openedEntityRefs.value = state.openedEntityRefs;
   openedPageRefs.value = state.openedPageRefs;
-  maximizedPaneId.value = state.maximizedPaneId;
-  recentlyClosedRefs.value = state.recentlyClosedRefs;
-  layoutPresets.value = state.layoutPresets;
   hydratedStorageKey.value = key;
   syncActiveSelection();
 }, { immediate: true });
 
 watch(
-  [paneTree, activePaneId, paneSequence, explorerOpen, explorerSize, openedEntityRefs, openedPageRefs, maximizedPaneId, recentlyClosedRefs, layoutPresets],
+  [paneTree, activePaneId, paneSequence, explorerOpen, explorerSize, openedEntityRefs, openedPageRefs],
   () => {
     const key = workspaceStorageKey.value;
     if (!key || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
@@ -448,10 +371,7 @@ watch(
       explorerOpen: explorerOpen.value,
       explorerSize: explorerSize.value,
       openedEntityRefs: openedEntityRefs.value,
-      openedPageRefs: openedPageRefs.value,
-      maximizedPaneId: maximizedPaneId.value,
-      recentlyClosedRefs: recentlyClosedRefs.value,
-      layoutPresets: layoutPresets.value
+      openedPageRefs: openedPageRefs.value
     });
   },
   { deep: true }
@@ -489,23 +409,19 @@ watch(linkedRefs, async refs => {
   linkedEntityItems.value = loaded.filter(Boolean);
 }, { immediate: true });
 
-watch(linkedPreviewRefs, async refs => {
-  const loaded = await Promise.all(refs.map(async ref => {
-    const existing = workspaceEntityItems.value.find(item => (
-      item.type === ref.entityType && entityId(item.entity) === ref.id
-    ));
-    const entity = existing?.entity || ref.entity
-      || await entityStore.fetchEntity(ref.entityType, ref.id, false, { silent: true });
-    return entity ? {
-      key: entityKey(ref.entityType, entity),
-      kind: 'entity',
-      type: ref.entityType,
-      entity,
-      region: null
-    } : null;
+watch(linkedChildSources, async sources => {
+  const sequence = ++linkedChildLoadSequence;
+  const loaded = await Promise.all(sources.map(async source => {
+    try {
+      const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters));
+      return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.entityType, entity));
+    } catch {
+      return [];
+    }
   }));
-  linkedPreviewItems.value = loaded.filter(Boolean);
-}, { immediate: true });
+  if (sequence !== linkedChildLoadSequence) return;
+  linkedChildItems.value = loaded.flat();
+}, { immediate: true, deep: true });
 
 watch(openedEntityRefs, async refs => {
   const sequence = ++openedEntityLoadSequence;
@@ -525,64 +441,17 @@ watch(openedEntityRefs, async refs => {
 
 watch(activePaneId, syncActiveSelection);
 
-onMounted(() => window.addEventListener('keydown', handleWorkspaceShortcut));
-onBeforeUnmount(() => window.removeEventListener('keydown', handleWorkspaceShortcut));
-
-function handleWorkspaceShortcut(event) {
-  if (!(event.ctrlKey || event.metaKey) || isEditableTarget(event.target) || !activePane.value) return;
-  const pane = activePane.value;
-  if (event.key === 'w') {
-    if (!pane.selectionKey) return;
-    event.preventDefault();
-    closePaneTab(pane.id, pane.selectionKey);
-    return;
-  }
-  if (event.key.toLowerCase() === 'p') {
-    event.preventDefault();
-    quickOpenVisible.value = true;
-    return;
-  }
-  if (event.key === 'PageDown' || event.key === 'PageUp') {
-    const tabs = pane.tabKeys || [];
-    if (tabs.length < 2) return;
-    event.preventDefault();
-    const index = tabs.indexOf(pane.selectionKey);
-    const direction = event.key === 'PageDown' ? 1 : -1;
-    selectPaneTab(pane.id, tabs[(index + direction + tabs.length) % tabs.length]);
-    return;
-  }
-  if (event.key === '\\') {
-    event.preventDefault();
-    splitPane(pane.id, event.shiftKey ? 'vertical' : 'horizontal');
-    return;
-  }
-  if (event.key.toLowerCase() === 'm') {
-    event.preventDefault();
-    togglePaneMaximize(pane.id);
-  }
-}
-
-function openQuickItem(key) {
-  quickOpenVisible.value = false;
-  selectByKey(key);
-}
-
-function isEditableTarget(target) {
-  const element = target instanceof HTMLElement ? target : null;
-  return Boolean(element?.closest('input, textarea, [contenteditable="true"]'));
-}
-
 function selectNode(node) {
   const item = node.data?.item;
   if (!item) return;
   selectByKey(item.key);
 }
 
-function explorerEntityNode(item) {
+function explorerEntityNode(item, prefix = '') {
   if (!item) return null;
   const contained = explorerHierarchy.value.childrenByKey.get(item.key) || [];
   return {
-    key: item.key,
+    key: prefix ? `${prefix}:${item.key}` : item.key,
     icon: domainUi.getIcon(item.type),
     data: { item },
     children: [
@@ -611,7 +480,7 @@ function handleExplorerEntityDeleted(item) {
   openedEntityRefs.value = openedEntityRefs.value.filter(reference => reference.key !== item.key);
   openedEntityItems.value = openedEntityItems.value.filter(candidate => candidate.key !== item.key);
   linkedEntityItems.value = linkedEntityItems.value.filter(candidate => candidate.key !== item.key);
-  linkedPreviewItems.value = linkedPreviewItems.value.filter(candidate => candidate.key !== item.key);
+  linkedChildItems.value = linkedChildItems.value.filter(candidate => candidate.key !== item.key);
   openedPageRefs.value = openedPageRefs.value.filter(page => !removedKeys.has(page.key));
   let nextTree = paneTree.value;
   for (const pane of workspaceLeaves(nextTree)) {
@@ -622,7 +491,6 @@ function handleExplorerEntityDeleted(item) {
     nextTree = updateWorkspaceLeaf(nextTree, pane.id, { tabKeys, selectionKey });
   }
   paneTree.value = nextTree;
-  dirtyFileKeys.value = new Set([...dirtyFileKeys.value].filter(key => !removedKeys.has(key)));
   syncActiveSelection();
   emit('refresh');
 }
@@ -653,161 +521,12 @@ function closePaneTab(paneId, key) {
     : pane.selectionKey;
   const nextTree = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey, tabKeys });
   paneTree.value = nextTree;
-  const closingItem = workspaceItems.value.find(item => item.key === key);
-  if (closingItem) rememberRecentlyClosed(closingItem);
   const remainingTabKeys = new Set(workspaceLeaves(nextTree).flatMap(leaf => leaf.tabKeys || []));
   if (!remainingTabKeys.has(key)) {
     openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
   }
   activePaneId.value = paneId;
-  dirtyFileKeys.value = new Set([...dirtyFileKeys.value].filter(dirtyKey => dirtyKey !== key));
   syncActiveSelection();
-}
-
-function reorderPaneTab(paneId, { key, beforeKey } = {}) {
-  const pane = panes.value.find(item => item.id === paneId);
-  if (!pane || !key || !pane.tabKeys?.includes(key)) return;
-  const remaining = pane.tabKeys.filter(tabKey => tabKey !== key);
-  const index = beforeKey ? remaining.indexOf(beforeKey) : -1;
-  const tabKeys = index < 0
-    ? [...remaining, key]
-    : [...remaining.slice(0, index), key, ...remaining.slice(index)];
-  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { tabKeys });
-}
-
-function movePaneTab({ key, paneId, targetPaneId, beforeKey } = {}) {
-  const source = panes.value.find(pane => pane.id === paneId);
-  const target = panes.value.find(pane => pane.id === targetPaneId);
-  if (!key || !source || !target || source.id === target.id || !source.tabKeys?.includes(key)) return;
-  const sourceKeys = source.tabKeys.filter(tabKey => tabKey !== key);
-  const sourceSelection = source.selectionKey === key ? (sourceKeys[0] || '') : source.selectionKey;
-  let nextTree = updateWorkspaceLeaf(paneTree.value, source.id, {
-    tabKeys: sourceKeys,
-    selectionKey: sourceSelection
-  });
-  const targetKeys = target.tabKeys.filter(tabKey => tabKey !== key);
-  const index = beforeKey ? targetKeys.indexOf(beforeKey) : -1;
-  const nextTargetKeys = index < 0
-    ? [...targetKeys, key]
-    : [...targetKeys.slice(0, index), key, ...targetKeys.slice(index)];
-  nextTree = updateWorkspaceLeaf(nextTree, target.id, { tabKeys: nextTargetKeys, selectionKey: key });
-  paneTree.value = nextTree;
-  activePaneId.value = target.id;
-  syncActiveSelection();
-}
-
-function togglePaneMaximize(paneId) {
-  if (!panes.value.some(pane => pane.id === paneId) || paneCount.value <= 1) return;
-  maximizedPaneId.value = maximizedPaneId.value === paneId ? '' : paneId;
-  activePaneId.value = paneId;
-}
-
-function workspaceLayoutState() {
-  return {
-    paneTree: paneTree.value,
-    activePaneId: activePaneId.value,
-    paneSequence: paneSequence.value,
-    explorerOpen: explorerOpen.value,
-    explorerSize: explorerSize.value,
-    maximizedPaneId: maximizedPaneId.value,
-    openedEntityRefs: openedEntityRefs.value,
-    openedPageRefs: openedPageRefs.value
-  };
-}
-
-function saveWorkspaceLayoutPreset() {
-  const name = layoutPresetNameDraft.value.trim();
-  if (!name) return;
-  const id = `layout-${Date.now().toString(36)}`;
-  const preset = workspaceLayoutPresetFromState(workspaceLayoutState(), { id, name });
-  if (!preset) return;
-  layoutPresets.value = [...layoutPresets.value, preset];
-  layoutPresetNameDraft.value = '';
-}
-
-function applyWorkspaceLayoutPreset(preset) {
-  const next = workspaceLayoutPresetFromState(preset, preset);
-  if (!next) return;
-  paneTree.value = next.paneTree;
-  activePaneId.value = next.activePaneId;
-  paneSequence.value = next.paneSequence;
-  explorerOpen.value = next.explorerOpen;
-  explorerSize.value = next.explorerSize;
-  maximizedPaneId.value = next.maximizedPaneId;
-  openedEntityRefs.value = mergeWorkspaceReferences(openedEntityRefs.value, next.openedEntityRefs);
-  openedPageRefs.value = mergeWorkspaceReferences(openedPageRefs.value, next.openedPageRefs);
-  syncActiveSelection();
-}
-
-function mergeWorkspaceReferences(current, next) {
-  return [...current, ...next].filter((reference, index, references) => (
-    reference?.key && references.findIndex(candidate => candidate?.key === reference.key) === index
-  ));
-}
-
-function renameWorkspaceLayoutPreset(preset) {
-  const name = window.prompt(t('project.workspaceLayoutName'), preset.name)?.trim();
-  if (!name) return;
-  layoutPresets.value = layoutPresets.value.map(item => item.id === preset.id ? { ...item, name } : item);
-}
-
-function deleteWorkspaceLayoutPreset(id) {
-  layoutPresets.value = layoutPresets.value.filter(preset => preset.id !== id);
-}
-
-function resetWorkspaceLayout() {
-  paneTree.value = createWorkspaceLeaf('pane-1');
-  activePaneId.value = 'pane-1';
-  paneSequence.value = 1;
-  explorerOpen.value = true;
-  explorerSize.value = 15;
-  maximizedPaneId.value = '';
-  syncActiveSelection();
-}
-
-function rememberRecentlyClosed(item) {
-  const reference = workspaceReference(item);
-  if (!reference) return;
-  recentlyClosedRefs.value = [
-    reference,
-    ...recentlyClosedRefs.value.filter(candidate => candidate.key !== reference.key)
-  ].slice(0, 20);
-}
-
-async function reopenLastClosed(paneId) {
-  const [reference, ...remaining] = recentlyClosedRefs.value;
-  if (!reference || !panes.value.some(pane => pane.id === paneId)) return;
-  recentlyClosedRefs.value = remaining;
-  activePaneId.value = paneId;
-  const entity = await entityStore.fetchEntity(reference.entityType, reference.entityId, false, { silent: true });
-  if (!entity) return;
-  const item = rememberWorkspaceEntity(reference.entityType, entity);
-  if (!item) return;
-  if (reference.kind === 'page') {
-    openWorkspacePage({ pageId: reference.pageId, entity, entityType: reference.entityType });
-    return;
-  }
-  selectPaneTab(paneId, item.key);
-}
-
-function workspaceReference(item) {
-  const id = entityId(item?.entity);
-  if (!item?.key || !item?.kind || !(item.entityType || item.type) || !id) return null;
-  return {
-    key: item.key,
-    kind: item.kind,
-    entityType: item.entityType || item.type,
-    entityId: id,
-    ...(item.kind === 'page' ? { pageId: item.pageId } : {})
-  };
-}
-
-function updateFileDirty({ key, dirty } = {}) {
-  if (!key) return;
-  const next = new Set(dirtyFileKeys.value);
-  if (dirty) next.add(key);
-  else next.delete(key);
-  dirtyFileKeys.value = next;
 }
 
 function activatePane(paneId) {
@@ -990,7 +709,6 @@ function workspaceItemLabel(item) {
   const definition = resolveGeneratedWorkspacePage(item?.pageId);
   return definition ? t(definition.labelKey) : '';
 }
-
 
 function sourceStateForRegion(region = {}) {
   return props.sourceState(region.sourceId) || {};

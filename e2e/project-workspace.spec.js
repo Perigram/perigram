@@ -13,7 +13,7 @@ test.describe('generated project workspace', () => {
     });
     const library = entity('library-1', 'Library One', {
       lineage: { organizationId: auth.organizationId },
-      summary: { cassetteCount: 1, cassettePreview: [{ entityType: 'cassette', id: 'cassette-1' }] },
+      summary: { cassetteCount: 2, cassettePreview: [{ entityType: 'cassette', id: 'cassette-1' }] },
       data: { description: 'Library summary marker' }
     });
     const queue = entity('queue-1', 'Queue One', {
@@ -24,11 +24,16 @@ test.describe('generated project workspace', () => {
       status: lifecycleStatus('ACTIVE'),
       data: { definition: { occs: '0.4-draft', documentType: 'template', parameters: {}, definitions: { workpieces: [] } } }
     });
+    const cassetteTwo = entity('cassette-2', 'Cassette Two', {
+      lineage: { organizationId: auth.organizationId, libraryId: 'library-1' },
+      status: lifecycleStatus('ACTIVE'),
+      data: { definition: { occs: '0.4-draft', documentType: 'template', parameters: {}, definitions: { workpieces: [] } } }
+    });
 
     await fulfillJson(app.page, '**/api/project/project-1', project);
     await fulfillJson(app.page, '**/api/libraries/library-1', library);
     await fulfillJson(app.page, '**/api/queue?**', [queue]);
-    await fulfillJson(app.page, '**/api/cassettes?**', [cassette]);
+    await fulfillJson(app.page, '**/api/cassettes?**', [cassette, cassetteTwo]);
     await fulfillJson(app.page, '**/api/cassettes/cassette-1', cassette);
     await fulfillJson(app.page, '**/api/status/actions?**', []);
     await fulfillJson(app.page, '**/api/templates/pens', []);
@@ -41,13 +46,13 @@ test.describe('generated project workspace', () => {
       }
     });
     await app.page.reload();
-    await expect(app.page.locator('[data-project-action-palette]').getByRole('button', { name: /^create queue$/i })).toHaveCount(1);
     await expect(app.page.getByRole('treeitem', { name: /^queue$/i })).toBeVisible();
 
     await app.page.getByRole('treeitem', { name: /linked entities/i }).getByRole('button').click();
     const libraryTreeItem = app.page.getByRole('treeitem', { name: /Library One/ });
     await libraryTreeItem.getByRole('button').first().click();
     await expect(libraryTreeItem.getByText('Cassette One', { exact: true })).toBeVisible();
+    await expect(libraryTreeItem.getByText('Cassette Two', { exact: true })).toBeVisible();
     await app.page.getByText('Library One', { exact: true }).first().click();
     await expect(app.page.locator('[data-workspace-pane] header')).toContainText('Library One');
     await expect(app.page.getByText('Cassette One', { exact: true }).first()).toBeVisible();
@@ -75,24 +80,7 @@ test.describe('generated project workspace', () => {
 
     await expect(paneHeader.getByRole('button', { name: /^edit$/i })).toHaveCount(0);
     await expect(app.page.locator('[data-workspace-pane] [data-tab-actions]').getByRole('button', { name: /^edit$/i })).toHaveCount(0);
-    const cassetteNameInput = app.page.locator('[data-workspace-pane]').getByPlaceholder(/cassette name/i);
-    await expect(cassetteNameInput).toBeVisible();
-    await expect(app.page.locator('[data-cassette-designer-toolbar]')).toBeVisible();
-    await cassetteNameInput.fill('Cassette One revised');
-    await expect(app.page.locator('[data-cassette-designer-save-state]')).toContainText(/unsaved/i);
-    await expect(cassetteTab.getByRole('img', { name: /unsaved/i })).toBeVisible();
-
-    await app.page.getByRole('button', { name: /workspace layouts/i }).click();
-    await app.page.getByPlaceholder(/layout name/i).fill('Review layout');
-    await app.page.getByRole('button', { name: /^save layout$/i }).click();
-    await expect(app.page.getByText('Review layout', { exact: true })).toBeVisible();
-    await app.page.getByRole('button', { name: /^apply$/i }).click();
-    await expect(cassetteTab).toHaveAttribute('aria-selected', 'true');
-
-    await paneHeader.getByRole('button', { name: /^more$/i }).click();
-    await app.page.getByRole('button', { name: /split right/i }).click();
-    await expect(app.page.locator('[data-workspace-pane]')).toHaveCount(2);
-    await cassetteTab.click();
+    await expect(app.page.locator('[data-workspace-pane]').getByPlaceholder(/cassette name/i)).toBeVisible();
 
     await app.page.reload();
     await expect(app.page.getByRole('tab', { name: 'Library One' })).toBeVisible();
@@ -101,9 +89,6 @@ test.describe('generated project workspace', () => {
     await restoredCassetteTab.locator('..').getByRole('button', { name: /^close$/i }).click();
     await expect(app.page.getByRole('tab', { name: 'Cassette One' })).toHaveCount(0);
     await expect(app.page.getByRole('tab', { name: 'Library One' })).toHaveAttribute('aria-selected', 'true');
-    await paneHeader.getByRole('button', { name: /^more$/i }).click();
-    await app.page.getByRole('button', { name: /reopen closed file/i }).click();
-    await expect(app.page.getByRole('tab', { name: 'Cassette One' })).toBeVisible();
     await app.expectCleanRuntime();
   });
 });

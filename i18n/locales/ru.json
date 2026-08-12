@@ -103,10 +103,7 @@
     "hideAllLayers": "Скрыть все слои",
     "zoomIn": "Приблизить",
     "zoomOut": "Отдалить",
-    "resetView": "Вместить в вид",
-    "toggleGrid": "Показать или скрыть сетку",
-    "panShortcut": "Shift + перетаскивание — панорама",
-    "assembly": "Сборка"
+    "resetView": "Сбросить вид"
   },
   "support": {
     "entityTypeLabels": {
@@ -310,21 +307,7 @@
     "openFiles": "Открытые файлы",
     "openSomething": "Откройте что-нибудь",
     "splitRight": "Разделить справа",
-    "splitDown": "Разделить снизу",
-    "maximizePane": "Развернуть панель",
-    "restorePane": "Восстановить панель",
-    "reopenClosed": "Открыть закрытый файл",
-    "workspaceLayouts": "Раскладки рабочей области",
-    "workspaceLayoutsHelp": "Раскладки сохраняются только на этом устройстве для текущих пользователя, организации и проекта.",
-    "workspaceLayoutName": "Название раскладки",
-    "noWorkspaceLayouts": "Сохранённых раскладок пока нет.",
-    "saveLayout": "Сохранить раскладку",
-    "applyLayout": "Применить",
-    "renameLayout": "Переименовать раскладку",
-    "deleteLayout": "Удалить раскладку",
-    "resetWorkspaceLayout": "Сбросить к исходной",
-    "quickOpen": "Быстро открыть",
-    "quickOpenPlaceholder": "Поиск открытых файлов"
+    "splitDown": "Разделить снизу"
   },
   "file": {
     "upload": "Загрузить файлы",
@@ -425,11 +408,9 @@
       "face": "Грань",
       "inspector": "Инспектор",
       "parameters": "Параметры",
-      "addParameter": "Добавить параметр",
       "preview": "Предпросмотр раскладки",
       "loadTemplate": "Загрузить шаблон",
       "workpieces": "Заготовки",
-      "faceOutline": "Грани и гибы",
       "workpieceGraph": "Граф заготовок",
       "topology": "Топология",
       "selectedWorkpiece": "Выбранная заготовка",
@@ -439,7 +420,6 @@
       "addWorkpiece": "Добавить заготовку",
       "addRelatedWorkpiece": "Добавить связанную заготовку",
       "addAttachment": "Добавить привязку",
-      "editAttachment": "Изменить привязку",
       "addHardware": "Добавить метиз",
       "addProfile": "Добавить профиль",
       "editProfile": "Редактировать профиль",
@@ -454,11 +434,6 @@
       "resetOrbit": "Сбросить 3D вид",
       "occsDraft": "Черновик OCCS",
       "globalParameters": "Глобальные параметры",
-      "expandSection": "Развернуть раздел",
-      "collapseSection": "Свернуть раздел",
-      "saved": "Сохранено",
-      "unsaved": "Есть несохранённые изменения",
-      "confirmReset": "Сбросить черновик кассеты? Несохранённые изменения будут потеряны.",
       "renderFailed": "Не удалось отрисовать граф трапеции.",
       "previewHeld": "Чертёж удержан на последнем корректном предпросмотре. Исправьте выражение, чтобы обновить его.",
       "addFace": "Добавить трапецию",
@@ -1953,7 +1928,6 @@
   },
   "queue": {
     "title": "Очереди",
-    "viewMode": "Вид позиций",
     "create": "Создать очередь",
     "createTitle": "Создать новую очередь",
     "createFirst": "Создайте первую очередь",
@@ -1986,13 +1960,6 @@
     "dimensions": "Размеры",
     "addNewEntry": "Добавить новую запись",
     "unknownCassette": "Неизвестная кассета",
-    "inspectDesign": "Открыть дизайн",
-    "openTemplate": "Открыть шаблон",
-    "sourceTemplate": "Исходный шаблон",
-    "sourceUnavailable": "Исходник недоступен",
-    "parametersConfigurable": "Можно изменить",
-    "parametersLocked": "Заблокировано",
-    "parameterLocked": "Заблокирован",
     "confirmDeleteEntry": "Вы уверены, что хотите удалить эту запись?",
     "dimensionKey": "Введите ключ размера (например, A, B, C):",
     "pageTitle": "Детали очереди",
@@ -2899,8 +2866,6 @@
   "generatedScreen": {
     "home": "Главная",
     "actions": {
-      "create": "Создать",
-      "link": "Связать",
       "change": "Изменить",
       "run": "Запустить",
       "send": "Отправить"

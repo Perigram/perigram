@@ -4,19 +4,13 @@
       class="workspace-tab-strip flex min-w-0 items-stretch overflow-x-auto"
       role="tablist"
       :aria-label="$t('project.openFiles')"
-      @dragover.prevent
-      @drop.prevent="dropBefore($event)"
     >
       <div
         v-for="tab in tabs"
         :key="tab.key"
         role="presentation"
-        class="workspace-file-tab group flex min-w-0 shrink-0 items-center border-r border-content-border"
+        class="flex min-w-0 shrink-0 items-center border-r border-content-border"
         :class="tab.key === activeKey ? 'border-b-2 border-b-primary bg-content' : 'border-b-2 border-b-transparent'"
-        draggable="true"
-        @dragstart="startDrag($event, tab.key)"
-        @dragover.prevent
-        @drop.prevent="dropBefore($event, tab.key)"
       >
         <Button
           :label="tabLabel(tab)"
@@ -40,21 +34,12 @@
           @refresh="$emit('refresh', tab)"
           @transitioned="$emit('refresh', tab)"
         />
-        <span
-          v-if="isTabDirty(tab)"
-          class="h-2 w-2 shrink-0 rounded-full bg-[var(--ck-status-warning)]"
-          role="img"
-          :aria-label="$t('cassette.v2.unsaved')"
-          v-tooltip.top="$t('cassette.v2.unsaved')"
-        />
         <Button
           icon="pi pi-times"
           text
           rounded
           size="small"
           severity="secondary"
-          class="workspace-file-tab__close opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-          :class="tab.key === activeKey ? '!opacity-100' : ''"
           :aria-label="$t('common.close')"
           @click.stop="$emit('close', tab.key)"
         />
@@ -100,12 +85,10 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 const props = defineProps({
   tabs: { type: Array, default: () => [] },
   availableTabs: { type: Array, default: () => [] },
-  dirtyTabKeys: { type: Array, default: () => [] },
-  activeKey: { type: String, default: '' },
-  paneId: { type: String, default: '' }
+  activeKey: { type: String, default: '' }
 });
 
-const emit = defineEmits(['select', 'close', 'add', 'refresh', 'reorder', 'move']);
+defineEmits(['select', 'close', 'add', 'refresh']);
 
 const { t } = useI18n();
 const domainUi = useCutkitDomainUi();
@@ -123,39 +106,7 @@ function hideAdd() {
   addPopover.value?.hide();
 }
 
-function isTabDirty(tab = {}) {
-  return Boolean(tab.modified) || props.dirtyTabKeys.includes(tab.key);
-}
-
-function startDrag(event, key) {
-  if (!event.dataTransfer) return;
-  event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('application/x-cutkit-workspace-file', JSON.stringify({
-    key,
-    paneId: props.paneId
-  }));
-}
-
-function dropBefore(event, beforeKey = '') {
-  const payload = readDragPayload(event);
-  if (!payload?.key || !payload.paneId) return;
-  if (payload.paneId === props.paneId) {
-    emit('reorder', { key: payload.key, beforeKey });
-    return;
-  }
-  emit('move', { ...payload, targetPaneId: props.paneId, beforeKey });
-}
-
-function readDragPayload(event) {
-  try {
-    return JSON.parse(event.dataTransfer?.getData('application/x-cutkit-workspace-file') || 'null');
-  } catch {
-    return null;
-  }
-}
-
 function tabLabel(tab = {}) {
-  if (tab.label) return tab.label;
   if (tab.kind === 'entity') {
     return tab.entity?.identity?.name || tab.entity?.identity?.slug || tab.entity?.identity?.uid || tab.key;
   }
@@ -164,7 +115,6 @@ function tabLabel(tab = {}) {
 }
 
 function tabIcon(tab = {}) {
-  if (tab.icon) return tab.icon;
   if (tab.kind === 'entity') return domainUi.getIcon(tab.type);
   return resolveGeneratedWorkspacePage(tab.pageId)?.icon || 'pi pi-file';
 }

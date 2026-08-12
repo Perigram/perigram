@@ -1,10 +1,5 @@
 <template>
-  <Panel
-    class="queue-entry-card cursor-pointer"
-    :class="selected ? 'border-primary bg-subtle' : 'bg-pane'"
-    :pt="panelPt"
-    @click="emit('select')"
-  >
+  <Panel class="queue-entry-card" :pt="panelPt">
     <div class="queue-entry-card__layout flex min-w-0 flex-col gap-2">
       <CassetteThumbnail
         v-if="cassette"
@@ -16,7 +11,7 @@
       />
 
       <div class="queue-entry-card__content flex min-w-0 flex-col gap-2">
-        <div class="group flex min-w-0 items-center justify-between gap-2">
+        <div class="flex min-w-0 items-center justify-between gap-2">
           <EntityInlineRef
             v-if="template || templateId"
             type="cassetteTemplate"
@@ -43,38 +38,34 @@
               text
               rounded
               size="small"
-              class="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
               :aria-label="$t('common.delete')"
-              v-tooltip.top="$t('common.delete')"
               :disabled="disabled"
               @click="emit('remove')"
             />
           </div>
         </div>
 
-        <section v-if="parameterNames.length" class="flex flex-col gap-2" :aria-label="$t('cassette.parameters')">
-          <div class="queue-entry-card__parameters grid gap-2">
-            <label v-for="parameter in parameterNames" :key="parameter" class="flex items-center gap-2">
-              <small class="min-w-6 text-muted-color">{{ parameter }}</small>
-              <InputNumber
-                v-model="draftParameters[parameter]"
-                :disabled="disabled || !configurable || lockedParameters.includes(parameter)"
-                size="small"
-                fluid
-              />
-            </label>
-            <Button
-              v-if="configurable && parametersChanged"
-              icon="pi pi-check"
-              severity="secondary"
+        <div v-if="parameterNames.length" class="queue-entry-card__parameters grid gap-2">
+          <label v-for="parameter in parameterNames" :key="parameter" class="flex items-center gap-2">
+            <small class="min-w-6 text-muted-color">{{ parameter }}</small>
+            <InputNumber
+              v-model="draftParameters[parameter]"
+              :disabled="disabled || !configurable || lockedParameters.includes(parameter)"
               size="small"
-              :label="$t('common.save')"
-              :loading="saving"
-              :disabled="disabled"
-              @click="emit('configure', { ...draftParameters })"
+              fluid
             />
-          </div>
-        </section>
+          </label>
+          <Button
+            v-if="configurable && parametersChanged"
+            icon="pi pi-check"
+            severity="secondary"
+            size="small"
+            :label="$t('common.save')"
+            :loading="saving"
+            :disabled="disabled"
+            @click="emit('configure', { ...draftParameters })"
+          />
+        </div>
       </div>
     </div>
   </Panel>
@@ -99,11 +90,10 @@ const props = defineProps({
   lockedParameters: { type: Array, default: () => ['T'] },
   configurable: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
-  disabled: { type: Boolean, default: false },
-  selected: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['configure', 'update-quantity', 'remove', 'select']);
+const emit = defineEmits(['configure', 'update-quantity', 'remove']);
 const { t } = useI18n();
 const panelPt = {
   header: { class: '!hidden' },

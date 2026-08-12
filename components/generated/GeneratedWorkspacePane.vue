@@ -4,24 +4,14 @@
     :item="item"
     :tabs="tabs"
     :available-tabs="availableTabs"
-    :dirty-tab-keys="dirtyTabKeys"
-    :pane-id="paneId"
     :action-entries="actionEntries"
     :closeable="closeable"
     :splittable="splittable"
-    :maximizable="maximizable"
-    :maximized="maximized"
-    :can-reopen="canReopen"
     :show-generated-actions="item.type !== 'project'"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
     @open-entity="request => $emit('open-entity', request)"
     @open-page="page => $emit('open-page', page)"
     @refresh="$emit('refresh')"
-    @dirty-change="$emit('dirty-change', $event)"
-    @reorder-tab="$emit('reorder-tab', $event)"
-    @move-tab="$emit('move-tab', $event)"
-    @toggle-maximize="$emit('toggle-maximize')"
-    @reopen="$emit('reopen')"
     @select-tab="$emit('select-tab', $event)"
     @close-tab="$emit('close-tab', $event)"
     @add-tab="$emit('add-tab', $event)"
@@ -33,21 +23,11 @@
     :page="item"
     :tabs="tabs"
     :available-tabs="availableTabs"
-    :dirty-tab-keys="dirtyTabKeys"
-    :pane-id="paneId"
     :closeable="closeable"
     :splittable="splittable"
-    :maximizable="maximizable"
-    :maximized="maximized"
-    :can-reopen="canReopen"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
     @open-page="page => $emit('open-page', page)"
     @refresh="$emit('refresh')"
-    @dirty-change="$emit('dirty-change', $event)"
-    @reorder-tab="$emit('reorder-tab', $event)"
-    @move-tab="$emit('move-tab', $event)"
-    @toggle-maximize="$emit('toggle-maximize')"
-    @reopen="$emit('reopen')"
     @select-tab="$emit('select-tab', $event)"
     @close-tab="$emit('close-tab', $event)"
     @add-tab="$emit('add-tab', $event)"
@@ -63,26 +43,17 @@
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :available-tabs="availableTabs"
-        :dirty-tab-keys="dirtyTabKeys"
-        :pane-id="paneId"
         active-key=""
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
         @add="$emit('add-tab', $event)"
         @refresh="$emit('refresh')"
-        @reorder="$emit('reorder-tab', $event)"
-        @move="$emit('move-tab', $event)"
       />
       <GeneratedWorkspacePaneMenu
         :splittable="splittable"
         :closeable="closeable"
-        :maximizable="maximizable"
-        :maximized="maximized"
-        :can-reopen="canReopen"
         @split="$emit('split', $event)"
         @close="$emit('close')"
-        @toggle-maximize="$emit('toggle-maximize')"
-        @reopen="$emit('reopen')"
       />
     </header>
     <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted-color">
@@ -102,15 +73,10 @@ defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
   availableTabs: { type: Array, default: () => [] },
-  dirtyTabKeys: { type: Array, default: () => [] },
-  paneId: { type: String, default: '' },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true },
-  maximizable: { type: Boolean, default: true },
-  maximized: { type: Boolean, default: false },
-  canReopen: { type: Boolean, default: false }
+  splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'dirty-change', 'select-tab', 'close-tab', 'add-tab', 'reorder-tab', 'move-tab', 'split', 'close', 'toggle-maximize', 'reopen']);
+defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 </script>

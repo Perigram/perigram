@@ -20,15 +20,6 @@ Use PrimeVue semantic variables for shared component state. Use CutKit `--ck-*`
 tokens for the app surface stack, typography, geometry, elevation, motion, and
 domain signal roles that PrimeVue does not own.
 
-Workbench surfaces use five token-backed roles: `workspace` is the application
-canvas, `pane` is a file/Explorer body, `section` is a grouped inspector or
-parameter region, `interactive` is a hoverable row, and `input` is a form
-control. `pane`/`section` distinction uses tone before an extra nested border;
-only overlays receive elevation. The compact workbench rhythm is exposed as
-`compact-tight`, `compact`, and `compact-loose`; named pane, operational,
-section, field-label, and metadata type roles keep dense technical UI readable
-without page-local font-size patches.
-
 Motion is reserved for direct interaction feedback: compact contextual controls
 may use the semantic duration/easing/spring scale through shared primitives,
 but operational screens must not acquire ambient animation. CSS and JavaScript

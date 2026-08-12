@@ -1,7 +1,6 @@
 import { createWorkspaceLeaf, workspaceLeaves } from './workspace-splits.js';
 
-export const PROJECT_WORKSPACE_STATE_VERSION = 5;
-export const PROJECT_WORKSPACE_LAYOUT_PRESET_LIMIT = 12;
+export const PROJECT_WORKSPACE_STATE_VERSION = 3;
 
 export function projectWorkspaceStorageKey({ userId, organizationId, projectId }) {
   if (!userId || !organizationId || !projectId) return '';
@@ -28,56 +27,7 @@ export function normalizeProjectWorkspaceState(value) {
     explorerOpen: value?.explorerOpen !== false,
     explorerSize: normalizeExplorerSize(value?.explorerSize),
     openedEntityRefs: normalizeOpenedEntityRefs(value?.openedEntityRefs),
-    openedPageRefs: normalizeOpenedPageRefs(value?.openedPageRefs),
-    maximizedPaneId: panes.some(pane => pane.id === value?.maximizedPaneId)
-      ? value.maximizedPaneId
-      : '',
-    recentlyClosedRefs: normalizeRecentlyClosedRefs(value?.recentlyClosedRefs),
-    layoutPresets: normalizeWorkspaceLayoutPresets(value?.layoutPresets)
-  };
-}
-
-export function workspaceLayoutPresetFromState(state, { id, name } = {}) {
-  const normalized = normalizeProjectWorkspaceState(state);
-  return normalizeWorkspaceLayoutPreset({
-    id,
-    name,
-    paneTree: normalized.paneTree,
-    activePaneId: normalized.activePaneId,
-    paneSequence: normalized.paneSequence,
-    explorerOpen: normalized.explorerOpen,
-    explorerSize: normalized.explorerSize,
-    maximizedPaneId: normalized.maximizedPaneId,
-    openedEntityRefs: normalized.openedEntityRefs,
-    openedPageRefs: normalized.openedPageRefs
-  });
-}
-
-export function normalizeWorkspaceLayoutPreset(value) {
-  const state = normalizeProjectWorkspaceState({
-    paneTree: value?.paneTree,
-    activePaneId: value?.activePaneId,
-    paneSequence: value?.paneSequence,
-    explorerOpen: value?.explorerOpen,
-    explorerSize: value?.explorerSize,
-    maximizedPaneId: value?.maximizedPaneId,
-    openedEntityRefs: value?.openedEntityRefs,
-    openedPageRefs: value?.openedPageRefs
-  });
-  const id = typeof value?.id === 'string' && value.id ? value.id : '';
-  const name = typeof value?.name === 'string' ? value.name.trim().slice(0, 64) : '';
-  if (!id || !name) return null;
-  return {
-    id,
-    name,
-    paneTree: state.paneTree,
-    activePaneId: state.activePaneId,
-    paneSequence: state.paneSequence,
-    explorerOpen: state.explorerOpen,
-    explorerSize: state.explorerSize,
-    maximizedPaneId: state.maximizedPaneId,
-    openedEntityRefs: state.openedEntityRefs,
-    openedPageRefs: state.openedPageRefs
+    openedPageRefs: normalizeOpenedPageRefs(value?.openedPageRefs)
   };
 }
 
@@ -175,33 +125,4 @@ function normalizeOpenedEntityRefs(value) {
     entityType: reference.entityType,
     entityId: reference.entityId
   }));
-}
-
-function normalizeRecentlyClosedRefs(value) {
-  if (!Array.isArray(value)) return [];
-  return value.filter(reference => (
-    reference
-    && typeof reference.key === 'string'
-    && typeof reference.kind === 'string'
-    && ['entity', 'page'].includes(reference.kind)
-    && typeof reference.entityType === 'string'
-    && typeof reference.entityId === 'string'
-    && (reference.kind !== 'page' || typeof reference.pageId === 'string')
-  )).slice(0, 20).map(reference => ({
-    key: reference.key,
-    kind: reference.kind,
-    entityType: reference.entityType,
-    entityId: reference.entityId,
-    ...(reference.kind === 'page' ? { pageId: reference.pageId } : {})
-  }));
-}
-
-function normalizeWorkspaceLayoutPresets(value) {
-  if (!Array.isArray(value)) return [];
-  const ids = new Set();
-  return value.map(normalizeWorkspaceLayoutPreset).filter(preset => {
-    if (!preset || ids.has(preset.id)) return false;
-    ids.add(preset.id);
-    return true;
-  }).slice(0, PROJECT_WORKSPACE_LAYOUT_PRESET_LIMIT);
 }

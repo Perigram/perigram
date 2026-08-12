@@ -8,11 +8,6 @@ html {
 
 :root {
     --ck-page-background: var(--p-surface-100);
-    --ck-workspace-background: var(--p-surface-100);
-    --ck-pane-background: var(--p-content-background);
-    --ck-section-background: var(--p-surface-50);
-    --ck-interactive-background: var(--p-content-hover-background);
-    --ck-input-background: var(--p-form-field-background);
     --ck-process-canvas-background: var(--p-surface-50);
     --ck-chrome-background: #fefefc;
     --ck-chrome-foreground: #0c0c0b;
@@ -27,14 +22,6 @@ html {
     --ck-font-ui: 'JetBrains Mono', monospace;
     --ck-font-mono: 'JetBrains Mono', monospace;
     --ck-label-tracking: 0.04em;
-    --ck-type-pane-label: 0.75rem;
-    --ck-type-operational-heading: 0.875rem;
-    --ck-type-section-heading: 0.8125rem;
-    --ck-type-field-label: 0.75rem;
-    --ck-type-metadata: 0.75rem;
-    --ck-space-compact-tight: 0.25rem;
-    --ck-space-compact: 0.5rem;
-    --ck-space-compact-loose: 0.75rem;
     --ck-status-info: var(--p-primary-color);
     --ck-status-success: var(--p-emerald-600);
     --ck-status-warning: var(--p-amber-700);
@@ -204,11 +191,6 @@ html {
 
 .dark-mode {
     --ck-page-background: var(--p-surface-950);
-    --ck-workspace-background: var(--p-surface-950);
-    --ck-pane-background: var(--p-content-background);
-    --ck-section-background: var(--p-surface-800);
-    --ck-interactive-background: var(--p-content-hover-background);
-    --ck-input-background: var(--p-form-field-background);
     --ck-process-canvas-background: var(--p-surface-950);
     --ck-chrome-background: #0c0c0b;
     --ck-chrome-foreground: #fffdf8;

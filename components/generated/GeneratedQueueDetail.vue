@@ -10,8 +10,6 @@
     @updated="$emit('refresh')"
     @select-queue="openQueue"
     @queue-deleted="$emit('refresh')"
-    @open-entity="request => $emit('open-entity', request)"
-    @open-page="page => $emit('open-page', page)"
   />
 </template>
 
@@ -29,7 +27,7 @@ const props = defineProps({
   flush: { type: Boolean, default: false }
 });
 
-defineEmits(['refresh', 'open-entity', 'open-page']);
+defineEmits(['refresh']);
 
 const authStore = useAuthStore();
 const projectId = computed(() => props.queue?.lineage?.projectId?.toString?.() || props.queue?.lineage?.projectId || '');

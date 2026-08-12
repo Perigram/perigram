@@ -12,7 +12,7 @@ describe('project workspace state', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       projectId: 'project-1'
-    })).toBe('cutkit:project-workspace:5:user-1:org-1:project-1');
+    })).toBe('cutkit:project-workspace:3:user-1:org-1:project-1');
     expect(projectWorkspaceStorageKey({ userId: '', organizationId: 'org-1', projectId: 'project-1' })).toBe('');
   });
 
@@ -70,40 +70,11 @@ describe('project workspace state', () => {
         pageId: 'cassette-designer',
         entityType: 'cassette',
         entityId: 'c1'
-      }],
-      maximizedPaneId: 'pane-2',
-      layoutPresets: [],
-      recentlyClosedRefs: [{
-        key: 'queue:q1',
-        kind: 'entity',
-        entityType: 'queue',
-        entityId: 'q1'
       }]
     };
 
     saveProjectWorkspaceState(storage, 'workspace', state);
 
     expect(loadProjectWorkspaceState(storage, 'workspace')).toEqual(state);
-  });
-
-  it('keeps layout presets as UI references without entity DTOs', () => {
-    const preset = {
-      id: 'layout-1',
-      name: 'Nesting',
-      paneTree: {
-        kind: 'leaf',
-        id: 'pane-1',
-        selectionKey: 'queue:q1',
-        tabKeys: ['queue:q1']
-      },
-      activePaneId: 'pane-1',
-      openedEntityRefs: [{ key: 'queue:q1', entityType: 'queue', entityId: 'q1', entity: { shouldNotPersist: true } }]
-    };
-    const state = normalizeProjectWorkspaceState({ layoutPresets: [preset, { ...preset }] });
-    expect(state.layoutPresets).toEqual([expect.objectContaining({
-      id: 'layout-1',
-      name: 'Nesting',
-      openedEntityRefs: [{ key: 'queue:q1', entityType: 'queue', entityId: 'q1' }]
-    })]);
   });
 });

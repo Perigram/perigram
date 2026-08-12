@@ -96,20 +96,20 @@ Do not reopen these as greenfield structural tasks:
 
 ### 1. Add a typed workspace-file state contract
 
-- [x] Define one UI-only file presentation record for entity files and registered
+- [ ] Define one UI-only file presentation record for entity files and registered
   pages: stable key, kind, icon/type, label, active state, optional lifecycle
   state, and optional modified state. Keep entity DTOs out of persisted workspace
   state.
-- [x] Keep these states visually distinct: active pane, selected file, entity
+- [ ] Keep these states visually distinct: active pane, selected file, entity
   lifecycle status, designer modified state, validation warning/error, and
   primary action.
-- [x] Have `CassetteDesignerV2` emit modified/saved state through
+- [ ] Have `CassetteDesignerV2` emit modified/saved state through
   `GeneratedCassetteDesignerWorkspacePage` and `GeneratedWorkspacePage`; clear
   modified only after a successful save or an explicit reset/load decision.
-- [x] Render lifecycle status through `EntityStatus` only. Render the modified
+- [ ] Render lifecycle status through `EntityStatus` only. Render the modified
   marker as a separate shape/token with an accessible label; never reinterpret a
   lifecycle glyph as a dirty dot.
-- [x] Keep Explorer selection synchronized with the active entity/page reference.
+- [ ] Keep Explorer selection synchronized with the active entity/page reference.
   An entity-bound registered page remains nested under its source entity and must
   not cause the source entity and page to appear simultaneously selected.
 
@@ -130,17 +130,17 @@ and `utils/project-workspace-state.js` only if the serialized schema changes.
 
 ### 2. Move Cassette Designer document commands into its shared toolbar
 
-- [x] Use the existing `DesignerWorkspace#toolbar` slot for a compact document
+- [ ] Use the existing `DesignerWorkspace#toolbar` slot for a compact document
   header containing the current cassette template identity/name, OCCS document
   profile and units, modified/saved state, template load, Save, Save as, Reset,
   and low-frequency overflow actions.
-- [x] Treat template load as a command/picker, not as a second selected-name field.
+- [ ] Treat template load as a command/picker, not as a second selected-name field.
   Keep the current entity-bound page identity visible while the picker is closed.
-- [x] Keep global parameters, layer visibility, and OCCS JSON in the settings rail;
+- [ ] Keep global parameters, layer visibility, and OCCS JSON in the settings rail;
   keep workpiece topology and folded preview in the assembly rail.
-- [x] Preserve the current explicit-save boundary, 50-step undo/redo history,
+- [ ] Preserve the current explicit-save boundary, 50-step undo/redo history,
   session-draft recovery, and parent-provided save/load handlers.
-- [x] Confirm destructive/reset actions when they would discard a modified draft.
+- [ ] Confirm destructive/reset actions when they would discard a modified draft.
 
 Acceptance:
 
@@ -156,17 +156,17 @@ README contract.
 
 ### 3. Make Queue-entry context explicit without violating immutability
 
-- [x] Add local selection to `QueueEditor`/`QueueEntryCard`; selection identifies
+- [ ] Add local selection to `QueueEditor`/`QueueEntryCard`; selection identifies
   the active queue entry association, not a new entity or Explorer node.
-- [x] Show the selected entry's typed source chain with actions appropriate to
+- [ ] Show the selected entry's typed source chain with actions appropriate to
   what is actually readable: inspect the referenced `cassette_design`, open its
   source `cassette` template in the registered designer page, or replace the
   design through the existing compiled Link/creator action.
-- [x] Route entity/page opens back through the generated workspace events. Do not
+- [ ] Route entity/page opens back through the generated workspace events. Do not
   add static `/cassettes/...` navigation or a Queue-local workspace-page registry.
-- [x] If source provenance is missing or unreadable, retain the current typed-id
+- [ ] If source provenance is missing or unreadable, retain the current typed-id
   fallback and do not imply that the design is editable.
-- [x] Keep quantity as Queue association data. Keep parameter configuration as
+- [ ] Keep quantity as Queue association data. Keep parameter configuration as
   immutable design replacement; never patch a shared `cassette_design` in place.
 
 Acceptance:
@@ -183,19 +183,19 @@ Primary scope: `components/QueueEditor.vue`,
 
 ### 4. Turn the assembly rail into a scalable OCCS navigator and inspector
 
-- [x] Keep the top-level workpiece occurrence/joint projection DAG-safe. Show
+- [ ] Keep the top-level workpiece occurrence/joint projection DAG-safe. Show
   workpiece type (`sheet`, `profile`, `solid`, `hardware`), role, selected state,
   isolation/visibility state, and unresolved/impossible joint diagnostics.
-- [x] Move selected workpiece/hardware properties and joint editing out of every
+- [ ] Move selected workpiece/hardware properties and joint editing out of every
   repeated row into one selection-driven inspector surface. Rows should retain
   identity, concise metadata, and an overflow action menu.
-- [x] For a selected sheet workpiece, add a subordinate face/fold outline derived
+- [ ] For a selected sheet workpiece, add a subordinate face/fold outline derived
   from its graph tree. Faces and folds may nest because that topology is a tree;
   joints between workpieces remain relation edges and must not be faked as
   containment.
-- [x] Synchronize navigator, 2D face selection, attachment mode, folded 3D
+- [ ] Synchronize navigator, 2D face selection, attachment mode, folded 3D
   selection/isolation, and inspector content in both directions.
-- [x] Keep profile and hardware creation declarative through current OCCS helpers;
+- [ ] Keep profile and hardware creation declarative through current OCCS helpers;
   do not introduce feature-local constructive-solid history.
 
 Acceptance:
@@ -210,29 +210,23 @@ Primary scope: `components/CassetteDesignerV2.vue`,
 and pure helpers under `utils/occs/` / `utils/cassetteV2Renderer.js` only when a
 new projection is required.
 
-#### Agent Notes — 2026-08-12
-
-Workpiece relation rows now select a shared attachment inspector. The inspector
-owns edit/remove actions, while workpiece topology actions are consolidated in
-each row's overflow menu.
-
 ## P1 — strengthen the workbench visual grammar
 
 ### 5. Formalize workbench surface roles and remove redundant rectangles
 
-- [x] Audit the current token-backed stack (`page`, `chrome`, `content`, `subtle`,
+- [ ] Audit the current token-backed stack (`page`, `chrome`, `content`, `subtle`,
   `raised`, form field) in dark and light mode before adding tokens. Assign each
   role to workspace background, pane/file body, section, interactive row, form
   control, and overlay.
-- [x] Promote any missing durable roles through `assets/tokens/index.js`, the
+- [ ] Promote any missing durable roles through `assets/tokens/index.js`, the
   PrimeVue preset/runtime bridge, and Tailwind aliases. Do not add page-local raw
   palette colors.
-- [x] Remove borders that repeat a boundary already owned by a pane, Panel,
+- [ ] Remove borders that repeat a boundary already owned by a pane, Panel,
   ScrollablePanel, card, or form control. Use spacing, a single separator, and
   surface contrast inside that owner.
-- [x] Reserve elevation for overlays. Structural queue cards, designer rails,
+- [ ] Reserve elevation for overlays. Structural queue cards, designer rails,
   pane bodies, and nested sections remain non-elevated.
-- [x] Verify usable contrast in both themes; do not optimize only the reviewed
+- [ ] Verify usable contrast in both themes; do not optimize only the reviewed
   dark screenshot.
 
 Acceptance:
@@ -248,19 +242,19 @@ four task surfaces only.
 
 ### 6. Define compact typography, spacing, and control roles
 
-- [x] Extend the existing monospace design contract with named roles for pane/file
+- [ ] Extend the existing monospace design contract with named roles for pane/file
   label, operational heading, section heading, field label, value, and secondary
   metadata. Prefer shared primitives/classes over local font-size patches.
-- [x] Define one compact spacing rhythm for pane headers, Explorer rows, queue
+- [ ] Define one compact spacing rhythm for pane headers, Explorer rows, queue
   entries, designer rails, section toolbars, and form rows. Preserve larger page
   spacing outside the bounded workbench.
-- [x] Standardize the relevant controls as primary operation, secondary button,
+- [ ] Standardize the relevant controls as primary operation, secondary button,
   toolbar icon button, segmented/tab navigation, inline row action, overflow
   action, destructive action, input, and entity picker.
-- [x] Maintain a consistent minimum hit target, visible keyboard focus, disabled
+- [ ] Maintain a consistent minimum hit target, visible keyboard focus, disabled
   state, hover state, pressed state, and tooltip policy. Every non-obvious
   icon-only action needs localized accessible text and a tooltip.
-- [x] Put destructive and low-frequency row commands in hover/focus-revealed
+- [ ] Put destructive and low-frequency row commands in hover/focus-revealed
   chrome or an overflow menu; they must remain keyboard discoverable.
 
 Acceptance:
@@ -272,20 +266,20 @@ Acceptance:
 
 ### 7. Improve file tabs and pane management
 
-- [x] Calm inactive tabs: show close persistently only for the active tab, on tab
+- [ ] Calm inactive tabs: show close persistently only for the active tab, on tab
   hover, or within keyboard focus. Keep lifecycle status and modified state
   visible according to their own semantics.
-- [x] Preserve the standalone add-file picker and pane ellipsis as separate pane
+- [ ] Preserve the standalone add-file picker and pane ellipsis as separate pane
   controls; do not render either as a fake file tab.
-- [x] Add tab reordering and move-to-pane using the existing recursive leaf ids.
+- [ ] Add tab reordering and move-to-pane using the existing recursive leaf ids.
   Show explicit valid drop targets for tab insert, split right, and split down.
-- [x] Add pane maximize/restore without destroying the recursive split tree, plus
+- [ ] Add pane maximize/restore without destroying the recursive split tree, plus
   a recoverable recently-closed file list. Closing the last pane remains
   impossible; closing a file does not delete its entity.
-- [x] Add keyboard quick-open over `workspaceItems` and keyboard commands for
+- [ ] Add keyboard quick-open over `workspaceItems` and keyboard commands for
   file close, next/previous file, split, and maximize. Commands must invoke the
   same state operations as pointer UI.
-- [x] Version and normalize persisted workspace state when tab order, maximized
+- [ ] Version and normalize persisted workspace state when tab order, maximized
   pane, or recently-closed references enter the schema.
 
 Acceptance:
@@ -301,16 +295,16 @@ Primary scope: `GeneratedWorkspaceTabs.vue`,
 
 ### 8. Clarify the Project action strip
 
-- [x] Keep the strip action-only, but make each visible command distinguish its
+- [ ] Keep the strip action-only, but make each visible command distinguish its
   actual generated kind: create child, link relation, update, transition, send,
   or run command. Use `generatedActionLabel()` and manifest metadata; do not
   hardcode Library/Queue/Facade/Artifact branches.
-- [x] Keep direct-Project child creates deduplicated by visible operation and keep
+- [ ] Keep direct-Project child creates deduplicated by visible operation and keep
   relation labels scoped to their target entity.
-- [x] Add localized tooltips where the compact visible label is necessarily a
+- [ ] Add localized tooltips where the compact visible label is necessarily a
   noun. The tooltip should state the operation without exposing action ids or
   storage fields.
-- [x] When actions overflow, keep them in an action-strip overflow surface rather
+- [ ] When actions overflow, keep them in an action-strip overflow surface rather
   than allowing horizontal action chrome to compete with the Explorer toggle.
 
 Acceptance:
@@ -321,19 +315,19 @@ Acceptance:
 
 ### 9. Refine Queue-entry density and parameter controls
 
-- [x] Treat grid/table controls as one PrimeVue view-mode selector with pressed
+- [ ] Treat grid/table controls as one PrimeVue view-mode selector with pressed
   state and a single accessible label.
-- [x] Keep `QueueEntryCard` bounded and container-responsive, but validate its
+- [ ] Keep `QueueEntryCard` bounded and container-responsive, but validate its
   preview/content ratio against the narrow pane widths produced by recursive
   splits. Do not remove production/dimension layers just to make the card smaller.
-- [x] Keep template provenance, quantity, and parameters visually grouped.
+- [ ] Keep template provenance, quantity, and parameters visually grouped.
   Clarify typed-id fallback and whether parameters are configurable or locked.
-- [x] Use OCCS document units at group/viewport level. Add per-field suffix,
+- [ ] Use OCCS document units at group/viewport level. Add per-field suffix,
   step, minimum, maximum, or description only when supplied by a real parameter
   contract; do not infer semantics from names such as `A`, `B`, `R`, or `T`.
-- [x] Move remove to quiet row chrome/overflow and preserve confirmation at the
+- [ ] Move remove to quiet row chrome/overflow and preserve confirmation at the
   owning Queue workflow boundary.
-- [x] Retain parameter-expression strings in templates and numeric values in
+- [ ] Retain parameter-expression strings in templates and numeric values in
   materialized designs. Queue controls edit exact design inputs, not template
   expressions.
 
@@ -343,25 +337,19 @@ Acceptance:
   configurable exact values without oversized empty space, and never mislabel an
   arbitrary OCCS parameter or mutate a shared design.
 
-#### Agent Notes — 2026-08-12
-
-Queue cards now show the source template's canonical OCCS document unit and an
-explicit configurable/locked state. The existing OCCS parameter map contains
-only scalar values, so no per-field constraints or labels were fabricated.
-
 ### 10. Use real settings tabs and coherent section toolbars in the designer
 
-- [x] Replace the `Parameters / Layers / OCCS draft` button row with a controlled
+- [ ] Replace the `Parameters / Layers / OCCS draft` button row with a controlled
   PrimeVue tab/segmented navigation component that exposes one active settings
   mode and survives responsive relocation.
-- [x] Keep section expansion separate from add/create actions. A chevron controls
+- [ ] Keep section expansion separate from add/create actions. A chevron controls
   disclosure; plus creates an item; neither substitutes for the other.
-- [x] Replace icon clusters in global parameters, layers, workpieces, profiles,
+- [ ] Replace icon clusters in global parameters, layers, workpieces, profiles,
   hardware, and attachments with a shared section-toolbar pattern: concise title,
   optional state/count, primary local action, overflow actions.
-- [x] Use labels for domain-specific low-frequency operations when rail width
+- [ ] Use labels for domain-specific low-frequency operations when rail width
   permits; otherwise require localized tooltips and accessible names.
-- [x] Keep OCCS draft read-only unless a separate validated raw-document editing
+- [ ] Keep OCCS draft read-only unless a separate validated raw-document editing
   workflow is explicitly designed.
 
 Acceptance:
@@ -374,17 +362,17 @@ Acceptance:
 
 ### 11. Add a truthful 2D viewport HUD
 
-- [x] Consolidate existing zoom out, fit/reset, and zoom in commands into a
+- [ ] Consolidate existing zoom out, fit/reset, and zoom in commands into a
   compact viewport control surface and expose the Shift+drag pan gesture through
   tooltip/shortcut metadata.
-- [x] Add grid visibility and document-unit display. Keep the current grid purely
+- [ ] Add grid visibility and document-unit display. Keep the current grid purely
   visual until a real direct-manipulation operation supports snapping.
-- [x] Show current editing context (assembly/workpiece/attachment, selected
+- [ ] Show current editing context (assembly/workpiece/attachment, selected
   workpiece, selected face/fold) without duplicating the full document header.
-- [x] Differentiate production layers, dimension annotations, designer section
+- [ ] Differentiate production layers, dimension annotations, designer section
   planes, attachment markers, selected geometry, and hover hit targets through
   their existing semantic layer/overlay contracts.
-- [x] Add cursor coordinates or snap readout only when they drive an implemented
+- [ ] Add cursor coordinates or snap readout only when they drive an implemented
   operation. Do not ship inert CAD controls.
 
 Acceptance:
@@ -393,23 +381,16 @@ Acceptance:
   selection. Toggling UI state does not change OCCS geometry or production layer
   output.
 
-#### Agent Notes — 2026-08-12
-
-`DrawingCanvas` keeps production layers data-driven and renders dimensions,
-section handles, attachment markers, selected faces/folds, and hover targets as
-separate semantic overlays. No snap operation exists, so no inert cursor or
-snap readout is rendered.
-
 ### 12. Add named layout presets only after pane-state operations stabilize
 
-- [x] Define whether presets are device-local convenience or user/organization
+- [ ] Define whether presets are device-local convenience or user/organization
   preferences. Use the existing preference boundary for cross-device state; do
   not silently expand localStorage into a product contract.
-- [x] Save only versioned workspace UI references and split/layout preferences,
+- [ ] Save only versioned workspace UI references and split/layout preferences,
   never entity DTOs or unsaved OCCS documents.
-- [x] Provide Save layout, Apply layout, Rename, Delete, and Reset to default with
+- [ ] Provide Save layout, Apply layout, Rename, Delete, and Reset to default with
   clear scope (user, organization, Project).
-- [x] Resolve missing/inaccessible entity references defensively when applying a
+- [ ] Resolve missing/inaccessible entity references defensively when applying a
   preset and preserve the rest of the layout.
 
 Acceptance:
@@ -417,41 +398,18 @@ Acceptance:
 - Applying a preset cannot grant access, restore stale DTOs, discard a recoverable
   designer draft, or corrupt the current recursive split tree.
 
-#### Agent Notes — 2026-08-12
-
-Named layouts are device-local, scoped by the existing user/organization/project
-workspace key. They save only normalized UI state and typed references; applying
-a layout merges its references with current ones so access resolution and a
-recoverable designer draft remain intact.
-
 ## Validation required for implementation slices
 
-### Agent Notes
-
-#### 2026-08-12 — Verified existing contracts
-
-The settings rail, explicit-save/history/session-draft contract, declarative
-OCCS profile/hardware helpers, calm tab chrome, separate pane controls,
-template-expression/design-number boundary, and read-only OCCS draft were
-already implemented in the merged components. Their checklist states now match
-the code and canonical component documentation.
-
-- [x] Update the canonical README for every changed contract; do not copy the
+- [ ] Update the canonical README for every changed contract; do not copy the
   contract into this backlog as completion notes.
-- [x] Run `node scripts/check-docs.js` for every documentation slice.
-- [x] Run `npx vitest run shared/design-system.spec.js` for token/shared-primitive
+- [ ] Run `node scripts/check-docs.js` for every documentation slice.
+- [ ] Run `npx vitest run shared/design-system.spec.js` for token/shared-primitive
   changes.
-- [x] Run focused workspace state, split, Explorer hierarchy, Queue entry,
+- [ ] Run focused workspace state, split, Explorer hierarchy, Queue entry,
   DrawingCanvas, OCCS renderer, and folded-preview suites for the changed concern.
-- [x] Extend `e2e/project-workspace.spec.js` with user-visible behavior for file
+- [ ] Extend `e2e/project-workspace.spec.js` with user-visible behavior for file
   state, move/drop, restore, queue-entry context opens, and designer ownership as
   those features land.
-- [x] Run `npm run framework:validate` when a shared/framework manifest contract
+- [ ] Run `npm run framework:validate` when a shared/framework manifest contract
   changes. Do not run `npm run build` or start a dev server from an agent task
   unless explicitly requested.
-
-#### Agent Notes — 2026-08-12
-
-Validation passed: documentation links, the 47-test shared design-system suite,
-94 focused workspace/Queue/OCCS tests, framework validation, and the focused
-Playwright project-workspace scenario against the running local stack.

@@ -17,9 +17,6 @@
       :actions="resolvedBodyActions"
       :suppress-child-summaries="suppressChildSummaries"
       @refresh="$emit('refresh')"
-      @dirty-change="value => $emit('dirty-change', value)"
-      @open-entity="request => $emit('open-entity', request)"
-      @open-page="page => $emit('open-page', page)"
     />
     <slot />
     <template v-if="editorActionComponent || headerActionIds.length || entityCanDelete" #actions>
@@ -84,7 +81,7 @@ const props = defineProps({
   traceExclusions: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['refresh', 'dirty-change', 'execute-action', 'open-entity', 'open-page']);
+const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 
 const authStore = useAuthStore();
 const domainUi = useCutkitDomainUi();

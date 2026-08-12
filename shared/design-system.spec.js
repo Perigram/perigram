@@ -430,6 +430,7 @@ describe('Design system manifest', () => {
   it('exposes ConfigBot as a draft-only admin tool', () => {
     const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/config-bot.vue'), 'utf8');
     const preview = fs.readFileSync(path.join(REPO_ROOT, 'components/config-bot/ConfigBotDraftPreview.vue'), 'utf8');
+    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
     const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
 
     expect(page).toContain('/api/config-bot/generate');
@@ -439,6 +440,7 @@ describe('Design system manifest', () => {
     expect(page).not.toContain('applyPackage');
     expect(preview).toContain('ActionToolbar');
     expect(preview).toContain('StateBlock');
+    expect(layout).toContain("router.push('/admin/config-bot')");
     expect(navigation).toContain("to: '/admin/config-bot'");
   });
 
@@ -575,8 +577,7 @@ describe('Design system manifest', () => {
     expect(editor).toContain('clampSheetPlacement');
     expect(editor).toContain('majorGridSize');
     expect(editor).toContain('selectedSnapPoint');
-    expect(generatedDetail).toContain(':show-identity="showIdentity || forceIdentityForEditor"');
-    expect(generatedDetail).toContain('entityEditorForcesIdentity');
+    expect(generatedDetail).toContain(":show-identity=\"showIdentity || entityType === 'sheet_design'\"");
     expect(relationBlock).toContain(':variant="itemVariant"');
   });
 
@@ -609,12 +610,10 @@ describe('Design system manifest', () => {
     expect(generatedHome).toContain('shrink-0');
     expect(generatedHome).toContain('suppress-child-summaries');
     expect(generatedHome).toContain('relation-variant="compact"');
-    expect(generatedHome).toContain('entityEditorActionFor');
-    expect(generatedHome).toContain(':is="editorActionFor(section.source.entityType)"');
+    expect(generatedHome).toContain('GeneratedCassetteDesignerAction');
     expect(generatedCollection).toContain('suppress-child-summaries');
     expect(generatedCollection).toContain('relation-variant="compact"');
-    expect(generatedCollection).toContain('entityEditorActionFor');
-    expect(generatedCollection).toContain(':is="editorActionComponent"');
+    expect(generatedCollection).toContain('GeneratedCassetteDesignerAction');
     expect(generatedHome).toContain('pi pi-external-link');
     expect(generatedCollection).toContain('pi pi-external-link');
     expect(relationsBlock).toContain('overflow-x-auto');

@@ -41,13 +41,11 @@ The current default overloads are:
 bounded IDE-style Explorer and file workspace:
 
 - the Explorer is a dense PrimeVue tree containing the opened project, child
-  collections loaded by the screen's list regions, and direct contained items
-  exposed by a linked entity's typed `summary.*Preview` contract. Preview refs
-  are fetched as normal entities and are admitted only when the domain
-  containment contract confirms the linked parent/child pair; this makes a
-  linked library's cassette templates visible beneath the library without
-  scanning arbitrary summary data or inventing library-specific explorer code.
-  It is independently
+  collections loaded by the project screen, and direct child collections
+  declared by a linked entity's own compiled detail screen. Linked children are
+  fetched through that source's resolved filters (for example,
+  `cassette?libraryId=<linked-library-id>`), never from a bounded summary
+  preview. It is independently
   scrollable, starts directly below the workspace action strip without a local
   header, occupies the compact 15% side of the workspace split, and can collapse
   so file panes use the full workspace width. Its visibility is controlled from
@@ -71,18 +69,12 @@ bounded IDE-style Explorer and file workspace:
   manifest or invent relation/upload controls. Multiple compiled ids that map
   to the same entity/parent create operation render as one visible button,
   matching the generated create-button label contract.
-  Its labels preserve the manifest-derived operation kind (`Create`, `Link`, or
-  `Run`) rather than presenting a bare entity noun; compact overflow keeps the
-  same compiled entries in a dedicated action-strip popover.
 - `GeneratedWorkspacePane` accepts both entity pages and registered workspace
   pages. Each recursive pane owns an IDE-style tab list; Explorer navigation
   opens or selects a tab in the active pane, and tab order plus selection persist
   with that pane. `GeneratedEntityFile` is the pane adapter: each entity tab
   owns its DTO-backed icon-only interactive lifecycle status and close affordance;
-  tabs without a persisted status state do not synthesize an `UNKNOWN` badge.
-  Non-persisted, page-owned modified state uses a separate labelled warning-token
-  dot; restoring workspace references never restores a dirty marker. Both entity
-  overloads and registered workspace pages report state through this adapter. The tab
+  tabs without a persisted status state do not synthesize an `UNKNOWN` badge. The tab
   strip ends with an add-tab picker. Pane-level split and close commands live in
   one ellipsis menu. The add button follows the last tab instead of consuming
   the far edge of the header. Generated entity-action buttons render inside the active
@@ -111,35 +103,17 @@ bounded IDE-style Explorer and file workspace:
   and mounts `CassetteDesignerV2` through the shared designer surface so the
   designer owns the pane rather than a dialog. Linked entities and source-loaded children use the same
   page-opening lookup; relation navigation does not reduce their capabilities.
-  Queue-entry context actions reuse these pane events: a readable
-  `cassette_design` opens for inspection, while an authorized source `cassette`
-  template opens in this registered page without a Queue-local route.
   Additional app-owned pages register through the same fixed registry.
 - PrimeVue splitters form a recursive split tree. A pane can split right or
   down, and nested horizontal/vertical splits keep independent selections and
-  scrolling. Files may be reordered inside a pane or dragged onto another pane's
-  tab strip; the destination tab strip is the explicit drop target. Pane menus
-  provide maximize/restore and reopen-last-closed controls without deleting an
-  entity. `Ctrl`/`Cmd` + `P` opens a searchable file picker; close, next/previous
-  file, split, and maximize shortcuts call those same pane state operations.
-  Split proportions, Explorer width/visibility, active pane, maximized
-  pane, recent closed references, tab lists/selections, and opened registered pages are persisted as versioned browser UI
+  scrolling. Split proportions, Explorer width/visibility, active pane,
+  tab lists/selections, and opened registered pages are persisted as versioned browser UI
   state scoped to the current user, organization, and project. Stored data
   contains stable entity/page references, including entities discovered through
   nested detail regions, never entity DTOs, and is validated
   before restoration. A reference remains in its pane while asynchronous screen
   sources and linked entities load; temporary absence must not erase restored
   navigation state. There is no reserved right inspector pane.
-  Named layouts are device-local convenience presets at that same storage
-  boundary; they do not create user- or organization-shared preferences. A
-  preset stores only a versioned pane tree, UI preferences, and typed
-  entity/page references—never DTOs or a cassette draft. Applying one merges
-  its references with the currently opened references before the usual
-  access-filtered asynchronous resolution, so an unavailable item cannot erase
-  the remaining layout or a recoverable local draft. Users can save, apply,
-  rename, delete, and reset layouts from the Project action strip.
-  Quick-open and layout-management overlays use `StandardDialog`, preserving
-  the shared dialog ownership and focus contract.
   The active pane uses the neutral chrome-subtle surface on its pane header; tab
   selection remains the stronger indicator of the active file. Empty panes keep
   the normal tab strip and an open-content prompt instead of a blank body. File

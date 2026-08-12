@@ -807,38 +807,26 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `R`, ...), and keeps actual OCCS workpieces as graph nodes connected by
   OCCS cassette joints. The designer shell separates document actions,
   geometry editing, global settings, assembly topology, and folded 3D preview:
-  the `DesignerWorkspace` toolbar owns the active cassette name, saved/modified
-  text state, template load, Save, Save as, and Reset; document type and units
-  stay in the OCCS document rather than consuming permanent toolbar chips.
-  the canvas owns only CAD interaction; the left settings rail owns global
-  parameters, layer visibility, and read-only OCCS JSON through one controlled
-  PrimeVue settings tab list. Settings and assembly section headers use an
-  explicit chevron for disclosure; labelled add actions stay separate from that
-  state. The assembly rail owns the
-  compact workpiece DAG/list plus 3D preview. Template load is an action picker,
-  not a second selected-name display; Reset confirms before discarding a modified
-  draft. The workpiece `+` action creates a new
+  the canvas owns only CAD interaction, the left document/settings rail owns the
+  active cassette name plus compact load/save/reset actions, global parameters,
+  layer visibility, and OCCS JSON, and the assembly rail owns the
+  compact workpiece DAG/list plus 3D preview. The load selector is an action
+  placeholder rather than a second selected-name display, and save/reset are
+  icon-only controls. The workpiece `+` action creates a new
   `definitions.workpieces[]` entry,
   matching cassette occurrence, root face, and face-relative joint instead of
   another fold child on the current sheet. The link action declares another
   attachment for the selected workpiece without creating geometry. Non-root
   workpieces can be deleted, which removes only that workpiece, its faces, and
   incident OCCS joints. Relation rows appear under both source and target
-  workpieces so multi-parent attachments stay visible; selecting one focuses
-  the shared attachment inspector, where its edit and remove actions live. The
-  edit action opens the canvas-local attachment editor
+  workpieces so multi-parent attachments stay visible; they open the
+  canvas-local attachment editor
   for target/source face, target/source snap points, face offsets, rotation,
   side, joint type, method, and driver choice, can remove a joint link without
   deleting either workpiece, and display unresolved/impossible diagnostics from
   the folded preview helper. Attachment placement choice is
   internal renderer state; the user workflow only declares face-to-face
-  attachments. Workpiece rows expose identity, type, and role; their topology
-  actions are available through one row overflow menu.
-  Selected hardware properties and attachment actions render once in the
-  selection-driven inspector rather than expanding duplicate controls in every
-  row. Selected sheet workpieces
-  expose a face/fold outline derived from the graph tree; inter-workpiece joints
-  remain DAG relation edges. Hardware is added from the workpiece rail as declarative OCCS
+  attachments. Hardware is added from the workpiece rail as declarative OCCS
   workpieces rather than SCAD-style operation history: bolts, nuts, washers,
   rivets, screws, spacers, standoffs, and hanger clips carry family/parameter
   metadata, hanger clips expose `sheetPart`, `integralCut`, and `castSolid`
@@ -856,10 +844,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   transforms. Sheet part hanger clips remain sheet workpieces with generated root geometry. The 2D canvas stays in selected-workpiece flat
   editing mode for face operations, while the folded 3D panel is a single
   cassette assembly window in the assembly rail: workpieces render in deterministic varied hues,
-  source/target face attachment snaps are applied after sheet folding, selecting
-  a workpiece from the navigator or 2D canvas isolates it in 3D, while clicking
-  it in 3D selects the same inspector context. Attachment editing keeps the
-  whole assembly visible. The back
+  source/target face attachment snaps are applied after sheet folding, clicking
+  a workpiece selects it in the designer and isolates it in 3D, and the back
   button returns to the whole cassette view. The designer selects faces from hoverable canvas face
   clicks, resolves
   `face.trapezoid` boundaries through a pure OCCS trapezoid geometry helper

@@ -207,10 +207,8 @@
                     :class="{ '!rounded-none !border-0': flush }"
                 >
                     <template #actions>
-                        <span class="inline-flex items-center gap-1" role="group" :aria-label="$t('queue.viewMode')">
-                            <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" :aria-pressed="viewMode === 'grid'" @click="viewMode = 'grid'" text :severity="viewMode === 'grid' ? 'primary' : 'secondary'" size="small" />
-                            <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" :aria-pressed="viewMode === 'table'" @click="viewMode = 'table'" text :severity="viewMode === 'table' ? 'primary' : 'secondary'" size="small" />
-                        </span>
+                        <Button icon="pi pi-th-large" :aria-label="$t('queue.gridView')" @click="viewMode = 'grid'" text severity="secondary" size="small" />
+                        <Button icon="pi pi-table" :aria-label="$t('queue.tableView')" @click="viewMode = 'table'" text severity="secondary" size="small" />
                         <Button
                             v-if="canAddQueueEntry"
                             :label="$t('queues.addCassette')"
@@ -236,17 +234,15 @@
                                     :configurable="canConfigureEntry(entry)"
                                     :saving="configuringEntryIds.has(entry.id?.toString?.() || entry.id)"
                                     :disabled="!canEditQueue"
-                                    :selected="entry._key === selectedEntryKey"
                                     @configure="parameters => configureEntry(entry, parameters)"
                                     @update-quantity="value => updateEntryQuantity(entry, value)"
                                     @remove="confirmDelete(entry)"
-                                    @select="selectEntry(entry)"
                                 />
                             </template>
                         </ResponsiveGrid>
 
                         <TableFrame v-else>
-                            <DataTable :value="entries" dataKey="_key" @row-click="event => selectEntry(event.data)">
+                            <DataTable :value="entries" dataKey="_key">
                                 <Column field="id" :header="$t('queues.cassette')">
                                     <template #body="{ data }"><span>{{ getCassetteName(data) }}</span></template>
                                 </Column>
@@ -313,7 +309,7 @@
                         <label>{{ field.label || field.id }}</label>
                         <Select
                             v-if="field.type === 'entity'"
-                            v-model="producerValues[field.id]"
+                            :model-value="producerValues[field.id]"
                             :options="producerFieldOptions[field.id] || []"
                             option-label="label"
                             option-value="value"
@@ -321,17 +317,18 @@
                             class="w-full"
                             size="small"
                             :disabled="field.id === 'templateId' && !producerValues.libraryId"
-                            @change="onProducerFieldChange(field)"
+                            @update:model-value="value => updateProducerField(field, value)"
                         />
                         <MultiSelect
                             v-else-if="field.type === 'entityList'"
-                            v-model="producerValues[field.id]"
+                            :model-value="producerValues[field.id]"
                             :options="producerFieldOptions[field.id] || []"
                             option-label="label"
                             option-value="value"
                             :entity-type="field.entityType || field.accepts?.[0] || ''"
                             class="w-full"
                             size="small"
+                            @update:model-value="value => updateProducerField(field, value)"
                         />
                         <InputNumber v-else-if="field.type === 'number'" v-model="producerValues[field.id]" fluid size="small" />
                         <Textarea v-else-if="field.type === 'object'" v-model="producerValues[field.id]" rows="3" auto-resize />
@@ -419,7 +416,7 @@ const props = defineProps({
     flush: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted', 'open-entity', 'open-page']);
+const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted']);
 const { t } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
@@ -458,7 +455,6 @@ const project = ref(null);
 const availableInventory = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
-const selectedEntryKey = ref('');
 const instances = ref([]);
 const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
 const queueList = computed(() => [...props.queues].reverse());
@@ -638,6 +634,11 @@ async function onProducerFieldChange(field = {}) {
         return;
     }
     if (field.id === 'templateId') syncProducerParameters();
+}
+
+async function updateProducerField(field = {}, value) {
+    producerValues.value[field.id] = value;
+    await onProducerFieldChange(field);
 }
 
 async function startProducer(producer) {
@@ -1066,9 +1067,6 @@ const canConfigureEntry = entry => Boolean(
     && getEntryEntityData(entry)
     && getEntryTemplateData(entry)
 );
-function selectEntry(entry) {
-    selectedEntryKey.value = entry?._key || '';
-}
 
 async function configureEntry(entry, parameters) {
     if (!canConfigureEntry(entry)) return;
@@ -1274,9 +1272,6 @@ const loadQueueData = async () => {
                 const associated = jobItems.find(item => item.id?.toString?.() === reference.id?.toString?.());
                 return makeQueueEntry({ ...reference, ...(associated || {}), quantity: associated?.quantity || 1 }, index);
             });
-            if (!entries.value.some(entry => entry._key === selectedEntryKey.value)) {
-                selectedEntryKey.value = '';
-            }
             entries.value.forEach(syncEntryWithCassette);
             await hydrateMissingEntryDesigns();
             entries.value.forEach(syncEntryWithCassette);

@@ -103,10 +103,7 @@
     "hideAllLayers": "Hide all layers",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
-    "resetView": "Fit view",
-    "toggleGrid": "Show or hide grid",
-    "panShortcut": "Shift + drag to pan",
-    "assembly": "Assembly"
+    "resetView": "Reset view"
   },
   "support": {
     "entityTypeLabels": {
@@ -310,21 +307,7 @@
     "openFiles": "Open files",
     "openSomething": "Open something",
     "splitRight": "Split right",
-    "splitDown": "Split down",
-    "maximizePane": "Maximize pane",
-    "restorePane": "Restore pane",
-    "reopenClosed": "Reopen closed file",
-    "workspaceLayouts": "Workspace layouts",
-    "workspaceLayoutsHelp": "Layouts are device-local workspace preferences for this user, organization, and project.",
-    "workspaceLayoutName": "Layout name",
-    "noWorkspaceLayouts": "No saved layouts yet.",
-    "saveLayout": "Save layout",
-    "applyLayout": "Apply",
-    "renameLayout": "Rename layout",
-    "deleteLayout": "Delete layout",
-    "resetWorkspaceLayout": "Reset to default",
-    "quickOpen": "Quick open",
-    "quickOpenPlaceholder": "Search open files"
+    "splitDown": "Split down"
   },
   "file": {
     "upload": "Upload Files",
@@ -425,11 +408,9 @@
       "face": "Face",
       "inspector": "Inspector",
       "parameters": "Parameters",
-      "addParameter": "Add parameter",
       "preview": "Layout preview",
       "loadTemplate": "Load template",
       "workpieces": "Workpieces",
-      "faceOutline": "Faces and folds",
       "workpieceGraph": "Workpiece graph",
       "topology": "Topology",
       "selectedWorkpiece": "Selected workpiece",
@@ -439,7 +420,6 @@
       "addWorkpiece": "Add workpiece",
       "addRelatedWorkpiece": "Add related workpiece",
       "addAttachment": "Add attachment",
-      "editAttachment": "Edit attachment",
       "addHardware": "Add hardware",
       "addProfile": "Add profile",
       "editProfile": "Edit profile",
@@ -454,11 +434,6 @@
       "resetOrbit": "Reset 3D view",
       "occsDraft": "OCCS Draft",
       "globalParameters": "Global parameters",
-      "expandSection": "Expand section",
-      "collapseSection": "Collapse section",
-      "saved": "Saved",
-      "unsaved": "Unsaved changes",
-      "confirmReset": "Reset this cassette draft? Unsaved changes will be discarded.",
       "renderFailed": "Failed to render trapezoid graph.",
       "previewHeld": "Drawing is held at the last valid preview. Fix the expression to update it.",
       "addFace": "Add trapezoid",
@@ -1953,7 +1928,6 @@
   },
   "queue": {
     "title": "Queues",
-    "viewMode": "Entry view",
     "create": "Create Queue",
     "createTitle": "Create New Queue",
     "createFirst": "Create Your First Queue",
@@ -1986,13 +1960,6 @@
     "dimensions": "Dimensions",
     "addNewEntry": "Add New Entry",
     "unknownCassette": "Unknown Cassette",
-    "inspectDesign": "Inspect design",
-    "openTemplate": "Open template",
-    "sourceTemplate": "Source template",
-    "sourceUnavailable": "Source unavailable",
-    "parametersConfigurable": "Configurable",
-    "parametersLocked": "Locked",
-    "parameterLocked": "Locked",
     "confirmDeleteEntry": "Are you sure you want to delete this entry?",
     "dimensionKey": "Enter dimension key (e.g., A, B, C):",
     "pageTitle": "Queue Details",
@@ -2899,8 +2866,6 @@
   "generatedScreen": {
     "home": "Home",
     "actions": {
-      "create": "Create",
-      "link": "Link",
       "change": "Change",
       "run": "Run",
       "send": "Send"
