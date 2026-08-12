@@ -590,7 +590,6 @@
               />
             </div>
           </div>
-          <Menu ref="workpieceActionsMenu" :model="workpieceActionItems" popup />
           <ScrollPanel class="min-h-0 flex-1 rounded-ui border border-content-border">
             <div class="flex flex-col">
               <div
@@ -612,14 +611,46 @@
                     <Tag v-if="row.parentCount > 1" :value="`×${row.parentCount}`" severity="secondary" size="small" />
                   </button>
                   <Button
-                    icon="pi pi-ellipsis-v"
+                    icon="pi pi-plus"
                     severity="secondary"
                     text
                     rounded
                     size="small"
-                    :aria-label="$t('common.more')"
-                    v-tooltip.top="$t('common.more')"
-                    @click.stop="openWorkpieceActions($event, row.id)"
+                    :aria-label="$t('cassette.v2.addRelatedWorkpiece')"
+                    v-tooltip.top="$t('cassette.v2.addRelatedWorkpiece')"
+                    @click="addWorkpieceFrom(row.id)"
+                  />
+                  <Button
+                    icon="pi pi-link"
+                    :severity="row.id === pendingAttachmentSourceId ? 'primary' : 'secondary'"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('cassette.v2.addAttachment')"
+                    v-tooltip.top="$t('cassette.v2.addAttachment')"
+                    @click="startAttachmentConnect(row.id)"
+                  />
+                  <Button
+                    v-if="row.isProfile"
+                    icon="pi pi-pencil"
+                    severity="secondary"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('cassette.v2.editProfile')"
+                    v-tooltip.top="$t('cassette.v2.editProfile')"
+                    @click="openProfileDialog(row.id)"
+                  />
+                  <Button
+                    v-if="row.id !== workpieces[0]?.id"
+                    icon="pi pi-trash"
+                    severity="danger"
+                    text
+                    rounded
+                    size="small"
+                    :aria-label="$t('cassette.v2.deleteWorkpiece')"
+                    v-tooltip.top="$t('cassette.v2.deleteWorkpiece')"
+                    @click="deleteWorkpiece(row.id)"
                   />
                 </div>
 
@@ -633,7 +664,7 @@
                       type="button"
                       class="flex min-w-0 flex-1 items-center gap-2 rounded-ui border px-2 py-1 text-left"
                       :class="relationRow.relation.id === selectedRelationId ? 'border-primary bg-subtle' : 'border-content-border'"
-                      @click="selectWorkpieceRelation(relationRow.relation.id)"
+                      @click="selectWorkpieceRelation(relationRow.relation.id, $event)"
                     >
                       <span class="shrink-0 font-mono text-xs text-muted-color">{{ relationRow.arrow }}</span>
                       <span class="truncate text-sm">{{ relationRow.otherLabel }}</span>
@@ -651,6 +682,16 @@
                         size="small"
                       />
                     </button>
+                    <Button
+                      icon="pi pi-trash"
+                      severity="danger"
+                      text
+                      rounded
+                      size="small"
+                      :aria-label="$t('cassette.v2.removeAttachment')"
+                      v-tooltip.top="$t('cassette.v2.removeAttachment')"
+                      @click="deleteWorkpieceRelation(relationRow.relation.id)"
+                    />
                   </div>
                 </div>
               </div>
@@ -719,31 +760,6 @@
               @show="ensureProfileTemplatesLoaded"
               @update:model-value="value => updateSelectedHardwareProfile(value)"
             />
-          </div>
-          <div v-if="selectedWorkpieceRelation" class="mt-2 flex min-w-0 flex-col gap-2 border-t border-content-border pt-2">
-            <small class="font-medium text-muted-color">{{ $t('cassette.v2.attachment') }}</small>
-            <div class="flex min-w-0 items-center gap-1 text-sm">
-              <span class="truncate">{{ workpieceLabel(selectedWorkpieceRelation.sourceWorkpieceId) }}</span>
-              <i class="pi pi-arrow-right shrink-0 text-xs text-muted-color" aria-hidden="true" />
-              <span class="truncate">{{ workpieceLabel(selectedWorkpieceRelation.targetWorkpieceId) }}</span>
-            </div>
-            <div class="flex flex-wrap gap-1">
-              <Button
-                :label="$t('cassette.v2.editAttachment')"
-                icon="pi pi-pencil"
-                severity="secondary"
-                size="small"
-                @click="openSelectedAttachmentEditor"
-              />
-              <Button
-                :label="$t('cassette.v2.removeAttachment')"
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                size="small"
-                @click="deleteWorkpieceRelation(selectedWorkpieceRelation.id)"
-              />
-            </div>
           </div>
         </div>
 
@@ -840,7 +856,6 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import Menu from 'primevue/menu';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
@@ -933,8 +948,6 @@ const cassetteNameDraft = ref(t('cassette.newCassette'));
 const selectedNodeId = ref(cassetteTree.value.rootId);
 const selectedWorkpieceOverrideId = ref('');
 const selectedRelationId = ref('');
-const workpieceActionsMenu = ref(null);
-const workpieceActionRowId = ref('');
 const inspectorSelection = ref('face');
 const editorSurfaceRef = ref(null);
 const inlineEditor = ref(null);
@@ -1024,33 +1037,6 @@ const selectedWorkpieceRelation = computed(() => (
   null
 ));
 const workpieceById = computed(() => new Map(workpieces.value.map(workpiece => [workpiece.id, workpiece])));
-const workpieceActionItems = computed(() => {
-  const row = workpieceRows.value.find(item => item.id === workpieceActionRowId.value);
-  if (!row) return [];
-  return [
-    {
-      label: t('cassette.v2.addRelatedWorkpiece'),
-      icon: 'pi pi-plus',
-      command: () => addWorkpieceFrom(row.id)
-    },
-    {
-      label: t('cassette.v2.addAttachment'),
-      icon: 'pi pi-link',
-      command: () => startAttachmentConnect(row.id)
-    },
-    ...(row.isProfile ? [{
-      label: t('cassette.v2.editProfile'),
-      icon: 'pi pi-pencil',
-      command: () => openProfileDialog(row.id)
-    }] : []),
-    ...(row.id !== workpieces.value[0]?.id ? [{
-      label: t('cassette.v2.deleteWorkpiece'),
-      icon: 'pi pi-trash',
-      class: 'text-red-500',
-      command: () => deleteWorkpiece(row.id)
-    }] : [])
-  ];
-});
 const foldedPreviewDiagnostics = computed(() => buildCassetteV2FoldedPreview(cassettePreviewSource.value?.foldedPreview || {}));
 const relationDiagnosticsById = computed(() => new Map(
   (foldedPreviewDiagnostics.value.attachments || []).map(attachment => [attachment.id, attachment])
@@ -2052,26 +2038,19 @@ const selectWorkpieceForInspector = (workpieceId) => {
   inspectorSelection.value = 'workpiece';
 };
 
-const selectWorkpieceRelation = (relationId) => {
+const selectWorkpieceRelation = (relationId, event = null) => {
   closeInlineEditor();
   const relation = workpieceRelations.value.find(item => item.id === relationId);
   selectedRelationId.value = relationId;
   if (relation?.sourceWorkpieceId) selectWorkpiece(relation.sourceWorkpieceId);
   inspectorSelection.value = 'attachment';
-};
-
-const openWorkpieceActions = (event, workpieceId) => {
-  workpieceActionRowId.value = workpieceId;
-  workpieceActionsMenu.value?.toggle(event);
-};
-
-const openSelectedAttachmentEditor = () => {
-  if (!selectedWorkpieceRelation.value) return;
+  const point = event
+    ? { x: event.clientX, y: event.clientY }
+    : { x: 120, y: 120 };
   openInlineEditor({
     type: 'attachment',
-    relationId: selectedWorkpieceRelation.value.id,
-    x: 120,
-    y: 120
+    relationId,
+    ...point
   });
 };
 
