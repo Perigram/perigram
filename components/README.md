@@ -821,16 +821,19 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   attachment for the selected workpiece without creating geometry. Non-root
   workpieces can be deleted, which removes only that workpiece, its faces, and
   incident OCCS joints. Relation rows appear under both source and target
-  workpieces so multi-parent attachments stay visible; they open the
-  canvas-local attachment editor
+  workpieces so multi-parent attachments stay visible; selecting one focuses
+  the shared attachment inspector, where its edit and remove actions live. The
+  edit action opens the canvas-local attachment editor
   for target/source face, target/source snap points, face offsets, rotation,
   side, joint type, method, and driver choice, can remove a joint link without
   deleting either workpiece, and display unresolved/impossible diagnostics from
   the folded preview helper. Attachment placement choice is
   internal renderer state; the user workflow only declares face-to-face
-  attachments. Workpiece rows expose identity, type, role, and topology actions;
-  selected hardware properties render once in the selection-driven inspector
-  rather than expanding duplicate controls in every row. Selected sheet workpieces
+  attachments. Workpiece rows expose identity, type, and role; their topology
+  actions are available through one row overflow menu.
+  Selected hardware properties and attachment actions render once in the
+  selection-driven inspector rather than expanding duplicate controls in every
+  row. Selected sheet workpieces
   expose a face/fold outline derived from the graph tree; inter-workpiece joints
   remain DAG relation edges. Hardware is added from the workpiece rail as declarative OCCS
   workpieces rather than SCAD-style operation history: bolts, nuts, washers,

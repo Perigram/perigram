@@ -186,7 +186,7 @@ Primary scope: `components/QueueEditor.vue`,
 - [x] Keep the top-level workpiece occurrence/joint projection DAG-safe. Show
   workpiece type (`sheet`, `profile`, `solid`, `hardware`), role, selected state,
   isolation/visibility state, and unresolved/impossible joint diagnostics.
-- [ ] Move selected workpiece/hardware properties and joint editing out of every
+- [x] Move selected workpiece/hardware properties and joint editing out of every
   repeated row into one selection-driven inspector surface. Rows should retain
   identity, concise metadata, and an overflow action menu.
 - [x] For a selected sheet workpiece, add a subordinate face/fold outline derived
@@ -209,6 +209,12 @@ Primary scope: `components/CassetteDesignerV2.vue`,
 `components/CassetteFoldedPreview.vue`, `components/shared/DrawingCanvas.vue`,
 and pure helpers under `utils/occs/` / `utils/cassetteV2Renderer.js` only when a
 new projection is required.
+
+#### Agent Notes — 2026-08-12
+
+Workpiece relation rows now select a shared attachment inspector. The inspector
+owns edit/remove actions, while workpiece topology actions are consolidated in
+each row's overflow menu.
 
 ## P1 — strengthen the workbench visual grammar
 
