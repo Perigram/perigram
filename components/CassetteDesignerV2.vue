@@ -32,80 +32,68 @@
     </div>
 
     <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
-      <template #toolbar>
-        <header
-          class="flex min-w-0 flex-wrap items-center gap-2 border-b border-content-border bg-chrome px-2 py-1 text-[var(--ck-chrome-foreground)]"
-          data-cassette-designer-toolbar
-        >
-          <InputText
-            v-model="cassetteNameDraft"
-            :placeholder="$t('cassette.name')"
-            class="min-w-48 flex-1"
-          />
-          <Tag :value="documentProfileLabel" severity="secondary" size="small" />
-          <Tag :value="documentUnits" severity="secondary" size="small" />
-          <Tag
-            :value="$t(isModified ? 'cassette.v2.unsaved' : 'cassette.v2.saved')"
-            :severity="isModified ? 'warn' : 'secondary'"
-            size="small"
-            data-cassette-designer-save-state
-          />
-          <Select
-            :model-value="null"
-            :options="templateOptions"
-            option-label="label"
-            option-value="value"
-            entity-type="cassette"
-            :placeholder="$t('cassette.v2.loadTemplate')"
-            class="min-w-44"
-            @update:model-value="value => emit('load-template', value)"
-          />
-          <div class="flex items-center gap-1">
-            <Button
-              :label="$t('common.save')"
-              icon="pi pi-save"
-              size="small"
-              :loading="savingTemplate"
-              :disabled="savingTemplate || (selectedTemplateIsPersisted && !isModified)"
-              @click="saveTemplate"
-            />
-            <Button
-              icon="pi pi-copy"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              :loading="savingTemplate"
-              :disabled="savingTemplate"
-              :aria-label="$t('common.saveAs')"
-              v-tooltip.bottom="$t('common.saveAs')"
-              @click="saveTemplate({ saveAs: true })"
-            />
-            <Button
-              icon="pi pi-refresh"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              :aria-label="$t('common.reset')"
-              v-tooltip.bottom="$t('common.reset')"
-              @click="requestResetTree"
-            />
-          </div>
-        </header>
-      </template>
       <template #palette>
       <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border bg-content p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
 
-      <Message v-if="sessionDraftAvailable" severity="info" size="small" :closable="false">
-        <div class="flex flex-col gap-2">
-          <span>{{ $t('cassette.v2.autosaveDraftAvailable') }}</span>
-          <div class="flex flex-wrap gap-1">
-            <Button :label="$t('cassette.v2.recoverDraft')" size="small" @click="recoverSessionDraft" />
-            <Button :label="$t('cassette.v2.discardDraft')" severity="secondary" text size="small" @click="discardSessionDraft" />
-          </div>
+      <div class="flex shrink-0 flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
+        <InputText
+          v-model="cassetteNameDraft"
+          :placeholder="$t('cassette.name')"
+          class="w-full"
+        />
+        <Select
+          :model-value="null"
+          :options="templateOptions"
+          option-label="label"
+          option-value="value"
+          entity-type="cassette"
+          :placeholder="$t('cassette.v2.loadTemplate')"
+          class="w-full"
+          @update:model-value="value => emit('load-template', value)"
+        />
+        <div class="flex items-center gap-1">
+          <Button
+            icon="pi pi-save"
+            size="small"
+            :loading="savingTemplate"
+            :disabled="savingTemplate"
+            :aria-label="$t('common.save')"
+            v-tooltip.top="$t('common.save')"
+            @click="saveTemplate"
+          />
+          <Button
+            icon="pi pi-copy"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :loading="savingTemplate"
+            :disabled="savingTemplate"
+            :aria-label="$t('common.saveAs')"
+            v-tooltip.top="$t('common.saveAs')"
+            @click="saveTemplate({ saveAs: true })"
+          />
+          <Button
+            icon="pi pi-refresh"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('common.reset')"
+            v-tooltip.top="$t('common.reset')"
+            @click="resetTree"
+          />
         </div>
-      </Message>
+        <Message v-if="sessionDraftAvailable" severity="info" size="small" :closable="false">
+          <div class="flex flex-col gap-2">
+            <span>{{ $t('cassette.v2.autosaveDraftAvailable') }}</span>
+            <div class="flex flex-wrap gap-1">
+              <Button :label="$t('cassette.v2.recoverDraft')" size="small" @click="recoverSessionDraft" />
+              <Button :label="$t('cassette.v2.discardDraft')" severity="secondary" text size="small" @click="discardSessionDraft" />
+            </div>
+          </div>
+        </Message>
+      </div>
 
       <div class="flex flex-wrap gap-2">
         <Button
@@ -609,8 +597,6 @@
                   >
                     <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="workpieceAccentStyle(row.id)" aria-hidden="true" />
                     <span class="truncate">{{ row.label }}</span>
-                    <Tag :value="row.type" severity="secondary" size="small" />
-                    <Tag v-if="row.role" :value="row.role" severity="secondary" size="small" />
                     <Tag v-if="row.parentCount > 1" :value="`×${row.parentCount}`" severity="secondary" size="small" />
                   </button>
                   <Button
@@ -657,6 +643,45 @@
                   />
                 </div>
 
+                <div v-if="row.id === selectedWorkpieceId && row.isHardware" class="mt-2 grid grid-cols-2 gap-2 pl-4">
+                  <Select
+                    :model-value="row.family"
+                    :options="hardwareFamilyOptions"
+                    option-label="label"
+                    option-value="value"
+                    size="small"
+                    class="w-full"
+                    :aria-label="$t('cassette.v2.hardwareFields.family')"
+                    @update:model-value="value => updateSelectedHardware({ family: value })"
+                  />
+                  <Select
+                    v-if="row.family === 'hanger_clip'"
+                    :model-value="row.productionMode || 'integralCut'"
+                    :options="hangerProductionModeOptions"
+                    option-label="label"
+                    option-value="value"
+                    size="small"
+                    class="w-full"
+                    :aria-label="$t('cassette.v2.hardwareFields.productionMode')"
+                    @update:model-value="value => updateSelectedHardware({ productionMode: value })"
+                  />
+                  <Select
+                    v-if="row.family === 'hanger_clip'"
+                    :model-value="row.profileTemplateId || ''"
+                    :options="profileTemplateOptions"
+                    option-label="label"
+                    option-value="value"
+                    size="small"
+                    class="w-full"
+                    :placeholder="$t('cassette.v2.profileEditor.loadTemplate')"
+                    :aria-label="$t('cassette.v2.profileEditor.loadTemplate')"
+                    @click="ensureProfileTemplatesLoaded"
+                    @focus="ensureProfileTemplatesLoaded"
+                    @show="ensureProfileTemplatesLoaded"
+                    @update:model-value="value => updateSelectedHardwareProfile(value)"
+                  />
+                </div>
+
                 <div v-if="row.relations.length" class="mt-2 flex flex-col gap-1 pl-4">
                   <div
                     v-for="relationRow in row.relations"
@@ -700,52 +725,6 @@
               </div>
             </div>
           </ScrollPanel>
-        </div>
-
-        <div v-if="selectedWorkpieceRow" class="shrink-0 rounded-ui border border-content-border bg-subtle p-2" data-cassette-designer-inspector>
-          <div class="flex min-w-0 items-center gap-2">
-            <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="workpieceAccentStyle(selectedWorkpieceRow.id)" aria-hidden="true" />
-            <strong class="min-w-0 flex-1 truncate">{{ selectedWorkpieceRow.label }}</strong>
-            <Tag :value="selectedWorkpieceRow.type" severity="secondary" size="small" />
-          </div>
-          <div v-if="selectedWorkpieceRow.isHardware" class="mt-2 grid grid-cols-2 gap-2">
-            <Select
-              :model-value="selectedWorkpieceRow.family"
-              :options="hardwareFamilyOptions"
-              option-label="label"
-              option-value="value"
-              size="small"
-              class="w-full"
-              :aria-label="$t('cassette.v2.hardwareFields.family')"
-              @update:model-value="value => updateSelectedHardware({ family: value })"
-            />
-            <Select
-              v-if="selectedWorkpieceRow.family === 'hanger_clip'"
-              :model-value="selectedWorkpieceRow.productionMode || 'integralCut'"
-              :options="hangerProductionModeOptions"
-              option-label="label"
-              option-value="value"
-              size="small"
-              class="w-full"
-              :aria-label="$t('cassette.v2.hardwareFields.productionMode')"
-              @update:model-value="value => updateSelectedHardware({ productionMode: value })"
-            />
-            <Select
-              v-if="selectedWorkpieceRow.family === 'hanger_clip'"
-              :model-value="selectedWorkpieceRow.profileTemplateId || ''"
-              :options="profileTemplateOptions"
-              option-label="label"
-              option-value="value"
-              size="small"
-              class="col-span-2 w-full"
-              :placeholder="$t('cassette.v2.profileEditor.loadTemplate')"
-              :aria-label="$t('cassette.v2.profileEditor.loadTemplate')"
-              @click="ensureProfileTemplatesLoaded"
-              @focus="ensureProfileTemplatesLoaded"
-              @show="ensureProfileTemplatesLoaded"
-              @update:model-value="value => updateSelectedHardwareProfile(value)"
-            />
-          </div>
         </div>
 
         <div class="hidden shrink-0 overflow-hidden lg:block lg:h-56 xl:h-64">
@@ -894,7 +873,6 @@ import {
 
 const { t } = useI18n();
 const toast = useToast();
-const confirm = useConfirm();
 const standardsStore = useLayerStandardsStore();
 const pensStore = usePenTemplatesStore();
 const profileTemplateEntity = useEntity('profileTemplate');
@@ -918,7 +896,7 @@ const props = defineProps({
     default: true
   }
 });
-const emit = defineEmits(['load-template', 'save-template', 'dirty-change']);
+const emit = defineEmits(['load-template', 'save-template']);
 
 const sideTabs = [
   { value: 'parameters', labelKey: 'cassette.v2.parameters', icon: 'pi pi-sliders-h' },
@@ -990,9 +968,6 @@ const selectedTemplateIsPersisted = computed(() => Boolean(
   selectedTemplateId.value &&
   persistedTemplateIdSet.value.has(selectedTemplateId.value.toString())
 ));
-const documentDefinition = computed(() => props.template?.data?.definition || props.template?.definition || {});
-const documentProfileLabel = computed(() => `OCCS ${documentDefinition.value?.documentType || 'template'}`);
-const documentUnits = computed(() => documentDefinition.value?.units || 'mm');
 const treeNodes = computed(() => cassetteTree.value.nodes || []);
 const selectedNode = computed(() => treeNodes.value.find(node => node.id === selectedNodeId.value) || treeNodes.value[0] || null);
 const workpieces = computed(() => getCassetteV2Workpieces(cassetteTree.value));
@@ -1059,7 +1034,6 @@ const workpieceRows = computed(() => workpieces.value.map(workpiece => ({
   id: workpiece.id,
   label: workpiece.name || workpiece.id,
   type: workpiece.type || 'sheet',
-  role: workpiece.role || '',
   family: workpiece.family || workpiece.hardware?.family || '',
   productionMode: workpiece.productionMode || workpiece.hardware?.productionMode || '',
   profileTemplateId: workpiece.profileTemplateId || workpiece.hardware?.profileTemplateId || '',
@@ -1069,7 +1043,6 @@ const workpieceRows = computed(() => workpieces.value.map(workpiece => ({
   parentCount: workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length,
   relations: workpieceRelationRowsById.value.get(workpiece.id) || []
 })));
-const selectedWorkpieceRow = computed(() => workpieceRows.value.find(row => row.id === selectedWorkpieceId.value) || null);
 const relationStatusSeverity = (status) => {
   if (status === 'impossible') return 'danger';
   if (status === 'unresolved') return 'warn';
@@ -1364,12 +1337,6 @@ const designerSnapshot = () => JSON.stringify({
 let suppressHistory = false;
 let suppressAutosave = false;
 let autosaveTimer = null;
-const savedDesignerSnapshot = ref('');
-const isModified = computed(() => Boolean(savedDesignerSnapshot.value) && designerSnapshot() !== savedDesignerSnapshot.value);
-
-const markDesignerSaved = () => {
-  savedDesignerSnapshot.value = designerSnapshot();
-};
 
 const resetDesignerHistory = () => {
   historyPast.value = [];
@@ -1522,7 +1489,6 @@ const applyTemplate = (template) => {
   previewError.value = '';
   loadedTemplateId.value = template?._id || '';
   resetDesignerHistory();
-  markDesignerSaved();
   refreshSessionDraftState();
 };
 
@@ -1562,7 +1528,6 @@ const saveTemplate = async ({ saveAs = false } = {}) => {
   if (!props.persist) {
     emit('save-template', payload);
     clearSessionDraft();
-    markDesignerSaved();
     return;
   }
 
@@ -1595,7 +1560,6 @@ const saveTemplate = async ({ saveAs = false } = {}) => {
       window.sessionStorage.removeItem(autosaveStorageKey.value);
     }
     sessionDraftAvailable.value = false;
-    markDesignerSaved();
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 });
     emit('save-template', {
       ...payload,
@@ -1703,7 +1667,6 @@ watch([cassetteTree, cassetteNameDraft, autosaveStorageKey], () => {
     writeSessionDraft();
   }, 900);
 }, { deep: true });
-watch(isModified, value => emit('dirty-change', value), { immediate: true });
 watch(autosaveStorageKey, () => {
   refreshSessionDraftState();
 });
@@ -1966,19 +1929,6 @@ const resetTree = () => {
   previewError.value = '';
   clearSessionDraft();
   resetDesignerHistory();
-};
-
-const requestResetTree = () => {
-  if (!isModified.value) {
-    resetTree();
-    return;
-  }
-  confirm.require({
-    message: t('cassette.v2.confirmReset'),
-    header: t('common.confirmation'),
-    icon: 'pi pi-exclamation-triangle',
-    accept: resetTree
-  });
 };
 
 const selectWorkpiece = (workpieceId) => {

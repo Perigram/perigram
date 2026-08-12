@@ -103,10 +103,10 @@ Do not reopen these as greenfield structural tasks:
 - [ ] Keep these states visually distinct: active pane, selected file, entity
   lifecycle status, designer modified state, validation warning/error, and
   primary action.
-- [x] Have `CassetteDesignerV2` emit modified/saved state through
+- [ ] Have `CassetteDesignerV2` emit modified/saved state through
   `GeneratedCassetteDesignerWorkspacePage` and `GeneratedWorkspacePage`; clear
   modified only after a successful save or an explicit reset/load decision.
-- [x] Render lifecycle status through `EntityStatus` only. Render the modified
+- [ ] Render lifecycle status through `EntityStatus` only. Render the modified
   marker as a separate shape/token with an accessible label; never reinterpret a
   lifecycle glyph as a dirty dot.
 - [ ] Keep Explorer selection synchronized with the active entity/page reference.
@@ -130,17 +130,17 @@ and `utils/project-workspace-state.js` only if the serialized schema changes.
 
 ### 2. Move Cassette Designer document commands into its shared toolbar
 
-- [x] Use the existing `DesignerWorkspace#toolbar` slot for a compact document
+- [ ] Use the existing `DesignerWorkspace#toolbar` slot for a compact document
   header containing the current cassette template identity/name, OCCS document
   profile and units, modified/saved state, template load, Save, Save as, Reset,
   and low-frequency overflow actions.
-- [x] Treat template load as a command/picker, not as a second selected-name field.
+- [ ] Treat template load as a command/picker, not as a second selected-name field.
   Keep the current entity-bound page identity visible while the picker is closed.
 - [ ] Keep global parameters, layer visibility, and OCCS JSON in the settings rail;
   keep workpiece topology and folded preview in the assembly rail.
 - [ ] Preserve the current explicit-save boundary, 50-step undo/redo history,
   session-draft recovery, and parent-provided save/load handlers.
-- [x] Confirm destructive/reset actions when they would discard a modified draft.
+- [ ] Confirm destructive/reset actions when they would discard a modified draft.
 
 Acceptance:
 
@@ -156,17 +156,17 @@ README contract.
 
 ### 3. Make Queue-entry context explicit without violating immutability
 
-- [x] Add local selection to `QueueEditor`/`QueueEntryCard`; selection identifies
+- [ ] Add local selection to `QueueEditor`/`QueueEntryCard`; selection identifies
   the active queue entry association, not a new entity or Explorer node.
 - [ ] Show the selected entry's typed source chain with actions appropriate to
   what is actually readable: inspect the referenced `cassette_design`, open its
   source `cassette` template in the registered designer page, or replace the
   design through the existing compiled Link/creator action.
-- [x] Route entity/page opens back through the generated workspace events. Do not
+- [ ] Route entity/page opens back through the generated workspace events. Do not
   add static `/cassettes/...` navigation or a Queue-local workspace-page registry.
 - [ ] If source provenance is missing or unreadable, retain the current typed-id
   fallback and do not imply that the design is editable.
-- [x] Keep quantity as Queue association data. Keep parameter configuration as
+- [ ] Keep quantity as Queue association data. Keep parameter configuration as
   immutable design replacement; never patch a shared `cassette_design` in place.
 
 Acceptance:
@@ -183,7 +183,7 @@ Primary scope: `components/QueueEditor.vue`,
 
 ### 4. Turn the assembly rail into a scalable OCCS navigator and inspector
 
-- [x] Keep the top-level workpiece occurrence/joint projection DAG-safe. Show
+- [ ] Keep the top-level workpiece occurrence/joint projection DAG-safe. Show
   workpiece type (`sheet`, `profile`, `solid`, `hardware`), role, selected state,
   isolation/visibility state, and unresolved/impossible joint diagnostics.
 - [ ] Move selected workpiece/hardware properties and joint editing out of every

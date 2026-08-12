@@ -4,7 +4,6 @@
     :item="item"
     :tabs="tabs"
     :available-tabs="availableTabs"
-    :dirty-tab-keys="dirtyTabKeys"
     :action-entries="actionEntries"
     :closeable="closeable"
     :splittable="splittable"
@@ -13,7 +12,6 @@
     @open-entity="request => $emit('open-entity', request)"
     @open-page="page => $emit('open-page', page)"
     @refresh="$emit('refresh')"
-    @dirty-change="$emit('dirty-change', $event)"
     @select-tab="$emit('select-tab', $event)"
     @close-tab="$emit('close-tab', $event)"
     @add-tab="$emit('add-tab', $event)"
@@ -25,13 +23,11 @@
     :page="item"
     :tabs="tabs"
     :available-tabs="availableTabs"
-    :dirty-tab-keys="dirtyTabKeys"
     :closeable="closeable"
     :splittable="splittable"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
     @open-page="page => $emit('open-page', page)"
     @refresh="$emit('refresh')"
-    @dirty-change="$emit('dirty-change', $event)"
     @select-tab="$emit('select-tab', $event)"
     @close-tab="$emit('close-tab', $event)"
     @add-tab="$emit('add-tab', $event)"
@@ -47,7 +43,6 @@
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :available-tabs="availableTabs"
-        :dirty-tab-keys="dirtyTabKeys"
         active-key=""
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
@@ -78,11 +73,10 @@ defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
   availableTabs: { type: Array, default: () => [] },
-  dirtyTabKeys: { type: Array, default: () => [] },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'dirty-change', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
+defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 </script>

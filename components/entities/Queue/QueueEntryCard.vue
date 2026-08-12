@@ -1,10 +1,5 @@
 <template>
-  <Panel
-    class="queue-entry-card cursor-pointer"
-    :class="selected ? 'border-primary bg-subtle' : ''"
-    :pt="panelPt"
-    @click="emit('select')"
-  >
+  <Panel class="queue-entry-card" :pt="panelPt">
     <div class="queue-entry-card__layout flex min-w-0 flex-col gap-2">
       <CassetteThumbnail
         v-if="cassette"
@@ -71,26 +66,6 @@
             @click="emit('configure', { ...draftParameters })"
           />
         </div>
-        <div v-if="selected && (canOpenDesign || canOpenTemplate)" class="flex flex-wrap items-center gap-1" data-entity-card-interactive="true" @click.stop>
-          <Button
-            v-if="canOpenDesign"
-            :label="$t('queue.inspectDesign')"
-            icon="pi pi-eye"
-            severity="secondary"
-            text
-            size="small"
-            @click="emit('open-design')"
-          />
-          <Button
-            v-if="canOpenTemplate"
-            :label="$t('queue.openTemplate')"
-            icon="pi pi-pencil"
-            severity="secondary"
-            text
-            size="small"
-            @click="emit('open-template')"
-          />
-        </div>
       </div>
     </div>
   </Panel>
@@ -115,13 +90,10 @@ const props = defineProps({
   lockedParameters: { type: Array, default: () => ['T'] },
   configurable: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
-  disabled: { type: Boolean, default: false },
-  selected: { type: Boolean, default: false },
-  canOpenDesign: { type: Boolean, default: false },
-  canOpenTemplate: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['configure', 'update-quantity', 'remove', 'select', 'open-design', 'open-template']);
+const emit = defineEmits(['configure', 'update-quantity', 'remove']);
 const { t } = useI18n();
 const panelPt = {
   header: { class: '!hidden' },

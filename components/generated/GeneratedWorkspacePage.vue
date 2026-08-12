@@ -7,7 +7,6 @@
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :available-tabs="availableTabs"
-        :dirty-tab-keys="dirtyTabKeys"
         :active-key="page.key"
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
@@ -29,7 +28,6 @@
         @execute-action="(action, entry) => $emit('execute-action', action, entry)"
         @open-page="page => $emit('open-page', page)"
         @refresh="$emit('refresh')"
-        @dirty-change="value => $emit('dirty-change', { key: page.key, dirty: value })"
       />
     </div>
   </section>
@@ -45,12 +43,11 @@ const props = defineProps({
   page: { type: Object, required: true },
   tabs: { type: Array, default: () => [] },
   availableTabs: { type: Array, default: () => [] },
-  dirtyTabKeys: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-page', 'refresh', 'dirty-change', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
+defineEmits(['execute-action', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 
 const definition = computed(() => resolveGeneratedWorkspacePage(props.page?.pageId));
 const pageProps = computed(() => definition.value?.props?.(props.page) || {});
