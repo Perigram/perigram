@@ -41,7 +41,7 @@ test.describe('generated project workspace', () => {
       }
     });
     await app.page.reload();
-    await expect(app.page.locator('[data-project-action-palette]').getByRole('button', { name: /^queue$/i })).toHaveCount(1);
+    await expect(app.page.locator('[data-project-action-palette]').getByRole('button', { name: /^create queue$/i })).toHaveCount(1);
     await expect(app.page.getByRole('treeitem', { name: /^queue$/i })).toBeVisible();
 
     await app.page.getByRole('treeitem', { name: /linked entities/i }).getByRole('button').click();
