@@ -830,7 +830,9 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   internal renderer state; the user workflow only declares face-to-face
   attachments. Workpiece rows expose identity, type, role, and topology actions;
   selected hardware properties render once in the selection-driven inspector
-  rather than expanding duplicate controls in every row. Hardware is added from the workpiece rail as declarative OCCS
+  rather than expanding duplicate controls in every row. Selected sheet workpieces
+  expose a face/fold outline derived from the graph tree; inter-workpiece joints
+  remain DAG relation edges. Hardware is added from the workpiece rail as declarative OCCS
   workpieces rather than SCAD-style operation history: bolts, nuts, washers,
   rivets, screws, spacers, standoffs, and hanger clips carry family/parameter
   metadata, hanger clips expose `sheetPart`, `integralCut`, and `castSolid`
