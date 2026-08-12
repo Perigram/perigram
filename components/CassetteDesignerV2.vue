@@ -752,10 +752,9 @@
             :preview="cassettePreviewSource?.foldedPreview"
             :selected-face-id="selectedNodeId"
             :selected-workpiece-id="selectedWorkpieceId"
-            :isolated-workpiece-id="foldedPreviewWorkpieceId"
+            v-model:isolated-workpiece-id="foldedPreviewWorkpieceId"
             title-key="cassette.v2.cassetteFoldedPreview"
             @workpiece-select="selectWorkpieceForInspector"
-            @update:isolated-workpiece-id="handleFoldedIsolationChange"
           />
         </div>
       </aside>
@@ -1784,14 +1783,6 @@ watch([selectedWorkpieceId, workpieceRelations], () => {
   }
 }, { immediate: true });
 
-watch([selectedWorkpieceId, inspectorSelection], ([workpieceId, selection]) => {
-  if (selection === 'attachment') {
-    foldedPreviewWorkpieceId.value = '';
-    return;
-  }
-  foldedPreviewWorkpieceId.value = workpieceId || '';
-}, { immediate: true });
-
 onMounted(() => {
   if (!process.client) return;
   window.addEventListener('keydown', handleDesignerKeydown, true);
@@ -2059,11 +2050,6 @@ const selectWorkpieceForInspector = (workpieceId) => {
   closeInlineEditor();
   selectWorkpiece(workpieceId);
   inspectorSelection.value = 'workpiece';
-};
-
-const handleFoldedIsolationChange = (workpieceId) => {
-  foldedPreviewWorkpieceId.value = workpieceId || '';
-  if (workpieceId) selectWorkpieceForInspector(workpieceId);
 };
 
 const selectWorkpieceRelation = (relationId) => {
