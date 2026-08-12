@@ -75,6 +75,13 @@ Production queue card and detail surface.
   Because PrimeVue `Panel` always renders its header container, the entry card
   hides that unused container so content begins at the card's top padding
   instead of reserving an empty header band.
+- Queue entry parameters are grouped with the canonical source template and
+  queue-local quantity. The card shows the OCCS document-level `units` value
+  when the readable source template supplies one, plus an explicit configurable
+  or locked state. The current OCCS parameter contract is a scalar map, so the
+  UI must not invent per-parameter units, ranges, steps, or descriptions from
+  shorthand names; those input constraints may be added only when a canonical
+  parameter-metadata contract exists.
 - The cassette section view control is one labelled pressed-state grid/table
   selector. Table row selection uses the same local queue-entry context as a
   grid card; destructive removal remains confirmed by the Queue owner and is
