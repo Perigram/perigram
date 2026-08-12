@@ -429,7 +429,6 @@ describe('Design system manifest', () => {
   it('exposes ConfigBot as a draft-only admin tool', () => {
     const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/config-bot.vue'), 'utf8');
     const preview = fs.readFileSync(path.join(REPO_ROOT, 'components/config-bot/ConfigBotDraftPreview.vue'), 'utf8');
-    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
     const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
 
     expect(page).toContain('/api/config-bot/generate');
