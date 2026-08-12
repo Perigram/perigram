@@ -14,6 +14,8 @@ Shared frontend utility modules used by Vue pages/components.
   core domain field groups/surfaces, optional app extensions, and per-call
   overrides, then returns the effective surface contract and ordered field
   descriptors for cards, details, workbench previews, and generated consumers.
+- `facade-display.js`: Shared Facade and FacadePattern card field descriptors;
+  entity cards consume these descriptors rather than declaring DTO paths locally.
 - `app-entity-surfaces.js`: App-owned display extensions layered on top of the
   core domain constructor. Production pages use it for route-specific surfaces
   such as project workspace rows, project detail facts, and selected warehouse
