@@ -16,7 +16,7 @@
       />
 
       <div class="queue-entry-card__content flex min-w-0 flex-col gap-2">
-        <div class="group flex min-w-0 items-center justify-between gap-2">
+        <div class="flex min-w-0 items-center justify-between gap-2">
           <EntityInlineRef
             v-if="template || templateId"
             type="cassetteTemplate"
@@ -43,9 +43,7 @@
               text
               rounded
               size="small"
-              class="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
               :aria-label="$t('common.delete')"
-              v-tooltip.top="$t('common.delete')"
               :disabled="disabled"
               @click="emit('remove')"
             />

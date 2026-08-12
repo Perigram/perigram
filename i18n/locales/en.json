@@ -1934,7 +1934,6 @@
   },
   "queue": {
     "title": "Queues",
-    "viewMode": "Entry view",
     "create": "Create Queue",
     "createTitle": "Create New Queue",
     "createFirst": "Create Your First Queue",

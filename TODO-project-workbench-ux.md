@@ -315,7 +315,7 @@ Acceptance:
 
 ### 9. Refine Queue-entry density and parameter controls
 
-- [x] Treat grid/table controls as one PrimeVue view-mode selector with pressed
+- [ ] Treat grid/table controls as one PrimeVue view-mode selector with pressed
   state and a single accessible label.
 - [ ] Keep `QueueEntryCard` bounded and container-responsive, but validate its
   preview/content ratio against the narrow pane widths produced by recursive
@@ -325,7 +325,7 @@ Acceptance:
 - [ ] Use OCCS document units at group/viewport level. Add per-field suffix,
   step, minimum, maximum, or description only when supplied by a real parameter
   contract; do not infer semantics from names such as `A`, `B`, `R`, or `T`.
-- [x] Move remove to quiet row chrome/overflow and preserve confirmation at the
+- [ ] Move remove to quiet row chrome/overflow and preserve confirmation at the
   owning Queue workflow boundary.
 - [ ] Retain parameter-expression strings in templates and numeric values in
   materialized designs. Queue controls edit exact design inputs, not template
