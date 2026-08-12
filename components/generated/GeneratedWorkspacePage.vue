@@ -8,25 +8,17 @@
         :tabs="tabs"
         :available-tabs="availableTabs"
         :dirty-tab-keys="dirtyTabKeys"
-        :pane-id="paneId"
         :active-key="page.key"
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
         @add="$emit('add-tab', $event)"
         @refresh="$emit('refresh')"
-        @reorder="$emit('reorder-tab', $event)"
-        @move="$emit('move-tab', $event)"
       />
       <GeneratedWorkspacePaneMenu
         :splittable="splittable"
         :closeable="closeable"
-        :maximizable="maximizable"
-        :maximized="maximized"
-        :can-reopen="canReopen"
         @split="$emit('split', $event)"
         @close="$emit('close')"
-        @toggle-maximize="$emit('toggle-maximize')"
-        @reopen="$emit('reopen')"
       />
     </header>
 
@@ -54,15 +46,11 @@ const props = defineProps({
   tabs: { type: Array, default: () => [] },
   availableTabs: { type: Array, default: () => [] },
   dirtyTabKeys: { type: Array, default: () => [] },
-  paneId: { type: String, default: '' },
   closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true },
-  maximizable: { type: Boolean, default: true },
-  maximized: { type: Boolean, default: false },
-  canReopen: { type: Boolean, default: false }
+  splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-page', 'refresh', 'dirty-change', 'select-tab', 'close-tab', 'add-tab', 'reorder-tab', 'move-tab', 'split', 'close', 'toggle-maximize', 'reopen']);
+defineEmits(['execute-action', 'open-page', 'refresh', 'dirty-change', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 
 const definition = computed(() => resolveGeneratedWorkspacePage(props.page?.pageId));
 const pageProps = computed(() => definition.value?.props?.(props.page) || {});

@@ -108,11 +108,8 @@ bounded IDE-style Explorer and file workspace:
   Additional app-owned pages register through the same fixed registry.
 - PrimeVue splitters form a recursive split tree. A pane can split right or
   down, and nested horizontal/vertical splits keep independent selections and
-  scrolling. Files may be reordered inside a pane or dragged onto another pane's
-  tab strip; the destination tab strip is the explicit drop target. Pane menus
-  provide maximize/restore and reopen-last-closed controls without deleting an
-  entity. Split proportions, Explorer width/visibility, active pane, maximized
-  pane, recent closed references, tab lists/selections, and opened registered pages are persisted as versioned browser UI
+  scrolling. Split proportions, Explorer width/visibility, active pane,
+  tab lists/selections, and opened registered pages are persisted as versioned browser UI
   state scoped to the current user, organization, and project. Stored data
   contains stable entity/page references, including entities discovered through
   nested detail regions, never entity DTOs, and is validated

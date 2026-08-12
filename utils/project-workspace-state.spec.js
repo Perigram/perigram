@@ -12,7 +12,7 @@ describe('project workspace state', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       projectId: 'project-1'
-    })).toBe('cutkit:project-workspace:4:user-1:org-1:project-1');
+    })).toBe('cutkit:project-workspace:3:user-1:org-1:project-1');
     expect(projectWorkspaceStorageKey({ userId: '', organizationId: 'org-1', projectId: 'project-1' })).toBe('');
   });
 
@@ -70,13 +70,6 @@ describe('project workspace state', () => {
         pageId: 'cassette-designer',
         entityType: 'cassette',
         entityId: 'c1'
-      }],
-      maximizedPaneId: 'pane-2',
-      recentlyClosedRefs: [{
-        key: 'queue:q1',
-        kind: 'entity',
-        entityType: 'queue',
-        entityId: 'q1'
       }]
     };
 

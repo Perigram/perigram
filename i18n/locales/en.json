@@ -307,10 +307,7 @@
     "openFiles": "Open files",
     "openSomething": "Open something",
     "splitRight": "Split right",
-    "splitDown": "Split down",
-    "maximizePane": "Maximize pane",
-    "restorePane": "Restore pane",
-    "reopenClosed": "Reopen closed file"
+    "splitDown": "Split down"
   },
   "file": {
     "upload": "Upload Files",

@@ -1,6 +1,6 @@
 import { createWorkspaceLeaf, workspaceLeaves } from './workspace-splits.js';
 
-export const PROJECT_WORKSPACE_STATE_VERSION = 4;
+export const PROJECT_WORKSPACE_STATE_VERSION = 3;
 
 export function projectWorkspaceStorageKey({ userId, organizationId, projectId }) {
   if (!userId || !organizationId || !projectId) return '';
@@ -27,11 +27,7 @@ export function normalizeProjectWorkspaceState(value) {
     explorerOpen: value?.explorerOpen !== false,
     explorerSize: normalizeExplorerSize(value?.explorerSize),
     openedEntityRefs: normalizeOpenedEntityRefs(value?.openedEntityRefs),
-    openedPageRefs: normalizeOpenedPageRefs(value?.openedPageRefs),
-    maximizedPaneId: panes.some(pane => pane.id === value?.maximizedPaneId)
-      ? value.maximizedPaneId
-      : '',
-    recentlyClosedRefs: normalizeRecentlyClosedRefs(value?.recentlyClosedRefs)
+    openedPageRefs: normalizeOpenedPageRefs(value?.openedPageRefs)
   };
 }
 
@@ -128,24 +124,5 @@ function normalizeOpenedEntityRefs(value) {
     key: reference.key,
     entityType: reference.entityType,
     entityId: reference.entityId
-  }));
-}
-
-function normalizeRecentlyClosedRefs(value) {
-  if (!Array.isArray(value)) return [];
-  return value.filter(reference => (
-    reference
-    && typeof reference.key === 'string'
-    && typeof reference.kind === 'string'
-    && ['entity', 'page'].includes(reference.kind)
-    && typeof reference.entityType === 'string'
-    && typeof reference.entityId === 'string'
-    && (reference.kind !== 'page' || typeof reference.pageId === 'string')
-  )).slice(0, 20).map(reference => ({
-    key: reference.key,
-    kind: reference.kind,
-    entityType: reference.entityType,
-    entityId: reference.entityId,
-    ...(reference.kind === 'page' ? { pageId: reference.pageId } : {})
   }));
 }
