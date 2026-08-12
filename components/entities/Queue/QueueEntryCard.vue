@@ -1,7 +1,7 @@
 <template>
   <Panel
     class="queue-entry-card cursor-pointer"
-    :class="selected ? 'border-primary bg-subtle' : ''"
+    :class="selected ? 'border-primary bg-subtle' : 'bg-pane'"
     :pt="panelPt"
     @click="emit('select')"
   >
@@ -53,7 +53,7 @@
         </div>
 
         <section v-if="parameterNames.length" class="flex flex-col gap-2" aria-labelledby="queue-entry-parameters">
-          <div class="flex flex-wrap items-center gap-1">
+          <div class="flex flex-wrap items-center gap-1 rounded-ui bg-section px-2 py-1">
             <small id="queue-entry-parameters" class="text-muted-color">{{ $t('cassette.parameters') }}</small>
             <Tag v-if="units" :value="units" severity="secondary" size="small" />
             <Tag

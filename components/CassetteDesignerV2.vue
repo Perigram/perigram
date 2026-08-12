@@ -95,7 +95,7 @@
         </header>
       </template>
       <template #palette>
-      <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border bg-content p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
+      <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border bg-pane p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
 
       <Message v-if="sessionDraftAvailable" severity="info" size="small" :closable="false">
         <div class="flex flex-col gap-2">
@@ -658,7 +658,7 @@
           </ScrollPanel>
         </div>
 
-        <div v-if="selectedWorkpieceRow" class="shrink-0 rounded-ui border border-content-border bg-subtle p-2" data-cassette-designer-inspector>
+        <div v-if="selectedWorkpieceRow" class="shrink-0 rounded-ui border border-content-border bg-section p-2" data-cassette-designer-inspector>
           <div class="flex min-w-0 items-center gap-2">
             <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="workpieceAccentStyle(selectedWorkpieceRow.id)" aria-hidden="true" />
             <strong class="min-w-0 flex-1 truncate">{{ selectedWorkpieceRow.label }}</strong>
