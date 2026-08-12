@@ -295,16 +295,16 @@ Primary scope: `GeneratedWorkspaceTabs.vue`,
 
 ### 8. Clarify the Project action strip
 
-- [x] Keep the strip action-only, but make each visible command distinguish its
+- [ ] Keep the strip action-only, but make each visible command distinguish its
   actual generated kind: create child, link relation, update, transition, send,
   or run command. Use `generatedActionLabel()` and manifest metadata; do not
   hardcode Library/Queue/Facade/Artifact branches.
-- [x] Keep direct-Project child creates deduplicated by visible operation and keep
+- [ ] Keep direct-Project child creates deduplicated by visible operation and keep
   relation labels scoped to their target entity.
-- [x] Add localized tooltips where the compact visible label is necessarily a
+- [ ] Add localized tooltips where the compact visible label is necessarily a
   noun. The tooltip should state the operation without exposing action ids or
   storage fields.
-- [x] When actions overflow, keep them in an action-strip overflow surface rather
+- [ ] When actions overflow, keep them in an action-strip overflow surface rather
   than allowing horizontal action chrome to compete with the Explorer toggle.
 
 Acceptance:

@@ -2874,8 +2874,6 @@
   "generatedScreen": {
     "home": "Home",
     "actions": {
-      "create": "Create",
-      "link": "Link",
       "change": "Change",
       "run": "Run",
       "send": "Send"

@@ -65,9 +65,6 @@ bounded IDE-style Explorer and file workspace:
   manifest or invent relation/upload controls. Multiple compiled ids that map
   to the same entity/parent create operation render as one visible button,
   matching the generated create-button label contract.
-  Its labels preserve the manifest-derived operation kind (`Create`, `Link`, or
-  `Run`) rather than presenting a bare entity noun; compact overflow keeps the
-  same compiled entries in a dedicated action-strip popover.
 - `GeneratedWorkspacePane` accepts both entity pages and registered workspace
   pages. Each recursive pane owns an IDE-style tab list; Explorer navigation
   opens or selects a tab in the active pane, and tab order plus selection persist

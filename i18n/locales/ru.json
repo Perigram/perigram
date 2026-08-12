@@ -2874,8 +2874,6 @@
   "generatedScreen": {
     "home": "Главная",
     "actions": {
-      "create": "Создать",
-      "link": "Связать",
       "change": "Изменить",
       "run": "Запустить",
       "send": "Отправить"
