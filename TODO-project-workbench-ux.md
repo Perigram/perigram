@@ -381,10 +381,10 @@ Acceptance:
   visual until a real direct-manipulation operation supports snapping.
 - [x] Show current editing context (assembly/workpiece/attachment, selected
   workpiece, selected face/fold) without duplicating the full document header.
-- [ ] Differentiate production layers, dimension annotations, designer section
+- [x] Differentiate production layers, dimension annotations, designer section
   planes, attachment markers, selected geometry, and hover hit targets through
   their existing semantic layer/overlay contracts.
-- [ ] Add cursor coordinates or snap readout only when they drive an implemented
+- [x] Add cursor coordinates or snap readout only when they drive an implemented
   operation. Do not ship inert CAD controls.
 
 Acceptance:
@@ -392,6 +392,13 @@ Acceptance:
 - A first-time operator can discover fit, zoom, pan, grid, units, and current
   selection. Toggling UI state does not change OCCS geometry or production layer
   output.
+
+#### Agent Notes — 2026-08-12
+
+`DrawingCanvas` keeps production layers data-driven and renders dimensions,
+section handles, attachment markers, selected faces/folds, and hover targets as
+separate semantic overlays. No snap operation exists, so no inert cursor or
+snap readout is rendered.
 
 ### 12. Add named layout presets only after pane-state operations stabilize
 
