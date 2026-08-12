@@ -136,9 +136,9 @@ and `utils/project-workspace-state.js` only if the serialized schema changes.
   and low-frequency overflow actions.
 - [x] Treat template load as a command/picker, not as a second selected-name field.
   Keep the current entity-bound page identity visible while the picker is closed.
-- [x] Keep global parameters, layer visibility, and OCCS JSON in the settings rail;
+- [ ] Keep global parameters, layer visibility, and OCCS JSON in the settings rail;
   keep workpiece topology and folded preview in the assembly rail.
-- [x] Preserve the current explicit-save boundary, 50-step undo/redo history,
+- [ ] Preserve the current explicit-save boundary, 50-step undo/redo history,
   session-draft recovery, and parent-provided save/load handlers.
 - [x] Confirm destructive/reset actions when they would discard a modified draft.
 
@@ -195,7 +195,7 @@ Primary scope: `components/QueueEditor.vue`,
   containment.
 - [ ] Synchronize navigator, 2D face selection, attachment mode, folded 3D
   selection/isolation, and inspector content in both directions.
-- [x] Keep profile and hardware creation declarative through current OCCS helpers;
+- [ ] Keep profile and hardware creation declarative through current OCCS helpers;
   do not introduce feature-local constructive-solid history.
 
 Acceptance:
@@ -266,10 +266,10 @@ Acceptance:
 
 ### 7. Improve file tabs and pane management
 
-- [x] Calm inactive tabs: show close persistently only for the active tab, on tab
+- [ ] Calm inactive tabs: show close persistently only for the active tab, on tab
   hover, or within keyboard focus. Keep lifecycle status and modified state
   visible according to their own semantics.
-- [x] Preserve the standalone add-file picker and pane ellipsis as separate pane
+- [ ] Preserve the standalone add-file picker and pane ellipsis as separate pane
   controls; do not render either as a fake file tab.
 - [x] Add tab reordering and move-to-pane using the existing recursive leaf ids.
   Show explicit valid drop targets for tab insert, split right, and split down.
@@ -327,7 +327,7 @@ Acceptance:
   contract; do not infer semantics from names such as `A`, `B`, `R`, or `T`.
 - [x] Move remove to quiet row chrome/overflow and preserve confirmation at the
   owning Queue workflow boundary.
-- [x] Retain parameter-expression strings in templates and numeric values in
+- [ ] Retain parameter-expression strings in templates and numeric values in
   materialized designs. Queue controls edit exact design inputs, not template
   expressions.
 
@@ -349,7 +349,7 @@ Acceptance:
   optional state/count, primary local action, overflow actions.
 - [x] Use labels for domain-specific low-frequency operations when rail width
   permits; otherwise require localized tooltips and accessible names.
-- [x] Keep OCCS draft read-only unless a separate validated raw-document editing
+- [ ] Keep OCCS draft read-only unless a separate validated raw-document editing
   workflow is explicitly designed.
 
 Acceptance:
@@ -399,16 +399,6 @@ Acceptance:
   designer draft, or corrupt the current recursive split tree.
 
 ## Validation required for implementation slices
-
-### Agent Notes
-
-#### 2026-08-12 — Verified existing contracts
-
-The settings rail, explicit-save/history/session-draft contract, declarative
-OCCS profile/hardware helpers, calm tab chrome, separate pane controls,
-template-expression/design-number boundary, and read-only OCCS draft were
-already implemented in the merged components. Their checklist states now match
-the code and canonical component documentation.
 
 - [ ] Update the canonical README for every changed contract; do not copy the
   contract into this backlog as completion notes.
