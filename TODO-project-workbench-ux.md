@@ -189,7 +189,7 @@ Primary scope: `components/QueueEditor.vue`,
 - [ ] Move selected workpiece/hardware properties and joint editing out of every
   repeated row into one selection-driven inspector surface. Rows should retain
   identity, concise metadata, and an overflow action menu.
-- [x] For a selected sheet workpiece, add a subordinate face/fold outline derived
+- [ ] For a selected sheet workpiece, add a subordinate face/fold outline derived
   from its graph tree. Faces and folds may nest because that topology is a tree;
   joints between workpieces remain relation edges and must not be faked as
   containment.
