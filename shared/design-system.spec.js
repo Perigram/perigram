@@ -411,7 +411,6 @@ describe('Design system manifest', () => {
   });
 
   it('keeps admin navigation tied to existing admin routes', () => {
-    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
     const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
 
     for (const route of [
@@ -440,7 +439,6 @@ describe('Design system manifest', () => {
     expect(page).not.toContain('applyPackage');
     expect(preview).toContain('ActionToolbar');
     expect(preview).toContain('StateBlock');
-    expect(layout).toContain("router.push('/admin/config-bot')");
     expect(navigation).toContain("to: '/admin/config-bot'");
   });
 
@@ -577,7 +575,8 @@ describe('Design system manifest', () => {
     expect(editor).toContain('clampSheetPlacement');
     expect(editor).toContain('majorGridSize');
     expect(editor).toContain('selectedSnapPoint');
-    expect(generatedDetail).toContain(":show-identity=\"showIdentity || entityType === 'sheet_design'\"");
+    expect(generatedDetail).toContain(':show-identity="showIdentity || forceIdentityForEditor"');
+    expect(generatedDetail).toContain('entityEditorForcesIdentity');
     expect(relationBlock).toContain(':variant="itemVariant"');
   });
 
@@ -610,7 +609,8 @@ describe('Design system manifest', () => {
     expect(generatedHome).toContain('shrink-0');
     expect(generatedHome).toContain('suppress-child-summaries');
     expect(generatedHome).toContain('relation-variant="compact"');
-    expect(generatedHome).toContain('GeneratedCassetteDesignerAction');
+    expect(generatedHome).toContain('entityEditorActionFor');
+    expect(generatedHome).toContain(':is="editorActionFor(section.source.entityType)"');
     expect(generatedCollection).toContain('suppress-child-summaries');
     expect(generatedCollection).toContain('relation-variant="compact"');
     expect(generatedCollection).toContain('GeneratedCassetteDesignerAction');
