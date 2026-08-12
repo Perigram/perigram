@@ -71,7 +71,7 @@
           class="min-h-0 min-w-0 overflow-hidden !border-0"
         >
           <WorkspaceSplitNode
-            :node="paneTree"
+            :node="displayedPaneTree"
             :active-pane-id="activePaneId"
             @activate="activatePane"
             @resize="resizePaneSplit"
@@ -82,13 +82,21 @@
                 :tabs="tabItemsForPane(pane)"
                 :available-tabs="workspaceItems"
                 :dirty-tab-keys="dirtyTabKeys"
+                :pane-id="pane.id"
                 :action-entries="actionEntriesForPane(pane)"
                 :closeable="paneCount > 1"
+                :maximizable="paneCount > 1"
+                :maximized="maximizedPaneId === pane.id"
+                :can-reopen="recentlyClosedRefs.length > 0"
                 @execute-action="executeWorkspaceAction"
                 @open-entity="openWorkspaceEntity"
                 @open-page="openWorkspacePage"
                 @refresh="$emit('refresh')"
                 @dirty-change="updateFileDirty"
+                @reorder-tab="payload => reorderPaneTab(pane.id, payload)"
+                @move-tab="movePaneTab"
+                @toggle-maximize="togglePaneMaximize(pane.id)"
+                @reopen="reopenLastClosed(pane.id)"
                 @select-tab="key => selectPaneTab(pane.id, key)"
                 @close-tab="key => closePaneTab(pane.id, key)"
                 @add-tab="key => selectPaneTab(pane.id, key)"
@@ -117,13 +125,19 @@
           :tabs="tabItemsForPane(activePane)"
           :available-tabs="workspaceItems"
           :dirty-tab-keys="dirtyTabKeys"
+          :pane-id="activePane?.id || ''"
           :action-entries="actionEntriesForPane(activePane)"
           :splittable="false"
+          :maximizable="false"
+          :can-reopen="recentlyClosedRefs.length > 0"
           @execute-action="executeWorkspaceAction"
           @open-entity="openWorkspaceEntity"
           @open-page="openWorkspacePage"
           @refresh="$emit('refresh')"
           @dirty-change="updateFileDirty"
+          @reorder-tab="payload => reorderPaneTab(activePane.id, payload)"
+          @move-tab="movePaneTab"
+          @reopen="reopenLastClosed(activePane.id)"
           @select-tab="key => selectPaneTab(activePane.id, key)"
           @close-tab="key => closePaneTab(activePane.id, key)"
           @add-tab="key => selectPaneTab(activePane.id, key)"
@@ -198,6 +212,8 @@ const openedPageRefs = ref([]);
 const linkedEntityItems = ref([]);
 const openedEntityItems = ref([]);
 const dirtyFileKeys = ref(new Set());
+const maximizedPaneId = ref('');
+const recentlyClosedRefs = ref([]);
 const hydratedStorageKey = ref('');
 let openedEntityLoadSequence = 0;
 const explorerTreePt = {
@@ -297,11 +313,16 @@ const workspaceItems = computed(() => [
   ...openedPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
-)));
+)).map(workspaceFilePresentation));
 const dirtyTabKeys = computed(() => [...dirtyFileKeys.value]);
 const panes = computed(() => workspaceLeaves(paneTree.value));
 const paneCount = computed(() => panes.value.length);
 const activePane = computed(() => panes.value.find(pane => pane.id === activePaneId.value) || panes.value[0]);
+const displayedPaneTree = computed(() => {
+  if (!maximizedPaneId.value) return paneTree.value;
+  const pane = panes.value.find(item => item.id === maximizedPaneId.value);
+  return pane || paneTree.value;
+});
 const mobileWorkspaceOptions = computed(() => workspaceItems.value.map(item => ({
   label: workspaceItemLabel(item),
   value: item.key
@@ -353,12 +374,14 @@ watch(workspaceStorageKey, key => {
   explorerSize.value = state.explorerSize;
   openedEntityRefs.value = state.openedEntityRefs;
   openedPageRefs.value = state.openedPageRefs;
+  maximizedPaneId.value = state.maximizedPaneId;
+  recentlyClosedRefs.value = state.recentlyClosedRefs;
   hydratedStorageKey.value = key;
   syncActiveSelection();
 }, { immediate: true });
 
 watch(
-  [paneTree, activePaneId, paneSequence, explorerOpen, explorerSize, openedEntityRefs, openedPageRefs],
+  [paneTree, activePaneId, paneSequence, explorerOpen, explorerSize, openedEntityRefs, openedPageRefs, maximizedPaneId, recentlyClosedRefs],
   () => {
     const key = workspaceStorageKey.value;
     if (!key || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
@@ -369,7 +392,9 @@ watch(
       explorerOpen: explorerOpen.value,
       explorerSize: explorerSize.value,
       openedEntityRefs: openedEntityRefs.value,
-      openedPageRefs: openedPageRefs.value
+      openedPageRefs: openedPageRefs.value,
+      maximizedPaneId: maximizedPaneId.value,
+      recentlyClosedRefs: recentlyClosedRefs.value
     });
   },
   { deep: true }
@@ -505,6 +530,8 @@ function closePaneTab(paneId, key) {
     : pane.selectionKey;
   const nextTree = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey, tabKeys });
   paneTree.value = nextTree;
+  const closingItem = workspaceItems.value.find(item => item.key === key);
+  if (closingItem) rememberRecentlyClosed(closingItem);
   const remainingTabKeys = new Set(workspaceLeaves(nextTree).flatMap(leaf => leaf.tabKeys || []));
   if (!remainingTabKeys.has(key)) {
     openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
@@ -512,6 +539,81 @@ function closePaneTab(paneId, key) {
   activePaneId.value = paneId;
   dirtyFileKeys.value = new Set([...dirtyFileKeys.value].filter(dirtyKey => dirtyKey !== key));
   syncActiveSelection();
+}
+
+function reorderPaneTab(paneId, { key, beforeKey } = {}) {
+  const pane = panes.value.find(item => item.id === paneId);
+  if (!pane || !key || !pane.tabKeys?.includes(key)) return;
+  const remaining = pane.tabKeys.filter(tabKey => tabKey !== key);
+  const index = beforeKey ? remaining.indexOf(beforeKey) : -1;
+  const tabKeys = index < 0
+    ? [...remaining, key]
+    : [...remaining.slice(0, index), key, ...remaining.slice(index)];
+  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { tabKeys });
+}
+
+function movePaneTab({ key, paneId, targetPaneId, beforeKey } = {}) {
+  const source = panes.value.find(pane => pane.id === paneId);
+  const target = panes.value.find(pane => pane.id === targetPaneId);
+  if (!key || !source || !target || source.id === target.id || !source.tabKeys?.includes(key)) return;
+  const sourceKeys = source.tabKeys.filter(tabKey => tabKey !== key);
+  const sourceSelection = source.selectionKey === key ? (sourceKeys[0] || '') : source.selectionKey;
+  let nextTree = updateWorkspaceLeaf(paneTree.value, source.id, {
+    tabKeys: sourceKeys,
+    selectionKey: sourceSelection
+  });
+  const targetKeys = target.tabKeys.filter(tabKey => tabKey !== key);
+  const index = beforeKey ? targetKeys.indexOf(beforeKey) : -1;
+  const nextTargetKeys = index < 0
+    ? [...targetKeys, key]
+    : [...targetKeys.slice(0, index), key, ...targetKeys.slice(index)];
+  nextTree = updateWorkspaceLeaf(nextTree, target.id, { tabKeys: nextTargetKeys, selectionKey: key });
+  paneTree.value = nextTree;
+  activePaneId.value = target.id;
+  syncActiveSelection();
+}
+
+function togglePaneMaximize(paneId) {
+  if (!panes.value.some(pane => pane.id === paneId) || paneCount.value <= 1) return;
+  maximizedPaneId.value = maximizedPaneId.value === paneId ? '' : paneId;
+  activePaneId.value = paneId;
+}
+
+function rememberRecentlyClosed(item) {
+  const reference = workspaceReference(item);
+  if (!reference) return;
+  recentlyClosedRefs.value = [
+    reference,
+    ...recentlyClosedRefs.value.filter(candidate => candidate.key !== reference.key)
+  ].slice(0, 20);
+}
+
+async function reopenLastClosed(paneId) {
+  const [reference, ...remaining] = recentlyClosedRefs.value;
+  if (!reference || !panes.value.some(pane => pane.id === paneId)) return;
+  recentlyClosedRefs.value = remaining;
+  activePaneId.value = paneId;
+  const entity = await entityStore.fetchEntity(reference.entityType, reference.entityId, false, { silent: true });
+  if (!entity) return;
+  const item = rememberWorkspaceEntity(reference.entityType, entity);
+  if (!item) return;
+  if (reference.kind === 'page') {
+    openWorkspacePage({ pageId: reference.pageId, entity, entityType: reference.entityType });
+    return;
+  }
+  selectPaneTab(paneId, item.key);
+}
+
+function workspaceReference(item) {
+  const id = entityId(item?.entity);
+  if (!item?.key || !item?.kind || !(item.entityType || item.type) || !id) return null;
+  return {
+    key: item.key,
+    kind: item.kind,
+    entityType: item.entityType || item.type,
+    entityId: id,
+    ...(item.kind === 'page' ? { pageId: item.pageId } : {})
+  };
 }
 
 function updateFileDirty({ key, dirty } = {}) {
@@ -701,6 +803,20 @@ function workspaceItemLabel(item) {
   }
   const definition = resolveGeneratedWorkspacePage(item?.pageId);
   return definition ? t(definition.labelKey) : '';
+}
+
+function workspaceFilePresentation(item) {
+  const entityType = item.entityType || item.type || '';
+  return {
+    ...item,
+    entityType,
+    label: workspaceItemLabel(item),
+    icon: item.kind === 'entity'
+      ? domainUi.getIcon(entityType)
+      : resolveGeneratedWorkspacePage(item.pageId)?.icon || 'pi pi-file',
+    lifecycleState: item.kind === 'entity' ? item.entity?.status?.state || null : null,
+    modified: dirtyFileKeys.value.has(item.key)
+  };
 }
 
 function sourceStateForRegion(region = {}) {
