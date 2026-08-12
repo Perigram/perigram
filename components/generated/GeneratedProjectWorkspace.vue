@@ -146,13 +146,15 @@
         />
       </div>
     </div>
-    <Dialog v-model:visible="quickOpenVisible" modal :header="$t('project.quickOpen')" class="w-full max-w-lg">
+    <StandardDialog v-model:visible="quickOpenVisible" size="lg">
+      <template #header>{{ $t('project.quickOpen') }}</template>
       <div class="flex flex-col gap-2">
         <InputText v-model="quickOpenQuery" autofocus :placeholder="$t('project.quickOpenPlaceholder')" />
         <Button v-for="item in quickOpenItems" :key="item.key" :label="item.label" :icon="item.icon" text class="w-full justify-start" @click="openQuickItem(item.key)" />
       </div>
-    </Dialog>
-    <Dialog v-model:visible="layoutPresetsVisible" modal :header="$t('project.workspaceLayouts')" class="w-full max-w-lg">
+    </StandardDialog>
+    <StandardDialog v-model:visible="layoutPresetsVisible" size="lg">
+      <template #header>{{ $t('project.workspaceLayouts') }}</template>
       <div class="flex flex-col gap-3">
         <p class="m-0 text-sm text-muted-color">{{ $t('project.workspaceLayoutsHelp') }}</p>
         <div class="flex gap-2">
@@ -170,14 +172,13 @@
         <Message v-else severity="secondary" :closable="false">{{ $t('project.noWorkspaceLayouts') }}</Message>
         <Button :label="$t('project.resetWorkspaceLayout')" icon="pi pi-refresh" severity="secondary" text size="small" class="self-start" @click="resetWorkspaceLayout" />
       </div>
-    </Dialog>
+    </StandardDialog>
   </div>
 </template>
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import Splitter from 'primevue/splitter';
@@ -185,6 +186,7 @@ import SplitterPanel from 'primevue/splitterpanel';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import EntitySelect from '~/components/shared/EntitySelect.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
