@@ -96,11 +96,11 @@ Do not reopen these as greenfield structural tasks:
 
 ### 1. Add a typed workspace-file state contract
 
-- [ ] Define one UI-only file presentation record for entity files and registered
+- [x] Define one UI-only file presentation record for entity files and registered
   pages: stable key, kind, icon/type, label, active state, optional lifecycle
   state, and optional modified state. Keep entity DTOs out of persisted workspace
   state.
-- [ ] Keep these states visually distinct: active pane, selected file, entity
+- [x] Keep these states visually distinct: active pane, selected file, entity
   lifecycle status, designer modified state, validation warning/error, and
   primary action.
 - [x] Have `CassetteDesignerV2` emit modified/saved state through
@@ -109,7 +109,7 @@ Do not reopen these as greenfield structural tasks:
 - [x] Render lifecycle status through `EntityStatus` only. Render the modified
   marker as a separate shape/token with an accessible label; never reinterpret a
   lifecycle glyph as a dirty dot.
-- [ ] Keep Explorer selection synchronized with the active entity/page reference.
+- [x] Keep Explorer selection synchronized with the active entity/page reference.
   An entity-bound registered page remains nested under its source entity and must
   not cause the source entity and page to appear simultaneously selected.
 
