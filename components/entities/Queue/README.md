@@ -116,6 +116,9 @@ Production queue card and detail surface.
   `cassette` template may open in the registered cassette designer only with
   cassette write access. These actions do not mutate the selected design;
   configuration continues to use the compiled replacement relation action.
+  The selected card visibly shows the typed `cassette_design -> source cassette`
+  chain; missing provenance remains a typed design-id fallback and never implies
+  editability.
 - Queue editor selected warehouse sources use compact `QueueSourceCard` tiles
   instead of embedding pile/sheet/remnant cards. It draws remnant polygons when
   present and rectangular sheet previews for stock sources without stored
