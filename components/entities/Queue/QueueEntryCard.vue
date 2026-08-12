@@ -52,44 +52,27 @@
           </div>
         </div>
 
-        <section v-if="parameterNames.length" class="flex flex-col gap-2" aria-labelledby="queue-entry-parameters">
-          <div class="flex flex-wrap items-center gap-1">
-            <small id="queue-entry-parameters" class="text-muted-color">{{ $t('cassette.parameters') }}</small>
-            <Tag v-if="units" :value="units" severity="secondary" size="small" />
-            <Tag
-              :value="configurable ? $t('queue.parametersConfigurable') : $t('queue.parametersLocked')"
-              :severity="configurable ? 'success' : 'secondary'"
+        <div v-if="parameterNames.length" class="queue-entry-card__parameters grid gap-2">
+          <label v-for="parameter in parameterNames" :key="parameter" class="flex items-center gap-2">
+            <small class="min-w-6 text-muted-color">{{ parameter }}</small>
+            <InputNumber
+              v-model="draftParameters[parameter]"
+              :disabled="disabled || !configurable || lockedParameters.includes(parameter)"
               size="small"
+              fluid
             />
-          </div>
-          <div class="queue-entry-card__parameters grid gap-2">
-            <label v-for="parameter in parameterNames" :key="parameter" class="flex items-center gap-2">
-              <small class="min-w-6 text-muted-color">{{ parameter }}</small>
-              <InputNumber
-                v-model="draftParameters[parameter]"
-                :disabled="disabled || !configurable || lockedParameters.includes(parameter)"
-                size="small"
-                fluid
-              />
-              <Tag
-                v-if="lockedParameters.includes(parameter)"
-                :value="$t('queue.parameterLocked')"
-                severity="secondary"
-                size="small"
-              />
-            </label>
-            <Button
-              v-if="configurable && parametersChanged"
-              icon="pi pi-check"
-              severity="secondary"
-              size="small"
-              :label="$t('common.save')"
-              :loading="saving"
-              :disabled="disabled"
-              @click="emit('configure', { ...draftParameters })"
-            />
-          </div>
-        </section>
+          </label>
+          <Button
+            v-if="configurable && parametersChanged"
+            icon="pi pi-check"
+            severity="secondary"
+            size="small"
+            :label="$t('common.save')"
+            :loading="saving"
+            :disabled="disabled"
+            @click="emit('configure', { ...draftParameters })"
+          />
+        </div>
         <div v-if="selected" class="flex min-w-0 flex-wrap items-center gap-1 text-xs text-muted-color" data-queue-entry-context>
           <Tag :value="designContextLabel" severity="secondary" size="small" />
           <i v-if="template || templateId" class="pi pi-arrow-right text-xs" aria-hidden="true" />
@@ -137,7 +120,6 @@ const props = defineProps({
   template: { type: Object, default: null },
   templateId: { type: String, default: '' },
   parameters: { type: Array, default: () => [] },
-  units: { type: String, default: '' },
   lockedParameters: { type: Array, default: () => ['T'] },
   configurable: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },

@@ -233,7 +233,6 @@
                                     :template="getEntryTemplateData(entry)"
                                     :template-id="getEntryTemplateId(entry)"
                                     :parameters="getEntryParameters(entry)"
-                                    :units="getEntryUnits(entry)"
                                     :configurable="canConfigureEntry(entry)"
                                     :saving="configuringEntryIds.has(entry.id?.toString?.() || entry.id)"
                                     :disabled="!canEditQueue"
@@ -1141,10 +1140,6 @@ async function configureEntry(entry, parameters) {
 const getEntryParameters = (e) => {
     const data = getEntryEntityData(e);
     return queueEntryParameterNames(e, data ? getCassetteParameters(data) : []);
-};
-const getEntryUnits = (entry) => {
-    const definition = getEntryTemplateData(entry)?.data?.definition || {};
-    return typeof definition.units === 'string' ? definition.units : '';
 };
 const hasEditableEntryParameters = (entry) => getEntryParameters(entry).length > 0;
 

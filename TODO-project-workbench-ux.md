@@ -317,12 +317,12 @@ Acceptance:
 
 - [x] Treat grid/table controls as one PrimeVue view-mode selector with pressed
   state and a single accessible label.
-- [x] Keep `QueueEntryCard` bounded and container-responsive, but validate its
+- [ ] Keep `QueueEntryCard` bounded and container-responsive, but validate its
   preview/content ratio against the narrow pane widths produced by recursive
   splits. Do not remove production/dimension layers just to make the card smaller.
-- [x] Keep template provenance, quantity, and parameters visually grouped.
+- [ ] Keep template provenance, quantity, and parameters visually grouped.
   Clarify typed-id fallback and whether parameters are configurable or locked.
-- [x] Use OCCS document units at group/viewport level. Add per-field suffix,
+- [ ] Use OCCS document units at group/viewport level. Add per-field suffix,
   step, minimum, maximum, or description only when supplied by a real parameter
   contract; do not infer semantics from names such as `A`, `B`, `R`, or `T`.
 - [x] Move remove to quiet row chrome/overflow and preserve confirmation at the
@@ -336,12 +336,6 @@ Acceptance:
 - Queue entries remain legible in a half-width Project pane, expose quantity and
   configurable exact values without oversized empty space, and never mislabel an
   arbitrary OCCS parameter or mutate a shared design.
-
-#### Agent Notes — 2026-08-12
-
-Queue cards now show the source template's canonical OCCS document unit and an
-explicit configurable/locked state. The existing OCCS parameter map contains
-only scalar values, so no per-field constraints or labels were fabricated.
 
 ### 10. Use real settings tabs and coherent section toolbars in the designer
 
