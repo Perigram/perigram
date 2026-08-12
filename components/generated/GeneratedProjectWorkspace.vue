@@ -18,7 +18,6 @@
         :action-entries="projectActions"
         @execute-action="executeWorkspaceAction"
       />
-      <Button icon="pi pi-window-maximize" text rounded size="small" severity="secondary" :aria-label="$t('project.workspaceLayouts')" v-tooltip.bottom="$t('project.workspaceLayouts')" @click="layoutPresetsVisible = true" />
       <Button icon="pi pi-search" text rounded size="small" severity="secondary" :aria-label="$t('project.quickOpen')" v-tooltip.bottom="$t('project.quickOpen')" @click="quickOpenVisible = true" />
     </header>
 
@@ -152,25 +151,6 @@
         <Button v-for="item in quickOpenItems" :key="item.key" :label="item.label" :icon="item.icon" text class="w-full justify-start" @click="openQuickItem(item.key)" />
       </div>
     </Dialog>
-    <Dialog v-model:visible="layoutPresetsVisible" modal :header="$t('project.workspaceLayouts')" class="w-full max-w-lg">
-      <div class="flex flex-col gap-3">
-        <p class="m-0 text-sm text-muted-color">{{ $t('project.workspaceLayoutsHelp') }}</p>
-        <div class="flex gap-2">
-          <InputText v-model="layoutPresetNameDraft" class="min-w-0 flex-1" :placeholder="$t('project.workspaceLayoutName')" @keydown.enter.prevent="saveWorkspaceLayoutPreset" />
-          <Button :label="$t('project.saveLayout')" icon="pi pi-save" size="small" :disabled="!layoutPresetNameDraft.trim()" @click="saveWorkspaceLayoutPreset" />
-        </div>
-        <div v-if="layoutPresets.length" class="flex flex-col gap-1">
-          <div v-for="preset in layoutPresets" :key="preset.id" class="flex min-w-0 items-center gap-1 rounded-ui border border-content-border px-2 py-1">
-            <span class="min-w-0 flex-1 truncate text-sm">{{ preset.name }}</span>
-            <Button :label="$t('project.applyLayout')" text size="small" @click="applyWorkspaceLayoutPreset(preset)" />
-            <Button icon="pi pi-pencil" text rounded size="small" severity="secondary" :aria-label="$t('project.renameLayout')" v-tooltip.top="$t('project.renameLayout')" @click="renameWorkspaceLayoutPreset(preset)" />
-            <Button icon="pi pi-trash" text rounded size="small" severity="danger" :aria-label="$t('project.deleteLayout')" v-tooltip.top="$t('project.deleteLayout')" @click="deleteWorkspaceLayoutPreset(preset.id)" />
-          </div>
-        </div>
-        <Message v-else severity="secondary" :closable="false">{{ $t('project.noWorkspaceLayouts') }}</Message>
-        <Button :label="$t('project.resetWorkspaceLayout')" icon="pi pi-refresh" severity="secondary" text size="small" class="self-start" @click="resetWorkspaceLayout" />
-      </div>
-    </Dialog>
   </div>
 </template>
 
@@ -179,7 +159,6 @@ import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
-import Message from 'primevue/message';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import Tree from 'primevue/tree';
@@ -215,8 +194,7 @@ import {
 import {
   loadProjectWorkspaceState,
   projectWorkspaceStorageKey,
-  saveProjectWorkspaceState,
-  workspaceLayoutPresetFromState
+  saveProjectWorkspaceState
 } from '~/utils/project-workspace-state.js';
 
 const props = defineProps({
@@ -246,11 +224,8 @@ const openedEntityItems = ref([]);
 const dirtyFileKeys = ref(new Set());
 const maximizedPaneId = ref('');
 const recentlyClosedRefs = ref([]);
-const layoutPresets = ref([]);
 const quickOpenVisible = ref(false);
 const quickOpenQuery = ref('');
-const layoutPresetsVisible = ref(false);
-const layoutPresetNameDraft = ref('');
 const hydratedStorageKey = ref('');
 let openedEntityLoadSequence = 0;
 const explorerTreePt = {
@@ -423,13 +398,12 @@ watch(workspaceStorageKey, key => {
   openedPageRefs.value = state.openedPageRefs;
   maximizedPaneId.value = state.maximizedPaneId;
   recentlyClosedRefs.value = state.recentlyClosedRefs;
-  layoutPresets.value = state.layoutPresets;
   hydratedStorageKey.value = key;
   syncActiveSelection();
 }, { immediate: true });
 
 watch(
-  [paneTree, activePaneId, paneSequence, explorerOpen, explorerSize, openedEntityRefs, openedPageRefs, maximizedPaneId, recentlyClosedRefs, layoutPresets],
+  [paneTree, activePaneId, paneSequence, explorerOpen, explorerSize, openedEntityRefs, openedPageRefs, maximizedPaneId, recentlyClosedRefs],
   () => {
     const key = workspaceStorageKey.value;
     if (!key || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
@@ -442,8 +416,7 @@ watch(
       openedEntityRefs: openedEntityRefs.value,
       openedPageRefs: openedPageRefs.value,
       maximizedPaneId: maximizedPaneId.value,
-      recentlyClosedRefs: recentlyClosedRefs.value,
-      layoutPresets: layoutPresets.value
+      recentlyClosedRefs: recentlyClosedRefs.value
     });
   },
   { deep: true }
@@ -673,69 +646,6 @@ function togglePaneMaximize(paneId) {
   if (!panes.value.some(pane => pane.id === paneId) || paneCount.value <= 1) return;
   maximizedPaneId.value = maximizedPaneId.value === paneId ? '' : paneId;
   activePaneId.value = paneId;
-}
-
-function workspaceLayoutState() {
-  return {
-    paneTree: paneTree.value,
-    activePaneId: activePaneId.value,
-    paneSequence: paneSequence.value,
-    explorerOpen: explorerOpen.value,
-    explorerSize: explorerSize.value,
-    maximizedPaneId: maximizedPaneId.value,
-    openedEntityRefs: openedEntityRefs.value,
-    openedPageRefs: openedPageRefs.value
-  };
-}
-
-function saveWorkspaceLayoutPreset() {
-  const name = layoutPresetNameDraft.value.trim();
-  if (!name) return;
-  const id = `layout-${Date.now().toString(36)}`;
-  const preset = workspaceLayoutPresetFromState(workspaceLayoutState(), { id, name });
-  if (!preset) return;
-  layoutPresets.value = [...layoutPresets.value, preset];
-  layoutPresetNameDraft.value = '';
-}
-
-function applyWorkspaceLayoutPreset(preset) {
-  const next = workspaceLayoutPresetFromState(preset, preset);
-  if (!next) return;
-  paneTree.value = next.paneTree;
-  activePaneId.value = next.activePaneId;
-  paneSequence.value = next.paneSequence;
-  explorerOpen.value = next.explorerOpen;
-  explorerSize.value = next.explorerSize;
-  maximizedPaneId.value = next.maximizedPaneId;
-  openedEntityRefs.value = mergeWorkspaceReferences(openedEntityRefs.value, next.openedEntityRefs);
-  openedPageRefs.value = mergeWorkspaceReferences(openedPageRefs.value, next.openedPageRefs);
-  syncActiveSelection();
-}
-
-function mergeWorkspaceReferences(current, next) {
-  return [...current, ...next].filter((reference, index, references) => (
-    reference?.key && references.findIndex(candidate => candidate?.key === reference.key) === index
-  ));
-}
-
-function renameWorkspaceLayoutPreset(preset) {
-  const name = window.prompt(t('project.workspaceLayoutName'), preset.name)?.trim();
-  if (!name) return;
-  layoutPresets.value = layoutPresets.value.map(item => item.id === preset.id ? { ...item, name } : item);
-}
-
-function deleteWorkspaceLayoutPreset(id) {
-  layoutPresets.value = layoutPresets.value.filter(preset => preset.id !== id);
-}
-
-function resetWorkspaceLayout() {
-  paneTree.value = createWorkspaceLeaf('pane-1');
-  activePaneId.value = 'pane-1';
-  paneSequence.value = 1;
-  explorerOpen.value = true;
-  explorerSize.value = 15;
-  maximizedPaneId.value = '';
-  syncActiveSelection();
 }
 
 function rememberRecentlyClosed(item) {
