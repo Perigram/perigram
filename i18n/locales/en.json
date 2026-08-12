@@ -416,6 +416,7 @@
       "face": "Face",
       "inspector": "Inspector",
       "parameters": "Parameters",
+      "addParameter": "Add parameter",
       "preview": "Layout preview",
       "loadTemplate": "Load template",
       "workpieces": "Workpieces",
