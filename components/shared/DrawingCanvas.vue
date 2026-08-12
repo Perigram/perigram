@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import ProgressSpinner from 'primevue/progressspinner';
@@ -51,6 +52,7 @@ const emit = defineEmits([
 
 const standardsStore = useLayerStandardsStore();
 const pensStore = usePenTemplatesStore();
+const { t } = useI18n();
 const { standards } = storeToRefs(standardsStore);
 const { pens, systemPens } = storeToRefs(pensStore);
 
@@ -67,12 +69,19 @@ const hoveredEdge = ref(null);
 const hoveredFoldEdge = ref(null);
 const hoveredFaceId = ref(null);
 const activeSectionDrag = ref(null);
+const viewportGridVisible = ref(true);
 let faceHoverClearTimer = null;
 let svgResizeObserver = null;
 
 const isDesigner = computed(() => props.mode === 'designer');
 const isViewer = computed(() => props.mode === 'viewer' || isDesigner.value);
-const showGrid = computed(() => isViewer.value);
+const showGrid = computed(() => isViewer.value && viewportGridVisible.value);
+const documentUnits = computed(() => props.source?.data?.definition?.units || props.source?.definition?.units || 'mm');
+const designerContext = computed(() => {
+  if (!isDesigner.value) return '';
+  const face = (drawing.value?.designerFaces || []).find(item => item.nodeId === props.selectedDesignerFaceId);
+  return face?.label || face?.nodeId || t('drawing.assembly');
+});
 const hasLayers = computed(() => Array.isArray(drawing.value?.layers) && drawing.value.layers.length > 0);
 const layerNames = computed(() => drawing.value?.layers?.map(layer => layer.name) || []);
 const isLayerVisibilityControlled = computed(() => Array.isArray(props.visibleLayerNames));
@@ -1039,10 +1048,14 @@ onBeforeUnmount(() => {
           </g>
         </svg>
 
-        <div v-if="isViewer" class="absolute bottom-4 right-4 flex gap-2">
-          <Button icon="pi pi-search-minus" rounded severity="secondary" :aria-label="$t('drawing.zoomOut')" @click="zoomOut" />
-          <Button icon="pi pi-refresh" rounded severity="secondary" :aria-label="$t('drawing.resetView')" @click="resetView" />
-          <Button icon="pi pi-search-plus" rounded severity="secondary" :aria-label="$t('drawing.zoomIn')" @click="zoomIn" />
+        <div v-if="isViewer" class="absolute bottom-4 right-4 flex items-center gap-1 rounded-ui border border-content-border bg-content p-1" data-drawing-viewport-hud>
+          <Tag v-if="isDesigner" :value="designerContext" severity="secondary" size="small" />
+          <Tag :value="documentUnits" severity="secondary" size="small" />
+          <Tag :value="$t('drawing.panShortcut')" severity="secondary" size="small" v-tooltip.top="$t('drawing.panShortcut')" />
+          <Button icon="pi pi-th-large" text rounded severity="secondary" size="small" :aria-label="$t('drawing.toggleGrid')" :aria-pressed="showGrid" v-tooltip.top="$t('drawing.toggleGrid')" @click="viewportGridVisible = !viewportGridVisible" />
+          <Button icon="pi pi-search-minus" text rounded severity="secondary" size="small" :aria-label="$t('drawing.zoomOut')" v-tooltip.top="$t('drawing.zoomOut')" @click="zoomOut" />
+          <Button icon="pi pi-refresh" text rounded severity="secondary" size="small" :aria-label="$t('drawing.resetView')" v-tooltip.top="$t('drawing.resetView')" @click="resetView" />
+          <Button icon="pi pi-search-plus" text rounded severity="secondary" size="small" :aria-label="$t('drawing.zoomIn')" v-tooltip.top="$t('drawing.zoomIn')" @click="zoomIn" />
         </div>
       </div>
     </template>
