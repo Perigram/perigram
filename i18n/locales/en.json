@@ -313,7 +313,9 @@
     "splitDown": "Split down",
     "maximizePane": "Maximize pane",
     "restorePane": "Restore pane",
-    "reopenClosed": "Reopen closed file"
+    "reopenClosed": "Reopen closed file",
+    "quickOpen": "Quick open",
+    "quickOpenPlaceholder": "Search open files"
   },
   "file": {
     "upload": "Upload Files",
