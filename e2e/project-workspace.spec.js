@@ -75,7 +75,12 @@ test.describe('generated project workspace', () => {
 
     await expect(paneHeader.getByRole('button', { name: /^edit$/i })).toHaveCount(0);
     await expect(app.page.locator('[data-workspace-pane] [data-tab-actions]').getByRole('button', { name: /^edit$/i })).toHaveCount(0);
-    await expect(app.page.locator('[data-workspace-pane]').getByPlaceholder(/cassette name/i)).toBeVisible();
+    const cassetteNameInput = app.page.locator('[data-workspace-pane]').getByPlaceholder(/cassette name/i);
+    await expect(cassetteNameInput).toBeVisible();
+    await expect(app.page.locator('[data-cassette-designer-toolbar]')).toBeVisible();
+    await cassetteNameInput.fill('Cassette One revised');
+    await expect(app.page.locator('[data-cassette-designer-save-state]')).toContainText(/unsaved/i);
+    await expect(cassetteTab.getByRole('img', { name: /unsaved/i })).toBeVisible();
 
     await app.page.reload();
     await expect(app.page.getByRole('tab', { name: 'Library One' })).toBeVisible();

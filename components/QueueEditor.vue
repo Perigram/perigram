@@ -234,9 +234,15 @@
                                     :configurable="canConfigureEntry(entry)"
                                     :saving="configuringEntryIds.has(entry.id?.toString?.() || entry.id)"
                                     :disabled="!canEditQueue"
+                                    :selected="entry._key === selectedEntryKey"
+                                    :can-open-design="canOpenEntryDesign(entry)"
+                                    :can-open-template="canOpenEntryTemplate(entry)"
                                     @configure="parameters => configureEntry(entry, parameters)"
                                     @update-quantity="value => updateEntryQuantity(entry, value)"
                                     @remove="confirmDelete(entry)"
+                                    @select="selectEntry(entry)"
+                                    @open-design="openEntryDesign(entry)"
+                                    @open-template="openEntryTemplate(entry)"
                                 />
                             </template>
                         </ResponsiveGrid>
@@ -415,7 +421,7 @@ const props = defineProps({
     flush: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted']);
+const emit = defineEmits(['updated', 'select-queue', 'create-queue', 'queue-deleted', 'open-entity', 'open-page']);
 const { t } = useI18n();
 const confirm = useConfirm();
 const toast = useToast();
@@ -454,6 +460,7 @@ const project = ref(null);
 const availableInventory = ref([]);
 const { tools } = storeToRefs(toolProfilesStore);
 const viewMode = ref('grid');
+const selectedEntryKey = ref('');
 const instances = ref([]);
 const queueOptions = computed(() => namedSelectOptions(props.queues, t('common.unnamed')));
 const queueList = computed(() => [...props.queues].reverse());
@@ -1061,6 +1068,39 @@ const canConfigureEntry = entry => Boolean(
     && getEntryEntityData(entry)
     && getEntryTemplateData(entry)
 );
+const canOpenEntryDesign = entry => Boolean(
+    entry?.entityType === 'cassette_design' && getEntryEntityData(entry)
+);
+const canOpenEntryTemplate = entry => {
+    const template = getEntryTemplateData(entry);
+    return Boolean(template && hasPermissionGrant({
+        permissions: authStore.activePermissions,
+        feature: 'cassettes',
+        level: 'write',
+        entity: template,
+        entityType: 'cassette'
+    }));
+};
+
+function selectEntry(entry) {
+    selectedEntryKey.value = entry?._key || '';
+}
+
+function openEntryDesign(entry) {
+    const design = getEntryEntityData(entry);
+    if (!design || entry?.entityType !== 'cassette_design') return;
+    emit('open-entity', { entity: design, entityType: 'cassette_design' });
+}
+
+function openEntryTemplate(entry) {
+    const template = getEntryTemplateData(entry);
+    if (!template || !canOpenEntryTemplate(entry)) return;
+    emit('open-page', {
+        pageId: 'cassette-designer',
+        entity: template,
+        entityType: 'cassette'
+    });
+}
 
 async function configureEntry(entry, parameters) {
     if (!canConfigureEntry(entry)) return;
@@ -1266,6 +1306,9 @@ const loadQueueData = async () => {
                 const associated = jobItems.find(item => item.id?.toString?.() === reference.id?.toString?.());
                 return makeQueueEntry({ ...reference, ...(associated || {}), quantity: associated?.quantity || 1 }, index);
             });
+            if (!entries.value.some(entry => entry._key === selectedEntryKey.value)) {
+                selectedEntryKey.value = '';
+            }
             entries.value.forEach(syncEntryWithCassette);
             await hydrateMissingEntryDesigns();
             entries.value.forEach(syncEntryWithCassette);

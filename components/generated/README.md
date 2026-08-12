@@ -70,7 +70,10 @@ bounded IDE-style Explorer and file workspace:
   opens or selects a tab in the active pane, and tab order plus selection persist
   with that pane. `GeneratedEntityFile` is the pane adapter: each entity tab
   owns its DTO-backed icon-only interactive lifecycle status and close affordance;
-  tabs without a persisted status state do not synthesize an `UNKNOWN` badge. The tab
+  tabs without a persisted status state do not synthesize an `UNKNOWN` badge.
+  Non-persisted, page-owned modified state uses a separate labelled warning-token
+  dot; restoring workspace references never restores a dirty marker. Both entity
+  overloads and registered workspace pages report state through this adapter. The tab
   strip ends with an add-tab picker. Pane-level split and close commands live in
   one ellipsis menu. The add button follows the last tab instead of consuming
   the far edge of the header. Generated entity-action buttons render inside the active
@@ -99,6 +102,9 @@ bounded IDE-style Explorer and file workspace:
   and mounts `CassetteDesignerV2` through the shared designer surface so the
   designer owns the pane rather than a dialog. Linked entities and source-loaded children use the same
   page-opening lookup; relation navigation does not reduce their capabilities.
+  Queue-entry context actions reuse these pane events: a readable
+  `cassette_design` opens for inspection, while an authorized source `cassette`
+  template opens in this registered page without a Queue-local route.
   Additional app-owned pages register through the same fixed registry.
 - PrimeVue splitters form a recursive split tree. A pane can split right or
   down, and nested horizontal/vertical splits keep independent selections and
