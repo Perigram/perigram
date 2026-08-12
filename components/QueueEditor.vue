@@ -233,19 +233,14 @@
                                     :template="getEntryTemplateData(entry)"
                                     :template-id="getEntryTemplateId(entry)"
                                     :parameters="getEntryParameters(entry)"
-                                    :units="getEntryUnits(entry)"
                                     :configurable="canConfigureEntry(entry)"
                                     :saving="configuringEntryIds.has(entry.id?.toString?.() || entry.id)"
                                     :disabled="!canEditQueue"
                                     :selected="entry._key === selectedEntryKey"
-                                    :can-open-design="canOpenEntryDesign(entry)"
-                                    :can-open-template="canOpenEntryTemplate(entry)"
                                     @configure="parameters => configureEntry(entry, parameters)"
                                     @update-quantity="value => updateEntryQuantity(entry, value)"
                                     @remove="confirmDelete(entry)"
                                     @select="selectEntry(entry)"
-                                    @open-design="openEntryDesign(entry)"
-                                    @open-template="openEntryTemplate(entry)"
                                 />
                             </template>
                         </ResponsiveGrid>
@@ -1071,38 +1066,8 @@ const canConfigureEntry = entry => Boolean(
     && getEntryEntityData(entry)
     && getEntryTemplateData(entry)
 );
-const canOpenEntryDesign = entry => Boolean(
-    entry?.entityType === 'cassette_design' && getEntryEntityData(entry)
-);
-const canOpenEntryTemplate = entry => {
-    const template = getEntryTemplateData(entry);
-    return Boolean(template && hasPermissionGrant({
-        permissions: authStore.activePermissions,
-        feature: 'cassettes',
-        level: 'write',
-        entity: template,
-        entityType: 'cassette'
-    }));
-};
-
 function selectEntry(entry) {
     selectedEntryKey.value = entry?._key || '';
-}
-
-function openEntryDesign(entry) {
-    const design = getEntryEntityData(entry);
-    if (!design || entry?.entityType !== 'cassette_design') return;
-    emit('open-entity', { entity: design, entityType: 'cassette_design' });
-}
-
-function openEntryTemplate(entry) {
-    const template = getEntryTemplateData(entry);
-    if (!template || !canOpenEntryTemplate(entry)) return;
-    emit('open-page', {
-        pageId: 'cassette-designer',
-        entity: template,
-        entityType: 'cassette'
-    });
 }
 
 async function configureEntry(entry, parameters) {
@@ -1141,10 +1106,6 @@ async function configureEntry(entry, parameters) {
 const getEntryParameters = (e) => {
     const data = getEntryEntityData(e);
     return queueEntryParameterNames(e, data ? getCassetteParameters(data) : []);
-};
-const getEntryUnits = (entry) => {
-    const definition = getEntryTemplateData(entry)?.data?.definition || {};
-    return typeof definition.units === 'string' ? definition.units : '';
 };
 const hasEditableEntryParameters = (entry) => getEntryParameters(entry).length > 0;
 

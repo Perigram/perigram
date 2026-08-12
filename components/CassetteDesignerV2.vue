@@ -22,7 +22,7 @@
           <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('common.close')" @click="dismissOnboarding" />
         </div>
         <div class="flex items-center justify-between gap-2">
-          <Tag :value="`${onboardingIndex + 1}/${onboardingSteps.length}`" severity="secondary" size="small" />
+          <small class="text-muted-color">{{ onboardingIndex + 1 }}/{{ onboardingSteps.length }}</small>
           <div class="flex items-center gap-1">
             <Button icon="pi pi-angle-left" severity="secondary" text rounded size="small" :disabled="onboardingIndex === 0" :aria-label="$t('common.back')" @click="previousOnboardingStep" />
             <Button icon="pi pi-angle-right" severity="secondary" text rounded size="small" :disabled="onboardingIndex >= onboardingSteps.length - 1" :aria-label="$t('common.next')" @click="nextOnboardingStep" />
@@ -42,14 +42,11 @@
             :placeholder="$t('cassette.name')"
             class="min-w-48 flex-1"
           />
-          <Tag :value="documentProfileLabel" severity="secondary" size="small" />
-          <Tag :value="documentUnits" severity="secondary" size="small" />
-          <Tag
-            :value="$t(isModified ? 'cassette.v2.unsaved' : 'cassette.v2.saved')"
-            :severity="isModified ? 'warn' : 'secondary'"
-            size="small"
+          <small
+            class="shrink-0 text-xs"
+            :class="isModified ? 'text-orange-400' : 'text-muted-color'"
             data-cassette-designer-save-state
-          />
+          >{{ $t(isModified ? 'cassette.v2.unsaved' : 'cassette.v2.saved') }}</small>
           <Select
             :model-value="null"
             :options="templateOptions"
@@ -121,7 +118,6 @@
           <div class="flex min-w-0 items-center gap-1">
             <Button :icon="globalParametersOpen ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" severity="secondary" text rounded size="small" :aria-label="$t(globalParametersOpen ? 'cassette.v2.collapseSection' : 'cassette.v2.expandSection')" @click="globalParametersOpen = !globalParametersOpen" />
             <strong>{{ $t('cassette.v2.globalParameters') }}</strong>
-            <Tag :value="globalParameterEntries.length" severity="secondary" size="small" />
           </div>
           <Button :label="$t('cassette.v2.addParameter')" icon="pi pi-plus" severity="secondary" text size="small" @click="addGlobalParameter" />
         </div>
@@ -157,7 +153,6 @@
             <Button :icon="layersOpen ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" severity="secondary" text rounded size="small" :aria-label="$t(layersOpen ? 'cassette.v2.collapseSection' : 'cassette.v2.expandSection')" @click="layersOpen = !layersOpen" />
             <i class="pi pi-list text-muted-color" aria-hidden="true" />
             <strong class="truncate">{{ $t('common.layers') }}</strong>
-            <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
           </div>
           <div class="flex items-center gap-1">
             <Button
@@ -566,7 +561,6 @@
               <strong class="truncate">{{ $t('cassette.v2.workpieces') }}</strong>
             </div>
             <div class="flex items-center gap-1">
-              <Tag :value="assemblySummary" severity="secondary" size="small" />
               <Button
                 :label="$t('cassette.v2.addProfile')"
                 icon="pi pi-sliders-v"
@@ -606,9 +600,7 @@
                   >
                     <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="workpieceAccentStyle(row.id)" aria-hidden="true" />
                     <span class="truncate">{{ row.label }}</span>
-                    <Tag :value="row.type" severity="secondary" size="small" />
-                    <Tag v-if="row.role" :value="row.role" severity="secondary" size="small" />
-                    <Tag v-if="row.parentCount > 1" :value="`×${row.parentCount}`" severity="secondary" size="small" />
+                    <small v-if="row.role" class="shrink-0 text-muted-color">{{ row.role }}</small>
                   </button>
                   <Button
                     icon="pi pi-ellipsis-v"
@@ -637,18 +629,7 @@
                       <span class="shrink-0 font-mono text-xs text-muted-color">{{ relationRow.arrow }}</span>
                       <span class="truncate text-sm">{{ relationRow.otherLabel }}</span>
                       <small class="truncate text-muted-color">{{ relationRow.faceLabel }}</small>
-                      <Tag
-                        v-if="relationRow.relation.driver"
-                        :value="$t('cassette.v2.driver')"
-                        severity="secondary"
-                        size="small"
-                      />
-                      <Tag
-                        v-if="relationRow.status !== 'ok'"
-                        :value="$t(`cassette.v2.attachmentStatus.${relationRow.status}`)"
-                        :severity="relationStatusSeverity(relationRow.status)"
-                        size="small"
-                      />
+                      <small v-if="relationRow.status !== 'ok'" class="shrink-0 text-warning">{{ $t(`cassette.v2.attachmentStatus.${relationRow.status}`) }}</small>
                     </button>
                   </div>
                 </div>
@@ -661,7 +642,6 @@
           <div class="flex min-w-0 items-center gap-2">
             <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="workpieceAccentStyle(selectedWorkpieceRow.id)" aria-hidden="true" />
             <strong class="min-w-0 flex-1 truncate">{{ selectedWorkpieceRow.label }}</strong>
-            <Tag :value="selectedWorkpieceRow.type" severity="secondary" size="small" />
           </div>
           <div v-if="selectedSheetOutline.length" class="mt-2 border-t border-content-border pt-2">
             <small class="font-medium text-muted-color">{{ $t('cassette.v2.faceOutline') }}</small>
@@ -677,7 +657,7 @@
               >
                 <i :class="node.parentId ? 'pi pi-angle-right' : 'pi pi-stop'" class="text-xs text-muted-color" aria-hidden="true" />
                 <span class="truncate">{{ node.label }}</span>
-                <Tag v-if="node.role" :value="node.role" severity="secondary" size="small" />
+                <small v-if="node.role" class="shrink-0 text-muted-color">{{ node.role }}</small>
               </button>
             </div>
           </div>
@@ -843,7 +823,6 @@ import Message from 'primevue/message';
 import Menu from 'primevue/menu';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from '~/components/shared/EntitySelect.vue';
-import Tag from 'primevue/tag';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -998,9 +977,6 @@ const selectedTemplateIsPersisted = computed(() => Boolean(
   selectedTemplateId.value &&
   persistedTemplateIdSet.value.has(selectedTemplateId.value.toString())
 ));
-const documentDefinition = computed(() => props.template?.data?.definition || props.template?.definition || {});
-const documentProfileLabel = computed(() => `OCCS ${documentDefinition.value?.documentType || 'template'}`);
-const documentUnits = computed(() => documentDefinition.value?.units || 'mm');
 const treeNodes = computed(() => cassetteTree.value.nodes || []);
 const selectedNode = computed(() => treeNodes.value.find(node => node.id === selectedNodeId.value) || treeNodes.value[0] || null);
 const workpieces = computed(() => getCassetteV2Workpieces(cassetteTree.value));
@@ -1057,7 +1033,6 @@ const foldedPreviewDiagnostics = computed(() => buildCassetteV2FoldedPreview(cas
 const relationDiagnosticsById = computed(() => new Map(
   (foldedPreviewDiagnostics.value.attachments || []).map(attachment => [attachment.id, attachment])
 ));
-const assemblySummary = computed(() => `${workpieces.value.length}/${workpieceRelations.value.length}`);
 const workpieceLabel = (workpieceId) => {
   const workpiece = workpieceById.value.get(workpieceId);
   return workpiece?.name || workpieceId || '';
@@ -1123,12 +1098,6 @@ const selectedSheetOutline = computed(() => {
   visit();
   return outline;
 });
-const relationStatusSeverity = (status) => {
-  if (status === 'impossible') return 'danger';
-  if (status === 'unresolved') return 'warn';
-  return 'secondary';
-};
-
 function selectOutlineNode(node) {
   selectedNodeId.value = node.id;
   selectedWorkpieceOverrideId.value = '';
@@ -1344,7 +1313,6 @@ const usedParameterNames = computed(() => {
 });
 const occsJson = computed(() => JSON.stringify(createCassetteV2OccsDocument(cassetteTree.value, cassetteMarkContext.value), null, 2));
 const drawingLayerNames = computed(() => drawingLayers.value.map(layer => layer.name).filter(Boolean));
-const visibleLayerSummary = computed(() => `${visibleLayerNames.value.length}/${drawingLayerNames.value.length}`);
 const allLayersVisible = computed(() => drawingLayerNames.value.length > 0 && drawingLayerNames.value.every(name => visibleLayerNames.value.includes(name)));
 const sameEntityId = (left, right) => left?.toString?.() === right?.toString?.();
 const standardCode = (standard) => standard?.data?.code || standard?.code || null;
