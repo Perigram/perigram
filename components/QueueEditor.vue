@@ -309,7 +309,7 @@
                         <label>{{ field.label || field.id }}</label>
                         <Select
                             v-if="field.type === 'entity'"
-                            v-model="producerValues[field.id]"
+                            :model-value="producerValues[field.id]"
                             :options="producerFieldOptions[field.id] || []"
                             option-label="label"
                             option-value="value"
@@ -317,17 +317,18 @@
                             class="w-full"
                             size="small"
                             :disabled="field.id === 'templateId' && !producerValues.libraryId"
-                            @change="onProducerFieldChange(field)"
+                            @update:model-value="value => updateProducerField(field, value)"
                         />
                         <MultiSelect
                             v-else-if="field.type === 'entityList'"
-                            v-model="producerValues[field.id]"
+                            :model-value="producerValues[field.id]"
                             :options="producerFieldOptions[field.id] || []"
                             option-label="label"
                             option-value="value"
                             :entity-type="field.entityType || field.accepts?.[0] || ''"
                             class="w-full"
                             size="small"
+                            @update:model-value="value => updateProducerField(field, value)"
                         />
                         <InputNumber v-else-if="field.type === 'number'" v-model="producerValues[field.id]" fluid size="small" />
                         <Textarea v-else-if="field.type === 'object'" v-model="producerValues[field.id]" rows="3" auto-resize />
@@ -633,6 +634,11 @@ async function onProducerFieldChange(field = {}) {
         return;
     }
     if (field.id === 'templateId') syncProducerParameters();
+}
+
+async function updateProducerField(field = {}, value) {
+    producerValues.value[field.id] = value;
+    await onProducerFieldChange(field);
 }
 
 async function startProducer(producer) {

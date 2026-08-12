@@ -155,6 +155,7 @@ import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
+import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import {
   closeWorkspaceLeaf,
   createWorkspaceLeaf,
@@ -192,9 +193,11 @@ const paneTree = ref(createWorkspaceLeaf('pane-1'));
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const linkedEntityItems = ref([]);
+const linkedChildItems = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
 let openedEntityLoadSequence = 0;
+let linkedChildLoadSequence = 0;
 const explorerTreePt = {
   root: { class: '!min-w-0 !max-w-full !overflow-hidden' },
   node: { class: '!min-w-0 !max-w-full !overflow-hidden' },
@@ -250,7 +253,7 @@ const entityItems = computed(() => [
     region: section.region
   })))
 ].filter(item => item?.entity && entityId(item.entity)));
-const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value, ...openedEntityItems.value]
+const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value, ...linkedChildItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
 const explorerHierarchy = computed(() => projectExplorerHierarchy({
   projectItem: projectItem.value,
@@ -260,6 +263,11 @@ const explorerHierarchy = computed(() => projectExplorerHierarchy({
 }));
 const linkedRefs = computed(() => Object.values(project.value?.relations || {})
   .flatMap(value => resolveEntityRelationRefs(value)));
+const linkedChildSources = computed(() => linkedExplorerChildSources({
+  linkedItems: linkedEntityItems.value,
+  screens: authStore.screenManifest,
+  containment: effectiveContainment()
+}));
 const cassetteItems = computed(() => workspaceEntityItems.value.filter(item => item.type === 'cassette'));
 const projectActions = computed(() => projectContextActionEntries({
   actionManifest: authStore.actionManifest,
@@ -401,6 +409,20 @@ watch(linkedRefs, async refs => {
   linkedEntityItems.value = loaded.filter(Boolean);
 }, { immediate: true });
 
+watch(linkedChildSources, async sources => {
+  const sequence = ++linkedChildLoadSequence;
+  const loaded = await Promise.all(sources.map(async source => {
+    try {
+      const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters));
+      return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.entityType, entity));
+    } catch {
+      return [];
+    }
+  }));
+  if (sequence !== linkedChildLoadSequence) return;
+  linkedChildItems.value = loaded.flat();
+}, { immediate: true, deep: true });
+
 watch(openedEntityRefs, async refs => {
   const sequence = ++openedEntityLoadSequence;
   const loaded = await Promise.all(refs.map(async reference => {
@@ -458,6 +480,7 @@ function handleExplorerEntityDeleted(item) {
   openedEntityRefs.value = openedEntityRefs.value.filter(reference => reference.key !== item.key);
   openedEntityItems.value = openedEntityItems.value.filter(candidate => candidate.key !== item.key);
   linkedEntityItems.value = linkedEntityItems.value.filter(candidate => candidate.key !== item.key);
+  linkedChildItems.value = linkedChildItems.value.filter(candidate => candidate.key !== item.key);
   openedPageRefs.value = openedPageRefs.value.filter(page => !removedKeys.has(page.key));
   let nextTree = paneTree.value;
   for (const pane of workspaceLeaves(nextTree)) {
