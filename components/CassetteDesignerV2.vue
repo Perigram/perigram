@@ -118,14 +118,19 @@
 
       <div v-if="activeSideTab === 'parameters'" class="flex min-h-0 min-w-0 flex-col gap-3 overflow-auto">
         <div class="flex items-center justify-between gap-2">
-          <div class="flex min-w-0 items-center gap-1">
-            <Button :icon="globalParametersOpen ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" severity="secondary" text rounded size="small" :aria-label="$t(globalParametersOpen ? 'cassette.v2.collapseSection' : 'cassette.v2.expandSection')" @click="globalParametersOpen = !globalParametersOpen" />
-            <strong>{{ $t('cassette.v2.globalParameters') }}</strong>
-            <Tag :value="globalParameterEntries.length" severity="secondary" size="small" />
-          </div>
-          <Button :label="$t('cassette.v2.addParameter')" icon="pi pi-plus" severity="secondary" text size="small" @click="addGlobalParameter" />
+          <strong>{{ $t('cassette.v2.globalParameters') }}</strong>
+          <Button
+            :label="$t('cassette.v2.addParameter')"
+            icon="pi pi-plus"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('cassette.v2.addParameter')"
+            @click="addGlobalParameter"
+          />
         </div>
-        <div v-if="globalParametersOpen" class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
+        <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
           <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 flex-col gap-1">
             <div class="flex items-center justify-between gap-2">
               <label class="font-mono">{{ parameter.key }}</label>
@@ -154,7 +159,6 @@
       <div v-else-if="activeSideTab === 'layers'" class="flex min-h-0 flex-col gap-3">
         <div class="flex items-center justify-between gap-2">
           <div class="flex min-w-0 items-center gap-2">
-            <Button :icon="layersOpen ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" severity="secondary" text rounded size="small" :aria-label="$t(layersOpen ? 'cassette.v2.collapseSection' : 'cassette.v2.expandSection')" @click="layersOpen = !layersOpen" />
             <i class="pi pi-list text-muted-color" aria-hidden="true" />
             <strong class="truncate">{{ $t('common.layers') }}</strong>
             <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
@@ -185,7 +189,7 @@
           </div>
         </div>
 
-        <ScrollPanel v-if="layersOpen" class="min-h-0 flex-1 rounded-ui border border-content-border">
+        <ScrollPanel class="min-h-0 flex-1 rounded-ui border border-content-border">
           <div class="flex flex-col">
             <div
               v-for="row in layerRows"
@@ -561,10 +565,7 @@
       <aside class="order-2 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden xl:order-3">
         <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3">
           <div class="flex items-center justify-between gap-2">
-            <div class="flex min-w-0 items-center gap-1">
-              <Button :icon="workpiecesOpen ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" severity="secondary" text rounded size="small" :aria-label="$t(workpiecesOpen ? 'cassette.v2.collapseSection' : 'cassette.v2.expandSection')" @click="workpiecesOpen = !workpiecesOpen" />
-              <strong class="truncate">{{ $t('cassette.v2.workpieces') }}</strong>
-            </div>
+            <strong class="truncate">{{ $t('cassette.v2.workpieces') }}</strong>
             <div class="flex items-center gap-1">
               <Tag :value="assemblySummary" severity="secondary" size="small" />
               <Button
@@ -590,7 +591,7 @@
             </div>
           </div>
           <Menu ref="workpieceActionsMenu" :model="workpieceActionItems" popup />
-          <ScrollPanel v-if="workpiecesOpen" class="min-h-0 flex-1 rounded-ui border border-content-border">
+          <ScrollPanel class="min-h-0 flex-1 rounded-ui border border-content-border">
             <div class="flex flex-col">
               <div
                 v-for="row in workpieceRows"
@@ -944,9 +945,6 @@ const previewSource = ref(null);
 const cassettePreviewSource = ref(null);
 const previewError = ref('');
 const activeSideTab = ref('parameters');
-const globalParametersOpen = ref(true);
-const layersOpen = ref(true);
-const workpiecesOpen = ref(true);
 const drawingLayers = ref([]);
 const visibleLayerNames = ref([]);
 const hiddenLayerNames = ref([]);
