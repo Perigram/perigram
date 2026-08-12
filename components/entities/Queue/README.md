@@ -106,6 +106,12 @@ Production queue card and detail surface.
   the matching queue-local `data.job.items[].quantity` values. Each relation
   points to one real cassette design; quantity belongs to the queue entry and
   is passed to nesting without being copied onto or into that design.
+- Selecting a `QueueEntryCard` is local editor state for the queue association,
+  never an Explorer entity. A selected readable `cassette_design` can be opened
+  for inspection through the generated workspace event path. Its source
+  `cassette` template may open in the registered cassette designer only with
+  cassette write access. These actions do not mutate the selected design;
+  configuration continues to use the compiled replacement relation action.
 - Queue editor selected warehouse sources use compact `QueueSourceCard` tiles
   instead of embedding pile/sheet/remnant cards. It draws remnant polygons when
   present and rectangular sheet previews for stock sources without stored

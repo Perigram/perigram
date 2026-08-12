@@ -807,12 +807,13 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   `R`, ...), and keeps actual OCCS workpieces as graph nodes connected by
   OCCS cassette joints. The designer shell separates document actions,
   geometry editing, global settings, assembly topology, and folded 3D preview:
-  the canvas owns only CAD interaction, the left document/settings rail owns the
-  active cassette name plus compact load/save/reset actions, global parameters,
-  layer visibility, and OCCS JSON, and the assembly rail owns the
-  compact workpiece DAG/list plus 3D preview. The load selector is an action
-  placeholder rather than a second selected-name display, and save/reset are
-  icon-only controls. The workpiece `+` action creates a new
+  the `DesignerWorkspace` toolbar owns the active cassette name, OCCS document
+  type/units, saved/modified state, template load, Save, Save as, and Reset;
+  the canvas owns only CAD interaction; the left settings rail owns global
+  parameters, layer visibility, and OCCS JSON; and the assembly rail owns the
+  compact workpiece DAG/list plus 3D preview. Template load is an action picker,
+  not a second selected-name display; Reset confirms before discarding a modified
+  draft. The workpiece `+` action creates a new
   `definitions.workpieces[]` entry,
   matching cassette occurrence, root face, and face-relative joint instead of
   another fold child on the current sheet. The link action declares another
@@ -826,7 +827,9 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   deleting either workpiece, and display unresolved/impossible diagnostics from
   the folded preview helper. Attachment placement choice is
   internal renderer state; the user workflow only declares face-to-face
-  attachments. Hardware is added from the workpiece rail as declarative OCCS
+  attachments. Workpiece rows expose identity, type, role, and topology actions;
+  selected hardware properties render once in the selection-driven inspector
+  rather than expanding duplicate controls in every row. Hardware is added from the workpiece rail as declarative OCCS
   workpieces rather than SCAD-style operation history: bolts, nuts, washers,
   rivets, screws, spacers, standoffs, and hanger clips carry family/parameter
   metadata, hanger clips expose `sheetPart`, `integralCut`, and `castSolid`
