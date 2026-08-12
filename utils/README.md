@@ -46,7 +46,9 @@ Shared frontend utility modules used by Vue pages/components.
   user, organization, and project; payloads contain pane/page references,
   references for entities discovered through nested detail regions, and layout
   preferences including each pane's ordered tab keys and selected tab, never
-  entity DTOs.
+  entity DTOs. Named device-local layout presets use the same per-user,
+  per-organization, per-project preference boundary and contain only validated
+  split/UI state plus typed entity/page references.
 - `interactive-target.js`: Shared DOM guard for entity cards that have parent
   click/select actions. It detects nested links, buttons, form controls, status
   controls, geometry previews, and nested inline/compact entity cards so parent
