@@ -411,6 +411,7 @@ describe('Design system manifest', () => {
   });
 
   it('keeps admin navigation tied to existing admin routes', () => {
+    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
     const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
 
     for (const route of [
@@ -612,7 +613,8 @@ describe('Design system manifest', () => {
     expect(generatedHome).toContain(':is="editorActionFor(section.source.entityType)"');
     expect(generatedCollection).toContain('suppress-child-summaries');
     expect(generatedCollection).toContain('relation-variant="compact"');
-    expect(generatedCollection).toContain('GeneratedCassetteDesignerAction');
+    expect(generatedCollection).toContain('entityEditorActionFor');
+    expect(generatedCollection).toContain(':is="editorActionComponent"');
     expect(generatedHome).toContain('pi pi-external-link');
     expect(generatedCollection).toContain('pi pi-external-link');
     expect(relationsBlock).toContain('overflow-x-auto');
