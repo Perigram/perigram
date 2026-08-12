@@ -60,7 +60,8 @@ noise.
 - `project-workspace.spec.js`: uses the active compiled Project detail screen
   and verifies a cassette reached through its linked Library region opens the
   embedded cassette designer in the same pane; verifies pane tabs, icon-only
-  status, suppressed embedded entity header, tab close behavior, and restoration
+  status, suppressed embedded entity header, tab close behavior, restoration,
+  named layout save/apply, pane split, and reopening a closed file.
   after reload.
 - `home-and-entity-ui.spec.js`: creates a real project/queue pair, verifies the
   compiled Home and detail-context placement, parent-responsive entity chrome,
