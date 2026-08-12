@@ -72,7 +72,6 @@ describe('project workspace state', () => {
         entityId: 'c1'
       }],
       maximizedPaneId: 'pane-2',
-      layoutPresets: [],
       recentlyClosedRefs: [{
         key: 'queue:q1',
         kind: 'entity',
