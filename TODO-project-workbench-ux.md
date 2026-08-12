@@ -354,9 +354,9 @@ only scalar values, so no per-field constraints or labels were fabricated.
 - [x] Replace the `Parameters / Layers / OCCS draft` button row with a controlled
   PrimeVue tab/segmented navigation component that exposes one active settings
   mode and survives responsive relocation.
-- [ ] Keep section expansion separate from add/create actions. A chevron controls
+- [x] Keep section expansion separate from add/create actions. A chevron controls
   disclosure; plus creates an item; neither substitutes for the other.
-- [ ] Replace icon clusters in global parameters, layers, workpieces, profiles,
+- [x] Replace icon clusters in global parameters, layers, workpieces, profiles,
   hardware, and attachments with a shared section-toolbar pattern: concise title,
   optional state/count, primary local action, overflow actions.
 - [x] Use labels for domain-specific low-frequency operations when rail width
