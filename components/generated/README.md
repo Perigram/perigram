@@ -40,8 +40,12 @@ The current default overloads are:
 `GeneratedProjectWorkspace.vue` renders project `entityDetail` screens as a
 bounded IDE-style Explorer and file workspace:
 
-- the Explorer is a dense PrimeVue tree containing the opened project and only
-  child collections loaded by the screen's list regions. It is independently
+- the Explorer is a dense PrimeVue tree containing the opened project, child
+  collections loaded by the project screen, and direct child collections
+  declared by a linked entity's own compiled detail screen. Linked children are
+  fetched through that source's resolved filters (for example,
+  `cassette?libraryId=<linked-library-id>`), never from a bounded summary
+  preview. It is independently
   scrollable, starts directly below the workspace action strip without a local
   header, occupies the compact 15% side of the workspace split, and can collapse
   so file panes use the full workspace width. Its visibility is controlled from

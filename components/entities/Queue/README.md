@@ -96,6 +96,9 @@ Production queue card and detail surface.
   remains visible but loading/disabled until its library, template, and design
   source collections are ready; opening the producer can therefore never
   capture a transient empty option set during initial queue hydration.
+  The library selector uses the shared select component's model-update event,
+  so changing libraries always reloads the canonical scoped cassette list; it
+  must not rely on a DOM-only `change` event or a workspace preview cache.
 - Process cassette-design producers whose construction mode supports server
   default cassette-template resolution must not block the Add button on an
   unreadable or empty template selector. If no selectable template options are
