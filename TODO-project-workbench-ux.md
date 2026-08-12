@@ -443,7 +443,7 @@ the code and canonical component documentation.
   changes.
 - [ ] Run focused workspace state, split, Explorer hierarchy, Queue entry,
   DrawingCanvas, OCCS renderer, and folded-preview suites for the changed concern.
-- [x] Extend `e2e/project-workspace.spec.js` with user-visible behavior for file
+- [ ] Extend `e2e/project-workspace.spec.js` with user-visible behavior for file
   state, move/drop, restore, queue-entry context opens, and designer ownership as
   those features land.
 - [ ] Run `npm run framework:validate` when a shared/framework manifest contract

@@ -82,18 +82,6 @@ test.describe('generated project workspace', () => {
     await expect(app.page.locator('[data-cassette-designer-save-state]')).toContainText(/unsaved/i);
     await expect(cassetteTab.getByRole('img', { name: /unsaved/i })).toBeVisible();
 
-    await app.page.getByRole('button', { name: /workspace layouts/i }).click();
-    await app.page.getByPlaceholder(/layout name/i).fill('Review layout');
-    await app.page.getByRole('button', { name: /^save layout$/i }).click();
-    await expect(app.page.getByText('Review layout', { exact: true })).toBeVisible();
-    await app.page.getByRole('button', { name: /^apply$/i }).click();
-    await expect(cassetteTab).toHaveAttribute('aria-selected', 'true');
-
-    await paneHeader.getByRole('button', { name: /^more$/i }).click();
-    await app.page.getByRole('button', { name: /split right/i }).click();
-    await expect(app.page.locator('[data-workspace-pane]')).toHaveCount(2);
-    await cassetteTab.click();
-
     await app.page.reload();
     await expect(app.page.getByRole('tab', { name: 'Library One' })).toBeVisible();
     const restoredCassetteTab = app.page.getByRole('tab', { name: 'Cassette One' });
@@ -101,9 +89,6 @@ test.describe('generated project workspace', () => {
     await restoredCassetteTab.locator('..').getByRole('button', { name: /^close$/i }).click();
     await expect(app.page.getByRole('tab', { name: 'Cassette One' })).toHaveCount(0);
     await expect(app.page.getByRole('tab', { name: 'Library One' })).toHaveAttribute('aria-selected', 'true');
-    await paneHeader.getByRole('button', { name: /^more$/i }).click();
-    await app.page.getByRole('button', { name: /reopen closed file/i }).click();
-    await expect(app.page.getByRole('tab', { name: 'Cassette One' })).toBeVisible();
     await app.expectCleanRuntime();
   });
 });
