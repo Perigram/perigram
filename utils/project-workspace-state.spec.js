@@ -96,7 +96,7 @@ describe('project workspace state', () => {
         tabKeys: ['queue:q1']
       },
       activePaneId: 'pane-1',
-      openedEntityRefs: [{ key: 'queue:q1', entityType: 'queue', entityId: 'q1', entity: { shouldNotPersist: true } }]
+      openedEntityRefs: [{ key: 'queue:q1', entityType: 'queue', entityId: 'q1', entity: { shouldNotPersist: true }]
     };
     const state = normalizeProjectWorkspaceState({ layoutPresets: [preset, { ...preset }] });
     expect(state.layoutPresets).toEqual([expect.objectContaining({
