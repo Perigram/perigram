@@ -276,7 +276,7 @@ Acceptance:
 - [x] Add pane maximize/restore without destroying the recursive split tree, plus
   a recoverable recently-closed file list. Closing the last pane remains
   impossible; closing a file does not delete its entity.
-- [x] Add keyboard quick-open over `workspaceItems` and keyboard commands for
+- [ ] Add keyboard quick-open over `workspaceItems` and keyboard commands for
   file close, next/previous file, split, and maximize. Commands must invoke the
   same state operations as pointer UI.
 - [x] Version and normalize persisted workspace state when tab order, maximized

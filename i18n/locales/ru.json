@@ -313,9 +313,7 @@
     "splitDown": "Разделить снизу",
     "maximizePane": "Развернуть панель",
     "restorePane": "Восстановить панель",
-    "reopenClosed": "Открыть закрытый файл",
-    "quickOpen": "Быстро открыть",
-    "quickOpenPlaceholder": "Поиск открытых файлов"
+    "reopenClosed": "Открыть закрытый файл"
   },
   "file": {
     "upload": "Загрузить файлы",

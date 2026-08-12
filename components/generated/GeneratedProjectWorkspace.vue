@@ -18,7 +18,6 @@
         :action-entries="projectActions"
         @execute-action="executeWorkspaceAction"
       />
-      <Button icon="pi pi-search" text rounded size="small" severity="secondary" :aria-label="$t('project.quickOpen')" v-tooltip.bottom="$t('project.quickOpen')" @click="quickOpenVisible = true" />
     </header>
 
     <div class="min-h-0 flex-1 overflow-hidden">
@@ -145,20 +144,12 @@
         />
       </div>
     </div>
-    <Dialog v-model:visible="quickOpenVisible" modal :header="$t('project.quickOpen')" class="w-full max-w-lg">
-      <div class="flex flex-col gap-2">
-        <InputText v-model="quickOpenQuery" autofocus :placeholder="$t('project.quickOpenPlaceholder')" />
-        <Button v-for="item in quickOpenItems" :key="item.key" :label="item.label" :icon="item.icon" text class="w-full justify-start" @click="openQuickItem(item.key)" />
-      </div>
-    </Dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
-import InputText from 'primevue/inputtext';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import Tree from 'primevue/tree';
@@ -223,8 +214,6 @@ const openedEntityItems = ref([]);
 const dirtyFileKeys = ref(new Set());
 const maximizedPaneId = ref('');
 const recentlyClosedRefs = ref([]);
-const quickOpenVisible = ref(false);
-const quickOpenQuery = ref('');
 const hydratedStorageKey = ref('');
 let openedEntityLoadSequence = 0;
 const explorerTreePt = {
@@ -338,10 +327,6 @@ const mobileWorkspaceOptions = computed(() => workspaceItems.value.map(item => (
   label: workspaceItemLabel(item),
   value: item.key
 })));
-const quickOpenItems = computed(() => {
-  const query = quickOpenQuery.value.trim().toLocaleLowerCase();
-  return workspaceItems.value.filter(item => !query || item.label.toLocaleLowerCase().includes(query));
-});
 const explorerNodes = computed(() => {
   if (!projectItem.value) return [];
   return [{
@@ -464,53 +449,6 @@ watch(openedEntityRefs, async refs => {
 }, { immediate: true, deep: true });
 
 watch(activePaneId, syncActiveSelection);
-
-onMounted(() => window.addEventListener('keydown', handleWorkspaceShortcut));
-onBeforeUnmount(() => window.removeEventListener('keydown', handleWorkspaceShortcut));
-
-function handleWorkspaceShortcut(event) {
-  if (!(event.ctrlKey || event.metaKey) || isEditableTarget(event.target) || !activePane.value) return;
-  const pane = activePane.value;
-  if (event.key === 'w') {
-    if (!pane.selectionKey) return;
-    event.preventDefault();
-    closePaneTab(pane.id, pane.selectionKey);
-    return;
-  }
-  if (event.key.toLowerCase() === 'p') {
-    event.preventDefault();
-    quickOpenVisible.value = true;
-    return;
-  }
-  if (event.key === 'PageDown' || event.key === 'PageUp') {
-    const tabs = pane.tabKeys || [];
-    if (tabs.length < 2) return;
-    event.preventDefault();
-    const index = tabs.indexOf(pane.selectionKey);
-    const direction = event.key === 'PageDown' ? 1 : -1;
-    selectPaneTab(pane.id, tabs[(index + direction + tabs.length) % tabs.length]);
-    return;
-  }
-  if (event.key === '\\') {
-    event.preventDefault();
-    splitPane(pane.id, event.shiftKey ? 'vertical' : 'horizontal');
-    return;
-  }
-  if (event.key.toLowerCase() === 'm') {
-    event.preventDefault();
-    togglePaneMaximize(pane.id);
-  }
-}
-
-function openQuickItem(key) {
-  quickOpenVisible.value = false;
-  selectByKey(key);
-}
-
-function isEditableTarget(target) {
-  const element = target instanceof HTMLElement ? target : null;
-  return Boolean(element?.closest('input, textarea, [contenteditable="true"]'));
-}
 
 function selectNode(node) {
   const item = node.data?.item;

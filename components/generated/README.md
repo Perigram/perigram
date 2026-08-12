@@ -114,9 +114,7 @@ bounded IDE-style Explorer and file workspace:
   scrolling. Files may be reordered inside a pane or dragged onto another pane's
   tab strip; the destination tab strip is the explicit drop target. Pane menus
   provide maximize/restore and reopen-last-closed controls without deleting an
-  entity. `Ctrl`/`Cmd` + `P` opens a searchable file picker; close, next/previous
-  file, split, and maximize shortcuts call those same pane state operations.
-  Split proportions, Explorer width/visibility, active pane, maximized
+  entity. Split proportions, Explorer width/visibility, active pane, maximized
   pane, recent closed references, tab lists/selections, and opened registered pages are persisted as versioned browser UI
   state scoped to the current user, organization, and project. Stored data
   contains stable entity/page references, including entities discovered through
