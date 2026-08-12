@@ -45,6 +45,9 @@ test.describe('generated project workspace', () => {
     await expect(app.page.getByRole('treeitem', { name: /^queue$/i })).toBeVisible();
 
     await app.page.getByRole('treeitem', { name: /linked entities/i }).getByRole('button').click();
+    const libraryTreeItem = app.page.getByRole('treeitem', { name: /Library One/ });
+    await libraryTreeItem.getByRole('button').first().click();
+    await expect(libraryTreeItem.getByText('Cassette One', { exact: true })).toBeVisible();
     await app.page.getByText('Library One', { exact: true }).first().click();
     await expect(app.page.locator('[data-workspace-pane] header')).toContainText('Library One');
     await expect(app.page.getByText('Cassette One', { exact: true }).first()).toBeVisible();
@@ -64,9 +67,6 @@ test.describe('generated project workspace', () => {
     await expect(paneHeader.getByRole('tab', { name: 'Library One' })).toBeVisible();
     const cassetteTab = paneHeader.getByRole('tab', { name: 'Cassette One' });
     await expect(cassetteTab).toHaveAttribute('aria-selected', 'true');
-    const libraryTreeItem = app.page.getByRole('treeitem', { name: /Library One/ });
-    await libraryTreeItem.getByRole('button').first().click();
-    await expect(libraryTreeItem.getByText('Cassette One', { exact: true })).toBeVisible();
     const explorerFits = await app.page.locator('.project-explorer-tree').evaluate(element => element.scrollWidth <= element.clientWidth);
     expect(explorerFits).toBe(true);
     await expect(cassetteTab.locator('..').locator('[data-entity-status="true"] .status-badge-glyph')).toHaveAttribute('aria-label', /active/i);
