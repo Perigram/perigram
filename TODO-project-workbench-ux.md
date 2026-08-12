@@ -436,16 +436,22 @@ template-expression/design-number boundary, and read-only OCCS draft were
 already implemented in the merged components. Their checklist states now match
 the code and canonical component documentation.
 
-- [ ] Update the canonical README for every changed contract; do not copy the
+- [x] Update the canonical README for every changed contract; do not copy the
   contract into this backlog as completion notes.
-- [ ] Run `node scripts/check-docs.js` for every documentation slice.
-- [ ] Run `npx vitest run shared/design-system.spec.js` for token/shared-primitive
+- [x] Run `node scripts/check-docs.js` for every documentation slice.
+- [x] Run `npx vitest run shared/design-system.spec.js` for token/shared-primitive
   changes.
-- [ ] Run focused workspace state, split, Explorer hierarchy, Queue entry,
+- [x] Run focused workspace state, split, Explorer hierarchy, Queue entry,
   DrawingCanvas, OCCS renderer, and folded-preview suites for the changed concern.
 - [x] Extend `e2e/project-workspace.spec.js` with user-visible behavior for file
   state, move/drop, restore, queue-entry context opens, and designer ownership as
   those features land.
-- [ ] Run `npm run framework:validate` when a shared/framework manifest contract
+- [x] Run `npm run framework:validate` when a shared/framework manifest contract
   changes. Do not run `npm run build` or start a dev server from an agent task
   unless explicitly requested.
+
+#### Agent Notes — 2026-08-12
+
+Validation passed: documentation links, the 47-test shared design-system suite,
+94 focused workspace/Queue/OCCS tests, framework validation, and the focused
+Playwright project-workspace scenario against the running local stack.
