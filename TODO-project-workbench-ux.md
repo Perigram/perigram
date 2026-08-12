@@ -395,20 +395,27 @@ Acceptance:
 
 ### 12. Add named layout presets only after pane-state operations stabilize
 
-- [ ] Define whether presets are device-local convenience or user/organization
+- [x] Define whether presets are device-local convenience or user/organization
   preferences. Use the existing preference boundary for cross-device state; do
   not silently expand localStorage into a product contract.
-- [ ] Save only versioned workspace UI references and split/layout preferences,
+- [x] Save only versioned workspace UI references and split/layout preferences,
   never entity DTOs or unsaved OCCS documents.
-- [ ] Provide Save layout, Apply layout, Rename, Delete, and Reset to default with
+- [x] Provide Save layout, Apply layout, Rename, Delete, and Reset to default with
   clear scope (user, organization, Project).
-- [ ] Resolve missing/inaccessible entity references defensively when applying a
+- [x] Resolve missing/inaccessible entity references defensively when applying a
   preset and preserve the rest of the layout.
 
 Acceptance:
 
 - Applying a preset cannot grant access, restore stale DTOs, discard a recoverable
   designer draft, or corrupt the current recursive split tree.
+
+#### Agent Notes — 2026-08-12
+
+Named layouts are device-local, scoped by the existing user/organization/project
+workspace key. They save only normalized UI state and typed references; applying
+a layout merges its references with current ones so access resolution and a
+recoverable designer draft remain intact.
 
 ## Validation required for implementation slices
 

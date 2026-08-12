@@ -124,6 +124,14 @@ bounded IDE-style Explorer and file workspace:
   before restoration. A reference remains in its pane while asynchronous screen
   sources and linked entities load; temporary absence must not erase restored
   navigation state. There is no reserved right inspector pane.
+  Named layouts are device-local convenience presets at that same storage
+  boundary; they do not create user- or organization-shared preferences. A
+  preset stores only a versioned pane tree, UI preferences, and typed
+  entity/page references—never DTOs or a cassette draft. Applying one merges
+  its references with the currently opened references before the usual
+  access-filtered asynchronous resolution, so an unavailable item cannot erase
+  the remaining layout or a recoverable local draft. Users can save, apply,
+  rename, delete, and reset layouts from the Project action strip.
   The active pane uses the neutral chrome-subtle surface on its pane header; tab
   selection remains the stronger indicator of the active file. Empty panes keep
   the normal tab strip and an open-content prompt instead of a blank body. File
