@@ -103,10 +103,7 @@
     "hideAllLayers": "Скрыть все слои",
     "zoomIn": "Приблизить",
     "zoomOut": "Отдалить",
-    "resetView": "Вместить в вид",
-    "toggleGrid": "Показать или скрыть сетку",
-    "panShortcut": "Shift + перетаскивание — панорама",
-    "assembly": "Сборка"
+    "resetView": "Сбросить вид"
   },
   "support": {
     "entityTypeLabels": {

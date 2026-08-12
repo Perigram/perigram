@@ -362,12 +362,12 @@ Acceptance:
 
 ### 11. Add a truthful 2D viewport HUD
 
-- [x] Consolidate existing zoom out, fit/reset, and zoom in commands into a
+- [ ] Consolidate existing zoom out, fit/reset, and zoom in commands into a
   compact viewport control surface and expose the Shift+drag pan gesture through
   tooltip/shortcut metadata.
-- [x] Add grid visibility and document-unit display. Keep the current grid purely
+- [ ] Add grid visibility and document-unit display. Keep the current grid purely
   visual until a real direct-manipulation operation supports snapping.
-- [x] Show current editing context (assembly/workpiece/attachment, selected
+- [ ] Show current editing context (assembly/workpiece/attachment, selected
   workpiece, selected face/fold) without duplicating the full document header.
 - [ ] Differentiate production layers, dimension annotations, designer section
   planes, attachment markers, selected geometry, and hover hit targets through

@@ -103,10 +103,7 @@
     "hideAllLayers": "Hide all layers",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
-    "resetView": "Fit view",
-    "toggleGrid": "Show or hide grid",
-    "panShortcut": "Shift + drag to pan",
-    "assembly": "Assembly"
+    "resetView": "Reset view"
   },
   "support": {
     "entityTypeLabels": {
