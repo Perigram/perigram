@@ -120,13 +120,13 @@
         <div class="flex items-center justify-between gap-2">
           <strong>{{ $t('cassette.v2.globalParameters') }}</strong>
           <Button
-            :label="$t('cassette.v2.addParameter')"
             icon="pi pi-plus"
             severity="secondary"
             text
             rounded
             size="small"
-            :aria-label="$t('cassette.v2.addParameter')"
+            :aria-label="$t('common.add')"
+            v-tooltip.top="$t('common.add')"
             @click="addGlobalParameter"
           />
         </div>
@@ -165,7 +165,6 @@
           </div>
           <div class="flex items-center gap-1">
             <Button
-              :label="$t('drawing.showAllLayers')"
               icon="pi pi-eye"
               text
               rounded
@@ -173,10 +172,10 @@
               severity="secondary"
               :aria-label="$t('drawing.showAllLayers')"
               :disabled="allLayersVisible"
+              v-tooltip.top="$t('drawing.showAllLayers')"
               @click="showAllLayers"
             />
             <Button
-              :label="$t('drawing.hideAllLayers')"
               icon="pi pi-eye-slash"
               text
               rounded
@@ -184,6 +183,7 @@
               severity="secondary"
               :aria-label="$t('drawing.hideAllLayers')"
               :disabled="visibleLayerNames.length === 0"
+              v-tooltip.top="$t('drawing.hideAllLayers')"
               @click="hideAllLayers"
             />
           </div>
@@ -569,23 +569,23 @@
             <div class="flex items-center gap-1">
               <Tag :value="assemblySummary" severity="secondary" size="small" />
               <Button
-                :label="$t('cassette.v2.addProfile')"
                 icon="pi pi-sliders-v"
                 severity="secondary"
                 text
                 rounded
                 size="small"
                 :aria-label="$t('cassette.v2.addProfile')"
+                v-tooltip.top="$t('cassette.v2.addProfile')"
                 @click="openProfileDialog()"
               />
               <Button
-                :label="$t('cassette.v2.addHardware')"
                 icon="pi pi-bolt"
                 severity="secondary"
                 text
                 rounded
                 size="small"
                 :aria-label="$t('cassette.v2.addHardware')"
+                v-tooltip.top="$t('cassette.v2.addHardware')"
                 @click="addHardwareToSelectedWorkpiece"
               />
             </div>
