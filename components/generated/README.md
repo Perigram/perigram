@@ -132,6 +132,8 @@ bounded IDE-style Explorer and file workspace:
   access-filtered asynchronous resolution, so an unavailable item cannot erase
   the remaining layout or a recoverable local draft. Users can save, apply,
   rename, delete, and reset layouts from the Project action strip.
+  Quick-open and layout-management overlays use `StandardDialog`, preserving
+  the shared dialog ownership and focus contract.
   The active pane uses the neutral chrome-subtle surface on its pane header; tab
   selection remains the stronger indicator of the active file. Empty panes keep
   the normal tab strip and an open-content prompt instead of a blank body. File
