@@ -182,7 +182,6 @@ import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
-import { workspaceFilePresentation } from '~/utils/workspace-file-presentation.js';
 import {
   closeWorkspaceLeaf,
   createWorkspaceLeaf,
@@ -325,13 +324,7 @@ const workspaceItems = computed(() => [
   ...openedPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
-)).map(item => workspaceFilePresentation(item, {
-  label: workspaceItemLabel(item),
-  icon: item.kind === 'entity'
-    ? domainUi.getIcon(item.entityType || item.type || '')
-    : resolveGeneratedWorkspacePage(item.pageId)?.icon || 'pi pi-file',
-  modified: dirtyFileKeys.value.has(item.key)
-})));
+)).map(workspaceFilePresentation));
 const dirtyTabKeys = computed(() => [...dirtyFileKeys.value]);
 const panes = computed(() => workspaceLeaves(paneTree.value));
 const paneCount = computed(() => panes.value.length);
@@ -361,7 +354,7 @@ const explorerNodes = computed(() => {
         label: t('project.linkedEntities'),
         data: { linked: true },
         selectable: false,
-        children: explorerHierarchy.value.linkedRootItems.map(item => explorerEntityNode(item))
+        children: explorerHierarchy.value.linkedRootItems.map(item => explorerEntityNode(item, 'linked'))
       }] : []),
       ...childSections.value.map(section => ({
         key: `section:${section.region.id}`,
@@ -525,11 +518,11 @@ function selectNode(node) {
   selectByKey(item.key);
 }
 
-function explorerEntityNode(item) {
+function explorerEntityNode(item, prefix = '') {
   if (!item) return null;
   const contained = explorerHierarchy.value.childrenByKey.get(item.key) || [];
   return {
-    key: item.key,
+    key: prefix ? `${prefix}:${item.key}` : item.key,
     icon: domainUi.getIcon(item.type),
     data: { item },
     children: [
@@ -874,6 +867,19 @@ function workspaceItemLabel(item) {
   return definition ? t(definition.labelKey) : '';
 }
 
+function workspaceFilePresentation(item) {
+  const entityType = item.entityType || item.type || '';
+  return {
+    ...item,
+    entityType,
+    label: workspaceItemLabel(item),
+    icon: item.kind === 'entity'
+      ? domainUi.getIcon(entityType)
+      : resolveGeneratedWorkspacePage(item.pageId)?.icon || 'pi pi-file',
+    lifecycleState: item.kind === 'entity' ? item.entity?.status?.state || null : null,
+    modified: dirtyFileKeys.value.has(item.key)
+  };
+}
 
 function sourceStateForRegion(region = {}) {
   return props.sourceState(region.sourceId) || {};
