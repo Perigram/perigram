@@ -454,6 +454,8 @@
       "resetOrbit": "Reset 3D view",
       "occsDraft": "OCCS Draft",
       "globalParameters": "Global parameters",
+      "expandSection": "Expand section",
+      "collapseSection": "Collapse section",
       "saved": "Saved",
       "unsaved": "Unsaved changes",
       "confirmReset": "Reset this cassette draft? Unsaved changes will be discarded.",
