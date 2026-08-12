@@ -1,5 +1,5 @@
 <template>
-  <div v-if="project" class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+  <div v-if="project" class="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-workspace">
     <header
       class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]"
       data-project-actions-strip
@@ -35,7 +35,7 @@
           :min-size="10"
           :class="['min-h-0 min-w-0 overflow-hidden !border-0', { '!hidden': !explorerOpen }]"
         >
-          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content">
+          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-pane">
             <Tree
               v-model:selection-keys="selectionKeys"
               v-model:expanded-keys="expandedKeys"
