@@ -1049,7 +1049,6 @@ const workpieceActionItems = computed(() => {
     ...(row.id !== workpieces.value[0]?.id ? [{
       label: t('cassette.v2.deleteWorkpiece'),
       icon: 'pi pi-trash',
-      class: 'text-red-500',
       command: () => deleteWorkpiece(row.id)
     }] : [])
   ];
