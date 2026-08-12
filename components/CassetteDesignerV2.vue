@@ -705,6 +705,24 @@
             <strong class="min-w-0 flex-1 truncate">{{ selectedWorkpieceRow.label }}</strong>
             <Tag :value="selectedWorkpieceRow.type" severity="secondary" size="small" />
           </div>
+          <div v-if="selectedSheetOutline.length" class="mt-2 border-t border-content-border pt-2">
+            <small class="font-medium text-muted-color">{{ $t('cassette.v2.faceOutline') }}</small>
+            <div class="mt-1 flex flex-col gap-1">
+              <button
+                v-for="node in selectedSheetOutline"
+                :key="node.id"
+                type="button"
+                class="flex min-w-0 items-center gap-2 rounded-ui px-2 py-1 text-left text-sm"
+                :class="node.id === selectedNodeId ? 'bg-content font-medium' : ''"
+                :style="{ paddingInlineStart: `${0.5 + node.depth * 0.75}rem` }"
+                @click="selectOutlineNode(node)"
+              >
+                <i :class="node.parentId ? 'pi pi-angle-right' : 'pi pi-stop'" class="text-xs text-muted-color" aria-hidden="true" />
+                <span class="truncate">{{ node.label }}</span>
+                <Tag v-if="node.role" :value="node.role" severity="secondary" size="small" />
+              </button>
+            </div>
+          </div>
           <div v-if="selectedWorkpieceRow.isHardware" class="mt-2 grid grid-cols-2 gap-2">
             <Select
               :model-value="selectedWorkpieceRow.family"
@@ -1070,11 +1088,37 @@ const workpieceRows = computed(() => workpieces.value.map(workpiece => ({
   relations: workpieceRelationRowsById.value.get(workpiece.id) || []
 })));
 const selectedWorkpieceRow = computed(() => workpieceRows.value.find(row => row.id === selectedWorkpieceId.value) || null);
+const selectedSheetOutline = computed(() => {
+  const workpieceId = selectedWorkpieceId.value;
+  if (selectedWorkpiece.value?.type !== 'sheet' || !workpieceId) return [];
+  const nodes = treeNodes.value.filter(node => node.workpieceId === workpieceId);
+  const byParent = new Map();
+  for (const node of nodes) {
+    const key = node.parentId || '';
+    byParent.set(key, [...(byParent.get(key) || []), node]);
+  }
+  const outline = [];
+  const visit = (parentId = '', depth = 0) => {
+    for (const node of (byParent.get(parentId) || []).sort((left, right) => left.id.localeCompare(right.id))) {
+      outline.push({ id: node.id, parentId: node.parentId, depth, label: node.name || node.id, role: node.role || '' });
+      visit(node.id, depth + 1);
+    }
+  };
+  visit();
+  return outline;
+});
 const relationStatusSeverity = (status) => {
   if (status === 'impossible') return 'danger';
   if (status === 'unresolved') return 'warn';
   return 'secondary';
 };
+
+function selectOutlineNode(node) {
+  selectedNodeId.value = node.id;
+  selectedWorkpieceOverrideId.value = '';
+  inspectorSelection.value = node.parentId ? 'fold' : 'face';
+  closeInlineEditor();
+}
 const hueForWorkpiece = (workpieceId = '') => {
   let hash = 0;
   for (const char of String(workpieceId || 'workpiece')) {
