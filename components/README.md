@@ -853,8 +853,10 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   transforms. Sheet part hanger clips remain sheet workpieces with generated root geometry. The 2D canvas stays in selected-workpiece flat
   editing mode for face operations, while the folded 3D panel is a single
   cassette assembly window in the assembly rail: workpieces render in deterministic varied hues,
-  source/target face attachment snaps are applied after sheet folding, clicking
-  a workpiece selects it in the designer and isolates it in 3D, and the back
+  source/target face attachment snaps are applied after sheet folding, selecting
+  a workpiece from the navigator or 2D canvas isolates it in 3D, while clicking
+  it in 3D selects the same inspector context. Attachment editing keeps the
+  whole assembly visible. The back
   button returns to the whole cassette view. The designer selects faces from hoverable canvas face
   clicks, resolves
   `face.trapezoid` boundaries through a pure OCCS trapezoid geometry helper

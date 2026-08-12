@@ -193,7 +193,7 @@ Primary scope: `components/QueueEditor.vue`,
   from its graph tree. Faces and folds may nest because that topology is a tree;
   joints between workpieces remain relation edges and must not be faked as
   containment.
-- [ ] Synchronize navigator, 2D face selection, attachment mode, folded 3D
+- [x] Synchronize navigator, 2D face selection, attachment mode, folded 3D
   selection/isolation, and inspector content in both directions.
 - [x] Keep profile and hardware creation declarative through current OCCS helpers;
   do not introduce feature-local constructive-solid history.
