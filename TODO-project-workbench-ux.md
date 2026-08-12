@@ -220,19 +220,19 @@ each row's overflow menu.
 
 ### 5. Formalize workbench surface roles and remove redundant rectangles
 
-- [x] Audit the current token-backed stack (`page`, `chrome`, `content`, `subtle`,
+- [ ] Audit the current token-backed stack (`page`, `chrome`, `content`, `subtle`,
   `raised`, form field) in dark and light mode before adding tokens. Assign each
   role to workspace background, pane/file body, section, interactive row, form
   control, and overlay.
-- [x] Promote any missing durable roles through `assets/tokens/index.js`, the
+- [ ] Promote any missing durable roles through `assets/tokens/index.js`, the
   PrimeVue preset/runtime bridge, and Tailwind aliases. Do not add page-local raw
   palette colors.
-- [x] Remove borders that repeat a boundary already owned by a pane, Panel,
+- [ ] Remove borders that repeat a boundary already owned by a pane, Panel,
   ScrollablePanel, card, or form control. Use spacing, a single separator, and
   surface contrast inside that owner.
-- [x] Reserve elevation for overlays. Structural queue cards, designer rails,
+- [ ] Reserve elevation for overlays. Structural queue cards, designer rails,
   pane bodies, and nested sections remain non-elevated.
-- [x] Verify usable contrast in both themes; do not optimize only the reviewed
+- [ ] Verify usable contrast in both themes; do not optimize only the reviewed
   dark screenshot.
 
 Acceptance:
@@ -248,19 +248,19 @@ four task surfaces only.
 
 ### 6. Define compact typography, spacing, and control roles
 
-- [x] Extend the existing monospace design contract with named roles for pane/file
+- [ ] Extend the existing monospace design contract with named roles for pane/file
   label, operational heading, section heading, field label, value, and secondary
   metadata. Prefer shared primitives/classes over local font-size patches.
-- [x] Define one compact spacing rhythm for pane headers, Explorer rows, queue
+- [ ] Define one compact spacing rhythm for pane headers, Explorer rows, queue
   entries, designer rails, section toolbars, and form rows. Preserve larger page
   spacing outside the bounded workbench.
-- [x] Standardize the relevant controls as primary operation, secondary button,
+- [ ] Standardize the relevant controls as primary operation, secondary button,
   toolbar icon button, segmented/tab navigation, inline row action, overflow
   action, destructive action, input, and entity picker.
-- [x] Maintain a consistent minimum hit target, visible keyboard focus, disabled
+- [ ] Maintain a consistent minimum hit target, visible keyboard focus, disabled
   state, hover state, pressed state, and tooltip policy. Every non-obvious
   icon-only action needs localized accessible text and a tooltip.
-- [x] Put destructive and low-frequency row commands in hover/focus-revealed
+- [ ] Put destructive and low-frequency row commands in hover/focus-revealed
   chrome or an overflow menu; they must remain keyboard discoverable.
 
 Acceptance:

@@ -50,11 +50,6 @@ export const designTokens = {
         content: 'var(--p-content-background)',
         contentBorder: 'var(--p-content-border-color)',
         page: 'var(--ck-page-background)',
-        workspace: 'var(--ck-workspace-background)',
-        pane: 'var(--ck-pane-background)',
-        section: 'var(--ck-section-background)',
-        interactive: 'var(--ck-interactive-background)',
-        input: 'var(--ck-input-background)',
         processCanvas: 'var(--ck-process-canvas-background)',
         chrome: 'var(--ck-chrome-background)',
         chromeForeground: 'var(--ck-chrome-foreground)',
@@ -88,11 +83,6 @@ export const designTokens = {
         floatingMenuMinWidth: '12.5rem',
         previewDialogHeight: '95vh',
         tableActionColumnWidth: '3rem'
-    },
-    spacing: {
-        compact: '0.5rem',
-        compactTight: '0.25rem',
-        compactLoose: '0.75rem'
     },
     radius: {
         ui: '3px',
@@ -138,12 +128,7 @@ export const designTokens = {
     typography: {
         ui: "'JetBrains Mono', monospace",
         mono: "'JetBrains Mono', monospace",
-        labelTracking: '0.04em',
-        paneLabel: '0.75rem',
-        operationalHeading: '0.875rem',
-        sectionHeading: '0.8125rem',
-        fieldLabel: '0.75rem',
-        metadata: '0.75rem'
+        labelTracking: '0.04em'
     },
     status: {
         info: 'var(--ck-status-info)',
@@ -177,11 +162,6 @@ export const designTokens = {
 
 export const cssVariableTokens = {
     '--ck-page-background': 'var(--p-surface-100)',
-    '--ck-workspace-background': 'var(--p-surface-100)',
-    '--ck-pane-background': 'var(--p-content-background)',
-    '--ck-section-background': 'var(--p-surface-50)',
-    '--ck-interactive-background': 'var(--p-content-hover-background)',
-    '--ck-input-background': 'var(--p-form-field-background)',
     '--ck-process-canvas-background': 'var(--p-surface-50)',
     '--ck-chrome-background': '#fefefc',
     '--ck-chrome-foreground': '#0c0c0b',
@@ -196,14 +176,6 @@ export const cssVariableTokens = {
     '--ck-font-ui': designTokens.typography.ui,
     '--ck-font-mono': designTokens.typography.mono,
     '--ck-label-tracking': designTokens.typography.labelTracking,
-    '--ck-type-pane-label': designTokens.typography.paneLabel,
-    '--ck-type-operational-heading': designTokens.typography.operationalHeading,
-    '--ck-type-section-heading': designTokens.typography.sectionHeading,
-    '--ck-type-field-label': designTokens.typography.fieldLabel,
-    '--ck-type-metadata': designTokens.typography.metadata,
-    '--ck-space-compact-tight': designTokens.spacing.compactTight,
-    '--ck-space-compact': designTokens.spacing.compact,
-    '--ck-space-compact-loose': designTokens.spacing.compactLoose,
     '--ck-status-info': 'var(--p-primary-color)',
     '--ck-status-success': 'var(--p-emerald-600)',
     '--ck-status-warning': 'var(--p-amber-700)',
@@ -291,11 +263,6 @@ export const tailwindThemeExtension = {
         content: designTokens.color.content,
         'content-border': designTokens.color.contentBorder,
         page: designTokens.color.page,
-        workspace: designTokens.color.workspace,
-        pane: designTokens.color.pane,
-        section: designTokens.color.section,
-        interactive: designTokens.color.interactive,
-        input: designTokens.color.input,
         'process-canvas': designTokens.color.processCanvas,
         chrome: designTokens.color.chrome,
         'chrome-foreground': designTokens.color.chromeForeground,
@@ -354,18 +321,6 @@ export const tailwindThemeExtension = {
     },
     letterSpacing: {
         label: 'var(--ck-label-tracking)'
-    },
-    fontSize: {
-        'pane-label': 'var(--ck-type-pane-label)',
-        'operational-heading': 'var(--ck-type-operational-heading)',
-        'section-heading': 'var(--ck-type-section-heading)',
-        'field-label': 'var(--ck-type-field-label)',
-        metadata: 'var(--ck-type-metadata)'
-    },
-    spacing: {
-        'compact-tight': 'var(--ck-space-compact-tight)',
-        compact: 'var(--ck-space-compact)',
-        'compact-loose': 'var(--ck-space-compact-loose)'
     },
     boxShadow: {
         card: 'var(--ck-shadow-card)',
