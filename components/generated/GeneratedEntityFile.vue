@@ -7,6 +7,7 @@
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :available-tabs="availableTabs"
+        :dirty-tab-keys="dirtyTabKeys"
         :active-key="item.key"
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
@@ -47,6 +48,8 @@
         embedded
         open-actions-in-workspace
         @execute-action="executeAction"
+        @dirty-change="value => $emit('dirty-change', { key: item.key, dirty: value })"
+        @open-entity="request => $emit('open-entity', request)"
         @open-page="page => $emit('open-page', page)"
         @refresh="refreshFile"
       >
@@ -96,13 +99,14 @@ const props = defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
   availableTabs: { type: Array, default: () => [] },
+  dirtyTabKeys: { type: Array, default: () => [] },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true },
   showGeneratedActions: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
+const emit = defineEmits(['execute-action', 'dirty-change', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 const authStore = useAuthStore();
 const entityId = computed(() => props.item?.entity?._id || props.item?.entity?.identity?.uid || '');
 const detailScreen = computed(() => generatedDetailScreenForEntityType({

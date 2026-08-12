@@ -34,6 +34,13 @@
           @refresh="$emit('refresh', tab)"
           @transitioned="$emit('refresh', tab)"
         />
+        <span
+          v-if="isTabDirty(tab)"
+          class="h-2 w-2 shrink-0 rounded-full bg-[var(--ck-status-warning)]"
+          role="img"
+          :aria-label="$t('cassette.v2.unsaved')"
+          v-tooltip.top="$t('cassette.v2.unsaved')"
+        />
         <Button
           icon="pi pi-times"
           text
@@ -85,6 +92,7 @@ import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 const props = defineProps({
   tabs: { type: Array, default: () => [] },
   availableTabs: { type: Array, default: () => [] },
+  dirtyTabKeys: { type: Array, default: () => [] },
   activeKey: { type: String, default: '' }
 });
 
@@ -104,6 +112,10 @@ function toggleAdd(event) {
 
 function hideAdd() {
   addPopover.value?.hide();
+}
+
+function isTabDirty(tab = {}) {
+  return props.dirtyTabKeys.includes(tab.key);
 }
 
 function tabLabel(tab = {}) {

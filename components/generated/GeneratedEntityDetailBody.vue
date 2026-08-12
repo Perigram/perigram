@@ -6,6 +6,9 @@
       v-bind="detailOverloadProps"
       @refresh="$emit('refresh')"
       @saved="$emit('refresh')"
+      @dirty-change="value => $emit('dirty-change', value)"
+      @open-entity="request => $emit('open-entity', request)"
+      @open-page="page => $emit('open-page', page)"
     />
     <EntitySurfaceContent
       v-else
@@ -38,7 +41,7 @@ const props = defineProps({
   suppressChildSummaries: { type: Boolean, default: false }
 });
 
-defineEmits(['refresh']);
+defineEmits(['refresh', 'dirty-change', 'open-entity', 'open-page']);
 
 const authStore = useAuthStore();
 const detailOverload = computed(() => resolveGeneratedEntityDetailOverload(props.entityType));

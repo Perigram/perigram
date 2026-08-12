@@ -81,12 +81,14 @@
                 :item="itemForPane(pane)"
                 :tabs="tabItemsForPane(pane)"
                 :available-tabs="workspaceItems"
+                :dirty-tab-keys="dirtyTabKeys"
                 :action-entries="actionEntriesForPane(pane)"
                 :closeable="paneCount > 1"
                 @execute-action="executeWorkspaceAction"
                 @open-entity="openWorkspaceEntity"
                 @open-page="openWorkspacePage"
                 @refresh="$emit('refresh')"
+                @dirty-change="updateFileDirty"
                 @select-tab="key => selectPaneTab(pane.id, key)"
                 @close-tab="key => closePaneTab(pane.id, key)"
                 @add-tab="key => selectPaneTab(pane.id, key)"
@@ -114,12 +116,14 @@
           :item="itemForPane(activePane)"
           :tabs="tabItemsForPane(activePane)"
           :available-tabs="workspaceItems"
+          :dirty-tab-keys="dirtyTabKeys"
           :action-entries="actionEntriesForPane(activePane)"
           :splittable="false"
           @execute-action="executeWorkspaceAction"
           @open-entity="openWorkspaceEntity"
           @open-page="openWorkspacePage"
           @refresh="$emit('refresh')"
+          @dirty-change="updateFileDirty"
           @select-tab="key => selectPaneTab(activePane.id, key)"
           @close-tab="key => closePaneTab(activePane.id, key)"
           @add-tab="key => selectPaneTab(activePane.id, key)"
@@ -193,6 +197,7 @@ const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const linkedEntityItems = ref([]);
 const openedEntityItems = ref([]);
+const dirtyFileKeys = ref(new Set());
 const hydratedStorageKey = ref('');
 let openedEntityLoadSequence = 0;
 const explorerTreePt = {
@@ -293,6 +298,7 @@ const workspaceItems = computed(() => [
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
 )));
+const dirtyTabKeys = computed(() => [...dirtyFileKeys.value]);
 const panes = computed(() => workspaceLeaves(paneTree.value));
 const paneCount = computed(() => panes.value.length);
 const activePane = computed(() => panes.value.find(pane => pane.id === activePaneId.value) || panes.value[0]);
@@ -468,6 +474,7 @@ function handleExplorerEntityDeleted(item) {
     nextTree = updateWorkspaceLeaf(nextTree, pane.id, { tabKeys, selectionKey });
   }
   paneTree.value = nextTree;
+  dirtyFileKeys.value = new Set([...dirtyFileKeys.value].filter(key => !removedKeys.has(key)));
   syncActiveSelection();
   emit('refresh');
 }
@@ -503,7 +510,16 @@ function closePaneTab(paneId, key) {
     openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
   }
   activePaneId.value = paneId;
+  dirtyFileKeys.value = new Set([...dirtyFileKeys.value].filter(dirtyKey => dirtyKey !== key));
   syncActiveSelection();
+}
+
+function updateFileDirty({ key, dirty } = {}) {
+  if (!key) return;
+  const next = new Set(dirtyFileKeys.value);
+  if (dirty) next.add(key);
+  else next.delete(key);
+  dirtyFileKeys.value = next;
 }
 
 function activatePane(paneId) {

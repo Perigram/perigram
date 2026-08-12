@@ -5,6 +5,7 @@
     :persisted-template-ids="persistedTemplateIds"
     @load-template="openTemplate"
     @save-template="$emit('refresh')"
+    @dirty-change="value => $emit('dirty-change', value)"
   />
 </template>
 
@@ -17,7 +18,7 @@ const props = defineProps({
   cassettes: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['open-page', 'refresh']);
+const emit = defineEmits(['open-page', 'refresh', 'dirty-change']);
 
 const templates = computed(() => {
   const byId = new Map();
