@@ -73,12 +73,6 @@
             @click="emit('configure', { ...draftParameters })"
           />
         </div>
-        <div v-if="selected" class="flex min-w-0 flex-wrap items-center gap-1 text-xs text-muted-color" data-queue-entry-context>
-          <Tag :value="designContextLabel" severity="secondary" size="small" />
-          <i v-if="template || templateId" class="pi pi-arrow-right text-xs" aria-hidden="true" />
-          <Tag v-if="template || templateId" :value="$t('queue.sourceTemplate')" severity="secondary" size="small" />
-          <Tag v-else :value="$t('queue.sourceUnavailable')" severity="warn" size="small" />
-        </div>
         <div v-if="selected && (canOpenDesign || canOpenTemplate)" class="flex flex-wrap items-center gap-1" data-entity-card-interactive="true" @click.stop>
           <Button
             v-if="canOpenDesign"
@@ -161,7 +155,6 @@ const sourceTypeLabel = computed(() => {
   return props.entry.entityType || t('entities.cassetteDesign');
 });
 const sourceLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value || t('common.unknown')}`);
-const designContextLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value || t('common.unknown')}`);
 </script>
 
 <style scoped>

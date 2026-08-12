@@ -158,13 +158,13 @@ README contract.
 
 - [x] Add local selection to `QueueEditor`/`QueueEntryCard`; selection identifies
   the active queue entry association, not a new entity or Explorer node.
-- [x] Show the selected entry's typed source chain with actions appropriate to
+- [ ] Show the selected entry's typed source chain with actions appropriate to
   what is actually readable: inspect the referenced `cassette_design`, open its
   source `cassette` template in the registered designer page, or replace the
   design through the existing compiled Link/creator action.
 - [x] Route entity/page opens back through the generated workspace events. Do not
   add static `/cassettes/...` navigation or a Queue-local workspace-page registry.
-- [x] If source provenance is missing or unreadable, retain the current typed-id
+- [ ] If source provenance is missing or unreadable, retain the current typed-id
   fallback and do not imply that the design is editable.
 - [x] Keep quantity as Queue association data. Keep parameter configuration as
   immutable design replacement; never patch a shared `cassette_design` in place.
