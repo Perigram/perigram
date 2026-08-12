@@ -107,14 +107,17 @@
         </div>
       </Message>
 
-      <Tabs v-model:value="activeSideTab" class="min-w-0" data-cassette-designer-settings-tabs>
-        <TabList>
-          <Tab v-for="tab in sideTabs" :key="tab.value" :value="tab.value">
-            <i :class="tab.icon" aria-hidden="true" />
-            <span>{{ $t(tab.labelKey) }}</span>
-          </Tab>
-        </TabList>
-      </Tabs>
+      <div class="flex flex-wrap gap-2">
+        <Button
+          v-for="tab in sideTabs"
+          :key="tab.value"
+          :icon="tab.icon"
+          :label="$t(tab.labelKey)"
+          :severity="activeSideTab === tab.value ? 'primary' : 'secondary'"
+          size="small"
+          @click="activeSideTab = tab.value"
+        />
+      </div>
 
       <div v-if="activeSideTab === 'parameters'" class="flex min-h-0 min-w-0 flex-col gap-3 overflow-auto">
         <div class="flex items-center justify-between gap-2">
@@ -841,9 +844,6 @@ import Message from 'primevue/message';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
 import Textarea from 'primevue/textarea';
 import CassetteExpressionEditor from '~/components/CassetteExpressionEditor.vue';
 import CassetteFoldedPreview from '~/components/CassetteFoldedPreview.vue';
