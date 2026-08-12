@@ -339,7 +339,7 @@ Acceptance:
 
 ### 10. Use real settings tabs and coherent section toolbars in the designer
 
-- [ ] Replace the `Parameters / Layers / OCCS draft` button row with a controlled
+- [x] Replace the `Parameters / Layers / OCCS draft` button row with a controlled
   PrimeVue tab/segmented navigation component that exposes one active settings
   mode and survives responsive relocation.
 - [ ] Keep section expansion separate from add/create actions. A chevron controls

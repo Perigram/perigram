@@ -810,7 +810,8 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   the `DesignerWorkspace` toolbar owns the active cassette name, OCCS document
   type/units, saved/modified state, template load, Save, Save as, and Reset;
   the canvas owns only CAD interaction; the left settings rail owns global
-  parameters, layer visibility, and OCCS JSON; and the assembly rail owns the
+  parameters, layer visibility, and read-only OCCS JSON through one controlled
+  PrimeVue settings tab list; and the assembly rail owns the
   compact workpiece DAG/list plus 3D preview. Template load is an action picker,
   not a second selected-name display; Reset confirms before discarding a modified
   draft. The workpiece `+` action creates a new
