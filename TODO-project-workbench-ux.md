@@ -347,7 +347,7 @@ Acceptance:
 - [ ] Replace icon clusters in global parameters, layers, workpieces, profiles,
   hardware, and attachments with a shared section-toolbar pattern: concise title,
   optional state/count, primary local action, overflow actions.
-- [ ] Use labels for domain-specific low-frequency operations when rail width
+- [x] Use labels for domain-specific low-frequency operations when rail width
   permits; otherwise require localized tooltips and accessible names.
 - [ ] Keep OCCS draft read-only unless a separate validated raw-document editing
   workflow is explicitly designed.
