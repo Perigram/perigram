@@ -105,6 +105,55 @@ protocol" case is a pre-existing failure unrelated to this task);
 `node scripts/check-arch.js`, `npm run framework:validate`, and
 `node scripts/check-docs.js` ran before the docs commit.
 
+#### Corrective plan — mode-aware construction capabilities
+
+Status: REQUIRED. The completed work above established the surfaces but did not
+make them one truthful contract. Process creatability is not equivalent to the
+presence of a generic `service.create`: typed construction modes use dedicated
+runtime handlers, while some services expose internal `create` methods for
+entities intentionally excluded from process authoring.
+
+- [ ] Replace the boolean create authority with explicit runtime support per
+  construction mode. Effective `createModes` must be the intersection of the
+  domain-declared modes and registered runtime handlers; derive `create` only
+  as `effectiveCreateModes.length > 0`. Bind `genericCreate` to
+  `service.create` and every typed mode to its named handler instead of treating
+  all creation as a generic service call.
+- [ ] Remove the compiler's remaining implicit `genericCreate` contract.
+  Missing domain construction must remain `null` through normalization and
+  validation, and Create Entity / Run Producer must reject an entity or mode
+  that is not explicitly declared.
+- [ ] Reconcile every declared construction mode with execution. Preserve the
+  specialized cassette-design bake/import paths as typed mode bindings; resolve
+  the `cassette_instance` mismatch by either providing its declared
+  `genericCreate` execution boundary or removing that domain construction
+  contract with the owning-domain reason. Do not expose the ten internal
+  service `create` methods whose entity types have no process construction
+  contract.
+- [ ] Make the projected capability record the consumed activation and
+  authoring contract. Activation must validate the selected construction mode,
+  not a raw entity-level boolean. The designer must receive effective entity
+  options and modes from that projection (or from a serialized registry-owned
+  projection), rather than independently reconstructing process support from
+  `domain.construction`.
+- [ ] Keep Create Entity and Run Producer checks mode-specific. A producer is
+  valid only when its selected producer/construction handler is registered;
+  ordinary Create Entity is valid only for its selected construction mode.
+  Update and Change Status continue to use their independent capabilities.
+- [ ] Replace the current method-presence test with a registry-wide, per-mode
+  contract test proving palette modes, compiler acceptance, and runtime
+  handlers agree for every domain entity. Cover an internal `service.create`
+  with no construction contract, generic creation, cassette-design typed
+  creation, an unsupported mode, and the resolved cassette-instance contract.
+- [ ] After the executable contract passes, correct the canonical owner docs
+  and these Agent Notes. Remove the documented compiler fallback and describe
+  mode-aware projection/activation without duplicating the per-entity matrix.
+
+Acceptance: no entity or construction mode appears in the designer unless the
+same mode activates and executes through a registered handler; no internal
+service method becomes process-authorable without an explicit domain contract;
+and no missing construction contract falls back to `genericCreate`.
+
 ### Required inputs and value availability
 
 - [ ] Restore the catalog's real `required` flag. Do not make every socket
