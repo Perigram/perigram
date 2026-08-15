@@ -22,6 +22,15 @@ should call `getAppRegistry()`.
   `processList(filters, auth)` and `processGetById(id, auth)` bindings for each
   feature's concrete list/detail signatures; process entity nodes use those
   uniform boundaries instead of guessing positional service arguments.
+- A per-entity `processCapabilities` record spread onto each registered service
+  with the four boolean flags `{ create, processUpdate, delete, archive }`.
+  `create` mirrors `service.create`, `processUpdate` mirrors
+  `service.processUpdate`, `delete` mirrors `service.remove`, and `archive`
+  mirrors a domain workflow `ARCHIVED` state. Every entity service must declare
+  the record, and the registry build throws on a missing binding or on a
+  `true` flag that does not resolve to a real service method (fail-fast drift
+  check). Activation and the process compiler consume this record instead of
+  re-detecting service methods.
 - Command handlers: `saveCassetteTemplate`, `solveNesting`,
   `generateAttachment`, `convertArtifact`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.

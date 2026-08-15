@@ -43,6 +43,15 @@ entity field paths. Entity access callers can also pass an explicit action such
 as `create`; grants with `actions.create === false` then deny the create
 operation even when their level would otherwise satisfy `write`.
 
+The action names used in access grants (`create`, `update`, `delete`) align with
+the activation-time service-capability check (`create`↔`service.create`,
+`update`↔`service.processUpdate`, `delete`↔`service.remove`), so a process whose
+effect targets an entity lacking the binding is rejected before any
+action-scoped grant is computed. The capability projection is documented in
+[`packages/processes`](../../../packages/processes/README.md); see the
+activation enforcement contract in
+[process-definitions/README.md](../../features/process-definitions/README.md).
+
 Workflow transitions and command definitions declare required feature
 permissions; the engine evaluates those requirements against the current entity
 and transition. Processors and handlers perform domain work after access has

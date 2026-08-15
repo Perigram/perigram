@@ -41,25 +41,69 @@ second specification.
 
 ### Entity process capabilities
 
-- [ ] Add one canonical process-capability projection for every registered
+- [x] Add one canonical process-capability projection for every registered
   entity type: list/query, get-by-id, create modes, writable blocks/fields,
   relation mutations, status mutation, archive, and hard delete. Derive it from
   domain declarations plus explicit runtime bindings; do not infer create or
   delete support from the existence of an entity collection.
-- [ ] Make the designer filter entity choices per operation. Create Entity must
+- [x] Make the designer filter entity choices per operation. Create Entity must
   show only process-creatable entities and valid construction modes; Modify,
   Change Status, and Delete must apply their own capabilities independently.
-- [ ] Make activation reject a node whose selected entity/service binding
+- [x] Make activation reject a node whose selected entity/service binding
   cannot perform its declared operation. A graph that validates must not later
   fail only because the registered service lacks `create`, `processUpdate`,
   status support, or delete support.
-- [ ] Remove the generic-create fallback for entity types that have no explicit
+- [x] Remove the generic-create fallback for entity types that have no explicit
   process construction contract. Every excluded entity must have a documented
   domain reason, and every included entity must be constructible from a fresh
   graph.
-- [ ] Add a contract test that iterates the complete domain entity registry and
+- [x] Add a contract test that iterates the complete domain entity registry and
   proves palette availability, compiler validation, and registered service
   capability agree for every CRUD operation.
+
+#### Agent Notes
+
+2026-08-15 — completed the "Entity process capabilities" checkboxes above.
+
+- Canonical projection: `packages/processes/src/capabilities.js`
+  (`projectEntityProcessCapabilities`) intersects domain construction, field
+  schemas, relations, workflows, and `operations.delete` with an explicit
+  service-bindings map; no create/delete inference from collection presence.
+  See [packages/processes/README.md](./packages/processes/README.md).
+- Runtime bindings: `server/runtime/app-registry.js` declares a per-entity
+  `processCapabilities` record `{ create, processUpdate, delete, archive }`,
+  throws on a missing entry or a `true` flag that does not resolve to a real
+  service method, and spreads it onto each registered service. See
+  [server/runtime/README.md](./server/runtime/README.md).
+- Designer filtering: `packages/processes/src/designer.js` exposes
+  `createEntityOptions`, `updateEntityOptions`, `changeStatusOptions`,
+  `deleteEntityOptions`, and `archivableEntityOptions`;
+  `pages/organization/process.vue` branches `processEntityTypeOptions` on the
+  node kind and defaults Create Entity to the first creatable entity. See
+  [components/process-designer/README.md](./components/process-designer/README.md).
+- Activation enforcement: `packages/processes/src/compiler-core.js` adds
+  `requiredEffectCapability` plus a gated capability pass that rejects
+  create/update/changeStatus effects lacking the binding as deterministic
+  `validation.errors` (HTTP 400), and `compiler-adapter.js` threads the registry
+  capabilities through `validateActivatableProcess`. See
+  [server/features/process-definitions/README.md](./server/features/process-definitions/README.md).
+- Generic-create fallback removed: `packages/domain-cnc/src/entity-construction.js`
+  returns `null` for entities without an explicit construction contract and adds
+  explicit entries for `catalog`, `color`, `material`, `material_pile`,
+  `remnant`, `requisition`, and `warehouse`. See
+  [packages/domain-cnc/README.md](./packages/domain-cnc/README.md).
+- Contract test: `server/runtime/app-registry.spec.js` iterates
+  `cncDomain.entities` and proves the declared `processCapabilities` flags agree
+  with the actual service methods (`create`↔`service.create`,
+  `processUpdate`↔`service.processUpdate`, `delete`↔`service.remove`) and with a
+  workflow `ARCHIVED` state for `archive`, per CRUD operation.
+
+Validation: `npx vitest run packages/processes packages/domain-cnc server/runtime`
+passed; `npx vitest run server/features/process-definitions/process-definitions.spec.js`
+passes 5/6 (the "rejects activation when the authored graph is not the current
+protocol" case is a pre-existing failure unrelated to this task);
+`node scripts/check-arch.js`, `npm run framework:validate`, and
+`node scripts/check-docs.js` ran before the docs commit.
 
 ### Required inputs and value availability
 

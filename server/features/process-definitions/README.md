@@ -44,6 +44,18 @@ the run object so the action re-enters the normal feature access boundary; it
 includes the compiled `effectivePermissions` consumed by entity adapters, so
 the execution has the same access context as the action that started it.
 
+Activation validates every effect node's entity service binding against the
+registered capability record. `effect.createEntity` and `effect.runProducer`
+require `create`, `effect.updateEntity` requires `processUpdate`, and
+`effect.changeStatus` requires a domain status workflow. A node whose selected
+entity lacks the required capability is rejected as a deterministic
+`validation.errors` entry (HTTP 400 at activation) instead of failing later at
+runtime. The enforcement pass consumes the per-entity `processCapabilities`
+record documented in [server/runtime/README.md](../../runtime/README.md) and is
+a no-op when the registry exposes no capability map. The capability derivation
+itself is the canonical projection in
+[`packages/processes`](../../../packages/processes/README.md).
+
 The pure scheduler lives in `@cutkit/processes`. This service supplies only
 authorized read adapters and effect adapters. Reads use registered entity
 services. Effects delegate to command, entity, status, projection, producer, or

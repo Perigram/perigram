@@ -84,6 +84,17 @@ a Boolean mask, then feed that mask and the original list to Filter.
 The exhaustive runtime catalog, producer effects, predicates, patches,
 conversions, and trigger-payload helpers have no direct authoring entry.
 
+Entity choices are filtered per operation. Create Entity lists only entities
+with an explicit construction contract; Modify Entity lists entities with
+writable fields; Change Status lists entities with a status workflow; archive
+and hard delete derive from a workflow `ARCHIVED` state and
+`operations.delete`. The designer derives these choices from domain declarations
+(`cncDomain.construction`, `fieldSchemas`, `workflows`, `operations`). The
+canonical projection `projectEntityProcessCapabilities` intersects those same
+signals with the runtime service bindings, and the registry contract test proves
+palette availability, compiler validation, and registered service capability
+agree for every CRUD operation.
+
 Runtime-only payload extraction, casts, parsing, nullable removal,
 entity-reference conversion, JSON conversion, predicates, and patch assembly
 are never ordinary palette choices. Safe coercions such as integer-to-number

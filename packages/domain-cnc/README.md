@@ -196,6 +196,21 @@ process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an
 `updateEntity` process action.
 
+`getEntityConstruction()` has no generic-create fallback. It returns the explicit
+construction contract or `null`, so construction presence is the canonical
+create signal: an entity is process-creatable only when it declares an explicit
+construction entry. Excluded entities fall into two documented classes. Meta
+admin/config master data are authored or provisioned outside the process graph
+(`artifact_template`, `facade_pattern`, `layer_standard`, `machine`,
+`organization`, `pen_template`, `process_definition`, `profile_template`,
+`tool_profile`, `user`). System- or command-produced records are created by
+their owning service or task, not by a process create action (`entity_revision`,
+`geometry_capture`, `nesting_run`, `sheet`, `sheet_design`). The explicit
+creatable entities are `artifact` (upload constructor), `cassette`,
+`cassette_design` (typed bake/import constructors), `cassette_instance`,
+`catalog`, `color`, `facade`, `library`, `material`, `material_pile`,
+`project`, `queue`, `remnant`, `requisition`, and `warehouse`.
+
 `profile_template` is reusable master data for OCCS profile-section sketches.
 Cassette templates insert profile workpieces as snapshots with a
 `profileTemplateId` reference so old templates remain reproducible when the
@@ -275,6 +290,15 @@ Entity definitions may declare operation capabilities such as
 process-derived access grants before showing destructive controls. A delete
 button requires both the domain capability and an active `delete`/admin grant
 for the exact entity; endpoint presence alone is not enough.
+
+The process capability matrix is derived from four domain signals, never from
+inferred collection presence: construction presence means create,
+`operations.delete` means hard delete, a workflow `ARCHIVED` state means archive,
+and the runtime service `processUpdate` method means update. The canonical
+projection that combines these signals with the explicit runtime bindings lives
+in [`packages/processes`](../processes/README.md)
+(`projectEntityProcessCapabilities`); this package owns only the domain half of
+that derivation.
 
 Entity definitions may also declare `meta: true` for configuration,
 administration, or provenance records that are not operational work items.
