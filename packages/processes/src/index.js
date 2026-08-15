@@ -60,6 +60,7 @@ export {
   evaluateEntityPredicate,
   executeProcessDataNode
 } from './evaluator.js';
+export { projectEntityProcessCapabilities } from './capabilities.js';
 export {
   PROCESS_RUN_STATUSES,
   PROCESS_STEP_STATUSES,

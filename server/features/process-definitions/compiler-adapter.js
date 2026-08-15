@@ -5,9 +5,24 @@ import {
   requiredEntityProfileTypes,
   validateProcessDefinition
 } from '~/packages/processes/src/index.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
+
+function capabilityBindings(domain = {}) {
+  const registry = getAppRegistry();
+  const capabilities = {};
+  for (const entity of domain.entities || []) {
+    const record = registry?.getEntityService?.(entity.type)?.processCapabilities;
+    if (record) capabilities[entity.type] = record;
+  }
+  return capabilities;
+}
 
 export function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
-  const validation = validateProcessDefinition(data, domain, { roles });
+  const capabilities = capabilityBindings(domain);
+  const validation = validateProcessDefinition(data, domain, {
+    roles,
+    ...(Object.keys(capabilities).length ? { capabilities } : {})
+  });
   const process = validation.definition || normalizeProcessDefinition(data);
   const requiredTypes = requiredEntityProfileTypes(process, domain);
   if (!requiredTypes.length) return validation;

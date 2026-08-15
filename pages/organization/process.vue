@@ -2359,7 +2359,7 @@ function createProcessNode(id, kind = 'source.literalItem') {
     outputs: []
   };
   if (kind === 'effect.createEntity') {
-    node.entityType = entityTypeOptions.value[0]?.value || '';
+    node.entityType = designer.createEntityOptions[0]?.value || '';
   }
   if (kind.startsWith('effect.')) {
     node.trigger = { mode: 'manual' };
@@ -2891,7 +2891,7 @@ function applyStatusDefinitionToAction(action = {}) {
 }
 
 function constructionContractForEntity(entityType) {
-  return designer.construction(entityType);
+  return designer.construction(entityType) || {};
 }
 
 function syncSocketIo(socket = {}) {
@@ -3292,6 +3292,10 @@ function writableEntityBlocks(entityType = '') {
 }
 
 function processEntityTypeOptions(node = {}) {
+  const kind = node.kind || '';
+  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return designer.createEntityOptions;
+  if (kind === 'effect.updateEntity') return designer.updateEntityOptions;
+  if (kind === 'effect.changeStatus') return designer.changeStatusOptions;
   return entityTypeOptions.value;
 }
 

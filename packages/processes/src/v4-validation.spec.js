@@ -550,6 +550,52 @@ describe('process v4 validation', () => {
     expect(validateProcessDefinition(process, cassetteDomain).errors)
       .not.toContain('Process node node cannot persist block identity');
   });
+
+  it('rejects create effects when the entity service lacks create support', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'effect.createEntity',
+      entityType: 'project',
+      construction: { mode: 'genericCreate' },
+      trigger: { mode: 'manual' }
+    }), domain, { capabilities: { project: { create: false, processUpdate: true, delete: true, archive: false } } });
+
+    expect(result.errors).toContain('Process node node cannot create project: entity service lacks create support');
+  });
+
+  it('rejects update effects when the entity service lacks processUpdate support', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'effect.updateEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      statusRef: 'ready',
+      inputDefaults: { 'status.state.primary': 'READY' }
+    }), domain, { capabilities: { project: { create: true, processUpdate: false, delete: true, archive: false } } });
+
+    expect(result.errors).toContain('Process node node cannot update project: entity service lacks processUpdate support');
+  });
+
+  it('rejects change status effects when the entity has no status workflow', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'effect.changeStatus',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      inputDefaults: { 'status.state.primary': 'READY' }
+    }), domain, { capabilities: { project: { create: true, processUpdate: true, delete: true, archive: false } } });
+
+    expect(result.errors).toContain('Process node node cannot change project: entity has no status workflow');
+  });
+
+  it('does not enforce capabilities when none are supplied', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'effect.createEntity',
+      entityType: 'project',
+      construction: { mode: 'genericCreate' },
+      status: { to: 'NEW' },
+      trigger: { mode: 'manual' }
+    }), domain);
+
+    expect(result.errors).toEqual([]);
+  });
 });
 
 function entityBlockProcess(entityType) {

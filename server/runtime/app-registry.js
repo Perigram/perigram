@@ -60,9 +60,12 @@ function registerAppBindings(registry) {
   for (const [type, service] of Object.entries(entityServices)) {
     const processList = entityProcessLists[type];
     const processGetById = entityProcessReads[type];
+    const processCapabilities = entityProcessCapabilities[type];
     if (!processList) throw new Error(`Entity service ${type} requires an explicit processList binding`);
     if (!processGetById) throw new Error(`Entity service ${type} requires an explicit processGetById binding`);
-    registry.registerEntityService(type, { ...service, processList, processGetById });
+    if (!processCapabilities) throw new Error(`Entity service ${type} requires an explicit processCapabilities binding`);
+    verifyProcessCapabilities(type, service, processCapabilities);
+    registry.registerEntityService(type, { ...service, processList, processGetById, processCapabilities });
   }
   for (const [id, handler] of Object.entries(commandHandlers)) {
     registry.registerCommandHandler(id, handler);
@@ -170,6 +173,47 @@ const entityProcessLists = {
   tool_profile: (_filters, auth) => toolProfilesService.listAll(auth.userId),
   user: (_filters, auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth),
   warehouse: authFirstList(warehousesService)
+};
+
+function verifyProcessCapabilities(type, service, capabilities) {
+  for (const [flag, method] of [['create', 'create'], ['processUpdate', 'processUpdate'], ['delete', 'remove']]) {
+    if (capabilities[flag] && typeof service[method] !== 'function') {
+      throw new Error(`Entity service ${type} declares ${flag} capability but lacks a ${method} method`);
+    }
+  }
+}
+
+const entityProcessCapabilities = {
+  artifact: { create: true, processUpdate: true, delete: true, archive: false },
+  artifact_template: { create: false, processUpdate: true, delete: true, archive: true },
+  cassette: { create: true, processUpdate: true, delete: true, archive: true },
+  cassette_design: { create: false, processUpdate: true, delete: true, archive: true },
+  cassette_instance: { create: false, processUpdate: true, delete: true, archive: false },
+  catalog: { create: true, processUpdate: true, delete: true, archive: false },
+  color: { create: true, processUpdate: true, delete: true, archive: false },
+  entity_revision: { create: false, processUpdate: false, delete: false, archive: false },
+  facade: { create: true, processUpdate: true, delete: true, archive: true },
+  facade_pattern: { create: true, processUpdate: true, delete: true, archive: true },
+  geometry_capture: { create: true, processUpdate: true, delete: true, archive: false },
+  layer_standard: { create: true, processUpdate: false, delete: false, archive: false },
+  library: { create: true, processUpdate: true, delete: true, archive: true },
+  machine: { create: true, processUpdate: true, delete: true, archive: false },
+  material: { create: true, processUpdate: true, delete: true, archive: false },
+  material_pile: { create: true, processUpdate: true, delete: true, archive: false },
+  nesting_run: { create: true, processUpdate: true, delete: true, archive: false },
+  organization: { create: true, processUpdate: true, delete: true, archive: false },
+  pen_template: { create: true, processUpdate: true, delete: true, archive: false },
+  process_definition: { create: true, processUpdate: false, delete: false, archive: true },
+  profile_template: { create: true, processUpdate: true, delete: true, archive: false },
+  project: { create: true, processUpdate: true, delete: true, archive: false },
+  queue: { create: true, processUpdate: true, delete: true, archive: true },
+  remnant: { create: true, processUpdate: true, delete: true, archive: false },
+  requisition: { create: true, processUpdate: true, delete: true, archive: false },
+  sheet_design: { create: false, processUpdate: true, delete: false, archive: false },
+  sheet: { create: false, processUpdate: true, delete: true, archive: false },
+  tool_profile: { create: true, processUpdate: true, delete: true, archive: false },
+  user: { create: false, processUpdate: true, delete: true, archive: false },
+  warehouse: { create: true, processUpdate: true, delete: true, archive: false }
 };
 
 const entityProcessReads = {

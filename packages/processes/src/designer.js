@@ -109,11 +109,7 @@ export function createProcessDesignerContract(domain = {}) {
   }
 
   function construction(entityType = '') {
-    return lookupEntityContract(domain.construction, entityType) || {
-      modes: ['genericCreate'],
-      defaultMode: 'genericCreate',
-      inputs: []
-    };
+    return lookupEntityContract(domain.construction, entityType) || null;
   }
 
   function blocks(entityType = '') {
@@ -153,11 +149,39 @@ export function createProcessDesignerContract(domain = {}) {
     items: group.items
   }));
 
+  const entityOption = entity => ({ label: entity.label || entity.type, value: entity.type });
+
+  const createEntityOptions = entities
+    .filter(entity => Boolean(lookupEntityContract(domain.construction, entity.type)))
+    .map(entityOption);
+
+  const updateEntityOptions = entities
+    .filter(entity => (lookupEntityContract(domain.fieldSchemas, entity.type) || [])
+      .some(schema => schema.writable === true))
+    .map(entityOption);
+
+  const changeStatusOptions = entities
+    .filter(entity => Boolean((domain.workflows || {})[entity.type]))
+    .map(entityOption);
+
+  const deleteEntityOptions = entities
+    .filter(entity => entity.operations?.delete === true)
+    .map(entityOption);
+
+  const archivableEntityOptions = entities
+    .filter(entity => workflowArchived((domain.workflows || {})[entity.type]))
+    .map(entityOption);
+
   return {
     domain,
     paletteGroups,
     blocks: CANONICAL_ENTITY_BLOCKS.map(id => ({ id, label: id, ...BLOCK_PRESENTATION[id] })),
-    entityOptions: entities.map(entity => ({ label: entity.label || entity.type, value: entity.type })),
+    entityOptions: entities.map(entityOption),
+    createEntityOptions,
+    updateEntityOptions,
+    changeStatusOptions,
+    deleteEntityOptions,
+    archivableEntityOptions,
     workflowOptions: Object.entries(domain.workflows || {}).map(([entityType, workflow]) => ({ label: workflow.label || entityType, value: entityType })),
     commandOptions: definitionOptions(domain.commands),
     taskOptions: definitionOptions(domain.tasks),
@@ -194,6 +218,12 @@ function lookupEntityContract(contracts = {}, entityType = '') {
   const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
   const snake = key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
   return contracts?.[key] || contracts?.[camel] || contracts?.[snake] || null;
+}
+
+function workflowArchived(workflow = null) {
+  return Boolean(workflow && Object.values(workflow.regions || {}).some(region => (
+    region.states && Object.prototype.hasOwnProperty.call(region.states, 'ARCHIVED')
+  )));
 }
 
 function allFieldPaths(policy = {}) {

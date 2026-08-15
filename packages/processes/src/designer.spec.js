@@ -98,14 +98,43 @@ describe('process designer domain contract', () => {
     ]);
   });
 
-  it('provides generic construction for any registered entity', () => {
+  it('does not infer generic construction for entities without an explicit contract', () => {
     const contract = createProcessDesignerContract(domain);
 
-    expect(contract.construction('result')).toEqual({
+    expect(contract.construction('result')).toBeNull();
+    expect(contract.construction('work_item')).toMatchObject({
       modes: ['genericCreate'],
-      defaultMode: 'genericCreate',
-      inputs: []
+      defaultMode: 'genericCreate'
     });
+  });
+
+  it('filters per-operation entity options by the matching domain signal', () => {
+    const contract = createProcessDesignerContract(domain);
+
+    expect(contract.createEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.updateEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.changeStatusOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.deleteEntityOptions).toEqual([]);
+    expect(contract.archivableEntityOptions).toEqual([]);
+  });
+
+  it('exposes delete and archive options only for entities with those capabilities', () => {
+    const contract = createProcessDesignerContract({
+      ...domain,
+      entities: [
+        ...domain.entities,
+        { type: 'queue', label: 'Queue', blocks: ['identity'], operations: { delete: true } },
+        { type: 'library', label: 'Library', blocks: ['identity'] }
+      ],
+      workflows: {
+        ...domain.workflows,
+        queue: { label: 'Queue lifecycle', regions: { main: { states: { DRAFT: {}, ARCHIVED: {} } } } },
+        library: { label: 'Library lifecycle', regions: { main: { states: { ACTIVE: {} } } } }
+      }
+    });
+
+    expect(contract.deleteEntityOptions).toEqual([{ label: 'Queue', value: 'queue' }]);
+    expect(contract.archivableEntityOptions).toEqual([{ label: 'Queue', value: 'queue' }]);
   });
 
   it('presents authoring operations by concern without exposing runtime plumbing', () => {

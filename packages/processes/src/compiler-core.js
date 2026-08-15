@@ -480,6 +480,13 @@ function declaredRelationForTarget(domain = {}, ownerType = '', targetType = '')
   return matches.length === 1 ? matches[0] : null;
 }
 
+export function requiredEffectCapability(kind = '') {
+  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return 'create';
+  if (kind === 'effect.updateEntity') return 'processUpdate';
+  if (kind === 'effect.changeStatus') return 'statusMutation';
+  return null;
+}
+
 export function requiredEntityProfileTypes(definition = {}, domain = {}) {
   const process = normalizeProcessDefinition(definition);
   const commandIds = [
@@ -494,7 +501,7 @@ export function requiredEntityProfileTypes(definition = {}, domain = {}) {
   ))];
 }
 
-export function validateProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {
+export function validateProcessDefinition(definition = {}, domain = {}, { roles = {}, capabilities } = {}) {
   const process = normalizeProcessDefinition(definition, domain);
   const lineageBindings = compileLineageBindings(process, domain);
   const organizationRoles = normalizeRoleCatalog(roles);
@@ -560,6 +567,9 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
 
   for (const [nodeId, node] of Object.entries(process.processNodes)) {
     validateProcessNode(nodeId, node, { entities, domain, errors });
+  }
+  if (capabilities) {
+    validateEffectCapabilities(process, domain, capabilities, errors);
   }
   for (const [inputId, input] of Object.entries(process.valueInputs)) {
     if (!PROCESS_SCALAR_KINDS.includes(input.valueType)) errors.push(`Value input ${inputId} uses unknown type ${input.valueType || '(empty)'}`);
@@ -2731,6 +2741,25 @@ function inferConnectedActionEntityType(actionId, process = {}) {
     if (sourceType) return sourceType;
   }
   return '';
+}
+
+function validateEffectCapabilities(process = {}, domain = {}, capabilities = {}, errors = []) {
+  for (const [nodeId, node] of Object.entries(process.processNodes || {})) {
+    if (!node.entityType) continue;
+    const capability = requiredEffectCapability(node.kind);
+    if (!capability) continue;
+    if (capability === 'statusMutation') {
+      if (!domain.workflows?.[node.entityType]) {
+        errors.push(`Process node ${nodeId} cannot change ${node.entityType}: entity has no status workflow`);
+      }
+      continue;
+    }
+    const record = capabilities[node.entityType];
+    if (!record || record[capability] === false) {
+      const verb = capability === 'create' ? 'create' : 'update';
+      errors.push(`Process node ${nodeId} cannot ${verb} ${node.entityType}: entity service lacks ${capability} support`);
+    }
+  }
 }
 
 function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
