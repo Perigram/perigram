@@ -85,15 +85,17 @@ The exhaustive runtime catalog, producer effects, predicates, patches,
 conversions, and trigger-payload helpers have no direct authoring entry.
 
 Entity choices are filtered per operation. Create Entity lists only entities
-with an explicit construction contract; Modify Entity lists entities with
-writable fields; Change Status lists entities with a status workflow; archive
-and hard delete derive from a workflow `ARCHIVED` state and
-`operations.delete`. The designer derives these choices from domain declarations
-(`cncDomain.construction`, `fieldSchemas`, `workflows`, `operations`). The
-canonical projection `projectEntityProcessCapabilities` intersects those same
-signals with the runtime service bindings, and the registry contract test proves
-palette availability, compiler validation, and registered service capability
-agree for every CRUD operation.
+with effective creation modes; Modify Entity lists entities with writable
+fields; Change Status lists entities with a status workflow; archive and hard
+delete derive from a workflow `ARCHIVED` state and `operations.delete`. The
+designer consumes the canonical projection `projectEntityProcessCapabilities`
+for create choices: the page loads the serialized registry-owned projection
+(`/api/admin/domain` `processCapabilities`) and feeds its `createModes` back
+into the designer contract, so palette availability and mode choices come from
+the same per-mode record the compiler and runtime consume rather than being
+reconstructed from `domain.construction`. The registry contract test proves
+palette availability, compiler validation, registered runtime handlers, and
+effect execution dispatch agree for every entity and construction mode.
 
 Runtime-only payload extraction, casts, parsing, nullable removal,
 entity-reference conversion, JSON conversion, predicates, and patch assembly

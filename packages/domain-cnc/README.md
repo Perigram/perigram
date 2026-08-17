@@ -205,9 +205,12 @@ admin/config master data are authored or provisioned outside the process graph
 `organization`, `pen_template`, `process_definition`, `profile_template`,
 `tool_profile`, `user`). System- or command-produced records are created by
 their owning service or task, not by a process create action (`entity_revision`,
-`geometry_capture`, `nesting_run`, `sheet`, `sheet_design`). The explicit
-creatable entities are `artifact` (upload constructor), `cassette`,
-`cassette_design` (typed bake/import constructors), `cassette_instance`,
+`geometry_capture`, `nesting_run`, `sheet`, `sheet_design`). `cassette_instance`
+is deliberately absent from the construction registry: instances are derived at
+nesting time through the `cassette-instances` service
+`createFromSheet`/`createFromCutSheet` constructors, not authored from an empty
+process graph. The explicit creatable entities are `artifact` (upload
+constructor), `cassette`, `cassette_design` (typed bake/import constructors),
 `catalog`, `color`, `facade`, `library`, `material`, `material_pile`,
 `project`, `queue`, `remnant`, `requisition`, and `warehouse`.
 

@@ -301,11 +301,16 @@ The compiler places that creator
 contract on the Link input and grants the exposed role scoped artifact write
 access through the same action window. Command- and workflow-produced kinds
 remain separate process effects and are not presented as file uploads.
-The compiler fallback construction mode is only `genericCreate`; any
-entity-specific constructor such as baked cassette designs or OCCS template
-creation must be declared by the domain construction registry. This keeps the
-process compiler reusable and prevents hidden domain behavior from living in the
-generic package.
+There is no compiler construction-mode fallback. Missing domain construction
+stays `null` through normalization and validation, so Create Entity and Run
+Producer reject an entity or mode that the domain construction registry does not
+declare. Effective creation authority is the intersection of those declared
+modes and the registered runtime handlers (`projectEntityProcessCapabilities`):
+`createModes` is that intersection and `create` is derived as
+`createModes.length > 0`, never from the presence of a service `create` method.
+Typed constructors such as baked cassette designs or OCCS template creation are
+bound to named handlers at the application registry, not inferred by the
+package.
 Create and update effects never own leaf mutation fields. Create consumes
 constructible typed blocks plus a dedicated status value. Update consumes an entity,
 connected modified/replacement blocks, and status; only values present in connected
