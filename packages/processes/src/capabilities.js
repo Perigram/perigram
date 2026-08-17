@@ -27,12 +27,16 @@ export function projectEntityProcessCapabilities(domain = {}, serviceBindings = 
     const construction = entityConstruction(domain, type);
     const workflow = domain.workflows?.[type] || null;
     const schemas = entityFieldSchemas(domain, type);
+    const constructionHandlers = binding.constructionHandlers || {};
+    const createModes = construction && Array.isArray(construction.modes)
+      ? construction.modes.filter(mode => Object.hasOwn(constructionHandlers, mode))
+      : [];
 
     result[type] = {
       list: Boolean(binding.list),
       getById: Boolean(binding.getById),
-      create: Boolean(binding.create),
-      createModes: construction && Array.isArray(construction.modes) ? [...construction.modes] : [],
+      create: createModes.length > 0,
+      createModes,
       processUpdate: Boolean(binding.processUpdate),
       delete: Boolean(entity.operations?.delete) && Boolean(binding.delete),
       archive: Boolean(binding.archive) && workflowArchived(workflow),

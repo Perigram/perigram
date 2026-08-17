@@ -169,6 +169,20 @@ const domain = {
     }]
   },
   construction: {
+    project: {
+      modes: ['genericCreate'],
+      defaultMode: 'genericCreate',
+      inputs: [
+        { id: 'name', path: 'name', type: 'string', required: true, prompt: true }
+      ]
+    },
+    library: {
+      modes: ['genericCreate'],
+      defaultMode: 'genericCreate',
+      inputs: [
+        { id: 'name', path: 'name', type: 'string', required: true, prompt: true }
+      ]
+    },
     queue: {
       modes: ['genericCreate'],
       defaultMode: 'genericCreate',
@@ -2496,7 +2510,7 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
-  it('normalizes generic creation for derived construction contracts to the typed mode', () => {
+  it('rejects generic creation for derived construction contracts', () => {
     const validation = validateProcessDefinition({
       actions: {
         create_design: {
@@ -2512,22 +2526,8 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(validation.ok).toBe(true);
-    const compiled = compileProcessDefinition({
-      actions: {
-        create_design: {
-          id: 'create_design',
-          actionKind: 'createEntity',
-          entityType: 'cassette_design',
-          status: { to: 'CREATED' },
-          construction: { mode: 'genericCreate', inputs: [] },
-          trigger: { mode: 'manual' },
-          access: { level: 'write', roleIds: [] },
-          outputs: [{ id: 'created', entityType: 'cassette_design', status: 'CREATED' }]
-        }
-      }
-    }, domain);
-    expect(compiled.actions.create_design.construction.mode).toBe('bakeCassetteDesignFromTemplate');
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join(' ')).toContain('typed construction mode');
   });
 
   it('hydrates create prompts from the domain construction contract', () => {
@@ -2635,8 +2635,8 @@ describe('@cutkit/processes compiler', () => {
     expect(exposedQueueAction.inputPolicy.fields).not.toContainEqual(expect.objectContaining({ id: 'jobItems' }));
   });
 
-  it('normalizes stale construction modes when an action entity type changes', () => {
-    const compiled = compileProcessDefinition({
+  it('rejects stale construction modes when an action entity type changes', () => {
+    const validation = validateProcessDefinition({
       roles: {
         role_admin: { id: 'role_admin' }
       },
@@ -2661,11 +2661,8 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_template.construction).toMatchObject({
-      mode: 'genericCreate',
-      inputs: []
-    });
-    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual([]);
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join(' ')).toContain('construction mode bakeCassetteDesignFromTemplate');
   });
 
   it('compiles update actions with field mutation sockets', () => {

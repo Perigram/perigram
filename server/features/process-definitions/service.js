@@ -6,7 +6,6 @@ import { assertEntityAccess } from '~/server/core/access/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
-import * as cassetteService from '~/server/features/cassettes/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import * as entityEventService from '~/server/features/entity-events/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -513,18 +512,6 @@ async function queryProcessGraphEntities(entityType, auth = {}) {
   return (entities || []).map(entity => entity?.toJSON ? entity.toJSON() : entity);
 }
 
-function createActionPayload(data = {}, organizationId = '') {
-  const payload = { ...(data || {}) };
-  delete payload.linkCreatedTo;
-  if (organizationId) {
-    payload.lineage = {
-      ...(payload.lineage || {}),
-      organizationId
-    };
-  }
-  return normalizeCreationPayload(payload);
-}
-
 async function linkCreatedEntityToContextRelation({ action = {}, data = {}, entities = {}, created = null, auth = {} } = {}) {
   const link = data?.linkCreatedTo;
   if (!link || typeof link !== 'object') return null;
@@ -577,24 +564,6 @@ function entityInputId(value) {
   if (!value) return null;
   if (typeof value !== 'object') return value;
   return value.id || value._id || value.identity?.uid || null;
-}
-
-function normalizeCreationPayload(payload = {}) {
-  const normalized = { ...payload };
-  if (normalized.identity?.name && !normalized.name) normalized.name = normalized.identity.name;
-  if (normalized.identity?.slug && !normalized.slug) normalized.slug = normalized.identity.slug;
-  if (normalized.lineage && typeof normalized.lineage === 'object' && !Array.isArray(normalized.lineage)) {
-    for (const [key, value] of Object.entries(normalized.lineage)) {
-      if (normalized[key] === undefined) normalized[key] = value;
-    }
-  }
-  for (const block of ['data', 'specs', 'summary']) {
-    if (!normalized[block] || typeof normalized[block] !== 'object' || Array.isArray(normalized[block])) continue;
-    for (const [key, value] of Object.entries(normalized[block])) {
-      if (normalized[key] === undefined) normalized[key] = value;
-    }
-  }
-  return normalized;
 }
 
 async function applyProcessOutputStatuses({ actionId, result = {}, processData = {}, organizationId, auth = {} } = {}) {
@@ -691,34 +660,6 @@ function commandOutputStatusMap(actionId, processData = {}) {
   return map;
 }
 
-async function executeBakeCassetteDesign(action = {}, data = {}, organizationId, auth = {}, processData = {}, entities = {}) {
-  const templateId = data.templateId || data.cassetteId || data.provenance?.derivedFrom?.source?.id
-    || entities.cassette
-    || await defaultCassetteTemplateId(auth, organizationId, action);
-  if (!templateId) throw createError({ statusCode: 400, message: 'Cassette template is required' });
-  const created = await cassetteService.createDesignFromTemplate(
-    templateId,
-    data.parameters || {},
-    auth.userId,
-    organizationId,
-    auth.role,
-    createActionExecutionAuth(auth, action)
-  );
-  const targetState = action.status?.to;
-  if (!targetState) return created;
-  const targetId = created?._id || created?.identity?.uid;
-  if (!targetId) return created;
-  const status = await statusService.setInitialStateForOrganization(
-    resolveActionEntityType(action),
-    targetId,
-    targetState,
-    organizationId,
-    auth.userId,
-    processStatusMetadata(action, `Created by process action ${action.id}`, processData)
-  );
-  return { ...created, status };
-}
-
 function processStatusMetadata(action = {}, note = '', processData = {}) {
   const display = actionStatusDisplayMetadata(action, processData);
   return {
@@ -771,16 +712,6 @@ function statusDisplayMetadata(status = {}) {
     ...(status.icon ? { icon: status.icon } : {})
   };
   return Object.keys(display).length ? display : null;
-}
-
-async function defaultCassetteTemplateId(auth = {}, organizationId, action = {}) {
-  const template = await cassetteService.findDefaultConstructableTemplate?.(
-    auth.userId,
-    organizationId,
-    auth.role,
-    createActionExecutionAuth(auth, action)
-  );
-  return template?._id || template?.identity?.uid || null;
 }
 
 export async function getByIdInternal(id) {
@@ -1074,7 +1005,7 @@ async function executeDurableEffect(request, auth, run, processData) {
   return await performDurableEffect(request, auth, processData);
 }
 
-async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {
+export async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {
   if (kind === 'effect.runCommand') {
     if (!record.commandId) throw new Error('Command effect requires commandId');
     return await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), auth);
@@ -1092,47 +1023,19 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
       ? draft.status.metadata
       : {};
     delete draft.status;
-    const parentEntities = {};
-    if (entityType === 'cassette_design' && record.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-      const created = await executeBakeCassetteDesign({
-        ...record,
-        status: { ...(record.status || {}), to: targetState || '' }
-      }, draft, resolveOrganizationId(auth), auth, processData, parentEntities);
-      return await applyTypedConstructionBlocks(record, blockDraft, created, service, auth);
+    const mode = record.construction?.mode || '';
+    const handler = service.constructionHandlers?.[mode];
+    if (typeof handler !== 'function') {
+      throw new Error(`No registered handler for construction mode ${mode || '(none)'} on ${entityType}`);
     }
-    if (entityType === 'cassette_design' && record.construction?.mode === 'importCassetteDesignFromArtifact') {
-      const data = draft;
-      const imported = await cassetteService.importFromArtifact(
-        data.artifactId,
-        data.name || data.identity?.name,
-        auth.userId,
-        resolveOrganizationId(auth),
-        auth.role,
-        createActionExecutionAuth(auth, record),
-        data.layerMapping || null,
-        data.parameters || null
-      );
-      const created = await applyTypedConstructionBlocks(record, blockDraft, imported.design, service, auth);
-      if (!targetState) return created;
-      const targetId = created?._id || created?.identity?.uid;
-      const status = await statusService.setInitialStateForOrganization(
-        entityType,
-        targetId,
-        targetState,
-        resolveOrganizationId(auth),
-        auth.userId,
-        processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
-      );
-      return { ...created, status };
-    }
-    if (!service.create) throw new Error(`Entity service cannot create ${entityType}`);
-    const created = await service.create(
-      createActionPayload(draft, resolveOrganizationId(auth)),
-      auth.userId,
-      resolveOrganizationId(auth),
-      auth.role,
-      createActionExecutionAuth(auth, record)
-    );
+    const organizationId = resolveOrganizationId(auth);
+    const created = await handler(draft, {
+      userId: auth.userId,
+      organizationId,
+      role: auth.role,
+      executionAuth: createActionExecutionAuth(auth, record),
+      applyTypedBlocks: result => applyTypedConstructionBlocks(record, blockDraft, result, service, auth)
+    });
     const dto = created?.toJSON ? created.toJSON() : created;
     const targetId = dto?._id || dto?.identity?.uid;
     if (!targetState || !targetId) return dto;
@@ -1140,7 +1043,7 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
       entityType,
       targetId,
       targetState,
-      resolveOrganizationId(auth),
+      organizationId,
       auth.userId,
       {
         ...statusMetadata,

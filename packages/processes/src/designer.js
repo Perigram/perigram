@@ -100,9 +100,22 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   items: Object.freeze(group.items)
 })));
 
-export function createProcessDesignerContract(domain = {}) {
+export function createProcessDesignerContract(domain = {}, capabilities = null) {
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
   const entityByType = new Map(entities.map(entity => [entity.type, entity]));
+
+  function capabilityFor(entityType = '') {
+    return capabilities ? (lookupEntityContract(capabilities, entityType) || null) : null;
+  }
+
+  function createModes(entityType = '') {
+    if (capabilities) {
+      const capability = capabilityFor(entityType);
+      return Array.isArray(capability?.createModes) ? [...capability.createModes] : [];
+    }
+    const contract = lookupEntityContract(domain.construction, entityType);
+    return contract && Array.isArray(contract.modes) ? [...contract.modes] : [];
+  }
 
   function fieldPolicy(entityType = '') {
     return lookupEntityContract(domain.fieldAccess, entityType) || {};
@@ -152,7 +165,7 @@ export function createProcessDesignerContract(domain = {}) {
   const entityOption = entity => ({ label: entity.label || entity.type, value: entity.type });
 
   const createEntityOptions = entities
-    .filter(entity => Boolean(lookupEntityContract(domain.construction, entity.type)))
+    .filter(entity => createModes(entity.type).length > 0)
     .map(entityOption);
 
   const updateEntityOptions = entities
@@ -178,6 +191,7 @@ export function createProcessDesignerContract(domain = {}) {
     blocks: CANONICAL_ENTITY_BLOCKS.map(id => ({ id, label: id, ...BLOCK_PRESENTATION[id] })),
     entityOptions: entities.map(entityOption),
     createEntityOptions,
+    createModes,
     updateEntityOptions,
     changeStatusOptions,
     deleteEntityOptions,

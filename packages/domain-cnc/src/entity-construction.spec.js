@@ -37,6 +37,7 @@ describe('CNC entity construction', () => {
     expect(getEntityConstruction('organization')).toBeNull();
     expect(getEntityConstruction('process_definition')).toBeNull();
     expect(getEntityConstruction('sheet_design')).toBeNull();
+    expect(getEntityConstruction('cassette_instance')).toBeNull();
   });
 
   it('declares an explicit generic construction contract for a newly explicit entity', () => {
@@ -50,7 +51,7 @@ describe('CNC entity construction', () => {
 });
 
 const CREATABLE = new Set([
-  'artifact', 'cassette', 'cassette_design', 'cassette_instance', 'catalog', 'color',
+  'artifact', 'cassette', 'cassette_design', 'catalog', 'color',
   'facade', 'library', 'material', 'material_pile', 'project', 'queue', 'remnant',
   'requisition', 'warehouse'
 ]);

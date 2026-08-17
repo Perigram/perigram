@@ -118,6 +118,33 @@ describe('process designer domain contract', () => {
     expect(contract.archivableEntityOptions).toEqual([]);
   });
 
+  it('derives create options and modes from a serialized capability projection when present', () => {
+    const contract = createProcessDesignerContract(domain, {
+      work_item: { createModes: ['genericCreate'] },
+      result: { createModes: [] }
+    });
+
+    expect(contract.createEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.createModes('work_item')).toEqual(['genericCreate']);
+    expect(contract.createModes('result')).toEqual([]);
+  });
+
+  it('filters an entity whose declared mode has no effective runtime handler', () => {
+    const contract = createProcessDesignerContract({
+      ...domain,
+      construction: {
+        ...domain.construction,
+        result: { modes: ['deriveResult'], defaultMode: 'deriveResult', inputs: [] }
+      }
+    }, {
+      work_item: { createModes: ['genericCreate'] },
+      result: { createModes: [] }
+    });
+
+    expect(contract.createEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.createModes('result')).toEqual([]);
+  });
+
   it('exposes delete and archive options only for entities with those capabilities', () => {
     const contract = createProcessDesignerContract({
       ...domain,

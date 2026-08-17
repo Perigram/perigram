@@ -1,3 +1,7 @@
+// Entity construction contracts authoring a fresh process graph. `cassette_instance`
+// is deliberately absent: instances are derived at nesting time via the
+// `cassette-instances` service `createFromSheet`/`createFromCutSheet` constructors,
+// not authored from an empty graph.
 export const cncEntityConstruction = {
   artifact: {
     modes: ['uploadArtifact'],
@@ -70,13 +74,6 @@ export const cncEntityConstruction = {
       ]
     },
     inputs: []
-  },
-  cassette_instance: {
-    modes: ['genericCreate'],
-    defaultMode: 'genericCreate',
-    inputs: [
-      { id: 'cassetteDesignId', label: 'Cassette design', path: 'data.cassetteDesignId', type: 'entity', entityType: 'cassette_design', required: true }
-    ]
   },
   catalog: {
     modes: ['genericCreate'],

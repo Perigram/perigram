@@ -249,7 +249,7 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       commandId: node.commandId || derived[actionId]?.commandId || '',
       parentEntityType: promptContract.parentEntityType || derived[actionId]?.parentEntityType || '',
       construction: node.kind === 'effect.createEntity'
-        ? (node.construction?.mode || 'genericCreate') === 'genericCreate' && node.blocks?.length
+        ? node.construction?.mode === 'genericCreate' && node.blocks?.length
           ? { mode: 'genericCreate', inputs: [], blockComposed: true }
           : {
               ...(node.construction || derived[actionId]?.construction || {}),
@@ -398,7 +398,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     ...(record.entries || []).map(entry => `${record.block}.${entry.key}`).filter(path => !path.endsWith('.'))
   ]))];
   const defaultIdentityFields = node.kind === 'effect.createEntity'
-    && (node.construction?.mode || 'genericCreate') === 'genericCreate'
+    && node.construction?.mode === 'genericCreate'
     && !composers.some(record => record.block === 'identity')
     ? ['identity.name']
     : [];
@@ -1574,11 +1574,11 @@ function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}
       required: false
     });
   }
-  const construction = normalizeConstruction(action.construction, action.entityType, domain);
+  const construction = normalizeConstruction(action.construction, action.entityType, domain) || { inputs: [] };
   const constructionInputs = new Map((construction.inputs || []).map(input => [input.id || input.path, input]));
   const contract = constructionContract(domain, action.entityType);
   return inputs.filter(input => (
-    !contract.derived
+    !contract?.derived
     || !input.constructionInputId
     || constructionInputs.has(input.constructionInputId)
   )).map(input => {
@@ -2444,13 +2444,14 @@ function compileProcessNodes(processNodes = {}) {
 
 function normalizeConstruction(construction = {}, entityType = '', domain = {}) {
   const contract = constructionContract(domain, entityType);
-  const requestedMode = construction.mode || contract.defaultMode || defaultConstructionMode(entityType);
+  if (!contract) return null;
+  const source = construction || {};
   const modes = Array.isArray(contract.modes) ? contract.modes : [];
-  const mode = modes.includes(requestedMode)
-    ? requestedMode
-    : (contract.defaultMode || modes[0] || defaultConstructionMode(entityType));
-  const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
-  const blocksOwnConstruction = construction.blockComposed && mode === 'genericCreate';
+  const mode = source.mode
+    ? source.mode
+    : (modes.includes(contract.defaultMode) ? contract.defaultMode : (modes[0] || ''));
+  const declaredInputs = Array.isArray(source.inputs) ? source.inputs : [];
+  const blocksOwnConstruction = source.blockComposed && mode === 'genericCreate';
   const contractInputs = (contract.modeInputs?.[mode] || contract.inputs || [])
     .filter(input => !blocksOwnConstruction || (
       input.id !== 'name'
@@ -2472,7 +2473,7 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
   }
   return {
     mode,
-    ...(construction.blockComposed ? { blockComposed: true } : {}),
+    ...(source.blockComposed ? { blockComposed: true } : {}),
     inputs: [...inputsById.values()]
   };
 }
@@ -2532,7 +2533,7 @@ function normalizeInputPolicy(inputPolicy = {}) {
 }
 
 function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityType = '', domain = {}) {
-  const normalizedConstruction = normalizeConstruction(construction, entityType, domain);
+  const normalizedConstruction = normalizeConstruction(construction, entityType, domain) || { inputs: [] };
   const policyFields = Array.isArray(inputPolicy.fields) ? inputPolicy.fields : [];
   const fieldsById = new Map(
     normalizedConstruction.inputs
@@ -2542,7 +2543,7 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
   for (const field of policyFields) {
     const key = field.id || field.path;
     const constructionField = normalizedConstruction.inputs.find(input => (input.id || input.path) === key);
-    if (constructionContract(domain, entityType).derived && !constructionField) continue;
+    if (constructionContract(domain, entityType)?.derived && !constructionField) continue;
     const merged = constructionField
       ? mergeConstructionInput(constructionField, field)
       : {
@@ -2563,10 +2564,6 @@ function compiledInputPolicy(action = {}, domain = {}) {
   return (action.actionKind || 'createEntity') === 'createEntity'
     ? normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain)
     : normalizeInputPolicy(action.inputPolicy);
-}
-
-function defaultConstructionMode() {
-  return 'genericCreate';
 }
 
 function displayActionLabel(action = {}, id = '', process = {}) {
@@ -2755,8 +2752,16 @@ function validateEffectCapabilities(process = {}, domain = {}, capabilities = {}
       continue;
     }
     const record = capabilities[node.entityType];
+    if (capability === 'create') {
+      const construction = normalizeConstruction(node.construction, node.entityType, domain);
+      const mode = construction?.mode || '';
+      if (!record || !(Array.isArray(record.createModes) ? record.createModes : []).includes(mode)) {
+        errors.push(`Process node ${nodeId} cannot create ${node.entityType} with construction mode ${mode || '(none)'}: no registered runtime handler`);
+      }
+      continue;
+    }
     if (!record || record[capability] === false) {
-      const verb = capability === 'create' ? 'create' : 'update';
+      const verb = 'update';
       errors.push(`Process node ${nodeId} cannot ${verb} ${node.entityType}: entity service lacks ${capability} support`);
     }
   }
@@ -2926,11 +2931,15 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     if (node.kind === 'effect.createEntity') {
       const construction = normalizeConstruction(node.construction, node.entityType, domain);
       const contract = constructionContract(domain, node.entityType);
-      if (!contract.modes.includes(construction.mode)) {
-        errors.push(`Process node ${nodeId} cannot create ${node.entityType} with construction mode ${construction.mode}`);
-      }
-      if (contract.derived && construction.mode === 'genericCreate') {
-        errors.push(`Process node ${nodeId} must use a typed construction mode for derived entity ${node.entityType}`);
+      if (!contract || !construction) {
+        errors.push(`Process node ${nodeId} cannot create ${node.entityType}: entity has no construction contract`);
+      } else {
+        if (!contract.modes.includes(construction.mode)) {
+          errors.push(`Process node ${nodeId} cannot create ${node.entityType} with construction mode ${construction.mode}`);
+        }
+        if (contract.derived && construction.mode === 'genericCreate') {
+          errors.push(`Process node ${nodeId} must use a typed construction mode for derived entity ${node.entityType}`);
+        }
       }
     }
     const allowedBlocks = new Set(entityFieldSchemas(domain, node.entityType)
@@ -2957,7 +2966,7 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     if (!(domain.producers || []).some(producer => producer.id === node.producerId)) {
       errors.push(`Process node ${nodeId} must select a registered producer`);
     }
-    if (!contract.modes.includes(construction.mode) || construction.mode === 'genericCreate') {
+    if (!contract || !construction || !contract.modes.includes(construction.mode) || construction.mode === 'genericCreate') {
       errors.push(`Process node ${nodeId} must use a declared service construction mode for ${node.entityType}`);
     }
   }
@@ -3274,6 +3283,10 @@ function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
   const entityType = action.entityType || '';
   const contract = constructionContract(domain, entityType);
   const construction = normalizeConstruction(action.construction, entityType, domain);
+  if (!contract || !construction) {
+    errors.push(`Action ${actionId} cannot create ${entityType}: entity has no construction contract`);
+    return;
+  }
   if (!contract.modes.includes(construction.mode)) {
     errors.push(`Action ${actionId} cannot create ${entityType} with construction mode ${construction.mode}`);
   }
@@ -3284,11 +3297,7 @@ function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
 }
 
 function constructionContract(domain = {}, entityType = '') {
-  return domain.construction?.[entityType] || {
-    modes: ['genericCreate'],
-    defaultMode: 'genericCreate',
-    inputs: []
-  };
+  return domain.construction?.[entityType] || null;
 }
 
 function validateFieldList(fields = [], domain = {}, entityType, label, errors, access = 'read') {

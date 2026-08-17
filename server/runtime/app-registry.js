@@ -60,12 +60,12 @@ function registerAppBindings(registry) {
   for (const [type, service] of Object.entries(entityServices)) {
     const processList = entityProcessLists[type];
     const processGetById = entityProcessReads[type];
-    const processCapabilities = entityProcessCapabilities[type];
     if (!processList) throw new Error(`Entity service ${type} requires an explicit processList binding`);
     if (!processGetById) throw new Error(`Entity service ${type} requires an explicit processGetById binding`);
-    if (!processCapabilities) throw new Error(`Entity service ${type} requires an explicit processCapabilities binding`);
-    verifyProcessCapabilities(type, service, processCapabilities);
-    registry.registerEntityService(type, { ...service, processList, processGetById, processCapabilities });
+    const constructionHandlers = resolveConstructionHandlers(type, service);
+    const processCapabilities = buildProcessCapabilities(type, constructionHandlers);
+    verifyProcessCapabilities(type, service, constructionHandlers, processCapabilities);
+    registry.registerEntityService(type, { ...service, processList, processGetById, processCapabilities, constructionHandlers });
   }
   for (const [id, handler] of Object.entries(commandHandlers)) {
     registry.registerCommandHandler(id, handler);
@@ -175,45 +175,167 @@ const entityProcessLists = {
   warehouse: authFirstList(warehousesService)
 };
 
-function verifyProcessCapabilities(type, service, capabilities) {
-  for (const [flag, method] of [['create', 'create'], ['processUpdate', 'processUpdate'], ['delete', 'remove']]) {
-    if (capabilities[flag] && typeof service[method] !== 'function') {
-      throw new Error(`Entity service ${type} declares ${flag} capability but lacks a ${method} method`);
+const GENERIC_CREATE = Symbol('genericCreate');
+
+function resolveConstructionHandlers(type, service) {
+  return Object.fromEntries(Object.entries(entityConstructionHandlers[type] || {}).map(([mode, handler]) => [
+    mode,
+    bindConstructionHandler(mode, handler === GENERIC_CREATE ? service.create : handler, service)
+  ]));
+}
+
+function bindConstructionHandler(mode, handler, service) {
+  if (mode === 'genericCreate') {
+    return (draft, context = {}) => {
+      const payload = normalizeCreationPayload({ ...(draft || {}) });
+      delete payload.linkCreatedTo;
+      if (context.organizationId) {
+        payload.lineage = { ...(payload.lineage || {}), organizationId: context.organizationId };
+      }
+      return service.create(payload, context.userId, context.organizationId, context.role, context.executionAuth);
+    };
+  }
+  if (mode === 'uploadArtifact') {
+    return (draft, context = {}) => {
+      const file = draft?.artifact && typeof draft.artifact === 'object' ? draft.artifact : {};
+      return artifactsService.createUploaded({ ...(draft || {}), ...file }, context.executionAuth);
+    };
+  }
+  if (mode === 'bakeCassetteDesignFromTemplate') {
+    return async (draft, context = {}) => {
+      const created = await cassettesService.createDesignFromTemplate(
+        draft.templateId,
+        draft.parameters,
+        context.userId,
+        context.organizationId,
+        context.role,
+        context.executionAuth
+      );
+      return context.applyTypedBlocks ? await context.applyTypedBlocks(created) : created;
+    };
+  }
+  if (mode === 'importCassetteDesignFromArtifact') {
+    return async (draft, context = {}) => {
+      const imported = await cassettesService.importFromArtifact(
+        draft.artifactId,
+        draft.name || draft.identity?.name,
+        context.userId,
+        context.organizationId,
+        context.role,
+        context.executionAuth,
+        draft.layerMapping || null,
+        draft.parameters || null
+      );
+      const design = imported?.design || imported;
+      return context.applyTypedBlocks ? await context.applyTypedBlocks(design) : design;
+    };
+  }
+  return handler;
+}
+
+function normalizeCreationPayload(payload = {}) {
+  const normalized = { ...payload };
+  if (normalized.identity?.name && !normalized.name) normalized.name = normalized.identity.name;
+  if (normalized.identity?.slug && !normalized.slug) normalized.slug = normalized.identity.slug;
+  if (normalized.lineage && typeof normalized.lineage === 'object' && !Array.isArray(normalized.lineage)) {
+    for (const [key, value] of Object.entries(normalized.lineage)) {
+      if (normalized[key] === undefined) normalized[key] = value;
+    }
+  }
+  for (const block of ['data', 'specs', 'summary']) {
+    if (!normalized[block] || typeof normalized[block] !== 'object' || Array.isArray(normalized[block])) continue;
+    for (const [key, value] of Object.entries(normalized[block])) {
+      if (normalized[key] === undefined) normalized[key] = value;
+    }
+  }
+  return normalized;
+}
+
+function buildProcessCapabilities(type, constructionHandlers) {
+  const base = entityProcessCapabilities[type];
+  if (!base) throw new Error(`Entity service ${type} requires an explicit processCapabilities binding`);
+  const construction = cncDomain.construction?.[type] || null;
+  const createModes = (construction?.modes || []).filter(mode => Object.hasOwn(constructionHandlers, mode));
+  return {
+    create: createModes.length > 0,
+    createModes,
+    processUpdate: base.processUpdate,
+    delete: base.delete,
+    archive: base.archive
+  };
+}
+
+function verifyProcessCapabilities(type, service, constructionHandlers, capabilities) {
+  if (capabilities.processUpdate && typeof service.processUpdate !== 'function') {
+    throw new Error(`Entity service ${type} declares processUpdate capability but lacks a processUpdate method`);
+  }
+  if (capabilities.delete && typeof service.remove !== 'function') {
+    throw new Error(`Entity service ${type} declares delete capability but lacks a remove method`);
+  }
+  const construction = cncDomain.construction?.[type] || null;
+  for (const mode of construction?.modes || []) {
+    if (!Object.hasOwn(constructionHandlers, mode)) {
+      throw new Error(`Entity ${type} declares construction mode ${mode} but has no registered runtime handler`);
+    }
+  }
+  for (const [mode, handler] of Object.entries(constructionHandlers)) {
+    if (typeof handler !== 'function') {
+      throw new Error(`Entity ${type} construction mode ${mode} maps to a missing service handler`);
     }
   }
 }
 
 const entityProcessCapabilities = {
-  artifact: { create: true, processUpdate: true, delete: true, archive: false },
-  artifact_template: { create: false, processUpdate: true, delete: true, archive: true },
-  cassette: { create: true, processUpdate: true, delete: true, archive: true },
-  cassette_design: { create: false, processUpdate: true, delete: true, archive: true },
-  cassette_instance: { create: false, processUpdate: true, delete: true, archive: false },
-  catalog: { create: true, processUpdate: true, delete: true, archive: false },
-  color: { create: true, processUpdate: true, delete: true, archive: false },
-  entity_revision: { create: false, processUpdate: false, delete: false, archive: false },
-  facade: { create: true, processUpdate: true, delete: true, archive: true },
-  facade_pattern: { create: true, processUpdate: true, delete: true, archive: true },
-  geometry_capture: { create: true, processUpdate: true, delete: true, archive: false },
-  layer_standard: { create: true, processUpdate: false, delete: false, archive: false },
-  library: { create: true, processUpdate: true, delete: true, archive: true },
-  machine: { create: true, processUpdate: true, delete: true, archive: false },
-  material: { create: true, processUpdate: true, delete: true, archive: false },
-  material_pile: { create: true, processUpdate: true, delete: true, archive: false },
-  nesting_run: { create: true, processUpdate: true, delete: true, archive: false },
-  organization: { create: true, processUpdate: true, delete: true, archive: false },
-  pen_template: { create: true, processUpdate: true, delete: true, archive: false },
-  process_definition: { create: true, processUpdate: false, delete: false, archive: true },
-  profile_template: { create: true, processUpdate: true, delete: true, archive: false },
-  project: { create: true, processUpdate: true, delete: true, archive: false },
-  queue: { create: true, processUpdate: true, delete: true, archive: true },
-  remnant: { create: true, processUpdate: true, delete: true, archive: false },
-  requisition: { create: true, processUpdate: true, delete: true, archive: false },
-  sheet_design: { create: false, processUpdate: true, delete: false, archive: false },
-  sheet: { create: false, processUpdate: true, delete: true, archive: false },
-  tool_profile: { create: true, processUpdate: true, delete: true, archive: false },
-  user: { create: false, processUpdate: true, delete: true, archive: false },
-  warehouse: { create: true, processUpdate: true, delete: true, archive: false }
+  artifact: { processUpdate: true, delete: true, archive: false },
+  artifact_template: { processUpdate: true, delete: true, archive: true },
+  cassette: { processUpdate: true, delete: true, archive: true },
+  cassette_design: { processUpdate: true, delete: true, archive: true },
+  cassette_instance: { processUpdate: true, delete: true, archive: false },
+  catalog: { processUpdate: true, delete: true, archive: false },
+  color: { processUpdate: true, delete: true, archive: false },
+  entity_revision: { processUpdate: false, delete: false, archive: false },
+  facade: { processUpdate: true, delete: true, archive: true },
+  facade_pattern: { processUpdate: true, delete: true, archive: true },
+  geometry_capture: { processUpdate: true, delete: true, archive: false },
+  layer_standard: { processUpdate: false, delete: false, archive: false },
+  library: { processUpdate: true, delete: true, archive: true },
+  machine: { processUpdate: true, delete: true, archive: false },
+  material: { processUpdate: true, delete: true, archive: false },
+  material_pile: { processUpdate: true, delete: true, archive: false },
+  nesting_run: { processUpdate: true, delete: true, archive: false },
+  organization: { processUpdate: true, delete: true, archive: false },
+  pen_template: { processUpdate: true, delete: true, archive: false },
+  process_definition: { processUpdate: false, delete: false, archive: true },
+  profile_template: { processUpdate: true, delete: true, archive: false },
+  project: { processUpdate: true, delete: true, archive: false },
+  queue: { processUpdate: true, delete: true, archive: true },
+  remnant: { processUpdate: true, delete: true, archive: false },
+  requisition: { processUpdate: true, delete: true, archive: false },
+  sheet_design: { processUpdate: true, delete: false, archive: false },
+  sheet: { processUpdate: true, delete: true, archive: false },
+  tool_profile: { processUpdate: true, delete: true, archive: false },
+  user: { processUpdate: true, delete: true, archive: false },
+  warehouse: { processUpdate: true, delete: true, archive: false }
+};
+
+const entityConstructionHandlers = {
+  artifact: { uploadArtifact: artifactsService.createUploaded },
+  cassette_design: {
+    bakeCassetteDesignFromTemplate: cassettesService.createDesignFromTemplate,
+    importCassetteDesignFromArtifact: cassettesService.importFromArtifact
+  },
+  project: { genericCreate: GENERIC_CREATE },
+  queue: { genericCreate: GENERIC_CREATE },
+  cassette: { genericCreate: GENERIC_CREATE },
+  facade: { genericCreate: GENERIC_CREATE },
+  library: { genericCreate: GENERIC_CREATE },
+  catalog: { genericCreate: GENERIC_CREATE },
+  color: { genericCreate: GENERIC_CREATE },
+  material: { genericCreate: GENERIC_CREATE },
+  material_pile: { genericCreate: GENERIC_CREATE },
+  remnant: { genericCreate: GENERIC_CREATE },
+  requisition: { genericCreate: GENERIC_CREATE },
+  warehouse: { genericCreate: GENERIC_CREATE }
 };
 
 const entityProcessReads = {

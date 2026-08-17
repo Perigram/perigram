@@ -15,6 +15,9 @@ const domain = {
   blockSchemas: {
     identity: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item', nullable: false } }]
   },
+  construction: {
+    project: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] }
+  },
   commands: {}
 };
 
@@ -551,15 +554,15 @@ describe('process v4 validation', () => {
       .not.toContain('Process node node cannot persist block identity');
   });
 
-  it('rejects create effects when the entity service lacks create support', () => {
+  it('rejects create effects when the construction mode has no registered handler', () => {
     const result = validateProcessDefinition(definition({
       kind: 'effect.createEntity',
       entityType: 'project',
       construction: { mode: 'genericCreate' },
       trigger: { mode: 'manual' }
-    }), domain, { capabilities: { project: { create: false, processUpdate: true, delete: true, archive: false } } });
+    }), domain, { capabilities: { project: { create: false, createModes: [], processUpdate: true, delete: true, archive: false } } });
 
-    expect(result.errors).toContain('Process node node cannot create project: entity service lacks create support');
+    expect(result.errors).toContain('Process node node cannot create project with construction mode genericCreate: no registered runtime handler');
   });
 
   it('rejects update effects when the entity service lacks processUpdate support', () => {

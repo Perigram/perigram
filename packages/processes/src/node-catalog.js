@@ -460,7 +460,7 @@ function catalogPorts(record = {}, context = {}) {
       configured,
       blocks: dynamicBlocks(record, context),
       constructionInputs: constructionInputs(record),
-      constructionMode: record.construction?.mode || 'genericCreate'
+      constructionMode: record.construction?.mode || ''
     });
     const eventInput = record.trigger?.mode === 'event' ? controlInput : [];
     return {

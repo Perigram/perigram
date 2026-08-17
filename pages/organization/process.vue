@@ -912,7 +912,7 @@
 </template>
 
 <script setup>
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { SelectionMode, VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -1054,7 +1054,7 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
 });
 const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen });
 
-const designer = createProcessDesignerContract(cncDomain);
+const designer = reactive(createProcessDesignerContract(cncDomain));
 const {
   ensureRecord,
   factoryForType,
@@ -1431,6 +1431,7 @@ function schedulePreviewRecompute() {
 
 onMounted(() => {
   loadActiveOrCreateLocal();
+  loadProcessCapabilities();
   window.addEventListener('keydown', handleCanvasKeydown);
 });
 onBeforeUnmount(() => {
@@ -1455,6 +1456,19 @@ async function loadActiveOrCreateLocal() {
     processLoadError.value = t('processDesigner.noActiveDraft');
   } finally {
     loadingProcess.value = false;
+  }
+}
+
+async function loadProcessCapabilities() {
+  try {
+    const response = await $fetch('/api/admin/domain');
+    const capabilities = response?.processCapabilities || null;
+    if (!capabilities) return;
+    const refreshed = createProcessDesignerContract(cncDomain, capabilities);
+    designer.createEntityOptions = refreshed.createEntityOptions;
+    designer.createModes = refreshed.createModes;
+  } catch {
+    // keep the domain-derived options when the projection cannot be loaded
   }
 }
 
@@ -2819,7 +2833,7 @@ function syncActionConstruction(action = {}) {
 }
 
 function constructionModeOptions(entityType = '') {
-  return (constructionContractForEntity(entityType).modes || []).map(value => ({ label: value, value }));
+  return designer.createModes(entityType).map(value => ({ label: value, value }));
 }
 
 function constructionInputsForMode(contract = {}, mode = '') {

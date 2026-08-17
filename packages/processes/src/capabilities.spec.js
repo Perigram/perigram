@@ -5,16 +5,23 @@ const domain = {
   entities: [
     { type: 'project', collection: 'projects', blocks: ['identity'], operations: { delete: true } },
     { type: 'sheet', collection: 'sheets', blocks: ['identity'] },
-    { type: 'material', collection: 'materials', blocks: ['identity'] }
+    { type: 'material', collection: 'materials', blocks: ['identity'] },
+    { type: 'cassette_design', collection: 'cassette_designs', blocks: ['identity'], operations: { delete: true } }
   ],
   construction: {
     project: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] },
-    material: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] }
+    material: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] },
+    cassette_design: {
+      modes: ['bakeCassetteDesignFromTemplate', 'importCassetteDesignFromArtifact'],
+      defaultMode: 'bakeCassetteDesignFromTemplate',
+      inputs: []
+    }
   },
   fieldSchemas: {
     project: [{ path: 'identity.name', block: 'identity', writable: true, constructible: true }],
     sheet: [{ path: 'identity.name', block: 'identity', writable: true, constructible: false }],
-    material: [{ path: 'identity.name', block: 'identity', writable: false, constructible: true }]
+    material: [{ path: 'identity.name', block: 'identity', writable: false, constructible: true }],
+    cassette_design: [{ path: 'identity.name', block: 'identity', writable: true, constructible: true }]
   },
   relations: [
     { ownerType: 'project', key: 'queues', targetType: 'queue', cardinality: 'many' }
@@ -26,9 +33,17 @@ const domain = {
 };
 
 const bindings = {
-  project: { list: true, getById: true, create: true, processUpdate: true, delete: true, archive: true },
-  sheet: { list: true, getById: true, create: false, processUpdate: true, delete: false, archive: false },
-  material: { list: true, getById: true, create: true, processUpdate: false, delete: true, archive: false }
+  project: { list: true, getById: true, processUpdate: true, delete: true, archive: true, constructionHandlers: { genericCreate: () => {} } },
+  sheet: { list: true, getById: true, processUpdate: true, delete: false, archive: false, constructionHandlers: {} },
+  material: { list: true, getById: true, processUpdate: false, delete: true, archive: false, constructionHandlers: {} },
+  cassette_design: {
+    list: true,
+    getById: true,
+    processUpdate: true,
+    delete: true,
+    archive: true,
+    constructionHandlers: { bakeCassetteDesignFromTemplate: () => {}, importCassetteDesignFromArtifact: () => {} }
+  }
 };
 
 describe('process entity capability projection', () => {
@@ -50,6 +65,24 @@ describe('process entity capability projection', () => {
     ]);
   });
 
+  it('derives create from the non-empty intersection of domain modes and registered handlers', () => {
+    const capabilities = projectEntityProcessCapabilities(domain, bindings);
+
+    expect(capabilities.project.create).toBe(true);
+    expect(capabilities.cassette_design.create).toBe(true);
+    expect(capabilities.cassette_design.createModes).toEqual([
+      'bakeCassetteDesignFromTemplate',
+      'importCassetteDesignFromArtifact'
+    ]);
+  });
+
+  it('drops a declared construction mode that has no registered handler', () => {
+    const capabilities = projectEntityProcessCapabilities(domain, bindings);
+
+    expect(capabilities.material.create).toBe(false);
+    expect(capabilities.material.createModes).toEqual([]);
+  });
+
   it('does not fall back to inferred create or delete support', () => {
     const capabilities = projectEntityProcessCapabilities(domain, bindings);
 
@@ -65,7 +98,6 @@ describe('process entity capability projection', () => {
 
     expect(capabilities.material.delete).toBe(false);
     expect(capabilities.material.processUpdate).toBe(false);
-    expect(capabilities.material.create).toBe(true);
   });
 
   it('derives writable and constructible field paths from the entity schemas', () => {
