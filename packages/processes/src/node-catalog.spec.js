@@ -253,8 +253,8 @@ describe('process v4 node catalog', () => {
     });
 
     expect(ports.inputs).toMatchObject([
-      { id: 'queue', required: true, type: { base: 'entityRef', entityType: 'queue' } },
-      { id: 'machineId', required: true, type: { base: 'entityRef', entityType: 'machine' } },
+      { id: 'queue', required: false, type: { base: 'entityRef', entityType: 'queue' } },
+      { id: 'machineId', required: false, type: { base: 'entityRef', entityType: 'machine' } },
       { id: 'materialMode', type: { base: 'enum' } }
     ]);
     expect(ports.outputs.map(output => output.id)).toEqual(['completed', 'nesting_run', 'sheet']);

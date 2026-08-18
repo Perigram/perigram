@@ -2558,18 +2558,18 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.create_design.construction).toMatchObject({
       mode: 'bakeCassetteDesignFromTemplate',
       inputs: expect.arrayContaining([
-        expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
+        expect.objectContaining({ id: 'templateId', prompt: true, required: false }),
         expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
       ])
     });
     expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
+      expect.objectContaining({ id: 'templateId', prompt: true, required: false }),
       expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
     ]));
     expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields.map(field => field.id)).not.toContain('name');
   });
 
-  it('propagates required queue construction inputs during queue creation', () => {
+  it('does not require queue job items during queue creation', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_admin: { id: 'role_admin' }
@@ -2610,27 +2610,27 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.actions.create_queue.construction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true }),
-      expect.objectContaining({ id: 'jobItems', required: true }),
+      expect.objectContaining({ id: 'name', required: false, prompt: true }),
+      expect.objectContaining({ id: 'jobItems', required: false }),
       expect.objectContaining({ id: 'materialPool', required: false })
     ]));
     expect(compiled.actions.create_queue.parentEntityType).toBeNull();
     expect(compiled.actions.create_queue.inputs).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'parent', entityType: '', required: false }),
-      expect.objectContaining({ id: 'data:jobItems', required: true })
+      expect.objectContaining({ id: 'data:jobItems', required: false })
     ]));
     const exposedQueueAction = compiled.userAccess.user_admin.actions[0];
     expect(exposedQueueAction.parentEntityType).toBeNull();
     expect(exposedQueueAction.inputs).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'parent', entityType: '', required: false }),
-      expect.objectContaining({ id: 'data:jobItems', required: true })
+      expect.objectContaining({ id: 'data:jobItems', required: false })
     ]));
     expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true }),
-      expect.objectContaining({ id: 'jobItems', required: true })
+      expect.objectContaining({ id: 'name', required: false, prompt: true }),
+      expect.objectContaining({ id: 'jobItems', required: false })
     ]));
     expect(exposedQueueAction.inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true })
+      expect.objectContaining({ id: 'name', required: false, prompt: true })
     ]));
     expect(exposedQueueAction.inputPolicy.fields).not.toContainEqual(expect.objectContaining({ id: 'jobItems' }));
   });

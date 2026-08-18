@@ -170,7 +170,7 @@ function definition(kind, label, family, level, pure, ports = { inputs: [], outp
 }
 
 function socket(id, type, role = DATA, _required = false, access = 'item') {
-  return { id, label: id, type, role, required: Boolean(_required), access };
+  return { id, label: id, type, role, required: false, access };
 }
 
 function catalogPorts(record = {}, context = {}) {
