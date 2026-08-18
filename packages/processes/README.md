@@ -276,11 +276,25 @@ construction contract, so generated artifact actions open the file creator
 rather than the generic identity-name dialog.
 Domain construction contracts own structural input metadata during compilation:
 field id, label, path, type, and accepted entity types come from the current
-domain registry, not stale action snapshots. Process projections set every
-input `required: false`; stored graph inputs may keep non-structural values
-such as defaults but cannot make an input required. Queue creation therefore
-compiles to an empty queue shell action instead of blocking on cassette-design
-selection.
+domain registry, not stale action snapshots. Process projections preserve the
+domain-declared `required` flag through `socket()`, `normalizePortSpec`, and the
+compiler's derived-input projections; a construction or command input whose
+domain contract declares a `default` projects as non-required because that
+default satisfies it. Queue creation therefore still compiles to a queue shell
+action that prompts for its name rather than blocking on an unconnected
+cassette-design selection.
+Required inputs have exactly one availability contract, enforced at activation
+by `validateRequiredInputAvailability` after `validateProcessDefinition` and
+type/access inference. A required input is satisfied by a connected upstream
+value, an authored `inputDefaults` fallback, a domain-owned `default`, a
+generated manual prompt (manual actions only), or the run context (manual
+actions only). Activation rejects a required input with none of these sources;
+a prompt never satisfies an automatically evaluated data path, so an
+event-triggered effect must be complete without a UI prompt. The emptiness rule
+is shared by authored fallbacks and domain defaults: `null`/`undefined` never
+satisfy; an empty collection or attachment never satisfies a required
+entity-list/attachment input; an empty string or zero satisfies a required
+primitive only where the domain type permits.
 Relations composed by the process graph are executable process contracts even
 when they are not global CNC-domain relations. A manual effect that consumes a
 composed relation derives `Link <target>` for the owner action surface and a
@@ -403,7 +417,10 @@ Manual effect inputs resolve the supplied entity from the persisted run context
 when no data wire overrides that socket. Entity access remains resolved from
 persisted run input through the authorized feature service.
 Manual generic Create actions expose `identity.name` as a prompt when
-no Identity block supplies it. Manual field values are resolved into either
+no Identity block supplies it. Generated prompts exist only on manual actions
+and never satisfy an automatically evaluated data path; a required input on an
+event-triggered effect must be connected, defaulted, or supplied by the run
+context. Manual field values are resolved into either
 fixed field sockets or stable open-block entry sockets by canonical field path,
 so a composer node is optional for user-entered creation data. Wired sources
 take precedence and suppress the corresponding prompt. Source nodes such as

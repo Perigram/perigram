@@ -196,106 +196,64 @@ only pre-existing broken links to unrelated deleted docs.
 
 ### Required inputs and value availability
 
-- [ ] Restore the catalog's real `required` flag. Do not make every socket
+- [x] Restore the catalog's real `required` flag. Do not make every socket
   optional in `socket()` or confuse an unconnected manual prompt with an
   optional runtime value.
-- [ ] Represent input availability explicitly: connected upstream value,
+- [x] Represent input availability explicitly: connected upstream value,
   authored fallback, domain-owned default, generated manual prompt, or runtime
   context. Activation must reject required inputs that have none of these
   sources.
-- [ ] Keep generated prompts limited to manual actions. An automatically
+- [x] Keep generated prompts limited to manual actions. An automatically
   evaluated data path must be complete without a UI prompt.
-- [ ] Validate availability after type/access inference so a required entity,
+- [x] Validate availability after type/access inference so a required entity,
   block, array, attachment, enum, or construction input cannot be satisfied by
   an incompatible scalar fallback.
-- [ ] Add focused tests for required primitive, entity, entity-list, block,
+- [x] Add focused tests for required primitive, entity, entity-list, block,
   status, attachment, and command inputs, with connected/defaulted/prompted and
   missing cases.
 
 ##### Agent Notes
 
-2026-08-18 — the LangGraph `solution-lod` run `10c6f7c5` analyzed this section,
-synthesized a detailed plan, and then failed to implement it (the implement node
-exhausted its turn budget and the three-activation retry cap, leaving the network
-blocked). Its findings are recorded here so they are not lost; the section remains
-unimplemented.
+2026-08-18 — implemented the required-input availability contract.
 
-Synthesized approach (selected candidate
-`synthesis-activation-resolved-availability-contract`):
+- Real `required` propagation: `packages/processes/src/node-catalog.js`
+  `socket()` honors its `_required` argument instead of hardcoding
+  `required: false`; `packages/processes/src/ports.js` `normalizePortSpec`
+  derives `required` from the real flag; `packages/processes/src/compiler-core.js`
+  stops forcing `required: false` at the derived-input sites (construction
+  inputs, command inputs, input policies, relation link/entity inputs). A
+  construction or command input with a domain `default` still projects as
+  non-required. See
+  [packages/processes/README.md](./packages/processes/README.md).
+- One activation-time availability pass: new
+  `validateRequiredInputAvailability` in `compiler-core.js`, exported through
+  `validation.js`, consumed by `validateActivatableProcess` in
+  `server/features/process-definitions/compiler-adapter.js`. It resolves the
+  five sources (connected edge, authored `inputDefaults` fallback, domain
+  default, manual-only prompt, manual-only run context) and rejects required
+  effect inputs with no source. A prompt never satisfies an automatically
+  evaluated path.
+- Manual classification: Link targets and manual generic Create
+  `identity.name`/typed construction inputs and command entities/parameters
+  (with `display !== 'hidden'`) are the promptable inputs; the entity/status
+  ports resolve from the manual run context.
+- Emptiness semantics: `null`/`undefined` never satisfy; empty entity-list and
+  attachment fallbacks/defaults never satisfy; scalar fallbacks cannot satisfy
+  entity/block/array/attachment/opaque ports after type/access inference;
+  empty string/zero satisfy primitives; enum/status fallbacks must be a
+  declared member where options exist.
+- Tests: updated `node-catalog.spec.js`, `ports.spec.js`, and `index.spec.js`
+  assertions that locked in `required: false`; added `availability.spec.js`
+  covering connected, fallback (empty/incompatible/null), default, enum
+  membership, manual-vs-automatic prompt, runtime context, and
+  hidden-command-parameter cases.
 
-- Propagate the domain's real `required` flag through every projection layer:
-  `socket()` in `packages/processes/src/node-catalog.js` (stop ignoring its
-  `_required` argument and hardcoding `required: false`), `normalizePortSpec` in
-  `packages/processes/src/ports.js` (drop the forced `required: false`), and every
-  compiler-core derived-input site that forces `required: false` (lines 273, 323,
-  347, 1611, 1623, 1635, 2498, 2522, 2530, 2553, 2556). `types.js` already honors
-  `required === true`.
-- Add exactly one activation-time availability pass inside
-  `validateActivatableProcess` (`server/features/process-definitions/compiler-adapter.js`),
-  running after `validateProcessDefinition` and type/access inference. A required
-  input is satisfied iff it has a wired edge, an authored `inputDefaults` fallback,
-  a domain `default`, a generated prompt (manual-triggered actions only), or runtime
-  context. Reject required inputs with no source; a prompt never satisfies an
-  automatically evaluated path.
-- Manual-trigger classification: Link actions, manual generic Create
-  `identity.name`, command parameters with `display !== 'hidden'`.
-- Emptiness semantics shared by fallbacks and defaults: `null`/`undefined` never
-  satisfy; an empty entity-list/attachment never satisfies a required
-  entity-list/attachment input; `''`/`0`/`false` satisfy primitives (unconstrained
-  domain primitives permit them).
-
-Evidence gathered (file:line):
-
-- Domain contracts already declare `required: true, prompt: true` inputs —
-  `packages/domain-cnc/src/entity-construction.js` (constructor inputs) and
-  `packages/domain-cnc/src/commands.js`.
-- The flag is dropped at every projection layer: `node-catalog.js:172-174`
-  `socket()`, `ports.js:26-27` `normalizePortSpec`, and the compiler-core sites
-  listed above; `types.js:141` already preserves it.
-- The flattening is documented deliberate behavior at
-  `packages/processes/README.md:277-283` ("Process projections set every input
-  `required: false` … Queue creation compiles to an empty queue shell").
-- Tests lock the flattening in: `node-catalog.spec.js:107, 234-238, 245-257`;
-  `index.spec.js:2561-2633`.
-- The only runtime guard (`orchestration.js:376-385`) is effectively dead because
-  all projected ports are `required: false`.
-- Type/access inference already rejects incompatible nullable→required edges for
-  connected ports (`ports.js:54-92`, `types.js:150-178`) but not for an unconnected
-  required input satisfied by a fallback/default/prompt.
-
-Alternatives the graph considered and eliminated (with reasons):
-
-- Field-level `availableFrom` metadata: runtime context is unknowable at projection
-  time, so the metadata is partial and forces a second resolution — two contracts.
-- Compile-time rejection: trigger mode is per-activation, so compile time cannot
-  decide correctness; also splits the contract.
-- Hybrid compile/activation split: splits the availability contract across two sites.
-- Keep the flattening (defer the section): leaves the dead runtime guard in place and
-  lets required inputs silently pass activation.
-- Presence-only emptiness (any non-null satisfies): lets empty entity-lists/
-  attachments satisfy required inputs.
-- Content-validity emptiness (only semantically non-empty values): invents content
-  constraints the domain type system never declared and would reject valid defaults.
-- Source-split emptiness (defaults trusted, fallbacks strict): two contracts for one
-  source class.
-
-Settled acceptance criteria:
-
-- Required inputs have exactly one authoritative availability contract consumed by
-  activation, designer, and evaluator.
-- Non-manual data paths never depend on a UI prompt; generated prompts appear only
-  for manual actions.
-- Activation rejects required inputs with no available source (connected, authored
-  fallback, domain default, manual prompt for manual actions, or runtime context).
-- Availability is validated after type/access inference so a required
-  entity/block/array/attachment/enum/construction input cannot be satisfied by an
-  incompatible scalar fallback.
-- An explicit `null`/`undefined` fallback or default never satisfies a required
-  input; empty collections/attachments do not satisfy entity-list/attachment inputs;
-  empty-string/zero satisfy primitives only where the domain type permits.
-- Emptiness semantics documented and exercised by focused required-input tests
-  (primitive, entity, entity-list, block, status, attachment, command) with
-  connected/defaulted/prompted and missing cases.
+Validation: `npx vitest run packages/processes` passed (218 tests);
+`npx vitest run packages/domain-cnc server/runtime
+server/features/process-definitions` passes except the pre-existing
+"rejects activation when the authored graph is not the current protocol"
+permission-denied case; `node scripts/check-arch.js` and
+`npm run framework:validate` passed.
 
 ### Item/list/tree persistence semantics
 

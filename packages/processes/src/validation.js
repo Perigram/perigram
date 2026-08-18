@@ -1,5 +1,6 @@
 export {
   requiredEffectCapability,
   requiredEntityProfileTypes,
-  validateProcessDefinition
+  validateProcessDefinition,
+  validateRequiredInputAvailability
 } from './compiler-core.js';

@@ -270,7 +270,8 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
           path,
           type: promptContract.schemas.find(field => field.path === path)?.type?.base || 'json',
           prompt: !suppliedFields.has(path),
-          required: false,
+          required: !suppliedFields.has(path)
+            && promptContract.schemas.find(field => field.path === path)?.required === true,
           ...(Object.hasOwn(promptContract.defaults, path) ? { default: promptContract.defaults[path] } : {})
         }))
       },
@@ -320,7 +321,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
           entityType: relation.targetType,
           relationKey: relation.key,
           cardinality: relation.cardinality || 'one',
-          required: false,
+          required: true,
           prompt: operation === 'link',
           ...(operation === 'link' && creator ? { creator } : {})
         };
@@ -344,7 +345,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
           access: sourceAction.access,
           trigger: { mode: 'manual' },
           inputs: [
-            { id: 'entity', entityType: sourceAction.entityType, required: false },
+            { id: 'entity', entityType: sourceAction.entityType, required: true },
             input
           ],
           outputs: [{ id: 'entity', entityType: sourceAction.entityType }]
@@ -612,6 +613,165 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
   }
 
   return { ok: errors.length === 0, errors, warnings, definition: process };
+}
+
+// Inputs whose value is resolvable from the manual run context even without a
+// wire, fallback, or prompt: the current entity, the change-status target, and
+// the initial create status.
+const CONTEXT_RESOLVABLE_PORTS = new Set(['entity', 'parent', 'status', 'status.state.primary']);
+
+function edgeHandle(handle = '') {
+  return String(handle || '').replace(/^(input|output|data|control|success|failure):/, '');
+}
+
+function isDataEdge(edge = {}) {
+  return edge.role !== 'control'
+    && !String(edge.sourceHandle || '').startsWith('control:')
+    && !String(edge.targetHandle || '').startsWith('control:');
+}
+
+// One emptiness rule shared by authored fallbacks and domain defaults: an
+// explicit null/undefined is absence and never satisfies; entity/block values
+// must be non-null references; entity-list/array/attachment values must be
+// non-empty; enum/status values must be a declared member; unconstrained
+// primitives accept any type-valid value including ''/0/false.
+function inputValueSatisfies(value, port, declared = {}) {
+  const scalar = isDataTree(value) ? value.branches?.[0]?.items?.[0] : value;
+  if (scalar === null || scalar === undefined) return false;
+  const type = port.type || {};
+  const base = type.base || type.kind || '';
+  const collection = port.access === 'list' || port.access === 'tree'
+    || base === 'array' || base === 'entity_list';
+  if (collection) {
+    if (Array.isArray(scalar)) return scalar.length > 0;
+    if (scalar && typeof scalar === 'object' && Array.isArray(scalar.branches)) {
+      return scalar.branches.some(branch => Array.isArray(branch.items) && branch.items.length > 0);
+    }
+    return false;
+  }
+  if (['entity', 'entityRef', 'revisionRef'].includes(base)) {
+    if (typeof scalar !== 'object') return false;
+    return Boolean(scalar.id || scalar._id || scalar.identity || scalar.entityId || scalar.type);
+  }
+  if (['block', 'predicate', 'patch', 'record', 'taskRef'].includes(base)) return typeof scalar === 'object';
+  if (base === 'attachmentRef' || base === 'attachment' || base === 'opaque') {
+    return typeof scalar === 'string' ? scalar.length > 0 : typeof scalar === 'object';
+  }
+  if (base === 'enum' || base === 'status') {
+    if (typeof scalar !== 'string' || scalar === '') return false;
+    const options = Array.isArray(declared.options) ? declared.options : [];
+    if (!options.length) return true;
+    const members = options.map(option => typeof option === 'object' && option !== null ? option.value : option);
+    return members.includes(scalar);
+  }
+  return true;
+}
+
+// The manual action surface prompts the inputs it can ask the user for: Link
+// targets, the manual generic Create identity block, typed construction inputs
+// that are not explicitly non-promptable, and command parameters/entities whose
+// display contract exposes them. A prompt only ever satisfies a manual path.
+function promptableInputIds(record = {}, domain = {}) {
+  const ids = new Set();
+  const kind = record.kind;
+  const construction = record.construction || {};
+  const contract = domain.construction?.[record.entityType] || {};
+  const modeInputs = contract.modeInputs?.[construction.mode] || [];
+  const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
+  const contractInputs = Array.isArray(contract.inputs) ? contract.inputs : [];
+  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
+    if (kind === 'effect.createEntity' && construction.mode === 'genericCreate') {
+      ids.add('identity');
+      ids.add('name');
+    }
+    for (const input of [...modeInputs, ...declaredInputs, ...contractInputs]) {
+      if (!input) continue;
+      if (input.prompt !== false && input.id) ids.add(input.id);
+      if (input.path && input.path !== 'name') ids.add(input.path);
+    }
+  }
+  if (kind === 'effect.runCommand') {
+    const command = domain.commands?.[record.commandId] || {};
+    for (const input of command.input?.abstractEntities || []) {
+      if (input.prompt !== false && (input.name || input.type || input.capability)) {
+        ids.add(input.name || input.type || input.capability);
+      }
+    }
+    for (const input of command.input?.entities || []) {
+      if (input.prompt !== false && (input.name || input.type)) ids.add(input.name || input.type);
+    }
+    for (const input of command.input?.parameters || []) {
+      if (input.display !== 'hidden' && input.name) ids.add(input.name);
+    }
+  }
+  return ids;
+}
+
+// The domain-declared metadata (default, options) for a required input port.
+function declaredInputMetadata(record = {}, domain = {}, portId = '') {
+  const construction = record.construction || {};
+  const contract = domain.construction?.[record.entityType] || {};
+  const constructionInputs = [
+    ...(construction.inputs || []),
+    ...(contract.modeInputs?.[construction.mode] || []),
+    ...(contract.inputs || [])
+  ];
+  const constructionMatch = constructionInputs.find(input => (input.id || input.path) === portId);
+  if (constructionMatch) return constructionMatch;
+  const command = domain.commands?.[record.commandId] || {};
+  const commandInputs = [
+    ...(command.input?.abstractEntities || []),
+    ...(command.input?.entities || []),
+    ...(command.input?.parameters || [])
+  ];
+  return commandInputs.find(input => (input.name || input.type || input.capability) === portId) || {};
+}
+
+// Exactly one activation-time availability contract for required inputs. A
+// required input is satisfied by a connected upstream value, an authored
+// fallback, a domain-owned default, a generated manual prompt (manual actions
+// only), or the run context (manual actions only). A prompt or run context
+// never satisfies an automatically evaluated path, so an event-triggered effect
+// must be complete without a UI prompt.
+export function validateRequiredInputAvailability(process = {}, domain = {}) {
+  const errors = [];
+  const nodes = process.graph?.nodes || [];
+  const edges = process.graph?.edges || [];
+  for (const [recordId, record] of Object.entries(process.processNodes || {})) {
+    if (!record?.kind?.startsWith('effect.')) continue;
+    const manual = (record.trigger?.mode || 'manual') === 'manual';
+    const graphNode = nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
+    let ports = [];
+    try { ports = resolveCatalogNodePorts(record, catalogContext(domain, record)).inputs; } catch { continue; }
+    const promptable = promptableInputIds(record, domain);
+    for (const port of ports.filter(item => item.role === 'data' && item.required)) {
+      const sources = [];
+      if (edges.some(edge => String(edge.target) === String(graphNode?.id)
+        && isDataEdge(edge) && edgeHandle(edge.targetHandle) === port.id)) {
+        sources.push('connected');
+      }
+      if (Object.hasOwn(record.inputDefaults || {}, port.id)
+        && inputValueSatisfies(record.inputDefaults[port.id], port, declaredInputMetadata(record, domain, port.id))) {
+        sources.push('fallback');
+      }
+      const declared = declaredInputMetadata(record, domain, port.id);
+      if (Object.hasOwn(declared, 'default')
+        && inputValueSatisfies(declared.default, port, declared)) {
+        sources.push('default');
+      }
+      if (manual) {
+        if (promptable.has(port.id)) sources.push('prompt');
+        if (CONTEXT_RESOLVABLE_PORTS.has(port.id)) sources.push('runtime context');
+      }
+      if (!sources.length) {
+        errors.push(
+          `Required input ${port.id} on ${record.kind} node ${record.label || recordId} has no available source `
+          + (manual ? '(connected, fallback, default, manual prompt, or runtime context)' : '(connected, fallback, or default; a manual prompt cannot satisfy an automatically evaluated path)')
+        );
+      }
+    }
+  }
+  return errors;
 }
 
 export function compileProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {
@@ -1608,7 +1768,7 @@ function commandActionInputs(command = {}) {
       entityType: input.type || '',
       capability: input.capability || '',
       accepts: input.accepts || [],
-      required: false,
+      required: Boolean(input.required),
       multiple: Boolean(input.multiple),
       abstract: true,
       prompt: false
@@ -1620,7 +1780,7 @@ function commandActionInputs(command = {}) {
         label: input.label || input.name || input.type,
         entityType: input.type,
         kind: 'entity',
-        required: false,
+        required: Boolean(input.required),
         prompt: input.prompt !== false,
         path: `entities.${input.name || input.type}`
       })),
@@ -1632,7 +1792,7 @@ function commandActionInputs(command = {}) {
       options: input.options || [],
       optionsFromEntity: input.optionsFromEntity || '',
       default: input.default ?? null,
-      required: false,
+      required: Boolean(input.required && input.default === undefined),
       prompt: input.display !== 'hidden',
       path: `parameters.${input.name}`,
       dataPath: `parameters.${input.name}`,
@@ -2468,7 +2628,7 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
     if (contract.derived && !contractInput) continue;
     inputsById.set(key, contractInput
       ? mergeConstructionInput(contractInput, input)
-      : { ...input, required: false }
+      : { ...input }
     );
   }
   return {
@@ -2485,7 +2645,7 @@ function isCanonicalBlockConstructionPath(path = '') {
 
 function normalizeConstructionInput(input = {}, domain = {}) {
   if (typeof input.creator?.attachmentKinds !== 'string') {
-    return { ...input, required: false };
+    return { ...input };
   }
   return {
     ...input,
@@ -2494,8 +2654,7 @@ function normalizeConstructionInput(input = {}, domain = {}) {
       attachmentKinds: Object.values(domain.attachmentKinds || {})
         .filter(kind => ['upload', 'capture', 'editor'].includes(kind.creation?.mode))
         .map(kind => ({ kind: kind.kind || kind.id, creation: kind.creation }))
-    },
-    required: false
+    }
   };
 }
 
@@ -2519,7 +2678,7 @@ function mergeConstructionInput(contractInput = {}, declaredInput = {}) {
     default: declaredInput.default ?? contractInput.default,
     value: declaredInput.value ?? contractInput.value,
     prompt: declaredInput.prompt ?? contractInput.prompt,
-    required: false
+    required: Boolean(declaredInput.required === true || contractInput.required === true)
   };
 }
 
@@ -2527,7 +2686,7 @@ function normalizeInputPolicy(inputPolicy = {}) {
   return {
     prompt: inputPolicy.prompt !== false,
     fields: Array.isArray(inputPolicy.fields)
-      ? inputPolicy.fields.map(field => ({ ...field, required: false }))
+      ? inputPolicy.fields.map(field => ({ ...field, required: field.required === true }))
       : []
   };
 }
@@ -2550,10 +2709,10 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
           ...(fieldsById.get(key) || {}),
           ...field
         };
-    if (merged.prompt || !constructionField) fieldsById.set(key, { ...merged, required: false });
+    if (merged.prompt || !constructionField) fieldsById.set(key, { ...merged });
     else fieldsById.delete(key);
   }
-  const fields = [...fieldsById.values()].map(field => ({ ...field, required: false }));
+  const fields = [...fieldsById.values()];
   return {
     prompt: inputPolicy.prompt !== false && fields.some(field => field.prompt),
     fields
