@@ -276,11 +276,24 @@ construction contract, so generated artifact actions open the file creator
 rather than the generic identity-name dialog.
 Domain construction contracts own structural input metadata during compilation:
 field id, label, path, type, and accepted entity types come from the current
-domain registry, not stale action snapshots. Process projections set every
-input `required: false`; stored graph inputs may keep non-structural values
-such as defaults but cannot make an input required. Queue creation therefore
-compiles to an empty queue shell action instead of blocking on cassette-design
-selection.
+domain registry, not stale action snapshots. Process projections preserve the
+domain-declared `required` flag through `socket()`, `normalizePortSpec`, and the
+compiler's derived-input projections; a construction or command input whose
+domain contract declares a `default` projects as non-required because that
+default satisfies it. Required inputs have exactly one availability contract,
+enforced at activation by `validateRequiredInputAvailability`: a required input
+is satisfied by a connected upstream value, an authored `inputDefaults`
+fallback, a domain-owned `default`, a generated manual prompt (manual actions
+only), or the run context (manual actions only). Activation rejects a required
+input with none of these sources; a prompt never satisfies an automatically
+evaluated data path, so an event-triggered effect must be complete without a
+UI prompt. Availability is validated after type/access inference: a required
+entity, block, array, attachment, enum, or construction input cannot be
+satisfied by an incompatible scalar fallback. Emptiness semantics are shared by
+fallbacks and defaults: `null`/`undefined` never satisfy; an empty collection
+or attachment never satisfies a required entity-list/attachment input; an
+empty string or zero satisfies a required primitive only where the domain type
+permits it.
 Relations composed by the process graph are executable process contracts even
 when they are not global CNC-domain relations. A manual effect that consumes a
 composed relation derives `Link <target>` for the owner action surface and a
