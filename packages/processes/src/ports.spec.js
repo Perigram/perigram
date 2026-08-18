@@ -5,8 +5,8 @@ describe('process programming node ports', () => {
   it('gives every string operation its actual input arity and scalar types', () => {
     expect(resolveProcessNodePorts({ kind: 'stringOp', operation: 'concat' })).toEqual({
       inputs: [
-        expect.objectContaining({ id: 'value', label: 'left', kind: 'string', required: false }),
-        expect.objectContaining({ id: 'right', kind: 'string', required: false })
+        expect.objectContaining({ id: 'value', label: 'left', kind: 'string', required: true }),
+        expect.objectContaining({ id: 'right', kind: 'string', required: true })
       ],
       outputs: [expect.objectContaining({ id: 'value', kind: 'string' })]
     });
