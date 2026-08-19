@@ -492,6 +492,17 @@ inputs flow through the block socket as a single replacement value
 (list/tree composition happens before the block socket), so the v4
 set-only semantics remain the only persistence mode.
 
+##### Agent Notes — 2026-08-19 (list/tree field sockets)
+
+The graph-level read-modify-write proof above now feeds both dynamic field
+sockets of `record.modifyBlock`: `identity.name` from a `source.literalList`
+and `identity.reference` from a `source.literalTree`, both composed before the
+block socket. The evaluator still emits one replacement identity block, so the
+block socket carries a single replace-only value into `effect.updateEntity`;
+`processUpdate` receives `identity.reference` alongside `identity.uid`,
+`identity.name`, and the preserved `identity.slug`, and the persisted entity
+retains the untouched slug while applying the list and tree values.
+
 ## P0 — complete persistence operations
 
 ### Create Entity
