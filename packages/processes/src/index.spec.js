@@ -487,12 +487,19 @@ describe('@cutkit/processes compiler', () => {
             mode: 'custom',
             workflow: {
               schemaVersion: 2,
-              primaryRegion: 'main',
+              primaryRegion: 'lifecycle',
+              contracts: { archive: { intent: 'archiveProject' } },
               regions: {
-                main: {
+                lifecycle: {
+                  label: 'Lifecycle',
                   initial: INITIAL_STATE,
                   states: { [INITIAL_STATE]: {}, [NEXT_STATE]: {} },
                   transitions: [{ from: INITIAL_STATE, to: NEXT_STATE }]
+                },
+                review: {
+                  initial: 'OPEN',
+                  states: { OPEN: {}, RESOLVED: {} },
+                  transitions: [{ from: 'OPEN', to: 'RESOLVED' }]
                 }
               }
             }
@@ -502,8 +509,71 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.workflows.project.regions.main.initial).toBe(INITIAL_STATE);
-    expect(compiled.workflows.project.regions.main.transitions[0]).toMatchObject({ from: INITIAL_STATE, to: NEXT_STATE });
+    const workflow = compiled.workflows.project;
+    expect(workflow.primaryRegion).toBe('lifecycle');
+    expect(workflow.contracts).toEqual({ archive: { intent: 'archiveProject' } });
+    expect(Object.keys(workflow.regions).sort()).toEqual(['lifecycle', 'review']);
+    expect(workflow.regions.lifecycle.label).toBe('Lifecycle');
+    expect(workflow.regions.lifecycle.initial).toBe(INITIAL_STATE);
+    expect(workflow.regions.lifecycle.transitions[0]).toMatchObject({ from: INITIAL_STATE, to: NEXT_STATE });
+    expect(workflow.regions.review.initial).toBe('OPEN');
+    expect(workflow.regions.review.transitions[0]).toMatchObject({ from: 'OPEN', to: 'RESOLVED' });
+  });
+
+  it('synthesizes action transitions into the primary region without dropping sibling regions', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      entityProfiles: {
+        projectMain: {
+          entityType: 'project',
+          lifecycle: {
+            mode: 'custom',
+            workflow: {
+              schemaVersion: 2,
+              primaryRegion: 'main',
+              regions: {
+                main: {
+                  initial: SOURCE_STATE,
+                  states: { [SOURCE_STATE]: {} },
+                  transitions: []
+                },
+                review: {
+                  initial: 'OPEN',
+                  states: { OPEN: {}, RESOLVED: {} },
+                  transitions: [{ from: 'OPEN', to: 'RESOLVED' }]
+                }
+              }
+            }
+          },
+          fields: { read: ['identity.*'], write: [], private: [] }
+        }
+      },
+      actions: {
+        advance_project: {
+          id: 'advance_project',
+          actionKind: 'updateEntity',
+          status: { from: SOURCE_STATE, to: TARGET_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
+          inputs: [{ id: 'entity', entityType: 'project', status: SOURCE_STATE }],
+          outputs: [{ id: 'entity', entityType: 'project', status: TARGET_STATE }]
+        }
+      }
+    }, domain);
+
+    const workflow = compiled.workflows.project;
+    expect(workflow.primaryRegion).toBe('main');
+    expect(Object.keys(workflow.regions).sort()).toEqual(['main', 'review']);
+    expect(workflow.regions.main.transitions).toContainEqual(expect.objectContaining({
+      from: SOURCE_STATE,
+      to: TARGET_STATE,
+      processRoleIds: ['role_operator']
+    }));
+    expect(workflow.regions.review.initial).toBe('OPEN');
+    expect(workflow.regions.review.states).toHaveProperty('RESOLVED');
+    expect(workflow.regions.review.transitions[0]).toMatchObject({ from: 'OPEN', to: 'RESOLVED' });
   });
 
   it('creates a CREATED-only workflow for defaultCreated lifecycle mode', () => {

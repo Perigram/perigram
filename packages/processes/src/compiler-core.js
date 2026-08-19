@@ -1018,7 +1018,7 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     if (!['createEntity', 'updateEntity'].includes(kind)) continue;
     const entityType = actionEntityType(action) || actionWindows.get(actionId)?.outputs?.[0]?.entityType || actionWindows.get(actionId)?.input?.entityType;
     if (!entityType) continue;
-    const builder = ensureWorkflowBuilder(builders, entityType);
+    const builder = primaryRegionBuilder(ensureWorkflowBuilder(builders, entityType));
 
     if (kind === 'createEntity') {
       const targetState = actionTargetState(action, process);
@@ -1044,18 +1044,20 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   }
 
   for (const [entityType, builder] of builders) {
-    if (!Object.keys(builder.states).length) continue;
-    applyStatusDefinitionMetadata(builder, entityType, process.statusDefinitions);
+    if (!Object.values(builder.regions).some(region => Object.keys(region.states).length)) continue;
+    for (const region of Object.values(builder.regions)) {
+      applyStatusDefinitionMetadata(region, entityType, process.statusDefinitions);
+    }
     workflows[entityType] = normalizeWorkflow({
+      ...builder.contracts,
       schemaVersion: 2,
-      primaryRegion: 'main',
-      regions: {
-        main: {
-          initial: builder.initial || Object.keys(builder.states)[0],
-          states: builder.states,
-          transitions: builder.transitions
-        }
-      }
+      primaryRegion: builder.primaryRegion,
+      regions: Object.fromEntries(Object.entries(builder.regions).map(([regionId, region]) => [regionId, {
+        ...region.contracts,
+        initial: region.initial || Object.keys(region.states)[0],
+        states: region.states,
+        transitions: region.transitions
+      }]))
     });
   }
 
@@ -1104,19 +1106,42 @@ function applyStatusDefinitionMetadata(builder, entityType, statusDefinitions = 
   }
 }
 
+const WORKFLOW_STRUCTURAL_KEYS = new Set(['schemaVersion', 'primaryRegion', 'initial', 'states', 'transitions', 'regions']);
+const REGION_STRUCTURAL_KEYS = new Set(['id', 'initial', 'states', 'transitions']);
+
+function carriedContracts(source = {}, structuralKeys) {
+  return Object.fromEntries(Object.entries(source).filter(([key]) => !structuralKeys.has(key)));
+}
+
 function workflowBuilderFromWorkflow(workflow = {}) {
-  const regionId = workflow.primaryRegion || 'main';
-  const region = workflow.regions?.[regionId] || {};
+  const sourceRegions = workflow.regions && typeof workflow.regions === 'object' ? workflow.regions : {};
+  const primaryRegion = workflow.primaryRegion || (sourceRegions.main ? 'main' : Object.keys(sourceRegions)[0]) || 'main';
+  const regions = {};
+  for (const [regionId, region] of Object.entries(sourceRegions)) {
+    regions[regionId] = {
+      contracts: carriedContracts(region, REGION_STRUCTURAL_KEYS),
+      initial: region.initial || '',
+      states: { ...(region.states || {}) },
+      transitions: [...(region.transitions || [])]
+    };
+  }
+  if (!Object.keys(regions).length) {
+    regions[primaryRegion] = { contracts: {}, initial: '', states: {}, transitions: [] };
+  }
   return {
-    initial: region.initial || '',
-    states: { ...(region.states || {}) },
-    transitions: [...(region.transitions || [])]
+    contracts: carriedContracts(workflow, WORKFLOW_STRUCTURAL_KEYS),
+    primaryRegion,
+    regions
   };
+}
+
+function primaryRegionBuilder(builder) {
+  return builder.regions[builder.primaryRegion] || Object.values(builder.regions)[0];
 }
 
 function ensureWorkflowBuilder(builders, entityType) {
   if (!builders.has(entityType)) {
-    builders.set(entityType, { initial: '', states: {}, transitions: [] });
+    builders.set(entityType, workflowBuilderFromWorkflow());
   }
   return builders.get(entityType);
 }
