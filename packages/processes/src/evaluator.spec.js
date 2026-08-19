@@ -237,4 +237,449 @@ describe('process v4 data execution', () => {
     );
     expect(composed.branches[0].items).toEqual([{ note: 'Ready', metrics: { quantity: 12 } }]);
   });
+
+  it('finds entities by field through the full mask path', async () => {
+    const entities = [
+      { identity: { name: 'Alpha' } },
+      { identity: { name: 'Beta' } },
+      { identity: { name: 'Gamma' } }
+    ];
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'project' },
+      {},
+      { queryEntities: async () => entities }
+    );
+    const blocks = await executeProcessDataNode(
+      { kind: 'record.getBlock', block: 'identity' },
+      { entity: selected }
+    );
+    const names = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'identity', path: 'identity.name' },
+      { block: blocks }
+    );
+    const mask = await executeProcessDataNode(
+      { kind: 'value.logic', operation: 'eq' },
+      { left: names, right: createDataPacket('Alpha') }
+    );
+    const found = await executeProcessDataNode(
+      { kind: 'collection.filter' },
+      { items: selected, mask }
+    );
+    expect(found.branches[0].items).toEqual([entities[0]]);
+  });
+
+  it('composes multiple Logic conditions without a second query language', async () => {
+    const entities = [
+      { identity: { name: 'Alpha' }, status: { state: { primary: 'NEW' } } },
+      { identity: { name: 'Alpha' }, status: { state: { primary: 'DONE' } } },
+      { identity: { name: 'Beta' }, status: { state: { primary: 'NEW' } } }
+    ];
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'project' },
+      {},
+      { queryEntities: async () => entities }
+    );
+    const fieldMask = async (block, path, operation, target) => {
+      const blocks = await executeProcessDataNode({ kind: 'record.getBlock', block }, { entity: selected });
+      const values = await executeProcessDataNode({ kind: 'record.getField', block, path }, { block: blocks });
+      return executeProcessDataNode({ kind: 'value.logic', operation }, { left: values, right: createDataPacket(target) });
+    };
+    const nameMask = await fieldMask('identity', 'identity.name', 'eq', 'Alpha');
+    const statusMask = await fieldMask('status', 'status.state.primary', 'eq', 'NEW');
+    const combined = await executeProcessDataNode(
+      { kind: 'value.logic', operation: 'and' },
+      { left: nameMask, right: statusMask }
+    );
+    const found = await executeProcessDataNode(
+      { kind: 'collection.filter' },
+      { items: selected, mask: combined }
+    );
+    expect(found.branches[0].items).toEqual([entities[0]]);
+  });
+
+  it('selects by status as a scalar primary status id', async () => {
+    const entities = [
+      { identity: { name: 'Alpha' }, status: { state: { primary: 'NEW' } } },
+      { identity: { name: 'Beta' }, status: { state: { primary: 'DONE' } } },
+      { identity: { name: 'Gamma' }, status: { state: { primary: 'DONE' } } }
+    ];
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'project' },
+      {},
+      { queryEntities: async () => entities }
+    );
+    const blocks = await executeProcessDataNode(
+      { kind: 'record.deconstruct', blocks: ['status'] },
+      { entity: selected },
+      { outputId: 'status' }
+    );
+    const statuses = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'status', path: 'status.state.primary' },
+      { block: blocks }
+    );
+    const mask = await executeProcessDataNode(
+      { kind: 'value.logic', operation: 'eq' },
+      { left: statuses, right: createDataPacket('DONE') }
+    );
+    const found = await executeProcessDataNode(
+      { kind: 'collection.filter' },
+      { items: selected, mask }
+    );
+    expect(found.branches[0].items).toEqual([entities[1], entities[2]]);
+  });
+
+  it('selects by typed entity-reference equality', async () => {
+    const entities = [
+      { relations: { library: { type: 'library', id: 'lib-a' } } },
+      { relations: { library: { type: 'library', id: 'lib-b' } } }
+    ];
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'project' },
+      {},
+      { queryEntities: async () => entities }
+    );
+    const blocks = await executeProcessDataNode(
+      { kind: 'record.getBlock', block: 'relations' },
+      { entity: selected }
+    );
+    const refs = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'relations', path: 'relations.library' },
+      { block: blocks }
+    );
+    const mask = await executeProcessDataNode(
+      { kind: 'value.logic', operation: 'eq' },
+      { left: refs, right: createDataPacket({ type: 'library', id: 'lib-a' }) }
+    );
+    const found = await executeProcessDataNode(
+      { kind: 'collection.filter' },
+      { items: selected, mask }
+    );
+    expect(found.branches[0].items).toEqual([entities[0]]);
+  });
+
+  it('returns an empty result when no entity matches the mask', async () => {
+    const entities = [{ identity: { name: 'Alpha' } }];
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'project' },
+      {},
+      { queryEntities: async () => entities }
+    );
+    const blocks = await executeProcessDataNode(
+      { kind: 'record.getBlock', block: 'identity' },
+      { entity: selected }
+    );
+    const names = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'identity', path: 'identity.name' },
+      { block: blocks }
+    );
+    const mask = await executeProcessDataNode(
+      { kind: 'value.logic', operation: 'eq' },
+      { left: names, right: createDataPacket('Nobody') }
+    );
+    const found = await executeProcessDataNode(
+      { kind: 'collection.filter' },
+      { items: selected, mask }
+    );
+    expect(found.branches[0].items).toEqual([]);
+  });
+
+  it('finds only records the read source authorized', async () => {
+    const all = [
+      { identity: { name: 'Alpha' } },
+      { identity: { name: 'Beta' } },
+      { identity: { name: 'Gamma' } }
+    ];
+    const authorized = [all[0], all[2]];
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'project' },
+      {},
+      { queryEntities: async () => authorized }
+    );
+    const blocks = await executeProcessDataNode(
+      { kind: 'record.getBlock', block: 'identity' },
+      { entity: selected }
+    );
+    const names = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'identity', path: 'identity.name' },
+      { block: blocks }
+    );
+    const mask = await executeProcessDataNode(
+      { kind: 'value.logic', operation: 'contains' },
+      { left: names, right: createDataPacket('a') }
+    );
+    const found = await executeProcessDataNode(
+      { kind: 'collection.filter' },
+      { items: selected, mask }
+    );
+    expect(found.branches[0].items).toEqual([all[0], all[2]]);
+  });
+
+  it('rejects a Filter mask whose item count mismatches the items', async () => {
+    const items = createDataPacket([{ id: 'a' }, { id: 'b' }], 'list');
+    const mask = createDataPacket([true], 'list');
+    await expect(executeProcessDataNode({ kind: 'collection.filter' }, { items, mask }))
+      .rejects.toThrow('one mask entry per item');
+  });
+
+  it('rejects a Dispatch mask whose branches mismatch the item branches', async () => {
+    const items = createDataPacket({ branches: [{ path: [0], items: [1, 2] }] }, 'tree');
+    const mask = createDataPacket({
+      branches: [{ path: [0], items: [true] }, { path: [1], items: [false] }]
+    }, 'tree');
+    await expect(executeProcessDataNode({ kind: 'collection.dispatch' }, { items, mask }))
+      .rejects.toThrow('one mask branch per item branch');
+  });
+
+  it('dispatches items into matched branches using the aligned mask', async () => {
+    const items = createDataPacket([{ id: 'a' }, { id: 'b' }, { id: 'c' }], 'list');
+    const mask = createDataPacket([true, false, true], 'list');
+    const kept = await executeProcessDataNode(
+      { kind: 'collection.dispatch' },
+      { items, mask },
+      { outputId: 'true' }
+    );
+    expect(kept.branches[0].items).toEqual([{ id: 'a' }, { id: 'c' }]);
+  });
+
+  it('pins scalar enum and structural typed-reference equality', async () => {
+    const enumEqual = await executeProcessDataNode(
+      { kind: 'value.compare', operation: 'eq' },
+      { left: createDataPacket('RED'), right: createDataPacket('RED') }
+    );
+    const refEqual = await executeProcessDataNode(
+      { kind: 'value.compare', operation: 'eq' },
+      { left: createDataPacket({ type: 'library', id: 'lib-a' }), right: createDataPacket({ type: 'library', id: 'lib-a' }) }
+    );
+    const refDifferent = await executeProcessDataNode(
+      { kind: 'value.compare', operation: 'eq' },
+      { left: createDataPacket({ type: 'library', id: 'lib-a' }), right: createDataPacket({ type: 'library', id: 'lib-b' }) }
+    );
+    expect(enumEqual.branches[0].items).toEqual([true]);
+    expect(refEqual.branches[0].items).toEqual([true]);
+    expect(refDifferent.branches[0].items).toEqual([false]);
+  });
+
+  it('sorts items by a strictly aligned key list in both directions', async () => {
+    const items = createDataPacket(['beta', 'alpha', 'gamma'], 'list');
+    const keys = createDataPacket([2, 1, 3], 'list');
+
+    const ascending = await executeProcessDataNode(
+      { kind: 'collection.sort', direction: 'asc' },
+      { items, keys }
+    );
+    const descending = await executeProcessDataNode(
+      { kind: 'collection.sort', direction: 'desc' },
+      { items, keys }
+    );
+
+    expect(ascending.branches[0].items).toEqual(['alpha', 'beta', 'gamma']);
+    expect(descending.branches[0].items).toEqual(['gamma', 'beta', 'alpha']);
+  });
+
+  it('defaults sort to ascending and keeps equal keys stable with nulls last', async () => {
+    const items = createDataPacket(['a', 'b', 'c', 'd'], 'list');
+    const keys = createDataPacket([null, 2, 2, 1], 'list');
+
+    const sorted = await executeProcessDataNode(
+      { kind: 'collection.sort' },
+      { items, keys }
+    );
+
+    expect(sorted.branches[0].items).toEqual(['d', 'b', 'c', 'a']);
+  });
+
+  it('rejects a Sort key list whose length mismatches the items', async () => {
+    const items = createDataPacket(['a', 'b'], 'list');
+    const keys = createDataPacket([1], 'list');
+    await expect(executeProcessDataNode({ kind: 'collection.sort' }, { items, keys }))
+      .rejects.toThrow('one mask entry per item');
+  });
+
+  it('sorts by a date field then slices the most recent ten', async () => {
+    const entities = Array.from({ length: 12 }, (_, index) => ({
+      identity: { name: `job-${index}` },
+      data: { updatedAt: `2026-08-${String(11 - index).padStart(2, '0')}T00:00:00.000Z` }
+    }));
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'job' },
+      {},
+      { queryEntities: async () => entities }
+    );
+    const blocks = await executeProcessDataNode(
+      { kind: 'record.getBlock', block: 'data' },
+      { entity: selected }
+    );
+    const dates = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'data', path: 'data.updatedAt' },
+      { block: blocks }
+    );
+    const sorted = await executeProcessDataNode(
+      { kind: 'collection.sort', direction: 'desc' },
+      { items: selected, keys: dates }
+    );
+    const windowed = await executeProcessDataNode(
+      { kind: 'collection.slice' },
+      { items: sorted, end: createDataPacket(10) }
+    );
+
+    expect(windowed.branches[0].items).toHaveLength(10);
+    expect(windowed.branches[0].items.map(item => item.identity.name)).toEqual(
+      Array.from({ length: 10 }, (_, index) => `job-${index}`)
+    );
+  });
+
+  it('deduplicates entities by an aligned reference key without losing values', async () => {
+    const entities = [
+      { relations: { library: { type: 'library', id: 'lib-a' } } },
+      { relations: { library: { type: 'library', id: 'lib-b' } } },
+      { relations: { library: { type: 'library', id: 'lib-a' } } }
+    ];
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'project' },
+      {},
+      { queryEntities: async () => entities }
+    );
+    const blocks = await executeProcessDataNode(
+      { kind: 'record.getBlock', block: 'relations' },
+      { entity: selected }
+    );
+    const refs = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'relations', path: 'relations.library' },
+      { block: blocks }
+    );
+    const unique = await executeProcessDataNode(
+      { kind: 'collection.distinct' },
+      { items: selected, keys: refs }
+    );
+
+    expect(unique.branches[0].items).toEqual([entities[0], entities[1]]);
+  });
+
+  it('deduplicates the items themselves when Distinct has no keys', async () => {
+    const values = createDataPacket(['a', 'b', 'a', 'c', 'b'], 'list');
+    const unique = await executeProcessDataNode(
+      { kind: 'collection.distinct' },
+      { items: values }
+    );
+
+    expect(unique.branches[0].items).toEqual(['a', 'b', 'c']);
+  });
+
+  it('groups entities by an aligned status key preserving source branch paths', async () => {
+    const entities = [
+      { status: { state: { primary: 'NEW' } }, identity: { name: 'a' } },
+      { status: { state: { primary: 'DONE' } }, identity: { name: 'b' } },
+      { status: { state: { primary: 'NEW' } }, identity: { name: 'c' } }
+    ];
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'project' },
+      {},
+      { queryEntities: async () => entities }
+    );
+    const blocks = await executeProcessDataNode(
+      { kind: 'record.getBlock', block: 'status' },
+      { entity: selected }
+    );
+    const statuses = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'status', path: 'status.state.primary' },
+      { block: blocks }
+    );
+    const grouped = await executeProcessDataNode(
+      { kind: 'collection.groupBy' },
+      { items: selected, keys: statuses }
+    );
+
+    expect(grouped.branches.map(branch => branch.path)).toEqual([[0], [1]]);
+    expect(grouped.branches[0].items.map(item => item.identity.name)).toEqual(['a', 'c']);
+    expect(grouped.branches[1].items.map(item => item.identity.name)).toEqual(['b']);
+  });
+
+  it('rejects a Group By key list whose length mismatches the items', async () => {
+    const items = createDataPacket(['a', 'b'], 'list');
+    const keys = createDataPacket(['x'], 'list');
+    await expect(executeProcessDataNode({ kind: 'collection.groupBy' }, { items, keys }))
+      .rejects.toThrow('one mask entry per item');
+  });
+
+  it('resolves Item At with negative, out-of-range, empty, and absent indices', async () => {
+    const items = createDataPacket([{ id: 'first' }, { id: 'middle' }, { id: 'last' }], 'list');
+
+    const first = await executeProcessDataNode(
+      { kind: 'collection.itemAt' },
+      { items, index: createDataPacket(0) }
+    );
+    const last = await executeProcessDataNode(
+      { kind: 'collection.itemAt' },
+      { items, index: createDataPacket(-1) }
+    );
+    const outOfRange = await executeProcessDataNode(
+      { kind: 'collection.itemAt' },
+      { items, index: createDataPacket(5) }
+    );
+    const absent = await executeProcessDataNode(
+      { kind: 'collection.itemAt' },
+      { items }
+    );
+    const empty = await executeProcessDataNode(
+      { kind: 'collection.itemAt' },
+      { items: createDataPacket([], 'list'), index: createDataPacket(0) }
+    );
+
+    expect(first.branches[0].items).toEqual([{ id: 'first' }]);
+    expect(last.branches[0].items).toEqual([{ id: 'last' }]);
+    expect(outOfRange.branches[0].items).toEqual([null]);
+    expect(absent.branches[0].items).toEqual([null]);
+    expect(empty.branches[0].items).toEqual([null]);
+  });
+
+  it('slices with negative and empty-list semantics', async () => {
+    const items = createDataPacket(['a', 'b', 'c'], 'list');
+
+    const tail = await executeProcessDataNode(
+      { kind: 'collection.slice' },
+      { items, start: createDataPacket(-2) }
+    );
+    const empty = await executeProcessDataNode(
+      { kind: 'collection.slice' },
+      { items: createDataPacket([], 'list'), start: createDataPacket(0) }
+    );
+
+    expect(tail.branches[0].items).toEqual(['b', 'c']);
+    expect(empty.branches[0].items).toEqual([]);
+  });
+
+  it('returns the first matching entity by composing Filter then Item At', async () => {
+    const entities = [
+      { identity: { name: 'Alpha' }, status: { state: { primary: 'NEW' } } },
+      { identity: { name: 'Beta' }, status: { state: { primary: 'DONE' } } },
+      { identity: { name: 'Gamma' }, status: { state: { primary: 'DONE' } } }
+    ];
+    const selected = await executeProcessDataNode(
+      { kind: 'read.queryEntities', entityType: 'project' },
+      {},
+      { queryEntities: async () => entities }
+    );
+    const blocks = await executeProcessDataNode(
+      { kind: 'record.getBlock', block: 'status' },
+      { entity: selected }
+    );
+    const statuses = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'status', path: 'status.state.primary' },
+      { block: blocks }
+    );
+    const mask = await executeProcessDataNode(
+      { kind: 'value.logic', operation: 'eq' },
+      { left: statuses, right: createDataPacket('DONE') }
+    );
+    const matching = await executeProcessDataNode(
+      { kind: 'collection.filter' },
+      { items: selected, mask }
+    );
+    const first = await executeProcessDataNode(
+      { kind: 'collection.itemAt' },
+      { items: matching, index: createDataPacket(0) }
+    );
+
+    expect(first.branches[0].items).toEqual([entities[1]]);
+  });
 });

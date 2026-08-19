@@ -118,6 +118,32 @@ describe('process designer domain contract', () => {
     expect(contract.archivableEntityOptions).toEqual([]);
   });
 
+  it('gates list and get-by-id entity choices by the serialized capability projection', () => {
+    const contract = createProcessDesignerContract(domain, {
+      work_item: { list: true, getById: true },
+      result: { list: false, getById: true }
+    });
+
+    expect(contract.listableEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.readableEntityOptions).toEqual([
+      { label: 'Work item', value: 'work_item' },
+      { label: 'result', value: 'result' }
+    ]);
+  });
+
+  it('falls back to every entity for read choices when no capability projection is loaded', () => {
+    const contract = createProcessDesignerContract(domain);
+
+    expect(contract.listableEntityOptions).toEqual([
+      { label: 'Work item', value: 'work_item' },
+      { label: 'result', value: 'result' }
+    ]);
+    expect(contract.readableEntityOptions).toEqual([
+      { label: 'Work item', value: 'work_item' },
+      { label: 'result', value: 'result' }
+    ]);
+  });
+
   it('derives create options and modes from a serialized capability projection when present', () => {
     const contract = createProcessDesignerContract(domain, {
       work_item: { createModes: ['genericCreate'] },
@@ -179,7 +205,13 @@ describe('process designer domain contract', () => {
       'effect.updateEntity',
       'effect.runCommand',
       'statusDefinition',
+      'read.currentEntity',
+      'read.entityById',
+      'read.resolveEntityRef',
       'read.queryEntities',
+      'read.parent',
+      'read.children',
+      'read.related',
       'record.deconstruct',
       'record.composeBlock',
       'record.modifyBlock',

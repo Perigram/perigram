@@ -30,12 +30,12 @@
       </div>
       <Select
         v-if="operationOptions.length"
-        :model-value="record.operation"
+        :model-value="operationValue"
         :options="operationOptions"
         option-label="label"
         option-value="value"
         size="small"
-        @update:model-value="value => update({ operation: value })"
+        @update:model-value="updateOperation"
       />
       <Select
         v-if="record.kind === 'control.domainEventTrigger'"
@@ -322,6 +322,16 @@ const accent = computed(() => {
 
 function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
+}
+
+const operationValue = computed(() => (
+  record.value.kind === 'collection.sort'
+    ? record.value.direction || 'asc'
+    : record.value.operation
+));
+
+function updateOperation(value) {
+  update(record.value.kind === 'collection.sort' ? { direction: value } : { operation: value });
 }
 
 function updateEffectTriggerMode(mode) {

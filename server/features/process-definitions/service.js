@@ -42,6 +42,11 @@ import {
   validateActivatableProcess
 } from './compiler-adapter.js';
 import { executeManualRun, resumeDueRuns as resumeStoredRuns } from './run-repository.js';
+import {
+  processChildEntities,
+  processParentEntity,
+  processRelatedEntities
+} from './entity-sources.js';
 
 export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
@@ -505,10 +510,10 @@ export async function resolveProcessGraphEntity(entityType, candidate, { entityI
   return entity?.toJSON ? entity.toJSON() : entity;
 }
 
-async function queryProcessGraphEntities(entityType, auth = {}) {
+async function queryProcessGraphEntities(entityType, filters = {}, auth = {}) {
   const service = getAppRegistry().getEntityService(entityType);
   if (!service?.processList) throw new Error(`Entity service cannot query ${entityType} from a process`);
-  const entities = await service.processList({}, auth);
+  const entities = await service.processList(filters, auth);
   return (entities || []).map(entity => entity?.toJSON ? entity.toJSON() : entity);
 }
 
@@ -986,6 +991,9 @@ function setByPath(target, path, value) {
 }
 
 function processDataEnvironment(auth, run) {
+  const domain = getDomain();
+  const resolveEntity = (entityType, idOrRef) => resolveProcessGraphEntity(entityType, idOrRef, { auth });
+  const queryEntities = (entityType, filters) => queryProcessGraphEntities(entityType, filters, auth);
   return {
     currentEntity: async entityType => {
       const candidate = run.context?.inputs?.entities?.[entityType] || run.context?.inputs?.entity;
@@ -993,8 +1001,11 @@ function processDataEnvironment(auth, run) {
     },
     entityById: (entityType, id) => resolveProcessGraphEntity(entityType, id, { auth }),
     resolveEntityRef: ref => resolveProcessGraphEntity(ref.type, ref, { auth }),
+    parentEntity: (entity, entityType) => processParentEntity(domain.containment, resolveEntity, entity, entityType),
+    childEntities: (entity, entityType) => processChildEntities(domain.containment, queryEntities, entity, entityType),
+    relatedEntities: (entity, relationKey, entityType) => processRelatedEntities(domain.relations, resolveEntity, entity, relationKey, entityType),
     queryEntities: async (entityType, predicate) => {
-      const values = await queryProcessGraphEntities(entityType, auth);
+      const values = await queryProcessGraphEntities(entityType, {}, auth);
       if (!predicate) return values;
       return values.filter(entity => evaluateEntityPredicate(predicate, entity));
     }
