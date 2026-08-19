@@ -721,6 +721,25 @@ first and third checkboxes are already satisfied by existing architecture.
 
 ## P1 — make organization scope authorable and reviewable
 
+### Agent Notes
+
+- 2026-08-19: Bullet 3 (derived role summary with contributor labels) is
+  partially implemented: `shared/role-access-summary.js` now provides one
+  annotated derived-summary implementation covering entity profiles, screens,
+  actions, and workflow transitions, with every line naming its contributing
+  record (authored grant, screen-derived grant from `screen.required`,
+  status-window rule, or level fallback). The Team page role dialog
+  (`pages/organization/users.vue`) renders from it and no longer carries a
+  local `derivedRoleAccessSummary`; transition lines come from the compiled
+  workflow contract of the active process. Remaining for the bullet: swap the
+  process designer's local `roleAccessSummary` in
+  `pages/organization/process.vue` onto the same shared implementation so both
+  surfaces consume one source. Other bullets in this section were reviewed and
+  remain open (typed grant-dimension controls, silent screen-derived grants,
+  complete `$assignment` binding discovery, assignment preview explanations,
+  access test matrix); the roles-as-identities bullet is already enforced by
+  compiler/spec invariants and reads as a keep constraint.
+
 - [ ] Expose the access engine's real grant dimensions in typed controls where
   the process needs them: feature/level, entity or lineage scope, allowed
   actions, status windows, transitions, and composable rules. Do not use raw

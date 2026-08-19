@@ -158,7 +158,7 @@
                     <div>
                         <small class="text-muted-color">{{ $t('auth.permissions') }}</small>
                         <div class="mt-1 flex flex-wrap gap-1">
-                            <Tag v-for="item in selectedUserAccessSummary" :key="item" :value="item" severity="secondary" size="small" />
+                            <Tag v-for="line in selectedUserAccessSummary" :key="line.key" :value="`${line.text} · ${line.contributor.label}`" severity="secondary" size="small" />
                             <Tag v-if="!selectedUserAccessSummary.length" :value="$t('organization.noProcessAccess')" severity="secondary" size="small" />
                         </div>
                     </div>
@@ -205,6 +205,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import { useEntity } from '~/composables/useEntity';
+import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
 definePageMeta({
   layout: 'app',
@@ -236,8 +237,11 @@ const selectedUserAccess = computed(() => {
     const userId = String(selectedUser.value?._id || selectedUser.value?.id || '');
     return organizationRoleAssignments.value[userId] || null;
 });
-const selectedRoleDerivedAccessSummary = computed(() => derivedRoleAccessSummary(roleAssignment.value.roleIds));
-const selectedUserAccessSummary = computed(() => selectedRoleDerivedAccessSummary.value);
+const selectedRoleDerivedAccessSummary = computed(() => deriveRoleAccessSummary({
+    process: activeProcess.value,
+    roleIds: roleAssignment.value.roleIds
+}));
+const selectedUserAccessSummary = computed(() => flattenRoleAccessSummary(selectedRoleDerivedAccessSummary.value));
 const selectedUserScreens = computed(() => previewScreensForRoles(roleAssignment.value.roleIds, roleAssignment.value.bindings));
 const selectedUserIncompleteBindings = computed(() => selectedUserAccess.value?.incompleteBindings || []);
 const assignmentBindingFields = computed(() => requiredAssignmentBindings(roleAssignment.value.roleIds));
@@ -481,55 +485,6 @@ function collectAssignmentKeys(value, keys) {
 
 function screenAppliesToRoles(screen = {}, roleIds = []) {
     return !screen.roleIds?.length || roleIds.some(roleId => screen.roleIds.includes(roleId));
-}
-
-function derivedRoleAccessSummary(roleIds = []) {
-    const items = [];
-    const roleSet = new Set(roleIds);
-    for (const profile of Object.values(activeProcess.value?.data?.entityProfiles || {})) {
-        for (const level of ['read', 'write', 'admin']) {
-            if ((profile.allowedRoles?.[level] || []).some(roleId => roleSet.has(roleId))) items.push(`${profile.entityType}:${level}`);
-        }
-    }
-    for (const screen of Object.values(activeProcess.value?.data?.screens || {})) {
-        if (screenAppliesToRoles(screen, roleIds)) items.push(`${screen.required?.feature || screen.id}:${screen.required?.level || 'screen'}`);
-    }
-    for (const action of Object.values(activeProcess.value?.data?.actions || {})) {
-        if ((action.access?.roleIds || []).some(roleId => roleSet.has(roleId))) {
-            const summary = actionAccessSummary(action);
-            if (summary) items.push(summary);
-        }
-    }
-    return [...new Set(items)];
-}
-
-function actionAccessSummary(action = {}) {
-    const entityType = actionEntityType(action);
-    if (action.actionKind === 'updateEntity' && !entityType) return '';
-    const status = actionTargetStatus(action);
-    const subject = entityType || action.label || action.id || action.actionKind;
-    return [
-        [subject, normalizeAccessLevel(action.access?.level)].filter(Boolean).join(':'),
-        status ? `when ${status}` : ''
-    ].filter(Boolean).join(' ');
-}
-
-function actionEntityType(action = {}) {
-    return action.entityType
-        || action.outputs?.find(output => output.entityType)?.entityType
-        || action.inputs?.find(input => input.entityType)?.entityType
-        || '';
-}
-
-function actionTargetStatus(action = {}) {
-    return action.access?.statusTo
-        || action.status?.to
-        || action.outputs?.find(output => typeof output.status === 'string')?.status
-        || '';
-}
-
-function normalizeAccessLevel(level) {
-    return ['read', 'write', 'admin'].includes(level) ? level : 'write';
 }
 
 function previewScreensForRoles(roleIds = [], bindings = {}) {
