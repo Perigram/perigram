@@ -951,7 +951,7 @@ import {
   requiredEntityProfileTypes,
   resolveCatalogNodePorts
 } from '~/packages/processes/src/index.js';
-import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
+import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain } from '@cutkit/domain-cnc';
 import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
@@ -1138,7 +1138,7 @@ const screenTemplateOptions = SCREEN_TEMPLATES
   .map(value => ({ label: value, value }));
 const screenSourceModeOptions = SCREEN_SOURCE_MODES.map(value => ({ label: value, value }));
 const screenSlotOptions = SCREEN_REGION_SLOTS.map(value => ({ label: value, value }));
-const screenSurfaceOptions = ['card', 'compact', 'detail', 'table', 'workspace'].map(value => ({ label: value, value }));
+const screenSurfaceOptions = SCREEN_REGION_SURFACES.map(value => ({ label: value, value }));
 const screenPlacementOptions = [
   { label: 'hub', value: 'hub' },
   { label: 'detail', value: 'detail' },
