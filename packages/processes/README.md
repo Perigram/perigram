@@ -90,7 +90,13 @@ Process lifecycle profiles and action nodes compile directly to normalized
 workflow, but action-only graphs also synthesize workflows: create actions add
 their target status as a state, and status-mutating `updateEntity` actions add
 transitions with the process role ids and entity access requirements from the
-action grant.
+action grant. Compilation preserves the authored workflow structure: every
+region in `workflow.regions` round-trips through compilation with its states,
+transitions, and region-level metadata, the source `primaryRegion` is kept, and
+workflow-level contracts (any top-level keys beyond the v2 structural fields)
+are carried into the emitted machine. Synthesized action states and transitions
+always land in the primary region; sibling regions pass through unchanged.
+Compilation never collapses a multi-region workflow into `regions.main`.
 Runtime adapters must not treat lifecycle data as visual-only metadata.
 
 `src/templates.js` contains starter process templates for organization

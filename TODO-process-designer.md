@@ -673,7 +673,7 @@ decision.
 - [ ] Keep initial status on Create and workflow transition on existing
   entities as separate typed operations. Status changes must use the status
   engine, transition authorization, lifecycle evidence, and history.
-- [ ] Fix workflow compilation so every authored v2 region, state, transition,
+- [x] Fix workflow compilation so every authored v2 region, state, transition,
   hook, lifecycle schema, and access contract is preserved. Never collapse a
   multi-region workflow into `regions.main`.
 - [ ] Model archive through a domain workflow state/intent when that is the
@@ -686,6 +686,38 @@ decision.
 - [ ] Test multi-region status changes, evidence-required transitions,
   archive, denied transitions, deletable and non-deletable types, and collection
   inputs.
+
+#### Agent Notes
+
+2026-08-19 — completed the workflow-compilation checkbox above; verified the
+first and third checkboxes are already satisfied by existing architecture.
+
+- Region preservation: `packages/processes/src/compiler-core.js`
+  `workflowBuilderFromWorkflow` now seeds a builder per region in
+  `workflow.regions` instead of reading only the primary region, and
+  `compileWorkflows` re-emits every region with the source `primaryRegion` and
+  carries workflow-level contracts (top-level keys beyond the v2 structural
+  fields) plus region-level metadata into the emitted machine. Synthesized
+  action states/transitions land in the primary region; sibling regions pass
+  through unchanged. Coverage: `packages/processes/src/index.spec.js` asserts
+  the full region map, `primaryRegion`, and workflow-level contracts for custom
+  lifecycles, and that action-synthesized transitions do not drop sibling
+  regions. See [packages/processes/README.md](./packages/processes/README.md).
+- Create-vs-transition separation (first checkbox) is already satisfied: the
+  node catalog has a dedicated `effect.changeStatus` node distinct from create
+  (`packages/processes/src/node-catalog.js`); runtime creation calls
+  `statusService.setInitialStateForOrganization` and transitions call
+  `statusService.transitionWithResult` with source `process-run`
+  (`server/features/process-definitions/service.js`), i.e. through the status
+  engine with hooks, lifecycle validation, and `status_events` history per
+  [server/core/machines/README.md](./server/core/machines/README.md).
+- Archive-as-state (third checkbox) is already satisfied structurally:
+  `packages/processes/src/capabilities.js` derives archive only when the runtime
+  binding allows it and a workflow region has an `ARCHIVED` state, the designer
+  exposes `archivableEntityOptions`, and archive executes as a normal status
+  transition to `ARCHIVED` through the status engine — never as hard deletion.
+  A dedicated archive intent node and an end-to-end archive spec remain open
+  under the test checkbox below.
 
 ## P1 — make organization scope authorable and reviewable
 
