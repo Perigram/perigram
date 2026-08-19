@@ -13,6 +13,33 @@ source choices are scoped by the opened owner, compiled process Lineage
 bindings, declared relations, and derivation provenance; the component never
 substitutes a global entity list for that scoped contract.
 
+## Manual Prompt Forms
+
+`GeneratedScreen.vue` maps each prompted action field to a shared typed
+control keyed purely off the field type: `entity`/`entityList` use the shared
+entity pickers, `enum` uses a Select over the declared options, `boolean` uses
+a ToggleSwitch, `date`/`dateTime` use a DatePicker (time selection only for
+`dateTime`), `number`/text use InputText, and `object`/`json` use
+`GeneratedObjectInput.vue`. Boolean and date prompt values are tri-state: an
+untouched field stays `null` and is omitted from the submission payload
+instead of being coerced to `false` or the current time; once touched, the
+control submits a real boolean or an ISO string (`YYYY-MM-DD` for `date`,
+full ISO for `dateTime`).
+
+`GeneratedObjectInput.vue` is the generic structured editor for `object`/`json`
+prompt fields. When the field carries a JSON schema with declared
+`properties` that cover every key of the current value, it renders one typed
+row per property (InputText for string/number, yes/no Select for boolean,
+Select for `enum`; nested object/array values edit as single-line JSON text
+and are parsed back on emit). Otherwise it renders add/removable key/value
+rows, coercing each value through `JSON.parse` with a plain-string fallback.
+Empty or missing keys and empty values are omitted from the emitted object.
+The raw JSON textarea remains only as a fallback for values that do not fit
+the structured model (non-object values or unparseable JSON strings). The
+editor derives everything from the field type and schema; domain-specific
+editors (for example cassette parameters or artifact template values) stay in
+`GeneratedScreen.vue` and must not be folded into it.
+
 ## Overload Registry
 
 `overloads.js` owns app default overloads for generated surfaces. Overloads are

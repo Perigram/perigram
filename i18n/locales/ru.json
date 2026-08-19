@@ -2885,6 +2885,8 @@
       "replaceArtifactFile": "Заменить файл",
       "artifactFileRequired": "Выберите файл для загрузки.",
       "artifactUploadFailed": "Не удалось загрузить артефакт.",
-    "noOptions": "Нет доступных вариантов для {field}"
+    "noOptions": "Нет доступных вариантов для {field}",
+    "objectKey": "Ключ",
+    "objectValue": "Значение"
   }
 }
