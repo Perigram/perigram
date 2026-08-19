@@ -5,6 +5,7 @@ export * from './normalization.js';
 export * from './validation.js';
 export * from './action-compilation.js';
 export * from './screen-compilation.js';
+export * from './screen-contract.js';
 export * from './access-compilation.js';
 export * from './hierarchy-projection.js';
 export {
