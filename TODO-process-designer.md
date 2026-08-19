@@ -786,9 +786,15 @@ first and third checkboxes are already satisfied by existing architecture.
   process action manifest, `workspaceLanes` slot/cardinality violations, and
   statically unresolvable screen bindings (screen-contract.js:51-172;
   screen-contract.spec.js; Agent Notes below).
-- [ ] Generate manual CRUD forms from unconnected promptable inputs with shared
-  typed controls. Entity refs/lists use entity pickers; scalar, enum, date,
-  number, Boolean, and schema fields use ordinary PrimeVue controls.
+- [x] DONE 2026-08-20 — Generate manual CRUD forms from unconnected promptable
+  inputs with shared typed controls. Entity refs/lists use entity pickers;
+  scalar, enum, date, number, Boolean, and schema fields use ordinary PrimeVue
+  controls. Boolean prompt fields now render a ToggleSwitch, date/dateTime
+  fields a DatePicker (time only for dateTime), and object/json fields the new
+  generic `GeneratedObjectInput` structured editor (schema-driven typed rows,
+  key/value rows otherwise, raw JSON textarea only as fallback)
+  (components/generated/GeneratedScreen.vue:160-176, 568-580, 756-785;
+  components/generated/GeneratedObjectInput.vue; Agent Notes below).
 - [ ] Refresh or patch every affected generated source after mapped create,
   modify, status, relation, or delete results. Do not require a full page reload
   to observe a successful procedural action.
@@ -859,6 +865,43 @@ pre-existing unrelated failure: "rejects activation when the authored graph
 is not the current protocol" fails with "Permission denied" on the base
 checkout too). Architecture contract documented in
 packages/processes/README.md (screen records section).
+
+### Agent Notes — 2026-08-20 (typed prompt controls)
+
+Session scope: checkbox 5 (generated typed CRUD forms) only; the remaining
+open checkboxes (1-3, 6-7) are designer-UI and browser-test concerns outside
+this session's assignment.
+
+5. **Generated typed CRUD forms — DONE (this session).** The per-type control
+   mapping in `components/generated/GeneratedScreen.vue` was extended in
+   place, following the established convention and the `ProcessNode.vue`
+   literal-input precedent (ToggleSwitch for boolean, DatePicker with
+   `show-time` for dateTime, `hour-format="24"`). No new domain-specific
+   hardcoded cases were added; every control is keyed purely off field
+   type/schema. Decisions on the two deferred refinements:
+   - **Boolean tri-state:** untouched boolean fields initialize to `null`
+     and are omitted from the submission payload; the ToggleSwitch resolves
+     to a real boolean only once touched. This avoids silently posting
+     `false` over server-side state on update actions.
+   - **Object-editor nesting/coercion:** `GeneratedObjectInput.vue` renders
+     schema-driven typed rows when the field carries a JSON schema whose
+     declared properties cover the current value, otherwise add/removable
+     key/value rows. Nesting is handled by single-line JSON text at the leaf
+     level (parsed back on emit), not recursive rows; scalar coercion is
+     `JSON.parse` with plain-string fallback. The raw JSON textarea remains
+     only for values that do not fit the structured model (non-object or
+     unparseable). Empty object values are now omitted from submission
+     instead of posting `{}`.
+   Relation-creator inline fields (the embedded create-related-entity form)
+   keep their existing InputText fallback; they are a separate special-case
+   surface and were out of scope.
+
+Validation: `npx vitest run components/generated` (41 passed); SFC compile
+check for both touched components; `npx vitest run shared/localization.spec.js`
+(3 passed, 1 pre-existing failure covering only untouched files:
+FacadeDesigner.vue, QueueEditor.vue, SheetDesignEditor.vue, ui-lab.vue);
+`node scripts/check-docs.js` (passed). Control contract documented in
+components/generated/README.md (Manual Prompt Forms section).
 
 ## P1 — validation and diagnostics
 
