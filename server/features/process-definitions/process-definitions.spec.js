@@ -118,7 +118,7 @@ describe('current process-definition service contract', () => {
     expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
   });
 
-  it('persists a deconstruct -> modify block -> update entity read-modify-write chain through processUpdate', async () => {
+  it('persists a deconstruct -> modify block -> update entity read-modify-write chain through processUpdate with list and tree field inputs', async () => {
     const machine = {
       type: 'machine',
       id: 'machine-1',
@@ -155,13 +155,15 @@ describe('current process-definition service contract', () => {
       expect.objectContaining({
         'identity.uid': 'machine-1',
         'identity.name': 'Renamed machine',
-        'identity.slug': 'cnc-router'
+        'identity.slug': 'cnc-router',
+        'identity.reference': { code: 'M-01', location: 'Hall A' }
       }),
       expect.objectContaining({ userId: 'admin', organizationId: 'org-acceptance' })
     );
     const persisted = await processUpdate.mock.results[0].value;
     expect(persisted.identity.name).toBe('Renamed machine');
     expect(persisted.identity.slug).toBe('cnc-router');
+    expect(persisted.identity.reference).toEqual({ code: 'M-01', location: 'Hall A' });
   });
 });
 
@@ -170,7 +172,7 @@ function readModifyWriteProcessData() {
     schemaVersion: 1,
     dataflowVersion: PROCESS_DATAFLOW_VERSION,
     graph: {
-      nodes: ['deconstruct', 'names', 'modify', 'update'].map(id => ({
+      nodes: ['deconstruct', 'names', 'refs', 'modify', 'update'].map(id => ({
         id,
         type: 'processNode',
         position: { x: 0, y: 0 },
@@ -194,6 +196,14 @@ function readModifyWriteProcessData() {
           role: 'data'
         },
         {
+          id: 'refs-modify',
+          source: 'refs',
+          sourceHandle: 'data:value',
+          target: 'modify',
+          targetHandle: 'data:identity.reference',
+          role: 'data'
+        },
+        {
           id: 'modify-update',
           source: 'modify',
           sourceHandle: 'data:block',
@@ -213,7 +223,18 @@ function readModifyWriteProcessData() {
     processNodes: {
       deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'machine', blocks: ['identity'] },
       names: { id: 'names', kind: 'source.literalList', access: 'list', value: ['Renamed machine'] },
-      modify: { id: 'modify', kind: 'record.modifyBlock', block: 'identity', fields: ['identity.name'] },
+      refs: {
+        id: 'refs',
+        kind: 'source.literalTree',
+        access: 'tree',
+        value: { branches: [{ path: [], items: [{ code: 'M-01', location: 'Hall A' }] }] }
+      },
+      modify: {
+        id: 'modify',
+        kind: 'record.modifyBlock',
+        block: 'identity',
+        fields: ['identity.name', 'identity.reference']
+      },
       update: {
         id: 'update',
         kind: 'effect.updateEntity',
