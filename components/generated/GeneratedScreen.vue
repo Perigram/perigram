@@ -157,11 +157,21 @@
               />
             </label>
           </div>
-          <Textarea
-            v-else-if="field.type === 'object'"
+          <GeneratedObjectInput
+            v-else-if="field.type === 'object' || field.type === 'json'"
             v-model="promptValues[field.id]"
-            rows="3"
-            auto-resize
+            :schema="field.schema || null"
+          />
+          <ToggleSwitch
+            v-else-if="field.type === 'boolean'"
+            v-model="promptValues[field.id]"
+          />
+          <DatePicker
+            v-else-if="field.type === 'date' || field.type === 'dateTime'"
+            v-model="promptValues[field.id]"
+            :show-time="field.type === 'dateTime'"
+            hour-format="24"
+            class="w-full"
           />
           <div v-else-if="field.type === 'entity'" class="flex flex-col gap-2">
             <Select
@@ -251,10 +261,11 @@
 <script setup>
 import { computed, reactive, ref, toRef, watch } from 'vue';
 import Button from 'primevue/button';
+import DatePicker from 'primevue/datepicker';
 import InputText from 'primevue/inputtext';
 import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Select from '~/components/shared/EntitySelect.vue';
-import Textarea from 'primevue/textarea';
+import ToggleSwitch from 'primevue/toggleswitch';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
@@ -266,6 +277,7 @@ import GeneratedOrganizationAccount from '~/components/generated/GeneratedOrgani
 import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue';
+import GeneratedObjectInput from '~/components/generated/GeneratedObjectInput.vue';
 import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
@@ -558,9 +570,13 @@ function initialPromptValue(field = {}) {
   if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
   if (field.editor === 'artifactTemplateValues') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
   if (field.type === 'enum') return field.default ?? field.options?.[0] ?? '';
-  const value = field.default ?? '';
-  if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);
-  return value;
+  if (field.type === 'boolean') return field.default ?? null;
+  if (['date', 'dateTime'].includes(field.type)) {
+    const value = field.default ? new Date(field.default) : null;
+    return value && !Number.isNaN(value.getTime()) ? value : null;
+  }
+  if (['object', 'json'].includes(field.type)) return field.default ?? null;
+  return field.default ?? '';
 }
 
 function fieldOptions(field = {}) {
@@ -741,12 +757,24 @@ function normalizePromptValue(field = {}, value) {
   if (field.type === 'number') return value === '' ? undefined : Number(value);
   if (field.type === 'entityList') return normalizeEntityListValue(field, value);
   if (field.type === 'cassetteParameters') return normalizeCassetteParameters(value);
-  if (field.type === 'object') {
-    if (!value) return {};
+  if (field.type === 'boolean') {
+    return value === null || value === undefined || value === '' ? undefined : Boolean(value);
+  }
+  if (['date', 'dateTime'].includes(field.type)) {
+    if (!value) return undefined;
+    if (value instanceof Date) {
+      if (Number.isNaN(value.getTime())) return undefined;
+      return field.type === 'date' ? value.toISOString().slice(0, 10) : value.toISOString();
+    }
+    return value;
+  }
+  if (['object', 'json'].includes(field.type)) {
+    if (!value) return undefined;
+    if (typeof value !== 'string') return value;
     try {
-      return typeof value === 'string' ? JSON.parse(value) : value;
+      return JSON.parse(value);
     } catch {
-      return {};
+      return undefined;
     }
   }
   return value;

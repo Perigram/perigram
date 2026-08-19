@@ -2885,6 +2885,8 @@
       "replaceArtifactFile": "Replace file",
       "artifactFileRequired": "Select a file to upload.",
       "artifactUploadFailed": "Artifact upload failed.",
-    "noOptions": "No available options for {field}"
+    "noOptions": "No available options for {field}",
+    "objectKey": "Key",
+    "objectValue": "Value"
   }
 }
