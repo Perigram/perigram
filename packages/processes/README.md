@@ -591,6 +591,23 @@ routes under `/screens/:screenKey`; the original semantic route is preserved as
 `sourceRoute` for audit/debug context. Manual screen actions execute through the
 active process action runtime, which verifies the user's compiled action
 manifest before delegating to entity, status, socket, or command services.
+`screen-contract.js` owns the authored screen contract: normalization, the
+canonical region surface registry (`SCREEN_REGION_SURFACES`: `card`, `compact`,
+`detail`, `table`, `workspace` — the surfaces the generated region components
+render), and pre-activation validation. `validateScreenContract` runs inside
+`validateProcessDefinition`, so `compileProcessDefinition` and the
+activation adapter reject malformed screens before anything is compiled.
+Beyond template/source/region membership it rejects: duplicate source or
+region ids; single-mode sources without a resolvable identifier (the runtime
+could only render a missing-identifier error); non-scalar identifiers and
+filter values; filters that are not flat scalar maps; malformed or empty
+`$screen.*`/`$assignment.*` placeholders; `$screen.bindings.<key>` references
+to bindings the screen does not declare; region surfaces outside the registry;
+region-level action ids missing from the process action manifest; template
+slot/cardinality violations (`workspaceLanes` renders only `main`/`left`/
+`center`/`right` and keys regions by slot, so one region per slot); and screen
+bindings that are neither literal scalars nor `$assignment.<key>` references
+and therefore can never resolve at compile time.
 Each user assignment also receives a compiler-synthesized `home` screen when
 that user has generated list screens. The home screen is prepended to the
 user's screen and navigation manifests so it becomes the process start screen.

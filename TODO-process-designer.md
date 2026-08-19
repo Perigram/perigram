@@ -774,10 +774,18 @@ first and third checkboxes are already satisfied by existing architecture.
 - [ ] Support arbitrary typed screen bindings instead of only
   `bindings.entityId`, with autocomplete from the selected template, sources,
   lineage, and assignment requirements.
-- [ ] Validate unique source/region IDs, required single-source identifiers,
-  filter types/placeholders, surface registry values, region action IDs,
-  template slot/cardinality rules, and unresolved assignment bindings before
-  activation.
+- [x] DONE 2026-08-20 — Validate unique source/region IDs, required
+  single-source identifiers, filter types/placeholders, surface registry
+  values, region action IDs, template slot/cardinality rules, and unresolved
+  assignment bindings before activation. `validateScreenContract` now rejects
+  duplicate source/region ids, single-mode sources without a resolvable
+  identifier, non-scalar identifiers/filter values, non-object filter maps,
+  malformed/empty `$screen.*`/`$assignment.*` placeholders, `$screen.bindings.*`
+  references to undeclared bindings, region surfaces outside the new canonical
+  `SCREEN_REGION_SURFACES` registry, region-level action ids missing from the
+  process action manifest, `workspaceLanes` slot/cardinality violations, and
+  statically unresolvable screen bindings (screen-contract.js:51-172;
+  screen-contract.spec.js; Agent Notes below).
 - [ ] Generate manual CRUD forms from unconnected promptable inputs with shared
   typed controls. Entity refs/lists use entity pickers; scalar, enum, date,
   number, Boolean, and schema fields use ordinary PrimeVue controls.
@@ -787,6 +795,70 @@ first and third checkboxes are already satisfied by existing architecture.
 - [ ] Add concrete-role/user previews and browser tests for list, detail,
   workspace, table, and form-action templates with filters, bindings, regional
   actions, CRUD forms, and denied actions.
+
+### Agent Notes — 2026-08-20
+
+Reconciled all seven checkboxes against current code before implementing
+(session scope: the pre-activation validation rule set):
+
+1. **Source contract exposure — still open (UI gap).** The contract schema and
+   compiler already carry the full source shape (id/label/entityType/mode/
+   required/identifier/filters/lineageBindings;
+   packages/processes/src/screen-contract.js:94-136, compiler-core.js:1953-1985),
+   but the designer screens tab only edits entityType+mode per source
+   (pages/organization/process.vue:850-887).
+2. **Region contract exposure — still open (UI gap + defect).** Same schema
+   support exists for regions, but `syncSelectedScreenUi` copies the screen's
+   global actions into every region on each sync
+   (pages/organization/process.vue:2542-2545, 2566-2581) — the exact behavior
+   this checkbox forbids.
+3. **Arbitrary typed bindings — still open (UI gap).** Bindings editing is a
+   single InputText bound to `bindings.entityId`
+   (pages/organization/process.vue:850-887). The compiler/runtime already
+   resolve arbitrary binding keys.
+4. **Pre-activation validation — DONE (this session).** See checkbox above.
+   `SCREEN_REGION_SURFACES` (`card`, `compact`, `detail`, `table`, `workspace`)
+   is the canonical shared surface registry exported from
+   `packages/processes/src/screen-contract.js`; the designer page now consumes
+   it instead of a hardcoded list (pages/organization/process.vue:954, 1141).
+   Enforcement flows through the existing activation path unchanged:
+   `validateProcessDefinition` → `validateScreenContract`
+   (packages/processes/src/compiler-core.js:599-609), reached by
+   `compileProcessDefinition` (throws on errors) and the server activation
+   adapter `validateActivatableProcess`
+   (server/features/process-definitions/compiler-adapter.js:21-42). Slot/
+   cardinality is scoped to `workspaceLanes` (`main`/`left`/`center`/`right`,
+   one region per slot) because that renderer keys regions by slot and would
+   silently drop duplicates; other templates render all regions.
+   "Unresolved bindings" is enforced statically: binding values must be
+   literal scalars or `$assignment.<key>` references, and `$screen.bindings.*`
+   placeholders in identifiers/filters must reference declared bindings.
+   Per-assignment key absence cannot be activation-rejected (assignments are
+   runtime data) and remains a compile-time skip with `incompleteBindings`
+   diagnostics (packages/processes/src/index.spec.js:1612-1643).
+5. **Generated typed CRUD forms — still open.** Manual prompt form exists with
+   entity/entityList pickers, enum Select, number/text InputText, object
+   Textarea (components/generated/GeneratedScreen.vue:117-238); boolean and
+   date/date-time controls for ordinary prompt fields are missing, and
+   schema/object fields remain raw JSON.
+6. **Post-action refresh/patch — appears already implemented, needs browser
+   proof.** applyActionResult patches owner/created/entity snapshots,
+   useGeneratedScreen patches/removes matching source items with filter-match
+   insertion, and an onEntityChanged listener refreshes affected sources
+   (components/generated/GeneratedScreen.vue:480-493;
+   composables/useGeneratedScreen.js:68-130). Left unchecked pending browser
+   evidence owned by checkbox 7.
+7. **Template-matrix browser tests — still open.**
+   e2e/process-generated-screen.spec.js holds only one endpoint smoke test.
+
+Validation: `npx vitest run packages/processes` (265 passed, incl. 24
+screen-contract specs covering every new rule plus activation-path rejection
+through `validateProcessDefinition`/`compileProcessDefinition`);
+`npx vitest run server/features/process-definitions` (25 passed, 1
+pre-existing unrelated failure: "rejects activation when the authored graph
+is not the current protocol" fails with "Permission denied" on the base
+checkout too). Architecture contract documented in
+packages/processes/README.md (screen records section).
 
 ## P1 — validation and diagnostics
 
