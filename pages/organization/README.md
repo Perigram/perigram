@@ -30,7 +30,13 @@ role labels as process roles. Invites, user creation, and assignment editing all
 preserve multiple selected process role ids. The role dialog derives assignment
 binding fields from selected process screens instead of showing raw JSON, and
 previews graph-derived access plus compiled screen routes from the current role
-selection before saving. Missing assignment bindings are still surfaced from the
+selection before saving. The derived access preview is the shared annotated
+summary from `shared/role-access-summary.js`: it covers entity profiles,
+screens, actions, and workflow transitions (read from the compiled workflow
+contract of the active process), and every rendered line names the record that
+contributed it — an authored grant, a screen-derived grant from
+`screen.required`, a status-window rule, or a level fallback. Missing assignment
+bindings are still surfaced from the
 compiled active process so overloaded/scoped screens do not silently disappear
 when a user lacks a required project or entity binding.
 The route expects `/api/users` to return canonical user DTO blocks with
