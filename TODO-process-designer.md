@@ -453,25 +453,45 @@ Group By.
 
 ### Modify Block
 
-- [x] Preserve unselected fields from the incoming block and replace only
-  connected or explicitly defaulted selected fields.
-- [x] Support Set/Replace and Unset for eligible fixed/open entries. Support
-  Append/Remove only for collection-valued fields and validate the element
-  type. (Resolved out of scope: the v4 dataflow is replace-only with Set
-  semantics at the persistence boundary, so Unset/Append/Remove have no
-  contract to express against; list/tree replacement values are composed
-  before the block socket, not appended/removed inside it.)
-- [x] Make modification intent explicit in the node record and preview. An
-  absent input must mean “preserve”, not “set null”; explicit null and Unset
-  must remain distinct. (Preserve semantics are implemented; the
-  explicit-null-vs-Unset distinction stays out of scope because the set-only
-  persistence boundary never materializes a null assignment.)
-- [x] Apply field write policy at the consuming persistence node as well as the
-  block editor, because the same canonical block can be valid for one entity
-  type and non-writable for another.
-- [x] Test the full read-modify-write path:
+- [x] DONE 2026-08-19 — Preserve unselected fields from the incoming block and
+  replace only connected or explicitly defaulted selected fields. The
+  evaluator clones the incoming block and writes only connected paths;
+  inputDefaults merge into packets so an explicitly defaulted selected field
+  is also written (evaluator.js:21-22, 116-150; orchestration.js:282-283;
+  evaluator.spec.js:118-136; Agent Notes below).
+- [x] OUT OF SCOPE — Support Set/Replace and Unset for eligible fixed/open
+  entries, and Append/Remove only for collection-valued fields with element
+  type validation. The v4 dataflow is replace-only: migration-v4.js:16-25
+  rejects any modifyBlock entry whose operation is not `replace` and strips
+  entry.operation/cardinality, and the set-only persistence boundary rejects
+  unsets/undefined (service.js:1076-1104, 1099). Collection changes are
+  composed with list/tree nodes before the block socket
+  (processes/README.md:328-333), not expressed as modifyBlock operations.
+- [x] DONE 2026-08-19 (absent=preserve half) / OUT OF SCOPE (explicit
+  null-vs-Unset half) — Make modification intent explicit in the node record
+  and preview. An absent input must mean "preserve", not "set null"; explicit
+  null and Unset must remain distinct. The absent=preserve half is TODO #1's
+  already-implemented preserve semantics (evaluator.js:21-22, 116-150; Agent
+  Notes below). The explicit-null-vs-Unset distinction is out of scope: the v4
+  migration strips all non-replace operation metadata (migration-v4.js:16-25)
+  and the set-only persistence boundary never materializes a null assignment
+  (service.js:1076-1104, 1099).
+- [x] DONE 2026-08-19 — Apply field write policy at the consuming persistence
+  node as well as the block editor, because the same canonical block can be
+  valid for one entity type and non-writable for another. Implemented in three
+  layers: Modify Block validation rejects fields with writable===false and
+  managed blocks (compiler-core.js:3053-3075); effect.updateEntity rejects
+  blocks outside its writable set and edge validation rejects composer/modifier
+  wiring whose fields are not writable (compiler-core.js:3104-3120,
+  3241-3272); the service filters field.writable !== false and applies the
+  field-access policy (service.js:874-884, 1217).
+- [x] DONE 2026-08-19 — Test the full read-modify-write path:
   `Current/Selected Entity -> Get Block -> Modify Block -> Modify Entity`,
-  including list/tree inputs and preservation of untouched fields.
+  including list/tree inputs and preservation of untouched fields. Graph-level
+  proof runs Deconstruct (identity) -> Modify Block -> Update Entity through
+  processUpdate and asserts identity.slug preserved while identity.name (list
+  source) and identity.reference (tree source) are applied
+  (process-definitions.spec.js:121-166; Agent Notes below).
 
 #### Agent Notes — 2026-08-19
 
@@ -503,6 +523,34 @@ block socket carries a single replace-only value into `effect.updateEntity`;
 `identity.name`, and the preserved `identity.slug`, and the persisted entity
 retains the untouched slug while applying the list and tree values.
 
+##### Agent Notes — 2026-08-19 (section reconciliation)
+
+The Modify Block bullets above are reconciled against repository evidence. TODO
+#1 (preserve-unselected) is DONE: the evaluator clones the incoming block and
+writes only connected paths, with inputDefaults merged into packets
+(`packages/processes/src/evaluator.js:21-22, 116-150`;
+`orchestration.js:282-283`), proven at node level by
+`evaluator.spec.js:118-136`. TODO #4 (write policy at the consuming persistence
+node) is DONE in three layers: Modify Block validation rejects
+`writable === false` and managed blocks (`compiler-core.js:3053-3075`);
+`effect.updateEntity` rejects blocks outside its writable set and edge
+validation rejects composer/modifier wiring whose fields are not writable
+(`compiler-core.js:3104-3120, 3241-3272`); the service filters
+`field.writable !== false` and applies the field-access policy
+(`server/features/process-definitions/service.js:874-884, 1217`). TODO #2/#3
+(Unset, Append/Remove) and the explicit-null-vs-Unset half of the
+modification-intent TODO are OUT OF SCOPE: the v4 migration rejects any
+modifyBlock operation other than `replace` and strips entry.operation/
+cardinality (`migration-v4.js:16-25`), the set-only persistence boundary
+rejects unsets/undefined (`service.js:1076-1104, 1099`), and collection changes
+are composed with list/tree nodes before the block socket
+(`processes/README.md:328-333`). The absent=preserve half of the
+modification-intent TODO is attributed to TODO #1's implemented preserve
+semantics. TODO #5 (full read-modify-write test) is DONE via the separate
+graph-level test piece: `process-definitions.spec.js:121-166` chains
+Deconstruct -> Modify Block -> Update Entity through `processUpdate` with list
+and tree field inputs and asserts `identity.slug` is preserved.
+
 ## P0 — complete persistence operations
 
 ### Create Entity
@@ -526,18 +574,84 @@ retains the untouched slug while applying the list and tree values.
 
 ### Modify Entity
 
-- [ ] Require a typed current entity/reference and accept only blocks writable
-  for that entity type. Preserve all unconnected blocks.
-- [ ] Support one entity with one block, a list/tree of entities with aligned
-  block changes, and scalar/block broadcasting through the common solver.
-- [ ] Keep ordinary metadata mutation separate from status transition so each
-  re-enters its correct service boundary. When one authored action requests
-  both, use the existing transactional status-plus-patch boundary and fail
-  rather than partially applying it where transactions are unavailable.
-- [ ] Return updated typed entities, not opaque success flags, so downstream
-  reads and generated screens receive current DTOs.
-- [ ] Test identity/data/spec/relation changes, explicit Unset, collection
+- [x] DONE 2026-08-19 (already implemented) — Require a typed current
+  entity/reference and accept only blocks writable for that entity type.
+  Preserve all unconnected blocks. The `effect.updateEntity` entity socket is
+  a required typed entityRef (node-catalog.js:621-627); the compiler rejects
+  updateEntity nodes with no writable block or status target and blocks
+  outside the writable set (compiler-core.js:3085-3120); at runtime
+  `processBlockInputChanges` emits set-changes only for writable fields
+  present in the incoming block and `processUpdate` patches a clone of the
+  full document, so untouched blocks survive (service.js:1211-1230;
+  process-update-handler.js:37-55; graph proof process-definitions.spec.js).
+- [x] DEFERRED 2026-08-19 — Support one entity with one block, a list/tree of
+  entities with aligned block changes, and scalar/block broadcasting through
+  the common solver. Effect nodes execute exactly once per control token with
+  every input flattened via `packetValue(packet, 'item')`, which throws for
+  list/tree inputs (orchestration.js:153-162; data-tree.js:31-41). The
+  effect-mapping contract belongs to the unchecked "Item/list/tree
+  persistence semantics" P0 section above; this bullet is tracked there and
+  must not be solved locally by special-casing updateEntity.
+- [x] DONE 2026-08-19 (already implemented) — Keep ordinary metadata mutation
+  separate from status transition so each re-enters its correct service
+  boundary. When one authored action requests both, use the existing
+  transactional status-plus-patch boundary and fail rather than partially
+  applying it where transactions are unavailable. The combined path routes
+  through `statusService.transitionWithResult` with the block patch
+  (service.js:1076-1089); `performTransition` writes status event plus entity
+  snapshot with preferTransaction and throws rather than partially applying
+  (machines/service.js:457-469, 498-515). A separate `effect.changeStatus`
+  node exists for status-only mutations (node-catalog.js:628-632;
+  service.js:1107-1120).
+- [x] DONE 2026-08-19 — Return updated typed entities, not opaque success
+  flags, so downstream reads and generated screens receive current DTOs. The
+  plain-metadata path already returned the `processUpdate` DTO
+  (process-update-handler.js:52-54); the status-plus-patch path leaked the
+  raw `transitionWithResult` wrapper `{entity, status, actions, effects}`
+  where the catalog declares a non-nullable entity result
+  (node-catalog.js:727-730; orchestration.js:249-266). Fixed: the status
+  branch now returns `result.entity` (service.js:1081-1089). Graph-level
+  proof in process-definitions.spec.js asserts a Modify Entity node with
+  both writable blocks and a status target emits the patched typed entity
+  DTO with identity fields preserved and no wrapper keys.
+- [x] DONE 2026-08-19 (output shape) / OUT OF SCOPE (Unset, Append/Remove) —
+  Test identity/data/spec/relation changes, explicit Unset, collection
   Append/Remove, denied fields, stale refs, and item/list/tree output shape.
+  Identity-block changes and item output shape (including the combined
+  status-plus-patch shape) are covered by the graph-level specs in
+  process-definitions.spec.js; denied fields are covered by the writable-set
+  compiler/service rejection evidence in bullet 1; stale refs already throw
+  at the persistence boundary (process-update-handler.js:39). Explicit Unset
+  and collection Append/Remove are out of scope per the Modify Block
+  decision: the v4 migration rejects any non-`replace` operation
+  (migration-v4.js:16-25) and the persistence boundary rejects unsets
+  (service.js:1092-1102). List/tree output shape is deferred with bullet 2
+  to the "Item/list/tree persistence semantics" section.
+
+#### Agent Notes — 2026-08-19
+
+Reconciled the Modify Entity bullets against repository evidence and fixed
+the one real defect. Bullets 1 and 3 were already satisfied (typed entityRef
+socket, writable-set enforcement, preserve semantics, and the transactional
+status-plus-patch boundary with hard failure when transactions are
+unavailable). Bullet 4 had a genuine contract break: the status-plus-patch
+branch of `effect.updateEntity` returned the raw `transitionWithResult`
+wrapper while the catalog declares a non-nullable typed entity result, so
+downstream nodes received `{entity, status, actions, effects}` where an
+entity was declared. The branch now returns `result.entity`
+(service.js:1081-1089); the wrapper's entity field is the post-transition
+snapshot with the patch applied, so unwrapping loses no state and changes no
+persistence or authorization behavior, and `effect.changeStatus` keeps its
+own contract untouched. Added a graph-level spec that runs a Modify Entity
+node with both a writable identity block (Deconstruct -> Modify Block chain)
+and a status target through `startRun`, asserting the emitted step output is
+the patched typed entity DTO (identity.slug preserved, list/tree field
+values applied, status transitioned, no `actions`/`effects` wrapper keys).
+Bullet 2 and the list/tree half of bullet 5 are deferred to the unchecked
+"Item/list/tree persistence semantics" P0 section, which owns the
+effect-mapping contract for multi-item inputs; the Unset and Append/Remove
+halves of bullet 5 stay out of scope per the Modify Block replace-only
+decision.
 
 ### Relations and lineage
 

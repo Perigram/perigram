@@ -280,7 +280,12 @@ therefore cannot activate without profiles for the run, sheet design, and
 physical sheet records that the command persists; the validator does not
 hardcode that list independently of the domain command contract.
 Status-mutating `updateEntity` actions go through the status runtime with the
-connected entity patch attached to the status mutation. Non-status
+connected entity patch attached to the status mutation. Both `updateEntity`
+paths emit the updated typed entity DTO as the node result, matching the
+declared non-nullable entity output type: the status path returns the entity
+snapshot written by the transactional status-plus-patch boundary, not the
+transition wrapper (status/actions/effects), so downstream nodes and generated
+screens always receive a current typed entity. Non-status
 `updateEntity` actions are not executed through a generic service signature:
 after loading the target through its owning feature service and checking write
 access, the runtime delegates the flattened canonical block patch to the
