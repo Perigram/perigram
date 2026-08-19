@@ -1078,7 +1078,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
         if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
         return [change.path, change.value];
       }));
-      return await statusService.transitionWithResult({
+      const result = await statusService.transitionWithResult({
         entityType,
         targetId: target.id,
         targetState: typeof statusChange.value === 'string' ? statusChange.value : statusChange.value?.id,
@@ -1086,6 +1086,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
         context: { source: 'process-run' },
         patch: Object.keys(patch).length ? patch : null
       });
+      return result.entity;
     }
     let patch;
     if (persistedChanges.every(change => (change.operation || 'set') === 'set')) {

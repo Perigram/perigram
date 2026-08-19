@@ -8,6 +8,7 @@ import {
 } from './service.js';
 import * as processRepository from './repository.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { statusService } from '~/server/core/machines/service.js';
 import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
@@ -24,6 +25,14 @@ vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
   ...(await importOriginal()),
   getAppRegistry: vi.fn()
 }));
+
+vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    statusService: { ...actual.statusService, transitionWithResult: vi.fn() }
+  };
+});
 
 describe('current process-definition service contract', () => {
   const organizationService = {
@@ -164,6 +173,66 @@ describe('current process-definition service contract', () => {
     expect(persisted.identity.name).toBe('Renamed machine');
     expect(persisted.identity.slug).toBe('cnc-router');
     expect(persisted.identity.reference).toEqual({ code: 'M-01', location: 'Hall A' });
+  });
+
+  it('emits the updated typed entity DTO from a modify entity node that combines writable blocks with a status target', async () => {
+    const machine = {
+      type: 'machine',
+      id: 'machine-1',
+      _id: 'machine-1',
+      identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
+      lineage: { organizationId: 'org-acceptance' },
+      data: { workingArea: { width: 1300, depth: 2500 } },
+      attachments: {},
+      status: { state: { primary: 'ACTIVE' }, timestamp: '2026-01-01T00:00:00.000Z', userId: 'admin' }
+    };
+    statusService.transitionWithResult.mockImplementation(async ({ targetState, patch }) => {
+      const updated = structuredClone(machine);
+      for (const [path, value] of Object.entries(patch || {})) {
+        setByPath(updated, path, value);
+      }
+      updated.status = { state: { primary: targetState }, timestamp: '2026-01-02T00:00:00.000Z', userId: 'admin' };
+      return { entity: updated, status: updated.status, actions: [], effects: [] };
+    });
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'machine'
+        ? {}
+        : type === 'organization' ? organizationService : null
+    });
+    const data = readModifyWriteProcessData();
+    data.processNodes.update.inputDefaults = { 'status.state.primary': 'MAINTENANCE' };
+    processRepository.findById.mockResolvedValue(draftRecord(data));
+
+    const run = await startRun('process-draft', {
+      trigger: { nodeId: 'update' },
+      inputs: { entity: machine }
+    }, adminAuth());
+
+    expect(run.status).toBe('succeeded');
+    expect(statusService.transitionWithResult).toHaveBeenCalledTimes(1);
+    expect(statusService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
+      entityType: 'machine',
+      targetId: 'machine-1',
+      targetState: 'MAINTENANCE',
+      patch: expect.objectContaining({
+        'identity.name': 'Renamed machine',
+        'identity.slug': 'cnc-router',
+        'identity.reference': { code: 'M-01', location: 'Hall A' }
+      })
+    }));
+    const emitted = run.steps.find(step => step.nodeId === 'update')?.output;
+    expect(emitted).toMatchObject({
+      _id: 'machine-1',
+      identity: {
+        uid: 'machine-1',
+        name: 'Renamed machine',
+        slug: 'cnc-router',
+        reference: { code: 'M-01', location: 'Hall A' }
+      },
+      status: { state: { primary: 'MAINTENANCE' } }
+    });
+    expect(emitted).not.toHaveProperty('actions');
+    expect(emitted).not.toHaveProperty('effects');
   });
 });
 
