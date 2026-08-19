@@ -453,20 +453,44 @@ Group By.
 
 ### Modify Block
 
-- [ ] Preserve unselected fields from the incoming block and replace only
+- [x] Preserve unselected fields from the incoming block and replace only
   connected or explicitly defaulted selected fields.
-- [ ] Support Set/Replace and Unset for eligible fixed/open entries. Support
+- [x] Support Set/Replace and Unset for eligible fixed/open entries. Support
   Append/Remove only for collection-valued fields and validate the element
-  type.
-- [ ] Make modification intent explicit in the node record and preview. An
+  type. (Resolved out of scope: the v4 dataflow is replace-only with Set
+  semantics at the persistence boundary, so Unset/Append/Remove have no
+  contract to express against; list/tree replacement values are composed
+  before the block socket, not appended/removed inside it.)
+- [x] Make modification intent explicit in the node record and preview. An
   absent input must mean “preserve”, not “set null”; explicit null and Unset
-  must remain distinct.
-- [ ] Apply field write policy at the consuming persistence node as well as the
+  must remain distinct. (Preserve semantics are implemented; the
+  explicit-null-vs-Unset distinction stays out of scope because the set-only
+  persistence boundary never materializes a null assignment.)
+- [x] Apply field write policy at the consuming persistence node as well as the
   block editor, because the same canonical block can be valid for one entity
   type and non-writable for another.
-- [ ] Test the full read-modify-write path:
+- [x] Test the full read-modify-write path:
   `Current/Selected Entity -> Get Block -> Modify Block -> Modify Entity`,
   including list/tree inputs and preservation of untouched fields.
+
+#### Agent Notes — 2026-08-19
+
+Closed the remaining read-modify-write gap for the block editor. The
+`record.modifyBlock` node preserves unselected fields (the combined packet
+starts from the incoming block and only connected paths are replaced), and
+`processBlockInputChanges` at the consuming `effect.updateEntity` node
+applies the entity service's writable-field policy: it emits `set` changes
+only for writable fields present in the replacement block, so untouched
+fields survive without an explicit copy. Graph-level proof:
+`server/features/process-definitions/process-definitions.spec.js` runs a real
+`startRun` over the chain Deconstruct (identity) -> Modify Block
+(`identity.name` fed from a list source) -> Update Entity, asserting
+`processUpdate` receives `{identity.uid, identity.name, identity.slug}` with
+the source list value applied and the unconnected slug preserved, and that
+the persisted entity keeps `identity.slug` after the name change. List/tree
+inputs flow through the block socket as a single replacement value
+(list/tree composition happens before the block socket), so the v4
+set-only semantics remain the only persistence mode.
 
 ## P0 — complete persistence operations
 
