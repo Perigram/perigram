@@ -376,10 +376,51 @@ access runs once per matched branch, and Tree access receives the complete
 structure. The authoring projection filters any typed list
 with the same data algebra: read/deconstruct the compared field over the list,
 evaluate it through the polymorphic Logic node to obtain an aligned Boolean
-mask, and pass the original list plus mask to `collection.filter`. The runtime
-retains lower-level predicate and patch operations for execution/migration,
-but they are not separate authoring concepts. Only `effect.*` nodes may
-persist changes or invoke external work.
+mask, and pass the original list plus mask to `collection.filter`. Filter and
+Dispatch are selectors, not replacements: they return the original entity
+values and require an equal-length mask with the same branch paths, rejecting
+any branch or item mismatch instead of silently repeating the last mask entry.
+Comparison semantics are scalar for status and enum values — `status.state.primary`
+travels through the ordinary Get Field/Logic dataflow as the primary status id
+string and compares as a scalar, and enum values compare as their scalar string
+form — while typed entity references compare structurally by their serialized
+`{ type, id }` shape. The runtime retains lower-level predicate and patch
+operations for execution/migration, but they are not separate authoring
+concepts. Only `effect.*` nodes may persist changes or invoke external work.
+
+Ordering, grouping, and windows consume the original item list plus an aligned
+key list produced by Get Field, never hidden raw property paths. Sort takes
+`items` + `keys` (both required) and returns the original items in the aligned
+key order, exposing one canonical `direction` (`asc`/`desc`, default asc) read
+by the evaluator and written by the inspector; equal keys keep their original
+order (stable) and null keys sort after non-null keys in ascending order.
+Distinct takes `items` plus an optional `keys` list: with keys it keeps the
+first item per aligned key value, without keys it dedups the items themselves
+by structural equality rather than serializing a whole entity. Group By keeps
+`items` + `keys` and groups by the aligned key, appending a group index to each
+source branch path. Sort, Distinct, and Group By reuse the strict
+`alignSelectorPackets` alignment shared with Filter/Dispatch, rejecting any
+branch-path or per-branch item-count mismatch instead of repeating the last
+key. Slice `start`/`end` and Item At `index` are authorable integer fallbacks
+with native negative-index and empty-list semantics; Item At resolves an
+absent, out-of-range, or empty index to null.
+
+Entity read sources are authoring nodes, not repository readers. Current Entity
+(`read.currentEntity`), Entity by ID (`read.entityById`), Entity by Reference
+(`read.resolveEntityRef`), Parent (`read.parent`), Children (`read.children`),
+Related (`read.related`), and Select Entities (`read.queryEntities`) all resolve
+through the registered entity service boundary (`processGetById` /
+`processList`) with the complete run auth context, never an unfiltered
+collection read. Entity by ID consumes an id socket with an explicitly selected
+entity type; Entity by Reference consumes a typed reference directly. Parent and
+Children derive from the domain `containment` (lineage) contract and resolve by
+the declared lineage key; Related derives from the domain `relations` contract
+and resolves each stored reference by its declared target type. A missing or
+denied entity fails clearly instead of returning a silent empty value, while a
+root entity with no declared parent yields null and an absent relation value
+yields an empty list. The designer exposes per-entity read choices through the
+capability projection: Select Entities and Children require the `list` binding,
+and the remaining read sources require `getById`.
 
 Structural selectors come from `domain.blockSchemas`; open-block entry behavior
 comes from `domain.blockComposition`; entity readers and
@@ -402,7 +443,9 @@ declared typed reference. Get Field on other open blocks authors the local key
 and output type explicitly rather than selecting invented global fields;
 Deconstruct Entity exposes blocks; Get Field reads one selected field from a
 block. Status remains a dedicated lifecycle socket and never travels through a
-generic mutable block. Producer services resolve their declared
+generic mutable block. Status-based find/filter reads `status.state.primary`
+as a scalar through Get Field and compares it with scalar equality; it never
+constructs or mutates the status block. Producer services resolve their declared
 entity/entity-list construction references at the effect boundary.
 
 `orchestration.js` executes the full runtime control plane. Effect nodes have

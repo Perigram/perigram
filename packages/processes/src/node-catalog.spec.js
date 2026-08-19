@@ -309,4 +309,15 @@ describe('process v4 node catalog', () => {
       blocks: ['identity']
     }, context).outputs[0]).toMatchObject({ access: 'item', type: { base: 'block', block: 'identity' } });
   });
+
+  it('exposes items plus aligned keys for Sort, Distinct, and Group By', () => {
+    expect(resolveCatalogNodePorts({ kind: 'collection.sort' }).inputs.map(input => [input.id, input.required, input.access]))
+      .toEqual([['items', true, 'list'], ['keys', true, 'list']]);
+    expect(resolveCatalogNodePorts({ kind: 'collection.distinct' }).inputs.map(input => [input.id, input.required, input.access]))
+      .toEqual([['items', true, 'list'], ['keys', false, 'list']]);
+    expect(resolveCatalogNodePorts({ kind: 'collection.groupBy' }).inputs.map(input => [input.id, input.required, input.access]))
+      .toEqual([['items', true, 'list'], ['keys', true, 'list']]);
+    expect(resolveCatalogNodePorts({ kind: 'collection.sort' }).outputs[0].id).toBe('items');
+    expect(resolveCatalogNodePorts({ kind: 'collection.itemAt' }).inputs[1]).toMatchObject({ id: 'index', required: false });
+  });
 });

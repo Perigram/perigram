@@ -51,9 +51,15 @@ The palette has three non-overlapping authoring concerns.
 - **Values** contains one typed value input and one operation-switching node
   each for logic/comparison, text, math, and date-time work.
 - **Lists and trees** contains branch-local list operations and explicit tree
-  transforms. Collect Array converts one branch into one persisted array value;
-  Expand Array performs the reverse. Matching is Longest by default, with
-  Shortest and Cross available per node.
+  transforms. Sort Items and Remove Duplicates consume the original item list
+  plus an aligned key list from Get Field; Sort's direction is one inline
+  `asc`/`desc` selector, and Remove Duplicates' key list is optional (item
+  equality otherwise). Group By consumes the same items-plus-keys pair and
+  appends a group index to each source branch path. Item At and Slice expose
+  authorable integer fallbacks for their index/start/end sockets with native
+  negative-index and empty-list behavior. Collect Array converts one branch
+  into one persisted array value; Expand Array performs the reverse. Matching
+  is Longest by default, with Shortest and Cross available per node.
 Every effect has one bottom execution switch: Manual exposes the operation to
 authorized users, while Automatic exposes an incoming event socket. Date
 scheduling and event subscriptions are runtime contracts, not an authoring

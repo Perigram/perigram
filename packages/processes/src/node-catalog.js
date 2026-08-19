@@ -315,7 +315,7 @@ function catalogPorts(record = {}, context = {}) {
   }
   if (kind === 'collection.concat') return { inputs: [socket('left', configured, DATA, true, 'list'), socket('right', configured, DATA, true, 'list')], outputs: [socket('value', configured, DATA, false, 'list')] };
   if (kind === 'collection.itemAt') return {
-    inputs: [socket('items', configured, DATA, true, 'list'), socket('index', processType('integer'), DATA, true)],
+    inputs: [socket('items', configured, DATA, true, 'list'), socket('index', processType('integer'), DATA, false)],
     outputs: [socket('item', { ...configured, nullable: true })]
   };
   if (kind === 'collection.slice') return {
@@ -323,7 +323,15 @@ function catalogPorts(record = {}, context = {}) {
     outputs: [socket('items', configured, DATA, false, 'list')]
   };
   if (kind === 'collection.count') return { inputs: [socket('value', configured, DATA, true, 'list')], outputs: [socket('value', processType('integer'))] };
-  if (['collection.distinct', 'collection.sort', 'collection.reverse'].includes(kind)) return { inputs: [socket('value', configured, DATA, true, 'list')], outputs: [socket('value', configured, DATA, false, 'list')] };
+  if (kind === 'collection.sort') return {
+    inputs: [socket('items', configured, DATA, true, 'list'), socket('keys', processType('json'), DATA, true, 'list')],
+    outputs: [socket('items', configured, DATA, false, 'list')]
+  };
+  if (kind === 'collection.distinct') return {
+    inputs: [socket('items', configured, DATA, true, 'list'), socket('keys', processType('json'), DATA, false, 'list')],
+    outputs: [socket('items', configured, DATA, false, 'list')]
+  };
+  if (kind === 'collection.reverse') return { inputs: [socket('value', configured, DATA, true, 'list')], outputs: [socket('value', configured, DATA, false, 'list')] };
   if (kind === 'collection.shift' || kind === 'collection.partition') return {
     inputs: [socket('items', configured, DATA, true, 'list'), socket(kind === 'collection.shift' ? 'offset' : 'size', processType('integer'), DATA, true)],
     outputs: [socket('items', configured, DATA, false, kind === 'collection.partition' ? 'tree' : 'list')]

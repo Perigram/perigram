@@ -249,6 +249,14 @@ expose `processList`/`processGetById` adapters as defined in
 [server/runtime/README.md](../../runtime/README.md). Process evaluation calls only
 these adapters; it never guesses positional feature-service auth arguments. This covers current/exact entity reads, parent resolution,
 relation-target validation, update-target loading, and socket projection.
+Parent, Children, and Related reads resolve from the domain `containment` and
+`relations` contracts via the pure helpers in `entity-sources.js`: Parent loads
+the declared lineage parent through `processGetById`, Children query declared
+children through `processList` with the lineage-key filter, and Related resolves
+each stored relation reference through `processGetById` by its declared target
+type. They receive the full auth context and never fall back to an unfiltered
+repository read. A missing or denied parent/relation target fails clearly;
+root entities and empty relation values return null or an empty list.
 Returned models are serialized before entity-typed field predicates are evaluated in memory. Predicate
 conditions and gates remain process algebra values; they are not translated
 into database filters. The runtime does not infer service signatures, read

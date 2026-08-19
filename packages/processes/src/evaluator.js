@@ -61,20 +61,26 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     { tree: required(packets, 'right', record), access: 'list' }
   ], ([left, right]) => [...left, ...right], { outputAccess: 'list', matching: record.matching });
   if (kind === 'collection.itemAt') {
-    return solveDataTrees([
-      { tree: required(packets, 'items', record), access: 'list' },
-      { tree: required(packets, 'index', record), access: 'item' }
-    ], ([values, index]) => values.at(Number(index)) ?? null, { matching: record.matching });
+    const inputs = [{ tree: required(packets, 'items', record), access: 'list' }];
+    if (packets.index) inputs.push({ tree: packets.index, access: 'item' });
+    return solveDataTrees(inputs, values => (values[1] == null ? null : values[0].at(Number(values[1])) ?? null), { matching: record.matching });
   }
   if (kind === 'collection.slice') {
+    const hasStart = Boolean(packets.start);
+    const hasEnd = Boolean(packets.end);
     const inputs = [{ tree: required(packets, 'items', record), access: 'list' }];
-    if (packets.start) inputs.push({ tree: packets.start, access: 'item' });
-    if (packets.end) inputs.push({ tree: packets.end, access: 'item' });
-    return solveDataTrees(inputs, values => values[0].slice(values[1] == null ? undefined : Number(values[1]), values[2] == null ? undefined : Number(values[2])), { outputAccess: 'list', matching: record.matching });
+    if (hasStart) inputs.push({ tree: packets.start, access: 'item' });
+    if (hasEnd) inputs.push({ tree: packets.end, access: 'item' });
+    return solveDataTrees(inputs, values => {
+      let cursor = 1;
+      const start = hasStart ? Number(values[cursor++]) : undefined;
+      const end = hasEnd ? Number(values[cursor]) : undefined;
+      return values[0].slice(start, end);
+    }, { outputAccess: 'list', matching: record.matching });
   }
   if (kind === 'collection.count') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => items.length);
-  if (kind === 'collection.distinct') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => distinct(items), { outputAccess: 'list' });
-  if (kind === 'collection.sort') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => sortValues(items, record), { outputAccess: 'list' });
+  if (kind === 'collection.distinct') return distinctPackets(required(packets, 'items', record), packets.keys);
+  if (kind === 'collection.sort') return sortPackets(required(packets, 'items', record), required(packets, 'keys', record), record.direction);
   if (kind === 'collection.reverse') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => [...items].reverse(), { outputAccess: 'list' });
   if (kind === 'collection.shift') return solveDataTrees([
     { tree: required(packets, 'items', record), access: 'list' }, { tree: required(packets, 'offset', record), access: 'item' }
@@ -466,12 +472,40 @@ function format(record, value) {
   return new Intl.NumberFormat(record.locale || 'en', record.options || {}).format(value);
 }
 
-function distinct(values) {
+function distinctPackets(itemsPacket, keysPacket) {
+  if (keysPacket) {
+    return {
+      branches: alignSelectorPackets(itemsPacket, keysPacket, 'Distinct').map(branch => ({
+        path: [...branch.path],
+        items: distinctByKey(branch.pairs)
+      }))
+    };
+  }
+  return {
+    branches: normalizeDataPacket(itemsPacket).branches.map(branch => ({
+      path: [...branch.path],
+      items: distinctByValue(branch.items)
+    }))
+  };
+}
+
+function distinctByKey(pairs) {
   const seen = new Set();
+  const result = [];
+  for (const [item, key] of pairs) {
+    const serialized = JSON.stringify(key);
+    if (seen.has(serialized)) continue;
+    seen.add(serialized);
+    result.push(item);
+  }
+  return result;
+}
+
+function distinctByValue(values) {
+  const seen = [];
   return values.filter(value => {
-    const key = JSON.stringify(value);
-    if (seen.has(key)) return false;
-    seen.add(key);
+    if (seen.some(previous => same(previous, value))) return false;
+    seen.push(value);
     return true;
   });
 }
@@ -491,32 +525,76 @@ function partitionValues(values, size) {
   };
 }
 
+function alignSelectorPackets(itemsPacket, maskPacket, nodeKind) {
+  const items = normalizeDataPacket(itemsPacket);
+  const mask = normalizeDataPacket(maskPacket);
+  if (items.branches.length !== mask.branches.length) {
+    throw new Error(`${nodeKind} requires one mask branch per item branch (${items.branches.length} vs ${mask.branches.length})`);
+  }
+  return items.branches.map((branch, index) => {
+    const maskBranch = mask.branches[index];
+    if (pathKey(branch.path) !== pathKey(maskBranch.path)) {
+      throw new Error(`${nodeKind} requires the mask branches to match the item branch paths`);
+    }
+    if (branch.items.length !== maskBranch.items.length) {
+      throw new Error(`${nodeKind} requires one mask entry per item (branch ${formatPath(branch.path)} has ${branch.items.length} items but the mask has ${maskBranch.items.length})`);
+    }
+    return {
+      path: [...branch.path],
+      pairs: branch.items.map((item, itemIndex) => [structuredClone(item), maskBranch.items[itemIndex]])
+    };
+  });
+}
+
+function pathKey(path) { return path.join(';'); }
+function formatPath(path) { return `{${path.join(';')}}`; }
+
 function dispatchPackets(itemsPacket, maskPacket, outputId = 'true') {
-  const combined = combineDataPackets([itemsPacket, maskPacket], values => values);
   const keep = outputId !== 'false';
   return {
-    branches: combined.branches.map(branch => ({
+    branches: alignSelectorPackets(itemsPacket, maskPacket, 'Dispatch').map(branch => ({
       path: [...branch.path],
-      items: branch.items.filter(([, include]) => Boolean(include) === keep).map(([item]) => item)
+      items: branch.pairs.filter(([, include]) => Boolean(include) === keep).map(([item]) => item)
     }))
   };
 }
 
-function sortValues(values, record) {
-  return [...values].sort((left, right) => {
-    const a = record.path ? readPath(left, record.path) : left;
-    const b = record.path ? readPath(right, record.path) : right;
-    const result = a < b ? -1 : a > b ? 1 : 0;
-    return record.direction === 'desc' ? -result : result;
+function sortPackets(itemsPacket, keysPacket, direction = 'asc') {
+  return {
+    branches: alignSelectorPackets(itemsPacket, keysPacket, 'Sort').map(branch => ({
+      path: [...branch.path],
+      items: sortByKeys(branch.pairs, direction)
+    }))
+  };
+}
+
+function sortByKeys(pairs, direction) {
+  const descending = direction === 'desc';
+  const entries = pairs.map(([item, key], index) => ({ item, key, index }));
+  entries.sort((left, right) => {
+    const result = compareKeyValues(left.key, right.key);
+    if (result !== 0) return descending ? -result : result;
+    return left.index - right.index;
   });
+  return entries.map(entry => entry.item);
+}
+
+function compareKeyValues(left, right) {
+  const leftNull = left == null;
+  const rightNull = right == null;
+  if (leftNull && rightNull) return 0;
+  if (leftNull) return 1;
+  if (rightNull) return -1;
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 function groupByPackets(itemsPacket, keysPacket) {
-  const combined = combineDataPackets([itemsPacket, keysPacket], values => values);
   const branches = [];
-  for (const branch of combined.branches) {
+  for (const branch of alignSelectorPackets(itemsPacket, keysPacket, 'Group By')) {
     const groups = new Map();
-    for (const [item, key] of branch.items) {
+    for (const [item, key] of branch.pairs) {
       const serialized = JSON.stringify(key);
       if (!groups.has(serialized)) groups.set(serialized, []);
       groups.get(serialized).push(item);
@@ -529,11 +607,10 @@ function groupByPackets(itemsPacket, keysPacket) {
 }
 
 function filterPackets(itemsPacket, maskPacket) {
-  const combined = combineDataPackets([itemsPacket, maskPacket], values => values);
   return {
-    branches: combined.branches.map(branch => ({
+    branches: alignSelectorPackets(itemsPacket, maskPacket, 'Filter').map(branch => ({
       path: branch.path,
-      items: branch.items.filter(([, include]) => include).map(([value]) => value)
+      items: branch.pairs.filter(([, include]) => include).map(([item]) => item)
     }))
   };
 }

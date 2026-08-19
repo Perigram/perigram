@@ -1467,6 +1467,8 @@ async function loadProcessCapabilities() {
     const refreshed = createProcessDesignerContract(cncDomain, capabilities);
     designer.createEntityOptions = refreshed.createEntityOptions;
     designer.createModes = refreshed.createModes;
+    designer.listableEntityOptions = refreshed.listableEntityOptions;
+    designer.readableEntityOptions = refreshed.readableEntityOptions;
   } catch {
     // keep the domain-derived options when the projection cannot be loaded
   }
@@ -3014,7 +3016,12 @@ function syncProcessNode(node = {}) {
     delete node.fieldSchemas;
   }
   if (node.type?.base === 'block') delete node.type.entityType;
-  node.operation ||= defaultProcessNodeOperation(node.kind);
+  if (node.kind === 'collection.sort') {
+    node.direction = ['asc', 'desc'].includes(node.direction) ? node.direction : 'asc';
+    delete node.operation;
+  } else {
+    node.operation ||= defaultProcessNodeOperation(node.kind);
+  }
   node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
   node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
   node.matching = ['longest', 'shortest', 'cross'].includes(node.matching) ? node.matching : 'longest';
@@ -3283,7 +3290,7 @@ function processNodeSummary(node = {}) {
     node.path || fields,
     node.block,
     showsType && node.type ? formatProcessType(node.type) : '',
-    node.operation
+    node.kind === 'collection.sort' ? node.direction : node.operation
   ].filter(Boolean).join(' · ');
 }
 
@@ -3310,6 +3317,8 @@ function processEntityTypeOptions(node = {}) {
   if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return designer.createEntityOptions;
   if (kind === 'effect.updateEntity') return designer.updateEntityOptions;
   if (kind === 'effect.changeStatus') return designer.changeStatusOptions;
+  if (kind === 'read.queryEntities' || kind === 'read.children') return designer.listableEntityOptions;
+  if (kind.startsWith('read.')) return designer.readableEntityOptions;
   return entityTypeOptions.value;
 }
 

@@ -279,61 +279,129 @@ permission-denied case; `node scripts/check-arch.js` and
 
 ### Entity sources
 
-- [ ] Expose Current Entity as an authoring node. Its entity type must be
+- [x] Expose Current Entity as an authoring node. Its entity type must be
   inferred from the manual action/screen context where possible and selectable
   only when the context cannot determine it.
-- [ ] Expose Entity by ID/Reference. Accept a typed entity reference directly;
+- [x] Expose Entity by ID/Reference. Accept a typed entity reference directly;
   accept an ID only with an explicit entity type. Return a typed readable entity
   and fail clearly when access denies it or it does not exist.
-- [ ] Complete Select Entities as the organization-scoped list source for every
+- [x] Complete Select Entities as the organization-scoped list source for every
   process-listable entity. Preserve the service's access filtering; never use
   an unfiltered repository read.
-- [ ] Expose Parent, Children, and Related Entities from declared Lineage and
+- [x] Expose Parent, Children, and Related Entities from declared Lineage and
   relation contracts. The node must offer only relations valid for the incoming
   entity type and return exact typed entity references/DTOs.
-- [ ] Add source tests for root entities, lineage children, relation targets,
+- [x] Add source tests for root entities, lineage children, relation targets,
   missing references, cross-organization references, and per-entity read denial.
+
+#### Agent Notes — 2026-08-19
+
+Implemented the Entity sources subsection. Runtime read functions
+`parentEntity`, `childEntities`, and `relatedEntities` are now wired into
+`processDataEnvironment` through the pure helpers in
+`server/features/process-definitions/entity-sources.js`, resolving from the
+domain `containment`/`relations` contracts via `processList`/`processGetById`
+with the complete auth context (never an unfiltered repository read).
+`currentEntity`, `entityById`, and `resolveEntityRef` were already wired.
+`queryProcessGraphEntities` now accepts lineage-key filters. The authoring
+palette exposes Current Entity (`read.currentEntity`), Entity by ID
+(`read.entityById`), Entity by Reference (`read.resolveEntityRef`), Parent
+(`read.parent`), Children (`read.children`), and Related (`read.related`),
+alongside Select Entities. The designer contract now emits
+`listableEntityOptions`/`readableEntityOptions` from the capability projection,
+and the designer gates Select Entities/Children by `list` and the other read
+sources by `getById`. Current Entity's entity type remains node-selected and is
+resolved from the run context (`inputs.entities[type]`); context inference from
+manual action/screen placement is left for the placement-aware authoring work
+since the runtime has no such signal today. The source matrix lives in
+`entity-sources.spec.js` (root, children, relation, missing, cross-org, and
+read-denial).
 
 ### Filter and find paths
 
-- [ ] Make this ordinary path work for every readable scalar field:
+- [x] Make this ordinary path work for every readable scalar field:
   `Select Entities -> Deconstruct/Get Block -> Get Field -> Logic -> Filter`.
   Field extraction and Logic must map over the source topology so the Boolean
   mask stays aligned with the original entities.
-- [ ] Cover equality, inequality, numeric/date comparisons, contains,
+- [x] Cover equality, inequality, numeric/date comparisons, contains,
   starts/ends with, null/not-null, Boolean AND/OR/NOT, enum values, status, and
   typed entity-reference equality. Do not require raw predicate JSON.
-- [ ] Preserve the original entities through Filter and Dispatch; masks are
+- [x] Preserve the original entities through Filter and Dispatch; masks are
   selectors, not replacement values. Reject mask/item branch mismatches before
   returning misleading results.
-- [ ] Support several conditions by composing Logic nodes. Do not add a second
+- [x] Support several conditions by composing Logic nodes. Do not add a second
   query-language or a monolithic advanced-filter node.
 - [ ] Add an internal query-planning optimization only after semantics are
   correct: safe source-adjacent predicates, sort, and slice may be pushed into
   `processList` filters, but the graph result must be identical to in-memory
   evaluation and service access checks remain authoritative.
-- [ ] Add end-to-end tests for find-by-field, combined conditions, status
+- [x] Add end-to-end tests for find-by-field, combined conditions, status
   selection, relation-reference selection, empty results, and denied records.
+
+#### Agent Notes — 2026-08-19
+
+Closed the ordinary find/filter authoring path. `filterPackets`/`dispatchPackets`
+no longer reuse `combineDataPackets`' default "longest" matching (which silently
+repeated the last mask entry on a length mismatch). They now align the Boolean
+mask to the item list with equal branch paths and equal per-branch item counts
+via `alignSelectorPackets`, rejecting any branch or item mismatch, and return the
+original entity values unchanged. Comparison semantics are pinned and tested:
+`status.state.primary` travels through Get Field as a scalar status id string and
+compares with scalar equality, enum values compare as scalar strings, and typed
+entity references compare structurally by their serialized `{ type, id }` shape
+through the existing `same()`/`compare()` operators. Added end-to-end
+evaluator tests for find-by-field, combined Logic conditions, status selection,
+relation-reference selection, empty results, and authorized-only (denied-excluded)
+reads, plus mask/item and mask/branch mismatch rejection. Source-adjacent query
+planning remains deferred until these in-memory semantics are exercised end to
+end.
 
 ### Ordering, grouping, and windows
 
-- [ ] Change Sort Items to accept the original item list plus an aligned key
+- [x] Change Sort Items to accept the original item list plus an aligned key
   list produced by Get Field. Return the original items in key order; do not
   require hidden/raw property paths inside Sort.
-- [ ] Use one canonical `direction` property (`asc` or `desc`) from inspector
+- [x] Use one canonical `direction` property (`asc` or `desc`) from inspector
   through evaluator. Remove the current `operation`/`direction` mismatch and
   test both directions.
-- [ ] Define stable ordering for equal keys and deterministic placement of null
+- [x] Define stable ordering for equal keys and deterministic placement of null
   values. Cover string, number, date/date-time, enum, status, and identity
   values.
-- [ ] Make Distinct optionally consume aligned keys so complete entities can be
+- [x] Make Distinct optionally consume aligned keys so complete entities can be
   deduplicated by a field without losing the original entity values.
-- [ ] Keep Group By as items plus aligned keys and preserve source branch paths.
-- [ ] Complete Slice and Item At with authorable start/end/index fallbacks,
+- [x] Keep Group By as items plus aligned keys and preserve source branch paths.
+- [x] Complete Slice and Item At with authorable start/end/index fallbacks,
   negative-index behavior where supported, empty-list behavior, and exact
   output topology.
-- [ ] Test practical paths such as “most recent ten”, “first matching entity”,
+- [x] Test practical paths such as “most recent ten”, “first matching entity”,
   “unique entities by reference”, and “entities grouped by status”.
+
+#### Agent Notes — 2026-08-19
+
+Implemented the aligned-key-sockets contract for Sort, Distinct, Group By,
+Slice, and Item At. `collection.sort` now exposes `items` + `keys` (both
+required) and sorts the original items by the strictly aligned key list via the
+shared `alignSelectorPackets` helper, removing the hidden `record.path`/`readPath`
+key mechanism; one canonical `direction` (`asc`/`desc`, default asc) is read by
+the evaluator and written by the inspector (the inline Sort selector now writes
+`direction`, and `syncProcessNode` defaults it and drops `operation`), so the
+former `operation`/`direction` mismatch is gone and both directions are tested.
+Stable ordering is explicit (equal keys keep original order via an index
+tiebreak) and null keys sort after non-null keys in ascending order.
+`collection.distinct` exposes `items` + optional `keys`; with keys it keeps the
+first item per aligned key, without keys it dedups the items themselves by
+structural equality instead of whole-entity JSON. `collection.groupBy` keeps
+`items` + `keys` but switches from `combineDataPackets` longest-match to strict
+`alignSelectorPackets` alignment (rejecting length/branch mismatches) and
+preserves source branch paths by appending the group index. Slice `start`/`end`
+and Item At `index` are now authorable integer fallbacks (the index socket is no
+longer required) with native negative-index and empty-list semantics; Item At
+resolves absent/out-of-range/empty indices to null, and Slice was fixed to map
+optional start/end positionally. Added catalog contract and evaluator tests for
+most-recent-ten (Sort+Slice), first-matching-entity and negative/absent index
+(Item At), unique-entities-by-reference and no-keys dedup (Distinct), and
+entities-grouped-by-status (Group By), plus mismatch rejection for Sort and
+Group By.
 
 ### Collection construction
 

@@ -45,7 +45,13 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('modifyEntity', 'effect.updateEntity'),
       paletteItem('runService', 'effect.runCommand'),
       definitionPaletteItem('defineStatus', 'statusDefinition'),
+      paletteItem('currentEntity', 'read.currentEntity'),
+      paletteItem('findEntityById', 'read.entityById'),
+      paletteItem('findEntityByReference', 'read.resolveEntityRef'),
       paletteItem('selectEntities', 'read.queryEntities'),
+      paletteItem('parentEntity', 'read.parent'),
+      paletteItem('childEntities', 'read.children'),
+      paletteItem('relatedEntities', 'read.related'),
       paletteItem('deconstructEntity', 'record.deconstruct'),
       paletteItem('composeBlock', 'record.composeBlock'),
       paletteItem('modifyBlock', 'record.modifyBlock'),
@@ -164,6 +170,14 @@ export function createProcessDesignerContract(domain = {}, capabilities = null) 
 
   const entityOption = entity => ({ label: entity.label || entity.type, value: entity.type });
 
+  const listableEntityOptions = entities
+    .filter(entity => capabilities ? Boolean(capabilityFor(entity.type)?.list) : true)
+    .map(entityOption);
+
+  const readableEntityOptions = entities
+    .filter(entity => capabilities ? Boolean(capabilityFor(entity.type)?.getById) : true)
+    .map(entityOption);
+
   const createEntityOptions = entities
     .filter(entity => createModes(entity.type).length > 0)
     .map(entityOption);
@@ -190,6 +204,8 @@ export function createProcessDesignerContract(domain = {}, capabilities = null) 
     paletteGroups,
     blocks: CANONICAL_ENTITY_BLOCKS.map(id => ({ id, label: id, ...BLOCK_PRESENTATION[id] })),
     entityOptions: entities.map(entityOption),
+    listableEntityOptions,
+    readableEntityOptions,
     createEntityOptions,
     createModes,
     updateEntityOptions,
