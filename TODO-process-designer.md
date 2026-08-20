@@ -6,7 +6,8 @@ This plan completes the Process Designer as a procedural entity-dataflow
 authoring surface. The target is exhaustive composition of organization-scoped
 entity reads, selection, canonical-block transformations, persistence, role
 access, and generated interfaces. Long-running service orchestration is not the
-priority of this plan.
+priority of this plan, except for the exact async service-completion boundary
+defined under Producer-scoped entity workflows.
 
 Canonical architecture remains in
 [`packages/processes/README.md`](./packages/processes/README.md),
@@ -34,8 +35,10 @@ second specification.
   must still re-enter the registered entity service, access engine, or status
   engine with the complete auth context.
 - [ ] Keep ordinary CRUD synchronous for now. Do not introduce schedules,
-  durable waits, process-run workers, retry-control nodes, compensation nodes,
-  or service-management UI as prerequisites for this plan.
+  general-purpose wait nodes, retry-control nodes, compensation nodes, or
+  service-management UI as prerequisites for this plan. Durable suspension is
+  limited to a Run Service invocation whose declared completion outputs are
+  consumed by the graph.
 
 ## P0 — make the contracts truthful
 
@@ -1349,14 +1352,76 @@ behavior.
 #### Asynchronous completion
 
 Entity outputs declare whether they are available `immediate` or `completion`.
-A Run Service invocation with completion outputs persists a correlated wait
-record containing process run id, step/invocation id, producer node/socket ids,
-task run id, and attempt/idempotency token. The scheduler suspends that exact
-invocation instead of firing `completed`. Task success validates and projects
-the final TaskResult onto the declared completion sockets, resumes the stored
-invocation once, writes the output packets, and only then emits the node's
-completion control token. Failure/cancellation resumes the same invocation on
-its failure path or fails the run according to the authored control contract.
+The immediate command return may populate only declared `immediate` sockets for
+which that return actually contains a value. A task reference, placeholder, or
+entity expected only from task completion must not populate a `completion`
+socket. Immediate packets are persisted on the current invocation and may be
+read by already-runnable graph work, but the invocation does not emit its
+`completed` control token while any consumed completion output is pending.
+
+Every operational execution is a durable invocation, not merely a node id. The
+run store must persist `process_runs` and `process_step_invocations`; each
+invocation records its run id, step id, invocation id, process definition and
+compiled-contract revision, producer node id, control-token/scope identity,
+attempt, idempotency key, status, immediate output packets, and terminal output
+packets. A Run Service invocation that returns a pending task creates exactly
+one `process_invocation_wait` with a unique wait token and these immutable
+fields:
+
+- run id, step id, invocation id, producer node id, invocation attempt, and
+  invocation idempotency key;
+- task run id plus task id, task attempt/correlation identity, and the command
+  run id when one exists;
+- a versioned/hashable expected-output contract containing each completion
+  socket id, producer output id, timing, structured value/entity type, access
+  shape, nullability, and persistence owner; and
+- the compiled outgoing route snapshot for those outputs and the completion,
+  failure, and cancellation control sockets, expressed as edge id plus exact
+  target node/socket ids.
+
+The wait is the authoritative correlation boundary. Completion ingestion must
+look it up by wait token and task correlation; it must never reconstruct a
+process invocation by searching entity ids, process events, entity type, or the
+latest task for a node. The immutable contract and route snapshot ensure that
+activation or draft edits made after suspension cannot redirect an in-flight
+invocation.
+
+After the task runtime has durably finalized and normalized its terminal
+TaskResult, it submits a completion envelope containing a stable completion id,
+wait token, task run/id/attempt correlation, terminal outcome, and normalized
+output. Delivery is retriable: a terminal-task reconciliation pass must
+resubmit any correlated task whose wait has no receipt, so a crash between task
+finalization and process ingestion cannot strand the run. The task completion
+API must not directly evaluate graph edges.
+
+Ingestion performs one database transaction and compare-and-set:
+
+1. Load the waiting invocation and verify the wait token, task correlation,
+   invocation attempt, and expected-contract version/hash.
+2. Validate and project only declared `completion` values from the normalized
+   TaskResult. Enforce each output's persistence owner and reject missing,
+   extra, mistimed, or mistyped values before changing the run.
+3. Insert a `process_completion_receipt` unique on both completion identity and
+   wait token, persist the projected output packets, atomically change the wait
+   from `waiting` to `consumed`, and change that exact invocation from `waiting`
+   to `resumable`.
+4. Append continuation tokens only for the recorded connected output/control
+   routes whose socket contracts were satisfied. Unconnected sockets and edges
+   from another invocation, node, attempt, or newer compiled graph are never
+   evaluated.
+
+A repeated envelope that matches an existing receipt returns that receipt as a
+successful no-op. A stale attempt or conflicting completion identity cannot
+consume the wait. Claiming a `resumable` invocation is likewise a conditional
+state transition, so concurrent ingestion or workers cannot advance the run
+twice. Downstream effects continue to use invocation-derived idempotency keys;
+the guarantee is exact-once durable graph advancement, not an assumption that
+external side effects are transactional.
+
+Task failure or cancellation enters through the same receipt transaction and
+resumes only that invocation's recorded failure/cancellation route, or marks
+the run failed when no such route is authored. It never publishes success data
+or the `completed` token.
 
 This requires durable process run, step, output, and wait persistence for async
 paths. Correlation and process provenance belong to those execution records and
@@ -1389,9 +1454,12 @@ a declared asynchronous output.
 - [ ] Add per-output command/task metadata for persistence owner and result
   timing; validate handler results/effects against it and migrate every existing
   command/task declaration without behavior inference.
-- [ ] Add durable run/step/wait storage and task-completion resume. Project final
-  async outputs into the waiting invocation before emitting `completed`, with
-  idempotent duplicate-completion handling and attempt-safe correlation.
+- [ ] Add durable run/invocation/wait/receipt storage and task-completion
+  ingestion. Snapshot the versioned output contract and exact connected routes
+  at suspension; project final async outputs into the waiting invocation before
+  emitting `completed`; recover delivery after crashes; and use transactional
+  compare-and-set plus unique completion/wait constraints for attempt-safe,
+  exact-once graph advancement.
 - [ ] Remove process/action ids from entity status writes and from the
   command-output-status migration. Add a data migration that removes existing
   process provenance from entity status metadata while retaining legitimate
@@ -1421,9 +1489,15 @@ a declared asynchronous output.
 - [ ] Prove `commandOwned` outputs route already-persisted entities exactly once
   and `graphOwned` outputs route raw typed data to an explicit persistence node;
   reject cross-mode results and effects.
-- [ ] Prove an async nesting-style command emits no completion entity early,
-  persists a wait, resumes the exact invocation with final run/design/sheet
-  outputs, and ignores duplicate or stale-attempt completion.
+- [ ] Prove an async nesting-style command emits only values present in its
+  immediate result and no completion-only entity early. Assert the persisted
+  wait identifies the run, step, producer node, invocation, task correlation,
+  attempt, versioned socket contract, and route snapshot.
+- [ ] Deliver final run/design/sheet outputs and prove only the exact suspended
+  invocation's connected completion sockets advance. Redeliver concurrently,
+  retry after a simulated task-finalization/ingestion crash, and send a stale
+  attempt plus a conflicting completion id; assert one receipt, one resume, and
+  one set of continuation tokens.
 - [ ] Prove graph run/step status changes cannot mutate entity domain status and
   entity status metadata contains no process definition, action, node, producer,
   or workflow identifier.
@@ -1440,6 +1514,17 @@ the model to extend because they already retain graph-path identity. The chosen
 replacement is producer-output identity, not node-only identity and not an
 entity-type-primary variants map. Implementation remains READY under the tasks
 and acceptance tests above.
+
+The async finding was refined to make the suspension boundary implementable.
+The existing in-memory runner has step ids and attempts but no durable
+invocation repository; task completion persists normalized output independently
+and has no process-ingestion callback. The required replacement stores one wait
+per pending invocation, snapshots its expected completion sockets and connected
+routes, and ingests terminal task output through a durable receipt. A unique
+receipt plus transactional wait/invocation compare-and-set provides exact-once
+graph advancement, while retry/reconciliation after task finalization provides
+delivery. Process definition, producer node, invocation, and task provenance
+stay on run/step/wait/receipt records and are never copied to produced entities.
 
 ## Required acceptance matrix
 
