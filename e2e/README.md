@@ -67,7 +67,10 @@ noise.
   reload), and a generated create form posts prompt data and opens the created
   entity detail. Entity and action execute/options endpoints are route-mocked
   so every variant is hermetic; screen contract resolution stays live through
-  the real authenticated session.
+  the real authenticated session. Coverage boundary: `workspaceLanes`, `table`,
+  and `formAction` templates are not covered because the seeded process
+  authors no screens with them — once such screens exist, extend this spec
+  with their variants.
 - `project-workspace.spec.js`: uses the active compiled Project detail screen
   and verifies a cassette reached through its linked Library region opens the
   embedded cassette designer in the same pane; verifies pane tabs, icon-only

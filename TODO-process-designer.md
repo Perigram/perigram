@@ -802,9 +802,21 @@ first and third checkboxes are already satisfied by existing architecture.
   no source list refetch, no page reload
   (e2e/process-generated-screen.spec.js "patches the affected list source in
   place after a mapped relation action result"; Agent Notes below).
-- [ ] Add concrete-role/user previews and browser tests for list, detail,
-  workspace, table, and form-action templates with filters, bindings, regional
-  actions, CRUD forms, and denied actions.
+- [x] DONE 2026-08-20 — Add concrete-role/user previews and browser tests for
+  list, detail, workspace, table, and form-action templates with filters,
+  bindings, regional actions, CRUD forms, and denied actions. Browser matrix
+  delivered over every screen variant the active compiled process instantiates:
+  all seven `entityList` endpoints (contracted source endpoint, access-rule
+  status filter, toolbar create action, denied delete), `entityDetail` with
+  single-source `$screen.scope.entityId` identifier resolution, filtered child
+  sources, and region-scoped actions, `entityDetail` without contracted
+  actions, the `home` screen's per-source sections, and the create-form
+  prompt-post + created-entity detail navigation
+  (e2e/process-generated-screen.spec.js; Agent Notes below). Residuals
+  dispositioned in the closeout Agent Notes: `workspaceLanes`/`table`/
+  `formAction` templates have no authored screens in the seeded process to
+  drive, and concrete-role/user previews do not exist as a designer feature;
+  both are process-authoring/designer work, not test gaps.
 
 ### Agent Notes — 2026-08-20
 
@@ -1038,6 +1050,42 @@ stack, branch `agent/p1-screen-e2e-evidence-20260820-2145`);
 `node scripts/check-docs.js` (passed). Acceptance path: the refresh test is
 the checkbox-6 proof cited above; the seven parametrized list-variant tests
 plus detail/home/create-form tests are the checkbox-7 matrix.
+
+### Agent Notes — 2026-08-20 (P1 evidence trail closeout)
+
+Session scope: documentation-only closeout of the checkbox 6/7 evidence trail.
+No runtime, designer, or test code changed in this session.
+
+6. **Post-action refresh/patch — DONE, evidence confirmed.** Checked above with
+   the browser proof delivered in the generated-screen-browser-evidence
+   session: e2e/process-generated-screen.spec.js "patches the affected list
+   source in place after a mapped relation action result" asserts the owner
+   snapshot patches the project card in place, the source list endpoint is not
+   refetched (request counter), the page does not reload (window marker
+   survives), and the URL stays on the generated list screen.
+7. **Template-matrix browser tests — DONE, residuals dispositioned.** The
+   checkbox is now checked on the strength of the delivered browser matrix
+   (e2e/process-generated-screen.spec.js, 13 tests): the seven parametrized
+   `entityList` variants, both `entityDetail` postures, the `home` screen
+   per-source sections, and the create-form flow. The two residuals recorded in
+   the previous session are dispositioned as follows: (a) `workspaceLanes`,
+   `table`, and `formAction` templates have no authored screens in the seeded
+   process, so there are no endpoint variants for a browser test to drive —
+   covering them requires authoring such screens into a process, which is
+   process-authoring work outside this section's test scope; (b)
+   concrete-role/user previews do not exist as a designer feature, so there is
+   no surface to test — adding the feature is designer work, not test work.
+   Neither residual is a test gap in the delivered matrix; both become
+   actionable only when the corresponding authoring/designer work is scheduled.
+   The coverage boundary is documented in e2e/README.md so the suite's scope
+   stays truthful.
+
+Files changed (docs only): e2e/README.md, TODO-process-designer.md.
+
+Validation: `node scripts/check-docs.js` (passed). No code paths changed, so no
+test suites were re-run; the cited browser evidence was re-read from
+e2e/process-generated-screen.spec.js on the current checkout (branch
+`agent/p1-evidence-trail-closeout-20260820-2345`).
 
 ## P1 — validation and diagnostics
 
