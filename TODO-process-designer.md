@@ -1332,6 +1332,61 @@ consuming node/socket, in addition to entity types and field/relation keys.
 Deduplication uses that full identity. It must not merge bindings merely because
 their child type, ancestor/target type, and storage key match.
 
+#### Designer editing and activation diagnostics
+
+The entity-producing node is the only workflow editing anchor. Selecting a
+Create Entity output, Run Service entity output, task-completion entity output,
+or other entity-producing socket opens an integrated **Workflow** inspector for
+that exact `producerOutputId`. The inspector shows the stable producer/output
+identity beside the schema-only `entityType` and edits its entry state,
+transitions, field policy, role grants, and access behavior. A multi-output node
+uses an explicit output selector; editing one output must not mutate another.
+The canvas must give same-type outputs distinct path labels/accents and preserve
+their identities when nodes are moved, renamed, saved, or round-tripped.
+
+The designer must not offer an Entity Profile palette item, create a hidden
+profile while adding a command, or show an "add missing profile" repair. Remove
+`entityProfiles`, `requiredEntityProfiles`, and profile-presence validation from
+the authored and compiled protocols. Policy, role/access, lineage, relationship,
+and construction context is visible either in the selected producer inspector
+or as a typed connected executable node/socket; there is no second detached
+place that can silently override the producer.
+
+Same-type producer paths remain separate in workflow preview, generated action
+placement, access summary, and runtime tracing. Connecting both paths to an
+ordinary same-type consumer does not merge their workflow meaning. Convergence
+is legal only through an explicit Join operation whose input sockets retain
+their source `producerOutputId` values and whose configuration chooses a
+compatible resulting producer workflow. Activation rejects an implicit
+convergence or a join whose entry states, transition contract, field policy, or
+access contract cannot be reconciled explicitly.
+
+Activation validates each producer output as an independent unit after typed
+port resolution and before compilation. It must verify:
+
+- every required constructor/block input has one valid connected or explicitly
+  allowed local source, with compatible value type, Item/List/Tree access, and
+  cardinality;
+- lineage parentage and relationship associations come from declared typed
+  connections, use valid source/target entity types and keys, and retain both
+  producer identities without type-only deduplication;
+- policy, role, and access contributions are attached to that producer or reach
+  it through a typed executable connection, with no detached or type-global
+  contribution;
+- exactly one valid entry/initial domain status is configured for the producer,
+  and every transition has known endpoints, a connected source entity flow, and
+  valid authorization/evidence contracts; and
+- every outgoing entity flow retains producer context until an explicit valid
+  join selects a new producer workflow identity.
+
+Diagnostics are graph-addressable records, not entity-type summaries. Each
+error includes `producerOutputId` and `nodeId`; socket errors also include
+`socketId` and connection errors include `edgeId` plus source/target handles.
+Transition errors include the producer-local transition and endpoint ids. Apply
+focuses the responsible node, output, socket, edge, or transition in the canvas
+and never reports only "project workflow invalid" when several project
+producers exist.
+
 Each producer workflow declares its entry/initial domain status and every
 allowed transition explicitly. Create applies its declared initial status
 through the status engine after atomic entity creation. Command-owned producers
@@ -1458,10 +1513,13 @@ a declared asynchronous output.
 - [ ] Move lifecycle, entry status, field policy, grants, relations, and role
   contributions from detached entity profiles onto producer-local or connected
   executable graph contracts. Delete profile requirements, profile canvas
-  creation, and activation checks based on entity-type presence.
+  creation, `requiredEntityProfiles`, and activation checks based on entity-type
+  presence; remove the Entity Profile palette/repair path entirely.
 - [ ] Make the designer edit each producer output independently. Two Create
   Project nodes must retain separate statuses, transitions, policies, grants,
   and downstream paths; changing one must not synchronize or rewrite the other.
+  Use the integrated producer/output Workflow inspector and visibly label the
+  stable output identity beside the schema-only entity type.
 - [ ] Require `producerOutputId` in workflow/status/policy/action runtime calls.
   Keep type-only APIs for domain schema lookup only and fail closed if execution
   context does not identify one producer output.
@@ -1485,6 +1543,11 @@ a declared asynchronous output.
   workflow compilation, command-output projection, migrations, and runtime
   fallbacks. Activation must report the producer output and missing/ambiguous
   state instead of selecting one.
+- [ ] Add producer-scoped activation diagnostics for constructor sockets, typed
+  edges, lineage/relationship bindings, policy/role/access contributions, joins,
+  entry states, and transitions. Every error must identify the responsible
+  producer plus its socket, edge, or transition where applicable, and Apply must
+  focus that graph element.
 - [ ] Replace the persisted process protocol in one migration. Rewrite profile
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a
@@ -1495,6 +1558,10 @@ a declared asynchronous output.
 - [ ] Compile two Create Entity nodes for the same `entityType` and assert two
   workflows and field policies survive under distinct producer/output ids while
   the type index contains both.
+- [ ] Start from New Draft, add same-type Create and Run Service producers, and
+  prove no standalone profile node or `requiredEntityProfiles` repair is created
+  or required. Edit each output in the integrated Workflow inspector and prove
+  saving/round-trip preserves independent settings and visible identities.
 - [ ] Prove runtime workflow, policy, action, and transition resolution fails
   without producer context and resolves the correct same-type producer when it
   is supplied.
@@ -1503,6 +1570,11 @@ a declared asynchronous output.
 - [ ] Prove each producer's explicit initial status and transitions compile and
   execute independently; missing/ambiguous/unknown statuses fail activation and
   no designer or migration chooses a first/default status.
+- [ ] Connect same-type producer paths to an ordinary consumer and prove
+  activation rejects implicit workflow convergence. Connect them through an
+  explicit compatible Join and prove the selected result identity is retained.
+  Assert each failure identifies the exact producer, socket/edge, or transition
+  and that Apply focuses that graph element.
 - [ ] Prove `commandOwned` outputs route already-persisted entities exactly once
   and `graphOwned` outputs route raw typed data to an explicit persistence node;
   reject cross-mode results and effects.
