@@ -1262,6 +1262,185 @@ decisions in the section Agent Notes.
 - [ ] Test one role, several additive roles, overloaded assignments, and
   denied cases.
 
+### Correction: Producer-scoped entity workflows
+
+Status: READY. The architecture finding is complete; the implementation below
+must replace the current entity-type/profile contract as one protocol change,
+not add a compatibility lookup beside it.
+
+#### Chosen contract
+
+`entityType` identifies a domain schema only. It must never select a process
+workflow, field policy, access window, lineage path, initial status, or
+transition. Every executable node output that emits an entity has a stable
+`producerOutputId`, derived from the stable process-node id and output-socket id.
+The compiled workflow identity is that producer/output identity, including when
+two outputs emit the same entity type or one node has several entity outputs.
+Node-only identity is insufficient because it would merge those sockets.
+
+Compilation must emit authoritative producer-keyed records and a non-authoritative
+type index:
+
+- `producerOutputs[producerOutputId]` owns `entityType`, source node/socket,
+  workflow, field policy, role/access contributions, and graph-derived lineage
+  and relationship bindings.
+- `entityTypeIndex[entityType]` is an ordered set of all matching
+  `producerOutputId` values for schema discovery, diagnostics, and designer
+  choices only. A runtime path must not select its first or sole entry as an
+  implicit workflow.
+- Every compiled action, screen source, access window, execution token, and
+  status operation that consumes an entity carries the applicable
+  `producerOutputId`. Runtime workflow and policy APIs require that context and
+  fail on missing, unknown, entity-type-mismatched, or ambiguous identities.
+- An entity is not permanently assigned to a process workflow. The graph path
+  by which it enters the current operation supplies the workflow context. This
+  allows the same persisted entity to enter distinct typed graph paths without
+  storing process definition, action, node, or workflow identifiers on it.
+
+Producer configuration replaces detached entity profiles. Create Entity owns
+its construction mode, explicit initial domain status, field policy, grants,
+and connected canonical blocks. Other entity-producing outputs own their entry
+status and downstream transition contract. Typed graph edges supply
+construction values, relations, parentage, lineage, access inheritance, and
+the consuming producer context. A lifecycle, policy, or relation declaration
+that is not attached to an executable producer output or connected executable
+configuration has no runtime meaning.
+
+Lineage and relationship bindings must preserve both ends of the graph path:
+`sourceProducerOutputId`, source node/socket, consuming producer/output id, and
+consuming node/socket, in addition to entity types and field/relation keys.
+Deduplication uses that full identity. It must not merge bindings merely because
+their child type, ancestor/target type, and storage key match.
+
+Each producer workflow declares its entry/initial domain status and every
+allowed transition explicitly. Create applies its declared initial status
+through the status engine after atomic entity creation. Command-owned producers
+must persist and return an entity in their declared entry status; completion
+projection validates that contract. Compilation rejects missing entry states,
+unknown states, undeclared transition endpoints, and several candidate states.
+The designer must not copy a status from the first same-type record or invent a
+default status. Graph step states such as queued, running, waiting, completed,
+and failed remain process-run/step state and never become entity domain status.
+
+#### Persistence ownership
+
+Every command and task entity output must declare one persistence owner; mixed
+implicit behavior is invalid:
+
+- `commandOwned` outputs are persisted inside the registered command/task
+  business boundary (directly or through its declared effects) and return typed
+  persisted entity references/DTOs. The graph may route them but must not create
+  or persist them again.
+- `graphOwned` outputs return typed raw construction data, never an entity
+  reference and never a hidden `createEntity`/`updateEntity` effect. That data
+  reaches an explicit Create/Modify Entity node through typed sockets; that
+  graph node owns authorization, atomic persistence, producer identity, initial
+  status, lineage, relations, and invalidation.
+
+The ownership declaration belongs on each declared output because one command
+may expose several outputs with different timing or ownership. CommandResult and
+TaskResult validation must reject an entity on a `graphOwned` output, raw
+construction data on a `commandOwned` output, undeclared persistence effects,
+and an output whose result timing differs from its declaration. Existing
+handlers that already persist cassettes, conversions, and nesting runs become
+explicit `commandOwned` outputs; no adapter may infer ownership from handler
+behavior.
+
+#### Asynchronous completion
+
+Entity outputs declare whether they are available `immediate` or `completion`.
+A Run Service invocation with completion outputs persists a correlated wait
+record containing process run id, step/invocation id, producer node/socket ids,
+task run id, and attempt/idempotency token. The scheduler suspends that exact
+invocation instead of firing `completed`. Task success validates and projects
+the final TaskResult onto the declared completion sockets, resumes the stored
+invocation once, writes the output packets, and only then emits the node's
+completion control token. Failure/cancellation resumes the same invocation on
+its failure path or fails the run according to the authored control contract.
+
+This requires durable process run, step, output, and wait persistence for async
+paths. Correlation and process provenance belong to those execution records and
+task/command run linkage, never to entity status metadata. Ordinary synchronous
+CRUD remains synchronous; durable waiting is required only when a graph consumes
+a declared asynchronous output.
+
+#### Required implementation
+
+- [ ] Replace `workflows[entityType]` and `fieldPolicies[entityType]` with
+  producer-output-keyed records plus `entityTypeIndex`; update compiler output,
+  serialization, auth hydration, generated actions/screens, status resolution,
+  and policy resolution together.
+- [ ] Add stable producer/output identities to every entity-emitting catalog
+  socket and preserve them through canvas round-trip, normalization, compiled
+  actions, access windows, and runtime output packets.
+- [ ] Move lifecycle, entry status, field policy, grants, relations, and role
+  contributions from detached entity profiles onto producer-local or connected
+  executable graph contracts. Delete profile requirements, profile canvas
+  creation, and activation checks based on entity-type presence.
+- [ ] Make the designer edit each producer output independently. Two Create
+  Project nodes must retain separate statuses, transitions, policies, grants,
+  and downstream paths; changing one must not synchronize or rewrite the other.
+- [ ] Require `producerOutputId` in workflow/status/policy/action runtime calls.
+  Keep type-only APIs for domain schema lookup only and fail closed if execution
+  context does not identify one producer output.
+- [ ] Compile construction, lineage, relations, and access only from typed graph
+  connections. Include source and consumer producer/socket identity in binding
+  keys and remove type-only binding deduplication.
+- [ ] Add per-output command/task metadata for persistence owner and result
+  timing; validate handler results/effects against it and migrate every existing
+  command/task declaration without behavior inference.
+- [ ] Add durable run/step/wait storage and task-completion resume. Project final
+  async outputs into the waiting invocation before emitting `completed`, with
+  idempotent duplicate-completion handling and attempt-safe correlation.
+- [ ] Remove process/action ids from entity status writes and from the
+  command-output-status migration. Add a data migration that removes existing
+  process provenance from entity status metadata while retaining legitimate
+  display, lifecycle evidence, and transition-local audit metadata.
+- [ ] Remove every first-type-match and hardcoded status path in designer sync,
+  workflow compilation, command-output projection, migrations, and runtime
+  fallbacks. Activation must report the producer output and missing/ambiguous
+  state instead of selecting one.
+- [ ] Replace the persisted process protocol in one migration. Rewrite profile
+  data onto producer outputs only where graph ownership is unambiguous; fail the
+  migration with actionable node/output diagnostics rather than preserving a
+  detached-profile or type-global fallback.
+
+#### Acceptance tests
+
+- [ ] Compile two Create Entity nodes for the same `entityType` and assert two
+  workflows and field policies survive under distinct producer/output ids while
+  the type index contains both.
+- [ ] Prove runtime workflow, policy, action, and transition resolution fails
+  without producer context and resolves the correct same-type producer when it
+  is supplied.
+- [ ] Prove same-type lineage/relation edges from different source sockets and
+  into different consuming producers remain separate compiled bindings.
+- [ ] Prove each producer's explicit initial status and transitions compile and
+  execute independently; missing/ambiguous/unknown statuses fail activation and
+  no designer or migration chooses a first/default status.
+- [ ] Prove `commandOwned` outputs route already-persisted entities exactly once
+  and `graphOwned` outputs route raw typed data to an explicit persistence node;
+  reject cross-mode results and effects.
+- [ ] Prove an async nesting-style command emits no completion entity early,
+  persists a wait, resumes the exact invocation with final run/design/sheet
+  outputs, and ignores duplicate or stale-attempt completion.
+- [ ] Prove graph run/step status changes cannot mutate entity domain status and
+  entity status metadata contains no process definition, action, node, producer,
+  or workflow identifier.
+
+#### Agent Notes — 2026-08-20
+
+Architecture investigation completed. Current workflow and field-policy maps
+overwrite same-type producers; detached profiles remain independent lifecycle
+authorities; lineage deduplication omits producer identity; designer status sync
+uses the first matching entity type; command/task outputs do not declare
+persistence owner or result timing; and task completion cannot resume the
+synchronous in-memory process runner. Existing action-keyed access windows are
+the model to extend because they already retain graph-path identity. The chosen
+replacement is producer-output identity, not node-only identity and not an
+entity-type-primary variants map. Implementation remains READY under the tasks
+and acceptance tests above.
+
 ## Required acceptance matrix
 
 No task set is complete until the following processes can be built from New
