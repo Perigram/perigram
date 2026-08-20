@@ -795,9 +795,13 @@ first and third checkboxes are already satisfied by existing architecture.
   key/value rows otherwise, raw JSON textarea only as fallback)
   (components/generated/GeneratedScreen.vue:160-176, 568-580, 756-785;
   components/generated/GeneratedObjectInput.vue; Agent Notes below).
-- [ ] Refresh or patch every affected generated source after mapped create,
-  modify, status, relation, or delete results. Do not require a full page reload
-  to observe a successful procedural action.
+- [x] DONE 2026-08-20 — Refresh or patch every affected generated source after
+  mapped create, modify, status, relation, or delete results. Do not require a
+  full page reload to observe a successful procedural action. Browser proof: a
+  mapped relation action's owner snapshot patches the project card in place —
+  no source list refetch, no page reload
+  (e2e/process-generated-screen.spec.js "patches the affected list source in
+  place after a mapped relation action result"; Agent Notes below).
 - [ ] Add concrete-role/user previews and browser tests for list, detail,
   workspace, table, and form-action templates with filters, bindings, regional
   actions, CRUD forms, and denied actions.
@@ -987,6 +991,53 @@ check for pages/organization/process.vue (passed); grep invariant that no
 its action list is empty; change screen-level action ids → sync leaves every
 region's action list untouched; add/remove action ids in a region row → only
 that region changes.
+
+### Agent Notes — 2026-08-20 (generated screen browser evidence)
+
+Session scope: checkboxes 6 and 7 — browser proof of post-action refresh and
+the template-matrix browser tests, delivered by extending the existing
+e2e/process-generated-screen.spec.js in place (13 tests total). Entity and
+action execute/options endpoints are route-mocked so every variant is hermetic;
+screen contract resolution stays live through the real authenticated session
+(`app.switchToAssignedOrganization`).
+
+6. **Post-action refresh/patch — DONE (this session).** The refresh test
+   drives a card-level relation action end-to-end: it mocks the execute
+   endpoint to return an owner snapshot with a changed name, then asserts the
+   project card updates in place, the source list endpoint is not refetched
+   (request counter), the page does not reload (window marker survives), and
+   the URL stays on the generated list screen. This is the browser evidence
+   the previous sessions deferred.
+7. **Template-matrix browser tests — browser matrix delivered, two residuals
+   recorded.** The matrix is derived from the canonical contract dimensions
+   (source entityType/mode, binding shapes, region action scoping) over every
+   screen variant the active compiled process instantiates: all seven
+   `entityList` endpoints (project/queue/library/cassette/artifact/facade/
+   cassette_design) assert the contracted source endpoint, access-rule status
+   filter presence/absence, toolbar create action, and permission-denied
+   delete; `entityDetail` asserts single-source `$screen.scope.entityId`
+   identifier resolution, filtered child sources, and region-scoped actions
+   (no leakage from unrelated screens); a second `entityDetail` posture asserts
+   a screen without contracted actions renders no generated action buttons;
+   the `home` screen asserts every contracted source section renders from its
+   own endpoint; the create-form test covers the form-action flow (prompt post
+   + created-entity detail navigation). Residuals: (a) the seeded process
+   instantiates only `home`/`entityList`/`entityDetail` templates, so
+   `workspaceLanes`/`table`/`formAction` template instances have no endpoint
+   variants to drive until such screens are authored into the process;
+   (b) concrete-role/user previews do not exist as a designer feature yet.
+   Both are process-authoring/designer work, not test work; the checkbox stays
+   unchecked until the owner dispositions those residuals.
+
+Files changed (code): e2e/process-generated-screen.spec.js.
+Files changed (docs): e2e/README.md, TODO-process-designer.md.
+
+Validation: `E2E_BASE_URL=http://localhost:3000 npx playwright test
+e2e/process-generated-screen.spec.js` (13 passed against the running dev
+stack, branch `agent/p1-screen-e2e-evidence-20260820-2145`);
+`node scripts/check-docs.js` (passed). Acceptance path: the refresh test is
+the checkbox-6 proof cited above; the seven parametrized list-variant tests
+plus detail/home/create-form tests are the checkbox-7 matrix.
 
 ## P1 — validation and diagnostics
 
