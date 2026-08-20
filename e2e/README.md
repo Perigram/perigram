@@ -55,8 +55,19 @@ noise.
   generated artifact, cassette-template creation uses OCCS defaults, and the
   seeded sheet/template/design DXF export routes return real DXF content.
 - `process-generated-screen.spec.js`: verifies generated process screens have a
-  live canonical queue collection endpoint at `/api/queue` and that the removed
-  `/api/queues` route is not treated as valid.
+  live canonical queue collection endpoint at `/api/queue`, that the removed
+  `/api/queues` route is not treated as valid, and drives the generated-screen
+  template matrix over every screen variant the active compiled process
+  instantiates: all seven `entityList` endpoints (contracted source endpoint,
+  status filter, toolbar actions, denied delete), `entityDetail` with
+  single/filtered-child sources, `$screen.scope.*` bindings, and region-scoped
+  actions, `entityDetail` without contracted actions, and the `home` screen's
+  per-source sections. It also proves post-action refresh: a mapped relation
+  action patches the owning list source in place (no source refetch, no page
+  reload), and a generated create form posts prompt data and opens the created
+  entity detail. Entity and action execute/options endpoints are route-mocked
+  so every variant is hermetic; screen contract resolution stays live through
+  the real authenticated session.
 - `project-workspace.spec.js`: uses the active compiled Project detail screen
   and verifies a cassette reached through its linked Library region opens the
   embedded cassette designer in the same pane; verifies pane tabs, icon-only
