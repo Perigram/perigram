@@ -958,6 +958,36 @@ Validation: `node scripts/check-docs.js` (passed). No code paths changed, so
 no test suites were re-run; cited line numbers were re-read from the current
 checkout on branch `agent/p1-docs-closeout-20260820`.
 
+### Agent Notes — 2026-08-20 (region action independence)
+
+Session scope: checkbox 2's action-independence defect only (the forbidden
+copy from screen global actions into region action lists). Region id/label
+exposure and checkboxes 1, 3, 6, 7 remain open as recorded above.
+
+2. **Region action independence — fixed (this session).** New regions are now
+   seeded with an empty action list in `createScreen` (unchanged),
+   `ensureSelectedScreenRegion`, and `addSelectedScreenRegion`;
+   `syncSelectedScreenUi` no longer overwrites `region.actions` from
+   `screen.actions` on any sync — it only guarantees the array shape via
+   `||= []` (pages/organization/process.vue). Region-scoped actions are
+   edited explicitly through a new per-region MultiSelect in the region rows
+   of the screens tab (add/edit/remove), reusing the existing
+   `screenActionOptions`. The contract layer already preserved region-local
+   actions (`normalizeRegions` defaults to `[]`;
+   packages/processes/src/screen-contract.js:235-243), so no schema change
+   was needed. Checkbox 2 stays open only for region id/label editing.
+
+Files changed (code): pages/organization/process.vue.
+Files changed (docs): pages/organization/README.md, TODO-process-designer.md.
+
+Validation: `npx vitest run packages/processes` (265 passed); SFC compile
+check for pages/organization/process.vue (passed); grep invariant that no
+`region.actions` seeding from screen actions remains (passed);
+`node scripts/check-docs.js` (passed). Acceptance path: create a region →
+its action list is empty; change screen-level action ids → sync leaves every
+region's action list untouched; add/remove action ids in a region row → only
+that region changes.
+
 ## P1 — validation and diagnostics
 
 - [ ] Make Apply validate the complete fresh-graph path: domain capabilities,

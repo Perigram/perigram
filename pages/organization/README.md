@@ -146,7 +146,11 @@ remaining inspector surfaces are:
 The screens tab owns screen id, label, generated UI template, source
 entity/mode rows, display region rows, route, placement, required access, role
 ids, assignment binding, and screen action ids; that surface follows the
-generated-screen manifest described above.
+generated-screen manifest described above. Each display region row owns its
+slot, source, surface, and an independent region action list: new regions are
+seeded with an empty action list, sync never copies the screen-level action
+ids into regions or overwrites region actions, and region actions are edited
+only through that region's row.
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are
 reusable human process responsibilities assigned onto entity access rules,
