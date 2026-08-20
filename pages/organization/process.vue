@@ -861,10 +861,11 @@
                       <label>{{ $t('processDesigner.regions') }}</label>
                       <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRegion')" size="small" text @click="addSelectedScreenRegion" />
                     </div>
-                    <div v-for="(region, index) in selectedScreenRecord.regions" :key="region.id || index" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                    <div v-for="(region, index) in selectedScreenRecord.regions" :key="region.id || index" class="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2">
                       <Select v-model="region.slot" :options="screenSlotOptions" option-label="label" option-value="value" size="small" />
                       <Select v-model="region.sourceId" :options="selectedScreenSourceOptions" option-label="label" option-value="value" size="small" />
                       <Select v-model="region.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" size="small" />
+                      <MultiSelect v-model="region.actions" :options="screenActionOptions" option-label="label" option-value="value" display="chip" size="small" class="w-full" :aria-label="$t('common.actions.title')" />
                       <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenRegion(index)" />
                     </div>
                   </div>
@@ -2541,7 +2542,7 @@ function syncSelectedScreenUi() {
     source.mode = selectedScreenRecord.value.template === 'entityDetail' || selectedScreenRecord.value.template === 'formAction' ? 'single' : source.mode || 'list';
     for (const screenRegion of selectedScreenRecord.value.regions || []) {
       if (!selectedScreenRecord.value.sources.some(item => item.id === screenRegion.sourceId)) screenRegion.sourceId = source.id;
-      screenRegion.actions = selectedScreenRecord.value.actions || [];
+      screenRegion.actions ||= [];
     }
   }
 }
@@ -2574,7 +2575,7 @@ function ensureSelectedScreenRegion() {
       slot: screen.template === 'workspaceLanes' ? 'center' : 'main',
       sourceId: source.id,
       surface: screen.template === 'entityDetail' ? 'detail' : 'card',
-      actions: screen.actions || []
+      actions: []
     });
   }
   return screen.regions[0];
@@ -2615,7 +2616,7 @@ function addSelectedScreenRegion() {
     slot: screen.template === 'workspaceLanes' ? 'right' : 'main',
     sourceId: source.id,
     surface: screen.template === 'entityDetail' ? 'detail' : 'card',
-    actions: screen.actions || []
+    actions: []
   });
 }
 
