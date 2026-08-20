@@ -233,9 +233,17 @@ generated renderer.
 Generated screens listen to the shared browser-local entity sync event and
 apply its complete entity snapshot directly to matching source state. A local
 create, update, or delete therefore becomes visible immediately without a
-polling request or a manual page reload. Events without a complete snapshot are
-the only case that schedules a source reload; API routes still enforce whether
-the source may read the changed entity.
+polling request or a manual page reload. The patch is semantic, not
+positional: a changed entity replaces the matching item in place and is
+appended to a list source only when it satisfies that source's resolved
+filters; a delete event removes the id from every list source of that entity
+type. Single-mode sources patch only when the changed id matches the source's
+resolved identifier. Events without a complete snapshot are the only case that
+schedules a (debounced) source reload; API routes still enforce whether the
+source may read the changed entity. `GeneratedScreen.applyActionResult` feeds
+the same `applyEntitySnapshot` path synchronously from the action response, so
+a successful procedural action patches affected sources before any sync event
+arrives.
 
 Generated screens are UI composition only. They decide which regions, sources,
 and action buttons are visible, while API routes still enforce real access.

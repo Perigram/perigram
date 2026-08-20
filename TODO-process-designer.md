@@ -903,6 +903,61 @@ FacadeDesigner.vue, QueueEditor.vue, SheetDesignEditor.vue, ui-lab.vue);
 `node scripts/check-docs.js` (passed). Control contract documented in
 components/generated/README.md (Manual Prompt Forms section).
 
+### Agent Notes — 2026-08-20 (P1 closeout reconciliation)
+
+Session scope: documentation closeout for the whole section. Every checkbox was
+re-verified against the current checkout before disposition; no runtime or
+designer code changed in this session, so the docs commit is the only commit.
+
+1. **Source contract exposure — deferred with reason.** Re-verified: the gap
+   is UI-only (schema/compiler already carry the full source shape;
+   packages/processes/src/screen-contract.js:94-136), and the designer screens
+   tab still edits only entityType+mode (pages/organization/process.vue:850-887).
+   Reasonable and worth implementing, but it is a dedicated designer-UI session
+   (source id/label, required access, identifier, filters, assignment bindings
+   editors), not a documentation change. Left open.
+2. **Region contract exposure — deferred with reason; live defect confirmed.**
+   `syncSelectedScreenUi` still copies the screen's global actions into every
+   region on each sync (pages/organization/process.vue:2542-2545) and
+   `ensureSelectedScreenRegion` seeds new regions the same way
+   (pages/organization/process.vue:2566-2581) — the exact behavior this
+   checkbox forbids. Fix belongs to the same designer-UI session as checkbox 1
+   (independent per-region action lists). Left open.
+3. **Arbitrary typed bindings — deferred with reason.** Re-verified: bindings
+   editing is still a single InputText bound to `bindings.entityId`
+   (pages/organization/process.vue:850-887) while the compiler/runtime already
+   resolve arbitrary binding keys. Same designer-UI session as checkboxes 1-2.
+   Left open.
+4. **Pre-activation validation — implemented 2026-08-20.** See checkbox entry
+   and Agent Notes above; unchanged this session.
+5. **Generated typed CRUD forms — implemented 2026-08-20.** See checkbox entry
+   and typed-prompt-controls Agent Notes above; unchanged this session.
+6. **Post-action refresh/patch — already implemented, code evidence recorded.**
+   `applyActionResult` patches owner/created/entity snapshots (and every
+   `entities` output of runCommand actions) synchronously after a successful
+   post (components/generated/GeneratedScreen.vue:492-504);
+   `useGeneratedScreen` replaces matching items in place, inserts only on
+   filter match, removes deleted ids from list sources, patches single-mode
+   sources only on identifier match, and falls back to a debounced reload for
+   snapshot-less events via the `onEntityChanged` listener
+   (composables/useGeneratedScreen.js:68-130). No page reload is required.
+   This session documented the contract in the canonical READMEs
+   (components/generated/README.md "Action Results";
+   composables/README.md "useGeneratedScreen"). The checkbox stays unchecked
+   only because browser evidence is owned by checkbox 7.
+7. **Template-matrix browser tests — deferred with reason.** Re-verified:
+   e2e/process-generated-screen.spec.js still holds only one endpoint smoke
+   test. Real browser evidence needs a Playwright session against a running
+   app (dev-server startup is outside this session's scope). Left open; when
+   scheduled it must also supply the browser proof for checkbox 6.
+
+Files changed (docs only): composables/README.md,
+components/generated/README.md, TODO-process-designer.md.
+
+Validation: `node scripts/check-docs.js` (passed). No code paths changed, so
+no test suites were re-run; cited line numbers were re-read from the current
+checkout on branch `agent/p1-docs-closeout-20260820`.
+
 ## P1 — validation and diagnostics
 
 - [ ] Make Apply validate the complete fresh-graph path: domain capabilities,

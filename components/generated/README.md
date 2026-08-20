@@ -40,6 +40,20 @@ editor derives everything from the field type and schema; domain-specific
 editors (for example cassette parameters or artifact template values) stay in
 `GeneratedScreen.vue` and must not be folded into it.
 
+## Action Results
+
+After a successful action post, `GeneratedScreen.applyActionResult` patches the
+affected source states synchronously through the source-patch path owned by
+`useGeneratedScreen` (see
+[composables/README.md](../../composables/README.md)): relation mutations apply
+`result.owner` and `result.created` to their respective entity types, other
+results apply `result.entity` (or the bare result), and `runCommand` actions
+apply every `entities` output. A created entity enters a list source only when
+it satisfies that source's resolved filters, so a successful procedural action
+is visible without a page reload; the shared entity sync event remains the
+backstop for changes made outside this screen. Successful `createEntity`
+actions additionally navigate to the created entity's detail route.
+
 ## Overload Registry
 
 `overloads.js` owns app default overloads for generated surfaces. Overloads are
