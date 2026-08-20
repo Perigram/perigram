@@ -1086,6 +1086,134 @@ plus detail/home/create-form tests are the checkbox-7 matrix.
   automation, waits, durable runs, or complete CRUD paths that current UI and
   runtime cannot demonstrate.
 
+## Corrections queue — re-launch scopes
+
+Sections below received design verdicts from solution-lod runs but no
+implementation or bookkeeping, or were only partially closed. Each subsection
+is a self-contained re-launch scope: the recorded verdict is the design input,
+not something to re-derive. Close the listed bullets in the original section,
+add Agent Notes there, and validate per the Implementation protocol.
+
+### Correction: Item/list/tree persistence semantics
+
+Verdict on record (run 2026-08-19): one generic, type-agnostic effect-mapping
+contract shared by all mutation effect nodes; mutation inputs routed through
+`solveDataTrees` with a per-aligned-item invocation boundary;
+`MutationFailure` records `{operation, branchPath, itemIndex, entityRef?,
+error}`; results carry `failures` and `completedMutations` lists; result tree
+is shape-preserving; `effect.deleteEntity` stays deferred to Status, archive,
+and delete.
+
+- [ ] Implement the shared effect-mapping contract below the node language in
+  `packages/processes/src/evaluator.js`, wired into Create, Modify, Status, and
+  Delete effect nodes.
+- [ ] Implement multi-input matching for persistence nodes per the verdict.
+- [ ] Implement mutation failure reporting (`failures` + `completedMutations`)
+  without claiming collection-wide atomicity.
+- [ ] Test the same mutation node against item, list, and branched-tree inputs.
+
+### Correction: Collection construction
+
+Verdict on record (run 2026-08-19): Make List gets a fixed input-count
+contract — 4 optional item sockets, at most one wire each; Concat, Collect
+Array, and Expand Array stay as they are.
+
+- [ ] Implement the Make List fixed-socket contract (catalog, designer palette,
+  inspector) if not already matching; verify Concat/Collect/Expand behavior
+  with tests rather than changes.
+- [ ] Test relation arrays, attachment arrays, command entity-list inputs,
+  empty lists, and mixed incompatible element types.
+
+### Correction: Decompose and read
+
+Verdict on record (run 2026-08-19): attachments become a framework-owned open
+block declared in core (`CANONICAL_BLOCK_SCHEMAS` /
+`CANONICAL_BLOCK_COMPOSITION` in `packages/core/src/index.js`).
+
+- [ ] Verify Deconstruct Entity, Get Block, and Get Field against item/list/
+  tree inputs and the full CNC block family, including the attachments block
+  per the verdict; implement only where behavior diverges.
+- [ ] Distinguish missing field from present nullable field in preview and
+  runtime errors.
+- [ ] Close the five original bullets with tests and bookkeeping.
+
+### Correction: Compose Block
+
+Verdict on record (two runs, 2026-08-19): all five bullets are functionally
+implemented and documented (catalog ports, evaluator, compiler validation, UI,
+domain schemas, tests); the single genuine gap is the missing explicit
+multi-entity/list-input compose output test. Do not add required/default
+declarations to fixed block fields — an open compose socket is a composition
+affordance, not an error.
+
+- [ ] Add the focused multi-entity/list-input `composeBlock` output test in
+  `packages/processes/src` (one composed block per aligned input tuple).
+- [ ] Tick the five original bullets and add Agent Notes. Bookkeeping plus one
+  test; no runtime changes expected.
+
+### Correction: Create Entity
+
+Verdict on record (run 2026-08-19): no creatable entity type declares a
+mandatory parent or containment relation; all 14 construction contracts in
+`entity-construction.js` lack parentEnforcement; manual-form/task-form
+consumer of promptable inputs was the open investigation.
+
+- [ ] Verify Create Entity against every process-creatable domain entity:
+  constructor sockets, requiredness, creator constraints, constructible
+  blocks, Lineage, Relations, initial status, typed references.
+- [ ] Verify parent/ancestor validation and Lineage binding compilation;
+  implement only where behavior diverges from the contract.
+- [ ] Test root creation, child creation, relation-bearing creation, typed
+  references, and denied creation; close the six original bullets.
+
+### Correction: Relations and lineage
+
+Verdict on record (two runs, 2026-08-19): only the forward/source-side
+relation read is covered (`entity-sources.spec.js` exercises
+`processRelatedEntities` as an owner-side forward read).
+
+- [ ] Verify Lineage-as-ancestry vs Relations-as-associations semantics and
+  explicit Link/Unlink authoring through typed relation blocks; implement
+  gaps only.
+- [ ] Verify one-to-one and one-to-many relation values, including building a
+  persisted relation array from a data-tree list through Collect Array.
+- [ ] Verify cross-organization link prevention; test link, unlink, replace,
+  duplicate prevention, missing targets, and denied relations.
+
+### Correction: Status, archive, and delete
+
+One bullet closed 2026-08-19 (workflow compilation preserves all authored v2
+regions/contracts). Verdict on record: a single topology-aware mutation effect
+boundary — status and delete effects declare their own item/list/tree mapping.
+
+- [ ] Verify initial status on Create and workflow transitions on existing
+  entities across the authored regions now preserved by the compiler fix.
+- [ ] Decide and implement archive modeling through a domain workflow
+  state/intent where that is the honest contract.
+- [ ] Gate Delete Entity on process capabilities and domain delete contracts;
+  implement `effect.deleteEntity` per the Item/list/tree verdict only for
+  capable entity types.
+- [ ] Test multi-region status changes, evidence-required transitions, and
+  item/list/tree status/delete inputs.
+
+### Correction: P1 — organization scope follow-through
+
+Verdicts and partial implementation on record (run 2026-08-19/20): shared
+annotated role access summary implemented (`shared/role-access-summary.js`,
+rendered on the Team page); remaining bullets were dispositioned as design
+decisions in the section Agent Notes.
+
+- [ ] Expose the access engine's real grant dimensions in typed controls where
+  the designer edits access.
+- [ ] Make entity-profile, action, status-transition, and screen access
+  reviewable from one place per the recorded verdict.
+- [ ] Stop screen layout from silently granting backend capability per the
+  recorded verdict.
+- [ ] Discover required assignment binding keys from every supported location.
+- [ ] Add "preview as assignment" with concrete role IDs and bindings.
+- [ ] Test one role, several additive roles, overloaded assignments, and
+  denied cases.
+
 ## Required acceptance matrix
 
 No task set is complete until the following processes can be built from New
