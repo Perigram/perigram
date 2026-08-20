@@ -1244,6 +1244,23 @@ boundary — status and delete effects declare their own item/list/tree mapping.
 - [ ] Test multi-region status changes, evidence-required transitions, and
   item/list/tree status/delete inputs.
 
+### Correction: P1 — generated interface follow-through
+
+Four bullets closed 2026-08-20 (contract validation, typed CRUD forms,
+post-action refresh/patch, browser evidence). Verdicts on record in the
+section Agent Notes: bullets 1–3 are designer-UI gaps — the schema and
+compiler already carry the full shapes; only the screens tab UI is thin.
+
+- [ ] Expose the complete semantic screen source contract in the designer
+  (stable id/label, entityType, mode, required/identifier, filters,
+  lineageBindings) — schema support exists in
+  `packages/processes/src/screen-contract.js:94-136`; extend
+  `pages/organization/process.vue:850-887`.
+- [ ] Expose the complete region contract (stable id/label, template slot,
+  region actions) in the designer.
+- [ ] Support arbitrary typed screen bindings instead of only the currently
+  authorable subset.
+
 ### Correction: P1 — organization scope follow-through
 
 Verdicts and partial implementation on record (run 2026-08-19/20): shared
