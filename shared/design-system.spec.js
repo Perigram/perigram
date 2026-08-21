@@ -277,7 +277,11 @@ describe('Design system manifest', () => {
       expect(runtimeCss, `${tokenName} is missing from the runtime token layer`).toContain(`${tokenName}:`);
     }
 
-    expect(designTokens.typography.ui).toContain('JetBrains Mono');
+    expect(designTokens.typography.ui).toContain('IBM Plex Sans');
+    expect(designTokens.typography.mono).toContain('IBM Plex Mono');
+    expect(designTokens.typography.serif).toContain('IBM Plex Serif');
+    expect(cssVariableTokens['--ck-font-serif']).toBe(designTokens.typography.serif);
+    expect(tailwindThemeExtension.fontFamily.serif).toBe('var(--ck-font-serif)');
     expect(designTokens.typography.labelTracking).toBe('0.04em');
     expect(runtimeCss).toContain('--p-button-primary-background:');
     expect(runtimeCss).toContain('--p-card-background:');
