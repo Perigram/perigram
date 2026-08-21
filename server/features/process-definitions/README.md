@@ -177,7 +177,9 @@ the effect adapter normalizes each connected Relations replacement against the
 current graph-declared owner/key/target/cardinality contract. It resolves every
 target through its registered `processGetById` adapter with the run auth
 context, applies ordinary read access (including active-organization
-isolation), and removes duplicate references from many-valued replacements.
+isolation), and removes duplicate targets from many-valued replacements by the
+same entity type/id identity used by Link and Unlink. A revision pin does not
+make a second association to the same entity.
 Failure leaves the owner persistence method uncalled. This check is local to
 compiled effects because entity services do not have the graph metadata;
 non-relation patches keep their existing service semantics.

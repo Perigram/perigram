@@ -1392,6 +1392,9 @@ replacement, duplicate handling, missing targets, denied reads, and
 cross-organization rejection. Existing forward related reads, generated detail
 actions, reverse/display projections, and lineage-scoped compiler coverage were
 verified without runtime changes.
+Replacement deduplication also uses the Link/Unlink target identity
+(`type` plus `id`), so pinned and unpinned references cannot create two
+associations to the same entity.
 
 ### Correction: Status, archive, and delete
 
