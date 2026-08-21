@@ -24,6 +24,13 @@ import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveEntityRelationRefs } from '../utils/entity-relations.js';
 import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 import { getWorkflowStatusActions } from '../utils/status-actions.js';
+import {
+  inventoryId,
+  repositoryVueInventory,
+  SCOPED_LAYOUT_PROPERTIES,
+  SCOPED_STYLE_EXCEPTIONS,
+  scopedStyleDeclarations
+} from '../scripts/ui-visual-inventory.js';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 
@@ -57,14 +64,11 @@ const repositoryVueFiles = () => [
   .map((file) => path.relative(REPO_ROOT, file))
   .sort();
 
-const uiInventoryId = (file) => `ui-${file.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
-
 describe('Design system manifest', () => {
   it('reconciles every repository Vue file and design-system mechanism with the canonical audit', () => {
     const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
     const rows = Array.from(source.matchAll(/^\| `(ui-[^`]+)` \| `([^`]+\.vue)` \|/gm));
     const documentedFiles = rows.map(([, , file]) => file).sort();
-    const documentedIds = rows.map(([, id]) => id);
     const expectedFiles = repositoryVueFiles();
     const expectedMechanisms = [
       'aura',
@@ -88,8 +92,20 @@ describe('Design system manifest', () => {
 
     expect(documentedFiles).toEqual(expectedFiles);
     expect(new Set(documentedFiles).size).toBe(documentedFiles.length);
-    expect(documentedIds).toEqual(documentedFiles.map(uiInventoryId));
+    expect(rows.filter(([, id, file]) => id !== inventoryId(file))).toEqual([]);
     expect(documentedMechanisms).toEqual(expectedMechanisms.sort());
+  });
+
+  it('reconciles current visual findings with every canonical inventory row', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
+    const documented = new Map(Array.from(
+      source.matchAll(/^\| `(ui-[^`]+)` \| `([^`]+\.vue)` \| [^|]+ \| ([^|]+) \|$/gm),
+      match => [match[2], match[3].trim()]
+    ));
+
+    for (const { file, findings } of repositoryVueInventory(REPO_ROOT)) {
+      expect(documented.get(file), file).toBe(findings.join('; '));
+    }
   });
 
   it('declares the standard entity card variants', () => {
@@ -392,23 +408,6 @@ describe('Design system manifest', () => {
   });
 
   it('rejects feature-level visual drift outside explicit layout and data styling', () => {
-    const allowedScopedStyles = new Set([
-      'components/ChatSupport.vue',
-      'components/QueueEditor.vue',
-      'components/entities/Queue/QueueEntryCard.vue',
-      'components/generated/GeneratedProjectWorkspace.vue',
-      'components/shared/DesignerDialog.vue',
-      'components/shared/DesignerWorkspace.vue',
-      'components/shared/EntityPage.vue',
-      'components/shared/EntityWorkspace.vue',
-      'components/shared/ResponsiveGrid.vue',
-      'components/shared/TableFrame.vue',
-      'components/shared/WorkspaceSplitNode.vue',
-      'components/shared/blocks/DataBlock.vue',
-      'components/shared/blocks/SpecsBlock.vue',
-      'components/shared/blocks/StatusBadge.vue',
-      'layouts/ui-lab-layout.vue'
-    ]);
     const arbitraryTypography = /text-\[(?:\d+(?:\.\d+)?)(?:px|rem|em)\]/;
     const rawSurfaceBorder = /\bborder-surface-\d+\b/;
     const nonsemanticShadow = /\bshadow-(?:sm|md|lg|xl|2xl)\b/;
@@ -419,7 +418,19 @@ describe('Design system manifest', () => {
     expect(files.filter(file => rawSurfaceBorder.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
     expect(files.filter(file => nonsemanticShadow.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
     expect(files.filter(file => file !== 'components/process-designer/ProcessNode.vue' && nonsemanticRadius.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
-    expect(files.filter(file => !allowedScopedStyles.has(file) && /<style\s+scoped/.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter((file) => {
+      const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+      const scopedBody = source.match(/<style\s+scoped[^>]*>([\s\S]*?)<\/style>/)?.[1]?.trim();
+      return scopedBody && !SCOPED_STYLE_EXCEPTIONS[file];
+    })).toEqual([]);
+
+    for (const [file, category] of Object.entries(SCOPED_STYLE_EXCEPTIONS)) {
+      const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+      expect(source, `${file} must retain its ${category} scoped exception`).toMatch(/<style\s+scoped/);
+      if (category === 'layout') {
+        expect(scopedStyleDeclarations(source).filter(property => !SCOPED_LAYOUT_PROPERTIES.has(property)), file).toEqual([]);
+      }
+    }
 
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
     expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);

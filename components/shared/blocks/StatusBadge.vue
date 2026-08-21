@@ -60,18 +60,9 @@ const dotClass = computed(() => ({
   <Tag
     v-else
     :severity="config.severity" 
-    class="status-badge max-w-full min-w-0"
+    class="max-w-full min-w-0 text-ui-caption font-bold uppercase"
     :icon="config.icon"
   >
     <span class="min-w-0 truncate">{{ label }}</span>
   </Tag>
 </template>
-
-<style scoped>
-.status-badge {
-    text-transform: uppercase;
-    font-size: 0.7rem;
-    font-weight: 700;
-}
-
-</style>

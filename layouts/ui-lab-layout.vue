@@ -84,6 +84,3 @@
         updateThemeClass(themeCookie.value)
     })
 </script>
-
-<style scoped>
-</style>
