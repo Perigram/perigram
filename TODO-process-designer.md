@@ -1512,6 +1512,12 @@ Focused coverage includes one role, additive roles, overloaded and missing
 bindings, denial, status and lineage scopes, fields, actions, transitions,
 screens, complete action-grant dimensions, and owner recovery.
 
+Follow-up verification now evaluates each compiled screen and source requirement
+through the shared grant evaluator with the matching preview context. A
+status-scoped grant therefore reports its screen denied for a concrete
+non-matching status and unresolved when that context is absent, rather than
+treating assignment compilation's candidate screen as an unconditional allow.
+
 ### Correction: Producer-scoped entity workflows
 
 Status: READY. The architecture finding is complete; the implementation below

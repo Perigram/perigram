@@ -33,7 +33,8 @@ imported through server modules that Nitro externalizes.
 - `assignment-access-preview.js`: Assignment review over the existing process
   assignment compiler, shared evaluator, and compiled field policies. Concrete
   entity/status/lineage context yields allow/deny results; missing conditional
-  context stays unresolved. Active owner membership adds only the separately
+  context stays unresolved, including for screens whose separately authored
+  capability is conditional. Active owner membership adds only the separately
   attributed recovery overlay.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
 
