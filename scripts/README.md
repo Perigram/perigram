@@ -35,7 +35,9 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   current source and rewrites the component matrix in
   `docs/UI_COMPONENT_AUDIT.md`. It classifies typography, arbitrary layout,
   chrome, state, important-override, and scoped-style findings under the same
-  dispositions consumed by `shared/design-system.spec.js`.
+  dispositions consumed by `shared/design-system.spec.js`. Component ownership
+  is derived from the domain primitive registry: exact registered paths are
+  shared/domain primitives and every other Vue file is derived usage.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
@@ -129,8 +131,9 @@ boundary. It rejects arbitrary typography, raw palette/surface borders,
 nonsemantic radii and shadows, non-allowlisted scoped CSS, duplicated runtime
 theme overrides, and global focus suppression. It also reconciles source-derived
 visual concern counts with the canonical audit. Scoped-style exceptions name one
-exact category per file; layout exceptions are additionally limited to an exact
-set of layout properties rather than granting whole-file visual ownership.
+exact category per file; every exception category is limited to an exact set of
+properties rather than granting whole-file visual ownership. Aura-owned padding
+is excluded from general layout exceptions.
 
 ## Related
 

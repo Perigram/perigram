@@ -630,7 +630,7 @@ Nested active app surfaces must use semantic aliases such as `bg-content` or
 `bg-subtle`, not raw palette utilities like `bg-surface-50`, so dark mode uses
 the app token overrides consistently.
 
-Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Scoped CSS is limited to the allowlisted container-query, browser-pseudo, geometry, and data-driven cases enforced by `shared/design-system.spec.js`.
+Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Scoped CSS is limited to exact container-query, browser-pseudo, operational-state, and PrimeVue-integration exceptions enforced by `shared/design-system.spec.js`. Padding is Aura-owned spacing, not an allowlisted layout property; an integration exception must name its exact file, category, and permitted declarations.
 
 ## UI Inventory Policy
 
