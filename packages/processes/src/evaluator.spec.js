@@ -1,8 +1,98 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createDataPacket } from './data-tree.js';
-import { applyPatch, evaluateEntityPredicate, executeProcessDataNode } from './evaluator.js';
+import { applyPatch, evaluateEntityPredicate, executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 
 describe('process v4 data execution', () => {
+  it('maps one mutation contract over item, list, and branched-tree inputs', async () => {
+    const record = { kind: 'effect.updateEntity', entityType: 'project' };
+    const invoke = vi.fn(async inputs => ({ ...inputs.entity, identity: inputs.identity }));
+
+    const item = await executeProcessEffectNode(record, {
+      entity: createDataPacket({ type: 'project', id: 'p1' }),
+      identity: createDataPacket({ name: 'One' })
+    }, invoke);
+    const list = await executeProcessEffectNode(record, {
+      entity: createDataPacket([{ type: 'project', id: 'p2' }, { type: 'project', id: 'p3' }], 'list'),
+      identity: createDataPacket({ name: 'Broadcast' })
+    }, invoke);
+    const tree = await executeProcessEffectNode(record, {
+      entity: createDataPacket({ branches: [
+        { path: [2], items: [{ type: 'project', id: 'p4' }, { type: 'project', id: 'p5' }] },
+        { path: [7], items: [{ type: 'project', id: 'p6' }] }
+      ] }, 'tree'),
+      identity: createDataPacket({ branches: [
+        { path: [2], items: [{ name: 'Four' }, { name: 'Five' }] },
+        { path: [7], items: [{ name: 'Six' }] }
+      ] }, 'tree')
+    }, invoke);
+
+    expect(item.branches[0].items[0]).toMatchObject({ id: 'p1', identity: { name: 'One' } });
+    expect(list.branches[0].items.map(entity => entity.identity.name)).toEqual(['Broadcast', 'Broadcast']);
+    expect(tree.branches.map(branch => branch.path)).toEqual([[2], [7]]);
+    expect(tree.branches.flatMap(branch => branch.items).map(entity => entity.identity.name)).toEqual(['Four', 'Five', 'Six']);
+    expect(tree.completedMutations).toEqual([
+      { operation: 'effect.updateEntity', branchPath: [2], itemIndex: 0, entityRef: { type: 'project', id: 'p4' } },
+      { operation: 'effect.updateEntity', branchPath: [2], itemIndex: 1, entityRef: { type: 'project', id: 'p5' } },
+      { operation: 'effect.updateEntity', branchPath: [7], itemIndex: 0, entityRef: { type: 'project', id: 'p6' } }
+    ]);
+    expect(tree.failures).toEqual([]);
+  });
+
+  it('preflights incompatible and Cross mutation matching before writing', async () => {
+    const invoke = vi.fn();
+    const entity = createDataPacket([
+      { type: 'project', id: 'p1' },
+      { type: 'project', id: 'p2' },
+      { type: 'project', id: 'p3' }
+    ], 'list');
+    const identity = createDataPacket([{ name: 'One' }, { name: 'Two' }], 'list');
+
+    await expect(executeProcessEffectNode(
+      { kind: 'effect.updateEntity', entityType: 'project' },
+      { entity, identity },
+      invoke
+    )).rejects.toThrow('items must be scalar or aligned');
+    await expect(executeProcessEffectNode(
+      { kind: 'effect.updateEntity', entityType: 'project', matching: 'cross' },
+      { entity, identity },
+      invoke
+    )).rejects.toThrow('cannot use Cross matching');
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('reports failed and completed mutations without claiming atomicity', async () => {
+    const invoke = vi.fn(async inputs => {
+      if (inputs.entity.id === 'p2') throw Object.assign(new Error('write denied'), { code: 'DENIED' });
+      return { ...inputs.entity, identity: inputs.identity };
+    });
+    const result = await executeProcessEffectNode(
+      { kind: 'effect.changeStatus', entityType: 'project' },
+      {
+        entity: createDataPacket([
+          { type: 'project', id: 'p1' },
+          { type: 'project', id: 'p2' },
+          { type: 'project', id: 'p3' }
+        ], 'list'),
+        identity: createDataPacket([{ name: 'One' }, { name: 'Two' }, { name: 'Three' }], 'list')
+      },
+      invoke
+    );
+
+    expect(result.branches[0].items).toEqual([
+      { type: 'project', id: 'p1', identity: { name: 'One' } },
+      null,
+      { type: 'project', id: 'p3', identity: { name: 'Three' } }
+    ]);
+    expect(result.completedMutations.map(item => item.entityRef.id)).toEqual(['p1', 'p3']);
+    expect(result.failures).toEqual([{
+      operation: 'effect.changeStatus',
+      branchPath: [],
+      itemIndex: 1,
+      entityRef: { type: 'project', id: 'p2' },
+      error: { name: 'Error', message: 'write denied', code: 'DENIED' }
+    }]);
+  });
+
   it('evaluates current time from the runtime clock when accessed', async () => {
     const now = vi.fn(() => new Date('2026-08-04T12:34:56.000Z'));
     const result = await executeProcessDataNode({ kind: 'source.currentTime' }, {}, { now });

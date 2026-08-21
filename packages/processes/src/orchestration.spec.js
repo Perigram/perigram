@@ -33,6 +33,32 @@ const catalogContext = record => ({
 });
 
 describe('durable process orchestration', () => {
+  it.each(['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'])(
+    'routes %s through the shared mapped mutation boundary',
+    async kind => {
+      const inputId = kind === 'effect.createEntity' ? 'identity' : 'entity';
+      const definition = process([
+        { id: 'values', kind: 'source.literalList', value: kind === 'effect.createEntity'
+          ? [{ name: 'One' }, { name: 'Two' }]
+          : [{ type: 'project', id: 'p1' }, { type: 'project', id: 'p2' }] },
+        { id: 'mutation', kind, entityType: 'project', trigger: { mode: 'manual' }, blocks: kind === 'effect.createEntity' ? ['identity'] : [] }
+      ], ['values', 'mutation'], [data('values', 'mutation', inputId)]);
+      const executeEffect = vi.fn(async ({ inputs }) => kind === 'effect.createEntity'
+        ? { type: 'project', id: inputs.identity.name }
+        : inputs.entity);
+
+      const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+        executeEffect,
+        catalogContext
+      });
+
+      expect(completed.status).toBe('succeeded');
+      expect(executeEffect).toHaveBeenCalledTimes(2);
+      expect(completed.steps[0].output.branches[0].items).toHaveLength(2);
+      expect(completed.steps[0].output.completedMutations).toHaveLength(2);
+    }
+  );
+
   it('resolves a connected status definition at execution time', async () => {
     const definition = process([{
       id: 'update',
