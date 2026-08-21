@@ -82,14 +82,6 @@ body {
     stroke-linecap: square;
 }
 
-.bg-chrome :where(.p-button-text, .p-button-secondary) {
-    color: var(--ck-chrome-foreground) !important;
-}
-
-.bg-chrome :where(.p-button-text:hover, .p-button-secondary:hover) {
-    background: var(--ck-chrome-subtle) !important;
-}
-
 .entity-inline-chip {
     display: inline-flex;
     align-items: center;
@@ -297,7 +289,7 @@ body {
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
-    flex-wrap: nowrap !important;
+    flex-wrap: nowrap;
 }
 
 /* DataView Transparency (PrimeVue 4 Idiomatic Way) */

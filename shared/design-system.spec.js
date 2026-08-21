@@ -359,6 +359,8 @@ describe('Design system manifest', () => {
     expect(nuxtConfig).toContain("import { cssVariableTokens } from './assets/tokens/index.js'");
     expect(nuxtConfig).toContain('Object.entries(cssVariableTokens)');
     expect(runtimeCss).not.toMatch(/--p-[\w-]+:[^;]+!important/);
+    expect(runtimeCss).not.toMatch(/[^{}]*\.p-[^{}]*:(?:hover|active|focus|focus-visible|disabled|invalid)[^{}]*\{/);
+    expect(runtimeCss).not.toMatch(/[^{}]*\.p-[^{}]*\{[^{}]*!important/);
     expect(runtimeCss).toContain('.bg-chrome');
     expect(runtimeCss).toContain('.chrome-signal-rule');
     expect(runtimeCss).toContain('border-top-width: var(--ck-chrome-signal-height)');
