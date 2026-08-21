@@ -260,6 +260,9 @@ Display constructor metadata is split from access policy:
 
 - `ui-fields.js` declares reusable entity field groups such as summary,
   geometry, stock, production, relations, and provenance.
+  Facade and facade-pattern summary counts are declared here and rendered
+  through `EntitySurfaceContent`; their cards do not own local `DataBlock`
+  descriptor arrays.
   Aggregate child-count facts may also mark `role: 'childCount'`; generated
   cards use that metadata together with explicit `summary.*Preview`
   `entityRefList` fields to swap a numeric count for a compact child gallery.
