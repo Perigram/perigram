@@ -36,7 +36,9 @@ content inherit it, including native form controls through the shared
 inherit rule. Plex Mono marks technical data (`--ck-font-mono`):
 `code`/`kbd`/`pre`/`samp`, numerical entry (`.p-inputnumber-input`,
 `input[type=number]`), and `DataBlock` values such as dimensions, parameters,
-and specs. Plex Serif carries the editorial voice (`--ck-font-serif`):
+and specs. The numerical-entry selectors intentionally retain normal
+class/attribute specificity so they beat Tailwind's later form-control reset
+without using `!important`. Plex Serif carries the editorial voice (`--ck-font-serif`):
 level-1 page titles render display serif through `ActionToolbar`, and
 long-form authored text blocks use the `.ck-prose` role class from
 `assets/css/fonts.css` — text artifacts today, guides when they ship.
