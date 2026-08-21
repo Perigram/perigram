@@ -158,7 +158,9 @@ async function executeOperationalNode({ run, process, node, record, current, ste
           kind: record.kind,
           record,
           inputs: mutationInputs,
-          idempotencyKey: `${step.idempotencyKey}:${location.branchPath.join('.') || 'root'}:${location.itemIndex}`,
+          idempotencyKey: location.single
+            ? step.idempotencyKey
+            : `${step.idempotencyKey}:${location.branchPath.join('.') || 'root'}:${location.itemIndex}`,
           attempt: step.attempt,
           run
         }))
@@ -171,7 +173,7 @@ async function executeOperationalNode({ run, process, node, record, current, ste
           run
         });
     step.output = structuredClone(result);
-    const outputValues = await effectOutputValues(node.id, record, result, environment);
+    const outputValues = await effectOutputValues(node.id, record, effectOutputResult(result), environment);
     enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {
       ...current,
       values: {
@@ -254,6 +256,13 @@ async function executeOperationalNode({ run, process, node, record, current, ste
     return;
   }
   throw new Error(`Token reached non-operational node ${record.kind}`);
+}
+
+function effectOutputResult(result) {
+  // A failure-carrying mapped mutation wraps its shape-preserving result tree;
+  // downstream data outputs consume the tree, not the reporting envelope.
+  if (result && Array.isArray(result.failures) && result.result) return result.result;
+  return result;
 }
 
 async function effectOutputValues(nodeId, record, result, environment) {

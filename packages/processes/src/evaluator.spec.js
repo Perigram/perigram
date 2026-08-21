@@ -26,16 +26,18 @@ describe('process v4 data execution', () => {
       ] }, 'tree')
     }, invoke);
 
-    expect(item.branches[0].items[0]).toMatchObject({ id: 'p1', identity: { name: 'One' } });
-    expect(list.branches[0].items.map(entity => entity.identity.name)).toEqual(['Broadcast', 'Broadcast']);
-    expect(tree.branches.map(branch => branch.path)).toEqual([[2], [7]]);
-    expect(tree.branches.flatMap(branch => branch.items).map(entity => entity.identity.name)).toEqual(['Four', 'Five', 'Six']);
-    expect(tree.completedMutations).toEqual([
-      { operation: 'effect.updateEntity', branchPath: [2], itemIndex: 0, entityRef: { type: 'project', id: 'p4' } },
-      { operation: 'effect.updateEntity', branchPath: [2], itemIndex: 1, entityRef: { type: 'project', id: 'p5' } },
-      { operation: 'effect.updateEntity', branchPath: [7], itemIndex: 0, entityRef: { type: 'project', id: 'p6' } }
-    ]);
-    expect(tree.failures).toEqual([]);
+    expect(item).toEqual({ type: 'project', id: 'p1', identity: { name: 'One' } });
+    expect(list).toEqual({ branches: [{ path: [], items: [
+      { type: 'project', id: 'p2', identity: { name: 'Broadcast' } },
+      { type: 'project', id: 'p3', identity: { name: 'Broadcast' } }
+    ] }] });
+    expect(tree).toEqual({ branches: [
+      { path: [2], items: [
+        { type: 'project', id: 'p4', identity: { name: 'Four' } },
+        { type: 'project', id: 'p5', identity: { name: 'Five' } }
+      ] },
+      { path: [7], items: [{ type: 'project', id: 'p6', identity: { name: 'Six' } }] }
+    ] });
   });
 
   it('preflights incompatible and Cross mutation matching before writing', async () => {
@@ -78,19 +80,44 @@ describe('process v4 data execution', () => {
       invoke
     );
 
-    expect(result.branches[0].items).toEqual([
-      { type: 'project', id: 'p1', identity: { name: 'One' } },
-      null,
-      { type: 'project', id: 'p3', identity: { name: 'Three' } }
-    ]);
-    expect(result.completedMutations.map(item => item.entityRef.id)).toEqual(['p1', 'p3']);
-    expect(result.failures).toEqual([{
+    const expectedFailure = {
       operation: 'effect.changeStatus',
       branchPath: [],
       itemIndex: 1,
       entityRef: { type: 'project', id: 'p2' },
       error: { name: 'Error', message: 'write denied', code: 'DENIED' }
+    };
+    expect(result.failures).toEqual([expectedFailure]);
+    expect(result.result.branches[0].items).toEqual([
+      { type: 'project', id: 'p1', identity: { name: 'One' } },
+      expectedFailure,
+      { type: 'project', id: 'p3', identity: { name: 'Three' } }
+    ]);
+    expect(result.completedMutations).toEqual([
+      { operation: 'effect.changeStatus', branchPath: [], itemIndex: 0, entityRef: { type: 'project', id: 'p1' } },
+      { operation: 'effect.changeStatus', branchPath: [], itemIndex: 2, entityRef: { type: 'project', id: 'p3' } }
+    ]);
+  });
+
+  it('carries a single failed item in the failure-carrying output', async () => {
+    const invoke = vi.fn(async () => {
+      throw new Error('write denied');
+    });
+    const result = await executeProcessEffectNode(
+      { kind: 'effect.updateEntity', entityType: 'project' },
+      { entity: createDataPacket({ type: 'project', id: 'p1' }) },
+      invoke
+    );
+
+    expect(result.completedMutations).toEqual([]);
+    expect(result.failures).toEqual([{
+      operation: 'effect.updateEntity',
+      branchPath: [],
+      itemIndex: 0,
+      entityRef: { type: 'project', id: 'p1' },
+      error: { name: 'Error', message: 'write denied' }
     }]);
+    expect(result.result.branches[0].items[0]).toEqual(result.failures[0]);
   });
 
   it('evaluates current time from the runtime clock when accessed', async () => {

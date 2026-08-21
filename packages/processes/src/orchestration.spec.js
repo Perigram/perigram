@@ -54,10 +54,96 @@ describe('durable process orchestration', () => {
 
       expect(completed.status).toBe('succeeded');
       expect(executeEffect).toHaveBeenCalledTimes(2);
-      expect(completed.steps[0].output.branches[0].items).toHaveLength(2);
-      expect(completed.steps[0].output.completedMutations).toHaveLength(2);
+      expect(completed.steps[0].output).toEqual({ branches: [{ path: [], items: kind === 'effect.createEntity'
+        ? [{ type: 'project', id: 'One' }, { type: 'project', id: 'Two' }]
+        : [{ type: 'project', id: 'p1' }, { type: 'project', id: 'p2' }] }] });
     }
   );
+
+  it('keeps the bare effect result and idempotency key for a single mapped item', async () => {
+    const definition = process([
+      { id: 'modify', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, blocks: [] }
+    ], ['modify'], []);
+    const updated = { type: 'project', id: 'project-1', identity: { name: 'Renamed' } };
+    const executeEffect = vi.fn().mockResolvedValue(updated);
+
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'modify' }, {
+        context: { inputs: { entity: { type: 'project', id: 'project-1' } } }
+      }),
+      definition,
+      { executeEffect, catalogContext }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledOnce();
+    expect(executeEffect.mock.calls[0][0].idempotencyKey).toBe(completed.steps[0].idempotencyKey);
+    expect(completed.steps[0].output).toEqual(updated);
+  });
+
+  it('completes a mapped mutation step with a failure-carrying output when a later item fails', async () => {
+    const definition = process([
+      { id: 'values', kind: 'source.literalList', value: [
+        { type: 'project', id: 'p1' },
+        { type: 'project', id: 'p2' },
+        { type: 'project', id: 'p3' }
+      ] },
+      { id: 'mutation', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, blocks: [] },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['values', 'mutation', 'stop'], [
+      data('values', 'mutation', 'entity'),
+      control('mutation', 'completed', 'stop')
+    ]);
+    const executeEffect = vi.fn(async ({ inputs }) => {
+      if (inputs.entity.id === 'p2') throw new Error('write denied');
+      return inputs.entity;
+    });
+
+    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect,
+      catalogContext
+    });
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledTimes(3);
+    const step = completed.steps.find(item => item.nodeId === 'mutation');
+    expect(step.status).toBe('succeeded');
+    expect(step.output.failures).toEqual([{
+      operation: 'effect.updateEntity',
+      branchPath: [],
+      itemIndex: 1,
+      entityRef: { type: 'project', id: 'p2' },
+      error: { name: 'Error', message: 'write denied' }
+    }]);
+    expect(step.output.completedMutations.map(item => item.entityRef.id)).toEqual(['p1', 'p3']);
+    expect(step.output.result.branches[0].items[1]).toEqual(step.output.failures[0]);
+    expect(completed.steps.some(item => item.nodeId === 'stop')).toBe(true);
+  });
+
+  it('fails the run before the first write on incompatible mutation inputs', async () => {
+    const definition = process([
+      { id: 'entities', kind: 'source.literalList', value: [
+        { type: 'project', id: 'p1' },
+        { type: 'project', id: 'p2' },
+        { type: 'project', id: 'p3' }
+      ] },
+      { id: 'names', kind: 'source.literalList', value: [{ name: 'One' }, { name: 'Two' }] },
+      { id: 'mutation', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, blocks: ['identity'] }
+    ], ['entities', 'names', 'mutation'], [
+      data('entities', 'mutation', 'entity'),
+      data('names', 'mutation', 'identity')
+    ]);
+    const executeEffect = vi.fn();
+
+    const failed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect,
+      catalogContext
+    });
+
+    expect(failed.status).toBe('failed');
+    expect(failed.error.message).toContain('items must be scalar or aligned');
+    expect(executeEffect).not.toHaveBeenCalled();
+  });
 
   it('resolves a connected status definition at execution time', async () => {
     const definition = process([{

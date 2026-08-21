@@ -221,7 +221,7 @@ describe('current process-definition service contract', () => {
       })
     }));
     const emitted = run.steps.find(step => step.nodeId === 'update')?.output;
-    expect(emitted.branches[0].items[0]).toMatchObject({
+    expect(emitted).toMatchObject({
       _id: 'machine-1',
       identity: {
         uid: 'machine-1',
@@ -231,15 +231,8 @@ describe('current process-definition service contract', () => {
       },
       status: { state: { primary: 'MAINTENANCE' } }
     });
-    expect(emitted.branches[0].items[0]).not.toHaveProperty('actions');
-    expect(emitted.branches[0].items[0]).not.toHaveProperty('effects');
-    expect(emitted.failures).toEqual([]);
-    expect(emitted.completedMutations).toEqual([{
-      operation: 'effect.updateEntity',
-      branchPath: [],
-      itemIndex: 0,
-      entityRef: { type: 'machine', id: 'machine-1' }
-    }]);
+    expect(emitted).not.toHaveProperty('actions');
+    expect(emitted).not.toHaveProperty('effects');
   });
 });
 

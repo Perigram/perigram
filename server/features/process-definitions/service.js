@@ -568,8 +568,9 @@ async function linkCreatedEntityToContextRelation({ action = {}, data = {}, enti
 function entityInputId(value) {
   if (!value) return null;
   if (typeof value !== 'object') return value;
-  if (Array.isArray(value.branches)) {
-    const items = value.branches.flatMap(branch => branch.items || []).filter(Boolean);
+  const tree = Array.isArray(value.branches) ? value : (Array.isArray(value.result?.branches) ? value.result : null);
+  if (tree) {
+    const items = tree.branches.flatMap(branch => branch.items || []).filter(item => item && !item.error);
     return items.length === 1 ? entityInputId(items[0]) : null;
   }
   return value.id || value._id || value.identity?.uid || null;
@@ -1113,7 +1114,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
       return [change.path, change.value];
     }));
-    const result = await statusService.transitionWithResult({
+    return await statusService.transitionWithResult({
       entityType,
       targetId: target.id,
       targetState: typeof inputs.status === 'string' ? inputs.status : inputs.status?.id,
@@ -1121,7 +1122,6 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       context: { source: 'process-run' },
       patch: Object.keys(patch).length ? patch : null
     });
-    return result.entity;
   }
   if (kind === 'effect.sendEntity') {
     return await projectEntityThroughSocket({

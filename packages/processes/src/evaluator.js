@@ -193,16 +193,19 @@ export async function executeProcessEffectNode(record = {}, inputs = {}, invoke)
     return marker;
   }, { matching: record.matching });
   const slots = result.branches.flatMap(branch => branch.items.map((marker, itemIndex) => ({ branch, marker, itemIndex })));
+  const single = slots.length === 1;
   const failures = [];
   const completedMutations = [];
+  let singleValue;
 
   for (const slot of slots) {
     const invocation = invocations[slot.marker];
     const branchPath = [...slot.branch.path];
     const itemIndex = invocation.location.index ?? slot.itemIndex;
     try {
-      const value = await invoke(invocation.inputs, { branchPath, itemIndex });
+      const value = await invoke(invocation.inputs, { branchPath, itemIndex, single });
       slot.branch.items[slot.itemIndex] = value;
+      singleValue = value;
       const entityRef = mutationEntityRef(invocation.inputs.entity, value, record.entityType);
       completedMutations.push({
         operation: record.kind,
@@ -211,18 +214,25 @@ export async function executeProcessEffectNode(record = {}, inputs = {}, invoke)
         ...(entityRef ? { entityRef } : {})
       });
     } catch (error) {
-      slot.branch.items[slot.itemIndex] = null;
       const entityRef = mutationEntityRef(invocation.inputs.entity, null, record.entityType);
-      failures.push({
+      const failure = {
         operation: record.kind,
         branchPath,
         itemIndex,
         ...(entityRef ? { entityRef } : {}),
         error: serializeMutationError(error)
-      });
+      };
+      slot.branch.items[slot.itemIndex] = failure;
+      failures.push(failure);
     }
   }
-  return { ...result, failures, completedMutations };
+  const tree = { branches: result.branches };
+  if (!failures.length) {
+    // Zero-failure runs keep the historical output contract: a single
+    // invocation returns the bare effect result, exactly as before.
+    return single ? singleValue : tree;
+  }
+  return { result: tree, failures, completedMutations };
 }
 
 function assertMutationInputsAlign(operation, trees) {
