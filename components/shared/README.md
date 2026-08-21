@@ -532,7 +532,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   padding for IDE-style navigation and inspector lanes without changing the
   global PrimeVue panel density.
 - **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome.
-- **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces; owns the token-backed DataTable header-cell background override.
+- **`TableFrame.vue`**: Reusable overflow boundary around PrimeVue `DataTable` surfaces. DataTable chrome remains Aura-owned.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Route-level page shell for title, subtitle,
   breadcrumbs, and page actions. The authenticated `app` layout owns outer

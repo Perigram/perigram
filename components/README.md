@@ -649,10 +649,11 @@ be removed only by an explicit human cleanup decision.
 The canonical component and mechanism inventory lives in
 [docs/UI_COMPONENT_AUDIT.md](../docs/UI_COMPONENT_AUDIT.md). It classifies every
 repository Vue file as system-owned, a shared/domain primitive, or derived usage
-and records its typography, layout, container, border, radius, shadow, state,
-CSS, utility-class, and PrimeVue usage. The design-system test reconciles the
-path-derived inventory IDs against the repository, so adding or removing an
-in-scope Vue file requires updating the audit in the same change.
+and records source-derived dispositions for typography, layout, chrome, states,
+important overrides, and scoped CSS. Run `node scripts/ui-visual-inventory.js`
+after an intentional visual change. The design-system test derives the same
+findings, checks path-derived IDs, and validates scoped layout declarations by
+property, so stale rows and broad whole-file CSS exceptions fail.
 
 ## Composables Rule
 

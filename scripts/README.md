@@ -31,6 +31,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   `npm run docs:validate`.
 - `framework-inspect.js`: Framework/package inspection utility used during
   extraction checks.
+- `ui-visual-inventory.js`: Derives the canonical Vue visual inventory from
+  current source and rewrites the component matrix in
+  `docs/UI_COMPONENT_AUDIT.md`. It classifies typography, arbitrary layout,
+  chrome, state, important-override, and scoped-style findings under the same
+  dispositions consumed by `shared/design-system.spec.js`.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
@@ -122,9 +127,10 @@ contracts stay in one canonical file instead of being restated in several.
 `npx vitest run shared/design-system.spec.js` enforces the PrimeVue-first visual
 boundary. It rejects arbitrary typography, raw palette/surface borders,
 nonsemantic radii and shadows, non-allowlisted scoped CSS, duplicated runtime
-theme overrides, and global focus suppression. The scoped-style allowlist is
-limited to shared layout/container queries, browser pseudo-elements, and
-data-driven geometry or process surfaces.
+theme overrides, and global focus suppression. It also reconciles source-derived
+visual concern counts with the canonical audit. Scoped-style exceptions name one
+exact category per file; layout exceptions are additionally limited to an exact
+set of layout properties rather than granting whole-file visual ownership.
 
 ## Related
 
