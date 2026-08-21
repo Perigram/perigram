@@ -1,4 +1,15 @@
 export const cncEntityFieldGroups = {
+  facade: {
+    summary: [
+      { path: 'data.parts.length', i18n: 'facade.parts', display: 'count', priority: 10 },
+      { path: 'data.partAssignments.length', i18n: 'facade.assignments', display: 'count', priority: 20 }
+    ]
+  },
+  facadePattern: {
+    summary: [
+      { path: 'data.graph.nodes.length', i18n: 'facadePattern.nodes', display: 'count', priority: 10 }
+    ]
+  },
   project: {
     summary: [
       { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', role: 'childCount', priority: 10 },

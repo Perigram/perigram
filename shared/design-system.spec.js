@@ -542,7 +542,7 @@ describe('Design system manifest', () => {
     expect(page).not.toContain('applyPackage');
     expect(preview).toContain('ActionToolbar');
     expect(preview).toContain('StateBlock');
-    expect(layout).toContain("router.push('/admin/config-bot')");
+    expect(layout).not.toContain("router.push('/admin/config-bot')");
     expect(navigation).toContain("to: '/admin/config-bot'");
   });
 
@@ -679,7 +679,8 @@ describe('Design system manifest', () => {
     expect(editor).toContain('clampSheetPlacement');
     expect(editor).toContain('majorGridSize');
     expect(editor).toContain('selectedSnapPoint');
-    expect(generatedDetail).toContain(":show-identity=\"showIdentity || entityType === 'sheet_design'\"");
+    expect(generatedDetail).toContain(':show-identity="showIdentity || forceIdentityForEditor"');
+    expect(generatedDetail).toContain('entityEditorForcesIdentity(props.entityType)');
     expect(relationBlock).toContain(':variant="itemVariant"');
   });
 
@@ -712,10 +713,10 @@ describe('Design system manifest', () => {
     expect(generatedHome).toContain('shrink-0');
     expect(generatedHome).toContain('suppress-child-summaries');
     expect(generatedHome).toContain('relation-variant="compact"');
-    expect(generatedHome).toContain('GeneratedCassetteDesignerAction');
+    expect(generatedHome).toContain('entityEditorActionFor');
     expect(generatedCollection).toContain('suppress-child-summaries');
     expect(generatedCollection).toContain('relation-variant="compact"');
-    expect(generatedCollection).toContain('GeneratedCassetteDesignerAction');
+    expect(generatedCollection).toContain('entityEditorActionFor');
     expect(generatedHome).toContain('pi pi-external-link');
     expect(generatedCollection).toContain('pi pi-external-link');
     expect(relationsBlock).toContain('overflow-x-auto');

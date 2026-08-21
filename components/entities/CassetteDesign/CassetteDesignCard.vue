@@ -1,7 +1,7 @@
 <template>
   <div>
     <EntityCard :entity="design" entity-type="cassette_design" :variant="variant" :show-status="false">
-      <template #title>
+      <template #before-identity>
         <EntityInlineRef
           v-if="templateId"
           type="cassetteTemplate"
