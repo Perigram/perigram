@@ -2,30 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-.dark-mode {
-    --ck-page-background: var(--p-surface-950);
-    --ck-process-canvas-background: var(--p-surface-950);
-    --ck-chrome-background: #0c0c0b;
-    --ck-chrome-foreground: #fffdf8;
-    --ck-chrome-muted: #bdbdb5;
-    --ck-chrome-subtle: #20201d;
-    --ck-chrome-border: #393933;
-    --ck-subtle-background: var(--p-surface-800);
-    --ck-primary-ink: var(--ck-primary-300);
-    --ck-status-success: var(--p-emerald-400);
-    --ck-status-warning: var(--p-amber-400);
-    --ck-status-danger: var(--p-red-400);
-    --ck-signal-identity: var(--p-surface-400);
-    --ck-entity-tone-command: #ff8b60;
-    --ck-entity-tone-fabrication: #ff7079;
-    --ck-entity-tone-output: #8292ff;
-    --ck-entity-tone-material: #47ba91;
-    --ck-entity-tone-system: #ae9aff;
-    --ck-signal-quantity: #f2bc36;
-    --ck-shadow-card: none;
-    --ck-shadow-overlay: 0 14px 32px rgb(0 0 0 / 0.38);
-}
-
 @media (prefers-reduced-motion: reduce) {
     :root {
         --ck-motion-fast: 1ms;
@@ -55,22 +31,10 @@ body {
     background: var(--ck-selection-background);
 }
 
-/* Clip child media to the Aura-owned container boundary. */
-.p-card,
-.p-panel {
-    overflow: hidden;
-}
-
-/* Light chrome is near-white; dark mode supplies the ink instrument rail. */
-.bg-chrome {
-    color: var(--ck-chrome-foreground);
-    border-color: var(--ck-chrome-border) !important;
-}
-
 .chrome-signal-rule {
-    border-top-color: var(--p-primary-color) !important;
+    border-top-color: var(--p-primary-color);
     border-top-style: solid;
-    border-top-width: var(--ck-chrome-signal-height) !important;
+    border-top-width: var(--ck-chrome-signal-height);
 }
 
 .process-designer-canvas .vue-flow__connection-path {
@@ -191,21 +155,6 @@ body {
     align-items: center;
 }
 
-.entity-inline-compact-status-row :where(.p-tag) {
-    max-width: 100%;
-    min-width: 0;
-    font-size: 0.62rem;
-    line-height: 1;
-}
-
-.entity-inline-compact :where(.p-card, .p-panel) {
-    box-shadow: none;
-}
-
-.entity-inline-compact :where(.p-card-content) {
-    padding: 0;
-}
-
 .entity-inline-compact :where(dl) {
     max-height: 1.35rem;
     overflow: hidden;
@@ -259,47 +208,4 @@ body {
     .grid-details {
         @apply grid grid-cols-1 lg:grid-cols-4 gap-[var(--ck-details-gap)];
     }
-}
-
-/* Input components fill available width by default */
-/* .p-inputchips, */
-/* .p-select, */
-/* .p-password, */
-/* .p-textarea, */
-/* .p-inputnumber, */
-.p-inputtext {
-    width: 100%;
-}
-
-/* PrimeVue Avatar's image defaults to `object-fit: fill`, which distorts
-   portrait uploads inside its square frame. Avatar media is always cropped. */
-.p-avatar {
-    overflow: hidden;
-}
-
-.p-avatar .p-avatar-image,
-.p-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-
-.p-tabs-list {
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    flex-wrap: nowrap;
-}
-
-/* DataView Transparency (PrimeVue 4 Idiomatic Way) */
-:root {
-    --p-dataview-background: transparent;
-    --p-dataview-content-background: transparent;
-    --p-dataview-header-background: transparent;
-    --p-dataview-footer-background: transparent;
-    --p-dataview-border-width: 0;
-    --p-dataview-content-border-width: 0;
-    --p-dataview-header-border-width: 0;
-    --p-dataview-footer-border-width: 0;
 }

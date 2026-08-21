@@ -13,6 +13,7 @@ import {
 import * as factories from '../test-data/factories.js';
 import {
   cssVariableTokens,
+  darkCssVariableTokens,
   designTokens,
   primeComponentTokens,
   primeSemanticTokens,
@@ -334,6 +335,7 @@ describe('Design system manifest', () => {
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
     expect(cssVariableTokens['--ck-chrome-background']).toBe('#fefefc');
     expect(cssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-50)');
+    expect(darkCssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-950)');
     expect(tailwindThemeExtension.colors['process-canvas']).toBe('var(--ck-process-canvas-background)');
     expect(designTokens.shadow.card).toBe('none');
     expect(designTokens.motion.emphasis).toBe('220ms');
@@ -356,12 +358,16 @@ describe('Design system manifest', () => {
     expect(designTokens.typography.labelTracking).toBe('0.04em');
     expect(tailwindThemeExtension.fontSize['ui-caption']).toBe(designTokens.typography.caption);
     expect(tailwindThemeExtension.fontSize['ui-display']).toBe(designTokens.typography.display);
-    expect(nuxtConfig).toContain("import { cssVariableTokens } from './assets/tokens/index.js'");
-    expect(nuxtConfig).toContain('Object.entries(cssVariableTokens)');
-    expect(runtimeCss).not.toMatch(/--p-[\w-]+:[^;]+!important/);
-    expect(runtimeCss).not.toMatch(/[^{}]*\.p-[^{}]*:(?:hover|active|focus|focus-visible|disabled|invalid)[^{}]*\{/);
-    expect(runtimeCss).not.toMatch(/[^{}]*\.p-[^{}]*\{[^{}]*!important/);
-    expect(runtimeCss).toContain('.bg-chrome');
+    expect(nuxtConfig).toContain("import { cssVariableTokens, darkCssVariableTokens } from './assets/tokens/index.js'");
+    expect(nuxtConfig).toContain('cssDeclarations(cssVariableTokens)');
+    expect(nuxtConfig).toContain('cssDeclarations(darkCssVariableTokens)');
+    expect(nuxtConfig.match(/\n\s*app:\s*\{/g)).toHaveLength(1);
+    expect(runtimeCss).not.toContain('.dark-mode');
+    expect(runtimeCss).not.toMatch(/--p-[\w-]+\s*:/);
+    expect(runtimeCss).not.toMatch(/[^{}]*\.p-[\w-]+[^{}]*\{/);
+    expect(runtimeCss).not.toContain('!important');
+    expect(fs.readdirSync(path.join(REPO_ROOT, 'assets/css')).filter(file => file.endsWith('.css')).sort())
+      .toEqual(['fonts.css', 'main.css', 'variants.css']);
     expect(runtimeCss).toContain('.chrome-signal-rule');
     expect(runtimeCss).toContain('border-top-width: var(--ck-chrome-signal-height)');
     expect(cssVariableTokens['--ck-chrome-background']).toBe('#fefefc');
