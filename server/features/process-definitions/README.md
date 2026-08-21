@@ -172,6 +172,15 @@ operations before Modify Block receives the replacement value, then persisted
 through the target feature's `processUpdate()` contract. Manual Update
 effects compile into the normal generated action manifest; Relations data
 connections without an effect remain non-executable dataflow.
+Immediately before a compiled Create constructor or Modify persistence call,
+the effect adapter normalizes each connected Relations replacement against the
+current graph-declared owner/key/target/cardinality contract. It resolves every
+target through its registered `processGetById` adapter with the run auth
+context, applies ordinary read access (including active-organization
+isolation), and removes duplicate references from many-valued replacements.
+Failure leaves the owner persistence method uncalled. This check is local to
+compiled effects because entity services do not have the graph metadata;
+non-relation patches keep their existing service semantics.
 Compiled process-relation actions execute directly at the active-definition
 boundary, including for dataflow-v4 definitions: Link merges the selected typed
 reference according to relation cardinality, while contextual Unlink removes

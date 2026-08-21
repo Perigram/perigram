@@ -310,6 +310,11 @@ contextual `Unlink <target>` operation for each rendered linked reference. Both
 carry the exact relation key, target type, cardinality, and access grants. Link
 prompts for a target; Unlink receives the already-rendered target reference and
 therefore never opens an entity selector.
+The compiled contract preserves the authored owner type, entry key, target
+type, and scalar/array cardinality. Array cardinality is inferred from the
+typed Collect Array output when the relation entry is not a global domain
+relation; a same-target domain relation does not rename an independently
+authored graph entry.
 When a relation entry is fed by a typed Create Entity effect, the compiled Link
 contract retains that effect as its embedded creator. The creator is not exposed
 as an unrelated top-level action: it is authorized and executed only through
