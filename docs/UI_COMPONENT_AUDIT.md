@@ -73,7 +73,7 @@ concern, `replace` when an Aura component or registered primitive owns it,
 | Global focus suppression | remove and restore Aura interaction states. |
 | Raw surface borders and `shadow-sm` | replace with Aura components or an existing semantic contract. |
 | Hand-built bordered/rounded derived containers | replace with PrimeVue containers or a registered primitive. Domain primitives retain structure only; Aura owns their generic chrome. |
-| Scoped CSS, inline bindings, and visual utilities | reusable layout and derived semantic composition are compliant; typography, color, border, radius, shadow, and state styling is remove, replace, or centralize. Only exact data-driven visuals, including data-driven geometry/process values, may be narrowly allowlisted. |
+| Scoped CSS, inline bindings, render-function styles, and visual utilities | reusable layout and derived semantic composition are compliant; typography, color, border, radius, shadow, and state styling is remove, replace, or centralize. Render-function styles do not bypass classification. Only exact data-driven visuals, including data-driven geometry/process values, may be narrowly allowlisted. |
 | Missing canonical component audit | centralize here; reconciliation covers every repository Vue file and mechanism. |
 | Missing repository-wide guards | centralize in `shared/design-system.spec.js`; the audit and enforcement use this same boundary. |
 
@@ -263,7 +263,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-links-tracechain-vue` | `components/shared/links/TraceChain.vue` | shared/domain primitive | centralize:typography (1); centralize:layout (1); replace:chrome (2) |
 | `ui-components-shared-links-tracelink-vue` | `components/shared/links/TraceLink.vue` | shared/domain primitive | replace:chrome (2) |
 | `ui-components-shared-metricpanel-vue` | `components/shared/MetricPanel.vue` | derived usage | centralize:typography (2); replace:chrome (2) |
-| `ui-components-shared-motiondock-vue` | `components/shared/MotionDock.vue` | derived usage | compliant:inline-semantic-composition (2) |
+| `ui-components-shared-motiondock-vue` | `components/shared/MotionDock.vue` | derived usage | replace:inline-visual (2); replace:render-visual (5) |
 | `ui-components-shared-nameeditpopover-vue` | `components/shared/NameEditPopover.vue` | derived usage | centralize:typography (2); replace:chrome (3); remove:important-override (1) |
 | `ui-components-shared-responsivegrid-vue` | `components/shared/ResponsiveGrid.vue` | shared/domain primitive | compliant:scoped-layout |
 | `ui-components-shared-scrollablepanel-vue` | `components/shared/ScrollablePanel.vue` | derived usage | centralize:typography (1) |

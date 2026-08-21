@@ -34,10 +34,13 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 - `ui-visual-inventory.js`: Derives the canonical Vue visual inventory from
   current source and rewrites the component matrix in
   `docs/UI_COMPONENT_AUDIT.md`. It classifies typography, arbitrary layout,
-  chrome, state, important-override, scoped-style, and inline-style findings
+  chrome, state, important-override, scoped-style, inline-style, and render-style
+  findings
   under the same dispositions consumed by `shared/design-system.spec.js`.
   Inline exceptions are exact file/category/binding-expression entries, so
-  adding or changing a binding requires explicit classification. Component
+  adding or changing a binding requires explicit classification.
+  Render-function style bindings are replacement debt rather than an enforcement
+  bypass. Component
   ownership is derived from the domain primitive registry: exact registered
   paths are shared/domain primitives and every other Vue file is derived usage.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
@@ -138,8 +141,10 @@ exact category per file; every exception category is limited to an exact set of
 properties rather than granting whole-file visual ownership. Aura-owned padding
 is excluded from general layout exceptions. Inline style bindings are rejected
 unless their exact file, visual category, and normalized binding expressions
-are registered. Reusable layout and derived semantic composition are compliant
-application usage; only data-driven visuals are narrowly allowlisted. None of
+are registered. Render-function style bindings are recorded as replacement
+violations and must move to PrimeVue or declarative classified contracts.
+Reusable layout and derived semantic composition are compliant application
+usage; only data-driven visuals are narrowly allowlisted. None of
 these categories may own generic component chrome or states.
 
 ## Related
