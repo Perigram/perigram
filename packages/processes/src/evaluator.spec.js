@@ -252,6 +252,38 @@ describe('process v4 data execution', () => {
     expect(modified.branches[0].items).toEqual([{ name: 'Cut queue', slug: 'queue' }]);
   });
 
+  it('emits one composed block per aligned tuple from list-shaped inputs', async () => {
+    const composed = await executeProcessDataNode(
+      { kind: 'record.composeBlock', block: 'identity', fields: ['identity.name', 'identity.slug'] },
+      {
+        'identity.name': createDataPacket(['Queue', 'Archive'], 'list'),
+        'identity.slug': createDataPacket(['queue', 'archive'], 'list')
+      }
+    );
+
+    expect(composed.branches).toEqual([{ path: [], items: [
+      { name: 'Queue', slug: 'queue' },
+      { name: 'Archive', slug: 'archive' }
+    ] }]);
+  });
+
+  it('emits one composed open-entry block per aligned tuple from list-shaped inputs', async () => {
+    const composed = await executeProcessDataNode(
+      {
+        kind: 'record.composeBlock',
+        block: 'relations',
+        compositionMode: 'relations',
+        entries: [{ id: 'library', key: 'library', entityType: 'library' }]
+      },
+      { 'entry:library': createDataPacket([{ type: 'library', id: 'a' }, { type: 'library', id: 'b' }], 'list') }
+    );
+
+    expect(composed.branches).toEqual([{ path: [], items: [
+      { library: { type: 'library', id: 'a' } },
+      { library: { type: 'library', id: 'b' } }
+    ] }]);
+  });
+
   it('writes explicit scalar or collected array values without relation cardinality metadata', async () => {
     const replace = await executeProcessDataNode({
       kind: 'record.modifyBlock',
