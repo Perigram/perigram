@@ -653,7 +653,9 @@ and records source-derived dispositions for typography, layout, chrome, states,
 important overrides, and scoped CSS. Run `node scripts/ui-visual-inventory.js`
 after an intentional visual change. The design-system test derives the same
 findings, checks path-derived IDs, and validates scoped layout declarations by
-property, so stale rows and broad whole-file CSS exceptions fail.
+property. It also rejects runtime PrimeVue state selectors and `!important`
+PrimeVue rules, so stale rows, broad whole-file CSS exceptions, and a second
+runtime state layer fail.
 
 ## Composables Rule
 
