@@ -45,29 +45,58 @@ export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
 });
 
 export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
-  'components/AdminSupportChatList.vue': ['data-driven', 1],
-  'components/AssetsLibrary.vue': ['data-driven', 1],
-  'components/CassetteDesigner.vue': ['geometry-visualization', 1],
-  'components/CassetteDesignerV2.vue': ['geometry-visualization', 2],
-  'components/QueueEditor.vue': ['primevue-integration', 1],
-  'components/entities/Color/ColorCard.vue': ['data-driven', 2],
-  'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', 1],
-  'components/entities/Requisition/RequisitionDetail.vue': ['data-driven', 1],
-  'components/entities/Sheet/SheetDetail.vue': ['data-driven', 2],
-  'components/process-designer/ProcessActionNode.vue': ['process-visualization', 4],
-  'components/process-designer/ProcessEntityNode.vue': ['process-visualization', 2],
-  'components/process-designer/ProcessNode.vue': ['process-visualization', 4],
-  'components/process-designer/ProcessRoleNode.vue': ['process-visualization', 3],
-  'components/process-designer/ProcessServiceNode.vue': ['process-visualization', 3],
-  'components/process-designer/ProcessSocketNode.vue': ['process-visualization', 3],
-  'components/process-designer/ProcessStatusDefinitionNode.vue': ['process-visualization', 3],
-  'components/process-designer/ProcessUserNode.vue': ['process-visualization', 1],
-  'components/process-designer/ProcessValueInputNode.vue': ['process-visualization', 1],
-  'components/shared/EntityInlineRef.vue': ['data-driven', 2],
-  'components/shared/MotionDock.vue': ['interaction-motion', 2],
-  'pages/assets/pens.vue': ['data-driven', 1],
-  'pages/organization/process.vue': ['process-visualization', 1],
-  'pages/project/[slug]/data.vue': ['primevue-integration', 1]
+  'components/AdminSupportChatList.vue': ['data-driven', [':style="{ backgroundColor: letterToBg(getUserName(chat.participant)), color: \'var(--p-primary-contrast-color)\' }"']],
+  'components/AssetsLibrary.vue': ['data-driven', [':style="{ backgroundColor: penForm.stroke.color }"']],
+  'components/CassetteDesigner.vue': ['geometry-visualization', [':style="{ position: \'absolute\', left: addDialog.screenX + \'px\', top: addDialog.screenY + \'px\', transform: \'translate(-50%, -100%)\' }"']],
+  'components/CassetteDesignerV2.vue': ['geometry-visualization', [
+    ':style="{ left: `${inlineEditor.x}px`, top: `${inlineEditor.y}px` }"',
+    ':style="workpieceAccentStyle(row.id)"'
+  ]],
+  'components/QueueEditor.vue': ['primevue-integration', ['style="width: var(--ck-table-action-column-width)"']],
+  'components/entities/Color/ColorCard.vue': ['data-driven', [':style="swatchStyle"', ':style="swatchStyle"']],
+  'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
+  'components/entities/Requisition/RequisitionDetail.vue': ['data-driven', [':style="{ backgroundColor: item.colorHex || item.colorFallback || \'var(--p-content-border-color)\' }"']],
+  'components/entities/Sheet/SheetDetail.vue': ['data-driven', [':style="{ backgroundColor: colorHex }"', ':style="geometryStyle"']],
+  'components/process-designer/ProcessActionNode.vue': ['process-visualization', [
+    ':style="handleStyle(input)"',
+    ':style="handleStyle(output)"',
+    ':style="handleStyle({ kind: \'event\' })"',
+    ':style="handleStyle({ kind: \'event\' })"'
+  ]],
+  'components/process-designer/ProcessEntityNode.vue': ['process-visualization', [':style="handleStyle(input)"', ':style="handleStyle(output)"']],
+  'components/process-designer/ProcessNode.vue': ['process-visualization', [
+    ':style="handleStyle(row.input)"',
+    ':style="handleStyle(row.output)"',
+    ':style="handleStyle(row.input)"',
+    ':style="handleStyle(row.output)"'
+  ]],
+  'components/process-designer/ProcessRoleNode.vue': ['process-visualization', [
+    ':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"',
+    ':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"',
+    ':style="processSocketHandleStyle({ kind: \'event\' })"'
+  ]],
+  'components/process-designer/ProcessServiceNode.vue': ['process-visualization', [
+    ':style="handleStyle({ kind: \'event\' })"',
+    ':style="handleStyle(input)"',
+    ':style="handleStyle(output)"'
+  ]],
+  'components/process-designer/ProcessSocketNode.vue': ['process-visualization', [
+    ':style="handleStyle(\'entity\')"',
+    ':style="handleStyle(\'entity\')"',
+    ':style="handleStyle(\'projection\')"'
+  ]],
+  'components/process-designer/ProcessStatusDefinitionNode.vue': ['process-visualization', [
+    ':style="{ backgroundColor: toneColor }"',
+    ':style="{ color: toneColor }"',
+    ':style="statusHandleStyle"'
+  ]],
+  'components/process-designer/ProcessUserNode.vue': ['process-visualization', [':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"']],
+  'components/process-designer/ProcessValueInputNode.vue': ['process-visualization', [':style="valueHandleStyle"']],
+  'components/shared/EntityInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
+  'components/shared/MotionDock.vue': ['interaction-motion', [':style="outerStyle"', ':style="panelStyle"']],
+  'pages/assets/pens.vue': ['data-driven', [':style="{ backgroundColor: form.stroke.color }"']],
+  'pages/organization/process.vue': ['process-visualization', [':style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"']],
+  'pages/project/[slug]/data.vue': ['primevue-integration', ['style="width: var(--ck-table-action-column-width)"']]
 });
 
 const REGISTERED_PRIMITIVE_PATHS = new Set(cncDesignSystemPrimitives.map(primitive => primitive.componentPath));
@@ -96,7 +125,10 @@ export const scopedStyleDeclarations = (source) => Array.from(
   match => match[1]
 );
 
-export const inlineStyleAttributes = source => Array.from(source.matchAll(/(?:\bv-bind:|:)style\s*=\s*"[^"]*"|\bstyle\s*=\s*"[^"]*"/g));
+export const inlineStyleAttributes = source => Array.from(
+  source.matchAll(/(?:\bv-bind:|:)style\s*=\s*"[^"]*"|\bstyle\s*=\s*"[^"]*"/g),
+  match => match[0].replace(/\s+/g, ' ')
+);
 
 export const analyzeVueVisuals = (file, source) => {
   const template = source
@@ -113,12 +145,12 @@ export const analyzeVueVisuals = (file, source) => {
     findings.push(exception ? `narrowly-allowlist:scoped-${exception}` : 'replace:scoped-visual');
   }
 
-  const inlineStyleCount = inlineStyleAttributes(template).length;
-  if (inlineStyleCount) {
-    const [category, expectedCount] = INLINE_STYLE_EXCEPTIONS[file] || [];
-    findings.push(category && inlineStyleCount === expectedCount
-      ? `narrowly-allowlist:inline-${category} (${inlineStyleCount})`
-      : `replace:inline-visual (${inlineStyleCount})`);
+  const inlineStyles = inlineStyleAttributes(template);
+  if (inlineStyles.length) {
+    const [category, expectedStyles] = INLINE_STYLE_EXCEPTIONS[file] || [];
+    findings.push(category && JSON.stringify(inlineStyles) === JSON.stringify(expectedStyles)
+      ? `narrowly-allowlist:inline-${category} (${inlineStyles.length})`
+      : `replace:inline-visual (${inlineStyles.length})`);
   }
 
   return findings.length ? findings : ['compliant'];

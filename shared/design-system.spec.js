@@ -26,6 +26,7 @@ import { resolveEntityRelationRefs } from '../utils/entity-relations.js';
 import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 import { getWorkflowStatusActions } from '../utils/status-actions.js';
 import {
+  analyzeVueVisuals,
   inventoryId,
   inventoryOwnership,
   INLINE_STYLE_EXCEPTIONS,
@@ -465,14 +466,19 @@ describe('Design system manifest', () => {
       const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
       const inlineStyles = inlineStyleAttributes(source);
       if (!inlineStyles.length) continue;
-      const [category, expectedCount] = INLINE_STYLE_EXCEPTIONS[file] || [];
+      const [category, expectedStyles] = INLINE_STYLE_EXCEPTIONS[file] || [];
       expect(category, `${file} has an unclassified inline visual binding`).toBeTruthy();
-      expect(inlineStyles, `${file} changed its ${category} inline exception surface`).toHaveLength(expectedCount);
+      expect(inlineStyles, `${file} changed its ${category} inline exception surface`).toEqual(expectedStyles);
     }
 
     for (const [file, [category]] of Object.entries(INLINE_STYLE_EXCEPTIONS)) {
       expect(files, `${file} must retain its ${category} inline exception`).toContain(file);
     }
+
+    expect(analyzeVueVisuals(
+      'components/AssetsLibrary.vue',
+      '<template><div :style="{ borderRadius: \'1rem\' }" /></template>'
+    )).toContain('replace:inline-visual (1)');
 
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
     expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);
