@@ -50,8 +50,8 @@ introduce generic visual language. The exception categories are data-driven
 color, geometry/process visualization, third-party integration constraints, and
 behavior PrimeVue genuinely cannot provide; every exception must be documented
 by exact file in enforcement rather than broadening the theme. Inline style
-bindings are also pinned to an expected occurrence count, preventing an allowed
-file from silently gaining another visual exception.
+bindings are also pinned to their normalized expressions, preventing an allowed
+file from silently gaining or changing a visual exception.
 
 Violations have four dispositions: `remove` when Aura already supplies the
 concern, `replace` when an Aura component or registered primitive owns it,
