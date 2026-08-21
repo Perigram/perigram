@@ -64,15 +64,6 @@ export const designTokens = {
         previewDialogHeight: '95vh',
         tableActionColumnWidth: '3rem'
     },
-    radius: {
-        ui: '3px',
-        panel: '6px',
-        full: '9999px'
-    },
-    shadow: {
-        card: 'none',
-        overlay: '0 12px 28px rgb(16 16 14 / 0.14)'
-    },
     motion: {
         fast: '100ms',
         normal: '160ms',
@@ -205,11 +196,6 @@ export const cssVariableTokens = {
     '--ck-floating-menu-min-width': designTokens.layout.floatingMenuMinWidth,
     '--ck-preview-dialog-height': designTokens.layout.previewDialogHeight,
     '--ck-table-action-column-width': designTokens.layout.tableActionColumnWidth,
-    '--ck-radius-ui': designTokens.radius.ui,
-    '--ck-radius-panel': designTokens.radius.panel,
-    '--ck-radius-full': designTokens.radius.full,
-    '--ck-shadow-card': designTokens.shadow.card,
-    '--ck-shadow-overlay': designTokens.shadow.overlay,
     '--ck-motion-fast': designTokens.motion.fast,
     '--ck-motion-normal': designTokens.motion.normal,
     '--ck-motion-emphasis': designTokens.motion.emphasis,
@@ -245,9 +231,7 @@ export const darkCssVariableTokens = {
     '--ck-entity-tone-output': '#8292ff',
     '--ck-entity-tone-material': '#47ba91',
     '--ck-entity-tone-system': '#ae9aff',
-    '--ck-signal-quantity': '#f2bc36',
-    '--ck-shadow-card': 'none',
-    '--ck-shadow-overlay': '0 14px 32px rgb(0 0 0 / 0.38)'
+    '--ck-signal-quantity': '#f2bc36'
 };
 
 export const tailwindThemeExtension = {
@@ -321,8 +305,8 @@ export const tailwindThemeExtension = {
         'support-chat': 'var(--ck-support-chat-height)'
     },
     borderRadius: {
-        ui: 'var(--ck-radius-ui)',
-        panel: 'var(--ck-radius-panel)'
+        ui: 'var(--p-border-radius-md)',
+        panel: 'var(--p-border-radius-lg)'
     },
     fontFamily: {
         sans: 'var(--ck-font-ui)',
@@ -339,8 +323,8 @@ export const tailwindThemeExtension = {
         label: 'var(--ck-label-tracking)'
     },
     boxShadow: {
-        card: 'var(--ck-shadow-card)',
-        overlay: 'var(--ck-shadow-overlay)'
+        card: 'var(--p-card-shadow)',
+        overlay: 'var(--p-overlay-popover-shadow)'
     },
     transitionDuration: {
         DEFAULT: 'var(--ck-motion-normal)',

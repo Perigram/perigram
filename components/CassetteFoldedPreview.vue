@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative h-full w-full select-none rounded-ui border border-content-border bg-content p-2 [box-shadow:var(--ck-shadow-overlay)]"
+    class="relative h-full w-full select-none rounded-ui border border-content-border bg-content p-2 shadow-overlay"
   >
     <div class="flex h-6 items-center justify-between gap-2">
       <small class="truncate text-muted-color">{{ $t(titleKey) }}</small>

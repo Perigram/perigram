@@ -426,7 +426,7 @@ function tonePalette(role) {
       </span>
     </span>
 
-    <Popover v-if="interactive" ref="compactOp" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+    <Popover v-if="interactive" ref="compactOp">
       <div class="w-[min(34rem,calc(100vw-3rem))]">
         <div class="flex flex-col gap-4 p-4">
           <TraceChain v-if="resolved" :entity="resolved" :entity-type="type" />

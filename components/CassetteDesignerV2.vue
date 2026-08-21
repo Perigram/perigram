@@ -5,7 +5,7 @@
   >
     <div
       v-if="showOnboardingRail"
-      class="absolute z-[140] w-80 rounded-ui border border-content-border bg-content p-3 [box-shadow:var(--ck-shadow-overlay)]"
+      class="absolute z-[140] w-80 rounded-ui border border-content-border bg-content p-3 shadow-overlay"
       :class="onboardingCalloutClass"
     >
       <span
@@ -232,7 +232,7 @@
         @designer-section-edit="handleDesignerSectionEdit"
         @designer-fold-angle-edit="handleDesignerFoldAngleEdit"
       />
-      <div class="absolute left-3 top-3 z-[80] flex gap-1 rounded-ui border border-content-border bg-content p-1 [box-shadow:var(--ck-shadow-overlay)]">
+      <div class="absolute left-3 top-3 z-[80] flex gap-1 rounded-ui border border-content-border bg-content p-1 shadow-overlay">
         <Button
           icon="pi pi-undo"
           severity="secondary"
@@ -258,7 +258,7 @@
       </div>
       <div
         v-if="inlineEditor"
-        class="absolute z-[120] min-w-64 rounded-ui border border-content-border bg-content p-2 [box-shadow:var(--ck-shadow-overlay)]"
+        class="absolute z-[120] min-w-64 rounded-ui border border-content-border bg-content p-2 shadow-overlay"
         :style="{ left: `${inlineEditor.x}px`, top: `${inlineEditor.y}px` }"
         tabindex="-1"
         @keydown.enter.stop.prevent="closeInlineEditor"

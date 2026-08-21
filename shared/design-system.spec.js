@@ -337,7 +337,12 @@ describe('Design system manifest', () => {
     expect(cssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-50)');
     expect(darkCssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-950)');
     expect(tailwindThemeExtension.colors['process-canvas']).toBe('var(--ck-process-canvas-background)');
-    expect(designTokens.shadow.card).toBe('none');
+    expect(designTokens).not.toHaveProperty('radius');
+    expect(designTokens).not.toHaveProperty('shadow');
+    expect(tailwindThemeExtension.borderRadius.ui).toBe('var(--p-border-radius-md)');
+    expect(tailwindThemeExtension.borderRadius.panel).toBe('var(--p-border-radius-lg)');
+    expect(tailwindThemeExtension.boxShadow.card).toBe('var(--p-card-shadow)');
+    expect(tailwindThemeExtension.boxShadow.overlay).toBe('var(--p-overlay-popover-shadow)');
     expect(designTokens.motion.emphasis).toBe('220ms');
     expect(designTokens.motion.seconds.normal).toBe(0.16);
     expect(designTokens.motion.easing.standard).toBe('cubic-bezier(0.2, 0, 0, 1)');
@@ -372,10 +377,11 @@ describe('Design system manifest', () => {
     expect(runtimeCss).toContain('border-top-width: var(--ck-chrome-signal-height)');
     expect(cssVariableTokens['--ck-chrome-background']).toBe('#fefefc');
     expect(cssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-50)');
-    expect(cssVariableTokens['--ck-shadow-card']).toBe('none');
+    expect(Object.keys(cssVariableTokens).filter(token => /(?:radius|shadow)/.test(token))).toEqual([]);
+    expect(Object.keys(darkCssVariableTokens).filter(token => /(?:radius|shadow)/.test(token))).toEqual([]);
     expect(cssVariableTokens['--ck-motion-emphasis']).toBe('220ms');
     expect(runtimeCss).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(runtimeCss).toContain('background: var(--ck-inline-ref-bg, var(--ck-subtle-background));');
+    expect(runtimeCss).not.toMatch(/--ck-(?:radius|shadow)/);
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
     expect(tailwindThemeExtension.colors.primary.ink).toBe('var(--ck-primary-ink)');
     expect(tailwindThemeExtension.colors.status.danger).toBe('var(--ck-status-danger)');
@@ -652,12 +658,13 @@ describe('Design system manifest', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('keeps entity-card hover feedback inside clipped card roots', () => {
+  it('leaves entity card and popover chrome to Aura', () => {
     const entityCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityCard.vue'), 'utf8');
+    const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
 
-    expect(entityCard).toContain('transition-colors duration-normal hover:border-primary');
-    expect(entityCard).not.toContain('hover:[box-shadow:var(--ck-shadow-card-hover)]');
-    expect(entityCard).not.toContain('--ck-shadow-card-hover');
+    expect(entityCard).not.toMatch(/border-content-border|shadow-|box-shadow|hover:border|\.p-card-|!p-/);
+    expect(runtimeCss).not.toMatch(/--ck-(?:radius|shadow)/);
+    expect(runtimeCss).not.toMatch(/\.entity-inline-(?:chip|compact)[^{]*\{[^}]*(?:background|border(?:-radius)?|box-shadow|padding)\s*:/s);
   });
 
   it('keeps embedded previews and statuses from conflicting with parent card clicks', () => {

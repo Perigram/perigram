@@ -10,7 +10,7 @@
                 ? fullPage
                     ? 'grid h-full min-h-0 w-full grid-rows-[minmax(0,1fr)] overflow-hidden border border-content-border bg-content pointer-events-auto md:grid-cols-[20rem_minmax(0,1fr)] md:rounded-ui'
                     : 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
-                : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content [box-shadow:var(--ck-shadow-overlay)] pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
+                : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content shadow-overlay pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
         >
             <div v-if="!fullPage" class="flex items-center justify-between border-b border-content-border bg-content p-4">
                 <div class="flex min-w-0 items-center gap-2">
@@ -176,7 +176,7 @@
                             :class="isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start'"
                         >
                             <div
-                                class="px-4 py-2 rounded-ui text-sm [box-shadow:var(--ck-shadow-card)]"
+                                class="px-4 py-2 rounded-ui text-sm shadow-card"
                                 :class="isOwnMessage(messageItem)
                                     ? 'bg-primary text-primary-contrast rounded-tr-none'
                                     : 'bg-content border border-content-border rounded-tl-none'"
@@ -732,7 +732,7 @@ const directConversationKey = (left, right) => {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: var(--p-content-border-color);
-    border-radius: var(--ck-radius-full);
+    border-radius: var(--p-border-radius-xl);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: var(--p-primary-color);

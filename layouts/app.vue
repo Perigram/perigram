@@ -105,7 +105,7 @@
         <Menu ref="mobileScreenMenu" :model="mobileScreenMenuItems" :popup="true" />
         <nav
             v-if="authStore.userIsSet"
-            class="chrome-signal-rule fixed inset-x-0 bottom-0 z-[998] border-t [border-color:var(--ck-chrome-border)] bg-chrome px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 [box-shadow:var(--ck-shadow-overlay)] md:hidden"
+            class="chrome-signal-rule fixed inset-x-0 bottom-0 z-[998] border-t [border-color:var(--ck-chrome-border)] bg-chrome px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-overlay md:hidden"
             :aria-label="$t('nav.home')"
         >
             <div class="mx-auto flex max-w-md items-center justify-around gap-1">
@@ -181,7 +181,7 @@
             :aria-label="$t('support.openChat')"
             @click="openSupportDialog"
             v-if="!supportDialog && !isChatsRoute"
-            class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 [box-shadow:var(--ck-shadow-overlay)] md:inline-flex"
+            class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 shadow-overlay md:inline-flex"
         />
     </div>
 </template>

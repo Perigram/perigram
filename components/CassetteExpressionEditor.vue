@@ -34,7 +34,7 @@
 
     <div
       v-if="showTokenPanel"
-      class="absolute left-0 right-0 top-full z-30 mt-1 flex flex-col gap-1 rounded-ui border border-content-border bg-content p-2 [box-shadow:var(--ck-shadow-overlay)]"
+      class="absolute left-0 right-0 top-full z-30 mt-1 flex flex-col gap-1 rounded-ui border border-content-border bg-content p-2 shadow-overlay"
     >
       <div
         v-for="group in tokenGroups"

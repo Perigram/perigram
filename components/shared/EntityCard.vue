@@ -14,7 +14,7 @@
             <slot name="inline-extra" />
         </span>
         
-        <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+        <Popover ref="op">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
             <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
@@ -73,8 +73,8 @@
     <!-- Compact: identity + status in a card row -->
     <template v-else-if="variant === 'compact'">
         <Card
-            class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] transition-colors duration-normal hover:border-primary"
-            :class="[{ 'cursor-pointer': expandable }, compactDensityClass]"
+            class="h-full overflow-hidden"
+            :class="{ 'cursor-pointer': expandable }"
             :role="expandable ? 'button' : undefined"
             :tabindex="expandable ? 0 : undefined"
             data-entity-card-interactive="true"
@@ -114,7 +114,7 @@
             <slot name="compact-content" />
             </template>
         </Card>
-        <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+        <Popover ref="op">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
                     <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
@@ -170,9 +170,9 @@
         </Popover>
     </template>
 
-    <!-- Card: full chrome — tracechain / identity+status / body / footer -->
+    <!-- Card: full semantic structure; visual chrome remains Aura-owned. -->
     <template v-else>
-        <Card class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] transition-colors duration-normal hover:border-primary">
+        <Card class="h-full overflow-hidden">
             <template #header v-if="$slots.header">
                 <slot name="header" />
             </template>
@@ -224,7 +224,7 @@
 import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
 /**
  * EntityCard - v24 Standardized
- * Shared entity card chrome: TraceChain + IdentityBlock + EntityStatus.
+ * Shared entity card structure: TraceChain + IdentityBlock + EntityStatus.
  * Entity-specific cards use this as their container, providing only
  * entity-specific body/footer content via slots.
  *
@@ -308,10 +308,6 @@ const traceExclusions = computed(() => {
         id
     }));
 });
-const compactDensityClass = computed(() => props.density === 'dense'
-    ? '[&_.p-card-body]:!p-3 [&_.p-card-content]:!p-0'
-    : ''
-);
 const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
 const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);

@@ -44,7 +44,7 @@
         />
       </div>
     </div>
-    <Popover ref="overflowPopover" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+    <Popover ref="overflowPopover">
       <div class="flex max-w-[min(22rem,calc(100vw-3rem))] flex-wrap gap-2 p-2">
         <EntityInlineRef
           v-for="item in overflowItems"

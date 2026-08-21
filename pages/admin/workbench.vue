@@ -1500,7 +1500,7 @@ function workflowNodeStyle(node) {
   const base = {
     width: `${node.width}px`,
     minHeight: `${node.height}px`,
-    borderRadius: 'var(--ck-radius-ui)',
+    borderRadius: 'var(--p-border-radius-md)',
     border: selected ? '2px solid var(--p-primary-color)' : '1px solid var(--p-content-border-color)',
     fontFamily: 'inherit',
     fontWeight: 600

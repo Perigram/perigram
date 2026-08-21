@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-8">
-    <header class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-5 [box-shadow:var(--ck-shadow-card)]">
+    <header class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-5 shadow-card">
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="m-0 text-2xl font-semibold">{{ $t('uiLab.title') }}</h1>
@@ -46,7 +46,7 @@
         {{ $t('common.loading') }}
       </Message>
 
-      <article v-for="row in activeRowsWithModels" :key="row.key" class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-4 [box-shadow:var(--ck-shadow-card)]">
+      <article v-for="row in activeRowsWithModels" :key="row.key" class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-4 shadow-card">
         <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <h2 class="m-0 text-base font-semibold">{{ $t(row.labelKey) }}</h2>
