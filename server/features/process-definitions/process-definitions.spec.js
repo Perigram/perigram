@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   activate,
   hasProcessDefinitionMembershipAccess,
+  preview,
   resolveProcessGraphEntity,
   startRun,
   update
@@ -127,6 +128,18 @@ describe('current process-definition service contract', () => {
     expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
   });
 
+  it('round-trips the missing-field tag and present null through the preview response', async () => {
+    const result = await preview({ definition: { data: previewProcessData() } }, adminAuth());
+
+    expect(result.nodes.present.outputs.value.branches[0].items).toEqual([null]);
+    expect(result.nodes.absent.outputs.value.branches[0].items).toEqual([
+      { missing: true, path: 'identity.reference' }
+    ]);
+    // The response is already the JSON contract: no undefined property or
+    // array item degrades to null on the wire.
+    expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
+  });
+
   it('persists a deconstruct -> modify block -> update entity read-modify-write chain through processUpdate with list and tree field inputs', async () => {
     const machine = {
       type: 'machine',
@@ -235,6 +248,51 @@ describe('current process-definition service contract', () => {
     expect(emitted).not.toHaveProperty('effects');
   });
 });
+
+function previewProcessData() {
+  return {
+    schemaVersion: 1,
+    dataflowVersion: PROCESS_DATAFLOW_VERSION,
+    graph: {
+      nodes: ['entity', 'present', 'absent'].map(id => ({
+        id,
+        type: 'processNode',
+        position: { x: 0, y: 0 },
+        data: { refId: id }
+      })),
+      edges: [
+        {
+          id: 'entity-present',
+          source: 'entity',
+          sourceHandle: 'data:value',
+          target: 'present',
+          targetHandle: 'data:block',
+          role: 'data'
+        },
+        {
+          id: 'entity-absent',
+          source: 'entity',
+          sourceHandle: 'data:value',
+          target: 'absent',
+          targetHandle: 'data:block',
+          role: 'data'
+        }
+      ],
+      viewport: { x: 0, y: 0, zoom: 1 }
+    },
+    roleGrants: {},
+    entityProfiles: {},
+    actions: {},
+    services: {},
+    sockets: {},
+    screens: {},
+    processNodes: {
+      entity: { id: 'entity', kind: 'source.literalItem', value: { name: null } },
+      present: { id: 'present', kind: 'record.getField', block: 'identity', path: 'identity.name' },
+      absent: { id: 'absent', kind: 'record.getField', block: 'identity', path: 'identity.reference' }
+    }
+  };
+}
 
 function readModifyWriteProcessData() {
   return {

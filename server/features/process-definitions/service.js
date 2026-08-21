@@ -17,6 +17,7 @@ import {
   applyPatch,
   evaluateEntityPredicate,
   previewProcessDataflow,
+  serializeProcessResult,
   validateRoundTrip
 } from '~/packages/processes/src/index.js';
 import { createProcessFromTemplate } from '~/server/features/process-definitions/process-templates.js';
@@ -220,12 +221,12 @@ export async function startRun(id, payload = {}, auth = {}) {
   }
   const organizationId = resolveOrganizationId(auth);
   const actor = buildRunActor(auth, organizationId);
-  return executeManualRun(definition, payload, {
+  return serializeProcessResult(await executeManualRun(definition, payload, {
     actor,
     executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
     catalogContext: catalogContextFromDefinition(definition.data),
     data: run => processDataEnvironment(auth, run)
-  });
+  }));
 }
 
 function buildRunActor(auth, organizationId) {
@@ -264,7 +265,11 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
     throw createError({ statusCode: 400, message: `Preview requires dataflow version ${PROCESS_DATAFLOW_VERSION}` });
   }
   const run = { context: { inputs }, trigger };
-  return await previewProcessDataflow(definition, { trigger, inputs }, {
+  // Preview results cross the HTTP boundary, so the missing-field markers
+  // produced by the evaluator are converted to their serializable tag here —
+  // the single emission conversion point shared with any runtime result
+  // emission (see packages/processes/src/missing-field.js).
+  return serializeProcessResult(await previewProcessDataflow(definition, { trigger, inputs }, {
     targetNodeId: nodeId,
     previewLimit: 100,
     catalogContext: record => {
@@ -277,7 +282,7 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
       };
     },
     data: processDataEnvironment(auth, run)
-  });
+  }));
 }
 
 export async function projectEntityThroughSocket({ socketId, entityId, targetOrganizationId } = {}, auth = {}) {

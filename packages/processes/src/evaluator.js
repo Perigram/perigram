@@ -16,6 +16,7 @@ import {
   treeStats
 } from './data-tree.js';
 import { MAKE_LIST_INPUTS } from './node-catalog.js';
+import { isMissingField, missingFieldMarker } from './missing-field.js';
 
 export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
   const kind = record.kind;
@@ -35,10 +36,13 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'value.toEntityRef') return mapDataPacket(required(packets, 'value', record), value => entityReference(value, record.entityType));
   if (kind === 'value.toJson') return mapDataPacket(required(packets, 'value', record), value => structuredClone(value));
   if (kind === 'value.required') return mapDataPacket(required(packets, 'value', record), value => {
+    if (isMissingField(value)) throw new Error(`${record.id || kind} requires a value that is missing at ${value.path}`);
     if (value == null) throw new Error(`${record.id || kind} received a null required value`);
     return value;
   });
-  if (kind === 'value.coalesce') return combineDataPackets([required(packets, 'value', record), required(packets, 'fallback', record)], ([value, fallback]) => value ?? fallback);
+  if (kind === 'value.coalesce') return combineDataPackets([required(packets, 'value', record), required(packets, 'fallback', record)], ([value, fallback]) => (
+    value == null || isMissingField(value) ? fallback : value
+  ));
   if (kind === 'value.validate') return mapDataPacket(required(packets, 'value', record), value => validateValue(value, record));
   if (kind === 'value.math') return executeMath(record, packets);
   if (kind === 'value.string') return executeString(record, packets);
@@ -113,6 +117,7 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'record.getField') {
     return mapDataPacket(required(packets, 'block', record), value => {
       const fieldValue = readPath(value, blockLocalPath(record.block, record.path));
+      if (isMissingField(fieldValue)) return missingFieldMarker(record.path);
       if (record.compositionMode === 'ancestors' && fieldValue != null) {
         return { type: record.type?.entityType, id: fieldValue };
       }
@@ -147,6 +152,8 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
       const offset = kind === 'record.modifyBlock' ? 1 : 0;
       inputIds.slice(offset).forEach((path, index) => {
         const value = structuredClone(values[index + offset]);
+        // A missing field composes as absent content: the path is not written.
+        if (isMissingField(value)) return;
         if (path === record.block) {
           for (const key of Object.keys(initial)) delete initial[key];
           if (value && typeof value === 'object' && !Array.isArray(value)) Object.assign(initial, value);
@@ -288,6 +295,8 @@ function serializeMutationError(error) {
 }
 
 function writeOpenBlockEntry(block, mode, entry, value) {
+  // A missing field composes as absent content: the entry is not written.
+  if (isMissingField(value)) return;
   if (mode === 'ancestors') {
     const id = value?.id || value?._id || value?.identity?.uid;
     if (!entry.key || !entry.entityType || !id) throw new Error(`Lineage entry ${entry.id} requires a key and typed entity reference`);
@@ -325,8 +334,8 @@ export function applyPatch(record, patch) {
   const result = structuredClone(record);
   for (const change of patch?.changes || []) {
     if (change.operation === 'unset') unsetPath(result, change.path);
-    else if (change.operation === 'append') writePath(result, change.path, [...(readPath(result, change.path) || []), structuredClone(change.value)]);
-    else if (change.operation === 'remove') writePath(result, change.path, (readPath(result, change.path) || []).filter(value => !same(value, change.value)));
+    else if (change.operation === 'append') writePath(result, change.path, [...(patchPathValue(result, change.path) || []), structuredClone(change.value)]);
+    else if (change.operation === 'remove') writePath(result, change.path, (patchPathValue(result, change.path) || []).filter(value => !same(value, change.value)));
     else writePath(result, change.path, structuredClone(change.value));
   }
   return result;
@@ -556,13 +565,15 @@ function compare(operation, left, right) {
   if (operation === 'contains') return left?.includes?.(right) || false;
   if (operation === 'startsWith') return String(left).startsWith(String(right));
   if (operation === 'endsWith') return String(left).endsWith(String(right));
-  if (operation === 'isNull') return left == null;
-  if (operation === 'isNotNull') return left != null;
+  // A missing field is neither null nor a present value: isNull is true only
+  // for a present null, isNotNull only for a present non-null value.
+  if (operation === 'isNull') return left === null;
+  if (operation === 'isNotNull') return left !== null && left !== undefined && !isMissingField(left);
   throw new Error(`Unsupported comparison ${operation}`);
 }
 
 function validateValue(value, record) {
-  if (record.required && value == null) throw new Error(record.message || 'Value is required');
+  if (record.required && (value == null || isMissingField(value))) throw new Error(record.message || 'Value is required');
   if (record.pattern && !new RegExp(record.pattern).test(String(value))) throw new Error(record.message || 'Value does not match');
   if (record.min != null && Number(value) < Number(record.min)) throw new Error(record.message || `Value is below ${record.min}`);
   if (record.max != null && Number(value) > Number(record.max)) throw new Error(record.message || `Value is above ${record.max}`);
@@ -756,7 +767,23 @@ function mergePatches(left, right) {
 }
 
 function readPath(value, path = '') {
-  return String(path).split('.').filter(Boolean).reduce((current, key) => current?.[key], value);
+  const parts = String(path).split('.').filter(Boolean);
+  let current = value;
+  for (const key of parts) {
+    if (current === null || current === undefined || typeof current !== 'object' || !Object.hasOwn(current, key)) {
+      return missingFieldMarker(path);
+    }
+    current = current[key];
+  }
+  return current;
+}
+
+// Patch application treats a missing path as absent content, not as a
+// marker value: append/remove start from an empty list, exactly as they did
+// when absent paths collapsed to undefined.
+function patchPathValue(record, path) {
+  const value = readPath(record, path);
+  return isMissingField(value) ? undefined : value;
 }
 
 function writePath(target, path, value) {

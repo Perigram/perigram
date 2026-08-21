@@ -47,6 +47,12 @@ export {
   processTypesCompatible
 } from './types.js';
 export * from './data-tree.js';
+export {
+  MISSING_FIELD_TAG,
+  isMissingField,
+  missingFieldMarker,
+  serializeProcessResult
+} from './missing-field.js';
 export { migrateProcessDefinitionV4 } from './migration-v4.js';
 export {
   MAKE_LIST_INPUTS,
