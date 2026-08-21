@@ -4,7 +4,7 @@
       <component :is="headingTag" class="m-0 font-semibold leading-tight" :class="headingClass">
         <slot name="title">{{ title }}</slot>
       </component>
-      <p v-if="subtitle || $slots.subtitle" class="m-0 text-sm text-muted-color">
+      <p v-if="subtitle || $slots.subtitle" class="m-0 text-ui-body text-muted-color">
         <slot name="subtitle">{{ subtitle }}</slot>
       </p>
     </div>
@@ -24,5 +24,5 @@ const props = defineProps({
 });
 
 const headingTag = computed(() => `h${Math.min(Math.max(props.level, 1), 6)}`);
-const headingClass = computed(() => (props.level <= 1 ? 'text-2xl font-serif' : 'text-base'));
+const headingClass = computed(() => (props.level <= 1 ? 'text-ui-display' : 'text-ui-title'));
 </script>

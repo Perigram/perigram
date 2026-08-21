@@ -45,6 +45,3 @@ const handleBack = () => {
     selectedUserId.value = null
 }
 </script>
-
-<style scoped>
-</style>

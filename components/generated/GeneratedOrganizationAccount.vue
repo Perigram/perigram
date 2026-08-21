@@ -32,7 +32,7 @@
             </div>
           </div>
           <div v-if="packages.length" class="flex flex-col gap-2">
-            <div v-for="pack in packages" :key="pack.id" class="flex items-center justify-between gap-3 rounded-ui border border-surface-200 p-3 dark:border-surface-700">
+            <div v-for="pack in packages" :key="pack.id" class="flex items-center justify-between gap-3 border border-content-border p-3">
               <div class="min-w-0">
                 <p class="m-0 font-medium">{{ packageLabel(pack) }}</p>
                 <small class="text-muted-color">{{ pack.tokenAmount }} {{ $t('billing.tokens') }}</small>
@@ -56,7 +56,7 @@
     <div v-if="supportingRegions.length" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Panel v-if="hasRegion('billingInvoices')" :header="$t('billing.invoices')">
         <div v-if="invoices.length" class="flex flex-col gap-2">
-          <div v-for="invoice in invoices" :key="invoice._id" class="flex items-center justify-between gap-3 border-b border-surface-100 py-2 last:border-b-0 dark:border-surface-800">
+          <div v-for="invoice in invoices" :key="invoice._id" class="flex items-center justify-between gap-3 border-b border-content-border py-2 last:border-b-0">
             <div class="min-w-0">
               <p class="m-0 font-medium">{{ invoice.tokenAmount }} {{ $t('billing.tokens') }}</p>
               <small class="text-muted-color">{{ formatDate(invoice.createdAt) }}</small>
@@ -69,7 +69,7 @@
 
       <Panel v-if="hasRegion('billingLedger')" :header="$t('billing.ledger')">
         <div v-if="ledger.length" class="flex flex-col gap-2">
-          <div v-for="entry in ledger" :key="entry._id" class="flex items-center justify-between gap-3 border-b border-surface-100 py-2 last:border-b-0 dark:border-surface-800">
+          <div v-for="entry in ledger" :key="entry._id" class="flex items-center justify-between gap-3 border-b border-content-border py-2 last:border-b-0">
             <div class="min-w-0">
               <p class="m-0 font-medium">{{ ledgerTypeLabel(entry.type) }}</p>
               <small class="text-muted-color">{{ formatDate(entry.createdAt) }}</small>

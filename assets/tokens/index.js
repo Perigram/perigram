@@ -16,29 +16,9 @@ const signalOrangePrimary = {
     950: '#321000'
 };
 
-/**
- * Hard neutrals give the workbench an ink-and-near-white hierarchy. Calibrated
- * value steps keep operational surfaces distinct without a tinted dashboard.
- */
-const hardNeutralSurface = {
-    0: '#fefefc',
-    50: '#f4f4f0',
-    100: '#ecece7',
-    200: '#dfdfd9',
-    300: '#c7c7bf',
-    400: '#999992',
-    500: '#6d6d66',
-    600: '#4e4e49',
-    700: '#343431',
-    800: '#232321',
-    900: '#161615',
-    950: '#0c0c0b'
-};
-
 export const designTokens = {
     palette: {
-        primary: signalOrangePrimary,
-        surface: hardNeutralSurface
+        primary: signalOrangePrimary
     },
     color: {
         primary: 'var(--p-primary-color)',
@@ -129,7 +109,11 @@ export const designTokens = {
         ui: "'IBM Plex Sans', sans-serif",
         mono: "'IBM Plex Mono', monospace",
         serif: "'IBM Plex Serif', serif",
-        labelTracking: '0.04em'
+        labelTracking: '0.04em',
+        caption: ['0.75rem', { lineHeight: '1rem' }],
+        body: ['0.875rem', { lineHeight: '1.25rem' }],
+        title: ['1.25rem', { lineHeight: '1.5rem' }],
+        display: ['1.75rem', { lineHeight: '2rem' }]
     },
     status: {
         info: 'var(--ck-status-info)',
@@ -239,8 +223,7 @@ export const cssVariableTokens = {
     '--ck-dock-label-padding': designTokens.dock.labelPadding,
     '--ck-dock-indicator-size': designTokens.dock.indicatorSize,
     '--ck-dock-indicator-inset': designTokens.dock.indicatorInset,
-    ...Object.fromEntries(Object.entries(signalOrangePrimary).map(([step, value]) => [`--ck-primary-${step}`, value])),
-    ...Object.fromEntries(Object.entries(hardNeutralSurface).map(([step, value]) => [`--ck-surface-${step}`, value]))
+    ...Object.fromEntries(Object.entries(signalOrangePrimary).map(([step, value]) => [`--ck-primary-${step}`, value]))
 };
 
 export const tailwindThemeExtension = {
@@ -322,6 +305,12 @@ export const tailwindThemeExtension = {
         mono: 'var(--ck-font-mono)',
         serif: 'var(--ck-font-serif)'
     },
+    fontSize: {
+        'ui-caption': designTokens.typography.caption,
+        'ui-body': designTokens.typography.body,
+        'ui-title': designTokens.typography.title,
+        'ui-display': designTokens.typography.display
+    },
     letterSpacing: {
         label: 'var(--ck-label-tracking)'
     },
@@ -353,392 +342,8 @@ export const supportAvatarPalette = [
 ];
 
 export const primeSemanticTokens = {
-    transitionDuration: 'var(--ck-motion-normal)',
-    primary: signalOrangePrimary,
-    focusRing: {
-        width: '2px',
-        style: 'solid',
-        color: '{primary.600}',
-        offset: '2px',
-        shadow: '0 0 0 3px color-mix(in srgb, {primary.500}, transparent 76%)'
-    },
-    content: {
-        borderRadius: 'var(--ck-radius-ui)'
-    },
-    formField: {
-        borderRadius: 'var(--ck-radius-ui)',
-        paddingX: '0.75rem',
-        paddingY: '0.5625rem',
-        focusRing: {
-            width: '2px',
-            style: 'solid',
-            color: '{primary.600}',
-            offset: '1px',
-            shadow: '0 0 0 3px color-mix(in srgb, {primary.500}, transparent 80%)'
-        }
-    },
-    overlay: {
-        select: {
-            borderRadius: 'var(--ck-radius-panel)',
-            shadow: 'var(--ck-shadow-overlay)'
-        },
-        popover: {
-            borderRadius: 'var(--ck-radius-panel)',
-            shadow: 'var(--ck-shadow-overlay)'
-        },
-        modal: {
-            borderRadius: 'var(--ck-radius-panel)',
-            shadow: 'var(--ck-shadow-overlay)'
-        }
-    },
-    colorScheme: {
-        light: {
-            surface: hardNeutralSurface,
-            primary: {
-                color: '{primary.500}',
-                contrastColor: '{surface.950}',
-                hoverColor: '{primary.600}',
-                activeColor: '{primary.700}'
-            },
-            content: {
-                background: '{surface.0}',
-                hoverBackground: '{surface.100}',
-                borderColor: '{surface.300}',
-                color: '{surface.950}'
-            },
-            text: {
-                color: '{surface.950}',
-                hoverColor: '{surface.900}',
-                mutedColor: '{surface.500}',
-                hoverMutedColor: '{surface.600}'
-            },
-            formField: {
-                background: '{surface.0}',
-                disabledBackground: '{surface.100}',
-                filledBackground: '{surface.50}',
-                filledHoverBackground: '{surface.100}',
-                filledFocusBackground: '{surface.0}',
-                borderColor: '{surface.300}',
-                hoverBorderColor: '{surface.400}',
-                focusBorderColor: '{primary.600}',
-                invalidBorderColor: '{red.500}',
-                color: '{surface.900}',
-                disabledColor: '{surface.500}',
-                placeholderColor: '{surface.500}',
-                invalidPlaceholderColor: '{red.600}'
-            },
-            highlight: {
-                background: 'color-mix(in srgb, {primary.100}, transparent 12%)',
-                focusBackground: '{primary.200}',
-                color: '{primary.900}',
-                focusColor: '{primary.900}'
-            }
-        },
-        dark: {
-            surface: hardNeutralSurface,
-            primary: {
-                color: '{primary.400}',
-                contrastColor: '{surface.950}',
-                hoverColor: '{primary.300}',
-                activeColor: '{primary.200}'
-            },
-            content: {
-                background: '{surface.900}',
-                hoverBackground: '{surface.800}',
-                borderColor: 'color-mix(in srgb, {surface.600}, transparent 46%)',
-                color: '{surface.50}'
-            },
-            text: {
-                color: '{surface.50}',
-                hoverColor: '{surface.0}',
-                mutedColor: '{surface.400}',
-                hoverMutedColor: '{surface.300}'
-            },
-            formField: {
-                background: '{surface.950}',
-                disabledBackground: '{surface.900}',
-                filledBackground: '{surface.900}',
-                filledHoverBackground: '{surface.800}',
-                filledFocusBackground: '{surface.950}',
-                borderColor: '{surface.700}',
-                hoverBorderColor: '{surface.600}',
-                focusBorderColor: '{primary.400}',
-                invalidBorderColor: '{red.400}',
-                color: '{surface.50}',
-                disabledColor: '{surface.500}',
-                placeholderColor: '{surface.400}',
-                invalidPlaceholderColor: '{red.400}'
-            },
-            highlight: {
-                background: 'color-mix(in srgb, {primary.500}, transparent 86%)',
-                focusBackground: 'color-mix(in srgb, {primary.500}, transparent 76%)',
-                color: '{primary.100}',
-                focusColor: '{primary.50}'
-            }
-        }
-    }
+    primary: signalOrangePrimary
 };
 
-export const primeComponentTokens = {
-    dataview: {
-        root: {
-            background: 'transparent',
-            borderWidth: '0'
-        },
-        content: {
-            background: 'transparent',
-            borderWidth: '0'
-        },
-        header: {
-            background: 'transparent',
-            borderWidth: '0'
-        }
-    },
-    dialog: {
-        root: {
-            background: '{content.background}',
-            borderColor: '{content.border.color}',
-            borderWidth: '1px',
-            color: '{content.color}',
-            borderRadius: 'var(--ck-radius-panel)',
-            shadow: 'var(--ck-shadow-overlay)'
-        },
-        title: {
-            fontSize: '1rem',
-            fontWeight: '650'
-        },
-        header: {
-            padding: '1.25rem 1.25rem 0.75rem'
-        },
-        content: {
-            padding: '0 1.25rem 1.25rem'
-        },
-        footer: {
-            padding: '0.75rem 1.25rem 1.25rem'
-        }
-    },
-    panel: {
-        root: {
-            borderRadius: 'var(--ck-radius-panel)',
-            borderColor: '{content.border.color}',
-            borderWidth: '1px',
-            background: '{content.background}',
-            color: '{content.color}'
-        },
-        header: {
-            background: '{content.hover.background}',
-            padding: '1rem 1.125rem',
-            borderColor: '{content.border.color}',
-            borderWidth: '0 0 1px'
-        },
-        title: {
-            fontWeight: '650'
-        },
-        content: {
-            padding: '1.125rem'
-        }
-    },
-    card: {
-        root: {
-            background: '{content.background}',
-            color: '{text.color}',
-            borderColor: '{content.border.color}',
-            borderWidth: '1px',
-            borderRadius: 'var(--ck-radius-panel)',
-            shadow: 'var(--ck-shadow-card)'
-        },
-        body: {
-            padding: '1rem',
-            gap: '0.75rem'
-        },
-        title: {
-            fontSize: '1rem',
-            fontWeight: '650'
-        },
-        subtitle: {
-            color: '{text.muted.color}'
-        }
-    },
-    button: {
-        root: {
-            borderRadius: 'var(--ck-radius-ui)',
-            gap: '0.375rem',
-            paddingX: '0.75rem',
-            paddingY: '0.5rem',
-            iconOnlyWidth: '2.375rem',
-            raisedShadow: 'none',
-            label: {
-                fontWeight: '700'
-            },
-            sm: {
-                fontSize: '0.8125rem',
-                paddingX: '0.625rem',
-                paddingY: '0.375rem',
-                iconOnlyWidth: '2rem'
-            }
-        }
-    },
-    tag: {
-        root: {
-            borderRadius: 'var(--ck-radius-ui)',
-            fontWeight: '700',
-            padding: '0.1875rem 0.5rem'
-        }
-    },
-    chip: {
-        root: {
-            borderRadius: 'var(--ck-radius-ui)'
-        }
-    },
-    menu: {
-        root: {
-            background: '{content.background}',
-            borderColor: '{content.border.color}',
-            color: '{content.color}',
-            borderRadius: 'var(--ck-radius-panel)',
-            shadow: 'var(--ck-shadow-overlay)'
-        },
-        list: {
-            padding: '0.3125rem',
-            gap: '0.125rem'
-        },
-        item: {
-            focusBackground: '{content.hover.background}',
-            color: '{text.color}',
-            focusColor: '{text.color}',
-            padding: '0.5rem 0.625rem',
-            borderRadius: 'var(--ck-radius-ui)',
-            gap: '0.5rem',
-            icon: {
-                color: '{text.muted.color}',
-                focusColor: '{primary.color}'
-            }
-        },
-        separator: {
-            borderColor: '{content.border.color}'
-        }
-    },
-    tabs: {
-        root: {
-            transitionDuration: 'var(--ck-motion-normal)'
-        },
-        tablist: {
-            background: 'transparent',
-            borderWidth: '0 0 1px',
-            borderColor: '{content.border.color}'
-        },
-        tab: {
-            background: 'transparent',
-            hoverBackground: '{content.hover.background}',
-            activeBackground: 'transparent',
-            color: '{text.muted.color}',
-            hoverColor: '{text.color}',
-            activeColor: '{primary.color}',
-            padding: '0.75rem 0.875rem',
-            fontWeight: '700'
-        },
-        activeBar: {
-            height: '3px',
-            background: '{primary.color}'
-        }
-    },
-    tabview: {
-        root: {
-            transitionDuration: 'var(--ck-motion-normal)'
-        },
-        tabList: {
-            background: 'transparent',
-            borderColor: '{content.border.color}'
-        },
-        tab: {
-            borderColor: '{content.border.color}',
-            activeBorderColor: '{primary.color}',
-            color: '{text.muted.color}',
-            hoverColor: '{text.color}',
-            activeColor: '{primary.color}'
-        },
-        tabPanel: {
-            background: 'transparent',
-            color: '{text.color}'
-        }
-    },
-    drawer: {
-        root: {
-            background: '{content.background}',
-            borderColor: '{content.border.color}',
-            color: '{content.color}',
-            shadow: 'var(--ck-shadow-overlay)'
-        },
-        header: {
-            padding: '1rem 1.125rem'
-        },
-        title: {
-            fontSize: '1rem',
-            fontWeight: '650'
-        },
-        content: {
-            padding: '0 1.125rem 1.125rem'
-        }
-    },
-    toast: {
-        root: {
-            borderRadius: 'var(--ck-radius-panel)',
-            borderWidth: '1px',
-            transitionDuration: 'var(--ck-motion-normal)'
-        },
-        content: {
-            padding: '0.875rem 1rem'
-        },
-        summary: {
-            fontWeight: '650'
-        }
-    },
-    datatable: {
-        root: {
-            borderColor: '{content.border.color}'
-        },
-        headerCell: {
-            borderColor: '{content.border.color}',
-            color: '{text.muted.color}',
-            padding: '0.75rem 1rem'
-        },
-        bodyCell: {
-            borderColor: '{content.border.color}',
-            padding: '0.75rem 1rem'
-        },
-        row: {
-            color: '{text.color}'
-        },
-        columnTitle: {
-            fontWeight: '700'
-        },
-        colorScheme: {
-            light: {
-                headerCell: {
-                    background: '{surface.100}',
-                    hoverBackground: '{surface.200}',
-                    selectedBackground: '{primary.50}'
-                },
-                row: {
-                    background: '{content.background}',
-                    hoverBackground: '{surface.50}',
-                    selectedBackground: '{primary.50}',
-                    selectedColor: '{primary.900}'
-                }
-            },
-            dark: {
-                headerCell: {
-                    background: '{surface.800}',
-                    hoverBackground: '{surface.700}',
-                    selectedBackground: 'color-mix(in srgb, {primary.500}, transparent 78%)'
-                },
-                row: {
-                    background: '{content.background}',
-                    hoverBackground: 'color-mix(in srgb, {surface.700}, transparent 58%)',
-                    selectedBackground: 'color-mix(in srgb, {primary.500}, transparent 82%)',
-                    selectedColor: '{primary.100}'
-                }
-            }
-        }
-    }
-};
+// Generic controls and containers intentionally inherit Aura unchanged.
+export const primeComponentTokens = {};

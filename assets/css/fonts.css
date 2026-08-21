@@ -32,8 +32,8 @@ html {
   font-family: var(--ck-font-mono);
 }
 
-/* Semantic body copy uses the editorial face; UI chrome inherits Sans. */
-:where(p, blockquote) {
+/* Editorial typography is explicit so HTML semantics never restyle app UI. */
+.ck-prose {
   font-family: var(--ck-font-serif);
 }
 

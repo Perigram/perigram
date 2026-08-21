@@ -15,6 +15,7 @@ import {
   cssVariableTokens,
   designTokens,
   primeComponentTokens,
+  primeSemanticTokens,
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
 import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
@@ -253,11 +254,10 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['support-chat']).toBe('var(--ck-support-chat-height)');
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
-    expect(primeComponentTokens.dataview.root.background).toBe('transparent');
+    expect(primeComponentTokens).toEqual({});
+    expect(Object.keys(primeSemanticTokens)).toEqual(['primary']);
     expect(designTokens.palette.primary[500]).toBe('#ff4b00');
-    expect(designTokens.palette.surface[50]).toBe('#f4f4f0');
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
-    expect(cssVariableTokens['--ck-surface-100']).toBe(designTokens.palette.surface[100]);
     expect(cssVariableTokens['--ck-chrome-background']).toBe('#fefefc');
     expect(cssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-50)');
     expect(tailwindThemeExtension.colors['process-canvas']).toBe('var(--ck-process-canvas-background)');
@@ -272,10 +272,7 @@ describe('Design system manifest', () => {
 
   it('keeps runtime visual tokens and Tailwind semantic aliases in sync', () => {
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
-
-    for (const tokenName of Object.keys(cssVariableTokens)) {
-      expect(runtimeCss, `${tokenName} is missing from the runtime token layer`).toContain(`${tokenName}:`);
-    }
+    const nuxtConfig = fs.readFileSync(path.join(REPO_ROOT, 'nuxt.config.js'), 'utf8');
 
     expect(designTokens.typography.ui).toContain('IBM Plex Sans');
     expect(designTokens.typography.mono).toContain('IBM Plex Mono');
@@ -283,17 +280,18 @@ describe('Design system manifest', () => {
     expect(cssVariableTokens['--ck-font-serif']).toBe(designTokens.typography.serif);
     expect(tailwindThemeExtension.fontFamily.serif).toBe('var(--ck-font-serif)');
     expect(designTokens.typography.labelTracking).toBe('0.04em');
-    expect(runtimeCss).toContain('--p-button-primary-background:');
-    expect(runtimeCss).toContain('--p-card-background:');
-    expect(runtimeCss).toContain('--ck-primary-ink:');
+    expect(tailwindThemeExtension.fontSize['ui-caption']).toBe(designTokens.typography.caption);
+    expect(tailwindThemeExtension.fontSize['ui-display']).toBe(designTokens.typography.display);
+    expect(nuxtConfig).toContain("import { cssVariableTokens } from './assets/tokens/index.js'");
+    expect(nuxtConfig).toContain('Object.entries(cssVariableTokens)');
+    expect(runtimeCss).not.toMatch(/--p-[\w-]+:[^;]+!important/);
     expect(runtimeCss).toContain('.bg-chrome');
     expect(runtimeCss).toContain('.chrome-signal-rule');
     expect(runtimeCss).toContain('border-top-width: var(--ck-chrome-signal-height)');
-    expect(runtimeCss).toContain('--ck-chrome-background: #fefefc;');
-    expect(runtimeCss).toContain('--ck-process-canvas-background: var(--p-surface-50);');
-    expect(runtimeCss).toContain('--ck-shadow-card: none;');
-    expect(runtimeCss).toContain('--ck-motion-emphasis: 220ms;');
-    expect(runtimeCss).toContain('--ck-ease-standard: cubic-bezier(0.2, 0, 0, 1);');
+    expect(cssVariableTokens['--ck-chrome-background']).toBe('#fefefc');
+    expect(cssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-50)');
+    expect(cssVariableTokens['--ck-shadow-card']).toBe('none');
+    expect(cssVariableTokens['--ck-motion-emphasis']).toBe('220ms');
     expect(runtimeCss).toContain('@media (prefers-reduced-motion: reduce)');
     expect(runtimeCss).toContain('background: var(--ck-inline-ref-bg, var(--ck-subtle-background));');
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
@@ -321,10 +319,10 @@ describe('Design system manifest', () => {
     expect(fontsCss).toContain(':where(input, button, select, textarea)');
     expect(fontsCss).toContain('input[type="number"],\n.p-inputnumber-input');
     expect(fontsCss).not.toContain(':where(input[type="number"], .p-inputnumber-input)');
-    expect(fontsCss).toContain(':where(p, blockquote)');
-    expect(fontsCss).not.toContain('.ck-prose');
+    expect(fontsCss).not.toContain(':where(p, blockquote)');
+    expect(fontsCss).toContain('.ck-prose');
     expect(dataBlock).toContain('font-medium font-mono');
-    expect(actionToolbar).toContain("props.level <= 1 ? 'text-2xl font-serif'");
+    expect(actionToolbar).toContain("props.level <= 1 ? 'text-ui-display' : 'text-ui-title'");
     expect(artifactViewer).toContain('font-serif');
     expect(artifactViewer).not.toContain('font-mono');
     expect(artifactTextEditor).toContain('font-serif');
@@ -346,6 +344,40 @@ describe('Design system manifest', () => {
     const offenders = usedVueFiles().filter((file) => rawPaletteUtility.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')));
 
     expect(offenders).toEqual([]);
+  });
+
+  it('rejects feature-level visual drift outside explicit layout and data styling', () => {
+    const allowedScopedStyles = new Set([
+      'components/ChatSupport.vue',
+      'components/QueueEditor.vue',
+      'components/entities/Queue/QueueEntryCard.vue',
+      'components/generated/GeneratedProjectWorkspace.vue',
+      'components/shared/DesignerDialog.vue',
+      'components/shared/DesignerWorkspace.vue',
+      'components/shared/EntityPage.vue',
+      'components/shared/EntityWorkspace.vue',
+      'components/shared/ResponsiveGrid.vue',
+      'components/shared/TableFrame.vue',
+      'components/shared/WorkspaceSplitNode.vue',
+      'components/shared/blocks/DataBlock.vue',
+      'components/shared/blocks/SpecsBlock.vue',
+      'components/shared/blocks/StatusBadge.vue',
+      'layouts/ui-lab-layout.vue'
+    ]);
+    const arbitraryTypography = /text-\[(?:\d+(?:\.\d+)?)(?:px|rem|em)\]/;
+    const rawSurfaceBorder = /\bborder-surface-\d+\b/;
+    const nonsemanticShadow = /\bshadow-(?:sm|md|lg|xl|2xl)\b/;
+    const nonsemanticRadius = /!?\brounded-(?:sm|md|lg|xl|2xl|3xl)\b/;
+    const files = usedVueFiles();
+
+    expect(files.filter(file => arbitraryTypography.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => rawSurfaceBorder.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => nonsemanticShadow.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => file !== 'components/process-designer/ProcessNode.vue' && nonsemanticRadius.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => !allowedScopedStyles.has(file) && /<style\s+scoped/.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+
+    const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
+    expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);
   });
 
   it('uses existing semantic variables for SVG designer label contrast', () => {

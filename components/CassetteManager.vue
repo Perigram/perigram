@@ -247,6 +247,3 @@ const handleUploaded = async () => {
   cassettes.value = result || [];
 };
 </script>
-
-<style scoped lang="scss">
-</style>

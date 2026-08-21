@@ -1,5 +1,6 @@
 import { schemaWebSite } from './utils/schema'
 import Re_L from './assets/presets/re_l'
+import { cssVariableTokens } from './assets/tokens/index.js'
 import { fileURLToPath } from 'node:url'
 
 const resolveRoot = (path) => fileURLToPath(new URL(path, import.meta.url))
@@ -32,6 +33,12 @@ export default defineNuxtConfig({
     },
 
     devtools: { enabled: true },
+
+    app: {
+        head: {
+            style: [{ textContent: `:root{${Object.entries(cssVariableTokens).map(([name, value]) => `${name}:${value}`).join(';')}}` }]
+        }
+    },
 
     css: ['primeicons/primeicons.css', './assets/css/fonts.css', './assets/css/main.css'],
 

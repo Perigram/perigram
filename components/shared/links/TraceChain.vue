@@ -33,7 +33,7 @@
                     :slug="item.slug"
                     class="max-w-[14rem]"
                 />
-                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-[0.625rem] text-muted-color"></i>
+                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-ui-caption text-muted-color"></i>
             </li>
         </ol>
     </nav>

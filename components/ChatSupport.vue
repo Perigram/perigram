@@ -165,7 +165,7 @@
                     >
                         <div v-if="messageItem.day" class="flex items-center gap-4 my-2">
                             <div class="flex-1 h-px bg-content-border"></div>
-                            <span class="text-[10px] font-bold uppercase tracking-widest text-text-muted bg-content px-2 py-0.5 rounded-full border border-content-border">
+                            <span class="text-ui-caption font-bold uppercase tracking-widest text-text-muted bg-content px-2 py-0.5 rounded-full border border-content-border">
                                 {{ messageItem.day }}
                             </span>
                             <div class="flex-1 h-px bg-content-border"></div>
@@ -185,7 +185,7 @@
                                     <SupportMessageContent :message="messageItem" :viewer-user-id="currentUserId" />
                                 </p>
                             </div>
-                            <span class="text-[10px] text-text-muted px-1">{{ formatTime(messageItem.timestamp) }}</span>
+                            <span class="text-ui-caption text-text-muted px-1">{{ formatTime(messageItem.timestamp) }}</span>
                         </div>
                     </template>
                 </div>

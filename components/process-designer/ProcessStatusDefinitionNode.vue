@@ -32,7 +32,7 @@
         :style="statusHandleStyle"
         :aria-label="$t('processDesigner.socketLabels.status')"
       />
-      <span class="block truncate text-[11px] leading-5">{{ record.label || record.statusId || $t('processDesigner.socketLabels.status') }}</span>
+      <span class="block truncate text-ui-caption">{{ record.label || record.statusId || $t('processDesigner.socketLabels.status') }}</span>
     </div>
   </div>
 </template>

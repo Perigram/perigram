@@ -93,7 +93,7 @@
           <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
         </div>
         <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
-          <span class="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
+          <span class="px-1 text-ui-caption font-semibold uppercase tracking-wide text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
           <div class="grid grid-cols-2 gap-1.5">
             <Button
               v-for="item in group.items"

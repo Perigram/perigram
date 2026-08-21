@@ -884,7 +884,7 @@ onBeforeUnmount(() => {
                   stroke-width="1.2"
                   vector-effect="non-scaling-stroke"
                 />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-[9px]">
+                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-ui-caption">
                   {{ marker.label }}
                 </text>
               </g>
@@ -1029,7 +1029,7 @@ onBeforeUnmount(() => {
                     :y="controlChipRect(control).y + 8"
                     text-anchor="middle"
                     dominant-baseline="middle"
-                    class="fill-[var(--p-content-background)] text-[10px]"
+                    class="fill-[var(--p-content-background)] text-ui-caption"
                   >
                     {{ controlValueLabel(control.value) }}
                   </text>

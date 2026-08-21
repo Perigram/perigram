@@ -84,6 +84,3 @@ const createProject = () => {
     router.push('/projects');
 };
 </script>
-
-<style scoped>
-</style>

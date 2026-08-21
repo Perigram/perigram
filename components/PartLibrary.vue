@@ -33,6 +33,3 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 const showUploadDialog = ref(false);
 </script>
-
-<style scoped>
-</style>
