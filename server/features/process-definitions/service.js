@@ -905,7 +905,7 @@ async function normalizeProcessMutation(entityType, mutation = {}, relationContr
       throw createError({ statusCode: 400, message: `Relation ${entityType}.${key} accepts exactly one entity` });
     }
     normalizedRelations[key] = relation.cardinality === 'many'
-      ? Array.from(new Map(refs.map(ref => [`${ref.type}:${ref.id}:${ref.revisionId || ''}`, ref])).values())
+      ? Array.from(new Map(refs.map(ref => [`${ref.type}:${ref.id}`, ref])).values())
       : refs[0];
   }
   return { ...mutation, relations: normalizedRelations };

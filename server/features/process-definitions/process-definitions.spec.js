@@ -12,6 +12,7 @@ import {
 import * as processRepository from './repository.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { statusService } from '~/server/core/machines/service.js';
+import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
@@ -36,6 +37,10 @@ vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
     statusService: { ...actual.statusService, transitionWithResult: vi.fn() }
   };
 });
+
+vi.mock('~/server/features/entity-revisions/service.js', () => ({
+  getById: vi.fn()
+}));
 
 describe('current process-definition service contract', () => {
   const organizationService = {
@@ -310,18 +315,30 @@ describe('current process-definition service contract', () => {
         ? { processUpdate }
         : type === 'library' ? { processGetById: targetGet } : organizationService
     });
+    entityRevisionsService.getById.mockResolvedValue({
+      data: { source: libraryRef('library-1') }
+    });
 
     await performDurableEffect({
       kind: 'effect.updateEntity',
       record: data.processNodes.effect,
       inputs: {
         entity: { type: 'facade', id: 'facade-1' },
-        relations: { reviewLibraries: [libraryRef('library-1'), libraryRef('library-1'), libraryRef('library-2')] }
+        relations: {
+          reviewLibraries: [
+            libraryRef('library-1'),
+            { ...libraryRef('library-1'), revisionId: 'revision-1' },
+            libraryRef('library-2')
+          ]
+        }
       }
     }, relationAuth(), data);
 
     expect(processUpdate).toHaveBeenCalledWith('facade-1', {
-      'relations.reviewLibraries': [libraryRef('library-1'), libraryRef('library-2')]
+      'relations.reviewLibraries': [
+        { ...libraryRef('library-1'), revisionId: 'revision-1' },
+        libraryRef('library-2')
+      ]
     }, relationAuth());
 
     await expect(performDurableEffect({
