@@ -1060,20 +1060,25 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       applyTypedBlocks: result => applyTypedConstructionBlocks(record, blockDraft, result, service, auth)
     });
     const dto = created?.toJSON ? created.toJSON() : created;
-    const targetId = dto?._id || dto?.identity?.uid;
-    if (!targetState || !targetId) return dto;
-    const status = await statusService.setInitialStateForOrganization(
-      entityType,
-      targetId,
-      targetState,
-      organizationId,
-      auth.userId,
-      {
-        ...statusMetadata,
-        ...processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
-      }
-    );
-    return { ...dto, status };
+    const targetId = entityId(dto);
+    const result = targetState && targetId
+      ? {
+          ...dto,
+          status: await statusService.setInitialStateForOrganization(
+            entityType,
+            targetId,
+            targetState,
+            organizationId,
+            auth.userId,
+            {
+              ...statusMetadata,
+              ...processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
+            }
+          )
+        }
+      : dto;
+    await publishActionEntityEvent(auth, entityType, result, 'created', 'process-create');
+    return result;
   }
   const target = normalizeEntityRef(inputs.entity);
   if (!target?.id) throw new Error(`${kind} requires an entity reference`);

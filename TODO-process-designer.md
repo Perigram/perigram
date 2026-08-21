@@ -674,22 +674,49 @@ and tree field inputs and asserts `identity.slug` is preserved.
 
 ### Create Entity
 
-- [ ] Make a fresh graph able to create every process-creatable domain entity
+- [x] Make a fresh graph able to create every process-creatable domain entity
   through either generic canonical blocks or an explicit typed construction
   mode. Do not depend on legacy Entity/Action/Service canvas records being
   preseeded by a template.
-- [ ] Project exact constructor sockets, requiredness, creator constraints,
+- [x] Project exact constructor sockets, requiredness, creator constraints,
   accepted attachment/entity kinds, and domain defaults from the selected
   construction contract.
-- [ ] Accept constructible blocks, Lineage, Relations, initial status, and typed
+- [x] Accept constructible blocks, Lineage, Relations, initial status, and typed
   constructor inputs without duplicating leaf fields on the persistence node.
-- [ ] Validate parent/ancestor requirements and compile Lineage bindings from
+- [x] Validate parent/ancestor requirements and compile Lineage bindings from
   actual connected lineage data, not entity-name special cases.
-- [ ] Return the created typed entity with the same item/list/tree topology as
+- [x] Return the created typed entity with the same item/list/tree topology as
   its construction inputs and publish normal entity invalidation events.
-- [ ] Test root creation, child creation, relation-bearing creation, typed
+- [x] Test root creation, child creation, relation-bearing creation, typed
   derived construction, collection creation through mapped inputs, denied
   creation, and generated manual forms.
+
+#### Agent Notes — 2026-08-21
+
+Closed all six Create Entity bullets under the fixed no-`parentEnforcement`
+verdict. The registry matrix in `server/runtime/app-registry.spec.js` now walks
+all 14 creatable CNC contracts and every mode, proving normalized requiredness,
+defaults, creator/attachment restrictions, typed entity and accepted-kind
+references, constructible block sockets (including open Lineage/Relations),
+List access, initial status, runtime handler parity, and the deliberate absence
+of `parentEnforcement`. Existing focused graph specs remain the executable
+evidence for root creation, Project -> Compose Lineage -> child creation,
+relation-bearing creation, graph-derived Lineage bindings, and mapped
+item/list/tree output; no duplicate runtime path was added.
+
+The open generated-form investigation is closed by extracting the existing pure
+field/payload logic to `components/generated/action-inputs.js` and testing both
+generic block-composed and typed-reference/upload-backed Create forms. Manual
+execution denial is now explicit acceptance coverage for the existing compiled
+role-assignment gate and request-local constructor grants. The one actual
+runtime divergence was repaired in
+`server/features/process-definitions/service.js`: a successful Create now
+publishes the normal typed `created` invalidation after constructor, block, and
+optional initial-status persistence succeeds. The returned DTO/data-tree shape
+is unchanged. Validation: `packages/processes/src` 310/310 tests; Create
+registry/manual-form tests 13/13; denied manual Create test 1/1;
+`node scripts/check-arch.js`, `npm run framework:validate`, and
+`node scripts/check-docs.js` all pass.
 
 ### Modify Entity
 
@@ -1325,13 +1352,19 @@ mandatory parent or containment relation; all 14 construction contracts in
 `entity-construction.js` lack parentEnforcement; manual-form/task-form
 consumer of promptable inputs was the open investigation.
 
-- [ ] Verify Create Entity against every process-creatable domain entity:
+- [x] Verify Create Entity against every process-creatable domain entity:
   constructor sockets, requiredness, creator constraints, constructible
   blocks, Lineage, Relations, initial status, typed references.
-- [ ] Verify parent/ancestor validation and Lineage binding compilation;
+- [x] Verify parent/ancestor validation and Lineage binding compilation;
   implement only where behavior diverges from the contract.
-- [ ] Test root creation, child creation, relation-bearing creation, typed
+- [x] Test root creation, child creation, relation-bearing creation, typed
   references, and denied creation; close the six original bullets.
+
+#### Agent Notes — 2026-08-21
+
+Correction complete. The full evidence and the sole runtime repair are recorded
+under the original Create Entity task above. No construction contract gained
+`parentEnforcement`; ancestor semantics remain graph-derived Lineage bindings.
 
 ### Correction: Relations and lineage
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   activate,
+  executeActiveProcessAction,
   hasProcessDefinitionMembershipAccess,
   preview,
   resolveProcessGraphEntity,
@@ -76,6 +77,21 @@ describe('current process-definition service contract', () => {
       userId: 'creator',
       memberships: [{ organizationId: 'org-1', role: 'role_admin', permissions: {}, status: 'active' }]
     }, 'org-1', 'admin')).toBe(false);
+  });
+
+  it('denies manual Create execution when the action is absent from the compiled role assignment', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    processRepository.findActiveByOrganization.mockResolvedValue(fixture.processDefinition);
+    organizationService.getProcessConfiguration.mockResolvedValueOnce({
+      roles: fixture.organization.data.roles,
+      roleAssignments: {}
+    });
+
+    await expect(executeActiveProcessAction({ actionId: 'project_source' }, {
+      userId: 'user-1',
+      organizationId: 'org-acceptance',
+      roleAssignments: { actions: [] }
+    })).rejects.toMatchObject({ statusCode: 403 });
   });
 
   it('uses explicit stored organization grants for process-definition access', async () => {

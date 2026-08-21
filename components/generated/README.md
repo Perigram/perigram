@@ -26,6 +26,13 @@ instead of being coerced to `false` or the current time; once touched, the
 control submits a real boolean or an ISO string (`YYYY-MM-DD` for `date`,
 full ISO for `dateTime`).
 
+The pure `action-inputs.js` contract combines compiled `inputPolicy.fields`
+with normalized construction inputs, removes duplicate field ids, selects
+required/prompted controls, and builds the nested submission payload. This is
+the shared executable boundary for generic block-composed Create forms, typed
+entity-reference constructors, cassette parameters, and upload-backed artifact
+creators; focused specs exercise it without mounting the entire screen.
+
 `GeneratedObjectInput.vue` is the generic structured editor for `object`/`json`
 prompt fields. When the field carries a JSON schema with declared
 `properties` that cover every key of the current value, it renders one typed
