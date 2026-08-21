@@ -5,8 +5,8 @@
 - `tokens/index.js` is the app-level visual-token source, including the
   hard-neutral near-white light chrome and dark ink surface scale,
   signal-orange primary scale, dedicated process-canvas surface, IBM Plex
-  superfamily typography (Sans as the UI default, Mono for technical content,
-  Serif for long-form text blocks), 3px/6px control/container geometry, flat structural
+  superfamily typography (Sans as the UI default, Mono for technical data,
+  Serif for display titles and long-form text), 3px/6px control/container geometry, flat structural
   surfaces with overlay-only elevation, semantic status/entity/process-signal
   roles, and PrimeVue state overrides.
 - `presets/re_l.js` defines the PrimeVue preset by extending Aura and consuming token projections.

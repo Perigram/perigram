@@ -9,8 +9,8 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   signal-orange intent accents; `--ck-process-canvas-background` provides a
   dedicated graph-work surface; the IBM Plex superfamily provides three type
   roles: Sans (`typography.ui`, the application default), Mono
-  (`typography.mono`, technical content), and Serif (`typography.serif`,
-  long-form text blocks).
+  (`typography.mono`, technical data), and Serif (`typography.serif`,
+  display titles and long-form text blocks).
   Controls use a 3px UI radius while containers use a 6px panel radius,
   keeping dense operational screens precise instead of soft.
 - Runtime CSS variables are declared in `assets/css/main.css` using the same

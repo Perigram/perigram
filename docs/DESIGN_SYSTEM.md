@@ -30,14 +30,17 @@ The active visual language is a hard editorial engineering instrument:
 near-white chrome and work surfaces in light mode, ink chrome in dark mode, a
 single signal-orange action channel, 3px control radii, 6px container radii,
 structural rules, and elevation only for overlays. Typography uses the IBM
-Plex superfamily in three token-backed roles: Plex Sans is the global default
-interface face (`--ck-font-ui`, Tailwind `font-sans`), Plex Mono marks
-technical content such as code, expressions, paths, hex codes, and URLs
-(`--ck-font-mono`, `font-mono`, plus `code`/`kbd`/`pre`/`samp`), and Plex
-Serif is reserved for designated long-form text blocks, currently chat message
-text in `components/shared/SupportMessageContent.vue` (`--ck-font-serif`,
-`font-serif`). Artifact text stays mono: it is technical content alongside
-code, expressions, and structured data. `assets/css/fonts.css`
+Plex superfamily in three token-backed roles. Plex Sans is the global default
+interface face (`--ck-font-ui`): UI chrome, controls, chat, and all unmarked
+content inherit it, including native form controls through the shared
+inherit rule. Plex Mono marks technical data (`--ck-font-mono`):
+`code`/`kbd`/`pre`/`samp`, numerical entry (`.p-inputnumber-input`,
+`input[type=number]`), and `DataBlock` values such as dimensions, parameters,
+and specs. Plex Serif carries the editorial voice (`--ck-font-serif`):
+level-1 page titles render display serif through `ActionToolbar`, and
+long-form authored text blocks use the `.ck-prose` role class from
+`assets/css/fonts.css` — text artifacts today, guides when they ship.
+`assets/css/fonts.css`
 sets Plex Sans once on `body` with no universal or `!important` overrides, so
 PrimeVue components and native controls inherit it while the `font-mono` and
 `font-serif` utilities apply predictably on every element. Signal orange marks intent, selection, and keyboard focus
