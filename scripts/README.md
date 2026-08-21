@@ -40,7 +40,9 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   Inline exceptions are exact file/category/binding-expression entries, so
   adding or changing a binding requires explicit classification.
   Render-function style bindings are replacement debt rather than an enforcement
-  bypass. Component
+  bypass. Utility classes assembled in Vue script string literals are classified
+  with template utilities, so moving visual ownership into script does not bypass
+  the inventory. Component
   ownership is derived from the domain primitive registry: exact registered
   paths are shared/domain primitives and every other Vue file is derived usage.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
