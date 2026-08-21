@@ -43,11 +43,18 @@
     import { AnimatePresence, Motion, useMotionValue, useSpring, useTransform } from 'motion-v'
     import type { ConcreteComponent, CSSProperties, PropType } from 'vue'
     import { computed, defineComponent, h, onMounted, onUnmounted, ref, watch } from 'vue'
-    import { designTokens } from '~/assets/tokens/index.js'
     import { useReducedMotion } from '~/composables/useReducedMotion.js'
 
     const MotionComponent = Motion as unknown as ConcreteComponent
     const AnimatePresenceComponent = AnimatePresence as unknown as ConcreteComponent
+    const dockDefaults = {
+        distance: 96,
+        panelHeight: 40,
+        baseItemSize: 32,
+        height: 64,
+        magnification: 40,
+        spring: { mass: 0.1, stiffness: 180, damping: 16 },
+    }
 
     export type SpringOptions = NonNullable<Parameters<typeof useSpring>[1]>
 
@@ -118,13 +125,13 @@
                 position: 'absolute',
                 bottom: '100%',
                 transform: 'translateX(-50%)',
-                marginBottom: 'var(--ck-dock-label-offset)',
+                marginBottom: 'var(--p-tooltip-gutter)',
                 width: 'fit-content',
                 whiteSpace: 'pre',
                 borderRadius: 'var(--p-border-radius-md)',
                 border: '1px solid var(--p-content-border-color)',
                 backgroundColor: 'var(--p-content-background)',
-                padding: 'var(--ck-dock-label-padding)',
+                padding: 'var(--p-tooltip-padding)',
                 fontSize: '0.75rem',
                 color: 'var(--p-text-color)',
                 boxShadow: 'none',
@@ -158,7 +165,7 @@
                                   initial: { opacity: 0, y: 0 },
                                   animate: { opacity: 1, y: -6 },
                                   exit: { opacity: 0, y: 0 },
-                                  transition: { duration: designTokens.motion.seconds.normal },
+                                  transition: { duration: 0.16 },
                               },
                               () => this.$slots.default?.(),
                           ),
@@ -293,14 +300,14 @@
                 opacity: this.item.disabled ? 0.45 : 1,
                 outline: 'none',
                 transition:
-                    'background-color var(--ck-motion-fast) var(--ck-ease-standard), border-color var(--ck-motion-fast) var(--ck-ease-standard), opacity var(--ck-motion-fast) var(--ck-ease-standard)',
+                    'background-color var(--p-transition-duration), border-color var(--p-transition-duration), opacity var(--p-transition-duration)',
             }
             const indicatorStyle: CSSProperties = {
                 position: 'absolute',
-                top: 'var(--ck-dock-indicator-inset)',
-                right: 'var(--ck-dock-indicator-inset)',
-                width: 'var(--ck-dock-indicator-size)',
-                height: 'var(--ck-dock-indicator-size)',
+                top: '0.125rem',
+                right: '0.125rem',
+                width: '0.375rem',
+                height: '0.375rem',
                 borderRadius: 'var(--p-border-radius-xl)',
                 backgroundColor: 'var(--p-primary-color)',
                 border: '1px solid var(--p-content-background)',
@@ -336,14 +343,14 @@
             items: { type: Array as PropType<DockItemData[]>, required: true },
             ariaLabel: { type: String, default: '' },
             className: { type: String, default: '' },
-            distance: { type: Number, default: designTokens.dock.distance },
-            panelHeight: { type: Number, default: designTokens.dock.panelHeight },
-            baseItemSize: { type: Number, default: designTokens.dock.baseItemSize },
-            dockHeight: { type: Number, default: designTokens.dock.height },
-            magnification: { type: Number, default: designTokens.dock.magnification },
+            distance: { type: Number, default: dockDefaults.distance },
+            panelHeight: { type: Number, default: dockDefaults.panelHeight },
+            baseItemSize: { type: Number, default: dockDefaults.baseItemSize },
+            dockHeight: { type: Number, default: dockDefaults.height },
+            magnification: { type: Number, default: dockDefaults.magnification },
             spring: {
                 type: Object as PropType<SpringOptions>,
-                default: () => ({ ...designTokens.motion.spring.dock }),
+                default: () => ({ ...dockDefaults.spring }),
             },
         },
         setup(props) {
@@ -395,7 +402,7 @@
             const outerStyle = computed<CSSProperties>(() => ({
                 height: `${currentHeight.value}px`,
                 scrollbarWidth: 'none',
-                margin: '0 var(--ck-dock-inset)',
+                margin: '0 var(--p-toolbar-padding)',
                 display: 'flex',
                 maxWidth: '100%',
                 alignItems: 'center',
@@ -403,18 +410,18 @@
             const panelStyle = computed<CSSProperties>(() => ({
                 height: `${props.panelHeight}px`,
                 position: 'absolute',
-                bottom: 'var(--ck-dock-inset)',
+                bottom: 'var(--p-toolbar-padding)',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
                 alignItems: 'center',
                 width: 'fit-content',
-                maxWidth: 'calc(100% - var(--ck-dock-inset) - var(--ck-dock-inset))',
-                gap: 'var(--ck-dock-gap)',
+                maxWidth: 'calc(100% - var(--p-toolbar-padding) - var(--p-toolbar-padding))',
+                gap: 'var(--p-toolbar-gap)',
                 borderRadius: 'var(--p-border-radius-lg)',
                 backgroundColor: 'var(--p-content-background)',
                 border: '1px solid var(--p-content-border-color)',
-                padding: 'var(--ck-dock-padding)',
+                padding: 'var(--p-toolbar-padding)',
                 boxShadow: 'none',
                 zIndex: 30,
             }))

@@ -64,38 +64,6 @@ export const designTokens = {
         previewDialogHeight: '95vh',
         tableActionColumnWidth: '3rem'
     },
-    motion: {
-        fast: '100ms',
-        normal: '160ms',
-        emphasis: '220ms',
-        seconds: {
-            fast: 0.1,
-            normal: 0.16,
-            emphasis: 0.22
-        },
-        easing: {
-            standard: 'cubic-bezier(0.2, 0, 0, 1)',
-            enter: 'cubic-bezier(0, 0, 0, 1)',
-            exit: 'cubic-bezier(0.3, 0, 1, 1)'
-        },
-        spring: {
-            dock: { mass: 0.1, stiffness: 180, damping: 16 }
-        }
-    },
-    dock: {
-        inset: '0.75rem',
-        gap: '0.25rem',
-        padding: '0.25rem',
-        labelOffset: '0.5rem',
-        labelPadding: '0.125rem 0.5rem',
-        indicatorSize: '0.375rem',
-        indicatorInset: '0.125rem',
-        panelHeight: 40,
-        baseItemSize: 32,
-        magnification: 40,
-        distance: 96,
-        height: 64
-    },
     typography: {
         ui: "'IBM Plex Sans', sans-serif",
         mono: "'IBM Plex Mono', monospace",
@@ -196,19 +164,6 @@ export const cssVariableTokens = {
     '--ck-floating-menu-min-width': designTokens.layout.floatingMenuMinWidth,
     '--ck-preview-dialog-height': designTokens.layout.previewDialogHeight,
     '--ck-table-action-column-width': designTokens.layout.tableActionColumnWidth,
-    '--ck-motion-fast': designTokens.motion.fast,
-    '--ck-motion-normal': designTokens.motion.normal,
-    '--ck-motion-emphasis': designTokens.motion.emphasis,
-    '--ck-ease-standard': designTokens.motion.easing.standard,
-    '--ck-ease-enter': designTokens.motion.easing.enter,
-    '--ck-ease-exit': designTokens.motion.easing.exit,
-    '--ck-dock-inset': designTokens.dock.inset,
-    '--ck-dock-gap': designTokens.dock.gap,
-    '--ck-dock-padding': designTokens.dock.padding,
-    '--ck-dock-label-offset': designTokens.dock.labelOffset,
-    '--ck-dock-label-padding': designTokens.dock.labelPadding,
-    '--ck-dock-indicator-size': designTokens.dock.indicatorSize,
-    '--ck-dock-indicator-inset': designTokens.dock.indicatorInset,
     ...Object.fromEntries(Object.entries(signalOrangePrimary).map(([step, value]) => [`--ck-primary-${step}`, value]))
 };
 
@@ -325,17 +280,6 @@ export const tailwindThemeExtension = {
     boxShadow: {
         card: 'var(--p-card-shadow)',
         overlay: 'var(--p-overlay-popover-shadow)'
-    },
-    transitionDuration: {
-        DEFAULT: 'var(--ck-motion-normal)',
-        fast: 'var(--ck-motion-fast)',
-        normal: 'var(--ck-motion-normal)',
-        emphasis: 'var(--ck-motion-emphasis)'
-    },
-    transitionTimingFunction: {
-        DEFAULT: 'var(--ck-ease-standard)',
-        enter: 'var(--ck-ease-enter)',
-        exit: 'var(--ck-ease-exit)'
     }
 };
 

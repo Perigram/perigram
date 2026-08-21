@@ -1,7 +1,7 @@
 <template>
     <div class="h-full min-h-0 overflow-hidden">
         <!-- Current queue editor -->
-        <div v-if="currentQueue" class="h-full min-h-0 animate-in fade-in slide-in-from-bottom-2 duration-normal">
+        <div v-if="currentQueue" class="h-full min-h-0">
             <QueueEditor
                 :queue="currentQueue"
                 :queues="queues"

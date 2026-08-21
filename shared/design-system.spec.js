@@ -348,12 +348,10 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.borderRadius.panel).toBe('var(--p-border-radius-lg)');
     expect(tailwindThemeExtension.boxShadow.card).toBe('var(--p-card-shadow)');
     expect(tailwindThemeExtension.boxShadow.overlay).toBe('var(--p-overlay-popover-shadow)');
-    expect(designTokens.motion.emphasis).toBe('220ms');
-    expect(designTokens.motion.seconds.normal).toBe(0.16);
-    expect(designTokens.motion.easing.standard).toBe('cubic-bezier(0.2, 0, 0, 1)');
-    expect(designTokens.motion.spring.dock).toEqual({ mass: 0.1, stiffness: 180, damping: 16 });
-    expect(cssVariableTokens['--ck-motion-emphasis']).toBe(designTokens.motion.emphasis);
-    expect(tailwindThemeExtension.transitionTimingFunction.DEFAULT).toBe('var(--ck-ease-standard)');
+    expect(designTokens).not.toHaveProperty('motion');
+    expect(designTokens).not.toHaveProperty('dock');
+    expect(tailwindThemeExtension).not.toHaveProperty('transitionDuration');
+    expect(tailwindThemeExtension).not.toHaveProperty('transitionTimingFunction');
   });
 
   it('keeps runtime visual tokens and Tailwind semantic aliases in sync', () => {
@@ -384,8 +382,7 @@ describe('Design system manifest', () => {
     expect(cssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-50)');
     expect(Object.keys(cssVariableTokens).filter(token => /(?:radius|shadow)/.test(token))).toEqual([]);
     expect(Object.keys(darkCssVariableTokens).filter(token => /(?:radius|shadow)/.test(token))).toEqual([]);
-    expect(cssVariableTokens['--ck-motion-emphasis']).toBe('220ms');
-    expect(runtimeCss).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(Object.keys(cssVariableTokens).filter(token => /(?:motion|ease|dock)/.test(token))).toEqual([]);
     expect(runtimeCss).not.toMatch(/--ck-(?:radius|shadow)/);
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
     expect(tailwindThemeExtension.colors.primary.ink).toBe('var(--ck-primary-ink)');
@@ -394,6 +391,12 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.colors.entity.command).toBe('var(--ck-entity-tone-command)');
     expect(tailwindThemeExtension.colors.signal.entity).toBe('var(--ck-signal-entity)');
     expect(tailwindThemeExtension.letterSpacing.label).toBe('var(--ck-label-tracking)');
+
+    const motionDock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/MotionDock.vue'), 'utf8');
+    expect(motionDock).toContain('var(--p-toolbar-gap)');
+    expect(motionDock).toContain('var(--p-toolbar-padding)');
+    expect(motionDock).toContain('var(--p-transition-duration)');
+    expect(motionDock).not.toMatch(/--ck-(?:motion|ease|dock)/);
 
     const appLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
     const uiLabLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/ui-lab-layout.vue'), 'utf8');

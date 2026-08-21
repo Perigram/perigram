@@ -2,14 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@media (prefers-reduced-motion: reduce) {
-    :root {
-        --ck-motion-fast: 1ms;
-        --ck-motion-normal: 1ms;
-        --ck-motion-emphasis: 1ms;
-    }
-}
-
 html {
     background: var(--ck-page-background);
 }

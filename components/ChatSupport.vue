@@ -10,7 +10,7 @@
                 ? fullPage
                     ? 'grid h-full min-h-0 w-full grid-rows-[minmax(0,1fr)] overflow-hidden border border-content-border bg-content pointer-events-auto md:grid-cols-[20rem_minmax(0,1fr)] md:rounded-ui'
                     : 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
-                : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content shadow-overlay pointer-events-auto animate-in slide-in-from-bottom-4 duration-normal md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
+                : 'flex h-[100dvh] max-h-none w-full flex-col overflow-hidden border-0 bg-content shadow-overlay pointer-events-auto md:h-support-chat md:max-h-[80vh] md:w-[var(--ck-support-chat-width)] md:rounded-ui md:border md:border-content-border'"
         >
             <div v-if="!fullPage" class="flex items-center justify-between border-b border-content-border bg-content p-4">
                 <div class="flex min-w-0 items-center gap-2">
