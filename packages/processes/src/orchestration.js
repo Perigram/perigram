@@ -401,7 +401,11 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
     }
   }
   const dataInputs = ports.inputs.filter(port => port.role === 'data');
-  const allowsInputlessEvaluation = record.kind.startsWith('source.') || record.kind.startsWith('read.');
+  // Make List evaluates inputless on purpose: every item socket is optional,
+  // so a fully unconnected constructor yields the empty list.
+  const allowsInputlessEvaluation = record.kind.startsWith('source.')
+    || record.kind.startsWith('read.')
+    || record.kind === 'collection.makeList';
   if (!Object.keys(inputs).length && (
     dataInputs.some(port => port.required)
     || (dataInputs.length && !allowsInputlessEvaluation)

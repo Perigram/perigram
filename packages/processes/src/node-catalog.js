@@ -3,6 +3,11 @@ import { mapDomainInputType, normalizeProcessSocket, processType } from './types
 const DATA = 'data';
 const CONTROL = 'control';
 
+// Make List is the fixed-input-count collection constructor: exactly these
+// optional item sockets, at most one wire each (sockets stay non-multiple, so
+// connection validation rejects a second wire like any single-value socket).
+export const MAKE_LIST_INPUTS = Object.freeze(['item1', 'item2', 'item3', 'item4']);
+
 const definitions = [
   source('source.literalItem', 'literalItem'),
   source('source.literalList', 'literalList'),
@@ -302,7 +307,10 @@ function catalogPorts(record = {}, context = {}) {
       outputs: [socket('result', sameShape('boolean'))]
     };
   }
-  if (kind === 'collection.makeList') return unary(configured, configured);
+  if (kind === 'collection.makeList') return {
+    inputs: MAKE_LIST_INPUTS.map(id => socket(id, configured, DATA, false)),
+    outputs: [socket('value', configured, DATA, false, 'list')]
+  };
   if (kind === 'collection.packArray') {
     const itemType = configured;
     return { inputs: [socket('value', itemType, DATA, true, 'list')], outputs: [socket('value', processType('array', { itemType }))] };

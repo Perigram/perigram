@@ -599,6 +599,64 @@ describe('process v4 validation', () => {
 
     expect(result.errors).toEqual([]);
   });
+
+  it('accepts one wire per Make List item socket and rejects a second wire into the same socket', () => {
+    const makeListProcess = edges => ({
+      dataflowVersion: 4,
+      processNodes: {
+        first: { id: 'first', kind: 'source.literalItem', type: { base: 'string' }, value: 'a' },
+        second: { id: 'second', kind: 'source.literalItem', type: { base: 'string' }, value: 'b' },
+        list: { id: 'list', kind: 'collection.makeList', type: { base: 'string' } }
+      },
+      graph: {
+        nodes: ['first', 'second', 'list'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges
+      }
+    });
+    const wire = (id, source, targetHandle) => ({
+      id,
+      source,
+      sourceHandle: 'data:value',
+      target: 'list',
+      targetHandle,
+      role: 'data'
+    });
+
+    const accepted = validateProcessDefinition(makeListProcess([
+      wire('e1', 'first', 'data:item1'),
+      wire('e2', 'second', 'data:item2')
+    ]), domain);
+    expect(accepted.errors).toEqual([]);
+
+    const rejected = validateProcessDefinition(makeListProcess([
+      wire('e1', 'first', 'data:item1'),
+      wire('e2', 'second', 'data:item1')
+    ]), domain);
+    expect(rejected.errors).toContain('Process node list input item1 has more than one connected value');
+  });
+
+  it('rejects a Make List wire whose element type is incompatible with the node type', () => {
+    const result = validateProcessDefinition({
+      dataflowVersion: 4,
+      processNodes: {
+        source: { id: 'source', kind: 'source.literalItem', type: { base: 'string' }, value: 'a' },
+        list: { id: 'list', kind: 'collection.makeList', type: { base: 'entityRef', entityType: 'queue' } }
+      },
+      graph: {
+        nodes: ['source', 'list'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [{
+          id: 'e1',
+          source: 'source',
+          sourceHandle: 'data:value',
+          target: 'list',
+          targetHandle: 'data:item1',
+          role: 'data'
+        }]
+      }
+    }, domain);
+
+    expect(result.errors.some(error => error.startsWith('Edge e1 is incompatible:'))).toBe(true);
+  });
 });
 
 function entityBlockProcess(entityType) {

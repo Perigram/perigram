@@ -365,4 +365,34 @@ describe('process v4 node catalog', () => {
     expect(resolveCatalogNodePorts({ kind: 'collection.sort' }).outputs[0].id).toBe('items');
     expect(resolveCatalogNodePorts({ kind: 'collection.itemAt' }).inputs[1]).toMatchObject({ id: 'index', required: false });
   });
+
+  it('fixes Make List at four optional single-wire item sockets feeding one list output', () => {
+    const ports = resolveCatalogNodePorts({
+      kind: 'collection.makeList',
+      type: { base: 'entityRef', entityType: 'queue' }
+    });
+
+    expect(ports.inputs.map(input => [input.id, input.required, input.access, Boolean(input.multiple)]))
+      .toEqual([
+        ['item1', false, 'item', false],
+        ['item2', false, 'item', false],
+        ['item3', false, 'item', false],
+        ['item4', false, 'item', false]
+      ]);
+    expect(ports.inputs.every(input => input.type.base === 'entityRef' && input.type.entityType === 'queue')).toBe(true);
+    expect(ports.outputs).toHaveLength(1);
+    expect(ports.outputs[0]).toMatchObject({ id: 'value', access: 'list', type: { base: 'entityRef', entityType: 'queue' } });
+  });
+
+  it('keeps Concat as a two-list join that retains element type and list access', () => {
+    const ports = resolveCatalogNodePorts({
+      kind: 'collection.concat',
+      type: { base: 'entityRef', entityType: 'queue' }
+    });
+
+    expect(ports.inputs.map(input => [input.id, input.required, input.access]))
+      .toEqual([['left', true, 'list'], ['right', true, 'list']]);
+    expect(ports.inputs.every(input => input.type.base === 'entityRef' && input.type.entityType === 'queue')).toBe(true);
+    expect(ports.outputs[0]).toMatchObject({ id: 'value', access: 'list', type: { base: 'entityRef', entityType: 'queue' } });
+  });
 });

@@ -78,6 +78,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
     id: 'listTree',
     items: [
+      paletteItem('makeList', 'collection.makeList'),
       paletteItem('collectArray', 'collection.packArray'),
       paletteItem('expandArray', 'collection.unpackArray'),
       paletteItem('joinLists', 'collection.concat'),

@@ -15,6 +15,7 @@ import {
   transposeDataPacket,
   treeStats
 } from './data-tree.js';
+import { MAKE_LIST_INPUTS } from './node-catalog.js';
 
 export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
   const kind = record.kind;
@@ -46,7 +47,15 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'value.compare') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => compare(record.operation, left, right));
   if (kind === 'value.logic') return executeLogic(record, packets);
   if (kind === 'value.format') return mapDataPacket(required(packets, 'value', record), value => format(record, value));
-  if (kind === 'collection.makeList') return required(packets, 'value', record);
+  if (kind === 'collection.makeList') {
+    const connected = MAKE_LIST_INPUTS.filter(id => packets[id]);
+    if (!connected.length) return createDataPacket([], 'list');
+    return solveDataTrees(
+      connected.map(id => ({ tree: packets[id], access: 'item' })),
+      values => values,
+      { outputAccess: 'list', matching: record.matching }
+    );
+  }
   if (kind === 'collection.packArray') {
     return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => structuredClone(items));
   }

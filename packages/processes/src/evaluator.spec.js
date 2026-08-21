@@ -286,6 +286,154 @@ describe('process v4 data execution', () => {
     expect(unpacked.branches[0].items).toEqual(refs);
   });
 
+  it('keeps the persisted-array boundary explicit for empty and non-array values', async () => {
+    const packed = await executeProcessDataNode(
+      { kind: 'collection.packArray' },
+      { value: createDataPacket([], 'list') }
+    );
+    const unpacked = await executeProcessDataNode(
+      { kind: 'collection.unpackArray' },
+      { value: packed }
+    );
+
+    expect(packed.branches[0].items).toEqual([[]]);
+    expect(unpacked.branches[0].items).toEqual([]);
+    await expect(executeProcessDataNode(
+      { kind: 'collection.unpackArray' },
+      { value: createDataPacket('not-an-array') }
+    )).rejects.toThrow('requires an array value');
+  });
+
+  it('joins lists with Concat in order while preserving branch topology', async () => {
+    const flat = await executeProcessDataNode(
+      { kind: 'collection.concat' },
+      { left: createDataPacket([1, 2], 'list'), right: createDataPacket([3], 'list') }
+    );
+    expect(flat.branches).toEqual([{ path: [0], items: [1, 2, 3] }]);
+
+    const branched = await executeProcessDataNode(
+      { kind: 'collection.concat' },
+      {
+        left: createDataPacket({ branches: [
+          { path: [0], items: ['a', 'b'] },
+          { path: [1], items: ['c'] }
+        ] }, 'tree'),
+        right: createDataPacket({ branches: [
+          { path: [0], items: ['x'] },
+          { path: [1], items: ['y', 'z'] }
+        ] }, 'tree')
+      }
+    );
+    expect(branched.branches).toEqual([
+      { path: [0, 0], items: ['a', 'b', 'x'] },
+      { path: [1, 0], items: ['c', 'y', 'z'] }
+    ]);
+
+    const empty = await executeProcessDataNode(
+      { kind: 'collection.concat' },
+      { left: createDataPacket([], 'list'), right: createDataPacket([1], 'list') }
+    );
+    expect(empty.branches).toEqual([{ path: [0], items: [1] }]);
+  });
+
+  it('builds a list from the fixed Make List sockets in socket order, skipping unwired sockets', async () => {
+    const result = await executeProcessDataNode(
+      { kind: 'collection.makeList' },
+      {
+        item1: createDataPacket('first'),
+        item3: createDataPacket('third'),
+        item4: createDataPacket('fourth')
+      }
+    );
+
+    expect(result.branches).toEqual([{ path: [0], items: ['first', 'third', 'fourth'] }]);
+  });
+
+  it('honours authored Make List fallbacks for unwired sockets', async () => {
+    const result = await executeProcessDataNode(
+      {
+        kind: 'collection.makeList',
+        inputDefaults: { item2: 'fallback' }
+      },
+      { item1: createDataPacket('wired') }
+    );
+
+    expect(result.branches).toEqual([{ path: [0], items: ['wired', 'fallback'] }]);
+  });
+
+  it('constructs an empty list from a fully unconnected Make List', async () => {
+    const result = await executeProcessDataNode({ kind: 'collection.makeList' }, {});
+
+    expect(result.branches).toEqual([{ path: [], items: [] }]);
+  });
+
+  it('constructs a relation array from independent typed references', async () => {
+    const listed = await executeProcessDataNode(
+      { kind: 'collection.makeList' },
+      {
+        item1: createDataPacket({ type: 'library', id: 'lib-1' }),
+        item2: createDataPacket({ type: 'library', id: 'lib-2' })
+      }
+    );
+    const packed = await executeProcessDataNode(
+      { kind: 'collection.packArray' },
+      { value: listed }
+    );
+    const composed = await executeProcessDataNode({
+      kind: 'record.composeBlock',
+      block: 'relations',
+      compositionMode: 'relations',
+      entries: [{ id: 'libraries', key: 'libraries' }]
+    }, { 'entry:libraries': packed });
+
+    const refs = [{ type: 'library', id: 'lib-1' }, { type: 'library', id: 'lib-2' }];
+    expect(packed.branches[0].items).toEqual([refs]);
+    expect(composed.branches[0].items).toEqual([{ libraries: refs }]);
+  });
+
+  it('constructs an attachment array from independent typed attachment references', async () => {
+    const listed = await executeProcessDataNode(
+      { kind: 'collection.makeList' },
+      {
+        item1: createDataPacket({ kind: 'drawing', id: 'att-1' }),
+        item2: createDataPacket({ kind: 'drawing', id: 'att-2' })
+      }
+    );
+    const packed = await executeProcessDataNode(
+      { kind: 'collection.packArray' },
+      { value: listed }
+    );
+    const composed = await executeProcessDataNode({
+      kind: 'record.composeBlock',
+      block: 'attachments',
+      compositionMode: 'attachments',
+      entries: [{ id: 'drawings', key: 'drawings', attachmentKind: 'drawing' }]
+    }, { 'entry:drawings': packed });
+
+    const attachments = [{ kind: 'drawing', id: 'att-1' }, { kind: 'drawing', id: 'att-2' }];
+    expect(packed.branches[0].items).toEqual([attachments]);
+    expect(composed.branches[0].items).toEqual([{ drawings: attachments }]);
+  });
+
+  it('constructs a command entity-list input array from independent entity references', async () => {
+    const listed = await executeProcessDataNode(
+      { kind: 'collection.makeList' },
+      {
+        item1: createDataPacket({ type: 'queue', id: 'q1' }),
+        item2: createDataPacket({ type: 'queue', id: 'q2' }),
+        item3: createDataPacket({ type: 'queue', id: 'q3' })
+      }
+    );
+    const packed = await executeProcessDataNode(
+      { kind: 'collection.packArray' },
+      { value: listed }
+    );
+
+    expect(packed.branches[0].items).toEqual([
+      [{ type: 'queue', id: 'q1' }, { type: 'queue', id: 'q2' }, { type: 'queue', id: 'q3' }]
+    ]);
+  });
+
   it('composes lineage keys from typed ancestor references', async () => {
     const composed = await executeProcessDataNode(
       {

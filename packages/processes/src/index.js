@@ -49,6 +49,7 @@ export {
 export * from './data-tree.js';
 export { migrateProcessDefinitionV4 } from './migration-v4.js';
 export {
+  MAKE_LIST_INPUTS,
   PROCESS_NODE_CATALOG,
   PROCESS_NODE_FAMILIES,
   getProcessNodeDefinition,
