@@ -39,9 +39,10 @@ inherit rule. Plex Mono marks technical data (`--ck-font-mono`):
 and specs. The numerical-entry selectors intentionally retain normal
 class/attribute specificity so they beat Tailwind's later form-control reset
 without using `!important`. Plex Serif carries the editorial voice (`--ck-font-serif`):
-level-1 page titles render display serif through `ActionToolbar`, and
-long-form authored text blocks use the `.ck-prose` role class from
-`assets/css/fonts.css` — text artifacts today, guides when they ship.
+level-1 page titles render display serif through `ActionToolbar`, semantic
+body copy (`p` and `blockquote`) uses Serif by default, and authored text
+containers that cannot express that role semantically use the existing
+`font-serif` utility — text artifacts today, guides when they ship.
 `assets/css/fonts.css`
 sets Plex Sans once on `body` with no universal or `!important` overrides, so
 PrimeVue components and native controls inherit it while the `font-mono` and
