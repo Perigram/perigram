@@ -849,11 +849,36 @@
                       <label>{{ $t('processDesigner.sources') }}</label>
                       <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addSource')" size="small" text @click="addSelectedScreenSource" />
                     </div>
-                    <div v-for="(source, index) in selectedScreenRecord.sources" :key="source.id || index" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                      <InputText v-model="source.id" size="small" />
-                      <Select v-model="source.entityType" :options="entityTypeOptions" option-label="label" option-value="value" size="small" @change="syncSelectedScreenUi" />
-                      <Select v-model="source.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" size="small" />
-                      <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenSource(index)" />
+                    <div v-for="(source, index) in selectedScreenRecord.sources" :key="index" class="flex flex-col gap-2">
+                      <div class="grid grid-cols-2 gap-2">
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceId') }}</label><InputText :model-value="source.id" size="small" @update:model-value="value => screenEditing.renameSource(selectedScreenRecord, source, value)" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceLabel') }}</label><InputText v-model="source.label" size="small" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.entityType') }}</label><Select :model-value="source.entityType" :options="entityTypeOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceEntityType(selectedScreenRecord, source, value)" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceMode') }}</label><Select :model-value="source.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceMode(selectedScreenRecord, source, value)" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredFeature') }}</label><Select v-model="source.required.feature" :options="screenFeatureOptions" option-label="label" option-value="value" size="small" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredLevel') }}</label><Select v-model="source.required.level" :options="accessLevelOptions" option-label="label" option-value="value" size="small" /></div>
+                      </div>
+                      <div v-if="source.mode === 'single'" class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.identifier') }}</label>
+                        <InputText v-model="source.identifier" size="small" />
+                      </div>
+                      <div v-else class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.filters') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addFilter')" size="small" text @click="screenEditing.addScalar(source.filters, 'path', '')" /></div>
+                        <div v-for="row in screenEditing.scalarRows(source.filters)" :key="row.key" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                          <InputText :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(source.filters, row.key, event.target.value)" />
+                          <Select :model-value="row.type" :options="screenScalarTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(source.filters, row.key, value)" />
+                          <InputNumber v-if="row.type === 'number'" v-model="source.filters[row.key]" size="small" />
+                          <Checkbox v-else-if="row.type === 'boolean'" v-model="source.filters[row.key]" binary :aria-label="$t('processDesigner.value')" />
+                          <InputText v-else v-model="source.filters[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
+                          <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(source.filters, row.key)" />
+                        </div>
+                        <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.lineageBindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addLineageBinding')" size="small" text @click="screenEditing.addLineageBinding(source)" /></div>
+                        <div v-for="(binding, bindingIndex) in source.lineageBindings" :key="bindingIndex" class="grid grid-cols-2 gap-2">
+                          <div v-for="field in screenLineageBindingFields" :key="field" class="flex flex-col gap-1"><label>{{ $t(`processDesigner.lineageBindingFields.${field}`) }}</label><InputText v-model="binding[field]" size="small" /></div>
+                          <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeLineageBinding(source, bindingIndex)" />
+                        </div>
+                      </div>
+                      <div class="flex justify-end"><Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenSource(index)" /></div>
                     </div>
                   </div>
                   <div class="flex flex-col gap-2">
@@ -861,11 +886,13 @@
                       <label>{{ $t('processDesigner.regions') }}</label>
                       <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRegion')" size="small" text @click="addSelectedScreenRegion" />
                     </div>
-                    <div v-for="(region, index) in selectedScreenRecord.regions" :key="region.id || index" class="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2">
-                      <Select v-model="region.slot" :options="screenSlotOptions" option-label="label" option-value="value" size="small" />
-                      <Select v-model="region.sourceId" :options="selectedScreenSourceOptions" option-label="label" option-value="value" size="small" />
-                      <Select v-model="region.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" size="small" />
-                      <MultiSelect v-model="region.actions" :options="screenActionOptions" option-label="label" option-value="value" display="chip" size="small" class="w-full" :aria-label="$t('common.actions.title')" />
+                    <div v-for="(region, index) in selectedScreenRecord.regions" :key="index" class="grid grid-cols-2 gap-2">
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionId') }}</label><InputText v-model="region.id" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionLabel') }}</label><InputText v-model="region.label" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionSlot') }}</label><Select v-model="region.slot" :options="screenSlotOptions" option-label="label" option-value="value" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionSource') }}</label><Select v-model="region.sourceId" :options="selectedScreenSourceOptions" option-label="label" option-value="value" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.surface') }}</label><Select v-model="region.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('common.actions.title') }}</label><MultiSelect v-model="region.actions" :options="screenActionOptions" option-label="label" option-value="value" display="chip" size="small" class="w-full" /></div>
                       <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenRegion(index)" />
                     </div>
                   </div>
@@ -879,9 +906,16 @@
                       <Select v-model="selectedScreenRecord.required.level" :options="accessLevelOptions" option-label="label" option-value="value" />
                     </div>
                   </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.entityBinding') }}</label>
-                    <InputText v-model="selectedScreenRecord.bindings.entityId" />
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.bindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addBinding')" size="small" text @click="screenEditing.addScalar(selectedScreenRecord.bindings, 'binding')" /></div>
+                    <div v-for="row in screenEditing.scalarRows(selectedScreenRecord.bindings)" :key="row.key" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                      <InputText :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(selectedScreenRecord.bindings, row.key, event.target.value)" />
+                      <Select :model-value="row.type" :options="screenBindingTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(selectedScreenRecord.bindings, row.key, value)" />
+                      <InputNumber v-if="row.type === 'number'" v-model="selectedScreenRecord.bindings[row.key]" size="small" />
+                      <Checkbox v-else-if="row.type === 'boolean'" v-model="selectedScreenRecord.bindings[row.key]" binary :aria-label="$t('processDesigner.value')" />
+                      <InputText v-else v-model="selectedScreenRecord.bindings[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
+                      <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(selectedScreenRecord.bindings, row.key)" />
+                    </div>
                   </div>
                   <div class="flex flex-col gap-1">
                     <label>{{ $t('common.actions.title') }}</label>
@@ -952,7 +986,7 @@ import {
   requiredEntityProfileTypes,
   resolveCatalogNodePorts
 } from '~/packages/processes/src/index.js';
-import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES } from '~/packages/processes/src/screen-contract.js';
+import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain } from '@cutkit/domain-cnc';
 import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
@@ -1053,7 +1087,7 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
   portForHandle,
   syncProcessNode
 });
-const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen });
+const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultEntityType, featureForEntityType });
 
 const designer = reactive(createProcessDesignerContract(cncDomain));
 const {
@@ -1140,6 +1174,9 @@ const screenTemplateOptions = SCREEN_TEMPLATES
 const screenSourceModeOptions = SCREEN_SOURCE_MODES.map(value => ({ label: value, value }));
 const screenSlotOptions = SCREEN_REGION_SLOTS.map(value => ({ label: value, value }));
 const screenSurfaceOptions = SCREEN_REGION_SURFACES.map(value => ({ label: value, value }));
+const screenLineageBindingFields = SCREEN_LINEAGE_BINDING_FIELDS;
+const screenScalarTypeOptions = ['string', 'number', 'boolean', 'assignment'].map(value => ({ label: t(`processDesigner.scalarTypes.${value}`), value }));
+const screenBindingTypeOptions = screenScalarTypeOptions;
 const screenPlacementOptions = [
   { label: 'hub', value: 'hub' },
   { label: 'detail', value: 'detail' },
@@ -2499,13 +2536,16 @@ function createScreen(id) {
     bindings: {},
     sources: [{
       id: entityType || id,
+      label: '',
       entityType,
       mode: 'list',
       required: { feature, level: 'read' },
-      filters: {}
+      filters: {},
+      lineageBindings: []
     }],
     regions: [{
       id: 'main',
+      label: '',
       slot: 'main',
       sourceId: entityType || id,
       surface: 'card',
@@ -2520,128 +2560,36 @@ function removeSelectedScreen() {
 }
 
 function syncSelectedScreenUi() {
-  if (!selectedScreenRecord.value) return;
-  selectedScreenRecord.value.required ||= { feature: defaultFeature(), level: 'read' };
-  selectedScreenRecord.value.roleIds ||= [];
-  selectedScreenRecord.value.bindings ||= {};
-  selectedScreenRecord.value.actions ||= [];
-  const normalized = normalizeScreenContract(selectedScreenRecord.value);
-  selectedScreenRecord.value.kind = 'route';
-  selectedScreenRecord.value.template = normalized.template;
-  selectedScreenRecord.value.sources = normalized.sources;
-  selectedScreenRecord.value.regions = normalized.regions;
-  const entityType = selectedScreenRecord.value.entityType || selectedScreenRecord.value.sources[0]?.entityType || '';
-  if (entityType) {
-    const feature = featureForEntityType(entityType);
-    selectedScreenRecord.value.required.feature = feature;
-    for (const source of selectedScreenRecord.value.sources) {
-      const sourceFeature = featureForEntityType(source.entityType || entityType);
-      source.required = { ...(source.required || {}), feature: sourceFeature, level: source.required?.level || selectedScreenRecord.value.required.level || 'read' };
-    }
-  }
-  const source = ensureSelectedScreenSource();
-  const region = ensureSelectedScreenRegion();
-  if (source && region) {
-    source.mode = selectedScreenRecord.value.template === 'entityDetail' || selectedScreenRecord.value.template === 'formAction' ? 'single' : source.mode || 'list';
-    for (const screenRegion of selectedScreenRecord.value.regions || []) {
-      if (!selectedScreenRecord.value.sources.some(item => item.id === screenRegion.sourceId)) screenRegion.sourceId = source.id;
-      screenRegion.actions ||= [];
-    }
-  }
+  screenEditing.sync(selectedScreenRecord.value);
 }
 
 function ensureSelectedScreenSource() {
-  const screen = selectedScreenRecord.value;
-  if (!screen) return {};
-  screen.sources ||= [];
-  if (!screen.sources.length) {
-    const entityType = screen.entityType || defaultEntityType();
-    screen.sources.push({
-      id: entityType || 'source',
-      entityType,
-      mode: screen.template === 'entityDetail' ? 'single' : 'list',
-      required: screen.required || { feature: featureForEntityType(entityType), level: 'read' },
-      filters: {}
-    });
-  }
-  return screen.sources[0];
+  return selectedScreenRecord.value ? screenEditing.ensureSource(selectedScreenRecord.value) : {};
 }
 
 function ensureSelectedScreenRegion() {
-  const screen = selectedScreenRecord.value;
-  if (!screen) return {};
-  const source = ensureSelectedScreenSource();
-  screen.regions ||= [];
-  if (!screen.regions.length) {
-    screen.regions.push({
-      id: 'main',
-      slot: screen.template === 'workspaceLanes' ? 'center' : 'main',
-      sourceId: source.id,
-      surface: screen.template === 'entityDetail' ? 'detail' : 'card',
-      actions: []
-    });
-  }
-  return screen.regions[0];
+  return selectedScreenRecord.value ? screenEditing.ensureRegion(selectedScreenRecord.value) : {};
 }
 
 function addSelectedScreenSource() {
-  const screen = selectedScreenRecord.value;
-  if (!screen) return;
-  screen.sources ||= [];
-  const entityType = screen.entityType || defaultEntityType();
-  const id = uniqueRecordId('source', Object.fromEntries(screen.sources.map(source => [source.id, source])));
-  screen.sources.push({
-    id,
-    entityType,
-    mode: screen.template === 'entityDetail' ? 'single' : 'list',
-    required: { feature: featureForEntityType(entityType), level: screen.required?.level || 'read' },
-    filters: {}
-  });
+  screenEditing.addSource(selectedScreenRecord.value);
 }
 
 function removeSelectedScreenSource(index) {
-  const screen = selectedScreenRecord.value;
-  if (!screen?.sources || screen.sources.length <= 1) return;
-  const [removed] = screen.sources.splice(index, 1);
-  for (const region of screen.regions || []) {
-    if (region.sourceId === removed?.id) region.sourceId = screen.sources[0]?.id || '';
-  }
+  screenEditing.removeSource(selectedScreenRecord.value, index);
 }
 
 function addSelectedScreenRegion() {
-  const screen = selectedScreenRecord.value;
-  if (!screen) return;
-  const source = ensureSelectedScreenSource();
-  screen.regions ||= [];
-  const id = uniqueRecordId('region', Object.fromEntries(screen.regions.map(region => [region.id, region])));
-  screen.regions.push({
-    id,
-    slot: screen.template === 'workspaceLanes' ? 'right' : 'main',
-    sourceId: source.id,
-    surface: screen.template === 'entityDetail' ? 'detail' : 'card',
-    actions: []
-  });
+  screenEditing.addRegion(selectedScreenRecord.value);
 }
 
 function removeSelectedScreenRegion(index) {
-  const screen = selectedScreenRecord.value;
-  if (!screen?.regions || screen.regions.length <= 1) return;
-  screen.regions.splice(index, 1);
+  screenEditing.removeRegion(selectedScreenRecord.value, index);
 }
 
 function featureForEntityType(entityType) {
   const entity = (cncDomain.entities || []).find(item => item.type === entityType);
   return entity?.collection || `${entityType}s`;
-}
-
-function uniqueRecordId(prefix, records = {}) {
-  let index = Object.keys(records).length + 1;
-  let id = `${prefix}_${index}`;
-  while (records[id]) {
-    index += 1;
-    id = `${prefix}_${index}`;
-  }
-  return id;
 }
 
 function addLifecycleState() {

@@ -4,6 +4,15 @@ export const SCREEN_REGION_SLOTS = ['main', 'left', 'center', 'right', 'supporti
 // Canonical registry of region surfaces the generated screen runtime renders:
 // card/compact/table/workspace for list-mode regions, detail for single-mode.
 export const SCREEN_REGION_SURFACES = ['card', 'compact', 'detail', 'table', 'workspace'];
+export const SCREEN_LINEAGE_BINDING_FIELDS = [
+  'childEntityType',
+  'ancestorEntityType',
+  'lineageKey',
+  'sourceNode',
+  'sourceSocket',
+  'consumingNode',
+  'consumingSocket'
+];
 export const GENERATED_SCREEN_ROUTE_PREFIX = '/screens';
 
 const TEMPLATE_DEFAULT_MODE = {
