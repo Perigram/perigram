@@ -31,6 +31,7 @@ import {
   inventoryOwnership,
   INLINE_STYLE_EXCEPTIONS,
   inlineStyleAttributes,
+  renderStyleBindings,
   repositoryVueInventory,
   SCOPED_EXCEPTION_PROPERTIES,
   SCOPED_STYLE_EXCEPTIONS,
@@ -464,7 +465,7 @@ describe('Design system manifest', () => {
     expect(new Set(Object.values(SCOPED_STYLE_EXCEPTIONS))).toEqual(new Set(['layout']));
     expect(SCOPED_EXCEPTION_PROPERTIES.layout.has('padding')).toBe(false);
     expect(new Set(Object.values(INLINE_STYLE_EXCEPTIONS).map(([category]) => category)))
-      .toEqual(new Set(['data-driven', 'layout', 'semantic-composition']));
+      .toEqual(new Set(['data-driven', 'layout']));
 
     for (const file of files) {
       const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
@@ -491,6 +492,9 @@ describe('Design system manifest', () => {
       'components/AssetsLibrary.vue',
       '<template><div :style="{ backgroundColor: penForm.stroke.color }" /></template>'
     )).toContain('narrowly-allowlist:inline-data-driven (1)');
+    const renderVisual = '<script>\nexport default {\n  render() { return h(\'div\', { style: { borderRadius: \'1rem\' } }) }\n}\n</script>';
+    expect(renderStyleBindings(renderVisual)).toHaveLength(1);
+    expect(analyzeVueVisuals('components/RenderSurface.vue', renderVisual)).toContain('replace:render-visual (1)');
 
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
     expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);

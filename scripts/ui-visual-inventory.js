@@ -88,7 +88,6 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/process-designer/ProcessUserNode.vue': ['data-driven', [':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"']],
   'components/process-designer/ProcessValueInputNode.vue': ['data-driven', [':style="valueHandleStyle"']],
   'components/shared/EntityInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
-  'components/shared/MotionDock.vue': ['semantic-composition', [':style="outerStyle"', ':style="panelStyle"']],
   'pages/assets/pens.vue': ['data-driven', [':style="{ backgroundColor: form.stroke.color }"']],
   'pages/organization/process.vue': ['data-driven', [':style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"']],
   'pages/project/[slug]/data.vue': ['layout', ['style="width: var(--ck-table-action-column-width)"']]
@@ -125,6 +124,10 @@ export const inlineStyleAttributes = source => Array.from(
   match => match[0].replace(/\s+/g, ' ')
 );
 
+export const renderStyleBindings = source => /^\s*render\s*\(\)\s*\{/m.test(source)
+  ? Array.from(source.matchAll(/\bstyle\s*:\s*(?:\{|[A-Za-z_$][\w$]*)/g), match => match[0])
+  : [];
+
 export const analyzeVueVisuals = (file, source) => {
   const template = source
     .replace(/<script\b[\s\S]*?<\/script>/g, '')
@@ -147,6 +150,9 @@ export const analyzeVueVisuals = (file, source) => {
       ? `${category === 'data-driven' ? 'narrowly-allowlist' : 'compliant'}:inline-${category} (${inlineStyles.length})`
       : `replace:inline-visual (${inlineStyles.length})`);
   }
+
+  const renderStyles = renderStyleBindings(source);
+  if (renderStyles.length) findings.push(`replace:render-visual (${renderStyles.length})`);
 
   return findings.length ? findings : ['compliant'];
 };
