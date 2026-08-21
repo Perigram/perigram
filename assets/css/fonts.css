@@ -1,10 +1,10 @@
-/* IBM Plex Sans is the interface face; Plex Mono and Plex Serif are role-specific. */
+/* IBM Plex superfamily: Sans is the interface face, Mono marks technical
+   content, Serif is reserved for long-form text blocks. */
 @import '@fontsource/ibm-plex-sans/400.css';
 @import '@fontsource/ibm-plex-sans/700.css';
 @import '@fontsource/ibm-plex-sans/400-italic.css';
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/700.css';
-@import '@fontsource/ibm-plex-mono/400-italic.css';
 @import '@fontsource/ibm-plex-serif/400.css';
 @import '@fontsource/ibm-plex-serif/700.css';
 @import '@fontsource/ibm-plex-serif/400-italic.css';
@@ -15,36 +15,15 @@
 
 body,
 html {
-  font-family: var(--ck-font-ui) !important;
+  font-family: var(--ck-font-ui);
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-* {
-  font-family: var(--ck-font-ui);
-}
-
-/* PrimeVue and native controls receive the same explicit interface face. */
-.p-component,
-.p-inputtext,
-.p-button,
-.p-select,
-.p-dialog {
-  font-family: var(--ck-font-ui) !important;
-}
-
-input,
-button,
-select,
-textarea {
-  font-family: var(--ck-font-ui) !important;
-}
-
-:where(code, kbd, pre, samp, .font-mono) {
-  font-family: var(--ck-font-mono) !important;
-}
-
-:where(.font-serif) {
-  font-family: var(--ck-font-serif) !important;
+/* PrimeVue components and native controls inherit Plex Sans from body.
+   No !important overrides: the font-mono / font-serif utilities must win
+   everywhere, including inside PrimeVue components. */
+:where(code, kbd, pre, samp) {
+  font-family: var(--ck-font-mono);
 }
