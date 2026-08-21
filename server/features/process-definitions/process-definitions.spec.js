@@ -34,7 +34,7 @@ vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    statusService: { ...actual.statusService, transitionWithResult: vi.fn() }
+    statusService: { ...actual.statusService, transitionWithResult: vi.fn(), setInitialStateForOrganization: vi.fn() }
   };
 });
 
@@ -116,7 +116,7 @@ describe('current process-definition service contract', () => {
     processRepository.findById.mockResolvedValue({
       _id: 'process-old',
       identity: { uid: 'process-old', name: 'Old process', slug: 'old-process' },
-      lineage: { organizationId: 'org-1' },
+      lineage: { organizationId: 'org-acceptance' },
       status: { state: 'DRAFT' },
       data: { schemaVersion: 1, dataflowVersion: 2, graph: { nodes: [], edges: [] } }
     });
@@ -268,6 +268,101 @@ describe('current process-definition service contract', () => {
     });
     expect(emitted).not.toHaveProperty('actions');
     expect(emitted).not.toHaveProperty('effects');
+  });
+
+  it('applies the authored initial primary state while retaining all workflow region initials', async () => {
+    const created = { _id: 'queue-1', type: 'queue', identity: { name: 'Queue' } };
+    const initialStatus = { state: { primary: 'READY', active: { main: 'READY', fulfillment: 'UNASSIGNED' } } };
+    const create = vi.fn().mockResolvedValue(created);
+    statusService.setInitialStateForOrganization.mockResolvedValue(initialStatus);
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'queue'
+        ? { constructionHandlers: { genericCreate: create } }
+        : organizationService
+    });
+
+    const result = await performDurableEffect({
+      kind: 'effect.createEntity',
+      record: { kind: 'effect.createEntity', id: 'create', entityType: 'queue', construction: { mode: 'genericCreate' }, blocks: [] },
+      inputs: { 'status.state.primary': 'READY' }
+    }, adminAuth());
+
+    expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
+      'queue', 'queue-1', 'READY', 'org-acceptance', 'admin', expect.any(Object)
+    );
+    expect(result.status).toEqual(initialStatus);
+    expect(result.status.state.active.fulfillment).toBe('UNASSIGNED');
+  });
+
+  it('passes authored region and lifecycle evidence to status execution and returns the entity DTO', async () => {
+    const entity = { _id: 'sheet-1', type: 'sheet', status: { state: { primary: 'AVAILABLE', active: { main: 'AVAILABLE', quality: 'UNVERIFIED' } } } };
+    statusService.transitionWithResult.mockResolvedValue({ entity: { ...entity, status: { state: { primary: 'AVAILABLE', active: { main: 'AVAILABLE', quality: 'VERIFIED' } } } }, actions: [], effects: [] });
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'sheet' ? {} : organizationService
+    });
+
+    const result = await performDurableEffect({
+      kind: 'effect.changeStatus',
+      record: { kind: 'effect.changeStatus', entityType: 'sheet', region: 'quality' },
+      inputs: {
+        entity: { type: 'sheet', id: 'sheet-1' },
+        status: 'VERIFIED',
+        metadata: { note: 'Inspection complete' },
+        lifecycle: { attachments: { photos: [{ fileId: 'proof-1' }] } }
+      }
+    }, adminAuth());
+
+    expect(statusService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
+      targetState: 'VERIFIED',
+      context: {
+        source: 'process-run',
+        region: 'quality',
+        metadata: { note: 'Inspection complete' },
+        lifecycle: { attachments: { photos: [{ fileId: 'proof-1' }] } }
+      }
+    }));
+    expect(result).toEqual(expect.objectContaining({ _id: 'sheet-1' }));
+    expect(result).not.toHaveProperty('actions');
+  });
+
+  it('archives through a compiled domain intent and hard-deletes only through the runtime adapter', async () => {
+    const processDelete = vi.fn().mockResolvedValue({ success: true });
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'queue'
+        ? { processCapabilities: { archive: true, delete: true }, processDelete }
+        : organizationService
+    });
+    statusService.transitionWithResult.mockResolvedValue({ entity: { _id: 'queue-1', status: { state: { primary: 'ARCHIVED' } } } });
+
+    await expect(performDurableEffect({
+      kind: 'effect.archiveEntity',
+      record: { kind: 'effect.archiveEntity', entityType: 'queue', archiveIntent: 'archiveQueue' },
+      inputs: { entity: { type: 'queue', id: 'queue-1' } }
+    }, adminAuth())).resolves.toMatchObject({ _id: 'queue-1' });
+    expect(statusService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({ intent: 'archiveQueue' }));
+
+    await expect(performDurableEffect({
+      kind: 'effect.deleteEntity',
+      record: { kind: 'effect.deleteEntity', entityType: 'queue' },
+      inputs: { entity: { type: 'queue', id: 'queue-1' } }
+    }, adminAuth())).resolves.toEqual({ success: true });
+    expect(processDelete).toHaveBeenCalledWith('queue-1', adminAuth());
+  });
+
+  it('denies archive and hard delete when runtime capabilities do not allow them', async () => {
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'queue'
+        ? { processCapabilities: { archive: false, delete: false } }
+        : organizationService
+    });
+
+    for (const kind of ['effect.archiveEntity', 'effect.deleteEntity']) {
+      await expect(performDurableEffect({
+        kind,
+        record: { kind, entityType: 'queue' },
+        inputs: { entity: { type: 'queue', id: 'queue-1' } }
+      }, adminAuth())).rejects.toThrow('does not support process');
+    }
   });
 
   it('validates graph-declared Create relations before invoking the owning constructor', async () => {

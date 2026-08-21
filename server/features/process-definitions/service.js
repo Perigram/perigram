@@ -815,6 +815,8 @@ function commandExecutionGrants(action = {}) {
 function executionActionsForAction(action = {}) {
   if (action.actionKind === 'runCommand') return { run: true };
   if (action.actionKind === 'updateEntity') return { update: true, edit: true };
+  if (action.actionKind === 'archiveEntity') return { update: true, edit: true, archive: true };
+  if (action.actionKind === 'deleteEntity') return { delete: true };
   return { create: true };
 }
 
@@ -1050,6 +1052,16 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   if (!entityType) throw new Error(`${kind} requires entityType`);
   const service = getAppRegistry().getEntityService(entityType);
   if (!service) throw new Error(`Entity service missing for ${entityType}`);
+  const requiredCapability = {
+    'effect.archiveEntity': 'archive',
+    'effect.deleteEntity': 'delete'
+  }[kind];
+  if (requiredCapability && service.processCapabilities?.[requiredCapability] !== true) {
+    throw new Error(`${entityType} does not support process ${requiredCapability}`);
+  }
+  if (kind === 'effect.deleteEntity' && !getDomain().entities?.find(entity => entity.type === entityType)?.operations?.delete) {
+    throw new Error(`${entityType} does not declare hard deletion`);
+  }
   const relationContracts = ['effect.createEntity', 'effect.updateEntity'].includes(kind)
     ? processRelationContracts(record, processData)
     : [];
@@ -1123,7 +1135,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
         targetId: target.id,
         targetState: typeof statusChange.value === 'string' ? statusChange.value : statusChange.value?.id,
         auth,
-        context: { source: 'process-run' },
+        context: effectTransitionContext(record, inputs),
         patch: Object.keys(patch).length ? patch : null
       });
       return result.entity;
@@ -1152,14 +1164,29 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
       return [change.path, change.value];
     }));
-    return await statusService.transitionWithResult({
+    const result = await statusService.transitionWithResult({
       entityType,
       targetId: target.id,
       targetState: typeof inputs.status === 'string' ? inputs.status : inputs.status?.id,
       auth,
-      context: { source: 'process-run' },
+      context: effectTransitionContext(record, inputs),
       patch: Object.keys(patch).length ? patch : null
     });
+    return result.entity;
+  }
+  if (kind === 'effect.archiveEntity') {
+    const result = await statusService.transitionWithResult({
+      entityType,
+      targetId: target.id,
+      ...(record.archiveIntent ? { intent: record.archiveIntent } : { targetState: 'ARCHIVED' }),
+      auth,
+      context: effectTransitionContext(record, inputs)
+    });
+    return result.entity;
+  }
+  if (kind === 'effect.deleteEntity') {
+    if (!service.processDelete) throw new Error(`Entity service cannot delete ${entityType}`);
+    return await service.processDelete(target.id, auth);
   }
   if (kind === 'effect.sendEntity') {
     return await projectEntityThroughSocket({
@@ -1176,6 +1203,16 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     }, auth);
   }
   throw new Error(`Unsupported process effect ${kind}`);
+}
+
+function effectTransitionContext(record = {}, inputs = {}) {
+  return {
+    source: 'process-run',
+    ...(inputs.region || record.region ? { region: inputs.region || record.region } : {}),
+    ...(inputs.path || record.path ? { path: inputs.path || record.path } : {}),
+    ...(inputs.metadata || record.metadata ? { metadata: inputs.metadata || record.metadata } : {}),
+    ...(inputs.lifecycle || record.lifecycle ? { lifecycle: inputs.lifecycle || record.lifecycle } : {})
+  };
 }
 
 async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, created = null, service = null, auth = {}) {

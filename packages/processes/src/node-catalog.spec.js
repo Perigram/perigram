@@ -132,7 +132,7 @@ describe('process v4 node catalog', () => {
     expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'status.state.primary']);
   });
 
-  it('declares List consumption on Create, Modify, and Status effect input sockets', () => {
+  it('declares List consumption on every mapped mutation effect input socket', () => {
     const context = {
       fieldSchemas: [
         { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }
@@ -141,7 +141,9 @@ describe('process v4 node catalog', () => {
     for (const [kind, record] of [
       ['effect.createEntity', { kind: 'effect.createEntity', entityType: 'project', blocks: ['identity'] }],
       ['effect.updateEntity', { kind: 'effect.updateEntity', entityType: 'project', blocks: ['identity'] }],
-      ['effect.changeStatus', { kind: 'effect.changeStatus', entityType: 'project' }]
+      ['effect.changeStatus', { kind: 'effect.changeStatus', entityType: 'project' }],
+      ['effect.archiveEntity', { kind: 'effect.archiveEntity', entityType: 'project' }],
+      ['effect.deleteEntity', { kind: 'effect.deleteEntity', entityType: 'project' }]
     ]) {
       const ports = resolveCatalogNodePorts(record, context);
       expect(ports.inputs.length, kind).toBeGreaterThan(0);

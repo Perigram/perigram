@@ -53,13 +53,6 @@
                             menu-item
                             @execute="executeInlineAction"
                         />
-                        <GeneratedDeleteButton
-                            v-if="inlineCanDelete"
-                            :entity="inlineActionEntity"
-                            :entity-type="inlineActionEntityType"
-                            menu-item
-                            @deleted="closePopup"
-                        />
                         <Button
                             v-if="inlineDetailRoute"
                             :label="$t('common.open')"
@@ -160,13 +153,6 @@
                             menu-item
                             @execute="executeInlineAction"
                         />
-                        <GeneratedDeleteButton
-                            v-if="inlineCanDelete"
-                            :entity="inlineActionEntity"
-                            :entity-type="inlineActionEntityType"
-                            menu-item
-                            @deleted="closePopup"
-                        />
                         <Button
                             v-if="inlineDetailRoute"
                             :label="$t('common.open')"
@@ -261,7 +247,6 @@ import Card from 'primevue/card';
 import Popover from 'primevue/popover';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { entityUiFor } from '~/utils/status-engine';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
@@ -293,7 +278,6 @@ const inlineTypeLabelRef = inject('entityInlineTypeLabel', '');
 const inlineActionIdsRef = inject('entityInlineActionIds', []);
 const inlineActionEntityRef = inject('entityInlineActionEntity', null);
 const inlineActionEntityTypeRef = inject('entityInlineActionEntityType', '');
-const inlineCanDeleteRef = inject('entityInlineCanDelete', false);
 const inlineShowCassetteDesignerRef = inject('entityInlineShowCassetteDesigner', false);
 const inlineExecuteActionRef = inject('entityInlineExecuteAction', null);
 const statusWorkflowsRef = inject('statusWorkflows', null);
@@ -333,12 +317,10 @@ const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);
 const inlineActionEntity = computed(() => unref(inlineActionEntityRef) || props.entity);
 const inlineActionEntityType = computed(() => unref(inlineActionEntityTypeRef) || props.entityType);
-const inlineCanDelete = computed(() => Boolean(unref(inlineCanDeleteRef)));
 const inlineShowCassetteDesigner = computed(() => Boolean(unref(inlineShowCassetteDesignerRef)));
 const inlinePopupHasActions = computed(() => (
     inlineShowCassetteDesigner.value
     || inlineActionIds.value.length
-    || inlineCanDelete.value
 ));
 
 function openInlineDetail(event) {

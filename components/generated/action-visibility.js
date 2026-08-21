@@ -37,7 +37,8 @@ export function resolveScopedGeneratedActions({ actionIds = [], actionManifest =
 
 export function isGeneratedSurfaceAction(action = {}) {
   if (action?.relationMutation?.operation === 'unlink') return false;
-  return ['createEntity', 'updateEntity', 'runCommand', 'sendToOrganization'].includes(action?.actionKind);
+  if (action?.actionKind === 'deleteEntity' && (action.trigger?.mode || 'manual') !== 'manual') return false;
+  return ['createEntity', 'updateEntity', 'archiveEntity', 'deleteEntity', 'runCommand', 'sendToOrganization'].includes(action?.actionKind);
 }
 
 export function parentBoundCreateAppliesToEntityType(action = {}, entityType = '') {

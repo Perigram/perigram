@@ -517,6 +517,11 @@ describe('status service lifecycle payloads', () => {
             }
           },
           transitions: []
+        },
+        quality: {
+          initial: 'UNVERIFIED',
+          states: { UNVERIFIED: {}, VERIFIED: {} },
+          transitions: []
         }
       }
     });
@@ -538,6 +543,7 @@ describe('status service lifecycle payloads', () => {
       severity: 'danger',
       icon: 'pi pi-trash'
     });
+    expect(entity.status.state.active).toEqual({ main: 'DELETED', quality: 'UNVERIFIED' });
     workflowSpy.mockRestore();
   });
 

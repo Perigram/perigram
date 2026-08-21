@@ -2378,9 +2378,12 @@ function createProcessNode(id, kind = 'source.literalItem') {
   if (kind === 'effect.createEntity') {
     node.entityType = designer.createEntityOptions[0]?.value || '';
   }
+  if (kind === 'effect.changeStatus') node.entityType = designer.changeStatusOptions[0]?.value || '';
+  if (kind === 'effect.archiveEntity') node.entityType = designer.archivableEntityOptions[0]?.value || '';
+  if (kind === 'effect.deleteEntity') node.entityType = designer.deleteEntityOptions[0]?.value || '';
   if (kind.startsWith('effect.')) {
     node.trigger = { mode: 'manual' };
-    node.access = { level: 'write', grants: [] };
+    node.access = { level: kind === 'effect.deleteEntity' ? 'admin' : 'write', grants: [] };
     node.entryTriggerId = id;
   }
   if (kind === 'source.literalList') node.access = 'list';
@@ -3318,6 +3321,8 @@ function processEntityTypeOptions(node = {}) {
   if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return designer.createEntityOptions;
   if (kind === 'effect.updateEntity') return designer.updateEntityOptions;
   if (kind === 'effect.changeStatus') return designer.changeStatusOptions;
+  if (kind === 'effect.archiveEntity') return designer.archivableEntityOptions;
+  if (kind === 'effect.deleteEntity') return designer.deleteEntityOptions;
   if (kind === 'read.queryEntities' || kind === 'read.children') return designer.listableEntityOptions;
   if (kind.startsWith('read.')) return designer.readableEntityOptions;
   return entityTypeOptions.value;

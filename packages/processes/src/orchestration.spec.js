@@ -33,7 +33,7 @@ const catalogContext = record => ({
 });
 
 describe('durable process orchestration', () => {
-  it.each(['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'])(
+  it.each(['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'])(
     'routes %s through the shared mapped mutation boundary',
     async kind => {
       const inputId = kind === 'effect.createEntity' ? 'identity' : 'entity';

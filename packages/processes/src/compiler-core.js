@@ -166,7 +166,7 @@ function normalizeProcessInputDefaults(processNodes = {}, domain = {}) {
     let ports = [];
     try { ports = resolveCatalogNodePorts(record, catalogContext(domain, record)).inputs; } catch { ports = []; }
     const accessById = new Map(ports.map(port => [port.id, port.access || 'item']));
-    const mutationEffect = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'].includes(record.kind);
+    const mutationEffect = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'].includes(record.kind);
     return [id, {
       ...record,
       inputDefaults: Object.fromEntries(Object.entries(record.inputDefaults).map(([socketId, value]) => {
@@ -195,6 +195,13 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
         ...node,
         entries: node.entries.map(({ cardinality, operation, ...entry }) => entry)
       };
+    }
+    if (node?.kind === 'effect.archiveEntity' && node.entityType) {
+      const workflow = domain.workflows?.[node.entityType];
+      const archiveTransition = Object.values(workflow?.regions || {})
+        .flatMap(region => region.transitions || [])
+        .find(transition => transition.to === 'ARCHIVED' && transition.intent);
+      return [id, { ...node, archiveIntent: archiveTransition?.intent || '' }];
     }
     if (node?.kind !== 'effect.createEntity' || !node.entityType) return [id, node];
     const schemas = entityFieldSchemas(domain, node.entityType);
@@ -232,6 +239,8 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       'effect.createEntity': 'createEntity',
       'effect.runProducer': 'createEntity',
       'effect.updateEntity': 'updateEntity',
+      'effect.archiveEntity': 'archiveEntity',
+      'effect.deleteEntity': 'deleteEntity',
       'effect.runCommand': 'runCommand',
       'effect.sendEntity': 'sendToOrganization',
       'effect.generateAttachment': 'runCommand'
@@ -499,6 +508,8 @@ export function requiredEffectCapability(kind = '') {
   if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return 'create';
   if (kind === 'effect.updateEntity') return 'processUpdate';
   if (kind === 'effect.changeStatus') return 'statusMutation';
+  if (kind === 'effect.archiveEntity') return 'archive';
+  if (kind === 'effect.deleteEntity') return 'delete';
   return null;
 }
 
@@ -2608,6 +2619,7 @@ function compileStatusDefinitions(statusDefinitions = {}) {
     color: definition.color || '',
     severity: definition.severity || definition.color || '',
     icon: definition.icon || '',
+    region: definition.region || '',
     ...(definition.lifecycle ? { lifecycle: clonePlain(definition.lifecycle) } : {})
   }]));
 }
@@ -2634,10 +2646,14 @@ function compileProcessNodes(processNodes = {}) {
     relationKey: node.relationKey || '',
     relationCardinality: node.relationCardinality || '',
     block: node.block || '',
-    path: node.path || '',
+    path: Array.isArray(node.path) ? [...node.path] : node.path || '',
     valueType: node.valueType || '',
     structure: node.structure || 'item',
     operation: node.operation || '',
+    region: node.region || '',
+    archiveIntent: node.archiveIntent || '',
+    metadata: node.metadata ? clonePlain(node.metadata) : null,
+    lifecycle: node.lifecycle ? clonePlain(node.lifecycle) : null,
     template: node.template || '',
     inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
     outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : []
@@ -2837,14 +2853,14 @@ function normalizeAccessLevel(level) {
 function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, statusDefinitions = {}, process = {}, lineageBindings = [] }) {
   const kind = action.actionKind || 'createEntity';
   const normalizedAccess = normalizeActionAccess(action.access);
-  if (!['createEntity', 'updateEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
+  if (!['createEntity', 'updateEntity', 'archiveEntity', 'deleteEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
     errors.push(`Action ${actionId} uses unknown action kind ${kind}`);
     return;
   }
   if (kind === 'runCommand') {
     if (!action.commandId) errors.push(`Action ${actionId} must select a command`);
     if (action.commandId && !commands.has(action.commandId)) errors.push(`Action ${actionId} uses unknown command ${action.commandId}`);
-  } else if (kind !== 'updateEntity') {
+  } else if (!['updateEntity', 'archiveEntity', 'deleteEntity'].includes(kind)) {
     if (!action.entityType) errors.push(`Action ${actionId} must select an entity type`);
     if (action.entityType && !entities.has(action.entityType)) errors.push(`Action ${actionId} uses unknown entity type ${action.entityType}`);
   }
@@ -2877,6 +2893,13 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     if (!(action.mutation?.fields || []).length && !hasTargetStatus) {
       errors.push(`Action ${actionId} must connect at least one writable field, relation, or status`);
     }
+  }
+  if (kind === 'archiveEntity' || kind === 'deleteEntity') {
+    const entityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType || inferConnectedActionEntityType(actionId, process);
+    if (!entityType) errors.push(`Action ${actionId} must receive an entity input`);
+    if (entityType && !entities.has(entityType)) errors.push(`Action ${actionId} input uses unknown entity type ${entityType}`);
+    if (kind === 'deleteEntity' && normalizedAccess.level !== 'admin') errors.push(`Action ${actionId} must use admin access for hard deletion`);
+    if (kind === 'deleteEntity' && (action.trigger?.mode || 'manual') !== 'manual') errors.push(`Action ${actionId} hard deletion must be manual`);
   }
   const canInheritAccess = kind === 'runCommand' && action.inputs?.some(input => input.entityType);
   if ((!action.access && !canInheritAccess) || !Array.isArray(normalizedAccess.grants) || !['read', 'write', 'admin'].includes(normalizedAccess.level)) {
@@ -2961,8 +2984,8 @@ function validateEffectCapabilities(process = {}, domain = {}, capabilities = {}
       }
       continue;
     }
-    if (!record || record[capability] === false) {
-      const verb = 'update';
+    if (!record || record[capability] !== true) {
+      const verb = capability === 'delete' ? 'delete' : capability === 'archive' ? 'archive' : 'update';
       errors.push(`Process node ${nodeId} cannot ${verb} ${node.entityType}: entity service lacks ${capability} support`);
     }
   }

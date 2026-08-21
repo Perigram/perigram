@@ -116,6 +116,8 @@ describe('process designer domain contract', () => {
     expect(contract.changeStatusOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
     expect(contract.deleteEntityOptions).toEqual([]);
     expect(contract.archivableEntityOptions).toEqual([]);
+    expect(contract.paletteGroups.flatMap(group => group.items).map(item => item.kind)).not.toContain('effect.deleteEntity');
+    expect(contract.paletteGroups.flatMap(group => group.items).map(item => item.kind)).not.toContain('effect.archiveEntity');
   });
 
   it('gates list and get-by-id entity choices by the serialized capability projection', () => {
@@ -184,6 +186,11 @@ describe('process designer domain contract', () => {
         queue: { label: 'Queue lifecycle', regions: { main: { states: { DRAFT: {}, ARCHIVED: {} } } } },
         library: { label: 'Library lifecycle', regions: { main: { states: { ACTIVE: {} } } } }
       }
+    }, {
+      work_item: { delete: false, archive: false },
+      result: { delete: false, archive: false },
+      queue: { delete: true, archive: true },
+      library: { delete: false, archive: false }
     });
 
     expect(contract.deleteEntityOptions).toEqual([{ label: 'Queue', value: 'queue' }]);
@@ -191,7 +198,10 @@ describe('process designer domain contract', () => {
   });
 
   it('presents authoring operations by concern without exposing runtime plumbing', () => {
-    const contract = createProcessDesignerContract(domain);
+    const contract = createProcessDesignerContract(domain, {
+      work_item: { delete: true, archive: true },
+      result: { delete: false, archive: false }
+    });
     const groups = Object.fromEntries(contract.paletteGroups.map(group => [group.id, group.items]));
     const items = contract.paletteGroups.flatMap(group => group.items);
 
@@ -203,6 +213,9 @@ describe('process designer domain contract', () => {
     expect(groups.entities.map(item => item.kind || item.type)).toEqual([
       'effect.createEntity',
       'effect.updateEntity',
+      'effect.changeStatus',
+      'effect.archiveEntity',
+      'effect.deleteEntity',
       'effect.runCommand',
       'statusDefinition',
       'read.currentEntity',

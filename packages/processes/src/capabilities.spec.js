@@ -27,7 +27,7 @@ const domain = {
     { ownerType: 'project', key: 'queues', targetType: 'queue', cardinality: 'many' }
   ],
   workflows: {
-    project: { regions: { main: { states: { DRAFT: {}, ARCHIVED: {} } } } },
+    project: { regions: { main: { states: { DRAFT: {}, ARCHIVED: {} }, transitions: [{ from: 'DRAFT', to: 'ARCHIVED', intent: 'archiveProject' }] } } },
     sheet: { regions: { main: { states: { AVAILABLE: {} } } } }
   }
 };
@@ -58,6 +58,7 @@ describe('process entity capability projection', () => {
       processUpdate: true,
       delete: true,
       archive: true,
+      archiveIntent: 'archiveProject',
       statusMutation: true
     });
     expect(capabilities.project.relationMutations).toEqual([
@@ -123,6 +124,7 @@ describe('process entity capability projection', () => {
       processUpdate: false,
       delete: false,
       archive: false,
+      archiveIntent: null,
       statusMutation: false
     });
   });

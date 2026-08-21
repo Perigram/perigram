@@ -64,8 +64,9 @@ function registerAppBindings(registry) {
     if (!processGetById) throw new Error(`Entity service ${type} requires an explicit processGetById binding`);
     const constructionHandlers = resolveConstructionHandlers(type, service);
     const processCapabilities = buildProcessCapabilities(type, constructionHandlers);
-    verifyProcessCapabilities(type, service, constructionHandlers, processCapabilities);
-    registry.registerEntityService(type, { ...service, processList, processGetById, processCapabilities, constructionHandlers });
+    const processDelete = processCapabilities.delete ? createProcessDelete(type, service, processGetById) : null;
+    verifyProcessCapabilities(type, service, constructionHandlers, processCapabilities, processDelete);
+    registry.registerEntityService(type, { ...service, processList, processGetById, processDelete, processCapabilities, constructionHandlers });
   }
   for (const [id, handler] of Object.entries(commandHandlers)) {
     registry.registerCommandHandler(id, handler);
@@ -265,12 +266,12 @@ function buildProcessCapabilities(type, constructionHandlers) {
   };
 }
 
-function verifyProcessCapabilities(type, service, constructionHandlers, capabilities) {
+function verifyProcessCapabilities(type, service, constructionHandlers, capabilities, processDelete) {
   if (capabilities.processUpdate && typeof service.processUpdate !== 'function') {
     throw new Error(`Entity service ${type} declares processUpdate capability but lacks a processUpdate method`);
   }
-  if (capabilities.delete && typeof service.remove !== 'function') {
-    throw new Error(`Entity service ${type} declares delete capability but lacks a remove method`);
+  if (capabilities.delete && typeof processDelete !== 'function') {
+    throw new Error(`Entity service ${type} declares delete capability but lacks a processDelete adapter`);
   }
   const construction = cncDomain.construction?.[type] || null;
   for (const mode of construction?.modes || []) {
@@ -283,6 +284,23 @@ function verifyProcessCapabilities(type, service, constructionHandlers, capabili
       throw new Error(`Entity ${type} construction mode ${mode} maps to a missing service handler`);
     }
   }
+}
+
+function createProcessDelete(type, service, processGetById) {
+  if (typeof service.remove !== 'function') return null;
+  return async (id, auth = {}) => {
+    if (type === 'nesting_run') {
+      const entity = await processGetById(id, auth);
+      const queueId = entity?.lineage?.queueId;
+      if (!queueId) throw new Error('Nesting run is missing queue lineage');
+      return await service.remove(queueId, id, auth.userId, auth.organizationId, auth.role, auth);
+    }
+    if (type === 'cassette_design') return await service.remove(id, auth.userId, auth.role, auth);
+    if (type === 'profile_template' || type === 'user') return await service.remove(id, auth);
+    if (type === 'material') return await service.remove(id);
+    if (type === 'pen_template' || type === 'tool_profile') return await service.remove(id, auth.userId);
+    return await service.remove(id, auth.userId, auth.organizationId, auth.role, auth);
+  };
 }
 
 const entityProcessCapabilities = {
