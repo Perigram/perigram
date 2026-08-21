@@ -495,7 +495,10 @@ reference or an array assembled by Collect Array. Modify Relations replaces the
 connected entry value; list operations express collection changes beforehand.
 Attachments accept named typed
 attachment references, and Data/Summary/Provenance accept named typed values.
-Renaming an entry does not break its wire. The evaluator lowers Lineage entity
+Renaming an entry does not break its wire. Fixed-field and open-entry
+composers both evaluate through aligned tuple matching, so list-shaped inputs
+emit one composed block per aligned input tuple and multi-entity creation
+needs no separate loop node. The evaluator lowers Lineage entity
 references to the declared stored id key and Get Field restores that id as the
 declared typed reference. Get Field on other open blocks authors the local key
 and output type explicitly rather than selecting invented global fields;
