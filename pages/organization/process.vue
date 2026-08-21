@@ -326,9 +326,10 @@
                       <label>{{ $t('processDesigner.roles') }}</label>
                       <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRole')" text size="small" @click="addSelectedActionGrant" />
                     </div>
-                    <div v-for="(grant, index) in selectedActionGrants" :key="`${grant.roleId}-${index}`" class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2">
+                    <div v-for="(grant, index) in selectedActionGrants" :key="`${grant.roleId}-${index}`" class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto_auto] gap-2">
                       <Select :model-value="grant.roleId" :options="roleOptions" option-label="label" option-value="value" size="small" @update:model-value="value => updateSelectedActionGrant(index, { roleId: value })" />
                       <Select :model-value="grant.level" :options="accessLevelOptions" option-label="label" option-value="value" size="small" @update:model-value="value => updateSelectedActionGrant(index, { level: value })" />
+                      <Button icon="pi pi-filter" :aria-label="$t('processDesigner.editGrantConditions')" text size="small" @click="openGrantEditor('action', index, actionGrantFeature)" />
                       <Button icon="pi pi-trash" :aria-label="$t('common.delete')" text severity="danger" size="small" @click="removeSelectedActionGrant(index)" />
                     </div>
                     <Button v-if="selectedAction.actionKind === 'updateEntity' && inheritedActionAccessLabels(selectedAction, selectedNode).length" icon="pi pi-refresh" :label="$t('common.reset')" text size="small" class="self-start" @click="resetActionAccess(selectedAction.id)" />
@@ -723,7 +724,7 @@
                     <div
                       v-for="(grant, index) in selectedProcessNodeGrants"
                       :key="`${grant.roleId}-${index}`"
-                      class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2"
+                      class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto_auto] gap-2"
                     >
                       <Select
                         :model-value="grant.roleId"
@@ -733,6 +734,7 @@
                         size="small"
                         @update:model-value="value => updateSelectedProcessNodeGrant(index, { roleId: value })"
                       />
+                      <Button icon="pi pi-filter" :aria-label="$t('processDesigner.editGrantConditions')" text size="small" @click="openGrantEditor('processNode', index, processNodeGrantFeature)" />
                       <Select
                         :model-value="grant.level || 'write'"
                         :options="accessLevelOptions"
@@ -778,8 +780,11 @@
                     <InputText v-model="selectedRoleRecord.label" @change="saveSelectedRole" />
                   </div>
                   <div class="flex flex-wrap gap-1">
-                    <Tag v-for="item in selectedRoleAccessSummary" :key="item" :value="item" size="small" />
+                    <Tag v-for="item in selectedRoleAccessSummary" :key="item.key" :value="`${item.text} · ${item.contributor.label}`" size="small" />
                   </div>
+                  <Panel :header="$t('processDesigner.roleGrants')" toggleable collapsed>
+                    <PermissionEditor :permissions="selectedRoleGrantPermissions" :features="permissionFeatureOptions" @save="saveSelectedRoleGrants" />
+                  </Panel>
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedRole" />
                   <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" outlined size="small" @click="navigateTo('/organization/users')" />
                 </div>
@@ -906,6 +911,7 @@
                       <Select v-model="selectedScreenRecord.required.level" :options="accessLevelOptions" option-label="label" option-value="value" />
                     </div>
                   </div>
+                  <Button icon="pi pi-filter" :label="$t('processDesigner.editGrantConditions')" severity="secondary" outlined size="small" @click="openGrantEditor('screen', 0, selectedScreenRecord.required.feature)" />
                   <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.bindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addBinding')" size="small" text @click="screenEditing.addScalar(selectedScreenRecord.bindings, 'binding')" /></div>
                     <div v-for="row in screenEditing.scalarRows(selectedScreenRecord.bindings)" :key="row.key" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
@@ -943,6 +949,10 @@
       </DesignerWorkspace>
     </DesignerSurface>
 
+    <StandardDialog v-model:visible="showGrantEditor" :header="$t('processDesigner.editGrantConditions')" size="xl">
+      <PermissionEditor :permissions="grantEditorPermissions" :features="permissionFeatureOptions" @save="saveGrantEditor" />
+    </StandardDialog>
+
   </StandardPage>
 </template>
 
@@ -974,6 +984,7 @@ import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import PermissionEditor from '~/components/PermissionEditor.vue';
 import {
   canvasToDefinition,
   compileProcessDefinition,
@@ -1010,6 +1021,7 @@ import { useProcessDesignerScreens } from '~/composables/useProcessDesignerScree
 import { useProcessDesignerPalette } from '~/composables/useProcessDesignerPalette.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
+import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
 const { t, te } = useI18n();
 const toast = useToast();
@@ -1038,6 +1050,8 @@ const newStateId = ref('');
 const canvasFrame = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
+const showGrantEditor = ref(false);
+const grantEditorTarget = ref(null);
 const paletteQuery = ref('');
 const contextPaletteSearch = ref(null);
 const contextPalette = ref({
@@ -1417,11 +1431,23 @@ const screenFeatureOptions = computed(() => (cncDomain.entities || []).map(entit
   label: entity.label || entity.type,
   value: featureForEntityType(entity.type)
 })));
+const permissionFeatureOptions = computed(() => screenFeatureOptions.value.map(option => ({
+  key: option.value,
+  label: option.label,
+  actions: ['view', 'create', 'update', 'delete', 'run', 'send', 'approve', 'reject', 'fulfill']
+})));
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
 const selectedActionEntityType = computed(() => actionEntityType(selectedAction.value) || (selectedNode.value ? inferIncomingEntityContract(selectedNode.value.id).entityType : ''));
 const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedActionEntityType.value));
 const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
 const selectedActionGrants = computed(() => normalizeDesignerAccess(selectedAction.value.access).grants);
+const actionGrantFeature = computed(() => selectedActionEntityType.value ? featureForEntityType(selectedActionEntityType.value) : '');
+const processNodeGrantFeature = computed(() => {
+  const entityType = selectedProcessNode.value?.entityType
+    || selectedProcessNode.value?.targetEntityType
+    || (selectedNode.value ? inferIncomingEntityContract(selectedNode.value.id).entityType : '');
+  return entityType ? featureForEntityType(entityType) : '';
+});
 const lifecycleWorkflow = computed(() => workflowForEntity(selectedEntity.value));
 const lifecycleRegion = computed(() => lifecycleWorkflow.value.regions?.main || lifecycleWorkflow.value.regions?.[lifecycleWorkflow.value.primaryRegion] || null);
 const lifecycleStateIds = computed(() => Object.keys(lifecycleRegion.value?.states || {}).filter(key => !key.includes('.')));
@@ -1431,7 +1457,21 @@ const lifecycleStateEntries = computed(() => lifecycleStateIds.value.map(value =
 })));
 const lifecycleStateOptions = computed(() => lifecycleStateEntries.value);
 const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
-const selectedRoleAccessSummary = computed(() => selectedRoleId.value ? roleAccessSummary(selectedRoleId.value) : []);
+const selectedRoleAccessSummary = computed(() => selectedRoleId.value
+  ? flattenRoleAccessSummary(deriveRoleAccessSummary({ process: draft.value, roleIds: [selectedRoleId.value] }))
+  : []);
+const selectedRoleGrantPermissions = computed(() => Object.fromEntries((draft.value?.data?.roleGrants?.[selectedRoleId.value] || [])
+  .reduce((entries, grant) => {
+    if (!entries.has(grant.feature)) entries.set(grant.feature, []);
+    entries.get(grant.feature).push(withoutKeys(grant, ['feature']));
+    return entries;
+  }, new Map())));
+const grantEditorPermissions = computed(() => {
+  const target = grantEditorTarget.value;
+  if (!target?.feature) return {};
+  const grant = grantForEditorTarget(target);
+  return { [target.feature]: [withoutKeys(grant || { level: 'read' }, ['roleId', 'feature'])] };
+});
 const compiledScreenPreview = computed(() => Object.values(compiledPreview.value?.screens || {})
   .filter(screen => screen && typeof screen === 'object' && !Array.isArray(screen))
   .map(screen => {
@@ -3436,7 +3476,7 @@ function normalizeDesignerAccess(access = {}) {
   const grants = Array.isArray(access?.grants)
     ? access.grants
         .filter(grant => grant?.roleId)
-        .map(grant => ({ roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
+        .map(grant => ({ ...grant, roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
     : (access?.roleIds || []).map(roleId => ({ roleId, level }));
   const normalizedLevel = grants.reduce((current, grant) => (
     accessLevelRank[grant.level] > accessLevelRank[current] ? grant.level : current
@@ -4233,30 +4273,48 @@ function syncServiceFromCommand() {
   syncNodeData();
 }
 
-function roleAccessSummary(roleId) {
-  const items = [];
-  for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
-    for (const level of ['read', 'write', 'admin']) {
-      if ((profile.allowedRoles?.[level] || []).includes(roleId)) items.push(`${profile.entityType}:${level}`);
-    }
-  }
-  for (const action of Object.values(draft.value?.data?.actions || {})) {
-    if (normalizeDesignerAccess(action.access).roleIds.includes(roleId)) {
-      const summary = actionAccessSummary(action);
-      if (summary) items.push(summary);
-    }
-  }
-  for (const screen of Object.values(draft.value?.data?.screens || {})) {
-    if ((screen.roleIds || []).includes(roleId)) items.push(`${screen.label || screen.id}:screen`);
-  }
-  for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
-    for (const region of Object.values(workflowForEntity(profile).regions || {})) {
-      for (const transition of region.transitions || []) {
-        if ((transition.access?.processRoleIds || []).includes(roleId)) items.push(`${profile.entityType}:${transition.from}->${transition.to}`);
-      }
-    }
-  }
-  return [...new Set(items)];
+function saveSelectedRoleGrants(permissions = {}) {
+  if (!selectedRoleId.value || !draft.value?.data) return;
+  draft.value.data.roleGrants ||= {};
+  draft.value.data.roleGrants[selectedRoleId.value] = permissionGrants(permissions);
+}
+
+function openGrantEditor(kind, index, feature) {
+  if (!feature) return;
+  grantEditorTarget.value = { kind, index, feature };
+  showGrantEditor.value = true;
+}
+
+function grantForEditorTarget(target = {}) {
+  if (target.kind === 'action') return selectedActionGrants.value[target.index];
+  if (target.kind === 'processNode') return selectedProcessNodeGrants.value[target.index];
+  if (target.kind === 'screen') return selectedScreenRecord.value?.required;
+  return null;
+}
+
+function saveGrantEditor(permissions = {}) {
+  const target = grantEditorTarget.value;
+  if (!target) return;
+  const grant = permissionGrants(permissions).find(item => item.feature === target.feature);
+  if (!grant) return;
+  const previous = grantForEditorTarget(target) || {};
+  const next = { ...withoutKeys(grant, ['feature']), ...(previous.roleId ? { roleId: previous.roleId } : {}) };
+  if (target.kind === 'action') updateSelectedActionGrant(target.index, next);
+  if (target.kind === 'processNode') updateSelectedProcessNodeGrant(target.index, next);
+  if (target.kind === 'screen' && selectedScreenRecord.value) selectedScreenRecord.value.required = { feature: target.feature, ...next };
+  showGrantEditor.value = false;
+}
+
+function permissionGrants(permissions = {}) {
+  return Object.entries(permissions).flatMap(([feature, value]) => {
+    if (!value || value === 'none') return [];
+    const grants = Array.isArray(value) ? value : [value];
+    return grants.filter(grant => grant && grant.level && grant.level !== 'none').map(grant => ({ feature, ...grant }));
+  });
+}
+
+function withoutKeys(value = {}, keys = []) {
+  return Object.fromEntries(Object.entries(value || {}).filter(([key]) => !keys.includes(key)));
 }
 
 function onConnect(connection) {

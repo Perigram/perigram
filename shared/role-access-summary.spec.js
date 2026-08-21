@@ -69,11 +69,11 @@ describe('deriveRoleAccessSummary', () => {
     }
   });
 
-  it('labels screen-required grants as screen-derived and bare screens as level fallback', () => {
+  it('labels screen requirements as consumers of separately authored access', () => {
     const summary = deriveRoleAccessSummary({ process: processData, roleIds: ['cutter'] });
     const byKey = Object.fromEntries(summary.screens.map(line => [line.key, line]));
     expect(byKey['screen:sheetList'].text).toBe('sheets:read');
-    expect(byKey['screen:sheetList'].contributor.kind).toBe('screen-derived-grant');
+    expect(byKey['screen:sheetList'].contributor.kind).toBe('screen-requirement');
     expect(byKey['screen:sheetList'].contributor.label).toContain('Sheets');
     expect(byKey['screen:queueBoard'].text).toBe('queueBoard:screen');
     expect(byKey['screen:queueBoard'].contributor.kind).toBe('level-fallback');

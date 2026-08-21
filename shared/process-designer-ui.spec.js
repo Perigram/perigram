@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { ref } from 'vue';
 import { definitionToCanvas } from '~/packages/processes/src/index.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
@@ -12,6 +13,18 @@ import { normalizeScreenContract, validateScreenContract } from '~/packages/proc
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
 describe('process designer interaction boundaries', () => {
+  it('uses the shared annotated summary and typed grant editor without raw grant JSON', () => {
+    const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
+    const team = readFileSync(new URL('../pages/organization/users.vue', import.meta.url), 'utf8');
+    const editor = readFileSync(new URL('../components/PermissionEditor.vue', import.meta.url), 'utf8');
+    expect(designer).toContain('deriveRoleAccessSummary');
+    expect(designer).toContain('<PermissionEditor');
+    expect(team).toContain('previewAssignmentAccess');
+    expect(team).toContain("field.type === 'number'");
+    expect(team).toContain("field.type === 'boolean'");
+    expect(editor).not.toContain('advancedPermissionJson');
+  });
+
   it('orders active, draft, and archived process definitions and selects a projectable definition', () => {
     const catalog = useProcessDefinitionCatalog({ definitionToCanvas });
     const current = createPersistedAcceptanceFixture().processDefinition;

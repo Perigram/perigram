@@ -150,9 +150,21 @@
             <div v-if="assignmentBindingFields.length" class="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div v-for="field in assignmentBindingFields" :key="field.key" class="flex flex-col gap-2">
                     <label>{{ field.label }}</label>
-                    <InputText v-model="roleAssignment.bindings[field.key]" class="w-full" />
+                    <InputNumber v-if="field.type === 'number'" v-model="roleAssignment.bindings[field.key]" class="w-full" />
+                    <Checkbox v-else-if="field.type === 'boolean'" v-model="roleAssignment.bindings[field.key]" binary />
+                    <InputText v-else v-model="roleAssignment.bindings[field.key]" class="w-full" />
                 </div>
             </div>
+            <Panel :header="$t('organization.evaluationContext')" toggleable collapsed>
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <InputText v-model="assignmentContext.entityType" :placeholder="$t('organization.entityType')" />
+                    <InputText v-model="assignmentContext.entityId" :placeholder="$t('organization.entityId')" />
+                    <InputText v-model="assignmentContext.status" :placeholder="$t('organization.primaryStatus')" />
+                    <InputText v-model="assignmentContext.projectId" :placeholder="$t('organization.projectId')" />
+                    <InputText v-model="assignmentContext.queueId" :placeholder="$t('organization.queueId')" />
+                    <InputText v-model="assignmentContext.warehouseId" :placeholder="$t('organization.warehouseId')" />
+                </div>
+            </Panel>
             <Panel :header="$t('organization.compiledAccessPreview')">
                 <div class="flex flex-col gap-3">
                     <div>
@@ -171,6 +183,16 @@
                             <span v-if="!selectedUserScreens.length" class="text-sm text-muted-color">{{ $t('organization.noProcessScreens') }}</span>
                         </div>
                     </div>
+                    <div v-for="group in assignmentPreviewGroups" :key="group.key">
+                        <small class="text-muted-color">{{ group.label }}</small>
+                        <div class="mt-1 flex flex-col gap-1">
+                            <span v-for="item in group.items" :key="item.key || item.screenKey || item.id" class="text-sm">
+                                <Tag :value="item.allowed === null ? $t('organization.unresolved') : (item.allowed ? $t('organization.allowed') : $t('organization.denied'))" :severity="item.allowed === null ? 'warn' : (item.allowed ? 'success' : 'danger')" size="small" />
+                                {{ item.label || item.entityType || item.feature || item.transition || item.actionId || item.route }} · {{ item.explanation }}
+                            </span>
+                        </div>
+                    </div>
+                    <Message :severity="assignmentPreview.ownerRecovery.applied ? 'success' : 'secondary'">{{ assignmentPreview.ownerRecovery.explanation }}</Message>
                     <Message v-if="selectedUserIncompleteBindings.length" severity="warn">
                         {{ $t('organization.incompleteBindings') }}:
                         {{ selectedUserIncompleteBindings.map(item => item.binding).join(', ') }}
@@ -195,6 +217,8 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import Checkbox from 'primevue/checkbox';
 import Password from 'primevue/password';
 import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Tag from 'primevue/tag';
@@ -206,6 +230,9 @@ import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import { useEntity } from '~/composables/useEntity';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
+import { discoverAssignmentBindingRequirements } from '~/packages/processes/src/index.js';
+import { previewAssignmentAccess } from '~/shared/assignment-access-preview.js';
+import { cncDomain } from '@cutkit/domain-cnc';
 
 definePageMeta({
   layout: 'app',
@@ -233,18 +260,37 @@ const activeProcess = ref(null);
 const organizationRoles = ref({});
 const organizationRoleAssignments = ref({});
 const roleAssignment = ref({ roleIds: [], bindings: {} });
-const selectedUserAccess = computed(() => {
-    const userId = String(selectedUser.value?._id || selectedUser.value?.id || '');
-    return organizationRoleAssignments.value[userId] || null;
-});
+const assignmentContext = ref({ entityType: '', entityId: '', status: '', projectId: '', queueId: '', warehouseId: '' });
 const selectedRoleDerivedAccessSummary = computed(() => deriveRoleAccessSummary({
     process: activeProcess.value,
     roleIds: roleAssignment.value.roleIds
 }));
 const selectedUserAccessSummary = computed(() => flattenRoleAccessSummary(selectedRoleDerivedAccessSummary.value));
-const selectedUserScreens = computed(() => previewScreensForRoles(roleAssignment.value.roleIds, roleAssignment.value.bindings));
-const selectedUserIncompleteBindings = computed(() => selectedUserAccess.value?.incompleteBindings || []);
+const assignmentPreview = computed(() => previewAssignmentAccess({
+    compiled: activeProcess.value?.data?.compiled || {},
+    assignment: { userId: String(selectedUser.value?._id || ''), ...roleAssignment.value },
+    domain: cncDomain,
+    contexts: assignmentContext.value.entityType ? [{
+        entityType: assignmentContext.value.entityType,
+        entityId: assignmentContext.value.entityId,
+        status: assignmentContext.value.status,
+        lineage: {
+            projectId: assignmentContext.value.projectId,
+            queueId: assignmentContext.value.queueId,
+            warehouseId: assignmentContext.value.warehouseId
+        }
+    }] : [],
+    membership: selectedUser.value?.data?.memberships?.find(item => String(item.organizationId) === String(activeOrganizationId.value)) || null
+}));
+const selectedUserScreens = computed(() => assignmentPreview.value.screens);
+const selectedUserIncompleteBindings = computed(() => assignmentPreview.value.incompleteBindings);
 const assignmentBindingFields = computed(() => requiredAssignmentBindings(roleAssignment.value.roleIds));
+const assignmentPreviewGroups = computed(() => [
+    { key: 'entities', label: t('organization.entities'), items: assignmentPreview.value.entities.flatMap(entity => [entity, ...entity.fields.map(field => ({ ...field, key: `field:${entity.feature}:${field.path}`, label: `${entity.entityType}.${field.path}` }))]) },
+    { key: 'transitions', label: t('organization.transitions'), items: assignmentPreview.value.transitions },
+    { key: 'actions', label: t('common.actions.title'), items: assignmentPreview.value.actions },
+    { key: 'screens', label: t('organization.screens'), items: assignmentPreview.value.screens }
+]);
 const activeOrganizationId = computed(() =>
     authStore.organizationData?._id ||
     authStore.userData.organizationId ||
@@ -457,56 +503,11 @@ function normalizeSelectedRoleIds(roleIds = [], options = roleOptions.value, fal
 }
 
 function requiredAssignmentBindings(roleIds = []) {
-    const keys = new Set();
-    for (const screen of Object.values(activeProcess.value?.data?.screens || {})) {
-        if (!screenAppliesToRoles(screen, roleIds)) continue;
-        collectAssignmentKeys(screen.route, keys);
-        collectAssignmentKeys(screen.bindings, keys);
-        collectAssignmentKeys(screen.required, keys);
-    }
-    return [...keys].sort().map(key => ({
-        key,
-        label: key.replace(/([A-Z])/g, ' $1').replace(/[._-]+/g, ' ').trim() || key
-    }));
-}
-
-function collectAssignmentKeys(value, keys) {
-    if (Array.isArray(value)) {
-        for (const item of value) collectAssignmentKeys(item, keys);
-        return;
-    }
-    if (value && typeof value === 'object') {
-        for (const item of Object.values(value)) collectAssignmentKeys(item, keys);
-        return;
-    }
-    if (typeof value !== 'string') return;
-    for (const match of value.matchAll(/\$assignment\.([A-Za-z0-9_.-]+)/g)) keys.add(match[1]);
-}
-
-function screenAppliesToRoles(screen = {}, roleIds = []) {
-    return !screen.roleIds?.length || roleIds.some(roleId => screen.roleIds.includes(roleId));
-}
-
-function previewScreensForRoles(roleIds = [], bindings = {}) {
-    const screens = activeProcess.value?.data?.compiled?.screens || activeProcess.value?.data?.screens || {};
-    return Object.values(screens)
-        .filter(screen => screenAppliesToRoles(screen, roleIds))
-        .map(screen => ({
-            ...screen,
-            screenKey: screen.screenKey || screen.id,
-            route: replaceAssignmentValues(screen.route || `/screens/${screen.id}`, bindings)
-        }));
-}
-
-function replaceAssignmentValues(value = '', bindings = {}) {
-    return String(value || '').replace(/\$assignment\.([A-Za-z0-9_.-]+)/g, (match, key) => {
-        const resolved = getByPath(bindings, key);
-        return resolved === undefined || resolved === null || resolved === '' ? match : String(resolved);
+    return discoverAssignmentBindingRequirements({
+        process: activeProcess.value,
+        roleIds,
+        bindings: roleAssignment.value.bindings
     });
-}
-
-function getByPath(source = {}, path = '') {
-    return String(path).split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
 }
 
 async function confirmDelete(user) {

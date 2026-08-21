@@ -6,8 +6,8 @@
 // contributed it. Contributor kinds:
 // - `authored-grant`: an explicitly authored record (entity profile
 //   allowedRoles, action access, or workflow transition role access).
-// - `screen-derived-grant`: a backend grant the compiler derives from
-//   `screen.required` for every role listed on the screen.
+// - `screen-requirement`: a screen consumes an independently authored grant;
+//   its layout never creates backend capability.
 // - `rule`: the contribution is conditioned by a status window/rule on the
 //   authored action access.
 // - `level-fallback`: no level was authored, so the displayed level is the
@@ -20,11 +20,23 @@ export function deriveRoleAccessSummary({ process = {}, roleIds = [] } = {}) {
   const data = process?.data && typeof process.data === 'object' ? process.data : process;
   const roles = Array.isArray(roleIds) ? roleIds : [roleIds].filter(Boolean);
   return {
-    profiles: profileAccessLines(data, roles),
+    profiles: [...profileAccessLines(data, roles), ...roleGrantAccessLines(data, roles)],
     screens: screenAccessLines(data, roles),
     actions: actionAccessLines(data, roles),
     transitions: transitionAccessLines(data, roles)
   };
+}
+
+function roleGrantAccessLines(data = {}, roleIds = []) {
+  return dedupeLines(roleIds.flatMap(roleId => (data.roleGrants?.[roleId] || []).map((grant, index) => ({
+    key: `role-grant:${roleId}:${grant.feature}:${index}`,
+    text: grantText(grant.feature, grant),
+    contributor: {
+      kind: grant.rule || grant.scope || grant.transitions || grant.actions ? 'rule' : 'authored-grant',
+      ref: `roleGrants.${roleId}.${index}`,
+      label: `authored role grant for ${grant.feature}`
+    }
+  }))));
 }
 
 export function flattenRoleAccessSummary(summary = {}) {
@@ -58,12 +70,12 @@ function screenAccessLines(data = {}, roleIds = []) {
     const name = screen.label || screen.id || screenId;
     lines.push({
       key: `screen:${screen.id || screenId}`,
-      text: `${required?.feature || screen.id || screenId}:${required?.level || 'screen'}`,
+      text: required?.feature ? grantText(required.feature, required) : `${screen.id || screenId}:screen`,
       contributor: required?.feature
         ? {
-            kind: 'screen-derived-grant',
+            kind: 'screen-requirement',
             ref: `screens.${screenId}.required`,
-            label: `screen-derived grant from screen ${name}`
+            label: `screen ${name} consumes separately authored access`
           }
         : {
             kind: 'level-fallback',
@@ -86,8 +98,9 @@ function actionAccessLines(data = {}, roleIds = []) {
     const level = VALID_LEVELS.includes(authoredLevel) ? authoredLevel : 'write';
     const status = actionTargetStatus(action);
     const subject = entityType || name || action.actionKind;
+    const matchingGrant = (action.access?.grants || []).find(grant => roleIds.includes(grant?.roleId));
     const text = [
-      [subject, level].filter(Boolean).join(':'),
+      grantText(subject, { ...action.access, ...matchingGrant, level: matchingGrant?.level || level }),
       status ? `when ${status}` : ''
     ].filter(Boolean).join(' ');
     lines.push({
@@ -113,6 +126,16 @@ function actionAccessLines(data = {}, roleIds = []) {
     });
   }
   return dedupeLines(lines);
+}
+
+function grantText(subject, grant = {}) {
+  const dimensions = [
+    grant.scope ? 'scoped' : '',
+    grant.actions ? 'actions' : '',
+    grant.transitions ? 'transitions' : '',
+    grant.rule ? 'rule' : ''
+  ].filter(Boolean);
+  return `${subject}:${grant.level || 'read'}${dimensions.length ? ` [${dimensions.join(', ')}]` : ''}`;
 }
 
 function transitionAccessLines(data = {}, roleIds = []) {

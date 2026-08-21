@@ -1043,10 +1043,13 @@ describe('@cutkit/processes compiler', () => {
     expect(validation.errors.join('\n')).toContain('admin-only field data.internal');
   });
 
-  it('compiles screen requirements into user-specific grants', () => {
+  it('uses an authored grant for a screen requirement without deriving capability from layout', () => {
     const compiled = compileProcessDefinition({
       roles: {
         role_project_viewer: { id: 'role_project_viewer' }
+      },
+      roleGrants: {
+        role_project_viewer: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }]
       },
       screens: {
         assigned_project: {
@@ -1072,6 +1075,41 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.userAccess.user_a.permissions.projects[0].scope.entityId).toBe('project-123');
+  });
+
+  it('does not grant backend capability or a gated screen from screen layout alone', () => {
+    const compiled = compileProcessDefinition({
+      roles: { viewer: { id: 'viewer' } },
+      screens: {
+        projects: { id: 'projects', route: '/projects', roleIds: ['viewer'], required: { feature: 'projects', level: 'read' } }
+      },
+      assignments: { user: { userId: 'user', roleIds: ['viewer'], bindings: {}, status: 'active' } }
+    }, domain);
+    expect(compiled.roles.viewer.grants).toEqual([]);
+    expect(compiled.userAccess.user.permissions.projects).toBeUndefined();
+    expect(compiled.userAccess.user.screens).toEqual([]);
+  });
+
+  it('preserves every typed evaluator dimension on action role grants', () => {
+    const compiled = compileProcessDefinition({
+      roles: { operator: { id: 'operator' } },
+      actions: {
+        create_project: {
+          id: 'create_project', actionKind: 'createEntity', entityType: 'project', status: { to: 'READY' },
+          access: { grants: [{
+            roleId: 'operator', level: 'write', actions: { create: true },
+            scope: { entityId: '$assignment.projectId' }, transitions: ['DRAFT->READY'],
+            rule: { any: [{ fact: 'lineage.projectId', equals: '$assignment.projectId' }] }
+          }] }
+        }
+      },
+      assignments: { user: { userId: 'user', roleIds: ['operator'], bindings: { projectId: 'project-1' }, status: 'active' } }
+    }, domain);
+    expect(compiled.userAccess.user.permissions.projects[0]).toMatchObject({
+      level: 'write', actions: { create: true }, scope: { entityId: 'project-1' },
+      transitions: expect.arrayContaining(['DRAFT->READY']),
+      rule: { all: expect.any(Array) }
+    });
   });
 
   it('infers generated screens from role grants when no explicit screen is authored', () => {
@@ -1579,6 +1617,9 @@ describe('@cutkit/processes compiler', () => {
       roles: {
         role_project_viewer: { id: 'role_project_viewer' }
       },
+      roleGrants: {
+        role_project_viewer: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }]
+      },
       screens: {
         assigned_project: {
           id: 'assigned_project',
@@ -1615,6 +1656,10 @@ describe('@cutkit/processes compiler', () => {
       roles: {
         role_operator: { id: 'role_operator' },
         role_supervisor: { id: 'role_supervisor' }
+      },
+      roleGrants: {
+        role_operator: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }],
+        role_supervisor: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }]
       },
       screens: {
         assigned_project: {

@@ -126,19 +126,6 @@
                                             </div>
                                         </Panel>
 
-                                        <Panel :header="$t('auth.advancedPermissionJson')" toggleable collapsed>
-                                            <Textarea
-                                                :model-value="selectedGrantJson"
-                                                rows="8"
-                                                auto-resize
-                                                class="w-full font-mono text-xs"
-                                                @update:model-value="selectedGrantJson = $event"
-                                                @blur="applySelectedGrantJson"
-                                            />
-                                            <small v-if="selectedGrantError" class="text-status-danger">
-                                                {{ selectedGrantError }}
-                                            </small>
-                                        </Panel>
                                     </div>
                                 </AccordionContent>
                             </AccordionPanel>
@@ -165,7 +152,6 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import Checkbox from 'primevue/checkbox';
-import Textarea from 'primevue/textarea';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
@@ -180,7 +166,8 @@ import {
 import PermissionRuleBuilder from './PermissionRuleBuilder.vue';
 
 const props = defineProps({
-    permissions: { type: Object, default: () => ({}) }
+    permissions: { type: Object, default: () => ({}) },
+    features: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['save']);
@@ -189,8 +176,6 @@ const authStore = useAuthStore();
 
 const selectedFeatureKey = ref('projects');
 const selectedGrantIndex = ref(0);
-const selectedGrantJson = ref('');
-const selectedGrantError = ref('');
 const entityOptionsLoading = ref(false);
 const entityOptionLists = ref({});
 const selectedRuleTree = ref(null);
@@ -205,7 +190,7 @@ const PERMISSION_LEVELS = computed(() => [
     { label: t('auth.permissionLevels.admin'), value: 'admin' }
 ]);
 
-const entities = computed(() => [
+const defaultFeatures = computed(() => [
     { key: 'projects',      label: t('features.projects') },
     { key: 'queues',        label: t('features.queues'), actions: ['view', 'edit', 'run', 'delete'] },
     { key: 'nesting_runs',  label: t('entities.nestingRun'), actions: ['view', 'run', 'delete'] },
@@ -222,6 +207,7 @@ const entities = computed(() => [
     { key: 'domain_builder', label: t('admin.domainBuilder.title') },
     { key: 'config_bot',    label: t('features.configBot') }
 ]);
+const entities = computed(() => props.features.length ? props.features : defaultFeatures.value);
 
 const scopeFields = computed(() => [
     { key: 'organizationId', label: t('auth.scope.organizationId') },
@@ -303,17 +289,15 @@ watch(() => props.permissions, (newVal) => {
     hydrateRuleTree();
 }, { deep: true });
 
+watch(entities, (features) => {
+    if (!features.some(feature => feature.key === selectedFeatureKey.value)) selectedFeatureKey.value = features[0]?.key || '';
+}, { immediate: true });
+
 watch(selectedFeatureKey, () => {
     selectedGrantIndex.value = 0;
-    selectedGrantError.value = '';
     hydrateRuleTree();
     loadEntityOptions();
 });
-
-watch(selectedGrant, (grant) => {
-    selectedGrantJson.value = grant ? JSON.stringify(grant, null, 2) : '';
-    selectedGrantError.value = '';
-}, { immediate: true, deep: true });
 
 onMounted(() => {
     hydrateRuleTree();
@@ -1018,19 +1002,6 @@ function buildCondition(draft = {}) {
     if ((Array.isArray(values) && values.length === 0) || (!Array.isArray(values) && !values)) return null;
     condition[draft.operator] = values;
     return condition;
-}
-
-function applySelectedGrantJson() {
-    if (!selectedGrant.value) return;
-    try {
-        const parsed = JSON.parse(selectedGrantJson.value || '{}');
-        const grants = selectedGrants.value;
-        grants[selectedGrantIndex.value] = { ...parsed, level: parsed.level || parsed.access || 'none' };
-        setFeatureGrants(selectedFeatureKey.value, grants);
-        selectedGrantError.value = '';
-    } catch {
-        selectedGrantError.value = t('auth.invalidPermissionJson');
-    }
 }
 
 function save() {

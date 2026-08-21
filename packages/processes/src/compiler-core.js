@@ -1235,13 +1235,17 @@ export function compileAssignmentAccess({ assignment = {}, roles = {}, screens =
         sourceRoleIds: [...new Set([...(existing.sourceRoleIds || []), roleId])]
       });
     }
-    for (const screen of Object.values(screens)) {
-      if (!screenAppliesToRole(screen, roleId)) continue;
+  }
+  for (const screen of Object.values(screens)) {
+    const sourceRoleIds = roleIds.filter(roleId => screenAppliesToRole(screen, roleId));
+    if (!sourceRoleIds.length) continue;
+    for (const roleId of sourceRoleIds) {
       const compiledScreen = compileScreenForAssignment(screen, assignment, roleId);
       if (compiledScreen.incomplete.length) {
         incompleteBindings.push(...compiledScreen.incomplete.map(binding => ({ roleId, screenId: screen.id, binding })));
         continue;
       }
+      if (![screen.required, ...(screen.sources || []).map(source => source.required)].every(required => requirementHasAuthoredGrant(required, permissions))) continue;
       mergeCompiledScreen(screenMap, compiledScreen.screen);
     }
   }
@@ -1336,14 +1340,6 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
         roles[roleId].grants ||= [];
         upsertGrant(roles[roleId].grants, { feature, level });
       }
-    }
-  }
-  for (const screen of Object.values(process.screens || {})) {
-    const grant = grantFromScreenRequired(screen.required);
-    if (!grant) continue;
-    for (const roleId of screen.roleIds || []) {
-      if (!roles[roleId]) continue;
-      upsertGrant(roles[roleId].grants, grant);
     }
   }
   const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
@@ -1459,18 +1455,6 @@ function actionStatusForExposure(action = {}, actionWindow = null, access = {}, 
   const targetStatus = actionTargetState(action, process) || access.statusTo || actionWindow?.outputs?.[0]?.status || '';
   if (!status.to && targetStatus) status.to = targetStatus;
   return status;
-}
-
-function grantFromScreenRequired(required = null) {
-  if (!required?.feature || !required?.level) return null;
-  return {
-    feature: required.feature,
-    level: required.level,
-    actions: required.actions,
-    scope: required.scope,
-    transitions: required.transitions,
-    rule: required.rule
-  };
 }
 
 function grantFromAction(action = {}, access = {}, domain = {}) {
@@ -1890,32 +1874,41 @@ function deriveCommandOutputScope(outputEntityType = '', incoming = null, lineag
 }
 
 function windowGrants(window = {}, action = {}, access = {}) {
-  const byLevel = new Map();
+  const grouped = new Map();
   for (const roleGrant of window.roleGrants || grantsFromRoleIds(window.roleIds || [], window.level)) {
     if (!roleGrant.roleId) continue;
-    const level = normalizeAccessLevel(roleGrant.level || window.level);
-    if (!byLevel.has(level)) byLevel.set(level, []);
-    byLevel.get(level).push(roleGrant.roleId);
+    const { roleId, ...dimensions } = roleGrant;
+    const normalized = { ...dimensions, level: normalizeAccessLevel(dimensions.level || window.level) };
+    const key = JSON.stringify(normalized);
+    if (!grouped.has(key)) grouped.set(key, { dimensions: normalized, roleIds: [] });
+    grouped.get(key).roleIds.push(roleId);
   }
-  return [...byLevel.entries()].map(([level, roleIds]) => windowGrant(window, action, access, level, [...new Set(roleIds)]));
+  return [...grouped.values()].map(({ dimensions, roleIds }) => windowGrant(window, action, access, dimensions, [...new Set(roleIds)]));
 }
 
-function windowGrant(window = {}, action = {}, access = {}, level = window.level, roleIds = window.roleIds || []) {
+function windowGrant(window = {}, action = {}, access = {}, dimensions = {}, roleIds = window.roleIds || []) {
   const grant = {
+    ...dimensions,
     feature: window.feature,
-    level: normalizeAccessLevel(level || window.level || 'read'),
+    level: normalizeAccessLevel(dimensions.level || window.level || 'read'),
     roleIds,
     sourceActionId: action.id,
     sourcePath: window.sourcePath
   };
-  if (window.scope) grant.scope = window.scope;
-  if (window.status) grant.rule = { fact: 'primaryStatus', equals: window.status };
+  if (window.scope) grant.scope = { ...(dimensions.scope || {}), ...window.scope };
+  if (window.status) grant.rule = mergeGrantRules(dimensions.rule, { fact: 'primaryStatus', equals: window.status });
   if ((action.actionKind || 'createEntity') === 'updateEntity' && actionTargetState(action)) {
     const from = access.statusFrom || action.status?.from || '';
     const to = access.statusTo || action.status?.to || window.status || '';
-    if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
+    if (from || to) grant.transitions = [...(dimensions.transitions || []), { from: from || undefined, to: to || undefined }];
   }
   return grant;
+}
+
+function mergeGrantRules(left, right) {
+  if (!left) return right;
+  if (!right) return left;
+  return { all: [left, right] };
 }
 
 function resolveEntityFeature(domain = {}, entityType) {
@@ -2004,6 +1997,7 @@ export function compileScreens(processOrScreens = {}, domain = {}, compiledRoles
       entityType: normalized.entityType || null,
       required: normalized.required || null,
       roleIds: normalized.roleIds || [],
+      scope: normalized.scope || {},
       bindings: normalized.bindings || {},
       sources,
       regions: normalized.regions,
@@ -2282,7 +2276,7 @@ function compileScreenForAssignment(screen = {}, assignment = {}, roleId = null)
     placement: screen.placement,
     entityType: screen.entityType,
     required: screen.required,
-    scope: screen.bindings || {},
+    scope: { ...(screen.scope || {}), ...(screen.bindings || {}) },
     sources: screen.sources || [],
     regions: screen.regions || [],
     actions: screen.actions || [],
@@ -2833,7 +2827,7 @@ function normalizeActionAccess(access = {}) {
   const grants = Array.isArray(access.grants)
     ? access.grants
         .filter(grant => grant?.roleId)
-        .map(grant => ({ roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
+        .map(grant => ({ ...grant, roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
     : grantsFromRoleIds(Array.isArray(access.roleIds) ? access.roleIds : [], level);
   return {
     level: maxGrantLevel(grants, level),
@@ -2844,6 +2838,16 @@ function normalizeActionAccess(access = {}) {
     statusFrom: typeof access.statusFrom === 'string' ? access.statusFrom : '',
     statusTo: typeof access.statusTo === 'string' ? access.statusTo : ''
   };
+}
+
+function requirementHasAuthoredGrant(required = null, permissions = {}) {
+  if (!required?.feature) return true;
+  const requiredLevel = normalizeAccessLevel(required.level || 'read');
+  return (permissions[required.feature] || []).some(grant => {
+    if (ACCESS_ORDER[normalizeAccessLevel(grant.level || 'read')] < ACCESS_ORDER[requiredLevel]) return false;
+    if (grant.actions && required.actions && Object.entries(required.actions).some(([action, enabled]) => enabled === true && grant.actions[action] !== true)) return false;
+    return true;
+  });
 }
 
 function normalizeAccessLevel(level) {
