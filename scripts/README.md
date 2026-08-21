@@ -119,6 +119,13 @@ every internal relative link in the README tree against the repository and
 flags verbatim paragraphs that appear in more than one README, so canonical
 contracts stay in one canonical file instead of being restated in several.
 
+`npx vitest run shared/design-system.spec.js` enforces the PrimeVue-first visual
+boundary. It rejects arbitrary typography, raw palette/surface borders,
+nonsemantic radii and shadows, non-allowlisted scoped CSS, duplicated runtime
+theme overrides, and global focus suppression. The scoped-style allowlist is
+limited to shared layout/container queries, browser pseudo-elements, and
+data-driven geometry or process surfaces.
+
 ## Related
 
 - [root system README](../README.md) - Project-wide commands and container map.

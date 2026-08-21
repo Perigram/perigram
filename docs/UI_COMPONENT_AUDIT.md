@@ -1,6 +1,6 @@
 # UI Component Audit
 
-Date: 2026-06-12
+Date: 2026-08-21
 
 This audit is a working contract for UI cleanup. It is not a deletion list.
 Every entry is inspected through the same ten questions:
@@ -17,6 +17,19 @@ Every entry is inspected through the same ten questions:
 10. What refactor decision follows from the answers?
 
 ## Refactors Applied From This Audit
+
+- Generic controls and containers now retain PrimeVue Aura typography, spacing,
+  borders, radii, shadows, and states. The preset owns only the CutKit primary
+  palette; domain-specific visuals remain bounded to registered entity,
+  workspace, process, geometry, and recurring layout primitives.
+- The semantic UI type roles are centralized as caption, body, title, and
+  display aliases. Element-wide prose styling, arbitrary 10/11px declarations,
+  and global keyboard-focus suppression were removed.
+- Runtime CSS no longer duplicates token or PrimeVue variables. Nuxt emits the
+  app CSS-variable projection directly from `assets/tokens/index.js`.
+- Repository checks reject arbitrary typography, raw surface borders,
+  nonsemantic radii/shadows, non-allowlisted scoped CSS, and global focus
+  suppression.
 
 - `WarehouseHub.vue` was too top-heavy: it rendered toolbar, selector, four stat
   panels, and a nested `WarehouseDetail` before the actual inventory tabs. The

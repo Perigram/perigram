@@ -478,7 +478,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 
 ## Layout Containers (`components/shared/`)
 
-- **`ActionToolbar.vue`**: Responsive title/subtitle/actions row for pages, sections, and tab panels. Use instead of ad hoc `flex justify-between` header markup.
+- **`ActionToolbar.vue`**: Responsive title/subtitle/actions row for pages, sections, and tab panels. It owns the semantic display/title/body typography roles. Use it instead of ad hoc heading chrome.
 - **`MetricPanel.vue`**: Route-level summary panel for aggregate collection or
   workflow facts. Pages pass translated metric descriptors
   `{ key, label, value }` and may use the default slot for route actions. Use it
@@ -486,7 +486,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   replacement for entity-specific `DataBlock`, `SpecsBlock`, or
   `EntitySurfaceContent`. Vertical metric panels collapse to a two-column
   compact grid below the normal desktop breakpoint and become a stacked rail at
-  `lg` and wider.
+  `lg` and wider. It delegates container chrome to PrimeVue `Panel`; callers own only metric data and layout orientation.
 - **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and
   repeated item surfaces. Variants: `cards` (default), `dense`, `wide`,
   `bounded`. Grid
@@ -531,7 +531,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   for content-height panels. `density="compact"` reduces header and content
   padding for IDE-style navigation and inspector lanes without changing the
   global PrimeVue panel density.
-- **`StateBlock.vue`**: Standard loading/empty/error state block with icon, message, optional description, and action slot.
+- **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome.
 - **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces; owns the token-backed DataTable header-cell background override.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Route-level page shell for title, subtitle,

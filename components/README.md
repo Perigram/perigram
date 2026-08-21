@@ -1,8 +1,8 @@
 # COMPONENT: Components
 
 ## Style Guide
-- **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
-- **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets and `assets/tokens/` projections. No custom CSS except for layout purposes.
+- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states.
+- **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
 - **Motion:** Motion is contextual feedback, not ambient decoration. Use the
   semantic duration/easing/spring values in `assets/tokens/` through shared
   primitives such as `MotionDock`; JavaScript motion must respect
@@ -621,16 +621,16 @@ field-access policy.
 
 ## Visual Tokens
 
-`assets/tokens/index.js` is the source for app-level visual tokens. Tailwind aliases, PrimeVue component overrides, and global `--ck-*` CSS variables must stay aligned with it.
+`assets/tokens/index.js` is the sole textual source for app-owned visual values. Nuxt projects its `cssVariableTokens` into the document, Tailwind consumes its semantic aliases, and the PrimeVue preset projects only the primary brand palette onto Aura. Do not duplicate token values in runtime CSS or add generic PrimeVue component-token overrides.
 
-Current app chrome uses `bg-page`, `bg-chrome`, `bg-process-canvas`, `chrome-signal-rule`, `bg-subtle`, `rounded-ui`, `rounded-panel`, `shadow-card`, and `shadow-overlay`. `bg-chrome` is a near-white utility bar in light mode and the ink instrument rail in dark mode, while `bg-process-canvas` is the dedicated graph-work surface and `chrome-signal-rule` renders its token-backed action boundary; their foreground and border tokens are consumed with direct CSS-variable utilities where HMR needs to see the change immediately. Structural cards are deliberately non-elevated and use in-place border feedback on hover; `shadow-overlay` is reserved for floating UI. IBM Plex Sans is the token-backed global interface face; `font-mono` (Plex Mono) marks technical data — code, raw editors, and `DataBlock` values such as dimensions and parameters, plus numerical entry through the shared fonts.css rule; `font-serif` (Plex Serif) is the editorial voice: level-1 page titles render it through `ActionToolbar`, semantic paragraphs and blockquotes receive it globally, and authored containers such as text artifacts or future guides use the utility directly when semantic elements are insufficient. Both roles apply predictably everywhere because `assets/css/fonts.css` carries no universal or `!important` font overrides. New shared wrappers should consume these aliases instead of local shadows, arbitrary backgrounds, or one-off radii.
+Aura owns generic control and container typography, spacing, borders, radii, shadows, hover, active, disabled, invalid, and keyboard-focus states. App tokens are bounded to domain entity tones, status/process signals, operational workspace constraints, reusable layout dimensions, motion, and app-shell chrome. `shadow-overlay` is only for app-owned floating surfaces; ordinary PrimeVue elevation remains Aura's responsibility.
 
-For shell/layout chrome that must update reliably during Nuxt dev HMR, direct CSS-variable utilities such as `bg-[var(--ck-page-background)]` and `[box-shadow:var(--ck-shadow-card)]` are acceptable. This avoids depending on a Tailwind config restart for newly added aliases.
+The UI type roles are `text-ui-caption`, `text-ui-body`, `text-ui-title`, and `text-ui-display`. Shared surfaces assign these roles; feature components inherit them and must not introduce arbitrary pixel/rem typography. IBM Plex Sans is the interface face, `font-mono` marks technical data, and `font-serif` or `.ck-prose` is explicit editorial content. HTML elements such as `p` and `blockquote` never select a font role by themselves.
 Nested active app surfaces must use semantic aliases such as `bg-content` or
 `bg-subtle`, not raw palette utilities like `bg-surface-50`, so dark mode uses
 the app token overrides consistently.
 
-Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Legacy global grid helpers are not used in active components; detail surfaces spell out their responsive grid tracks locally when a shared primitive is not a fit.
+Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Scoped CSS is limited to the allowlisted container-query, browser-pseudo, geometry, and data-driven cases enforced by `shared/design-system.spec.js`.
 
 ## UI Inventory Policy
 
