@@ -15,7 +15,7 @@
         {{ row.label }}
       </dt>
       <dd
-        class="m-0 min-w-0 break-words font-medium"
+        class="m-0 min-w-0 break-words font-medium font-mono"
         :class="variant === 'compact' ? '' : 'mt-1'"
       >
         {{ row.display }}

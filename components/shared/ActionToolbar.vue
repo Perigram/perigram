@@ -24,5 +24,5 @@ const props = defineProps({
 });
 
 const headingTag = computed(() => `h${Math.min(Math.max(props.level, 1), 6)}`);
-const headingClass = computed(() => (props.level <= 1 ? 'text-2xl' : 'text-base'));
+const headingClass = computed(() => (props.level <= 1 ? 'text-2xl font-serif' : 'text-base'));
 </script>

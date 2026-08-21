@@ -310,6 +310,25 @@ describe('Design system manifest', () => {
     expect(uiLabLayout).toContain('chrome-signal-rule');
   });
 
+  it('assigns typography roles on their owning surfaces', () => {
+    const fontsCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/fonts.css'), 'utf8');
+    const dataBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/DataBlock.vue'), 'utf8');
+    const actionToolbar = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/ActionToolbar.vue'), 'utf8');
+    const artifactViewer = fs.readFileSync(path.join(REPO_ROOT, 'components/artifacts/ArtifactViewer.vue'), 'utf8');
+    const artifactTextEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/artifacts/ArtifactTextEditor.vue'), 'utf8');
+    const supportMessageContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/SupportMessageContent.vue'), 'utf8');
+
+    expect(fontsCss).toContain(':where(input, button, select, textarea)');
+    expect(fontsCss).toContain('.p-inputnumber-input');
+    expect(fontsCss).toContain('.ck-prose');
+    expect(dataBlock).toContain('font-medium font-mono');
+    expect(actionToolbar).toContain("props.level <= 1 ? 'text-2xl font-serif'");
+    expect(artifactViewer).toContain('ck-prose');
+    expect(artifactViewer).not.toContain('font-mono');
+    expect(artifactTextEditor).toContain('ck-prose');
+    expect(supportMessageContent).not.toContain('font-serif');
+  });
+
   it('keeps shared status and entity accents inside the token system', () => {
     const entityInlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
     const statusDefinitionNode = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessStatusDefinitionNode.vue'), 'utf8');
