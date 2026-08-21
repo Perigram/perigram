@@ -1,13 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { cncDesignSystemPrimitives } from '../packages/domain-cnc/src/ui.js';
 
 export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/ChatSupport.vue': 'browser-pseudo',
   'components/QueueEditor.vue': 'layout',
   'components/entities/Queue/QueueEntryCard.vue': 'layout',
   'components/generated/GeneratedProjectWorkspace.vue': 'layout',
-  'components/shared/DesignerDialog.vue': 'layout',
+  'components/shared/DesignerDialog.vue': 'primevue-integration',
   'components/shared/DesignerWorkspace.vue': 'layout',
   'components/shared/EntityPage.vue': 'layout',
   'components/shared/EntityWorkspace.vue': 'layout',
@@ -33,10 +34,17 @@ export const SCOPED_LAYOUT_PROPERTIES = new Set([
   'min-height',
   'min-width',
   'overflow',
-  'padding',
-  'padding-inline-start',
   'width'
 ]);
+
+export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
+  'browser-pseudo': new Set(['background', 'border-radius', 'width']),
+  layout: SCOPED_LAYOUT_PROPERTIES,
+  'operational-state': new Set(['background']),
+  'primevue-integration': new Set(['display', 'flex', 'min-height', 'padding'])
+});
+
+const REGISTERED_PRIMITIVE_PATHS = new Set(cncDesignSystemPrimitives.map(primitive => primitive.componentPath));
 
 const VISUAL_CONCERNS = [
   ['centralize:typography', /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl)|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\]))\b/g],
@@ -95,20 +103,15 @@ export const repositoryVueInventory = (repoRoot) => [
   })
   .sort((a, b) => a.file.localeCompare(b.file));
 
-const defaultOwnership = (file) => {
-  if (file === 'error.vue' || file.startsWith('layouts/') || file.startsWith('pages/') || file.startsWith('components/generated/')) return 'derived usage';
-  return 'shared/domain primitive';
-};
+export const inventoryOwnership = file => REGISTERED_PRIMITIVE_PATHS.has(file)
+  ? 'shared/domain primitive'
+  : 'derived usage';
 
 const updateAudit = (repoRoot) => {
   const auditPath = path.join(repoRoot, 'docs/UI_COMPONENT_AUDIT.md');
   const source = fs.readFileSync(auditPath, 'utf8');
-  const ownership = new Map(Array.from(
-    source.matchAll(/^\| `ui-[^`]+` \| `([^`]+\.vue)` \| ([^|]+?) \|/gm),
-    match => [match[1], match[2].trim()]
-  ));
   const rows = repositoryVueInventory(repoRoot).map(({ id, file, findings }) =>
-    `| \`${id}\` | \`${file}\` | ${ownership.get(file) || defaultOwnership(file)} | ${findings.join('; ')} |`
+    `| \`${id}\` | \`${file}\` | ${inventoryOwnership(file)} | ${findings.join('; ')} |`
   );
   const inventory = [
     '## Component Inventory',

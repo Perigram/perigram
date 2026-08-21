@@ -757,9 +757,4 @@ function entityId(entity = null) {
   overflow: hidden;
 }
 
-@container (max-width: 14rem) {
-  .project-explorer-tree :deep(.p-tree-node-children) {
-    padding-inline-start: 0;
-  }
-}
 </style>

@@ -26,8 +26,9 @@ import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 import { getWorkflowStatusActions } from '../utils/status-actions.js';
 import {
   inventoryId,
+  inventoryOwnership,
   repositoryVueInventory,
-  SCOPED_LAYOUT_PROPERTIES,
+  SCOPED_EXCEPTION_PROPERTIES,
   SCOPED_STYLE_EXCEPTIONS,
   scopedStyleDeclarations
 } from '../scripts/ui-visual-inventory.js';
@@ -105,6 +106,18 @@ describe('Design system manifest', () => {
 
     for (const { file, findings } of repositoryVueInventory(REPO_ROOT)) {
       expect(documented.get(file), file).toBe(findings.join('; '));
+    }
+  });
+
+  it('derives component ownership from the primitive registry', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
+    const documented = new Map(Array.from(
+      source.matchAll(/^\| `ui-[^`]+` \| `([^`]+\.vue)` \| ([^|]+) \|/gm),
+      match => [match[1], match[2].trim()]
+    ));
+
+    for (const file of repositoryVueFiles()) {
+      expect(documented.get(file), file).toBe(inventoryOwnership(file));
     }
   });
 
@@ -427,9 +440,9 @@ describe('Design system manifest', () => {
     for (const [file, category] of Object.entries(SCOPED_STYLE_EXCEPTIONS)) {
       const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
       expect(source, `${file} must retain its ${category} scoped exception`).toMatch(/<style\s+scoped/);
-      if (category === 'layout') {
-        expect(scopedStyleDeclarations(source).filter(property => !SCOPED_LAYOUT_PROPERTIES.has(property)), file).toEqual([]);
-      }
+      const allowedProperties = SCOPED_EXCEPTION_PROPERTIES[category];
+      expect(allowedProperties, `${file} has unknown scoped exception category`).toBeTruthy();
+      expect(scopedStyleDeclarations(source).filter(property => !allowedProperties.has(property)), file).toEqual([]);
     }
 
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
