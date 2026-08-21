@@ -226,6 +226,30 @@ export const cssVariableTokens = {
     ...Object.fromEntries(Object.entries(signalOrangePrimary).map(([step, value]) => [`--ck-primary-${step}`, value]))
 };
 
+export const darkCssVariableTokens = {
+    '--ck-page-background': 'var(--p-surface-950)',
+    '--ck-process-canvas-background': 'var(--p-surface-950)',
+    '--ck-chrome-background': '#0c0c0b',
+    '--ck-chrome-foreground': '#fffdf8',
+    '--ck-chrome-muted': '#bdbdb5',
+    '--ck-chrome-subtle': '#20201d',
+    '--ck-chrome-border': '#393933',
+    '--ck-subtle-background': 'var(--p-surface-800)',
+    '--ck-primary-ink': 'var(--ck-primary-300)',
+    '--ck-status-success': 'var(--p-emerald-400)',
+    '--ck-status-warning': 'var(--p-amber-400)',
+    '--ck-status-danger': 'var(--p-red-400)',
+    '--ck-signal-identity': 'var(--p-surface-400)',
+    '--ck-entity-tone-command': '#ff8b60',
+    '--ck-entity-tone-fabrication': '#ff7079',
+    '--ck-entity-tone-output': '#8292ff',
+    '--ck-entity-tone-material': '#47ba91',
+    '--ck-entity-tone-system': '#ae9aff',
+    '--ck-signal-quantity': '#f2bc36',
+    '--ck-shadow-card': 'none',
+    '--ck-shadow-overlay': '0 14px 32px rgb(0 0 0 / 0.38)'
+};
+
 export const tailwindThemeExtension = {
     colors: {
         primary: {

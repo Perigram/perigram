@@ -14,9 +14,9 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   display titles and long-form text blocks).
   Aura, not this module, owns generic control and container typography,
   spacing, borders, radii, shadows, chrome, and interaction states.
-- Nuxt emits the exported `cssVariableTokens` directly. `assets/css/main.css`
-  consumes those variables but must not duplicate their values or bridge
-  PrimeVue `--p-*` variables.
+- Nuxt emits the exported `cssVariableTokens` and `darkCssVariableTokens`
+  directly. `assets/css/main.css` consumes those variables but must not
+  duplicate their values or bridge PrimeVue `--p-*` variables.
 - `assets/presets/re_l.js` extends Aura with the bounded primary palette
   projection only. The component-token projection remains empty.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`.
