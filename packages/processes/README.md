@@ -394,6 +394,21 @@ form — while typed entity references compare structurally by their serialized
 operations for execution/migration, but they are not separate authoring
 concepts. Only `effect.*` nodes may persist changes or invoke external work.
 
+Create Entity, Modify Entity, and Change Status use the same type-agnostic
+effect mapper in `evaluator.js`. It preflights every input tree before invoking
+the runtime adapter: scalar item packets may broadcast, list/tree packets must
+have equal item counts and aligned branch paths, a multi-item branch cannot be
+broadcast across tree branches, and Cross matching is rejected for mutations.
+Each aligned tuple then makes one authorized service call in branch/item order.
+The returned data tree preserves those paths, order, and item slots; a failed
+slot contains `null`. The tree also carries `failures` records with
+`{ operation, branchPath, itemIndex, entityRef?, error }` and
+`completedMutations` records identifying writes that finished. These calls are
+not collection-atomic: a later failure does not roll back earlier writes or
+prevent subsequent aligned items from being attempted. Hard-delete mapping is
+deferred until `effect.deleteEntity` exists alongside its capability and UI
+contract.
+
 Ordering, grouping, and windows consume the original item list plus an aligned
 key list produced by Get Field, never hidden raw property paths. Sort takes
 `items` + `keys` (both required) and returns the original items in the aligned
