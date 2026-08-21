@@ -34,10 +34,12 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 - `ui-visual-inventory.js`: Derives the canonical Vue visual inventory from
   current source and rewrites the component matrix in
   `docs/UI_COMPONENT_AUDIT.md`. It classifies typography, arbitrary layout,
-  chrome, state, important-override, and scoped-style findings under the same
-  dispositions consumed by `shared/design-system.spec.js`. Component ownership
-  is derived from the domain primitive registry: exact registered paths are
-  shared/domain primitives and every other Vue file is derived usage.
+  chrome, state, important-override, scoped-style, and inline-style findings
+  under the same dispositions consumed by `shared/design-system.spec.js`.
+  Inline exceptions are exact file/category/count entries, so adding another
+  binding requires explicit classification. Component ownership is derived
+  from the domain primitive registry: exact registered paths are shared/domain
+  primitives and every other Vue file is derived usage.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
@@ -134,7 +136,10 @@ theme overrides, direct global PrimeVue selectors or variable declarations,
 visual concern counts with the canonical audit. Scoped-style exceptions name one
 exact category per file; every exception category is limited to an exact set of
 properties rather than granting whole-file visual ownership. Aura-owned padding
-is excluded from general layout exceptions.
+is excluded from general layout exceptions. Inline style bindings are rejected
+unless their exact file, visual category, and occurrence count are registered;
+the allowed categories remain data, geometry/process, integration, and semantic
+interaction motion rather than generic component chrome.
 
 ## Related
 
