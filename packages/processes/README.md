@@ -500,7 +500,19 @@ references to the declared stored id key and Get Field restores that id as the
 declared typed reference. Get Field on other open blocks authors the local key
 and output type explicitly rather than selecting invented global fields;
 Deconstruct Entity exposes blocks; Get Field reads one selected field from a
-block. Status remains a dedicated lifecycle socket and never travels through a
+block. Deconstruct Entity and Get Block select only blocks declared by the
+incoming entity contract (the entity's `blocks` list plus its field-access
+policy block prefixes, including the framework-owned `attachments` open block).
+Compilation rejects any other selected block with the same
+`uses block <block> outside <entityType>` diagnostic used by the legacy block
+kinds, and the evaluator enforces the identical check whenever the domain
+contract is supplied to the run or preview environment, so an undeclared block
+fails instead of silently reading `undefined`. All three reads evaluate through
+`mapDataPacket`, so item, list, and branched-tree inputs keep their branch
+paths and item order in the output, and the managed read-only blocks
+(`origin`, `status`, `provenance`, `summary`) are readable through them even
+though writes to those blocks are rejected. Status remains a dedicated
+lifecycle socket and never travels through a
 generic mutable block. Status-based find/filter reads `status.state.primary`
 as a scalar through Get Field and compares it with scalar equality; it never
 constructs or mutates the status block. Producer services resolve their declared
