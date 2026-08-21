@@ -15,7 +15,7 @@ import {
   transposeDataPacket,
   treeStats
 } from './data-tree.js';
-import { MAKE_LIST_INPUTS } from './node-catalog.js';
+import { MAKE_LIST_INPUTS, entityBlocks } from './node-catalog.js';
 import { isMissingField, missingFieldMarker } from './missing-field.js';
 
 export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
@@ -166,6 +166,7 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   }
   if (kind === 'record.construct' || kind === 'record.entityDraft') return createDataPacket(constructRecord(record, packets));
   if (kind === 'record.deconstruct') {
+    for (const block of record.blocks || []) assertDeclaredBlock(context.domain, record, block);
     if (context.outputId) {
       if (!(record.blocks || []).includes(context.outputId)) {
         throw new Error(`Node ${record.id || kind} does not expose block ${context.outputId}`);
@@ -176,7 +177,10 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
       Object.fromEntries((record.blocks || []).map(block => [block, structuredClone(value?.[block])]))
     ));
   }
-  if (kind === 'record.getBlock') return mapDataPacket(required(packets, 'entity', record), value => structuredClone(value?.[record.block]));
+  if (kind === 'record.getBlock') {
+    assertDeclaredBlock(context.domain, record, record.block);
+    return mapDataPacket(required(packets, 'entity', record), value => structuredClone(value?.[record.block]));
+  }
   if (kind === 'predicate.field') return createDataPacket({ kind: 'field', entityType: record.entityType, path: record.path, operation: record.operation, value: packetValue(required(packets, 'value', record)) });
   if (kind === 'predicate.logic') return createDataPacket({
     kind: 'logic',
@@ -502,6 +506,16 @@ function durationMilliseconds(value) {
 function required(inputs, id, record) {
   if (!inputs[id]) throw new Error(`Node ${record.id || record.kind} requires input ${id}`);
   return inputs[id];
+}
+
+// Runtime mirror of the compile-time entity-contract check: when the domain
+// contract is supplied, block reads reject blocks the entity does not declare
+// with the same diagnostic instead of silently yielding undefined.
+function assertDeclaredBlock(domain, record, block) {
+  if (!domain || !record.entityType || !block) return;
+  if (!entityBlocks(domain, record.entityType).includes(block)) {
+    throw new Error(`Process node ${record.id || record.kind} uses block ${block} outside ${record.entityType}`);
+  }
 }
 
 function cast(value, base = 'json') {

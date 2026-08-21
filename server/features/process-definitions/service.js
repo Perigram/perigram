@@ -225,6 +225,7 @@ export async function startRun(id, payload = {}, auth = {}) {
     actor,
     executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
     catalogContext: catalogContextFromDefinition(definition.data),
+    domain: getDomain(),
     data: run => processDataEnvironment(auth, run)
   }));
 }
@@ -272,6 +273,7 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
   return serializeProcessResult(await previewProcessDataflow(definition, { trigger, inputs }, {
     targetNodeId: nodeId,
     previewLimit: 100,
+    domain: getDomain(),
     catalogContext: record => {
       const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
       return {

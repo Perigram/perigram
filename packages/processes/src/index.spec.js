@@ -938,6 +938,49 @@ describe('@cutkit/processes compiler', () => {
     expect(validation.errors).toContain('Process node invalid_block uses block summary outside project');
   });
 
+  it('rejects Get Block and Deconstruct blocks outside the entity contract', () => {
+    const validation = validateProcessDefinition({
+      processNodes: {
+        get_block: {
+          id: 'get_block',
+          kind: 'record.getBlock',
+          entityType: 'project',
+          block: 'summary'
+        },
+        deconstruct: {
+          id: 'deconstruct',
+          kind: 'record.deconstruct',
+          entityType: 'project',
+          blocks: ['identity', 'relations']
+        }
+      }
+    }, domain);
+
+    expect(validation.errors).toContain('Process node get_block uses block summary outside project');
+    expect(validation.errors).toContain('Process node deconstruct uses block relations outside project');
+  });
+
+  it('accepts declared Get Block and Deconstruct blocks, including attachments', () => {
+    const validation = validateProcessDefinition({
+      processNodes: {
+        get_block: {
+          id: 'get_block',
+          kind: 'record.getBlock',
+          entityType: 'queue',
+          block: 'attachments'
+        },
+        deconstruct: {
+          id: 'deconstruct',
+          kind: 'record.deconstruct',
+          entityType: 'queue',
+          blocks: ['identity', 'attachments']
+        }
+      }
+    }, domain);
+
+    expect(validation.errors.filter(error => error.includes('uses block'))).toEqual([]);
+  });
+
   it('rejects fields outside the domain field policy', () => {
     const validation = validateProcessDefinition({
       entityProfiles: {

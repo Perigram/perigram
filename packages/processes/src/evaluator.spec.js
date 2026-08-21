@@ -484,6 +484,42 @@ describe('process v4 data execution', () => {
     expect(result.branches[0].items).toEqual([{ type: 'queue', id: 'queue-1' }]);
   });
 
+  it('rejects Get Block and Deconstruct blocks outside the entity contract at runtime', async () => {
+    const domain = { entities: [{ type: 'project', blocks: ['identity', 'status', 'attachments', 'data'] }] };
+    const entity = createDataPacket({ identity: { name: 'One' } });
+
+    await expect(executeProcessDataNode(
+      { kind: 'record.getBlock', entityType: 'project', block: 'summary' },
+      { entity },
+      { domain }
+    )).rejects.toThrow('uses block summary outside project');
+    await expect(executeProcessDataNode(
+      { kind: 'record.deconstruct', entityType: 'project', blocks: ['identity', 'relations'] },
+      { entity },
+      { domain }
+    )).rejects.toThrow('uses block relations outside project');
+  });
+
+  it('reads the framework-owned attachments block through Get Block and Deconstruct', async () => {
+    const domain = { entities: [{ type: 'project', blocks: ['identity', 'attachments', 'data'] }] };
+    const attachments = [{ kind: 'drawing', id: 'att-1' }, { kind: 'drawing', id: 'att-2' }];
+    const entity = createDataPacket({ identity: { name: 'One' }, attachments });
+
+    const block = await executeProcessDataNode(
+      { kind: 'record.getBlock', entityType: 'project', block: 'attachments' },
+      { entity },
+      { domain }
+    );
+    expect(block.branches[0].items).toEqual([attachments]);
+
+    const deconstructed = await executeProcessDataNode(
+      { kind: 'record.deconstruct', entityType: 'project', blocks: ['identity', 'attachments'] },
+      { entity },
+      { domain }
+    );
+    expect(deconstructed.branches[0].items).toEqual([{ identity: { name: 'One' }, attachments }]);
+  });
+
   it('composes typed named entries for open data blocks', async () => {
     const composed = await executeProcessDataNode(
       {

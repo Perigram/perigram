@@ -591,6 +591,26 @@ function dynamicFields(record, context) {
   });
 }
 
+export function getFieldPolicy(fieldAccess, entityType) {
+  const key = String(entityType || '');
+  const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
+  const snake = key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+  return fieldAccess[key] || fieldAccess[camel] || fieldAccess[snake] || null;
+}
+
+// Declared blocks of one entity contract: the entity's own blocks list plus
+// the block prefixes its field-access policy grants. Used by compile-time
+// validation and by the evaluator so both reject the same undeclared blocks.
+export function entityBlocks(domain = {}, entityType = '') {
+  const entity = (domain.entities || []).find(item => item.type === entityType);
+  const policy = getFieldPolicy(domain.fieldAccess || {}, entityType) || {};
+  const policyBlocks = ['read', 'write', 'admin']
+    .flatMap(access => policy[access] || [])
+    .map(path => String(path).split('.')[0])
+    .filter(Boolean);
+  return [...new Set([...(entity?.blocks || []), ...policyBlocks])];
+}
+
 function dynamicBlocks(record, context) {
   const selected = Array.isArray(record.blocks) ? record.blocks : [];
   if (selected.length) return selected;

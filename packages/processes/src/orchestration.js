@@ -416,6 +416,7 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   }
   const packet = await executeProcessDataNode(record, inputs, {
     ...(environment.data || {}),
+    domain: environment.domain,
     inputs: run.context?.inputs,
     trigger: run.trigger,
     now: environment.now,

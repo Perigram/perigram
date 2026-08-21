@@ -3,7 +3,7 @@ import { advanceProcessRun, createProcessRun } from '~/packages/processes/src/in
 // Manual runs deliberately have no durable repository after removal of the
 // unapproved automation scheduler. This boundary owns their finite execution
 // lifecycle and can be replaced only if a durable-run protocol is introduced.
-export async function executeManualRun(definition, payload = {}, { actor, executeEffect, catalogContext, data } = {}) {
+export async function executeManualRun(definition, payload = {}, { actor, executeEffect, catalogContext, domain, data } = {}) {
   let run = createProcessRun(definition, payload.trigger || {}, {
     processDefinitionId: definition._id || definition.id,
     context: { inputs: payload.inputs || {}, actor }
@@ -12,6 +12,7 @@ export async function executeManualRun(definition, payload = {}, { actor, execut
     const advanced = await advanceProcessRun(run, definition.data, {
       executeEffect: request => executeEffect(request, run),
       catalogContext,
+      domain,
       data: data(run)
     });
     if (JSON.stringify(advanced) === JSON.stringify(run)) break;

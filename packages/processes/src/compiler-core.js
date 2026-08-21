@@ -12,7 +12,7 @@ import {
   resolveProcessNodePorts,
   validateProcessEdges
 } from './ports.js';
-import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
+import { entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForEntityType, lineageRelationsForParent } from './hierarchy-utils.js';
@@ -3114,6 +3114,16 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
   if (node.kind === 'record.deconstruct' && !node.blocks?.length) {
     errors.push(`Process node ${nodeId} must expose at least one declared block`);
   }
+  if (['record.getBlock', 'record.deconstruct'].includes(node.kind)
+    && node.entityType && entities.has(node.entityType)) {
+    const declaredBlocks = entityBlocks(domain, node.entityType);
+    const selectedBlocks = node.kind === 'record.getBlock' ? [node.block].filter(Boolean) : (node.blocks || []);
+    for (const block of selectedBlocks) {
+      if (!declaredBlocks.includes(block)) {
+        errors.push(`Process node ${nodeId} uses block ${block} outside ${node.entityType}`);
+      }
+    }
+  }
   if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
     const statusTarget = processDefaultValue(node.inputDefaults?.['status.state.primary']) || node.status?.to || node.statusRef;
     if (node.kind === 'effect.updateEntity' && !node.blocks?.length && !statusTarget) {
@@ -3534,23 +3544,6 @@ function validateMutationGrantLevels(actionId, fields = [], domain = {}, entityT
 function fieldPathAllowed(path, allowed = []) {
   if (!path || typeof path !== 'string') return false;
   return allowed.some(pattern => pattern === path || (pattern.endsWith('.*') && (path === pattern.slice(0, -2) || path.startsWith(pattern.slice(0, -1)))));
-}
-
-function getFieldPolicy(fieldAccess, entityType) {
-  const key = String(entityType || '');
-  const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
-  const snake = key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
-  return fieldAccess[key] || fieldAccess[camel] || fieldAccess[snake] || null;
-}
-
-function entityBlocks(domain = {}, entityType = '') {
-  const entity = (domain.entities || []).find(item => item.type === entityType);
-  const policy = getFieldPolicy(domain.fieldAccess || {}, entityType) || {};
-  const policyBlocks = ['read', 'write', 'admin']
-    .flatMap(access => policy[access] || [])
-    .map(path => String(path).split('.')[0])
-    .filter(Boolean);
-  return [...new Set([...(entity?.blocks || []), ...policyBlocks])];
 }
 
 function getByPath(source, path) {
