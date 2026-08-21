@@ -646,12 +646,13 @@ Dormant components are inspected and may be refactored, but are not removed by
 automated cleanup. Legacy components such as old dashboard/footer widgets must
 be removed only by an explicit human cleanup decision.
 
-The current component-by-component cleanup audit lives in
-[docs/UI_COMPONENT_AUDIT.md](../docs/UI_COMPONENT_AUDIT.md). It applies the
-same ten questions to entity components, shared primitives, hubs, pages, and
-layouts: business job, frontend context, DTO ownership, status policy,
-relationships, actions, nested click behavior, density, responsive constraints,
-and the resulting refactor decision.
+The canonical component and mechanism inventory lives in
+[docs/UI_COMPONENT_AUDIT.md](../docs/UI_COMPONENT_AUDIT.md). It classifies every
+repository Vue file as system-owned, a shared/domain primitive, or derived usage
+and records its typography, layout, container, border, radius, shadow, state,
+CSS, utility-class, and PrimeVue usage. The design-system test reconciles the
+path-derived inventory IDs against the repository, so adding or removing an
+in-scope Vue file requires updating the audit in the same change.
 
 ## Composables Rule
 

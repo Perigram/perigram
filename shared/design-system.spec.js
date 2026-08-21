@@ -45,7 +45,52 @@ const usedVueFiles = () => ['components', 'layouts', 'pages']
   ))
   .map((file) => path.relative(REPO_ROOT, file));
 
+const repositoryVueFiles = () => [
+  ...['components', 'layouts', 'pages'].flatMap((dir) => walkFiles(
+    path.join(REPO_ROOT, dir),
+    (file) => file.endsWith('.vue')
+  )),
+  path.join(REPO_ROOT, 'error.vue')
+]
+  .filter((file) => fs.existsSync(file))
+  .map((file) => path.relative(REPO_ROOT, file))
+  .sort();
+
+const uiInventoryId = (file) => `ui-${file.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+
 describe('Design system manifest', () => {
+  it('reconciles every repository Vue file and design-system mechanism with the canonical audit', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
+    const rows = Array.from(source.matchAll(/^\| `(ui-[^`]+)` \| `([^`]+\.vue)` \|/gm));
+    const documentedFiles = rows.map(([, , file]) => file).sort();
+    const documentedIds = rows.map(([, id]) => id);
+    const expectedFiles = repositoryVueFiles();
+    const expectedMechanisms = [
+      'aura',
+      'token-source',
+      'primevue-projection',
+      'tailwind-projection',
+      'css-variable-projection',
+      'preset',
+      'tailwind-aliases',
+      'global-css',
+      'runtime-overrides',
+      'scoped-css',
+      'primitive-registry',
+      'runtime-registry',
+      'ui-lab',
+      'enforcement'
+    ];
+    const documentedMechanisms = Array.from(source.matchAll(/^\| `(mechanism-[^`]+)` \|/gm))
+      .map(([, id]) => id.replace('mechanism-', ''))
+      .sort();
+
+    expect(documentedFiles).toEqual(expectedFiles);
+    expect(new Set(documentedFiles).size).toBe(documentedFiles.length);
+    expect(documentedIds).toEqual(documentedFiles.map(uiInventoryId));
+    expect(documentedMechanisms).toEqual(expectedMechanisms.sort());
+  });
+
   it('declares the standard entity card variants', () => {
     expect(DESIGN_SYSTEM_VARIANTS).toEqual(['card', 'compact', 'inline']);
   });
