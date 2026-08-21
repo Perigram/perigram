@@ -461,6 +461,7 @@ describe('Design system manifest', () => {
       expect(allowedProperties, `${file} has unknown scoped exception category`).toBeTruthy();
       expect(scopedStyleDeclarations(source).filter(property => !allowedProperties.has(property)), file).toEqual([]);
     }
+    expect(SCOPED_EXCEPTION_PROPERTIES['primevue-integration'].has('padding')).toBe(false);
 
     for (const file of files) {
       const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');

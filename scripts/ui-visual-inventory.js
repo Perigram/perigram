@@ -41,7 +41,7 @@ export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
   'browser-pseudo': new Set(['background', 'border-radius', 'width']),
   layout: SCOPED_LAYOUT_PROPERTIES,
   'operational-state': new Set(['background']),
-  'primevue-integration': new Set(['display', 'flex', 'min-height', 'padding'])
+  'primevue-integration': new Set(['display', 'flex', 'min-height'])
 });
 
 export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
