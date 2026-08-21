@@ -1,7 +1,13 @@
-/* JetBrains Mono is the deliberately compact interface face for CutKit. */
-@import '@fontsource/jetbrains-mono/400.css';
-@import '@fontsource/jetbrains-mono/700.css';
-@import '@fontsource/jetbrains-mono/400-italic.css';
+/* IBM Plex Sans is the interface face; Plex Mono and Plex Serif are role-specific. */
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/700.css';
+@import '@fontsource/ibm-plex-sans/400-italic.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/700.css';
+@import '@fontsource/ibm-plex-mono/400-italic.css';
+@import '@fontsource/ibm-plex-serif/400.css';
+@import '@fontsource/ibm-plex-serif/700.css';
+@import '@fontsource/ibm-plex-serif/400-italic.css';
 
 :root {
   --font-family: var(--ck-font-ui);
@@ -37,4 +43,8 @@ textarea {
 
 :where(code, kbd, pre, samp, .font-mono) {
   font-family: var(--ck-font-mono) !important;
+}
+
+:where(.font-serif) {
+  font-family: var(--ck-font-serif) !important;
 }

@@ -65,7 +65,7 @@ const canFetchRef = (ref = {}) => {
 <template>
   <span class="inline-flex min-w-0 flex-wrap items-center gap-1 align-middle">
     <template v-for="(part, index) in parts" :key="`${part.type}-${index}-${part.id || part.value}`">
-      <span v-if="part.type === 'text'" class="whitespace-pre-wrap break-words">{{ part.value }}</span>
+      <span v-if="part.type === 'text'" class="font-serif whitespace-pre-wrap break-words">{{ part.value }}</span>
       <EntityInlineRef
         v-else
         :type="part.entityType"

@@ -1133,8 +1133,9 @@
         "--ck-entity-tone-output": "#3f5eff",
         "--ck-entity-tone-system": "#795ee5",
         "--ck-floating-menu-min-width": "12.5rem",
-        "--ck-font-mono": "'JetBrains Mono', monospace",
-        "--ck-font-ui": "'JetBrains Mono', monospace",
+        "--ck-font-mono": "'IBM Plex Mono', monospace",
+        "--ck-font-serif": "'IBM Plex Serif', serif",
+        "--ck-font-ui": "'IBM Plex Sans', sans-serif",
         "--ck-grid-gap": "1.25rem",
         "--ck-label-tracking": "0.04em",
         "--ck-motion-emphasis": "220ms",
@@ -1350,8 +1351,9 @@
         },
         "typography": {
           "labelTracking": "0.04em",
-          "mono": "'JetBrains Mono', monospace",
-          "ui": "'JetBrains Mono', monospace"
+          "mono": "'IBM Plex Mono', monospace",
+          "serif": "'IBM Plex Serif', serif",
+          "ui": "'IBM Plex Sans', sans-serif"
         }
       },
       "tailwindThemeExtension": {
@@ -1437,7 +1439,8 @@
         },
         "fontFamily": {
           "mono": "var(--ck-font-mono)",
-          "sans": "var(--ck-font-ui)"
+          "sans": "var(--ck-font-ui)",
+          "serif": "var(--ck-font-serif)"
         },
         "height": {
           "preview-dialog": "var(--ck-preview-dialog-height)",

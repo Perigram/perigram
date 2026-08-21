@@ -19,8 +19,9 @@ html {
     --ck-border-subtle: var(--p-content-border-color);
     --ck-selection-background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
     --ck-primary-ink: #a93300;
-    --ck-font-ui: 'JetBrains Mono', monospace;
-    --ck-font-mono: 'JetBrains Mono', monospace;
+    --ck-font-ui: 'IBM Plex Sans', sans-serif;
+    --ck-font-mono: 'IBM Plex Mono', monospace;
+    --ck-font-serif: 'IBM Plex Serif', serif;
     --ck-label-tracking: 0.04em;
     --ck-status-info: var(--p-primary-color);
     --ck-status-success: var(--p-emerald-600);

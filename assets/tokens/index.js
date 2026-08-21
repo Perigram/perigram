@@ -126,8 +126,9 @@ export const designTokens = {
         height: 64
     },
     typography: {
-        ui: "'JetBrains Mono', monospace",
-        mono: "'JetBrains Mono', monospace",
+        ui: "'IBM Plex Sans', sans-serif",
+        mono: "'IBM Plex Mono', monospace",
+        serif: "'IBM Plex Serif', serif",
         labelTracking: '0.04em'
     },
     status: {
@@ -175,6 +176,7 @@ export const cssVariableTokens = {
     '--ck-primary-ink': '#a93300',
     '--ck-font-ui': designTokens.typography.ui,
     '--ck-font-mono': designTokens.typography.mono,
+    '--ck-font-serif': designTokens.typography.serif,
     '--ck-label-tracking': designTokens.typography.labelTracking,
     '--ck-status-info': 'var(--p-primary-color)',
     '--ck-status-success': 'var(--p-emerald-600)',
@@ -317,7 +319,8 @@ export const tailwindThemeExtension = {
     },
     fontFamily: {
         sans: 'var(--ck-font-ui)',
-        mono: 'var(--ck-font-mono)'
+        mono: 'var(--ck-font-mono)',
+        serif: 'var(--ck-font-serif)'
     },
     letterSpacing: {
         label: 'var(--ck-label-tracking)'
