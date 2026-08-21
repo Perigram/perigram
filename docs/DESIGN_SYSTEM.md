@@ -29,12 +29,18 @@ keyboard behavior without spatial travel.
 The active visual language is a hard editorial engineering instrument:
 near-white chrome and work surfaces in light mode, ink chrome in dark mode, a
 single signal-orange action channel, 3px control radii, 6px container radii,
-structural rules, and elevation only for overlays. The IBM Plex superfamily
-carries three token-backed roles: Plex Sans is the global interface face for
-labels, values, and controls; Plex Mono marks technical content (code,
-expressions, paths, identifiers, structured data) through the existing
-`font-mono` classification; Plex Serif is reserved for long-form text blocks
-(chat message text) through the `font-serif` utility. Signal orange marks intent, selection, and keyboard focus
+structural rules, and elevation only for overlays. Typography uses the IBM
+Plex superfamily in three token-backed roles: Plex Sans is the global default
+interface face (`--ck-font-ui`, Tailwind `font-sans`), Plex Mono marks
+technical content such as code, expressions, paths, hex codes, and URLs
+(`--ck-font-mono`, `font-mono`, plus `code`/`kbd`/`pre`/`samp`), and Plex
+Serif is reserved for designated long-form text blocks, currently chat message
+text in `components/shared/SupportMessageContent.vue` (`--ck-font-serif`,
+`font-serif`). Artifact text stays mono: it is technical content alongside
+code, expressions, and structured data. `assets/css/fonts.css`
+sets Plex Sans once on `body` with no universal or `!important` overrides, so
+PrimeVue components and native controls inherit it while the `font-mono` and
+`font-serif` utilities apply predictably on every element. Signal orange marks intent, selection, and keyboard focus
 rather than ambient decoration; the rail uses the same token as a slim signal
 rule. Structural cards use border feedback on hover instead of an outward
 shadow, because their roots clip media. Light and dark schemes have distinct
