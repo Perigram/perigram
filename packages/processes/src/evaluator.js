@@ -198,6 +198,10 @@ export async function executeProcessEffectNode(record = {}, inputs = {}, invoke)
   const completedMutations = [];
   let singleValue;
 
+  // Continue-and-collect: every aligned item is invoked in branch/item order.
+  // A failed item is recorded in `failures` and its result slot, and iteration
+  // continues — later items are still attempted and earlier writes are not
+  // rolled back. No collection-wide atomicity is claimed.
   for (const slot of slots) {
     const invocation = invocations[slot.marker];
     const branchPath = [...slot.branch.path];
