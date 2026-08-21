@@ -173,6 +173,107 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   throw new Error(`Node ${record.id || kind} is not a data/read operation`);
 }
 
+export async function executeProcessEffectNode(record = {}, inputs = {}, invoke) {
+  if (typeof invoke !== 'function') throw new Error(`Effect executor is required for ${record.kind}`);
+  if (record.matching === 'cross') throw new Error(`${record.kind} cannot use Cross matching for mutations`);
+
+  const entries = Object.entries(inputs).map(([id, tree]) => [
+    id,
+    transformDataTree(normalizeDataPacket(tree), record.inputTransforms?.[id])
+  ]);
+  assertMutationInputsAlign(record.kind, entries.map(([, tree]) => tree));
+
+  const invocations = [];
+  const result = solveDataTrees(entries.map(([, tree]) => ({ tree, access: 'item' })), (values, location) => {
+    const marker = invocations.length;
+    invocations.push({
+      inputs: Object.fromEntries(entries.map(([id], index) => [id, values[index]])),
+      location
+    });
+    return marker;
+  }, { matching: record.matching });
+  const slots = result.branches.flatMap(branch => branch.items.map((marker, itemIndex) => ({ branch, marker, itemIndex })));
+  const single = slots.length === 1;
+  const failures = [];
+  const completedMutations = [];
+  let singleValue;
+
+  for (const slot of slots) {
+    const invocation = invocations[slot.marker];
+    const branchPath = [...slot.branch.path];
+    const itemIndex = invocation.location.index ?? slot.itemIndex;
+    try {
+      const value = await invoke(invocation.inputs, { branchPath, itemIndex, single });
+      slot.branch.items[slot.itemIndex] = value;
+      singleValue = value;
+      const entityRef = mutationEntityRef(invocation.inputs.entity, value, record.entityType);
+      completedMutations.push({
+        operation: record.kind,
+        branchPath,
+        itemIndex,
+        ...(entityRef ? { entityRef } : {})
+      });
+    } catch (error) {
+      const entityRef = mutationEntityRef(invocation.inputs.entity, null, record.entityType);
+      const failure = {
+        operation: record.kind,
+        branchPath,
+        itemIndex,
+        ...(entityRef ? { entityRef } : {}),
+        error: serializeMutationError(error)
+      };
+      slot.branch.items[slot.itemIndex] = failure;
+      failures.push(failure);
+    }
+  }
+  const tree = { branches: result.branches };
+  if (!failures.length) {
+    // Zero-failure runs keep the historical output contract: a single
+    // invocation returns the bare effect result, exactly as before.
+    return single ? singleValue : tree;
+  }
+  return { result: tree, failures, completedMutations };
+}
+
+function assertMutationInputsAlign(operation, trees) {
+  if (trees.length < 2) return;
+  const branchCount = Math.max(...trees.map(tree => tree.branches.length));
+  for (const tree of trees) {
+    if (![1, branchCount].includes(tree.branches.length)) {
+      throw new Error(`${operation} mutation input branches must be scalar or aligned`);
+    }
+    if (tree.branches.length === 1 && branchCount > 1 && tree.branches[0].items.length > 1) {
+      throw new Error(`${operation} cannot broadcast a list across tree branches`);
+    }
+  }
+  const alignedTrees = trees.filter(tree => tree.branches.length === branchCount);
+  for (let branchIndex = 0; branchIndex < branchCount; branchIndex += 1) {
+    const paths = alignedTrees.map(tree => pathKey(tree.branches[branchIndex].path));
+    if (new Set(paths).size > 1) throw new Error(`${operation} mutation input branch paths must align`);
+    const lengths = trees.map(tree => tree.branches[Math.min(branchIndex, tree.branches.length - 1)]?.items.length || 0);
+    const itemCount = Math.max(...lengths);
+    if (lengths.some(length => length !== 1 && length !== itemCount)) {
+      throw new Error(`${operation} mutation input items must be scalar or aligned`);
+    }
+  }
+}
+
+function mutationEntityRef(input, output, entityType) {
+  const value = output?.entity || output || input;
+  const id = value?.id || value?._id || value?.identity?.uid;
+  const type = value?.type || value?.entityType || entityType;
+  return id && type ? { type, id: String(id) } : null;
+}
+
+function serializeMutationError(error) {
+  return {
+    name: error?.name || 'Error',
+    message: error?.message || String(error),
+    ...(error?.code ? { code: error.code } : {}),
+    ...(error?.statusCode ? { statusCode: error.statusCode } : {})
+  };
+}
+
 function writeOpenBlockEntry(block, mode, entry, value) {
   if (mode === 'ancestors') {
     const id = value?.id || value?._id || value?.identity?.uid;

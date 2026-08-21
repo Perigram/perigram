@@ -260,23 +260,64 @@ permission-denied case; `node scripts/check-arch.js` and
 
 ### Item/list/tree persistence semantics
 
-- [ ] Define one lower-level effect-mapping contract used by Create, Modify,
-  Change Status, and Delete. Item inputs map over aligned packets, the output
-  preserves branch paths and item order, and no mutation node contains its own
-  loop implementation.
-- [ ] Define multi-input matching for persistence nodes. Item values may
+- [x] Define one lower-level effect-mapping contract used by Create, Modify,
+  and Change Status (Delete remains deferred by the recorded verdict). Item
+  inputs map over aligned packets, the output preserves branch paths and item
+  order, and no mutation node contains its own loop implementation.
+- [x] Define multi-input matching for persistence nodes. Item values may
   broadcast over an entity list; aligned lists follow the chosen matching
   rule; incompatible branch lengths or unsafe Cross mutation must fail before
   the first write.
-- [ ] Define mutation failure reporting below the graph language. Return the
+- [x] Define mutation failure reporting below the graph language. Return the
   operation, branch path, item index, entity ref when known, and underlying
   service error. Do not add success/failure fan-out nodes merely to represent
   collection execution mechanics.
-- [ ] Do not claim collection-wide atomicity when mutations are separate
+- [x] Do not claim collection-wide atomicity when mutations are separate
   service calls. Make the execution result identify completed mutations if a
   later item fails, and make generated UI refresh those entities.
-- [ ] Test the same Create/Modify/Status/Delete node with item, list, branched
-  tree, broadcast scalar, and aligned value-tree inputs.
+- [x] Test the same mutation contract with item, list, branched tree, broadcast
+  scalar, and aligned value-tree inputs; verify Create, Modify, and Status use
+  it. Delete coverage remains deferred with `effect.deleteEntity`.
+
+#### Agent Notes — 2026-08-21
+
+Implemented the recorded effect-mapping verdict without adding mutation-specific
+loops or a Delete node. `executeProcessEffectNode` in
+`packages/processes/src/evaluator.js` preflights scalar-or-aligned branch/item
+lengths and branch paths, rejects Cross before invoking the adapter, obtains the
+per-item invocation plan from `solveDataTrees`, and runs one authorized effect
+call per aligned tuple. Create Entity, Modify Entity, and Change Status delegate
+through that mapper in `orchestration.js`; other effects keep their existing
+singular contracts. A preflight failure fails the step and run before the first
+write, so incompatible branch lengths or unsafe Cross matching never partially
+persist.
+
+Run-status semantics for mapped mutations: a step whose aligned calls all
+succeed keeps the historical output contract byte-for-byte — one aligned item
+yields the bare structuredCloned effect result (and the step idempotency key is
+reused unchanged), a list/tree input yields the bare shape-preserving data
+tree. A step with any failed aligned item still completes (the run continues)
+and its output becomes `{ result, failures, completedMutations }`: `result` is
+the shape-preserving tree with each failed slot carrying its own
+`{ operation, branchPath, itemIndex, entityRef?, error }` MutationFailure
+record, `failures` is the flat record list, and `completedMutations`
+identifies every write that finished. Calls continue after an item failure and
+completed writes stay applied — nothing claims or implies collection-wide
+atomicity or rollback. Downstream data outputs consume the unwrapped result
+tree. `GeneratedScreen` applies each completed item (slots without an `error`
+payload) to matching loaded sources and only opens a create detail route when
+the mapped result has exactly one completed entity.
+
+Coverage: `evaluator.spec.js` runs one mutation contract against item, list,
+scalar-broadcast, aligned value-tree, and branched-tree inputs, asserts the
+zero-failure bare outputs, the strict preflight rejections (no write
+attempted), and partial-failure reporting including the single-failed-item
+envelope; `orchestration.spec.js` proves Create, Modify, and Change Status
+route through the mapper, that a later item failure completes the step with
+the failure-carrying output while the run proceeds, and that misaligned inputs
+fail the run before the first `executeEffect` call. Hard deletion remains
+deferred until the capability, node, confirmation, and execution contract
+exists.
 
 ## P0 — complete entity acquisition and selection
 
@@ -1155,13 +1196,13 @@ error}`; results carry `failures` and `completedMutations` lists; result tree
 is shape-preserving; `effect.deleteEntity` stays deferred to Status, archive,
 and delete.
 
-- [ ] Implement the shared effect-mapping contract below the node language in
-  `packages/processes/src/evaluator.js`, wired into Create, Modify, Status, and
-  Delete effect nodes.
-- [ ] Implement multi-input matching for persistence nodes per the verdict.
-- [ ] Implement mutation failure reporting (`failures` + `completedMutations`)
+- [x] Implement the shared effect-mapping contract below the node language in
+  `packages/processes/src/evaluator.js`, wired into Create, Modify, and Status;
+  Delete stays deferred per the verdict.
+- [x] Implement multi-input matching for persistence nodes per the verdict.
+- [x] Implement mutation failure reporting (`failures` + `completedMutations`)
   without claiming collection-wide atomicity.
-- [ ] Test the same mutation node against item, list, and branched-tree inputs.
+- [x] Test the same mutation node against item, list, and branched-tree inputs.
 
 ### Correction: Collection construction
 

@@ -491,6 +491,11 @@ async function postAction(action, entity = null, data = {}, context = {}) {
 
 function applyActionResult(action = {}, result = null) {
   if (!result || typeof result !== 'object') return;
+  const mapped = mappedMutationItems(result);
+  if (mapped) {
+    for (const entity of mapped) applyEntitySnapshot(action.entityType, entity?.entity || entity);
+    return;
+  }
   if (action.actionKind === 'runCommand') {
     for (const output of result.entities || []) {
       if (output?.entity) applyEntitySnapshot(output.type, output.entity);
@@ -498,15 +503,32 @@ function applyActionResult(action = {}, result = null) {
     return;
   }
   if (result.owner) applyEntitySnapshot(action.entityType, result.owner);
-  if (result.created) applyEntitySnapshot(action.relationMutation?.targetType || action.entityType, result.created);
+  if (result.created) {
+    for (const entity of mappedMutationItems(result.created) || [result.created]) {
+      applyEntitySnapshot(action.relationMutation?.targetType || action.entityType, entity);
+    }
+  }
   if (!result.owner && !result.created) {
     applyEntitySnapshot(action.entityType, result.entity || result);
   }
 }
 
+// A mapped mutation response is either a bare shape-preserving data tree
+// (zero failures) or a failure-carrying `{ result, failures, ... }` envelope.
+// Failed slots hold their MutationFailure record, so only items without an
+// `error` payload are completed entity snapshots.
+function mappedMutationItems(result) {
+  const tree = Array.isArray(result?.branches) ? result : result?.result;
+  if (!Array.isArray(tree?.branches)) return null;
+  return tree.branches.flatMap(branch => branch.items || []).filter(item => item && !item.error);
+}
+
 async function openCreatedEntity(action = {}, result = null) {
   if (action.actionKind !== 'createEntity' || !result || typeof result !== 'object') return;
-  const entity = result.created || (!result.owner ? (result.entity || result) : null);
+  const mapped = mappedMutationItems(result);
+  const entity = mapped
+    ? (mapped.length === 1 ? mapped[0] : null)
+    : result.created || (!result.owner ? (result.entity || result) : null);
   const entityType = action.relationMutation?.targetType || action.entityType;
   const route = detailRouteForEntity({
     entity,

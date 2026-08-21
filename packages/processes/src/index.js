@@ -59,7 +59,8 @@ export {
 export {
   applyPatch,
   evaluateEntityPredicate,
-  executeProcessDataNode
+  executeProcessDataNode,
+  executeProcessEffectNode
 } from './evaluator.js';
 export { projectEntityProcessCapabilities } from './capabilities.js';
 export {

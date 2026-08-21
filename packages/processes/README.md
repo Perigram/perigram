@@ -394,6 +394,32 @@ form — while typed entity references compare structurally by their serialized
 operations for execution/migration, but they are not separate authoring
 concepts. Only `effect.*` nodes may persist changes or invoke external work.
 
+Create Entity, Modify Entity, and Change Status use the same type-agnostic
+effect mapper (`executeProcessEffectNode` in `evaluator.js`). It preflights
+every input tree before invoking the runtime adapter: scalar item packets may
+broadcast, list/tree packets must have equal item counts and aligned branch
+paths, a multi-item branch cannot be broadcast across tree branches, and Cross
+matching is rejected for mutations. A preflight failure fails the step and run
+before the first write. Each aligned tuple then makes one authorized service
+call in branch/item order, and the mapped data tree preserves those paths,
+order, and item slots.
+
+When every aligned call succeeds the step output is exactly the historical
+effect result: a single aligned item yields the bare service DTO, and a
+list/tree input yields the bare shape-preserving data tree — no reporting
+envelope is added. When any aligned call fails the step still completes and
+its output becomes `{ result, failures, completedMutations }`: `result` is the
+shape-preserving tree in which each failed slot carries its own
+`{ operation, branchPath, itemIndex, entityRef?, error }` MutationFailure
+record, `failures` is the flat list of those records, and
+`completedMutations` identifies each write that finished (operation, branch
+path, item index, entity ref when known). These calls are not
+collection-atomic: a later failure does not roll back earlier writes or
+prevent subsequent aligned items from being attempted, so earlier completed
+mutations remain applied and are identified through `completedMutations`.
+Hard-delete mapping is deferred until `effect.deleteEntity` exists alongside
+its capability and UI contract.
+
 Ordering, grouping, and windows consume the original item list plus an aligned
 key list produced by Get Field, never hidden raw property paths. Sort takes
 `items` + `keys` (both required) and returns the original items in the aligned

@@ -52,7 +52,13 @@ apply every `entities` output. A created entity enters a list source only when
 it satisfies that source's resolved filters, so a successful procedural action
 is visible without a page reload; the shared entity sync event remains the
 backstop for changes made outside this screen. Successful `createEntity`
-actions additionally navigate to the created entity's detail route.
+actions additionally navigate to the created entity's detail route. A mapped
+mutation response is either a bare shape-preserving data tree (zero failures)
+or a failure-carrying `{ result, failures, completedMutations }` envelope;
+every completed item is applied to matching source state, while failed slots
+hold their MutationFailure record and remain described by the response's
+`failures` list. Navigation occurs only when a mapped create has one completed
+entity, because a collection result has no single detail destination.
 
 ## Overload Registry
 

@@ -1,5 +1,5 @@
 import { createDataPacket, packetValue } from './data-tree.js';
-import { executeProcessDataNode } from './evaluator.js';
+import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 import { resolveCatalogNodePorts } from './node-catalog.js';
 
 export const PROCESS_RUN_STATUSES = Object.freeze(['running', 'waiting', 'succeeded', 'failed', 'cancelled']);
@@ -152,16 +152,28 @@ async function executeOperationalNode({ run, process, node, record, current, ste
   }
   if (record.kind.startsWith('effect.')) {
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
-    const result = await environment.executeEffect({
-      kind: record.kind,
-      record,
-      inputs: Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, packetValue(packet, 'item')])),
-      idempotencyKey: step.idempotencyKey,
-      attempt: step.attempt,
-      run
-    });
+    const mutationKinds = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'];
+    const result = mutationKinds.includes(record.kind)
+      ? await executeProcessEffectNode(record, inputs, (mutationInputs, location) => environment.executeEffect({
+          kind: record.kind,
+          record,
+          inputs: mutationInputs,
+          idempotencyKey: location.single
+            ? step.idempotencyKey
+            : `${step.idempotencyKey}:${location.branchPath.join('.') || 'root'}:${location.itemIndex}`,
+          attempt: step.attempt,
+          run
+        }))
+      : await environment.executeEffect({
+          kind: record.kind,
+          record,
+          inputs: Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, packetValue(packet, 'item')])),
+          idempotencyKey: step.idempotencyKey,
+          attempt: step.attempt,
+          run
+        });
     step.output = structuredClone(result);
-    const outputValues = await effectOutputValues(node.id, record, result, environment);
+    const outputValues = await effectOutputValues(node.id, record, effectOutputResult(result), environment);
     enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {
       ...current,
       values: {
@@ -244,6 +256,13 @@ async function executeOperationalNode({ run, process, node, record, current, ste
     return;
   }
   throw new Error(`Token reached non-operational node ${record.kind}`);
+}
+
+function effectOutputResult(result) {
+  // A failure-carrying mapped mutation wraps its shape-preserving result tree;
+  // downstream data outputs consume the tree, not the reporting envelope.
+  if (result && Array.isArray(result.failures) && result.result) return result.result;
+  return result;
 }
 
 async function effectOutputValues(nodeId, record, result, environment) {
