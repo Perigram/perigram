@@ -1402,15 +1402,35 @@ One bullet closed 2026-08-19 (workflow compilation preserves all authored v2
 regions/contracts). Verdict on record: a single topology-aware mutation effect
 boundary — status and delete effects declare their own item/list/tree mapping.
 
-- [ ] Verify initial status on Create and workflow transitions on existing
+- [x] Verify initial status on Create and workflow transitions on existing
   entities across the authored regions now preserved by the compiler fix.
-- [ ] Decide and implement archive modeling through a domain workflow
+- [x] Decide and implement archive modeling through a domain workflow
   state/intent where that is the honest contract.
-- [ ] Gate Delete Entity on process capabilities and domain delete contracts;
+- [x] Gate Delete Entity on process capabilities and domain delete contracts;
   implement `effect.deleteEntity` per the Item/list/tree verdict only for
   capable entity types.
-- [ ] Test multi-region status changes, evidence-required transitions, and
+- [x] Test multi-region status changes, evidence-required transitions, and
   item/list/tree status/delete inputs.
+
+#### Agent Notes — 2026-08-21
+
+Correction complete. Create initial-status writes preserve every authored
+region initial while replacing the primary region, and Change Status now
+compiles and forwards region/path scope plus metadata and lifecycle evidence,
+returning the updated entity DTO. Archive is an explicit mapped effect: it uses
+the domain's named archive intent when declared (notably process definitions)
+and otherwise transitions to the domain `ARCHIVED` state. Hard deletion is an
+admin-only manual mapped effect exposed only when the canonical capability
+projection combines `operations.delete` with a registered runtime delete
+binding; one `processDelete(id, auth)` registry adapter translates the existing
+feature service signatures.
+
+Generated process surfaces no longer infer delete controls from domain support
+and grants. They render only an authorized compiled delete action, confirm it,
+and execute it through the active process. Shared mapper coverage pins status,
+archive, and delete item/list/branched-tree topology; compiler, runtime, status
+engine, capability-denial, archive-intent, lifecycle-evidence, and generated
+action tests cover the remaining cases.
 
 ### Correction: P1 — generated interface follow-through
 

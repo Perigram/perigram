@@ -27,8 +27,11 @@ should call `getAppRegistry()`.
   derived from `createModes`, the intersection of the domain-declared
   construction modes and the registered `constructionHandlers` for that entity;
   it is never inferred from the presence of a service `create` method.
-  `processUpdate` mirrors `service.processUpdate`, `delete` mirrors
-  `service.remove`, and `archive` mirrors a domain workflow `ARCHIVED` state.
+  `processUpdate` mirrors `service.processUpdate`; hard-delete-capable services
+  expose one `processDelete(id, auth)` adapter that translates the canonical
+  process context into the feature service's existing remove signature. The
+  `delete` capability requires that adapter, while `archive` requires a domain
+  workflow `ARCHIVED` state and runtime archive binding.
   Each declared construction mode is bound to a named handler on the entity's
   `constructionHandlers` map (`genericCreate` maps to `service.create`, typed
   modes to their named constructor). Every entity service must declare the

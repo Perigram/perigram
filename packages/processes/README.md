@@ -410,7 +410,7 @@ form — while typed entity references compare structurally by their serialized
 operations for execution/migration, but they are not separate authoring
 concepts. Only `effect.*` nodes may persist changes or invoke external work.
 
-Create Entity, Modify Entity, and Change Status use the same type-agnostic
+Create Entity, Modify Entity, Change Status, Archive Entity, and Delete Entity use the same type-agnostic
 effect mapper (`executeProcessEffectNode` in `evaluator.js`). It preflights
 every input tree before invoking the runtime adapter: scalar item packets may
 broadcast, list/tree packets must have equal item counts and aligned branch
@@ -440,8 +440,15 @@ path, item index, entity ref when known). These calls are not
 collection-atomic: a later failure does not roll back earlier writes or
 prevent subsequent aligned items from being attempted, so earlier completed
 mutations remain applied and are identified through `completedMutations`.
-Hard-delete mapping is deferred until `effect.deleteEntity` exists alongside
-its capability and UI contract.
+Change Status carries optional region, path, metadata, and lifecycle evidence to
+the workflow engine and emits the updated entity DTO rather than the transition
+wrapper. Archive Entity resolves to the domain's named archive intent when one
+exists, otherwise to its `ARCHIVED` transition. Delete Entity is available only
+when the canonical capability projection combines `operations.delete` with a
+registered runtime `processDelete` adapter. Archive and delete retain the same
+Item/List/Tree topology and per-slot failure contract as the other mutations.
+Manual hard deletion compiles as an admin action; generated surfaces render it
+only from the current user's action manifest and require confirmation.
 Each successful Create call publishes one typed `created` invalidation only
 after construction, authored block application, and initial-status persistence
 have all succeeded. Publication does not alter the shape-preserving effect
