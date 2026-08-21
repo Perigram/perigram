@@ -429,6 +429,23 @@ mutations remain applied and are identified through `completedMutations`.
 Hard-delete mapping is deferred until `effect.deleteEntity` exists alongside
 its capability and UI contract.
 
+Collection construction has one fixed-arity constructor. Make List
+(`collection.makeList`) exposes exactly four optional item sockets
+(`item1`–`item4`, `MAKE_LIST_INPUTS` in `node-catalog.js`), each accepting at
+most one wire like any single-value socket; a fifth independent value needs a
+second Make List or an upstream Concat. Wired and defaulted sockets are
+consumed in socket order, unwired sockets are skipped, and a fully
+unconnected Make List evaluates to the empty list, so the constructor never
+fails on missing inputs. Concat (`collection.concat`) stays the two-list
+join: it retains element type, branch topology, and order, and an empty side
+contributes nothing. Collect Array (`collection.packArray`) and Expand Array
+(`collection.unpackArray`) remain the explicit persisted-array boundary —
+packing one branch into one stored array value and expanding it back —
+including the empty array; arbitrary JSON text is never treated as a typed
+array. Element-type compatibility is enforced at the wire: connecting a
+source whose type does not match the constructor's element type is rejected
+by edge validation rather than coerced.
+
 Ordering, grouping, and windows consume the original item list plus an aligned
 key list produced by Get Field, never hidden raw property paths. Sort takes
 `items` + `keys` (both required) and returns the original items in the aligned

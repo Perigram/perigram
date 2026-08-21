@@ -472,17 +472,44 @@ Group By.
 
 ### Collection construction
 
-- [ ] Expose Make List only where authors need to combine several independent
+- [x] Expose Make List only where authors need to combine several independent
   item values into one data-tree list. Its number of inputs must be explicit
   and stable; do not permit several wires into an ordinary single-value socket.
-- [ ] Keep Concat for joining existing lists, and verify it retains item type,
+- [x] Keep Concat for joining existing lists, and verify it retains item type,
   branch topology, and order.
-- [ ] Keep Collect Array/Expand Array as the explicit persisted-array boundary.
+- [x] Keep Collect Array/Expand Array as the explicit persisted-array boundary.
   Add array/map value-type authoring where a canonical block field or command
   input actually declares those types; do not treat arbitrary JSON text as a
   typed array.
-- [ ] Test construction of relation arrays, attachment arrays, command
+- [x] Test construction of relation arrays, attachment arrays, command
   entity-list inputs, empty lists, and mixed incompatible element types.
+
+#### Agent Notes — 2026-08-21
+
+Implemented the recorded verdict (run 2026-08-19): Make List is a fixed
+input-count constructor with exactly four optional item sockets
+(`item1`–`item4`, exported as `MAKE_LIST_INPUTS` from
+`packages/processes/src/node-catalog.js`), each a non-multiple single-value
+socket so connection validation rejects a second wire like any other
+single-value input. The node now appears first in the designer palette's
+Lists/trees group (`designer.js`), the catalog emits the four item sockets
+plus one list output (`node-catalog.js`), the evaluator consumes connected
+and authored-fallback sockets in socket order via `solveDataTrees` and a
+fully unconnected Make List evaluates to the empty list (`evaluator.js`,
+`orchestration.js` inputless-evaluation allowance), and connection inference
+treats the four sockets as generic-type drivers like the former `value`
+socket (`useProcessDesignerConnectionInference.js`). The inspector needed no
+change: `ProcessNode.vue` renders catalog-resolved ports and the generic
+inline fallback editor already covers optional primitive sockets. Concat,
+Collect Array, and Expand Array were not changed; their behavior is pinned by
+tests instead — Concat order/branch-topology/empty-side joins and Collect/
+Expand round-trip including the empty array and non-array rejection
+(`evaluator.spec.js`), plus Concat's two-list catalog contract
+(`node-catalog.spec.js`). Construction coverage added: relation arrays and
+attachment arrays (Make List → Collect Array → Compose Block relations/
+attachments), command entity-list input arrays, empty lists, and mixed
+incompatible element types rejected at edge validation
+(`v4-validation.spec.js`), plus the one-wire-per-socket accept/reject pair.
 
 ## P0 — complete canonical-block CRUD
 
@@ -1233,10 +1260,10 @@ Verdict on record (run 2026-08-19): Make List gets a fixed input-count
 contract — 4 optional item sockets, at most one wire each; Concat, Collect
 Array, and Expand Array stay as they are.
 
-- [ ] Implement the Make List fixed-socket contract (catalog, designer palette,
+- [x] Implement the Make List fixed-socket contract (catalog, designer palette,
   inspector) if not already matching; verify Concat/Collect/Expand behavior
   with tests rather than changes.
-- [ ] Test relation arrays, attachment arrays, command entity-list inputs,
+- [x] Test relation arrays, attachment arrays, command entity-list inputs,
   empty lists, and mixed incompatible element types.
 
 ### Correction: Decompose and read

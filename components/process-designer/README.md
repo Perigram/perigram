@@ -51,7 +51,9 @@ The palette has three non-overlapping authoring concerns.
 - **Values** contains one typed value input and one operation-switching node
   each for logic/comparison, text, math, and date-time work.
 - **Lists and trees** contains branch-local list operations and explicit tree
-  transforms. Sort Items and Remove Duplicates consume the original item list
+  transforms. Make List is the fixed-arity constructor: exactly four optional
+  item sockets, one wire each, consumed in socket order, and an empty list
+  when nothing is wired. Sort Items and Remove Duplicates consume the original item list
   plus an aligned key list from Get Field; Sort's direction is one inline
   `asc`/`desc` selector, and Remove Duplicates' key list is optional (item
   equality otherwise). Group By consumes the same items-plus-keys pair and
