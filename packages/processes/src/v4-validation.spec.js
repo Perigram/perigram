@@ -588,6 +588,87 @@ describe('process v4 validation', () => {
     expect(result.errors).toContain('Process node node cannot change project: entity has no status workflow');
   });
 
+  it.each([
+    ['effect.archiveEntity', 'archive'],
+    ['effect.deleteEntity', 'delete']
+  ])('rejects %s when the canonical runtime capability is denied', (kind, verb) => {
+    const result = validateProcessDefinition(definition({
+      kind,
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: kind === 'effect.deleteEntity' ? 'admin' : 'write', grants: [] }
+    }), domain, { capabilities: { project: { [verb]: false } } });
+
+    expect(result.errors).toContain(`Process node node cannot ${verb} project: entity service lacks ${verb} support`);
+  });
+
+  it('derives hard deletion as an admin-only manual compiled action', () => {
+    const deleteDefinition = definition({
+      kind: 'effect.deleteEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: 'admin', grants: [] }
+    });
+    const normalized = normalizeProcessDefinition(deleteDefinition, {
+      ...domain,
+      entities: [{ ...domain.entities[0], operations: { delete: true } }]
+    });
+
+    expect(normalized.actions.node).toMatchObject({
+      actionKind: 'deleteEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: 'admin' }
+    });
+    const denied = validateProcessDefinition(definition({
+      kind: 'effect.deleteEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: 'write', grants: [] }
+    }), domain);
+    expect(denied.errors).toContain('Action node must use admin access for hard deletion');
+
+    const automatic = validateProcessDefinition(definition({
+      kind: 'effect.deleteEntity',
+      entityType: 'project',
+      trigger: { mode: 'automatic' },
+      access: { level: 'admin', grants: [] }
+    }), domain);
+    expect(automatic.errors).toContain('Action node hard deletion must be manual');
+  });
+
+  it('compiles status scope and the domain archive intent into mutation records', () => {
+    const scopedStatus = normalizeProcessDefinition(definition({
+      kind: 'effect.changeStatus',
+      entityType: 'project',
+      region: 'quality',
+      path: ['review', 'approved'],
+      trigger: { mode: 'manual' },
+      access: { level: 'write', grants: [] }
+    }), domain);
+    expect(scopedStatus.processNodes.node).toMatchObject({ region: 'quality', path: ['review', 'approved'] });
+
+    const archived = normalizeProcessDefinition(definition({
+      kind: 'effect.archiveEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: 'write', grants: [] }
+    }), {
+      ...domain,
+      workflows: {
+        project: {
+          regions: {
+            main: {
+              states: { DRAFT: {}, ARCHIVED: {} },
+              transitions: [{ from: 'DRAFT', to: 'ARCHIVED', intent: 'archiveProject' }]
+            }
+          }
+        }
+      }
+    });
+    expect(archived.processNodes.node.archiveIntent).toBe('archiveProject');
+  });
+
   it('does not enforce capabilities when none are supplied', () => {
     const result = validateProcessDefinition(definition({
       kind: 'effect.createEntity',

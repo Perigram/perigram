@@ -152,7 +152,7 @@ async function executeOperationalNode({ run, process, node, record, current, ste
   }
   if (record.kind.startsWith('effect.')) {
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
-    const mutationKinds = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'];
+    const mutationKinds = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'];
     const result = mutationKinds.includes(record.kind)
       ? await executeProcessEffectNode(record, inputs, (mutationInputs, location) => environment.executeEffect({
           kind: record.kind,

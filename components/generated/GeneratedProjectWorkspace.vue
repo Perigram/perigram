@@ -47,14 +47,6 @@
               <template #default="{ node }">
                 <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden" data-explorer-entity>
                   <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0 flex-1" />
-                  <EntityActionsPopover v-if="explorerEntityCanDelete(node.data.item)">
-                    <GeneratedDeleteButton
-                      :entity="node.data.item.entity"
-                      :entity-type="node.data.item.type"
-                      menu-item
-                      @deleted="handleExplorerEntityDeleted(node.data.item)"
-                    />
-                  </EntityActionsPopover>
                 </div>
                 <div v-else class="flex min-w-0 flex-1 items-center gap-2">
                   <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
@@ -138,10 +130,8 @@ import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import EntitySelect from '~/components/shared/EntitySelect.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedProjectActionPalette from '~/components/generated/GeneratedProjectActionPalette.vue';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
@@ -153,7 +143,6 @@ import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
-import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import {
@@ -459,40 +448,6 @@ function explorerEntityNode(item, prefix = '') {
       ...openedPagesForEntity(item).map(pageNode)
     ]
   };
-}
-
-function explorerEntityCanDelete(item) {
-  return item?.type !== 'project' && canDeleteGeneratedEntity({
-    authStore,
-    domainUi,
-    entity: item?.entity,
-    entityType: item?.type
-  });
-}
-
-function handleExplorerEntityDeleted(item) {
-  const removedKeys = new Set([
-    item.key,
-    ...openedPageRefs.value
-      .filter(page => page.entityType === item.type && page.entityId === entityId(item.entity))
-      .map(page => page.key)
-  ]);
-  openedEntityRefs.value = openedEntityRefs.value.filter(reference => reference.key !== item.key);
-  openedEntityItems.value = openedEntityItems.value.filter(candidate => candidate.key !== item.key);
-  linkedEntityItems.value = linkedEntityItems.value.filter(candidate => candidate.key !== item.key);
-  linkedChildItems.value = linkedChildItems.value.filter(candidate => candidate.key !== item.key);
-  openedPageRefs.value = openedPageRefs.value.filter(page => !removedKeys.has(page.key));
-  let nextTree = paneTree.value;
-  for (const pane of workspaceLeaves(nextTree)) {
-    const tabKeys = (pane.tabKeys || []).filter(key => !removedKeys.has(key));
-    const selectionKey = removedKeys.has(pane.selectionKey)
-      ? (tabKeys[tabKeys.length - 1] || '')
-      : pane.selectionKey;
-    nextTree = updateWorkspaceLeaf(nextTree, pane.id, { tabKeys, selectionKey });
-  }
-  paneTree.value = nextTree;
-  syncActiveSelection();
-  emit('refresh');
 }
 
 function selectByKey(key) {

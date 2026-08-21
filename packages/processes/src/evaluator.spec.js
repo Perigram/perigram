@@ -3,8 +3,9 @@ import { createDataPacket } from './data-tree.js';
 import { applyPatch, evaluateEntityPredicate, executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 
 describe('process v4 data execution', () => {
-  it('maps one mutation contract over item, list, and branched-tree inputs', async () => {
-    const record = { kind: 'effect.updateEntity', entityType: 'project' };
+  it.each(['effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'])(
+    'maps %s over item, list, and branched-tree inputs', async kind => {
+    const record = { kind, entityType: 'project' };
     const invoke = vi.fn(async inputs => ({ ...inputs.entity, identity: inputs.identity }));
 
     const item = await executeProcessEffectNode(record, {

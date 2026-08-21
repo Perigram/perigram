@@ -12,10 +12,8 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
 import { generatedDetailActionIds } from '~/components/generated/detail-screen-actions.js';
-import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
@@ -130,7 +128,6 @@ provide('entityInlineTypeLabel', computed(() => contract.value?.labelKey ? t(con
 provide('entityInlineActionIds', computed(() => popupActionIds.value));
 provide('entityInlineActionEntity', resolved);
 provide('entityInlineActionEntityType', generatedEntityType);
-provide('entityInlineCanDelete', computed(() => popupCanDelete.value));
 provide('entityInlineShowCassetteDesigner', computed(() => popupShowCassetteDesigner.value));
 provide('entityInlineExecuteAction', executePopupAction);
 const toneStyle = computed(() => entityToneStyle(props.type));
@@ -178,17 +175,10 @@ const popupActions = computed(() => {
     .map(action => [action.actionId, action])).values());
 });
 const popupActionIds = computed(() => popupActions.value.map(action => action.actionId));
-const popupCanDelete = computed(() => canDeleteGeneratedEntity({
-  authStore,
-  domainUi,
-  entity: resolved.value,
-  entityType: generatedEntityType.value
-}));
 const popupShowCassetteDesigner = computed(() => generatedEntityType.value === 'cassette');
 const popupHasActions = computed(() => (
   popupShowCassetteDesigner.value
   || popupActionIds.value.length
-  || popupCanDelete.value
 ));
 
 watch(
@@ -473,12 +463,6 @@ function tonePalette(role) {
               :key="actionId"
               :action-id="actionId"
               @execute="executePopupAction"
-            />
-            <GeneratedDeleteButton
-              v-if="popupCanDelete"
-              :entity="resolved"
-              :entity-type="generatedEntityType"
-              @deleted="closeCompactPopup"
             />
             <Button
               v-if="detailRoute"

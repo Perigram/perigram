@@ -43,6 +43,9 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('createEntity', 'effect.createEntity'),
       paletteItem('modifyEntity', 'effect.updateEntity'),
+      paletteItem('changeStatus', 'effect.changeStatus'),
+      paletteItem('archiveEntity', 'effect.archiveEntity'),
+      paletteItem('deleteEntity', 'effect.deleteEntity'),
       paletteItem('runService', 'effect.runCommand'),
       definitionPaletteItem('defineStatus', 'statusDefinition'),
       paletteItem('currentEntity', 'read.currentEntity'),
@@ -184,25 +187,37 @@ export function createProcessDesignerContract(domain = {}, capabilities = null) 
     .map(entityOption);
 
   const updateEntityOptions = entities
-    .filter(entity => (lookupEntityContract(domain.fieldSchemas, entity.type) || [])
-      .some(schema => schema.writable === true))
+    .filter(entity => capabilities
+      ? Boolean(capabilityFor(entity.type)?.processUpdate)
+      : (lookupEntityContract(domain.fieldSchemas, entity.type) || []).some(schema => schema.writable === true))
     .map(entityOption);
 
   const changeStatusOptions = entities
-    .filter(entity => Boolean((domain.workflows || {})[entity.type]))
+    .filter(entity => capabilities
+      ? Boolean(capabilityFor(entity.type)?.statusMutation)
+      : Boolean((domain.workflows || {})[entity.type]))
     .map(entityOption);
 
   const deleteEntityOptions = entities
-    .filter(entity => entity.operations?.delete === true)
+    .filter(entity => capabilities && Boolean(capabilityFor(entity.type)?.delete))
     .map(entityOption);
 
   const archivableEntityOptions = entities
-    .filter(entity => workflowArchived((domain.workflows || {})[entity.type]))
+    .filter(entity => capabilities && Boolean(capabilityFor(entity.type)?.archive))
     .map(entityOption);
+
+  const enabledPaletteGroups = paletteGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => (
+      item.kind !== 'effect.deleteEntity' || deleteEntityOptions.length > 0
+    ) && (
+      item.kind !== 'effect.archiveEntity' || archivableEntityOptions.length > 0
+    ))
+  }));
 
   return {
     domain,
-    paletteGroups,
+    paletteGroups: enabledPaletteGroups,
     blocks: CANONICAL_ENTITY_BLOCKS.map(id => ({ id, label: id, ...BLOCK_PRESENTATION[id] })),
     entityOptions: entities.map(entityOption),
     listableEntityOptions,
@@ -249,12 +264,6 @@ function lookupEntityContract(contracts = {}, entityType = '') {
   const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
   const snake = key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
   return contracts?.[key] || contracts?.[camel] || contracts?.[snake] || null;
-}
-
-function workflowArchived(workflow = null) {
-  return Boolean(workflow && Object.values(workflow.regions || {}).some(region => (
-    region.states && Object.prototype.hasOwnProperty.call(region.states, 'ARCHIVED')
-  )));
 }
 
 function allFieldPaths(policy = {}) {

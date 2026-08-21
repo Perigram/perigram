@@ -172,6 +172,14 @@ operations before Modify Block receives the replacement value, then persisted
 through the target feature's `processUpdate()` contract. Manual Update
 effects compile into the normal generated action manifest; Relations data
 connections without an effect remain non-executable dataflow.
+Change Status forwards authored region/path scope and lifecycle evidence to the
+status runtime and returns the updated entity DTO. Archive uses the compiled
+domain archive intent or `ARCHIVED` state, while hard deletion delegates to the
+registered `processDelete(id, auth)` adapter only after domain and runtime
+capability checks. Delete actions must be manual, admin-scoped, and present in
+the caller's compiled action manifest; collection topology and failure behavior
+remain owned by the shared process mutation mapper documented in
+[`@cutkit/processes`](../../../packages/processes/README.md).
 Immediately before a compiled Create constructor or Modify persistence call,
 the effect adapter normalizes each connected Relations replacement against the
 current graph-declared owner/key/target/cardinality contract. It resolves every

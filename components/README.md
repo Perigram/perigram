@@ -550,11 +550,12 @@ Row-bound generated actions pass the concrete row entity plus collection context
 to the action runtime; command actions resolve the entity key from the action
 input contract, so a `solveNesting` button on a queue card submits
 `entities.queue` for that exact queue.
-Generated collection, home, and detail surfaces also render the standard
-generated delete icon when the active process grants `delete`/admin access for
-the exact entity and the domain UI endpoint has a canonical single-entity route.
-The delete control calls the same `useEntity(...).remove()` boundary as other
-entity UI and refreshes the generated screen after success.
+Generated collection, home, detail, and inline surfaces render hard deletion
+only as a compiled manual `deleteEntity` action present in the current user's
+action manifest. The action is capability-gated during authoring and activation,
+requires admin access, executes through the process mutation boundary, asks for
+confirmation, and refreshes the generated screen after success. Generated
+surfaces never synthesize delete visibility from domain declarations and grants.
 Parent-bound create actions render once in the matching generated collection
 toolbar only when at least one visible row can satisfy the parent contract; the
 input dialog then asks for that parent entity and filters the selector to rows
@@ -991,8 +992,10 @@ Artifact-template management lives at `pages/assets/templates.vue` and uses the
 `ArtifactTemplateCard` entity surface. `ArtifactLayoutEditor` edits normalized
 template and generated-artifact items and emits data only; owning surfaces call
 the canonical revision-backed APIs. Template and artifact deletion uses
-`GeneratedDeleteButton`, so visibility follows entity capability plus active
-process access rather than local role checks.
+`GeneratedDeleteButton` on these static management surfaces, so visibility
+follows the domain delete contract and ordinary entity permission grants. This
+component is not used by generated process surfaces, whose deletion contract is
+the compiled manual action described above.
 
 - User-visible labels, headings, dialog headers, toast summaries/details, placeholders, and accessible labels must use `$t(...)` in templates or `t(...)` from `useI18n()` in script.
 - Keep `i18n/locales/en.json` and `i18n/locales/ru.json` structurally aligned whenever adding keys.

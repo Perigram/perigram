@@ -128,6 +128,11 @@ fields win, but missing severity/icon/color are backfilled from the resolved
 workflow state so generated screens and shared entity cards render the actual
 process-authored status badge instead of falling back to the global unknown
 status style.
+Process Change Status effects pass authored region/path scope plus metadata and
+lifecycle evidence through this same transition boundary and return its updated
+entity DTO. Archive effects use the compiled domain archive intent when one is
+declared, otherwise the `ARCHIVED` target state; hard deletion does not pass
+through the status engine.
 Entity types without a registered workflow return an empty action list from the
 actions endpoint; transitions for those types still remain invalid.
 Action lookup runs only `phase: 'before'` hooks and does not write status events

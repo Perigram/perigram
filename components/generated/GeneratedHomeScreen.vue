@@ -69,7 +69,7 @@
               suppress-child-summaries
               relation-variant="compact"
             />
-            <template v-if="hasEditorAction(section.source.entityType) || entityActionsFor(section, entity).length || entityCanDelete(section, entity) || detailRouteFor(section, entity)" #footer>
+            <template v-if="hasEditorAction(section.source.entityType) || entityActionsFor(section, entity).length || detailRouteFor(section, entity)" #footer>
               <div class="flex flex-wrap justify-end gap-2">
                 <Button
                   v-if="detailRouteFor(section, entity)"
@@ -92,11 +92,6 @@
                   :action-id="action.actionId"
                   @execute="selectedAction => $emit('execute-action', selectedAction, entity)"
                 />
-                <GeneratedDeleteButton
-                  :entity="entity"
-                  :entity-type="section.source.entityType"
-                  @deleted="$emit('refresh')"
-                />
               </div>
             </template>
           </EntityCard>
@@ -116,12 +111,9 @@ import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
-import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 
@@ -133,7 +125,6 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
-const domainUi = useCutkitDomainUi();
 const hasEditorAction = entityHasEditorAction;
 const editorActionFor = entityEditorActionFor;
 const { t, te } = useI18n();
@@ -164,15 +155,6 @@ function entityActionsFor(section = {}, entity = {}) {
     !parentBoundCreateAppliesToEntityType(action, section.source.entityType)
     && actionAppliesToEntity(action, entity, section.source.entityType)
   ));
-}
-
-function entityCanDelete(section = {}, entity = {}) {
-  return canDeleteGeneratedEntity({
-    authStore,
-    domainUi,
-    entity,
-    entityType: section.source.entityType
-  });
 }
 
 function resolvedRegionActions(region = {}) {

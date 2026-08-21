@@ -75,6 +75,14 @@ describe('application entity service bindings', () => {
     }
   });
 
+  it('exposes one canonical processDelete adapter exactly for hard-delete-capable services', () => {
+    resetAppRegistryForTests();
+    const registry = getAppRegistry();
+    for (const { type, service } of registry.listEntityServices()) {
+      expect(typeof service.processDelete === 'function', type).toBe(service.processCapabilities.delete);
+    }
+  });
+
   it('agrees per mode: designer creatability, compiler acceptance, and runtime handlers', () => {
     resetAppRegistryForTests();
     const registry = getAppRegistry();

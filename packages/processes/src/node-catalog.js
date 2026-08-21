@@ -85,6 +85,8 @@ const definitions = [
   effect('effect.runProducer', 'runProducer'),
   effect('effect.updateEntity', 'updateEntity'),
   effect('effect.changeStatus', 'changeStatus'),
+  effect('effect.archiveEntity', 'archiveEntity'),
+  effect('effect.deleteEntity', 'deleteEntity'),
   effect('effect.runCommand', 'runCommand'),
   effect('effect.sendEntity', 'sendEntity'),
   effect('effect.generateAttachment', 'generateAttachment'),
@@ -630,7 +632,7 @@ function effectInputs(kind, types) {
     ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
     label: input.label || input.id
   }));
-  // Mapped mutation sockets (Create, Modify, Status) declare List consumption:
+  // Mapped mutation sockets declare List consumption:
   // the shared effect mapper aligns item, list, and tree sources per item, and
   // a single item source remains valid as one broadcast item.
   if (kind === 'effect.createEntity' && types.constructionMode !== 'genericCreate') {
@@ -659,8 +661,18 @@ function effectInputs(kind, types) {
   if (kind === 'effect.changeStatus') return [
     socket('entity', types.entityRef, DATA, true, 'list'),
     socket('status', processType('status', { entityType: types.entity.entityType }), DATA, true, 'list'),
-    socket('changes', types.patch, DATA, false, 'list')
+    socket('changes', types.patch, DATA, false, 'list'),
+    socket('region', processType('string'), DATA, false, 'list'),
+    socket('path', processType('array', { itemType: processType('string') }), DATA, false, 'list'),
+    socket('metadata', processType('json'), DATA, false, 'list'),
+    socket('lifecycle', processType('json'), DATA, false, 'list')
   ];
+  if (kind === 'effect.archiveEntity') return [
+    socket('entity', types.entityRef, DATA, true, 'list'),
+    socket('metadata', processType('json'), DATA, false, 'list'),
+    socket('lifecycle', processType('json'), DATA, false, 'list')
+  ];
+  if (kind === 'effect.deleteEntity') return [socket('entity', types.entityRef, DATA, true, 'list')];
   if (kind === 'effect.sendEntity') return [socket('entity', types.entityRef, DATA, true)];
   if (kind === 'effect.generateAttachment') return [socket('entity', types.entityRef, DATA, true), socket('parameters', processType('record'))];
   return [];
@@ -756,7 +768,7 @@ function constructionInputs(record = {}) {
 }
 
 function effectResultType(kind, record) {
-  if (['effect.createEntity', 'effect.runProducer', 'effect.updateEntity', 'effect.changeStatus'].includes(kind)) {
+  if (['effect.createEntity', 'effect.runProducer', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity'].includes(kind)) {
     return processType('entity', { entityType: record.entityType, nullable: false });
   }
   if (kind === 'effect.generateAttachment') {

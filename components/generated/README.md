@@ -223,8 +223,12 @@ same overload from the user's active screen manifest. The resulting frame is
 flush to the app boundary and body scrolling is disabled. Explorer, editor, and
 file panes own their scrolling independently.
 
-`GeneratedActionButton`, `GeneratedDeleteButton`, and
-`GeneratedCassetteDesignerAction` render in the active project tab body.
+`GeneratedActionButton` and `GeneratedCassetteDesignerAction` render in the
+active project tab body. Generated hard deletion is a manual compiled
+`deleteEntity` action rendered through `GeneratedActionButton`; `GeneratedScreen`
+owns its confirmation and process-action execution. `GeneratedDeleteButton` is
+reserved for static management surfaces and must not be added to generated
+process screens.
 Regular entity pages and cards may use their menu-item presentation inside
 entity ellipsis menus; presentation does not change action resolution or access.
 Generated relation-link actions render with a link icon and the target entity
@@ -238,10 +242,9 @@ refresh behavior come from the compiled relation-action contract; editors must
 not match entity types or relation keys locally.
 Generated action placement is concern-based and has one owner: create actions
 belong to collection/region surfaces, relation mutations to relation-aware
-entity surfaces, and entity operations to the opened entity surface. Project
-entity deletion is a management operation owned by the Explorer row ellipsis;
-it is confirmed before execution, removed from the tab body, and closes every
-tab/page reference to the deleted entity after success.
+entity surfaces, and entity operations to the opened entity surface. Generated
+deletion is owned by the compiled action placement for the entity; it is never
+synthesized from domain operations or permission grants.
 
 The Project Explorer projects declared containment within compiled collection
 folders. Parent entities remain selectable files and become expandable when

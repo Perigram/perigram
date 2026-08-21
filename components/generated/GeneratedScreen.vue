@@ -267,6 +267,7 @@ import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Select from '~/components/shared/EntitySelect.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
@@ -302,6 +303,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const confirm = useConfirm();
 const { t, te } = useI18n();
 const authStore = useAuthStore();
 const route = useRoute();
@@ -369,6 +371,15 @@ async function executeAction(action, entity = null, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
+    if (action.actionKind === 'deleteEntity') {
+      confirm.require({
+        message: t('messages.confirmDelete'),
+        header: t('common.confirmation'),
+        icon: 'pi pi-exclamation-triangle',
+        accept: () => postAction(action, entity, context.data || {}, context)
+      });
+      return;
+    }
     const artifactCreator = artifactCreatorForAction(action);
     if (artifactCreator) {
       pendingAction.value = action;
@@ -477,7 +488,8 @@ async function postAction(action, entity = null, data = {}, context = {}) {
         parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }
       }
     });
-    applyActionResult(action, result);
+    if (action.actionKind === 'deleteEntity') await load();
+    else applyActionResult(action, result);
     await openCreatedEntity(action, result);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
   } catch (err) {

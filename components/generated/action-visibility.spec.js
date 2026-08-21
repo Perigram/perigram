@@ -104,5 +104,8 @@ describe('generated action visibility', () => {
     expect(isGeneratedSurfaceAction({ actionKind: 'obsolete' })).toBe(false);
     expect(isGeneratedSurfaceAction({ actionKind: 'runCommand' })).toBe(true);
     expect(isGeneratedSurfaceAction({ actionKind: 'updateEntity' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'archiveEntity' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'deleteEntity' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'deleteEntity', trigger: { mode: 'automatic' } })).toBe(false);
   });
 });

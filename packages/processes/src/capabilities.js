@@ -4,6 +4,14 @@ function workflowArchived(workflow = null) {
   )));
 }
 
+function workflowArchiveIntent(workflow = null) {
+  for (const region of Object.values(workflow?.regions || {})) {
+    const transition = (region.transitions || []).find(item => item.to === 'ARCHIVED' && item.intent);
+    if (transition) return transition.intent;
+  }
+  return null;
+}
+
 function entityFieldSchemas(domain = {}, entityType = '') {
   const key = String(entityType || '');
   const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
@@ -40,6 +48,7 @@ export function projectEntityProcessCapabilities(domain = {}, serviceBindings = 
       processUpdate: Boolean(binding.processUpdate),
       delete: Boolean(entity.operations?.delete) && Boolean(binding.delete),
       archive: Boolean(binding.archive) && workflowArchived(workflow),
+      archiveIntent: workflowArchiveIntent(workflow),
       statusMutation: Boolean(workflow),
       writableFields: schemas.filter(field => field.writable === true).map(field => field.path),
       constructibleFields: schemas.filter(field => field.constructible !== false).map(field => field.path),
