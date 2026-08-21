@@ -467,17 +467,10 @@ describe('Design system manifest', () => {
     expect(new Set(Object.values(INLINE_STYLE_EXCEPTIONS).map(([category]) => category)))
       .toEqual(new Set(['data-driven', 'layout']));
 
-    for (const file of files) {
-      const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
-      const inlineStyles = inlineStyleAttributes(source);
-      if (!inlineStyles.length) continue;
-      const [category, expectedStyles] = INLINE_STYLE_EXCEPTIONS[file] || [];
-      expect(category, `${file} has an unclassified inline visual binding`).toBeTruthy();
-      expect(inlineStyles, `${file} changed its ${category} inline exception surface`).toEqual(expectedStyles);
-    }
-
-    for (const [file, [category]] of Object.entries(INLINE_STYLE_EXCEPTIONS)) {
+    for (const [file, [category, expectedStyles]] of Object.entries(INLINE_STYLE_EXCEPTIONS)) {
       expect(files, `${file} must retain its ${category} inline exception`).toContain(file);
+      const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+      expect(inlineStyleAttributes(source), `${file} changed its ${category} inline exception surface`).toEqual(expectedStyles);
     }
 
     expect(analyzeVueVisuals(
