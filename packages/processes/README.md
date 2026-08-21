@@ -333,6 +333,15 @@ modes and the registered runtime handlers (`projectEntityProcessCapabilities`):
 Typed constructors such as baked cassette designs or OCCS template creation are
 bound to named handlers at the application registry, not inferred by the
 package.
+The CNC registry-wide Create acceptance matrix covers all 14 creatable entity
+contracts and every declared mode. Generic modes expose their constructible
+canonical blocks rather than duplicate leaf constructor sockets; typed modes
+expose their exact required/defaulted inputs and typed entity constraints, then
+the same allowed blocks and typed initial-status socket. Creator and attachment
+restrictions remain on the normalized construction input consumed by generated
+manual forms. None of these contracts declares `parentEnforcement`: ancestry is
+validated from typed Lineage composition and compiled from actual graph edges,
+while root creation remains an owning-service decision.
 Create and update effects never own leaf mutation fields. Create consumes
 constructible typed blocks plus a dedicated status value. Update consumes an entity,
 connected modified/replacement blocks, and status; only values present in connected
@@ -428,6 +437,10 @@ prevent subsequent aligned items from being attempted, so earlier completed
 mutations remain applied and are identified through `completedMutations`.
 Hard-delete mapping is deferred until `effect.deleteEntity` exists alongside
 its capability and UI contract.
+Each successful Create call publishes one typed `created` invalidation only
+after construction, authored block application, and initial-status persistence
+have all succeeded. Publication does not alter the shape-preserving effect
+result or make a collection mutation atomic.
 
 Collection construction has one fixed-arity constructor. Make List
 (`collection.makeList`) exposes exactly four optional item sockets

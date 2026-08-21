@@ -74,6 +74,11 @@ Legacy helpers such as `requirePermission()` and service-level
 only when the organization has no active process-derived grants for the user.
 Status transition auth preserves `effectivePermissions` so lifecycle access
 compiled from process roles is checked during transition execution as well.
+Manual process execution first rejects an action absent from the caller's
+compiled role assignment. An allowed Create then receives only request-local
+grants for the target feature and constructor source entity types; these grants
+let registered services perform their normal create/read checks and are never
+added to the user's persisted role permissions.
 
 ## Related
 

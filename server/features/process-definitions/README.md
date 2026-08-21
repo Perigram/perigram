@@ -149,6 +149,11 @@ the semantic `data.statusDefinitions` record and writes the same display
 contract at runtime. This keeps existing active process definitions rendering
 the authored severity and icon without requiring an immediate compiled-runtime
 rebuild.
+The successful Create boundary publishes one typed `created` invalidation with
+the created entity type/id after the optional initial status has persisted.
+Constructor, block, or status failures publish nothing. Mapped Create execution
+therefore emits one event per completed tuple while retaining its ordinary
+item/list/tree result topology and partial-failure reporting contract.
 Generic Create receives block-composed data. `identity.name` and
 `identity.slug` are projected to the owning service's `name`/`slug` inputs;
 `data` and `specs` values are projected only where the service has no explicit

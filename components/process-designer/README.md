@@ -43,7 +43,10 @@ The palette has three non-overlapping authoring concerns.
 - Containment is authored through the target entity's `lineage` block. The
   compiler derives the ancestor entity type and lineage key from the connected
   entity socket and emits a compiled Lineage binding; Create
-  Entity does not assign an entity-specific parent or add a parent socket.
+  Entity does not assign an entity-specific parent or add a parent socket. The
+  complete CNC construction registry has no `parentEnforcement` declaration;
+  requiredness belongs to constructor inputs and composed block fields, not to
+  a hidden containment rule.
 - Select Entities is the organization-scoped source for an existing typed
   entity list. Registered commands use the single Run Service operation, whose
   sockets are projected from the selected command's entity, parameter, and
@@ -103,7 +106,11 @@ into the designer contract, so palette availability and mode choices come from
 the same per-mode record the compiler and runtime consume rather than being
 reconstructed from `domain.construction`. The registry contract test proves
 palette availability, compiler validation, registered runtime handlers, and
-effect execution dispatch agree for every entity and construction mode.
+effect execution dispatch agree for every entity and construction mode. Its
+Create matrix also checks all 14 creatable entities for normalized creator and
+attachment constraints, required/default behavior, typed references,
+constructible Lineage/Relations blocks, List-access mutation sockets, and the
+typed initial-status socket.
 
 Runtime-only payload extraction, casts, parsing, nullable removal,
 entity-reference conversion, JSON conversion, predicates, and patch assembly
