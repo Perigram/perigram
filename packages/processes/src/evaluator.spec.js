@@ -520,6 +520,156 @@ describe('process v4 data execution', () => {
     expect(deconstructed.branches[0].items).toEqual([{ identity: { name: 'One' }, attachments }]);
   });
 
+  // Union of the CNC block family (identity, lineage, origin, status,
+  // attachments, data, specs, summary plus auto-appended relations and
+  // provenance) as declared by packages/domain-cnc/src/entities.js.
+  const fullFamilyDomain = {
+    entities: [{
+      type: 'sheet',
+      blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'specs', 'summary', 'relations', 'provenance']
+    }]
+  };
+  const fullFamilyEntity = (name, primary) => ({
+    identity: { name },
+    lineage: { projectId: 'project-1' },
+    origin: { source: 'import' },
+    status: { state: { primary } },
+    attachments: { drawings: [{ kind: 'drawing', id: `att-${name}` }] },
+    data: { note: `note-${name}` },
+    specs: { thickness: 18 },
+    summary: { queueCount: 2 },
+    relations: { library: { type: 'library', id: 'lib-1' } },
+    provenance: { producedBy: { type: 'nesting_run', id: 'run-1' } }
+  });
+  const fullFamilyBlocks = fullFamilyDomain.entities[0].blocks;
+
+  it('preserves item, list, and tree topology reading the full CNC block family', async () => {
+    const first = fullFamilyEntity('One', 'NEW');
+    const second = fullFamilyEntity('Two', 'DONE');
+    const third = fullFamilyEntity('Three', 'NEW');
+    const deconstruct = { kind: 'record.deconstruct', entityType: 'sheet', blocks: fullFamilyBlocks };
+
+    const item = await executeProcessDataNode(
+      deconstruct,
+      { entity: createDataPacket(first) },
+      { domain: fullFamilyDomain }
+    );
+    expect(item.branches[0].items).toEqual([first]);
+
+    const list = await executeProcessDataNode(
+      deconstruct,
+      { entity: createDataPacket([first, second], 'list') },
+      { domain: fullFamilyDomain }
+    );
+    expect(list.branches).toEqual([{ path: [], items: [first, second] }]);
+
+    const treeInput = createDataPacket({ branches: [
+      { path: [2], items: [first, second] },
+      { path: [7], items: [third] }
+    ] }, 'tree');
+    const tree = await executeProcessDataNode(
+      deconstruct,
+      { entity: treeInput },
+      { domain: fullFamilyDomain }
+    );
+    expect(tree.branches).toEqual([
+      { path: [2], items: [first, second] },
+      { path: [7], items: [third] }
+    ]);
+
+    // Every declared family block — including the managed read-only
+    // origin/status/provenance/summary blocks — is readable through Get Block
+    // with the same topology.
+    for (const block of fullFamilyBlocks) {
+      const read = await executeProcessDataNode(
+        { kind: 'record.getBlock', entityType: 'sheet', block },
+        { entity: treeInput },
+        { domain: fullFamilyDomain }
+      );
+      expect(read.branches).toEqual([
+        { path: [2], items: [first[block], second[block]] },
+        { path: [7], items: [third[block]] }
+      ]);
+    }
+
+    // Get Field keeps the same topology over fixed and open blocks.
+    const names = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'identity', path: 'identity.name' },
+      { block: await executeProcessDataNode(
+        { kind: 'record.getBlock', entityType: 'sheet', block: 'identity' },
+        { entity: treeInput },
+        { domain: fullFamilyDomain }
+      ) }
+    );
+    expect(names.branches).toEqual([
+      { path: [2], items: ['One', 'Two'] },
+      { path: [7], items: ['Three'] }
+    ]);
+
+    // Deconstruct's per-block output feeds Get Field on managed blocks.
+    const statusBlocks = await executeProcessDataNode(
+      { id: 'deconstruct', ...deconstruct },
+      { entity: treeInput },
+      { domain: fullFamilyDomain, outputId: 'status' }
+    );
+    const statuses = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'status', path: 'status.state.primary' },
+      { block: statusBlocks }
+    );
+    expect(statuses.branches).toEqual([
+      { path: [2], items: ['NEW', 'DONE'] },
+      { path: [7], items: ['NEW'] }
+    ]);
+  });
+
+  it('round-trips typed attachments through Compose, Deconstruct, Get Block, and Get Field', async () => {
+    const listed = await executeProcessDataNode(
+      { kind: 'collection.makeList' },
+      {
+        item1: createDataPacket({ kind: 'drawing', id: 'att-1' }),
+        item2: createDataPacket({ kind: 'drawing', id: 'att-2' })
+      }
+    );
+    const packed = await executeProcessDataNode(
+      { kind: 'collection.packArray' },
+      { value: listed }
+    );
+    const composed = await executeProcessDataNode({
+      kind: 'record.composeBlock',
+      block: 'attachments',
+      compositionMode: 'attachments',
+      entries: [{ id: 'drawings', key: 'drawings', attachmentKind: 'drawing' }]
+    }, { 'entry:drawings': packed });
+
+    const entityValue = {
+      identity: { name: 'One' },
+      attachments: composed.branches[0].items[0]
+    };
+    const entity = createDataPacket(entityValue);
+
+    const deconstructed = await executeProcessDataNode(
+      { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'sheet', blocks: ['identity', 'attachments'] },
+      { entity },
+      { domain: fullFamilyDomain, outputId: 'attachments' }
+    );
+    const entryList = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'attachments', path: 'attachments.drawings' },
+      { block: deconstructed }
+    );
+    expect(entryList.branches[0].items).toEqual([[{ kind: 'drawing', id: 'att-1' }, { kind: 'drawing', id: 'att-2' }]]);
+
+    const block = await executeProcessDataNode(
+      { kind: 'record.getBlock', entityType: 'sheet', block: 'attachments' },
+      { entity },
+      { domain: fullFamilyDomain }
+    );
+    const entry = await executeProcessDataNode(
+      { kind: 'record.getField', block: 'attachments', path: 'attachments.drawings.1' },
+      { block }
+    );
+    expect(entry.branches[0].items).toEqual([{ kind: 'drawing', id: 'att-2' }]);
+  });
+
   it('composes typed named entries for open data blocks', async () => {
     const composed = await executeProcessDataNode(
       {
