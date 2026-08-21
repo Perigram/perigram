@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { cncDomain, getEntityConstruction } from '~/packages/domain-cnc/src/index.js';
-import { createProcessDesignerContract, projectEntityProcessCapabilities } from '~/packages/processes/src/index.js';
-import { validateProcessDefinition } from '~/packages/processes/src/compiler-core.js';
+import { createProcessDesignerContract, projectEntityProcessCapabilities, resolveCatalogNodePorts } from '~/packages/processes/src/index.js';
+import { normalizeProcessDefinition, validateProcessDefinition } from '~/packages/processes/src/compiler-core.js';
+import { entityBlocks } from '~/packages/processes/src/node-catalog.js';
 import { getAppRegistry, resetAppRegistryForTests } from './app-registry.js';
 import { performDurableEffect } from '~/server/features/process-definitions/service.js';
 import * as warehousesService from '~/server/features/warehouses/service.js';
 import * as cassettesService from '~/server/features/cassettes/service.js';
 import * as librariesService from '~/server/features/libraries/service.js';
+import * as entityEventService from '~/server/features/entity-events/service.js';
 
 function hasArchivedState(workflow = null) {
   return Boolean(workflow && Object.values(workflow.regions || {}).some(region => (
@@ -102,9 +104,86 @@ describe('application entity service bindings', () => {
     }
   });
 
+  it('projects every creatable construction contract into exact Create Entity inputs and blocks', () => {
+    const contracts = Object.entries(cncDomain.construction);
+    expect(contracts).toHaveLength(14);
+
+    for (const [entityType, contract] of contracts) {
+      expect(contract, entityType).not.toHaveProperty('parentEnforcement');
+      const schemas = cncDomain.fieldSchemas[entityType] || [];
+      const blocks = [...new Set([
+        ...schemas.filter(field => field.constructible !== false).map(field => field.block),
+        ...entityBlocks(cncDomain, entityType).filter(block => (
+          cncDomain.blockComposition[block]
+          && !['origin', 'status', 'provenance', 'summary'].includes(block)
+        ))
+      ].filter(Boolean))];
+
+      for (const mode of contract.modes) {
+        const normalized = normalizeProcessDefinition({
+          dataflowVersion: 4,
+          processNodes: {
+            create: {
+              id: 'create',
+              kind: 'effect.createEntity',
+              entityType,
+              construction: { mode },
+              blocks,
+              trigger: { mode: 'manual' }
+            }
+          },
+          graph: { nodes: [{ id: 'create', type: 'processNode', data: { refId: 'create' } }], edges: [] }
+        }, cncDomain);
+        const record = normalized.processNodes.create;
+        const declaredInputs = contract.modeInputs?.[mode] || contract.inputs || [];
+        const ports = resolveCatalogNodePorts(record, { fieldSchemas: schemas }).inputs;
+        const projectedInputs = record.construction.inputs;
+
+        expect(projectedInputs.map(input => input.id), `${entityType}:${mode}`).toEqual(declaredInputs.map(input => input.id));
+        for (const declared of declaredInputs) {
+          const projected = projectedInputs.find(input => input.id === declared.id);
+          expect(projected, `${entityType}:${mode}:${declared.id}`).toMatchObject({
+            id: declared.id,
+            required: Boolean(declared.required),
+            ...(declared.prompt !== undefined ? { prompt: declared.prompt } : {}),
+            ...(declared.accepts ? { accepts: declared.accepts } : {}),
+            ...(declared.attachmentKinds ? { attachmentKinds: declared.attachmentKinds } : {}),
+            ...(declared.creator?.entityType ? { creator: { entityType: declared.creator.entityType } } : {})
+          });
+        }
+
+        const expectedIds = mode === 'genericCreate'
+          ? [...blocks, 'status.state.primary']
+          : [...declaredInputs.map(input => input.id), ...blocks, 'status.state.primary'];
+        expect(ports.map(port => port.id), `${entityType}:${mode}`).toEqual(expectedIds);
+        expect(ports.every(port => port.access === 'list'), `${entityType}:${mode}`).toBe(true);
+        expect(ports.at(-1), `${entityType}:${mode}:status`).toMatchObject({
+          id: 'status.state.primary',
+          required: false,
+          type: { base: 'status', entityType }
+        });
+        for (const declared of mode === 'genericCreate'
+          ? []
+          : declaredInputs.filter(input => ['entity', 'entityList'].includes(input.type))) {
+          const port = ports.find(input => input.id === declared.id);
+          if (declared.type === 'entity') {
+            expect(port.type, `${entityType}:${mode}:${declared.id}`).toMatchObject({ base: 'entityRef', entityType: declared.entityType });
+          } else {
+            expect(port.type, `${entityType}:${mode}:${declared.id}`).toMatchObject({
+              base: 'array',
+              itemType: { base: 'entityRef', accepts: declared.accepts }
+            });
+          }
+          expect(port.required, `${entityType}:${mode}:${declared.id}`).toBe(Boolean(declared.required && declared.default === undefined));
+        }
+      }
+    }
+  });
+
   it('dispatches a generic create effect through the registered genericCreate handler', async () => {
     resetAppRegistryForTests();
     const create = vi.spyOn(warehousesService, 'create').mockResolvedValue({ _id: 'warehouse-1' });
+    const publish = vi.spyOn(entityEventService, 'publishEntityChanged');
     const auth = {
       userId: 'user-1',
       organizationId: 'org-1',
@@ -129,7 +208,14 @@ describe('application entity service bindings', () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect(create.mock.calls[0][0]).toMatchObject({ lineage: { organizationId: 'org-1' } });
     expect(create.mock.calls[0][1]).toBe('user-1');
+    expect(publish).toHaveBeenCalledWith(auth, {
+      type: 'warehouse',
+      id: 'warehouse-1',
+      change: 'created',
+      reason: 'process-create'
+    });
     create.mockRestore();
+    publish.mockRestore();
   });
 
   it('dispatches a typed create effect through the registered typed handler', async () => {

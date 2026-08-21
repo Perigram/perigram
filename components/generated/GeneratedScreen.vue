@@ -288,6 +288,14 @@ import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-la
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 import { routeContextTraceExclusions } from '~/utils/entity-hierarchy.js';
+import {
+  artifactCreatorForAction,
+  collectActionInputFields,
+  hasUploadCreator,
+  initialPromptValue,
+  promptData,
+  promptedFields
+} from '~/components/generated/action-inputs.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -402,18 +410,6 @@ function closeInputDialog() {
   inputDialogVisible.value = false;
   pendingAction.value = null;
   pendingEntity.value = null;
-}
-
-function hasUploadCreator(field = {}) {
-  return Boolean(field.creator?.entityType)
-    && field.creator.attachmentKinds?.some(item => ['upload', 'capture', 'editor'].includes(item.creation?.mode));
-}
-
-function artifactCreatorForAction(action = {}) {
-  if (action.actionKind !== 'createEntity' || !action.entityType) return null;
-  const field = [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
-    .find(input => input.creator?.entityType);
-  return hasUploadCreator(field) ? field.creator : null;
 }
 
 function openArtifactCreator(field = {}) {
@@ -587,20 +583,6 @@ function syncCassetteParameterValues(fields = promptedFields(pendingAction.value
   }
 }
 
-function initialPromptValue(field = {}) {
-  if (field.type === 'entityList') return Array.isArray(field.default) ? field.default : [];
-  if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
-  if (field.editor === 'artifactTemplateValues') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
-  if (field.type === 'enum') return field.default ?? field.options?.[0] ?? '';
-  if (field.type === 'boolean') return field.default ?? null;
-  if (['date', 'dateTime'].includes(field.type)) {
-    const value = field.default ? new Date(field.default) : null;
-    return value && !Number.isNaN(value.getTime()) ? value : null;
-  }
-  if (['object', 'json'].includes(field.type)) return field.default ?? null;
-  return field.default ?? '';
-}
-
 function fieldOptions(field = {}) {
   const options = field.options || [];
   const sourceFieldId = field.optionsFromEntity;
@@ -655,16 +637,6 @@ async function loadPromptOptions(fields = []) {
       const options = await entityOptions(field.entityType || field.accepts?.[0], field).catch(() => []);
       promptOptions[field.id] = options;
     }));
-}
-
-function promptFieldHidden(field = {}, action = pendingAction.value) {
-  if (!field) return false;
-  const parentType = action?.parentEntityType || action?.inputs?.find(input => input.id === 'parent')?.entityType || '';
-  const templateEntityType = field.templateEntityType || field.entityType || '';
-  return action?.actionKind === 'createEntity'
-    && templateEntityType
-    && parentType === templateEntityType
-    && field.id === (field.templateFieldId || 'templateId');
 }
 
 async function entityOptions(entityType, field = {}) {
@@ -743,75 +715,6 @@ function entityOption(entity = {}, entityType = '') {
   };
 }
 
-function collectActionInputFields(action = {}) {
-  if (action.actionKind === 'runCommand') {
-    return (action.inputs || [])
-      .filter(field => field.prompt !== false)
-      .map(field => ({
-        ...field,
-        type: field.entityType ? 'entity' : (field.type || (field.kind === 'json' ? 'object' : field.kind) || 'string'),
-        path: field.path || (field.entityType ? `entities.${field.id}` : `parameters.${field.id}`)
-      }));
-  }
-  const policyFields = action.inputPolicy?.fields || [];
-  const constructionFields = action.construction?.inputs || action.inputs || [];
-  return [...policyFields, ...constructionFields]
-    .filter((field, index, fields) => fields.findIndex(item => item.id === field.id) === index);
-}
-
-function promptedFields(action = {}) {
-  return collectActionInputFields(action)
-    .filter(field => !promptFieldHidden(field, action))
-    .filter(field => field?.prompt || field?.required);
-}
-
-function promptData(fields = [], values = {}) {
-  const data = {};
-  for (const field of fields) {
-    const value = normalizePromptValue(field, values[field.id] ?? field.default);
-    if (value === undefined || value === '') continue;
-    setByPath(data, field.path || field.id, value);
-  }
-  return data;
-}
-
-function normalizePromptValue(field = {}, value) {
-  if (field.type === 'number') return value === '' ? undefined : Number(value);
-  if (field.type === 'entityList') return normalizeEntityListValue(field, value);
-  if (field.type === 'cassetteParameters') return normalizeCassetteParameters(value);
-  if (field.type === 'boolean') {
-    return value === null || value === undefined || value === '' ? undefined : Boolean(value);
-  }
-  if (['date', 'dateTime'].includes(field.type)) {
-    if (!value) return undefined;
-    if (value instanceof Date) {
-      if (Number.isNaN(value.getTime())) return undefined;
-      return field.type === 'date' ? value.toISOString().slice(0, 10) : value.toISOString();
-    }
-    return value;
-  }
-  if (['object', 'json'].includes(field.type)) {
-    if (!value) return undefined;
-    if (typeof value !== 'string') return value;
-    try {
-      return JSON.parse(value);
-    } catch {
-      return undefined;
-    }
-  }
-  return value;
-}
-
-function normalizeCassetteParameters(value = {}) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  return Object.fromEntries(Object.entries(value)
-    .filter(([, item]) => item !== '' && item !== null && item !== undefined)
-    .map(([key, item]) => {
-      const numeric = Number(item);
-      return [key, Number.isFinite(numeric) ? numeric : item];
-    }));
-}
-
 watch(
   () => [promptValues.templateId, pendingAction.value?.actionId || pendingAction.value?.id || ''],
   () => {
@@ -828,27 +731,4 @@ watch(
   }
 );
 
-function normalizeEntityListValue(field = {}, value = []) {
-  const ids = Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean);
-  if (field.accepts?.includes('cassette_design')) {
-    return ids.map((id, index) => ({
-      entryId: `${field.id || 'entry'}_${index + 1}`,
-      id,
-      entityType: 'cassette_design',
-      quantity: 1
-    }));
-  }
-  return ids.map(id => ({ id }));
-}
-
-function setByPath(target, path, value) {
-  const parts = String(path || '').split('.').filter(Boolean);
-  if (!parts.length) return;
-  let cursor = target;
-  for (const part of parts.slice(0, -1)) {
-    cursor[part] ||= {};
-    cursor = cursor[part];
-  }
-  cursor[parts[parts.length - 1]] = value;
-}
 </script>
