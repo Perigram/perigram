@@ -319,6 +319,29 @@ fail the run before the first `executeEffect` call. Hard deletion remains
 deferred until the capability, node, confirmation, and execution contract
 exists.
 
+#### Agent Notes — 2026-08-21 (effect socket access declaration)
+
+Closed the remaining wiring half of this section: Create Entity, Modify
+Entity, and Change Status input sockets now declare List access in
+`effectInputs` (`packages/processes/src/node-catalog.js`), so list and tree
+sources are advertised and wire validly into mutation sockets while edge
+compatibility stays type-based (`processSocketsCompatible`/
+`portSpecsCompatible` unchanged). A single item source remains valid as one
+broadcast item: run-context values and authored `inputDefaults` scalars on
+these sockets wrap as one-item packets instead of throwing list arity errors
+(`runContextPacket` in `orchestration.js`, scalar-tolerant default
+normalization in `compiler-core.js`), and a scalar fallback on a
+List/Tree-declared socket satisfies required-input availability by the scalar
+rules — only actual arrays/trees use the collection non-empty rule. The
+designer keeps inline scalar fallback editors on mapped mutation sockets
+(`ProcessNode.vue`). `node-catalog.spec.js` asserts the List declarations and
+that item, list, and tree sources are all compatible with Modify Entity
+sockets; the existing orchestration specs prove scalar run-context entities
+and scalar defaults still drive Modify/Change Status unchanged. Delete
+remains deferred; `effect.runProducer`, `sendEntity`, `generateAttachment`,
+and `runCommand` keep item access because they do not route through the
+mapper.
+
 ## P0 — complete entity acquisition and selection
 
 ### Entity sources

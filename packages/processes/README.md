@@ -300,7 +300,9 @@ event-triggered effect must be complete without a UI prompt. The emptiness rule
 is shared by authored fallbacks and domain defaults: `null`/`undefined` never
 satisfy; an empty collection or attachment never satisfies a required
 entity-list/attachment input; an empty string or zero satisfies a required
-primitive only where the domain type permits.
+primitive only where the domain type permits. On a List/Tree-declared socket
+only an actual array or data tree uses the collection rule; a scalar fallback
+is one broadcast item and satisfies by the scalar rules.
 Relations composed by the process graph are executable process contracts even
 when they are not global CNC-domain relations. A manual effect that consumes a
 composed relation derives `Link <target>` for the owner action surface and a
@@ -402,7 +404,14 @@ paths, a multi-item branch cannot be broadcast across tree branches, and Cross
 matching is rejected for mutations. A preflight failure fails the step and run
 before the first write. Each aligned tuple then makes one authorized service
 call in branch/item order, and the mapped data tree preserves those paths,
-order, and item slots.
+order, and item slots. Their input sockets declare List access in the catalog
+so the designer and edge validation advertise collection consumption; edge
+compatibility stays type-based, so item, list, and tree sources all wire
+validly into the same socket. A single item source is one broadcast item, and
+the same broadcast rule applies to run-context values and authored
+`inputDefaults` on these sockets: a scalar is wrapped as a one-item packet
+rather than rejected as a list arity error, while an array spreads into one
+packet item per entry.
 
 When every aligned call succeeds the step output is exactly the historical
 effect result: a single aligned item yields the bare service DTO, and a

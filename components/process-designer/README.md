@@ -122,6 +122,9 @@ throughout the canvas. Port labels sit on unboxed left/right rails rather than
 inside independently colored chips. When selected, an unconnected primitive
 input reveals a compact inline typed fallback editor; this keeps inactive nodes
 quiet while preserving immediate authoring without a separate constant node.
+Create/Modify/Status effect sockets declare List access for the shared effect
+mapper, and they keep the same inline fallback: an authored scalar there is
+stored as one broadcast item, exactly as the mapper consumes it.
 A connected wire always wins. An open socket is a composition affordance, not
 an error. Process sockets are always optional; validation only rejects invalid
 wires, duplicate single-value connections, and invalid authored contracts.
