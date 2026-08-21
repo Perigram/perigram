@@ -13,7 +13,7 @@
 | primitive | `EntityStatus` | ok | Inline/card status now uses badge plus ellipsis; popup owns actions, location, metadata, and history. |
 | primitive | `TraceLink` | ok | Contract purpose now distinguishes single related-entity links from TraceChain ancestry. |
 | primitive | `ActionToolbar` | ok | Contract purpose now documents it as shared section/header action-row chrome. |
-| primitive | `TableFrame` | ok | Keeps only the reusable overflow boundary; DataTable header chrome delegates to Aura. |
+| primitive | `TableFrame` | ok | Added token-backed DataTable header background enforcement in the wrapper. |
 | entity | `catalog` | ok | Added manufacturer lineage mock/link and option fields aligned to catalog model. |
 | entity | `penTemplate` | ok | Replaced dot avatar with actual stroke preview on token-backed surfaces. |
 | entity | `materialPile` | ok | Uses `MaterialSummary` for warehouse/manual pile material/spec/stock display. |
