@@ -68,9 +68,21 @@ export function previewAssignmentAccess({ compiled = {}, assignment = {}, domain
   const screens = Object.values(compiled.screens || {}).map(screen => {
     const allowedScreen = allowedScreens.get(screen.id);
     const missing = access.incompleteBindings.filter(item => item.screenId === screen.id).map(item => item.binding);
-    return allowedScreen
-      ? { ...allowedScreen, allowed: true, explanation: 'Allowed because selected roles supply its separately authored required capability.' }
-      : { ...screen, allowed: false, explanation: missing.length ? `Denied because assignment bindings are missing: ${[...new Set(missing)].join(', ')}.` : 'Denied because selected roles do not supply the separately authored required capability.' };
+    if (!allowedScreen) {
+      return { ...screen, allowed: false, explanation: missing.length ? `Denied because assignment bindings are missing: ${[...new Set(missing)].join(', ')}.` : 'Denied because selected roles do not supply the separately authored required capability.' };
+    }
+    const requirements = [allowedScreen.required, ...(allowedScreen.sources || []).map(source => source.required)].filter(required => required?.feature);
+    const decisions = requirements.map(required => {
+      const entityType = entityTypeForFeature(domain, required.feature);
+      const context = entityContexts.find(item => item.entityType === entityType || item.feature === required.feature) || null;
+      const conditional = normalizePermissionGrants(permissions[required.feature]).some(grant => grant.scope || grant.rule || grant.transitions || grant.actions);
+      const actions = Object.entries(required.actions || {}).filter(([, enabled]) => enabled === true).map(([action]) => action);
+      if (conditional && !context) return null;
+      const args = { permissions, feature: required.feature, level: required.level || 'read', ...(context ? evaluationContext(context, entityType) : { entityType }) };
+      return actions.length ? actions.every(action => hasPermissionGrant({ ...args, action })) : hasPermissionGrant(args);
+    });
+    const allowed = decisions.includes(false) ? false : decisions.includes(null) ? null : true;
+    return { ...allowedScreen, allowed, explanation: decisionExplanation(allowed, decisions.includes(null), allowed === null ? null : {}) };
   });
   return {
     roleIds: access.roleIds,

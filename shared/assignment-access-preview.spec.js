@@ -38,6 +38,7 @@ describe('previewAssignmentAccess', () => {
     const unresolved = previewAssignmentAccess({ compiled, assignment: { roleIds: ['viewer'], bindings: {} }, domain });
     expect(unresolved.entities.find(item => item.feature === 'projects')).toMatchObject({ allowed: null });
     expect(unresolved.entities[0].explanation).toContain('Unresolved');
+    expect(unresolved.screens.find(item => item.id === 'projects')).toMatchObject({ allowed: null });
 
     const denied = previewAssignmentAccess({
       compiled, assignment: { roleIds: ['viewer'], bindings: {} }, domain,
@@ -45,6 +46,7 @@ describe('previewAssignmentAccess', () => {
     });
     expect(denied.entities.find(item => item.feature === 'projects')).toMatchObject({ allowed: false });
     expect(denied.entities.find(item => item.feature === 'queues')).toMatchObject({ allowed: false });
+    expect(denied.screens.find(item => item.id === 'projects')).toMatchObject({ allowed: false });
     expect(denied.entities.find(item => item.feature === 'projects').fields).toEqual(expect.arrayContaining([
       expect.objectContaining({ path: 'identity.*', allowed: false })
     ]));
@@ -68,6 +70,7 @@ describe('previewAssignmentAccess', () => {
     expect(preview.actions).toEqual([expect.objectContaining({ actionId: 'finish', allowed: true })]);
     expect(preview.transitions).toEqual([expect.objectContaining({ transition: 'OPEN->DONE', allowed: true })]);
     expect(preview.screens.map(screen => screen.id)).toEqual(expect.arrayContaining(['projects', 'queue']));
+    expect(preview.screens.find(screen => screen.id === 'projects')).toMatchObject({ allowed: true });
     expect(preview.screens.find(screen => screen.id === 'queue').scope.entityId).toBe('queue-1');
   });
 
