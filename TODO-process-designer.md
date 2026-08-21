@@ -286,26 +286,38 @@ loops or a Delete node. `executeProcessEffectNode` in
 `packages/processes/src/evaluator.js` preflights scalar-or-aligned branch/item
 lengths and branch paths, rejects Cross before invoking the adapter, obtains the
 per-item invocation plan from `solveDataTrees`, and runs one authorized effect
-call per tuple. Create Entity, Modify Entity, and Change Status delegate through
-that mapper in `orchestration.js`; other effects keep their existing singular
-contracts. Change Status now unwraps `transitionWithResult().entity`, matching
-its typed entity output.
+call per aligned tuple. Create Entity, Modify Entity, and Change Status delegate
+through that mapper in `orchestration.js`; other effects keep their existing
+singular contracts. A preflight failure fails the step and run before the first
+write, so incompatible branch lengths or unsafe Cross matching never partially
+persist.
 
-Mapped output preserves every branch path, item order, and failed slot (`null`).
-It adds `failures` records shaped as
-`{ operation, branchPath, itemIndex, entityRef?, error }` and
-`completedMutations` records for successful writes. Calls continue after an
-item failure, so the result reports partial completion and makes no rollback or
-collection-atomicity claim. `GeneratedScreen` immediately applies each non-null
-completed DTO to matching loaded sources and only opens a create detail route
-when the mapped result has one entity.
+Run-status semantics for mapped mutations: a step whose aligned calls all
+succeed keeps the historical output contract byte-for-byte — one aligned item
+yields the bare structuredCloned effect result (and the step idempotency key is
+reused unchanged), a list/tree input yields the bare shape-preserving data
+tree. A step with any failed aligned item still completes (the run continues)
+and its output becomes `{ result, failures, completedMutations }`: `result` is
+the shape-preserving tree with each failed slot carrying its own
+`{ operation, branchPath, itemIndex, entityRef?, error }` MutationFailure
+record, `failures` is the flat record list, and `completedMutations`
+identifies every write that finished. Calls continue after an item failure and
+completed writes stay applied — nothing claims or implies collection-wide
+atomicity or rollback. Downstream data outputs consume the unwrapped result
+tree. `GeneratedScreen` applies each completed item (slots without an `error`
+payload) to matching loaded sources and only opens a create detail route when
+the mapped result has exactly one completed entity.
 
-Coverage in `evaluator.spec.js` runs one Update mutation contract against item,
-list, scalar-broadcast, aligned-list, and branched-tree inputs, verifies strict
-preflight and partial-failure reporting, and `orchestration.spec.js` proves
-Create, Update, and Change Status all route through the mapper. Hard deletion
-remains deferred until the capability, node, confirmation, and execution
-contract exists.
+Coverage: `evaluator.spec.js` runs one mutation contract against item, list,
+scalar-broadcast, aligned value-tree, and branched-tree inputs, asserts the
+zero-failure bare outputs, the strict preflight rejections (no write
+attempted), and partial-failure reporting including the single-failed-item
+envelope; `orchestration.spec.js` proves Create, Modify, and Change Status
+route through the mapper, that a later item failure completes the step with
+the failure-carrying output while the run proceeds, and that misaligned inputs
+fail the run before the first `executeEffect` call. Hard deletion remains
+deferred until the capability, node, confirmation, and execution contract
+exists.
 
 ## P0 — complete entity acquisition and selection
 

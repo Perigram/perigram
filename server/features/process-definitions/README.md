@@ -73,12 +73,12 @@ runtime behavior follows the activated domain contract rather than stale graph
 metadata.
 Create, update, and status effects receive one scalar input tuple per invocation
 from the package-owned effect mapper. Every invocation independently re-enters
-the registered service/status boundary with the complete auth context. Mapped
-results remain a shape-preserving data tree with completed-mutation and failure
-metadata; no collection transaction or rollback is implied. Change Status
-returns the updated entity snapshot from `transitionWithResult`, matching the
-entity output contract while the status engine retains transition evidence and
-history.
+the registered service/status boundary with the complete auth context. A fully
+successful mapped step keeps the historical bare effect result; a step with
+failed aligned items completes with a `{ result, failures, completedMutations }`
+output whose shape-preserving result tree carries each MutationFailure record in
+its own slot. No collection transaction or rollback is implied: completed writes
+stay applied when a later item fails, and `completedMutations` identifies them.
 Process definition management also accepts the active organization membership's
 stored `organizations` grants as a narrow recovery path. Membership role labels
 and sole-member status do not imply process management access; the recovery path
