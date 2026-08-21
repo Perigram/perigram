@@ -699,14 +699,20 @@ bindings are arbitrary keyed literal string, number, or boolean values, or
 valid `$assignment.<key>` references; nested values and null are invalid. The
 `supporting` slot is reserved for generated/system templates with secondary
 accounting or history regions. Assignment bindings replace `$assignment.*`
-placeholders in screen routes, scopes, source identifiers, and source filters,
+placeholders in screen routes, authored scopes, bindings, source identifiers,
+source filters, required-access scopes, and grant rules,
 so one user can receive overloaded copies of the same screen for different
 projects or entities. Screens with incomplete bindings are skipped with
-compiler warnings. User-specific compiled screens use canonical generated
+compiler warnings. `discoverAssignmentBindingRequirements()` walks those
+locations plus process role/action access and returns each selected key with its
+scalar type and contributing locations. User-specific compiled screens use canonical generated
 routes under `/screens/:screenKey`; the original semantic route is preserved as
 `sourceRoute` for audit/debug context. Manual screen actions execute through the
 active process action runtime, which verifies the user's compiled action
 manifest before delegating to entity, status, socket, or command services.
+`screen.required` is only a frontend requirement. Compilation does not copy it
+into role grants: assignment compilation resolves all additive authored grants
+first and includes a screen only when those grants cover its requirement.
 `screen-contract.js` owns the authored screen contract: normalization, the
 canonical region surface registry (`SCREEN_REGION_SURFACES`: `card`, `compact`,
 `detail`, `table`, `workspace` — the surfaces the generated region components

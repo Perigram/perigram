@@ -3,9 +3,9 @@
 Organization-owned process definitions store the visual process graph and the
 compiled runtime contract for organization-role grants, entity workflows, field
 policies, service availability, sockets, screen manifests, and navigation.
-Runtime role permissions are derived from the graph during compilation:
-entity-profile access and screen requirements create grants, screen manifests
-create navigation, and service run/view access uses service identities
+Runtime role permissions are derived from the graph during compilation: role,
+entity-profile, and action access create grants; screen requirements only
+consume those grants and screen manifests create navigation. Service run/view access uses service identities
 instead of user roles. If a role has grants but no authored screen for the
 granted entity feature, compilation creates a generated entity-list screen for
 that role/feature instead of relying on static app navigation.

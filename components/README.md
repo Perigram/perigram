@@ -27,7 +27,9 @@
 - **Permission Editing:** `PermissionEditor.vue` edits the same grant shape used
   by `shared/access-control.js`: each feature has one or more explicit grants
   with level, action overrides, lineage/entity trait filters, transition
-  filters, logical rule conditions, and advanced JSON for the selected grant.
+  filters, and nested logical rule conditions. It is the typed grant editor for
+  both direct permissions and Process Designer access; raw grant JSON is not an
+  authoring surface.
   The main editing surface is a unified filter builder: grants render as
   accordions in the selected access area, and the grant level is edited inline
   as `Allow <level> when <predicate>` above the filter expression. Each

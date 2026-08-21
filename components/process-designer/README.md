@@ -231,7 +231,9 @@ the explicitly selected field set as dynamic sockets; Create/Modify Entity never
 select leaf fields. Origin, provenance, status history, and summary are not
 generic writable block inputs. A literal never asks for a field path. Effect
 access is edited as explicit role plus access-level rows rather than flattening
-every selected role into a write grant.
+every selected role into a write grant. Those rows and the role panel open the
+shared typed permission builder for action overrides, entity/lineage scope,
+transition conditions, and nested rules; raw grant JSON is not exposed.
 
 ## Canvas behavior and diagnostics
 
@@ -274,7 +276,9 @@ and the live viewport is persisted with the graph. Runtime-only selection
 styles are stripped before serialization. Validation reports missing sockets,
 incompatible types, guessed/undeclared fields, unreachable operational nodes,
 and data or control cycles. The compiled screen preview remains separate from
-operation execution.
+operation execution. Screen requirements consume capability authored on role,
+profile, or action access records. Editing a screen never creates a backend
+grant, and a gated screen is omitted until selected roles supply its capability.
 
 Entity selectors use the shared `EntitySelect`/`EntityMultiSelect` contract:
 selected entity cards render outside the input and the compact change chevron

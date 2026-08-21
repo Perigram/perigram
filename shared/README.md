@@ -27,10 +27,14 @@ imported through server modules that Nitro externalizes.
   role review surfaces (Team page role dialog, process designer role tab). It
   derives the effective profile, screen, action, and workflow-transition access
   lines for a set of organization role ids from process definition data and
-  annotates every line with the contributing record: an authored grant (entity
-  profile allowedRoles, action access, transition role access), a
-  screen-derived grant (compiled from `screen.required`), a status-window rule,
-  or a level fallback when no level was authored.
+  annotates every line with the contributing record: an authored role/profile/
+  action/transition grant, a screen requirement consuming separate capability,
+  a status-window rule, or a level fallback.
+- `assignment-access-preview.js`: Assignment review over the existing process
+  assignment compiler, shared evaluator, and compiled field policies. Concrete
+  entity/status/lineage context yields allow/deny results; missing conditional
+  context stays unresolved. Active owner membership adds only the separately
+  attributed recovery overlay.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
 
 Import-alias rules are defined in [scripts/README.md](../scripts/README.md).

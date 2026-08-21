@@ -27,18 +27,21 @@ active process definition, and writes assignments through
 `/api/process-definitions/active/assignments`. It is the operational owner for
 assigning actual users to abstract process roles. It does not expose membership
 role labels as process roles. Invites, user creation, and assignment editing all
-preserve multiple selected process role ids. The role dialog derives assignment
-binding fields from selected process screens instead of showing raw JSON, and
-previews graph-derived access plus compiled screen routes from the current role
-selection before saving. The derived access preview is the shared annotated
+preserve multiple selected process role ids. The role dialog derives typed
+assignment binding fields from every canonical `$assignment` use in selected
+role/action grants, screen routes, scopes, bindings and requirements, and source
+identifiers and filters. Preview as Assignment runs the package assignment
+compiler and shared evaluator with edited role ids, bindings, and optional
+entity/status/lineage context. It shows allowed, denied, or unresolved entities,
+fields, transitions, actions, and screens; fields also consume compiled field
+policies. The role review is the shared annotated
 summary from `shared/role-access-summary.js`: it covers entity profiles,
 screens, actions, and workflow transitions (read from the compiled workflow
 contract of the active process), and every rendered line names the record that
-contributed it — an authored grant, a screen-derived grant from
-`screen.required`, a status-window rule, or a level fallback. Missing assignment
-bindings are still surfaced from the
-compiled active process so overloaded/scoped screens do not silently disappear
-when a user lacks a required project or entity binding.
+contributed it: an authored grant, a screen requirement consuming separate
+capability, a status-window rule, or a level fallback. Missing bindings come
+from the edited candidate assignment. Active owner membership is a separately
+attributed organization/team recovery overlay, never a process-role grant.
 The route expects `/api/users` to return canonical user DTO blocks with
 `identity.name`, `data.email`, and membership summary fields visible under
 `users:read`; it derives the active organization id from the loaded organization
@@ -118,7 +121,8 @@ Derived input/output socket specifications remain on the node rails and their
 hover/focus metadata; the inspector does not duplicate them as a table. The
 remaining inspector surfaces are:
 
-- the roles tab edits labels and shows a derived access summary;
+- the roles tab edits labels and base grants through the shared typed builder,
+  and shows the same annotated summary as Team;
 - the service access tab owns service runtime identities;
 - entity nodes own entity type, lifecycle mode, inline status-machine
   states/transitions, transition role access, node role access, and
@@ -148,7 +152,9 @@ role ids, required access, source and region rows, typed bindings, and action
 ids. It exposes the complete canonical authored shape from the
 [`@cutkit/processes` screen contract](../../packages/processes/README.md), while
 the focused screen composable owns its mutations and mode normalization. Each
-display region keeps an independent action list: new regions start empty, sync
+required access record gates the screen against capability authored elsewhere;
+screen editing never writes role grants. Each display region keeps an
+independent action list: new regions start empty, sync
 never copies screen-level action ids into regions or overwrites region actions,
 and region actions are edited only through that region's row.
 

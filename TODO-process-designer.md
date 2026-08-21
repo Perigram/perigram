@@ -1473,16 +1473,44 @@ annotated role access summary implemented (`shared/role-access-summary.js`,
 rendered on the Team page); remaining bullets were dispositioned as design
 decisions in the section Agent Notes.
 
-- [ ] Expose the access engine's real grant dimensions in typed controls where
+- [x] Expose the access engine's real grant dimensions in typed controls where
   the designer edits access.
-- [ ] Make entity-profile, action, status-transition, and screen access
+- [x] Make entity-profile, action, status-transition, and screen access
   reviewable from one place per the recorded verdict.
-- [ ] Stop screen layout from silently granting backend capability per the
+- [x] Stop screen layout from silently granting backend capability per the
   recorded verdict.
-- [ ] Discover required assignment binding keys from every supported location.
-- [ ] Add "preview as assignment" with concrete role IDs and bindings.
-- [ ] Test one role, several additive roles, overloaded assignments, and
+- [x] Discover required assignment binding keys from every supported location.
+- [x] Add "preview as assignment" with concrete role IDs and bindings.
+- [x] Test one role, several additive roles, overloaded assignments, and
   denied cases.
+
+#### Agent Notes — 2026-08-21
+
+Completed against the existing access evaluator and assignment compiler.
+Process Designer now reuses the typed nested permission builder for process base
+grants and action/effect/screen conditions; action normalization preserves
+action maps, entity/lineage scope, transition restrictions, and nested rules.
+Designer and Team both render `shared/role-access-summary.js`. Raw grant JSON,
+assignment nodes, and a second authorization model were not introduced.
+
+Screen requirements are capability consumers: screen records no longer add
+role grants, assignment compilation resolves all selected roles first, and a
+screen is included only when separately authored grants cover its requirement.
+Authored screen scope survives compilation and resolves with screen bindings.
+The package binding projection discovers typed keys from routes, scopes,
+bindings, source identifiers/filters/requirements, role and action access
+scopes, transitions, action maps, and nested rules.
+
+Team's Preview as Assignment evaluates edited role ids and typed bindings
+through the package compiler, canonical grant evaluator, and compiled field
+policies. Concrete entity/status/lineage context resolves conditional entity,
+field, action, and transition decisions; absent context stays unresolved.
+Candidate compilation supplies screens and missing bindings. Active owner
+membership is displayed and tested as a separately attributed
+`organizations:admin`/`users:admin` recovery overlay, not a process role grant.
+Focused coverage includes one role, additive roles, overloaded and missing
+bindings, denial, status and lineage scopes, fields, actions, transitions,
+screens, complete action-grant dimensions, and owner recovery.
 
 ### Correction: Producer-scoped entity workflows
 

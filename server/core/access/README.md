@@ -66,6 +66,10 @@ adds `effectivePermissions` compiled from the user's process role assignments.
 The evaluator consumes those grants before membership permissions. No separate
 process-specific access engine exists; process roles compile into the same
 grant shape documented here.
+Process Designer and Team preview that shape through the shared typed grant
+builder and assignment preview. Decisions use this evaluator with concrete
+entity, status, action, transition, and lineage context; screen layout never
+implies backend authority.
 
 Legacy helpers such as `requirePermission()` and service-level
 `hasLineagePermission()` callers must pass the full auth context, not a reduced
