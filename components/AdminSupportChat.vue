@@ -5,7 +5,7 @@
             <template #header>
                 <div class="flex items-center justify-between w-full">
                     <div class="flex flex-col">
-                        <h2 class="m-0 text-base">{{ $t('admin.supportChat') }}</h2>
+                        <h2 class="m-0 text-section-heading">{{ $t('admin.supportChat') }}</h2>
                         <small>{{ $t('admin.userId') }}: {{ userId.slice(-8) }}</small>
                     </div>
                     <Button

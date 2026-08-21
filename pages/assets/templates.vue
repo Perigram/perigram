@@ -57,7 +57,7 @@
       <template #header>{{ $t('assets.newTemplate') }}</template>
       <div class="flex flex-col gap-3">
         <label class="flex flex-col gap-1">
-          <span class="text-xs text-muted-color">{{ $t('common.name') }}</span>
+          <span class="text-muted-color text-supporting">{{ $t('common.name') }}</span>
           <InputText v-model="uploadName" />
         </label>
         <FileUpload

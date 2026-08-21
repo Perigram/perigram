@@ -249,7 +249,7 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
               <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
                 <div class="flex min-w-0 flex-col gap-1">
                   <small class="text-muted-color">{{ $t('geometryCapture.dimensionSelection') }}</small>
-                  <strong v-if="measuredDistance" class="truncate text-sm">{{ measuredDistance }} mm</strong>
+                  <strong v-if="measuredDistance" class="truncate text-label">{{ measuredDistance }} mm</strong>
                   <small v-else class="text-muted-color">{{ $t('geometryCapture.selectTwoVertices') }}</small>
                 </div>
                 <InputNumber

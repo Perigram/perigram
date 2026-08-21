@@ -11,7 +11,7 @@
         </div>
       </template>
       <template #compact-content>
-        <div v-if="email" class="mt-3 text-sm text-muted-color">{{ email }}</div>
+        <div v-if="email" class="mt-3 text-muted-color text-body">{{ email }}</div>
       </template>
       <Divider />
       <DataBlock entity-type="user" :entity="user" :fields="USER_FIELDS" />

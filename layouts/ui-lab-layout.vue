@@ -6,11 +6,11 @@
                 <div class="flex items-center h-full min-w-0 flex-1">
                     <NuxtLink
                         to="/test/ui-lab"
-                        class="flex items-center gap-2 no-underline text-primary text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0"
+                        class="flex items-center gap-2 no-underline text-primary whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0 text-section-heading"
                     >
                         <span>{{ $t('uiLab.shellTitle') }}</span>
                     </NuxtLink>
-                    <div class="px-2 py-0.5 rounded-ui border [border-color:var(--ck-chrome-border)] bg-[var(--ck-chrome-subtle)] text-ui-caption font-bold uppercase text-[var(--ck-chrome-muted)]">
+                    <div class="px-2 py-0.5 rounded-ui border [border-color:var(--ck-chrome-border)] bg-[var(--ck-chrome-subtle)] uppercase text-[var(--ck-chrome-muted)] text-label">
                         {{ $t('uiLab.testMode') }}
                     </div>
                 </div>
@@ -33,7 +33,7 @@
                                 size="normal" 
                                 class="bg-primary text-primary-contrast"
                             />
-                            <span class="text-sm font-bold hidden sm:block">{{ $t('uiLab.testUser') }}</span>
+                            <span class="hidden sm:block text-label">{{ $t('uiLab.testUser') }}</span>
                         </div>
                     </div>
                 </div>

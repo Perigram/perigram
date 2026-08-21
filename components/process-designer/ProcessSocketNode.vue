@@ -26,7 +26,7 @@
 
     <div class="mt-3 grid grid-cols-2 gap-2">
       <div v-if="isInbound" :class="socketClass('projection', 'left')">
-        <span class="block truncate text-xs">{{ accessLabel }}</span>
+        <span class="block truncate text-supporting">{{ accessLabel }}</span>
       </div>
       <div v-if="!isInbound" :class="socketClass('entity', 'left')">
         <Handle id="entity-projection" type="target" :position="Position.Left" :class="handleClass('entity', 'left')" :style="handleStyle('entity')" />
@@ -41,7 +41,7 @@
         <div class="flex flex-wrap gap-1">
           <Tag v-for="field in visibleProjectedFields" :key="field" :value="field" size="small" />
           <Tag v-if="hiddenProjectedFieldCount > 0" :value="`+${hiddenProjectedFieldCount}`" size="small" />
-          <span v-if="!visibleProjectedFields.length" class="text-xs text-muted-color">{{ $t('common.notAvailable') }}</span>
+          <span v-if="!visibleProjectedFields.length" class="text-muted-color text-supporting">{{ $t('common.notAvailable') }}</span>
         </div>
       </div>
     </div>

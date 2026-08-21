@@ -20,7 +20,7 @@
           :class="socketClass(input, 'left')"
         >
           <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" :style="handleStyle(input)" />
-          <span class="block truncate text-xs">{{ input.label }}</span>
+          <span class="block truncate text-supporting">{{ input.label }}</span>
         </div>
       </div>
       <div class="flex flex-col gap-1">
@@ -30,7 +30,7 @@
           :class="socketClass(output, 'right')"
         >
           <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" :style="handleStyle(output)" />
-          <span class="block truncate text-xs">{{ output.label }}</span>
+          <span class="block truncate text-supporting">{{ output.label }}</span>
         </div>
       </div>
     </div>

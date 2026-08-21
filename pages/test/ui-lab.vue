@@ -3,7 +3,7 @@
     <header class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-5 shadow-card">
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 class="m-0 text-2xl font-semibold">{{ $t('uiLab.title') }}</h1>
+          <h1 class="m-0 text-page-title">{{ $t('uiLab.title') }}</h1>
           <p class="m-0 text-muted-color">{{ $t('uiLab.subtitle') }}</p>
         </div>
         <div class="flex gap-2">
@@ -49,7 +49,7 @@
       <article v-for="row in activeRowsWithModels" :key="row.key" class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-4 shadow-card">
         <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 class="m-0 text-base font-semibold">{{ $t(row.labelKey) }}</h2>
+            <h2 class="m-0 text-section-heading">{{ $t(row.labelKey) }}</h2>
             <small class="text-muted-color">{{ row.entityType }} · {{ row.propName }}</small>
           </div>
           <div class="flex flex-wrap items-center gap-2">
@@ -95,7 +95,7 @@
           <template #header>
             <div class="flex items-center justify-between gap-3 w-full">
               <div class="flex flex-col gap-0.5">
-                <span class="font-medium">{{ $t('uiLab.review.title') }}</span>
+                <span class="text-label">{{ $t('uiLab.review.title') }}</span>
                 <small class="text-muted-color">{{ row.model.collection }} · {{ row.model.fields?.length || 0 }} {{ $t('uiLab.review.fields') }}</small>
               </div>
               <Button
@@ -146,7 +146,7 @@
                 </thead>
                 <tbody>
                   <tr v-for="field in row.model.fields || []" :key="field.name" class="border-t border-content-border align-top">
-                    <td class="py-3 pr-3 font-mono">{{ field.name }}</td>
+                    <td class="py-3 pr-3 text-technical">{{ field.name }}</td>
                     <td class="py-3 pr-3">{{ field.type }}</td>
                     <td class="py-3 pr-3">
                       <div class="flex flex-wrap gap-2">

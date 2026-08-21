@@ -5,7 +5,7 @@
         <div class="flex h-full flex-col gap-4">
           <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
-              <h2 class="m-0 text-base">{{ $t('billing.organizationAccount') }}</h2>
+              <h2 class="m-0 text-section-heading">{{ $t('billing.organizationAccount') }}</h2>
               <small class="text-muted-color">{{ $t('billing.organizationAccountHint') }}</small>
             </div>
             <Tag v-if="currentTariffLabel" :value="currentTariffLabel" severity="info" />
@@ -13,7 +13,7 @@
           <div class="flex items-end justify-between gap-3">
             <div class="flex flex-col gap-1">
               <small class="text-muted-color">{{ $t('billing.tokenBalance') }}</small>
-              <span class="text-4xl font-bold">{{ billingAccount?.balance ?? 0 }}</span>
+              <span class="text-metric">{{ billingAccount?.balance ?? 0 }}</span>
             </div>
             <Button icon="pi pi-refresh" :label="$t('common.refresh')" size="small" text :loading="loadingBilling" @click="loadBilling" />
           </div>
@@ -25,16 +25,16 @@
       <Panel v-if="hasRegion('billingPackages')">
         <div class="flex h-full flex-col gap-4">
           <div class="flex items-center gap-3">
-            <i class="pi pi-shopping-cart text-xl text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
+            <i class="pi pi-shopping-cart text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
             <div class="min-w-0">
-              <h2 class="m-0 text-base">{{ $t('billing.tokenPackages') }}</h2>
+              <h2 class="m-0 text-section-heading">{{ $t('billing.tokenPackages') }}</h2>
               <small class="text-muted-color">{{ $t('billing.tokenPackagesHint') }}</small>
             </div>
           </div>
           <div v-if="packages.length" class="flex flex-col gap-2">
             <div v-for="pack in packages" :key="pack.id" class="flex items-center justify-between gap-3 border border-content-border p-3">
               <div class="min-w-0">
-                <p class="m-0 font-medium">{{ packageLabel(pack) }}</p>
+                <p class="m-0 text-label">{{ packageLabel(pack) }}</p>
                 <small class="text-muted-color">{{ pack.tokenAmount }} {{ $t('billing.tokens') }}</small>
               </div>
               <Button
@@ -58,7 +58,7 @@
         <div v-if="invoices.length" class="flex flex-col gap-2">
           <div v-for="invoice in invoices" :key="invoice._id" class="flex items-center justify-between gap-3 border-b border-content-border py-2 last:border-b-0">
             <div class="min-w-0">
-              <p class="m-0 font-medium">{{ invoice.tokenAmount }} {{ $t('billing.tokens') }}</p>
+              <p class="m-0 text-label">{{ invoice.tokenAmount }} {{ $t('billing.tokens') }}</p>
               <small class="text-muted-color">{{ formatDate(invoice.createdAt) }}</small>
             </div>
             <Tag :value="billingStatusLabel(invoice.status)" :severity="invoice.status === 'paid' ? 'success' : 'warn'" />
@@ -71,7 +71,7 @@
         <div v-if="ledger.length" class="flex flex-col gap-2">
           <div v-for="entry in ledger" :key="entry._id" class="flex items-center justify-between gap-3 border-b border-content-border py-2 last:border-b-0">
             <div class="min-w-0">
-              <p class="m-0 font-medium">{{ ledgerTypeLabel(entry.type) }}</p>
+              <p class="m-0 text-label">{{ ledgerTypeLabel(entry.type) }}</p>
               <small class="text-muted-color">{{ formatDate(entry.createdAt) }}</small>
             </div>
             <Tag :value="formatAmount(entry.amount)" :severity="entry.amount >= 0 ? 'success' : 'secondary'" />

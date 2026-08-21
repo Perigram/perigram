@@ -96,7 +96,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
 const REGISTERED_PRIMITIVE_PATHS = new Set(cncDesignSystemPrimitives.map(primitive => primitive.componentPath));
 
 const VISUAL_CONCERNS = [
-  ['centralize:typography', /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl)|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\]))\b/g],
+  ['centralize:typography', /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl|\[[0-9.]+(?:px|rem|em)\])|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|mono|serif)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\])|leading-(?:none|tight|snug|normal|relaxed|loose|\[[^\]]+\]))\b/g],
   ['centralize:layout', /\b(?:basis|gap|grid-cols|grid-rows|h|max-h|max-w|min-h|min-w|m[trblxy]?|p[trblxy]?|w)-\[[^\]]+\]/g],
   ['replace:chrome', /(?:\bbg-(?:content|subtle)\b|\bborder(?:-[trblxy])?(?:-(?:0|2|4|8|content-border|primary|transparent|dashed|double))?\b|\brounded(?:-[\w-]+)?\b|\bshadow(?:-[\w-]+)?\b|\[box-shadow:[^\]]+\])/g],
   ['remove:state', /\b(?:active|disabled|focus|focus-visible|hover|invalid):[^\s"'`]+/g],

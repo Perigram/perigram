@@ -51,8 +51,8 @@
               <text
                 :x="(edge.x1 + edge.x2) / 2"
                 :y="(edge.y1 + edge.y2) / 2 - 6"
+                class="text-supporting"
                 fill="var(--p-text-color)"
-                font-size="11"
                 text-anchor="middle"
               >
                 {{ transitionLabel(selectedRegion.transitions[edge.index]) }}
@@ -81,7 +81,7 @@
                 :stroke="node.id === selectedState ? 'var(--p-primary-color)' : 'var(--p-content-border-color)'"
                 stroke-width="2"
               />
-              <text :x="node.x + 12" :y="node.y + 27" fill="var(--p-text-color)" font-size="12">{{ node.id }}</text>
+              <text :x="node.x + 12" :y="node.y + 27" class="text-technical" fill="var(--p-text-color)">{{ node.id }}</text>
             </g>
           </svg>
         </div>
@@ -161,7 +161,7 @@
         </div>
         <div class="mt-3 flex flex-col gap-1">
           <label>{{ $t('admin.domainBuilder.lifecycleAttachments') }}</label>
-          <Textarea :model-value="formatJson(selectedStateDefinition.lifecycle?.attachments || {})" rows="4" auto-resize class="font-mono text-xs" @update:model-value="updateLifecycleAttachments" />
+          <Textarea :model-value="formatJson(selectedStateDefinition.lifecycle?.attachments || {})" rows="4" auto-resize class="text-technical" @update:model-value="updateLifecycleAttachments" />
         </div>
         <div class="mt-3 flex justify-end">
           <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeState')" severity="danger" outlined size="small" @click="removeState(selectedState)" />
@@ -189,7 +189,7 @@
         </div>
         <div class="mt-3 flex flex-col gap-1">
           <label>{{ $t('admin.domainBuilder.access') }}</label>
-          <Textarea :model-value="formatJson(selectedTransition.access || defaultAccess)" rows="5" auto-resize class="font-mono text-xs" @update:model-value="updateTransitionAccess" />
+          <Textarea :model-value="formatJson(selectedTransition.access || defaultAccess)" rows="5" auto-resize class="text-technical" @update:model-value="updateTransitionAccess" />
         </div>
         <div class="mt-3 flex flex-col gap-1">
           <label>{{ $t('admin.domainBuilder.capabilities') }}</label>
@@ -197,7 +197,7 @@
         </div>
         <div class="mt-3 flex flex-col gap-1">
           <label>{{ $t('admin.domainBuilder.hooksJson') }}</label>
-          <Textarea :model-value="formatJson(selectedTransition.hooks || [])" rows="5" auto-resize class="font-mono text-xs" @update:model-value="updateTransitionHooks" />
+          <Textarea :model-value="formatJson(selectedTransition.hooks || [])" rows="5" auto-resize class="text-technical" @update:model-value="updateTransitionHooks" />
         </div>
         <div class="mt-3 flex justify-end">
           <Button icon="pi pi-trash" :label="$t('admin.domainBuilder.removeTransition')" severity="danger" outlined size="small" @click="removeTransition" />

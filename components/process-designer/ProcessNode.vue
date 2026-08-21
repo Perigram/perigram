@@ -2,10 +2,10 @@
   <div :class="nodeFrameClass" :title="data.purpose || data.summary || ''">
     <div :class="['absolute inset-x-0 top-0 h-0.5 rounded-t-ui', accent.stripe]"></div>
     <div class="flex items-center gap-1.5 border-b border-content-border pb-1.5">
-      <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-xs', accent.icon]">
+      <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-supporting', accent.icon]">
         <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
       </span>
-      <strong class="min-w-0 flex-1 truncate text-xs text-color">{{ data.kindLabel || record.kind }}</strong>
+      <strong class="min-w-0 flex-1 truncate text-color text-label">{{ data.kindLabel || record.kind }}</strong>
     </div>
 
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
@@ -126,7 +126,7 @@
             :style="handleStyle(row.input)"
             :aria-label="socketTitle(row.input)"
           />
-          <span class="block truncate text-ui-caption">{{ row.input.label }}</span>
+          <span class="block truncate text-supporting">{{ row.input.label }}</span>
           <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
             <ToggleSwitch
               v-if="row.input.base === 'boolean'"
@@ -180,7 +180,7 @@
             :style="handleStyle(row.output)"
             :aria-label="socketTitle(row.output)"
           />
-          <span class="block truncate text-ui-caption">{{ row.output.label }}</span>
+          <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
         <div v-else></div>
       </div>
@@ -202,12 +202,12 @@
       <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <Handle :id="socketHandleId(row.input)" type="target" :position="Position.Left" :class="handleClass(row.input, 'left')" :style="handleStyle(row.input)" />
-          <span class="block truncate text-ui-caption">{{ row.input.label }}</span>
+          <span class="block truncate text-supporting">{{ row.input.label }}</span>
         </div>
         <div v-else></div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <Handle :id="socketHandleId(row.output)" type="source" :position="Position.Right" :class="handleClass(row.output, 'right')" :style="handleStyle(row.output)" />
-          <span class="block truncate text-ui-caption">{{ row.output.label }}</span>
+          <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
         <div v-else></div>
       </div>

@@ -7,7 +7,7 @@
         >
             <template v-if="showQueueNavigation && queues?.length > 0" #left>
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
-                    <span class="font-medium">{{ $t('project.queues') }}</span>
+                    <span class="text-label">{{ $t('project.queues') }}</span>
                     <Button
                         v-if="canCreateQueue"
                         icon="pi pi-plus"
@@ -127,7 +127,7 @@
                                     <div class="flex items-center justify-between gap-3">
                                         <div class="flex min-w-0 items-center gap-2">
                                             <i class="pi pi-file"></i>
-                                            <span class="truncate font-medium">{{ $t('nesting.virtualSheet') }}</span>
+                                            <span class="truncate text-label">{{ $t('nesting.virtualSheet') }}</span>
                                         </div>
                                         <span>{{ virtualSheetLabel }}</span>
                                     </div>

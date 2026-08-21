@@ -363,9 +363,27 @@ describe('Design system manifest', () => {
     expect(designTokens.typography.serif).toContain('IBM Plex Serif');
     expect(cssVariableTokens['--ck-font-serif']).toBe(designTokens.typography.serif);
     expect(tailwindThemeExtension.fontFamily.serif).toBe('var(--ck-font-serif)');
-    expect(designTokens.typography.labelTracking).toBe('0.04em');
-    expect(tailwindThemeExtension.fontSize['ui-caption']).toBe(designTokens.typography.caption);
-    expect(tailwindThemeExtension.fontSize['ui-display']).toBe(designTokens.typography.display);
+    expect(Object.keys(designTokens.typography.roles)).toEqual([
+      'page-title',
+      'section-heading',
+      'body',
+      'label',
+      'supporting',
+      'metric',
+      'technical',
+      'prose'
+    ]);
+    for (const role of Object.values(designTokens.typography.roles)) {
+      expect(role).toEqual(expect.objectContaining({
+        fontFamily: expect.any(String),
+        fontSize: expect.any(String),
+        lineHeight: expect.any(String),
+        fontWeight: expect.any(String)
+      }));
+    }
+    expect(designTokens.typography.roles['page-title'].fontSize).toContain('clamp(');
+    expect(Object.entries(designTokens.typography.roles).filter(([name, role]) => name !== 'page-title' && role.fontSize.includes('clamp('))).toEqual([]);
+    expect(tailwindThemeExtension).not.toHaveProperty('fontSize');
     expect(nuxtConfig).toContain("import { cssVariableTokens, darkCssVariableTokens } from './assets/tokens/index.js'");
     expect(nuxtConfig).toContain('cssDeclarations(cssVariableTokens)');
     expect(nuxtConfig).toContain('cssDeclarations(darkCssVariableTokens)');
@@ -390,7 +408,7 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.colors.status.info).toBe('var(--ck-status-info)');
     expect(tailwindThemeExtension.colors.entity.command).toBe('var(--ck-entity-tone-command)');
     expect(tailwindThemeExtension.colors.signal.entity).toBe('var(--ck-signal-entity)');
-    expect(tailwindThemeExtension.letterSpacing.label).toBe('var(--ck-label-tracking)');
+    expect(tailwindThemeExtension).not.toHaveProperty('letterSpacing');
 
     const motionDock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/MotionDock.vue'), 'utf8');
     expect(motionDock).toContain('var(--p-toolbar-gap)');
@@ -413,16 +431,13 @@ describe('Design system manifest', () => {
     const supportMessageContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/SupportMessageContent.vue'), 'utf8');
 
     expect(fontsCss).toContain(':where(input, button, select, textarea)');
-    expect(fontsCss).toContain('input[type="number"],\n.p-inputnumber-input');
-    expect(fontsCss).not.toContain(':where(input[type="number"], .p-inputnumber-input)');
-    expect(fontsCss).not.toContain(':where(p, blockquote)');
-    expect(fontsCss).toContain('.ck-prose');
-    expect(dataBlock).toContain('font-medium font-mono');
-    expect(actionToolbar).toContain("props.level <= 1 ? 'text-ui-display' : 'text-ui-title'");
-    expect(artifactViewer).toContain('font-serif');
-    expect(artifactViewer).not.toContain('font-mono');
-    expect(artifactTextEditor).toContain('font-serif');
-    expect(supportMessageContent).not.toContain('font-serif');
+    expect(fontsCss).not.toMatch(/:where\((?:p|blockquote|h[1-6]|code|pre)/);
+    expect(fontsCss).not.toContain('.ck-prose');
+    expect(dataBlock).toContain('text-technical');
+    expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
+    expect(artifactViewer).toContain('text-technical');
+    expect(artifactTextEditor).toContain('text-prose');
+    expect(supportMessageContent).not.toContain('text-prose');
   });
 
   it('keeps shared status and entity accents inside the token system', () => {
@@ -443,13 +458,24 @@ describe('Design system manifest', () => {
   });
 
   it('rejects feature-level visual drift outside explicit layout and data styling', () => {
-    const arbitraryTypography = /text-\[(?:\d+(?:\.\d+)?)(?:px|rem|em)\]/;
+    const rawTypography = /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl|\[(?:\d+(?:\.\d+)?)(?:px|rem|em)\])|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|mono|serif)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\])|leading-(?:none|tight|snug|normal|relaxed|loose|\[[^\]]+\]))\b/;
+    const staticFontSize = /\bfont-size=["']\d/;
+    const dynamicFontSizeFiles = new Set([
+      'components/ArtifactLayoutEditor.vue',
+      'components/SheetDesignEditor.vue',
+      'components/shared/DrawingCanvas.vue'
+    ]);
     const rawSurfaceBorder = /\bborder-surface-\d+\b/;
     const nonsemanticShadow = /\bshadow-(?:sm|md|lg|xl|2xl)\b/;
     const nonsemanticRadius = /!?\brounded-(?:sm|md|lg|xl|2xl|3xl)\b/;
     const files = usedVueFiles();
 
-    expect(files.filter(file => arbitraryTypography.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => rawTypography.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => staticFontSize.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(new Set(files.filter(file => /:font-size=/.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'))))).toEqual(dynamicFontSizeFiles);
+    for (const file of dynamicFontSizeFiles) {
+      expect(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')).toContain('Data-driven exception:');
+    }
     expect(files.filter(file => rawSurfaceBorder.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
     expect(files.filter(file => nonsemanticShadow.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
     expect(files.filter(file => file !== 'components/process-designer/ProcessNode.vue' && nonsemanticRadius.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);

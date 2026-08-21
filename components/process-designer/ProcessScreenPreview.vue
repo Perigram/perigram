@@ -6,7 +6,7 @@
       class="rounded-ui border border-content-border p-2"
     >
       <div class="mb-2 flex items-center justify-between gap-2">
-        <span class="min-w-0 truncate text-sm font-medium">{{ group.label }}</span>
+        <span class="min-w-0 truncate text-label">{{ group.label }}</span>
         <Tag :value="String(group.screens.length)" size="small" severity="secondary" />
       </div>
       <div class="flex flex-col gap-2">
@@ -16,7 +16,7 @@
           class="rounded-ui border border-content-border p-2"
         >
           <div class="flex items-center justify-between gap-2">
-            <span class="min-w-0 truncate text-sm">{{ screen.label }}</span>
+            <span class="min-w-0 truncate text-body">{{ screen.label }}</span>
             <Tag :value="screen.template" size="small" />
           </div>
           <div class="mt-2 grid gap-2" :class="layoutClass(screen.template)">
@@ -27,7 +27,7 @@
             >
               <div class="flex items-center justify-between gap-2">
                 <Tag :value="region.slot || 'main'" size="small" severity="info" />
-                <span class="min-w-0 truncate text-xs text-muted-color">{{ sourceLabel(screen, region.sourceId) }}</span>
+                <span class="min-w-0 truncate text-muted-color text-supporting">{{ sourceLabel(screen, region.sourceId) }}</span>
               </div>
               <div class="mt-2 flex flex-wrap gap-1">
                 <Tag

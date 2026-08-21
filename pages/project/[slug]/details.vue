@@ -24,19 +24,19 @@
         <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                 <small class="text-muted-color">{{ $t('project.queues') }}</small>
-                <div class="mt-1 text-2xl font-semibold">{{ project.summary?.queueCount || 0 }}</div>
+                <div class="mt-1 text-metric">{{ project.summary?.queueCount || 0 }}</div>
             </div>
             <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                 <small class="text-muted-color">{{ $t('project.totalArea') }}</small>
-                <div class="mt-1 text-2xl font-semibold">{{ project.summary?.totalArea || 0 }} m²</div>
+                <div class="mt-1 text-metric">{{ project.summary?.totalArea || 0 }} m²</div>
             </div>
             <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                 <small class="text-muted-color">{{ $t('project.status') }}</small>
-                <div class="mt-1 text-2xl font-semibold">{{ projectStatus }}</div>
+                <div class="mt-1 text-metric">{{ projectStatus }}</div>
             </div>
             <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                 <small class="text-muted-color">{{ $t('common.created') }}</small>
-                <div class="mt-1 truncate text-sm font-medium">{{ createdAt }}</div>
+                <div class="mt-1 truncate text-label">{{ createdAt }}</div>
             </div>
         </section>
 

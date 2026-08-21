@@ -3,8 +3,8 @@
     <div class="absolute inset-x-0 top-0 h-1 rounded-t-ui bg-signal-value"></div>
     <div class="flex items-center gap-2">
       <i :class="record.structure === 'list' ? 'pi pi-list' : 'pi pi-circle-fill'" class="text-signal-value"></i>
-      <strong class="min-w-0 flex-1 truncate text-sm">{{ record.label || data.refId }}</strong>
-      <span class="text-xs text-muted-color">{{ typeLabel }}</span>
+      <strong class="min-w-0 flex-1 truncate text-label">{{ record.label || data.refId }}</strong>
+      <span class="text-muted-color text-supporting">{{ typeLabel }}</span>
     </div>
 
     <div class="nodrag nowheel mt-2 flex flex-col gap-2" @mousedown.stop @click.stop>

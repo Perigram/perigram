@@ -19,7 +19,7 @@
           size="small"
           severity="secondary"
           class="min-w-0 max-w-56 !rounded-none"
-          :class="tab.key === activeKey ? 'font-medium' : 'text-muted-color'"
+          :class="tab.key === activeKey ? 'text-label' : 'text-muted-color'"
           :pt="{ label: { class: 'truncate' } }"
           :title="tabLabel(tab)"
           role="tab"

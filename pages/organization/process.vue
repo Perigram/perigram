@@ -65,7 +65,7 @@
           <Button icon="pi pi-times" text size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
         </div>
         <div v-for="group in contextPaletteGroups" :key="group.id" class="flex flex-col gap-1">
-          <span class="text-xs font-semibold text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
+          <span class="text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
           <Button
             v-for="item in group.items"
             :key="item.id"
@@ -93,7 +93,7 @@
           <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
         </div>
         <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
-          <span class="px-1 text-ui-caption font-semibold uppercase tracking-wide text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
+          <span class="px-1 uppercase text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
           <div class="grid grid-cols-2 gap-1.5">
             <Button
               v-for="item in group.items"
@@ -509,7 +509,7 @@
                   <div v-if="selectedProcessNode.kind && !selectedProcessNode.kind.startsWith('effect.') && !selectedProcessNode.kind.startsWith('control.') && !selectedProcessNode.kind.startsWith('source.')" class="flex flex-col gap-2">
                     <label>{{ $t('processDesigner.dataMatching') }}</label>
                     <Select v-model="selectedProcessNode.matching" :options="dataMatchingOptions" option-label="label" option-value="value" size="small" @change="syncNodeData" />
-                    <div v-for="input in processNodeInputs(selectedProcessNode).filter(item => item.role === 'data')" :key="input.id" class="flex items-center gap-2 text-xs">
+                    <div v-for="input in processNodeInputs(selectedProcessNode).filter(item => item.role === 'data')" :key="input.id" class="flex items-center gap-2 text-supporting">
                       <span class="min-w-0 flex-1 truncate">{{ input.label }}</span>
                       <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(selectedProcessNode.inputTransforms?.[input.id]?.simplify)" binary @update:model-value="value => updateInputTransform(selectedProcessNode, input.id, 'simplify', value)" />{{ $t('processDesigner.simplify') }}</label>
                       <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(selectedProcessNode.inputTransforms?.[input.id]?.flatten)" binary @update:model-value="value => updateInputTransform(selectedProcessNode, input.id, 'flatten', value)" />{{ $t('processDesigner.flatten') }}</label>
@@ -524,7 +524,7 @@
                     <Message v-if="selectedNodePreview?.error" severity="error">{{ selectedNodePreview.error }}</Message>
                     <Message v-else-if="!selectedNodePreview" severity="secondary">{{ $t('processDesigner.previewHint') }}</Message>
                     <div v-else class="flex flex-col gap-2">
-                      <section v-for="output in selectedNodePreviewOutputs" :key="output.id" class="rounded-ui border border-content-border bg-subtle p-2 text-xs">
+                      <section v-for="output in selectedNodePreviewOutputs" :key="output.id" class="rounded-ui border border-content-border bg-subtle p-2 text-supporting">
                         <div class="mb-2 flex items-center justify-between gap-2">
                           <strong class="truncate">{{ output.label }}</strong>
                           <span class="text-muted">{{ $t('processDesigner.previewCounts', { branches: output.tree.branchCount, items: output.tree.itemCount }) }}</span>
@@ -629,7 +629,7 @@
                             v-if="openBlockComposition(selectedProcessNode).mode === 'relations' && entry.entityType === 'artifact'"
                             class="flex flex-col gap-1"
                           >
-                            <span class="text-xs text-muted-color">{{ $t('processDesigner.allowedArtifactCreation') }}</span>
+                            <span class="text-muted-color text-supporting">{{ $t('processDesigner.allowedArtifactCreation') }}</span>
                             <MultiSelect
                               :model-value="entry.attachmentKinds || []"
                               :options="artifactUploadKindOptions"

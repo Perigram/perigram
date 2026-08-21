@@ -7,7 +7,7 @@
                 <div class="flex flex-col gap-4">
                     <div class="flex items-center gap-2">
                         <i class="pi pi-list"></i>
-                        <h2 class="m-0 text-base">{{ $t('requisition.orderComposition') }}</h2>
+                        <h2 class="m-0 text-section-heading">{{ $t('requisition.orderComposition') }}</h2>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -27,11 +27,11 @@
                             <div class="flex justify-between items-center">
                                 <div class="flex flex-col">
                                     <small>{{ $t('common.quantity') }}</small>
-                                    <span class="text-xl">{{ item.quantity }}</span>
+                                    <span class="text-section-heading">{{ item.quantity }}</span>
                                 </div>
                                 <div class="flex flex-col text-right">
                                     <small>{{ $t('common.subtotal') }}</small>
-                                    <span class="text-xl">${{ item.totalPrice?.toFixed(2) }}</span>
+                                    <span class="text-section-heading">${{ item.totalPrice?.toFixed(2) }}</span>
                                 </div>
                             </div>
                         </Panel>

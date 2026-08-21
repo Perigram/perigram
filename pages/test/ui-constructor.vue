@@ -73,7 +73,7 @@
               />
             </div>
             <div class="rounded-ui border border-content-border bg-content p-3">
-              <div class="mb-2 text-sm font-medium">{{ $t('uiConstructor.guardrails') }}</div>
+              <div class="mb-2 text-label">{{ $t('uiConstructor.guardrails') }}</div>
               <DataBlock entity-type="queue" :entity="activeQueue" :fields="guardedFields" />
               <Divider />
               <div class="flex flex-wrap gap-2">
@@ -142,7 +142,7 @@
                 :key="surface.name"
                 class="flex items-center justify-between gap-3 rounded-ui border border-content-border bg-content px-3 py-2"
               >
-                <span class="min-w-0 truncate text-sm font-medium">{{ surface.name }}</span>
+                <span class="min-w-0 truncate text-label">{{ surface.name }}</span>
                 <div class="flex shrink-0 gap-2">
                   <Tag :value="surface.preview" severity="secondary" size="small" />
                   <Tag :value="surface.display" severity="info" size="small" />

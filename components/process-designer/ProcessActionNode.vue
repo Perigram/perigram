@@ -4,8 +4,8 @@
     <div class="flex min-w-0 items-center gap-2 pl-1">
       <i :class="actionIcon" class="text-signal-data" aria-hidden="true"></i>
       <div class="min-w-0 flex-1">
-        <span class="block truncate text-xs font-semibold text-signal-data">{{ actionKindLabel }}</span>
-        <strong class="block truncate text-sm">{{ actionTitleLabel }}</strong>
+        <span class="block truncate text-signal-data text-label">{{ actionKindLabel }}</span>
+        <strong class="block truncate text-label">{{ actionTitleLabel }}</strong>
       </div>
       <Tag v-if="triggerMode === 'event'" :value="$t('processDesigner.eventTrigger')" severity="secondary" size="small" />
     </div>
@@ -18,13 +18,13 @@
       <div class="flex flex-col gap-1">
         <div v-for="(input, index) in inputSpecs" :key="input.id" :class="socketClass(input, 'left')">
           <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" :style="handleStyle(input)" />
-          <span class="block truncate text-xs">{{ input.label }}</span>
+          <span class="block truncate text-supporting">{{ input.label }}</span>
         </div>
       </div>
       <div class="flex flex-col gap-1">
         <div v-for="(output, index) in outputSpecs" :key="output.id" :class="socketClass(output, 'right')">
           <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" :style="handleStyle(output)" />
-          <span class="block truncate text-xs">{{ output.label }}</span>
+          <span class="block truncate text-supporting">{{ output.label }}</span>
         </div>
       </div>
     </div>
@@ -39,7 +39,7 @@
         :style="handleStyle({ kind: 'event' })"
       />
       <Handle id="event" type="source" :position="Position.Right" class="!right-0 !translate-x-1/2" :style="handleStyle({ kind: 'event' })" />
-      <span class="block truncate text-xs text-muted-color">{{ eventLabel }}</span>
+      <span class="block truncate text-muted-color text-supporting">{{ eventLabel }}</span>
     </div>
   </div>
 </template>

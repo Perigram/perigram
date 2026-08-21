@@ -35,7 +35,7 @@
             <Column :header="$t('auth.invitationLink')">
                 <template #body="{ data }">
                     <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono opacity-60 truncate max-w-md">
+                        <span class="opacity-60 truncate max-w-md text-technical">
                             {{ getInvitationUrl(data.token) }}
                         </span>
                         <Button icon="pi pi-copy" text size="small" :aria-label="$t('common.copy')" @click="copyToClipboard(getInvitationUrl(data.token))" />
@@ -101,7 +101,7 @@
                     <div class="flex flex-col gap-2">
                         <small>{{ $t('auth.invitationLink') }}</small>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-mono truncate flex-1">{{ generatedUrl }}</span>
+                            <span class="truncate flex-1 text-technical">{{ generatedUrl }}</span>
                             <Button icon="pi pi-copy" text size="small" :aria-label="$t('common.copy')" @click="copyToClipboard(generatedUrl)" />
                         </div>
                     </div>
@@ -165,10 +165,10 @@
                     <div>
                         <small class="text-muted-color">{{ $t('organization.screens') }}</small>
                         <div class="mt-1 flex flex-col gap-1">
-                            <span v-for="screen in selectedUserScreens" :key="screen.screenKey || screen.id" class="truncate text-sm">
+                            <span v-for="screen in selectedUserScreens" :key="screen.screenKey || screen.id" class="truncate text-body">
                                 {{ screen.labelKey ? $t(screen.labelKey) : (screen.label || screen.route) }} · {{ screen.route }}
                             </span>
-                            <span v-if="!selectedUserScreens.length" class="text-sm text-muted-color">{{ $t('organization.noProcessScreens') }}</span>
+                            <span v-if="!selectedUserScreens.length" class="text-muted-color text-body">{{ $t('organization.noProcessScreens') }}</span>
                         </div>
                     </div>
                     <Message v-if="selectedUserIncompleteBindings.length" severity="warn">

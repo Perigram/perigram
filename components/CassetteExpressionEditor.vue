@@ -8,7 +8,7 @@
     <div class="flex min-w-0 items-center gap-1">
       <div
         ref="editorRef"
-        class="h-8 min-w-0 flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-ui border border-content-border bg-content px-2 py-1 font-mono text-sm outline-none focus:border-primary"
+        class="h-8 min-w-0 flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-ui border border-content-border bg-content px-2 py-1 outline-none focus:border-primary text-technical"
         contenteditable="true"
         role="textbox"
         spellcheck="false"

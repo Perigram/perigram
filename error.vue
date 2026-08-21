@@ -1,10 +1,10 @@
 <template>
   <div class="flex flex-col items-center justify-center min-h-screen bg-surface-950 text-surface-0 p-8 text-center">
     <div class="flex flex-col gap-4 mb-12">
-        <div class="text-9xl leading-none opacity-10 select-none">
+        <div class="opacity-10 select-none text-metric">
             {{ error?.statusCode || 500 }}
         </div>
-        <p class="text-2xl m-0 opacity-90">
+        <p class="m-0 opacity-90 text-metric">
             {{ error?.message || 'Unexpected system error' }}
         </p>
     </div>

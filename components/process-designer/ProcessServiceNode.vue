@@ -5,7 +5,7 @@
       <div class="min-w-0">
         <div class="flex items-center gap-1">
           <i class="pi pi-cog text-signal-decision" aria-hidden="true"></i>
-          <strong class="truncate text-sm">{{ data.label || data.commandId || data.refId }}</strong>
+          <strong class="truncate text-label">{{ data.label || data.commandId || data.refId }}</strong>
         </div>
         <small class="text-muted-color">{{ data.commandId || $t('processDesigner.commandId') }}</small>
       </div>
@@ -14,8 +14,8 @@
     <div class="relative mt-2 rounded-ui border border-content-border px-2 py-1">
       <Handle id="run-role" type="target" :position="Position.Top" class="!top-0 !-translate-y-1/2" :style="handleStyle({ kind: 'event' })" />
       <div class="flex min-w-0 flex-wrap items-center gap-1">
-        <span class="text-xs text-muted-color">{{ $t('processDesigner.runAccess') }}</span>
-        <span v-for="principal in runPrincipalLabels" :key="principal" class="truncate text-xs">
+        <span class="text-muted-color text-supporting">{{ $t('processDesigner.runAccess') }}</span>
+        <span v-for="principal in runPrincipalLabels" :key="principal" class="truncate text-supporting">
           {{ principal }}
         </span>
       </div>
@@ -29,7 +29,7 @@
           :class="socketClass(input, 'left')"
         >
           <Handle :id="socketHandleId('input', input, index, inputSpecs)" type="target" :position="Position.Left" :class="handleClass(input, 'left')" :style="handleStyle(input)" />
-          <span class="block truncate text-xs">{{ input.label }}</span>
+          <span class="block truncate text-supporting">{{ input.label }}</span>
         </div>
       </div>
       <div class="flex flex-col gap-1">
@@ -39,7 +39,7 @@
           :class="socketClass(output, 'right')"
         >
           <Handle :id="socketHandleId('output', output, index, outputSpecs)" type="source" :position="Position.Right" :class="handleClass(output, 'right')" :style="handleStyle(output)" />
-          <span class="block truncate text-xs">{{ output.label }}</span>
+          <span class="block truncate text-supporting">{{ output.label }}</span>
         </div>
       </div>
     </div>

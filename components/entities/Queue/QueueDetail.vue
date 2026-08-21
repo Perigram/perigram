@@ -73,7 +73,7 @@
                     <div class="flex flex-col gap-4 py-2">
                         <div class="flex justify-between items-center">
                             <span class="opacity-60">{{ $t('queue.runs') }}</span>
-                            <span class="text-xl">{{ queue.summary?.runCount || 0 }}</span>
+                            <span class="text-section-heading">{{ queue.summary?.runCount || 0 }}</span>
                         </div>
                     </div>
                 </Panel>

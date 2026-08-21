@@ -20,15 +20,15 @@
             <section class="grid grid-cols-1 gap-3 lg:grid-cols-3">
                 <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                     <small class="text-muted-color">{{ $t('nav.projects') }}</small>
-                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.total }}</div>
+                    <div class="mt-1 text-metric">{{ projectStats.total }}</div>
                 </div>
                 <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                     <small class="text-muted-color">{{ $t('project.queues') }}</small>
-                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.queues }}</div>
+                    <div class="mt-1 text-metric">{{ projectStats.queues }}</div>
                 </div>
                 <div class="rounded-ui border border-content-border bg-content px-4 py-3">
                     <small class="text-muted-color">{{ $t('project.totalArea') }}</small>
-                    <div class="mt-1 text-2xl font-semibold">{{ projectStats.totalArea }} m²</div>
+                    <div class="mt-1 text-metric">{{ projectStats.totalArea }} m²</div>
                 </div>
             </section>
 
@@ -72,7 +72,7 @@
         >
             <div class="py-4">
                 <div class="flex flex-col gap-2">
-                    <label for="projectName" class="font-medium">{{ $t('project.name') }}</label>
+                    <label for="projectName" class="text-label">{{ $t('project.name') }}</label>
                     <InputText
                         id="projectName"
                         v-model="newProjectName"

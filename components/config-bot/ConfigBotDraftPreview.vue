@@ -38,7 +38,7 @@
           </div>
           <div class="flex flex-col gap-1">
             <span>{{ $t('admin.configBot.route') }}</span>
-            <strong class="font-mono">{{ draftPackage.route }}</strong>
+            <strong class="text-technical">{{ draftPackage.route }}</strong>
           </div>
           <div class="flex flex-col gap-1">
             <span>{{ $t('admin.configBot.version') }}</span>
@@ -66,16 +66,16 @@
         <div class="flex flex-col gap-4">
           <div v-for="file in draftPackage.files" :key="file.path" class="flex flex-col gap-2 rounded-ui border border-content-border p-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <strong class="font-mono">{{ file.path }}</strong>
+              <strong class="text-technical">{{ file.path }}</strong>
               <Tag :value="file.language" severity="secondary" size="small" />
             </div>
-            <pre class="max-h-96 overflow-auto rounded-ui border border-content-border bg-subtle p-3 text-xs"><code>{{ file.content }}</code></pre>
+            <pre class="max-h-96 overflow-auto rounded-ui border border-content-border bg-subtle p-3 text-technical"><code>{{ file.content }}</code></pre>
           </div>
         </div>
       </Panel>
 
       <Panel v-else :header="$t('admin.configBot.domainDraft')">
-        <pre class="max-h-[32rem] overflow-auto rounded-ui border border-content-border bg-subtle p-3 text-xs"><code>{{ JSON.stringify(draftPackage.domainDraft, null, 2) }}</code></pre>
+        <pre class="max-h-[32rem] overflow-auto rounded-ui border border-content-border bg-subtle p-3 text-technical"><code>{{ JSON.stringify(draftPackage.domainDraft, null, 2) }}</code></pre>
       </Panel>
     </template>
   </div>

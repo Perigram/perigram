@@ -7,7 +7,7 @@
     <template #header>
       <div class="flex min-w-0 flex-1 items-center justify-between gap-3">
         <slot name="header">
-          <span class="min-w-0 truncate font-medium">{{ header }}</span>
+          <span class="min-w-0 truncate text-label">{{ header }}</span>
         </slot>
         <div v-if="$slots.actions" class="flex shrink-0 items-center gap-2">
           <slot name="actions" />
