@@ -801,17 +801,17 @@ decision.
 
 ### Relations and lineage
 
-- [ ] Treat Lineage construction as ancestry and Relations as associations.
+- [x] Treat Lineage construction as ancestry and Relations as associations.
   Do not add generic parent dropdowns or infer containment from arbitrary
   relation names.
-- [ ] Provide explicit Link and Unlink authoring through typed relation block
+- [x] Provide explicit Link and Unlink authoring through typed relation block
   modification or the smallest derived action contract. Both paths must use
   declared owner/target types and service authorization.
-- [ ] Support one-to-one and one-to-many relation values, including building a
+- [x] Support one-to-one and one-to-many relation values, including building a
   persisted relation array from a data-tree list through Collect Array.
-- [ ] Prevent cross-organization links unless the domain operation explicitly
+- [x] Prevent cross-organization links unless the domain operation explicitly
   permits transfer through a socket/service boundary.
-- [ ] Test link, unlink, replace, duplicate prevention, missing targets,
+- [x] Test link, unlink, replace, duplicate prevention, missing targets,
   reverse/display projection, and lineage-scope effects.
 
 ### Status, archive, and delete
@@ -1372,13 +1372,29 @@ Verdict on record (two runs, 2026-08-19): only the forward/source-side
 relation read is covered (`entity-sources.spec.js` exercises
 `processRelatedEntities` as an owner-side forward read).
 
-- [ ] Verify Lineage-as-ancestry vs Relations-as-associations semantics and
+- [x] Verify Lineage-as-ancestry vs Relations-as-associations semantics and
   explicit Link/Unlink authoring through typed relation blocks; implement
   gaps only.
-- [ ] Verify one-to-one and one-to-many relation values, including building a
+- [x] Verify one-to-one and one-to-many relation values, including building a
   persisted relation array from a data-tree list through Collect Array.
-- [ ] Verify cross-organization link prevention; test link, unlink, replace,
+- [x] Verify cross-organization link prevention; test link, unlink, replace,
   duplicate prevention, missing targets, and denied relations.
+
+#### Agent Notes — 2026-08-21
+
+Correction complete. Lineage remains graph-derived ancestry and Relations
+remain typed non-owning associations. Compiled Create and Modify effects now
+validate graph-declared relation owner/key/target/cardinality contracts before
+the owning persistence call, resolving targets through authorized registered
+services and deduplicating many-valued replacements. Runtime coverage now pins
+one/many replacement, Collect Array cardinality, Link, Unlink, copy-on-write
+replacement, duplicate handling, missing targets, denied reads, and
+cross-organization rejection. Existing forward related reads, generated detail
+actions, reverse/display projections, and lineage-scoped compiler coverage were
+verified without runtime changes.
+Replacement deduplication also uses the Link/Unlink target identity
+(`type` plus `id`), so pinned and unpinned references cannot create two
+associations to the same entity.
 
 ### Correction: Status, archive, and delete
 

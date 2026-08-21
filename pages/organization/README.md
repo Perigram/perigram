@@ -165,11 +165,11 @@ Action nodes are the preferred process-design surface for new behavior because
 they describe what happens. Entity profiles remain process resources for
 lifecycle and field-policy contracts, while action nodes reference those
 resources and compile into runtime trigger contracts.
-Entity creation actions expose an optional parent input socket and derive the
-parent contract from the incoming edge instead of a parent-type dropdown.
-The designer always renders that optional socket so a parent can be wired. Until
-an entity edge is connected it is a generic parent target and compiles as a root
-create; after wiring it relabels to the concrete parent entity type.
+Entity creation actions have no generic parent input socket. Ancestry is
+authored by composing typed entity references through a Lineage block; the
+compiler derives containment bindings only from those graph edges. Relations
+blocks remain non-owning associations and can feed Create or Modify effects
+without becoming lineage or generic parent selectors.
 Update-entity actions consume their entity from the incoming edge, expose one
 left-side data socket per selected mutable field, and compile those selected
 fields against the domain field policy for the concrete incoming entity type.

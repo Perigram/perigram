@@ -1993,7 +1993,7 @@ describe('@cutkit/processes compiler', () => {
           block: 'relations',
           compositionMode: 'relations',
           entries: [
-            { id: 'library', key: 'library', entityType: 'library', cardinality: 'one' },
+            { id: 'library', key: 'libraries', entityType: 'library', cardinality: 'one' },
             {
               id: 'artifact',
               key: 'artifact',
@@ -2065,6 +2065,50 @@ describe('@cutkit/processes compiler', () => {
       'create:link:libraries',
       'create:unlink:libraries'
     ]));
+  });
+
+  it('derives many cardinality for a graph relation fed by Collect Array', () => {
+    const normalized = normalizeProcessDefinition({
+      dataflowVersion: 4,
+      processNodes: {
+        collect: {
+          id: 'collect',
+          kind: 'collection.packArray',
+          type: { base: 'entityRef', shape: 'item', entityType: 'library' }
+        },
+        relations: {
+          id: 'relations',
+          kind: 'record.composeBlock',
+          block: 'relations',
+          compositionMode: 'relations',
+          entries: [{ id: 'reviews', key: 'reviewLibraries', entityType: 'library' }]
+        },
+        update: {
+          id: 'update',
+          kind: 'effect.updateEntity',
+          entityType: 'project',
+          blocks: ['relations'],
+          trigger: { mode: 'manual' }
+        }
+      },
+      graph: {
+        nodes: ['collect', 'relations', 'update'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'collect-relations', source: 'collect', sourceHandle: 'data:value', target: 'relations', targetHandle: 'data:entry:reviews', role: 'data' },
+          { id: 'relations-update', source: 'relations', sourceHandle: 'data:block', target: 'update', targetHandle: 'data:relations', role: 'data' }
+        ]
+      }
+    }, {
+      entities: [{ type: 'project' }, { type: 'library' }],
+      blockComposition: { relations: { mode: 'relations', valueBase: 'entityRef' } },
+      blockSchemas: { relations: [{ path: 'relations', block: 'relations', type: { base: 'map', shape: 'item' } }] }
+    });
+
+    expect(normalized.actions.update.mutation.relationContracts[0]).toMatchObject({
+      ownerType: 'project',
+      targetType: 'library',
+      cardinality: 'many'
+    });
   });
 
   it('normalizes embedded relation creators against the current derived construction contract', () => {

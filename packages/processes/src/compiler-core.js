@@ -417,21 +417,31 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
   const relationContracts = composers
     .filter(record => record.compositionMode === 'relations' || record.block === 'relations')
     .flatMap(record => (record.entries || []).map(entry => {
-      const declared = declaredRelationForTarget(domain, node.entityType, entry.entityType);
+      const declared = declaredRelationForTarget(domain, node.entityType, entry.entityType, entry.key);
       const composerNode = (graph.nodes || []).find(item => String(item.data?.refId || item.id) === String(record.id));
       const entryEdge = composerNode && (graph.edges || []).find(edge => (
         String(edge.target) === String(composerNode.id)
         && normalizeHandle(edge.targetHandle) === `entry:${entry.id}`
       ));
       const sourceRecord = entryEdge ? recordByGraphNode.get(String(entryEdge.source)) : null;
+      let sourcePort = null;
+      if (sourceRecord && entryEdge) {
+        try {
+          sourcePort = catalogPortForHandle(
+            resolveCatalogNodePorts(sourceRecord, catalogContext(domain, sourceRecord)).outputs,
+            entryEdge.sourceHandle
+          );
+        } catch {}
+      }
       const processCreator = sourceRecord?.kind === 'effect.createEntity'
         && sourceRecord.entityType === (declared?.targetType || entry.entityType)
         ? { actionId: String(sourceRecord.id) }
         : null;
       return {
+      ownerType: node.entityType,
       key: declared?.key || entry.key,
       targetType: declared?.targetType || entry.entityType,
-      cardinality: declared?.cardinality || (entry.type?.base === 'array' ? 'many' : 'one'),
+      cardinality: declared?.cardinality || (entry.type?.base === 'array' || sourcePort?.type?.base === 'array' ? 'many' : 'one'),
       ...(processCreator ? { creator: processCreator } : {}),
       ...(hasDomainAttachmentKinds(declared?.targetType || entry.entityType, domain) ? {
         creator: {
@@ -478,9 +488,9 @@ function attachmentCreatorKinds(selectedKinds = [], domain = {}) {
   }));
 }
 
-function declaredRelationForTarget(domain = {}, ownerType = '', targetType = '') {
+function declaredRelationForTarget(domain = {}, ownerType = '', targetType = '', key = '') {
   const matches = (domain.relations || []).filter(relation => (
-    relation.ownerType === ownerType && relation.targetType === targetType
+    relation.ownerType === ownerType && relation.targetType === targetType && relation.key === key
   ));
   return matches.length === 1 ? matches[0] : null;
 }
