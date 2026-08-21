@@ -412,7 +412,10 @@ function showInlineFallback(input) {
 
 function supportsInlineValue(input) {
   return ['string', 'id', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'status', 'entityRef'].includes(input.base)
-    && input.access === 'item';
+    && (input.access === 'item'
+      // Mapped mutation sockets declare List consumption; an inline scalar
+      // fallback is stored as one broadcast item.
+      || (input.access === 'list' && ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'].includes(record.value.kind)));
 }
 
 function inputDefault(id) {

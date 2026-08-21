@@ -166,12 +166,16 @@ function normalizeProcessInputDefaults(processNodes = {}, domain = {}) {
     let ports = [];
     try { ports = resolveCatalogNodePorts(record, catalogContext(domain, record)).inputs; } catch { ports = []; }
     const accessById = new Map(ports.map(port => [port.id, port.access || 'item']));
+    const mutationEffect = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'].includes(record.kind);
     return [id, {
       ...record,
-      inputDefaults: Object.fromEntries(Object.entries(record.inputDefaults).map(([socketId, value]) => [
-        socketId,
-        isDataTree(value) ? value : createDataTree(value, accessById.get(socketId) || 'item')
-      ]))
+      inputDefaults: Object.fromEntries(Object.entries(record.inputDefaults).map(([socketId, value]) => {
+        const access = accessById.get(socketId) || 'item';
+        // Mapped mutation sockets declare List access; a scalar authored
+        // default is one broadcast item, not an arity error.
+        const shape = mutationEffect && access === 'list' && !Array.isArray(value) && !isDataTree(value) ? 'item' : access;
+        return [socketId, isDataTree(value) ? value : createDataTree(value, shape)];
+      }))
     }];
   }));
 }
@@ -634,14 +638,17 @@ function isDataEdge(edge = {}) {
 // explicit null/undefined is absence and never satisfies; entity/block values
 // must be non-null references; entity-list/array/attachment values must be
 // non-empty; enum/status values must be a declared member; unconstrained
-// primitives accept any type-valid value including ''/0/false.
+// primitives accept any type-valid value including ''/0/false. A scalar on a
+// List/Tree-declared socket is one broadcast item and satisfies by the scalar
+// rules; only actual arrays/trees use the collection non-empty rule.
 function inputValueSatisfies(value, port, declared = {}) {
   const scalar = isDataTree(value) ? value.branches?.[0]?.items?.[0] : value;
   if (scalar === null || scalar === undefined) return false;
   const type = port.type || {};
   const base = type.base || type.kind || '';
-  const collection = port.access === 'list' || port.access === 'tree'
-    || base === 'array' || base === 'entity_list';
+  const collection = base === 'array' || base === 'entity_list'
+    || ((port.access === 'list' || port.access === 'tree')
+      && (Array.isArray(scalar) || Boolean(scalar && typeof scalar === 'object' && Array.isArray(scalar.branches))));
   if (collection) {
     if (Array.isArray(scalar)) return scalar.length > 0;
     if (scalar && typeof scalar === 'object' && Array.isArray(scalar.branches)) {

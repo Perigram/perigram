@@ -602,33 +602,36 @@ function effectInputs(kind, types) {
     ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
     label: input.label || input.id
   }));
+  // Mapped mutation sockets (Create, Modify, Status) declare List consumption:
+  // the shared effect mapper aligns item, list, and tree sources per item, and
+  // a single item source remains valid as one broadcast item.
   if (kind === 'effect.createEntity' && types.constructionMode !== 'genericCreate') {
     return [
       ...types.constructionInputs.map(input => ({
-        ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
+        ...socket(input.id, input.type, DATA, input.required && input.default === undefined, 'list'),
         label: input.label || input.id
       })),
-      ...types.blocks.map(block => socket(block, processType('block', { block }), DATA)),
-      socket('status.state.primary', processType('status', { entityType: types.entity.entityType }))
+      ...types.blocks.map(block => socket(block, processType('block', { block }), DATA, false, 'list')),
+      socket('status.state.primary', processType('status', { entityType: types.entity.entityType }), DATA, false, 'list')
     ];
   }
   if (kind === 'effect.createEntity') return [
     ...types.blocks.map(block => socket(block, processType('block', {
       block
-    }), DATA, block === 'identity')),
-    socket('status.state.primary', processType('status', { entityType: types.entity.entityType }))
+    }), DATA, block === 'identity', 'list')),
+    socket('status.state.primary', processType('status', { entityType: types.entity.entityType }), DATA, false, 'list')
   ];
   if (kind === 'effect.updateEntity') return [
-    socket('entity', types.entityRef, DATA, true),
+    socket('entity', types.entityRef, DATA, true, 'list'),
     ...types.blocks.map(block => socket(block, processType('block', {
       block
-    }))),
-    socket('status.state.primary', processType('status', { entityType: types.entity.entityType }))
+    }), DATA, false, 'list')),
+    socket('status.state.primary', processType('status', { entityType: types.entity.entityType }), DATA, false, 'list')
   ];
   if (kind === 'effect.changeStatus') return [
-    socket('entity', types.entityRef, DATA, true),
-    socket('status', processType('status', { entityType: types.entity.entityType }), DATA, true),
-    socket('changes', types.patch)
+    socket('entity', types.entityRef, DATA, true, 'list'),
+    socket('status', processType('status', { entityType: types.entity.entityType }), DATA, true, 'list'),
+    socket('changes', types.patch, DATA, false, 'list')
   ];
   if (kind === 'effect.sendEntity') return [socket('entity', types.entityRef, DATA, true)];
   if (kind === 'effect.generateAttachment') return [socket('entity', types.entityRef, DATA, true), socket('parameters', processType('record'))];

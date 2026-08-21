@@ -1,4 +1,4 @@
-import { createDataPacket, packetValue } from './data-tree.js';
+import { createDataPacket, isDataTree, packetValue } from './data-tree.js';
 import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 import { resolveCatalogNodePorts } from './node-catalog.js';
 
@@ -293,13 +293,13 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
   for (const port of dataInputs) {
     const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment);
     if (runValue !== undefined) {
-      inputs[port.id] = createDataPacket(structuredClone(runValue), port.access || 'item');
+      inputs[port.id] = runContextPacket(runValue, port.access);
       continue;
     }
     const edge = incomingData(process, node.id, port.id);
     if (!edge) {
       if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
-        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.access || 'item');
+        inputs[port.id] = runContextPacket(record.inputDefaults[port.id], port.access);
         continue;
       }
       continue;
@@ -312,6 +312,14 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
     }
   }
   return inputs;
+}
+
+// Run-context values and authored defaults for a List-declared socket arrive
+// as either an array (one packet item per entry) or a single value, which the
+// mapped mutation contract broadcasts as one item rather than rejecting.
+function runContextPacket(value, access = 'item') {
+  const shape = access === 'list' && !Array.isArray(value) && !isDataTree(value) ? 'item' : access;
+  return createDataPacket(structuredClone(value), shape || 'item');
 }
 
 function processRunInput(inputs = {}, record = {}, portId = '', environment = {}) {

@@ -5,6 +5,7 @@ import {
   getProcessNodeDefinition,
   resolveCatalogNodePorts
 } from './node-catalog.js';
+import { processSocketsCompatible } from './types.js';
 
 describe('process v4 node catalog', () => {
   it('uses unique namespaced kinds and one declared family/level per node', () => {
@@ -129,6 +130,50 @@ describe('process v4 node catalog', () => {
       blocks: ['identity']
     }, context);
     expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'status.state.primary']);
+  });
+
+  it('declares List consumption on Create, Modify, and Status effect input sockets', () => {
+    const context = {
+      fieldSchemas: [
+        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }
+      ]
+    };
+    for (const [kind, record] of [
+      ['effect.createEntity', { kind: 'effect.createEntity', entityType: 'project', blocks: ['identity'] }],
+      ['effect.updateEntity', { kind: 'effect.updateEntity', entityType: 'project', blocks: ['identity'] }],
+      ['effect.changeStatus', { kind: 'effect.changeStatus', entityType: 'project' }]
+    ]) {
+      const ports = resolveCatalogNodePorts(record, context);
+      expect(ports.inputs.length, kind).toBeGreaterThan(0);
+      expect(ports.inputs.every(input => input.access === 'list'), kind).toBe(true);
+    }
+    const typedCreate = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      entityType: 'cassette_design',
+      construction: {
+        mode: 'bakeCassetteDesignFromTemplate',
+        inputs: [{ id: 'templateId', type: 'entity', entityType: 'cassette', required: true }]
+      }
+    }, context);
+    expect(typedCreate.inputs.every(input => input.access === 'list')).toBe(true);
+  });
+
+  it('accepts item, list, and tree sources on mapped mutation sockets', () => {
+    const modify = resolveCatalogNodePorts({
+      kind: 'effect.updateEntity',
+      entityType: 'project',
+      blocks: ['identity']
+    }, {
+      fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
+    });
+    const entitySocket = modify.inputs.find(input => input.id === 'entity');
+    const blockSocket = modify.inputs.find(input => input.id === 'identity');
+    for (const access of ['item', 'list', 'tree']) {
+      const entitySource = { id: 'entities', label: 'entities', role: 'data', access, type: { base: 'entity', entityType: 'project' } };
+      expect(processSocketsCompatible(entitySource, entitySocket).ok, `entity ${access}`).toBe(true);
+      const blockSource = { id: 'block', label: 'block', role: 'data', access, type: { base: 'block', block: 'identity' } };
+      expect(processSocketsCompatible(blockSource, blockSocket).ok, `block ${access}`).toBe(true);
+    }
   });
 
   it('composes and modifies one selected block from its own fields', () => {
