@@ -165,6 +165,8 @@ generated workspace panes, and dialog content. `DesignerDialog` is the only
 dialog host for standalone designer launches. It fills the viewport and mounts
 its content through `DesignerSurface`, so a cassette designer opened from an
 entity action uses the same sizing contract as route and pane designers.
+The host keeps Aura's dialog-content padding; its scoped PrimeVue integration
+owns only the flex sizing needed for the designer surface.
 
 ### `ThreeViewport.vue`
 
