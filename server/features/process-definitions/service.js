@@ -13,6 +13,7 @@ import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
   compileProcessDefinition,
   hasCanonicalProcessSource,
+  normalizeProcessDefinition,
   PROCESS_DATAFLOW_VERSION,
   applyPatch,
   evaluateEntityPredicate,
@@ -883,24 +884,14 @@ function pickMutationData(data = {}, action = {}, entities = {}) {
   return picked;
 }
 
-async function normalizeProcessMutation(entityType, mutation = {}, action = {}, auth = {}) {
-  const policy = getEntityFieldAccessPolicy(entityType) || getDomain().fieldAccess?.[entityType];
-  const writable = action.access?.level === 'admin'
-    ? [...(policy?.write || []), ...(policy?.admin || [])]
-    : [...(policy?.write || [])];
-  const fields = action.mutation?.fields || [];
-  for (const field of fields) {
-    if (!fieldPathAllowed(field, writable)) {
-      throw createError({ statusCode: 400, message: `Action cannot update protected field ${field}` });
-    }
-  }
-
+async function normalizeProcessMutation(entityType, mutation = {}, relationContracts = [], auth = {}) {
   if (!mutation.relations) return mutation;
   const normalizedRelations = {};
   for (const [key, value] of Object.entries(mutation.relations)) {
-    const relation = (getDomain().relations || []).find(item => item.ownerType === entityType && item.key === key);
-    const input = (action.inputs || []).find(item => item.relationKey === key || item.id === `relation:${key}`);
-    if (!relation || !input) {
+    const relation = relationContracts.find(item => (
+      normalizeEntityType(item.ownerType) === normalizeEntityType(entityType) && item.key === key
+    ));
+    if (!relation) {
       throw createError({ statusCode: 400, message: `Action cannot write undeclared relation ${entityType}.${key}` });
     }
     const values = Array.isArray(value) ? value : [value];
@@ -918,6 +909,32 @@ async function normalizeProcessMutation(entityType, mutation = {}, action = {}, 
       : refs[0];
   }
   return { ...mutation, relations: normalizedRelations };
+}
+
+function processRelationContracts(record = {}, processData = {}) {
+  const actionId = String(record.entryTriggerId || record.id || '');
+  return normalizeProcessDefinition(processData, getDomain()).actions?.[actionId]?.mutation?.relationContracts || [];
+}
+
+function declaredRelationValues(value, contracts = []) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(contracts
+    .filter(contract => Object.hasOwn(value, contract.key))
+    .map(contract => [contract.key, value[contract.key]]));
+}
+
+async function normalizeProcessPatchRelations(entityType, patch = {}, contracts = [], auth = {}) {
+  const relations = Object.fromEntries(contracts.flatMap(contract => (
+    Object.hasOwn(patch, `relations.${contract.key}`)
+      ? [[contract.key, patch[`relations.${contract.key}`]]]
+      : []
+  )));
+  if (!Object.keys(relations).length) return patch;
+  const normalized = await normalizeProcessMutation(entityType, { relations }, contracts, auth);
+  return {
+    ...patch,
+    ...Object.fromEntries(Object.entries(normalized.relations).map(([key, value]) => [`relations.${key}`, value]))
+  };
 }
 
 async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
@@ -948,10 +965,6 @@ function normalizeRelationRef(value, targetType) {
     throw createError({ statusCode: 400, message: `Relation target must be ${targetType}` });
   }
   return { ...ref, type: targetType };
-}
-
-function fieldPathAllowed(path, patterns = []) {
-  return patterns.some(pattern => pattern === path || (pattern.endsWith('.*') && (path === pattern.slice(0, -2) || path.startsWith(pattern.slice(0, -1)))));
 }
 
 async function persistProcessEntityPatch(entityType, targetId, patch, auth) {
@@ -1037,9 +1050,16 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   if (!entityType) throw new Error(`${kind} requires entityType`);
   const service = getAppRegistry().getEntityService(entityType);
   if (!service) throw new Error(`Entity service missing for ${entityType}`);
+  const relationContracts = ['effect.createEntity', 'effect.updateEntity'].includes(kind)
+    ? processRelationContracts(record, processData)
+    : [];
   if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
     const constructionDraft = processConstructionInputRecord(record, inputs);
-    const blockDraft = kind === 'effect.createEntity' ? processBlockInputRecord(record, inputs) : {};
+    let blockDraft = kind === 'effect.createEntity' ? processBlockInputRecord(record, inputs) : {};
+    const relationValues = declaredRelationValues(inputs.relations, relationContracts);
+    if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
+    const executionAuth = createActionExecutionAuth(auth, record);
+    blockDraft = await normalizeProcessMutation(entityType, blockDraft, relationContracts, executionAuth);
     const draft = { ...blockDraft, ...constructionDraft };
     const targetState = inputs['status.state.primary'] || record.status?.to;
     const statusMetadata = draft.status?.metadata && typeof draft.status.metadata === 'object'
@@ -1056,7 +1076,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       userId: auth.userId,
       organizationId,
       role: auth.role,
-      executionAuth: createActionExecutionAuth(auth, record),
+      executionAuth,
       applyTypedBlocks: result => applyTypedConstructionBlocks(record, blockDraft, result, service, auth)
     });
     const dto = created?.toJSON ? created.toJSON() : created;
@@ -1091,10 +1111,13 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       value: statusValue
     };
     if (statusChange) {
-      const patch = Object.fromEntries(persistedChanges.map(change => {
+      let patch = Object.fromEntries(persistedChanges.map(change => {
         if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
         return [change.path, change.value];
       }));
+      Object.assign(patch, Object.fromEntries(Object.entries(declaredRelationValues(inputs.relations, relationContracts))
+        .map(([key, value]) => [`relations.${key}`, value])));
+      patch = await normalizeProcessPatchRelations(entityType, patch, relationContracts, auth);
       const result = await statusService.transitionWithResult({
         entityType,
         targetId: target.id,
@@ -1118,6 +1141,9 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
         return [change.path, value];
       }));
     }
+    Object.assign(patch, Object.fromEntries(Object.entries(declaredRelationValues(inputs.relations, relationContracts))
+      .map(([key, value]) => [`relations.${key}`, value])));
+    patch = await normalizeProcessPatchRelations(entityType, patch, relationContracts, auth);
     if (!service.processUpdate) throw new Error(`Entity service cannot update ${entityType}`);
     return await service.processUpdate(target.id, patch, auth);
   }

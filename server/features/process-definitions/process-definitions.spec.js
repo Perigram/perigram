@@ -3,6 +3,7 @@ import {
   activate,
   executeActiveProcessAction,
   hasProcessDefinitionMembershipAccess,
+  performDurableEffect,
   preview,
   resolveProcessGraphEntity,
   startRun,
@@ -263,7 +264,199 @@ describe('current process-definition service contract', () => {
     expect(emitted).not.toHaveProperty('actions');
     expect(emitted).not.toHaveProperty('effects');
   });
+
+  it('validates graph-declared Create relations before invoking the owning constructor', async () => {
+    const data = relationEffectProcessData('effect.createEntity', 'sourceLibrary', 'one');
+    const create = vi.fn().mockResolvedValue({ _id: 'facade-1' });
+    const targetGet = vi.fn().mockResolvedValue(library('library-1'));
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'facade'
+        ? { constructionHandlers: { genericCreate: create } }
+        : type === 'library' ? { processGetById: targetGet } : organizationService
+    });
+
+    await performDurableEffect({
+      kind: 'effect.createEntity',
+      record: data.processNodes.effect,
+      inputs: { relations: { sourceLibrary: { type: 'library', id: 'library-1' } } }
+    }, relationAuth(), data);
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ relations: { sourceLibrary: { type: 'library', id: 'library-1' } } }),
+      expect.any(Object)
+    );
+
+    await expect(performDurableEffect({
+      kind: 'effect.createEntity',
+      record: data.processNodes.effect,
+      inputs: { relations: { sourceLibrary: { type: 'project', id: 'project-1' } } }
+    }, relationAuth(), data)).rejects.toThrow('Relation target must be library');
+    await expect(performDurableEffect({
+      kind: 'effect.createEntity',
+      record: data.processNodes.effect,
+      inputs: { relations: { sourceLibrary: [libraryRef('library-1'), libraryRef('library-2')] } }
+    }, relationAuth(), data)).rejects.toThrow('accepts exactly one entity');
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it('normalizes graph-declared Modify relation arrays and rejects missing or inaccessible targets before persistence', async () => {
+    const data = relationEffectProcessData('effect.updateEntity', 'reviewLibraries', 'many');
+    const processUpdate = vi.fn().mockResolvedValue({ _id: 'facade-1' });
+    const targetGet = vi.fn(async id => id === 'missing'
+      ? null
+      : id === 'foreign' ? { ...library(id), lineage: { organizationId: 'org-other' } } : library(id));
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'facade'
+        ? { processUpdate }
+        : type === 'library' ? { processGetById: targetGet } : organizationService
+    });
+
+    await performDurableEffect({
+      kind: 'effect.updateEntity',
+      record: data.processNodes.effect,
+      inputs: {
+        entity: { type: 'facade', id: 'facade-1' },
+        relations: { reviewLibraries: [libraryRef('library-1'), libraryRef('library-1'), libraryRef('library-2')] }
+      }
+    }, relationAuth(), data);
+
+    expect(processUpdate).toHaveBeenCalledWith('facade-1', {
+      'relations.reviewLibraries': [libraryRef('library-1'), libraryRef('library-2')]
+    }, relationAuth());
+
+    await expect(performDurableEffect({
+      kind: 'effect.updateEntity',
+      record: data.processNodes.effect,
+      inputs: { entity: { type: 'facade', id: 'facade-1' }, relations: { reviewLibraries: [libraryRef('missing')] } }
+    }, relationAuth(), data)).rejects.toMatchObject({ statusCode: 404 });
+    await expect(performDurableEffect({
+      kind: 'effect.updateEntity',
+      record: data.processNodes.effect,
+      inputs: { entity: { type: 'facade', id: 'facade-1' }, relations: { reviewLibraries: [libraryRef('library-3')] } }
+    }, { ...relationAuth(), effectivePermissions: { facades: { level: 'write' } } }, data)).rejects.toMatchObject({ statusCode: 403 });
+    await expect(performDurableEffect({
+      kind: 'effect.updateEntity',
+      record: data.processNodes.effect,
+      inputs: { entity: { type: 'facade', id: 'facade-1' }, relations: { reviewLibraries: [libraryRef('foreign')] } }
+    }, relationAuth(), data)).rejects.toMatchObject({ statusCode: 403 });
+    expect(processUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs Link, Unlink, and replacement with target access and duplicate guarantees', async () => {
+    const data = relationActionProcessData();
+    const owner = {
+      _id: 'facade-1',
+      type: 'facade',
+      lineage: { organizationId: 'org-acceptance' },
+      relations: { libraries: [libraryRef('library-1'), libraryRef('library-2')] }
+    };
+    const processUpdate = vi.fn(async (id, patch) => {
+      owner.relations.libraries = patch['relations.libraries'];
+      return structuredClone(owner);
+    });
+    const targetGet = vi.fn(async id => id === 'missing' ? null : library(id));
+    processRepository.findActiveByOrganization.mockResolvedValue(draftRecord(data));
+    organizationService.getProcessConfiguration.mockResolvedValue({
+      roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
+      roleAssignments: {}
+    });
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'facade'
+        ? { processGetById: vi.fn().mockImplementation(async () => structuredClone(owner)), processUpdate }
+        : type === 'library' ? { processGetById: targetGet } : organizationService
+    });
+    const auth = relationAuth([
+      'update:link:libraries',
+      'update:unlink:libraries'
+    ]);
+
+    await executeActiveProcessAction({
+      actionId: 'update:link:libraries',
+      entityId: 'facade-1',
+      data: { relations: { libraries: libraryRef('library-2') } }
+    }, auth);
+    expect(owner.relations.libraries).toEqual([libraryRef('library-1'), libraryRef('library-2')]);
+
+    await executeActiveProcessAction({
+      actionId: 'update:link:libraries',
+      entityId: 'facade-1',
+      data: { relations: { libraries: libraryRef('library-3') }, relationReplaces: libraryRef('library-1') }
+    }, auth);
+    expect(owner.relations.libraries).toEqual([libraryRef('library-2'), libraryRef('library-3')]);
+
+    await executeActiveProcessAction({
+      actionId: 'update:unlink:libraries',
+      entityId: 'facade-1',
+      data: { relations: { libraries: libraryRef('library-2') } }
+    }, auth);
+    expect(owner.relations.libraries).toEqual([libraryRef('library-3')]);
+
+    await expect(executeActiveProcessAction({
+      actionId: 'update:link:libraries',
+      entityId: 'facade-1',
+      data: { relations: { libraries: libraryRef('missing') } }
+    }, auth)).rejects.toMatchObject({ statusCode: 404 });
+    expect(processUpdate).toHaveBeenCalledTimes(3);
+  });
 });
+
+function relationEffectProcessData(kind, key, cardinality) {
+  const effect = {
+    id: 'effect',
+    kind,
+    entityType: 'facade',
+    blocks: ['relations'],
+    construction: { mode: 'genericCreate' },
+    trigger: { mode: 'manual' },
+    access: { level: 'write', grants: [] }
+  };
+  return {
+    schemaVersion: 1,
+    dataflowVersion: PROCESS_DATAFLOW_VERSION,
+    graph: {
+      nodes: ['relations', 'effect'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+      edges: [{ id: 'relations-effect', source: 'relations', sourceHandle: 'data:block', target: 'effect', targetHandle: 'data:relations', role: 'data' }]
+    },
+    roleGrants: {}, entityProfiles: {}, actions: {}, services: {}, sockets: {}, screens: {},
+    processNodes: {
+      relations: {
+        id: 'relations', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations',
+        entries: [{ id: key, key, entityType: 'library', type: cardinality === 'many'
+          ? { base: 'array', itemType: { base: 'entityRef', entityType: 'library' } }
+          : { base: 'entityRef', entityType: 'library' } }]
+      },
+      effect
+    }
+  };
+}
+
+function relationActionProcessData() {
+  const data = relationEffectProcessData('effect.updateEntity', 'libraries', 'many');
+  data.processNodes.effect.id = 'update';
+  data.processNodes.effect.access.grants = [{ roleId: 'role_admin', level: 'write' }];
+  data.processNodes.update = data.processNodes.effect;
+  delete data.processNodes.effect;
+  data.graph.nodes.find(node => node.id === 'effect').data.refId = 'update';
+  data.graph.edges[0].target = 'effect';
+  return data;
+}
+
+function libraryRef(id) {
+  return { type: 'library', id };
+}
+
+function library(id) {
+  return { _id: id, type: 'library', lineage: { organizationId: 'org-acceptance' } };
+}
+
+function relationAuth(actionIds = []) {
+  return {
+    userId: 'admin',
+    organizationId: 'org-acceptance',
+    effectivePermissions: { facades: { level: 'write' }, libraries: { level: 'read' } },
+    roleAssignments: { actions: actionIds.map(actionId => ({ actionId })) }
+  };
+}
 
 function previewProcessData() {
   return {
