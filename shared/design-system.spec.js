@@ -461,7 +461,10 @@ describe('Design system manifest', () => {
       expect(allowedProperties, `${file} has unknown scoped exception category`).toBeTruthy();
       expect(scopedStyleDeclarations(source).filter(property => !allowedProperties.has(property)), file).toEqual([]);
     }
-    expect(SCOPED_EXCEPTION_PROPERTIES['primevue-integration'].has('padding')).toBe(false);
+    expect(new Set(Object.values(SCOPED_STYLE_EXCEPTIONS))).toEqual(new Set(['layout']));
+    expect(SCOPED_EXCEPTION_PROPERTIES.layout.has('padding')).toBe(false);
+    expect(new Set(Object.values(INLINE_STYLE_EXCEPTIONS).map(([category]) => category)))
+      .toEqual(new Set(['data-driven', 'layout', 'semantic-composition']));
 
     for (const file of files) {
       const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
@@ -480,6 +483,14 @@ describe('Design system manifest', () => {
       'components/AssetsLibrary.vue',
       '<template><div :style="{ borderRadius: \'1rem\' }" /></template>'
     )).toContain('replace:inline-visual (1)');
+    expect(analyzeVueVisuals(
+      'components/QueueEditor.vue',
+      '<template><div style="width: var(--ck-table-action-column-width)" /></template>'
+    )).toContain('compliant:inline-layout (1)');
+    expect(analyzeVueVisuals(
+      'components/AssetsLibrary.vue',
+      '<template><div :style="{ backgroundColor: penForm.stroke.color }" /></template>'
+    )).toContain('narrowly-allowlist:inline-data-driven (1)');
 
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
     expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);

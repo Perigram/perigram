@@ -158,7 +158,7 @@
                     />
                     <h2 class="m-0 min-w-0 truncate text-base">{{ conversationLabel(activeConversation) }}</h2>
                 </div>
-                <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-content custom-scrollbar md:p-4 md:gap-4">
+                <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-content md:p-4 md:gap-4">
                     <template
                         v-for="messageItem in messagesList"
                         :key="messageItem._id"
@@ -275,7 +275,7 @@
                         />
                         <Textarea
                             :placeholder="$t('support.typeMessage')"
-                            class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 text-sm py-1 custom-scrollbar"
+                            class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 text-sm py-1"
                             v-model="message"
                             @keydown="handleKeyDown"
                             rows="1"
@@ -722,19 +722,3 @@ const directConversationKey = (left, right) => {
     return `direct:${[left, right].map(String).sort().join(':')}`
 }
 </script>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--p-content-border-color);
-    border-radius: var(--p-border-radius-xl);
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--p-primary-color);
-}
-</style>

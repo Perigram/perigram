@@ -30,7 +30,6 @@
   <div
     v-else
     class="h-full min-h-0 min-w-0 overflow-hidden"
-    :class="node.id === activePaneId ? 'workspace-pane-active' : ''"
     :data-workspace-pane="node.id"
     :data-active="node.id === activePaneId"
     @pointerdown="$emit('activate', node.id)"
@@ -52,9 +51,3 @@ defineProps({
 
 defineEmits(['activate', 'split', 'close', 'resize']);
 </script>
-
-<style scoped>
-.workspace-pane-active :deep([data-pane-header]) {
-  background: var(--ck-chrome-subtle);
-}
-</style>
