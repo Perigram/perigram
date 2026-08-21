@@ -32,13 +32,13 @@ html {
   font-family: var(--ck-font-mono);
 }
 
+/* Semantic body copy uses the editorial face; UI chrome inherits Sans. */
+:where(p, blockquote) {
+  font-family: var(--ck-font-serif);
+}
+
 /* Numerical entry is technical data: dimensions, quantities, parameters. */
 input[type="number"],
 .p-inputnumber-input {
   font-family: var(--ck-font-mono);
-}
-
-/* Long-form authored text blocks: text artifacts, legal copy, guides. */
-.ck-prose {
-  font-family: var(--ck-font-serif);
 }

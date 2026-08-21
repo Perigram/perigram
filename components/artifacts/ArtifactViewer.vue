@@ -15,7 +15,7 @@
         <Column v-for="column in columns" :key="column" :field="column" :header="column" />
       </DataTable>
     </TableFrame>
-    <pre v-else-if="hasFile && mode === 'text'" class="ck-prose whitespace-pre-wrap break-words p-4 text-sm">{{ text }}</pre>
+    <pre v-else-if="hasFile && mode === 'text'" class="whitespace-pre-wrap break-words p-4 font-serif text-sm">{{ text }}</pre>
     <StateBlock v-else-if="!hasFile" state="empty" :message="$t('artifacts.previewUnavailable')" />
     <StateBlock v-else-if="error" state="error" :message="error" />
     <StateBlock v-else state="empty" :message="$t('artifacts.previewUnavailable')" />
