@@ -139,10 +139,10 @@ theme overrides, direct global PrimeVue selectors or variable declarations,
 visual concern counts with the canonical audit. Scoped-style exceptions name one
 exact category per file; every exception category is limited to an exact set of
 properties rather than granting whole-file visual ownership. Aura-owned padding
-is excluded from general layout exceptions. Inline style bindings are rejected
-unless their exact file, visual category, and normalized binding expressions
-are registered. Render-function style bindings are recorded as replacement
-violations and must move to PrimeVue or declarative classified contracts.
+is excluded from general layout exceptions. Allowlisted inline style bindings
+pin their exact file, visual category, and normalized binding expressions;
+every other inline or render-function style is recorded as replacement debt and
+must move to PrimeVue or declarative classified contracts.
 Reusable layout and derived semantic composition are compliant application
 usage; only data-driven visuals are narrowly allowlisted. None of
 these categories may own generic component chrome or states.

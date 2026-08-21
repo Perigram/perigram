@@ -52,10 +52,9 @@ introduce generic visual language. Geometry and process visualization qualifies
 for narrow allowlisting only when its visual value is driven by data. Behavior
 PrimeVue genuinely cannot provide belongs to a registered primitive or derived
 semantic composition, not a separate visual exception. Every inline binding is
-documented by exact file in enforcement rather than broadening the theme. Inline
-style
-bindings are also pinned to their normalized expressions, preventing an allowed
-file from silently gaining or changing a visual exception.
+classified by exact file in the inventory rather than broadening the theme.
+Allowlisted bindings are also pinned to their normalized expressions, preventing
+an allowed file from silently gaining or changing a visual exception.
 
 Violations have four dispositions: `remove` when Aura already supplies the
 concern, `replace` when an Aura component or registered primitive owns it,
