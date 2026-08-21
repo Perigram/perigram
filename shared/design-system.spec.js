@@ -35,7 +35,8 @@ import {
   repositoryVueInventory,
   SCOPED_EXCEPTION_PROPERTIES,
   SCOPED_STYLE_EXCEPTIONS,
-  scopedStyleDeclarations
+  scopedStyleDeclarations,
+  scriptStringLiterals
 } from '../scripts/ui-visual-inventory.js';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
@@ -488,6 +489,12 @@ describe('Design system manifest', () => {
     const renderVisual = '<script>\nexport default {\n  render() { return h(\'div\', { style: { borderRadius: \'1rem\' } }) }\n}\n</script>';
     expect(renderStyleBindings(renderVisual)).toHaveLength(1);
     expect(analyzeVueVisuals('components/RenderSurface.vue', renderVisual)).toContain('replace:render-visual (1)');
+    const scriptClasses = '<script setup>\nconst classes = [\'text-xs\', selected ? `rounded shadow-sm` : \'\']\n</script>';
+    expect(scriptStringLiterals(scriptClasses)).toEqual(['text-xs', 'rounded shadow-sm', '']);
+    expect(analyzeVueVisuals('components/ScriptClasses.vue', scriptClasses)).toEqual([
+      'centralize:typography (1)',
+      'replace:chrome (2)'
+    ]);
 
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
     expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);

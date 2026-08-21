@@ -128,12 +128,21 @@ export const renderStyleBindings = source => /^\s*render\s*\(\)\s*\{/m.test(sour
   ? Array.from(source.matchAll(/\bstyle\s*:\s*(?:\{|[A-Za-z_$][\w$]*)/g), match => match[0])
   : [];
 
+export const scriptStringLiterals = source => Array.from(
+  source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g),
+  match => match[1]
+).flatMap(script => Array.from(
+  script.matchAll(/(["'`])((?:\\.|(?!\1)[\s\S])*?)\1/g),
+  match => match[2]
+));
+
 export const analyzeVueVisuals = (file, source) => {
   const template = source
     .replace(/<script\b[\s\S]*?<\/script>/g, '')
     .replace(/<style\b[\s\S]*?<\/style>/g, '');
+  const visualSource = [template, ...scriptStringLiterals(source)].join('\n');
   const findings = VISUAL_CONCERNS.flatMap(([disposition, pattern]) => {
-    const count = template.match(pattern)?.length || 0;
+    const count = visualSource.match(pattern)?.length || 0;
     return count ? [`${disposition} (${count})`] : [];
   });
   const scopedBody = source.match(/<style\s+scoped[^>]*>([\s\S]*?)<\/style>/)?.[1]?.trim();
