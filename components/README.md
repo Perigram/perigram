@@ -3,9 +3,9 @@
 ## Style Guide
 - **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states.
 - **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
-- **Motion:** Motion is contextual feedback, not ambient decoration. Use the
-  semantic duration/easing/spring values in `assets/tokens/` through shared
-  primitives such as `MotionDock`; JavaScript motion must respect
+- **Motion:** Motion is contextual behavior, not an application theme concern.
+  Keep interaction-specific motion inside the owning derived composition, use
+  Aura's transition duration for generic states, and respect
   `useReducedMotion()`. Do not add perpetual, global, or page-local animation
   to otherwise static operational controls.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).

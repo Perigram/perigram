@@ -24,11 +24,10 @@ semantic composition. The
 authoritative ownership matrix and exception policy live in
 [the UI component audit](./UI_COMPONENT_AUDIT.md).
 
-Motion is reserved for direct interaction feedback: compact contextual controls
-may use the semantic duration/easing/spring scale through shared primitives,
-but operational screens must not acquire ambient animation. CSS and JavaScript
-motion share the same reduced-motion policy, preserving control state and
-keyboard behavior without spatial travel.
+Motion is behavior, not a second theme layer. Interaction-specific motion that
+PrimeVue cannot provide stays inside its owning derived composition; generic
+state transitions use Aura's duration. JavaScript motion must honor reduced
+motion while preserving control state and keyboard behavior.
 
 Typography uses the IBM
 Plex superfamily in three token-backed roles. Plex Sans is the global default

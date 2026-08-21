@@ -66,6 +66,7 @@ concern, `replace` when an Aura component or registered primitive owns it,
 | PrimeVue/Aura/Tailwind/Nuxt foundation | compliant; add no design-system dependency. |
 | 25 registered primitives and UI-lab coverage | compliant semantic ownership; primitives delegate generic chrome and states to Aura. |
 | Generic preset typography, spacing, borders, radii, shadows, and states | remove; the preset retains only the primary palette. |
+| Application motion scales and component-specific spacing tokens | remove; generic transitions and spacing belong to Aura, while unavailable interaction behavior stays local to its owning derived composition. |
 | Duplicated runtime token values and `!important` PrimeVue overrides | remove; the token module is the sole textual source and Nuxt projects its CSS variables. |
 | Forced root size, two-level toolbar mapping, type utilities, and arbitrary 10/11px type | centralize into caption, body, title, and display semantic roles, then replace usages. |
 | Element-wide `p` and `blockquote` prose styling | replace with the explicit `.ck-prose` scope. |
@@ -76,7 +77,8 @@ concern, `replace` when an Aura component or registered primitive owns it,
 | Missing canonical component audit | centralize here; reconciliation covers every repository Vue file and mechanism. |
 | Missing repository-wide guards | centralize in `shared/design-system.spec.js`; the audit and enforcement use this same boundary. |
 
-The convergence removed the generic preset/runtime overrides, direct global
+The convergence removed the generic preset/runtime overrides, centralized
+motion/dock visual contracts, direct global
 PrimeVue selectors and variable declarations, element-wide
 prose rule, arbitrary 10/11px typography, and global focus suppression. Nuxt now
 emits application CSS variables from `assets/tokens/index.js`; repository checks
@@ -101,7 +103,7 @@ longer override Aura borders, elevation, or interaction states.
 | `mechanism-css-variable-projection` | CSS variable projection | system-owned | Expose light and dark `--ck-*` values for app-owned semantic roles. | `assets/tokens/index.js` exports `cssVariableTokens` and `darkCssVariableTokens`; `nuxt.config.js`; `shared/design-system.spec.js` | owned: Nuxt emits both projections directly from the token source. |
 | `mechanism-preset` | PrimeVue preset | system-owned | Install Aura plus the bounded primary palette projection. | `assets/presets/re_l.js`; `nuxt.config.js` | default: no generic component overrides. |
 | `mechanism-tailwind-aliases` | Tailwind aliases | system-owned | Layout utilities plus token-backed app semantic aliases. | `tailwind.config.js:L1-L16`; `assets/tokens/index.js:L164-L343` | owned: aliases are projected from tokens; raw and arbitrary usage remains component drift. |
-| `mechanism-global-css` | Global CSS layers | system-owned | Font loading/inheritance, page background, reduced motion, app-shell behavior, and active global integrations only. | `assets/css/fonts.css`; `assets/css/main.css`; `assets/css/variants.css` | owned: unused Tabulator theme removed; prose is explicitly scoped and generic controls remain Aura-owned. |
+| `mechanism-global-css` | Global CSS layers | system-owned | Font loading/inheritance, page background, app-shell behavior, and active global integrations only. | `assets/css/fonts.css`; `assets/css/main.css`; `assets/css/variants.css` | owned: unused Tabulator theme removed; prose is explicitly scoped and generic controls remain Aura-owned. |
 | `mechanism-runtime-overrides` | Runtime PrimeVue overrides | system-owned | No independent visual-value or generic PrimeVue override source. | `assets/css/main.css`; `shared/design-system.spec.js` | default: PrimeVue variable declarations, component selectors, and important rules are rejected. |
 | `mechanism-scoped-css` | Vue local/scoped CSS | shared/domain primitive | Exact reusable layout only; Aura-owned padding is not layout. | Every inventory row with a CSS disposition; `shared/design-system.spec.js` allowlist. | compliant only at exact files and property sets; all other scoped CSS is a violation. |
 | `mechanism-primitive-registry` | Primitive registry | shared/domain primitive | Canonical registered shared/domain surfaces and component paths. | `packages/domain-cnc/src/ui.js:L46-L72`; `utils/design-system-contract.js` | owned: exact registry paths define shared/domain primitive rows; all other Vue rows are derived usage. |

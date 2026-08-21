@@ -255,10 +255,9 @@ copy-to-draft operation; saving an ordinary draft updates that draft. Dirty
 state is a primary save affordance plus a small dot, not a persistent text
 badge. `components/shared/MotionDock.vue` is the shared, Vue Bits-derived
 `motion-v` block: the page supplies action data and optional contextual
-hover/focus hooks while the design-system primitive owns proximity scaling,
-keyboard buttons, and hover labels. Its compact scale comes from
-`designTokens.dock`, its spring from `designTokens.motion.spring.dock`, and its
-surface/border/indicator styling from PrimeVue variables. `useReducedMotion()`
+hover/focus hooks while the derived composition owns proximity scaling,
+keyboard buttons, and hover labels. Its generic spacing, transition, and
+surface treatment resolve through Aura variables. `useReducedMotion()`
 keeps the same accessible actions without magnification or label travel, so the
 route must not replace it with a hand-built toolbar, fixed dark colors, or
 shadows.

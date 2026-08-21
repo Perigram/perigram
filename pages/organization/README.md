@@ -77,8 +77,8 @@ a focused popup; validation and view controls open their own popups. Unsaved
 work is signaled by the active save control and a dot rather than a text badge.
 The dock is the shared `MotionDock.vue` installation of the Vue Bits Dock
 interaction: `process.vue` maps the page actions into its item API, while the
-design system supplies its compact scale, spring, token-backed shell, and
-reduced-motion policy. This keeps the external block's proximity interaction
+derived component keeps proximity behavior local, consumes Aura for generic
+spacing and states, and honors reduced motion. This keeps the external block's proximity interaction
 without introducing its published fixed black surface, border, or shadow
 treatment.
 Saved graphs containing legacy role/user layout nodes have those non-canvas

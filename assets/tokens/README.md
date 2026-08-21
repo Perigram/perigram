@@ -27,21 +27,13 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 - Generic radius and elevation aliases resolve directly to Aura variables; this
   module does not define application radius or shadow values.
 - Use `--ck-*` tokens only for application-owned semantic typography, reusable
-  layout constraints, domain signals, geometry/data visualization, and motion.
+  layout constraints, domain signals, and geometry/data visualization.
   Do not use them to recreate Aura chrome or states.
 - Component-specific dimensions such as support chat size, dialog widths, popover/menu minimum widths, preview height, table action column width, and form swatch size live here because they are reused UI decisions rather than page-local styling.
-- Motion is a semantic, opt-in interaction contract. `designTokens.motion`
-  provides fast/normal/emphasis durations, standard/enter/exit easing curves,
-  and the JavaScript seconds scale required by `motion-v`; CSS exposes the
-  matching `--ck-motion-*` and `--ck-ease-*` values. Spring settings live under
-  `designTokens.motion.spring`, not inside a feature component.
-- `designTokens.dock` owns only shared compact dock geometry: pointer distance,
-  scale, spacing, label, and indicator metrics. `components/shared/MotionDock.vue`
-  consumes those defaults plus `motion.spring.dock` for the Vue Bits-derived
-  proximity interaction; its colors, borders, and focus state still resolve
-  through PrimeVue variables.
-- CSS shortens all design-system durations for `prefers-reduced-motion`, and
-  JavaScript motion primitives must consume `useReducedMotion()` so they can
+- Application tokens do not own a motion scale or component-specific spacing.
+  Interaction behavior unavailable in PrimeVue stays local to its owning
+  derived composition, while generic transitions and spacing resolve through
+  Aura variables. JavaScript motion must consume `useReducedMotion()` so it can
   remove spatial movement while preserving focus, labels, and control state.
 - Use `status-*` aliases for feedback, `entity-*` aliases for shared
   entity-reference families, and `signal-*` aliases for semantic process-canvas
