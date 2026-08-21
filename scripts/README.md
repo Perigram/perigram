@@ -129,7 +129,8 @@ contracts stay in one canonical file instead of being restated in several.
 `npx vitest run shared/design-system.spec.js` enforces the PrimeVue-first visual
 boundary. It rejects arbitrary typography, raw palette/surface borders,
 nonsemantic radii and shadows, non-allowlisted scoped CSS, duplicated runtime
-theme overrides, and global focus suppression. It also reconciles source-derived
+theme overrides, direct global PrimeVue selectors or variable declarations,
+`!important` runtime rules, and global focus suppression. It also reconciles source-derived
 visual concern counts with the canonical audit. Scoped-style exceptions name one
 exact category per file; every exception category is limited to an exact set of
 properties rather than granting whole-file visual ownership. Aura-owned padding

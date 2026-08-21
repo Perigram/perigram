@@ -621,7 +621,7 @@ field-access policy.
 
 ## Visual Tokens
 
-`assets/tokens/index.js` is the sole textual source for app-owned visual values. Nuxt projects its `cssVariableTokens` into the document, Tailwind consumes its semantic aliases, and the PrimeVue preset projects only the primary brand palette onto Aura. Do not duplicate token values in runtime CSS or add generic PrimeVue component-token overrides.
+`assets/tokens/index.js` is the sole textual source for app-owned visual values. Nuxt projects its light and dark CSS variable maps into the document, Tailwind consumes its semantic aliases, and the PrimeVue preset projects only the primary brand palette onto Aura. Do not duplicate token values in runtime CSS or add generic PrimeVue component-token overrides.
 
 Aura owns generic control and container typography, spacing, borders, radii, shadows, hover, active, disabled, invalid, and keyboard-focus states. App tokens are bounded to domain entity tones, status/process signals, operational workspace constraints, reusable layout dimensions, motion, and app-shell chrome. `shadow-overlay` is only for app-owned floating surfaces; ordinary PrimeVue elevation remains Aura's responsibility.
 
@@ -653,9 +653,9 @@ and records source-derived dispositions for typography, layout, chrome, states,
 important overrides, and scoped CSS. Run `node scripts/ui-visual-inventory.js`
 after an intentional visual change. The design-system test derives the same
 findings, checks path-derived IDs, and validates scoped layout declarations by
-property. It also rejects runtime PrimeVue state selectors and `!important`
-PrimeVue rules, so stale rows, broad whole-file CSS exceptions, and a second
-runtime state layer fail.
+property. It also rejects every runtime PrimeVue selector or variable
+declaration and all `!important` rules in global runtime CSS, so stale rows,
+broad whole-file CSS exceptions, and a second runtime visual layer fail.
 
 ## Composables Rule
 
