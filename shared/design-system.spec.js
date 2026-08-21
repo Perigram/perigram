@@ -319,7 +319,8 @@ describe('Design system manifest', () => {
     const supportMessageContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/SupportMessageContent.vue'), 'utf8');
 
     expect(fontsCss).toContain(':where(input, button, select, textarea)');
-    expect(fontsCss).toContain('.p-inputnumber-input');
+    expect(fontsCss).toContain('input[type="number"],\n.p-inputnumber-input');
+    expect(fontsCss).not.toContain(':where(input[type="number"], .p-inputnumber-input)');
     expect(fontsCss).toContain('.ck-prose');
     expect(dataBlock).toContain('font-medium font-mono');
     expect(actionToolbar).toContain("props.level <= 1 ? 'text-2xl font-serif'");
