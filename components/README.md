@@ -626,7 +626,18 @@ field-access policy.
 
 Aura owns generic control and container typography, spacing, borders, radii, shadows, hover, active, disabled, invalid, and keyboard-focus states. App tokens are bounded to domain entity tones, status/process signals, operational workspace constraints, reusable layout dimensions, motion, and app-shell chrome. The `rounded-ui`, `rounded-panel`, `shadow-card`, and `shadow-overlay` utility aliases consume Aura variables directly; they do not define application radius or elevation values.
 
-The UI type roles are `text-ui-caption`, `text-ui-body`, `text-ui-title`, and `text-ui-display`. Shared surfaces assign these roles; feature components inherit them and must not introduce arbitrary pixel/rem typography. IBM Plex Sans is the interface face, `font-mono` marks technical data, and `font-serif` or `.ck-prose` is explicit editorial content. HTML elements such as `p` and `blockquote` never select a font role by themselves.
+Application typography has exactly eight complete roles: `text-page-title`,
+`text-section-heading`, `text-body`, `text-label`, `text-supporting`,
+`text-metric`, `text-technical`, and `text-prose`. Each alias supplies its font
+family, size, line height, weight, tracking, and numeric behavior from
+`assets/tokens/index.js`; usage sites must not compose those treatments from
+raw size, weight, tracking, leading, mono, or serif utilities. Only
+`page-title` scales responsively. PrimeVue controls inherit Aura typography
+unless their content itself has a technical or prose role. HTML elements such
+as `p`, `blockquote`, headings, `pre`, and `code` never select an application
+role by themselves. Non-role font sizing is limited to locally documented
+runtime data that directly encodes visualization geometry or information
+magnitude, never ordinary copy or compact UI.
 Nested active app surfaces must use semantic aliases such as `bg-content` or
 `bg-subtle`, not raw palette utilities like `bg-surface-50`, so dark mode uses
 the app token overrides consistently.

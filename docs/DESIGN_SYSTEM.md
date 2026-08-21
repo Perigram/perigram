@@ -29,23 +29,20 @@ PrimeVue cannot provide stays inside its owning derived composition; generic
 state transitions use Aura's duration. JavaScript motion must honor reduced
 motion while preserving control state and keyboard behavior.
 
-Typography uses the IBM
-Plex superfamily in three token-backed roles. Plex Sans is the global default
-interface face (`--ck-font-ui`): UI chrome, controls, chat, and all unmarked
-content inherit it, including native form controls through the shared
-inherit rule. Plex Mono marks technical data (`--ck-font-mono`):
-`code`/`kbd`/`pre`/`samp`, numerical entry (`.p-inputnumber-input`,
-`input[type=number]`), and `DataBlock` values such as dimensions, parameters,
-and specs. The numerical-entry selectors intentionally retain normal
-class/attribute specificity so they beat Tailwind's later form-control reset
-without using `!important`. Plex Serif carries the editorial voice
-(`--ck-font-serif`): level-1 page titles render display serif through
-`ActionToolbar`, while authored prose opts in with `.ck-prose` or `font-serif`.
-Element names never select typography roles.
-`assets/css/fonts.css`
-sets Plex Sans once on `body` with no universal or `!important` overrides, so
-PrimeVue components and native controls inherit it while the `font-mono` and
-`font-serif` utilities apply predictably on every element. Avoid gradients,
+Typography uses eight complete token-backed roles: `page-title`,
+`section-heading`, `body`, `label`, `supporting`, `metric`, `technical`, and
+`prose`. `assets/tokens/index.js` defines each role's Plex family, size, line
+height, weight, tracking, and numeric behavior once; `tailwind.config.js`
+generates the corresponding `text-*` aliases. `page-title` is the only
+responsive role. Generic controls retain Aura typography, while technical and
+prose content opt in explicitly even when rendered through a form surface.
+Element names never select an application role, so changing operational markup
+between `p`, `blockquote`, headings, `pre`, or `code` cannot change its type.
+`assets/css/fonts.css` only loads the families and establishes inheritance.
+Raw size, weight, leading, tracking, mono, and serif utilities are prohibited
+in Vue surfaces. The only local font-size exception is a documented runtime
+data value that directly represents visualization geometry or information
+magnitude; it cannot compact labels, controls, headings, or status text. Avoid gradients,
 ornamental backgrounds, and page-local theme colors; promote durable semantic
 decisions to `assets/tokens/index.js` without recreating Aura component chrome.
 
