@@ -138,9 +138,9 @@ exact category per file; every exception category is limited to an exact set of
 properties rather than granting whole-file visual ownership. Aura-owned padding
 is excluded from general layout exceptions. Inline style bindings are rejected
 unless their exact file, visual category, and normalized binding expressions
-are registered; the allowed categories remain data, geometry/process,
-integration, and semantic interaction motion rather than generic component
-chrome.
+are registered. Reusable layout and derived semantic composition are compliant
+application usage; only data-driven visuals are narrowly allowlisted. None of
+these categories may own generic component chrome or states.
 
 ## Related
 

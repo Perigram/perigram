@@ -18,8 +18,9 @@ CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The des
 
 PrimeVue/Aura owns generic controls, containers, typography defaults, spacing,
 borders, radii, shadows, and interaction states. Use CutKit `--ck-*` tokens only
-for semantic typography, reusable layout constraints, domain signals,
-geometry/data visualization, motion, and other application-owned roles. The
+for semantic typography, reusable layout constraints, and data-driven domain,
+geometry, or process visuals consumed by registered primitives or derived
+semantic composition. The
 authoritative ownership matrix and exception policy live in
 [the UI component audit](./UI_COMPONENT_AUDIT.md).
 

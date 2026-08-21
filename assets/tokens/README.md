@@ -53,6 +53,8 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   visual chrome. Feature components should compose `EntityCard`,
   `StandardDialog`, `StandardPage`, PrimeVue `Panel`, and semantic layout
   classes while leaving generic visuals and interaction states to Aura.
-- Data-driven color, geometry/process visualization, third-party integration
-  constraints, and behavior unavailable in PrimeVue require exact-file
-  documentation and enforcement allowlisting.
+- Visual values driven by domain, geometry, or process data require exact-file
+  documentation and enforcement allowlisting. Integration sizing is a reusable
+  layout constraint, while behavior unavailable in PrimeVue belongs in a
+  registered primitive or derived semantic composition; neither may own generic
+  chrome or states.
