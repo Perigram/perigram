@@ -143,14 +143,14 @@ remaining inspector surfaces are:
 - socket nodes own direction, entity type, projected/excluded fields,
   send/receive roles, and receiver lifecycle.
 
-The screens tab owns screen id, label, generated UI template, source
-entity/mode rows, display region rows, route, placement, required access, role
-ids, assignment binding, and screen action ids; that surface follows the
-generated-screen manifest described above. Each display region row owns its
-slot, source, surface, and an independent region action list: new regions are
-seeded with an empty action list, sync never copies the screen-level action
-ids into regions or overwrites region actions, and region actions are edited
-only through that region's row.
+The screens tab owns screen identity, generated UI template, route, placement,
+role ids, required access, source and region rows, typed bindings, and action
+ids. It exposes the complete canonical authored shape from the
+[`@cutkit/processes` screen contract](../../packages/processes/README.md), while
+the focused screen composable owns its mutations and mode normalization. Each
+display region keeps an independent action list: new regions start empty, sync
+never copies screen-level action ids into regions or overwrites region actions,
+and region actions are edited only through that region's row.
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are
 reusable human process responsibilities assigned onto entity access rules,

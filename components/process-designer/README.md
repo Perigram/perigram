@@ -18,6 +18,11 @@ and deletion, connection inference, palette queries, inspector record access,
 roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
+`useProcessDesignerScreens` owns source/region creation, source-id reference
+updates, mode normalization, lineage rows, and typed scalar-map mutations. The
+Screens tab renders those mutations against the canonical
+[`screen-contract.js`](../../packages/processes/src/screen-contract.js)
+normalizer and validator; it does not maintain a page-local screen schema.
 
 ## Palette and node concerns
 

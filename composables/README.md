@@ -223,6 +223,11 @@ records, roles, screens, and dock/panel state to focused
 `useProcessDesigner*` composables. The page remains the view composition root;
 these composables own mutations for their concern and are behavior-tested
 without reading Vue source text.
+`useProcessDesignerScreens` mutates complete semantic screen sources, regions,
+lineage rows, and typed binding/filter maps, then normalizes through the
+[`@cutkit/processes` screen contract](../packages/processes/README.md). Source
+mode changes discard fields that are invalid for the selected mode rather than
+keeping a page-local shadow shape.
 
 Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
 The composable normalizes the screen contract, checks source-level process

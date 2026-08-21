@@ -1439,15 +1439,32 @@ post-action refresh/patch, browser evidence). Verdicts on record in the
 section Agent Notes: bullets 1–3 are designer-UI gaps — the schema and
 compiler already carry the full shapes; only the screens tab UI is thin.
 
-- [ ] Expose the complete semantic screen source contract in the designer
+- [x] Expose the complete semantic screen source contract in the designer
   (stable id/label, entityType, mode, required/identifier, filters,
   lineageBindings) — schema support exists in
   `packages/processes/src/screen-contract.js:94-136`; extend
   `pages/organization/process.vue:850-887`.
-- [ ] Expose the complete region contract (stable id/label, template slot,
+- [x] Expose the complete region contract (stable id/label, template slot,
   region actions) in the designer.
-- [ ] Support arbitrary typed screen bindings instead of only the currently
+- [x] Support arbitrary typed screen bindings instead of only the currently
   authorable subset.
+
+#### Agent Notes — 2026-08-21
+
+Completed the three designer-UI gaps without changing the existing screen
+schema. The Screens tab now authors each source's stable identity, entity type,
+mode-specific identifier or typed flat filters, independent required access,
+and complete lineage binding rows; each region authors stable identity, slot,
+source, surface, and its own action list. Screen bindings use arbitrary keyed
+string, number, boolean, or assignment-reference values. Screen mutation and
+mode cleanup moved into `useProcessDesignerScreens`, which normalizes through
+the canonical `packages/processes/src/screen-contract.js` contract.
+
+Focused behavior coverage exercises list/single mode switching, source-id
+reference updates, every supported binding value type, canonical validation,
+and compiler round-trip of authored sources, lineage bindings, regions, and
+bindings. The following organization-scope and producer-scoped corrections are
+unchanged.
 
 ### Correction: P1 — organization scope follow-through
 

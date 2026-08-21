@@ -689,8 +689,14 @@ template (`home`, `entityList`, `entityDetail`, `workspaceLanes`, `table`,
 `formAction`, or app-owned system templates such as `route`,
 `organizationOverview`, and `organizationAccount`), typed
 entity sources, template regions, required access, and manual process action
-ids. A source describes an entity type plus list/single loading mode; a region
-binds a template slot to one source and a domain display surface. The
+ids. Each source has a stable id and label, entity type, list/single loading
+mode, independent required access, and the mode-specific loading contract:
+single sources carry one scalar identifier, while list sources carry a flat
+scalar filter map and may carry the canonical compiled-lineage binding fields.
+Each region has a stable id and label and independently selects its template
+slot, source, registered domain display surface, and action ids. Screen
+bindings are arbitrary keyed literal string, number, or boolean values, or
+valid `$assignment.<key>` references; nested values and null are invalid. The
 `supporting` slot is reserved for generated/system templates with secondary
 accounting or history regions. Assignment bindings replace `$assignment.*`
 placeholders in screen routes, scopes, source identifiers, and source filters,
