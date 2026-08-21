@@ -44,6 +44,32 @@ export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
   'primevue-integration': new Set(['display', 'flex', 'min-height', 'padding'])
 });
 
+export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
+  'components/AdminSupportChatList.vue': ['data-driven', 1],
+  'components/AssetsLibrary.vue': ['data-driven', 1],
+  'components/CassetteDesigner.vue': ['geometry-visualization', 1],
+  'components/CassetteDesignerV2.vue': ['geometry-visualization', 2],
+  'components/QueueEditor.vue': ['primevue-integration', 1],
+  'components/entities/Color/ColorCard.vue': ['data-driven', 2],
+  'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', 1],
+  'components/entities/Requisition/RequisitionDetail.vue': ['data-driven', 1],
+  'components/entities/Sheet/SheetDetail.vue': ['data-driven', 2],
+  'components/process-designer/ProcessActionNode.vue': ['process-visualization', 4],
+  'components/process-designer/ProcessEntityNode.vue': ['process-visualization', 2],
+  'components/process-designer/ProcessNode.vue': ['process-visualization', 4],
+  'components/process-designer/ProcessRoleNode.vue': ['process-visualization', 3],
+  'components/process-designer/ProcessServiceNode.vue': ['process-visualization', 3],
+  'components/process-designer/ProcessSocketNode.vue': ['process-visualization', 3],
+  'components/process-designer/ProcessStatusDefinitionNode.vue': ['process-visualization', 3],
+  'components/process-designer/ProcessUserNode.vue': ['process-visualization', 1],
+  'components/process-designer/ProcessValueInputNode.vue': ['process-visualization', 1],
+  'components/shared/EntityInlineRef.vue': ['data-driven', 2],
+  'components/shared/MotionDock.vue': ['interaction-motion', 2],
+  'pages/assets/pens.vue': ['data-driven', 1],
+  'pages/organization/process.vue': ['process-visualization', 1],
+  'pages/project/[slug]/data.vue': ['primevue-integration', 1]
+});
+
 const REGISTERED_PRIMITIVE_PATHS = new Set(cncDesignSystemPrimitives.map(primitive => primitive.componentPath));
 
 const VISUAL_CONCERNS = [
@@ -70,6 +96,8 @@ export const scopedStyleDeclarations = (source) => Array.from(
   match => match[1]
 );
 
+export const inlineStyleAttributes = source => Array.from(source.matchAll(/(?:\bv-bind:|:)style\s*=\s*"[^"]*"|\bstyle\s*=\s*"[^"]*"/g));
+
 export const analyzeVueVisuals = (file, source) => {
   const template = source
     .replace(/<script\b[\s\S]*?<\/script>/g, '')
@@ -83,6 +111,14 @@ export const analyzeVueVisuals = (file, source) => {
   if (scopedBody) {
     const exception = SCOPED_STYLE_EXCEPTIONS[file];
     findings.push(exception ? `narrowly-allowlist:scoped-${exception}` : 'replace:scoped-visual');
+  }
+
+  const inlineStyleCount = inlineStyleAttributes(template).length;
+  if (inlineStyleCount) {
+    const [category, expectedCount] = INLINE_STYLE_EXCEPTIONS[file] || [];
+    findings.push(category && inlineStyleCount === expectedCount
+      ? `narrowly-allowlist:inline-${category} (${inlineStyleCount})`
+      : `replace:inline-visual (${inlineStyleCount})`);
   }
 
   return findings.length ? findings : ['compliant'];

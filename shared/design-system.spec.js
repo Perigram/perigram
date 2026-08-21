@@ -28,6 +28,8 @@ import { getWorkflowStatusActions } from '../utils/status-actions.js';
 import {
   inventoryId,
   inventoryOwnership,
+  INLINE_STYLE_EXCEPTIONS,
+  inlineStyleAttributes,
   repositoryVueInventory,
   SCOPED_EXCEPTION_PROPERTIES,
   SCOPED_STYLE_EXCEPTIONS,
@@ -459,8 +461,22 @@ describe('Design system manifest', () => {
       expect(scopedStyleDeclarations(source).filter(property => !allowedProperties.has(property)), file).toEqual([]);
     }
 
+    for (const file of files) {
+      const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+      const inlineStyles = inlineStyleAttributes(source);
+      if (!inlineStyles.length) continue;
+      const [category, expectedCount] = INLINE_STYLE_EXCEPTIONS[file] || [];
+      expect(category, `${file} has an unclassified inline visual binding`).toBeTruthy();
+      expect(inlineStyles, `${file} changed its ${category} inline exception surface`).toHaveLength(expectedCount);
+    }
+
+    for (const [file, [category]] of Object.entries(INLINE_STYLE_EXCEPTIONS)) {
+      expect(files, `${file} must retain its ${category} inline exception`).toContain(file);
+    }
+
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
     expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);
+    expect(runtimeCss).not.toMatch(/\.entity-card-popup-content[^{}]*\{[^}]*(?:font-size|background|border|padding)\s*:/s);
   });
 
   it('uses existing semantic variables for SVG designer label contrast', () => {
