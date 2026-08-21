@@ -522,9 +522,34 @@ incompatible element types rejected at edge validation
 - [ ] Make Get Field consume fixed and open canonical blocks without storing
   schema snapshots. Restore typed entity refs for Lineage/Relations and typed
   attachment/array/map values where declared.
-- [ ] Distinguish a missing field from a present nullable field in preview and
+- [x] Distinguish a missing field from a present nullable field in preview and
   evaluator results so Logic, fallback values, Unset, and validation behave
   predictably.
+
+#### Agent Notes
+
+- 2026-08-21 (agent/missing-field-serializer-20260821): implemented the
+  missing-vs-nullable distinction per the accepted correction direction.
+  `readPath` in `packages/processes/src/evaluator.js` now returns a frozen
+  `$missingField` marker (plain object, so it survives the packet pipeline's
+  `structuredClone` calls) when a path segment is absent, including below a
+  present `null`; `packages/processes/src/missing-field.js` owns the marker,
+  `isMissingField`, and `serializeProcessResult`, the single conversion point
+  that rewrites markers to the serializable tag `{ missing: true, path }` at
+  emission boundaries. Logic `isNull`/`isNotNull` are strict (`null` only for
+  present null), Coalesce and required validation treat missing as absent,
+  Required/validation errors name the missing path, patch append/remove and
+  Compose/Modify Block treat missing as absent content (markers are never
+  written into entities). The process-definitions preview and manual-run
+  service responses emit through `serializeProcessResult`. Tests:
+  `packages/processes/src/missing-field.spec.js` (13 tests) and a
+  preview-path round-trip test in
+  `server/features/process-definitions/process-definitions.spec.js` asserting
+  both the missing tag and a present null survive JSON unchanged. The other
+  four bullets of this section remain open; the pre-existing
+  activation-protocol test failure noted on 2026-08-15 is unchanged and
+  unrelated.
+
 - [ ] Cover every canonical block family used by the CNC domain, including
   identity, lineage, relations/data, specs, attachments, summary, provenance,
   and status as read-only or writable according to its real policy.
@@ -1275,7 +1300,7 @@ block declared in core (`CANONICAL_BLOCK_SCHEMAS` /
 - [ ] Verify Deconstruct Entity, Get Block, and Get Field against item/list/
   tree inputs and the full CNC block family, including the attachments block
   per the verdict; implement only where behavior diverges.
-- [ ] Distinguish missing field from present nullable field in preview and
+- [x] Distinguish missing field from present nullable field in preview and
   runtime errors.
 - [ ] Close the five original bullets with tests and bookkeeping.
 

@@ -506,6 +506,24 @@ as a scalar through Get Field and compares it with scalar equality; it never
 constructs or mutates the status block. Producer services resolve their declared
 entity/entity-list construction references at the effect boundary.
 
+A missing field is never the same value as a present `null`
+(`missing-field.js`). Path reads produce a frozen marker object carrying the
+reserved `$missingField` key and the read path whenever a segment is absent —
+including below a present `null` — so the distinction survives every packet
+operation (`structuredClone` drops symbols and class instances, which is why
+the marker is a plain object). Logic `isNull` is true only for a present
+`null` and `isNotNull` only for a present non-null value; Coalesce and
+required validation treat a missing value as absent; Required and validation
+error messages name the missing path instead of reporting a null; patch
+append/remove and Compose/Modify Block treat a missing value as absent
+content rather than writing the marker into an entity. The marker never
+crosses a runtime boundary as-is: `serializeProcessResult` is the single
+conversion point for result emission and rewrites every marker, at any depth,
+to the serializable tag `{ missing: true, path }` while leaving present
+`null` values untouched. The process-definitions preview and manual-run
+service responses are emitted through this helper, so no missing value
+silently degrades to `null` over JSON.
+
 `orchestration.js` executes the full runtime control plane. Effect nodes have
 only two execution modes: `manual`, which is exposed through authorized UI, and
 `event`, which requires an incoming control socket. Runs carry

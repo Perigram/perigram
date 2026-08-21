@@ -44,6 +44,14 @@ the run object so the action re-enters the normal feature access boundary; it
 includes the compiled `effectivePermissions` consumed by entity adapters, so
 the execution has the same access context as the action that started it.
 
+Preview and manual-run responses leave the process runtime through
+`serializeProcessResult` from
+[`packages/processes`](../../../packages/processes/README.md): evaluator
+missing-field markers are converted to the machine-readable tag
+`{ missing: true, path }` at any depth, while present `null` values stay
+`null`. Consumers can therefore distinguish an absent field from a nullable
+one directly from the JSON response.
+
 Activation validates every effect node's entity service binding against the
 registered capability record. `effect.createEntity` and `effect.runProducer`
 require `create`, `effect.updateEntity` requires `processUpdate`, and
