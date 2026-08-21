@@ -24,6 +24,8 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 ## Rules
 
 - Prefer PrimeVue semantic variables (`--p-*`) for generic component visuals.
+- Generic radius and elevation aliases resolve directly to Aura variables; this
+  module does not define application radius or shadow values.
 - Use `--ck-*` tokens only for application-owned semantic typography, reusable
   layout constraints, domain signals, geometry/data visualization, and motion.
   Do not use them to recreate Aura chrome or states.

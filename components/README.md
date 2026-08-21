@@ -88,7 +88,7 @@ All entity-related components MUST use these patterns:
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
 | Detail page header | `<EntityPage :entity="..." entity-type="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
-| Card/container chrome | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout |
+| Entity/container structure | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
 | Section/page action rows | `<ActionToolbar>` |
 | Route-level aggregate facts | `<MetricPanel>` |
 | Repeated card grids | `<ResponsiveGrid>` |
@@ -624,7 +624,7 @@ field-access policy.
 
 `assets/tokens/index.js` is the sole textual source for app-owned visual values. Nuxt projects its light and dark CSS variable maps into the document, Tailwind consumes its semantic aliases, and the PrimeVue preset projects only the primary brand palette onto Aura. Do not duplicate token values in runtime CSS or add generic PrimeVue component-token overrides.
 
-Aura owns generic control and container typography, spacing, borders, radii, shadows, hover, active, disabled, invalid, and keyboard-focus states. App tokens are bounded to domain entity tones, status/process signals, operational workspace constraints, reusable layout dimensions, motion, and app-shell chrome. `shadow-overlay` is only for app-owned floating surfaces; ordinary PrimeVue elevation remains Aura's responsibility.
+Aura owns generic control and container typography, spacing, borders, radii, shadows, hover, active, disabled, invalid, and keyboard-focus states. App tokens are bounded to domain entity tones, status/process signals, operational workspace constraints, reusable layout dimensions, motion, and app-shell chrome. The `rounded-ui`, `rounded-panel`, `shadow-card`, and `shadow-overlay` utility aliases consume Aura variables directly; they do not define application radius or elevation values.
 
 The UI type roles are `text-ui-caption`, `text-ui-body`, `text-ui-title`, and `text-ui-display`. Shared surfaces assign these roles; feature components inherit them and must not introduce arbitrary pixel/rem typography. IBM Plex Sans is the interface face, `font-mono` marks technical data, and `font-serif` or `.ck-prose` is explicit editorial content. HTML elements such as `p` and `blockquote` never select a font role by themselves.
 Nested active app surfaces must use semantic aliases such as `bg-content` or

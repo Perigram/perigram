@@ -128,7 +128,8 @@ lifecycle snapshot sources instead of reading arbitrary page state.
 
 Shared ownership:
 
-- `EntityCard` owns card chrome and is the only non-legacy direct owner of PrimeVue `Card`.
+- `EntityCard` owns semantic card structure and is the only non-legacy direct
+  owner of PrimeVue `Card`; Aura owns the rendered card chrome and states.
 - `EntitySelect` and `EntityMultiSelect` own PrimeVue Select/MultiSelect in app
   components. Canonical entity options use compact `EntityInlineRef` cards with
   previews. Selected entity refs render outside the PrimeVue value/chip area;
@@ -136,7 +137,8 @@ Shared ownership:
   overlay, keyboard, and selection behavior remain owned by PrimeVue. Non-entity
   options delegate without changing PrimeVue slots or behavior.
 - Entity-specific cards pass custom lifecycle commands through `EntityCard` `statusActions`; they should not rebuild identity/status title rows just to customize status buttons.
-- `StandardDialog` owns dialog chrome and is the only direct owner of PrimeVue `Dialog`.
+- `StandardDialog` owns semantic dialog structure and is the only direct owner
+  of PrimeVue `Dialog`; Aura owns the rendered dialog chrome and states.
 - `StandardPage` owns page shell width and spacing.
 - `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, and `TableFrame` own repeated page-level layout patterns.
 - `ResponsiveGrid`'s `bounded` variant uses the shared bounded-item min/max

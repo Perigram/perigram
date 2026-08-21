@@ -81,6 +81,10 @@ typography, arbitrary layout, generic chrome, local state, and important
 overrides are explicitly counted below with their required disposition; updating
 the inventory records debt but does not authorize it as an exception.
 
+Application-owned radius and shadow values are removed. Reusable Tailwind aliases
+consume Aura variables directly, and registered entity card/popover structures no
+longer override Aura borders, elevation, or interaction states.
+
 ## Mechanism Inventory
 
 | ID | Mechanism | Primary ownership | Intended boundary | Sources | Current disposition |
@@ -238,13 +242,13 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (2); narrowly-allowlist:scoped-layout |
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | centralize:typography (4); replace:chrome (16); remove:important-override (1) |
 | `ui-components-shared-entityactionspopover-vue` | `components/shared/EntityActionsPopover.vue` | derived usage | replace:chrome (1) |
-| `ui-components-shared-entitycard-vue` | `components/shared/EntityCard.vue` | shared/domain primitive | centralize:typography (4); centralize:layout (2); replace:chrome (14); remove:state (2) |
-| `ui-components-shared-entityinlineref-vue` | `components/shared/EntityInlineRef.vue` | derived usage | centralize:typography (3); centralize:layout (1); replace:chrome (4) |
+| `ui-components-shared-entitycard-vue` | `components/shared/EntityCard.vue` | shared/domain primitive | centralize:typography (4); centralize:layout (2) |
+| `ui-components-shared-entityinlineref-vue` | `components/shared/EntityInlineRef.vue` | derived usage | centralize:typography (3); centralize:layout (1); replace:chrome (1) |
 | `ui-components-shared-entitymultiselect-vue` | `components/shared/EntityMultiSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-entitypage-vue` | `components/shared/EntityPage.vue` | shared/domain primitive | centralize:typography (2); narrowly-allowlist:scoped-layout |
 | `ui-components-shared-entitypreview-vue` | `components/shared/EntityPreview.vue` | derived usage | replace:chrome (1) |
 | `ui-components-shared-entityrefinput-vue` | `components/shared/EntityRefInput.vue` | derived usage | compliant |
-| `ui-components-shared-entityrelationsblock-vue` | `components/shared/EntityRelationsBlock.vue` | derived usage | centralize:layout (2); replace:chrome (3); remove:important-override (1) |
+| `ui-components-shared-entityrelationsblock-vue` | `components/shared/EntityRelationsBlock.vue` | derived usage | centralize:layout (2); remove:important-override (1) |
 | `ui-components-shared-entityselect-vue` | `components/shared/EntitySelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-entitysurfacecontent-vue` | `components/shared/EntitySurfaceContent.vue` | derived usage | compliant |
 | `ui-components-shared-entityworkspace-vue` | `components/shared/EntityWorkspace.vue` | derived usage | narrowly-allowlist:scoped-layout |
