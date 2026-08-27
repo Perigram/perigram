@@ -120,26 +120,26 @@ visual findings. Counts are occurrences, not exemptions. Run
 
 | ID | Path | Primary ownership | Current disposition |
 |---|---|---|---|
-| `ui-components-adminsupportchat-vue` | `components/AdminSupportChat.vue` | derived usage | centralize:typography (1); centralize:layout (3); replace:chrome (3); remove:important-override (7) |
+| `ui-components-adminsupportchat-vue` | `components/AdminSupportChat.vue` | derived usage | centralize:typography (1); centralize:layout (3); replace:chrome (3); remove:important-override (4) |
 | `ui-components-adminsupportchatlist-vue` | `components/AdminSupportChatList.vue` | derived usage | centralize:typography (2); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-artifactlayouteditor-vue` | `components/ArtifactLayoutEditor.vue` | derived usage | centralize:typography (5); centralize:layout (1); replace:chrome (4) |
 | `ui-components-artifacts-artifacttexteditor-vue` | `components/artifacts/ArtifactTextEditor.vue` | derived usage | centralize:typography (1) |
-| `ui-components-artifacts-artifactviewer-vue` | `components/artifacts/ArtifactViewer.vue` | derived usage | centralize:typography (1); centralize:layout (2); replace:chrome (1) |
+| `ui-components-artifacts-artifactviewer-vue` | `components/artifacts/ArtifactViewer.vue` | derived usage | centralize:typography (1); centralize:layout (2); replace:chrome (2) |
 | `ui-components-artifactstable-vue` | `components/ArtifactsTable.vue` | derived usage | centralize:typography (2) |
 | `ui-components-assetslibrary-vue` | `components/AssetsLibrary.vue` | derived usage | replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-authprogress-vue` | `components/AuthProgress.vue` | derived usage | compliant |
-| `ui-components-cassettedesigner-vue` | `components/CassetteDesigner.vue` | derived usage | replace:chrome (6); narrowly-allowlist:inline-data-driven (1) |
-| `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:typography (7); centralize:layout (1); replace:chrome (85); remove:important-override (2); narrowly-allowlist:inline-data-driven (2) |
-| `ui-components-cassetteeditordialog-vue` | `components/CassetteEditorDialog.vue` | derived usage | centralize:typography (4); centralize:layout (6); replace:chrome (2); remove:important-override (1) |
-| `ui-components-cassetteexpressioneditor-vue` | `components/CassetteExpressionEditor.vue` | derived usage | centralize:typography (1); replace:chrome (20); remove:state (1) |
-| `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (7); remove:state (1); remove:important-override (1) |
-| `ui-components-cassettemanager-vue` | `components/CassetteManager.vue` | derived usage | replace:chrome (4) |
-| `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4); remove:important-override (1) |
-| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | centralize:typography (12); centralize:layout (8); replace:chrome (69); remove:state (1); remove:important-override (8) |
-| `ui-components-config-bot-configbotcitationlist-vue` | `components/config-bot/ConfigBotCitationList.vue` | derived usage | centralize:typography (1); replace:chrome (3) |
-| `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:typography (2); centralize:layout (1); replace:chrome (11) |
-| `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (6) |
-| `ui-components-config-bot-configbotvalidationpanel-vue` | `components/config-bot/ConfigBotValidationPanel.vue` | derived usage | replace:chrome (3) |
+| `ui-components-cassettedesigner-vue` | `components/CassetteDesigner.vue` | derived usage | replace:chrome (3); narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:typography (7); centralize:layout (1); replace:chrome (59); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-cassetteeditordialog-vue` | `components/CassetteEditorDialog.vue` | derived usage | centralize:typography (4); centralize:layout (6); replace:chrome (2) |
+| `ui-components-cassetteexpressioneditor-vue` | `components/CassetteExpressionEditor.vue` | derived usage | centralize:typography (1); replace:chrome (17); remove:state (1) |
+| `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
+| `ui-components-cassettemanager-vue` | `components/CassetteManager.vue` | derived usage | compliant |
+| `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
+| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | centralize:typography (12); centralize:layout (3); replace:chrome (44); remove:state (1); remove:important-override (4) |
+| `ui-components-config-bot-configbotcitationlist-vue` | `components/config-bot/ConfigBotCitationList.vue` | derived usage | centralize:typography (1); replace:chrome (4) |
+| `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:typography (2); centralize:layout (1); replace:chrome (12) |
+| `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (8) |
+| `ui-components-config-bot-configbotvalidationpanel-vue` | `components/config-bot/ConfigBotValidationPanel.vue` | derived usage | replace:chrome (4) |
 | `ui-components-entities-artifact-artifactcard-vue` | `components/entities/Artifact/ArtifactCard.vue` | derived usage | compliant |
 | `ui-components-entities-artifact-artifactdetail-vue` | `components/entities/Artifact/ArtifactDetail.vue` | derived usage | centralize:layout (1) |
 | `ui-components-entities-artifacttemplate-artifacttemplatecard-vue` | `components/entities/ArtifactTemplate/ArtifactTemplateCard.vue` | derived usage | compliant |
@@ -148,37 +148,37 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-entities-cassette-cassettecard-vue` | `components/entities/Cassette/CassetteCard.vue` | derived usage | compliant |
 | `ui-components-entities-cassettedesign-cassettedesigncard-vue` | `components/entities/CassetteDesign/CassetteDesignCard.vue` | derived usage | compliant |
 | `ui-components-entities-cassetteinstance-cassetteinstancecard-vue` | `components/entities/CassetteInstance/CassetteInstanceCard.vue` | derived usage | centralize:typography (1) |
-| `ui-components-entities-cassetteinstance-cassetteinstancedetail-vue` | `components/entities/CassetteInstance/CassetteInstanceDetail.vue` | derived usage | centralize:typography (1); remove:important-override (2) |
+| `ui-components-entities-cassetteinstance-cassetteinstancedetail-vue` | `components/entities/CassetteInstance/CassetteInstanceDetail.vue` | derived usage | centralize:typography (1) |
 | `ui-components-entities-cassettetemplate-cassettetemplatecard-vue` | `components/entities/CassetteTemplate/CassetteTemplateCard.vue` | derived usage | compliant |
-| `ui-components-entities-catalog-catalogcard-vue` | `components/entities/Catalog/CatalogCard.vue` | derived usage | replace:chrome (1) |
+| `ui-components-entities-catalog-catalogcard-vue` | `components/entities/Catalog/CatalogCard.vue` | derived usage | compliant |
 | `ui-components-entities-catalog-catalogdetail-vue` | `components/entities/Catalog/CatalogDetail.vue` | derived usage | centralize:typography (1) |
 | `ui-components-entities-color-colorcard-vue` | `components/entities/Color/ColorCard.vue` | derived usage | centralize:typography (2); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-entities-entityrevision-entityrevisioncard-vue` | `components/entities/EntityRevision/EntityRevisionCard.vue` | derived usage | compliant |
 | `ui-components-entities-facade-facadecard-vue` | `components/entities/Facade/FacadeCard.vue` | derived usage | compliant |
 | `ui-components-entities-facadepattern-facadepatterncard-vue` | `components/entities/FacadePattern/FacadePatternCard.vue` | derived usage | compliant |
 | `ui-components-entities-geometrycapture-geometrycapturecard-vue` | `components/entities/GeometryCapture/GeometryCaptureCard.vue` | derived usage | replace:chrome (5) |
-| `ui-components-entities-geometrycapture-geometrycapturedetail-vue` | `components/entities/GeometryCapture/GeometryCaptureDetail.vue` | derived usage | centralize:typography (1); centralize:layout (2); replace:chrome (19); remove:important-override (1) |
+| `ui-components-entities-geometrycapture-geometrycapturedetail-vue` | `components/entities/GeometryCapture/GeometryCaptureDetail.vue` | derived usage | centralize:typography (1); centralize:layout (2); replace:chrome (17) |
 | `ui-components-entities-geometrycapture-photogeometryoverlay-vue` | `components/entities/GeometryCapture/PhotoGeometryOverlay.vue` | derived usage | replace:chrome (4) |
 | `ui-components-entities-layerstandard-layerstandardcard-vue` | `components/entities/LayerStandard/LayerStandardCard.vue` | derived usage | compliant |
 | `ui-components-entities-library-librarycard-vue` | `components/entities/Library/LibraryCard.vue` | derived usage | compliant |
 | `ui-components-entities-material-materialcard-vue` | `components/entities/Material/MaterialCard.vue` | derived usage | centralize:typography (1) |
 | `ui-components-entities-materialpile-materialsummary-vue` | `components/entities/MaterialPile/MaterialSummary.vue` | derived usage | centralize:typography (3) |
-| `ui-components-entities-materialpile-pilecard-vue` | `components/entities/MaterialPile/PileCard.vue` | derived usage | replace:chrome (3) |
-| `ui-components-entities-nestingrun-nestingruncard-vue` | `components/entities/NestingRun/NestingRunCard.vue` | derived usage | replace:chrome (1) |
+| `ui-components-entities-materialpile-pilecard-vue` | `components/entities/MaterialPile/PileCard.vue` | derived usage | compliant |
+| `ui-components-entities-nestingrun-nestingruncard-vue` | `components/entities/NestingRun/NestingRunCard.vue` | derived usage | compliant |
 | `ui-components-entities-organization-organizationcard-vue` | `components/entities/Organization/OrganizationCard.vue` | derived usage | centralize:typography (1) |
 | `ui-components-entities-pentemplate-pentemplatecard-vue` | `components/entities/PenTemplate/PenTemplateCard.vue` | derived usage | replace:chrome (5); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-entities-profiletemplate-profiletemplatecard-vue` | `components/entities/ProfileTemplate/ProfileTemplateCard.vue` | derived usage | compliant |
-| `ui-components-entities-project-projectcard-vue` | `components/entities/Project/ProjectCard.vue` | derived usage | replace:chrome (1) |
+| `ui-components-entities-project-projectcard-vue` | `components/entities/Project/ProjectCard.vue` | derived usage | compliant |
 | `ui-components-entities-project-projectdetail-vue` | `components/entities/Project/ProjectDetail.vue` | derived usage | centralize:typography (2) |
-| `ui-components-entities-project-projectindexcard-vue` | `components/entities/Project/ProjectIndexCard.vue` | derived usage | centralize:typography (11); centralize:layout (1); replace:chrome (17) |
-| `ui-components-entities-queue-queuecard-vue` | `components/entities/Queue/QueueCard.vue` | derived usage | replace:chrome (1) |
+| `ui-components-entities-project-projectindexcard-vue` | `components/entities/Project/ProjectIndexCard.vue` | derived usage | centralize:typography (11); centralize:layout (1); replace:chrome (16) |
+| `ui-components-entities-queue-queuecard-vue` | `components/entities/Queue/QueueCard.vue` | derived usage | compliant |
 | `ui-components-entities-queue-queuedetail-vue` | `components/entities/Queue/QueueDetail.vue` | derived usage | centralize:typography (1) |
-| `ui-components-entities-queue-queueentrycard-vue` | `components/entities/Queue/QueueEntryCard.vue` | derived usage | replace:chrome (1); remove:important-override (3); compliant:scoped-layout |
-| `ui-components-entities-queue-queuesourcecard-vue` | `components/entities/Queue/QueueSourceCard.vue` | derived usage | replace:chrome (8) |
+| `ui-components-entities-queue-queueentrycard-vue` | `components/entities/Queue/QueueEntryCard.vue` | derived usage | remove:important-override (2); compliant:scoped-layout |
+| `ui-components-entities-queue-queuesourcecard-vue` | `components/entities/Queue/QueueSourceCard.vue` | derived usage | replace:chrome (7) |
 | `ui-components-entities-remnant-remnantcard-vue` | `components/entities/Remnant/RemnantCard.vue` | derived usage | compliant |
 | `ui-components-entities-remnant-remnantdetail-vue` | `components/entities/Remnant/RemnantDetail.vue` | derived usage | compliant |
-| `ui-components-entities-requisition-requisitioncard-vue` | `components/entities/Requisition/RequisitionCard.vue` | derived usage | replace:chrome (2) |
-| `ui-components-entities-requisition-requisitiondetail-vue` | `components/entities/Requisition/RequisitionDetail.vue` | derived usage | centralize:typography (3); replace:chrome (3); narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-entities-requisition-requisitioncard-vue` | `components/entities/Requisition/RequisitionCard.vue` | derived usage | compliant |
+| `ui-components-entities-requisition-requisitiondetail-vue` | `components/entities/Requisition/RequisitionDetail.vue` | derived usage | centralize:typography (3); replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-entities-sheet-sheetcard-vue` | `components/entities/Sheet/SheetCard.vue` | derived usage | compliant |
 | `ui-components-entities-sheet-sheetdetail-vue` | `components/entities/Sheet/SheetDetail.vue` | derived usage | centralize:typography (2); replace:chrome (8); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-entities-sheetdesign-sheetdesigncard-vue` | `components/entities/SheetDesign/SheetDesignCard.vue` | derived usage | compliant |
@@ -188,91 +188,91 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-entities-warehouse-warehousecard-vue` | `components/entities/Warehouse/WarehouseCard.vue` | derived usage | compliant |
 | `ui-components-entities-warehouse-warehousedetail-vue` | `components/entities/Warehouse/WarehouseDetail.vue` | derived usage | compliant |
 | `ui-components-facadedesigner-vue` | `components/FacadeDesigner.vue` | derived usage | replace:chrome (12) |
-| `ui-components-facadepatterndesigner-vue` | `components/FacadePatternDesigner.vue` | derived usage | centralize:typography (2); replace:chrome (9); remove:important-override (1) |
+| `ui-components-facadepatterndesigner-vue` | `components/FacadePatternDesigner.vue` | derived usage | centralize:typography (2); replace:chrome (9) |
 | `ui-components-footer-vue` | `components/Footer.vue` | derived usage | compliant |
-| `ui-components-generated-generatedactionbutton-vue` | `components/generated/GeneratedActionButton.vue` | derived usage | replace:chrome (1); remove:important-override (1) |
+| `ui-components-generated-generatedactionbutton-vue` | `components/generated/GeneratedActionButton.vue` | derived usage | compliant |
 | `ui-components-generated-generatedartifactcreator-vue` | `components/generated/GeneratedArtifactCreator.vue` | derived usage | centralize:typography (2) |
-| `ui-components-generated-generatedcassettedesigneraction-vue` | `components/generated/GeneratedCassetteDesignerAction.vue` | derived usage | replace:chrome (1) |
+| `ui-components-generated-generatedcassettedesigneraction-vue` | `components/generated/GeneratedCassetteDesignerAction.vue` | derived usage | compliant |
 | `ui-components-generated-generatedcassettedesignerworkspacepage-vue` | `components/generated/GeneratedCassetteDesignerWorkspacePage.vue` | derived usage | compliant |
-| `ui-components-generated-generateddeletebutton-vue` | `components/generated/GeneratedDeleteButton.vue` | derived usage | replace:chrome (1) |
-| `ui-components-generated-generatedentitycollection-vue` | `components/generated/GeneratedEntityCollection.vue` | derived usage | centralize:typography (1); replace:chrome (1); remove:state (2) |
+| `ui-components-generated-generateddeletebutton-vue` | `components/generated/GeneratedDeleteButton.vue` | derived usage | compliant |
+| `ui-components-generated-generatedentitycollection-vue` | `components/generated/GeneratedEntityCollection.vue` | derived usage | centralize:typography (1); remove:state (2) |
 | `ui-components-generated-generatedentitydetail-vue` | `components/generated/GeneratedEntityDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedentitydetailbody-vue` | `components/generated/GeneratedEntityDetailBody.vue` | derived usage | compliant |
 | `ui-components-generated-generatedentityfile-vue` | `components/generated/GeneratedEntityFile.vue` | derived usage | replace:chrome (6) |
 | `ui-components-generated-generatedfacadedesignerworkspacepage-vue` | `components/generated/GeneratedFacadeDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfacadepatterndesignerworkspacepage-vue` | `components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue` | derived usage | compliant |
-| `ui-components-generated-generatedhomescreen-vue` | `components/generated/GeneratedHomeScreen.vue` | derived usage | centralize:typography (2); centralize:layout (2); replace:chrome (2); remove:state (1) |
-| `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | centralize:typography (1); replace:chrome (1) |
-| `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | centralize:typography (8); replace:chrome (8) |
+| `ui-components-generated-generatedhomescreen-vue` | `components/generated/GeneratedHomeScreen.vue` | derived usage | centralize:typography (2); centralize:layout (2); remove:state (1) |
+| `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | centralize:typography (1) |
+| `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | centralize:typography (8); replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
 | `ui-components-generated-generatedprojectactionpalette-vue` | `components/generated/GeneratedProjectActionPalette.vue` | derived usage | compliant |
-| `ui-components-generated-generatedprojectworkspace-vue` | `components/generated/GeneratedProjectWorkspace.vue` | derived usage | replace:chrome (11); remove:important-override (24); compliant:scoped-layout |
+| `ui-components-generated-generatedprojectworkspace-vue` | `components/generated/GeneratedProjectWorkspace.vue` | derived usage | replace:chrome (9); remove:important-override (21); compliant:scoped-layout |
 | `ui-components-generated-generatedqueuedetail-vue` | `components/generated/GeneratedQueueDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedregion-vue` | `components/generated/GeneratedRegion.vue` | derived usage | compliant |
 | `ui-components-generated-generatedscreen-vue` | `components/generated/GeneratedScreen.vue` | derived usage | centralize:typography (5); centralize:layout (1) |
-| `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | replace:chrome (4) |
-| `ui-components-generated-generatedworkspacepane-vue` | `components/generated/GeneratedWorkspacePane.vue` | derived usage | centralize:typography (1); replace:chrome (4) |
-| `ui-components-generated-generatedworkspacepanemenu-vue` | `components/generated/GeneratedWorkspacePaneMenu.vue` | derived usage | replace:chrome (1) |
-| `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | centralize:typography (1); replace:chrome (10); remove:important-override (1) |
+| `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | replace:chrome (3) |
+| `ui-components-generated-generatedworkspacepane-vue` | `components/generated/GeneratedWorkspacePane.vue` | derived usage | centralize:typography (1); replace:chrome (3) |
+| `ui-components-generated-generatedworkspacepanemenu-vue` | `components/generated/GeneratedWorkspacePaneMenu.vue` | derived usage | compliant |
+| `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | replace:chrome (4); remove:important-override (1) |
 | `ui-components-hubs-cassetteinstancestab-vue` | `components/hubs/CassetteInstancesTab.vue` | derived usage | compliant |
 | `ui-components-hubs-catalogstab-vue` | `components/hubs/CatalogsTab.vue` | derived usage | compliant |
 | `ui-components-hubs-pilestab-vue` | `components/hubs/PilesTab.vue` | derived usage | compliant |
 | `ui-components-hubs-remnantstab-vue` | `components/hubs/RemnantsTab.vue` | derived usage | compliant |
 | `ui-components-hubs-requisitionstab-vue` | `components/hubs/RequisitionsTab.vue` | derived usage | compliant |
 | `ui-components-hubs-sheetstab-vue` | `components/hubs/SheetsTab.vue` | derived usage | compliant |
-| `ui-components-hubs-warehousehub-vue` | `components/hubs/WarehouseHub.vue` | derived usage | centralize:typography (8); centralize:layout (1); replace:chrome (20); remove:important-override (1) |
+| `ui-components-hubs-warehousehub-vue` | `components/hubs/WarehouseHub.vue` | derived usage | centralize:typography (8); centralize:layout (1); replace:chrome (20) |
 | `ui-components-languageswitcher-vue` | `components/LanguageSwitcher.vue` | derived usage | compliant |
 | `ui-components-partlibrary-vue` | `components/PartLibrary.vue` | derived usage | centralize:typography (1); replace:chrome (3) |
-| `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:typography (2); centralize:layout (2); replace:chrome (7) |
+| `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:typography (1); centralize:layout (2); replace:chrome (5) |
 | `ui-components-permissionrulebuilder-vue` | `components/PermissionRuleBuilder.vue` | derived usage | replace:chrome (8) |
-| `ui-components-process-designer-processactionnode-vue` | `components/process-designer/ProcessActionNode.vue` | derived usage | centralize:typography (6); replace:chrome (12); remove:important-override (4); narrowly-allowlist:inline-data-driven (4) |
-| `ui-components-process-designer-processentitynode-vue` | `components/process-designer/ProcessEntityNode.vue` | derived usage | centralize:typography (2); replace:chrome (9); remove:important-override (3); narrowly-allowlist:inline-data-driven (2) |
-| `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | centralize:typography (2); replace:chrome (18); remove:important-override (10); narrowly-allowlist:inline-data-driven (4) |
-| `ui-components-process-designer-processrolenode-vue` | `components/process-designer/ProcessRoleNode.vue` | derived usage | replace:chrome (5); narrowly-allowlist:inline-data-driven (3) |
-| `ui-components-process-designer-processscreenpreview-vue` | `components/process-designer/ProcessScreenPreview.vue` | derived usage | centralize:typography (4); replace:chrome (9) |
-| `ui-components-process-designer-processservicenode-vue` | `components/process-designer/ProcessServiceNode.vue` | derived usage | centralize:typography (5); replace:chrome (12); remove:important-override (3); narrowly-allowlist:inline-data-driven (3) |
-| `ui-components-process-designer-processsocketnode-vue` | `components/process-designer/ProcessSocketNode.vue` | derived usage | centralize:typography (2); replace:chrome (13); remove:important-override (3); narrowly-allowlist:inline-data-driven (3) |
-| `ui-components-process-designer-processstatusdefinitionnode-vue` | `components/process-designer/ProcessStatusDefinitionNode.vue` | derived usage | centralize:typography (2); replace:chrome (10); remove:important-override (5); narrowly-allowlist:inline-data-driven (3) |
-| `ui-components-process-designer-processusernode-vue` | `components/process-designer/ProcessUserNode.vue` | derived usage | replace:chrome (5); narrowly-allowlist:inline-data-driven (1) |
-| `ui-components-process-designer-processvalueinputnode-vue` | `components/process-designer/ProcessValueInputNode.vue` | derived usage | centralize:typography (2); replace:chrome (7); remove:important-override (1); narrowly-allowlist:inline-data-driven (1) |
-| `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:typography (2); centralize:layout (2); replace:chrome (12) |
+| `ui-components-process-designer-processactionnode-vue` | `components/process-designer/ProcessActionNode.vue` | derived usage | centralize:typography (6); replace:chrome (14); remove:important-override (6); narrowly-allowlist:inline-data-driven (4) |
+| `ui-components-process-designer-processentitynode-vue` | `components/process-designer/ProcessEntityNode.vue` | derived usage | centralize:typography (2); replace:chrome (10); remove:important-override (3); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | centralize:typography (1); replace:chrome (23); remove:important-override (9); narrowly-allowlist:inline-data-driven (4) |
+| `ui-components-process-designer-processrolenode-vue` | `components/process-designer/ProcessRoleNode.vue` | derived usage | replace:chrome (4); narrowly-allowlist:inline-data-driven (3) |
+| `ui-components-process-designer-processscreenpreview-vue` | `components/process-designer/ProcessScreenPreview.vue` | derived usage | centralize:typography (4); replace:chrome (12) |
+| `ui-components-process-designer-processservicenode-vue` | `components/process-designer/ProcessServiceNode.vue` | derived usage | centralize:typography (5); replace:chrome (14); remove:important-override (4); narrowly-allowlist:inline-data-driven (3) |
+| `ui-components-process-designer-processsocketnode-vue` | `components/process-designer/ProcessSocketNode.vue` | derived usage | centralize:typography (2); replace:chrome (14); remove:important-override (3); narrowly-allowlist:inline-data-driven (3) |
+| `ui-components-process-designer-processstatusdefinitionnode-vue` | `components/process-designer/ProcessStatusDefinitionNode.vue` | derived usage | centralize:typography (2); replace:chrome (8); remove:important-override (6); narrowly-allowlist:inline-data-driven (3) |
+| `ui-components-process-designer-processusernode-vue` | `components/process-designer/ProcessUserNode.vue` | derived usage | replace:chrome (4); narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-process-designer-processvalueinputnode-vue` | `components/process-designer/ProcessValueInputNode.vue` | derived usage | centralize:typography (2); replace:chrome (7); remove:important-override (2); narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:typography (2); centralize:layout (2); replace:chrome (13) |
 | `ui-components-projectstatistics-vue` | `components/ProjectStatistics.vue` | derived usage | centralize:typography (4) |
-| `ui-components-queueeditor-vue` | `components/QueueEditor.vue` | derived usage | centralize:typography (2); replace:chrome (14); remove:important-override (5); compliant:scoped-layout; compliant:inline-layout (1) |
-| `ui-components-recentprojects-vue` | `components/RecentProjects.vue` | derived usage | replace:chrome (1) |
+| `ui-components-queueeditor-vue` | `components/QueueEditor.vue` | derived usage | centralize:typography (2); replace:chrome (4); compliant:scoped-layout; compliant:inline-layout (1) |
+| `ui-components-recentprojects-vue` | `components/RecentProjects.vue` | derived usage | compliant |
 | `ui-components-shared-actiontoolbar-vue` | `components/shared/ActionToolbar.vue` | shared/domain primitive | centralize:typography (1) |
-| `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | centralize:typography (3); replace:chrome (4); compliant:scoped-layout |
+| `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | centralize:typography (2); compliant:scoped-layout |
 | `ui-components-shared-blocks-identityblock-vue` | `components/shared/blocks/IdentityBlock.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-blocks-specsblock-vue` | `components/shared/blocks/SpecsBlock.vue` | shared/domain primitive | centralize:typography (5); replace:chrome (7); compliant:scoped-layout |
-| `ui-components-shared-blocks-statusbadge-vue` | `components/shared/blocks/StatusBadge.vue` | shared/domain primitive | centralize:typography (1); replace:chrome (1) |
-| `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | centralize:layout (3); replace:chrome (1); compliant:scoped-layout |
+| `ui-components-shared-blocks-specsblock-vue` | `components/shared/blocks/SpecsBlock.vue` | shared/domain primitive | centralize:typography (5); replace:chrome (8); compliant:scoped-layout |
+| `ui-components-shared-blocks-statusbadge-vue` | `components/shared/blocks/StatusBadge.vue` | shared/domain primitive | centralize:typography (1); replace:chrome (9) |
+| `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | compliant:scoped-layout |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (2); compliant:scoped-layout |
-| `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | centralize:typography (4); replace:chrome (16); remove:important-override (1) |
-| `ui-components-shared-entityactionspopover-vue` | `components/shared/EntityActionsPopover.vue` | derived usage | replace:chrome (1) |
+| `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | centralize:typography (4); replace:chrome (14) |
+| `ui-components-shared-entityactionspopover-vue` | `components/shared/EntityActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-entitycard-vue` | `components/shared/EntityCard.vue` | shared/domain primitive | centralize:typography (4); centralize:layout (2) |
-| `ui-components-shared-entityinlineref-vue` | `components/shared/EntityInlineRef.vue` | derived usage | centralize:typography (3); centralize:layout (1); replace:chrome (4); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-shared-entityinlineref-vue` | `components/shared/EntityInlineRef.vue` | derived usage | centralize:typography (3); centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-shared-entitymultiselect-vue` | `components/shared/EntityMultiSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-entitypage-vue` | `components/shared/EntityPage.vue` | shared/domain primitive | centralize:typography (2); compliant:scoped-layout |
 | `ui-components-shared-entitypreview-vue` | `components/shared/EntityPreview.vue` | derived usage | replace:chrome (1) |
 | `ui-components-shared-entityrefinput-vue` | `components/shared/EntityRefInput.vue` | derived usage | compliant |
-| `ui-components-shared-entityrelationsblock-vue` | `components/shared/EntityRelationsBlock.vue` | derived usage | centralize:layout (3); remove:important-override (1) |
+| `ui-components-shared-entityrelationsblock-vue` | `components/shared/EntityRelationsBlock.vue` | derived usage | centralize:layout (3) |
 | `ui-components-shared-entityselect-vue` | `components/shared/EntitySelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-entitysurfacecontent-vue` | `components/shared/EntitySurfaceContent.vue` | derived usage | compliant |
 | `ui-components-shared-entityworkspace-vue` | `components/shared/EntityWorkspace.vue` | derived usage | compliant:scoped-layout |
 | `ui-components-shared-errorboundary-vue` | `components/shared/ErrorBoundary.vue` | derived usage | replace:chrome (2) |
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-links-tracechain-vue` | `components/shared/links/TraceChain.vue` | shared/domain primitive | centralize:typography (1); centralize:layout (1); replace:chrome (2) |
+| `ui-components-shared-links-tracechain-vue` | `components/shared/links/TraceChain.vue` | shared/domain primitive | centralize:typography (1); centralize:layout (1) |
 | `ui-components-shared-links-tracelink-vue` | `components/shared/links/TraceLink.vue` | shared/domain primitive | replace:chrome (2) |
-| `ui-components-shared-metricpanel-vue` | `components/shared/MetricPanel.vue` | derived usage | centralize:typography (2); replace:chrome (2) |
+| `ui-components-shared-metricpanel-vue` | `components/shared/MetricPanel.vue` | derived usage | centralize:typography (2); replace:chrome (3) |
 | `ui-components-shared-motiondock-vue` | `components/shared/MotionDock.vue` | derived usage | replace:chrome (8); replace:inline-visual (2); replace:render-visual (5) |
-| `ui-components-shared-nameeditpopover-vue` | `components/shared/NameEditPopover.vue` | derived usage | centralize:typography (2); replace:chrome (3); remove:important-override (1) |
+| `ui-components-shared-nameeditpopover-vue` | `components/shared/NameEditPopover.vue` | derived usage | centralize:typography (2) |
 | `ui-components-shared-responsivegrid-vue` | `components/shared/ResponsiveGrid.vue` | shared/domain primitive | centralize:layout (4); compliant:scoped-layout |
 | `ui-components-shared-scrollablepanel-vue` | `components/shared/ScrollablePanel.vue` | derived usage | centralize:typography (1); remove:important-override (3) |
 | `ui-components-shared-standarddialog-vue` | `components/shared/StandardDialog.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-standardpage-vue` | `components/shared/StandardPage.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-stateblock-vue` | `components/shared/StateBlock.vue` | shared/domain primitive | centralize:typography (2) |
-| `ui-components-shared-status-entitystatus-vue` | `components/shared/status/EntityStatus.vue` | shared/domain primitive | replace:chrome (1) |
-| `ui-components-shared-status-statushistory-vue` | `components/shared/status/StatusHistory.vue` | shared/domain primitive | centralize:typography (3); centralize:layout (1); replace:chrome (4) |
+| `ui-components-shared-stateblock-vue` | `components/shared/StateBlock.vue` | shared/domain primitive | centralize:typography (1) |
+| `ui-components-shared-status-entitystatus-vue` | `components/shared/status/EntityStatus.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-status-statushistory-vue` | `components/shared/status/StatusHistory.vue` | shared/domain primitive | centralize:typography (3); centralize:layout (1); replace:chrome (3) |
 | `ui-components-shared-status-statuslocation-vue` | `components/shared/status/StatusLocation.vue` | shared/domain primitive | centralize:typography (2) |
 | `ui-components-shared-status-statustransitiondialog-vue` | `components/shared/status/StatusTransitionDialog.vue` | derived usage | centralize:typography (4) |
 | `ui-components-shared-supportmessagecontent-vue` | `components/shared/SupportMessageContent.vue` | derived usage | compliant |
@@ -281,42 +281,42 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-typedsettingsform-vue` | `components/shared/TypedSettingsForm.vue` | derived usage | centralize:typography (1) |
 | `ui-components-shared-workspacelanes-vue` | `components/shared/WorkspaceLanes.vue` | derived usage | compliant |
 | `ui-components-shared-workspacesplitnode-vue` | `components/shared/WorkspaceSplitNode.vue` | derived usage | replace:chrome (1); remove:important-override (1) |
-| `ui-components-sheetdesigneditor-vue` | `components/SheetDesignEditor.vue` | derived usage | replace:chrome (7) |
+| `ui-components-sheetdesigneditor-vue` | `components/SheetDesignEditor.vue` | derived usage | replace:chrome (4) |
 | `ui-components-templatesmanager-vue` | `components/TemplatesManager.vue` | derived usage | centralize:typography (1) |
-| `ui-components-themeswitcher-vue` | `components/ThemeSwitcher.vue` | derived usage | replace:chrome (1) |
+| `ui-components-themeswitcher-vue` | `components/ThemeSwitcher.vue` | derived usage | compliant |
 | `ui-components-userform-vue` | `components/UserForm.vue` | derived usage | compliant |
-| `ui-components-workflowdesignerv2-vue` | `components/WorkflowDesignerV2.vue` | derived usage | centralize:typography (3); centralize:layout (1); replace:chrome (19) |
-| `ui-error-vue` | `error.vue` | derived usage | centralize:typography (2) |
-| `ui-layouts-app-vue` | `layouts/app.vue` | derived usage | centralize:typography (4); centralize:layout (11); replace:chrome (17); remove:state (1); remove:important-override (4) |
-| `ui-layouts-ui-lab-layout-vue` | `layouts/ui-lab-layout.vue` | derived usage | centralize:typography (5); centralize:layout (2); replace:chrome (9); remove:state (2) |
+| `ui-components-workflowdesignerv2-vue` | `components/WorkflowDesignerV2.vue` | derived usage | centralize:typography (3); centralize:layout (1); replace:chrome (16) |
+| `ui-error-vue` | `error.vue` | derived usage | compliant |
+| `ui-layouts-app-vue` | `layouts/app.vue` | derived usage | centralize:typography (4); centralize:layout (4); replace:chrome (10); remove:state (1); remove:important-override (3) |
+| `ui-layouts-ui-lab-layout-vue` | `layouts/ui-lab-layout.vue` | derived usage | centralize:typography (5); centralize:layout (2); replace:chrome (10); remove:state (2) |
 | `ui-pages-admin-config-bot-vue` | `pages/admin/config-bot.vue` | derived usage | centralize:layout (1) |
 | `ui-pages-admin-index-vue` | `pages/admin/index.vue` | derived usage | compliant |
-| `ui-pages-admin-support-vue` | `pages/admin/support.vue` | derived usage | centralize:typography (4); replace:chrome (8); remove:important-override (1) |
+| `ui-pages-admin-support-vue` | `pages/admin/support.vue` | derived usage | centralize:typography (4); replace:chrome (7) |
 | `ui-pages-admin-users-vue` | `pages/admin/users.vue` | derived usage | centralize:typography (1); replace:chrome (4) |
-| `ui-pages-admin-workbench-vue` | `pages/admin/workbench.vue` | derived usage | centralize:typography (8); centralize:layout (8); replace:chrome (41); remove:important-override (1) |
+| `ui-pages-admin-workbench-vue` | `pages/admin/workbench.vue` | derived usage | centralize:typography (6); centralize:layout (8); replace:chrome (38) |
 | `ui-pages-admin-workflows-vue` | `pages/admin/workflows.vue` | derived usage | centralize:layout (1) |
 | `ui-pages-assets-cassettes-vue` | `pages/assets/cassettes.vue` | derived usage | compliant |
 | `ui-pages-assets-index-vue` | `pages/assets/index.vue` | derived usage | compliant |
 | `ui-pages-assets-layer-standards-vue` | `pages/assets/layer-standards.vue` | derived usage | centralize:layout (1) |
-| `ui-pages-assets-pens-vue` | `pages/assets/pens.vue` | derived usage | centralize:layout (1); replace:chrome (4); narrowly-allowlist:inline-data-driven (1) |
-| `ui-pages-assets-templates-vue` | `pages/assets/templates.vue` | derived usage | centralize:typography (1); replace:chrome (2) |
-| `ui-pages-assets-tools-vue` | `pages/assets/tools.vue` | derived usage | centralize:layout (1); replace:chrome (2) |
-| `ui-pages-auth-login-vue` | `pages/auth/login.vue` | derived usage | centralize:typography (1) |
-| `ui-pages-auth-register-vue` | `pages/auth/register.vue` | derived usage | centralize:typography (1) |
+| `ui-pages-assets-pens-vue` | `pages/assets/pens.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
+| `ui-pages-assets-templates-vue` | `pages/assets/templates.vue` | derived usage | centralize:typography (1) |
+| `ui-pages-assets-tools-vue` | `pages/assets/tools.vue` | derived usage | centralize:layout (1) |
+| `ui-pages-auth-login-vue` | `pages/auth/login.vue` | derived usage | centralize:typography (1); replace:chrome (1) |
+| `ui-pages-auth-register-vue` | `pages/auth/register.vue` | derived usage | centralize:typography (1); replace:chrome (1) |
 | `ui-pages-catalog-index-vue` | `pages/catalog/index.vue` | derived usage | centralize:layout (1) |
 | `ui-pages-chats-vue` | `pages/chats.vue` | derived usage | compliant |
-| `ui-pages-geometry-captures-index-vue` | `pages/geometry-captures/index.vue` | derived usage | centralize:typography (1); centralize:layout (3); replace:chrome (11); remove:state (1); remove:important-override (1) |
-| `ui-pages-index-vue` | `pages/index.vue` | derived usage | centralize:typography (11); centralize:layout (5); replace:chrome (2) |
-| `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | centralize:typography (2); replace:chrome (1) |
+| `ui-pages-geometry-captures-index-vue` | `pages/geometry-captures/index.vue` | derived usage | centralize:typography (1); centralize:layout (3); replace:chrome (9); remove:state (1) |
+| `ui-pages-index-vue` | `pages/index.vue` | derived usage | centralize:typography (11); centralize:layout (5); replace:chrome (4) |
+| `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | centralize:typography (2); replace:chrome (3) |
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
-| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:typography (7); centralize:layout (10); replace:chrome (30); remove:state (1); remove:important-override (4); narrowly-allowlist:inline-data-driven (1) |
-| `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | centralize:typography (4) |
-| `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | centralize:typography (2); replace:chrome (5); remove:important-override (1) |
+| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:typography (7); centralize:layout (10); replace:chrome (29); remove:state (1); narrowly-allowlist:inline-data-driven (1) |
+| `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | centralize:typography (5) |
+| `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | centralize:typography (2); replace:chrome (4) |
 | `ui-pages-project-slug-vue` | `pages/project/[slug].vue` | derived usage | compliant |
 | `ui-pages-project-slug-artifacts-vue` | `pages/project/[slug]/artifacts.vue` | derived usage | centralize:layout (1) |
-| `ui-pages-project-slug-data-vue` | `pages/project/[slug]/data.vue` | derived usage | centralize:layout (1); replace:chrome (7); compliant:inline-layout (1) |
-| `ui-pages-project-slug-details-vue` | `pages/project/[slug]/details.vue` | derived usage | centralize:typography (8); centralize:layout (1); replace:chrome (17) |
+| `ui-pages-project-slug-data-vue` | `pages/project/[slug]/data.vue` | derived usage | centralize:layout (1); replace:chrome (5); compliant:inline-layout (1) |
+| `ui-pages-project-slug-details-vue` | `pages/project/[slug]/details.vue` | derived usage | centralize:typography (8); centralize:layout (1); replace:chrome (16) |
 | `ui-pages-project-slug-index-vue` | `pages/project/[slug]/index.vue` | derived usage | compliant |
 | `ui-pages-project-slug-queue-queueid-vue` | `pages/project/[slug]/queue/[queueId].vue` | derived usage | compliant |
 | `ui-pages-project-slug-queues-vue` | `pages/project/[slug]/queues.vue` | derived usage | compliant |
@@ -328,6 +328,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-screens-index-vue` | `pages/screens/index.vue` | derived usage | compliant |
 | `ui-pages-terms-and-conditions-vue` | `pages/terms-and-conditions.vue` | derived usage | replace:chrome (2) |
 | `ui-pages-test-components-variantshowcase-vue` | `pages/test/components/VariantShowcase.vue` | derived usage | replace:chrome (1) |
-| `ui-pages-test-ui-constructor-vue` | `pages/test/ui-constructor.vue` | derived usage | centralize:typography (4); centralize:layout (2); replace:chrome (18); remove:state (1) |
-| `ui-pages-test-ui-lab-vue` | `pages/test/ui-lab.vue` | derived usage | centralize:typography (5); centralize:layout (3); replace:chrome (25) |
+| `ui-pages-test-ui-constructor-vue` | `pages/test/ui-constructor.vue` | derived usage | centralize:typography (4); centralize:layout (2); replace:chrome (12) |
+| `ui-pages-test-ui-lab-vue` | `pages/test/ui-lab.vue` | derived usage | centralize:typography (5); centralize:layout (3); replace:chrome (29) |
 | `ui-pages-warehouses-index-vue` | `pages/warehouses/index.vue` | derived usage | compliant |
