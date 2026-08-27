@@ -98,7 +98,7 @@ const REGISTERED_PRIMITIVE_PATHS = new Set(cncDesignSystemPrimitives.map(primiti
 const VISUAL_CONCERNS = [
   ['centralize:typography', /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl)|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\]))\b/g],
   ['centralize:layout', /\b(?:basis|gap|grid-cols|grid-rows|h|max-h|max-w|min-h|min-w|m[trblxy]?|p[trblxy]?|w)-\[[^\]]+\]/g],
-  ['replace:chrome', /(?:\bbg-(?:content|subtle)\b|\bborder(?:-[trblxy])?(?:-(?:0|2|4|8|content-border|primary|transparent|dashed|double))?\b|\brounded(?:-[\w-]+)?\b|\bshadow(?:-[\w-]+)?\b|\[box-shadow:[^\]]+\])/g],
+  ['replace:chrome', /(?:\bbg-(?!(?:content|subtle|chrome)\b)[\w-]+\b|\bborder(?:-[trblxy])?(?:-(?:0|2|4|8|primary|transparent|dashed|double))?\b|\brounded\b|\brounded-(?!(?:ui|t-ui)\b)[\w-]+\b|\bshadow-(?!(?:card|overlay)\b)[\w-]+\b|\[box-shadow:[^\]]+\])/g],
   ['remove:state', /\b(?:active|disabled|focus|focus-visible|hover|invalid):[^\s"'`]+/g],
   ['remove:important-override', /(?:^|\s)![\w\[][^\s"'`]*/gm]
 ];
@@ -140,7 +140,11 @@ export const analyzeVueVisuals = (file, source) => {
   const template = source
     .replace(/<script\b[\s\S]*?<\/script>/g, '')
     .replace(/<style\b[\s\S]*?<\/style>/g, '');
-  const visualSource = [template, ...scriptStringLiterals(source)].join('\n');
+  const classSource = Array.from(
+    template.matchAll(/(?:^|\s):?class\s*=\s*["']([^"']*)["']/g),
+    match => match[1]
+  ).join('\n');
+  const visualSource = [classSource, ...scriptStringLiterals(source)].join('\n');
   const findings = VISUAL_CONCERNS.flatMap(([disposition, pattern]) => {
     const count = visualSource.match(pattern)?.length || 0;
     return count ? [`${disposition} (${count})`] : [];
