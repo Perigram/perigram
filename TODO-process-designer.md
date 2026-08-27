@@ -346,7 +346,7 @@ mapper.
 
 ### Entity sources
 
-- [x] Expose Current Entity as an authoring node. Its entity type must be
+- [ ] Expose Current Entity as an authoring node. Its entity type must be
   inferred from the manual action/screen context where possible and selectable
   only when the context cannot determine it.
 - [x] Expose Entity by ID/Reference. Accept a typed entity reference directly;
@@ -578,7 +578,7 @@ incompatible element types rejected at edge validation
   inputDefaults merge into packets so an explicitly defaulted selected field
   is also written (evaluator.js:21-22, 116-150; orchestration.js:282-283;
   evaluator.spec.js:118-136; Agent Notes below).
-- [x] OUT OF SCOPE — Support Set/Replace and Unset for eligible fixed/open
+- [ ] OUT OF SCOPE — Support Set/Replace and Unset for eligible fixed/open
   entries, and Append/Remove only for collection-valued fields with element
   type validation. The v4 dataflow is replace-only: migration-v4.js:16-25
   rejects any modifyBlock entry whose operation is not `replace` and strips
@@ -586,7 +586,7 @@ incompatible element types rejected at edge validation
   unsets/undefined (service.js:1076-1104, 1099). Collection changes are
   composed with list/tree nodes before the block socket
   (processes/README.md:328-333), not expressed as modifyBlock operations.
-- [x] DONE 2026-08-19 (absent=preserve half) / OUT OF SCOPE (explicit
+- [ ] PARTIAL 2026-08-19 (absent=preserve half) / OUT OF SCOPE (explicit
   null-vs-Unset half) — Make modification intent explicit in the node record
   and preview. An absent input must mean "preserve", not "set null"; explicit
   null and Unset must remain distinct. The absent=preserve half is TODO #1's
@@ -760,7 +760,7 @@ registry/manual-form tests 13/13; denied manual Create test 1/1;
   proof in process-definitions.spec.js asserts a Modify Entity node with
   both writable blocks and a status target emits the patched typed entity
   DTO with identity fields preserved and no wrapper keys.
-- [x] DONE 2026-08-19 (output shape) / OUT OF SCOPE (Unset, Append/Remove) —
+- [ ] PARTIAL 2026-08-19 (output shape) / OUT OF SCOPE (Unset, Append/Remove) —
   Test identity/data/spec/relation changes, explicit Unset, collection
   Append/Remove, denied fields, stale refs, and item/list/tree output shape.
   Identity-block changes and item output shape (including the combined
@@ -948,7 +948,7 @@ first and third checkboxes are already satisfied by existing architecture.
   no source list refetch, no page reload
   (e2e/process-generated-screen.spec.js "patches the affected list source in
   place after a mapped relation action result"; Agent Notes below).
-- [x] DONE 2026-08-20 — Add concrete-role/user previews and browser tests for
+- [ ] PARTIAL 2026-08-20 — Add concrete-role/user previews and browser tests for
   list, detail, workspace, table, and form-action templates with filters,
   bindings, regional actions, CRUD forms, and denied actions. Browser matrix
   delivered over every screen variant the active compiled process instantiates:
@@ -962,7 +962,7 @@ first and third checkboxes are already satisfied by existing architecture.
   dispositioned in the closeout Agent Notes: `workspaceLanes`/`table`/
   `formAction` templates have no authored screens in the seeded process to
   drive, and concrete-role/user previews do not exist as a designer feature;
-  both are process-authoring/designer work, not test gaps.
+  both remain open process-authoring/designer work, not delivered test coverage.
 
 ### Agent Notes — 2026-08-20
 
@@ -1209,8 +1209,8 @@ No runtime, designer, or test code changed in this session.
    snapshot patches the project card in place, the source list endpoint is not
    refetched (request counter), the page does not reload (window marker
    survives), and the URL stays on the generated list screen.
-7. **Template-matrix browser tests — DONE, residuals dispositioned.** The
-   checkbox is now checked on the strength of the delivered browser matrix
+7. **Template-matrix browser tests — PARTIAL, residuals remain open.** The
+   checkbox remains unchecked because the delivered browser matrix
    (e2e/process-generated-screen.spec.js, 13 tests): the seven parametrized
    `entityList` variants, both `entityDetail` postures, the `home` screen
    per-source sections, and the create-form flow. The two residuals recorded in
@@ -1225,6 +1225,27 @@ No runtime, designer, or test code changed in this session.
    actionable only when the corresponding authoring/designer work is scheduled.
    The coverage boundary is documented in e2e/README.md so the suite's scope
    stays truthful.
+
+### Agent Notes — 2026-08-27 (audit and bookkeeping correction)
+
+Spot-checked the checked notes and cited code/tests in the current checkout.
+The capability, mode-aware construction, mapped mutation, entity source,
+collection, relation, status/archive/delete, access-preview, and generated
+screen claims have current anchors in their cited files/tests (e11, e18, e19).
+The overstated claims are corrected above: Current Entity placement inference
+remains unimplemented (e12); Modify Block Unset, Append/Remove, and explicit
+null-vs-Unset authoring remain unsupported (e13); Modify Entity Unset and
+Append/Remove coverage remains out of scope (e14); and the generated-interface
+matrix lacks workspace/table/form-action and concrete-role/user preview
+surfaces (e15).
+
+The producer-scoped correction remains wholly unchecked: current compiler,
+transpiler, server adapter/model, and designer paths consume entity-type or
+entity-profile contracts and contain no producerOutputId implementation (e16).
+The deleted producer-workflows session and the four unmerged duplicate commits
+from agent/decompose-read-blocks-20260821 were absent from the prior TODO notes,
+so that disposition is recorded here rather than treated as completed work
+(e17). No duplicate work was redone.
 
 Files changed (docs only): e2e/README.md, TODO-process-designer.md.
 
