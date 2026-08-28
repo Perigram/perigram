@@ -223,7 +223,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-hubs-warehousehub-vue` | `components/hubs/WarehouseHub.vue` | derived usage | centralize:typography (8); centralize:layout (1); replace:chrome (20); remove:important-override (1) |
 | `ui-components-languageswitcher-vue` | `components/LanguageSwitcher.vue` | derived usage | compliant |
 | `ui-components-partlibrary-vue` | `components/PartLibrary.vue` | derived usage | centralize:typography (1); replace:chrome (3) |
-| `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:typography (2); centralize:layout (2); replace:chrome (7) |
+| `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:typography (1); centralize:layout (2); replace:chrome (7) |
 | `ui-components-permissionrulebuilder-vue` | `components/PermissionRuleBuilder.vue` | derived usage | replace:chrome (8) |
 | `ui-components-process-designer-processactionnode-vue` | `components/process-designer/ProcessActionNode.vue` | derived usage | centralize:typography (6); replace:chrome (12); remove:important-override (4); narrowly-allowlist:inline-data-driven (4) |
 | `ui-components-process-designer-processentitynode-vue` | `components/process-designer/ProcessEntityNode.vue` | derived usage | centralize:typography (2); replace:chrome (9); remove:important-override (3); narrowly-allowlist:inline-data-driven (2) |
@@ -311,7 +311,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
 | `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:typography (7); centralize:layout (10); replace:chrome (30); remove:state (1); remove:important-override (4); narrowly-allowlist:inline-data-driven (1) |
-| `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | centralize:typography (4) |
+| `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | centralize:typography (5) |
 | `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | centralize:typography (2); replace:chrome (5); remove:important-override (1) |
 | `ui-pages-project-slug-vue` | `pages/project/[slug].vue` | derived usage | compliant |
 | `ui-pages-project-slug-artifacts-vue` | `pages/project/[slug]/artifacts.vue` | derived usage | centralize:layout (1) |
