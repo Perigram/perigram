@@ -562,7 +562,9 @@ The separate Decompose/read closeout was merged into `local`. Its declared-block
 work supplied the missing coverage; its missing-field commits duplicated the
 already-merged serializer work and were not taken. The original checkboxes and
 the correction queue now reflect that merged outcome; no duplicate work was
-redone.
+redone. The topology and full-block-family anchors are
+`packages/processes/src/evaluator.spec.js` and the declared-block validation in
+`packages/processes/src/node-catalog.js` / `compiler-core.js`.
 
 ### Compose Block
 
@@ -582,11 +584,13 @@ redone.
 
 #### Agent Notes — 2026-08-28 reconciliation
 
-The merged Compose Block list tests cover aligned fixed-field and open-entry
-inputs with one composed block per tuple. The five original bullets were already
-implemented; the explicit list-output test was the only correction gap. The
-unmerged `agent/compose-block-bookkeeping-20260826-090351` commit only repeats
-this checkbox/note update and is not implementation to recover.
+The merged Compose Block list tests
+(`packages/processes/src/evaluator.spec.js:256-286`) cover aligned fixed-field
+and open-entry inputs with one composed block per tuple. The five original
+bullets were already implemented; the explicit list-output test was the only
+correction gap. The unmerged
+`agent/compose-block-bookkeeping-20260826-090351` commit only repeats this
+checkbox/note update and is not implementation to recover.
 
 ### Modify Block
 
@@ -1281,8 +1285,12 @@ completed correction sections and merged tests. Modify Entity list/tree mapping
 is complete through the shared effect mapper; its remaining coverage checkbox
 is open only for unsupported Unset and Append/Remove behavior. Modify Block is
 replace-only, and collection operations occur in list/tree nodes before the
-block socket. `data.compiled` is an inspection-only activation snapshot; runtime
-boundaries recompile the canonical graph instead of executing that snapshot.
+block socket (`packages/processes/README.md`, "Process model and compilation").
+`data.compiled` is an inspection-only activation snapshot; runtime boundaries
+recompile the canonical graph instead of executing that snapshot
+(`server/features/process-definitions/runtime.js` and the process READMEs).
+The completed generated-screen and organization-scope dispositions are anchored
+by `components/process-designer/README.md` and `server/core/access/README.md`.
 
 Worktree and branch disposition was reconciled without repeating merged work:
 
@@ -1296,9 +1304,9 @@ Worktree and branch disposition was reconciled without repeating merged work:
   merged `0e07e5e7` bookkeeping commit; the
   `agent/v9-process-designer-recovery-20260828` worktree is empty after its
   older `80ee0f31` base.
-- The create-entity worktree has no post-creation commit and its
-  `agent/create-entity-correction-20260821-1637` branch ref is absent; the
-  separate Create correction was already merged into `local`.
+- The create-entity worktree has no post-creation task commit; the separate
+  Create correction was already merged into `local`, so there is no
+  implementation to recover from that worktree.
 - The Decompose/read worktree's declared-block work was integrated through the
   separate closeout; its missing-field commits duplicate work already on
   `local` and remain unmerged.
