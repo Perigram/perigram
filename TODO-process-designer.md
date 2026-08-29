@@ -261,7 +261,8 @@ permission-denied case; `node scripts/check-arch.js` and
 ### Item/list/tree persistence semantics
 
 - [x] Define one lower-level effect-mapping contract used by Create, Modify,
-  and Change Status (Delete remains deferred by the recorded verdict). Item
+  Change Status, Archive, and Delete. Delete joined the mapper in the later
+  Status/archive/delete correction. Item
   inputs map over aligned packets, the output preserves branch paths and item
   order, and no mutation node contains its own loop implementation.
 - [x] Define multi-input matching for persistence nodes. Item values may
@@ -276,13 +277,13 @@ permission-denied case; `node scripts/check-arch.js` and
   service calls. Make the execution result identify completed mutations if a
   later item fails, and make generated UI refresh those entities.
 - [x] Test the same mutation contract with item, list, branched tree, broadcast
-  scalar, and aligned value-tree inputs; verify Create, Modify, and Status use
-  it. Delete coverage remains deferred with `effect.deleteEntity`.
+  scalar, and aligned value-tree inputs; verify Create, Modify, Status, Archive,
+  and Delete use it.
 
 #### Agent Notes — 2026-08-21
 
 Implemented the recorded effect-mapping verdict without adding mutation-specific
-loops or a Delete node. `executeProcessEffectNode` in
+loops. `executeProcessEffectNode` in
 `packages/processes/src/evaluator.js` preflights scalar-or-aligned branch/item
 lengths and branch paths, rejects Cross before invoking the adapter, obtains the
 per-item invocation plan from `solveDataTrees`, and runs one authorized effect
@@ -315,9 +316,9 @@ attempted), and partial-failure reporting including the single-failed-item
 envelope; `orchestration.spec.js` proves Create, Modify, and Change Status
 route through the mapper, that a later item failure completes the step with
 the failure-carrying output while the run proceeds, and that misaligned inputs
-fail the run before the first `executeEffect` call. Hard deletion remains
-deferred until the capability, node, confirmation, and execution contract
-exists.
+fail the run before the first `executeEffect` call. Hard deletion was added
+later through the capability, node, confirmation, and execution contract in the
+Status/archive/delete correction.
 
 #### Agent Notes — 2026-08-21 (effect socket access declaration)
 
@@ -337,10 +338,10 @@ designer keeps inline scalar fallback editors on mapped mutation sockets
 (`ProcessNode.vue`). `node-catalog.spec.js` asserts the List declarations and
 that item, list, and tree sources are all compatible with Modify Entity
 sockets; the existing orchestration specs prove scalar run-context entities
-and scalar defaults still drive Modify/Change Status unchanged. Delete
-remains deferred; `effect.runProducer`, `sendEntity`, `generateAttachment`,
-and `runCommand` keep item access because they do not route through the
-mapper.
+and scalar defaults still drive Modify/Change Status unchanged. Delete was
+subsequently routed through the mapper; `effect.runProducer`, `sendEntity`,
+`generateAttachment`, and `runCommand` keep item access because they do not
+route through it.
 
 ## P0 — complete entity acquisition and selection
 
@@ -515,11 +516,11 @@ incompatible element types rejected at edge validation
 
 ### Decompose and read
 
-- [ ] Make Deconstruct Entity accept item/list/tree entities and emit each
+- [x] Make Deconstruct Entity accept item/list/tree entities and emit each
   declared canonical block with identical topology.
-- [ ] Make Get Block equivalent for one selected block and reject blocks not
+- [x] Make Get Block equivalent for one selected block and reject blocks not
   declared by the incoming entity contract.
-- [ ] Make Get Field consume fixed and open canonical blocks without storing
+- [x] Make Get Field consume fixed and open canonical blocks without storing
   schema snapshots. Restore typed entity refs for Lineage/Relations and typed
   attachment/array/map values where declared.
 - [x] Distinguish a missing field from a present nullable field in preview and
@@ -546,29 +547,50 @@ incompatible element types rejected at edge validation
   preview-path round-trip test in
   `server/features/process-definitions/process-definitions.spec.js` asserting
   both the missing tag and a present null survive JSON unchanged. The other
-  four bullets of this section remain open; the pre-existing
+  four bullets were open in that session and were completed by the later
+  Decompose/read closeout; the pre-existing
   activation-protocol test failure noted on 2026-08-15 is unchanged and
   unrelated.
 
-- [ ] Cover every canonical block family used by the CNC domain, including
+- [x] Cover every canonical block family used by the CNC domain, including
   identity, lineage, relations/data, specs, attachments, summary, provenance,
   and status as read-only or writable according to its real policy.
 
+#### Agent Notes — 2026-08-28 reconciliation
+
+The separate Decompose/read closeout was merged into `local`. Its declared-block
+work supplied the missing coverage; its missing-field commits duplicated the
+already-merged serializer work and were not taken. The original checkboxes and
+the correction queue now reflect that merged outcome; no duplicate work was
+redone. The topology and full-block-family anchors are
+`packages/processes/src/evaluator.spec.js` and the declared-block validation in
+`packages/processes/src/node-catalog.js` / `compiler-core.js`.
+
 ### Compose Block
 
-- [ ] For fixed blocks, expose only domain-declared constructible fields with
+- [x] For fixed blocks, expose only domain-declared constructible fields with
   their exact types, units, enum/schema qualifiers, and required/default rules.
-- [ ] For open blocks, keep stable author-defined entries: Lineage key plus
+- [x] For open blocks, keep stable author-defined entries: Lineage key plus
   typed ancestor, Relation key plus accepted entity type, Attachment kind plus
   typed reference, and named Data/Summary/Provenance entries only where policy
   permits them.
-- [ ] Let each selected field receive item/list/tree values through ordinary
+- [x] Let each selected field receive item/list/tree values through ordinary
   solver matching. Compose Block must emit one block for each aligned input
   tuple, not require a separate loop node.
-- [ ] Reject duplicate open keys, service-owned fields, unknown schema paths,
+- [x] Reject duplicate open keys, service-owned fields, unknown schema paths,
   incompatible units/types, and fields that are readable but not constructible.
-- [ ] Test complete creation blocks, partial optional blocks, open relation and
+- [x] Test complete creation blocks, partial optional blocks, open relation and
   lineage blocks, collection-valued fields, and multi-entity block output.
+
+#### Agent Notes — 2026-08-28 reconciliation
+
+The merged Compose Block list tests
+(`packages/processes/src/evaluator.spec.js:256-286`) cover aligned fixed-field
+and open-entry inputs with one composed block per tuple. The five original
+bullets were already implemented; the explicit list-output test was the only
+correction gap. The unmerged
+`agent/compose-block-bookkeeping-20260826-090351` commit only repeats this
+checkbox/note update and is not implementation to recover.
 
 ### Modify Block
 
@@ -730,14 +752,12 @@ registry/manual-form tests 13/13; denied manual Create test 1/1;
   present in the incoming block and `processUpdate` patches a clone of the
   full document, so untouched blocks survive (service.js:1211-1230;
   process-update-handler.js:37-55; graph proof process-definitions.spec.js).
-- [x] DEFERRED 2026-08-19 — Support one entity with one block, a list/tree of
+- [x] DONE 2026-08-21 — Support one entity with one block, a list/tree of
   entities with aligned block changes, and scalar/block broadcasting through
-  the common solver. Effect nodes execute exactly once per control token with
-  every input flattened via `packetValue(packet, 'item')`, which throws for
-  list/tree inputs (orchestration.js:153-162; data-tree.js:31-41). The
-  effect-mapping contract belongs to the unchecked "Item/list/tree
-  persistence semantics" P0 section above; this bullet is tracked there and
-  must not be solved locally by special-casing updateEntity.
+  the common solver. Modify Entity now uses the shared type-agnostic effect
+  mapper documented under Item/list/tree persistence semantics, including
+  aligned list/tree output and scalar/block broadcasting; no node-local loop
+  was added.
 - [x] DONE 2026-08-19 (already implemented) — Keep ordinary metadata mutation
   separate from status transition so each re-enters its correct service
   boundary. When one authored action requests both, use the existing
@@ -771,8 +791,9 @@ registry/manual-form tests 13/13; denied manual Create test 1/1;
   and collection Append/Remove are out of scope per the Modify Block
   decision: the v4 migration rejects any non-`replace` operation
   (migration-v4.js:16-25) and the persistence boundary rejects unsets
-  (service.js:1092-1102). List/tree output shape is deferred with bullet 2
-  to the "Item/list/tree persistence semantics" section.
+  (service.js:1092-1102). List/tree output shape is covered by the shared
+  effect-mapper tests; this checkbox remains open only for the unsupported
+  Unset and Append/Remove cases.
 
 #### Agent Notes — 2026-08-19
 
@@ -793,11 +814,9 @@ node with both a writable identity block (Deconstruct -> Modify Block chain)
 and a status target through `startRun`, asserting the emitted step output is
 the patched typed entity DTO (identity.slug preserved, list/tree field
 values applied, status transitioned, no `actions`/`effects` wrapper keys).
-Bullet 2 and the list/tree half of bullet 5 are deferred to the unchecked
-"Item/list/tree persistence semantics" P0 section, which owns the
-effect-mapping contract for multi-item inputs; the Unset and Append/Remove
-halves of bullet 5 stay out of scope per the Modify Block replace-only
-decision.
+Bullet 2 and the list/tree half of bullet 5 were subsequently completed by the
+shared effect-mapping contract. The Unset and Append/Remove halves of bullet 5
+stay out of scope per the Modify Block replace-only decision.
 
 ### Relations and lineage
 
@@ -816,20 +835,20 @@ decision.
 
 ### Status, archive, and delete
 
-- [ ] Keep initial status on Create and workflow transition on existing
+- [x] Keep initial status on Create and workflow transition on existing
   entities as separate typed operations. Status changes must use the status
   engine, transition authorization, lifecycle evidence, and history.
 - [x] Fix workflow compilation so every authored v2 region, state, transition,
   hook, lifecycle schema, and access contract is preserved. Never collapse a
   multi-region workflow into `regions.main`.
-- [ ] Model archive through a domain workflow state/intent when that is the
+- [x] Model archive through a domain workflow state/intent when that is the
   entity's contract. Do not silently equate archive with hard deletion.
-- [ ] Add Delete Entity only for entity types whose process capabilities and
+- [x] Add Delete Entity only for entity types whose process capabilities and
   registered service explicitly allow hard deletion. Generated UI must require
   an authorized manual action and confirmation.
-- [ ] Map item/list/tree status and delete inputs below the node language and
+- [x] Map item/list/tree status and delete inputs below the node language and
   return updated/deleted refs in corresponding topology.
-- [ ] Test multi-region status changes, evidence-required transitions,
+- [x] Test multi-region status changes, evidence-required transitions,
   archive, denied transitions, deletable and non-deletable types, and collection
   inputs.
 
@@ -862,8 +881,8 @@ first and third checkboxes are already satisfied by existing architecture.
   binding allows it and a workflow region has an `ARCHIVED` state, the designer
   exposes `archivableEntityOptions`, and archive executes as a normal status
   transition to `ARCHIVED` through the status engine — never as hard deletion.
-  A dedicated archive intent node and an end-to-end archive spec remain open
-  under the test checkbox below.
+  The later Status/archive/delete correction added the mapped archive/delete
+  effects and focused coverage described in its Agent Notes.
 
 ## P1 — make organization scope authorable and reviewable
 
@@ -880,44 +899,45 @@ first and third checkboxes are already satisfied by existing architecture.
   workflow contract of the active process. Remaining for the bullet: swap the
   process designer's local `roleAccessSummary` in
   `pages/organization/process.vue` onto the same shared implementation so both
-  surfaces consume one source. Other bullets in this section were reviewed and
-  remain open (typed grant-dimension controls, silent screen-derived grants,
-  complete `$assignment` binding discovery, assignment preview explanations,
-  access test matrix); the roles-as-identities bullet is already enforced by
+  surfaces consume one source. The other bullets were open in that session and
+  were completed by the later organization-scope correction (typed
+  grant-dimension controls, silent screen-derived grants, complete
+  `$assignment` binding discovery, assignment preview explanations, and the
+  access test matrix); the roles-as-identities bullet was already enforced by
   compiler/spec invariants and reads as a keep constraint.
 
-- [ ] Expose the access engine's real grant dimensions in typed controls where
+- [x] Expose the access engine's real grant dimensions in typed controls where
   the process needs them: feature/level, entity or lineage scope, allowed
   actions, status windows, transitions, and composable rules. Do not use raw
   grant JSON.
-- [ ] Keep organization roles as identities and Team assignments as user data.
+- [x] Keep organization roles as identities and Team assignments as user data.
   The graph may reference role IDs and `$assignment.*` values but must not
   create user-assignment nodes.
-- [ ] Make entity-profile, action, status-transition, and screen access
+- [x] Make entity-profile, action, status-transition, and screen access
   contributions visible in one derived role summary. Label which authored
   record contributed each effective permission.
-- [ ] Stop screen layout from silently granting backend capability. Either make
+- [x] Stop screen layout from silently granting backend capability. Either make
   screens consume already-authored grants or make any generated grant an
   explicit, separately confirmed access edit.
-- [ ] Discover required assignment binding keys from every supported location:
+- [x] Discover required assignment binding keys from every supported location:
   screen route/scope/bindings, source identifiers, source filters, access
   scopes, and rules.
-- [ ] Add “preview as assignment” using a concrete set of role IDs and bindings.
+- [x] Add “preview as assignment” using a concrete set of role IDs and bindings.
   Show accessible entities, fields, transitions, actions, screens, and the
   explanation for each allow/deny result.
-- [ ] Test users with one role, several additive roles, overloaded assignments,
+- [x] Test users with one role, several additive roles, overloaded assignments,
   missing bindings, status-scoped access, lineage-scoped access, and owner
   recovery authority.
 
 ## P1 — complete generated interface construction
 
-- [ ] Expose the complete semantic screen source contract: stable id/label,
+- [x] Expose the complete semantic screen source contract: stable id/label,
   entity type, list/single mode, required access, identifier, filters, and
   assignment bindings.
-- [ ] Expose the complete region contract: stable id/label, template slot,
+- [x] Expose the complete region contract: stable id/label, template slot,
   source, domain surface, and independent action list. Do not copy the screen's
   global action list into every region.
-- [ ] Support arbitrary typed screen bindings instead of only
+- [x] Support arbitrary typed screen bindings instead of only
   `bindings.entityId`, with autocomplete from the selected template, sources,
   lineage, and assignment requirements.
 - [x] DONE 2026-08-20 — Validate unique source/region IDs, required
@@ -969,18 +989,18 @@ first and third checkboxes are already satisfied by existing architecture.
 Reconciled all seven checkboxes against current code before implementing
 (session scope: the pre-activation validation rule set):
 
-1. **Source contract exposure — still open (UI gap).** The contract schema and
+1. **Source contract exposure — open in this session; completed later.** The contract schema and
    compiler already carry the full source shape (id/label/entityType/mode/
    required/identifier/filters/lineageBindings;
    packages/processes/src/screen-contract.js:94-136, compiler-core.js:1953-1985),
    but the designer screens tab only edits entityType+mode per source
    (pages/organization/process.vue:850-887).
-2. **Region contract exposure — still open (UI gap + defect).** Same schema
+2. **Region contract exposure — open in this session; completed later.** Same schema
    support exists for regions, but `syncSelectedScreenUi` copies the screen's
    global actions into every region on each sync
    (pages/organization/process.vue:2542-2545, 2566-2581) — the exact behavior
    this checkbox forbids.
-3. **Arbitrary typed bindings — still open (UI gap).** Bindings editing is a
+3. **Arbitrary typed bindings — open in this session; completed later.** Bindings editing is a
    single InputText bound to `bindings.entityId`
    (pages/organization/process.vue:850-887). The compiler/runtime already
    resolve arbitrary binding keys.
@@ -1004,7 +1024,7 @@ Reconciled all seven checkboxes against current code before implementing
    Per-assignment key absence cannot be activation-rejected (assignments are
    runtime data) and remains a compile-time skip with `incompleteBindings`
    diagnostics (packages/processes/src/index.spec.js:1612-1643).
-5. **Generated typed CRUD forms — still open.** Manual prompt form exists with
+5. **Generated typed CRUD forms — open in this session; completed later.** Manual prompt form exists with
    entity/entityList pickers, enum Select, number/text InputText, object
    Textarea (components/generated/GeneratedScreen.vue:117-238); boolean and
    date/date-time controls for ordinary prompt fields are missing, and
@@ -1071,21 +1091,21 @@ Session scope: documentation closeout for the whole section. Every checkbox was
 re-verified against the current checkout before disposition; no runtime or
 designer code changed in this session, so the docs commit is the only commit.
 
-1. **Source contract exposure — deferred with reason.** Re-verified: the gap
+1. **Source contract exposure — deferred in this session; completed later.** Re-verified: the gap
    is UI-only (schema/compiler already carry the full source shape;
    packages/processes/src/screen-contract.js:94-136), and the designer screens
    tab still edits only entityType+mode (pages/organization/process.vue:850-887).
    Reasonable and worth implementing, but it is a dedicated designer-UI session
    (source id/label, required access, identifier, filters, assignment bindings
    editors), not a documentation change. Left open.
-2. **Region contract exposure — deferred with reason; live defect confirmed.**
+2. **Region contract exposure — deferred in this session; completed later.**
    `syncSelectedScreenUi` still copies the screen's global actions into every
    region on each sync (pages/organization/process.vue:2542-2545) and
    `ensureSelectedScreenRegion` seeds new regions the same way
    (pages/organization/process.vue:2566-2581) — the exact behavior this
    checkbox forbids. Fix belongs to the same designer-UI session as checkbox 1
    (independent per-region action lists). Left open.
-3. **Arbitrary typed bindings — deferred with reason.** Re-verified: bindings
+3. **Arbitrary typed bindings — deferred in this session; completed later.** Re-verified: bindings
    editing is still a single InputText bound to `bindings.entityId`
    (pages/organization/process.vue:850-887) while the compiler/runtime already
    resolve arbitrary binding keys. Same designer-UI session as checkboxes 1-2.
@@ -1124,7 +1144,8 @@ checkout on branch `agent/p1-docs-closeout-20260820`.
 
 Session scope: checkbox 2's action-independence defect only (the forbidden
 copy from screen global actions into region action lists). Region id/label
-exposure and checkboxes 1, 3, 6, 7 remain open as recorded above.
+exposure and checkboxes 1, 3, 6, 7 remained open in that session; later
+corrections completed 1, 3, and 6, while 7 retains its documented residuals.
 
 2. **Region action independence — fixed (this session).** New regions are now
    seeded with an empty action list in `createScreen` (unchanged),
@@ -1242,10 +1263,11 @@ surfaces (e15).
 The producer-scoped correction remains wholly unchecked: current compiler,
 transpiler, server adapter/model, and designer paths consume entity-type or
 entity-profile contracts and contain no producerOutputId implementation (e16).
-The deleted producer-workflows session and the four unmerged duplicate commits
-from agent/decompose-read-blocks-20260821 were absent from the prior TODO notes,
-so that disposition is recorded here rather than treated as completed work
-(e17). No duplicate work was redone.
+The deleted producer-workflows session and the four commits on
+agent/decompose-read-blocks-20260821 were absent from the prior TODO notes. The
+declared-block work was integrated through the separate closeout; its
+missing-field work duplicated existing local commits and was not retaken. No
+duplicate work was redone (e17).
 
 Files changed (docs only): e2e/README.md, TODO-process-designer.md.
 
@@ -1253,6 +1275,54 @@ Validation: `node scripts/check-docs.js` (passed). No code paths changed, so no
 test suites were re-run; the cited browser evidence was re-read from
 e2e/process-generated-screen.spec.js on the current checkout (branch
 `agent/p1-evidence-trail-closeout-20260820-2345`).
+
+### Agent Notes — 2026-08-28 (ledger and worktree reconciliation)
+
+This note supersedes stale completion wording in earlier historical notes. The
+original Decompose/read, Compose Block, Status/archive/delete, generated-screen
+source/region/binding, and organization-scope checkboxes now agree with their
+completed correction sections and merged tests. Modify Entity list/tree mapping
+is complete through the shared effect mapper; its remaining coverage checkbox
+is open only for unsupported Unset and Append/Remove behavior. Modify Block is
+replace-only, and collection operations occur in list/tree nodes before the
+block socket (`packages/processes/README.md`, "Process model and compilation").
+`data.compiled` is an inspection-only activation snapshot; runtime boundaries
+recompile the canonical graph instead of executing that snapshot
+(`server/features/process-definitions/runtime.js` and the process READMEs).
+The completed generated-screen and organization-scope dispositions are anchored
+by `components/process-designer/README.md` and `server/core/access/README.md`.
+
+Worktree and branch disposition was reconciled without repeating merged work:
+
+- `local` already contains the generated-interface correction, Decompose/read
+  closeout, Compose Block list tests, Create correction,
+  Status/archive/delete correction, and organization-scope preview work.
+- `agent/compose-block-bookkeeping-20260826-090351` has one unmerged
+  documentation-only commit, `58c01235`, that duplicates the Compose
+  checkbox/note update.
+- The `agent/process-designer-fresh-20260827-1615` worktree is empty after its
+  merged `0e07e5e7` bookkeeping commit; the
+  `agent/v9-process-designer-recovery-20260828` worktree is empty after its
+  older `80ee0f31` base.
+- The create-entity worktree has no post-creation task commit; the separate
+  Create correction was already merged into `local`, so there is no
+  implementation to recover from that worktree.
+- The Decompose/read worktree's declared-block work was integrated through the
+  separate closeout; its missing-field commits duplicate work already on
+  `local` and remain unmerged.
+- `agent/process-audit-followup-20260821-2024` has one unmerged documentation
+  commit, `37014d11`, that queues follow-through; it is not evidence that those
+  capabilities were implemented.
+
+Capabilities still absent remain open: Current Entity placement inference,
+query planning, producer-output identity and producer-keyed compilation,
+command/task persistence ownership, durable invocation/wait/receipt storage,
+access-surface option provenance, complete Output Preview,
+unreachable/dead-end diagnostics, semantic Apply diff, automatic casting, P2
+cleanup, the User TODOs, and every end-to-end acceptance-matrix item. Historical
+notes that called the generated-interface or organization-scope originals open
+describe their earlier session state; their later correction notes are the
+current implementation disposition.
 
 ## P1 — validation and diagnostics
 
@@ -1270,9 +1340,9 @@ e2e/process-generated-screen.spec.js on the current checkout (branch
   screens, actions, field policies, and entity statuses that would become
   invalid. Require a migration decision when active entities use removed
   workflow states.
-- [ ] Decide one activation artifact authority. Either execute the immutable,
-  versioned compiled snapshot or remove it and explicitly version runtime
-  recompilation; do not store one contract while silently executing another.
+- [x] Keep `data.compiled` as an inspection-only activation snapshot. Runtime
+  auth hydration and manual execution recompile the canonical graph and never
+  prefer the stored snapshot, so the compiled artifact is not runtime authority.
 
 ## P2 — remove misleading and unnecessary surface area
 
@@ -1316,12 +1386,12 @@ contract shared by all mutation effect nodes; mutation inputs routed through
 `solveDataTrees` with a per-aligned-item invocation boundary;
 `MutationFailure` records `{operation, branchPath, itemIndex, entityRef?,
 error}`; results carry `failures` and `completedMutations` lists; result tree
-is shape-preserving; `effect.deleteEntity` stays deferred to Status, archive,
-and delete.
+is shape-preserving; `effect.deleteEntity` was added by the later
+Status/archive/delete correction.
 
 - [x] Implement the shared effect-mapping contract below the node language in
-  `packages/processes/src/evaluator.js`, wired into Create, Modify, and Status;
-  Delete stays deferred per the verdict.
+  `packages/processes/src/evaluator.js`, wired into Create, Modify, Status,
+  Archive, and Delete.
 - [x] Implement multi-input matching for persistence nodes per the verdict.
 - [x] Implement mutation failure reporting (`failures` + `completedMutations`)
   without claiming collection-wide atomicity.
@@ -1345,12 +1415,12 @@ Verdict on record (run 2026-08-19): attachments become a framework-owned open
 block declared in core (`CANONICAL_BLOCK_SCHEMAS` /
 `CANONICAL_BLOCK_COMPOSITION` in `packages/core/src/index.js`).
 
-- [ ] Verify Deconstruct Entity, Get Block, and Get Field against item/list/
+- [x] Verify Deconstruct Entity, Get Block, and Get Field against item/list/
   tree inputs and the full CNC block family, including the attachments block
   per the verdict; implement only where behavior diverges.
 - [x] Distinguish missing field from present nullable field in preview and
   runtime errors.
-- [ ] Close the five original bullets with tests and bookkeeping.
+- [x] Close the five original bullets with tests and bookkeeping.
 
 ### Correction: Compose Block
 
@@ -1361,9 +1431,9 @@ multi-entity/list-input compose output test. Do not add required/default
 declarations to fixed block fields — an open compose socket is a composition
 affordance, not an error.
 
-- [ ] Add the focused multi-entity/list-input `composeBlock` output test in
+- [x] Add the focused multi-entity/list-input `composeBlock` output test in
   `packages/processes/src` (one composed block per aligned input tuple).
-- [ ] Tick the five original bullets and add Agent Notes. Bookkeeping plus one
+- [x] Tick the five original bullets and add Agent Notes. Bookkeeping plus one
   test; no runtime changes expected.
 
 ### Correction: Create Entity
@@ -1887,8 +1957,10 @@ without editing JSON or seeding legacy canvas records.
   then filter and sort the related entities.
 - [ ] Compose fixed and open blocks from scalar, entity-ref, list, and
   array-valued inputs; create one entity and a mapped list/tree of entities.
-- [ ] Read an existing block, replace one field, unset another, append/remove a
-  collection element, persist the change, and prove untouched fields survive.
+- [ ] Read an existing block, replace selected fields, compose collection
+  changes with list/tree nodes before the block socket, persist the replacement,
+  and prove untouched fields survive. Modify Block is replace-only; Unset and
+  Append/Remove are not block operations in this acceptance path.
 - [ ] Create a child with canonical Lineage, link and unlink declared Relations,
   and reject an undeclared or cross-organization association.
 - [ ] Set initial status, perform an authorized status transition with required
