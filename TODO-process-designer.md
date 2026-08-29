@@ -1324,6 +1324,52 @@ notes that called the generated-interface or organization-scope originals open
 describe their earlier session state; their later correction notes are the
 current implementation disposition.
 
+#### Agent Notes — 2026-08-30 certified worktree disposition
+
+The 16-worktree inventory in e21 has one task disposition per entry. The roles
+below identify non-adopted worktrees by evidence rather than repeating their
+branch identifiers:
+
+1. Primary `local` checkout — integration target; its speculative ledger draft
+   was discarded (e22).
+2. Final ledger reconciliation — adopted through the v11-bound documentation
+   branch (e23).
+3. Predecessor ledger reconciliation — superseded by the adopted clarification
+   (e24).
+4. Compose bookkeeping — duplicate and overstated; not integrated (e25-e27).
+5. Decompose/read worktree — landed behavior was verified independently, while
+   its ledger reversions are regressive; not integrated (e28-e30).
+6. Create Entity correction worktree — stale and regressive; not integrated
+   (e31).
+7. Process audit follow-up — non-implementing and regressive documentation; not
+   integrated (e32).
+8. Uncommitted reconciliation checkout — duplicate speculative draft; not
+   integrated (e22).
+9. Fresh process-designer bookkeeping worktree — duplicate merged bookkeeping;
+   no additional change adopted (e23).
+10. V9 process-designer recovery worktree — superseded empty recovery snapshot;
+    no change adopted (e23).
+11. Fresh design-centralization worktree — non-implementing for this task and
+    preserved outside this reconciliation (e21, e23).
+12. Design-system convergence worktree — non-implementing for this task and
+    preserved outside this reconciliation (e21, e23).
+13. Design-system inventory-enforcement worktree — non-implementing for this
+    task and preserved outside this reconciliation (e21, e23).
+14. Semantic-typography worktree — non-implementing for this task and preserved
+    outside this reconciliation (e21, e23).
+15. V9 design-centralization recovery worktree — non-implementing for this task
+    and preserved outside this reconciliation (e21, e23).
+16. V9 design-goal acceptance worktree — non-implementing for this task and
+    preserved outside this reconciliation (e21, e23).
+
+Capability disposition: aligned-tuple Compose and declared-block Decompose/read
+validation, archive/delete capability gating, and generated-screen ownership
+are implemented (e26-e29, e34-e35). Current Entity placement inference,
+truthful access surfaces, complete Output Preview, automatic casting,
+producer-output identity integration, and persistence-ownership metadata remain
+open (e33, e36-e38, e40, e42-e45). Stored compiled data remains an artifact,
+not editable design or runtime authority (e39).
+
 ## P1 — validation and diagnostics
 
 - [ ] Make Apply validate the complete fresh-graph path: domain capabilities,
