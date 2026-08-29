@@ -1326,49 +1326,32 @@ current implementation disposition.
 
 #### Agent Notes — 2026-08-30 certified worktree disposition
 
-The 16-worktree inventory in e21 has one task disposition per entry. The roles
-below identify non-adopted worktrees by evidence rather than repeating their
-branch identifiers:
+The live inventory is seven worktrees: the primary `local` checkout and six
+non-current worktrees (e50, e62). The primary checkout is the sole integration
+target. Every non-current worktree is outside this process-designer
+reconciliation, and none of its regressive `TODO-process-designer.md` edits is
+adopted:
 
-1. Primary `local` checkout — integration target; its speculative ledger draft
-   was discarded (e22).
-2. Final ledger reconciliation — adopted through the v11-bound documentation
-   branch (e23).
-3. Predecessor ledger reconciliation — superseded by the adopted clarification
-   (e24).
-4. Compose bookkeeping — duplicate and overstated; not integrated (e25-e27).
-5. Decompose/read worktree — landed behavior was verified independently, while
-   its ledger reversions are regressive; not integrated (e28-e30).
-6. Create Entity correction worktree — stale and regressive; not integrated
-   (e31).
-7. Process audit follow-up — non-implementing and regressive documentation; not
-   integrated (e32).
-8. Uncommitted reconciliation checkout — duplicate speculative draft; not
-   integrated (e22).
-9. Fresh process-designer bookkeeping worktree — duplicate merged bookkeeping;
-   no additional change adopted (e23).
-10. V9 process-designer recovery worktree — superseded empty recovery snapshot;
-    no change adopted (e23).
-11. Fresh design-centralization worktree — non-implementing for this task and
-    preserved outside this reconciliation (e21, e23).
-12. Design-system convergence worktree — non-implementing for this task and
-    preserved outside this reconciliation (e21, e23).
-13. Design-system inventory-enforcement worktree — non-implementing for this
-    task and preserved outside this reconciliation (e21, e23).
-14. Semantic-typography worktree — non-implementing for this task and preserved
-    outside this reconciliation (e21, e23).
-15. V9 design-centralization recovery worktree — non-implementing for this task
-    and preserved outside this reconciliation (e21, e23).
-16. V9 design-goal acceptance worktree — non-implementing for this task and
-    preserved outside this reconciliation (e21, e23).
+1. The design-centralization worktree's unrelated work remains preserved and
+   unmerged; its stale ledger regression is excluded (e54).
+2. The design-system convergence and semantic-typography worktrees' unrelated
+   work remains preserved and unmerged; their shared stale ledger regression is
+   excluded (e55).
+3. The design-system inventory-enforcement worktree's unrelated work remains
+   preserved and unmerged; its stale ledger regression is excluded (e56).
+4. Both V9 design-recovery worktrees' unrelated recovery work remains preserved
+   and unmerged; their stale ledger regressions are excluded (e57).
 
-Capability disposition: aligned-tuple Compose and declared-block Decompose/read
-validation, archive/delete capability gating, and generated-screen ownership
-are implemented (e26-e29, e34-e35). Current Entity placement inference,
-truthful access surfaces, complete Output Preview, automatic casting,
-producer-output identity integration, and persistence-ownership metadata remain
-open (e33, e36-e38, e40, e42-e45). Stored compiled data remains an artifact,
-not editable design or runtime authority (e39).
+Capability disposition in this same reconciliation: fixed-field and open-entry
+aligned-tuple Compose behavior is implemented (e26, e27); declared-block
+Decompose/read validation is implemented (e28, e29); archive/delete effects are
+capability-gated (e34); and generated-screen source and mutation ownership is
+implemented (e35). Access-surface truthfulness remains open (e36). Stored
+compiled data is neither editable-design nor runtime authority (e39).
+Producer-output identity and persistence ownership remain ledger-open claims
+(e58, e60, e61); this reconciliation does not present them as independently
+verified implementation findings. The duplicate Compose bookkeeping change is
+not integrated because current tests already verify the behavior (e26, e27).
 
 ## P1 — validation and diagnostics
 
