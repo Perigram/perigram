@@ -1353,6 +1353,42 @@ Producer-output identity and persistence ownership remain ledger-open claims
 verified implementation findings. The duplicate Compose bookkeeping change is
 not integrated because current tests already verify the behavior (e26, e27).
 
+#### Agent Notes — 2026-08-30 six-worktree ledger delta rejection
+
+The live inventory remains seven worktrees: the dirty primary `local` checkout
+and these six non-current design worktrees (e149). Their Process Designer ledger
+deltas were compared with current HEAD and rejected individually:
+
+1. **design-centralization — stale and regressive.** It changes `WAITING` to
+   `READY`, reopens completed declared-block, Compose, delete/archive, screen,
+   and access work, restores obsolete mutation acceptance wording, and removes
+   the current reconciliation notes (e150).
+2. **design-convergence — stale and regressive.** It repeats those completed-work
+   reopenings and removes the current reconciliation evidence (e151).
+3. **design-system-enforcement — stale and regressive.** It reopens completed
+   declared-block, Compose, status/delete, generated-interface, and access work
+   while removing the current reconciliation evidence (e152).
+4. **semantic-typography — duplicate and regressive.** Its ledger delta is the
+   same stale regression as design-convergence, not distinct Process Designer
+   implementation work (e153).
+5. **V9 design-recovery — stale and regressive.** It restores `READY`, reopens
+   completed work, restores obsolete Unset/Append/Remove acceptance wording,
+   and removes the reconciliation notes (e154).
+6. **V9 design-goal — duplicate and regressive.** It duplicates the same stale
+   V9 ledger regression and contributes no distinct correction (e155).
+
+None of these deltas is merged, staged, cherry-picked, or used to rewrite a
+branch. Their unrelated work and the primary checkout's unrelated dirty files
+remain untouched. The ledger therefore remains `WAITING`, and the preceding
+reconciliation notes remain authoritative.
+
+No implementation mutation is required for the two reopened scopes: current
+HEAD already rejects undeclared Get Block and Deconstruct selections in the
+compiler and enforces the same declared-block rule in the evaluator at runtime
+(e5, e6); its evaluator tests already verify aligned list-shaped Compose Block
+tuple emission (e7). Declared-block enforcement and Compose bookkeeping are
+therefore already satisfied at current HEAD.
+
 ## P1 — validation and diagnostics
 
 - [ ] Make Apply validate the complete fresh-graph path: domain capabilities,
