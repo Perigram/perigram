@@ -1389,6 +1389,31 @@ compiler and enforces the same declared-block rule in the evaluator at runtime
 tuple emission (e7). Declared-block enforcement and Compose bookkeeping are
 therefore already satisfied at current HEAD.
 
+#### Agent Notes — 2026-08-30 workflow-execution persistence baseline
+
+Current HEAD has no authoritative durable workflow-execution store to extend.
+The settled baseline is:
+
+1. `server/features/process-definitions/run-repository.js` owns only an
+   in-memory finite run lifecycle, and `resumeDueRuns()` returns no runs.
+   `packages/processes/src/orchestration.js` advances cloned run snapshots and
+   returns the updated transient snapshot.
+2. The only current transactional state-record pattern is entity lifecycle
+   persistence in `server/core/machines/`: it writes the entity's current
+   status and append-only `status_events` history together in a Mongo
+   transaction when the transition also patches the entity.
+3. `server/core/events/` is an in-process dispatch boundary, not a durable
+   append-only event stream; its publisher performs no persistence.
+4. `server/core/commands/` has no command outbox or inbox. `command_runs` is
+   mutable synchronous execution history, updated in place around synchronous
+   registered-handler invocation.
+
+The chosen mutable-state-records implementation family extends this transient
+baseline rather than replacing an existing durable authority. The six
+non-current worktrees remain preserved and unmerged, and none of their stale
+ledger deltas is imported: completed declared-block, Compose, delete/archive,
+screen, and access work remains recorded as done.
+
 ## P1 — validation and diagnostics
 
 - [ ] Make Apply validate the complete fresh-graph path: domain capabilities,
