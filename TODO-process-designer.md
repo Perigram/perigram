@@ -1399,20 +1399,27 @@ The settled baseline is:
    `packages/processes/src/orchestration.js` advances cloned run snapshots and
    returns the updated transient snapshot.
 2. The only current transactional state-record pattern is entity lifecycle
-   persistence in `server/core/machines/`: it writes the entity's current
-   status and append-only `status_events` history together in a Mongo
-   transaction when the transition also patches the entity.
-3. `server/core/events/` is an in-process dispatch boundary, not a durable
-   append-only event stream; its publisher performs no persistence.
-4. `server/core/commands/` has no command outbox or inbox. `command_runs` is
-   mutable synchronous execution history, updated in place around synchronous
-   registered-handler invocation.
+   persistence documented by `server/core/machines/README.md`: it writes the
+   entity's current status and append-only `status_events` history together in
+   a Mongo transaction when the transition also patches the entity.
+3. `server/core/events/service.js` is an in-process dispatch boundary, not a
+   durable append-only event stream; its publisher performs no persistence.
+4. `server/core/commands/repository.js` updates mutable `command_runs` history
+   in place with `$set`, while `server/core/commands/service.js` invokes the
+   registered handler synchronously between the running and terminal updates.
+   Commands have no durable outbox or inbox.
 
 The chosen mutable-state-records implementation family extends this transient
-baseline rather than replacing an existing durable authority. The six
-non-current worktrees remain preserved and unmerged, and none of their stale
-ledger deltas is imported: completed declared-block, Compose, delete/archive,
-screen, and access work remains recorded as done.
+baseline rather than replacing an existing durable authority. Transactional
+mutable run, invocation, and wait records are the recovery authority: recovery
+starts from nonterminal persisted records, and advancement atomically
+compare-and-sets state while inserting uniquely constrained completion
+receipts, persisting projected outputs, and consuming waits. Append-only
+execution history is retained as subordinate evidence, not recovery authority.
+
+The six non-current worktrees remain preserved and unmerged, and none of their
+stale ledger deltas is imported: completed declared-block, Compose,
+delete/archive, screen, and access work remains recorded as done.
 
 ## P1 — validation and diagnostics
 
