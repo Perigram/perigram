@@ -1,6 +1,6 @@
 # TODO: Process Designer procedural entity CRUD
 
-Status: READY
+Status: WAITING
 
 This plan completes the Process Designer as a procedural entity-dataflow
 authoring surface. The target is exhaustive composition of organization-scoped
@@ -1324,23 +1324,23 @@ notes that called the generated-interface or organization-scope originals open
 describe their earlier session state; their later correction notes are the
 current implementation disposition.
 
-#### Agent Notes — 2026-08-30 certified worktree disposition
+#### Agent Notes — 2026-08-30 verified worktree disposition
 
-The live inventory is seven worktrees: the primary `local` checkout and six
-non-current worktrees (e50, e62). The primary checkout is the sole integration
-target. Every non-current worktree is outside this process-designer
+The verified live inventory is seven worktrees: the primary `local` checkout
+and six non-current worktrees (e67). The primary checkout is the sole
+integration target. Every non-current worktree is outside this process-designer
 reconciliation, and none of its regressive `TODO-process-designer.md` edits is
 adopted:
 
 1. The design-centralization worktree's unrelated work remains preserved and
-   unmerged; its stale ledger regression is excluded (e54).
+   unmerged; its stale ledger regression is excluded (e71).
 2. The design-system convergence and semantic-typography worktrees' unrelated
    work remains preserved and unmerged; their shared stale ledger regression is
-   excluded (e55).
+   excluded (e72).
 3. The design-system inventory-enforcement worktree's unrelated work remains
-   preserved and unmerged; its stale ledger regression is excluded (e56).
+   preserved and unmerged; its stale ledger regression is excluded (e73).
 4. Both V9 design-recovery worktrees' unrelated recovery work remains preserved
-   and unmerged; their stale ledger regressions are excluded (e57).
+   and unmerged; their stale ledger regressions are excluded (e69, e74).
 
 Capability disposition in this same reconciliation: fixed-field and open-entry
 aligned-tuple Compose behavior is implemented (e26, e27); declared-block
