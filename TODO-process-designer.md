@@ -347,7 +347,7 @@ route through it.
 
 ### Entity sources
 
-- [ ] Expose Current Entity as an authoring node. Its entity type must be
+- [x] Expose Current Entity as an authoring node. Its entity type must be
   inferred from the manual action/screen context where possible and selectable
   only when the context cannot determine it.
 - [x] Expose Entity by ID/Reference. Accept a typed entity reference directly;
@@ -1423,7 +1423,7 @@ delete/archive, screen, and access work remains recorded as done.
 
 ## P1 — validation and diagnostics
 
-- [ ] Make Apply validate the complete fresh-graph path: domain capabilities,
+- [x] Make Apply validate the complete fresh-graph path: domain capabilities,
   required value availability, typed connections, collection alignment,
   block policy, entity service bindings, workflow preservation, access, screens,
   and semantic canvas round-trip.
@@ -1443,10 +1443,10 @@ delete/archive, screen, and access work remains recorded as done.
 
 ## P2 — remove misleading and unnecessary surface area
 
-- [ ] Reduce the primary collection palette to operations required by the CRUD
+- [x] Reduce the primary collection palette to operations required by the CRUD
   paths above: Make List, Collect/Expand Array, Concat, Filter/Dispatch, Sort,
   Item At, Slice, Count, Distinct, and Group By.
-- [ ] Remove or hide Reverse, Shift, Partition, Flatten, Graft, Simplify, Branch,
+- [x] Remove or hide Reverse, Shift, Partition, Flatten, Graft, Simplify, Branch,
   Transpose, Clean, and Tree Statistics until a documented procedural entity
   case requires them. Do not create an “Advanced” drawer merely to retain
   unused nodes.
@@ -2065,7 +2065,7 @@ without editing JSON or seeding legacy canvas records.
   lifecycle intent.
 - [ ] Delete an explicitly deletable entity and prove Delete is unavailable for
   an entity without that capability.
-- [ ] Apply the same Create, Modify, Status, and Delete nodes to item, list, and
+- [x] Apply the same Create, Modify, Status, and Delete nodes to item, list, and
   branched-tree inputs without adding iteration/control nodes.
 - [ ] Assign two roles and bindings to one user, prove additive scoped access,
   and explain why each CRUD action, field, status transition, and screen is
@@ -2076,6 +2076,31 @@ without editing JSON or seeding legacy canvas records.
 - [ ] Start from an empty process and use a registered typed command needed by
   an entity procedure without manually creating hidden entity-profile, service,
   or socket records.
+
+#### Agent Notes — 2026-08-31 remaining Process Designer validation
+
+- **Current Entity inference:** `packages/processes/src/compiler-core.js` now
+  infers one entity type when action and screen context are unambiguous, while
+  `components/process-designer/ProcessNode.vue` keeps the selector only for
+  ambiguous context. Focused inference tests pass.
+- **Complete Apply validation:** the existing package validator, screen-contract,
+  and current-dataflow round-trip suites pass together (56 tests), covering the
+  fresh semantic graph contracts listed above.
+- **P2 palette cleanup:** `packages/processes/src/designer.js` retains the
+  CRUD-path list operations and removes the listed procedural collection/tree
+  nodes from the authoring palette without removing runtime compatibility.
+- **Mapped persistence:** the evaluator suite proves Create, Modify, Status,
+  Archive, and Delete mapping over item, list, and branched-tree packets; the
+  focused package/compiler/evaluator/orchestration run passes 205 tests.
+- **Validation:** `node scripts/check-arch.js`, `npm run framework:validate`, and
+  `node scripts/check-docs.js` pass. The service acceptance suite has 17 passing
+  tests and two blocked persistence cases because no MongoDB connection is
+  available to the durable run repository. Those acceptance rows and the
+  overall ledger therefore remain unchecked and `WAITING`.
+- **Documentation:** the Current Entity context rule and primary-palette
+  boundary are recorded in `packages/processes/README.md` and
+  `components/process-designer/README.md`. No migration is required because the
+  normalized graph contract remains v4-compatible.
 
 ## Implementation protocol
 

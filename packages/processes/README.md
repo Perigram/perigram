@@ -494,7 +494,10 @@ Entity read sources are authoring nodes, not repository readers. Current Entity
 Related (`read.related`), and Select Entities (`read.queryEntities`) all resolve
 through the registered entity service boundary (`processGetById` /
 `processList`) with the complete run auth context, never an unfiltered
-collection read. Entity by ID consumes an id socket with an explicitly selected
+collection read. Current Entity adopts the entity type when action and screen
+context agree on one type; only ambiguous context leaves the type
+author-selectable.
+Entity by ID consumes an id socket with an explicitly selected
 entity type; Entity by Reference consumes a typed reference directly. Parent and
 Children derive from the domain `containment` (lineage) contract and resolve by
 the declared lineage key; Related derives from the domain `relations` contract

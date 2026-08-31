@@ -58,9 +58,10 @@ The palette has three non-overlapping authoring concerns.
   output contracts.
 - **Values** contains one typed value input and one operation-switching node
   each for logic/comparison, text, math, and date-time work.
-- **Lists and trees** contains branch-local list operations and explicit tree
-  transforms. Make List is the fixed-arity constructor: exactly four optional
-  item sockets, one wire each, consumed in socket order, and an empty list
+- **Lists and trees** contains only CRUD-path list operations. Procedural tree
+  transforms remain runtime-compatible but are omitted from the primary palette
+  until a documented entity workflow requires them. Make List is the fixed-arity
+  constructor: exactly four optional item sockets, one wire each, consumed in socket order, and an empty list
   when nothing is wired. Sort Items and Remove Duplicates consume the original item list
   plus an aligned key list from Get Field; Sort's direction is one inline
   `asc`/`desc` selector, and Remove Duplicates' key list is optional (item
@@ -95,7 +96,7 @@ a Boolean mask, then feed that mask and the original list to Filter.
 | Persist replacements/status | Entity/block/status → Modify Entity | Entity field policy and Status engine |
 | Run a service | Typed values/entities → Run Service | Registered command handler |
 | Run manually or chain effects | Manual effect, or completion → Automatic effect | Durable orchestration |
-| Reshape collections | Branch-local list operations and explicit tree transforms | Pure data-tree evaluator |
+| Reshape collections | CRUD-path list operations | Pure data-tree evaluator |
 
 The exhaustive runtime catalog, producer effects, predicates, patches,
 conversions, and trigger-payload helpers have no direct authoring entry.
