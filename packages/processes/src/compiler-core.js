@@ -106,11 +106,11 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const data = definition.data || definition;
   const graph = normalizeGraph(data.graph);
-  const processNodes = inferOpenBlockEntries(
+  const processNodes = inferCurrentEntityTypes(inferOpenBlockEntries(
     normalizeProcessInputDefaults(normalizeProcessNodesForDomain(data.processNodes, domain), domain),
     graph,
     domain
-  );
+  ), data.actions, data.screens);
   const effectActions = deriveEffectActions(data.actions, processNodes, graph, domain);
   const normalized = inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
@@ -131,6 +131,21 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     compiled: data.compiled || null
   });
   return normalized;
+}
+
+function inferCurrentEntityTypes(processNodes = {}, actions = {}, screens = {}) {
+  const contextTypes = new Set([
+    ...Object.values(normalizeRecord(actions)),
+    ...Object.values(normalizeRecord(screens))
+  ].flatMap(record => [record?.entityType, ...(record?.inputs || []).map(input => input?.entityType)])
+    .filter(Boolean));
+  if (contextTypes.size !== 1) return processNodes;
+  const [entityType] = contextTypes;
+  return Object.fromEntries(Object.entries(processNodes).map(([id, node]) => [id,
+    node?.kind === 'read.currentEntity' && !node.entityType
+      ? { ...node, entityType, entityTypeInferred: true }
+      : node
+  ]));
 }
 
 function inferOpenBlockEntries(processNodes = {}, graph = {}, domain = {}) {

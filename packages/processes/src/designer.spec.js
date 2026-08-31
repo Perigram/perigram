@@ -240,6 +240,18 @@ describe('process designer domain contract', () => {
     ]);
     expect(groups.listTree.map(item => item.kind)).not.toContain('tree.cross');
     expect(groups.listTree[0]).toMatchObject({ id: 'makeList', kind: 'collection.makeList' });
+    expect(groups.listTree.map(item => item.kind)).not.toEqual(expect.arrayContaining([
+      'collection.reverse',
+      'collection.shift',
+      'collection.partition',
+      'tree.flatten',
+      'tree.graft',
+      'tree.simplify',
+      'tree.branch',
+      'tree.transpose',
+      'tree.clean',
+      'tree.stats'
+    ]));
     expect(items.map(item => item.kind)).not.toContain('control.manualTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.entityChangedTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.domainEventTrigger');

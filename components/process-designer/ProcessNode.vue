@@ -256,13 +256,13 @@ const showsFieldSelect = computed(() => (
   && !showsFieldSet.value
   && !(fieldOptions.value.length === 1 && fieldOptions.value[0].value === record.value.block)
 ));
-const showEntitySelect = computed(() => (
+const showEntitySelect = computed(() => (!record.value.entityTypeInferred && (
   (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => record.value.kind?.startsWith(prefix))
     && !['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand', 'effect.runProducer'].includes(record.value.kind))
   || record.value.kind === 'control.entityChangedTrigger'
   || (record.value.kind === 'control.manualTrigger' && record.value.entityType)
   || (record.value.kind === 'source.literalItem' && record.value.type?.base === 'entityRef')
-));
+)));
 const showBlockSelect = computed(() => (
   ['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.value.kind)
   && (props.data.processBlockOptions || []).length
