@@ -43,7 +43,11 @@ import {
   currentProcessDefinition,
   validateActivatableProcess
 } from './compiler-adapter.js';
-import { executeManualRun, resumeDueRuns as resumeStoredRuns } from './run-repository.js';
+import {
+  executeManualRun,
+  getRunRepository,
+  resumeDueRuns as resumeStoredRuns
+} from './run-repository.js';
 import {
   processChildEntities,
   processParentEntity,
@@ -224,6 +228,7 @@ export async function startRun(id, payload = {}, auth = {}) {
   const actor = buildRunActor(auth, organizationId);
   return serializeProcessResult(await executeManualRun(definition, payload, {
     actor,
+    repository: getRunRepository(ProcessDefinition.db),
     executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
     catalogContext: catalogContextFromDefinition(definition.data),
     domain: getDomain(),
@@ -257,7 +262,16 @@ function catalogContextFromDefinition(processData) {
 }
 
 export async function resumeDueRuns() {
-  return resumeStoredRuns();
+  return resumeStoredRuns({ repository: getRunRepository(ProcessDefinition.db) });
+}
+
+export async function ingestRunReceipt(receipt, auth = {}) {
+  const runRepository = getRunRepository(ProcessDefinition.db);
+  const execution = await runRepository.getExecution(receipt?.runId);
+  if (!execution.run) throw createError({ statusCode: 404, message: 'Process run not found' });
+  const organizationId = execution.run.controlScope?.organizationId;
+  await assertOrgAccess(auth, organizationId, 'read');
+  return runRepository.ingestReceipt(receipt);
 }
 
 export async function preview({ definition, nodeId = '', trigger = {}, inputs = {} } = {}, auth = {}) {

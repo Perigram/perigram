@@ -7,9 +7,9 @@ effect-node configuration; external subscriptions require an explicit
 process-entry contract rather than a hidden effect start mode.
 
 The dispatcher does not own persistence, policies, or entity mutation. Domain
-effect policies remain in `server/core/effects`; process execution state
-ownership remains in `server/features/process-definitions`, whose current run
-repository is transient rather than durable. Automatic handler failures are
+effect policies remain in `server/core/effects`; durable process execution state
+and transactional receipt ingestion remain owned by
+`server/features/process-definitions`. Automatic handler failures are
 logged without changing the already-completed command or effect result.
 
 ## Related
