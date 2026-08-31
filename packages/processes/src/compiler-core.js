@@ -120,7 +120,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     graph,
     roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
-    entityProfiles: normalizeRecord(data.entityProfiles),
+    producerOutputs: normalizeRecord(data.producerOutputs),
     actions: normalizeActions(deriveRelationMutationActions(effectActions, domain)),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
@@ -513,7 +513,7 @@ export function requiredEffectCapability(kind = '') {
   return null;
 }
 
-export function requiredEntityProfileTypes(definition = {}, domain = {}) {
+export function requiredProducerOutputEntityTypes(definition = {}, domain = {}) {
   const process = normalizeProcessDefinition(definition);
   const commandIds = [
     ...Object.values(process.actions)
@@ -548,7 +548,7 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     const refId = node.data?.refId;
     if (!refId) continue;
     if (node.type === 'role' && !organizationRoles[refId]) errors.push(`Role node ${node.id} references missing organization role ${refId}`);
-    if (node.type === 'entity' && !process.entityProfiles[refId]) errors.push(`Entity node ${node.id} references missing entity profile ${refId}`);
+    if (node.type === 'entity' && !process.producerOutputs[refId]) errors.push(`Entity node ${node.id} references missing producer output ${refId}`);
     if (node.type === 'action' && !process.actions[refId]) errors.push(`Action node ${node.id} references missing action ${refId}`);
     if (node.type === 'service' && !process.services[refId]) errors.push(`Service node ${node.id} references missing service ${refId}`);
     if (node.type === 'socket' && !process.sockets[refId]) errors.push(`Socket node ${node.id} references missing socket ${refId}`);
@@ -557,20 +557,23 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (node.type === 'processNode' && !process.processNodes[refId]) errors.push(`Process node ${node.id} references missing process node ${refId}`);
   }
 
-  for (const [profileId, profile] of Object.entries(process.entityProfiles)) {
-    if (!entities.has(profile.entityType)) errors.push(`Entity profile ${profileId} uses unknown entity type ${profile.entityType}`);
-    validateFieldList(profile.fields?.read, domain, profile.entityType, `entity profile ${profileId} read fields`, errors, 'read');
-    validateFieldList(profile.fields?.write, domain, profile.entityType, `entity profile ${profileId} write fields`, errors, 'write');
-    validateFieldList(profile.fields?.private, domain, profile.entityType, `entity profile ${profileId} private fields`, errors, 'admin');
-    for (const relationKey of profile.relations || []) {
-      if (!(domain.relations || []).some(relation => relation.ownerType === profile.entityType && relation.key === relationKey)) {
-        errors.push(`Entity profile ${profileId} uses undeclared relation ${profile.entityType}.${relationKey}`);
+  for (const [producerOutputId, output] of Object.entries(process.producerOutputs)) {
+    if (producerOutputId !== output.producerOutputId) errors.push(`Producer output key ${producerOutputId} must match producerOutputId`);
+    if (!output.nodeId || !output.outputSocketId) errors.push(`Producer output ${producerOutputId} requires nodeId and outputSocketId`);
+    if (producerOutputId !== `${output.nodeId}:${output.outputSocketId}`) errors.push(`Producer output ${producerOutputId} must be derived from nodeId and outputSocketId`);
+    if (!entities.has(output.entityType)) errors.push(`Producer output ${producerOutputId} uses unknown entity type ${output.entityType}`);
+    validateFieldList(output.fields?.read, domain, output.entityType, `producer output ${producerOutputId} read fields`, errors, 'read');
+    validateFieldList(output.fields?.write, domain, output.entityType, `producer output ${producerOutputId} write fields`, errors, 'write');
+    validateFieldList(output.fields?.private, domain, output.entityType, `producer output ${producerOutputId} private fields`, errors, 'admin');
+    for (const relationKey of output.relations || []) {
+      if (!(domain.relations || []).some(relation => relation.ownerType === output.entityType && relation.key === relationKey)) {
+        errors.push(`Producer output ${producerOutputId} uses undeclared relation ${output.entityType}.${relationKey}`);
       }
     }
     try {
-      compileLifecycle(profile, domain);
+      compileLifecycle(output, domain);
     } catch (error) {
-      errors.push(`Entity profile ${profileId} lifecycle is invalid: ${error.message}`);
+      errors.push(`Producer output ${producerOutputId} lifecycle is invalid: ${error.message}`);
     }
   }
 
@@ -816,15 +819,29 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
   const compiledRoles = compileRoles(process, domain, organizationRoles, lineageBindings);
   const compiledScreens = compileScreens(process, domain, compiledRoles, lineageBindings);
   const workflows = compileWorkflows(process, domain, lineageBindings);
+  const fieldPolicies = compileFieldPolicies(process.producerOutputs, domain);
+  const compiledActions = compileActions(process.actions, process, domain, lineageBindings);
+  const producerOutputs = Object.fromEntries(Object.entries(process.producerOutputs).map(([producerOutputId, output]) => [producerOutputId, {
+    ...output,
+    producerOutputId,
+    workflow: workflows[producerOutputId],
+    fieldPolicy: fieldPolicies[producerOutputId],
+    actions: Object.values(compiledActions).filter(action => action.producerOutputId === producerOutputId),
+    lineageBindings: lineageBindings.filter(binding => binding.producerOutputId === producerOutputId)
+  }]));
+  const entityTypeIndex = Object.values(producerOutputs).reduce((index, output) => {
+    (index[output.entityType] ||= []).push(output.producerOutputId);
+    return index;
+  }, {});
 
   return {
     schemaVersion: PROCESS_SCHEMA_VERSION,
     activatedAt: new Date().toISOString(),
     roles: compiledRoles,
     servicePrincipals: process.servicePrincipals,
-    workflows,
-    fieldPolicies: compileFieldPolicies(process.entityProfiles, domain),
-    actions: compileActions(process.actions, process, domain, lineageBindings),
+    producerOutputs,
+    entityTypeIndex,
+    actions: compiledActions,
     statusDefinitions: compileStatusDefinitions(process.statusDefinitions),
     valueInputs: compileValueInputs(process.valueInputs),
     processNodes: compileProcessNodes(process.processNodes),
@@ -1032,8 +1049,8 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   const workflows = {};
   const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
   const graphContext = buildActionGraphContext(process);
-  for (const profile of Object.values(process.entityProfiles || {})) {
-    workflows[profile.entityType] = compileLifecycle(profile, domain);
+  for (const output of Object.values(process.producerOutputs || {})) {
+    workflows[output.producerOutputId] = compileLifecycle(output, domain);
   }
 
   const builders = new Map(Object.entries(workflows).map(([entityType, workflow]) => [
@@ -1332,7 +1349,7 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
     grants: Array.isArray(process.roleGrants?.[roleId]) ? [...process.roleGrants[roleId]] : [],
     actions: []
   }]));
-  for (const profile of Object.values(process.entityProfiles || {})) {
+  for (const profile of Object.values(process.producerOutputs || {})) {
     const feature = resolveEntityFeature(domain, profile.entityType);
     for (const level of ['read', 'write', 'admin']) {
       for (const roleId of profile.allowedRoles?.[level] || []) {
@@ -1977,7 +1994,7 @@ export function compileScreens(processOrScreens = {}, domain = {}, compiledRoles
     screens,
     roles: compiledRoles,
     domain,
-    entityProfiles: processOrScreens.entityProfiles || {},
+    producerOutputs: processOrScreens.producerOutputs || {},
     actions: processOrScreens.actions || {},
     graph: processOrScreens.graph || {},
     lineageBindings
@@ -2011,7 +2028,7 @@ function withCompiledLineage(source = {}, screen = {}, lineageBindings = []) {
   return { ...source, lineageBindings: lineageBindings.map(binding => ({ ...binding })) };
 }
 
-function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {}, graph = {}, lineageBindings = [] } = {}) {
+function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, producerOutputs = {}, actions = {}, graph = {}, lineageBindings = [] } = {}) {
   const inferred = {};
   const graphContext = buildActionGraphContext({ actions, graph });
   const existingKeys = new Set(Object.values(screens).flatMap(screen => {
@@ -2024,7 +2041,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
     const grantsByFeature = groupGrantsByFeature(role.grants || []);
     for (const [feature, grants] of grantsByFeature) {
       const entityType = entityTypeFromFeature(domain, feature)
-        || entityTypeFromProfiles(entityProfiles, domain, feature);
+        || entityTypeFromProducerOutputs(producerOutputs, domain, feature);
       if (!entityType || existingKeys.has(`${roleId}:${feature}`)) continue;
       const id = `auto_${roleId}_${entityType}`;
       const detailId = `${id}_detail`;
@@ -2246,8 +2263,8 @@ function entityTypeFromFeature(domain = {}, feature) {
   ))?.type || null;
 }
 
-function entityTypeFromProfiles(entityProfiles = {}, domain = {}, feature) {
-  const entityType = Object.values(entityProfiles)
+function entityTypeFromProducerOutputs(producerOutputs = {}, domain = {}, feature) {
+  const entityType = Object.values(producerOutputs)
     .find(profile => resolveEntityFeature(domain, profile.entityType) === feature)
     ?.entityType || null;
   const definition = (domain.entities || []).find(entity => entity.type === entityType);
@@ -2420,10 +2437,10 @@ function dedupeNavigation(items = []) {
   return [...byKey.values()];
 }
 
-function compileFieldPolicies(entityProfiles = {}, domain = {}) {
+function compileFieldPolicies(producerOutputs = {}, domain = {}) {
   const policies = {};
-  for (const profile of Object.values(entityProfiles)) {
-    policies[profile.entityType] = {
+  for (const profile of Object.values(producerOutputs)) {
+    policies[profile.producerOutputId] = {
       read: profile.fields?.read || [],
       write: profile.fields?.write || [],
       private: profile.fields?.private || [],
@@ -2500,6 +2517,12 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
     const parentEntityType = effectiveActionParentEntityType(action, graphContext.parentIncomingByActionId.get(id), lineageBindings);
     const actionWindow = actionWindows.get(id);
     const resolvedEntityType = actionEntityType(action) || actionWindow?.input?.entityType || actionWindow?.outputs?.[0]?.entityType || null;
+    if (resolvedEntityType && !action.producerOutputId) throw new Error(`Action ${id} requires producerOutputId`);
+    const producerOutput = action.producerOutputId ? process.producerOutputs?.[action.producerOutputId] : null;
+    if (action.producerOutputId && !producerOutput) throw new Error(`Action ${id} uses unknown producerOutputId ${action.producerOutputId}`);
+    if (producerOutput && producerOutput.entityType !== resolvedEntityType) {
+      throw new Error(`Action ${id} producerOutputId emits ${producerOutput.entityType}, not ${resolvedEntityType}`);
+    }
     const normalizedAction = resolvedEntityType && !action.entityType ? { ...action, entityType: resolvedEntityType } : action;
     const inputs = actionInputsForExposure(normalizedAction, parentEntityType, domain).map(input => (
       input.id === 'entity' && !input.entityType && resolvedEntityType ? { ...input, entityType: resolvedEntityType } : input
@@ -2509,6 +2532,7 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
       id: action.id || id,
       label: displayActionLabel(action, id, process),
       actionKind: action.actionKind || 'createEntity',
+      producerOutputId: action.producerOutputId || null,
       entityType: resolvedEntityType,
       parentEntityType: parentEntityType || null,
       parentRevision: resolveParentRevision(action.parentRevision, parentEntityType, domain),

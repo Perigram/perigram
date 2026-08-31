@@ -21,6 +21,7 @@ function identityFields(invocation) {
     runId: invocation.runId,
     invocationId: invocation.invocationId,
     invocationIdentity: clone(invocation.invocationIdentity),
+    producerOutputId: invocation.producerOutputId,
     producerIdentity: clone(invocation.producerIdentity),
     controlScope: clone(invocation.controlScope)
   };
@@ -56,6 +57,7 @@ export function snapshotInvocation(request = {}, processData = {}) {
   return {
     expectedCompletionSockets: declaredSockets.map(socketId).filter(Boolean),
     connectedRoutes: clone(routes),
+    producerOutputId: request.producerOutputId || record.producerOutputId || null,
     producerIdentity: clone(request.producerIdentity || record.producerIdentity || {
       nodeId,
       outputSocketId: socketId(record.producerOutputId || record.outputSocketId)
@@ -96,7 +98,7 @@ export class DurableRunRepository {
     }
   }
 
-  async createRun({ run, definition, producerIdentity = null, controlScope = null }) {
+  async createRun({ run, definition, producerOutputId = null, producerIdentity = null, controlScope = null }) {
     await this.initialize();
     const runId = String(run.id || run._id || this.id());
     const createdAt = now(this.clock);
@@ -104,6 +106,7 @@ export class DurableRunRepository {
       _id: runId,
       runId,
       revision: 0,
+      producerOutputId,
       producerIdentity: clone(producerIdentity),
       controlScope: clone(controlScope),
       invocationIdentity: null,
@@ -147,6 +150,7 @@ export class DurableRunRepository {
       status: 'ready',
       attempt: Number(input.attempt || 1),
       invocationIdentity,
+      producerOutputId: input.producerOutputId || input.request?.producerOutputId || null,
       producerIdentity: clone(input.producerIdentity),
       controlScope: clone(input.controlScope),
       expectedCompletionSockets: clone(input.expectedCompletionSockets),
@@ -341,6 +345,7 @@ export async function executeManualRun(definition, payload = {}, { actor, execut
   await repository.createRun({
     run,
     definition,
+    producerOutputId: payload.producerOutputId || null,
     producerIdentity: payload.producerIdentity || null,
     controlScope: payload.controlScope || { organizationId: actor?.organizationId || null }
   });
@@ -356,6 +361,7 @@ export async function executeManualRun(definition, payload = {}, { actor, execut
             stepId,
             request,
             invocationIdentity: { runId, stepId, attempt: 1 },
+            producerOutputId: request.producerOutputId || snapshot.producerOutputId || null,
             producerIdentity: snapshot.producerIdentity,
             controlScope: payload.controlScope || { organizationId: actor?.organizationId || null },
             expectedCompletionSockets: snapshot.expectedCompletionSockets,

@@ -50,7 +50,7 @@ export function createTemplate({ id, label, adminLabel, grants, entities, servic
       graph,
       roleGrants,
       servicePrincipals,
-      entityProfiles: entities,
+      producerOutputs: entities,
       actions: {},
       services,
       sockets: {},

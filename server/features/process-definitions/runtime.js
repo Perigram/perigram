@@ -3,8 +3,7 @@ import {
   resolveRoleAssignmentAccess,
   resolveEffectiveAccess,
   resolveNavigation,
-  resolveScreens,
-  resolveWorkflow
+  resolveScreens
 } from '~/packages/processes/src/index.js';
 import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import * as repository from './repository.js';
@@ -57,19 +56,30 @@ export async function resolveProcessAuth(auth = {}) {
     process: {
       active: true,
       schemaVersion: compiled.schemaVersion,
-      workflows: compiled.workflows || {},
+      producerOutputs: compiled.producerOutputs || {},
+      entityTypeIndex: compiled.entityTypeIndex || {},
       lineageBindings: compiled.lineageBindings || []
     },
-    fieldPolicies: compiled.fieldPolicies || {},
     navigation: [...system.navigation, ...processNavigation],
     screens: [...system.screens, ...processScreens],
     roleAssignments: assignmentAccess
   };
 }
 
-export async function resolveProcessWorkflow({ organizationId, entityType, fallbackWorkflow = null } = {}) {
+export async function resolveProcessWorkflow({ organizationId, producerOutputId, entityType, fallbackWorkflow = null } = {}) {
   const compiled = await getActiveCompiledProcess(organizationId);
-  return resolveWorkflow({ compiled, entityType, fallbackWorkflow });
+  return resolveCompiledProducerOutputWorkflow({ compiled, producerOutputId, entityType, fallbackWorkflow });
+}
+
+export function resolveCompiledProducerOutputWorkflow({ compiled, producerOutputId, entityType, fallbackWorkflow = null } = {}) {
+  if (!producerOutputId) throw new Error('producerOutputId is required to resolve a process workflow');
+  if (!compiled) return fallbackWorkflow;
+  const output = compiled.producerOutputs?.[producerOutputId];
+  if (!output) throw new Error(`Unknown producerOutputId ${producerOutputId}`);
+  if (entityType && output.entityType !== entityType) {
+    throw new Error(`producerOutputId ${producerOutputId} emits ${output.entityType}, not ${entityType}`);
+  }
+  return output.workflow || fallbackWorkflow;
 }
 
 export async function resolveProcessCommandService({ organizationId, commandId } = {}) {

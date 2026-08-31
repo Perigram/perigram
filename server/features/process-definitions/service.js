@@ -73,7 +73,7 @@ function definitionReferencesRole(data = {}, roleId) {
   if (Object.hasOwn(data.roleGrants || {}, roleId)) return true;
   const serialized = JSON.stringify({
     graph: data.graph,
-    entityProfiles: data.entityProfiles,
+    producerOutputs: data.producerOutputs,
     actions: data.actions,
     services: data.services,
     sockets: data.sockets,

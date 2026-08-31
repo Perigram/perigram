@@ -2,7 +2,6 @@ import { createError } from 'h3';
 import {
   normalizeProcessDefinition,
   PROCESS_DATAFLOW_VERSION,
-  requiredEntityProfileTypes,
   validateProcessDefinition,
   validateRequiredInputAvailability
 } from '~/packages/processes/src/index.js';
@@ -25,13 +24,9 @@ export function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
     ...(Object.keys(capabilities).length ? { capabilities } : {})
   });
   const process = validation.definition || normalizeProcessDefinition(data);
-  const requiredTypes = requiredEntityProfileTypes(process, domain);
-  const profiledTypes = new Set(Object.values(process.entityProfiles || {}).map(profile => profile.entityType));
-  const missingProfiles = requiredTypes.filter(entityType => !profiledTypes.has(entityType));
   const errors = [
     ...(validation.errors || []),
-    ...validateRequiredInputAvailability(process, domain),
-    ...(missingProfiles.length ? [`Nesting exposure requires entity profiles and workflows for: ${missingProfiles.join(', ')}`] : [])
+    ...validateRequiredInputAvailability(process, domain)
   ];
   if (!errors.length) return validation;
   return {

@@ -1,7 +1,7 @@
 import { resolveProcessNodePorts } from './ports.js';
 
 const RECORD_KEYS = {
-  entity: 'entityProfiles',
+  entity: 'producerOutputs',
   valueInput: 'valueInputs',
   processNode: 'processNodes'
 };

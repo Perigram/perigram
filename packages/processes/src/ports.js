@@ -492,7 +492,7 @@ function normalizeHandleId(handle = '', direction = 'output') {
 function recordForNode(process = {}, node = {}) {
   const refId = String(node.data?.refId || node.id || '');
   const key = {
-    entity: 'entityProfiles',
+    entity: 'producerOutputs',
     action: 'actions',
     service: 'services',
     socket: 'sockets',

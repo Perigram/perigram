@@ -1,7 +1,7 @@
 import { computed } from 'vue';
 
 const RECORD_KEYS = Object.freeze({
-  entity: 'entityProfiles',
+  entity: 'producerOutputs',
   action: 'actions',
   service: 'services',
   socket: 'sockets',
