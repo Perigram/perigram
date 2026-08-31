@@ -34,10 +34,18 @@ the feature service imports another feature's repository.
 
 ## Process execution
 
-Manual process actions run synchronously in memory. `POST
-/api/process-definitions/:id/runs` starts a manual v4 trigger and drives it to a
-terminal state without persisting run/step collections. Effect nodes are either
-manual or automatic-from-socket. There is no scheduled/wait boundary and no
+`POST /api/process-definitions/:id/runs` starts a manual v4 trigger backed by
+durable MongoDB execution records. Runs, steps, invocations, waits, outputs, and
+receipts retain revision, producer, control-scope, and invocation identity.
+Before an effect is dispatched, its invocation snapshots the expected completion
+sockets and connected routes. Dispatch leaves the task non-terminal: only a
+durable receipt can supply terminal output and advance those routes.
+
+Receipt ingestion claims the invocation revision and advances the run in one
+MongoDB transaction. Duplicate or concurrent delivery is therefore an
+idempotent no-op after the first commit. Dispatched invocations without receipts
+remain discoverable after restart for continuation or retry. Effect nodes are
+either manual or automatic-from-socket. There is no scheduled/wait boundary and no
 durable run persistence; date or event-triggered automation is not part of the
 supported process contract. The originating actor/access snapshot is carried on
 the run object so the action re-enters the normal feature access boundary; it
