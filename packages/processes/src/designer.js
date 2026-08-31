@@ -90,19 +90,9 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('listCount', 'collection.count'),
       paletteItem('filterList', 'collection.filter'),
       paletteItem('sortItems', 'collection.sort'),
-      paletteItem('reverseItems', 'collection.reverse'),
-      paletteItem('shiftItems', 'collection.shift'),
-      paletteItem('partitionItems', 'collection.partition'),
       paletteItem('dispatchItems', 'collection.dispatch'),
       paletteItem('removeDuplicates', 'collection.distinct'),
-      paletteItem('groupItems', 'collection.groupBy'),
-      paletteItem('flattenTree', 'tree.flatten'),
-      paletteItem('graftTree', 'tree.graft'),
-      paletteItem('simplifyTree', 'tree.simplify'),
-      paletteItem('treeBranch', 'tree.branch'),
-      paletteItem('transposeTree', 'tree.transpose'),
-      paletteItem('cleanTree', 'tree.clean'),
-      paletteItem('treeStatistics', 'tree.stats')
+      paletteItem('groupItems', 'collection.groupBy')
     ]
   }
 ].map(group => Object.freeze({
