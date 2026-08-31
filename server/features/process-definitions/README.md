@@ -1,8 +1,10 @@
 # COMPONENT: Process Definitions
 
 Organization-owned process definitions store the visual process graph and the
-compiled runtime contract for organization-role grants, entity workflows, field
-policies, service availability, sockets, screen manifests, and navigation.
+compiled runtime contract for organization-role grants, producer-output
+workflows and field policies, service availability, sockets, screen manifests,
+and navigation. Runtime workflow resolution requires the exact
+`producerOutputId`; entity type is only schema metadata and an index key.
 Runtime role permissions are derived from the graph during compilation: role,
 entity-profile, and action access create grants; screen requirements only
 consume those grants and screen manifests create navigation. Service run/view access uses service identities
@@ -45,8 +47,8 @@ Receipt ingestion claims the invocation revision and advances the run in one
 MongoDB transaction. Duplicate or concurrent delivery is therefore an
 idempotent no-op after the first commit. Dispatched invocations without receipts
 remain discoverable after restart for continuation or retry. Effect nodes are
-either manual or automatic-from-socket. There is no scheduled/wait boundary and no
-durable run persistence; date or event-triggered automation is not part of the
+either manual or automatic-from-socket. Date or event-triggered automation is
+not part of the
 supported process contract. The originating actor/access snapshot is carried on
 the run object so the action re-enters the normal feature access boundary; it
 includes the compiled `effectivePermissions` consumed by entity adapters, so

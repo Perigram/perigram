@@ -41,8 +41,15 @@ the current semantic graph directly.
 
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,
-navigation, entity workflows, field policies, action nodes, services, and
-sockets.
+navigation, producer-output workflows and field policies, action nodes,
+services, and sockets.
+
+An entity-emitting socket is identified by
+`producerOutputId = nodeId:outputSocketId`. Compilation emits
+`producerOutputs[producerOutputId]`, which owns that output's workflow, field
+policy, and lineage bindings. `entityTypeIndex` lists matching output ids for
+schema discovery only; runtime workflow selection always requires the exact
+producer output id.
 
 Compiler entry points are separated by responsibility. `normalization.js`,
 `validation.js`, `action-compilation.js`, `screen-compilation.js`,
@@ -622,10 +629,9 @@ role may access after the status change. Create-action access grants are
 conditioned by the created status in the same way, so `admin` on "create project
 as NEW" means admin over `project` entities whose current primary status is
 `NEW`, not global project admin.
-`requiredEntityProfileTypes(definition, domain)` projects command-declared
-profile requirements across `runCommand` actions and command-backed services.
-Activation validation and designer authoring consume that projection instead
-of embedding command-specific entity lists.
+`requiredProducerOutputEntityTypes(definition, domain)` projects the entity
+schemas emitted by command-backed graph outputs. It is a validation and
+designer-discovery helper only and does not select a workflow by entity type.
 Action access compiles through status-scoped access windows. A create action
 opens the first window for the created entity state. A status-mutating update
 action inherits the incoming entity window until its `action.access.modified`
@@ -810,9 +816,9 @@ the individual status-scoped grants when it filters returned records, while
 edit/admin affordances come from action and field grants rather than the
 route-level screen requirement.
 
-Compiled field policies replace the base domain field set for an organization
-when present. `read` fields are public display fields, `write` fields require
-write grants, and `private` fields require admin grants. Socket definitions are
+Each compiled producer output owns its field policy. `read` fields are public
+display fields, `write` fields require write grants, and `private` fields
+require admin grants. Socket definitions are
 compiled as runtime contracts. Outbound sockets consume a concrete entity and
 produce a projected payload for another organization. Inbound sockets represent
 receiver inputs from another organization and produce a received entity into the
