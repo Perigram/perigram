@@ -4,6 +4,10 @@ import { toFlexibleId } from '~/server/utils/objectid.js';
 
 const COLLECTION = 'process_definitions';
 
+export async function getConnection() {
+  return connectDB();
+}
+
 export async function create(data) {
   const db = await connectDB();
   const doc = {

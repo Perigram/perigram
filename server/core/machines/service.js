@@ -55,7 +55,7 @@ export const statusService = {
 
   async initialStatusForOrganization(entityType, organizationId, actor = 'SYSTEM', metadata = {}) {
     const normalizedEntityType = normalizeEntityType(entityType);
-    const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId });
+    const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId, producerOutputId: metadata.producerOutputId });
     if (!machine) {
       throw createError({
         statusCode: 400,
@@ -63,12 +63,13 @@ export const statusService = {
       });
     }
     const actorId = typeof actor === 'object' ? actor.userId : actor;
-    return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', metadata);
+    const { producerOutputId: _producerOutputId, ...persistedMetadata } = metadata;
+    return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', persistedMetadata);
   },
 
   async setInitialStateForOrganization(entityType, targetId, targetState, organizationId, actor = 'SYSTEM', metadata = {}) {
     const normalizedEntityType = normalizeEntityType(entityType);
-    const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId });
+    const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId, producerOutputId: metadata.producerOutputId });
     if (!machine) {
       throw createError({
         statusCode: 400,
@@ -87,7 +88,8 @@ export const statusService = {
     const { collection, flexId } = await loadEntityForWorkflow(normalizedEntityType, targetId);
     const actorId = typeof actor === 'object' ? actor.userId : actor;
     const eventId = new ObjectId();
-    const statusMetadata = mergeStatusDisplayMetadata(metadata, region.states[targetState]);
+    const { producerOutputId: _producerOutputId, ...persistedMetadata } = metadata;
+    const statusMetadata = mergeStatusDisplayMetadata(persistedMetadata, region.states[targetState]);
     const status = createStatus(
       createWorkflowState(normalizedMachine, { active: { [regionId]: targetState }, primary: targetState }),
       actorId || 'SYSTEM',
@@ -164,7 +166,7 @@ export const statusService = {
     const defaultMachine = workflowOverridesService.resolveDefaultWorkflow(normalizedEntityType);
     let loaded;
     try {
-      loaded = await loadEntityForWorkflow(normalizedEntityType, targetId, { requireMachine: false });
+      loaded = await loadEntityForWorkflow(normalizedEntityType, targetId, { requireMachine: false, producerOutputId: authContext?.producerOutputId });
     } catch (error) {
       if (!defaultMachine && Number(error?.statusCode) === 404) {
         return { entityType: normalizedEntityType, targetId, state: null, actions: [] };
@@ -260,8 +262,12 @@ export const statusService = {
       transitionContext,
       { entityPatch: patch }
     );
-    const { entity } = await loadEntityForWorkflow(normalizedEntityType, targetId);
-    const actions = await this.getActions(normalizedEntityType, targetId, auth);
+    const producerOutputId = transitionContext?.producerOutputId || null;
+    const { entity } = await loadEntityForWorkflow(normalizedEntityType, targetId, { producerOutputId });
+    const actions = await this.getActions(normalizedEntityType, targetId, {
+      ...auth,
+      ...(producerOutputId ? { producerOutputId } : {})
+    });
     return { entity, status, actions: actions.actions, effects };
   }
 };
@@ -276,7 +282,7 @@ async function resolveIntentTransition({
 }) {
   const normalizedEntityType = normalizeEntityType(entityType);
   const auth = normalizeAuthContext(authContext?.userId, authContext, {});
-  const { entity, machine } = await loadEntityForWorkflow(normalizedEntityType, targetId);
+  const { entity, machine } = await loadEntityForWorkflow(normalizedEntityType, targetId, { producerOutputId: transitionContext.producerOutputId });
   const normalizedMachine = normalizeWorkflow(machine);
   const transitionScope = normalizeTransitionScope(transitionContext);
   const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
@@ -350,7 +356,7 @@ async function performTransition(entityType, targetId, targetState, userId, user
     const auth = normalizeAuthContext(userId, userRole, transitionContext.metadata);
     const actorId = auth.userId || userId || 'SYSTEM';
     const db = await connectDB();
-    const { entity, machine, collection, flexId } = await loadEntityForWorkflow(normalizedEntityType, targetId);
+    const { entity, machine, collection, flexId } = await loadEntityForWorkflow(normalizedEntityType, targetId, { producerOutputId: transitionContext.producerOutputId });
 
     const normalizedMachine = normalizeWorkflow(machine);
     const transitionScope = normalizeTransitionScope(transitionContext);
@@ -553,6 +559,7 @@ function normalizeTransitionContext(input = {}) {
     return {
       metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {},
       lifecycle: normalizeLifecycle(input.lifecycle),
+      producerOutputId: input.producerOutputId || null,
       region: input.region || input.machineRegion || input.machine,
       path: Array.isArray(input.path) ? input.path : null
     };
@@ -561,6 +568,7 @@ function normalizeTransitionContext(input = {}) {
   return {
     metadata: input && typeof input === 'object' ? input : {},
     lifecycle: normalizeLifecycle(),
+    producerOutputId: input?.producerOutputId || null,
     region: input?.region || input?.machineRegion || input?.machine,
     path: Array.isArray(input?.path) ? input.path : null
   };
@@ -891,7 +899,7 @@ function appendHookEffects(effects, result) {
 }
 
 async function loadEntityForWorkflow(entityType, targetId, options = {}) {
-  const { requireMachine = true } = options;
+  const { requireMachine = true, producerOutputId = null } = options;
   const normalizedEntityType = normalizeEntityType(entityType);
   const collection = getEntityCollection(normalizedEntityType);
   if (!collection) {
@@ -913,7 +921,7 @@ async function loadEntityForWorkflow(entityType, targetId, options = {}) {
   }
 
   const organizationId = entity.lineage?.organizationId || entity.origin?.organizationId || entity.organizationId;
-  const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId });
+  const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId, producerOutputId });
 
   if (!machine && requireMachine) {
     throw createError({

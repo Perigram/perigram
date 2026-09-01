@@ -21,7 +21,10 @@ export default defineEventHandler(async (event) => {
     targetState,
     intent,
     auth,
-    context: body.statusMeta || body.context || {}
+    context: {
+      ...(body.statusMeta || body.context || {}),
+      ...(body.producerOutputId ? { producerOutputId: body.producerOutputId } : {})
+    }
   });
   await publishTransitionEvents(auth, entityType, targetId, result);
   return result;

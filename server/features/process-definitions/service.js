@@ -218,7 +218,7 @@ export async function archive(id, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
-export async function startRun(id, payload = {}, auth = {}) {
+export async function startRun(id, payload = {}, auth = {}, options = {}) {
   const process = await loadAuthorized(id, auth, 'read');
   const definition = process.toJSON();
   if (Number(definition.data?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
@@ -226,10 +226,12 @@ export async function startRun(id, payload = {}, auth = {}) {
   }
   const organizationId = resolveOrganizationId(auth);
   const actor = buildRunActor(auth, organizationId);
+  const runRepository = options.runRepository || getRunRepository(await repository.getConnection());
   return serializeProcessResult(await executeManualRun(definition, payload, {
     actor,
-    repository: getRunRepository(ProcessDefinition.db),
+    repository: runRepository,
     executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
+    isAsyncBoundary: (request, result) => request.kind === 'effect.runCommand' && hasAsyncOutputBoundary(result),
     catalogContext: catalogContextFromDefinition(definition.data),
     domain: getDomain(),
     data: run => processDataEnvironment(auth, run)
@@ -262,11 +264,11 @@ function catalogContextFromDefinition(processData) {
 }
 
 export async function resumeDueRuns() {
-  return resumeStoredRuns({ repository: getRunRepository(ProcessDefinition.db) });
+  return resumeStoredRuns({ repository: getRunRepository(await repository.getConnection()) });
 }
 
 export async function ingestRunReceipt(receipt, auth = {}) {
-  const runRepository = getRunRepository(ProcessDefinition.db);
+  const runRepository = getRunRepository(await repository.getConnection());
   const execution = await runRepository.getExecution(receipt?.runId);
   if (!execution.run) throw createError({ statusCode: 404, message: 'Process run not found' });
   const organizationId = execution.run.controlScope?.organizationId;
@@ -599,11 +601,16 @@ function entityInputId(value) {
 }
 
 async function applyProcessOutputStatuses({ actionId, result = {}, processData = {}, organizationId, auth = {} } = {}) {
-  const statusByEntityType = commandOutputStatusMap(actionId, processData);
-  if (!statusByEntityType.size) return;
+  const statusesByEntityType = commandOutputStatusMap(actionId, processData);
+  if (!statusesByEntityType.size) return;
   for (const entityRef of result.entities || []) {
     const entityType = normalizeEntityType(entityRef.type || entityRef.entityType || '');
-    const targetState = statusByEntityType.get(entityType);
+    const statusTargets = statusesByEntityType.get(entityType) || [];
+    if (statusTargets.length > 1) {
+      throw new Error(`Process command action ${actionId} has ambiguous status outputs for ${entityType}`);
+    }
+    const statusTarget = statusTargets[0];
+    const targetState = statusTarget?.targetState;
     const targetId = entityRef.id || entityRef._id;
     if (!entityType || !targetState || !targetId) continue;
     await statusService.setInitialStateForOrganization(
@@ -612,7 +619,11 @@ async function applyProcessOutputStatuses({ actionId, result = {}, processData =
       targetState,
       organizationId,
       auth.userId,
-      processStatusMetadata({ entityType, status: { to: targetState } }, `Created by process command action ${actionId}`, processData)
+      processStatusMetadata({
+        entityType,
+        producerOutputId: statusTarget.producerOutputId,
+        status: { to: targetState }
+      }, `Created by process command action ${actionId}`, processData)
     );
     await entityEventService.publishEntityChanged(auth, {
       type: entityType,
@@ -687,7 +698,11 @@ function commandOutputStatusMap(actionId, processData = {}) {
       || String(edge.sourceHandle || '').replace(/^output:/, '')
     );
     const targetState = targetAction.status?.to || targetAction.access?.statusTo;
-    if (entityType && targetState) map.set(entityType, targetState);
+    if (entityType && targetState) {
+      const targets = map.get(entityType) || [];
+      targets.push({ targetState, producerOutputId: targetAction.producerOutputId || null });
+      map.set(entityType, targets);
+    }
   }
   return map;
 }
@@ -696,6 +711,7 @@ function processStatusMetadata(action = {}, note = '', processData = {}) {
   const display = actionStatusDisplayMetadata(action, processData);
   return {
     note,
+    ...(action.producerOutputId ? { producerOutputId: action.producerOutputId } : {}),
     ...(display ? { display } : {})
   };
 }
@@ -1222,6 +1238,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
 function effectTransitionContext(record = {}, inputs = {}) {
   return {
     source: 'process-run',
+    ...(record.producerOutputId ? { producerOutputId: record.producerOutputId } : {}),
     ...(inputs.region || record.region ? { region: inputs.region || record.region } : {}),
     ...(inputs.path || record.path ? { path: inputs.path || record.path } : {}),
     ...(inputs.metadata || record.metadata ? { metadata: inputs.metadata || record.metadata } : {}),

@@ -21,6 +21,7 @@ export const useStatusController = () => {
       ? context
       : { metadata: context || {} };
     const intent = context?.intent || null;
+    const producerOutputId = context?.producerOutputId || null;
     const region = context?.region || context?.machineRegion || context?.machine || null;
     const path = Array.isArray(context?.path) ? context.path : null;
     
@@ -32,6 +33,7 @@ export const useStatusController = () => {
           id: targetId,
           status: newState,
           intent,
+          ...(producerOutputId ? { producerOutputId } : {}),
           statusMeta: {
             ...statusMeta,
             ...(region ? { region } : {}),
@@ -49,11 +51,15 @@ export const useStatusController = () => {
     }
   };
 
-  const fetchActions = async (entityType, targetId) => {
+  const fetchActions = async (entityType, targetId, context = {}) => {
     if (!entityType || !targetId) return [];
 
     const response = await $fetch(STATUS_ACTIONS_ENDPOINT, {
-      query: { entityType, id: targetId }
+      query: {
+        entityType,
+        id: targetId,
+        ...(context.producerOutputId ? { producerOutputId: context.producerOutputId } : {})
+      }
     });
 
     return response?.actions || [];

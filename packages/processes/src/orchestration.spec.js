@@ -317,6 +317,30 @@ describe('durable process orchestration', () => {
     expect(failed.steps.some(step => step.nodeId === 'stop')).toBe(false);
   });
 
+  it('keeps an externally dispatched effect waiting without emitting completion', async () => {
+    const definition = process([
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['start', 'stop'], [control('start', 'completed', 'stop')]);
+
+    const waiting = await advanceProcessRun(createProcessRun(definition, {}), definition, {
+      executeEffect: async () => ({ __processEffectPending: true, invocationId: 'invocation-1' })
+    });
+
+    expect(waiting.status).toBe('waiting');
+    expect(waiting.pendingEffect).toEqual(expect.objectContaining({
+      nodeId: 'start',
+      invocationId: 'invocation-1'
+    }));
+    expect(waiting.steps[0]).toEqual(expect.objectContaining({
+      status: 'waiting',
+      invocationId: 'invocation-1',
+      output: null
+    }));
+    expect(waiting.tokens).toEqual([]);
+    expect(waiting.steps.some(step => step.nodeId === 'stop')).toBe(false);
+  });
+
   it('waits for every fork branch at join-all', async () => {
     const definition = process([
       { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
