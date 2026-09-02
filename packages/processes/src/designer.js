@@ -100,6 +100,36 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   items: Object.freeze(group.items)
 })));
 
+export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
+  if (!node.id) return [];
+  const outputs = (node.outputs || []).filter(output => (
+    output?.id && output.type?.base === 'entity' && output.type?.entityType
+  ));
+  const producerOutputs = data.producerOutputs ||= {};
+  const outputIds = new Set(outputs.map(output => `${node.id}:${output.id}`));
+
+  for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
+    if (output?.nodeId === node.id && !outputIds.has(producerOutputId)) delete producerOutputs[producerOutputId];
+  }
+
+  for (const output of outputs) {
+    const producerOutputId = `${node.id}:${output.id}`;
+    producerOutputs[producerOutputId] = {
+      ...producerOutputs[producerOutputId],
+      producerOutputId,
+      nodeId: node.id,
+      outputSocketId: output.id,
+      entityType: output.type.entityType,
+      fields: producerOutputs[producerOutputId]?.fields || { read: [], write: [], private: [] }
+    };
+  }
+
+  if (node.kind?.startsWith('effect.') && outputIds.size === 1) {
+    [node.producerOutputId] = outputIds;
+  }
+  return [...outputIds];
+}
+
 export function createProcessDesignerContract(domain = {}, capabilities = null) {
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
   const entityByType = new Map(entities.map(entity => [entity.type, entity]));

@@ -30,7 +30,8 @@ export {
 } from './ports.js';
 export {
   PROCESS_DESIGNER_PALETTE_GROUPS,
-  createProcessDesignerContract
+  createProcessDesignerContract,
+  syncProcessNodeProducerOutputs
 } from './designer.js';
 export { resolveProcessActionInputContext } from './algebra.js';
 export {

@@ -4,7 +4,10 @@ import { compileActions, compileProcessDefinition, normalizeProcessDefinition } 
 const domain = {
   entities: [{ type: 'project', label: 'Project', fields: [] }],
   relations: [],
-  workflows: {}
+  workflows: {},
+  construction: {
+    project: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] }
+  }
 };
 
 function definition() {
@@ -67,5 +70,25 @@ describe('producer output process contract', () => {
       entityType: 'project',
       producerOutputId: 'create:entity'
     });
+  });
+
+  it('preserves an authored effect node producer identity on its derived action', () => {
+    const source = definition();
+    source.processNodes = {
+      create: {
+        id: 'create',
+        kind: 'effect.createEntity',
+        entityType: 'project',
+        producerOutputId: 'create:entity',
+        construction: { mode: 'genericCreate', inputs: [] },
+        status: { to: 'CREATED' },
+        inputs: [],
+        outputs: []
+      }
+    };
+    source.graph.nodes = [{ id: 'create', type: 'processNode', data: { refId: 'create' } }];
+
+    expect(compileProcessDefinition(source, domain).actions.create)
+      .toMatchObject({ id: 'create', producerOutputId: 'create:entity', entityType: 'project' });
   });
 });
