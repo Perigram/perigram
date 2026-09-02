@@ -168,6 +168,10 @@ and lifecycle evidence schemas are edited in the inspector.
 Entity producer nodes display their stable `nodeId:outputSocketId` reference
 beside the schema-only entity type. Inspector record access uses that reference,
 so same-type producers edit and persist separate workflow records.
+When an operational node's resolved outputs change, the designer synchronizes
+its producer-output records and writes the sole entity output identity onto the
+derived effect action; activation therefore receives the same persisted identity
+shown by the node instead of inferring a workflow from the entity type.
 Resolved input/output contracts are shown by the node's labelled socket rails
 and hover/focus metadata; the inspector does not repeat a socket-specification
 table.
