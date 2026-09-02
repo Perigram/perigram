@@ -1977,6 +1977,17 @@ a declared asynchronous output.
   migration with actionable node/output diagnostics rather than preserving a
   detached-profile or type-global fallback.
 
+  #### Agent Notes — 2026-09-02 persisted producer identity recovery
+
+  The bounded producer-identity cutover now rewrites unambiguous v4
+  entity-emitting effect sockets to `nodeId:socketId`, carries the identity to
+  derived actions, and moves a detached profile only when one producer owns its
+  entity contract. Save, validation, activation, and the dry-run/apply database
+  script share the same package migration. Ambiguous ownership fails with the
+  exact node and candidate sockets. The broader checkbox remains open because
+  command/task ownership/timing metadata, async completion, joins, and all
+  remaining producer protocol migrations are separate unfinished requirements.
+
 #### Acceptance tests
 
 - [ ] Compile two Create Entity nodes for the same `entityType` and assert two
