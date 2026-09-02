@@ -1,5 +1,6 @@
 import {
   compileProcessDefinition,
+  migrateProducerOutputIdentities,
   resolveRoleAssignmentAccess,
   resolveEffectiveAccess,
   resolveNavigation,
@@ -27,7 +28,9 @@ export async function getActiveCompiledProcess(organizationId) {
 
 export function compileActiveProcessRuntime(data = null, roles = {}) {
   if (!data) return null;
-  return compileProcessDefinition({ ...data, compiled: null }, cncDomain, { roles });
+  const migration = migrateProducerOutputIdentities(data, cncDomain);
+  if (migration.errors.length) throw new Error(migration.errors.join('; '));
+  return compileProcessDefinition({ ...migration.data, compiled: null }, cncDomain, { roles });
 }
 
 export async function resolveProcessAuth(auth = {}) {

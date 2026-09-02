@@ -96,6 +96,28 @@ describe('persisted producer output identity migration', () => {
       .toBe('processNode_1785860422855:result');
   });
 
+  it('preserves an update action consuming an upstream producer output', () => {
+    const data = persistedCreate();
+    data.producerOutputs['source:entity'] = {
+      producerOutputId: 'source:entity',
+      nodeId: 'source',
+      outputSocketId: 'entity',
+      entityType: 'work_item',
+      fields: { read: [], write: [], private: [] }
+    };
+    data.processNodes.update = {
+      id: 'update',
+      kind: 'effect.updateEntity',
+      entityType: 'work_item',
+      producerOutputId: 'source:entity'
+    };
+
+    const result = migrateProducerOutputIdentities(data);
+
+    expect(result.errors).toEqual([]);
+    expect(result.data.processNodes.update.producerOutputId).toBe('source:entity');
+  });
+
   it('refuses ambiguous same-type outputs with stable node and socket diagnostics', () => {
     const data = persistedCreate();
     data.processNodes.processNode_1785860422855.outputs.push({

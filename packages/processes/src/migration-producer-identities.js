@@ -47,7 +47,8 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
         errors.push(`Process node ${nodeId} selects missing producer output ${selectedId}`);
         continue;
       }
-      if (String(selected.nodeId) !== nodeId) {
+      const ownsProducedEntity = ['effect.createEntity', 'effect.runProducer'].includes(node.kind);
+      if (ownsProducedEntity && String(selected.nodeId) !== nodeId) {
         errors.push(`Process node ${nodeId} selects producer output ${selectedId} owned by node ${selected.nodeId || '(missing)'}`);
         continue;
       }
