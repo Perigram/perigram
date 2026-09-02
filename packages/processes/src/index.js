@@ -56,6 +56,7 @@ export {
   serializeProcessResult
 } from './missing-field.js';
 export { migrateProcessDefinitionV4 } from './migration-v4.js';
+export { migrateProducerOutputIdentities } from './migration-producer-identities.js';
 export {
   MAKE_LIST_INPUTS,
   PROCESS_NODE_CATALOG,

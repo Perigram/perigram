@@ -19,12 +19,16 @@ previous active process for the organization, marks the selected process
 `ACTIVE`, and stores its id on the organization.
 
 Creation, update, validation, and activation accept only the current semantic
-source at `dataflowVersion: 4`. These boundaries never migrate or rewrite the
-authored graph. Definitions with a missing or different dataflow version are
-rejected, and starter templates are authored directly in the current format.
-Normalization used by validation and compilation is an in-memory projection;
-draft saves and activation persist the authored graph and semantic records
-without replacing them with that projection.
+source at `dataflowVersion: 4`. Definitions with a missing or different
+dataflow version are rejected, and starter templates are authored directly in
+the current format. During the producer-output protocol cutover, these
+boundaries run the package-owned, one-way producer identity rewrite. Save and
+activation persist the rewritten semantic records and clear stale compiled
+output. Validation checks the same rewrite in memory. A definition with zero or
+multiple candidate entity outputs fails with node/socket diagnostics instead
+of selecting by entity type. Other normalization used by validation and
+compilation remains an in-memory projection and does not replace authored graph
+records.
 
 The feature boundary is split into explicit collaborators. `compiler-adapter.js`
 owns current-protocol validation and activation projections,

@@ -268,12 +268,13 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       ...promptContract.wiredFields
     ]);
     const statusTo = processDefaultValue(node.inputDefaults?.['status.state.primary']) || node.status?.to || '';
+    const producerOutputId = node.producerOutputId || derived[actionId]?.producerOutputId || '';
     derived[actionId] = {
       ...(derived[actionId] || {}),
       id: actionId,
       label: node.label || derived[actionId]?.label || actionKind,
       actionKind,
-      producerOutputId: node.producerOutputId || derived[actionId]?.producerOutputId || '',
+      ...(producerOutputId ? { producerOutputId } : {}),
       entityType: node.entityType || derived[actionId]?.entityType || '',
       commandId: node.commandId || derived[actionId]?.commandId || '',
       parentEntityType: promptContract.parentEntityType || derived[actionId]?.parentEntityType || '',
@@ -1070,8 +1071,8 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     workflows[output.producerOutputId] = compileLifecycle(output, domain);
   }
 
-  const builders = new Map(Object.entries(workflows).map(([entityType, workflow]) => [
-    entityType,
+  const builders = new Map(Object.entries(workflows).map(([producerOutputId, workflow]) => [
+    producerOutputId,
     workflowBuilderFromWorkflow(workflow)
   ]));
 
@@ -1079,8 +1080,8 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     const kind = action.actionKind || 'createEntity';
     if (!['createEntity', 'updateEntity'].includes(kind)) continue;
     const entityType = actionEntityType(action) || actionWindows.get(actionId)?.outputs?.[0]?.entityType || actionWindows.get(actionId)?.input?.entityType;
-    if (!entityType) continue;
-    const builder = primaryRegionBuilder(ensureWorkflowBuilder(builders, entityType));
+    if (!entityType || !action.producerOutputId) continue;
+    const builder = primaryRegionBuilder(ensureWorkflowBuilder(builders, action.producerOutputId));
 
     if (kind === 'createEntity') {
       const targetState = actionTargetState(action, process);
@@ -1105,12 +1106,12 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     }
   }
 
-  for (const [entityType, builder] of builders) {
+  for (const [producerOutputId, builder] of builders) {
     if (!Object.values(builder.regions).some(region => Object.keys(region.states).length)) continue;
     for (const region of Object.values(builder.regions)) {
-      applyStatusDefinitionMetadata(region, entityType, process.statusDefinitions);
+      applyStatusDefinitionMetadata(region, process.producerOutputs?.[producerOutputId]?.entityType, process.statusDefinitions);
     }
-    workflows[entityType] = normalizeWorkflow({
+    workflows[producerOutputId] = normalizeWorkflow({
       ...builder.contracts,
       schemaVersion: 2,
       primaryRegion: builder.primaryRegion,

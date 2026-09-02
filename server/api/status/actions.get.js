@@ -12,5 +12,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'entityType and id are required' });
   }
 
-  return await statusService.getActions(entityType, targetId, auth);
+  return await statusService.getActions(entityType, targetId, {
+    ...auth,
+    ...(query.producerOutputId ? { producerOutputId: query.producerOutputId } : {})
+  });
 });

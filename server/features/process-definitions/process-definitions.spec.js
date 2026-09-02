@@ -7,7 +7,8 @@ import {
   preview,
   resolveProcessGraphEntity,
   startRun,
-  update
+  update,
+  validate
 } from './service.js';
 import * as processRepository from './repository.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -22,8 +23,15 @@ vi.mock('./repository.js', () => ({
   findActiveByOrganization: vi.fn(),
   create: vi.fn(),
   updateById: vi.fn(),
-  archiveActiveByOrganization: vi.fn()
+  archiveActiveByOrganization: vi.fn(),
+  getConnection: vi.fn()
 }));
+
+const runRepository = {
+  createRun: vi.fn(async ({ run, definition }) => ({ runId: run.id, state: run, definition, revision: 0 })),
+  saveRunState: vi.fn(async (_runId, state, revision) => ({ state, revision: revision + 1 })),
+  findUnreceiptedInvocations: vi.fn(async () => [])
+};
 
 vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -136,6 +144,57 @@ describe('current process-definition service contract', () => {
     expect(result.data.graph).toEqual(authored.graph);
   });
 
+  it('migrates a persisted entity-producing node before save and activation', async () => {
+    const authored = createPersistedAcceptanceFixture().processDefinition.data;
+    const node = authored.processNodes.project_source;
+    const profile = authored.producerOutputs[node.producerOutputId];
+    delete authored.producerOutputs[node.producerOutputId];
+    delete node.producerOutputId;
+    authored.entityProfiles = { project: { ...profile, id: 'project' } };
+    delete authored.entityProfiles.project.producerOutputId;
+    delete authored.entityProfiles.project.nodeId;
+    delete authored.entityProfiles.project.outputSocketId;
+    processRepository.findById.mockResolvedValue(draftRecord(authored));
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+
+    const saved = await update('process-draft', { data: authored }, adminAuth());
+    const producerOutputId = 'project_source:result';
+    expect(saved.data.processNodes.project_source.producerOutputId).toBe(producerOutputId);
+    expect(saved.data.producerOutputs[producerOutputId]).toMatchObject({
+      producerOutputId,
+      nodeId: 'project_source',
+      outputSocketId: 'result',
+      entityType: 'project'
+    });
+    expect(saved.data).not.toHaveProperty('entityProfiles');
+
+    processRepository.findById.mockResolvedValue(draftRecord(saved.data));
+    await expect(validate('process-draft', adminAuth())).resolves.toMatchObject({ ok: true });
+    await expect(activate('process-draft', adminAuth())).resolves.toMatchObject({
+      status: { state: { primary: 'ACTIVE' } }
+    });
+  });
+
+  it('rejects ambiguous persisted producer sockets at the save boundary', async () => {
+    const authored = createPersistedAcceptanceFixture().processDefinition.data;
+    const node = authored.processNodes.project_source;
+    delete authored.producerOutputs[node.producerOutputId];
+    delete node.producerOutputId;
+    node.outputs = [
+      { id: 'result', type: { base: 'entity', entityType: 'project' } },
+      { id: 'alternate', type: { base: 'entity', entityType: 'project' } }
+    ];
+    processRepository.findById.mockResolvedValue(draftRecord(authored));
+
+    await expect(update('process-draft', { data: authored }, adminAuth())).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringContaining(
+        'Process node project_source requires one project producer output; candidates: project_source:alternate (project), project_source:result (project)'
+      )
+    });
+    expect(processRepository.updateById).not.toHaveBeenCalled();
+  });
+
   it('activates a valid current fixture and records it through the organization service boundary', async () => {
     const authored = createPersistedAcceptanceFixture().processDefinition.data;
     processRepository.findById.mockResolvedValue(draftRecord(authored));
@@ -190,7 +249,7 @@ describe('current process-definition service contract', () => {
     const run = await startRun('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
-    }, adminAuth());
+    }, adminAuth(), { runRepository });
 
     expect(run.status).toBe('succeeded');
     expect(processUpdate).toHaveBeenCalledTimes(1);
@@ -241,7 +300,7 @@ describe('current process-definition service contract', () => {
     const run = await startRun('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
-    }, adminAuth());
+    }, adminAuth(), { runRepository });
 
     expect(run.status).toBe('succeeded');
     expect(statusService.transitionWithResult).toHaveBeenCalledTimes(1);
@@ -283,12 +342,19 @@ describe('current process-definition service contract', () => {
 
     const result = await performDurableEffect({
       kind: 'effect.createEntity',
-      record: { kind: 'effect.createEntity', id: 'create', entityType: 'queue', construction: { mode: 'genericCreate' }, blocks: [] },
+      record: {
+        kind: 'effect.createEntity',
+        id: 'create',
+        entityType: 'queue',
+        producerOutputId: 'create:result',
+        construction: { mode: 'genericCreate' },
+        blocks: []
+      },
       inputs: { 'status.state.primary': 'READY' }
     }, adminAuth());
 
     expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
-      'queue', 'queue-1', 'READY', 'org-acceptance', 'admin', expect.any(Object)
+      'queue', 'queue-1', 'READY', 'org-acceptance', 'admin', expect.objectContaining({ producerOutputId: 'create:result' })
     );
     expect(result.status).toEqual(initialStatus);
     expect(result.status.state.active.fulfillment).toBe('UNASSIGNED');
@@ -303,7 +369,7 @@ describe('current process-definition service contract', () => {
 
     const result = await performDurableEffect({
       kind: 'effect.changeStatus',
-      record: { kind: 'effect.changeStatus', entityType: 'sheet', region: 'quality' },
+      record: { kind: 'effect.changeStatus', entityType: 'sheet', producerOutputId: 'sheet_source:entity', region: 'quality' },
       inputs: {
         entity: { type: 'sheet', id: 'sheet-1' },
         status: 'VERIFIED',
@@ -316,6 +382,7 @@ describe('current process-definition service contract', () => {
       targetState: 'VERIFIED',
       context: {
         source: 'process-run',
+        producerOutputId: 'sheet_source:entity',
         region: 'quality',
         metadata: { note: 'Inspection complete' },
         lifecycle: { attachments: { photos: [{ fileId: 'proof-1' }] } }
@@ -529,7 +596,14 @@ function relationEffectProcessData(kind, key, cardinality) {
       nodes: ['relations', 'effect'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
       edges: [{ id: 'relations-effect', source: 'relations', sourceHandle: 'data:block', target: 'effect', targetHandle: 'data:relations', role: 'data' }]
     },
-    roleGrants: {}, entityProfiles: {}, actions: {}, services: {}, sockets: {}, screens: {},
+    roleGrants: {},
+    producerOutputs: {
+      'facade_context:entity': {
+        id: 'facade_context:entity', producerOutputId: 'facade_context:entity', nodeId: 'facade_context', outputSocketId: 'entity',
+        entityType: 'facade', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: ['relations.*'], private: [] }
+      }
+    },
+    actions: {}, services: {}, sockets: {}, screens: {},
     processNodes: {
       relations: {
         id: 'relations', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations',
@@ -545,6 +619,7 @@ function relationEffectProcessData(kind, key, cardinality) {
 function relationActionProcessData() {
   const data = relationEffectProcessData('effect.updateEntity', 'libraries', 'many');
   data.processNodes.effect.id = 'update';
+  data.processNodes.effect.producerOutputId = 'facade_context:entity';
   data.processNodes.effect.access.grants = [{ roleId: 'role_admin', level: 'write' }];
   data.processNodes.update = data.processNodes.effect;
   delete data.processNodes.effect;
@@ -602,7 +677,7 @@ function previewProcessData() {
       viewport: { x: 0, y: 0, zoom: 1 }
     },
     roleGrants: {},
-    entityProfiles: {},
+    producerOutputs: {},
     actions: {},
     services: {},
     sockets: {},
@@ -663,7 +738,12 @@ function readModifyWriteProcessData() {
       viewport: { x: 0, y: 0, zoom: 1 }
     },
     roleGrants: {},
-    entityProfiles: {},
+    producerOutputs: {
+      'machine_context:entity': {
+        id: 'machine_context:entity', producerOutputId: 'machine_context:entity', nodeId: 'machine_context', outputSocketId: 'entity',
+        entityType: 'machine', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: ['identity.*'], private: [] }
+      }
+    },
     actions: {},
     services: {},
     sockets: {},
@@ -687,6 +767,7 @@ function readModifyWriteProcessData() {
         id: 'update',
         kind: 'effect.updateEntity',
         entityType: 'machine',
+        producerOutputId: 'machine_context:entity',
         label: 'Update machine',
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [] },

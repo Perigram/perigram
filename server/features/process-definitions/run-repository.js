@@ -333,9 +333,15 @@ export function getRunRepository(connection) {
   return defaultRepository;
 }
 
-class DispatchPending extends Error {}
-
-export async function executeManualRun(definition, payload = {}, { actor, executeEffect, catalogContext, domain, data, repository = getRunRepository() } = {}) {
+export async function executeManualRun(definition, payload = {}, {
+  actor,
+  executeEffect,
+  isAsyncBoundary = () => false,
+  catalogContext,
+  domain,
+  data,
+  repository = getRunRepository()
+} = {}) {
   const { advanceProcessRun, createProcessRun } = await import('../../../packages/processes/src/index.js');
   let run = createProcessRun(definition, payload.trigger || {}, {
     processDefinitionId: definition._id || definition.id,
@@ -351,38 +357,37 @@ export async function executeManualRun(definition, payload = {}, { actor, execut
   });
   let revision = 0;
   for (let index = 0; run.status === 'running' && index < 999; index += 1) {
-    try {
-      const advanced = await advanceProcessRun(run, definition.data, {
-        executeEffect: async request => {
-          const snapshot = snapshotInvocation(request, definition.data);
-          const stepId = String(request.record?.nodeId || request.record?.id || request.nodeId || `step-${index}`);
-          const invocation = await repository.createInvocation({
-            runId,
-            stepId,
-            request,
-            invocationIdentity: { runId, stepId, attempt: 1 },
-            producerOutputId: request.producerOutputId || snapshot.producerOutputId || null,
-            producerIdentity: snapshot.producerIdentity,
-            controlScope: payload.controlScope || { organizationId: actor?.organizationId || null },
-            expectedCompletionSockets: snapshot.expectedCompletionSockets,
-            connectedRoutes: snapshot.connectedRoutes
-          });
-          const dispatch = await executeEffect(request, run);
-          await repository.markDispatched(invocation.invocationId, { accepted: true, dispatchId: dispatch?.id || dispatch?.taskId || null });
-          throw new DispatchPending('External effect awaits a durable receipt');
-        },
-        catalogContext,
-        domain,
-        data: data(run)
-      });
-      if (JSON.stringify(advanced) === JSON.stringify(run)) break;
-      run = advanced;
-      const saved = await repository.saveRunState(runId, run, revision);
-      revision = saved.revision;
-    } catch (error) {
-      if (error instanceof DispatchPending) break;
-      throw error;
-    }
+    const advanced = await advanceProcessRun(run, definition.data, {
+      executeEffect: async request => {
+        const dispatch = await executeEffect(request, run);
+        if (!isAsyncBoundary(request, dispatch)) return dispatch;
+        const snapshot = snapshotInvocation(request, definition.data);
+        const stepId = String(request.record?.nodeId || request.record?.id || request.nodeId || `step-${index}`);
+        const invocation = await repository.createInvocation({
+          runId,
+          stepId,
+          request,
+          invocationIdentity: { runId, stepId, attempt: request.attempt || 1 },
+          producerOutputId: request.producerOutputId || snapshot.producerOutputId || null,
+          producerIdentity: snapshot.producerIdentity,
+          controlScope: payload.controlScope || { organizationId: actor?.organizationId || null },
+          expectedCompletionSockets: snapshot.expectedCompletionSockets,
+          connectedRoutes: snapshot.connectedRoutes
+        });
+        await repository.markDispatched(invocation.invocationId, {
+          accepted: true,
+          dispatchId: dispatch?.id || dispatch?.taskId || dispatch?.tasks?.[0]?.id || dispatch?.jobs?.[0]?.id || null
+        });
+        return { __processEffectPending: true, invocationId: invocation.invocationId };
+      },
+      catalogContext,
+      domain,
+      data: data(run)
+    });
+    if (JSON.stringify(advanced) === JSON.stringify(run)) break;
+    run = advanced;
+    const saved = await repository.saveRunState(runId, run, revision);
+    revision = saved.revision;
   }
   if (run.status === 'running' && !(await repository.findUnreceiptedInvocations({ runId })).length) {
     throw new Error('Process run exceeded 1000 steps');

@@ -72,8 +72,8 @@ export async function resolveProcessWorkflow({ organizationId, producerOutputId,
 }
 
 export function resolveCompiledProducerOutputWorkflow({ compiled, producerOutputId, entityType, fallbackWorkflow = null } = {}) {
+  if (!compiled || !Object.keys(compiled.producerOutputs || {}).length) return fallbackWorkflow;
   if (!producerOutputId) throw new Error('producerOutputId is required to resolve a process workflow');
-  if (!compiled) return fallbackWorkflow;
   const output = compiled.producerOutputs?.[producerOutputId];
   if (!output) throw new Error(`Unknown producerOutputId ${producerOutputId}`);
   if (entityType && output.entityType !== entityType) {

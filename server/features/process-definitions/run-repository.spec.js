@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DurableRunRepository } from './run-repository.js';
+import { DurableRunRepository, executeManualRun } from './run-repository.js';
 
 const clone = value => value == null ? value : structuredClone(value);
 
@@ -195,4 +195,42 @@ test('dispatch is non-terminal and only a durable receipt records terminal task 
   assert.equal(execution.invocations[0].status, 'completed');
   assert.equal(execution.steps[0].status, 'completed');
   assert.deepEqual(execution.outputs[0].value, { terminal: true });
+});
+
+test('manual execution persists only declared async boundaries and leaves their graph step waiting', async () => {
+  const repository = await seededRepository(new PersistentMongoFixture());
+  const definition = {
+    id: 'process-async',
+    data: {
+      dataflowVersion: 4,
+      processNodes: {
+        command: {
+          id: 'command',
+          kind: 'effect.runCommand',
+          commandId: 'dispatch',
+          trigger: { mode: 'manual' },
+          outputs: ['done']
+        }
+      },
+      graph: {
+        nodes: [{ id: 'command', type: 'processNode', data: { refId: 'command' } }],
+        edges: []
+      }
+    }
+  };
+
+  const run = await executeManualRun(definition, { trigger: { nodeId: 'command' } }, {
+    actor: { organizationId: 'org-1' },
+    repository,
+    executeEffect: async () => ({ taskId: 'task-1', tasks: [{ id: 'task-1' }] }),
+    isAsyncBoundary: (_request, result) => result.tasks.length > 0,
+    data: () => ({})
+  });
+
+  assert.equal(run.status, 'waiting');
+  assert.equal(run.steps[0].status, 'waiting');
+  const execution = await repository.getExecution(run.id);
+  assert.equal(execution.invocations.length, 1);
+  assert.equal(execution.invocations[0].status, 'dispatched');
+  assert.equal(execution.outputs.length, 0);
 });

@@ -172,6 +172,17 @@ async function executeOperationalNode({ run, process, node, record, current, ste
           attempt: step.attempt,
           run
         });
+    if (result?.__processEffectPending === true) {
+      step.status = 'waiting';
+      step.invocationId = result.invocationId || null;
+      run.status = 'waiting';
+      run.pendingEffect = {
+        stepId: step.id,
+        nodeId: node.id,
+        invocationId: result.invocationId || null
+      };
+      return;
+    }
     step.output = structuredClone(result);
     const outputValues = await effectOutputValues(node.id, record, effectOutputResult(result), environment);
     enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {

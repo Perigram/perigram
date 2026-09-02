@@ -36,13 +36,14 @@ export async function activate(entityType, payload = {}, auth) {
   return serializeOverride(created);
 }
 
-export async function resolveActiveWorkflow({ entityType, organizationId }) {
+export async function resolveActiveWorkflow({ entityType, organizationId, producerOutputId }) {
   const normalizedEntityType = normalizeEntityType(entityType);
   const defaultWorkflow = getDefaultWorkflow(normalizedEntityType);
   if (!organizationId) return defaultWorkflow;
 
   const processWorkflow = await resolveProcessWorkflow({
     organizationId,
+    producerOutputId,
     entityType: normalizedEntityType,
     fallbackWorkflow: null
   });

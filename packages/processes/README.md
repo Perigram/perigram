@@ -51,6 +51,14 @@ policy, and lineage bindings. `entityTypeIndex` lists matching output ids for
 schema discovery only; runtime workflow selection always requires the exact
 producer output id.
 
+`migrateProducerOutputIdentities()` is the one-way persisted-definition
+rewrite for v4 records created before that identity was stored. It derives
+entity sockets from the registered node/command catalog, writes the stable
+node-and-socket key onto the producer and its derived action, and moves a
+detached entity profile only when exactly one producer owns that entity
+contract. Missing or ambiguous ownership returns graph-addressable diagnostics;
+the migration never selects the first same-type producer.
+
 Compiler entry points are separated by responsibility. `normalization.js`,
 `validation.js`, `action-compilation.js`, `screen-compilation.js`,
 `access-compilation.js`, and `hierarchy-projection.js` define the supported
