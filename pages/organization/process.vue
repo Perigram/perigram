@@ -995,7 +995,8 @@ import {
   processSocketsCompatible,
   processType,
   requiredEntityProfileTypes,
-  resolveCatalogNodePorts
+  resolveCatalogNodePorts,
+  syncProcessNodeProducerOutputs
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
@@ -3136,6 +3137,7 @@ function syncProcessNode(node = {}) {
   node.label = node.kind;
   node.inputs = processNodeInputs(node);
   node.outputs = processNodeOutputs(node);
+  syncProcessNodeProducerOutputs(draft.value.data, node);
   node.inputDefaults ||= {};
   const inputIds = new Set(node.inputs.map(input => input.id));
   for (const inputId of Object.keys(node.inputDefaults)) {

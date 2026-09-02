@@ -273,6 +273,7 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       id: actionId,
       label: node.label || derived[actionId]?.label || actionKind,
       actionKind,
+      producerOutputId: node.producerOutputId || derived[actionId]?.producerOutputId || '',
       entityType: node.entityType || derived[actionId]?.entityType || '',
       commandId: node.commandId || derived[actionId]?.commandId || '',
       parentEntityType: promptContract.parentEntityType || derived[actionId]?.parentEntityType || '',
@@ -357,6 +358,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
           id,
           label: `${operation === 'link' ? 'Link' : 'Unlink'} ${relation.targetType.replace(/_/g, ' ')}`,
           actionKind: 'updateEntity',
+          producerOutputId: sourceAction.producerOutputId,
           entityType: sourceAction.entityType,
           relationMutation: {
             key: relation.key,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { createProcessDesignerContract } from './designer.js';
+import { createProcessDesignerContract, syncProcessNodeProducerOutputs } from './designer.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -45,6 +45,28 @@ describe('process designer domain contract', () => {
       }
     }
   };
+
+  it('persists the stable producer identity for an entity-emitting effect node', () => {
+    const data = { producerOutputs: {} };
+    const node = {
+      id: 'processNode_1785860422855',
+      kind: 'effect.createEntity',
+      outputs: [{
+        id: 'result',
+        type: { base: 'entity', entityType: 'work_item', nullable: false }
+      }]
+    };
+
+    expect(syncProcessNodeProducerOutputs(data, node)).toEqual(['processNode_1785860422855:result']);
+    expect(node.producerOutputId).toBe('processNode_1785860422855:result');
+    expect(data.producerOutputs[node.producerOutputId]).toEqual({
+      producerOutputId: 'processNode_1785860422855:result',
+      nodeId: 'processNode_1785860422855',
+      outputSocketId: 'result',
+      entityType: 'work_item',
+      fields: { read: [], write: [], private: [] }
+    });
+  });
 
   it('projects a domain implementation through framework-owned designer contracts', () => {
     const contract = createProcessDesignerContract(domain);
