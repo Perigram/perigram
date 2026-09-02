@@ -15,6 +15,9 @@ Organization-scoped lifecycle override storage for entity status machines.
   statuses remain user-authored, but hidden service intents such as
   `nestingSolveCompleted` cannot disappear from entities that are produced by
   commands/tasks.
+- Process workflow lookup is entered only with an explicit `producerOutputId`.
+  Status callers without producer context use the organization override or
+  domain workflow; they never select a process producer by entity type.
 
 ## Data Contract
 
