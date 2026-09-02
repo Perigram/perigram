@@ -165,6 +165,9 @@ fallback. Access grants, selected compose/modify field sets, and
 other secondary record policy live in the contextual inspector. A status node
 still authors its identity and exposes its output on the canvas; color, icon,
 and lifecycle evidence schemas are edited in the inspector.
+Entity producer nodes display their stable `nodeId:outputSocketId` reference
+beside the schema-only entity type. Inspector record access uses that reference,
+so same-type producers edit and persist separate workflow records.
 Resolved input/output contracts are shown by the node's labelled socket rails
 and hover/focus metadata; the inspector does not repeat a socket-specification
 table.
