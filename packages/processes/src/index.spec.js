@@ -7,7 +7,7 @@ import {
   definitionToCanvas,
   normalizeProcessDefinition,
   portSpecsCompatible,
-  requiredEntityProfileTypes,
+  requiredProducerOutputEntityTypes,
   resolveRoleAssignmentAccess,
   resolveScreens as resolveAccessScreens,
   validateProcessDefinition as validateContract,
@@ -3681,7 +3681,7 @@ describe('@cutkit/processes compiler', () => {
     expect(access.screens.length).toBeGreaterThan(0);
   });
 
-  it('projects command-required entity profiles from actions and services', () => {
+  it('projects command-required producer output entity types from actions and services', () => {
     const commandDomain = {
       commands: {
         solveNesting: {
@@ -3690,7 +3690,7 @@ describe('@cutkit/processes compiler', () => {
       }
     };
 
-    expect(requiredEntityProfileTypes({
+    expect(requiredProducerOutputEntityTypes({
       actions: {
         solve: { actionKind: 'runCommand', commandId: 'solveNesting' }
       },

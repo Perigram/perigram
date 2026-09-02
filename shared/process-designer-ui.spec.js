@@ -13,6 +13,14 @@ import { normalizeScreenContract, validateScreenContract } from '~/packages/proc
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
 describe('process designer interaction boundaries', () => {
+  it('uses producer-output ownership instead of the removed entity-profile helper', () => {
+    const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
+
+    expect(designer).toContain('syncProcessNodeProducerOutputs');
+    expect(designer).not.toContain('requiredEntityProfileTypes');
+    expect(designer).not.toContain('ensureRequiredEntityProfiles');
+  });
+
   it('uses the shared annotated summary and typed grant editor without raw grant JSON', () => {
     const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
     const team = readFileSync(new URL('../pages/organization/users.vue', import.meta.url), 'utf8');
