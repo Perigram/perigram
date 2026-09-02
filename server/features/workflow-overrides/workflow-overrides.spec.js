@@ -106,6 +106,29 @@ describe('workflow overrides service', () => {
     });
 
     expect(workflow.initial).toBe('DRAFT');
+    expect(resolveProcessWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('resolves a process workflow only with explicit producer output context', async () => {
+    resolveProcessWorkflow.mockResolvedValueOnce({
+      initial: 'PROCESS',
+      states: { PROCESS: {} },
+      transitions: []
+    });
+
+    const workflow = await service.resolveActiveWorkflow({
+      entityType: 'project',
+      organizationId: auth.memberships[0].organizationId,
+      producerOutputId: 'create_project:result'
+    });
+
+    expect(resolveProcessWorkflow).toHaveBeenCalledWith({
+      organizationId: auth.memberships[0].organizationId,
+      producerOutputId: 'create_project:result',
+      entityType: 'project',
+      fallbackWorkflow: null
+    });
+    expect(workflow.initial).toBe('PROCESS');
   });
 
   it('keeps process states while making hidden system intents executable', async () => {
@@ -117,7 +140,8 @@ describe('workflow overrides service', () => {
     repository.findActiveByEntity.mockResolvedValue(null);
     const workflow = await service.resolveActiveWorkflow({
       entityType: 'artifact',
-      organizationId: auth.memberships[0].organizationId
+      organizationId: auth.memberships[0].organizationId,
+      producerOutputId: 'generate_artifact:result'
     });
 
     expect(workflow.initial).toBe('NEW');

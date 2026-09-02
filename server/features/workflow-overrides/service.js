@@ -41,12 +41,12 @@ export async function resolveActiveWorkflow({ entityType, organizationId, produc
   const defaultWorkflow = getDefaultWorkflow(normalizedEntityType);
   if (!organizationId) return defaultWorkflow;
 
-  const processWorkflow = await resolveProcessWorkflow({
+  const processWorkflow = producerOutputId ? await resolveProcessWorkflow({
     organizationId,
     producerOutputId,
     entityType: normalizedEntityType,
     fallbackWorkflow: null
-  });
+  }) : null;
   if (processWorkflow) {
     return mergeSystemWorkflowTransitions({
       processWorkflow: normalizeWorkflowPayload(processWorkflow),
