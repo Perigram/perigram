@@ -100,6 +100,10 @@ validation error instead of guessing a canvas.
 Palette captions are presentation-only and are localized when the canvas is
 rendered. Persisted process-node labels keep the canonical operation kind, so
 the locale used while authoring cannot leak into generated action buttons.
+Entity-producing operation sockets create their producer-output contracts from
+the operation node and output socket identity. The designer does not create
+detached entity profiles when a command is selected; command entity outputs are
+owned by their emitting process node.
 On load, the route fetches the active process and the current process list,
 selects the active process first, and falls back to the newest usable draft or
 saved definition only when active is unavailable. Empty canvases show a passive

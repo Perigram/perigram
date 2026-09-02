@@ -31,7 +31,6 @@ node server/scripts/migrate-process-producer-identities.js --apply # Persist onl
 node server/scripts/migrate-process-command-output-statuses.js # Apply graph-derived process statuses to existing command output entities
 node server/scripts/migrate-process-transition-role-access.js # Remove stale transition permission checks from process-role workflow transitions
 APPLY=1 node server/scripts/migrate-process-definition-draft-names.js # Collapse repeated trailing "draft" suffixes in process names
-APPLY=1 node server/scripts/migrate-process-command-profiles.js # Add command-required entity profiles and recompile process definitions
 node server/scripts/migrate-entity-reference-contracts.js # Move legacy refs into canonical relations/provenance blocks
 node server/scripts/migrate-queue-nesting-contracts.js # Backfill queue nesting settings, machine ids, and cassette-design item refs
 node server/scripts/migrate-sheet-design-compositions.js # Backfill sheet-design cassette composition collapse keys
@@ -152,7 +151,6 @@ Layer standard seed flow:
 | `migrate-process-command-output-statuses.js` | After adding runtime projection from command output handles to downstream process status nodes | Scans active process graphs, finds `runCommand -> updateEntity` edges, builds v2 status snapshots from the compiled workflow, and updates existing command output entities whose current status is outside the active process state window. Supports `--dry-run` and must remain graph-derived, not status-name-specific. |
 | `migrate-process-transition-role-access.js` | After separating process-role transition authority from target-status access grants | Removes compiled workflow `access.permissions` from transitions that already have `processRoleIds`, including both v2 region transitions and root transition mirrors. Does not alter semantic action grants, user assignments, or status-scoped entity access windows. |
 | `migrate-process-definition-draft-names.js` | Repair for process identities with repeated trailing `draft` suffixes | Reports the number of names that would change by default; set `APPLY=1` to collapse any repeated trailing `draft` suffixes to one. Does not rename ordinary process names. |
-| `migrate-process-command-profiles.js` | After adding command-declared profile requirements | Adds missing, visible entity-profile nodes from the contractor starter profile contract, derives their initial role access from authored command/actions, validates the repaired definition, and recompiles it. Default run is read-only; set `APPLY=1` to persist. |
 | `repair-nesting-run-completions.js` | After fixing process workflow resolution for domain system intents | Finds `nesting_run` records that are still in `NESTING` but already have solver `data.results` and `data.sheetDesignIds`, then writes the normal `COMPLETE` status snapshot and status event without calling the nesting worker or recreating sheet designs. |
 
 ## Entity Revision Migration
