@@ -374,6 +374,10 @@ write grant. There is no queue-specific append endpoint or copied item model.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.
+Active-runtime compilation also applies the deterministic producer-identity
+migration in memory, so an older active definition remains executable before
+the persisted migration is applied. It still fails on ambiguous ownership and
+never selects a producer by entity type.
 Compiled process access is windowed by graph state. Status-mutating update
 nodes do not append permanent grants; they inherit the incoming entity access
 until edited, then replace the target-status role set with the node's selected

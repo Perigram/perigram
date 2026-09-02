@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveCompiledProducerOutputWorkflow } from './runtime.js';
+import { compileActiveProcessRuntime, resolveCompiledProducerOutputWorkflow } from './runtime.js';
 
 const compiled = {
   producerOutputs: {
@@ -9,6 +9,31 @@ const compiled = {
 };
 
 describe('process workflow resolution', () => {
+  it('repairs a persisted operational producer before compiling active runtime', () => {
+    const id = 'processNode_1785860422855';
+    const result = compileActiveProcessRuntime({
+      dataflowVersion: 4,
+      processNodes: {
+        [id]: {
+          id,
+          kind: 'effect.createEntity',
+          entityType: 'project',
+          construction: { mode: 'genericCreate', inputs: [] },
+          trigger: { mode: 'manual' },
+          status: { to: 'CREATED' }
+        }
+      },
+      graph: { nodes: [{ id, type: 'processNode', data: { refId: id } }], edges: [] }
+    });
+
+    expect(result.actions[id].producerOutputId).toBe(`${id}:result`);
+    expect(result.producerOutputs[`${id}:result`]).toMatchObject({
+      nodeId: id,
+      outputSocketId: 'result',
+      entityType: 'project'
+    });
+  });
+
   it('requires the authoritative producer output identity', () => {
     expect(() => resolveCompiledProducerOutputWorkflow({ compiled, entityType: 'project' }))
       .toThrow('producerOutputId is required');
