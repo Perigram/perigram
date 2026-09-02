@@ -131,7 +131,7 @@ export async function create(payload = {}, auth) {
       slug: standardSlugify(name, { keepCase: false })
     },
     lineage: { organizationId: toFlexibleId(organizationId) },
-    data: currentProcessDefinition(payload.data || payload)
+    data: currentProcessDefinition(payload.data || payload, getDomain())
   });
   applyProcessStatus(process, 'DRAFT', auth.userId, 'Process draft created');
   const created = await repository.create(process);
@@ -146,7 +146,7 @@ export async function update(id, payload = {}, auth) {
   if (payload.identity?.name || payload.name) {
     process.identity.name = payload.identity?.name || payload.name;
   }
-  process.data = currentProcessDefinition(payload.data || payload);
+  process.data = currentProcessDefinition(payload.data || payload, getDomain());
   process.data.compiled = null;
   const updated = await repository.updateById(id, process);
   return new ProcessDefinition(updated).toJSON();
@@ -154,14 +154,14 @@ export async function update(id, payload = {}, auth) {
 
 export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
-  assertCurrentProcessDefinition(process.data);
+  process.data = currentProcessDefinition(process.data, getDomain());
   assertCanonicalProcessSource(process.data);
   return validateActivatableProcess(process.data, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
 }
 
 export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
-  assertCurrentProcessDefinition(process.data);
+  process.data = currentProcessDefinition(process.data, getDomain());
   assertCanonicalProcessSource(process.data);
   const roles = await loadOrganizationRoles(process.lineage.organizationId);
   const validation = validateActivatableProcess(process.data, getDomain(), roles);

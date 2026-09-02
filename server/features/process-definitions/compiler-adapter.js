@@ -1,6 +1,7 @@
 import { createError } from 'h3';
 import {
   normalizeProcessDefinition,
+  migrateProducerOutputIdentities,
   PROCESS_DATAFLOW_VERSION,
   validateProcessDefinition,
   validateRequiredInputAvailability
@@ -45,7 +46,15 @@ export function assertCurrentProcessDefinition(data = {}) {
   }
 }
 
-export function currentProcessDefinition(data = {}) {
+export function currentProcessDefinition(data = {}, domain = {}) {
   assertCurrentProcessDefinition(data);
-  return structuredClone(data);
+  const migration = migrateProducerOutputIdentities(data, domain);
+  if (migration.errors.length) {
+    throw createError({
+      statusCode: 400,
+      message: migration.errors.join('; '),
+      data: { errors: migration.errors }
+    });
+  }
+  return migration.data;
 }

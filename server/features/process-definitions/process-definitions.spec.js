@@ -7,7 +7,8 @@ import {
   preview,
   resolveProcessGraphEntity,
   startRun,
-  update
+  update,
+  validate
 } from './service.js';
 import * as processRepository from './repository.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -141,6 +142,57 @@ describe('current process-definition service contract', () => {
 
     expect(processRepository.updateById.mock.calls[0][1].data).toEqual({ ...authored, compiled: null });
     expect(result.data.graph).toEqual(authored.graph);
+  });
+
+  it('migrates a persisted entity-producing node before save and activation', async () => {
+    const authored = createPersistedAcceptanceFixture().processDefinition.data;
+    const node = authored.processNodes.project_source;
+    const profile = authored.producerOutputs[node.producerOutputId];
+    delete authored.producerOutputs[node.producerOutputId];
+    delete node.producerOutputId;
+    authored.entityProfiles = { project: { ...profile, id: 'project' } };
+    delete authored.entityProfiles.project.producerOutputId;
+    delete authored.entityProfiles.project.nodeId;
+    delete authored.entityProfiles.project.outputSocketId;
+    processRepository.findById.mockResolvedValue(draftRecord(authored));
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+
+    const saved = await update('process-draft', { data: authored }, adminAuth());
+    const producerOutputId = 'project_source:result';
+    expect(saved.data.processNodes.project_source.producerOutputId).toBe(producerOutputId);
+    expect(saved.data.producerOutputs[producerOutputId]).toMatchObject({
+      producerOutputId,
+      nodeId: 'project_source',
+      outputSocketId: 'result',
+      entityType: 'project'
+    });
+    expect(saved.data).not.toHaveProperty('entityProfiles');
+
+    processRepository.findById.mockResolvedValue(draftRecord(saved.data));
+    await expect(validate('process-draft', adminAuth())).resolves.toMatchObject({ ok: true });
+    await expect(activate('process-draft', adminAuth())).resolves.toMatchObject({
+      status: { state: { primary: 'ACTIVE' } }
+    });
+  });
+
+  it('rejects ambiguous persisted producer sockets at the save boundary', async () => {
+    const authored = createPersistedAcceptanceFixture().processDefinition.data;
+    const node = authored.processNodes.project_source;
+    delete authored.producerOutputs[node.producerOutputId];
+    delete node.producerOutputId;
+    node.outputs = [
+      { id: 'result', type: { base: 'entity', entityType: 'project' } },
+      { id: 'alternate', type: { base: 'entity', entityType: 'project' } }
+    ];
+    processRepository.findById.mockResolvedValue(draftRecord(authored));
+
+    await expect(update('process-draft', { data: authored }, adminAuth())).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringContaining(
+        'Process node project_source requires one project producer output; candidates: project_source:alternate (project), project_source:result (project)'
+      )
+    });
+    expect(processRepository.updateById).not.toHaveBeenCalled();
   });
 
   it('activates a valid current fixture and records it through the organization service boundary', async () => {
