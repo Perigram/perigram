@@ -8,6 +8,7 @@
           <strong class="truncate">{{ data.label || data.entityType || data.refId }}</strong>
         </div>
         <small class="text-muted-color">{{ data.entityType || $t('processDesigner.entityType') }}</small>
+        <small v-if="data.refId" class="block truncate font-mono text-muted-color">{{ data.refId }}</small>
       </div>
       <Badge :value="data.fieldCount || 0" severity="info" />
     </div>
