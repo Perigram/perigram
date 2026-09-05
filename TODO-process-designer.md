@@ -399,10 +399,20 @@ read-denial).
   returning misleading results.
 - [x] Support several conditions by composing Logic nodes. Do not add a second
   query-language or a monolithic advanced-filter node.
-- [ ] Add an internal query-planning optimization only after semantics are
+- [x] Add an internal query-planning optimization only after semantics are
   correct: safe source-adjacent predicates, sort, and slice may be pushed into
   `processList` filters, but the graph result must be identical to in-memory
   evaluation and service access checks remain authoritative.
+
+#### Agent Notes — 2026-09-05
+
+Added service-owned source-query planning for the universally supported safe
+case: an equality predicate on a normal persisted-field path. The concrete
+`processList` adapter still receives the authoritative auth context and the
+evaluator retains the predicate as residual evaluation, so planned and
+unplanned results match. Sort, slice, compound predicates, and unsafe paths
+remain in memory because the runtime intentionally has no portable filter
+capability contract. Focused regression: `query-planning.spec.js`.
 - [x] Add end-to-end tests for find-by-field, combined conditions, status
   selection, relation-reference selection, empty results, and denied records.
 
