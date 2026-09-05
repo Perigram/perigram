@@ -8,6 +8,10 @@ Nuxt layout shells for public and authenticated app surfaces.
   bottom navigation, route breadcrumbs, theme toggle, user/profile entry,
   support entry, and bounded workspace sizing for production workspace routes.
 
+The desktop home link renders `/public/logo-light.svg` in light mode and
+`/public/logo-dark.svg` in dark mode. Both variants keep the link accessible
+with `CutKit` alt text and use the layout's existing `dark-mode` theme class.
+
 ## Navigation Behavior
 
 `app.vue` resolves breadcrumbs through `stores/navigation.js`. Each breadcrumb
