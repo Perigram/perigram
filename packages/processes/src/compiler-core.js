@@ -669,7 +669,45 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (!organizationRoles[roleId]) errors.push(`Process grants reference missing organization role ${roleId}`);
   }
 
+  warnings.push(...unreachableNodeDiagnostics(process));
+
   return { ok: errors.length === 0, errors, warnings, definition: process };
+}
+
+// Pure/read subgraphs stay valid on purpose; this reports the nodes whose
+// values can never reach a persistence effect or any other operational sink,
+// so an inspect-only island is surfaced as non-operational instead of failing.
+function unreachableNodeDiagnostics(process = {}) {
+  const nodes = (process.graph?.nodes || []).filter(node => node.type === 'processNode');
+  const recordsByGraphId = new Map(nodes.map(node => [
+    String(node.id),
+    process.processNodes?.[String(node.data?.refId || node.id)]
+  ]));
+  const predecessors = new Map(nodes.map(node => [String(node.id), []]));
+  for (const edge of process.graph?.edges || []) {
+    if (!predecessors.has(String(edge.target))) continue;
+    predecessors.get(String(edge.target)).push(String(edge.source));
+  }
+  const operational = [];
+  for (const [nodeId, record] of recordsByGraphId) {
+    if (record?.kind?.startsWith('effect.')) operational.push(nodeId);
+  }
+  const reachingOperational = new Set(operational);
+  const queue = [...operational];
+  while (queue.length) {
+    const current = queue.shift();
+    for (const predecessor of predecessors.get(current) || []) {
+      if (reachingOperational.has(predecessor)) continue;
+      reachingOperational.add(predecessor);
+      queue.push(predecessor);
+    }
+  }
+  const warnings = [];
+  for (const [nodeId, record] of recordsByGraphId) {
+    if (reachingOperational.has(nodeId)) continue;
+    warnings.push(`Process node ${nodeId} (${record?.kind || 'unknown'}) is non-operational: its values cannot reach any persistence effect`);
+  }
+  return warnings;
 }
 
 // Inputs whose value is resolvable from the manual run context even without a
