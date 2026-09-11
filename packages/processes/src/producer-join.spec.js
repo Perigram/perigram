@@ -107,6 +107,11 @@ describe('explicit producer join contract', () => {
     expect(validation.ok).toBe(false);
     expect(validation.errors.join('\n')).toContain('implicitly converges project producer outputs project_a:entity (edge a-consumer) and project_b:entity (edge b-consumer)');
     expect(validation.errors.join('\n')).toContain('use an explicit producer join');
+    expect(validation.diagnostics).toContainEqual(expect.objectContaining({
+      nodeId: 'consumer',
+      edgeId: 'a-consumer',
+      producerOutputId: 'project_a:entity'
+    }));
   });
 
   it('accepts the same paths converged through a configured join', () => {

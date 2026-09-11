@@ -26,16 +26,23 @@ export function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
     ...(Object.keys(capabilities).length ? { capabilities } : {})
   });
   const process = validation.definition || normalizeProcessDefinition(data);
+  const availability = validateRequiredInputAvailability(process, domain);
+  const lineageResolution = validateLineageBindingResolution(process, domain);
   const errors = [
     ...(validation.errors || []),
-    ...validateRequiredInputAvailability(process, domain),
-    ...validateLineageBindingResolution(process, domain)
+    ...availability.map(diagnostic => diagnostic.message),
+    ...lineageResolution.map(diagnostic => diagnostic.message)
   ];
   if (!errors.length) return validation;
   return {
     ...validation,
     ok: false,
-    errors
+    errors,
+    diagnostics: [
+      ...(validation.diagnostics || []),
+      ...availability,
+      ...lineageResolution
+    ]
   };
 }
 

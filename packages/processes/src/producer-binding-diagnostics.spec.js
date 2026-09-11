@@ -106,12 +106,22 @@ describe('producer-scoped binding diagnostics', () => {
     expect(validateLineageBindingResolution(lineageFixture(), domain)).toEqual([]);
   });
 
+  it('anchors lineage diagnostics on the edge, node, and entry socket', () => {
+    const definition = lineageFixture();
+    definition.graph.edges[0].targetHandle = 'entry:missing';
+    definition.processNodes.queue_lineage.entries = [];
+
+    const diagnostics = validateLineageBindingResolution(definition, domain);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({ edgeId: 'project-to-lineage', nodeId: 'queue_lineage', socketId: 'entry:missing' });
+  });
+
   it('names the edge and target when a lineage entry socket does not exist', () => {
     const definition = lineageFixture();
     definition.graph.edges[0].targetHandle = 'entry:missing';
     definition.processNodes.queue_lineage.entries = [];
 
-    const errors = validateLineageBindingResolution(definition, domain);
+    const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('Edge project-to-lineage targets missing lineage entry missing on queue_lineage');
   });
@@ -122,7 +132,7 @@ describe('producer-scoped binding diagnostics', () => {
     delete definition.producerOutputs['project_source:entity'];
     definition.producerOutputs = producerOutputRecords([['create_queue', 'queue']]);
 
-    const errors = validateLineageBindingResolution(definition, domain);
+    const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('Edge project-to-lineage cannot resolve lineage source node project_source');
   });
@@ -132,7 +142,7 @@ describe('producer-scoped binding diagnostics', () => {
     definition.processNodes.project_source.entityType = 'organization';
     definition.producerOutputs['project_source:entity'].entityType = 'organization';
 
-    const errors = validateLineageBindingResolution(definition, domain);
+    const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('Edge project-to-lineage lineage entry project on queue_lineage cannot use organization as an ancestor');
   });
@@ -142,7 +152,7 @@ describe('producer-scoped binding diagnostics', () => {
     delete definition.producerOutputs['project_source:entity'];
     definition.producerOutputs = producerOutputRecords([['create_queue', 'queue']]);
 
-    const errors = validateLineageBindingResolution(definition, domain);
+    const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('Edge project-to-lineage lineage source socket project_source:result');
     expect(errors[0]).toContain('emits entity type project but has no resolvable producer output record');
@@ -157,7 +167,7 @@ describe('producer-scoped binding diagnostics', () => {
       nodeId: 'project_source'
     };
 
-    const errors = validateLineageBindingResolution(definition, domain);
+    const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('emits entity type project but has no resolvable producer output record');
   });
@@ -188,9 +198,10 @@ describe('producer-scoped binding diagnostics', () => {
     definition.graph.nodes = definition.graph.nodes.filter(node => node.id !== 'queue_lineage');
     definition.graph.edges = [];
 
-    const errors = validateRequiredInputAvailability(definition, domain);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain('of producer output create_queue:entity');
-    expect(errors[0]).toContain('Required input sourceRef');
+    const diagnostics = validateRequiredInputAvailability(definition, domain);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].message).toContain('of producer output create_queue:entity');
+    expect(diagnostics[0].message).toContain('Required input sourceRef');
+    expect(diagnostics[0]).toMatchObject({ nodeId: 'create_queue', socketId: 'sourceRef', producerOutputId: 'create_queue:entity' });
   });
 });

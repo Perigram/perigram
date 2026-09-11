@@ -1774,11 +1774,38 @@ function formatPreviewItems(items = []) {
   return items.map(formatPreviewItem).join(', ');
 }
 
+// Apply focus: the first structured diagnostic with a graph anchor selects the
+// responsible node or edge so the author lands on the exact element.
+function focusValidationDiagnostic(diagnostic) {
+  if (!diagnostic) return;
+  if (diagnostic.edgeId) {
+    const edge = edges.value.find(item => String(item.id) === String(diagnostic.edgeId));
+    if (edge) {
+      selectEdge(edge);
+      return;
+    }
+  }
+  if (diagnostic.nodeId) {
+    const node = nodes.value.find(item => String(item.id) === String(diagnostic.nodeId));
+    if (node) selectNode(node);
+  }
+}
+
+function focusFirstValidationDiagnostic(result) {
+  if (result?.ok) return;
+  focusValidationDiagnostic((result?.diagnostics || []).find(diagnostic => diagnostic.edgeId || diagnostic.nodeId));
+}
+
 async function activateDraft() {
   await saveDraft();
   const result = await persistence.validateDraft(draft.value._id);
   validation.value = result;
-  if (!result.ok) throw new Error(result.errors?.[0] || t('processDesigner.validationFailed'));
+  if (!result.ok) {
+    focusFirstValidationDiagnostic(result);
+    const failure = new Error(result.errors?.[0] || t('processDesigner.validationFailed'));
+    failure.data = result;
+    throw failure;
+  }
   const activated = await persistence.activateDraft(draft.value._id);
   upsertProcessDefinition(activated);
   setDraft(activated);
@@ -1802,8 +1829,10 @@ async function applyProcess() {
     validation.value = {
       ok: false,
       errors: [message],
-      warnings: []
+      warnings: [],
+      ...(error?.data?.diagnostics ? { diagnostics: error.data.diagnostics } : {})
     };
+    focusFirstValidationDiagnostic(validation.value);
     toast.add({ severity: 'error', summary: t('processDesigner.apply'), detail: message, life: 5000 });
   } finally {
     applyingProcess.value = false;

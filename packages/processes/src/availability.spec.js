@@ -81,6 +81,10 @@ function processWith(node, edges = []) {
 }
 
 function check(node, edges = []) {
+  return validateRequiredInputAvailability(processWith(node, edges), domain).map(diagnostic => diagnostic.message);
+}
+
+function checkDiagnostics(node, edges = []) {
   return validateRequiredInputAvailability(processWith(node, edges), domain);
 }
 
@@ -276,5 +280,12 @@ describe('required input availability', () => {
     const automatic = check({ ...node, trigger: { mode: 'event' } });
     expect(automatic.length).toBeGreaterThan(0);
     expect(automatic.some(error => error.includes('source'))).toBe(true);
+  });
+
+  it('anchors availability diagnostics on the graph node and socket', () => {
+    const diagnostics = checkDiagnostics({ ...typedCreate({ trigger: { mode: 'event' } }) });
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({ nodeId: 'gn', socketId: 'templateId' });
+    expect(diagnostics[0].message).toContain('templateId');
   });
 });

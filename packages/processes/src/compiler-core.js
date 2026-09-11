@@ -536,6 +536,7 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
   const lineageBindings = compileLineageBindings(process, domain);
   const organizationRoles = normalizeRoleCatalog(roles);
   const errors = [];
+  const diagnostics = [];
   const warnings = [];
   const nodeIds = new Set(process.graph.nodes.map(node => node.id));
   const entities = new Set((domain.entities || []).map(entity => entity.type));
@@ -546,7 +547,11 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (!nodeIds.has(edge.target)) errors.push(`Edge ${edge.id} references missing target node ${edge.target}`);
   }
   errors.push(...validateProcessEdges(process));
-  if (Number(process.dataflowVersion) === PROCESS_DATAFLOW_VERSION) errors.push(...validateDataflowEdges(process, domain));
+  if (Number(process.dataflowVersion) === PROCESS_DATAFLOW_VERSION) {
+    const edgeDiagnostics = validateDataflowEdges(process, domain);
+    diagnostics.push(...edgeDiagnostics);
+    errors.push(...edgeDiagnostics.map(diagnostic => diagnostic.message));
+  }
 
   for (const node of process.graph.nodes) {
     const refId = node.data?.refId;
@@ -671,7 +676,7 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
 
   warnings.push(...unreachableNodeDiagnostics(process));
 
-  return { ok: errors.length === 0, errors, warnings, definition: process };
+  return { ok: errors.length === 0, errors, warnings, diagnostics, definition: process };
 }
 
 // Pure/read subgraphs stay valid on purpose; this reports the nodes whose
@@ -865,10 +870,14 @@ export function validateRequiredInputAvailability(process = {}, domain = {}) {
         const producerContext = record.producerOutputId
           ? ` of producer output ${record.producerOutputId}`
           : '';
-        errors.push(
-          `Required input ${port.id} on ${record.kind} node ${record.label || recordId}${producerContext} has no available source `
-          + (manual ? '(connected, fallback, default, manual prompt, or runtime context)' : '(connected, fallback, or default; a manual prompt cannot satisfy an automatically evaluated path)')
-        );
+        errors.push({
+          message:
+            `Required input ${port.id} on ${record.kind} node ${record.label || recordId}${producerContext} has no available source `
+            + (manual ? '(connected, fallback, default, manual prompt, or runtime context)' : '(connected, fallback, or default; a manual prompt cannot satisfy an automatically evaluated path)'),
+          nodeId: String(graphNode?.id || recordId),
+          socketId: port.id,
+          ...(record.producerOutputId ? { producerOutputId: record.producerOutputId } : {})
+        });
       }
     }
   }
@@ -901,6 +910,7 @@ function resolveSourceProducerOutputId(process, source, sourcePort) {
 
 export function validateLineageBindingResolution(process = {}, domain = {}) {
   const errors = [];
+  const push = (message, anchors = {}) => errors.push({ message, ...anchors });
   const recordsByGraphId = new Map((process.graph?.nodes || []).map(node => [
     String(node.id),
     (process.processNodes || {})[String(node.data?.refId || node.id)]
@@ -912,13 +922,14 @@ export function validateLineageBindingResolution(process = {}, domain = {}) {
     if (!handle.startsWith('entry:')) continue;
     const entryId = handle.replace(/^entry:/, '');
     const entry = (target.entries || []).find(item => item.id === entryId);
+    const anchors = { edgeId: edge.id, nodeId: String(edge.target), socketId: handle };
     if (!entry) {
-      errors.push(`Edge ${edge.id} targets missing lineage entry ${entryId} on ${target.id || target.label}`);
+      push(`Edge ${edge.id} targets missing lineage entry ${entryId} on ${target.id || target.label}`, anchors);
       continue;
     }
     const source = recordsByGraphId.get(String(edge.source));
     if (!source) {
-      errors.push(`Edge ${edge.id} cannot resolve lineage source node ${String(edge.source)} for entry ${entry.id} on ${target.id}`);
+      push(`Edge ${edge.id} cannot resolve lineage source node ${String(edge.source)} for entry ${entry.id} on ${target.id}`, anchors);
       continue;
     }
     let sourcePort = null;
@@ -931,23 +942,24 @@ export function validateLineageBindingResolution(process = {}, domain = {}) {
     const portEntityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || '';
     const ancestorType = portEntityType || source.entityType || entry.entityType || '';
     if (!ancestorType) {
-      errors.push(`Edge ${edge.id} cannot resolve an ancestor entity type for lineage entry ${entry.id} on ${target.id} from source ${source.id}`);
+      push(`Edge ${edge.id} cannot resolve an ancestor entity type for lineage entry ${entry.id} on ${target.id} from source ${source.id}`, anchors);
       continue;
     }
     if (ancestorType === 'organization') {
-      errors.push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} cannot use organization as an ancestor`);
+      push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} cannot use organization as an ancestor`, anchors);
       continue;
     }
     const lineageKey = entry.key || lineageKeyForEntityType(ancestorType);
     if (!lineageKey) {
-      errors.push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} has no lineage key for ancestor type ${ancestorType}`);
+      push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} has no lineage key for ancestor type ${ancestorType}`, anchors);
       continue;
     }
     if (portEntityType && sourcePort?.id
       && !resolveSourceProducerOutputId(process, source, sourcePort)) {
-      errors.push(
+      push(
         `Edge ${edge.id} lineage source socket ${source.id}:${sourcePort.id} on ${source.id} emits entity type ${portEntityType} `
-        + `but has no resolvable producer output record`
+        + `but has no resolvable producer output record`,
+        anchors
       );
     }
   }
@@ -3489,15 +3501,12 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
   }
 }
 
-function edgeSourceProducerLabel(process, sourceRecord, sourcePort) {
-  const portEntityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || '';
-  if (!portEntityType) return '';
-  const producerOutputId = resolveSourceProducerOutputId(process, sourceRecord, sourcePort);
-  return producerOutputId ? ` from producer output ${producerOutputId}` : '';
-}
-
+// Edge diagnostics are structured records so the designer can focus the exact
+// graph element; `errors` strings are derived from `message` at the assembly
+// boundary.
 function validateDataflowEdges(process, domain) {
   const errors = [];
+  const push = (message, anchors = {}) => errors.push({ message, ...anchors });
   const entityEdgesByTarget = new Map();
   const graphNodes = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
   for (const edge of process.graph?.edges || []) {
@@ -3511,16 +3520,29 @@ function validateDataflowEdges(process, domain) {
     const sourcePort = catalogPortForHandle(sourcePorts, edge.sourceHandle);
     const targetPort = catalogPortForHandle(targetPorts, edge.targetHandle);
     if (!sourcePort) {
-      errors.push(`Edge ${edge.id} references missing output ${edge.sourceHandle} on ${sourceRecord.id}`);
+      push(`Edge ${edge.id} references missing output ${edge.sourceHandle} on ${sourceRecord.id}`,
+        { edgeId: edge.id, nodeId: String(edge.target), socketId: String(edge.sourceHandle || '') });
       continue;
     }
     if (!targetPort) {
-      errors.push(`Edge ${edge.id} references missing input ${edge.targetHandle} on ${targetRecord.id}`);
+      push(`Edge ${edge.id} references missing input ${edge.targetHandle} on ${targetRecord.id}`,
+        { edgeId: edge.id, nodeId: String(edge.target), socketId: String(edge.targetHandle || '') });
       continue;
     }
-    const producerLabel = edgeSourceProducerLabel(process, sourceRecord, sourcePort);
+    const edgeSourceEntityType = sourcePort.type?.entityType || sourcePort.type?.itemType?.entityType || '';
+    const edgeSourceProducerId = edgeSourceEntityType
+      ? resolveSourceProducerOutputId(process, sourceRecord, sourcePort)
+      : null;
+    const producerLabel = edgeSourceProducerId ? ` from producer output ${edgeSourceProducerId}` : '';
     const compatibility = processSocketsCompatible(sourcePort, targetPort);
-    if (!compatibility.ok) errors.push(`Edge ${edge.id}${producerLabel} is incompatible: ${compatibility.reason}`);
+    if (!compatibility.ok) {
+      push(`Edge ${edge.id}${producerLabel} is incompatible: ${compatibility.reason}`, {
+        edgeId: edge.id,
+        nodeId: String(edge.target),
+        socketId: targetPort.id,
+        ...(edgeSourceProducerId ? { producerOutputId: edgeSourceProducerId } : {})
+      });
+    }
     if (compatibility.ok
       && ['record.composeBlock', 'record.modifyBlock'].includes(sourceRecord.kind)
       && ['effect.createEntity', 'effect.updateEntity'].includes(targetRecord.kind)) {
@@ -3542,14 +3564,16 @@ function validateDataflowEdges(process, domain) {
         const wholeBlockAccepted = path === sourceRecord.block
           && targetSchemas.some(field => field[requiredAccess] !== false);
         if (!openBlockAccepted && !openRelationsAccepted && !wholeBlockAccepted && (!targetSchema || targetSchema[requiredAccess] === false)) {
-          errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: field is not ${requiredAccess}`);
+          push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: field is not ${requiredAccess}`,
+            { edgeId: edge.id, nodeId: String(edge.target), socketId: targetPort.id });
         }
         if (sourceRecord.compositionMode && sourceRecord.compositionMode !== 'relations' && targetSchema) {
           const key = path.slice(sourceRecord.block.length + 1);
           const entry = (sourceRecord.entries || []).find(item => item.key === key);
           const sourceType = openCompositionEntryType(entry, sourceRecord.compositionMode, sourceRecord.compositionValueBase);
           if (sourceType && !processTypesEquivalent(sourceType, targetSchema.type)) {
-            errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: composed entry type does not match the entity field`);
+            push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: composed entry type does not match the entity field`,
+              { edgeId: edge.id, nodeId: String(edge.target), socketId: targetPort.id });
           }
         }
       }
@@ -3572,7 +3596,7 @@ function validateDataflowEdges(process, domain) {
   errors.push(...validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget));
   for (const role of ['data', 'control']) {
     const cycle = findGraphCycle(process, role);
-    if (cycle.length) errors.push(`${role === 'data' ? 'Data' : 'Control'} graph contains a cycle: ${cycle.join(' → ')}`);
+    if (cycle.length) push(`${role === 'data' ? 'Data' : 'Control'} graph contains a cycle: ${cycle.join(' → ')}`);
   }
   const triggers = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
@@ -3584,7 +3608,7 @@ function validateDataflowEdges(process, domain) {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
     if ((record?.kind?.startsWith('effect.') || record?.kind?.startsWith('control.'))
       && !record.kind.endsWith('Trigger') && !reachable.has(String(node.id))) {
-      errors.push(`Operational node ${record.id || node.id} is not reachable from a trigger`);
+      push(`Operational node ${record.id || node.id} is not reachable from a trigger`, { nodeId: String(node.id) });
     }
   }
   return errors;
@@ -3597,27 +3621,34 @@ function validateDataflowEdges(process, domain) {
 // rejected with the responsible node, producer outputs, and edges named.
 function validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget) {
   const errors = [];
+  const push = (message, anchors = {}) => errors.push({ message, ...anchors });
   const recordsById = new Map(Object.entries(process.processNodes || {})
     .map(([id, record]) => [record.id || id, record]));
+  const graphIdFor = new Map((process.graph?.nodes || []).map(node => [
+    String(node.data?.refId || node.id),
+    String(node.id)
+  ]));
   for (const [targetId, entries] of entityEdgesByTarget) {
     const record = recordsById.get(targetId);
     if (!record) continue;
+    const nodeId = graphIdFor.get(targetId) || targetId;
     if (record.kind === 'producer.join') {
       const sockets = new Map(entries.map(entry => [entry.socketId, entry]));
       for (const input of ['primary', 'secondary']) {
         if (!sockets.has(input)) {
-          errors.push(`Join ${record.id || targetId} requires a connected ${input} entity stream`);
+          push(`Join ${record.id || targetId} requires a connected ${input} entity stream`, { nodeId, socketId: input });
         }
       }
       const candidateIds = [...new Set(entries.map(entry => entry.producerOutputId))];
       if (!record.selectedProducerOutputId) {
         if (candidateIds.length) {
-          errors.push(`Join ${record.id || targetId} must select the resulting producer output from ${candidateIds.join(', ')}`);
+          push(`Join ${record.id || targetId} must select the resulting producer output from ${candidateIds.join(', ')}`, { nodeId });
         }
       } else if (!candidateIds.includes(record.selectedProducerOutputId)) {
-        errors.push(
+        push(
           `Join ${record.id || targetId} selects producer output ${record.selectedProducerOutputId}, `
-          + `which is not among its connected sources ${candidateIds.join(', ')}`
+          + `which is not among its connected sources ${candidateIds.join(', ')}`,
+          { nodeId, producerOutputId: record.selectedProducerOutputId }
         );
       }
       continue;
@@ -3634,10 +3665,11 @@ function validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget
     for (const [entityType, producers] of byType) {
       if (producers.size < 2) continue;
       const [first, second] = [...producers.values()];
-      errors.push(
+      push(
         `${record.kind} node ${record.id || targetId} implicitly converges ${entityType} producer outputs `
         + `${first.producerOutputId} (edge ${first.edgeId}) and ${second.producerOutputId} (edge ${second.edgeId}); `
-        + `use an explicit producer join`
+        + `use an explicit producer join`,
+        { nodeId, edgeId: first.edgeId, socketId: first.socketId, producerOutputId: first.producerOutputId }
       );
     }
   }
