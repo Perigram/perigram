@@ -125,6 +125,40 @@ export async function advanceProcessRun(runInput, definition, environment = {}) 
   return run;
 }
 
+export async function resumeProcessRun(runInput, definition, completion = {}, environment = {}) {
+  const run = structuredClone(runInput);
+  if (run.status !== 'waiting' || !run.pendingEffect) return run;
+  const pending = run.pendingEffect;
+  if (completion.invocationId && pending.invocationId && String(completion.invocationId) !== String(pending.invocationId)) {
+    return run;
+  }
+  const process = processData(definition);
+  const node = processNode(process, pending.nodeId);
+  if (!node) throw new Error(`Cannot resume pending effect: node ${pending.nodeId} is not in the process graph`);
+  const record = process.processNodes[recordId(node)];
+  const step = run.steps.find(item => item.id === pending.stepId);
+  if (!step) throw new Error(`Cannot resume pending effect: step ${pending.stepId} not found`);
+  const now = instant(environment.now);
+  const output = completion.output == null ? {} : completion.output;
+  step.status = 'succeeded';
+  step.output = structuredClone(output);
+  step.completedAt = now;
+  delete run.pendingEffect;
+  run.status = 'running';
+  run.wakeAt = null;
+  const outputValues = await effectOutputValues(node.id, record, output, environment);
+  enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {
+    ...(pending.controlToken || { nodeId: node.id, attempt: step.attempt }),
+    values: {
+      ...((pending.controlToken || {}).values || {}),
+      ...outputValues
+    }
+  });
+  if (!run.tokens.length) run.status = 'succeeded';
+  run.updatedAt = now;
+  return run;
+}
+
 export async function runProcessUntilSettled(run, definition, environment = {}, options = {}) {
   const maxSteps = Number(options.maxSteps) || 1000;
   let current = run;
@@ -179,7 +213,8 @@ async function executeOperationalNode({ run, process, node, record, current, ste
       run.pendingEffect = {
         stepId: step.id,
         nodeId: node.id,
-        invocationId: result.invocationId || null
+        invocationId: result.invocationId || null,
+        controlToken: structuredClone(current)
       };
       return;
     }

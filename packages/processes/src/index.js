@@ -77,6 +77,7 @@ export {
   PROCESS_RUN_STATUSES,
   PROCESS_STEP_STATUSES,
   advanceProcessRun,
+  resumeProcessRun,
   createProcessRun,
   previewProcessDataflow,
   runProcessUntilSettled

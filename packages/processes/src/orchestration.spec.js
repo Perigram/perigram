@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { advanceProcessRun, createProcessRun, previewProcessDataflow, runProcessUntilSettled } from './orchestration.js';
+import { advanceProcessRun, createProcessRun, previewProcessDataflow, resumeProcessRun, runProcessUntilSettled } from './orchestration.js';
 
 function process(records, nodes, edges) {
   return {
@@ -339,6 +339,57 @@ describe('durable process orchestration', () => {
     }));
     expect(waiting.tokens).toEqual([]);
     expect(waiting.steps.some(step => step.nodeId === 'stop')).toBe(false);
+  });
+
+  it('resumes a waiting effect with its completion output and continues the run', async () => {
+    const definition = process([
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['start', 'stop'], [control('start', 'completed', 'stop')]);
+
+    const waiting = await advanceProcessRun(createProcessRun(definition, {}), definition, {
+      executeEffect: async () => ({ __processEffectPending: true, invocationId: 'invocation-1' })
+    });
+    expect(waiting.status).toBe('waiting');
+
+    const resumed = await resumeProcessRun(waiting, definition, {
+      invocationId: 'invocation-1',
+      output: { entities: [{ type: 'sheet', id: 'sheet-1' }] }
+    }, {
+      catalogContext: () => ({
+        command: { output: { entities: [{ type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }] } }
+      })
+    });
+
+    expect(resumed.status).toBe('running');
+    expect(resumed.pendingEffect).toBeUndefined();
+    expect(resumed.steps[0]).toEqual(expect.objectContaining({
+      status: 'succeeded',
+      invocationId: 'invocation-1',
+      output: { entities: [{ type: 'sheet', id: 'sheet-1' }] }
+    }));
+    expect(resumed.tokens).toHaveLength(1);
+    expect(resumed.tokens[0].nodeId).toBe('stop');
+    expect(resumed.tokens[0].values['start:sheet']).toBeTruthy();
+
+    const finished = await runProcessUntilSettled(resumed, definition, {});
+    expect(finished.status).toBe('succeeded');
+  });
+
+  it('leaves the waiting run unchanged for a different invocation completion', async () => {
+    const definition = process([
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } }
+    ], ['start'], []);
+
+    const waiting = await advanceProcessRun(createProcessRun(definition, {}), definition, {
+      executeEffect: async () => ({ __processEffectPending: true, invocationId: 'invocation-1' })
+    });
+
+    const untouched = await resumeProcessRun(waiting, definition, {
+      invocationId: 'invocation-other',
+      output: { entities: [] }
+    }, {});
+    expect(untouched).toEqual(waiting);
   });
 
   it('waits for every fork branch at join-all', async () => {

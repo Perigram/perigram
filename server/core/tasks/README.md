@@ -18,6 +18,11 @@ Generic asynchronous queue backed by `task_runs`.
   undeclared types, command-owned outputs without persisted references, and
   graph-owned outputs carrying persisted entities are rejected; completion
   results may re-report immediate-declared outputs.
+- Notifies the process layer after any terminal transition: success calls
+  `ingestTaskCompletion` (correlating the task run to the waiting process
+  invocation by its dispatch task-run id), and failure/cancellation call
+  `failTaskInvocation`. Notification errors never fail the task run; the
+  process reconciliation pass redelivers.
 - Dispatches registered app-side task executors from `server/plugins/task-executors.js`.
   External workers still use the claim protocol; app-side executors claim runs
   internally and then call `completeTaskRun()` / `failTaskRun()`.
