@@ -1690,10 +1690,46 @@ for `pages/organization/process.vue` passed; the full focused battery
 server/features/process-definitions`) passed 436 tests plus the `node:test`
 run-repository suite (8 passed); `node scripts/check-arch.js`,
 `npm run framework:validate`, and `node scripts/check-docs.js` all pass.
-- [ ] Add a semantic Apply diff: changed CRUD capabilities, grants, workflows,
+- [x] Add a semantic Apply diff: changed CRUD capabilities, grants, workflows,
   screens, actions, field policies, and entity statuses that would become
   invalid. Require a migration decision when active entities use removed
   workflow states.
+
+##### Agent Notes — 2026-09-11 semantic apply diff
+
+- Pure diff: `packages/processes/src/contract-diff.js`
+  (`diffProcessContracts`, `hasProcessContractChanges`) compares two compiled
+  contracts — actions (semantic fields incl. access level, producer binding,
+  trigger), screens, role grants, per-entity-type CRUD capability sets,
+  per-producer workflow states/transitions/entries, field-policy sections, and
+  `removedEntityStatuses` (per entity type, the union of that type's producers'
+  primary-region states). Coverage: `contract-diff.spec.js` (9 tests incl.
+  same-type producer unions and a status surviving on another producer).
+- Surface: `validate` now returns `diff` beside `ok`/`errors`/`warnings`
+  (`server/features/process-definitions/service.js`). Both sides recompile
+  from canonical authored records — the stored `compiled` snapshot stays
+  inspection-only; an uncompilable previous contract (domain drift) or absent
+  active definition yields `diff: null`, not a blocked validation.
+- Migration gate: `activate` fails with HTTP 409 + `migrationRequired` data
+  (entity type, removed states, affected count) when live entities still hold
+  a removed workflow state, checked through the registered entity services
+  with the activating actor's auth context; the previous active definition is
+  not archived in that case. Entity types whose status check cannot run do not
+  block. Server coverage: the migration-decision rejection, the
+  removed-state-with-no-live-entities activation, and the diff response shape
+  in `process-definitions.spec.js`.
+- Designer: the Apply/validation panel renders a localized semantic-change
+  summary (actions/screens/roles counts, workflow/field-policy producer
+  changes, per-type CRUD capability deltas, removed-state lines) from
+  `validation.diff` (`pages/organization/process.vue`
+  `validationDiffLines`); en/ru locale keys added.
+
+Validation: `npx vitest run packages/processes packages/domain-cnc
+server/runtime server/features/process-definitions` 447 passed (plus the
+`node:test` run-repository suite, 8 passed); `shared/localization.spec.js`
+fails only on the documented pre-existing FacadeDesigner/QueueEditor keys;
+SFC compile check passed; `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
 - [x] Keep `data.compiled` as an inspection-only activation snapshot. Runtime
   auth hydration and manual execution recompile the canonical graph and never
   prefer the stored snapshot, so the compiled artifact is not runtime authority.

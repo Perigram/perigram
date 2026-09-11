@@ -98,6 +98,17 @@ package boundaries; `index.js` is only the public barrel. Runtime and UI
 consumers import these public boundaries rather than compiler implementation
 state.
 
+`contract-diff.js` owns the semantic Apply diff between two compiled
+contracts: `diffProcessContracts(previous, next)` reports added/removed/changed
+actions (with the changed semantic fields), screens, and role grants;
+per-entity-type CRUD capability changes; per-producer workflow changes (states
+with region prefixes, `from->to` transitions, entry states); field-policy
+section changes; and `removedEntityStatuses` — primary-region statuses whose
+removal strands live entities, computed per entity type as the union of that
+type's producers. `hasProcessContractChanges` is the emptiness check. The diff
+is pure over compiled outputs; callers recompile both sides because the stored
+`compiled` snapshot is inspection-only.
+
 Process definitions use canonical semantic records as the editing source of
 truth. `definitionToCanvas()` projects those records into deterministic Vue
 Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while

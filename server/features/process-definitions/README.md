@@ -18,6 +18,24 @@ process transpiler round-trip, compiles the runtime contract, archives the
 previous active process for the organization, marks the selected process
 `ACTIVE`, and stores its id on the organization.
 
+Validation and activation also produce the semantic Apply diff against the
+organization's current active definition. Both sides are recompiled from their
+canonical authored records (never the inspection-only stored `compiled`
+snapshot) and compared through `diffProcessContracts`
+(`packages/processes/src/contract-diff.js`): added/removed/changed actions,
+screens, and role grants; per-entity-type CRUD capability changes; per-producer
+workflow state/transition/entry changes; field-policy section changes; and the
+entity statuses the next contract removes. The validate response carries the
+diff for the designer's Apply summary. Activation is a migration gate for the
+last category: when live entities still hold a removed workflow state
+(checked through the registered entity services with the activating actor's
+auth context), activation fails with HTTP 409 and `migrationRequired` data
+naming each entity type, its removed states, and the affected count — the
+author first migrates those entities through the status engine or keeps the
+states. Entity types whose status check cannot run do not block activation,
+and a previous contract that can no longer be compiled (domain drift) makes
+the diff unavailable rather than blocking activation.
+
 Creation, update, validation, and activation accept only the current semantic
 source at `dataflowVersion: 4`. Definitions with a missing or different
 dataflow version are rejected, and starter templates are authored directly in
