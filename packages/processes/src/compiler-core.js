@@ -908,23 +908,47 @@ export function compileLineageBindings(process = {}, domain = {}) {
       || '';
     if (!ancestorType) continue;
     const lineageKey = entry.key || lineageKeyForEntityType(ancestorType);
-    const downstreamTypes = (graph.edges || [])
+    const consumers = (graph.edges || [])
       .filter(candidate => String(candidate.source) === String(edge.target))
       .filter(candidate => normalizeHandle(candidate.sourceHandle) === 'block')
       .filter(candidate => normalizeHandle(candidate.targetHandle) === 'lineage')
-      .map(candidate => recordsByGraphId.get(String(candidate.target))?.entityType)
-      .filter(Boolean);
+      .map(candidate => ({ node: recordsByGraphId.get(String(candidate.target)), edge: candidate }))
+      .filter(({ node }) => node);
+    const producerConsumers = consumers.filter(({ node }) => (
+      ['effect.createEntity', 'effect.runProducer'].includes(node.kind)
+    ));
+    if (!lineageKey || ancestorType === 'organization') continue;
+    if (producerConsumers.length) {
+      for (const { node } of producerConsumers) {
+        const childEntityType = node.entityType || target.targetEntityType || target.entityType || '';
+        if (!childEntityType) continue;
+        bindings.push({
+          childEntityType,
+          ancestorEntityType: ancestorType,
+          lineageKey,
+          producerOutputId: node.producerOutputId || null,
+          sourceProducerOutputId: source.producerOutputId || null,
+          sourceNode: String(edge.source),
+          sourceSocket: String(edge.sourceHandle || ''),
+          consumingNode: String(edge.target),
+          consumingSocket: String(edge.targetHandle || '')
+        });
+      }
+      continue;
+    }
     const childTypes = [...new Set([
       target.targetEntityType,
       target.entityType,
-      ...downstreamTypes
+      ...consumers.map(({ node }) => node.entityType)
     ].filter(Boolean))];
-    if (!childTypes.length || !lineageKey || ancestorType === 'organization') continue;
+    if (!childTypes.length) continue;
     for (const childEntityType of childTypes) {
       bindings.push({
         childEntityType,
         ancestorEntityType: ancestorType,
         lineageKey,
+        producerOutputId: null,
+        sourceProducerOutputId: source.producerOutputId || null,
         sourceNode: String(edge.source),
         sourceSocket: String(edge.sourceHandle || ''),
         consumingNode: String(edge.target),
@@ -933,7 +957,17 @@ export function compileLineageBindings(process = {}, domain = {}) {
     }
   }
   const unique = new Map(bindings.map(binding => [
-    `${binding.childEntityType}:${binding.ancestorEntityType}:${binding.lineageKey}`,
+    [
+      binding.producerOutputId,
+      binding.sourceProducerOutputId,
+      binding.childEntityType,
+      binding.ancestorEntityType,
+      binding.lineageKey,
+      binding.sourceNode,
+      binding.sourceSocket,
+      binding.consumingNode,
+      binding.consumingSocket
+    ].join(':'),
     binding
   ]));
   return [...unique.values()];
@@ -1759,9 +1793,9 @@ function outputHandleId(action = {}, kind = '') {
 
 function effectiveActionParentEntityType(action = {}, incoming = null, lineageBindings = []) {
   const entityType = action.entityType || action.outputs?.find(output => output.entityType)?.entityType || '';
-  const compiledParents = lineageBindings
+  const compiledParents = [...new Set(lineageBindings
     .filter(binding => binding.childEntityType === entityType && binding.ancestorEntityType)
-    .map(binding => binding.ancestorEntityType);
+    .map(binding => binding.ancestorEntityType))];
   const candidates = [
     ...compiledParents,
     incoming?.parentInput ? incoming.entityType : '',

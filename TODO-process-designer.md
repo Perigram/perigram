@@ -2120,7 +2120,7 @@ a declared asynchronous output.
   Focused Vitest: 10 passed; run-repository Node tests: 6 passed. Architecture
   and docs checks remain blocked only by pre-existing `.agent-worktrees` scans
   and already-deleted documentation targets outside this task's owned diff.
-- [ ] Compile construction, lineage, relations, and access only from typed graph
+- [x] Compile construction, lineage, relations, and access only from typed graph
   connections. Include source and consumer producer/socket identity in binding
   keys and remove type-only binding deduplication.
 - [x] Add per-output command/task metadata for persistence owner and result
@@ -2154,6 +2154,30 @@ a declared asynchronous output.
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a
   detached-profile or type-global fallback.
+
+#### Agent Notes — 2026-09-11 lineage binding identity
+
+Closed the typed-binding-keys checkbox above. `compileLineageBindings`
+(`packages/processes/src/compiler-core.js`) now derives each binding's child
+type from the consuming Create/Run Producer node, carries
+`producerOutputId` (the consuming producer output) and
+`sourceProducerOutputId` (the entity-emitting source output) on every
+binding, and deduplicates on the full nine-field identity — child type,
+ancestor type, lineage key, both producer output ids, and both node/socket
+ends — so same-type lineage edges from different source sockets into
+different consuming producers remain separate compiled bindings.
+Type-only merging is gone, and the per-producer attachment
+(`compiled.producerOutputs[id].lineageBindings`), which previously filtered on
+a field bindings never carried, now returns exactly that producer's bindings.
+`effectiveActionParentEntityType` deduplicates the ancestor candidates the
+richer binding set can produce. Construction, relations, and access were
+already producer-scoped (per-output construction contracts, per-output
+`relations` declarations, action access windows carrying producer ids).
+Coverage: the Project -> Compose Lineage -> Queue spec pins the new identity
+fields and per-producer attachment; a new same-type two-producer spec proves
+separate bindings and per-producer isolation. Validation: `npx vitest run
+packages/processes` 345 passed; `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` pass.
 
 #### Agent Notes — 2026-09-11 durable task completion ingestion
 
