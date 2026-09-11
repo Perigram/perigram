@@ -51,6 +51,15 @@ policy, and lineage bindings. `entityTypeIndex` lists matching output ids for
 schema discovery only; runtime workflow selection always requires the exact
 producer output id.
 
+Validation is producer-scoped and fail-closed: an action that resolves an
+entity type must declare a `producerOutputId` that exists in
+`producerOutputs` and emits that entity type, and every producer lifecycle
+region with states must declare an entry state that is one of its states.
+Workflow synthesis never selects a first or default state — a region without a
+declared entry state is a validation error naming the producer output and
+region, and compilation of such a definition throws before any workflow is
+emitted.
+
 `migrateProducerOutputIdentities()` is the one-way persisted-definition
 rewrite for v4 records created before that identity was stored. It derives
 entity sockets from the registered node/command catalog, writes the stable

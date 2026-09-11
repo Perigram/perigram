@@ -42,11 +42,23 @@ function createEffectDefinition(entityType, mode) {
   return {
     dataflowVersion: 4,
     roles: { admin: { id: 'admin', label: 'Admin' } },
+    producerOutputs: {
+      'create:entity': {
+        id: 'create:entity',
+        producerOutputId: 'create:entity',
+        nodeId: 'create',
+        outputSocketId: 'entity',
+        entityType,
+        lifecycle: { mode: 'defaultCreated' },
+        fields: { read: [], write: [], private: [] }
+      }
+    },
     processNodes: {
       create: {
         id: 'create',
         kind: 'effect.createEntity',
         entityType,
+        producerOutputId: 'create:entity',
         construction: { mode },
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: 'admin', level: 'write' }] },

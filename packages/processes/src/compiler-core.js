@@ -589,7 +589,16 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
       }
     }
     try {
-      compileLifecycle(output, domain);
+      const lifecycle = compileLifecycle(output, domain);
+      for (const [regionId, region] of Object.entries(lifecycle.regions || {})) {
+        const stateIds = Object.keys(region.states || {});
+        if (!stateIds.length) continue;
+        if (!region.initial) {
+          errors.push(`Producer output ${producerOutputId} region ${regionId} declares states ${stateIds.join(', ')} but no entry state`);
+        } else if (!region.states[region.initial]) {
+          errors.push(`Producer output ${producerOutputId} region ${regionId} entry state ${region.initial} is not declared`);
+        }
+      }
     } catch (error) {
       errors.push(`Producer output ${producerOutputId} lifecycle is invalid: ${error.message}`);
     }
@@ -608,7 +617,23 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     }
   }
 
+  const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
   for (const [actionId, action] of Object.entries(process.actions)) {
+    const actionWindow = actionWindows.get(actionId);
+    const resolvedActionEntityType = actionEntityType(action)
+      || actionWindow?.input?.entityType
+      || actionWindow?.outputs?.[0]?.entityType
+      || null;
+    if (resolvedActionEntityType && !action.producerOutputId) {
+      errors.push(`Action ${actionId} on ${resolvedActionEntityType} requires producerOutputId`);
+    } else if (action.producerOutputId) {
+      const producerOutput = process.producerOutputs?.[action.producerOutputId];
+      if (!producerOutput) {
+        errors.push(`Action ${actionId} uses unknown producerOutputId ${action.producerOutputId}`);
+      } else if (resolvedActionEntityType && producerOutput.entityType !== resolvedActionEntityType) {
+        errors.push(`Action ${actionId} producerOutputId emits ${producerOutput.entityType}, not ${resolvedActionEntityType}`);
+      }
+    }
     validateAction(actionId, action, { entities, commands, roles: organizationRoles, domain, errors, statusDefinitions: process.statusDefinitions, process, lineageBindings });
   }
 
@@ -1104,7 +1129,7 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
       primaryRegion: builder.primaryRegion,
       regions: Object.fromEntries(Object.entries(builder.regions).map(([regionId, region]) => [regionId, {
         ...region.contracts,
-        initial: region.initial || Object.keys(region.states)[0],
+        initial: region.initial,
         states: region.states,
         transitions: region.transitions
       }]))
@@ -1199,7 +1224,6 @@ function ensureWorkflowBuilder(builders, entityType) {
 function addWorkflowState(builder, state) {
   if (!state) return;
   builder.states[state] ||= { canUpdateMeta: true };
-  builder.initial ||= state;
 }
 
 function upsertWorkflowTransition(builder, transition) {
