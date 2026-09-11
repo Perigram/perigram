@@ -3102,7 +3102,7 @@ describe('@cutkit/processes compiler', () => {
     ]));
   });
 
-  it('projects semantic process records to canvas nodes and round-trips them', () => {
+  it('keeps definition-plane records off the canvas while round-tripping them', () => {
     const definition = {
       roles: {
         role_admin: { id: 'role_admin', label: 'Admin' }
@@ -3119,9 +3119,9 @@ describe('@cutkit/processes compiler', () => {
     const canvas = definitionToCanvas(definition);
     const roundTrip = validateRoundTrip(definition);
 
-    expect(canvas.nodes.map(node => node.id)).toEqual(['project_profile:entity']);
-    expect(canvas.nodes[0].data.semanticId).toBe('entity:project_profile:entity');
+    expect(canvas.nodes).toEqual([]);
     expect(roundTrip.ok).toBe(true);
+    expect(canvasToDefinition(canvas, definition).producerOutputs).toEqual(definition.producerOutputs);
   });
 
   it('converts canvas deletion back into semantic record deletion', () => {

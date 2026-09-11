@@ -8,7 +8,16 @@ const CANVAS_RECORD_KEYS = {
   processNode: 'processNodes'
 };
 
-const RECORD_NODE_TYPES = Object.keys(CANVAS_RECORD_KEYS);
+// Only these record kinds are owned by canvas nodes: deleting the canvas node
+// deletes the record, and the projection recreates it on load. Every other
+// record kind is panel-owned definition-plane data: it is never projected as
+// a canvas node and survives the canvas round trip untouched.
+const CANVAS_OWNED_RECORD_KEYS = {
+  statusDefinition: 'statusDefinitions',
+  processNode: 'processNodes'
+};
+
+const RECORD_NODE_TYPES = Object.keys(CANVAS_OWNED_RECORD_KEYS);
 
 export function hasCanonicalProcessSource(definition = {}) {
   const data = definition.data || definition;
@@ -67,7 +76,7 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
   const nodeIds = new Set(nodes.map(node => node.id));
   const refsByKey = collectCanvasRefs(nodes);
 
-  for (const [type, key] of Object.entries(CANVAS_RECORD_KEYS)) {
+  for (const [type, key] of Object.entries(CANVAS_OWNED_RECORD_KEYS)) {
     const refs = refsByKey[key] || new Set();
     process[key] = Object.fromEntries(
       Object.entries(process[key] || {}).filter(([id, record]) => refs.has(String(record?.id || id)))
@@ -150,11 +159,7 @@ function normalizeProcessLike(definition = {}) {
 
 function projectRecordNodes(process) {
   return [
-    ...projectRecords(process.producerOutputs, 'entity', 260),
-    ...projectRecords(process.services, 'service', 860),
-    ...projectRecords(process.sockets, 'socket', 1160),
     ...projectRecords(process.statusDefinitions, 'statusDefinition', 560),
-    ...projectRecords(process.valueInputs, 'valueInput', 260),
     ...projectRecords(process.processNodes, 'processNode', 420)
   ];
 }
@@ -191,7 +196,7 @@ function mergeProjectedNode(projected, saved) {
 function collectCanvasRefs(nodes = []) {
   const refsByKey = {};
   for (const node of nodes) {
-    const key = CANVAS_RECORD_KEYS[node.type];
+    const key = CANVAS_OWNED_RECORD_KEYS[node.type];
     if (!key) continue;
     refsByKey[key] ||= new Set();
     refsByKey[key].add(String(node.data?.refId || node.id));

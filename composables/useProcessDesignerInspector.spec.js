@@ -29,4 +29,34 @@ describe('process designer producer-output inspector', () => {
       }
     });
   });
+
+  it('resolves the producer output from the producing process node selection', () => {
+    const draft = ref({
+      data: {
+        producerOutputs: {
+          'create_project:entity': { producerOutputId: 'create_project:entity', entityType: 'project', lifecycle: { mode: 'defaultCreated' } }
+        },
+        processNodes: {
+          create_project: { id: 'create_project', kind: 'effect.createEntity', entityType: 'project', producerOutputId: 'create_project:entity' }
+        }
+      }
+    });
+    const selectedNode = ref({ id: 'create_project', type: 'processNode', data: { refId: 'create_project' } });
+    const inspector = useProcessDesignerInspector({
+      draft,
+      selectedNode,
+      factories: {
+        entity: id => ({ producerOutputId: id, lifecycle: {} }),
+        processNode: id => draft.value.data.processNodes[id] || { id }
+      }
+    });
+
+    expect(inspector.selectedEntity.value).toMatchObject({
+      producerOutputId: 'create_project:entity',
+      entityType: 'project'
+    });
+
+    selectedNode.value = { id: 'literal', type: 'processNode', data: { refId: 'literal' } };
+    expect(inspector.selectedEntity.value).toEqual({});
+  });
 });

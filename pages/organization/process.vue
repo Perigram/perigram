@@ -35,12 +35,7 @@
           @connect-end="endSocketConnection"
           @connect="onConnect"
         >
-          <template #node-entity="props"><ProcessEntityNode v-bind="props" /></template>
-          <template #node-action="props"><ProcessActionNode v-bind="props" /></template>
-          <template #node-service="props"><ProcessServiceNode v-bind="props" /></template>
-          <template #node-socket="props"><ProcessSocketNode v-bind="props" /></template>
           <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
-          <template #node-valueInput="props"><ProcessValueInputNode v-bind="props" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
@@ -189,233 +184,6 @@
                   <InputText v-model="selectedRecord.label" />
                 </div>
 
-                <template v-if="selectedNode.type === 'entity'">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.entityType') }}</label>
-                    <Select v-model="selectedEntity.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncEntityDefaults" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.lifecycleMode') }}</label>
-                    <Select v-model="selectedEntity.lifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
-                  </div>
-
-                  <Panel :header="$t('processDesigner.statusMachine')">
-                    <div class="flex flex-col gap-3">
-                      <div class="flex flex-wrap gap-2">
-                        <Tag v-for="state in lifecycleStateEntries" :key="state.value" :value="state.label" size="small" />
-                      </div>
-                      <div class="flex gap-2">
-                        <InputText v-model="newStateId" class="min-w-0 flex-1" :placeholder="$t('processDesigner.stateId')" />
-                        <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addState')" size="small" @click="addLifecycleState" />
-                      </div>
-                      <div class="flex flex-col gap-2">
-                        <div v-for="(transition, index) in lifecycleTransitions" :key="`${transition.from}-${transition.to}-${index}`" class="rounded-ui border border-content-border p-2">
-                          <div class="grid grid-cols-2 gap-2">
-                            <Select :model-value="transition.from" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { from: value })" />
-                            <Select :model-value="transition.to" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { to: value })" />
-                          </div>
-                          <div class="mt-2 flex items-center gap-2">
-                            <MultiSelect :model-value="transition.access?.processRoleIds || []" :options="roleOptions" option-label="label" option-value="value" display="chip" class="min-w-0 flex-1" @update:model-value="value => updateTransitionRoles(index, value)" />
-                            <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeLifecycleTransition(index)" />
-                          </div>
-                        </div>
-                      </div>
-                      <Button icon="pi pi-arrow-right" :label="$t('processDesigner.addTransition')" size="small" severity="secondary" outlined @click="addLifecycleTransition" />
-                    </div>
-                  </Panel>
-
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.readRoles') }}</label>
-                      <MultiSelect v-model="selectedEntity.allowedRoles.read" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.writeRoles') }}</label>
-                      <MultiSelect v-model="selectedEntity.allowedRoles.write" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.adminRoles') }}</label>
-                      <MultiSelect v-model="selectedEntity.allowedRoles.admin" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.publicFields') }}</label>
-                      <MultiSelect v-model="selectedEntity.fields.read" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.writeFields') }}</label>
-                      <MultiSelect v-model="selectedEntity.fields.write" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.privateFields') }}</label>
-                      <MultiSelect v-model="selectedEntity.fields.private" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.relations') }}</label>
-                      <MultiSelect v-model="selectedEntity.relations" :options="relationOptionsForEntity(selectedEntity.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="syncNodeData" />
-                    </div>
-                  </div>
-                </template>
-
-                <template v-else-if="selectedNode.type === 'action'">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.label') }}</label>
-                    <InputText v-model="selectedAction.label" @update:model-value="syncNodeData" />
-                  </div>
-                  <div v-if="['createEntity', 'sendToOrganization'].includes(selectedAction.actionKind)" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.entityType') }}</label>
-                    <Select v-model="selectedAction.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'runCommand'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.commandId') }}</label>
-                    <Select v-model="selectedAction.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.trigger') }}</label>
-                    <Select v-model="selectedAction.trigger.mode" :options="localizedTriggerModeOptions()" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'updateEntity'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.writeFields') }}</label>
-                    <MultiSelect v-model="selectedAction.mutation.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'sendToOrganization'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.projectedFields') }}</label>
-                    <MultiSelect v-model="selectedAction.projection.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'createEntity' && (constructionModeOptions(selectedAction.entityType).length > 1 || selectedAction.entityType === 'artifact')" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.constructionMode') }}</label>
-                    <Select v-model="selectedAction.construction.mode" :options="constructionModeOptions(selectedAction.entityType)" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'createEntity' && selectedAction.entityType === 'artifact'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.allowedArtifactCreation') }}</label>
-                    <MultiSelect
-                      :model-value="artifactCreationKinds(selectedAction)"
-                      :options="artifactUploadKindOptions"
-                      option-label="label"
-                      option-value="value"
-                      display="chip"
-                      filter
-                      :placeholder="$t('processDesigner.allUploadArtifactKinds')"
-                      @update:model-value="value => updateArtifactCreationKinds(selectedAction, value)"
-                    />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'createEntity' && parentRevisionScopeOptions(selectedAction.parentEntityType).length" class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                      <Checkbox
-                        :model-value="selectedAction.parentRevision?.enabled === true"
-                        binary
-                        input-id="pin-parent-revision"
-                        @update:model-value="updateParentRevisionEnabled"
-                      />
-                      <label for="pin-parent-revision">{{ $t('processDesigner.pinParentRevision') }}</label>
-                    </div>
-                    <div v-if="selectedAction.parentRevision?.enabled" class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.revisionScope') }}</label>
-                      <Select
-                        v-model="selectedAction.parentRevision.scope"
-                        :options="parentRevisionScopeOptions(selectedAction.parentEntityType)"
-                        option-label="label"
-                        option-value="value"
-                        @change="syncSelectedAction"
-                      />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2">
-                      <label>{{ $t('processDesigner.roles') }}</label>
-                      <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRole')" text size="small" @click="addSelectedActionGrant" />
-                    </div>
-                    <div v-for="(grant, index) in selectedActionGrants" :key="`${grant.roleId}-${index}`" class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto_auto] gap-2">
-                      <Select :model-value="grant.roleId" :options="roleOptions" option-label="label" option-value="value" size="small" @update:model-value="value => updateSelectedActionGrant(index, { roleId: value })" />
-                      <Select :model-value="grant.level" :options="accessLevelOptions" option-label="label" option-value="value" size="small" @update:model-value="value => updateSelectedActionGrant(index, { level: value })" />
-                      <Button icon="pi pi-filter" :aria-label="$t('processDesigner.editGrantConditions')" text size="small" @click="openGrantEditor('action', index, actionGrantFeature)" />
-                      <Button icon="pi pi-trash" :aria-label="$t('common.delete')" text severity="danger" size="small" @click="removeSelectedActionGrant(index)" />
-                    </div>
-                    <Button v-if="selectedAction.actionKind === 'updateEntity' && inheritedActionAccessLabels(selectedAction, selectedNode).length" icon="pi pi-refresh" :label="$t('common.reset')" text size="small" class="self-start" @click="resetActionAccess(selectedAction.id)" />
-                  </div>
-                </template>
-
-                <template v-else-if="selectedNode.type === 'service'">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.commandId') }}</label>
-                    <Select v-model="selectedService.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncServiceFromCommand" />
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.runPrincipals') }}</label>
-                      <MultiSelect v-model="selectedService.access.runPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.viewPrincipals') }}</label>
-                      <MultiSelect v-model="selectedService.access.viewPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.serviceBillingMode') }}</label>
-                      <Select v-model="selectedService.billing.mode" :options="serviceBillingModeOptions" option-label="label" option-value="value" />
-                    </div>
-                    <div v-if="selectedService.billing.mode === 'prepaidTokens'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.serviceTokenCost') }}</label>
-                        <InputNumber v-model="selectedService.billing.tokenCost" :min="0" :max-fraction-digits="2" class="w-full" />
-                      </div>
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.serviceMeterKey') }}</label>
-                        <InputText v-model="selectedService.billing.meterKey" class="w-full" />
-                      </div>
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <Panel :header="$t('processDesigner.inputs')">
-                      <div class="flex flex-wrap gap-2">
-                        <Tag v-for="input in selectedService.inputs" :key="input.id" :value="input.entityType || input.id" size="small" />
-                      </div>
-                    </Panel>
-                    <Panel :header="$t('processDesigner.outputs')">
-                      <div class="flex flex-wrap gap-2">
-                        <Tag v-for="output in selectedService.outputs" :key="output.id" :value="output.entityType || output.id" size="small" severity="success" />
-                      </div>
-                    </Panel>
-                  </div>
-                </template>
-
-                <template v-else-if="selectedNode.type === 'socket'">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.direction') }}</label>
-                    <Select v-model="selectedSocket.direction" :options="socketDirections" option-label="label" option-value="value" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.entityType') }}</label>
-                    <Select v-model="selectedSocket.entityType" :options="entityTypeOptions" option-label="label" option-value="value" />
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.projectedFields') }}</label>
-                      <MultiSelect v-model="selectedSocket.projection.fields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.excludedFields') }}</label>
-                      <MultiSelect v-model="selectedSocket.projection.excludeFields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.sendRoles') }}</label>
-                      <MultiSelect v-model="selectedSocket.access.sendRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.receiveRoles') }}</label>
-                      <MultiSelect v-model="selectedSocket.access.receiveRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.receiverLifecycle') }}</label>
-                    <Select v-model="selectedSocket.receiverLifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
-                  </div>
-                </template>
-
                 <template v-else-if="selectedNode.type === 'statusDefinition'">
                   <div class="grid grid-cols-2 gap-2">
                     <div class="flex min-w-0 flex-col gap-1">
@@ -502,11 +270,76 @@
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeStatusDefinition(selectedStatusDefinition.id)" />
                 </template>
 
-                <template v-else-if="selectedNode.type === 'valueInput'">
-                  <Tag :value="processPortTypeLabel(selectedValueInput.outputs?.[0]?.kind || selectedValueInput.valueType)" severity="info" size="small" />
-                </template>
 
                 <template v-else-if="selectedNode.type === 'processNode'">
+                  <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.producerWorkflow')" class="mt-0">
+                        <div class="flex flex-col gap-3">
+                          <Tag :value="`${selectedEntity.producerOutputId} · ${selectedEntity.entityType}`" severity="info" size="small" />
+        <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.lifecycleMode') }}</label>
+          <Select v-model="selectedEntity.lifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
+        </div>
+
+        <Panel :header="$t('processDesigner.statusMachine')">
+          <div class="flex flex-col gap-3">
+            <div class="flex flex-wrap gap-2">
+              <Tag v-for="state in lifecycleStateEntries" :key="state.value" :value="state.label" size="small" />
+            </div>
+            <div class="flex gap-2">
+              <InputText v-model="newStateId" class="min-w-0 flex-1" :placeholder="$t('processDesigner.stateId')" />
+              <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addState')" size="small" @click="addLifecycleState" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <div v-for="(transition, index) in lifecycleTransitions" :key="`${transition.from}-${transition.to}-${index}`" class="rounded-ui border border-content-border p-2">
+                <div class="grid grid-cols-2 gap-2">
+                  <Select :model-value="transition.from" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { from: value })" />
+                  <Select :model-value="transition.to" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { to: value })" />
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  <MultiSelect :model-value="transition.access?.processRoleIds || []" :options="roleOptions" option-label="label" option-value="value" display="chip" class="min-w-0 flex-1" @update:model-value="value => updateTransitionRoles(index, value)" />
+                  <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeLifecycleTransition(index)" />
+                </div>
+              </div>
+            </div>
+            <Button icon="pi pi-arrow-right" :label="$t('processDesigner.addTransition')" size="small" severity="secondary" outlined @click="addLifecycleTransition" />
+          </div>
+        </Panel>
+
+        <div class="grid grid-cols-1 gap-3">
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.readRoles') }}</label>
+            <MultiSelect v-model="selectedEntity.allowedRoles.read" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.writeRoles') }}</label>
+            <MultiSelect v-model="selectedEntity.allowedRoles.write" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.adminRoles') }}</label>
+            <MultiSelect v-model="selectedEntity.allowedRoles.admin" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-3">
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.publicFields') }}</label>
+            <MultiSelect v-model="selectedEntity.fields.read" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.writeFields') }}</label>
+            <MultiSelect v-model="selectedEntity.fields.write" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.privateFields') }}</label>
+            <MultiSelect v-model="selectedEntity.fields.private" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.relations') }}</label>
+            <MultiSelect v-model="selectedEntity.relations" :options="relationOptionsForEntity(selectedEntity.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="syncNodeData" />
+          </div>
+        </div>
+
+                        </div>
+                  </Panel>
                   <div v-if="selectedProcessNode.kind && !selectedProcessNode.kind.startsWith('effect.') && !selectedProcessNode.kind.startsWith('control.') && !selectedProcessNode.kind.startsWith('source.')" class="flex flex-col gap-2">
                     <label>{{ $t('processDesigner.dataMatching') }}</label>
                     <Select v-model="selectedProcessNode.matching" :options="dataMatchingOptions" option-label="label" option-value="value" size="small" @change="syncNodeData" />
@@ -809,6 +642,104 @@
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedRole" />
                   <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" outlined size="small" @click="navigateTo('/organization/users')" />
                 </div>
+
+                <Panel :header="$t('processDesigner.services')" toggleable collapsed>
+                  <div class="flex flex-col gap-3">
+                    <div class="flex flex-wrap gap-2">
+                      <Tag
+                        v-for="service in serviceList"
+                        :key="service.id"
+                        :value="service.label || service.id"
+                        :severity="selectedServiceId === service.id ? 'success' : 'secondary'"
+                        class="cursor-pointer"
+                        @click="selectedServiceId = service.id"
+                      />
+                    </div>
+                    <div v-if="selectedServiceRecord" class="flex flex-col gap-3">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.commandId') }}</label>
+                        <Select v-model="selectedServiceRecord.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncServiceFromCommand(selectedServiceRecord)" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.runPrincipals') }}</label>
+                        <MultiSelect v-model="selectedServiceRecord.access.runPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.viewPrincipals') }}</label>
+                        <MultiSelect v-model="selectedServiceRecord.access.viewPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.serviceBillingMode') }}</label>
+                        <Select v-model="selectedServiceRecord.billing.mode" :options="serviceBillingModeOptions" option-label="label" option-value="value" />
+                      </div>
+                      <div v-if="selectedServiceRecord.billing.mode === 'prepaidTokens'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div class="flex flex-col gap-1">
+                          <label>{{ $t('processDesigner.serviceTokenCost') }}</label>
+                          <InputNumber v-model="selectedServiceRecord.billing.tokenCost" :min="0" :max-fraction-digits="2" class="w-full" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          <label>{{ $t('processDesigner.serviceMeterKey') }}</label>
+                          <InputText v-model="selectedServiceRecord.billing.meterKey" class="w-full" />
+                        </div>
+                      </div>
+                      <Panel :header="$t('processDesigner.outputs')" toggleable collapsed>
+                        <div class="flex flex-wrap gap-2">
+                          <Tag v-for="input in selectedServiceRecord.inputs" :key="input.id" :value="input.entityType || input.id" size="small" />
+                          <Tag v-for="output in selectedServiceRecord.outputs" :key="output.id" :value="output.entityType || output.id" size="small" severity="success" />
+                        </div>
+                      </Panel>
+                      <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedService" />
+                    </div>
+                    <Button icon="pi pi-plus" :label="$t('processDesigner.addService')" size="small" severity="secondary" outlined @click="addService" />
+                  </div>
+                </Panel>
+
+                <Panel :header="$t('processDesigner.sockets')" toggleable collapsed>
+                  <div class="flex flex-col gap-3">
+                    <div class="flex flex-wrap gap-2">
+                      <Tag
+                        v-for="socket in socketList"
+                        :key="socket.id"
+                        :value="socket.label || socket.id"
+                        :severity="selectedSocketId === socket.id ? 'success' : 'secondary'"
+                        class="cursor-pointer"
+                        @click="selectedSocketId = socket.id"
+                      />
+                    </div>
+                    <div v-if="selectedSocketRecord" class="flex flex-col gap-3">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.direction') }}</label>
+                        <Select v-model="selectedSocketRecord.direction" :options="socketDirections" option-label="label" option-value="value" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.entityType') }}</label>
+                        <Select v-model="selectedSocketRecord.entityType" :options="entityTypeOptions" option-label="label" option-value="value" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.projectedFields') }}</label>
+                        <MultiSelect v-model="selectedSocketRecord.projection.fields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.excludedFields') }}</label>
+                        <MultiSelect v-model="selectedSocketRecord.projection.excludeFields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.sendRoles') }}</label>
+                        <MultiSelect v-model="selectedSocketRecord.access.sendRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.receiveRoles') }}</label>
+                        <MultiSelect v-model="selectedSocketRecord.access.receiveRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.receiverLifecycle') }}</label>
+                        <Select v-model="selectedSocketRecord.receiverLifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
+                      </div>
+                      <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedSocket" />
+                    </div>
+                    <Button icon="pi pi-plus" :label="$t('processDesigner.addSocket')" size="small" severity="secondary" outlined @click="addSocket" />
+                  </div>
+                </Panel>
               </div>
             </TabPanel>
 
@@ -1027,14 +958,9 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain } from '@cutkit/domain-cnc';
-import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
-import ProcessEntityNode from '~/components/process-designer/ProcessEntityNode.vue';
-import ProcessServiceNode from '~/components/process-designer/ProcessServiceNode.vue';
-import ProcessSocketNode from '~/components/process-designer/ProcessSocketNode.vue';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
-import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
@@ -1175,10 +1101,7 @@ const {
   selectedRecord,
   selectedEntity,
   selectedAction,
-  selectedService,
-  selectedSocket,
   selectedStatusDefinition,
-  selectedValueInput,
   selectedProcessNode
 } = useProcessDesignerInspector({
   draft,
@@ -1539,7 +1462,36 @@ const permissionFeatureOptions = computed(() => screenFeatureOptions.value.map(o
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
 const selectedActionEntityType = computed(() => actionEntityType(selectedAction.value) || (selectedNode.value ? inferIncomingEntityContract(selectedNode.value.id).entityType : ''));
 const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedActionEntityType.value));
-const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
+const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocketRecord.value?.entityType));
+const serviceList = computed(() => Object.values(draft.value?.data?.services || {}));
+const socketList = computed(() => Object.values(draft.value?.data?.sockets || {}));
+const selectedServiceId = ref('');
+const selectedSocketId = ref('');
+const selectedServiceRecord = computed(() => draft.value?.data?.services?.[selectedServiceId.value] || serviceList.value[0] || null);
+const selectedSocketRecord = computed(() => draft.value?.data?.sockets?.[selectedSocketId.value] || socketList.value[0] || null);
+const selectedEntityAvailable = computed(() => Boolean(selectedEntity.value?.producerOutputId));
+function addService() {
+  const id = `service_${Date.now()}`;
+  draft.value.data.services ||= {};
+  draft.value.data.services[id] = createService(id);
+  selectedServiceId.value = id;
+}
+function removeSelectedService() {
+  if (!selectedServiceRecord.value) return;
+  delete draft.value.data.services[selectedServiceRecord.value.id];
+  selectedServiceId.value = '';
+}
+function addSocket() {
+  const id = `socket_${Date.now()}`;
+  draft.value.data.sockets ||= {};
+  draft.value.data.sockets[id] = createSocket(id);
+  selectedSocketId.value = id;
+}
+function removeSelectedSocket() {
+  if (!selectedSocketRecord.value) return;
+  delete draft.value.data.sockets[selectedSocketRecord.value.id];
+  selectedSocketId.value = '';
+}
 const selectedActionGrants = computed(() => normalizeDesignerAccess(selectedAction.value.access).grants);
 const actionGrantFeature = computed(() => selectedActionEntityType.value ? featureForEntityType(selectedActionEntityType.value) : '');
 const processNodeGrantFeature = computed(() => {
@@ -4340,25 +4292,13 @@ function fieldPolicyForEntity(entityType) {
   return entityType ? designer.fieldPolicy(entityType) : {};
 }
 
-function syncEntityDefaults() {
-  selectedEntity.value.label = selectedEntity.value.entityType;
-  selectedEntity.value.relations = relationOptionsForEntity(selectedEntity.value.entityType).map(option => option.value);
-  selectedEntity.value.fields ||= { read: [], write: [], private: [] };
-  if (!selectedEntity.value.fields.read?.length) {
-    selectedEntity.value.fields.read = ['identity.*', 'status.*', 'lineage.*']
-      .filter(path => fieldOptionsForSelectedEntity.value.some(item => item.value === path));
-  }
-  syncEntityProfileIo(selectedEntity.value);
-  syncNodeData();
-}
-
-function syncServiceFromCommand() {
-  const command = cncDomain.commands?.[selectedService.value.commandId];
-  if (!command) return;
-  selectedService.value.label = command.label || command.id;
-  selectedService.value.serviceType = command.service;
-  selectedService.value.inputs = commandInputs(command);
-  selectedService.value.outputs = commandOutputs(command);
+function syncServiceFromCommand(service = selectedServiceRecord.value) {
+  const command = cncDomain.commands?.[service?.commandId];
+  if (!command || !service) return;
+  service.label = command.label || command.id;
+  service.serviceType = command.service;
+  service.inputs = commandInputs(command);
+  service.outputs = commandOutputs(command);
   syncNodeData();
 }
 

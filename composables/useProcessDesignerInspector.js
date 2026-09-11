@@ -37,6 +37,19 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
     return ensureRecord(recordKeyForType(type), node, factoryForType(type));
   }
 
+  // The entity-producing process node is the only workflow editing anchor:
+  // selecting it resolves its producer output directly instead of projecting
+  // a second detached entity canvas node.
+  function producerOutputForProcessNode() {
+    const node = selectedNode.value;
+    if (node?.type !== 'processNode') return {};
+    const record = selectedRecordFor('processNode');
+    const producerOutputId = record?.producerOutputId;
+    return producerOutputId && draft.value?.data?.producerOutputs?.[producerOutputId]
+      ? draft.value.data.producerOutputs[producerOutputId]
+      : {};
+  }
+
   return {
     ensureRecord,
     factoryForType,
@@ -46,7 +59,11 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
       if (!node) return {};
       return ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
     }),
-    selectedEntity: computed(() => selectedRecordFor('entity')),
+    selectedEntity: computed(() => (
+      Object.keys(producerOutputForProcessNode()).length
+        ? producerOutputForProcessNode()
+        : selectedRecordFor('entity')
+    )),
     selectedAction: computed(() => selectedRecordFor('action')),
     selectedService: computed(() => selectedRecordFor('service')),
     selectedSocket: computed(() => selectedRecordFor('socket')),
