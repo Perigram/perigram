@@ -186,7 +186,10 @@ and hover/focus metadata; the inspector does not repeat a socket-specification
 table.
 Pure and read nodes expose an on-demand Output data inspector. It evaluates
 only the selected node and its upstream data dependencies, then renders each
-output as branch paths, sampled values, and branch/item counts. Effects and
+output with its declared socket type beside branch paths, sampled values, and
+branch/item counts. Sampled items distinguish a present `null` from a missing
+field (`missing(<path>)`, the serialized missing-field tag) and secret or
+opaque values arrive already redacted by the preview boundary. Effects and
 control nodes never show this inspection action because preview execution
 deliberately suppresses them.
 The palette and inspector are independently collapsible and scrollable. Palette search matches

@@ -1654,9 +1654,42 @@ vitest/node:test harness-mismatch file, 8 passed under `node --test`);
 - [x] Add unreachable/dead-end diagnostics for values that cannot reach a
   persistence or visible output. Keep an intentionally inspectable pure-data
   subgraph valid, but report it as non-operational.
-- [ ] Make Output Preview evaluate all pure/read nodes over item/list/tree data
+- [x] Make Output Preview evaluate all pure/read nodes over item/list/tree data
   and show branch paths, item counts, sampled typed values, null/missing state,
   and field-access redaction. It must never execute persistence effects.
+
+##### Agent Notes — 2026-09-11 output preview closeout
+
+The evaluation core already existed (`previewProcessDataflow` in
+`packages/processes/src/orchestration.js`: every non-effect/non-control node,
+per-output trees through the real read environment, effect suppression). This
+session closed the display and evidence gaps rather than adding a second
+preview path:
+
+- Sampled typed values: the designer inspector now shows each output's
+  declared socket type (`formatProcessType` from the resolved catalog ports)
+  beside its label and branch/item counts
+  (`pages/organization/process.vue` `selectedNodePreviewOutputs`).
+- Null/missing state: preview items render a present `null` as `null` and a
+  serialized missing-field tag as `missing(<path>)`
+  (`formatPreviewItem`); package coverage pins the marker surviving preview
+  evaluation distinct from a present nullable field
+  (`orchestration.spec.js`).
+- Field-access redaction stays enforced at the boundaries the architecture
+  already owns: preview entity reads re-enter the registered services with the
+  author's complete auth context (private-field policies applied by the access
+  engine), and value-shape redaction rewrites secret/opaque items to
+  `[redacted]` — now pinned by a focused preview test.
+- Topology evidence: branch paths (integer segments), per-branch item counts,
+  and truncation under a preview limit are pinned with a literal-tree fixture;
+  effect suppression was already pinned and is unchanged.
+
+Validation: `npx vitest run packages/processes` 356 passed; SFC compile check
+for `pages/organization/process.vue` passed; the full focused battery
+(`packages/processes packages/domain-cnc server/runtime
+server/features/process-definitions`) passed 436 tests plus the `node:test`
+run-repository suite (8 passed); `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
 - [ ] Add a semantic Apply diff: changed CRUD capabilities, grants, workflows,
   screens, actions, field policies, and entity statuses that would become
   invalid. Require a migration decision when active entities use removed
