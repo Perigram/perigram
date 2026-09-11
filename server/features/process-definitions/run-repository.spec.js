@@ -169,6 +169,30 @@ test('concurrent duplicate receipt delivery advances connected routes exactly on
   assert.equal(execution.outputs.length, 1);
 });
 
+test('conflicting completion identity cannot consume the wait twice', async () => {
+  const repository = await seededRepository(new PersistentMongoFixture());
+  await repository.createInvocation(invocation());
+  await repository.markDispatched('invocation-1');
+  let advances = 0;
+  const first = await repository.ingestReceipt(
+    { invocationId: 'invocation-1', receiptId: 'receipt-1', outputId: 'output-1', socketId: 'done', output: 42 },
+    { advance: async () => { advances += 1; } }
+  );
+  assert.equal(first.applied, true);
+
+  const conflicting = await repository.ingestReceipt(
+    { invocationId: 'invocation-1', receiptId: 'receipt-conflicting', outputId: 'output-1', socketId: 'done', output: 43 },
+    { advance: async () => { advances += 1; } }
+  );
+  assert.equal(conflicting.applied, false);
+  assert.equal(conflicting.reason, 'duplicate');
+
+  const execution = await repository.getExecution('run-1');
+  assert.equal(advances, 1);
+  assert.equal(execution.receipts.length, 1);
+  assert.equal(execution.outputs.length, 1);
+});
+
 test('restart discovers dispatched invocation without receipt and accepts redelivery once', async () => {
   const connection = new PersistentMongoFixture();
   const beforeCrash = await seededRepository(connection);

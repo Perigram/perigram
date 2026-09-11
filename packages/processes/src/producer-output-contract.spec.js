@@ -94,6 +94,45 @@ describe('producer output process contract', () => {
 });
 
 describe('producer output entry-state and binding diagnostics', () => {
+  it('compiles two same-type producers into independent workflows and field policies', () => {
+    const source = definition();
+    const base = source.producerOutputs['create:entity'];
+    source.producerOutputs = {
+      'create_a:entity': {
+        ...structuredClone(base),
+        producerOutputId: 'create_a:entity',
+        nodeId: 'create_a'
+      },
+      'import_b:entity': {
+        ...structuredClone(base),
+        producerOutputId: 'import_b:entity',
+        nodeId: 'import_b',
+        lifecycle: {
+          mode: 'custom',
+          workflow: {
+            schemaVersion: 2,
+            primaryRegion: 'main',
+            regions: { main: { initial: 'IMPORTED', states: { IMPORTED: { canUpdateMeta: true } }, transitions: [] } }
+          }
+        }
+      }
+    };
+    source.graph.nodes = [
+      { id: 'create_a', type: 'entity', data: { refId: 'create_a:entity' } },
+      { id: 'import_b', type: 'entity', data: { refId: 'import_b:entity' } }
+    ];
+
+    const compiled = compileProcessDefinition(source, domain);
+    expect(compiled.entityTypeIndex).toEqual({ project: ['create_a:entity', 'import_b:entity'] });
+    const createA = compiled.producerOutputs['create_a:entity'];
+    const importB = compiled.producerOutputs['import_b:entity'];
+    expect(createA.workflow.initial).toBe('CREATED');
+    expect(importB.workflow.initial).toBe('IMPORTED');
+    expect(createA.workflow).not.toBe(importB.workflow);
+    expect(createA.fieldPolicy).not.toBe(importB.fieldPolicy);
+    expect(importB.fieldPolicy).toMatchObject({ read: [], write: [], private: [] });
+  });
+
   it('rejects a lifecycle entry state that is not declared', () => {
     const invalid = definition();
     invalid.producerOutputs['create:entity'].lifecycle = {

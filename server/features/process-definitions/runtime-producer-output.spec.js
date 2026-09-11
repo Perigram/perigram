@@ -3,9 +3,10 @@ import { compileActiveProcessRuntime, resolveCompiledProducerOutputWorkflow } fr
 
 const compiled = {
   producerOutputs: {
-    'create:entity': { entityType: 'project', workflow: { primaryRegion: 'main' } }
+    'create:entity': { entityType: 'project', workflow: { primaryRegion: 'main' } },
+    'import:entity': { entityType: 'project', workflow: { primaryRegion: 'imported' } }
   },
-  entityTypeIndex: { project: ['create:entity'] }
+  entityTypeIndex: { project: ['create:entity', 'import:entity'] }
 };
 
 describe('process workflow resolution', () => {
@@ -51,5 +52,18 @@ describe('process workflow resolution', () => {
       producerOutputId: 'create:entity',
       entityType: 'queue'
     })).toThrow('emits project, not queue');
+  });
+
+  it('resolves the exact same-type producer among candidates and never falls back to the first', () => {
+    expect(resolveCompiledProducerOutputWorkflow({
+      compiled,
+      producerOutputId: 'import:entity',
+      entityType: 'project'
+    })).toEqual({ primaryRegion: 'imported' });
+
+    expect(() => resolveCompiledProducerOutputWorkflow({
+      compiled,
+      entityType: 'project'
+    })).toThrow('producerOutputId is required');
   });
 });
