@@ -862,11 +862,85 @@ export function validateRequiredInputAvailability(process = {}, domain = {}) {
         if (CONTEXT_RESOLVABLE_PORTS.has(port.id)) sources.push('runtime context');
       }
       if (!sources.length) {
+        const producerContext = record.producerOutputId
+          ? ` of producer output ${record.producerOutputId}`
+          : '';
         errors.push(
-          `Required input ${port.id} on ${record.kind} node ${record.label || recordId} has no available source `
+          `Required input ${port.id} on ${record.kind} node ${record.label || recordId}${producerContext} has no available source `
           + (manual ? '(connected, fallback, default, manual prompt, or runtime context)' : '(connected, fallback, or default; a manual prompt cannot satisfy an automatically evaluated path)')
         );
       }
+    }
+  }
+  return errors;
+}
+
+function resolveSourceProducerOutputId(process, source, sourcePort) {
+  if (!source?.id) return null;
+  const candidates = Object.values(process.producerOutputs || {})
+    .filter(output => output?.nodeId === source.id);
+  const exactKey = sourcePort?.id ? `${source.id}:${sourcePort.id}` : '';
+  const exact = exactKey && candidates.find(output => (
+    output.producerOutputId === exactKey || output.outputSocketId === sourcePort.id
+  ));
+  if (exact) return exact.producerOutputId;
+  const portEntityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || '';
+  const matching = portEntityType
+    ? candidates.filter(output => output.entityType === portEntityType)
+    : candidates;
+  return matching.length === 1 ? matching[0].producerOutputId : null;
+}
+
+export function validateLineageBindingResolution(process = {}, domain = {}) {
+  const errors = [];
+  const recordsByGraphId = new Map((process.graph?.nodes || []).map(node => [
+    String(node.id),
+    (process.processNodes || {})[String(node.data?.refId || node.id)]
+  ]));
+  for (const edge of process.graph?.edges || []) {
+    const target = recordsByGraphId.get(String(edge.target));
+    if (!target || target.compositionMode !== 'ancestors') continue;
+    const handle = normalizeHandle(edge.targetHandle);
+    if (!handle.startsWith('entry:')) continue;
+    const entryId = handle.replace(/^entry:/, '');
+    const entry = (target.entries || []).find(item => item.id === entryId);
+    if (!entry) {
+      errors.push(`Edge ${edge.id} targets missing lineage entry ${entryId} on ${target.id || target.label}`);
+      continue;
+    }
+    const source = recordsByGraphId.get(String(edge.source));
+    if (!source) {
+      errors.push(`Edge ${edge.id} cannot resolve lineage source node ${String(edge.source)} for entry ${entry.id} on ${target.id}`);
+      continue;
+    }
+    let sourcePort = null;
+    try {
+      sourcePort = catalogPortForHandle(
+        resolveCatalogNodePorts(source, catalogContext(domain, source)).outputs,
+        edge.sourceHandle
+      );
+    } catch { sourcePort = null; }
+    const portEntityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || '';
+    const ancestorType = portEntityType || source.entityType || entry.entityType || '';
+    if (!ancestorType) {
+      errors.push(`Edge ${edge.id} cannot resolve an ancestor entity type for lineage entry ${entry.id} on ${target.id} from source ${source.id}`);
+      continue;
+    }
+    if (ancestorType === 'organization') {
+      errors.push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} cannot use organization as an ancestor`);
+      continue;
+    }
+    const lineageKey = entry.key || lineageKeyForEntityType(ancestorType);
+    if (!lineageKey) {
+      errors.push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} has no lineage key for ancestor type ${ancestorType}`);
+      continue;
+    }
+    if (portEntityType && sourcePort?.id
+      && !resolveSourceProducerOutputId(process, source, sourcePort)) {
+      errors.push(
+        `Edge ${edge.id} lineage source socket ${source.id}:${sourcePort.id} on ${source.id} emits entity type ${portEntityType} `
+        + `but has no resolvable producer output record`
+      );
     }
   }
   return errors;
@@ -939,6 +1013,8 @@ export function compileLineageBindings(process = {}, domain = {}) {
     let outputs = [];
     try { outputs = resolveCatalogNodePorts(source, catalogContext(domain, source)).outputs; } catch { outputs = []; }
     const sourcePort = catalogPortForHandle(outputs, edge.sourceHandle);
+    const sourceProducerOutputId = resolveSourceProducerOutputId(process, source, sourcePort)
+      || source.producerOutputId || null;
     const ancestorType = sourcePort?.type?.entityType
       || sourcePort?.type?.itemType?.entityType
       || source.entityType
@@ -960,17 +1036,17 @@ export function compileLineageBindings(process = {}, domain = {}) {
       for (const { node } of producerConsumers) {
         const childEntityType = node.entityType || target.targetEntityType || target.entityType || '';
         if (!childEntityType) continue;
-        bindings.push({
-          childEntityType,
-          ancestorEntityType: ancestorType,
-          lineageKey,
-          producerOutputId: node.producerOutputId || null,
-          sourceProducerOutputId: source.producerOutputId || null,
-          sourceNode: String(edge.source),
-          sourceSocket: String(edge.sourceHandle || ''),
-          consumingNode: String(edge.target),
-          consumingSocket: String(edge.targetHandle || '')
-        });
+      bindings.push({
+        childEntityType,
+        ancestorEntityType: ancestorType,
+        lineageKey,
+        producerOutputId: node.producerOutputId || null,
+        sourceProducerOutputId,
+        sourceNode: String(edge.source),
+        sourceSocket: String(edge.sourceHandle || ''),
+        consumingNode: String(edge.target),
+        consumingSocket: String(edge.targetHandle || '')
+      });
       }
       continue;
     }
@@ -986,7 +1062,7 @@ export function compileLineageBindings(process = {}, domain = {}) {
         ancestorEntityType: ancestorType,
         lineageKey,
         producerOutputId: null,
-        sourceProducerOutputId: source.producerOutputId || null,
+        sourceProducerOutputId,
         sourceNode: String(edge.source),
         sourceSocket: String(edge.sourceHandle || ''),
         consumingNode: String(edge.target),
@@ -3405,6 +3481,13 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
   }
 }
 
+function edgeSourceProducerLabel(process, sourceRecord, sourcePort) {
+  const portEntityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || '';
+  if (!portEntityType) return '';
+  const producerOutputId = resolveSourceProducerOutputId(process, sourceRecord, sourcePort);
+  return producerOutputId ? ` from producer output ${producerOutputId}` : '';
+}
+
 function validateDataflowEdges(process, domain) {
   const errors = [];
   const graphNodes = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
@@ -3426,8 +3509,9 @@ function validateDataflowEdges(process, domain) {
       errors.push(`Edge ${edge.id} references missing input ${edge.targetHandle} on ${targetRecord.id}`);
       continue;
     }
+    const producerLabel = edgeSourceProducerLabel(process, sourceRecord, sourcePort);
     const compatibility = processSocketsCompatible(sourcePort, targetPort);
-    if (!compatibility.ok) errors.push(`Edge ${edge.id} is incompatible: ${compatibility.reason}`);
+    if (!compatibility.ok) errors.push(`Edge ${edge.id}${producerLabel} is incompatible: ${compatibility.reason}`);
     if (compatibility.ok
       && ['record.composeBlock', 'record.modifyBlock'].includes(sourceRecord.kind)
       && ['effect.createEntity', 'effect.updateEntity'].includes(targetRecord.kind)) {

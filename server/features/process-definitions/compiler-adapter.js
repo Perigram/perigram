@@ -4,7 +4,8 @@ import {
   migrateProducerOutputIdentities,
   PROCESS_DATAFLOW_VERSION,
   validateProcessDefinition,
-  validateRequiredInputAvailability
+  validateRequiredInputAvailability,
+  validateLineageBindingResolution
 } from '~/packages/processes/src/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 
@@ -27,7 +28,8 @@ export function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
   const process = validation.definition || normalizeProcessDefinition(data);
   const errors = [
     ...(validation.errors || []),
-    ...validateRequiredInputAvailability(process, domain)
+    ...validateRequiredInputAvailability(process, domain),
+    ...validateLineageBindingResolution(process, domain)
   ];
   if (!errors.length) return validation;
   return {

@@ -1,5 +1,6 @@
 export {
   requiredEffectCapability,
   validateProcessDefinition,
-  validateRequiredInputAvailability
+  validateRequiredInputAvailability,
+  validateLineageBindingResolution
 } from './compiler-core.js';
