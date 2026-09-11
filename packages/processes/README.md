@@ -59,6 +59,12 @@ Workflow synthesis never selects a first or default state — a region without a
 declared entry state is a validation error naming the producer output and
 region, and compilation of such a definition throws before any workflow is
 emitted.
+Validation also emits non-operational warnings: any process node whose values
+cannot reach a persistence effect (reverse reachability over graph edges with
+`effect.*` nodes as the operational sinks) is reported as inspect-only. An
+intentionally inspectable pure-data subgraph therefore stays valid while being
+surfaced as dead-end diagnostics through the compiled `warnings` channel the
+designer already renders.
 
 `migrateProducerOutputIdentities()` is the one-way persisted-definition
 rewrite for v4 records created before that identity was stored. It derives
