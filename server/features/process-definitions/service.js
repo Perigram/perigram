@@ -418,7 +418,7 @@ export async function failTaskInvocation({ taskRunId, error = null, cancelled = 
 
 export async function reconcileProcessTaskRuns() {
   const runRepository = getRunRepository(await repository.getConnection());
-  const { getTaskRunById } = await import('../core/tasks/service.js');
+  const { getTaskRunById } = await import('../../core/tasks/service.js');
   const pending = await runRepository.findUnreceiptedInvocations();
   const summary = { scanned: pending.length, ingested: 0, failed: 0, skipped: 0 };
   for (const invocation of pending) {

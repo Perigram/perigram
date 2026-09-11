@@ -581,6 +581,23 @@ specFiles.forEach(file => {
   }
 });
 
+console.log('\n--- Dynamic import resolution ---');
+// A bad relative dynamic import resolves fine under vite-node until the code
+// path runs, but Nitro resolves it statically and the whole server bundle
+// fails (every route 503). Guard the whole class: every relative import()
+// specifier under server/ must resolve to a real file.
+for (const file of walkDir('server').filter(item => item.endsWith('.js') && !item.endsWith('.spec.js'))) {
+  const relFile = path.relative('.', file);
+  const content = fs.readFileSync(file, 'utf8');
+  for (const match of content.matchAll(/import\s*\(\s*['"](\.[^'"]+)['"]\s*\)/g)) {
+    const resolved = path.resolve(path.dirname(file), match[1]);
+    if (!fs.existsSync(resolved)) {
+      console.error(`❌ ${relFile} dynamic import '${match[1]}' does not resolve to a file`);
+      errors++;
+    }
+  }
+}
+
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {
   console.log('✅ All features comply with v24 Golden Path.');
