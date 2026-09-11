@@ -2123,7 +2123,7 @@ a declared asynchronous output.
 - [ ] Compile construction, lineage, relations, and access only from typed graph
   connections. Include source and consumer producer/socket identity in binding
   keys and remove type-only binding deduplication.
-- [ ] Add per-output command/task metadata for persistence owner and result
+- [x] Add per-output command/task metadata for persistence owner and result
   timing; validate handler results/effects against it and migrate every existing
   command/task declaration without behavior inference.
 - [ ] Add durable run/invocation/wait/receipt storage and task-completion
@@ -2168,6 +2168,53 @@ a declared asynchronous output.
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a
   detached-profile or type-global fallback.
+
+#### Agent Notes — 2026-09-11 command output ownership and timing
+
+Closed the per-output metadata checkbox above:
+
+- **Declaration contract.** Every command and task entity output in
+  `packages/domain-cnc/src/{commands,tasks}.js` is now a
+  `{ type, persistenceOwner, timing }` record. All current CNC outputs are
+  `commandOwned` (persisted inside the command/task boundary); timings follow
+  real handler behavior — `solveNesting` declares `nesting_run` immediate with
+  `sheet_design`/`sheet` completion, `nesting.solve` declares all three
+  completion (including the `sheet` output the task result demonstrably
+  persists but previously did not declare), and `convertArtifact`,
+  `saveCassetteTemplate`, `cassette.bakeTemplate`, and `vision.extractGeometry`
+  declare their persisted outputs. The legacy `requiredEntityProfiles` key and
+  the dead `requiredProducerOutputEntityTypes` helper (never consumed by
+  validation or activation) are removed with their re-exports and spec.
+- **Result enforcement.** `@cutkit/core` owns
+  `normalizeEntityOutputContracts`/`validateResultEntityOutputs`
+  (re-exported through `server/core/blocks`). `executeCommand` validates the
+  final immediate result (handler entities plus effect-contributed entities)
+  against the command's declared outputs; `completeTaskRun` validates terminal
+  task results at completion phase. Violations — undeclared entity types,
+  completion outputs in an immediate result, command-owned outputs without
+  persisted references, graph-owned outputs carrying persisted entities —
+  fail the run with a 500 contract error. Completion results may re-report
+  immediate-declared outputs (the nesting task legitimately re-reports its
+  run), which is the documented rule; early population of completion outputs
+  is what stays forbidden.
+- **Consumers.** Compiler command-output types, the node catalog's command
+  output sockets, and devtools projections read the record `type` field; the
+  domain-builder validator enforces the record shape for ConfigBot drafts.
+  Fixtures (`index.spec.js`, `node-catalog.spec.js`, `orchestration.spec.js`,
+  `framework-packages.spec.js`, `artifact-conversions.spec.js`) author the
+  records. No graphOwned output exists in the CNC domain yet; the validation
+  rule is pinned by `packages/core/src/entity-output-contracts.spec.js` and
+  the declaration matrix by
+  `packages/domain-cnc/src/command-output-contracts.spec.js`.
+- Durable ingestion remains the next scope: completion ingestion projects
+  TaskResult values through these same declared contracts.
+
+Validation: `npx vitest run packages/domain-cnc packages/core
+packages/processes utils server/features/config-bot server/core/machines`
+565 passed; full `server` battery matches the primary checkout exactly (the
+pre-existing cassettes Mongo-namespace, localization, entity-select, and
+framework-manifest failures are unchanged); `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
 
 #### Agent Notes — 2026-09-11 producer-scope audit closeout
 

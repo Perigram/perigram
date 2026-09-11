@@ -649,9 +649,6 @@ role may access after the status change. Create-action access grants are
 conditioned by the created status in the same way, so `admin` on "create project
 as NEW" means admin over `project` entities whose current primary status is
 `NEW`, not global project admin.
-`requiredProducerOutputEntityTypes(definition, domain)` projects the entity
-schemas emitted by command-backed graph outputs. It is a validation and
-designer-discovery helper only and does not select a workflow by entity type.
 Action access compiles through status-scoped access windows. A create action
 opens the first window for the created entity state. A status-mutating update
 action inherits the incoming entity window until its `action.access.modified`
