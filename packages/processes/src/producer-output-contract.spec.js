@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compileActions, compileProcessDefinition, normalizeProcessDefinition } from './index.js';
+import { compileActions, compileProcessDefinition, normalizeProcessDefinition, validateProcessDefinition } from './index.js';
 
 const domain = {
   entities: [{ type: 'project', label: 'Project', fields: [] }],
@@ -90,5 +90,68 @@ describe('producer output process contract', () => {
 
     expect(compileProcessDefinition(source, domain).actions.create)
       .toMatchObject({ id: 'create', producerOutputId: 'create:entity', entityType: 'project' });
+  });
+});
+
+describe('producer output entry-state and binding diagnostics', () => {
+  it('rejects a lifecycle entry state that is not declared', () => {
+    const invalid = definition();
+    invalid.producerOutputs['create:entity'].lifecycle = {
+      mode: 'custom',
+      workflow: {
+        schemaVersion: 2,
+        primaryRegion: 'main',
+        regions: { main: { initial: 'READY', states: { DRAFT: {}, DONE: {} }, transitions: [] } }
+      }
+    };
+
+    const validation = validateProcessDefinition(invalid, domain);
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join('\n')).toContain("Producer output create:entity region main entry state READY is not declared");
+  });
+
+  it('keeps the declared entry state instead of selecting the first state', () => {
+    const source = definition();
+    source.producerOutputs['create:entity'].lifecycle = {
+      mode: 'custom',
+      workflow: {
+        schemaVersion: 2,
+        primaryRegion: 'main',
+        regions: { main: { initial: 'DONE', states: { DRAFT: {}, DONE: {} }, transitions: [] } }
+      }
+    };
+
+    const compiled = compileProcessDefinition(source, domain);
+    const workflow = compiled.producerOutputs['create:entity'].workflow;
+    expect(workflow.regions.main.initial).toBe('DONE');
+    expect(workflow.initial).toBe('DONE');
+  });
+
+  it('rejects an entity action without a producer binding at validation time', () => {
+    const invalid = definition();
+    invalid.actions = { rename: { id: 'rename', actionKind: 'updateEntity', entityType: 'project' } };
+
+    const validation = validateProcessDefinition(invalid, domain);
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.join('\n')).toContain('Action rename on project requires producerOutputId');
+    expect(() => compileProcessDefinition(invalid, domain)).toThrow('requires producerOutputId');
+  });
+
+  it('rejects an action bound to an unknown or mistyped producer output', () => {
+    const unknown = definition();
+    unknown.actions = { rename: { id: 'rename', actionKind: 'updateEntity', entityType: 'project', producerOutputId: 'ghost:entity' } };
+    expect(validateProcessDefinition(unknown, domain).errors.join('\n'))
+      .toContain('Action rename uses unknown producerOutputId ghost:entity');
+
+    const mistyped = definition();
+    mistyped.producerOutputs['other:entity'] = {
+      ...mistyped.producerOutputs['create:entity'],
+      producerOutputId: 'other:entity',
+      nodeId: 'other',
+      entityType: 'queue'
+    };
+    mistyped.actions = { rename: { id: 'rename', actionKind: 'updateEntity', entityType: 'project', producerOutputId: 'other:entity' } };
+    expect(validateProcessDefinition(mistyped, domain).errors.join('\n'))
+      .toContain('Action rename producerOutputId emits queue, not project');
   });
 });

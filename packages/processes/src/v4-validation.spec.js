@@ -21,11 +21,12 @@ const domain = {
   commands: {}
 };
 
-function definition(record) {
+function definition(record, extras = {}) {
   return {
     dataflowVersion: 4,
     processNodes: { node: { id: 'node', ...record } },
-    graph: { nodes: [{ id: 'node', type: 'processNode', data: { refId: 'node' } }], edges: [] }
+    graph: { nodes: [{ id: 'node', type: 'processNode', data: { refId: 'node' } }], edges: [] },
+    ...extras
   };
 }
 
@@ -673,9 +674,22 @@ describe('process v4 validation', () => {
     const result = validateProcessDefinition(definition({
       kind: 'effect.createEntity',
       entityType: 'project',
+      producerOutputId: 'node:entity',
       construction: { mode: 'genericCreate' },
       status: { to: 'NEW' },
       trigger: { mode: 'manual' }
+    }, {
+      producerOutputs: {
+        'node:entity': {
+          id: 'node:entity',
+          producerOutputId: 'node:entity',
+          nodeId: 'node',
+          outputSocketId: 'entity',
+          entityType: 'project',
+          lifecycle: { mode: 'defaultCreated' },
+          fields: { read: [], write: [], private: [] }
+        }
+      }
     }), domain);
 
     expect(result.errors).toEqual([]);
