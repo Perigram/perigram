@@ -877,6 +877,14 @@ export function validateRequiredInputAvailability(process = {}, domain = {}) {
 
 function resolveSourceProducerOutputId(process, source, sourcePort) {
   if (!source?.id) return null;
+  // An explicit producer-path Join routes its output under the producer
+  // output its configuration selects, so downstream identity resolution sees
+  // exactly one producer.
+  if (source.kind === 'producer.join' && source.selectedProducerOutputId) {
+    return process.producerOutputs?.[source.selectedProducerOutputId]
+      ? source.selectedProducerOutputId
+      : null;
+  }
   const candidates = Object.values(process.producerOutputs || {})
     .filter(output => output?.nodeId === source.id);
   const exactKey = sourcePort?.id ? `${source.id}:${sourcePort.id}` : '';
@@ -3490,6 +3498,7 @@ function edgeSourceProducerLabel(process, sourceRecord, sourcePort) {
 
 function validateDataflowEdges(process, domain) {
   const errors = [];
+  const entityEdgesByTarget = new Map();
   const graphNodes = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
   for (const edge of process.graph?.edges || []) {
     const sourceNode = graphNodes.get(String(edge.source));
@@ -3545,7 +3554,22 @@ function validateDataflowEdges(process, domain) {
         }
       }
     }
+    if (compatibility.ok) {
+      const portEntityType = sourcePort.type?.entityType || sourcePort.type?.itemType?.entityType || '';
+      const portEntityStream = sourcePort.type?.base === 'entity'
+        || (sourcePort.type?.base === 'array' && sourcePort.type?.itemType?.base === 'entity');
+      if (portEntityStream && portEntityType) {
+        const producerOutputId = resolveSourceProducerOutputId(process, sourceRecord, sourcePort);
+        if (producerOutputId) {
+          entityEdgesByTarget.set(targetRecord.id, [
+            ...(entityEdgesByTarget.get(targetRecord.id) || []),
+            { edgeId: edge.id, socketId: targetPort.id, producerOutputId, entityType: portEntityType }
+          ]);
+        }
+      }
+    }
   }
+  errors.push(...validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget));
   for (const role of ['data', 'control']) {
     const cycle = findGraphCycle(process, role);
     if (cycle.length) errors.push(`${role === 'data' ? 'Data' : 'Control'} graph contains a cycle: ${cycle.join(' → ')}`);
@@ -3561,6 +3585,60 @@ function validateDataflowEdges(process, domain) {
     if ((record?.kind?.startsWith('effect.') || record?.kind?.startsWith('control.'))
       && !record.kind.endsWith('Trigger') && !reachable.has(String(node.id))) {
       errors.push(`Operational node ${record.id || node.id} is not reachable from a trigger`);
+    }
+  }
+  return errors;
+}
+
+// Same-type producer paths may converge only through an explicit
+// `producer.join` whose configuration selects the surviving producer output.
+// Every other consumer receiving entity streams from two distinct producer
+// outputs of the same entity type is an implicit workflow convergence and is
+// rejected with the responsible node, producer outputs, and edges named.
+function validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget) {
+  const errors = [];
+  const recordsById = new Map(Object.entries(process.processNodes || {})
+    .map(([id, record]) => [record.id || id, record]));
+  for (const [targetId, entries] of entityEdgesByTarget) {
+    const record = recordsById.get(targetId);
+    if (!record) continue;
+    if (record.kind === 'producer.join') {
+      const sockets = new Map(entries.map(entry => [entry.socketId, entry]));
+      for (const input of ['primary', 'secondary']) {
+        if (!sockets.has(input)) {
+          errors.push(`Join ${record.id || targetId} requires a connected ${input} entity stream`);
+        }
+      }
+      const candidateIds = [...new Set(entries.map(entry => entry.producerOutputId))];
+      if (!record.selectedProducerOutputId) {
+        if (candidateIds.length) {
+          errors.push(`Join ${record.id || targetId} must select the resulting producer output from ${candidateIds.join(', ')}`);
+        }
+      } else if (!candidateIds.includes(record.selectedProducerOutputId)) {
+        errors.push(
+          `Join ${record.id || targetId} selects producer output ${record.selectedProducerOutputId}, `
+          + `which is not among its connected sources ${candidateIds.join(', ')}`
+        );
+      }
+      continue;
+    }
+    const byType = new Map();
+    for (const entry of entries) {
+      let producers = byType.get(entry.entityType);
+      if (!producers) {
+        producers = new Map();
+        byType.set(entry.entityType, producers);
+      }
+      producers.set(entry.producerOutputId, entry);
+    }
+    for (const [entityType, producers] of byType) {
+      if (producers.size < 2) continue;
+      const [first, second] = [...producers.values()];
+      errors.push(
+        `${record.kind} node ${record.id || targetId} implicitly converges ${entityType} producer outputs `
+        + `${first.producerOutputId} (edge ${first.edgeId}) and ${second.producerOutputId} (edge ${second.edgeId}); `
+        + `use an explicit producer join`
+      );
     }
   }
   return errors;

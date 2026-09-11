@@ -73,6 +73,14 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     { tree: required(packets, 'left', record), access: 'list' },
     { tree: required(packets, 'right', record), access: 'list' }
   ], ([left, right]) => [...left, ...right], { outputAccess: 'list', matching: record.matching });
+  // producer.join is the one legal same-type convergence point: the data
+  // semantics concatenate both streams; the surviving workflow identity is
+  // the join's selected producer output, resolved by the compiler rather
+  // than the evaluator.
+  if (kind === 'producer.join') return solveDataTrees([
+    { tree: required(packets, 'primary', record), access: 'list' },
+    { tree: required(packets, 'secondary', record), access: 'list' }
+  ], ([primary, secondary]) => [...primary, ...secondary], { outputAccess: 'list', matching: record.matching });
   if (kind === 'collection.itemAt') {
     const inputs = [{ tree: required(packets, 'items', record), access: 'list' }];
     if (packets.index) inputs.push({ tree: packets.index, access: 'item' });

@@ -545,6 +545,24 @@
                     <label>{{ $t('processDesigner.service') }}</label>
                     <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
                   </div>
+                  <div v-if="selectedProcessNode.kind === 'producer.join'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.entityType') }}</label>
+                    <Select
+                      :model-value="selectedProcessNode.entityType"
+                      :options="entityTypeOptions"
+                      option-label="label"
+                      option-value="value"
+                      @update:model-value="value => updateJoinEntityType(selectedProcessNode, value)"
+                    />
+                    <label>{{ $t('processDesigner.joinResultProducer') }}</label>
+                    <Select
+                      :model-value="selectedProcessNode.selectedProducerOutputId"
+                      :options="joinProducerOptions"
+                      option-label="label"
+                      option-value="value"
+                      @update:model-value="value => updateJoinSelectedProducer(selectedProcessNode, value)"
+                    />
+                  </div>
                   <div v-if="selectedProcessNode.kind === 'effect.createEntity' && (constructionModeOptions(selectedProcessNode.entityType).length > 1 || selectedProcessNode.entityType === 'artifact')" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.constructionMode') }}</label>
                     <Select
@@ -1467,6 +1485,38 @@ const selectedScreenRegion = computed(() => ensureSelectedScreenRegion());
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const servicePrincipalOptions = computed(() => servicePrincipalList.value.map(principal => ({ label: principal.label || principal.id, value: principal.id })));
 const entityTypeOptions = computed(() => designer.entityOptions);
+const joinProducerOptions = computed(() => {
+  const node = selectedProcessNode.value;
+  if (node?.kind !== 'producer.join') return [];
+  const producerOutputs = draft.value?.data?.producerOutputs || {};
+  const options = [];
+  for (const edge of edges.value || []) {
+    if (String(edge.target) !== String(selectedNodeId.value)) continue;
+    const sourceNode = (nodes.value || []).find(item => String(item.id) === String(edge.source));
+    const record = draft.value?.data?.processNodes?.[String(sourceNode?.data?.refId || sourceNode?.id)];
+    if (!record) continue;
+    if (record.kind === 'producer.join') {
+      if (record.selectedProducerOutputId && producerOutputs[record.selectedProducerOutputId]) {
+        options.push(producerOutputs[record.selectedProducerOutputId]);
+      }
+      continue;
+    }
+    for (const output of Object.values(producerOutputs)) {
+      if (output.nodeId === record.id && output.entityType === node.entityType) options.push(output);
+    }
+  }
+  return [...new Map(options.filter(Boolean).map(output => [output.producerOutputId, output])).values()]
+    .map(output => ({ label: `${output.producerOutputId} (${output.entityType})`, value: output.producerOutputId }));
+});
+function updateJoinEntityType(node, entityType) {
+  node.entityType = entityType;
+  node.selectedProducerOutputId = '';
+  syncNodeData();
+}
+function updateJoinSelectedProducer(node, selectedProducerOutputId) {
+  node.selectedProducerOutputId = selectedProducerOutputId;
+  syncNodeData();
+}
 const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
 const commandOptions = computed(() => designer.commandOptions);
 const screenActionOptions = computed(() => Object.values(draft.value?.data?.actions || {}).map(action => ({
@@ -2516,6 +2566,10 @@ function createProcessNode(id, kind = 'source.literalItem') {
   if (kind === 'effect.changeStatus') node.entityType = designer.changeStatusOptions[0]?.value || '';
   if (kind === 'effect.archiveEntity') node.entityType = designer.archivableEntityOptions[0]?.value || '';
   if (kind === 'effect.deleteEntity') node.entityType = designer.deleteEntityOptions[0]?.value || '';
+  if (kind === 'producer.join') {
+    node.entityType = designer.entityOptions[0]?.value || '';
+    node.selectedProducerOutputId = '';
+  }
   if (kind.startsWith('effect.')) {
     node.trigger = { mode: 'manual' };
     node.access = { level: kind === 'effect.deleteEntity' ? 'admin' : 'write', grants: [] };

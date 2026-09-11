@@ -59,7 +59,8 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('composeBlock', 'record.composeBlock'),
       paletteItem('modifyBlock', 'record.modifyBlock'),
       paletteItem('readBlock', 'record.getBlock'),
-      paletteItem('readField', 'record.getField')
+      paletteItem('readField', 'record.getField'),
+      paletteItem('joinProducers', 'producer.join')
     ]
   },
   {
@@ -102,6 +103,15 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
 
 export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   if (!node.id) return [];
+  // The explicit producer join routes its output under the producer output
+  // its configuration selects; it must never become a producer anchor itself.
+  if (node.kind === 'producer.join') {
+    const producerOutputs = data.producerOutputs ||= {};
+    for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
+      if (output?.nodeId === node.id) delete producerOutputs[producerOutputId];
+    }
+    return [];
+  }
   const outputs = (node.outputs || []).filter(output => (
     output?.id && output.type?.base === 'entity' && output.type?.entityType
   ));

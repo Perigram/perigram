@@ -251,7 +251,8 @@ describe('process designer domain contract', () => {
       'record.composeBlock',
       'record.modifyBlock',
       'record.getBlock',
-      'record.getField'
+      'record.getField',
+      'producer.join'
     ]);
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',

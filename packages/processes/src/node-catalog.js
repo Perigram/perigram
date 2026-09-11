@@ -69,6 +69,7 @@ const definitions = [
   data('record.deconstruct', 'deconstructRecord'),
   data('record.getBlock', 'getBlock'),
   data('record.entityDraft', 'constructEntityDraft'),
+  data('producer.join', 'joinProducers'),
   data('predicate.field', 'fieldPredicate'),
   data('predicate.logic', 'predicateLogic'),
 
@@ -150,7 +151,8 @@ function source(kind, label) {
 function data(kind, label) {
   const family = kind.startsWith('collection.') || kind.startsWith('tree.')
     ? 'collections'
-    : kind.startsWith('record.') ? 'records'
+    : kind.startsWith('record.') || kind.startsWith('producer.')
+      ? 'records'
       : kind.startsWith('predicate.') ? 'predicates'
         : kind.startsWith('read.') ? 'reads' : 'values';
   return definition(kind, label, family, kind.startsWith('read.') ? 'read' : 'data', true, catalogPorts);
@@ -324,6 +326,17 @@ function catalogPorts(record = {}, context = {}) {
     return { inputs: [socket('value', configured.base === 'array' ? configured : processType('array', { itemType }), DATA, true)], outputs: [socket('value', itemType, DATA, false, 'list')] };
   }
   if (kind === 'collection.concat') return { inputs: [socket('left', configured, DATA, true, 'list'), socket('right', configured, DATA, true, 'list')], outputs: [socket('value', configured, DATA, false, 'list')] };
+  // The explicit producer-path Join. Both inputs are entity streams of the
+  // same declared type; the output routes under the producer output selected
+  // by `selectedProducerOutputId`, so the join creates no producer output of
+  // its own and never silently merges workflow identity.
+  if (kind === 'producer.join') return {
+    inputs: [
+      socket('primary', entity, DATA, true, 'list'),
+      socket('secondary', entity, DATA, true, 'list')
+    ],
+    outputs: [socket('result', entity, DATA, false, 'list')]
+  };
   if (kind === 'collection.itemAt') return {
     inputs: [socket('items', configured, DATA, true, 'list'), socket('index', processType('integer'), DATA, false)],
     outputs: [socket('item', { ...configured, nullable: true })]
