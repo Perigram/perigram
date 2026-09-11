@@ -3870,5 +3870,104 @@ describe('@cutkit/processes compiler', () => {
     expect(binding.sourceSocket).toBe('data:result');
     expect(binding.consumingNode).toBe('queue_lineage');
     expect(binding.consumingSocket).toBe('entry:project');
+    expect(binding.sourceProducerOutputId).toBe('project_source:entity');
+    expect(binding.producerOutputId).toBe('create_queue:entity');
+    expect(compiled.producerOutputs['create_queue:entity'].lineageBindings).toEqual([
+      expect.objectContaining({ producerOutputId: 'create_queue:entity', lineageKey: 'projectId' })
+    ]);
+  });
+
+  it('keeps same-type lineage bindings separate by full producer and socket identity', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      roles: { operator: { id: 'operator', label: 'Operator' } },
+      producerOutputs: producerOutputRecords([
+        ['project_a', 'project'],
+        ['project_b', 'project'],
+        ['queue_a', 'queue'],
+        ['queue_b', 'queue']
+      ]),
+      processNodes: {
+        project_a: {
+          id: 'project_a',
+          kind: 'effect.createEntity',
+          entityType: 'project',
+          producerOutputId: 'project_a:entity',
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE }
+        },
+        project_b: {
+          id: 'project_b',
+          kind: 'effect.createEntity',
+          entityType: 'project',
+          producerOutputId: 'project_b:entity',
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE }
+        },
+        lineage_a: {
+          id: 'lineage_a',
+          kind: 'record.composeBlock',
+          block: 'lineage',
+          compositionMode: 'ancestors',
+          entries: [{ id: 'project' }]
+        },
+        lineage_b: {
+          id: 'lineage_b',
+          kind: 'record.composeBlock',
+          block: 'lineage',
+          compositionMode: 'ancestors',
+          entries: [{ id: 'project' }]
+        },
+        queue_a: {
+          id: 'queue_a',
+          kind: 'effect.createEntity',
+          entityType: 'queue',
+          producerOutputId: 'queue_a:entity',
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE },
+          blocks: ['lineage']
+        },
+        queue_b: {
+          id: 'queue_b',
+          kind: 'effect.createEntity',
+          entityType: 'queue',
+          producerOutputId: 'queue_b:entity',
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
+          status: { to: SOURCE_STATE },
+          blocks: ['lineage']
+        }
+      },
+      graph: {
+        nodes: ['project_a', 'project_b', 'lineage_a', 'lineage_b', 'queue_a', 'queue_b']
+          .map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'a-lineage', source: 'project_a', sourceHandle: 'data:result', target: 'lineage_a', targetHandle: 'entry:project', role: 'data' },
+          { id: 'a-queue', source: 'lineage_a', sourceHandle: 'data:block', target: 'queue_a', targetHandle: 'data:lineage', role: 'data' },
+          { id: 'b-lineage', source: 'project_b', sourceHandle: 'data:result', target: 'lineage_b', targetHandle: 'entry:project', role: 'data' },
+          { id: 'b-queue', source: 'lineage_b', sourceHandle: 'data:block', target: 'queue_b', targetHandle: 'data:lineage', role: 'data' }
+        ]
+      }
+    }, {
+      ...domain,
+      blockComposition: { lineage: { mode: 'ancestors', valueBase: 'entityRef' } },
+      blockSchemas: {
+        ...domain.blockSchemas,
+        lineage: [{ path: 'lineage', block: 'lineage', type: { base: 'map', shape: 'item' } }]
+      }
+    });
+
+    const bindings = compiled.lineageBindings.filter(item => (
+      item.childEntityType === 'queue' && item.ancestorEntityType === 'project'
+    ));
+    expect(bindings).toHaveLength(2);
+    expect(new Set(bindings.map(item => item.producerOutputId))).toEqual(new Set(['queue_a:entity', 'queue_b:entity']));
+    expect(new Set(bindings.map(item => item.sourceProducerOutputId))).toEqual(new Set(['project_a:entity', 'project_b:entity']));
+    expect(new Set(bindings.map(item => item.consumingNode))).toEqual(new Set(['lineage_a', 'lineage_b']));
+    expect(compiled.producerOutputs['queue_a:entity'].lineageBindings.map(item => item.producerOutputId)).toEqual(['queue_a:entity']);
+    expect(compiled.producerOutputs['queue_b:entity'].lineageBindings.map(item => item.producerOutputId)).toEqual(['queue_b:entity']);
   });
 });
