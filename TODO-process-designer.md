@@ -1582,13 +1582,30 @@ under `node --test`; vitest reports it as "no test suite", pre-existing harness
 mismatch); `node scripts/check-arch.js`, `npm run framework:validate`, and
 `node scripts/check-docs.js` all pass.
 
+### Agent Notes — 2026-09-11 unreachable node diagnostics
+
+Closed the unreachable/dead-end checkbox above. `validateProcessDefinition`
+(`packages/processes/src/compiler-core.js`) now computes reverse reachability
+over graph edges with `effect.*` nodes as the operational sinks and emits one
+warning per process node whose values cannot reach any persistence effect:
+`Process node <id> (<kind>) is non-operational: its values cannot reach any
+persistence effect`. Pure-data subgraphs stay valid (warnings only) and flow
+through the existing compiled `warnings` channel the designer already renders
+(`pages/organization/process.vue` Message list and activation preview).
+Coverage: `packages/processes/src/reachability-diagnostics.spec.js` pins the
+inspect-only island (valid + warned), the chain-feeding-effect case (no
+warnings), the dead-end sibling branch, and effect-only definitions.
+Validation: `npx vitest run packages/processes` 348 passed;
+`server/features/process-definitions/process-definitions.spec.js` 21 passed;
+`node scripts/check-arch.js` and `node scripts/check-docs.js` pass.
+
 ## P1 — validation and diagnostics
 
 - [x] Make Apply validate the complete fresh-graph path: domain capabilities,
   required value availability, typed connections, collection alignment,
   block policy, entity service bindings, workflow preservation, access, screens,
   and semantic canvas round-trip.
-- [ ] Add unreachable/dead-end diagnostics for values that cannot reach a
+- [x] Add unreachable/dead-end diagnostics for values that cannot reach a
   persistence or visible output. Keep an intentionally inspectable pure-data
   subgraph valid, but report it as non-operational.
 - [ ] Make Output Preview evaluate all pure/read nodes over item/list/tree data
