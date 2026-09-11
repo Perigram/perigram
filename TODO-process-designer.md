@@ -2088,7 +2088,7 @@ a declared asynchronous output.
 
 #### Required implementation
 
-- [ ] Replace `workflows[entityType]` and `fieldPolicies[entityType]` with
+- [x] Replace `workflows[entityType]` and `fieldPolicies[entityType]` with
   producer-output-keyed records plus `entityTypeIndex`; update compiler output,
   serialization, auth hydration, generated actions/screens, status resolution,
   and policy resolution together.
@@ -2132,7 +2132,7 @@ a declared asynchronous output.
   emitting `completed`; recover delivery after crashes; and use transactional
   compare-and-set plus unique completion/wait constraints for attempt-safe,
   exact-once graph advancement.
-- [ ] Remove process/action ids from entity status writes and from the
+- [x] Remove process/action ids from entity status writes and from the
   command-output-status migration. Add a data migration that removes existing
   process provenance from entity status metadata while retaining legitimate
   display, lifecycle evidence, and transition-local audit metadata.
@@ -2140,6 +2140,12 @@ a declared asynchronous output.
   workflow compilation, command-output projection, migrations, and runtime
   fallbacks. Activation must report the producer output and missing/ambiguous
   state instead of selecting one.
+  Partial 2026-09-11: designer sync, relation/access reads, and the
+  command-output-status migration now resolve only through producer outputs or
+  the domain-declared workflow (see the 2026-09-11 Agent Notes); remaining gap
+  is the workflow-compilation first-state default
+  (`region.initial || Object.keys(region.states)[0]` in `compileWorkflows`)
+  and its activation diagnostics.
 - [ ] Add producer-scoped activation diagnostics for constructor sockets, typed
   edges, lineage/relationship bindings, policy/role/access contributions, joins,
   entry states, and transitions. Every error must identify the responsible
@@ -2149,6 +2155,55 @@ a declared asynchronous output.
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a
   detached-profile or type-global fallback.
+
+#### Agent Notes — 2026-09-11 producer provenance and designer resolution
+
+Closed the type-keyed compiled records and entity-status provenance checkboxes
+above and most of the first-type-match scope:
+
+- **Type-keyed compiled records fully retired.** The compiler already emitted
+  producer-keyed `producerOutputs` plus the non-authoritative `entityTypeIndex`;
+  this session deleted the last dead type-keyed consumers
+  (`resolveWorkflow`/`resolveFieldPolicy` in
+  `packages/processes/src/compiler-core.js`, re-exported via
+  `access-compilation.js`, referenced by nothing). Grep confirms no compiled
+  `workflows[...]`/`fieldPolicies[...]` reads remain; `domain.workflows[type]`
+  stays as the allowed domain-schema lookup. Auth hydration, generated
+  actions/screens, and status resolution were already fail-closed on
+  `producerOutputId`.
+- **Entity status writes carry no process provenance.** The status engine
+  already stripped `producerOutputId` on the initial-status paths; the
+  transition path now strips it too through one shared
+  `persistableStatusMetadata` helper (`server/core/machines/service.js`),
+  pinned by a new spec asserting both the entity snapshot and the status event
+  exclude it. `migrate-process-command-output-statuses.js` no longer writes
+  `processId`/`actionId` (or the note embedding them) into status metadata and
+  resolves each target's workflow from
+  `compiled.producerOutputs[producerOutputId].workflow` — no type-keyed
+  fallback; unmapped actions are skipped with a diagnostic. New
+  `server/scripts/migrate-strip-status-process-provenance.js` (default
+  dry-run, `--apply` to write) strips the documented provenance keys and the
+  legacy migration note from `status.metadata` across domain entity
+  collections; append-only `status_events` history is intentionally left
+  untouched (documented in `server/core/machines/README.md` and
+  `server/scripts/README.md`).
+- **Designer sync resolves through the authored protocol.**
+  `pages/organization/process.vue` no longer reads `entityProfiles`: canvas
+  entity-node connections and relation choices read `producerOutputs`,
+  role-access summaries read the producer output's authored `allowedRoles`,
+  and new Create nodes seed `status.to` from the domain-declared workflow
+  initial (the compiler's own `domainDefault` resolution) instead of the first
+  persisted same-type profile. Entity types without a domain workflow seed no
+  status and fail activation with the missing entry state.
+  Remaining for the first-type-match checkbox: the workflow-compilation
+  first-state default and producer-scoped activation diagnostics.
+
+Validation: `npx vitest run packages/processes
+server/features/process-definitions/query-planning.spec.js
+server/core/machines server/features/workflow-overrides` 363 passed;
+`shared/process-designer-ui.spec.js` + composables 14 passed; SFC compile
+check for `pages/organization/process.vue` passed; `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
 
 #### Acceptance tests
 

@@ -168,6 +168,15 @@ and lifecycle evidence schemas are edited in the inspector.
 Entity producer nodes display their stable `nodeId:outputSocketId` reference
 beside the schema-only entity type. Inspector record access uses that reference,
 so same-type producers edit and persist separate workflow records.
+Designer synchronization resolves records only through the authored
+producer-output protocol: canvas entity-node connections and relation choices
+read `producerOutputs` (never detached profiles), role-access summaries read
+the producer output's authored `allowedRoles`, and a new Create node seeds its
+entry status from the domain-declared workflow initial for the entity type —
+the same deterministic `domainDefault` resolution the compiler performs —
+instead of copying a status from a persisted same-type record. Entity types
+without a domain workflow seed no status and fail activation with the missing
+entry state.
 When an operational node's resolved outputs change, the designer synchronizes
 its producer-output records and writes the sole entity output identity onto the
 derived effect action; activation therefore receives the same persisted identity
