@@ -2292,11 +2292,11 @@ a declared asynchronous output.
   workflow compilation, command-output projection, migrations, and runtime
   fallbacks. Activation must report the producer output and missing/ambiguous
   state instead of selecting one.
-- [ ] Add producer-scoped activation diagnostics for constructor sockets, typed
-  edges, lineage/relationship bindings, policy/role/access contributions, joins,
-  entry states, and transitions. Every error must identify the responsible
-  producer plus its socket, edge, or transition where applicable, and Apply must
-  focus that graph element.
+- [x] Add producer-scoped activation diagnostics for constructor sockets, typed
+  edges, lineage/relationship bindings, policy/role/access contributions,
+  joins, entry states, and transitions. Every error must identify the
+  responsible producer plus its socket, edge, or transition where applicable,
+  and Apply must focus that graph element.
   Partial 2026-09-11: producer-scoped action-binding and entry-state
   diagnostics are enforced (unknown/missing `producerOutputId`, type mismatch,
   missing/undeclared region entry state), each error naming the producer output
@@ -2326,8 +2326,22 @@ a declared asynchronous output.
   not pinned by the recorded verdict, stated here: data semantics are
   stream concatenation; the node has exactly two fixed inputs; the output
   carries no `producerOutputId` of its own (identity is the selected
-  source's). Still open: policy/role/access attachment diagnostics
-  verification and canvas Apply focus.
+  source's).
+  Closed 2026-09-11 (fourth slice): diagnostics became structured records —
+  `validateProcessDefinition` returns `diagnostics` entries
+  `{ message, nodeId?, edgeId?, socketId?, producerOutputId? }` from the edge,
+  join/convergence, availability, and lineage passes (`errors` stays the
+  derived message list), and the activation adapter merges one anchored list
+  into the validate/activate responses. Apply focuses the first anchored
+  diagnostic's edge or node on the canvas (`focusFirstValidationDiagnostic`).
+  Policy/role/access attachment is verified as structurally enforced: field
+  policies, `allowedRoles`, and action access windows are compiled
+  producer-keyed only, the type-keyed `resolveWorkflow`/`resolveFieldPolicy`
+  helpers and detached profiles are gone, and unbound entity actions are
+  rejected at validation time. Anchor coverage: availability
+  (`availability.spec.js` "anchors availability diagnostics…"), lineage
+  (`producer-binding-diagnostics.spec.js` "anchors lineage diagnostics…"),
+  and convergence/join (`producer-join.spec.js` diagnostics assertions).
 - [x] Replace the persisted process protocol in one migration. Rewrite profile
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a
@@ -2610,10 +2624,10 @@ check for `pages/organization/process.vue` passed; `node scripts/check-arch.js`,
   Partial 2026-09-11: compile-level proof delivered — implicit convergence
   rejection (node + both producer outputs + both edge ids named), join
   validity diagnostics, and selected-identity retention through a downstream
-  lineage binding are pinned by `producer-join.spec.js`; the acceptance
-  fixture, template, and full battery stay green. Open: the canvas Apply
-  focus behavior (structured diagnostics → focused graph element) and the
-  browser walkthrough.
+  lineage binding are pinned by `producer-join.spec.js`; structured
+  diagnostics now anchor every such failure (`nodeId`/`edgeId`/
+  `socketId`/`producerOutputId`) and Apply focuses the first anchored element
+  on the canvas. Open: the browser walkthrough.
 - [ ] Prove `commandOwned` outputs route already-persisted entities exactly once
   and `graphOwned` outputs route raw typed data to an explicit persistence node;
   reject cross-mode results and effects.

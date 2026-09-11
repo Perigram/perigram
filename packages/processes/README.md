@@ -98,6 +98,16 @@ selection outside its connected sources. Downstream identity resolution
 (lineage `sourceProducerOutputId`, edge diagnostics) is join-aware, so a
 joined stream reads as exactly one producer.
 
+Diagnostics are structured records: `validateProcessDefinition` returns a
+`diagnostics` array beside `errors`, where each record carries `{ message,
+nodeId?, edgeId?, socketId?, producerOutputId? }` graph anchors. Edge,
+join/convergence, required-input availability, and lineage-binding diagnostics
+emit anchors (graph node id, edge id, socket id, and producer output id where
+applicable); `errors` strings remain the derived `message` list so existing
+consumers are unchanged. The activation adapter merges the package
+diagnostics with the availability and lineage passes, so the validate and
+activate responses carry one anchored diagnostic list the designer can focus.
+
 `migrateProducerOutputIdentities()` is the one-way persisted-definition
 rewrite for v4 records created before that identity was stored. It derives
 entity sockets from the registered node/command catalog, writes the stable

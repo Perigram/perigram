@@ -25,6 +25,11 @@ implicitly converging wires elsewhere on the graph. Its inspector authors the
 entity type and the resulting producer output (offered from the join's
 connected sources); selecting an entity type resets the selection, and the
 join never becomes a workflow anchor of its own.
+
+Validation and Apply focus the responsible graph element: failed validation
+and activation responses carry structured diagnostics (`nodeId`, `edgeId`,
+`socketId`, `producerOutputId` anchors), and the first anchored diagnostic
+selects its edge or node on the canvas before the error message is shown.
 `useProcessDesignerScreens` owns source/region creation, source-id reference
 updates, mode normalization, lineage rows, and typed scalar-map mutations. The
 Screens tab renders those mutations against the canonical
