@@ -531,20 +531,6 @@ export function requiredEffectCapability(kind = '') {
   return null;
 }
 
-export function requiredProducerOutputEntityTypes(definition = {}, domain = {}) {
-  const process = normalizeProcessDefinition(definition);
-  const commandIds = [
-    ...Object.values(process.actions)
-      .filter(action => action?.actionKind === 'runCommand')
-      .map(action => action.commandId),
-    ...Object.values(process.services).map(service => service?.commandId)
-  ].filter(Boolean);
-
-  return [...new Set(commandIds.flatMap(commandId =>
-    domain.commands?.[commandId]?.requiredEntityProfiles || []
-  ))];
-}
-
 export function validateProcessDefinition(definition = {}, domain = {}, { roles = {}, capabilities } = {}) {
   const process = normalizeProcessDefinition(definition, domain);
   const lineageBindings = compileLineageBindings(process, domain);
@@ -1904,7 +1890,7 @@ function deriveActionWindowScope(action = {}, incoming = null, lineageBindings =
 
 function commandOutputEntityTypes(domain = {}, commandId = '') {
   const output = domain.commands?.[commandId]?.output || {};
-  return [...new Set(output.entities || [])].filter(Boolean);
+  return [...new Set((output.entities || []).map(entry => entry?.type).filter(Boolean))];
 }
 
 function deriveCommandOutputScope(outputEntityType = '', incoming = null, lineageBindings = []) {

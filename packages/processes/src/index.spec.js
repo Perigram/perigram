@@ -7,7 +7,6 @@ import {
   definitionToCanvas,
   normalizeProcessDefinition,
   portSpecsCompatible,
-  requiredProducerOutputEntityTypes,
   resolveRoleAssignmentAccess,
   resolveScreens as resolveAccessScreens,
   validateProcessDefinition as validateContract,
@@ -90,7 +89,10 @@ const domain = {
   commands: {
     solveNesting: {
       id: 'solveNesting',
-      output: { entities: ['nesting_run', 'sheet_design'] }
+      output: { entities: [
+        { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'immediate' },
+        { type: 'sheet_design', persistenceOwner: 'commandOwned', timing: 'completion' }
+      ] }
     }
   },
   summaries: [
@@ -3789,25 +3791,6 @@ describe('@cutkit/processes compiler', () => {
 
     expect(process.data.sourceTemplateId).toBe('synthetic-manufacturer');
     expect(access.screens.length).toBeGreaterThan(0);
-  });
-
-  it('projects command-required producer output entity types from actions and services', () => {
-    const commandDomain = {
-      commands: {
-        solveNesting: {
-          requiredEntityProfiles: ['nesting_run', 'sheet_design', 'sheet']
-        }
-      }
-    };
-
-    expect(requiredProducerOutputEntityTypes({
-      actions: {
-        solve: { actionKind: 'runCommand', commandId: 'solveNesting' }
-      },
-      services: {
-        nesting: { commandId: 'solveNesting' }
-      }
-    }, commandDomain)).toEqual(['nesting_run', 'sheet_design', 'sheet']);
   });
 
   it('compiles lineage bindings from a Project -> Compose Lineage -> Queue graph', () => {

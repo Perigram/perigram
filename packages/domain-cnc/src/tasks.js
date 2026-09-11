@@ -29,7 +29,7 @@ export const cncTasks = {
       ]
     },
     output: {
-      entities: ['cassette_design'],
+      entities: [{ type: 'cassette_design', persistenceOwner: 'commandOwned', timing: 'completion' }],
       attachments: ['CASSETTE_DXF'],
       data: ['geometry']
     }
@@ -41,7 +41,11 @@ export const cncTasks = {
     executor: { type: 'http', target: 'nesting-worker', endpoint: '/nest' },
     input: cncCommands.solveNesting.input,
     output: {
-      entities: ['nesting_run', 'sheet_design'],
+      entities: [
+        { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'completion' },
+        { type: 'sheet_design', persistenceOwner: 'commandOwned', timing: 'completion' },
+        { type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }
+      ],
       tasks: ['nesting.solve'],
       events: ['nesting.solveStarted', 'nesting.solveCompleted', 'nesting.solveFailed']
     }
@@ -76,7 +80,7 @@ export const cncTasks = {
       ]
     },
     output: {
-      entities: ['geometry_capture'],
+      entities: [{ type: 'geometry_capture', persistenceOwner: 'commandOwned', timing: 'completion' }],
       data: ['geometry', 'calibration', 'confidence', 'diagnostics']
     }
   }

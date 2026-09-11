@@ -45,7 +45,7 @@ export function summarizeCommands(commands = {}) {
     action: action.action,
     label: action.label || id,
     inputs: summarizeInputs(action.input),
-    outputs: action.output?.entities || [],
+    outputs: (action.output?.entities || []).map(entry => entry?.type).filter(Boolean),
     attachments: action.output?.attachments || [],
     tasks: action.output?.tasks || [],
     events: action.output?.events || [],
@@ -62,7 +62,7 @@ export function summarizeTasks(tasks = {}) {
     label: task.label || task.id,
     executor: task.executor || null,
     inputs: summarizeInputs(task.input),
-    outputs: task.output?.entities || [],
+    outputs: (task.output?.entities || []).map(entry => entry?.type).filter(Boolean),
     attachments: task.output?.attachments || [],
     tasks: task.output?.tasks || [],
     events: task.output?.events || []

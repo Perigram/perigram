@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { createCommandResult } from '../blocks/index.js';
+import { createCommandResult, normalizeEntityOutputContracts, validateResultEntityOutputs } from '../blocks/index.js';
 import { assertCommandAccess } from '../access/service.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as commandRunsRepository from './repository.js';
@@ -61,6 +61,18 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
     const processedEffects = await processEffects(result.effects || [], effectContext);
     result.events = processedEvents.events;
     result.effects = mergeProcessedEffects(processedEvents, processedEffects);
+
+    const outputViolations = validateResultEntityOutputs({
+      contracts: normalizeEntityOutputContracts(command.output),
+      entities: [
+        ...result.entities || [],
+        ...(result.effects?.entities || [])
+      ],
+      phase: 'immediate'
+    });
+    if (outputViolations.length) {
+      throw createError({ statusCode: 500, message: `Command ${commandId} result violates its declared output contract: ${outputViolations.join('; ')}` });
+    }
 
     await commandRunsRepository.updateById(run._id, {
       status: 'SUCCEEDED',

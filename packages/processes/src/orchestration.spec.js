@@ -427,7 +427,7 @@ describe('durable process orchestration', () => {
       .mockResolvedValueOnce({ entities: [{ type: 'project', id: 'project-1' }] })
       .mockResolvedValueOnce({ ok: true });
     const catalogContext = record => record.commandId === 'createProject'
-      ? { command: { output: { entities: ['project'] } } }
+      ? { command: { output: { entities: [{ type: 'project', persistenceOwner: 'commandOwned', timing: 'immediate' }] } } }
       : {};
     const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
       executeEffect,

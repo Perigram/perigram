@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 import { randomUUID } from 'node:crypto';
-import { createTaskResult } from '../blocks/index.js';
+import { createTaskResult, normalizeEntityOutputContracts, validateResultEntityOutputs } from '../blocks/index.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as repository from './repository.js';
 import { processEffects, processEvents } from '../effects/service.js';
@@ -107,6 +107,19 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
   const processedEffects = await processEffects(output.effects || [], effectContext);
   output.events = processedEvents.events;
   output.effects = mergeProcessedEffects(processedEvents, processedEffects);
+
+  const outputViolations = validateResultEntityOutputs({
+    contracts: normalizeEntityOutputContracts(task?.output),
+    entities: [
+      ...output.entities || [],
+      ...(output.effects?.entities || [])
+    ],
+    phase: 'completion'
+  });
+  if (outputViolations.length) {
+    throw createError({ statusCode: 500, message: `Task ${run.taskId} result violates its declared output contract: ${outputViolations.join('; ')}` });
+  }
+
   return await repository.updateClaimedById(id, claimToken, {
     status: task?.status?.succeeded || 'SUCCEEDED',
     output,

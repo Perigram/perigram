@@ -251,10 +251,17 @@ be added to the structural registry (normally through its UI descriptor or an
 explicit exact access entry) before record, predicate, or patch nodes can use
 it.
 
-Commands that persist an entity hierarchy beyond their immediate return refs
-declare `requiredEntityProfiles`. `solveNesting` requires `nesting_run`,
-`sheet_design`, and physical `sheet` profiles, and declares all three output
-entity types because task completion persists all three.
+Every command and task entity output is declared as a per-output record
+`{ type, persistenceOwner, timing }`. `persistenceOwner` is `commandOwned`
+when the registered command/task business boundary persists the entity (all
+current CNC outputs) and `graphOwned` when the result only carries raw
+construction data for an explicit Create/Modify Entity graph node. `timing` is
+`immediate` for outputs present in the synchronous command return and
+`completion` for outputs that only exist after the queued task finishes —
+`solveNesting` declares `nesting_run` immediate while `sheet_design` and
+`sheet` are completion outputs of `nesting.solve`. The legacy
+`requiredEntityProfiles` requirement key is gone; result boundaries enforce
+the per-output contract (see `server/core/commands/README.md`).
 
 Display constructor metadata is split from access policy:
 

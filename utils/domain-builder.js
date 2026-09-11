@@ -15,6 +15,9 @@ export const CANONICAL_BLOCKS = [
 
 export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'entityType', 'workflowState', 'array', 'object']);
 
+export const ENTITY_OUTPUT_OWNERS = new Set(['commandOwned', 'graphOwned']);
+export const ENTITY_OUTPUT_TIMINGS = new Set(['immediate', 'completion']);
+
 export function createDomainDraft({ entities = [], workflows = {}, summaries = [], serviceContracts = {}, commands = {}, hookContracts = {} } = {}) {
   const normalizedCommands = commands && typeof commands === 'object' ? commands : {};
   return deepClone({
@@ -143,7 +146,11 @@ export function validateDomainDraft(draft = {}) {
       if (!entityTypes.has(input.type)) issues.push({ area: 'commands', severity: 'error', message: `${id} input references unknown entity type: ${input.type}` });
     }
     for (const output of action.output?.entities || []) {
-      if (!entityTypes.has(output)) issues.push({ area: 'commands', severity: 'error', message: `${id} output references unknown entity type: ${output}` });
+      if (!output?.type || !entityTypes.has(output.type)) {
+        issues.push({ area: 'commands', severity: 'error', message: `${id} output references unknown entity type: ${output?.type || '<missing>'}` });
+      } else if (!ENTITY_OUTPUT_OWNERS.has(output.persistenceOwner) || !ENTITY_OUTPUT_TIMINGS.has(output.timing)) {
+        issues.push({ area: 'commands', severity: 'error', message: `${id} output ${output.type} must declare persistenceOwner ('commandOwned'|'graphOwned') and timing ('immediate'|'completion')` });
+      }
     }
     if (!Array.isArray(action.access?.permissions)) {
       issues.push({ area: 'commands', severity: 'error', message: `${id} must define access.permissions` });

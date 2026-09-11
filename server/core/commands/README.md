@@ -26,6 +26,14 @@ Handlers receive `{ command, entities, parameters, data, auth }` and may return
 `entities`, `attachments`, `tasks`, `transitions`, `events`, `effects`, and
 `data`. The runtime validates and executes returned effects after the handler
 finishes.
+Entity results are enforced against the command's declared per-output
+contracts (`normalizeEntityOutputContracts`/`validateResultEntityOutputs` in
+`@cutkit/core`): an immediate result may carry only immediate-declared outputs,
+command-owned outputs must return persisted entity references, graph-owned
+outputs must not, and undeclared entity types are rejected together with
+entities contributed by returned effects. Task completion enforces the same
+contract with `phase: 'completion'` (completion results may re-report
+immediate outputs; see `server/core/tasks/README.md`).
 Handlers do business work; access decisions stay in `server/core/access`.
 
 ## API
