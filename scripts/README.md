@@ -108,8 +108,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 server feature structure against `server/features/_template/README.md`, keeps
 repositories/services/API routes on their assigned layers, rejects Nuxt
 root-alias imports inside portable runtime modules under `shared/`,
-`test-data/`, and `packages/`, and rejects parent-relative cross-root imports
-from `shared/` and non-spec `test-data/` modules. Cross-root portable imports
+`test-data/`, and `packages/`, rejects parent-relative cross-root imports
+from `shared/` and non-spec `test-data/` modules, and verifies every relative
+dynamic `import()` under `server/` resolves to a real file (a bad relative
+specifier passes vite-node until its code path runs but fails the whole Nitro
+bundle, which serves 503 on every route). Cross-root portable imports
 should use the package imports declared in `package.json` (`#shared/...`,
 `#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
 resolve the same graph.
