@@ -2136,25 +2136,57 @@ a declared asynchronous output.
   command-output-status migration. Add a data migration that removes existing
   process provenance from entity status metadata while retaining legitimate
   display, lifecycle evidence, and transition-local audit metadata.
-- [ ] Remove every first-type-match and hardcoded status path in designer sync,
+- [x] Remove every first-type-match and hardcoded status path in designer sync,
   workflow compilation, command-output projection, migrations, and runtime
   fallbacks. Activation must report the producer output and missing/ambiguous
   state instead of selecting one.
-  Partial 2026-09-11: designer sync, relation/access reads, and the
-  command-output-status migration now resolve only through producer outputs or
-  the domain-declared workflow (see the 2026-09-11 Agent Notes); remaining gap
-  is the workflow-compilation first-state default
-  (`region.initial || Object.keys(region.states)[0]` in `compileWorkflows`)
-  and its activation diagnostics.
 - [ ] Add producer-scoped activation diagnostics for constructor sockets, typed
   edges, lineage/relationship bindings, policy/role/access contributions, joins,
   entry states, and transitions. Every error must identify the responsible
   producer plus its socket, edge, or transition where applicable, and Apply must
   focus that graph element.
+  Partial 2026-09-11: producer-scoped action-binding and entry-state
+  diagnostics are enforced (unknown/missing `producerOutputId`, type mismatch,
+  missing/undeclared region entry state), each error naming the producer output
+  and region/action; the socket/edge/binding/join diagnostics and canvas Apply
+  focus remain open.
 - [ ] Replace the persisted process protocol in one migration. Rewrite profile
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a
   detached-profile or type-global fallback.
+
+#### Agent Notes — 2026-09-11 producer entry-state diagnostics
+
+Closed the first-type-match checkbox and the entry-state portion of the
+activation-diagnostics checkbox:
+
+- **No silent entry-state selection.** `compileWorkflows` no longer defaults a
+  region's `initial` to its first state (`addWorkflowState`'s `initial ||=`
+  and the assembly `|| Object.keys(region.states)[0]` are removed in
+  `packages/processes/src/compiler-core.js`). A region with states and no
+  declared entry state now fails: validation reports it producer-scoped, and
+  compilation of such a definition throws through the existing
+  validation-first path.
+- **Producer-scoped validation.** `validateProcessDefinition` now resolves each
+  action's entity type exactly as `compileActions` does (via the shared action
+  access windows) and rejects an entity action with no `producerOutputId`, an
+  unknown producer output id, or a producer output emitting a different entity
+  type — the previous validation gap where a definition could validate and
+  still fail compilation. Producer lifecycle regions with states must declare
+  an entry state that is one of their states. Errors name the action or
+  producer output (and region/state).
+- Coverage: `producer-output-contract.spec.js` adds undeclared-entry-state
+  rejection, declared-initial preservation (no first-state regression),
+  validation-time binding rejection, and unknown/mistyped producer binding
+  rejection. `v4-validation.spec.js` and `server/runtime/app-registry.spec.js`
+  fixtures now author the explicit producer binding the protocol requires.
+
+Validation: `npx vitest run packages/processes` 338 passed;
+`server/features/process-definitions server/runtime packages/domain-cnc
+server/core/machines server/features/workflow-overrides
+shared/process-designer-ui.spec.js composables` 109 passed plus the
+`node:test` run-repository suite (6 passed); `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
 
 #### Agent Notes — 2026-09-11 producer provenance and designer resolution
 
