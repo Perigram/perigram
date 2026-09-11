@@ -2100,7 +2100,7 @@ a declared asynchronous output.
   executable graph contracts. Delete profile requirements, profile canvas
   creation, `requiredEntityProfiles`, and activation checks based on entity-type
   presence; remove the Entity Profile palette/repair path entirely.
-- [ ] Make the designer edit each producer output independently. Two Create
+- [x] Make the designer edit each producer output independently. Two Create
   Project nodes must retain separate statuses, transitions, policies, grants,
   and downstream paths; changing one must not synchronize or rewrite the other.
   Use the integrated producer/output Workflow inspector and visibly label the
@@ -2132,6 +2132,20 @@ a declared asynchronous output.
   emitting `completed`; recover delivery after crashes; and use transactional
   compare-and-set plus unique completion/wait constraints for attempt-safe,
   exact-once graph advancement.
+  Partial 2026-09-11 (verified audit): `server/features/process-definitions/
+  run-repository.js` implements and tests the durable `execution_*` run,
+  invocation, wait, output, step, and receipt records; suspension snapshots the
+  expected completion sockets and connected routes; receipt ingestion is
+  transactional compare-and-set with unique invocation/receipt indexes,
+  duplicate no-ops, route-filtered advancement, and a recovery query for
+  unreceipted invocations; manual runs persist declared async boundaries and
+  leave their step waiting. Still missing: task-completion ingestion wiring
+  (`ingestRunReceipt` has no API/caller and the task `complete` path performs no
+  process correlation), a reconciliation caller for `resumeDueRuns`, failure and
+  cancellation routes through the receipt transaction, and the full versioned
+  output contract (today's snapshot lists socket ids only). Implement the
+  per-output persistence-owner/timing metadata first — ingestion validates
+  against it.
 - [x] Remove process/action ids from entity status writes and from the
   command-output-status migration. Add a data migration that removes existing
   process provenance from entity status metadata while retaining legitimate
@@ -2150,10 +2164,44 @@ a declared asynchronous output.
   missing/undeclared region entry state), each error naming the producer output
   and region/action; the socket/edge/binding/join diagnostics and canvas Apply
   focus remain open.
-- [ ] Replace the persisted process protocol in one migration. Rewrite profile
+- [x] Replace the persisted process protocol in one migration. Rewrite profile
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a
   detached-profile or type-global fallback.
+
+#### Agent Notes — 2026-09-11 producer-scope audit closeout
+
+Verified two already-implemented checkboxes and recorded the exact durable
+ingestion boundary:
+
+- **Designer per-output independence (ticked).**
+  `composables/useProcessDesignerInspector.spec.js` proves same-type producer
+  outputs keep independent lifecycle records keyed by their stable
+  `producerOutputId`; `components/process-designer/ProcessEntityNode.vue`
+  displays the `nodeId:outputSocketId` reference beside the schema-only entity
+  type; compiled independence (separate workflows, field policies, and
+  lineage bindings per producer output) is pinned by
+  `producer-output-contract.spec.js`.
+- **Persisted protocol migration (ticked).**
+  `server/scripts/migrate-process-producer-identities.js` rewrites v4 records
+  to stable node/socket identities, moves a detached profile only when exactly
+  one producer owns the entity contract, and its spec pins the ambiguous-record
+  failure ("fails the record instead of selecting one ambiguous socket"); no
+  detached-profile or type-global fallback is preserved.
+- **Durable execution boundary (partial note added to the checkbox).** The
+  durable storage/CAS/receipt/recovery layer is implemented and tested in
+  `run-repository.js` (6 `node:test` cases, including exact-once concurrent
+  delivery and crash-redelivery acceptance). The unimplemented remainder is the
+  ingestion wiring itself: no caller invokes `ingestRunReceipt`, the task
+  `complete` endpoint performs no process correlation, `resumeDueRuns` has no
+  reconciliation caller, and failure/cancellation routes are absent. The
+  per-output persistence-owner and result-timing metadata is the prerequisite
+  next scope because ingestion validates completion values against it.
+
+Validation: `node --test server/features/process-definitions/run-repository.
+spec.js` 6 passed; `npx vitest run composables` and
+`shared/process-designer-ui.spec.js` pass; `node scripts/check-docs.js` OK. No
+runtime code changed in this audit slice.
 
 #### Agent Notes — 2026-09-11 producer entry-state diagnostics
 
