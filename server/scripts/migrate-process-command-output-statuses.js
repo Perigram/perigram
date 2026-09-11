@@ -58,7 +58,7 @@ function commandOutputStatusMappings(processData = {}) {
       );
       const targetState = targetAction.status?.to || targetAction.access?.statusTo;
       if (!entityType || !targetState) continue;
-      mappings.push({ actionId, entityType, targetState, targetAction });
+      mappings.push({ actionId, entityType, targetState, producerOutputId: targetAction.producerOutputId || '', targetAction });
     }
   }
   return mappings;
@@ -82,11 +82,8 @@ function statusDisplayMetadata(workflow = {}, targetState = '') {
   return Object.keys(display).length ? display : null;
 }
 
-function createProcessStatus({ workflow, targetState, actorId, processId, actionId, eventId }) {
+function createProcessStatus({ workflow, targetState, actorId, eventId }) {
   const metadata = {
-    note: `Migrated command output status from active process ${processId}`,
-    processId,
-    actionId,
     migratedBy: 'migrate-process-command-output-statuses'
   };
   const display = statusDisplayMetadata(workflow, targetState);
@@ -104,8 +101,13 @@ function createProcessStatus({ workflow, targetState, actorId, processId, action
 
 async function migrateMapping({ db, process, organizationId, mapping }) {
   const collection = collectionByEntityType.get(mapping.entityType);
-  const workflow = process.data?.compiled?.workflows?.[mapping.entityType];
-  if (!collection || !workflow) return { scanned: 0, updated: 0, skipped: 0 };
+  const producerOutput = process.data?.compiled?.producerOutputs?.[mapping.producerOutputId];
+  const workflow = producerOutput?.workflow;
+  if (!collection) return { scanned: 0, updated: 0, skipped: 0 };
+  if (!workflow) {
+    console.warn(`[skip] Process ${process._id} action ${mapping.actionId} has no compiled producer output ${mapping.producerOutputId || '(unset)'} for ${mapping.entityType}; re-apply the producer identity migration first.`);
+    return { scanned: 0, updated: 0, skipped: 0 };
+  }
 
   const processStates = processWorkflowStates(workflow);
   if (!processStates.has(mapping.targetState)) return { scanned: 0, updated: 0, skipped: 0 };
@@ -128,8 +130,6 @@ async function migrateMapping({ db, process, organizationId, mapping }) {
       workflow,
       targetState: mapping.targetState,
       actorId: entity.status?.userId || 'SYSTEM',
-      processId: process._id?.toString?.() || process._id,
-      actionId: mapping.actionId,
       eventId
     });
 

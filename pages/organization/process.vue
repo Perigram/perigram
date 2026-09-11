@@ -3296,9 +3296,10 @@ function declaredRelationsForProfile(profile = {}) {
 }
 
 function declaredRelationsForEntity(entityType = '') {
-  const profiles = Object.values(draft.value?.data?.entityProfiles || {}).filter(profile => profile.entityType === entityType);
-  if (!profiles.length) return [];
-  const keys = new Set(profiles.flatMap(profile => profile.relations || []));
+  const keys = new Set(Object.values(draft.value?.data?.producerOutputs || {})
+    .filter(output => output.entityType === entityType)
+    .flatMap(output => output.relations || []));
+  if (!keys.size) return [];
   return (cncDomain.relations || []).filter(relation => relation.ownerType === entityType && keys.has(relation.key));
 }
 
@@ -3354,9 +3355,8 @@ function initialSocketStatus(socket = {}) {
 }
 
 function initialStatusForEntity(entityType) {
-  const profile = Object.values(draft.value?.data?.entityProfiles || {}).find(item => item.entityType === entityType);
-  if (!profile) return '';
-  const workflow = workflowForEntity(profile);
+  const workflow = cncDomain.workflows?.[entityType];
+  if (!workflow) return '';
   const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
   return region?.initial || '';
 }
@@ -4341,7 +4341,7 @@ function applySemanticConnection(connection = {}) {
   const target = nodes.value.find(item => item.id === connection.target);
   if (!source || !target) return;
   const action = target.type === 'action' ? draft.value?.data?.actions?.[target.data?.refId] : null;
-  const entityProfile = target.type === 'entity' ? draft.value?.data?.entityProfiles?.[target.data?.refId] : null;
+  const entityProfile = target.type === 'entity' ? draft.value?.data?.producerOutputs?.[target.data?.refId] : null;
   const processNode = target.type === 'processNode' ? draft.value?.data?.processNodes?.[target.data?.refId] : null;
 
   if (source.type === 'statusDefinition') {
@@ -4643,10 +4643,10 @@ function effectiveActionAccessLabels(action = {}, node = {}) {
   const currentRoleIds = new Set(normalizeDesignerAccess(action.access).roleIds);
   const accessByRole = new Map();
 
-  for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
-    if (profile.entityType !== entityType) continue;
+  for (const output of Object.values(draft.value?.data?.producerOutputs || {})) {
+    if (output.entityType !== entityType) continue;
     for (const level of ['read', 'write', 'admin']) {
-      for (const roleId of profile.allowedRoles?.[level] || []) {
+      for (const roleId of output.allowedRoles?.[level] || []) {
         addEffectiveRoleAccess(accessByRole, roleId, level, '');
       }
     }

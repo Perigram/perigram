@@ -63,8 +63,7 @@ export const statusService = {
       });
     }
     const actorId = typeof actor === 'object' ? actor.userId : actor;
-    const { producerOutputId: _producerOutputId, ...persistedMetadata } = metadata;
-    return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', persistedMetadata);
+    return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', persistableStatusMetadata(metadata));
   },
 
   async setInitialStateForOrganization(entityType, targetId, targetState, organizationId, actor = 'SYSTEM', metadata = {}) {
@@ -88,8 +87,7 @@ export const statusService = {
     const { collection, flexId } = await loadEntityForWorkflow(normalizedEntityType, targetId);
     const actorId = typeof actor === 'object' ? actor.userId : actor;
     const eventId = new ObjectId();
-    const { producerOutputId: _producerOutputId, ...persistedMetadata } = metadata;
-    const statusMetadata = mergeStatusDisplayMetadata(persistedMetadata, region.states[targetState]);
+    const statusMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[targetState]);
     const status = createStatus(
       createWorkflowState(normalizedMachine, { active: { [regionId]: targetState }, primary: targetState }),
       actorId || 'SYSTEM',
@@ -364,7 +362,10 @@ async function performTransition(entityType, targetId, targetState, userId, user
     const workflowRegion = getWorkflowRegion(normalizedMachine, regionId);
     const currentState = getRegionState(entity.status, regionId, workflowRegion?.initial);
     const targetStateDefinition = workflowRegion?.states?.[targetState] || {};
-    const transitionMetadata = mergeStatusDisplayMetadata(transitionContext.metadata, targetStateDefinition);
+    const transitionMetadata = mergeStatusDisplayMetadata(
+      persistableStatusMetadata(transitionContext.metadata),
+      targetStateDefinition
+    );
     const targetLifecycleSchema = targetStateDefinition.lifecycle;
     let lifecycleForValidation = targetLifecycleSchema
       ? mergeLifecycle(entity.status?.lifecycle, transitionContext.lifecycle)
@@ -552,6 +553,11 @@ export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {
     effectivePermissions: userPermissions?.effectivePermissions || null,
     permissions: userPermissions?.permissions || {}
   };
+}
+
+function persistableStatusMetadata(metadata = {}) {
+  const { producerOutputId: _producerOutputId, ...persisted } = metadata && typeof metadata === 'object' ? metadata : {};
+  return persisted;
 }
 
 function normalizeTransitionContext(input = {}) {
