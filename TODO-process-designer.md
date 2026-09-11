@@ -1392,6 +1392,106 @@ branch. Their unrelated work and the primary checkout's unrelated dirty files
 remain untouched. The ledger therefore remains `WAITING`, and the preceding
 reconciliation notes remain authoritative.
 
+#### Agent Notes — 2026-08-31 eight-worktree reconciliation
+
+All eight linked non-current worktrees were compared with current HEAD. No
+Process Designer delta from them is integrated; each is rejected as follows:
+
+1. **design-centralization — stale and regressive.** Its ledger delta changes
+   `WAITING` to `READY`, reopens completed capabilities, restores obsolete
+   acceptance wording, and removes current reconciliation evidence (e38).
+2. **design-convergence — stale and regressive.** It repeats the ledger
+   regression, removes canonical screen/access documentation, and deletes
+   focused typed-grant and generated-screen tests (e39, e40).
+3. **design-system-enforcement — stale and regressive.** It reopens completed
+   Process Designer capabilities and deletes the same focused screen/access
+   tests (e41).
+4. **semantic-typography — duplicate and out of scope.** It duplicates the
+   design-convergence ledger regression; its distinct edits are unrelated
+   typography changes rather than open Process Designer work (e42).
+5. **V9 design-recovery — stale and regressive.** It reopens completed work,
+   restores obsolete mutation semantics, and removes current reconciliation
+   evidence (e43).
+6. **V9 design-goal — duplicate and regressive.** It contributes no distinct
+   implementation beyond the same stale V9 ledger regression (e44).
+7. **producer-contract-replacement — incompatible.** It removes the durable
+   run, invocation, wait, output, step, receipt, retry, and receipt-ingestion
+   protocol and restores transient recovery behavior (e45).
+8. **process-producer-scope — incomplete and incompatible.** It replaces the
+   durable execution protocol, retains detached `entityProfiles` as the source
+   of synthesized producer-output IDs, migrates metadata back onto those
+   profiles, and covers only a subset of the required contract (e46, e47, e48,
+   e49).
+
+Accordingly, no linked-worktree delta is merged, staged, or cherry-picked. The
+existing reconciliation evidence above remains intact, completed requirements
+remain closed, and the ledger remains `WAITING` (e13, e36).
+
+#### Agent Notes — 2026-09-01 surviving-worktree bounded inventory
+
+This follow-up makes the previous verdict auditable without reconsidering it.
+The comparison basis is current HEAD, bounded to this ledger,
+`components/process-designer`, and `packages/processes`; paths outside that
+boundary were not inventoried.
+
+- `process-producer-scope-20260830` is at
+  `1aba23bc210125bb3ff9caaf356d6e83aed9254a`, with no commits relative to
+  current HEAD. Its working status contains four modified package files and one
+  untracked test. The table includes both that working delta and the bounded
+  current-HEAD diff (e9).
+- `producer-contract-replacement-20260830` is at
+  `f7635ed5e794686e4bd0b5616440bbccd6d17471`, with no commits relative to
+  current HEAD and a clean working status. Its table is therefore the bounded
+  current-HEAD diff (e26).
+
+`process-producer-scope-20260830`:
+
+| File | Classification | Current-HEAD mapping and disposition |
+| --- | --- | --- |
+| `TODO-process-designer.md` | conflicting | It reopens completed items and removes current reconciliation and validation notes. Discard it and keep this ledger's existing incomplete/incompatible verdict (e3, e9). |
+| `components/process-designer/ProcessNode.vue` | still-useful | Making the selector visible even when an entity is inferred is a useful UI observation, but it is not separable evidence that the producer contract is complete. Keep only the observation; do not reuse the patch (e10). |
+| `components/process-designer/README.md` | incomplete | Restoring explicit tree transforms to the primary-palette description covers only palette presentation and does not resolve the recorded producer-contract failure. Keep only the palette/tree observation (e3, e11). |
+| `packages/processes/README.md` | conflicting | It replaces current producer-output identity and producer-scoped policy documentation with detached profiles and type-global policies. Discard it in favor of the current contract (e3, e12). |
+| `packages/processes/src/algebra.js` | conflicting | It changes the current `producerOutputs` record back to detached `entityProfiles`. Discard it (e3, e13). |
+| `packages/processes/src/compiler-core.js` | conflicting | It restores detached profiles and type-keyed workflows/policies, weakens action validation, and synthesizes identities instead of preserving producer identity. Discard it (e3, e14). |
+| `packages/processes/src/designer.js` | incomplete | Its limited Current Entity inference is worth retaining as an observation, but the same patch restores procedural collection/tree nodes and covers only part of the contract. Do not reuse the mixed patch (e3, e15). |
+| `packages/processes/src/designer.spec.js` | conflicting | It removes current assertions that procedural collection/tree nodes stay outside the primary palette. Keep the current tests and discard the patch (e16). |
+| `packages/processes/src/evaluator.js` | still-useful | Passing `producerOutputId` to Current Entity is consistent with producer-scoped runtime lookup, but this isolated callback change does not complete the contract. Preserve the observation only (e3, e17). |
+| `packages/processes/src/orchestration.js` | still-useful | Passing `producerOutputId` into operational effects is useful producer-scoping evidence, but is incomplete without the durable protocol. Preserve the observation only (e3, e18). |
+| `packages/processes/src/ports.js` | conflicting | It resolves entity nodes from detached `entityProfiles` rather than current producer outputs. Discard it (e3, e19). |
+| `packages/processes/src/process-designer-remaining.spec.js` | conflicting | It deletes current coverage for unambiguous inference and ambiguous-context selection. Keep the current test artifact (e20). |
+| `packages/processes/src/producer-contract.spec.js` | incomplete | The untracked test checks independent metadata and fail-closed lookup, but derives its outputs from detached profiles. Keep the test intent only; discard this implementation (e3, e21). |
+| `packages/processes/src/producer-output-contract.spec.js` | conflicting | It deletes current node-and-output-socket identity, `entityTypeIndex`, and action `producerOutputId` coverage. Keep the current contract tests (e22). |
+| `packages/processes/src/templates.js` | conflicting | It replaces generated producer outputs with detached entity profiles. Discard it (e3, e23). |
+| `packages/processes/src/transpiler.js` | conflicting | It replaces producer outputs with profiles in canonical-source and round-trip handling. Discard it (e3, e24). |
+| `packages/processes/src/validation.js` | conflicting | It replaces producer-output requirements with entity-profile requirements. Discard it (e3, e25). |
+
+`producer-contract-replacement-20260830`:
+
+| File | Classification | Current-HEAD mapping and disposition |
+| --- | --- | --- |
+| `TODO-process-designer.md` | conflicting | It reopens completed items and removes current validation notes. Discard it and keep the existing incompatible verdict (e2, e26). |
+| `components/process-designer/ProcessNode.vue` | still-useful | Selector visibility for inferred entities remains a useful UI observation, but does not justify importing an incompatible branch. Preserve the observation only (e2, e27). |
+| `components/process-designer/README.md` | incomplete | Its explicit-tree-transform palette description is only a presentation fragment and does not address the removed producer or durable-execution contracts. Preserve the observation only (e2, e28). |
+| `packages/processes/README.md` | conflicting | It removes current producer identity, inference, and producer-scoped policy documentation in favor of detached profiles and type-global policies. Discard it (e2, e29). |
+| `packages/processes/src/algebra.js` | conflicting | It changes producer-output records back to detached entity profiles. Discard it (e2, e30). |
+| `packages/processes/src/compiler-core.js` | conflicting | It removes compiled producer outputs, `entityTypeIndex`, and action producer validation while restoring type-keyed workflows/policies. Discard it (e2, e31). |
+| `packages/processes/src/designer.js` | conflicting | It restores procedural collection/tree nodes to the primary palette contrary to the current designer contract. Keep the current artifact (e32). |
+| `packages/processes/src/designer.spec.js` | conflicting | It removes the current primary-palette exclusion assertions. Keep the current tests (e33). |
+| `packages/processes/src/ports.js` | conflicting | It resolves entities from detached profiles rather than producer outputs. Discard it (e2, e34). |
+| `packages/processes/src/process-designer-remaining.spec.js` | conflicting | It deletes current inference and ambiguous-context selection coverage. Keep the current tests (e35). |
+| `packages/processes/src/producer-output-contract.spec.js` | conflicting | It deletes current producer identity, index, and action-output coverage. Keep the current tests (e36). |
+| `packages/processes/src/templates.js` | conflicting | It replaces generated producer outputs with detached profiles. Discard it (e2, e37). |
+| `packages/processes/src/transpiler.js` | conflicting | It replaces producer outputs with profiles throughout canonical serialization and round trips. Discard it (e2, e38). |
+| `packages/processes/src/validation.js` | conflicting | It replaces producer-output requirements with profile requirements. Discard it (e2, e39). |
+
+No patch in either table is classified `already-integrated`: where current HEAD
+already has the required contract or coverage, the worktree patch removes or
+replaces it and is therefore classified `conflicting`. No worktree delta was
+merged, staged, or cherry-picked during this reconciliation. The earlier
+`incompatible` and `incomplete and incompatible` verdicts remain unchanged,
+and the ledger remains `WAITING` (e2, e3, e4).
+
 No implementation mutation is required for the two reopened scopes: current
 HEAD already rejects undeclared Get Block and Deconstruct selections in the
 compiler and enforces the same declared-block rule in the evaluator at runtime
@@ -1430,6 +1530,57 @@ execution history is retained as subordinate evidence, not recovery authority.
 The six non-current worktrees remain preserved and unmerged, and none of their
 stale ledger deltas is imported: completed declared-block, Compose,
 delete/archive, screen, and access work remains recorded as done.
+
+#### Agent Notes — 2026-09-11 continuation session
+
+Session scope: audit the ledger against current `local`, disposition the
+worktree inventory, and repair the highest-priority defect found.
+
+- **Broken suite repaired.** The merged producer-output cutover left
+  `packages/processes` red at `local` HEAD: 49 `index.spec.js` tests and one
+  `algebra.spec.js` test still authored the pre-cutover protocol (detached
+  `entityProfiles`, unbound entity actions, `compiled.workflows[entityType]`
+  assertions) while `compileActions` now fails closed without
+  `producerOutputId`. All 50 were migrated to the authored producer-output
+  protocol (explicit `producerOutputs` records keyed
+  `<nodeId>:<outputSocketId>`, explicit action/process-node
+  `producerOutputId`, producer-scoped workflow assertions). No compiler code
+  changed; fixtures now match the contract pinned by
+  `producer-output-contract.spec.js`. Five passing tests still carry inert
+  `entityProfiles` fixture blocks (ignored by normalization); they are
+  harmless legacy-fixture cleanup, not contract work.
+- **Observation, no change:** `validateProcessDefinition` does not itself
+  require `producerOutputId` on entity actions (only `compileActions` throws),
+  so a definition can validate and still fail compilation. Activation compiles
+  in the same request, so the end-to-end boundary stays fail-closed; recorded
+  here in case a later task wants validation to reject it directly.
+- **Query planning merged.** `agent/process-filter-graph-20260905`
+  (`feat: plan safe process queries` + `neo:` docs) implements the deferred
+  query-planning checkbox above and was merged unchanged; its ledger note is
+  the 2026-09-05 section.
+- **Worktree disposition (this session):** `graph-diagnostics-20260905` branch
+  was already contained in `local` (clean worktree, removed);
+  `graph-p1challenge-20260907` and `graph-p1diag-20260906` sat exactly at
+  `local` HEAD with no commits and no dirty files (empty sessions, removed);
+  `graph-filter-20260905` held the query-planning work (merged, removed); the
+  four `/tmp` worktrees were already missing on disk (pruned; branches kept).
+  The `.agent-worktrees/process-producer-scope-20260830` branch is merged into
+  `local`; its dirty files are exactly the bounded-inventory-rejected patches,
+  so that worktree was removed (branch kept).
+  `producer-contract-replacement-20260830` (branch merged, clean) worktree was
+  removed for the same reason. The stale `persisted-producer-migration`,
+  `architecture-recovery`, and `quarantine-producer-rewrite` branches remain
+  unmerged and superseded by the merged producer-migration commits of
+  2026-09-02; they are discardable but were left for the owner. The four
+  design worktrees and the two `solution-lod-v9-recovery` worktrees remain
+  preserved per the earlier verdicts.
+
+Validation: `npx vitest run packages/processes packages/domain-cnc
+server/runtime` 369 passed; `npx vitest run server/features/process-definitions`
+42 passed plus `run-repository.spec.js`, which is a `node:test` file (6 passed
+under `node --test`; vitest reports it as "no test suite", pre-existing harness
+mismatch); `node scripts/check-arch.js`, `npm run framework:validate`, and
+`node scripts/check-docs.js` all pass.
 
 ## P1 — validation and diagnostics
 
@@ -1941,10 +2092,10 @@ a declared asynchronous output.
   producer-output-keyed records plus `entityTypeIndex`; update compiler output,
   serialization, auth hydration, generated actions/screens, status resolution,
   and policy resolution together.
-- [ ] Add stable producer/output identities to every entity-emitting catalog
+- [x] Add stable producer/output identities to every entity-emitting catalog
   socket and preserve them through canvas round-trip, normalization, compiled
   actions, access windows, and runtime output packets.
-- [ ] Move lifecycle, entry status, field policy, grants, relations, and role
+- [x] Move lifecycle, entry status, field policy, grants, relations, and role
   contributions from detached entity profiles onto producer-local or connected
   executable graph contracts. Delete profile requirements, profile canvas
   creation, `requiredEntityProfiles`, and activation checks based on entity-type
@@ -1954,9 +2105,21 @@ a declared asynchronous output.
   and downstream paths; changing one must not synchronize or rewrite the other.
   Use the integrated producer/output Workflow inspector and visibly label the
   stable output identity beside the schema-only entity type.
-- [ ] Require `producerOutputId` in workflow/status/policy/action runtime calls.
+- [x] Require `producerOutputId` in workflow/status/policy/action runtime calls.
   Keep type-only APIs for domain schema lookup only and fail closed if execution
   context does not identify one producer output.
+
+  #### Agent Notes — 2026-09-01 producer-output runtime closeout
+
+  Relation creators now resolve through the same exact producer-output action
+  resolver as their owning action; the aggregate test proves distinct same-type
+  field policies and transitions, and the migration/runtime/repository focused
+  checks prove detached-profile removal, fail-closed identity, and durable
+  producer identity. Changed `packages/processes/src/producer-output-contract.spec.js`
+  and `server/features/process-definitions/{runtime.js,service.js,runtime-producer-output.spec.js,README.md}`.
+  Focused Vitest: 10 passed; run-repository Node tests: 6 passed. Architecture
+  and docs checks remain blocked only by pre-existing `.agent-worktrees` scans
+  and already-deleted documentation targets outside this task's owned diff.
 - [ ] Compile construction, lineage, relations, and access only from typed graph
   connections. Include source and consumer producer/socket identity in binding
   keys and remove type-only binding deduplication.
