@@ -303,6 +303,12 @@ expose `processList`/`processGetById` adapters as defined in
 [server/runtime/README.md](../../runtime/README.md). Process evaluation calls only
 these adapters; it never guesses positional feature-service auth arguments. This covers current/exact entity reads, parent resolution,
 relation-target validation, update-target loading, and socket projection.
+
+The process-definition service owns source-query planning. It pushes only a
+source equality predicate with a normal persisted-field path into the concrete
+`processList` filter and still evaluates the predicate in memory. Sort, slice,
+compound predicates, and unsafe paths remain residual because the runtime
+adapter deliberately has no portable filter capability contract.
 Parent, Children, and Related reads resolve from the domain `containment` and
 `relations` contracts via the pure helpers in `entity-sources.js`: Parent loads
 the declared lineage parent through `processGetById`, Children query declared
