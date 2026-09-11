@@ -262,7 +262,7 @@ describe('Framework package contracts', () => {
     expect(cncCommands.saveCassetteTemplate).toMatchObject({
       service: 'cassettes',
       action: 'saveTemplate',
-      output: { entities: ['cassette'] }
+      output: { entities: [{ type: 'cassette', persistenceOwner: 'commandOwned', timing: 'immediate' }] }
     });
     expect(cncCommands.generateAttachment).toMatchObject({
       service: 'artifacts',
@@ -290,7 +290,11 @@ describe('Framework package contracts', () => {
     expect(cncDomain.ui.designSystem).toBe(cncDesignSystem);
     expect(cncDesignSystemEntityContracts).toContainEqual(expect.objectContaining({ key: 'cassette', entityType: 'cassette' }));
     expect(cncTasks.nestingSolve).toMatchObject({ id: 'nesting.solve', service: 'nesting' });
-    expect(cncTasks.nestingSolve.output.entities).toEqual(['nesting_run', 'sheet_design']);
+    expect(cncTasks.nestingSolve.output.entities).toEqual([
+      { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'completion' },
+      { type: 'sheet_design', persistenceOwner: 'commandOwned', timing: 'completion' },
+      { type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }
+    ]);
     expect(cncTasks.nestingSolve.output).not.toHaveProperty('attachments');
     expect(cncAttachmentKinds.LAYOUT_DXF).toMatchObject({ bucket: 'nestDxf', preview: { mode: 'dxf' } });
     const endpointMap = createEndpointMap(cncDomain.ui.endpoints);

@@ -295,7 +295,12 @@ describe('process v4 node catalog', () => {
             { name: 'materialMode', type: 'enum', options: ['VIRTUAL', 'WAREHOUSE'] }
           ]
         },
-        output: { entities: ['nesting_run', 'sheet'] }
+        output: {
+          entities: [
+            { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'immediate' },
+            { type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }
+          ]
+        }
       }
     });
 

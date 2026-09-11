@@ -14,7 +14,12 @@ describe('artifact conversion contract', () => {
     });
     expect(cncCommands.convertArtifact).toMatchObject({
       input: { entities: [expect.objectContaining({ name: 'artifact', prompt: false })] },
-      output: { entities: ['artifact', 'cassette_design'] }
+      output: {
+        entities: [
+          expect.objectContaining({ type: 'artifact', persistenceOwner: 'commandOwned', timing: 'immediate' }),
+          expect.objectContaining({ type: 'cassette_design', persistenceOwner: 'commandOwned', timing: 'immediate' })
+        ]
+      }
     });
   });
 });

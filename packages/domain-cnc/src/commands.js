@@ -60,7 +60,7 @@ export const cncCommands = {
     },
     triggers: [{ event: 'cassette.templateSaved' }],
     output: {
-      entities: ['cassette'],
+      entities: [{ type: 'cassette', persistenceOwner: 'commandOwned', timing: 'immediate' }],
       tasks: ['cassette.bakeTemplate'],
       events: ['cassette.templateSaved']
     },
@@ -73,7 +73,6 @@ export const cncCommands = {
     service: 'nesting',
     action: 'solve',
     label: 'Solve nesting',
-    requiredEntityProfiles: ['nesting_run', 'sheet_design', 'sheet'],
     input: {
       entities: [{ name: 'queue', type: 'queue', required: true }],
       parameters: [
@@ -89,7 +88,11 @@ export const cncCommands = {
     },
     triggers: [{ event: 'queue.nestingRequested' }],
     output: {
-      entities: ['nesting_run', 'sheet_design', 'sheet'],
+      entities: [
+        { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'immediate' },
+        { type: 'sheet_design', persistenceOwner: 'commandOwned', timing: 'completion' },
+        { type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }
+      ],
       tasks: ['nesting.solve'],
       events: ['queue.nestingRequested', 'nesting.solveStarted']
     },
@@ -166,7 +169,10 @@ export const cncCommands = {
       ]
     },
     output: {
-      entities: ['artifact', 'cassette_design'],
+      entities: [
+        { type: 'artifact', persistenceOwner: 'commandOwned', timing: 'immediate' },
+        { type: 'cassette_design', persistenceOwner: 'commandOwned', timing: 'immediate' }
+      ],
       events: ['artifact.converted']
     },
     access: {

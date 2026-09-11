@@ -714,9 +714,9 @@ function commandInputSockets(command = {}) {
 
 function commandOutputSockets(command = {}) {
   const outputs = [
-    ...(command.output?.entities || []).map(entityType => socket(
-      entityType,
-      processType('entity', { entityType }),
+    ...(command.output?.entities || []).map(entry => socket(
+      entry?.type,
+      processType('entity', { entityType: entry?.type }),
       DATA,
       false,
       'list'
