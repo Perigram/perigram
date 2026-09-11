@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { advanceProcessRun, createProcessRun, previewProcessDataflow, resumeProcessRun, runProcessUntilSettled } from './orchestration.js';
+import { isMissingField } from './missing-field.js';
 
 function process(records, nodes, edges) {
   return {
@@ -786,6 +787,47 @@ describe('durable process orchestration', () => {
     expect(result.nodes.count.outputs.value.branches[0].items).toEqual([2]);
     expect(result.nodes.effect).toBeUndefined();
     expect(executeEffect).not.toHaveBeenCalled();
+  });
+
+  it('previews secret and opaque values as redacted', async () => {
+    const definition = process([
+      { id: 'secrets', kind: 'source.literalList', value: [{ secretRef: 'vault/1' }, { opaqueType: 'geometry' }, { safe: 1 }] }
+    ], ['secrets'], []);
+    const result = await previewProcessDataflow(definition, {}, { catalogContext });
+    expect(result.nodes.secrets.outputs.value.branches[0].items).toEqual(['[redacted]', '[redacted]', { safe: 1 }]);
+  });
+
+  it('keeps missing fields distinct from present nulls in preview', async () => {
+    const definition = process([
+      { id: 'block', kind: 'source.literalItem', value: { name: null } },
+      { id: 'name', kind: 'record.getField', block: 'identity', path: 'identity.name' },
+      { id: 'reference', kind: 'record.getField', block: 'identity', path: 'identity.reference' }
+    ], ['block', 'name', 'reference'], [
+      data('block', 'name', 'block'),
+      data('block', 'reference', 'block')
+    ]);
+    const result = await previewProcessDataflow(definition, {}, { catalogContext });
+    const [presentNull] = result.nodes.name.outputs.value.branches[0].items;
+    const [missing] = result.nodes.reference.outputs.value.branches[0].items;
+    expect(presentNull).toBeNull();
+    expect(isMissingField(missing)).toBe(true);
+  });
+
+  it('reports branch paths, item counts, and truncation under a preview limit', async () => {
+    const definition = process([
+      {
+        id: 'tree',
+        kind: 'source.literalTree',
+        value: { branches: [{ path: [0], items: [1, 2] }, { path: [1], items: [3] }] }
+      }
+    ], ['tree'], []);
+    const result = await previewProcessDataflow(definition, {}, { catalogContext, previewLimit: 2 });
+    const tree = result.nodes.tree.outputs.value;
+    expect(tree.branchCount).toBe(2);
+    expect(tree.itemCount).toBe(3);
+    expect(tree.truncated).toBe(true);
+    expect(tree.branches[0]).toMatchObject({ path: [0], itemCount: 2, items: [1, 2] });
+    expect(tree.branches[1]).toMatchObject({ path: [1], itemCount: 1, items: [] });
   });
 
 });

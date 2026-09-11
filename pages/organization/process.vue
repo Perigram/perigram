@@ -527,7 +527,10 @@
                     <div v-else class="flex flex-col gap-2">
                       <section v-for="output in selectedNodePreviewOutputs" :key="output.id" class="rounded-ui border border-content-border bg-subtle p-2 text-xs">
                         <div class="mb-2 flex items-center justify-between gap-2">
-                          <strong class="truncate">{{ output.label }}</strong>
+                          <span class="flex min-w-0 items-baseline gap-2">
+                            <strong class="truncate">{{ output.label }}</strong>
+                            <span v-if="output.type" class="shrink-0 text-muted">{{ output.type }}</span>
+                          </span>
                           <span class="text-muted">{{ $t('processDesigner.previewCounts', { branches: output.tree.branchCount, items: output.tree.itemCount }) }}</span>
                         </div>
                         <div v-for="branch in output.tree.branches" :key="branch.path.join(';')" class="mb-1 grid grid-cols-[auto_minmax(0,1fr)] gap-2 last:mb-0">
@@ -1382,11 +1385,15 @@ const selectedNodeSupportsPreview = computed(() => {
 const selectedNodePreviewOutputs = computed(() => {
   const outputs = selectedNodePreview.value?.outputs || {};
   const ports = processNodeOutputs(selectedProcessNode.value || {});
-  return Object.entries(outputs).map(([id, tree]) => ({
-    id,
-    label: ports.find(port => port.id === id)?.label || id,
-    tree
-  }));
+  return Object.entries(outputs).map(([id, tree]) => {
+    const port = ports.find(item => item.id === id);
+    return {
+      id,
+      label: port?.label || id,
+      type: port?.type ? formatProcessType(port.type) : '',
+      tree
+    };
+  });
 });
 const selectedStatusAttachmentEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.attachments || {})
   .map(([key, schema]) => ({ key, schema })));
@@ -1662,8 +1669,16 @@ function formatPreviewPath(path = []) {
   return `{${path.join(';')}}`;
 }
 
+function formatPreviewItem(item) {
+  if (item && typeof item === 'object' && !Array.isArray(item) && item.missing === true) {
+    const path = Array.isArray(item.path) ? item.path.join('.') : String(item.path ?? '');
+    return `missing(${path})`;
+  }
+  return JSON.stringify(item);
+}
+
 function formatPreviewItems(items = []) {
-  return items.map(item => typeof item === 'string' ? JSON.stringify(item) : JSON.stringify(item)).join(', ');
+  return items.map(formatPreviewItem).join(', ');
 }
 
 async function activateDraft() {
